@@ -11,7 +11,23 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
-Nothing open.
+### 2026-08-26 · The share sheet does not say what happens when a member deletes their account
+**Surface:** iOS, Android, web
+**Raised by:** the codebase, while settling how shared content is keyed.
+**What is missing:** the share sheet states one permission, "they can add to it, they can never
+delete what is yours", and that is the whole of what a person is told before they share. It says
+nothing about what happens to their things in that thread if they later delete their account.
+**What the codebase decided:** a shared thread is co-owned and outlives any one member. Deleting
+an account removes that person's private things and their access, and leaves their things inside
+the shared thread in place, because the thread belongs to the others too. Account deletion never
+cascades into a shared thread.
+**Why it needs design:** that is a consequence a person should agree to in advance rather than
+discover afterwards, and it is the kind of thing that reads as a betrayal if it surfaces later.
+It is also the natural counterpart to the permission line that is already there: one sentence
+about what they can do, one about what happens if they go.
+**Design system impact:** needs a second line in the share sheet in all three kits, and probably
+a line in the Ending things settings page, which currently covers deleting an account without
+mentioning shared threads. Copy is design's call, not the codebase's. Not yet done.
 
 ---
 
