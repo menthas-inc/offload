@@ -21,7 +21,7 @@ Check:
 - 44px minimum hit area, which may be larger than the drawn control.
 - Rows and bars take `min-height`, never `height`, because text scales to 200%.
 - Reduced motion removes movement rather than shortening it, handled once, not per component.
-- If the code had to diverge from the kit, code wins, and the same change must append an entry to `.claude/skills/offload-design/decisions.md`. A divergence with no log entry is a finding (OFF-7).
+- If the code had to diverge from the kit, code wins, and the same change must append an entry to `.claude/skills/offload-design/decisions.md`. A divergence with no log entry is a finding, and so is a log entry whose **Design system impact** field is missing: that field is the instruction to whoever updates the kits, and `none` is a valid value while absent is not (OFF-7).
 
 **Contract and divergence.** Client matches the OpenAPI contract, no drift in either direction. Flag any breaking change to an endpoint that shipped mobile clients depend on, since mobile cannot be force-updated.
 

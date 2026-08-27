@@ -11,8 +11,12 @@ case "$cmd" in
     # Set these once the toolchain exists (see docs/tech/stack.md). Skips gracefully while absent.
     TEST_CMD="${PROJECT_TEST_CMD:-}"
     LINT_CMD="${PROJECT_LINT_CMD:-}"
-    if [ -z "$TEST_CMD" ] && [ -f package.json ] && grep -q '"test"' package.json; then TEST_CMD="pnpm test"; fi
-    if [ -z "$LINT_CMD" ] && [ -f package.json ] && grep -q '"lint"' package.json; then LINT_CMD="pnpm lint"; fi
+    # Only fall back to the pnpm scripts once the dependencies are actually there,
+    # otherwise a fresh clone cannot make its first commit.
+    if [ -d node_modules ]; then
+      if [ -z "$TEST_CMD" ] && [ -f package.json ] && grep -q '"test"' package.json; then TEST_CMD="pnpm test"; fi
+      if [ -z "$LINT_CMD" ] && [ -f package.json ] && grep -q '"lint"' package.json; then LINT_CMD="pnpm lint"; fi
+    fi
     if [ -n "$TEST_CMD" ]; then
       echo "pre-commit gate: running $TEST_CMD" >&2
       if ! eval "$TEST_CMD" >&2; then

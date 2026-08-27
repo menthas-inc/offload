@@ -6,7 +6,9 @@ Invite only. Personal accounts, with sharing per thread to people you are connec
 
 ## Repository
 
-Greenfield. This commit is the working harness and the technical decisions; there is no application code yet.
+Greenfield. There is no application code yet, only the working harness, the technical decisions, and the design-adherence lint, which is wired first on purpose: a retyped hex value is the one failure mode that is annoying to unwind later.
+
+Run `pnpm install` then `pnpm lint`.
 
 | Path | What |
 | --- | --- |
@@ -15,6 +17,7 @@ Greenfield. This commit is the working harness and the technical decisions; ther
 | `docs/specs/` | One folder per feature: feature-spec, impl-spec, tasks. |
 | `.claude/` | The agentic coding harness: agents, commands, hooks, scripts. |
 | `.claude/skills/offload-design/` | The design system. Tokens, components, five UI kits, brand decisions. |
+| `eslint.config.mjs` | Design-system adherence, reading the design system's generated rule file at run time. |
 
 ## Planned shape
 

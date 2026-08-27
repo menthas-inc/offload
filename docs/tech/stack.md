@@ -86,6 +86,6 @@ The design system at `.claude/skills/offload-design/` specifies five, all at hig
 - **Monorepo.** TypeScript via pnpm workspaces plus Turborepo; Python via uv. Path-filtered CI per component.
 - **Database access:** Kysely (typed query builder) plus hand-written SQL migrations in the Core API. No heavy ORM: the model is unstructured-first, with JSONB promoted to columns by backfill-heavy migrations, which is where a declarative-diff ORM stops helping. Python reads through SQLAlchemy 2.0 async and writes derived artifacts through a Core API internal endpoint, so there is one writer.
 - **Test runners:** Vitest (TypeScript), pytest (Python). <!-- referenced by the pre-commit gate -->
-- **Lint and format:** ESLint plus Prettier (TypeScript), Ruff (Python), plus `_adherence.oxlintrc.json` from the design system wired into the web and mobile lint step. <!-- referenced by the lint-warn hook -->
+- **Lint and format:** ESLint plus Prettier (TypeScript), Ruff (Python). The design system's `_adherence.oxlintrc.json` is wired into the ESLint flat config at the repo root, read at run time rather than copied, so a design sync propagates with no edit. It enforces the token and component-prop rules. See the entry in `decisions.md`. <!-- referenced by the lint-warn hook -->
 - **Type checking:** `tsc` and pyright.
 - **CI:** GitHub Actions, path-filtered per component.

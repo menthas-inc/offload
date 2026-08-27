@@ -17,7 +17,8 @@ Implement the feature in `docs/specs/$ARGUMENTS/`. Read feature-spec.md, impl-sp
 - Consume design tokens, never retype a value. Use the semantic aliases.
 - Use the product's vocabulary in identifiers as well as copy: thread, thing, memory, dump, sorted, connection.
 - No em dashes anywhere, including comments and commit messages.
-- If the implementation had to diverge from the kit, code wins, and the same change appends one entry to `.claude/skills/offload-design/decisions.md` in the format that file's CONTRIBUTING describes (OFF-7).
+- If the implementation had to diverge from the kit, code wins, and the same change must append one entry to `.claude/skills/offload-design/decisions.md`, newest at the top, under today's date. Fill in **Design system impact** properly: that is the field the design system reads on its next sync, and `none` is a valid value but a missing field is not. The block format is in that folder's `handoff/CONTRIBUTING.md` (OFF-7).
+- If the change is a token value, edit the file under `.claude/skills/offload-design/tokens/` in the same commit. A token value must never exist in two versions.
 
 Stop and ask if the spec is ambiguous or an edge case is not covered. Do not invent product behaviour.
 

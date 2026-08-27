@@ -26,7 +26,7 @@ Five surfaces: iOS, Android, web app, admin panel, marketing site. Invite only, 
 Read `.claude/skills/offload-design/readme.md` in full before building anything with a visual result. It is long because it is the whole system, and almost every question that comes up during the build is answered in it. `handoff/CONTRIBUTING.md` is the working agreement.
 
 Things that bite most often:
-- Consume tokens, never retype a value. Use semantic aliases (`--text-accent`), not ramps (`--moss-600`).
+- Consume tokens, never retype a value. Use semantic aliases (`--text-accent`), not ramps (`--moss-600`). `pnpm lint` enforces this, along with the prop contract of all 21 components, by reading the design system's generated rule file. It is wired already, so a violation is caught rather than discussed.
 - Vocabulary applies to identifiers, not just copy: **thread** holds **things**, plus **memory**, **connection**, **dump**, **sorted**, **Undo**. Never folder, item, space, project, capture, classified. The kits' prototype fixture still says `space` in places; that is residue, not a schema.
 - No em dashes anywhere: UI copy, marketing, comments, commit messages, these docs.
 - Sentence case everywhere. The brand name is lowercase even at the start of a sentence.
@@ -47,7 +47,7 @@ Things that bite most often:
 ## Two decision logs, on purpose
 
 - `docs/tech/decisions.md` is technical: stack, data, infrastructure, auth.
-- `.claude/skills/offload-design/decisions.md` is anything with a visual result, in the format that file's CONTRIBUTING describes. The design system reads it back on a sync.
+- `.claude/skills/offload-design/decisions.md` is anything with a visual result, in the block format that folder's `handoff/CONTRIBUTING.md` describes. Always fill in **Design system impact**: it is the instruction to whoever updates the kits and it is the field the design system reads on its next sync. `none` is a valid value, a missing field is not.
 
 If a change is both, it gets an entry in both.
 
@@ -64,4 +64,4 @@ If a change is both, it gets an entry in both.
 
 ## Status
 
-Greenfield. There is no application code yet. The first specs to write are listed at the bottom of `docs/specs/README.md`, and the open decisions that block them are at the bottom of `docs/tech/decisions.md`.
+Greenfield. There is no application code yet, only the harness, the docs and the design-adherence lint. The first specs to write are listed at the bottom of `docs/specs/README.md`, and the open decisions that block them are at the bottom of `docs/tech/decisions.md`.

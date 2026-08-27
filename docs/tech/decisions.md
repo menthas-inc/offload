@@ -83,6 +83,14 @@ offload starts from superparent's stack rather than from nothing, because most o
 - ✅ **Environments: `main` is production, plus one on-demand staging.** Changed from superparent's dev/staging/prod. `staging.offload.club` is a permanent hostname on a service that sleeps when idle and wakes on request, so mobile builds always have a stable URL without an always-on second stack. Pull requests get a Neon branch and run against staging.
 - ✅ **No IaC at first, on purpose (DEV-3).** Railway config per service in `railway.json`, the rest documented in `docs/local-dev.md`. Revisit when the resource set stops changing weekly. *This is a decision to re-examine, not a permanent stance.*
 
+## Design adherence and tooling
+
+- ✅ **The design system's adherence config runs under ESLint, not oxlint, and is read at run time.** `.claude/skills/offload-design/_adherence.oxlintrc.json` is the machine-readable version of the token rules and its handoff asks for it to be wired into the lint step. It is wired into `eslint.config.mjs` at the repo root, which `require`s the generated file and maps its two rules rather than copying anything out of it, so regenerating it on a design sync propagates with no edit and the generated file is never hand-edited.
+- ⚠️ **Two things about that file are worth reporting back to the design system**, and neither is fixable on our side because the file is generated. First, despite the filename it does not run under oxlint: oxlint 1.80 rejects the non-schema `x-omelette` key outright, and it does not implement `no-restricted-syntax`, which is the rule carrying every token check and every component prop contract. ESLint core implements both, so nothing is lost, but the filename is misleading. Second, the rule messages inside it contain em dashes, which the design system's own non-negotiables forbid.
+- ✅ **Wired before the first component, on purpose.** Retyped hex values are the one failure mode that is annoying to unwind after the fact, so the config is live in an otherwise empty repo. Verified against a probe file: restricted imports, raw hex, raw px and the component prop contracts all fire, and a clean file passes.
+- ✅ **The generated token module is the one exemption.** `packages/tokens/generated/**` is ignored by the hex and px rules, because it is the file that holds those values so nothing else has to.
+- ✅ **The full ESLint pass runs at the pre-commit gate, not after every edit.** `design-guard.sh` covers the fast checks on the file just written. `PROJECT_LINT_CMD` is left unset so the post-edit hook stays quiet, and can be exported to turn it on for a session.
+
 ## Analytics
 
 - ✅ **Event envelope now, warehouse later.** Inherited. Object-verb names (`thing_dumped`, `thing_sorted`, `thread_shared`), a flat typed envelope with `event_id`, `event_name`, `event_version`, `timestamp`, `anonymous_id`, nullable `account_id`, `source`, `platform`, and typed `properties`.
