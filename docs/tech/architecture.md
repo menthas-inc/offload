@@ -19,7 +19,7 @@ Four deployable services in one monorepo, talking over a typed API and a queue.
         ┌────────▼──────────────┐
         │   Core API (Fastify)  │──► Postgres + pgvector (Railway)
         │   authz, schema,      │──► R2 (blobs, pre-signed)
-        │   crypto boundary     │──► Upstash (cache, queue)
+        │   crypto boundary     │──► jobs table (queue, same txn)
         └────┬─────────────┬────┘
              │ sync HTTP   │ enqueue
              │             ▼
@@ -34,7 +34,7 @@ This is the flow the whole product is built around, so it is worth writing down 
 
 1. A person dumps text, a link, a photo, a screenshot or a voice note. The client writes it to its local outbox and shows it immediately. Nothing blocks on the network.
 2. The client uploads any blob straight to R2 with a pre-signed URL, then posts the dump to the Core API.
-3. The Core API writes the thing, encrypted, owned by the account, unsorted. It returns immediately and enqueues a sort job. The person already has what they need.
+3. The Core API writes the thing, owned by the account, unsorted, and enqueues its sort job **in the same transaction**, so a thing can never exist unsorted-and-unqueued. It returns immediately. The person already has what they need.
 4. The worker picks up the job, calls the agent plane, which runs a `sort` tier structured call: which thread does this belong to, what kind of thing is it, does it have a date, does it need the person.
 5. The agent plane writes the derived result back through a Core API internal endpoint, so there stays exactly one writer. The thing gains a thread, tags and an embedding.
 6. The client learns about it through its next poll or a push. The person sees "Saved to Lisbon trip" with one way back, which is Undo.
