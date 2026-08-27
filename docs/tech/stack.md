@@ -34,7 +34,7 @@ The design system at `.claude/skills/offload-design/` specifies five, all at hig
 
 ## Datastores
 
-- **Primary: Postgres on Neon**, with **pgvector** for retrieval over things and memories. Branching per pull request is the reason for Neon specifically: an ephemeral database per PR costs nothing and makes migrations reviewable.
+- **Primary: Postgres on Neon**, with **pgvector** for retrieval over things and memories. Vectors are stored in plaintext while the content they were computed from is encrypted, which is a deliberate and non-obvious asymmetry: see the entry and the GA blocker in `decisions.md`. Branching per pull request is the reason for Neon specifically: an ephemeral database per PR costs nothing and makes migrations reviewable.
 - **Blobs: Cloudflare R2.** Photos, screenshots, voice notes. Client uploads and downloads go through pre-signed URLs so bytes never transit our API. Zero egress fees, which matters for an app whose content is images.
 - **Cache and queue: Upstash Redis.** Session cache, rate limits, and the job queue. No separate broker until there is a reason for one.
 - **Schema posture:** UUIDv7 primary keys (time-ordered, non-enumerable). Every content-bearing row carries `account_id`. Hot append tables (`messages`, `job_runs`, `analytics_events`) get monthly range partitions once they are large enough to care, not before.
@@ -77,7 +77,7 @@ The design system at `.claude/skills/offload-design/` specifies five, all at hig
 
 - **Compute: Railway.** Core API, agent plane, worker and the Next.js app as separate services in one project. Chosen for the deploy experience at this size; every service is a plain container, so leaving is a rebuild of the deploy pipeline and nothing else.
 - **Postgres: Neon. Blobs: Cloudflare R2. Redis and queue: Upstash.** All three are provider-portable: Postgres is Postgres, R2 speaks S3, Upstash speaks Redis.
-- **Encryption:** per-account envelope encryption for content at rest (OFF-2). Data keys wrapped by a root key held outside the database. Provider for the root key is an open decision, see `decisions.md`.
+- **Encryption:** per-account envelope encryption for content columns and blobs (OFF-2). Each account has one data key, wrapped by a root key. Through alpha and beta the root key lives in the database, which is a deliberate shortcut with a named cost and a GA blocker against it, both in `decisions.md`. The schema separates ciphertext, wrapped key and root key from the first migration so moving custody later is one rewrap job.
 - **Environments:** `main` is production. `staging.offload.club` is a permanent hostname on a service that sleeps when idle and wakes on request, so mobile builds always have a stable URL to point at without paying for an always-on second stack. Pull requests get a Neon database branch and run against staging.
 - **IaC:** none at first, on purpose. Railway configuration lives in `railway.json` per service and the rest is documented in `docs/local-dev.md`. Revisit when the resource set stops changing weekly.
 
