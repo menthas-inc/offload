@@ -17,7 +17,7 @@ Four deployable services in one monorepo, talking over a typed API and a queue.
         └────────┬──────────────┘   HTTPS, OpenAPI
                  │
         ┌────────▼──────────────┐
-        │   Core API (Fastify)  │──► Postgres + pgvector (Neon)
+        │   Core API (Fastify)  │──► Postgres + pgvector (Railway)
         │   authz, schema,      │──► R2 (blobs, pre-signed)
         │   crypto boundary     │──► Upstash (cache, queue)
         └────┬─────────────┬────┘

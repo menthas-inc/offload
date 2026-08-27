@@ -47,7 +47,7 @@ Mechanical hooks hard-block secrets and red tests. The design guard warns on the
 
 ## Branches
 
-`main` is production. `staging.offload.club` is a permanent hostname on a service that sleeps when idle and wakes on request. Pull requests get their own database branch.
+`main` is production. `staging.offload.club` is a permanent hostname on a service that sleeps when idle and wakes on request. Pull requests run against an ephemeral seeded Postgres in CI.
 
 ## Start here
 
