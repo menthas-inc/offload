@@ -1,0 +1,10 @@
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--surface-page);color:var(--text-primary);font:var(--text-body-role);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body);-webkit-font-smoothing:antialiased;text-wrap:pretty}
+a{color:var(--text-link);text-decoration:none;border-bottom:1px solid var(--border-strong);transition:border-color var(--transition-ui),color var(--transition-ui)}
+a:hover{color:var(--ink-700);border-bottom-color:var(--ink-950)}
+button{font:inherit;letter-spacing:inherit}
+:focus-visible{outline:2px solid var(--border-focus);outline-offset:2px}
+::selection{background:var(--moss-100)}
+/* The `font:` shorthand resets font-variant-numeric, so anything that sets it
+   must restate tabular figures. This rule covers the elements that opt in. */
+[data-numeric]{font-variant-numeric:tabular-nums}

@@ -1,0 +1,208 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Swipe to delete</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:40px 34px 90px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 8px;max-width:70ch}
+.hint{font-size:13px;color:var(--text-tertiary);margin:0 0 30px}
+h2{font:600 15px/1.3 var(--font-core);margin:34px 0 4px}
+.set{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.v{width:360px}
+.tag{display:flex;align-items:baseline;gap:7px;margin:0 0 6px}
+.tag b{font:600 12px/1 var(--font-core);background:var(--ink-950);color:var(--paper);padding:5px 7px;border-radius:6px}
+.tag span{font-size:13px;color:var(--text-secondary)}
+.dk{margin:0 0 12px;font-size:13px;line-height:1.55;color:var(--text-secondary);min-height:58px}
+.frame{position:relative;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:20px;overflow:hidden;height:290px}
+.list{overflow:hidden}
+.row{position:relative;overflow:hidden;touch-action:pan-y;user-select:none}
+.row+.row .surface{box-shadow:inset 0 1px 0 var(--border-hairline)}
+.back{position:absolute;inset:0;display:flex;align-items:stretch;justify-content:flex-end}
+.act{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:88px;border:none;cursor:pointer;
+  font:500 11.5px/1 var(--font-core);color:var(--paper);background:var(--clay-600)}
+.act.move{background:var(--ink-800)}
+.act i{width:17px;height:17px;background:currentColor;display:block}
+.surface{position:relative;display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--surface-raised);
+  will-change:transform;touch-action:pan-y}
+.surface.snap{transition:transform var(--duration-base) var(--ease-out)}
+.tile{width:34px;height:34px;flex:0 0 auto;border-radius:var(--radius-sm);background:var(--surface-fill);display:flex;align-items:center;justify-content:center}
+.tile i{width:17px;height:17px;background:var(--ink-500);display:block}
+.tx{flex:1;min-width:0}
+.tx b{display:block;font:500 15px/1.35 var(--font-core);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx span{display:block;font-size:12.5px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{width:15px;height:15px;flex:0 0 auto;background:var(--ink-300);display:block}
+.icon{-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+.gone{max-height:0;opacity:0;transition:max-height var(--duration-base) var(--ease-out),opacity var(--duration-fast) var(--ease-out)}
+.keep{max-height:80px;transition:max-height var(--duration-base) var(--ease-out)}
+/* undo toast */
+.toast{position:absolute;left:14px;right:14px;bottom:14px;display:flex;align-items:center;gap:10px;
+  padding:12px 12px 12px 15px;border-radius:var(--radius-sm);background:var(--surface-inverse);color:var(--text-inverse);
+  box-shadow:var(--shadow-3);transform:translateY(140%);transition:transform var(--duration-base) var(--ease-out);overflow:hidden}
+.toast.up{transform:none}
+.toast p{margin:0;flex:1;font:400 13.5px/1.35 var(--font-core)}
+.toast button{border:none;background:none;cursor:pointer;font:600 13.5px/1 var(--font-core);color:var(--paper);padding:6px 4px}
+.toast .bar{position:absolute;left:0;bottom:0;height:2px;background:var(--paper);opacity:.45;width:100%}
+.toast .ring{width:20px;height:20px;flex:0 0 auto;border-radius:999px;border:2px solid rgba(255,255,255,.3);border-top-color:var(--paper)}
+/* in-place undo */
+.slot{display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--surface-fill)}
+.slot p{margin:0;flex:1;font:400 13.5px/1.35 var(--font-core);color:var(--text-secondary)}
+.slot button{border:none;background:none;cursor:pointer;font:600 13.5px/1 var(--font-core);color:var(--text-attention);padding:6px 4px}
+.note{font-size:12px;color:var(--text-tertiary);margin:9px 0 0;line-height:1.5}
+.reset{margin-top:10px;border:1px solid var(--border-hairline);background:var(--surface-raised);border-radius:999px;
+  font:500 12px/1 var(--font-core);padding:8px 12px;cursor:pointer;color:var(--text-secondary)}
+</style></head><body>
+<h1>Swipe to delete</h1>
+<p class="lede">Four ways the gesture can work, each wired to a different undo treatment. Every frame is live: drag a row left with the mouse and let go.</p>
+<p class="hint">Rows come back with the Reset button under each frame.</p>
+
+<div class="set">
+
+<div class="v">
+<div class="tag"><b>A</b><span>reveal, then tap</span></div>
+<p class="dk">Drag left and the row parks open over a red Delete. Nothing is gone until you tap it, so the gesture cannot misfire. Dragging another row closes this one.</p>
+<div class="frame"><div class="list" id="listA"></div><div class="toast" id="toastA"><p>Deleted</p><button>Undo</button></div></div>
+<button class="reset" data-reset="A">Reset rows</button>
+<p class="note">Safest, and the pattern people already know. Two actions to delete one thing.</p>
+</div>
+
+<div class="v">
+<div class="tag"><b>B</b><span>swipe all the way</span></div>
+<p class="dk">A short drag springs back. Past a third of the width the row leaves immediately and the undo toast carries the responsibility, with a bar showing how long you have.</p>
+<div class="frame"><div class="list" id="listB"></div><div class="toast" id="toastB"><p>Deleted</p><button>Undo</button><span class="bar"></span></div></div>
+<button class="reset" data-reset="B">Reset rows</button>
+<p class="note">Fastest for clearing several things. Depends entirely on undo being noticed.</p>
+</div>
+
+<div class="v">
+<div class="tag"><b>C</b><span>two actions</span></div>
+<p class="dk">The same park, but it reveals Move as well as Delete, since half of what you swipe away belongs in another thread rather than in the bin.</p>
+<div class="frame"><div class="list" id="listC"></div><div class="toast" id="toastC"><p>Deleted</p><button>Undo</button></div></div>
+<button class="reset" data-reset="C">Reset rows</button>
+<p class="note">Turns a destructive gesture into a sorting one. Needs a wider drag to reach.</p>
+</div>
+
+<div class="v">
+<div class="tag"><b>D</b><span>swipe, undo in place</span></div>
+<p class="dk">Commits on a full swipe like B, but the row leaves a slim strip in its own slot instead of a toast at the bottom. Undo is exactly where the thing was.</p>
+<div class="frame"><div class="list" id="listD"></div></div>
+<button class="reset" data-reset="D">Reset rows</button>
+<p class="note">Survives deleting several in a row, each keeps its own undo. Costs a little height until it collapses.</p>
+</div>
+
+</div>
+
+<p class="note" style="max-width:70ch;margin-top:30px">A is the conservative choice and C is A with somewhere better to put things. If deleting is meant to feel as cheap as dumping, B or D are the honest answers, and D is the one that survives deleting five things quickly.</p>
+
+<script>
+const ICONS={bookmark:"bookmark",clock:"clock",image:"image",trash:"trash-2",move:"lasso",chevron:"chevron-right"};
+function ic(name,cls){return '<i class="icon '+(cls||'')+'" style="-webkit-mask-image:url(../assets/icons/'+ICONS[name]+'.svg);mask-image:url(../assets/icons/'+ICONS[name]+'.svg)"></i>'}
+const DATA=[
+  {icon:"bookmark",title:"Walnut vs oak, price per metre",meta:"Bookshelf build \u00b7 from Safari"},
+  {icon:"clock",title:"Ana can only travel the 14th to 17th",meta:"Lisbon trip \u00b7 Tuesday"},
+  {icon:"image",title:"Bracket photo, matte black",meta:"Bookshelf build \u00b7 yesterday"},
+  {icon:"bookmark",title:"Miradouro da Senhora do Monte",meta:"Lisbon trip \u00b7 2m ago"}
+];
+const MODE={A:"park",B:"commit",C:"park2",D:"inplace"};
+
+function rowHTML(d,mode){
+  const back=mode==="park2"
+    ? '<button class="act move">'+ic("move")+'Move</button><button class="act">'+ic("trash")+'Delete</button>'
+    : '<button class="act">'+ic("trash")+'Delete</button>';
+  return '<div class="back">'+back+'</div>'+
+    '<div class="surface"><span class="tile">'+ic(d.icon)+'</span>'+
+    '<span class="tx"><b>'+d.title+'</b><span>'+d.meta+'</span></span>'+ic("chevron","chev")+'</div>';
+}
+
+function build(key){
+  const mode=MODE[key];
+  const list=document.getElementById("list"+key);
+  list.innerHTML="";
+  DATA.forEach(d=>{
+    const row=document.createElement("div");
+    row.className="row keep";
+    row.innerHTML=rowHTML(d,mode);
+    list.appendChild(row);
+    wire(row,list,mode,key,d);
+  });
+}
+
+function closeAll(list){
+  list.querySelectorAll(".surface").forEach(s=>{s.classList.add("snap");s.style.transform="none"});
+}
+
+function wire(row,list,mode,key,d){
+  const surface=row.querySelector(".surface");
+  const open=mode==="park2"?176:88;
+  let startX=0,dx=0,dragging=false,parked=false;
+  const commit=()=>{
+    if(mode==="inplace"){
+      row.style.maxHeight=row.offsetHeight+"px";
+      row.classList.remove("keep");
+      const slot=document.createElement("div");
+      slot.className="slot";
+      slot.innerHTML='<p>Deleted</p><button>Undo</button>';
+      row.replaceChildren(slot);
+      const t=setTimeout(()=>{row.classList.add("gone");setTimeout(()=>row.remove(),260)},4200);
+      slot.querySelector("button").onclick=()=>{
+        clearTimeout(t);
+        row.innerHTML=rowHTML(d,mode);
+        wire(row,list,mode,key,d);
+      };
+      return;
+    }
+    row.style.maxHeight=row.offsetHeight+"px";
+    requestAnimationFrame(()=>{row.classList.remove("keep");row.classList.add("gone")});
+    setTimeout(()=>row.remove(),280);
+    toast(key,()=>{
+      const back=document.createElement("div");
+      back.className="row keep";
+      back.innerHTML=rowHTML(d,mode);
+      list.appendChild(back);
+      wire(back,list,mode,key,d);
+    });
+  };
+  surface.addEventListener("pointerdown",e=>{
+    if(e.target.closest(".act"))return;
+    dragging=true;startX=e.clientX;surface.classList.remove("snap");
+    surface.setPointerCapture(e.pointerId);
+    list.querySelectorAll(".surface").forEach(s=>{if(s!==surface){s.classList.add("snap");s.style.transform="none"}});
+  });
+  surface.addEventListener("pointermove",e=>{
+    if(!dragging)return;
+    dx=Math.min(0,e.clientX-startX+(parked?-open:0));
+    surface.style.transform="translateX("+Math.max(dx,-row.offsetWidth)+"px)";
+  });
+  surface.addEventListener("pointerup",()=>{
+    if(!dragging)return;
+    dragging=false;surface.classList.add("snap");
+    const w=row.offsetWidth;
+    if(mode==="park"||mode==="park2"){
+      parked=dx<-open/2;
+      surface.style.transform=parked?"translateX(-"+open+"px)":"none";
+    }else{
+      if(dx<-w/3){surface.style.transform="translateX(-"+w+"px)";setTimeout(commit,120)}
+      else surface.style.transform="none";
+    }
+  });
+  surface.addEventListener("pointercancel",()=>{dragging=false;surface.classList.add("snap");surface.style.transform=parked?"translateX(-"+open+"px)":"none"});
+  row.querySelectorAll(".act").forEach(b=>b.onclick=()=>{
+    if(b.classList.contains("move")){closeAll(list);return}
+    commit();
+  });
+}
+
+const timers={};
+function toast(key,undo){
+  const el=document.getElementById("toast"+key);
+  if(!el)return;
+  clearTimeout(timers[key]);
+  el.classList.add("up");
+  const bar=el.querySelector(".bar");
+  if(bar){bar.style.transition="none";bar.style.width="100%";
+    requestAnimationFrame(()=>{bar.style.transition="width 4.2s linear";bar.style.width="0%"})}
+  el.querySelector("button").onclick=()=>{clearTimeout(timers[key]);el.classList.remove("up");undo()};
+  timers[key]=setTimeout(()=>el.classList.remove("up"),4200);
+}
+
+["A","B","C","D"].forEach(build);
+document.querySelectorAll("[data-reset]").forEach(b=>b.onclick=()=>build(b.dataset.reset));
+</script>
+</body></html>

@@ -1,0 +1,112 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Section headers, options</title>
+<link rel="stylesheet" href="../styles.css?v=3">
+<style>
+body{margin:0;padding:48px 40px 88px;background:var(--surface-sunken);color:var(--text-primary)}
+.wrap{max-width:1240px;margin:0 auto}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;color:var(--text-secondary);max-width:70ch;margin:0 0 34px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start}
+.opt{background:var(--paper);border:1px solid var(--border-hairline);border-radius:var(--radius-lg);overflow:hidden}
+.oh{padding:16px 18px 14px;border-bottom:1px solid var(--border-hairline)}
+.on{font:var(--text-title-3);letter-spacing:var(--tracking-title)}
+.od{font-size:13px;line-height:1.45;color:var(--text-secondary);margin:5px 0 0}
+.num{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.rec{display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:var(--radius-xs);background:var(--surface-inverse);color:var(--text-inverse);font:500 11px/1 var(--font-core);margin-left:6px;vertical-align:2px}
+.demo{padding-bottom:14px}
+/* shared row bits */
+.row{display:flex;align-items:flex-start;gap:11px;padding:11px 18px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.row:last-of-type{box-shadow:none}
+.dot{width:22px;height:22px;border-radius:999px;background:var(--surface-attention-soft);flex:0 0 auto;margin-top:1px}
+.dot.n{background:var(--surface-fill)}
+.rt{flex:1;min-width:0}
+.rt b{display:block;font:500 15px/1.35 var(--font-core);letter-spacing:-0.006em}
+.rt span{display:block;font-size:13px;line-height:1.4;color:var(--text-secondary)}
+.pill{font:500 12px/1 var(--font-core);background:var(--surface-attention-soft);color:var(--text-on-attention);padding:4px 7px;border-radius:var(--radius-xs);flex:0 0 auto}
+.cal{padding:0 18px 4px}
+.day{display:flex;align-items:baseline;gap:10px;font-size:13px;font-weight:500}
+.day em{font-style:normal;font-size:12px;color:var(--text-tertiary)}
+.day i{margin-left:auto;font-style:normal;font-size:12px;color:var(--text-tertiary)}
+.track{position:relative;height:52px;margin-top:14px;border-top:1px solid var(--border-hairline);border-bottom:1px solid var(--border-hairline)}
+.track u{position:absolute;top:0;bottom:0;border-left:1px solid var(--ink-50);text-decoration:none}
+.track u.on{border-left-color:var(--border-hairline)}
+.track u b{position:absolute;top:-15px;left:0;font:400 10px/12px var(--font-core);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.ev{position:absolute;top:6px;bottom:6px;border-radius:var(--radius-xs);background:var(--ink-100);border-left:2px solid var(--ink-900)}
+.ev.b{background:var(--blue-100);border-left-color:var(--blue-600)}
+.evl{position:absolute;top:0;bottom:0;display:flex;align-items:center;font:500 11px/1.25 var(--font-core)}
+</style></head><body><div class="wrap"><h1>Section headers, six treatments</h1>
+<p class="lede">Each option is the same two sections, Priority and On the clock, so you can compare how well the header separates them and whether the calendar still feels cramped. All six give the calendar more room above the day label than it has now.</p>
+<div class="grid">
+<div class="opt">
+<div class="oh"><span class="on">1. What we have now</span><span class="rec">current</span><p class="od">12px uppercase tertiary, 16px above and 8px below. Smaller and lighter than the content it introduces, so it reads as a caption rather than a divider.</p></div>
+<div class="demo"><div style="display:flex;align-items:baseline;justify-content:space-between;padding:16px 18px 8px"><span style="font:500 12px/1 var(--font-core);letter-spacing:0.08em;text-transform:uppercase;color:var(--text-tertiary)">PRIORITY</span><span style="font:500 13px/1 var(--font-core);color:var(--text-secondary)">8</span></div>
+<div class="row"><span class="dot"></span><span class="rt"><b>Ana needs an answer on the 14th to 17th</b><span>Lisbon trip · asked Tuesday</span></span><span class="pill">today</span></div>
+<div class="row"><span class="dot n"></span><span class="rt"><b>Order the oak brackets</b><span>Bookshelf build · sale ends Friday</span></span></div><div style="display:flex;align-items:baseline;justify-content:space-between;padding:16px 18px 8px"><span style="font:500 12px/1 var(--font-core);letter-spacing:0.08em;text-transform:uppercase;color:var(--text-tertiary)">ON THE CLOCK</span><span style="font:500 13px/1 var(--font-core);color:var(--text-secondary)">Open calendar</span></div>
+<div class="cal">
+<div class="day">Today <em>Tue 11 Aug</em><i>4 things</i></div>
+<div class="track">
+<u style="left:0"><b>07</b></u><u style="left:48px"></u><u style="left:96px"></u><u class="on" style="left:144px"><b>10</b></u><u style="left:192px"></u><u style="left:240px"></u>
+<span class="ev" style="left:120px;width:21px"></span><span class="evl" style="left:146px">Standup</span>
+<span class="ev b" style="left:240px;width:21px"></span><span class="evl" style="left:266px;color:var(--blue-900)">Call with Ana</span>
+</div></div></div></div>
+<div class="opt">
+<div class="oh"><span class="on">2. Plain and large</span><p class="od">21px semibold ink, sentence case, 26px above. The header is now the biggest thing in its band, so hierarchy is unambiguous. Costs the most vertical space.</p></div>
+<div class="demo"><div style="display:flex;align-items:baseline;justify-content:space-between;padding:26px 18px 10px"><span style="font:600 21px/1.15 var(--font-core);letter-spacing:-0.014em;color:var(--ink-950)">Priority</span><span style="font:500 13px/1 var(--font-core);color:var(--text-secondary)">8</span></div>
+<div class="row"><span class="dot"></span><span class="rt"><b>Ana needs an answer on the 14th to 17th</b><span>Lisbon trip · asked Tuesday</span></span><span class="pill">today</span></div>
+<div class="row"><span class="dot n"></span><span class="rt"><b>Order the oak brackets</b><span>Bookshelf build · sale ends Friday</span></span></div><div style="display:flex;align-items:baseline;justify-content:space-between;padding:26px 18px 10px"><span style="font:600 21px/1.15 var(--font-core);letter-spacing:-0.014em;color:var(--ink-950)">On the clock</span><span style="font:500 13px/1 var(--font-core);color:var(--text-secondary)">Open calendar</span></div>
+<div class="cal">
+<div class="day">Today <em>Tue 11 Aug</em><i>4 things</i></div>
+<div class="track">
+<u style="left:0"><b>07</b></u><u style="left:48px"></u><u style="left:96px"></u><u class="on" style="left:144px"><b>10</b></u><u style="left:192px"></u><u style="left:240px"></u>
+<span class="ev" style="left:120px;width:21px"></span><span class="evl" style="left:146px">Standup</span>
+<span class="ev b" style="left:240px;width:21px"></span><span class="evl" style="left:266px;color:var(--blue-900)">Call with Ana</span>
+</div></div></div></div>
+<div class="opt">
+<div class="oh"><span class="on">3. Underlined</span><p class="od">17px semibold over a full ink hairline. The line does the separating, so the type can stay moderate. Reads editorial and holds up when sections are short.</p></div>
+<div class="demo"><div style="margin:26px 18px 12px;padding-bottom:8px;border-bottom:1px solid var(--ink-950);display:flex;align-items:baseline;justify-content:space-between"><span style="font:600 17px/1.2 var(--font-core);letter-spacing:-0.014em">Priority</span><span style="font:400 12px/1 var(--font-core);color:var(--text-tertiary)">8</span></div>
+<div class="row"><span class="dot"></span><span class="rt"><b>Ana needs an answer on the 14th to 17th</b><span>Lisbon trip · asked Tuesday</span></span><span class="pill">today</span></div>
+<div class="row"><span class="dot n"></span><span class="rt"><b>Order the oak brackets</b><span>Bookshelf build · sale ends Friday</span></span></div><div style="margin:26px 18px 12px;padding-bottom:8px;border-bottom:1px solid var(--ink-950);display:flex;align-items:baseline;justify-content:space-between"><span style="font:600 17px/1.2 var(--font-core);letter-spacing:-0.014em">On the clock</span><span style="font:400 12px/1 var(--font-core);color:var(--text-tertiary)">Open calendar</span></div>
+<div class="cal">
+<div class="day">Today <em>Tue 11 Aug</em><i>4 things</i></div>
+<div class="track">
+<u style="left:0"><b>07</b></u><u style="left:48px"></u><u style="left:96px"></u><u class="on" style="left:144px"><b>10</b></u><u style="left:192px"></u><u style="left:240px"></u>
+<span class="ev" style="left:120px;width:21px"></span><span class="evl" style="left:146px">Standup</span>
+<span class="ev b" style="left:240px;width:21px"></span><span class="evl" style="left:266px;color:var(--blue-900)">Call with Ana</span>
+</div></div></div></div>
+<div class="opt">
+<div class="oh"><span class="on">4. Banded</span><p class="od">13px semibold on a sunken strip with hairlines top and bottom. Unmistakable separation and the most compact of the strong options. Slightly more chrome than the brand usually allows.</p></div>
+<div class="demo"><div style="margin-top:24px;padding:9px 18px;background:var(--surface-sunken);box-shadow:inset 0 -1px 0 var(--border-hairline),inset 0 1px 0 var(--border-hairline);display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px"><span style="font:600 13px/1.2 var(--font-core);letter-spacing:0.01em">Priority</span><span style="font:400 12px/1 var(--font-core);color:var(--text-secondary)">8</span></div>
+<div class="row"><span class="dot"></span><span class="rt"><b>Ana needs an answer on the 14th to 17th</b><span>Lisbon trip · asked Tuesday</span></span><span class="pill">today</span></div>
+<div class="row"><span class="dot n"></span><span class="rt"><b>Order the oak brackets</b><span>Bookshelf build · sale ends Friday</span></span></div><div style="margin-top:24px;padding:9px 18px;background:var(--surface-sunken);box-shadow:inset 0 -1px 0 var(--border-hairline),inset 0 1px 0 var(--border-hairline);display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px"><span style="font:600 13px/1.2 var(--font-core);letter-spacing:0.01em">On the clock</span><span style="font:400 12px/1 var(--font-core);color:var(--text-secondary)">Open calendar</span></div>
+<div class="cal">
+<div class="day">Today <em>Tue 11 Aug</em><i>4 things</i></div>
+<div class="track">
+<u style="left:0"><b>07</b></u><u style="left:48px"></u><u style="left:96px"></u><u class="on" style="left:144px"><b>10</b></u><u style="left:192px"></u><u style="left:240px"></u>
+<span class="ev" style="left:120px;width:21px"></span><span class="evl" style="left:146px">Standup</span>
+<span class="ev b" style="left:240px;width:21px"></span><span class="evl" style="left:266px;color:var(--blue-900)">Call with Ana</span>
+</div></div></div></div>
+<div class="opt">
+<div class="oh"><span class="on">5. Title and count pill</span><p class="od">17px semibold with the count in a grey pill instead of a right-aligned label. Keeps the number from competing with a text action like "Open calendar".</p></div>
+<div class="demo"><div style="display:flex;align-items:center;gap:9px;padding:26px 18px 12px"><span style="font:600 17px/1.2 var(--font-core);letter-spacing:-0.014em">Priority</span><span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--surface-fill);font:500 12px/1 var(--font-core);color:var(--text-secondary);font-variant-numeric:tabular-nums">8</span><span style="flex:1"></span></div>
+<div class="row"><span class="dot"></span><span class="rt"><b>Ana needs an answer on the 14th to 17th</b><span>Lisbon trip · asked Tuesday</span></span><span class="pill">today</span></div>
+<div class="row"><span class="dot n"></span><span class="rt"><b>Order the oak brackets</b><span>Bookshelf build · sale ends Friday</span></span></div><div style="display:flex;align-items:center;gap:9px;padding:26px 18px 12px"><span style="font:600 17px/1.2 var(--font-core);letter-spacing:-0.014em">On the clock</span><span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--surface-fill);font:500 12px/1 var(--font-core);color:var(--text-secondary);font-variant-numeric:tabular-nums">Open calendar</span><span style="flex:1"></span></div>
+<div class="cal">
+<div class="day">Today <em>Tue 11 Aug</em><i>4 things</i></div>
+<div class="track">
+<u style="left:0"><b>07</b></u><u style="left:48px"></u><u style="left:96px"></u><u class="on" style="left:144px"><b>10</b></u><u style="left:192px"></u><u style="left:240px"></u>
+<span class="ev" style="left:120px;width:21px"></span><span class="evl" style="left:146px">Standup</span>
+<span class="ev b" style="left:240px;width:21px"></span><span class="evl" style="left:266px;color:var(--blue-900)">Call with Ana</span>
+</div></div></div></div>
+<div class="opt">
+<div class="oh"><span class="on">6. Title with a rule to the edge</span><p class="od">17px semibold, a hairline filling the gap, meta at the far right. Quiet but clearly a break, and the rule visually caps the section above it.</p></div>
+<div class="demo"><div style="display:flex;align-items:baseline;gap:12px;padding:26px 18px 12px"><span style="font:600 17px/1.2 var(--font-core);letter-spacing:-0.014em;flex:0 0 auto">Priority</span><span style="flex:1;height:1px;background:var(--border-hairline)"></span><span style="font:400 12px/1 var(--font-core);color:var(--text-tertiary);flex:0 0 auto">8</span></div>
+<div class="row"><span class="dot"></span><span class="rt"><b>Ana needs an answer on the 14th to 17th</b><span>Lisbon trip · asked Tuesday</span></span><span class="pill">today</span></div>
+<div class="row"><span class="dot n"></span><span class="rt"><b>Order the oak brackets</b><span>Bookshelf build · sale ends Friday</span></span></div><div style="display:flex;align-items:baseline;gap:12px;padding:26px 18px 12px"><span style="font:600 17px/1.2 var(--font-core);letter-spacing:-0.014em;flex:0 0 auto">On the clock</span><span style="flex:1;height:1px;background:var(--border-hairline)"></span><span style="font:400 12px/1 var(--font-core);color:var(--text-tertiary);flex:0 0 auto">Open calendar</span></div>
+<div class="cal">
+<div class="day">Today <em>Tue 11 Aug</em><i>4 things</i></div>
+<div class="track">
+<u style="left:0"><b>07</b></u><u style="left:48px"></u><u style="left:96px"></u><u class="on" style="left:144px"><b>10</b></u><u style="left:192px"></u><u style="left:240px"></u>
+<span class="ev" style="left:120px;width:21px"></span><span class="evl" style="left:146px">Standup</span>
+<span class="ev b" style="left:240px;width:21px"></span><span class="evl" style="left:266px;color:var(--blue-900)">Call with Ana</span>
+</div></div></div></div>
+</div>
+<p class="lede" style="margin-top:34px;max-width:78ch"><b style="color:var(--text-primary);font-weight:600">My read.</b> Option 3 or 6. Both fix all three of your complaints: sentence case at 17px semibold in ink is larger and darker than the row titles it introduces, and the hairline gives the eye a real edge so the calendar stops colliding with the header above it. Option 3 is the firmer of the two; option 6 is lighter and leaves room for a right-hand action. Option 2 is the most obvious hierarchy but eats a lot of height on a screen with five sections. Option 4 works but adds a filled band, which is more chrome than anything else in the system.</p></div></body></html>

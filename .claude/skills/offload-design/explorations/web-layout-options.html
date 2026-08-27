@@ -1,0 +1,346 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>offload on the web, layout options</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:44px 40px 90px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.55;color:var(--text-secondary);margin:0 0 8px;max-width:76ch}
+.lede code{font-size:14px}
+h2{font:600 19px/1.3 var(--font-core);margin:46px 0 4px}
+.why{font-size:14px;line-height:1.6;color:var(--text-secondary);margin:0 0 16px;max-width:82ch}
+.why b{color:var(--text-primary);font-weight:500}
+.note{font-size:12.5px;color:var(--text-tertiary);margin:12px 0 0;line-height:1.55;max-width:82ch}
+.tag{display:inline-flex;align-items:baseline;gap:8px;margin:0 0 6px}
+.tag b{font:600 12px/1 var(--font-core);background:var(--ink-950);color:var(--paper);padding:5px 7px;border-radius:6px}
+.tag span{font-size:13px;color:var(--text-secondary)}
+/* Every frame is a real 1512x920 window, scaled to fit the page. */
+.hold{width:952px;height:580px;overflow:hidden;border-radius:14px;border:1px solid var(--border-hairline);background:var(--surface-page)}
+.hold.crop{border-radius:0;border-left-width:1px;border-right-width:1px}
+.hold.crop.top{border-radius:14px 14px 0 0;border-bottom:none}
+.hold.crop.bot{border-radius:0 0 14px 14px;border-top:none}
+.win{width:1512px;height:920px;transform:scale(.6296);transform-origin:top left;display:flex;background:var(--surface-page);
+  font:400 15px/1.45 var(--font-core);color:var(--text-primary);position:relative}
+.pair{display:flex;flex-direction:column;gap:22px}
+.pair .tag{margin-bottom:8px}
+/* chrome */
+.tb{display:flex;align-items:center;gap:8px;height:38px;padding:0 14px;flex:0 0 auto}
+.tl{width:11px;height:11px;border-radius:999px;background:var(--ink-200)}
+.side{width:248px;flex:0 0 auto;display:flex;flex-direction:column;padding:0 0 14px;box-shadow:inset -1px 0 0 var(--border-hairline)}
+.side.narrow{width:216px}
+.mark{display:flex;align-items:center;gap:9px;font:600 19px/1 var(--font-core);letter-spacing:-.02em;padding:10px 20px 20px}
+.mark svg{display:block;flex:0 0 auto}
+.nav{display:flex;flex-direction:column;gap:2px;padding:0 10px}
+.nv{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:10px;font:500 14.5px/1 var(--font-core);color:var(--text-secondary)}
+.nv .lu{width:17px;height:17px;flex:0 0 auto}
+.nv.on{background:var(--surface-fill);color:var(--text-primary)}
+.nv em{margin-left:auto;font-style:normal;font-size:12.5px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.sl{font:500 11.5px/1 var(--font-core);color:var(--text-tertiary);padding:22px 20px 8px}
+.foot{margin-top:auto;padding:0 10px}
+/* content column */
+.col{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+.head{display:flex;align-items:center;gap:12px;padding:14px 0 0;flex:0 0 auto}
+.h1{font:600 25px/1.2 var(--font-core);letter-spacing:-.016em}
+.h1 small{display:block;font:400 13.5px/1.4 var(--font-core);color:var(--text-secondary);letter-spacing:0;margin-top:3px}
+.body{flex:1;min-height:0;overflow:hidden;padding:0 0 16px}
+.inner{max-width:764px;margin:0 auto;padding:0 40px}
+.wide{padding:0 40px}
+/* sections */
+.sec{display:flex;align-items:center;gap:9px;padding-bottom:8px;margin:26px 0 4px;border-bottom:1px solid var(--ink-950)}
+.sec b{font:600 19px/1.2 var(--font-core);letter-spacing:-.012em}
+.sec.accent{border-bottom-color:var(--moss-600)}
+.cnt{font:500 11.5px/1 var(--font-core);background:var(--surface-attention);color:var(--text-on-solid);padding:5px 8px;border-radius:999px;font-variant-numeric:tabular-nums}
+.cnt.accent{background:var(--surface-accent-soft);color:var(--text-accent)}
+.cnt.q{background:var(--surface-fill);color:var(--text-secondary)}
+.act{margin-left:auto;font:500 13px/1 var(--font-core);color:var(--text-secondary)}
+/* rows */
+.li{display:flex;align-items:flex-start;gap:14px;padding:13px 0;box-shadow:inset 0 -1px 0 var(--border-hairline);position:relative}
+.li:last-child{box-shadow:none}
+.tile{width:32px;height:32px;flex:0 0 auto;border-radius:9px;background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;margin-top:1px}
+.tile .lu{width:15px;height:15px}
+.tile.hot{background:var(--surface-attention);color:var(--text-on-solid)}
+.tx{flex:1;min-width:0}
+.tx b{display:block;font:500 15.5px/1.35 var(--font-core)}
+.tx span{display:block;font-size:13px;color:var(--text-secondary);margin-top:2px}
+.due{flex:0 0 auto;font:500 11.5px/1 var(--font-core);padding:5px 8px;border-radius:999px;background:var(--surface-attention);color:var(--text-on-solid);margin-top:3px}
+.due.q{background:var(--surface-fill);color:var(--text-secondary)}
+.tools{display:flex;gap:4px;flex:0 0 auto;margin-top:1px}
+.tool{width:28px;height:28px;border-radius:8px;background:var(--surface-fill);color:var(--text-tertiary);display:flex;align-items:center;justify-content:center}
+.tool .lu{width:14px;height:14px}
+.num{flex:0 0 auto;font:500 14px/1 var(--font-core);color:var(--text-secondary);font-variant-numeric:tabular-nums;margin-top:4px}
+.chk{width:17px;height:17px;flex:0 0 auto;border-radius:5px;border:1.5px solid var(--ink-300);margin-top:9px}
+.chk.on{background:var(--blue-600);border-color:var(--blue-600)}
+/* composer */
+.comp{flex:0 0 auto;padding:10px 40px 22px}
+.pill{display:flex;align-items:center;gap:10px;min-height:50px;border:1px solid var(--border-focus);border-radius:25px;padding:0 10px 0 20px;background:var(--surface-input)}
+.pill .g{flex:1;min-width:0;font-size:15px;color:var(--text-tertiary)}
+.ib{width:34px;height:34px;border-radius:999px;background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.ib .lu{width:16px;height:16px}
+.ib.send{background:var(--blue-600);color:var(--text-on-solid)}
+.topbar{display:flex;align-items:center;gap:14px;padding:12px 40px 14px;flex:0 0 auto}
+.topbar .pill{flex:1;min-height:44px;border-radius:22px}
+.kbd{font:500 11.5px/1 var(--font-core);color:var(--text-tertiary);border:1px solid var(--border-hairline);border-radius:6px;padding:5px 7px;background:var(--surface-raised)}
+/* list pane */
+.pane{width:392px;flex:0 0 auto;display:flex;flex-direction:column;box-shadow:inset -1px 0 0 var(--border-hairline);background:var(--surface-page)}
+.pane.thin{width:344px}
+.pane .ph{display:flex;align-items:center;gap:10px;padding:16px 20px 12px;flex:0 0 auto}
+.pane .ph b{font:600 17px/1.2 var(--font-core);flex:1}
+.pl{padding:0 20px}
+.plr{display:flex;gap:12px;padding:12px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.plr.on{background:var(--surface-fill);box-shadow:none;border-radius:10px;padding:12px;margin:0 -12px}
+.plr .tx b{font-size:14.5px}
+.plr .tx span{font-size:12.5px}
+/* detail */
+.det{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--surface-raised)}
+.dh{padding:22px 32px 0;flex:0 0 auto}
+.dh .t{font:600 23px/1.25 var(--font-core);letter-spacing:-.014em}
+.blurb{font:var(--text-quiet-role);font-size:15.5px;line-height:1.5;color:var(--text-secondary);margin-top:8px;max-width:62ch}
+.dbody{flex:1;min-height:0;overflow:hidden;padding:0 32px}
+/* board */
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:6px 40px 0;align-items:start;flex:1;min-height:0}
+.cd{flex:1 1 0;min-width:0;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:16px;padding:0 16px 8px;box-shadow:var(--shadow-1)}
+.cd .ch{display:flex;align-items:center;gap:8px;padding:15px 0 10px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.cd .ch b{font:600 15.5px/1.2 var(--font-core);flex:1}
+.cd .li{padding:11px 0;gap:11px}
+.cd .tx b{font-size:14px}
+.cd .tx span{font-size:12px}
+.cd .tile{width:26px;height:26px;border-radius:8px}
+.cd .tile .lu{width:13px;height:13px}
+/* agenda */
+.ag{display:flex;gap:12px;padding:9px 0;align-items:baseline}
+.ag .h{font-variant-numeric:tabular-nums;font-size:13px;color:var(--text-secondary);width:132px;flex:0 0 auto}
+.ag .n{font-size:14.5px}
+.ag.free{color:var(--text-secondary)}
+.agbar{width:3px;align-self:stretch;border-radius:999px;background:var(--moss-500);flex:0 0 auto}
+/* chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap;padding:6px 0 2px}
+.chip{font:500 13px/1 var(--font-core);padding:8px 12px;border-radius:999px;background:var(--surface-fill);color:var(--text-secondary)}
+.chip.moss{background:var(--surface-accent-soft);color:var(--text-accent)}
+.chip.blue{background:var(--blue-50);color:var(--blue-700)}
+.chip.amber{background:var(--amber-100);color:var(--amber-700)}
+/* sheet + palette overlays */
+.scrim{position:absolute;inset:0;background:rgba(11,11,11,.22)}
+.sheet{position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:760px;height:62%;background:var(--surface-raised);
+  border-radius:26px 26px 0 0;box-shadow:var(--shadow-sheet);display:flex;flex-direction:column;padding:0 0 14px}
+.grab{width:38px;height:4px;border-radius:2px;background:var(--ink-200);margin:9px auto 6px}
+.turns{flex:1;min-height:0;padding:8px 24px;display:flex;flex-direction:column;gap:20px;overflow:hidden}
+.you{align-self:flex-end;max-width:74%;padding:11px 16px;border-radius:18px 18px 5px 18px;background:var(--blue-50);border:1px solid var(--blue-100)}
+.them{align-self:flex-start;max-width:88%;padding:13px 16px;border-radius:18px 18px 18px 5px;background:var(--ink-50);
+  font:var(--text-quiet-role);font-size:15.5px;line-height:1.5}
+.pal{position:absolute;left:50%;top:96px;transform:translateX(-50%);width:640px;background:var(--surface-raised);
+  border:1px solid var(--border-hairline);border-radius:16px;box-shadow:0 24px 60px rgba(11,11,11,.22);overflow:hidden}
+.pal .q{display:flex;align-items:center;gap:12px;padding:16px 20px;box-shadow:inset 0 -1px 0 var(--border-hairline);font-size:16px;color:var(--text-tertiary)}
+.pal .q .lu{width:17px;height:17px;color:var(--text-tertiary)}
+.pr{display:flex;align-items:center;gap:12px;padding:11px 20px;font-size:14.5px}
+.pr.on{background:var(--surface-fill)}
+.pr .lu{width:16px;height:16px;color:var(--text-secondary);flex:0 0 auto}
+.pr em{margin-left:auto;font-style:normal;font-size:12px;color:var(--text-tertiary)}
+.lu{display:inline-block;background:currentColor;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
+</style></head><body>
+<h1>offload on the web</h1>
+<p class="lede">Four structures, each drawn as a real 1512&times;920 window and scaled to fit this page. Every string, count and badge is read from the app's own <code>data.js</code>, so these are the same eleven threads and the same priority rows you already reviewed on iOS and Android.</p>
+<p class="lede">What is settled: generous density, the conversation as an overlay sheet, and swipe replaced by explicit controls that appear on hover. What is open: the structure itself, where the composer lives, and how many columns Today gets. Options for the last two are drawn under the four.</p>
+
+<div id="out"></div>
+
+<script src="../ui_kits/mobile_app/data.js"></script>
+<script>
+const D=window.OFFLOAD_DATA,TV=D.today_view;
+const SP=k=>D.spaces.filter(s=>s.kind===k);
+const MARK='<svg width="21" height="21" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/></svg>';
+function ic(n,c){return '<i class="lu '+(c||"")+'" style="-webkit-mask-image:url(../assets/icons/'+n+'.svg);mask-image:url(../assets/icons/'+n+'.svg)"></i>'}
+function tools(list){return '<span class="tools">'+list.map(n=>'<span class="tool">'+ic(n)+'</span>').join("")+'</span>'}
+
+/* One row vocabulary for every option, so the comparison is structural. */
+function row(r,o){o=o||{};
+  return '<div class="li">'+(o.check?'<span class="chk'+(r.done?" on":"")+'"></span>':'')+
+    (o.noTile?'':'<span class="tile'+(r.hot?" hot":"")+'">'+ic(r.icon||"bookmark")+'</span>')+
+    '<span class="tx"><b>'+r.title+'</b>'+(r.meta?'<span>'+r.meta+'</span>':'')+'</span>'+
+    (o.tools?tools(o.tools):'')+
+    (r.num!==undefined?'<span class="num">'+r.num+'</span>':'')+
+    (r.due?'<span class="due'+(r.hot?"":" q")+'">'+r.due+'</span>':'')+'</div>';
+}
+const PRI=TV.priority.map(p=>({icon:p.icon,hot:p.tone==="attention",title:p.title,meta:p.thread+" \u00b7 "+p.meta,due:p.due}));
+const OTHER=TV.other.map(o=>({icon:o.icon,title:o.title,meta:o.meta}));
+const THREADS=D.spaces.map(s=>({icon:s.icon,title:s.name,meta:s.meta,num:s.count}));
+
+function sec(label,count,tone,action){
+  return '<div class="sec'+(tone?" "+tone:"")+'"><b>'+label+'</b>'+
+    (count!==undefined?'<span class="cnt'+(tone==="accent"?" accent":"")+'">'+count+'</span>':'')+
+    (action?'<span class="act">'+action+'</span>':'')+'</div>';
+}
+function agenda(){
+  return '<div class="ag"><span class="h">9:30 \u2013 10:00</span><span class="n">Standup</span></div>'+
+    '<div class="ag free"><span class="agbar"></span><span class="h">10:00 \u2013 1:00</span><span class="n">3hrs free</span></div>'+
+    '<div class="ag"><span class="h">1:00 \u2013 1:30</span><span class="n">Call with Ana</span></div>';
+}
+function digest(t){
+  return '<div class="li"><span class="tile">'+ic("lasso")+'</span><span class="tx"><b>'+t.name+'</b>'+
+    '<span>'+t.items.slice(0,1).map(i=>i.text||i.title).join("")+'</span></span>'+
+    '<span class="due q">+'+t.added+'</span></div>';
+}
+const MOVED=TV.threads.map(t=>({name:t.name,added:t.added,items:t.items||[]}));
+
+function sidebar(narrow){
+  const nav=[["sun","Today",true,""],["lasso","My things",false,"11"],["cloudy","Memories",false,"34"]];
+  return '<div class="side'+(narrow?" narrow":"")+'"><div class="mark">'+MARK+'offload</div>'+
+    '<div class="nav">'+nav.map(([i,l,on,n])=>'<div class="nv'+(on?" on":"")+'">'+ic(i)+l+(n?'<em>'+n+'</em>':'')+'</div>').join("")+'</div>'+
+    '<div class="sl">Pinned</div><div class="nav">'+
+      SP("now").slice(0,3).map(s=>'<div class="nv">'+ic(s.icon)+s.name+'</div>').join("")+'</div>'+
+    '<div class="foot"><div class="nav"><div class="nv">'+ic("bell")+'Activity<em>3</em></div>'+
+      '<div class="nv">'+ic("settings")+'Settings</div></div></div></div>';
+}
+function composer(where){
+  const p='<div class="pill"><span class="g">Dump anything</span><span class="ib">'+ic("camera")+'</span>'+
+    '<span class="ib">'+ic("mic")+'</span><span class="ib send">'+ic("arrow-up")+'</span></div>';
+  if(where==="top")return '<div class="topbar">'+p+'<span class="kbd">\u2318K</span></div>';
+  return '<div class="comp"><div style="max-width:764px;margin:0 auto;padding:0">'+p+'</div></div>';
+}
+function todayHead(){
+  return '<div class="head"><div class="inner" style="padding-top:6px"><div class="h1">Today<small>Tue 11 Aug \u00b7 sunset 19:00</small></div></div></div>';
+}
+
+/* A. One column on a sidebar. */
+function optA(){
+  return '<div class="win">'+sidebar()+
+    '<div class="col">'+todayHead()+
+    '<div class="body"><div class="inner">'+
+      PRI.slice(0,3).map(r=>row(r,{tools:["archive","trash-2"]})).join("")+
+      sec("What moved",MOVED.length,"accent")+MOVED.map(digest).join("")+
+      sec("On the clock",undefined,null,"Open calendar")+agenda()+
+    '</div></div>'+composer()+'</div></div>';
+}
+/* B. Two panes. */
+function optB(){
+  const t=D.spaces[0],c=D.lisbon,st=D.standing.lisbon;
+  return '<div class="win">'+
+    '<div class="pane"><div class="ph">'+MARK+'<b>Today</b><span class="ib">'+ic("search")+'</span></div>'+
+    '<div class="pl">'+PRI.map((r,i)=>'<div class="plr'+(i===0?" on":"")+'"><span class="tile'+(r.hot?" hot":"")+'">'+ic(r.icon)+'</span>'+
+      '<span class="tx"><b>'+r.title+'</b><span>'+r.meta+'</span></span></div>').join("")+
+      OTHER.slice(0,3).map(r=>'<div class="plr"><span class="tile">'+ic(r.icon)+'</span><span class="tx"><b>'+r.title+'</b><span>'+r.meta+'</span></span></div>').join("")+
+    '</div>'+composer()+'</div>'+
+    '<div class="det"><div class="dh"><div class="t">'+t.name+'</div>'+
+      '<div class="blurb">'+st.text+'</div></div>'+
+    '<div class="dbody">'+sec("To do",c.tasks.length)+
+      c.tasks.slice(0,4).map(x=>row({title:x.label,meta:x.meta,done:x.done},{check:true,noTile:true,tools:["pencil","trash-2"]})).join("")+
+      sec("Everything in here",t.count,"accent")+
+      c.notes.slice(0,2).map(x=>row({icon:x.icon,title:x.title,meta:x.meta})).join("")+
+    '</div></div></div>';
+}
+/* C. Three panes. */
+function optC(){
+  const t=D.spaces[0],c=D.lisbon,st=D.standing.lisbon;
+  return '<div class="win">'+
+    '<div class="side narrow" style="width:200px"><div class="mark">'+MARK+'offload</div>'+
+    '<div class="nav">'+[["sun","Today",true],["lasso","My things",false],["cloudy","Memories",false]]
+      .map(([i,l,on])=>'<div class="nv'+(on?" on":"")+'">'+ic(i)+l+'</div>').join("")+'</div>'+
+    '<div class="foot"><div class="nav"><div class="nv">'+ic("bell")+'Activity<em>3</em></div><div class="nv">'+ic("settings")+'Settings</div></div></div></div>'+
+    '<div class="pane thin"><div class="ph"><b>Priority</b><span class="cnt">'+TV.priority.length+'</span></div>'+
+    '<div class="pl">'+PRI.map((r,i)=>'<div class="plr'+(i===0?" on":"")+'"><span class="tile'+(r.hot?" hot":"")+'">'+ic(r.icon)+'</span>'+
+      '<span class="tx"><b>'+r.title+'</b><span>'+r.meta+'</span></span></div>').join("")+
+      '<div class="ph" style="padding:18px 0 10px"><b style="font-size:15px">Other things</b></div>'+
+      OTHER.slice(0,2).map(r=>'<div class="plr"><span class="tile">'+ic(r.icon)+'</span><span class="tx"><b>'+r.title+'</b><span>'+r.meta+'</span></span></div>').join("")+
+    '</div></div>'+
+    '<div class="det"><div class="dh"><div class="t">'+t.name+'</div><div class="blurb">'+st.text+'</div></div>'+
+    '<div class="dbody">'+sec("To do",c.tasks.length)+
+      c.tasks.slice(0,3).map(x=>row({title:x.label,meta:x.meta,done:x.done},{check:true,noTile:true,tools:["pencil","trash-2"]})).join("")+
+      sec("Everything in here",t.count,"accent")+
+      c.notes.slice(0,2).map(x=>row({icon:x.icon,title:x.title,meta:x.meta})).join("")+
+    '</div>'+composer()+'</div></div>';
+}
+/* D. Board. */
+function optD(){
+  const cols=[
+    {label:"Priority",count:TV.priority.length,rows:PRI.slice(0,4)},
+    {label:"What moved",accent:true,count:MOVED.length,digest:true},
+    {label:"Today",agenda:true},
+    {label:"Other things",rows:OTHER.slice(0,4)}];
+  return '<div class="win">'+sidebar()+
+    '<div class="col">'+todayHead().replace('class="inner"','class="wide"')+
+    '<div class="board">'+cols.map(c=>'<div class="cd"><div class="ch"><b>'+c.label+'</b>'+
+      (c.count!==undefined?'<span class="cnt'+(c.accent?" accent":"")+'">'+c.count+'</span>':'')+
+      '<span class="tool">'+ic("ellipsis")+'</span></div>'+
+      (c.agenda?agenda():c.digest?MOVED.map(digest).join(""):c.rows.map(r=>row(r)).join(""))+
+    '</div>').join("")+'</div>'+composer()+'</div></div>';
+}
+/* Variants drawn on option A so only one thing changes at a time. */
+function compTop(){
+  return '<div class="win">'+sidebar()+
+    '<div class="col">'+composer("top")+
+    '<div class="body"><div class="inner">'+todayHead().replace(/<div class="head">|<div class="inner"[^>]*>|<\/div><\/div>$/g,'')+
+      PRI.slice(0,3).map(r=>row(r,{tools:["archive","trash-2"]})).join("")+
+      sec("What moved",MOVED.length,"accent")+MOVED.slice(0,1).map(digest).join("")+
+    '</div></div></div></div>';
+}
+function todayTwo(){
+  return '<div class="win">'+sidebar()+
+    '<div class="col">'+todayHead().replace('class="inner"','class="wide"')+
+    '<div class="body wide" style="display:flex;gap:32px">'+
+      '<div style="flex:1.25;min-width:0">'+PRI.slice(0,4).map(r=>row(r,{tools:["archive","trash-2"]})).join("")+
+        sec("Other things",TV.other.length,"q")+OTHER.slice(0,2).map(r=>row(r)).join("")+'</div>'+
+      '<div style="flex:1;min-width:0">'+sec("What moved",MOVED.length,"accent").replace('margin:26px 0 4px','margin:0 0 4px')+
+        MOVED.map(digest).join("")+sec("On the clock")+agenda()+'</div>'+
+    '</div>'+composer()+'</div></div>';
+}
+function sheetOn(){
+  const turns='<div class="you">What do I still owe money for?</div>'+
+    '<div class="them">Three things. You owe Ana \u20ac214 for the flights, Sam \u00a312 for the drill bits, and the flat insurance renews at \u00a3340 on the 20th.'+
+    '<div class="chips"><span class="chip moss">'+ic("lasso")+' Lisbon trip</span><span class="chip amber">\u20ac214 to Ana</span><span class="chip blue">the 20th</span></div></div>';
+  return '<div class="win">'+sidebar()+
+    '<div class="col">'+todayHead()+'<div class="body"><div class="inner">'+PRI.slice(0,3).map(r=>row(r)).join("")+'</div></div>'+
+    '<div class="scrim"></div><div class="sheet"><div class="grab"></div><div class="turns">'+turns+'</div>'+
+      '<div style="padding:0 24px"><div class="pill"><span class="g">Add to this</span><span class="ib send">'+ic("arrow-up")+'</span></div></div>'+
+    '</div></div></div>';
+}
+function palette(){
+  const rows=[["lasso","Open Lisbon trip","thread"],["plus","New thing",""],["cloudy","Search memories",""],
+    ["moon","Switch to Tonight",""],["settings","Settings","\u2318,"]];
+  return '<div class="win">'+sidebar()+
+    '<div class="col">'+todayHead()+'<div class="body"><div class="inner">'+PRI.slice(0,3).map(r=>row(r)).join("")+'</div></div>'+composer()+
+    '<div class="scrim"></div><div class="pal"><div class="q">'+ic("search")+'Type a command, or ask offload something</div>'+
+      rows.map(([i,l,e],n)=>'<div class="pr'+(n===0?" on":"")+'">'+ic(i)+l+(e?'<em>'+e+'</em>':'')+'</div>').join("")+
+    '</div></div></div>';
+}
+
+const S=.6296;
+function frame(html,o){o=o||{};
+  const h=o.h?Math.round(o.h*S):580;
+  const shift=o.y?' translateY(-'+o.y+'px)':'';
+  const inner=shift?html.replace('class="win"','class="win" style="transform:scale('+S+')'+shift+'"'):html;
+  return '<div class="hold'+(o.cls?" crop "+o.cls:"")+'" style="height:'+h+'px">'+inner+'</div>';
+}
+function block(id,name,why,html,note){
+  return '<h2>'+id+'. '+name+'</h2><p class="why">'+why+'</p>'+frame(html)+(note?'<p class="note">'+note+'</p>':'');
+}
+document.getElementById("out").innerHTML=
+  block("A","One column on a sidebar",
+    "The mobile app, widened honestly. A <b>248px sidebar</b> holds the three tabs, pinned threads and the two utilities that were icons in the mobile app bar; the content column keeps the same 764px measure the phone uses, centred. Swipe becomes <b>archive and delete buttons that appear on the row you are pointing at</b>.",
+    optA(),
+    "Cheapest to build and to keep in sync, since it is the phone's information architecture with navigation lifted out of the bottom bar. The criticism is fair: on a 1512 window it leaves a lot of paper empty, and it never uses the second dimension a desktop gives you.")+
+  block("B","Two panes, list and detail",
+    "The left pane is <b>the list you are working from</b>, Today by default, and the right pane is whatever is selected, here the Lisbon trip thread. Nothing navigates away: picking a row swaps the right pane, so you keep your place. The composer sits under the list, because that is where new things enter.",
+    optB(),
+    "This is the classic mail shape, and it suits offload's actual loop, glance at what needs you, open one, act, come back. It costs the sidebar, so the three tabs move into the list pane's header, and a thread's own page has less width than in A.")+
+  block("C","Three panes",
+    "A. and B. combined: a <b>200px nav rail</b>, a 344px list, and the detail. Every level is visible at once, so you can move between Today, a thread and an item without losing either context.",
+    optC(),
+    "Most powerful and most conventional. The risk is that it reads as a work tool, Jira and Linear live here, and offload's pitch is that it hides complexity. Three panes announce complexity even when there is none.")+
+  block("D","A board of columns",
+    "One row per concern becomes <b>one column per concern</b>: priority, what moved, the day, everything else. The whole of Today is visible without scrolling, and dragging a card from one column to another is how you file things.",
+    optD(),
+    "Uses the window better than anything else here and makes drag-between-threads native rather than bolted on. It also puts four things at equal weight when the product's whole argument is that offload decides what matters, so the ranking Today does today would be lost.")+
+  '<h2>Composer: two positions</h2><p class="why">Both drawn on A so only the composer moves. Bottom of the column matches the phone and reads as capture; the top bar reads as a command line and pairs with \u2318K.</p>'+
+  '<div class="pair"><div><div class="tag"><b>c1</b><span>bottom of the column, as on mobile</span></div>'+
+    frame(optA())+'</div>'+
+  '<div><div class="tag"><b>c2</b><span>top bar, like a search field</span></div>'+
+    frame(compTop())+'</div></div>'+
+  '<p class="note">c2 has one real advantage: on the web people already reach for the top of the window to type, and it leaves the bottom of the column free for content. It also weakens the idea that offload is something you dump into rather than something you search.</p>'+
+  '<h2>Today: one column or two</h2><p class="why">You asked to see this rather than decide it. One column is A. Two puts what needs you on the left and what happened without you on the right.</p>'+
+  '<div class="pair"><div><div class="tag"><b>t1</b><span>one column, 764px measure</span></div>'+
+    frame(optA())+'</div>'+
+  '<div><div class="tag"><b>t2</b><span>two columns, ranked left</span></div>'+
+    frame(todayTwo())+'</div></div>'+
+  '<p class="note">t2 keeps the single ranked list that Today is built on, and moves the ambient material, what moved and the agenda, out of its way. It is the middle ground between A and D.</p>'+
+  '<h2>Two things that are settled, drawn for completeness</h2><p class="why">The conversation overlay you chose, and the command palette from your desktop-only list.</p>'+
+  '<div class="pair"><div><div class="tag"><b>s</b><span>conversation as an overlay sheet</span></div>'+frame(sheetOn())+'</div>'+
+  '<div><div class="tag"><b>k</b><span>\u2318K command palette</span></div>'+frame(palette())+'</div></div>'+
+  '<p class="note">On the web the sheet is 760px and centred rather than full width, so the page stays visible around it. The palette is the desktop home for anything that was a long-press or a hidden gesture on mobile.</p>';
+</script>
+</body></html>

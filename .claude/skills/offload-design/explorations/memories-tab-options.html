@@ -1,0 +1,147 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Memories tab, options</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:48px 40px 88px;background:var(--surface-sunken);color:var(--text-primary)}
+.wrap{max-width:1760px;margin:0 auto}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 10px}
+.lede{font:var(--text-quiet-role);font-size:18px;color:var(--text-secondary);max-width:78ch;margin:0 0 36px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(390px,1fr));gap:26px;align-items:start}
+.opt{min-width:0}
+.oh{margin:0 0 12px}
+.on{font:var(--weight-semibold) var(--size-title-3)/1.2 var(--font-core);letter-spacing:var(--tracking-title)}
+.on em{font-style:normal;color:var(--text-tertiary);margin-right:8px}
+.od{font-size:13px;line-height:1.5;color:var(--text-secondary);margin:6px 0 0}
+.phone{width:390px;background:var(--paper);border:1px solid var(--border-hairline);border-radius:26px;overflow:hidden}
+.bar{display:flex;align-items:center;justify-content:space-between;height:52px;padding:0 16px}
+.mark{font:600 17px/1 var(--font-core);letter-spacing:-0.02em}
+.ico{width:18px;height:18px;border-radius:5px;background:var(--ink-150)}
+.icos{display:flex;gap:10px}
+.body{padding:4px 16px 20px}
+.sh{display:flex;align-items:center;gap:9px;padding-bottom:9px;margin:22px 0 13px;border-bottom:1px solid var(--ink-950)}
+.sh:first-child{margin-top:4px}
+.sh b{font:600 17px/1.2 var(--font-core);letter-spacing:-0.012em}
+.sh i{font-style:normal;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--surface-fill);font:500 13px/22px var(--font-core);color:var(--text-secondary);text-align:center}
+.sh u{text-decoration:none;margin-left:auto;font:500 13px/1 var(--font-core);color:var(--text-secondary)}
+.pills{display:flex;flex-wrap:wrap;gap:7px}
+.p{height:30px;padding:0 12px;border-radius:999px;background:var(--surface-fill);font:500 14px/30px var(--font-core);color:var(--text-primary);white-space:nowrap}
+.p.out{background:transparent;border:1px solid var(--border-strong);line-height:28px;color:var(--text-secondary)}
+.p.acc{background:var(--surface-accent-soft);border:1px solid var(--border-accent);line-height:28px;color:var(--text-accent)}
+.p.big{height:36px;padding:0 15px;font-size:16px;line-height:36px}
+.p.sm{height:26px;padding:0 10px;font-size:12px;line-height:26px;color:var(--text-secondary)}
+.p.dark{background:var(--surface-inverse);color:var(--text-inverse)}
+.p.dot::before{content:"";display:inline-block;width:5px;height:5px;border-radius:999px;background:currentColor;opacity:.45;margin-right:7px;vertical-align:middle}
+.grp{margin:0 0 14px}
+.gl{font:500 12px/1 var(--font-core);color:var(--text-tertiary);margin:0 0 8px}
+.conv{display:flex;align-items:flex-start;gap:11px;padding:11px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.conv:last-child{box-shadow:none}
+.conv .tx{flex:1;min-width:0}
+.conv .tx b{display:block;font:500 16px/1.35 var(--font-core);letter-spacing:-0.006em}
+.conv .tx span{display:block;font-size:13px;color:var(--text-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conv .r{font-size:12px;color:var(--text-tertiary);font-variant-numeric:tabular-nums;padding-top:3px}
+.rail{display:flex;gap:7px;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent)}
+.rail .p{flex:0 0 auto}
+.quiet{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-primary);margin:2px 0 16px}
+.quiet b{font-weight:inherit;box-shadow:inset 0 -0.5em 0 var(--moss-100)}
+.attrib{font-size:12px;color:var(--text-tertiary);margin:-10px 0 18px}
+.canvas{position:relative;height:196px;margin:2px 0 14px;border-radius:var(--radius-md);background:var(--ink-50);overflow:hidden}
+.node{position:absolute;transform:translate(-50%,-50%);height:28px;padding:0 11px;border-radius:999px;background:var(--paper);border:1px solid var(--border-strong);font:500 13px/26px var(--font-core);white-space:nowrap}
+.node.k{background:var(--surface-inverse);color:var(--text-inverse);border-color:var(--ink-950)}
+.node.a{background:var(--surface-accent-soft);border-color:var(--border-accent);color:var(--text-accent)}
+.edge{position:absolute;height:1px;background:var(--ink-200);transform-origin:0 50%}
+.foot{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-hairline);font-size:13px;color:var(--text-secondary)}
+.bottom{display:flex;align-items:center;gap:8px;padding:10px 16px 16px}
+.field{flex:1;height:44px;border-radius:22px;background:var(--surface-fill);font:400 15px/44px var(--font-core);color:var(--text-tertiary);padding:0 16px}
+.tabs{display:flex;justify-content:space-around;padding:8px 0 14px;border-top:1px solid var(--border-hairline)}
+.tab{width:22px;height:22px;border-radius:6px;background:var(--ink-150)}
+.tab.on{background:var(--ink-950)}
+.note{font-size:13px;line-height:1.55;color:var(--text-secondary);margin:12px 0 0;max-width:44ch}
+</style></head><body><div class="wrap">
+<h1>Memories, four directions</h1>
+<p class="lede">Every option has the same two sections and the same behaviour: a memory pill opens what offload knows on that subject, a conversation pill reopens that chat and the composer appends to it. They differ in how the memories are ordered, and therefore in what the screen says about you at a glance.</p>
+
+<div class="grid">
+
+<div class="opt"><div class="oh"><div class="on"><em>A</em>One field of pills</div><p class="od">No grouping. Every subject in one wrap, sized by how much offload knows: the things you talk about most are physically bigger. Conversations underneath as a plain list.</p></div>
+<div class="phone">
+  <div class="bar"><span class="mark">offload</span><span class="icos"><span class="ico"></span><span class="ico"></span></span></div>
+  <div class="body">
+    <div class="sh"><b>Memories</b><i>34</i><u>Edit</u></div>
+    <div class="pills">
+      <span class="p big">Lisbon</span><span class="p big">the bookshelf</span><span class="p">Ana</span><span class="p big">money owed</span><span class="p">the flat</span><span class="p">dentist</span><span class="p sm">quiet hours 22:00</span><span class="p">Tom</span><span class="p sm">metric units</span><span class="p">brake pads</span><span class="p sm">week starts Monday</span><span class="p">reading</span><span class="p sm">no email digests</span><span class="p">Berlin</span><span class="p sm">Sam</span>
+    </div>
+    <div class="sh"><b>Past conversations</b><i>12</i></div>
+    <div class="conv"><span class="tx"><b>What do I still owe money for?</b><span>3 answers · Lisbon trip, Flat admin</span></span><span class="r">2m</span></div>
+    <div class="conv"><span class="tx"><b>Everything about the bookshelf</b><span>offload listed 9 things</span></span><span class="r">Tue</span></div>
+    <div class="conv"><span class="tx"><b>What did Ana say about dates?</b><span>the 14th to the 17th</span></span><span class="r">Mon</span></div>
+    <div class="conv"><span class="tx"><b>Turn off the weekly email</b><span>settings · done</span></span><span class="r">Jul</span></div>
+  </div>
+  <div class="bottom"><span class="field">Ask about anything</span><span class="ico"></span><span class="ico"></span></div>
+  <div class="tabs"><span class="tab"></span><span class="tab"></span><span class="tab on"></span></div>
+</div>
+<p class="note">Honest and dense. The size difference does the sorting, so nothing needs a label. Risk: a wall of pills reads as a tag cloud, and settings sit next to people as if they were the same kind of thing.</p></div>
+
+<div class="opt"><div class="oh"><div class="on"><em>B</em>Sorted into kinds</div><p class="od">Four small labelled groups: what you are working on, who is in your life, how you like things, and what offload has noticed about you. Conversations as pills, newest first.</p></div>
+<div class="phone">
+  <div class="bar"><span class="mark">offload</span><span class="icos"><span class="ico"></span><span class="ico"></span></span></div>
+  <div class="body">
+    <div class="sh"><b>Memories</b><i>34</i><u>Edit</u></div>
+    <div class="grp"><p class="gl">Going on</p><div class="pills"><span class="p">Lisbon in August</span><span class="p">the bookshelf</span><span class="p">flat insurance</span><span class="p">dentist</span></div></div>
+    <div class="grp"><p class="gl">People</p><div class="pills"><span class="p dot">Ana</span><span class="p dot">Tom</span><span class="p dot">Sam</span></div></div>
+    <div class="grp"><p class="gl">How you like things</p><div class="pills"><span class="p out">quiet after 22:00</span><span class="p out">metric</span><span class="p out">no email digests</span><span class="p out">week starts Monday</span></div></div>
+    <div class="grp"><p class="gl">Noticed</p><div class="pills"><span class="p acc">you put things off on Fridays</span><span class="p acc">you never open reading later</span></div></div>
+    <div class="sh"><b>Past conversations</b><i>12</i></div>
+    <div class="rail"><span class="p">What do I still owe money for?</span><span class="p">Everything about the bookshelf</span></div>
+    <div class="rail" style="margin-top:7px"><span class="p">What did Ana say about dates?</span><span class="p">Turn off the weekly email</span></div>
+  </div>
+  <div class="bottom"><span class="field">Ask about anything</span><span class="ico"></span><span class="ico"></span></div>
+  <div class="tabs"><span class="tab"></span><span class="tab"></span><span class="tab on"></span></div>
+</div>
+<p class="note">The kinds make it legible, and "Noticed" in moss is the one part that feels like the app has a mind. Risk: four labels is a lot of structure for a screen that is otherwise pills.</p></div>
+
+<div class="opt"><div class="oh"><div class="on"><em>C</em>Offload says what it knows</div><p class="od">Opens with a sentence in offload's own voice, as a thread does, then the pills. Conversations grouped by when, so the tab reads as a history you can walk back through.</p></div>
+<div class="phone">
+  <div class="bar"><span class="mark">offload</span><span class="icos"><span class="ico"></span><span class="ico"></span></span></div>
+  <div class="body">
+    <div class="sh"><b>Memories</b><i>34</i><u>Edit</u></div>
+    <p class="quiet">Mostly I know about <b>Lisbon</b>, <b>the bookshelf</b> and <b>money you are owed</b>. You have told me twice that you do not want email, and I have stopped.</p>
+    <p class="attrib">offload wrote this, updated 2m ago</p>
+    <div class="pills"><span class="p">Lisbon</span><span class="p">the bookshelf</span><span class="p">money owed</span><span class="p">Ana</span><span class="p">Tom</span><span class="p">the flat</span><span class="p">dentist</span><span class="p">brake pads</span><span class="p">reading</span><span class="p out">quiet after 22:00</span><span class="p out">metric</span><span class="p out">no email digests</span></div>
+    <div class="sh"><b>Past conversations</b><i>12</i></div>
+    <p class="gl">This week</p>
+    <div class="pills" style="margin-bottom:14px"><span class="p">What do I still owe money for?</span><span class="p">Everything about the bookshelf</span><span class="p">What did Ana say about dates?</span></div>
+    <p class="gl">Earlier</p>
+    <div class="pills"><span class="p">Turn off the weekly email</span><span class="p">Which brackets did I pick?</span><span class="p sm">All 12</span></div>
+  </div>
+  <div class="bottom"><span class="field">Ask about anything</span><span class="ico"></span><span class="ico"></span></div>
+  <div class="tabs"><span class="tab"></span><span class="tab"></span><span class="tab on"></span></div>
+</div>
+<p class="note">The only option where the tab has a voice, and it matches how a thread already opens. Risk: a generated sentence about the user is the easiest thing to get wrong, and a wrong one here is uncomfortable.</p></div>
+
+<div class="opt"><div class="oh"><div class="on"><em>D</em>The graph, early</div><p class="od">A small map at the top with the handful of subjects that connect to the most others, drawn as nodes and links. Everything else stays a pill below it. The map is the seed of the graph feature.</p></div>
+<div class="phone">
+  <div class="bar"><span class="mark">offload</span><span class="icos"><span class="ico"></span><span class="ico"></span></span></div>
+  <div class="body">
+    <div class="sh"><b>Memories</b><i>34</i><u>Open map</u></div>
+    <div class="canvas">
+      <span class="edge" style="left:104px;top:70px;width:96px;transform:rotate(24deg)"></span>
+      <span class="edge" style="left:104px;top:70px;width:88px;transform:rotate(-32deg)"></span>
+      <span class="edge" style="left:104px;top:70px;width:74px;transform:rotate(96deg)"></span>
+      <span class="edge" style="left:200px;top:110px;width:82px;transform:rotate(-58deg)"></span>
+      <span class="edge" style="left:96px;top:142px;width:120px;transform:rotate(12deg)"></span>
+      <span class="node k" style="left:104px;top:70px">Lisbon</span>
+      <span class="node" style="left:216px;top:112px">Ana</span>
+      <span class="node" style="left:200px;top:26px">flights</span>
+      <span class="node a" style="left:96px;top:142px">money owed</span>
+      <span class="node" style="left:250px;top:164px">the bookshelf</span>
+      <span class="node" style="left:44px;top:26px">Tom</span>
+    </div>
+    <div class="pills"><span class="p sm">the flat</span><span class="p sm">dentist</span><span class="p sm">brake pads</span><span class="p sm">reading</span><span class="p sm">Berlin</span><span class="p sm">Sam</span><span class="p sm">quiet after 22:00</span><span class="p sm">metric</span><span class="p sm">no email digests</span><span class="p sm">week starts Monday</span><span class="p sm">28 more</span></div>
+    <div class="sh"><b>Past conversations</b><i>12</i></div>
+    <div class="pills"><span class="p">What do I still owe money for?</span><span class="p">Everything about the bookshelf</span><span class="p">What did Ana say about dates?</span><span class="p">Turn off the weekly email</span></div>
+  </div>
+  <div class="bottom"><span class="field">Ask about anything</span><span class="ico"></span><span class="ico"></span></div>
+  <div class="tabs"><span class="tab"></span><span class="tab"></span><span class="tab on"></span></div>
+</div>
+<p class="note">Points where you are going, and a small map is honest about being a sample rather than the whole thing. Risk: at 390px only six or seven nodes fit before it turns to spaghetti, so the real graph wants its own full screen.</p></div>
+
+</div>
+</div></body></html>

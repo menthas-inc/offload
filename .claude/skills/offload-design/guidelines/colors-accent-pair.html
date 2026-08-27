@@ -1,0 +1,37 @@
+<!-- @dsCard group="Colors" viewport="700x228" name="The two accents" subtitle="Moss = offload did this. Ink blue = this needs you." -->
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css?v=1786472643305"><style>body{margin:0;padding:0;background:var(--surface-page);color:var(--text-primary);font:var(--text-body-role)}.lbl{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}</style></head><body><div data-ds-theme-root data-theme="light" style="background:var(--surface-page);color:var(--text-primary);padding:20px;min-height:100%;box-sizing:border-box"><div class="ds-theme-tg" role="group" aria-label="Theme" style="display:flex;border:1px solid var(--border-hairline);border-radius:var(--radius-pill);overflow:hidden;width:max-content;margin-bottom:14px">
+<button type="button" data-set="light" aria-pressed="true" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:var(--surface-inverse);color:var(--text-inverse)">Light</button>
+<button type="button" data-set="dark" aria-pressed="false" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:transparent;color:var(--text-secondary)">Dark</button>
+</div><div style="display:flex;gap:16px">
+<div style="flex:1;border:1px solid var(--border-hairline);border-radius:var(--radius-md);padding:16px">
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><span style="width:14px;height:14px;border-radius:999px;background:var(--moss-600)"></span><span style="font:var(--text-label-role)">moss · offload did this</span></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+<span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-xs);background:var(--surface-accent-soft);color:var(--text-accent);font:var(--weight-medium) var(--size-caption)/1 var(--font-core)">sorted</span>
+<span style="display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:var(--radius-pill);background:var(--surface-accent-soft);color:var(--text-accent);border:1px solid var(--border-accent);font:var(--weight-medium) var(--size-label)/1 var(--font-core)">Lisbon trip</span>
+<span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-xs);background:var(--moss-600);color:#fff;font:var(--weight-medium) var(--size-caption)/1 var(--font-core)">4</span></div>
+<div class="lbl" style="padding-top:12px;line-height:1.5">inferred tags · suggested spaces · &ldquo;sorted&rdquo;</div></div>
+<div style="flex:1;border:1px solid var(--border-hairline);border-radius:var(--radius-md);padding:16px">
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><span style="width:14px;height:14px;border-radius:999px;background:var(--blue-600)"></span><span style="font:var(--text-label-role)">ink blue · this needs you</span></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+<span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-xs);background:var(--surface-attention-soft);color:var(--text-on-attention);font:var(--weight-medium) var(--size-caption)/1 var(--font-core)">Ana is waiting</span>
+<span style="display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:var(--radius-pill);background:var(--surface-attention-soft);color:var(--text-on-attention);border:1px solid var(--border-attention);font:var(--weight-medium) var(--size-label)/1 var(--font-core)">Needs a date</span>
+<span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-xs);background:var(--surface-attention);color:#fff;font:var(--weight-medium) var(--size-caption)/1 var(--font-core)">2</span></div>
+<div class="lbl" style="padding-top:12px;line-height:1.5">waiting on you · unresolved · about to expire</div></div></div>
+<div class="lbl" style="padding-top:12px">Never both on one row. Neither is ever a page background, and neither fills a primary button &mdash; that stays ink.</div></div><script>
+(function(){
+  var root=document.querySelector("[data-ds-theme-root]");
+  document.querySelectorAll(".ds-theme-tg button").forEach(function(b){
+    b.addEventListener("click",function(){
+      var t=b.dataset.set;
+      root.setAttribute("data-theme",t);
+      document.documentElement.setAttribute("data-theme",t);
+      document.querySelectorAll(".ds-theme-tg button").forEach(function(x){
+        var on=x.dataset.set===t;
+        x.setAttribute("aria-pressed",String(on));
+        x.style.background=on?"var(--surface-inverse)":"transparent";
+        x.style.color=on?"var(--text-inverse)":"var(--text-secondary)";
+      });
+    });
+  });
+})();
+</script></body></html>

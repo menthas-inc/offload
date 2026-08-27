@@ -1,0 +1,27 @@
+:root{
+  --space-0:0px;
+  --space-1:2px;
+  --space-2:4px;
+  --space-3:6px;
+  --space-4:8px;
+  --space-5:12px;
+  --space-6:16px;
+  --space-7:20px;
+  --space-8:24px;
+  --space-9:32px;
+  --space-10:40px;
+  --space-11:56px;
+  --space-12:72px;
+
+  /* Layout constants */
+  --gutter-screen:20px;       /* left/right padding on every mobile screen */
+  --gutter-section:32px;      /* vertical rhythm between screen sections */
+  --row-height:56px;          /* standard list row */
+  --row-height-lg:72px;       /* row with two lines of text */
+  --tap-min:44px;             /* minimum TOUCH target. A control may be drawn
+                                 smaller if its hit area still reaches this. */
+  --appbar-height:52px;
+  --tabbar-height:64px;
+  --composer-height:52px;
+  --content-max:520px;        /* readable measure on tablet/web */
+}

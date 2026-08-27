@@ -1,0 +1,507 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Sharing, and invites</title>
+<link rel="stylesheet" href="../styles.css?v=3">
+<link rel="stylesheet" href="frames.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400&display=swap">
+<style>
+.appbar{flex:0 0 auto;display:flex;align-items:center;gap:8px;height:52px;padding:0 12px 0 16px}
+.appbar .t{flex:1;text-align:center;font:var(--weight-medium) 15px/1.2 var(--font-core)}
+.appbar .ib{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);font-size:17px}
+.blurb{font:var(--text-quiet-role);font-size:16px;line-height:1.5;color:var(--text-primary)}
+.r{display:flex;align-items:flex-start;gap:12px;padding:12px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.r i{width:22px;height:22px;flex:0 0 auto;border-radius:99px;background:var(--surface-fill);color:var(--text-secondary);display:block;margin-top:2px}
+.r i.hot{background:var(--surface-attention);color:var(--paper)}
+.r b{display:block;font:var(--weight-medium) 16px/1.35 var(--font-core)}
+.r span{display:block;font-size:13px;line-height:1.4;color:var(--text-secondary);margin-top:2px}
+.av{width:26px;height:26px;border-radius:99px;background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;font:var(--weight-medium) 11px/1 var(--font-core);flex:0 0 auto}
+.av.lg{width:36px;height:36px;font-size:13px}
+.avs{display:flex}
+.avs .av{margin-left:-7px;box-shadow:0 0 0 2px var(--surface-page)}
+.avs .av:first-child{margin-left:0}
+.sheet{flex:0 0 auto;margin:0;border-radius:24px 24px 0 0;background:var(--surface-raised);box-shadow:var(--shadow-sheet);padding:20px 22px 26px}
+.sheet h4{font:var(--weight-semibold) 19px/1.25 var(--font-core);margin:0 0 4px}
+.sheet p{font:var(--text-body-sm-role);color:var(--text-secondary);margin:0 0 16px}
+.pick{display:flex;align-items:center;gap:12px;padding:11px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.pick b{flex:1;font:var(--weight-medium) 15px/1.2 var(--font-core)}
+.pick .box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border-strong);flex:0 0 auto}
+.pick .box.on{background:var(--ink-950);border-color:var(--ink-950);position:relative}
+.pick .box.on:after{content:"";position:absolute;left:5px;top:9px;width:8px;height:4px;border-left:2px solid var(--paper);border-bottom:2px solid var(--paper);transform:rotate(-45deg)}
+.find{display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;margin:0 0 6px;border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-tertiary);font:var(--text-body-sm-role);font-size:14.5px}
+.find span{flex:1}
+.chev{color:var(--text-tertiary);display:flex}
+.perm{display:flex;gap:8px;align-items:flex-start;font:var(--text-caption-role);font-size:12.5px;line-height:1.45;color:var(--text-secondary);padding-top:14px}
+.turn{max-width:88%;padding:11px 15px;border-radius:18px;font:var(--weight-regular) 15px/1.42 var(--font-core)}
+.turn.you{align-self:flex-end;background:var(--blue-50);border:1px solid var(--blue-100);border-bottom-right-radius:5px}
+.turn.them{align-self:flex-start;background:var(--ink-50);border-bottom-left-radius:5px;font-family:var(--font-quiet)}
+.newmark{display:inline-flex;align-items:center;gap:5px;font:var(--weight-medium) 11px/1 var(--font-core);padding:4px 7px;border-radius:99px;background:var(--surface-accent-soft);color:var(--text-accent)}
+.pend{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:var(--surface-accent-soft)}
+.pend b{flex:1;font:var(--weight-medium) 15px/1.3 var(--font-core);color:var(--text-primary)}
+.pend u{text-decoration:none;font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-accent)}
+.wpane{flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 40px}
+.wside{width:236px;flex:0 0 auto;background:var(--surface-page);color:var(--text-primary);padding:22px 14px;display:flex;flex-direction:column;gap:14px}
+.wside .wm{display:flex;align-items:center;gap:8px;font:var(--weight-semibold) 17px/1 var(--font-core);letter-spacing:-.02em;padding:0 8px 8px}
+.wside .wm i{width:18px;height:18px;background:var(--text-primary)}
+.wside .sr{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-secondary)}
+.wside .sr.on{background:rgba(255,255,255,.10);color:var(--text-primary)}
+.wside .mk{width:3px;height:16px;border-radius:99px;background:var(--blue-600);flex:0 0 auto;margin:0 -4px 0 -7px}
+.wside .lb{font:var(--weight-medium) 11.5px/1 var(--font-core);color:var(--text-secondary);padding:8px 10px 0}
+.crumbs{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:14px 24px;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-tertiary);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.crumbs b{color:var(--text-primary);font-weight:500}
+.wtitle{font:var(--weight-semibold) 30px/1.1 var(--font-core);letter-spacing:-.018em}
+.wsub{font:var(--text-body-sm-role);color:var(--text-secondary);margin-top:6px}
+.wbtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;border-radius:var(--radius-pill);font:var(--weight-medium) 14px/1 var(--font-core)}
+.wbtn.dark{background:var(--ink-950);color:var(--paper)}
+.wbtn.light{background:var(--surface-raised);color:var(--text-primary);border:1px solid var(--border-strong)}
+.modal{position:absolute;inset:0;background:var(--surface-scrim);display:flex;align-items:center;justify-content:center}
+.card{width:460px;box-sizing:border-box;padding:32px;border-radius:22px;background:var(--surface-raised);box-shadow:var(--shadow-sheet)}
+.card h4{font:var(--weight-semibold) 21px/1.2 var(--font-core);letter-spacing:-.012em;margin:0}
+.card p{font:var(--text-body-role);color:var(--text-secondary);margin:10px 0 0;line-height:1.5}
+</style></head><body><div class="wrap">
+<h1>Sharing, and invites</h1>
+<p class="lede">Sharing a thing with someone, in both directions. Section 1 is where the affordance lives, then the two ways to send that both ship, the three ways to receive, and the @ picker that every text field in the product gets. Sharing never lets anyone new into offload: you can only share with an existing connection. Mobile is drawn in the iOS kit's chrome, Android is the same flow with the Material bars and a filled blue primary, which is a mechanical swap. Nothing is wired.</p>
+
+<div class="sechead"><h2>1 · Where it lives</h2><u>one affordance per thing, nowhere else</u></div>
+<p class="snote">Sharing belongs to a thing, not to a note or a task inside it, and not to the app as a whole. On the phone the thing's bar carries the people, on web the pane head does. Both show who is already in before offering to add anyone, because the most common question is not "how do I share" but "who can see this".</p>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b><span>a thing</span></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div class="appbar"><span class="ib"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m15%2018-6-6%206-6%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:19px;height:19px"></span></span><span class="t">Lisbon trip</span>
+        <span class="avs"><span class="av">AD</span><span class="av">TR</span></span><span class="ib"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2218%22%20cy%3D%225%22%20r%3D%223%22%3E%3C%2Fcircle%3E%20%3Ccircle%20cx%3D%226%22%20cy%3D%2212%22%20r%3D%223%22%3E%3C%2Fcircle%3E%20%3Ccircle%20cx%3D%2218%22%20cy%3D%2219%22%20r%3D%223%22%3E%3C%2Fcircle%3E%20%3Cline%20x1%3D%228.59%22%20x2%3D%2215.42%22%20y1%3D%2213.51%22%20y2%3D%2217.49%22%3E%3C%2Fline%3E%20%3Cline%20x1%3D%2215.41%22%20x2%3D%228.59%22%20y1%3D%226.51%22%20y2%3D%2210.49%22%3E%3C%2Fline%3E%20%3C%2Fsvg%3E);width:19px;height:19px"></span></span></div>
+      <div style="flex:1;min-height:0;padding:0 22px;display:flex;flex-direction:column">
+        <div style="padding:10px 0 16px"><div class="blurb">Still four things to book, and the flight is in two weeks.</div></div>
+        <div class="r"><i class="hot ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Ana needs an answer on the 14th–17th</b><span>waiting on you · asked Tuesday</span></span></div>
+        <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Split the flight cost: €214 each</b><span>you said you would sort it</span></span></div>
+        <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Book the Alfama flat</b><span>Ana is on it</span></span></div>
+      </div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b><span>the same thing as a pane</span></div>
+    <div class="f web"><div class="in" style="flex-direction:row;background:var(--surface-page)">
+      <div class="wside" data-theme="dark">
+        <div class="wm"><i class="lm"></i>offload</div>
+        <div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div><div class="sr on"><span class="mk"></span><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">My threads</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">11</em></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Memories</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">34</em></div>
+        <div class="lb">Pinned</div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Lisbon trip</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Bookshelf build</span></div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div class="crumbs">My threads<span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m9%2018%206-6-6-6%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:12px;height:12px"></span><b>Lisbon trip</b></div>
+        <div class="wpane">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px">
+            <div><div class="wtitle">Lisbon trip</div><div class="wsub">14 things · shared with Ana and Tom</div></div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="avs"><span class="av lg">AD</span><span class="av lg">TR</span></span>
+              <span class="wbtn light">Share</span>
+            </div>
+          </div>
+          <div style="margin-top:26px">
+            <div class="r"><i class="hot ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Ana needs an answer on the 14th–17th</b><span>waiting on you · asked Tuesday</span></span></div>
+            <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Split the flight cost: €214 each</b><span>you said you would sort it</span></span></div>
+            <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Book the Alfama flat</b><span>Ana is on it</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>Stacked faces, then the share arrow.</b> Two or three initials, and `share-2` beside them as the affordance. Above three people, the third face becomes a number.</li>
+  <li><b>No share on a note or a task.</b> Anything you want someone to see moves into a thing first, which keeps one permission per thing and no per-item exceptions to explain.</li>
+</ul>
+
+<div class="sechead"><h2>2 · Sending an invite</h2><u>decided: the sheet and the composer, both</u></div>
+
+<div class="rowlabel">Decided · The sheet<u>search, common connections, one permission line</u></div>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div class="appbar" style="opacity:.5"><span class="ib"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m15%2018-6-6%206-6%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:19px;height:19px"></span></span><span class="t">Lisbon trip</span><span class="avs"><span class="av">AD</span><span class="av">TR</span></span></div>
+      <div style="flex:1;min-height:0;padding:0 22px;opacity:.5">
+        <div style="padding:10px 0 16px"><div class="blurb">Still four things to book, and the flight is in two weeks.</div></div>
+        <div class="r"><i class="hot ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Ana needs an answer on the 14th–17th</b><span>waiting on you</span></span></div>
+      </div>
+      <div class="sheet">
+        <h4>Share Lisbon trip</h4>
+        <p>Everyone in here sees everything in it.</p>
+        <div class="find"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m21%2021-4.34-4.34%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%2211%22%20cy%3D%2211%22%20r%3D%228%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:15px;height:15px"></span><span>Search your connections</span></div>
+        <div class="pick"><span class="av">AD</span><b>Ana Duarte</b><span class="box on"></span></div>
+        <div class="pick"><span class="av">TR</span><b>Tom Reilly</b><span class="box on"></span></div>
+        <div class="pick"><span class="av">SO</span><b>Sam Ibekwe</b><span class="box"></span></div>
+        <div class="pick" style="box-shadow:none"><span class="av ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M5%2012h14%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%205v14%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></span><b>New connection</b><span class="chev"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m9%2018%206-6-6-6%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:15px;height:15px"></span></span></div>
+        <div class="perm">They can add to it, and they can never delete what is yours.</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+          <span class="btn dark">Share with Sam</span>
+        </div>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="position:relative;background:var(--surface-page)">
+      <div style="flex:1;display:flex;opacity:.55">
+        <div class="wside" data-theme="dark">
+          <div class="wm"><i class="lm"></i>offload</div>
+          <div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div><div class="sr on"><span class="mk"></span><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">My threads</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">11</em></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Memories</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">34</em></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div class="crumbs">My threads<span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m9%2018%206-6-6-6%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:12px;height:12px"></span><b>Lisbon trip</b></div>
+          <div class="wpane"><div class="wtitle">Lisbon trip</div><div class="wsub">14 things · shared with Ana and Tom</div></div>
+        </div>
+      </div>
+      <div class="modal">
+        <div class="card">
+          <h4>Share Lisbon trip</h4>
+          <p>Everyone in here sees everything in it.</p>
+        <div class="find"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m21%2021-4.34-4.34%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%2211%22%20cy%3D%2211%22%20r%3D%228%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:15px;height:15px"></span><span>Search your connections</span></div>
+          <div style="margin-top:22px">
+            <div class="pick"><span class="av">AD</span><b>Ana Duarte</b><span class="box on"></span></div>
+            <div class="pick"><span class="av">TR</span><b>Tom Reilly</b><span class="box on"></span></div>
+            <div class="pick"><span class="av">SO</span><b>Sam Ibekwe</b><span class="box"></span></div>
+            <div class="pick" style="box-shadow:none"><span class="av ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M5%2012h14%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%205v14%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></span><b>New connection</b><span class="chev"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m9%2018%206-6-6-6%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:15px;height:15px"></span></span></div>
+          </div>
+          <div class="perm">They can add to it, and they can never delete what is yours.</div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px">
+            <span class="wbtn light">Cancel</span><span class="wbtn dark">Share with Sam</span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>Buys</b> the answer to every permission question in one line, and the link case in the same list rather than a second screen.</li>
+  <li><b>Costs</b> a modal on web, which the kit otherwise reserves for ⌘K. A pane would be wrong here: sharing is not a place you navigate to.</li>
+  <li><b>The search field is the list.</b> Four or five common connections are shown unasked, and typing filters them, so the sheet works the same with three connections and with three hundred.</li>
+</ul>
+
+<div class="rowlabel">Decided · Ask offload<u>say it in the composer, undo in the reply</u></div>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;min-height:0;padding:0 22px;display:flex;flex-direction:column;justify-content:flex-end;gap:12px">
+        <span class="turn you">share Lisbon trip with Sam</span>
+        <span class="turn them">Shared. Sam can add to Lisbon trip, and cannot delete anything of yours. He has been told.</span>
+        <span style="align-self:flex-start;display:flex;gap:8px">
+          <span class="newmark" style="background:var(--surface-fill);color:var(--text-secondary)">Undo</span>
+          <span class="newmark" style="background:var(--surface-fill);color:var(--text-secondary)">See who is in</span>
+        </span>
+      </div>
+      <div style="flex:0 0 auto;padding:16px 22px 22px">
+        <div style="display:flex;align-items:center;gap:12px;min-height:48px;padding:0 12px 0 20px;border-radius:var(--radius-pill);background:var(--surface-input);border:1px solid var(--border-focus)">
+          <span style="flex:1;font:var(--text-body-role);color:var(--text-tertiary)">Add to this</span>
+          <span style="width:30px;height:30px;border-radius:99px;background:var(--ink-100)"></span>
+        </div>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="flex-direction:row;background:var(--surface-page)">
+      <div class="wside" data-theme="dark">
+        <div class="wm"><i class="lm"></i>offload</div>
+        <div class="sr on"><span class="mk"></span><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">My threads</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">11</em></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Memories</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">34</em></div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div class="crumbs"><b>Today</b></div>
+        <div class="wpane" style="justify-content:flex-end;padding-bottom:0">
+          <div style="max-width:620px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px">
+            <span class="turn you">share Lisbon trip with Sam</span>
+            <span class="turn them">Shared. Sam can add to Lisbon trip, and cannot delete anything of yours. He has been told.</span>
+            <span style="align-self:flex-start;display:flex;gap:8px">
+              <span class="newmark" style="background:var(--surface-fill);color:var(--text-secondary)">Undo</span>
+              <span class="newmark" style="background:var(--surface-fill);color:var(--text-secondary)">See who is in</span>
+            </span>
+          </div>
+        </div>
+        <div style="flex:0 0 auto;padding:20px 40px 28px">
+          <div style="max-width:660px;margin:0 auto;padding:14px 20px;border-radius:30px;background:var(--surface-raised);border:1.5px solid var(--blue-500);box-shadow:var(--shadow-2);font:var(--text-body-role);color:var(--text-tertiary)">Dump anything</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>Both ship.</b> The sheet is the mechanism, the composer is the shortcut, and the reply says the same permission sentence the sheet does.</li>
+  <li><b>The composer is a tool, not a chat.</b> Any UI task in offload can be said instead of tapped: share a thread, rename it, archive it, remind me on Friday. Every one answers in offload's voice with an Undo, and the composer is the only place in the product where that is true.</li>
+</ul>
+
+<div class="rowlabel">Also · Person first<u>go to Ana, add a thing to her</u></div>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div class="appbar"><span class="ib"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m15%2018-6-6%206-6%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:19px;height:19px"></span></span><span class="t">Ana Duarte</span><span class="ib"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%221%22%3E%3C%2Fcircle%3E%20%3Ccircle%20cx%3D%2219%22%20cy%3D%2212%22%20r%3D%221%22%3E%3C%2Fcircle%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2212%22%20r%3D%221%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:19px;height:19px"></span></span></div>
+      <div style="flex:1;min-height:0;padding:0 22px;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:14px;padding:6px 0 18px">
+          <span class="av lg" style="width:52px;height:52px;font-size:17px">AD</span>
+          <span><b style="display:block;font:var(--weight-semibold) 19px/1.2 var(--font-core)">Ana Duarte</b>
+            <span style="font-size:13.5px;color:var(--text-secondary)">Shares 3 threads with you</span></span>
+        </div>
+        <div style="display:flex;gap:10px;padding-bottom:18px">
+          <span class="btn light" style="height:40px;padding:0 16px;font-size:14px">Share a thread with Ana</span>
+        </div>
+        <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Lisbon trip</b><span>14 things · active</span></span></div>
+        <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Berlin, March</b><span>31 things · finished</span></span></div>
+        <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Sam's wedding</b><span>44 things · finished</span></span></div>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell" style="max-width:560px">
+    <div class="tag" style="visibility:hidden"><b>-</b></div>
+    <ul class="spec" style="margin-top:0">
+      <li><b>Buys</b> the reverse question, "what does Ana see", answered on the page you are already on. The person screen exists in all three kits already, so this is one button.</li>
+      <li><b>Costs</b> nothing much, which is why it is worth having as well as A. It is not a substitute: nobody thinks of the person first when they are looking at the thing.</li>
+      <li><b>Web equivalent</b> is the same button on the person pane, opening the same modal as option A with the person preselected.</li>
+    </ul>
+  </div>
+</div>
+
+
+<div class="rowlabel">The new connection step<u>reached from the row at the bottom of the sheet</u></div>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;min-height:0;padding:0 22px;opacity:.5">
+        <div style="padding:10px 0 16px"><div class="blurb">Still four things to book, and the flight is in two weeks.</div></div>
+      </div>
+      <div class="sheet">
+        <div style="display:flex;align-items:center;gap:8px;margin:-4px 0 10px">
+          <span class="ib" style="width:28px;height:28px;color:var(--text-secondary)"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m15%2018-6-6%206-6%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:18px;height:18px"></span></span>
+          <h4 style="margin:0">New connection</h4>
+        </div>
+        <p>They need an offload account already. Sharing does not invite anyone in.</p>
+        <div class="field" style="height:48px;padding:0 18px;margin-bottom:14px">ana@duarte.pt</div>
+        <div class="perm" style="padding-top:0">A connection is mutual once they accept, and it survives the thing you made it for.</div>
+        <div style="margin-top:16px"><span class="btn dark">Add connection</span></div>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell" style="max-width:560px">
+    <div class="tag" style="visibility:hidden"><b>-</b></div>
+    <ul class="spec" style="margin-top:0">
+      <li><b>Email or username.</b> One field, matched against accounts that exist. No invite is sent from here and nothing is shared until they accept, so a typo costs nothing.</li>
+      <li><b>Not found</b> says so plainly and offers nothing: "No offload account on that address." Getting someone into offload is the waitlist's job, not sharing's.</li>
+      <li><b>Web</b> shows the same step in place of the list inside the same modal, with the back chevron in the same corner.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="sechead"><h2>3 · Receiving an invite</h2><u>three options, and a setting that already exists</u></div>
+<p class="snote">Settings already offers "When someone shares with you: put it straight in, or ask me first". So this is not one choice but two designs plus where an ignored invite waits.</p>
+
+<div class="rowlabel">Option A · Ask me first<u>an invite screen with a preview</u></div>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div class="appbar"><span class="ib"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M18%206%206%2018%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6%206%2012%2012%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:18px;height:18px"></span></span><span class="t">Invitation</span><span class="ib"></span></div>
+      <div style="flex:1;min-height:0;padding:0 22px;display:flex;flex-direction:column">
+        <div style="padding:14px 0 20px;text-align:center">
+          <span class="av lg" style="width:56px;height:56px;font-size:18px;margin:0 auto">AD</span>
+          <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title);margin-top:16px">Ana shared Lisbon trip with you</div>
+          <div style="font:var(--text-body-role);color:var(--text-secondary);margin-top:10px;line-height:1.45">14 things, four of them still to book. You can add to it, and you cannot delete anything of Ana's.</div>
+        </div>
+        <div style="border-radius:16px;background:var(--surface-fill);padding:4px 14px">
+          <div class="r" style="box-shadow:inset 0 -1px 0 var(--border-hairline)"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Book the Alfama flat</b><span>Ana is on it</span></span></div>
+          <div class="r" style="box-shadow:none"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Flights, 14th to 17th</b><span>€214 each</span></span></div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 22px 22px">
+        <span class="btn dark">Add it to my threads</span>
+        <span class="btn light">Not now</span>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="position:relative;background:var(--surface-page)">
+      <div style="flex:1;display:flex;opacity:.55">
+        <div class="wside" data-theme="dark">
+          <div class="wm"><i class="lm"></i>offload</div>
+          <div class="sr on"><span class="mk"></span><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">My threads</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">11</em></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Memories</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">34</em></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div class="crumbs"><b>Today</b></div>
+          <div class="wpane"><div class="wtitle">Today</div><div class="wsub">Tue 11 Aug · sunset 19:15</div></div>
+        </div>
+      </div>
+      <div class="modal">
+        <div class="card" style="width:520px">
+          <div style="display:flex;align-items:center;gap:14px">
+            <span class="av lg">AD</span>
+            <h4 style="flex:1">Ana shared Lisbon trip with you</h4>
+          </div>
+          <p>14 things, four of them still to book. You can add to it, and you cannot delete anything of Ana's.</p>
+          <div style="margin-top:20px;border-radius:14px;background:var(--surface-fill);padding:4px 16px">
+            <div class="r" style="box-shadow:inset 0 -1px 0 var(--border-hairline)"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Book the Alfama flat</b><span>Ana is on it</span></span></div>
+            <div class="r" style="box-shadow:none"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Flights, 14th to 17th</b><span>€214 each</span></span></div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px">
+            <span class="wbtn light">Not now</span><span class="wbtn dark">Add it to my threads</span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><span class="rec">Recommended</span> as the default, matching the setting's own default. The preview is what makes it a decision rather than a dialog: two rows are enough to know whether you want it.</li>
+  <li><b>Not now</b> is not a decline. It leaves the invite pending, which is what option C is for.</li>
+</ul>
+
+<div class="rowlabel">Option B · Straight in<u>no decision, a marker and a toast</u></div>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="padding:0 22px"><div style="font:var(--text-title-1);letter-spacing:var(--tracking-title);padding-top:6px">My threads</div>
+        <div style="font-size:14px;color:var(--text-secondary);margin-top:4px">11 in here, 4 live</div></div>
+      <div style="flex:1;min-height:0;padding:14px 22px 0;display:flex;flex-direction:column">
+        <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Lisbon trip</b><span style="display:flex;align-items:center;gap:8px;margin-top:4px"><span class="newmark">from Ana</span><span>14 things</span></span></span></div>
+        <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Bookshelf build</b><span>2 things · just you</span></span></div>
+        <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Flat admin</b><span>6 things · shared with Sam</span></span></div>
+        <div style="margin-top:auto;padding-bottom:16px"><div class="snack"><b>Ana shared Lisbon trip with you</b><u>Open</u></div></div>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="flex-direction:row;background:var(--surface-page)">
+      <div class="wside" data-theme="dark">
+        <div class="wm"><i class="lm"></i>offload</div>
+        <div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div><div class="sr on"><span class="mk"></span><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">My threads</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">11</em></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Memories</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">34</em></div>
+        <div class="lb">Pinned</div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Lisbon trip</span></div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;position:relative">
+        <div class="crumbs"><b>My threads</b></div>
+        <div class="wpane">
+          <div class="wtitle">My threads</div><div class="wsub">11 in here, 4 live</div>
+          <div style="margin-top:24px">
+            <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Lisbon trip</b><span style="display:flex;align-items:center;gap:8px;margin-top:4px"><span class="newmark">from Ana</span><span>14 things</span></span></span></div>
+            <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Bookshelf build</b><span>2 things · just you</span></span></div>
+            <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Flat admin</b><span>6 things · shared with Sam</span></span></div>
+          </div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:26px;display:flex;justify-content:center">
+          <div class="snack" style="width:420px"><b>Ana shared Lisbon trip with you</b><u>Open</u></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>Buys</b> the fastest path for people who share constantly with the same two or three people, which is most of the sharing this product will see.</li>
+  <li><b>Costs</b> the one thing offload promises not to do: put something in your things without asking. Right as an opt-in, wrong as the default.</li>
+  <li><b>The moss marker</b> reads "offload did this, you didn't", which is exactly what the accent is for. It clears the first time you open the thing.</li>
+</ul>
+
+<div class="rowlabel">Option C · Where an ignored invite waits<u>the top of My threads, until you deal with it</u></div>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="padding:0 22px"><div style="font:var(--text-title-1);letter-spacing:var(--tracking-title);padding-top:6px">My threads</div>
+        <div style="font-size:14px;color:var(--text-secondary);margin-top:4px">10 in here, one waiting on you</div></div>
+      <div style="flex:1;min-height:0;padding:14px 22px 0;display:flex;flex-direction:column;gap:14px">
+        <div class="pend"><span class="av">AD</span><b>Ana shared Lisbon trip</b><u>Look</u></div>
+        <div>
+          <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Bookshelf build</b><span>2 things · just you</span></span></div>
+          <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Flat admin</b><span>6 things · shared with Sam</span></span></div>
+          <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17%203a2%202%200%200%201%202%202v15a1%201%200%200%201-1.496.868l-4.512-2.578a2%202%200%200%200-1.984%200l-4.512%202.578A1%201%200%200%201%205%2020V5a2%202%200%200%201%202-2z%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Read later</b><span>23 things · just you</span></span></div>
+        </div>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="flex-direction:row;background:var(--surface-page)">
+      <div class="wside" data-theme="dark">
+        <div class="wm"><i class="lm"></i>offload</div>
+        <div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div><div class="sr on"><span class="mk"></span><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">My threads</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">11</em></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Memories</span><em style="font-style:normal;font-size:12.5px;opacity:.55;font-variant-numeric:tabular-nums">34</em></div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div class="crumbs"><b>My threads</b></div>
+        <div class="wpane">
+          <div class="wtitle">My threads</div><div class="wsub">10 in here, one waiting on you</div>
+          <div class="pend" style="margin-top:24px"><span class="av">AD</span><b>Ana shared Lisbon trip with you</b><u>Look</u></div>
+          <div style="margin-top:18px">
+            <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Bookshelf build</b><span>2 things · just you</span></span></div>
+            <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Flat admin</b><span>6 things · shared with Sam</span></span></div>
+            <div class="r"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17%203a2%202%200%200%201%202%202v15a1%201%200%200%201-1.496.868l-4.512-2.578a2%202%200%200%200-1.984%200l-4.512%202.578A1%201%200%200%201%205%2020V5a2%202%200%200%201%202-2z%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Read later</b><span>23 things · just you</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><span class="rec">Recommended</span> alongside A. One pending invite is a moss strip above the list; more than one collapses into a single row that opens them in turn.</li>
+  <li><b>It never becomes an inbox.</b> No badge on the tab, no counter in the sidebar, no notification after the first one. An invite that is never accepted quietly expires after 30 days and says so when it does.</li>
+</ul>
+
+<div class="sechead"><h2>4 · @ picks a person</h2><u>the composer, and every other field</u></div>
+<p class="snote">Typing @ anywhere you can type opens a small list of your connections, filtered as you keep typing, the way it works in a chat app. It is the same list the share sheet shows, which is why sharing has no separate people-picker screen. In the composer it turns a sentence into an action; in a note or a task title it just leaves a person attached to what you wrote.</p>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b><span>the composer</span></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;min-height:0;padding:0 22px;display:flex;flex-direction:column;justify-content:flex-end;gap:12px;opacity:.55">
+        <span class="turn you">share Lisbon trip with Sam</span>
+        <span class="turn them">Shared. Sam can add to Lisbon trip, and cannot delete anything of yours.</span>
+      </div>
+      <div style="flex:0 0 auto;padding:0 22px 22px">
+        <div style="background:var(--surface-raised);border-radius:20px;box-shadow:var(--shadow-2);padding:6px 14px;margin-bottom:10px">
+          <div class="pick" style="padding:9px 0"><span class="av">AD</span><b>Ana Duarte</b><span style="font-size:12.5px;color:var(--text-tertiary)">shares 3 threads</span></div>
+          <div class="pick" style="padding:9px 0"><span class="av">TR</span><b>Tom Reilly</b><span style="font-size:12.5px;color:var(--text-tertiary)">shares 1 thread</span></div>
+          <div class="pick" style="padding:9px 0;box-shadow:none"><span class="av">SO</span><b>Sam Ibekwe</b><span style="font-size:12.5px;color:var(--text-tertiary)">shares 2 threads</span></div>
+        </div>
+        <div class="comp"><span style="color:var(--text-primary)">ask <b style="font-weight:500;color:var(--text-accent)">@an</b></span><i></i></div>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="flex-direction:row;background:var(--surface-page)">
+      <div class="wside" data-theme="dark">
+        <div class="wm"><i class="lm"></i>offload</div>
+        <div class="sr on"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m21%2021-4.34-4.34%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%2211%22%20cy%3D%2211%22%20r%3D%228%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div class="crumbs">Today</div>
+        <div class="wpane" style="justify-content:flex-end;padding-bottom:0;opacity:.55">
+          <div style="max-width:620px;width:100%;margin:0 auto"><span class="turn them" style="display:inline-block">Kept. I put it with the Lisbon trip, where the rest of that lives.</span></div>
+        </div>
+        <div style="flex:0 0 auto;padding:20px 40px 28px">
+          <div style="max-width:660px;margin:0 auto">
+            <div style="background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:18px;box-shadow:var(--shadow-2);padding:6px 18px;margin-bottom:10px">
+              <div class="pick" style="padding:10px 0"><span class="av">AD</span><b>Ana Duarte</b><span style="font-size:12.5px;color:var(--text-tertiary)">shares 3 threads</span></div>
+              <div class="pick" style="padding:10px 0"><span class="av">TR</span><b>Tom Reilly</b><span style="font-size:12.5px;color:var(--text-tertiary)">shares 1 thread</span></div>
+              <div class="pick" style="padding:10px 0;box-shadow:none"><span class="av">SO</span><b>Sam Ibekwe</b><span style="font-size:12.5px;color:var(--text-tertiary)">shares 2 threads</span></div>
+            </div>
+            <div style="padding:15px 22px;border-radius:30px;background:var(--surface-raised);border:1.5px solid var(--blue-500);box-shadow:var(--shadow-2);font:var(--text-body-role)">ask <b style="font-weight:500;color:var(--text-accent)">@an</b></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>One list, everywhere.</b> Connections only, ordered by how much you share with them, filtered as you type. Three rows at a time on the phone, no scroll.</li>
+  <li><b>The mention resolves to the person</b>, not to a string: it renders as the name in accent ink, and offload can act on it, "ask @ana about the dates" or "share this with @tom".</li>
+  <li><b>Escape and a space both dismiss it</b>, and an unmatched @ stays as plain text, because email addresses exist.</li>
+  <li><b>Not designed here:</b> what a mention does inside a note the other person can see, and whether mentioning someone notifies them.</li>
+</ul>
+
+<div class="sechead"><h2>Rules</h2></div>
+<ul class="spec">
+  <li><b>One permission, per thing.</b> They can add, they can never delete what is yours. No roles, no viewer and editor, no per-item toggles. The one sentence appears identically in the sheet, in offload's reply and on the invite screen.</li>
+  <li><b>Leaving is symmetrical.</b> Anyone can remove themselves from a thing, the owner can remove anyone, and both cases toast with an undo like every other destructive action.</li>
+  <li><b>What offload says about other people's work</b> stays in the third person and never editorialises: "Ana added two things", not "Ana has been busy".</li>
+  <li><b>You can only share with a connection.</b> Sharing never lets anyone new into offload, and there is no public link. Someone without an account has to come through the waitlist like everyone else, which is why the sheet's last row makes a connection rather than sending an invitation.</li>
+  <li><b>Not designed here:</b> the notification copy for each share event, and what a shared thread looks like in Memories, where offload's inferences would start mixing two people's material.</li>
+</ul>
+</div></body></html>

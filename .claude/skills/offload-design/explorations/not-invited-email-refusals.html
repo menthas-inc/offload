@@ -1,0 +1,336 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Not invited, email and refusals</title>
+<link rel="stylesheet" href="../styles.css?v=3">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400&display=swap">
+<style>
+html,body{margin:0}
+body{background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);letter-spacing:var(--tracking-body);padding:34px 34px 100px}
+.wrap{max-width:1420px;margin:0 auto}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+h2{font:var(--weight-semibold) 20px/1.2 var(--font-core);letter-spacing:-.012em;margin:0}
+.lede{font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:88ch;margin:0 0 34px}
+.lede a{color:var(--text-accent)}.lede a:hover{color:var(--moss-700)}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+.sechead{display:flex;align-items:baseline;gap:12px;padding-bottom:9px;border-bottom:1px solid var(--ink-950);margin:44px 0 16px}
+.sechead u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.snote{font-size:13.5px;line-height:1.6;color:var(--text-secondary);margin:0 0 18px;max-width:88ch}
+.rowlabel{display:flex;align-items:baseline;gap:10px;font:var(--weight-medium) 15px/1.2 var(--font-core);margin:26px 0 10px}
+.rowlabel u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.row{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.cell{display:flex;flex-direction:column;gap:7px}
+.tag{display:flex;align-items:center;gap:7px;font:var(--weight-medium) 11px/1 var(--font-core)}
+.tag b{padding:5px 7px;border-radius:6px;font-weight:600}
+.tag.w b{background:var(--ink-950);color:var(--paper)}
+.tag.i b{background:var(--ink-200);color:var(--ink-950)}
+.tag.a b{background:var(--blue-600);color:#fff}
+.tag.m b{background:var(--moss-600);color:var(--paper)}
+.tag span{color:var(--text-tertiary);font-weight:400;font-size:11.5px}
+.spec{margin:16px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;max-width:92ch}
+.spec li{font-size:13px;line-height:1.55;color:var(--text-secondary);padding-left:13px;position:relative}
+.spec li:before{content:"";position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:99px;background:var(--ink-300)}
+.spec b{color:var(--text-primary);font-weight:500}
+.rec{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;background:var(--surface-accent-soft);color:var(--moss-700)}
+table.mx{border-collapse:collapse;margin-top:16px;font-size:13px;max-width:92ch}
+table.mx th,table.mx td{text-align:left;padding:9px 16px 9px 0;border-bottom:1px solid var(--border-hairline);vertical-align:top;line-height:1.5}
+table.mx th{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);padding-bottom:8px}
+table.mx td{color:var(--text-secondary)}
+table.mx td b{color:var(--text-primary);font-weight:500}
+/* frames */
+.f{position:relative;overflow:hidden;border:1px solid var(--border-hairline);border-radius:14px;background:var(--surface-page);flex:0 0 auto}
+.f>.in{position:absolute;top:0;left:0;transform-origin:top left;box-sizing:border-box;display:flex;flex-direction:column;background:var(--surface-page)}
+.f.web{width:832px;height:520px}.f.web>.in{width:1280px;height:800px;transform:scale(.65)}
+.f.ios{width:240px;height:520px}.f.ios>.in{width:390px;height:844px;transform:scale(.616)}
+.f.and{width:234px;height:520px}.f.and>.in{width:412px;height:915px;transform:scale(.5683)}
+.f.mail{width:450px;height:540px}.f.mail>.in{width:600px;height:720px;transform:scale(.75);display:block}
+/* primitives */
+.lm{display:block;background:var(--ink-950);-webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="black"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="black" stroke-width="10" stroke-linecap="round"/></svg>') center/contain no-repeat;mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="black"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="black" stroke-width="10" stroke-linecap="round"/></svg>') center/contain no-repeat}
+.mark{display:inline-flex;align-items:center;gap:9px;font:var(--weight-semibold) 20px/1 var(--font-core);letter-spacing:-.02em}
+.mark i{width:22px;height:22px}
+.sb{display:flex;justify-content:space-between;align-items:center;flex:0 0 auto;font:var(--weight-medium) 13px/1 var(--font-core);font-variant-numeric:tabular-nums;padding:16px 22px 0}
+.sb em{font-style:normal;display:flex;gap:5px;align-items:center}
+.sb em s{text-decoration:none;width:15px;height:9px;border:1.4px solid currentColor;border-radius:2px;display:block;opacity:.75}
+.sb em s.d{width:11px;background:currentColor;border:none;height:8px;border-radius:1px;opacity:.55}
+.hi{flex:0 0 auto;display:flex;justify-content:center;padding:8px 0 9px}
+.hi b{width:136px;height:5px;border-radius:99px;background:var(--ink-300);display:block}
+.navbar{flex:0 0 auto;display:flex;justify-content:center;gap:56px;padding:14px 0 16px;color:var(--ink-400)}
+.navbar s{text-decoration:none;width:16px;height:16px;display:block;border:1.6px solid currentColor}
+.navbar s.t{border-radius:3px}.navbar s.c{border-radius:99px}
+.navbar s.b{width:0;height:0;border:none;border-top:9px solid transparent;border-bottom:9px solid transparent;border-right:12px solid currentColor}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;box-sizing:border-box;border:1px solid transparent;font:var(--weight-medium) 16px/1 var(--font-core);letter-spacing:var(--tracking-body)}
+.btn.dark{background:var(--ink-950);color:var(--paper)}
+.btn.light{background:var(--paper);color:var(--ink-950);border-color:var(--border-strong)}
+.btn.blue{background:var(--blue-600);color:#fff}
+.btn.ghost{background:transparent;color:var(--text-secondary)}
+.ios .btn{height:52px;border-radius:var(--radius-pill)}
+.and .btn{height:56px;border-radius:var(--radius-pill);font-size:15px;letter-spacing:.01em}
+.web .btn{height:48px;border-radius:var(--radius-pill);font-size:15.5px}
+.foot{flex:0 0 auto;display:flex;flex-direction:column;gap:10px}
+.terms{font:var(--text-caption-role);color:var(--text-tertiary);text-align:center;line-height:1.45}
+.terms u{text-decoration:none;color:var(--text-accent);font-weight:500}
+.chrome{flex:0 0 auto;display:flex;align-items:center;gap:12px;height:48px;padding:0 16px;background:var(--ink-100);border-bottom:1px solid var(--border-hairline)}
+.chrome .dots{display:flex;gap:7px}
+.chrome .dots s{text-decoration:none;width:11px;height:11px;border-radius:99px;background:var(--ink-300);display:block}
+.chrome .url{flex:1;max-width:420px;height:28px;border-radius:99px;background:var(--paper);border:1px solid var(--border-hairline);display:flex;align-items:center;padding:0 12px;font:var(--weight-regular) 12.5px/1 var(--font-core);color:var(--text-tertiary)}
+.field{display:flex;align-items:center;box-sizing:border-box;background:var(--paper);border:1px solid var(--border-strong);border-radius:var(--radius-pill);font:var(--text-body-role);color:var(--text-tertiary)}
+.inline-err{display:flex;gap:9px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:var(--surface-attention-soft);font:var(--weight-regular) 14px/1.4 var(--font-core);color:var(--text-on-attention)}
+.inline-err b{font-weight:500}
+.snack{display:flex;align-items:center;gap:12px;padding:14px 16px;font:var(--weight-regular) 14px/1.4 var(--font-core);background:var(--surface-inverse);color:var(--text-inverse);border-radius:12px}
+.snack b{flex:1;font-weight:400}
+.snack u{text-decoration:none;font-weight:500;color:var(--moss-200)}
+/* mail client chrome */
+.mhd{padding:20px 28px 18px;border-bottom:1px solid var(--border-hairline);background:var(--paper)}
+.mhd .subj{font:var(--weight-semibold) 19px/1.3 var(--font-core);letter-spacing:-.012em}
+.mhd .from{font:var(--weight-regular) 13px/1.4 var(--font-core);color:var(--text-tertiary);margin-top:6px}
+</style></head><body><div class="wrap">
+<h1>Not invited, the invite email, and refusals</h1>
+<p class="lede">The three follow-ons from <a href="auth-onboarding-landing.html">sign in, first run, landing</a>. All three are decided: signing in without an invite offers the waitlist right there, the invite email is the plain letter with no images, and refusals put a line above the buttons. Second devices are settled too, the tutorial runs once per person and never again, so there is nothing to draw.</p>
+
+<div class="sechead"><h2>1 · Signed in, not invited</h2><u>decided, waitlist inline</u></div>
+<p class="snote">The provider returns a real account, we find no invite for it. Rather than sending the person back to the marketing page, the screen states the situation, shows which address it checked, and puts them on the list in one tap. Using a different account is the quiet secondary, because someone with two Apple accounts will want it.</p>
+<div class="rowlabel">The screen<u>after the provider sheet closes</u></div>
+<div class="row">
+  <div class="cell"><div class="tag w"><b>Web</b><span>1280 × 800</span></div>
+    <div class="f web"><div class="in" style="background:var(--surface-sunken)">
+      <div class="chrome"><span class="dots"><s></s><s></s><s></s></span><span class="url">offload.app/signin</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:36px 44px">
+        <span class="mark"><i class="lm"></i>offload</span>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <div style="width:440px;box-sizing:border-box;padding:44px 44px 34px;border-radius:26px;background:var(--surface-raised);box-shadow:var(--shadow-sheet);display:flex;flex-direction:column">
+            <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">You are not on the list yet</div>
+            <div style="font:var(--text-body-role);color:var(--text-secondary);margin-top:10px;line-height:1.5">offload is invite only right now. We checked <b style="color:var(--text-primary);font-weight:500">jo@hey.com</b> and found no invite.</div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin:26px 0 16px">
+              <span class="btn dark">Join the waitlist with this email</span>
+              <span class="btn light">Use a different account</span>
+            </div>
+            <div class="terms">Invited on another address? Sign in with that one instead.</div>
+          </div>
+        </div>
+        <div class="terms" style="text-align:left">Terms · Privacy</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag i"><b>iOS</b><span>390 × 844</span></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:0 24px">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <span class="mark" style="flex-direction:column;gap:20px;font-size:30px"><i class="lm" style="width:92px;height:92px"></i>offload</span>
+        </div>
+        <div style="text-align:center;padding-bottom:44px">
+          <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">You are not on the list yet</div>
+          <div style="font:var(--text-body-role);color:var(--text-secondary);margin-top:12px;line-height:1.45">We checked jo@hey.com and found no invite.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 18px">
+        <span class="btn dark">Join the waitlist</span>
+        <span class="btn light">Use a different account</span>
+        <div class="terms">Invited on another address? Sign in with that one.</div>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag a"><b>Android</b><span>412 × 915</span></div>
+    <div class="f and"><div class="in">
+      <div class="sb" style="padding:14px 18px 0"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:0 24px">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <span class="mark" style="flex-direction:column;gap:20px;font-size:30px"><i class="lm" style="width:92px;height:92px"></i>offload</span>
+        </div>
+        <div style="text-align:center;padding-bottom:44px">
+          <div style="font:var(--weight-semibold) 28px/1.18 var(--font-core);letter-spacing:-.014em">You are not on the list yet</div>
+          <div style="font:var(--weight-regular) 16px/24px var(--font-core);letter-spacing:.01em;color:var(--text-secondary);margin-top:14px">We checked jo@hey.com and found no invite.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 14px;gap:12px">
+        <span class="btn blue">Join the waitlist</span>
+        <span class="btn light">Use a different account</span>
+        <div class="terms" style="font-size:12.5px">Invited on another address? Sign in with that one.</div>
+      </div>
+      <div class="navbar"><s class="t"></s><s class="c"></s><s class="b"></s></div>
+    </div></div>
+  </div>
+</div>
+<div class="rowlabel">After the tap<u>the buttons give way to a toast, nothing else to do</u></div>
+<div class="row">
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="background:var(--surface-sunken)">
+      <div class="chrome"><span class="dots"><s></s><s></s><s></s></span><span class="url">offload.app/signin</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:36px 44px">
+        <span class="mark"><i class="lm"></i>offload</span>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:22px">
+            <div style="width:440px;box-sizing:border-box;padding:44px;border-radius:26px;background:var(--surface-raised);box-shadow:var(--shadow-sheet);display:flex;flex-direction:column">
+              <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">You are on the list</div>
+              <div style="font:var(--text-body-role);color:var(--text-secondary);margin-top:10px;line-height:1.5">We will email jo@hey.com when your account is ready to use.</div>
+            </div>
+            <div class="snack" style="width:340px"><b>Added to the waitlist</b></div>
+          </div>
+        </div>
+        <div class="terms" style="text-align:left">Terms · Privacy</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:0 24px">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <span class="mark" style="flex-direction:column;gap:20px;font-size:30px"><i class="lm" style="width:92px;height:92px"></i>offload</span>
+        </div>
+        <div style="text-align:center;padding-bottom:44px">
+          <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">You are on the list</div>
+          <div style="font:var(--text-body-role);color:var(--text-secondary);margin-top:12px;line-height:1.45">We will email jo@hey.com when your account is ready to use.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 18px"><div class="snack"><b>Added to the waitlist</b></div></div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag a"><b>Android</b></div>
+    <div class="f and"><div class="in">
+      <div class="sb" style="padding:14px 18px 0"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:0 24px">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <span class="mark" style="flex-direction:column;gap:20px;font-size:30px"><i class="lm" style="width:92px;height:92px"></i>offload</span>
+        </div>
+        <div style="text-align:center;padding-bottom:44px">
+          <div style="font:var(--weight-semibold) 28px/1.18 var(--font-core);letter-spacing:-.014em">You are on the list</div>
+          <div style="font:var(--weight-regular) 16px/24px var(--font-core);letter-spacing:.01em;color:var(--text-secondary);margin-top:14px">We will email jo@hey.com when your account is ready to use.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 14px"><div class="snack" style="border-radius:4px"><b>Added to the waitlist</b></div></div>
+      <div class="navbar"><s class="t"></s><s class="c"></s><s class="b"></s></div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>The address is shown</b> because the most common cause is signing in with the wrong one of two accounts. Naming it turns a dead end into something the person can act on.</li>
+  <li><b>Joining from here</b> reuses the provider's email, so there is no field to fill. The landing page keeps its own field for people who never got as far as signing in.</li>
+  <li><b>No tutorial</b> is shown to anyone in this state. The three screens only run once an invite is found.</li>
+</ul>
+
+<div class="sechead"><h2>2 · The invite email</h2><u>decided, the plain letter</u></div>
+<p class="snote">Built the way email has to be built: one 600px table, inline styles, no flexbox, no web fonts, no background images, no rounded corners the layout depends on. Instrument Sans is requested and Helvetica or Arial takes over in every client that ignores it, which is most of them. This is the general template too: the waitlist confirmation, the invite reminder and anything else transactional reuse the same shell.</p>
+<div class="row">
+  <div class="cell"><div class="tag m"><b>Decided</b><span>Plain letter, 600px, no images</span></div>
+    <div class="f mail"><div class="in" style="background:var(--paper)">
+      <div class="mhd"><div class="subj">Your invite to offload</div><div class="from">offload &lt;hello@offload.app&gt; · to jo@hey.com</div></div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FAF9F7"><tr><td align="center" style="padding:32px 0">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#FFFFFF;border:1px solid #E4E1DC">
+          <tr><td style="padding:36px 40px 0;font-family:'Instrument Sans',Helvetica,Arial,sans-serif">
+            <div style="font-size:18px;font-weight:600;letter-spacing:-0.02em;color:#0B0B0B">offload</div>
+          </td></tr>
+          <tr><td style="padding:22px 40px 0"><div style="height:1px;background:#E4E1DC;line-height:1px;font-size:0">&nbsp;</div></td></tr>
+          <tr><td style="padding:26px 40px 0;font-family:'Instrument Sans',Helvetica,Arial,sans-serif">
+            <div style="font-size:24px;line-height:30px;font-weight:600;letter-spacing:-0.014em;color:#0B0B0B">You are in.</div>
+            <div style="font-size:16px;line-height:25px;color:#4A4843;padding-top:14px">Your invite is ready. Sign in with Apple or Google using this address and offload will be waiting.</div>
+          </td></tr>
+          <tr><td style="padding:26px 40px 0">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+              <td align="center" bgcolor="#0B0B0B" style="padding:14px 26px;font-family:'Instrument Sans',Helvetica,Arial,sans-serif;font-size:15px;font-weight:500;color:#FFFFFF">Accept your invite</td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:22px 40px 34px;font-family:'Instrument Sans',Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#8A867E">
+            Or paste this into your browser:<br><span style="color:#4A4843">offload.app/i/9f2c-4a1b</span><br><br>The link works once and expires in 14 days.
+          </td></tr>
+        </table>
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px"><tr>
+          <td style="padding:18px 40px;font-family:'Instrument Sans',Helvetica,Arial,sans-serif;font-size:12px;line-height:18px;color:#8A867E">
+            offload · hello@offload.app<br>You are getting this because you joined the waitlist.
+          </td></tr></table>
+      </td></tr></table>
+    </div></div>
+  </div>
+  </div>
+<ul class="spec">
+  <li><b>No images anywhere.</b> The wordmark is text, the button is a background-coloured table cell, the rule is a one pixel div. Nothing breaks when images are blocked, which is the default in Outlook and in Gmail's promotions tab, and there is no PNG to maintain at two densities.</li>
+  <li><b>The shell:</b> wordmark, rule, one headline, one paragraph, one action, the raw URL, footer. Every future message fills the same slots, so the only thing that changes between an invite and a reminder is the copy.</li>
+  <li><b>The raw URL under the button</b> stays, because clients that strip the styled cell leave the link, and because people forward invites.</li>
+  <li><b>Every send</b> ships a plain-text alternative with the same subject line.</li>
+  <li><b>Dark mode.</b> Apple Mail and Outlook invert light backgrounds on their own. Colours are set on both text and background of every cell so the inverted render stays legible, and no near-black text sits on a transparent cell.</li>
+</ul>
+
+<div class="sechead"><h2>3 · Refusals</h2><u>decided, a line above the buttons</u></div>
+<p class="snote">A line above the buttons is the rule. It stays until it is resolved, it sits next to the button it is about, and it needs no new screen. Drawn here on the most common refusal, the provider sheet closing without a token, and applied to the other three cases in the table. A dialog is reserved for the one failure tapping again cannot fix, an expired invite link.</p>
+
+<div class="rowlabel">The line<u>on mobile the subtitle drops so nothing is pushed off the bottom</u></div>
+<div class="row">
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="background:var(--surface-sunken)">
+      <div class="chrome"><span class="dots"><s></s><s></s><s></s></span><span class="url">offload.app/signin</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:36px 44px">
+        <span class="mark"><i class="lm"></i>offload</span>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <div style="width:420px;box-sizing:border-box;padding:44px 44px 34px;border-radius:26px;background:var(--surface-raised);box-shadow:var(--shadow-sheet);display:flex;flex-direction:column">
+            <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">Sign in to offload</div>
+            <div style="font:var(--text-body-role);color:var(--text-secondary);margin-top:10px;line-height:1.5">Use the account your invite was sent to.</div>
+            <div class="inline-err" style="margin-top:22px">That did not go through. Nothing was sent, try again.</div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin:16px 0 18px">
+              <span class="btn dark"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 1.43c0 1.14-.42 2.2-1.25 3.02-.9.9-2.02 1.42-3.02 1.33-.06-1.08.44-2.2 1.26-3.03.86-.87 2.1-1.4 3.01-1.32zM20.9 8.6c-1.7-.1-3.1.96-3.9.96-.83 0-2.05-.92-3.38-.9-1.74.03-3.35 1.01-4.24 2.57-1.82 3.15-.47 7.82 1.3 10.38.86 1.25 1.9 2.65 3.25 2.6 1.3-.05 1.8-.84 3.37-.84 1.57 0 2.02.84 3.38.82 1.4-.03 2.29-1.27 3.15-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.7-1.04-2.72-4.12-.03-2.58 2.1-3.82 2.2-3.88-1.2-1.77-3.07-1.97-3.71-2.01z"/></svg>Continue with Apple</span>
+              <span class="btn light"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continue with Google</span>
+            </div>
+            <div class="terms">offload is invite only. <u>Join the waitlist</u></div>
+          </div>
+        </div>
+        <div class="terms" style="text-align:left">Terms · Privacy</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:0 24px">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <span class="mark" style="flex-direction:column;gap:20px;font-size:30px"><i class="lm" style="width:92px;height:92px"></i>offload</span>
+        </div>
+        <div style="text-align:center;padding-bottom:36px">
+          <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">One place for everything you would otherwise forget.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 18px">
+        <div class="inline-err">That did not go through. Nothing was sent, try again.</div>
+        <span class="btn dark"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 1.43c0 1.14-.42 2.2-1.25 3.02-.9.9-2.02 1.42-3.02 1.33-.06-1.08.44-2.2 1.26-3.03.86-.87 2.1-1.4 3.01-1.32zM20.9 8.6c-1.7-.1-3.1.96-3.9.96-.83 0-2.05-.92-3.38-.9-1.74.03-3.35 1.01-4.24 2.57-1.82 3.15-.47 7.82 1.3 10.38.86 1.25 1.9 2.65 3.25 2.6 1.3-.05 1.8-.84 3.37-.84 1.57 0 2.02.84 3.38.82 1.4-.03 2.29-1.27 3.15-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.7-1.04-2.72-4.12-.03-2.58 2.1-3.82 2.2-3.88-1.2-1.77-3.07-1.97-3.71-2.01z"/></svg>Continue with Apple</span>
+        <span class="btn light"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continue with Google</span>
+        <div class="terms">No invite yet? <u>Join the waitlist</u></div>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag a"><b>Android</b></div>
+    <div class="f and"><div class="in">
+      <div class="sb" style="padding:14px 18px 0"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:0 24px">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <span class="mark" style="flex-direction:column;gap:20px;font-size:30px"><i class="lm" style="width:92px;height:92px"></i>offload</span>
+        </div>
+        <div style="text-align:center;padding-bottom:36px">
+          <div style="font:var(--weight-semibold) 28px/1.18 var(--font-core);letter-spacing:-.014em">One place for everything you would otherwise forget.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 14px;gap:12px">
+        <div class="inline-err" style="border-radius:12px">That did not go through. Nothing was sent, try again.</div>
+        <span class="btn blue"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continue with Google</span>
+        <span class="btn dark"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 1.43c0 1.14-.42 2.2-1.25 3.02-.9.9-2.02 1.42-3.02 1.33-.06-1.08.44-2.2 1.26-3.03.86-.87 2.1-1.4 3.01-1.32zM20.9 8.6c-1.7-.1-3.1.96-3.9.96-.83 0-2.05-.92-3.38-.9-1.74.03-3.35 1.01-4.24 2.57-1.82 3.15-.47 7.82 1.3 10.38.86 1.25 1.9 2.65 3.25 2.6 1.3-.05 1.8-.84 3.37-.84 1.57 0 2.02.84 3.38.82 1.4-.03 2.29-1.27 3.15-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.7-1.04-2.72-4.12-.03-2.58 2.1-3.82 2.2-3.88-1.2-1.77-3.07-1.97-3.71-2.01z"/></svg>Continue with Apple</span>
+        <div class="terms" style="font-size:12.5px">No invite yet? <u>Join the waitlist</u></div>
+      </div>
+      <div class="navbar"><s class="t"></s><s class="c"></s><s class="b"></s></div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>It clears</b> on the next attempt, and it never replaces the buttons, so the recovery is always one tap away in the place it already was.</li>
+</ul>
+
+<div class="rowlabel">The four cases<u>the line everywhere except the expired link</u></div>
+<table class="mx">
+  <tr><th style="width:200px">Refusal</th><th style="width:180px">Treatment</th><th>What it says, and what happens next</th></tr>
+  <tr><td><b>Sheet cancelled or failed</b></td><td>Line above the buttons</td><td>That did not go through. Nothing was sent, try again. Clears on the next attempt.</td></tr>
+  <tr><td><b>Offline on first run</b></td><td>Line above the buttons, buttons disabled</td><td>No connection. Sign in needs one, this is the only screen in offload that does. It retries by itself when the network returns.</td></tr>
+  <tr><td><b>Notifications denied</b></td><td>Nothing at all</td><td>The system dialog already carried the decision. We never ask again, and Settings gains one line explaining what is switched off and how to turn it back on.</td></tr>
+  <tr><td><b>Invite link expired or used</b></td><td>Its own screen</td><td>This link has been used. If it was you, sign in with Apple or Google instead, with the sign-in buttons underneath. No dead end.</td></tr>
+</table>
+<ul class="spec">
+  <li><b>One voice for all of them:</b> what happened, whether anything was lost, and what to do. No error codes, no apology, no exclamation marks.</li>
+  <li><b>Nothing is ever lost</b> in these four cases, and each message says so, because the fear at sign-in is that a half-finished account now exists.</li>
+</ul>
+</div></body></html>

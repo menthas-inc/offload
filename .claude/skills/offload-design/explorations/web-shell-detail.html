@@ -1,0 +1,389 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>offload web, the shell in detail</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:44px 40px 90px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.55;color:var(--text-secondary);margin:0 0 8px;max-width:78ch}
+h2{font:600 19px/1.3 var(--font-core);margin:46px 0 4px}
+.why{font-size:14px;line-height:1.6;color:var(--text-secondary);margin:0 0 16px;max-width:84ch}
+.why b{color:var(--text-primary);font-weight:500}
+.note{font-size:12.5px;color:var(--text-tertiary);margin:12px 0 0;line-height:1.55;max-width:84ch}
+.tag{display:inline-flex;align-items:baseline;gap:8px;margin:0 0 8px}
+.tag b{font:600 12px/1 var(--font-core);background:var(--ink-950);color:var(--paper);padding:5px 7px;border-radius:6px}
+.tag span{font-size:13px;color:var(--text-secondary)}
+.stack{display:flex;flex-direction:column;gap:22px}
+.hold{width:952px;height:580px;overflow:hidden;border-radius:14px;border:1px solid var(--border-hairline);background:var(--surface-page)}
+.rail{display:flex;position:absolute;top:0;bottom:0;left:248px;right:0;overflow:hidden}
+.rail > *:first-child{margin-left:-336px}
+.win{width:1512px;height:920px;transform:scale(.6296);transform-origin:top left;display:flex;background:var(--surface-page);overflow:hidden;
+  font:400 15px/1.45 var(--font-core);color:var(--text-primary);position:relative}
+/* sidebar */
+.side{width:248px;flex:0 0 auto;display:flex;flex-direction:column;padding:0 0 14px;box-shadow:inset -1px 0 0 var(--border-hairline)}
+.mark{display:flex;align-items:center;gap:9px;font:600 19px/1 var(--font-core);letter-spacing:-.02em;padding:16px 20px 18px}
+.mark svg{display:block;flex:0 0 auto}
+.nav{display:flex;flex-direction:column;gap:2px;padding:0 10px}
+.nv{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:10px;font:500 14.5px/1 var(--font-core);color:var(--text-secondary)}
+.nv .lu{width:17px;height:17px;flex:0 0 auto}
+.nv.on{background:var(--surface-fill);color:var(--text-primary)}
+.nv.open{background:var(--blue-50);color:var(--blue-700)}
+.nv em{margin-left:auto;font-style:normal;font-size:12.5px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.nv .sp{width:3px;height:16px;border-radius:999px;background:var(--surface-attention);flex:0 0 auto;margin-left:-4px}
+.sl{display:flex;align-items:center;gap:7px;font:500 11.5px/1 var(--font-core);color:var(--text-tertiary);padding:22px 20px 8px}
+.sl .lu{width:12px;height:12px;margin-left:auto;color:var(--ink-300)}
+.foot{margin-top:auto;padding:0 10px}
+.scut{margin-left:auto;font:500 11px/1 var(--font-core);color:var(--text-tertiary);border:1px solid var(--border-hairline);border-radius:5px;padding:4px 5px}
+/* column */
+.col{flex:1;min-width:0;display:flex;flex-direction:column;position:relative;background:var(--surface-page)}
+.col.narrow{flex:0 0 auto;width:600px;box-shadow:inset -1px 0 0 var(--border-hairline)}
+.ph{display:flex;align-items:center;gap:12px;padding:18px 40px 0;flex:0 0 auto}
+.h1{font:600 25px/1.2 var(--font-core);letter-spacing:-.016em}
+.h1 small{display:block;font:400 13.5px/1.4 var(--font-core);color:var(--text-secondary);letter-spacing:0;margin-top:3px}
+.pt{margin-left:auto;display:flex;gap:6px}
+.body{flex:1;min-height:0;overflow:hidden;padding:0 0 10px}
+.inner{max-width:764px;margin:0 auto;padding:0 40px}
+.sec{display:flex;align-items:center;gap:9px;padding-bottom:8px;margin:24px 0 4px;border-bottom:1px solid var(--ink-950)}
+.sec b{font:600 19px/1.2 var(--font-core);letter-spacing:-.012em}
+.sec.accent{border-bottom-color:var(--moss-600)}
+.cnt{font:500 11.5px/1 var(--font-core);background:var(--surface-attention);color:var(--text-on-solid);padding:5px 8px;border-radius:999px;font-variant-numeric:tabular-nums}
+.cnt.accent{background:var(--surface-accent-soft);color:var(--text-accent)}
+.cnt.q{background:var(--surface-fill);color:var(--text-secondary)}
+.act{margin-left:auto;font:500 13px/1 var(--font-core);color:var(--text-secondary)}
+.li{display:flex;align-items:flex-start;gap:14px;padding:13px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.li:last-child{box-shadow:none}
+.li.on{background:var(--surface-fill);box-shadow:none;border-radius:10px;padding:13px 12px;margin:0 -12px}
+.tile{width:32px;height:32px;flex:0 0 auto;border-radius:9px;background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;margin-top:1px}
+.tile .lu{width:15px;height:15px}
+.tile.hot{background:var(--surface-attention);color:var(--text-on-solid)}
+.tx{flex:1;min-width:0}
+.tx b{display:block;font:500 15.5px/1.35 var(--font-core)}
+.tx span{display:block;font-size:13px;color:var(--text-secondary);margin-top:2px}
+.due{flex:0 0 auto;font:500 11.5px/1 var(--font-core);padding:5px 8px;border-radius:999px;background:var(--surface-attention);color:var(--text-on-solid);margin-top:3px}
+.due.q{background:var(--surface-fill);color:var(--text-secondary)}
+.tools{display:flex;gap:4px;flex:0 0 auto;margin-top:1px}
+.tool{width:28px;height:28px;border-radius:8px;background:var(--surface-fill);color:var(--text-tertiary);display:flex;align-items:center;justify-content:center}
+.tool .lu{width:14px;height:14px}
+.num{flex:0 0 auto;font:500 14px/1 var(--font-core);color:var(--text-secondary);font-variant-numeric:tabular-nums;margin-top:4px}
+.chk{width:17px;height:17px;flex:0 0 auto;border-radius:5px;border:1.5px solid var(--ink-300);margin-top:9px}
+/* composer */
+.comp{flex:0 0 auto;padding:8px 40px 22px}
+.pill{display:flex;align-items:center;gap:10px;min-height:50px;border:1px solid var(--border-focus);border-radius:25px;padding:0 10px 0 20px;background:var(--surface-input)}
+.pill .g{flex:1;min-width:0;font-size:15px;color:var(--text-tertiary)}
+.ib{width:34px;height:34px;border-radius:999px;background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.ib .lu{width:16px;height:16px}
+.ib.send{background:var(--blue-600);color:var(--text-on-solid)}
+/* pane */
+.pane{flex:1;min-width:520px;display:flex;flex-direction:column;background:var(--surface-raised);box-shadow:-1px 0 0 var(--border-hairline)}
+.pane.left{box-shadow:1px 0 0 var(--border-hairline)}
+.pane.fixed{flex:0 0 auto;width:640px}
+.pbar{display:flex;align-items:center;gap:8px;padding:14px 26px 10px;flex:0 0 auto}
+.pbar .t{font:600 17px/1.2 var(--font-core);flex:1;min-width:0;letter-spacing:-.01em}
+.pbody{flex:1;min-height:0;overflow:hidden;padding:0 26px}
+.blurb{font:var(--text-quiet-role);font-size:15.5px;line-height:1.5;color:var(--text-primary);margin:6px 0 2px;max-width:60ch}
+.wrote{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-tertiary);margin:9px 0 0}
+.wrote .lu{width:13px;height:13px}
+.crumbs{display:flex;align-items:center;gap:6px;padding:10px 26px 0;font-size:12.5px;color:var(--text-tertiary)}
+.crumb{padding:5px 9px;border-radius:999px;background:var(--surface-fill);color:var(--text-secondary);font:500 12px/1 var(--font-core)}
+.crumb.on{background:var(--ink-950);color:var(--paper)}
+.crumb .lu{width:11px;height:11px}
+/* calendar */
+.cal{display:flex;flex-direction:column;height:100%}
+.calh{display:flex;align-items:center;gap:10px;padding:0 0 12px}
+.calh b{font:600 17px/1.2 var(--font-core)}
+.seg{display:flex;background:var(--surface-fill);border-radius:999px;padding:2px;margin-left:auto}
+.seg i{font:500 12.5px/1 var(--font-core);font-style:normal;padding:7px 12px;border-radius:999px;color:var(--text-secondary)}
+.seg i.on{background:var(--surface-raised);color:var(--text-primary);box-shadow:var(--shadow-1)}
+.grid{flex:1;min-height:0;display:flex;border-top:1px solid var(--border-hairline)}
+.hours{width:52px;flex:0 0 auto;padding-top:26px}
+.hours i{display:block;height:52px;font-style:normal;font-size:11.5px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.day{flex:1;min-width:0;box-shadow:inset 1px 0 0 var(--border-hairline);position:relative}
+.dn{height:26px;display:flex;align-items:center;justify-content:center;gap:5px;font:500 12px/1 var(--font-core);color:var(--text-secondary)}
+.dn.today{color:var(--blue-700)}
+.dn u{font-variant-numeric:tabular-nums;text-decoration:none}
+.slots{position:relative;height:520px}
+.hl{position:absolute;left:0;right:0;height:1px;background:var(--border-hairline)}
+.ev{position:absolute;left:3px;right:3px;border-radius:7px;padding:5px 7px;font:500 11.5px/1.25 var(--font-core);overflow:hidden}
+.ev.ink{background:var(--surface-fill);color:var(--text-primary);box-shadow:inset 3px 0 0 var(--ink-400)}
+.ev.attention{background:var(--blue-50);color:var(--blue-700);box-shadow:inset 3px 0 0 var(--blue-600)}
+.ev.accent{background:var(--surface-accent-soft);color:var(--text-accent);box-shadow:inset 3px 0 0 var(--moss-600)}
+.ev em{display:block;font-style:normal;font-weight:400;font-size:10.5px;opacity:.75;margin-top:1px}
+.ev.tight{display:flex;align-items:center;gap:5px;padding:4px 7px;white-space:nowrap}
+.ev.tight em{display:inline;margin:0;font-variant-numeric:tabular-nums;flex:0 0 auto}
+.ev.tight b{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.free{position:absolute;left:3px;right:3px;border-radius:7px;border:1px dashed var(--moss-200);background:rgba(78,128,96,.05);
+  display:flex;align-items:center;justify-content:center;font:500 11px/1 var(--font-core);color:var(--text-accent)}
+.now{position:absolute;left:0;right:0;height:2px;background:var(--clay-600)}
+.now u{position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:999px;background:var(--clay-600);display:block}
+/* strip calendar */
+.strip{display:flex;gap:10px;padding:8px 0 2px}
+.sd{flex:1;min-width:0;border:1px solid var(--border-hairline);border-radius:12px;padding:9px 10px 11px;background:var(--surface-raised)}
+.sd.today{border-color:var(--blue-500);box-shadow:0 0 0 2px var(--blue-50)}
+.sd .d{display:flex;align-items:baseline;gap:6px;font:500 12px/1 var(--font-core);color:var(--text-secondary);margin-bottom:8px}
+.sd .d b{font:600 14px/1 var(--font-core);color:var(--text-primary);font-variant-numeric:tabular-nums}
+.sd .e{font-size:11.5px;line-height:1.35;padding:5px 7px;border-radius:6px;margin-bottom:4px;background:var(--surface-fill)}
+.sd .e.attention{background:var(--blue-50);color:var(--blue-700)}
+.sd .e.accent{background:var(--surface-accent-soft);color:var(--text-accent)}
+.sd .f{font:500 11px/1 var(--font-core);color:var(--text-accent);padding:5px 0 0}
+/* overlays */
+.scrim{position:absolute;inset:0;background:rgba(11,11,11,.28)}
+.sheet{position:absolute;right:34px;bottom:0;width:600px;height:58%;background:var(--surface-raised);
+  border-radius:20px 20px 0 0;box-shadow:0 -2px 0 var(--border-hairline),0 -20px 50px rgba(11,11,11,.16);display:flex;flex-direction:column;padding:0 0 14px}
+.sheet.mid{left:50%;right:auto;transform:translateX(-50%);width:720px}
+.sh{display:flex;align-items:center;gap:9px;padding:12px 20px 8px}
+.sh b{flex:1;font:500 14px/1.3 var(--font-core);color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.turns{flex:1;min-height:0;padding:4px 20px;display:flex;flex-direction:column;gap:20px;overflow:hidden}
+.you{align-self:flex-end;max-width:76%;padding:11px 16px;border-radius:18px 18px 5px 18px;background:var(--blue-50);border:1px solid var(--blue-100)}
+.them{align-self:flex-start;max-width:90%;padding:13px 16px;border-radius:18px 18px 18px 5px;background:var(--ink-50);
+  font:var(--text-quiet-role);font-size:15px;line-height:1.5}
+.chips{display:flex;gap:8px;flex-wrap:wrap;padding:8px 0 0}
+.chip{display:inline-flex;align-items:center;gap:6px;font:500 12.5px/1 var(--font-core);padding:7px 11px;border-radius:999px;background:var(--surface-fill);color:var(--text-secondary)}
+.chip .lu{width:13px;height:13px}
+.chip.moss{background:var(--moss-600);color:var(--text-on-solid)}
+.chip.blue{background:var(--blue-600);color:var(--text-on-solid)}
+.chip.amber{background:var(--amber-600);color:var(--amber-on)}
+.pal{position:absolute;left:50%;top:104px;transform:translateX(-50%);width:660px;background:var(--surface-raised);
+  border:1px solid var(--border-hairline);border-radius:16px;box-shadow:0 28px 70px rgba(11,11,11,.26);overflow:hidden}
+.pal .q{display:flex;align-items:center;gap:12px;padding:17px 20px;box-shadow:inset 0 -1px 0 var(--border-hairline);font-size:16px;color:var(--text-tertiary)}
+.pal .q .lu{width:17px;height:17px}
+.pal .gl{font:500 11px/1 var(--font-core);color:var(--text-tertiary);padding:12px 20px 6px}
+.pr{display:flex;align-items:center;gap:12px;padding:10px 20px;font-size:14.5px}
+.pr.on{background:var(--surface-fill)}
+.pr .lu{width:16px;height:16px;color:var(--text-secondary);flex:0 0 auto}
+.pr em{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--text-tertiary);border:1px solid var(--border-hairline);border-radius:5px;padding:4px 5px}
+.lu{display:inline-block;background:currentColor;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
+</style></head><body>
+<h1>The web shell, in detail</h1>
+<p class="lede">A. taken further: a sidebar and one content column, composer pinned at the bottom, and nothing that reads like an admin panel. Everything is drawn at 1512&times;920 from the app's own <code>data.js</code>, including the real events in the diary.</p>
+<p class="lede">Three things are being decided here: how a thing opens as a pane, what the calendar becomes when it has room, and how the two overlays behave. The sidebar now carries Pinned and Recent in every frame.</p>
+
+<div id="out"></div>
+
+<script src="../ui_kits/mobile_app/data.js"></script>
+<script src="../ui_kits/mobile_app/sun.js"></script>
+<script>
+const D=window.OFFLOAD_DATA,TV=D.today_view,DAYS=TV.days;
+const SP=k=>D.spaces.filter(s=>s.kind===k);
+const UNREAD=D.notifications.filter(n=>n.unread).length;
+/* Real sunset for the sample date, from the same sun.js the app uses. */
+const SUNSET=(()=>{if(!window.OffloadSun)return null;
+  const d=window.OffloadSun.sunsetTime(new Date(D.todayIso+"T12:00:00"));
+  return d?d.getHours()+":"+String(d.getMinutes()).padStart(2,"0"):null})();
+/* Tuesday and Wednesday are the two days data.js actually has. The rest of the week is
+   empty because there is nothing in the sample to put there. */
+const WEEK=[{d:"Mon",n:"10",ev:[]},{d:"Tue",n:"11",ev:DAYS[0].events,today:true},
+  {d:"Wed",n:"12",ev:(DAYS[1]||{events:[]}).events,today:false},
+  {d:"Thu",n:"13",ev:[]},{d:"Fri",n:"14",ev:[]}];
+const MARK='<svg width="21" height="21" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/></svg>';
+function ic(n,c){return '<i class="lu '+(c||"")+'" style="-webkit-mask-image:url(../assets/icons/'+n+'.svg);mask-image:url(../assets/icons/'+n+'.svg)"></i>'}
+function tools(l){return '<span class="tools">'+l.map(n=>'<span class="tool">'+ic(n)+'</span>').join("")+'</span>'}
+function clock(h,mer){const H=Math.floor(h),M=Math.round((h-H)*60);const h12=H%12===0?12:H%12;
+  return h12+(M?":"+String(M).padStart(2,"0"):"")+(mer?(H<12?"am":"pm"):"")}
+
+const MIN_GAP=0.75;
+function freeLabel(h){const m=Math.round(h*60);
+  if(m<60)return m+"mins free";
+  const H=Math.floor(m/60),M=m%60;
+  return H+(M?":"+String(M).padStart(2,"0"):"")+"hrs free";}
+/* Every gap of MIN_GAP or more between sorted events, as DayAgenda computes them. */
+function gaps(events){const evs=[...(events||[])].sort((a,b)=>a.start-b.start),out=[];
+  evs.forEach((e,i)=>{const n=evs[i+1];if(n&&n.start-e.end>=MIN_GAP)out.push({start:e.end,end:n.start})});
+  return out;}
+function longest(events){return gaps(events).sort((a,b)=>(b.end-b.start)-(a.end-a.start))[0]||null;}
+
+const PRI=TV.priority.map(p=>({icon:p.icon,hot:p.tone==="attention",title:p.title,meta:p.thread+" \u00b7 "+p.meta,due:p.due}));
+const OTHER=TV.other.map(o=>({icon:o.icon,title:o.title,meta:o.meta}));
+
+function row(r,o){o=o||{};
+  return '<div class="li'+(r.on?" on":"")+'">'+(o.check?'<span class="chk"></span>':'')+
+    (o.noTile?'':'<span class="tile'+(r.hot?" hot":"")+'">'+ic(r.icon||"bookmark")+'</span>')+
+    '<span class="tx"><b>'+r.title+'</b>'+(r.meta?'<span>'+r.meta+'</span>':'')+'</span>'+
+    (o.tools?tools(o.tools):'')+(r.num!==undefined?'<span class="num">'+r.num+'</span>':'')+
+    (r.due?'<span class="due'+(r.hot?"":" q")+'">'+r.due+'</span>':'')+'</div>';
+}
+function sec(label,count,tone,action){
+  return '<div class="sec'+(tone?" "+tone:"")+'"><b>'+label+'</b>'+
+    (count!==undefined?'<span class="cnt'+(tone==="accent"?" accent":"")+'">'+count+'</span>':'')+
+    (action?'<span class="act">'+action+'</span>':'')+'</div>';
+}
+function digest(t){
+  const l=t.lines&&t.lines[0];
+  return '<div class="li"><span class="tile">'+ic(l?l.icon:"lasso")+'</span><span class="tx"><b>'+t.name+'</b>'+
+    '<span>'+(l?l.text+" \u00b7 "+l.time:"")+'</span></span>'+
+    '<span class="due q">+'+t.added+'</span></div>';
+}
+
+/* Pinned is yours to set; Recent is the last few things you touched, so the sidebar
+   answers both "where do I live" and "where was I". */
+function sidebar(o){o=o||{};
+  const tabs=[["sun","Today",o.tab!=="things"&&o.tab!=="mem"],["lasso","My things",o.tab==="things"],["cloudy","Memories",o.tab==="mem"]];
+  const counts={"My things":String(D.spaces.length),Memories:String(D.memories.total)};
+  const pinned=SP("now").slice(0,3),recent=[D.spaces[3],D.spaces[0],D.spaces[6]].filter(Boolean);
+  const item=(s,open)=>'<div class="nv'+(open?" open":"")+'">'+(open?'<span class="sp"></span>':'')+ic(s.icon)+s.name+'</div>';
+  return '<div class="side"><div class="mark">'+MARK+'offload</div>'+
+    '<div class="nav">'+tabs.map(([i,l,on])=>'<div class="nv'+(on?" on":"")+'">'+ic(i)+l+
+      (counts[l]?'<em>'+counts[l]+'</em>':'')+'</div>').join("")+'</div>'+
+    '<div class="sl">Pinned'+ic("plus")+'</div><div class="nav">'+pinned.map(s=>item(s,o.open===s.name)).join("")+'</div>'+
+    '<div class="sl">Recent</div><div class="nav">'+recent.map(s=>item(s,o.open===s.name)).join("")+'</div>'+
+    '<div class="foot"><div class="nav">'+
+      '<div class="nv">'+ic("search")+'Search<span class="scut">\u2318K</span></div>'+
+      '<div class="nv">'+ic("bell")+'Activity<em>'+UNREAD+'</em></div>'+
+      '<div class="nv">'+ic("settings")+'Settings</div></div></div></div>';
+}
+function composer(label){
+  return '<div class="comp"><div style="max-width:764px;margin:0 auto"><div class="pill"><span class="g">'+(label||"Dump anything")+'</span>'+
+    '<span class="ib">'+ic("camera")+'</span><span class="ib">'+ic("mic")+'</span><span class="ib send">'+ic("arrow-up")+'</span></div></div></div>';
+}
+function todayHead(pt){
+  return '<div class="ph"><div class="h1">Today<small>Tue 11 Aug'+(SUNSET?' \u00b7 sunset '+SUNSET:'')+'</small></div>'+
+    (pt?'<span class="pt">'+pt.map(n=>'<span class="tool">'+ic(n)+'</span>').join("")+'</span>':'')+'</div>';
+}
+function todayBody(o){o=o||{};
+  return '<div class="body"><div class="inner">'+
+    PRI.slice(0,o.pri||3).map((r,i)=>row(Object.assign({},r,{on:o.selected===i}),{tools:["archive","trash-2"]})).join("")+
+    (o.calStrip?sec("This week",undefined,null,"Open calendar")+calStrip():'')+
+    sec("What moved",TV.threads.length,"accent")+TV.threads.map(digest).join("")+
+    (o.calStrip?'':sec("On the clock",undefined,null,"Open calendar")+
+      '<div class="ag" style="display:flex;gap:12px;padding:9px 0"><span style="width:132px;font-size:13px;color:var(--text-secondary);font-variant-numeric:tabular-nums">9:30 \u2013 10:00</span><span>Standup</span></div>')+
+  '</div></div>';
+}
+
+/* The week, as a strip of days on Today. Free time is named, as in the mobile agenda. */
+function calStrip(){
+  return '<div class="strip">'+WEEK.map((c,i)=>{
+    const list=(c.ev||[]).slice(0,2),run=longest(c.ev);
+    return '<div class="sd'+(c.today?" today":"")+'"><span class="d"><b>'+c.n+'</b>'+c.d+'</span>'+
+      list.map(e=>'<div class="e '+e.tone+'">'+clock(e.start,true)+' '+e.title+'</div>').join("")+
+      '<div class="f">'+(c.ev.length?(run?freeLabel(run.end-run.start):"back to back"):"nothing on")+'</div></div>';
+  }).join("")+'</div>';
+}
+/* The calendar as its own pane: a real week grid, since a desktop has the room. */
+function calGrid(){
+  const H0=8,H1=21,box=(H1-H0)*40;
+  const cols=WEEK;
+  const hours=[];for(let h=H0;h<H1;h++)hours.push(h);
+  const y=h=>Math.round((h-H0)*40);
+  return '<div class="cal"><div class="calh"><b>August</b>'+
+    '<span class="tool">'+ic("chevron-left")+'</span><span class="tool">'+ic("chevron-right")+'</span>'+
+    '<span class="seg"><i>Day</i><i class="on">Week</i><i>Month</i></span>'+
+    '<span class="tool">'+ic("plus")+'</span></div>'+
+    '<div class="grid"><div class="hours">'+hours.map(h=>'<i style="height:40px">'+clock(h,h===12||h===8)+'</i>').join("")+'</div>'+
+    cols.map(c=>{
+      const free=gaps(c.ev).filter(g=>g.end>H0&&g.start<H1);
+      return '<div class="day"><div class="dn'+(c.today?" today":"")+'"><u>'+c.n+'</u>'+c.d+'</div>'+
+      '<div class="slots" style="height:'+(box)+'px">'+
+        hours.map(h=>'<span class="hl" style="top:'+y(h)+'px"></span>').join("")+
+        free.map(g=>'<span class="free" style="top:'+y(Math.max(g.start,H0))+'px;height:'+
+          Math.max(20,y(Math.min(g.end,H1))-y(Math.max(g.start,H0))-3)+'px">'+freeLabel(g.end-g.start)+'</span>').join("")+
+        c.ev.map(e=>{const hgt=Math.max(22,y(e.end)-y(e.start)-3),t=clock(e.start,true);
+          return '<span class="ev '+e.tone+(hgt<40?" tight":"")+'" style="top:'+y(e.start)+'px;height:'+hgt+'px">'+
+          (hgt<40?'<em>'+t+'</em><b>'+e.title+'</b>':e.title+'<em>'+t+'</em>')+'</span>'}).join("")+
+        (c.today?'<span class="now" style="top:'+y(14.6)+'px"><u></u></span>':'')+
+      '</div></div>';
+    }).join("")+'</div></div>';
+}
+
+function threadPane(o){o=o||{};
+  const t=D.spaces[0],c=D.lisbon,st=D.standing.lisbon;
+  return '<div class="pane'+(o.left?" left":"")+(o.fixed?" fixed":"")+'">'+
+    (o.crumbs?'<div class="crumbs">'+o.crumbs.map((x,i)=>'<span class="crumb'+(i===o.crumbs.length-1?" on":"")+'">'+x+'</span>'+
+      (i<o.crumbs.length-1?ic("chevron-right"):'')).join("")+'</div>':'')+
+    '<div class="pbar"><span class="t">'+t.name+'</span>'+
+      ['maximize-2','users','ellipsis','x'].map(n=>'<span class="tool">'+ic(n)+'</span>').join("")+'</div>'+
+    '<div class="pbody"><div class="blurb">'+st.text+'</div>'+
+    '<div class="wrote">'+ic("sparkles")+'offload wrote this, '+st.updated.replace("updated ","")+'</div>'+
+    sec("To do",c.tasks.filter(x=>!x.done).length)+
+    c.tasks.slice(0,3).map(x=>row({title:x.label,meta:x.meta},{check:true,noTile:true,tools:["pencil","trash-2"]})).join("")+
+    sec("Everything in here",t.count,"accent","See all")+
+    c.notes.slice(0,2).map(x=>row({icon:x.icon,title:x.title,meta:x.meta})).join("")+
+    '</div></div>';
+}
+
+/* P1 peek right, P2 stack, P3 newest nearest the nav. */
+function P1(){
+  return '<div class="win">'+sidebar({open:"Lisbon trip"})+
+    '<div class="col narrow">'+todayHead()+todayBody({selected:0,pri:4})+composer()+'</div>'+
+    threadPane()+'</div>';
+}
+function P2(){
+  return '<div class="win">'+sidebar({open:"Lisbon trip"})+'<div class="rail">'+
+    '<div class="col narrow" style="width:440px;flex:0 0 auto">'+todayHead()+todayBody({selected:0,pri:5})+composer()+'</div>'+
+    threadPane({fixed:true,crumbs:["Today","Lisbon trip"]})+
+    '<div class="pane" style="min-width:520px"><div class="pbar"><span class="t">'+D.lisbon.tasks[0].label+'</span>'+
+      ['maximize-2','ellipsis','x'].map(n=>'<span class="tool">'+ic(n)+'</span>').join("")+'</div>'+
+      '<div class="pbody"><div class="blurb" style="font-size:14.5px">'+D.lisbon.tasks[0].meta+'.</div>'+
+      sec("Sources",D.lisbon.notes.length)+D.lisbon.notes.slice(0,2).map(x=>row({icon:x.icon,title:x.title,meta:x.meta})).join("")+'</div></div></div></div>';
+}
+function P3(){
+  return '<div class="win">'+sidebar({open:"Lisbon trip"})+
+    threadPane({left:true,fixed:true})+
+    '<div class="col">'+todayHead()+todayBody({selected:0,pri:3})+composer()+'</div></div>';
+}
+/* Calendar, two homes. */
+function C1(){
+  return '<div class="win">'+sidebar()+
+    '<div class="col">'+todayHead()+todayBody({calStrip:true,pri:3})+composer()+'</div></div>';
+}
+function C2(){
+  return '<div class="win">'+sidebar({open:"Calendar"})+
+    '<div class="col narrow" style="width:520px">'+todayHead()+todayBody({pri:4})+composer()+'</div>'+
+    '<div class="pane"><div class="pbar"><span class="t">Calendar</span>'+
+      ['maximize-2','ellipsis','x'].map(n=>'<span class="tool">'+ic(n)+'</span>').join("")+'</div>'+
+      '<div class="pbody" style="padding-bottom:14px">'+calGrid()+'</div></div></div>';
+}
+/* Overlays: the conversation does not block, the launcher does. */
+function OV(){
+  const turns='<div class="you">What do I still owe money for?</div>'+
+    '<div class="them">Three things. You owe Ana \u20ac214 for the flights, Sam \u00a312 for the drill bits, and the flat insurance renews at \u00a3340 on the 20th.'+
+    '<div class="chips"><span class="chip moss">'+ic("lasso")+'Lisbon trip</span><span class="chip amber">\u20ac214 to Ana</span>'+
+    '<span class="chip blue">'+ic("clock")+'the 20th</span></div></div>';
+  return '<div class="win">'+sidebar()+
+    '<div class="col">'+todayHead()+todayBody({pri:5})+
+    '<div class="sheet"><div class="sh">'+ic("sparkles")+'<b>What do I still owe money for?</b>'+
+      ['maximize-2','chevron-down','x'].map(n=>'<span class="tool">'+ic(n)+'</span>').join("")+'</div>'+
+      '<div class="turns">'+turns+'</div>'+
+      '<div style="padding:0 20px"><div class="pill" style="min-height:44px"><span class="g">Add to this</span>'+
+        '<span class="ib send">'+ic("arrow-up")+'</span></div></div></div>'+
+    '</div></div>';
+}
+function KP(){
+  /* Jump-to rows come from the real threads and memories, so nothing here is invented. */
+  const mem=Object.values(D.memories.items).map(m=>m.label);
+  const groups=[["Jump to",[["lasso",D.spaces[0].name,"thread"],["cloudy",mem[0],"memory"],["sun","Today",""]]],
+    ["Do",[["plus","New thing",""],["archive","Archive selected","\u2318\u232B"],["settings","Settings","\u2318,"]]]];
+  return '<div class="win">'+sidebar()+
+    '<div class="col">'+todayHead()+todayBody({pri:4})+composer()+'</div>'+
+    '<div class="scrim"></div><div class="pal"><div class="q">'+ic("search")+'Type a command, or ask offload something</div>'+
+      groups.map(([g,rows])=>'<div class="gl">'+g+'</div>'+rows.map(([i,l,e],n)=>
+        '<div class="pr'+(g==="Jump to"&&n===0?" on":"")+'">'+ic(i)+l+(e?'<em>'+e+'</em>':'')+'</div>').join("")).join("")+
+    '</div></div>';
+}
+
+function frame(h){return '<div class="hold">'+h+'</div>'}
+function block(id,name,why,html,note){
+  return '<h2>'+id+'. '+name+'</h2><p class="why">'+why+'</p>'+frame(html)+(note?'<p class="note">'+note+'</p>':'');
+}
+document.getElementById("out").innerHTML=
+  '<h2>How a thing opens</h2><p class="why">Notion calls this a <b>side peek</b>: clicking a page opens it in a panel beside what you were reading, both visible, with a control to promote it to the full window. Three ways to apply that here.</p>'+
+  '<div class="stack">'+
+  '<div><div class="tag"><b>p1</b><span>peek opens on the right, Today narrows</span></div>'+frame(P1())+
+    '<p class="note">Today keeps its position and its composer, the thread arrives beside it on a raised surface, and the row you opened stays highlighted so you know where you are. The pane header carries expand, share, more and close. This is the closest to Notion and the least disorienting: nothing you were looking at moves.</p></div>'+
+  '<div><div class="tag"><b>p2</b><span>panes accumulate, with a breadcrumb</span></div>'+frame(P2())+
+    '<p class="note">Opening something inside the thread adds a third pane rather than replacing the second, and the breadcrumb above the pane lets you jump back. Good for the case you described, following a trail without losing it. The cost is that at three panes each is under 440px, and it starts to feel like the admin panel you did not want.</p></div>'+
+  '<div><div class="tag"><b>p3</b><span>newest pane sits nearest the nav, Today pushed right</span></div>'+frame(P3())+
+    '<p class="note">The literal reading of what you asked: the thing you opened takes the position next to the sidebar and pushes Today right. It puts the newest thing closest to where you clicked, but it moves the content you were reading, and the composer travels with Today rather than staying put.</p></div>'+
+  '</div>'+
+  '<h2>What the calendar becomes</h2><p class="why">On the phone the diary is a single day, read-only. With room it can be a real week, with the events from <code>data.js</code> and free time as a named block rather than a gap.</p>'+
+  '<div class="stack">'+
+  '<div><div class="tag"><b>k1</b><span>a week strip on Today</span></div>'+frame(C1())+
+    '<p class="note">Five days as cards inside Today, each naming its events and how free it is. Cheap, always visible, and it replaces the single-day agenda. It cannot show overlap or let you place anything.</p></div>'+
+  '<div><div class="tag"><b>k2</b><span>a calendar pane, opened like any other thing</span></div>'+frame(C2())+
+    '<p class="note">The calendar becomes something you open into the peek pane: a real week grid, hours down the side, the current time as a red line, free time drawn as a moss block you can click, and a plus to place something. Today keeps a compact agenda; this is where the calendar actually lives. Uses the same pane mechanism as p1, so it costs nothing structurally.</p></div>'+
+  '</div>'+
+  '<h2>The two overlays</h2><p class="why">You were explicit: the conversation must not block the page, the launcher must.</p>'+
+  '<div class="stack">'+
+  '<div><div class="tag"><b>o</b><span>conversation docked, page still live</span></div>'+frame(OV())+
+    '<p class="note">No scrim, and the sheet sits in the bottom right rather than centred, so the list stays reachable and you can keep clicking rows while offload answers. It is distinct by elevation and by its own header, not by dimming what is behind it. Expand promotes it to a full conversation, the chevron folds it to a bar, x ends it.</p></div>'+
+  '<div><div class="tag"><b>k</b><span>\u2318K launcher, page blocked</span></div>'+frame(KP())+
+    '<p class="note">A scrim and a centred panel, because this one is modal by nature: it is grouped into jump-to and do, and it is the home for everything that was a swipe or a long press on the phone.</p></div>'+
+  '</div>'+
+  '<p class="note">My read: p1 for how things open, with p2\u2019s breadcrumb added later only if you find yourself wanting it; k2 for the calendar, since it earns the pane mechanism twice over.</p>';
+</script>
+</body></html>

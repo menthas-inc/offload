@@ -1,0 +1,11 @@
+:root{
+  /* offload separates surfaces with hairlines first, shadow second. */
+  --shadow-none:none;
+  --shadow-1:0 1px 2px rgba(11,11,11,0.04);
+  --shadow-2:0 4px 16px -4px rgba(11,11,11,0.08);
+  --shadow-3:0 12px 32px -8px rgba(11,11,11,0.12);
+  --shadow-sheet:0 -8px 40px -12px rgba(11,11,11,0.14);
+  --shadow-focus:0 0 0 3px rgba(11,11,11,0.10);
+  --blur-chrome:saturate(140%) blur(14px); /* @kind other */
+  --scrim-fade:linear-gradient(to top,rgba(255,255,255,1) 0%,rgba(255,255,255,0.92) 55%,rgba(255,255,255,0) 100%); /* @kind other */
+}

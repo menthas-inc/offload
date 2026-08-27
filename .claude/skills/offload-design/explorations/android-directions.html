@@ -1,0 +1,264 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Android directions</title>
+<link rel="stylesheet" href="../styles.css?v=3">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:40px 34px 90px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 6px;max-width:74ch}
+.src{font-size:12.5px;line-height:1.6;color:var(--text-tertiary);margin:0 0 30px;max-width:74ch}
+h2{font:600 16px/1.3 var(--font-core);margin:38px 0 4px}
+.why{font-size:13.5px;line-height:1.6;color:var(--text-secondary);margin:0 0 16px;max-width:74ch}
+.why b{color:var(--text-primary);font-weight:600}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.col{width:360px}
+.cap{font:500 12px/1 var(--font-core);color:var(--text-tertiary);margin:0 0 7px 2px;text-transform:uppercase;letter-spacing:.06em}
+.ph{position:relative;height:640px;border-radius:26px;overflow:hidden;display:flex;flex-direction:column;
+  border:1px solid var(--border-hairline);background:var(--m-surface)}
+.sb{display:flex;justify-content:space-between;padding:9px 16px 2px;font:500 11px/1 var(--m-plain);color:var(--m-on-surface)}
+.body{flex:1;min-height:0;overflow:hidden;position:relative}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;line-height:1;
+  -webkit-font-feature-settings:'liga';letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr}
+.lu{display:block;background:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+/* shared M3 tokens, overridden per direction */
+.ph{--m-plain:var(--font-core);--m-brand:var(--font-core);
+  --m-surface:#FAF9F7;--m-c-low:#F3F2F0;--m-c:#EDECE9;--m-c-high:#E6E5E1;
+  --m-on-surface:#1B1B1A;--m-on-var:#5A5A57;--m-outline:#E1E0DC;
+  --m-primary:var(--moss-600);--m-on-primary:#FFFFFF;--m-primary-c:#DCE8DE;--m-on-primary-c:#1B3A25;
+  --m-secondary-c:#DDE3F7;--m-on-secondary-c:#1A2A5E;--m-tertiary-c:#F7E7C4;--m-on-tertiary-c:#4A3705;
+  --m-r-xs:4px;--m-r-s:8px;--m-r-m:12px;--m-r-l:16px;--m-r-xl:28px;--m-r-full:9999px;
+  --m-appbar:64px;--m-navbar:80px;color:var(--m-on-surface)}
+/* A: Material shell, offload core */
+.d-a .ph{--m-c-low:#F4F3F1;--m-c:#EEEDEB;--m-primary-c:#E7ECE8}
+/* B: tonal containment, moss-tinted surfaces */
+.d-b .ph{--m-surface:#F8FAF7;--m-c-low:#F1F5F0;--m-c:#E9F0E8;--m-c-high:#DFE9DE;--m-outline:#D6E0D5;--m-on-var:#54615A}
+/* C: expressive, Roboto and bigger everything */
+.d-c .ph{--m-plain:'Roboto',sans-serif;--m-brand:'Roboto',sans-serif;
+  --m-surface:#F7FAF6;--m-c-low:#EDF4EC;--m-c:#E3EEE2;--m-c-high:#D6E6D6;--m-outline:#CFDECE;
+  --m-r-m:20px;--m-r-l:28px;--m-r-xl:32px;--m-appbar:112px;--m-on-var:#53605A}
+/* app bar */
+.bar{display:flex;align-items:center;gap:4px;height:var(--m-appbar);padding:0 4px 0 12px;background:var(--m-surface);flex:0 0 auto}
+.bar .t{flex:1;min-width:0;font:400 22px/28px var(--m-plain);color:var(--m-on-surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-c .bar{flex-direction:column;align-items:stretch;justify-content:flex-end;padding:0 12px 14px;background:var(--m-c-low)}
+.d-c .bar .strip{display:flex;align-items:center;justify-content:space-between;height:56px}
+.d-c .bar .t{font:400 30px/36px var(--m-brand);letter-spacing:-.01em}
+.ib{width:40px;height:40px;flex:0 0 auto;border:none;background:none;border-radius:var(--m-r-full);display:flex;align-items:center;justify-content:center;color:var(--m-on-var);cursor:pointer}
+.ib .ms{font-size:22px}
+.ib .lu{width:20px;height:20px}
+.dot{position:absolute;width:8px;height:8px;border-radius:999px;background:var(--clay-600);margin:-12px 0 0 12px}
+/* nav bar */
+.nav{display:flex;height:var(--m-navbar);background:var(--m-c);flex:0 0 auto;align-items:flex-start;padding-top:12px}
+.d-a .nav{background:var(--m-c-low)}
+.navi{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font:500 12px/16px var(--m-plain);color:var(--m-on-var)}
+.pill{width:56px;height:32px;border-radius:var(--m-r-full);display:flex;align-items:center;justify-content:center}
+.navi.on{color:var(--m-on-secondary-c)}
+.navi.on .pill{background:var(--m-secondary-c)}
+.d-b .navi.on .pill,.d-c .navi.on .pill{background:var(--m-primary-c);color:var(--m-on-primary-c)}
+.d-c .navi.on .pill{width:64px;height:36px}
+.navi .ms{font-size:22px}
+.navi .lu{width:21px;height:21px}
+/* content */
+.pg{padding:0 16px;overflow:hidden;height:100%;box-sizing:border-box}
+.fc{display:flex;align-items:center;gap:8px;padding:2px 0 12px;font:400 14px/20px var(--m-plain);color:var(--m-on-var)}
+.fc .ms{font-size:19px}
+.fc .lu{width:17px;height:17px}
+.sec{font:500 14px/20px var(--m-plain);color:var(--m-on-var);padding:10px 0 6px;letter-spacing:.01em}
+.d-a .sec{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--m-on-surface);padding-bottom:6px;
+  font:600 17px/22px var(--m-plain);color:var(--m-on-surface)}
+.d-c .sec{font:500 16px/22px var(--m-plain);color:var(--m-primary);text-transform:none;padding:14px 0 8px}
+.cnt{font:500 11px/16px var(--m-plain);padding:0 7px;border-radius:999px;background:var(--m-secondary-c);color:var(--m-on-secondary-c)}
+.li{display:flex;align-items:center;gap:16px;padding:10px 0;min-height:56px;box-sizing:border-box}
+.d-a .li{box-shadow:inset 0 -1px 0 var(--m-outline)}
+.d-a .li:last-child{box-shadow:none}
+.box{background:var(--m-c-low);border-radius:var(--m-r-m);padding:4px 16px;margin-bottom:12px}
+.box .li{box-shadow:inset 0 -1px 0 var(--m-outline)}
+.box .li:last-child{box-shadow:none}
+.lead{width:40px;height:40px;flex:0 0 auto;border-radius:999px;background:var(--m-c-high);display:flex;align-items:center;justify-content:center;color:var(--m-on-var)}
+.lead.hot{background:var(--m-secondary-c);color:var(--m-on-secondary-c)}
+.lead .ms{font-size:20px}
+.lead .lu{width:19px;height:19px}
+.d-c .lead{width:48px;height:48px;border-radius:var(--m-r-m)}
+.tx{flex:1;min-width:0}
+.tx b{display:block;font:400 16px/24px var(--m-plain);letter-spacing:.005em;color:var(--m-on-surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx span{display:block;font:400 14px/20px var(--m-plain);letter-spacing:.015em;color:var(--m-on-var);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-a .tx b{font:500 15px/21px var(--m-plain)}
+.d-a .tx span{font-size:12.5px;line-height:18px}
+.d-c .tx b{font-weight:500}
+.badge{font:500 11px/1 var(--m-plain);padding:5px 8px;border-radius:999px;background:var(--m-secondary-c);color:var(--m-on-secondary-c);flex:0 0 auto}
+.badge.q{background:var(--m-c-high);color:var(--m-on-var)}
+.ag{display:flex;gap:12px;padding:7px 0;font:400 14px/20px var(--m-plain)}
+.ag .h{width:104px;flex:0 0 auto;color:var(--m-on-var);font-variant-numeric:tabular-nums}
+.ag .free{color:var(--m-primary);font-weight:500}
+.agbar{width:3px;border-radius:2px;background:var(--m-primary);opacity:.5}
+/* composer / fab */
+.comp{margin:0 16px 12px;display:flex;align-items:center;gap:8px;height:56px;padding:0 8px 0 16px;
+  border-radius:var(--m-r-full);background:var(--m-c-high);color:var(--m-on-var);font:400 16px/24px var(--m-plain)}
+.comp .g{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.comp .ib{color:var(--m-on-var)}
+.d-a .comp{background:var(--paper);border:1px solid var(--m-outline)}
+.fab{position:absolute;right:16px;bottom:16px;height:56px;min-width:56px;padding:0 16px;border-radius:var(--m-r-l);
+  background:var(--m-primary-c);color:var(--m-on-primary-c);display:flex;align-items:center;gap:10px;
+  font:500 14px/20px var(--m-plain);box-shadow:0 4px 8px 3px rgba(0,0,0,.15),0 1px 3px rgba(0,0,0,.3)}
+.d-c .fab{height:64px;border-radius:var(--m-r-xl);background:var(--m-primary);color:var(--m-on-primary);font-size:16px}
+.fab .ms{font-size:24px}
+.fab.lifted{bottom:calc(16px + 48px + 8px)}
+/* chat */
+.you{align-self:flex-end;max-width:82%;padding:10px 16px;border-radius:var(--m-r-l) var(--m-r-l) 4px var(--m-r-l);
+  background:var(--m-secondary-c);color:var(--m-on-secondary-c);font:400 15px/21px var(--m-plain)}
+.them{align-self:flex-start;max-width:90%;padding:12px 16px;border-radius:var(--m-r-l) var(--m-r-l) var(--m-r-l) 4px;
+  background:var(--m-c-low);font:400 15px/22px var(--m-plain)}
+.d-c .them{background:var(--m-c);border-radius:var(--m-r-xl) var(--m-r-xl) var(--m-r-xl) 8px}
+.chat{display:flex;flex-direction:column;gap:12px;padding:12px 16px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{font:500 14px/20px var(--m-plain);padding:6px 12px;border-radius:var(--m-r-s);background:var(--m-primary-c);color:var(--m-on-primary-c)}
+.chip.o{background:transparent;border:1px solid var(--m-outline);color:var(--m-on-var)}
+.d-c .chip{border-radius:999px;padding:8px 16px}
+.snack{position:absolute;left:16px;right:16px;bottom:16px;display:flex;align-items:center;gap:12px;
+  padding:14px 16px;border-radius:var(--m-r-xs);background:#313030;color:#F3F1EE;font:400 14px/20px var(--m-plain)}
+.d-c .snack{border-radius:var(--m-r-l)}
+.snack b{flex:1;font-weight:400}
+.snack u{text-decoration:none;color:#BFD9C4;font-weight:500}
+/* settings */
+.prof{display:flex;align-items:center;gap:16px;padding:6px 0 16px}
+.av{width:56px;height:56px;border-radius:999px;background:var(--m-primary-c);color:var(--m-on-primary-c);display:flex;align-items:center;justify-content:center;font:500 18px/1 var(--m-plain)}
+.d-c .av{width:64px;height:64px}
+.sw{width:52px;height:32px;border-radius:999px;background:var(--m-primary);position:relative;flex:0 0 auto}
+.sw u{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:999px;background:var(--paper);display:block}
+.sw.off{background:var(--m-c-high)}
+.sw.off u{left:6px;right:auto;top:6px;width:20px;height:20px;background:var(--m-on-var);opacity:.6}
+.radio{width:20px;height:20px;border-radius:999px;border:2px solid var(--m-on-var);flex:0 0 auto}
+.radio.on{border:7px solid var(--m-primary)}
+.note{font-size:12px;color:var(--text-tertiary);margin:10px 0 0;line-height:1.55}
+.axis{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 16px;padding:0;list-style:none;max-width:74ch}
+.axis li{font-size:12.5px;color:var(--text-secondary)}
+.axis li b{color:var(--text-primary);font-weight:600}
+</style></head><body>
+<h1>offload on Android</h1>
+<p class="lede">Three ways to put the same product on Android. Same pages, same content, same brand colours; what changes is how much of Material 3 the app speaks. Each row shows Today, My things, a conversation, and Settings side by side.</p>
+<p class="src">Grounded in the current Material 3 spec, not memory: type scale (Title Large 22/28, Body Large 16/24, Body Medium 14/20, Label Medium 12/16), shape scale (4 / 8 / 12 / 16 / 28, full for buttons and search), tonal elevation through <code>surface-container</code> roles rather than shadows, navigation bar 80dp with a <code>secondary-container</code> pill on the active item, top app bars at 64 / 112 / 152dp, FAB at elevation 3, sentence case for all UI text, and the Expressive additions (larger shapes at 20 / 32dp, emphasised weights, spring motion). Icons here are Material Symbols Rounded except in direction A, which keeps offload's current set.</p>
+
+<div id="out"></div>
+
+<script>
+const PAGES=["today","things","chat","settings"];
+const CAP={today:"Today",things:"My things",chat:"A conversation",settings:"Settings"};
+const LU={sun:"sun",lasso:"lasso",cloud:"cloudy",bell:"bell",gear:"settings",rain:"cloud-rain",clock:"clock",
+  bookmark:"bookmark",users:"users",cam:"camera",mic:"mic",send:"arrow-up",chev:"chevron-right",back:"chevron-left",pin:"map-pin"};
+const MS={sun:"wb_sunny",lasso:"lasso_select",cloud:"cloud",bell:"notifications",gear:"settings",rain:"rainy",clock:"schedule",
+  bookmark:"bookmark",users:"group",cam:"photo_camera",mic:"mic",send:"arrow_upward",chev:"chevron_right",back:"arrow_back",pin:"place"};
+
+function icon(dir,key,cls){
+  if(dir==="a")return '<i class="lu '+(cls||"")+'" style="-webkit-mask-image:url(../assets/icons/'+LU[key]+'.svg);mask-image:url(../assets/icons/'+LU[key]+'.svg)"></i>';
+  return '<span class="ms '+(cls||"")+'">'+MS[key]+'</span>';
+}
+function bar(dir,title,back){
+  const left=back?'<button class="ib">'+icon(dir,"back")+'</button>':'';
+  const right='<button class="ib">'+icon(dir,"bell")+'<span class="dot"></span></button><button class="ib">'+icon(dir,"gear")+'</button>';
+  if(dir==="c")return '<div class="bar"><div class="strip">'+(left||'<span style="width:8px"></span>')+'<span style="flex:1"></span>'+right+'</div><span class="t">'+title+'</span></div>';
+  return '<div class="bar">'+left+'<span class="t">'+title+'</span>'+right+'</div>';
+}
+function navbar(dir,active){
+  const items=[["sun","Today"],["lasso","My things"],["cloud","Memories"]];
+  return '<div class="nav">'+items.map((it,i)=>
+    '<span class="navi'+(i===active?" on":"")+'"><span class="pill">'+icon(dir,it[0])+'</span>'+it[1]+'</span>').join("")+'</div>';
+}
+function li(dir,{lead,hot,title,meta,badge,quiet,chev}){
+  return '<div class="li">'+(lead?'<span class="lead'+(hot?" hot":"")+'">'+icon(dir,lead)+'</span>':'')+
+    '<span class="tx"><b>'+title+'</b>'+(meta?'<span>'+meta+'</span>':'')+'</span>'+
+    (badge?'<span class="badge'+(quiet?" q":"")+'">'+badge+'</span>':'')+
+    (chev?'<button class="ib">'+icon(dir,"chev")+'</button>':'')+'</div>';
+}
+function composer(dir){
+  return '<div class="comp"><span class="g">Dump anything</span><button class="ib">'+icon(dir,"cam")+
+    '</button><button class="ib">'+icon(dir,"mic")+'</button><button class="ib">'+icon(dir,"send")+'</button></div>';
+}
+function todayPage(dir){
+  const rows=[
+    {lead:"clock",hot:true,title:"Ana needs an answer",meta:"Lisbon trip \u00b7 asked Tuesday",badge:"Today"},
+    {lead:"bookmark",title:"Split the flight cost",meta:"Lisbon trip \u00b7 \u20ac214 each",badge:"2d late"},
+    {lead:"bookmark",title:"Order the oak brackets",meta:"Bookshelf build",badge:"Fri",quiet:true}
+  ];
+  const wrap=(s)=>dir==="a"?s:'<div class="box">'+s+'</div>';
+  return '<div class="pg">'+
+    '<div class="fc">'+icon(dir,"rain")+'It is going to rain at three. Take a coat.</div>'+
+    (dir==="a"?'<div class="sec">Priority<span class="cnt">5</span></div>':'<div class="sec">Priority</div>')+
+    wrap(rows.map(r=>li(dir,r)).join(""))+
+    '<div class="sec">On the clock</div>'+
+    (dir==="a"?'':'<div class="box" style="padding:8px 16px">')+
+    '<div class="ag"><span class="h">9:30 \u2013 10:00</span><span>Standup</span></div>'+
+    '<div class="ag"><span class="agbar"></span><span class="h" style="margin-left:9px">10:00 \u2013 1:00</span><span class="free">3hrs free</span></div>'+
+    '<div class="ag"><span class="h">1:00 \u2013 1:30</span><span>Call with Ana</span></div>'+
+    (dir==="a"?'':'</div>')+
+    '</div>';
+}
+function thingsPage(dir){
+  const now=[{lead:"lasso",title:"Lisbon trip",meta:"14 things \u00b7 Ana, Tom",badge:"3"},
+    {lead:"lasso",title:"Bookshelf build",meta:"9 things \u00b7 just you"},
+    {lead:"lasso",title:"Dentist and insurance",meta:"5 things \u00b7 just you"}];
+  const always=[{lead:"lasso",title:"Flat admin",meta:"12 things \u00b7 Sam"},
+    {lead:"lasso",title:"Books to read",meta:"31 things"}];
+  const wrap=(s)=>dir==="a"?s:'<div class="box">'+s+'</div>';
+  return '<div class="pg">'+
+    (dir==="a"?'<div class="sec">For now<span class="cnt">3</span></div>':'<div class="sec">For now</div>')+
+    wrap(now.map(r=>li(dir,{...r,chev:true})).join(""))+
+    '<div class="sec">Always on</div>'+
+    wrap(always.map(r=>li(dir,{...r,chev:true})).join(""))+
+    '</div>';
+}
+function chatPage(dir){
+  return '<div class="chat">'+
+    '<div class="you">What do I still owe money for?</div>'+
+    '<div class="them">Three things. You owe Ana \u20ac214 for the flights, Sam \u00a312 for the drill bits, and the flat insurance renews at \u00a3340 on the 20th.'+
+      '<div class="chips"><span class="chip">Lisbon trip</span><span class="chip o">the 20th</span></div></div>'+
+    '<div class="you">Remind me on Friday</div>'+
+    '</div>';
+}
+function settingsPage(dir){
+  const g1=[{lead:"users",title:"Name and photo",meta:"Jo Martins",chev:true},
+    {lead:"bell",title:"Notifications",meta:"Push on, email off",chev:true}];
+  const wrap=(s)=>dir==="a"?'<div class="box">'+s+'</div>':'<div class="box">'+s+'</div>';
+  return '<div class="pg">'+
+    '<div class="prof"><span class="av">JM</span><span class="tx"><b>Jo Martins</b><span>jo@hey.com</span></span>'+
+      '<span class="badge q">Sign out</span></div>'+
+    '<div class="sec">Account</div>'+wrap(g1.map(r=>li(dir,r)).join(""))+
+    '<div class="sec">Appearance</div>'+
+    '<div class="box">'+
+      '<div class="li"><span class="tx"><b>Dark theme</b><span>Follows the system</span></span><span class="sw"><u></u></span></div>'+
+      (dir==="c"?'':'<div class="li"><span class="tx"><b>Light</b></span><span class="radio"></span></div>'+
+        '<div class="li"><span class="tx"><b>Dark</b></span><span class="radio on"></span></div>')+
+    '</div></div>';
+}
+function frame(dir,page){
+  const time='<div class="sb"><span>9:41</span><span>\u25cf\u25cf\u25cf</span></div>';
+  let head,body,foot="",float="";
+  if(page==="today"){head=bar(dir,dir==="c"?"Today":"offload");body=todayPage(dir);}
+  if(page==="things"){head=bar(dir,dir==="c"?"My things":"offload");body=thingsPage(dir);
+    float='<div class="snack"><b>Deleted</b><u>Undo</u></div>';}
+  if(page==="chat"){head=bar(dir,"What do I owe?",true);body=chatPage(dir);}
+  if(page==="settings"){head=bar(dir,"Settings",true);body=settingsPage(dir);}
+  const showComposer=page!=="settings";
+  const showNav=page==="today"||page==="things";
+  if(showComposer&&dir!=="c")foot=composer(dir);
+  if(showComposer&&dir==="c")float+='<div class="fab'+(float.indexOf("snack")>=0?" lifted":"")+'">'+icon(dir,"send")+'Dump</div>';
+  return '<div class="col"><p class="cap">'+CAP[page]+'</p><div class="ph">'+time+head+
+    '<div class="body">'+body+float+'</div>'+foot+(showNav?navbar(dir,page==="today"?0:1):'')+'</div></div>';
+}
+
+const DIRS=[
+  {id:"a",name:"A. Material shell, offload core",
+   why:"The smallest honest port. Everything inside the screen stays as it is on iOS, including Instrument Sans, the ink section rules and the flat rows; only the platform furniture changes. The top app bar is start-aligned at 64dp, the bottom bar becomes a real 80dp navigation bar with the <b>secondary-container</b> pill on the active item, and the toast becomes a snackbar. Switches, radios and ripples are Material.",
+   axes:["<b>Type</b> Instrument Sans throughout","<b>Icons</b> offload's current set","<b>Surfaces</b> flat, rules and hairlines","<b>Primary action</b> the composer stays","<b>Corners</b> offload's radii"]},
+  {id:"b",name:"B. Tonal containment",
+   why:"Material's way of grouping things replaces offload's rules. Sections become <b>surface-container-low</b> blocks at 12dp, so the page reads as a stack of containers rather than a document, and the tint carries a trace of moss so the brand is in the surfaces rather than only in the accents. Type moves onto the M3 scale (Body Large rows, Body Medium meta, Title Large app bar) and list items grow to the 56dp minimum.",
+   axes:["<b>Type</b> M3 scale, still Instrument Sans","<b>Icons</b> Material Symbols Rounded","<b>Surfaces</b> tonal containers, no shadows","<b>Primary action</b> the composer stays","<b>Corners</b> 12 / 16 / 28"]},
+  {id:"c",name:"C. Material 3 Expressive",
+   why:"A genuinely Android-first offload. Roboto, a 112dp medium top app bar carrying the page name as a headline, the Expressive corner steps (20 and 32dp), a filled <b>primary</b> FAB as the one obvious action, and dumping moves into a sheet the FAB opens. Section labels take the primary colour, the nav pill grows, and the snackbar rounds off. Loudest, and the one an Android user would call native.",
+   axes:["<b>Type</b> Roboto, M3 scale","<b>Icons</b> Material Symbols Rounded","<b>Surfaces</b> stronger tonal steps","<b>Primary action</b> FAB opens the dump sheet","<b>Corners</b> 20 / 28 / 32"]}
+];
+document.getElementById("out").innerHTML=DIRS.map(d=>
+  '<div class="d-'+d.id+'"><h2>'+d.name+'</h2><p class="why">'+d.why+'</p>'+
+  '<ul class="axis">'+d.axes.map(a=>'<li>'+a+'</li>').join("")+'</ul>'+
+  '<div class="row">'+PAGES.map(p=>frame(d.id,p)).join("")+'</div></div>').join("");
+</script>
+<p class="note" style="max-width:74ch">Two questions the directions do not answer on their own. <b>Icons:</b> Android convention is Material Symbols, which is what B and C use here, but that means maintaining two icon sets; A keeps one set across both platforms. <b>Dynamic colour:</b> Material You can retint the app from the user's wallpaper. offload's identity is the black mark and the two accents, so my recommendation is to decline dynamic colour and keep the brand scheme, but it is a real platform expectation worth deciding deliberately.</p>
+</body></html>

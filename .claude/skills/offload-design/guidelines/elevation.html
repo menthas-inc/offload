@@ -1,0 +1,23 @@
+<!-- @dsCard group="Spacing" viewport="700x218" name="Hairlines & shadows" subtitle="Separate with a hairline first; shadow only when it floats" -->
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css?v=1786472643305"><style>body{margin:0;padding:0;background:var(--surface-page);color:var(--text-primary);font:var(--text-body-role)}.lbl{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}</style></head><body><div data-ds-theme-root data-theme="light" style="background:var(--surface-page);color:var(--text-primary);padding:20px;min-height:100%;box-sizing:border-box"><div class="ds-theme-tg" role="group" aria-label="Theme" style="display:flex;border:1px solid var(--border-hairline);border-radius:var(--radius-pill);overflow:hidden;width:max-content;margin-bottom:14px">
+<button type="button" data-set="light" aria-pressed="true" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:var(--surface-inverse);color:var(--text-inverse)">Light</button>
+<button type="button" data-set="dark" aria-pressed="false" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:transparent;color:var(--text-secondary)">Dark</button>
+</div><div style="display:flex;gap:16px;align-items:stretch;padding-bottom:8px">
+<div style="flex:1"><div style="height:70px;background:var(--surface-card);border-radius:var(--radius-card);border:1px solid var(--border-hairline)"></div><div class="lbl" style="padding-top:8px">1px hairline</div></div><div style="flex:1"><div style="height:70px;background:var(--surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-1);border:1px solid var(--border-hairline)"></div><div class="lbl" style="padding-top:8px">shadow-1</div></div><div style="flex:1"><div style="height:70px;background:var(--surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-2);border:1px solid var(--border-hairline)"></div><div class="lbl" style="padding-top:8px">shadow-2</div></div><div style="flex:1"><div style="height:70px;background:var(--surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-3)"></div><div class="lbl" style="padding-top:8px">shadow-3</div></div><div style="flex:1"><div style="height:70px;background:var(--surface-card);border-radius:var(--radius-card);box-shadow:var(--shadow-focus);border:1px solid var(--border-focus)"></div><div class="lbl" style="padding-top:8px">shadow-focus</div></div></div></div><script>
+(function(){
+  var root=document.querySelector("[data-ds-theme-root]");
+  document.querySelectorAll(".ds-theme-tg button").forEach(function(b){
+    b.addEventListener("click",function(){
+      var t=b.dataset.set;
+      root.setAttribute("data-theme",t);
+      document.documentElement.setAttribute("data-theme",t);
+      document.querySelectorAll(".ds-theme-tg button").forEach(function(x){
+        var on=x.dataset.set===t;
+        x.setAttribute("aria-pressed",String(on));
+        x.style.background=on?"var(--surface-inverse)":"transparent";
+        x.style.color=on?"var(--text-inverse)":"var(--text-secondary)";
+      });
+    });
+  });
+})();
+</script></body></html>

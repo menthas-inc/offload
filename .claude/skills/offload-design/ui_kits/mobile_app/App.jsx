@@ -1,0 +1,358 @@
+const OFFLOAD_DS=(typeof window!=="undefined"&&window.OffloadDesignSystem_dc4a89)||{};
+const { TabBar, Sheet, Toast, Button, ListRow, Icon } = OFFLOAD_DS;
+/* Never borrow another thread's summary: if offload has not written one, say only
+   what this thread's own fields support. */
+function neutralStanding(thread){
+  if(!thread) return null;
+  return {text:thread.count+" things in here. "+(thread.kind==="older"?"Nothing has moved for a while.":"Nothing needs an answer right now."),
+    updated:"no summary yet"};
+}
+
+function App(){
+  const D=(typeof window!=="undefined"&&window.OFFLOAD_DATA)||{spaces:[],today:[],earlier:[],lisbon:{notes:[],tasks:[]},prompts:[]};
+  const [tab,setTab]=React.useState("home");
+  const [space,setSpace]=React.useState(null);
+  const [person,setPerson]=React.useState(null);
+  const [memory,setMemory]=React.useState(null);
+  const [convo,setConvo]=React.useState(null);
+  const [allConvos,setAllConvos]=React.useState(false);
+  const [writing,setWriting]=React.useState(false);
+  const [extraTurns,setExtraTurns]=React.useState({});
+  const [draft,setDraft]=React.useState("");
+  const [sheet,setSheet]=React.useState(false);
+  const [toast,setToast]=React.useState(null);
+  /* A swipe hides a row and offers undo. Nothing is destroyed while the toast is up. */
+  const [hidden,setHidden]=React.useState([]);
+  const undoTimer=React.useRef(null);
+  function remove(id,what){
+    setHidden(h=>h.concat(id));
+    clearTimeout(undoTimer.current);
+    setToast({message:(what||"Deleted")+", gone in a moment",action:"Undo",
+      onAction:()=>setHidden(h=>h.filter(x=>x!==id))});
+    undoTimer.current=setTimeout(()=>setToast(null),8000);
+  }
+  /* Every toast leaves on its own, whether or not it carries an undo. Raising one through
+     this is the only way, so a confirmation can never sit over the screen for good. */
+  function say(message,action,onAction){
+    clearTimeout(undoTimer.current);
+    setToast({message,action,onAction});
+    undoTimer.current=setTimeout(()=>setToast(null),8000);
+  }
+  const [nowOverride,setNowOverride]=React.useState(null);
+  /* An exchange started from a page, before it becomes a saved conversation. */
+  const [live,setLive]=React.useState(null);
+  const [folded,setFolded]=React.useState(false);
+  /* Opening the list marks everything read; the rows stay, greyed. */
+  const [notifs,setNotifs]=React.useState(D.notifications||[]);
+  const [notifOpen,setNotifOpen]=React.useState(false);
+  const [notifClosing,setNotifClosing]=React.useState(false);
+  const [settings,setSettings]=React.useState(false);
+  const [settingsPage,setSettingsPage]=React.useState(null);
+  /* One switch for the whole app: System follows the device, the other two force it. */
+  const [theme,setTheme]=React.useState("Light");
+  /* First run: the gate, the tutorial, and the two states that come off them. "app" is
+     everything after Get started, which is where this kit spends its life. */
+  const [phase,setPhase]=React.useState("app");
+  const [refused,setRefused]=React.useState(false);
+  const [joined,setJoined]=React.useState(false);
+  const [step,setStep]=React.useState(1);
+  /* Sharing: the sheet, and the one invitation waiting in My threads. */
+  const [share,setShare]=React.useState(null);
+  const [invite,setInvite]=React.useState(false);
+  const [pending,setPending]=React.useState({from:"Ana",thing:"Lisbon trip",initials:"AD"});
+  const themeAttr=theme.toLowerCase();
+
+  const now=nowOverride||new Date();
+  const tod=timeOfDay(now);
+  const [tasks,setTasks]=React.useState(D.lisbon.tasks);
+  const [today,setToday]=React.useState(D.today);
+  if(!D.spaces.length) return null;
+
+  function saidFrom(p){
+    const text=(p.text||"").trim();
+    const photos=p.photos||[];
+    if(!text&&!p.voice&&!photos.length)return null;
+    const said={text};
+    if(p.voice)said.voice=p.voice;
+    if(photos.length)said.photos=photos;
+    return said;
+  }
+  /* One reply machine for both the overlay and the full conversation: seen, then
+     either a mark for an instruction or writing and an answer. */
+  function converse(key,said,answer){
+    const asText=said.text||(said.voice?"a voice note":"");
+    const push=(rows)=>setExtraTurns(t=>({...t,[key]:[...(t[key]||[]),...rows]}));
+    const setLast=(status)=>setExtraTurns(t=>{const rows=[...(t[key]||[])];
+      for(let i=rows.length-1;i>=0;i--){if(rows[i].from==="you"){rows[i]={...rows[i],status};break;}}
+      return {...t,[key]:rows};});
+    const isOrder=/^(delete|remove|forget|turn off|stop|remind|snooze|mark)\b/i.test(asText);
+    push([{from:"you",...said,status:"seen"}]);
+    setDraft("");
+    if(isOrder){setTimeout(()=>setLast("done"),1100);return;}
+    setTimeout(()=>setWriting(true),700);
+    setTimeout(()=>{setWriting(false);setLast(null);push([{from:"offload",...answer(asText)}]);},2100);
+  }
+  /* Canned but specific: money and dates answer from the sample data, anything else
+     is acknowledged. A prototype should never pretend to understand. */
+  function answerFor(said){
+    const s=said.toLowerCase();
+    if(/owe|money|cost|pay/.test(s))return {text:"Three things. You owe Ana \u20AC214 for the flights, Sam \u00A312 for the drill bits, and the flat insurance renews at \u00A3340 on the 20th.",
+      refs:[{id:"lisbon",name:"Lisbon trip"},{kind:"money",name:"\u20AC214 to Ana"},{kind:"time",name:"the 20th"}]};
+    if(/ana|date|when/.test(s))return {text:"Ana can only travel the 14th to the 17th. She said so on Tuesday, and nothing has changed since.",
+      refs:[{id:"lisbon",name:"Lisbon trip"},{kind:"time",name:"14th to 17th"}]};
+    if(/shelf|bookshelf|bracket/.test(s))return {text:"Oak, 210cm by 76cm, matte black brackets at 30cm. The brackets are not ordered and the sale ends Friday.",
+      refs:[{id:"shelf",name:"Bookshelf build"},{kind:"time",name:"Friday"}]};
+    return {text:"Kept. I put it with the Lisbon trip, where the rest of that lives.",refs:[{id:"lisbon",name:"Lisbon trip"}]};
+  }
+
+  function submit(payload){
+    const p=payload||{};
+    if(convo){
+      const said=saidFrom(p);
+      if(said)converse(convo.id,said,()=>({text:"Added to this one. I will keep it with the rest."}));
+      return;
+    }
+    if(live){
+      const said=saidFrom(p);
+      if(said)converse(live.id,said,answerFor);
+      return;
+    }
+    /* A dump can be typed, spoken, or a photo, and whichever it is, it opens a
+       conversation. It belongs there until offload files it, so nothing lands in
+       Priority on the way past. */
+    const said=saidFrom(p);
+    if(!said)return;
+    const id="live-"+Date.now();
+    setLive({id,title:said.text||(said.voice?"Voice note":(said.photos||[])[0])||"New conversation",from:tab==="home"?tod.label:tab==="spaces"?"My threads":"Memories",when:"Just now"});
+    setFolded(false);
+    converse(id,said,answerFor);
+  }
+  const lisbon=D.spaces[0];
+  const unread=notifs.filter(n=>n.unread).length;
+  /* Dismissing rolls the sheet back up before it leaves; reading is what happens
+     when it is gone. */
+  function closeNotifications(then){
+    if(notifClosing)return;
+    setNotifClosing(true);
+    setTimeout(()=>{setNotifClosing(false);setNotifOpen(false);
+      setNotifs(ns=>ns.map(n=>({...n,unread:false})));
+      if(typeof then==="function")then();},260);
+  }
+  const bell={unread,barSolid:notifOpen,onOpenNotifications:()=>notifOpen?closeNotifications():setNotifOpen(true),
+    onOpenSettings:()=>setSettings(true)};
+
+  const empty=phase==="empty";
+  let screen;
+  if(invite){
+    screen=<InviteScreen from={pending.from} thing={pending.thing} initials={pending.initials}
+      onAccept={()=>{setInvite(false);setPending(null);say("Added to your threads")}}
+      onLater={()=>setInvite(false)}/>;
+  } else if(memory){
+    screen=<MemoryScreen id={memory} data={D.memories} onBack={()=>setMemory(null)}
+      onOpenMemory={setMemory} onOpenThread={(id)=>{setMemory(null);setSpace(id)}}
+      onOpenPerson={(who)=>{setMemory(null);setPerson(who)}}/>;
+  } else if(settings){
+    screen=settingsPage
+      ?<SettingsDetail page={settingsPage} onBack={()=>setSettingsPage(null)} theme={theme} setTheme={setTheme}/>
+      :<SettingsScreen onBack={()=>setSettings(false)} onOpen={(r)=>setSettingsPage(r.id)}/>;
+  } else if(convo){
+    screen=<ConversationScreen conversation={convo} onBack={()=>setConvo(null)}
+      turns={(D.memories.turns[convo.id]||[]).concat(extraTurns[convo.id]||[])} writing={writing}
+      onOpenThread={(id)=>{setConvo(null);setSpace(id)}}/>;
+  } else if(allConvos){
+    screen=<AllConversationsScreen hidden={hidden} onDelete={remove} data={D.memories} onBack={()=>setAllConvos(false)} onOpenConversation={setConvo}/>;
+  } else if(person){
+    screen=<PersonScreen person={D.people[person]} memories={D.memories} onOpenMemory={setMemory}
+      onBack={()=>setPerson(null)}
+      onOpenThread={(id)=>{setPerson(null);setSpace(id)}}/>;
+  } else if(space){
+    const body=space==="lisbon"?{notes:D.lisbon.notes,tasks:tasks}:(D.contents[space]||{notes:[],tasks:[]});
+    /* Only the widgets this thread's contents justify, in the order offload proposes them. */
+    const widgets=(D.widgets[space]||[]).map(kind=>({kind,data:(D[kind==="files"?"files":kind]||{})[space]})).filter(w=>w.data);
+    screen=<ThreadScreen space={D.spaces.find(s=>s.id===space)||lisbon} notes={body.notes} tasks={body.tasks}
+      standing={D.standing[space]||neutralStanding(D.spaces.find(s=>s.id===space))} widgets={widgets}
+      onBack={()=>setSpace(null)} onMove={()=>setSheet(true)} onShare={()=>setShare((D.spaces.find(s=>s.id===space)||lisbon).name)}
+      onOpenPerson={setPerson}
+      onToggle={(id)=>setTasks(tasks.map(t=>t.id===id?{...t,done:!t.done}:t))}/>;
+  } else if(empty&&tab==="home"){
+    screen=<EmptyToday {...bell} onExample={(t)=>setDraft(t)}/>;
+  } else if(empty&&tab==="spaces"){
+    screen=<QuietEmpty {...bell} line="Threads appear here on their own, once there is enough in one place to be one."/>;
+  } else if(empty){
+    screen=<QuietEmpty {...bell} line="What offload learns about you collects here. Nothing is learned yet."/>;
+  } else if(tab==="home"){
+    screen=<TodayScreen {...bell} hidden={hidden} onDelete={remove} data={D.today_view} now={now} onOpenThread={setSpace} onOpenItem={()=>setSpace("lisbon")} onOpenPerson={setPerson}/>;
+  } else if(tab==="spaces"){
+    screen=<ThreadsScreen {...bell} hidden={hidden} onDelete={remove} spaces={D.spaces} onOpen={setSpace} onNew={()=>setSheet(true)}
+      pending={pending} onOpenInvite={()=>setInvite(true)}/>;
+  } else {
+    screen=<MemoriesScreen {...bell} hidden={hidden} onDelete={remove} data={D.memories} onOpenMemory={setMemory} onOpenConversation={setConvo} onOpenAll={()=>setAllConvos(true)}/>;
+  }
+
+  /* A UIKit push: the new screen comes in from the right over the old one, which slides 30%
+     left and dims; back is the mirror, the old screen sliding out to the right. Tabs are
+     peers, and UIKit cuts between peers, so they get nothing. */
+  const route=invite?["invite","",2]
+    :memory?["memory",memory,2]
+    :settings?(settingsPage?["settingsPage",settingsPage,2]:["settings","",1])
+    :convo?["convo",convo.id,2]
+    :allConvos?["allConvos","",1]
+    :person?["person",person,2]
+    :space?["space",space,1]
+    :["tab",tab,0];
+  const routeKey=route[0]+":"+route[1];
+  const nav=React.useRef({key:routeKey,depth:route[2],dir:"none"});
+  if(nav.current.key!==routeKey){
+    nav.current={key:routeKey,depth:route[2],
+      dir:route[2]>nav.current.depth?"fwd":route[2]<nav.current.depth?"back":"peer"};
+  }
+  const dir=nav.current.dir;
+  const PUSH="350ms cubic-bezier(.32,.72,0,1)";
+  const enter=dir==="fwd"?"offload-push-in "+PUSH+" both"
+    :dir==="back"?"offload-push-back "+PUSH+" both":undefined;
+
+  /* The screen being left has to stay on the phone for the length of the push, or the
+     other one slides over a hole. It is held for one frame longer than it is needed. */
+  const held=React.useRef({key:routeKey,depth:route[2],node:null});
+  const [leaving,setLeaving]=React.useState(null);
+  React.useEffect(()=>{
+    const p=held.current;
+    if(p.key===routeKey)return;
+    const d=route[2]>p.depth?"fwd":route[2]<p.depth?"back":"peer";
+    const node=p.node;
+    held.current={key:routeKey,depth:route[2],node:null};
+    if(d==="peer"||!node){setLeaving(null);return;}
+    setLeaving({dir:d,node});
+    const t=setTimeout(()=>setLeaving(null),380);
+    return ()=>clearTimeout(t);
+  },[routeKey]);
+  if(held.current.key===routeKey)held.current.node=screen;
+
+  return (
+    <>
+    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",justifyContent:"center",
+      padding:"8px 10px",background:"var(--paper)",border:"1px solid var(--border-hairline)",borderRadius:"var(--radius-sm)",boxShadow:"var(--shadow-1)"}}>
+      <span style={{font:"var(--text-numeric-role)",fontVariantNumeric:"tabular-nums",fontSize:11,color:"var(--text-tertiary)"}}>platform</span>
+      {[["iOS","../mobile_app/index.html"],["Android","../android_app/index.html"]].map(([l,href])=>(
+        <a key={l} href={href}
+          style={{textDecoration:"none",display:"inline-flex",alignItems:"center",height:26,padding:"0 10px",
+            borderRadius:"var(--radius-pill)",font:"var(--weight-medium) 12px/1 var(--font-core)",
+            background:l==="iOS"?"var(--surface-inverse)":"var(--surface-fill)",
+            color:l==="iOS"?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</a>
+      ))}
+      <span style={{width:1,height:18,background:"var(--border-hairline)"}}/>
+      <span style={{font:"var(--text-numeric-role)",fontVariantNumeric:"tabular-nums",fontSize:11,color:"var(--text-tertiary)"}}>preview time</span>
+      {[["now",null],["10:00",10],["14:00",14],["21:00",21]].map(([l,h])=>{
+        const on=h===null?nowOverride===null:(nowOverride&&nowOverride.getHours()===h);
+        return <button key={l} type="button" onClick={()=>{if(h===null)setNowOverride(null);else{const dd=new Date();dd.setHours(h,0,0,0);setNowOverride(dd)}}}
+          style={{border:"none",cursor:"pointer",height:26,padding:"0 10px",borderRadius:"var(--radius-pill)",
+            font:"var(--weight-medium) 12px/1 var(--font-core)",fontVariantNumeric:"tabular-nums",
+            background:on?"var(--surface-inverse)":"var(--surface-fill)",
+            color:on?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>;
+      })}
+      <span style={{width:1,height:18,background:"var(--border-hairline)"}}/>
+      {["Light","Dark"].map((t)=>(
+        <button key={t} type="button" onClick={()=>setTheme(t)}
+          style={{border:"none",cursor:"pointer",height:26,padding:"0 10px",borderRadius:"var(--radius-pill)",
+            font:"var(--weight-medium) 12px/1 var(--font-core)",
+            background:theme===t?"var(--surface-inverse)":"var(--surface-fill)",
+            color:theme===t?"var(--text-inverse)":"var(--text-secondary)"}}>{t}</button>
+      ))}
+      <span style={{width:1,height:18,background:"var(--border-hairline)"}}/>
+      <span style={{font:"var(--text-numeric-role)",fontVariantNumeric:"tabular-nums",fontSize:11,color:"var(--text-tertiary)"}}>first run</span>
+      {[["sign in","signin"],["refusal","refusal"],["not invited","notinvited"],["tutorial","tutorial"],["day one","empty"],["app","app"]].map(([l,p])=>{
+        const on=p==="refusal"?(phase==="signin"&&refused):(phase===p&&!(p==="signin"&&refused));
+        return <button key={l} type="button" onClick={()=>{
+          if(p==="refusal"){setPhase("signin");setRefused(true);return}
+          setRefused(false);setJoined(false);setStep(1);setPhase(p);
+          /* Leaving for another phase closes anything the last one left open. */
+          setShare(null);setInvite(false);setSpace(null);setPerson(null);setMemory(null);setConvo(null);
+        }} style={{border:"none",cursor:"pointer",height:26,padding:"0 10px",borderRadius:"var(--radius-pill)",
+          font:"var(--weight-medium) 12px/1 var(--font-core)",
+          background:on?"var(--surface-inverse)":"var(--surface-fill)",
+          color:on?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>;
+      })}
+      <span style={{width:1,height:18,background:"var(--border-hairline)"}}/>
+      <span style={{font:"var(--text-numeric-role)",fontVariantNumeric:"tabular-nums",fontSize:11,color:"var(--text-tertiary)"}}>
+        sunset {window.OffloadSun&&window.OffloadSun.sunsetTime(now)?window.OffloadSun.sunsetTime(now).toTimeString().slice(0,5):", "}
+      </span>
+    </div>
+    <Phone theme={themeAttr}>
+      {(phase==="signin"||phase==="notinvited"||phase==="tutorial")?(
+        phase==="notinvited"
+          ?<NotInvitedScreen joined={joined} onJoin={()=>setJoined(true)}
+            onSwitch={()=>{setJoined(false);setPhase("signin")}}/>
+          :phase==="tutorial"
+            ?<TutorialScreen step={step} onSkip={()=>setPhase("app")}
+              onNext={()=>{if(step<window.TUTORIAL_STEPS)setStep(step+1);else setPhase("app")}}/>
+            :<SignInScreen error={refused?"That did not go through. Nothing was sent, try again.":null}
+              onApple={()=>{setRefused(false);setStep(1);setPhase("tutorial")}}
+              onGoogle={()=>{setRefused(false);setPhase("notinvited")}}/>
+      ):(<>
+      <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",position:"relative"}}>
+        <div style={{position:"relative",zIndex:1,flex:1,minHeight:0,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          {leaving?<div key={"out"+routeKey} aria-hidden="true" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",
+            background:"var(--surface-page)",zIndex:leaving.dir==="back"?2:0,pointerEvents:"none",
+            boxShadow:leaving.dir==="back"?"-1px 0 8px rgba(11,11,11,0.14)":"none",
+            animation:(leaving.dir==="back"?"offload-push-out ":"offload-under-out ")+PUSH+" both"}}>
+            {leaving.node}
+          </div>:null}
+          <div key={routeKey} style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",
+            background:"var(--surface-page)",zIndex:1,
+            boxShadow:dir==="fwd"?"-1px 0 8px rgba(11,11,11,0.14)":"none",animation:enter}}>
+            {screen}
+          </div>
+        </div>
+        <span aria-hidden="true" style={{position:"absolute",left:0,right:0,top:"var(--appbar-height)",height:20,zIndex:2,
+          pointerEvents:"none",background:"linear-gradient(to bottom,var(--surface-raised),transparent)"}}/>
+        {toast?<div style={{position:"absolute",left:"var(--gutter-screen)",right:"var(--gutter-screen)",bottom:12,zIndex:10}}>
+          <Toast message={toast.message} action={toast.action} onAction={()=>{if(toast.onAction)toast.onAction();setToast(null)}}/></div>:null}
+        {live&&!folded?(
+          <LiveConversation variant="sheet" live={live} turns={(extraTurns[live?live.id:""]||[])} writing={writing}
+            onFold={()=>setFolded(true)} onClose={()=>{setLive(null);setFolded(false)}}
+            onFull={()=>{setConvo({id:live.id,title:live.title,when:"Just now"});setLive(null);setFolded(false)}}
+            onOpenThread={(id)=>{setLive(null);setFolded(false);setSpace(id)}}>
+            <Composer value={draft} onChange={setDraft} onSubmit={submit} placeholder="Add to this"/>
+          </LiveConversation>
+        ):null}
+        {share?<ShareSheet thingName={share} onClose={()=>setShare(null)}
+          onShared={(names)=>say("Shared with "+names.join(" and "))}/>:null}
+        {sheet?<Sheet title="Move to a thread" onClose={()=>setSheet(false)}
+          footer={<><Button variant="secondary" block onClick={()=>setSheet(false)}>Cancel</Button><Button variant="primary" block onClick={()=>setSheet(false)}>Move</Button></>}>
+          {D.spaces.slice(0,3).map((s,i)=><ListRow key={s.id} selected={i===0} onClick={()=>{}} border={i<2}
+            leading={<span style={{color:"var(--text-secondary)",display:"flex"}}><Icon name={s.icon} size={18}/></span>}
+            title={s.name} meta={s.meta}/>)}
+        </Sheet>:null}
+      </div>
+      {(()=>{
+        const showComposer=!(space||person||memory||(allConvos&&!convo)||(live&&!folded)||settings);
+        const showTabs=!(space||person||memory||convo||allConvos||settings);
+        const inFolded=live&&folded;
+        const underSheet=live&&!folded;
+        const plate=(
+          <div style={{position:"relative",zIndex:9,background:"var(--surface-raised)",
+            borderRadius:underSheet?0:"var(--radius-xl) var(--radius-xl) 0 0",
+            boxShadow:underSheet?"none":"var(--shadow-sheet)",
+            pointerEvents:notifOpen?"none":undefined}}>
+            {inFolded?<FoldedHeader title={live.title} onRaise={()=>setFolded(false)}
+              onClose={()=>{setLive(null);setFolded(false)}}/>:null}
+            {showComposer?<Composer value={draft} onChange={setDraft} onSubmit={submit} bare
+              placeholder={convo?"Add to this conversation":inFolded?"Add to this":undefined}/>:null}
+            {showTabs?<TabBar style={{background:"transparent",borderTop:"1px solid transparent"}}
+              value={tab} onChange={(v)=>{setTab(v);setSpace(null);setPerson(null);setMemory(null);setConvo(null);setAllConvos(false);setLive(null);setFolded(false);setSettings(false);setSettingsPage(null);setShare(null);setInvite(false)}} items={[
+              {value:"home",label:tod.label,icon:tod.icon},
+              {value:"spaces",label:"My threads",icon:"lasso"},
+              {value:"thoughts",label:"Memories",icon:"cloudy"}]}/>:null}
+          </div>
+        );
+        return plate;
+      })()}
+      {notifOpen?<NotificationSheet items={notifs} unread={unread} closing={notifClosing} onClose={closeNotifications}
+        onOpen={(n)=>closeNotifications(()=>{const id={"Lisbon trip":"lisbon","Bookshelf build":"shelf","Flat admin":"home"}[n.thread];if(id)setSpace(id)})}/>:null}
+      </>)}
+    </Phone>
+    </>
+  );
+}
+
+Object.assign(window,{App});

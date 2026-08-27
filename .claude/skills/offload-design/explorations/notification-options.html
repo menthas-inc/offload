@@ -1,0 +1,147 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Notifications</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:44px 36px 80px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 34px;max-width:64ch}
+.row{display:flex;gap:30px;flex-wrap:wrap}
+.opt{width:390px}
+.hd{margin:0 0 4px;font:600 15px/1.3 var(--font-core)}
+.tag{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:999px;background:var(--surface-fill);font:500 11px/16px var(--font-core);color:var(--text-secondary);vertical-align:2px}
+.dk{margin:0 0 14px;font-size:13px;line-height:1.5;color:var(--text-secondary);min-height:62px}
+.ph{position:relative;height:660px;background:var(--paper);border:1px solid var(--border-hairline);border-radius:24px;overflow:hidden}
+.bar{display:flex;align-items:center;justify-content:space-between;height:50px;padding:0 16px}
+.mark{font:600 17px/1 var(--font-core);letter-spacing:-0.02em}
+.ic{position:relative;width:18px;height:18px;background:var(--ink-400);border-radius:4px}
+.ic.bell{-webkit-mask:url(../assets/icons/bell.svg) center/contain no-repeat;mask:url(../assets/icons/bell.svg) center/contain no-repeat;background:var(--ink-700);border-radius:0}
+.ic.cog{-webkit-mask:url(../assets/icons/settings.svg) center/contain no-repeat;mask:url(../assets/icons/settings.svg) center/contain no-repeat;background:var(--ink-700);border-radius:0}
+.ic.back{-webkit-mask:url(../assets/icons/chevron-left.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-left.svg) center/contain no-repeat;background:var(--ink-700);border-radius:0}
+.ics{display:flex;gap:14px;align-items:center;position:relative}
+.bub{position:absolute;top:-6px;right:-7px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--clay-600);color:#fff;
+  font:500 10px/16px var(--font-core);text-align:center;border:1.5px solid var(--paper);box-sizing:content-box}
+.wrapbell{position:relative}
+.pg{padding:0 16px}
+.title{font:var(--text-title-1);letter-spacing:var(--tracking-title);font-size:26px;margin:6px 0 2px}
+.sh{display:flex;align-items:center;gap:8px;padding-bottom:8px;margin:16px 0 10px;border-bottom:1px solid var(--ink-950)}
+.sh b{font:600 17px/1.2 var(--font-core)}
+.sh i{font-style:normal;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--surface-fill);font:500 12px/20px var(--font-core);color:var(--text-secondary);text-align:center}
+.sh u{text-decoration:none;margin-left:auto;font:500 12px/1 var(--font-core);color:var(--text-secondary)}
+.n{display:flex;gap:11px;padding:12px 0;box-shadow:inset 0 -1px 0 var(--border-hairline);align-items:flex-start}
+.n:last-child{box-shadow:none}
+.av{width:34px;height:34px;flex:0 0 auto;border-radius:999px;background:var(--surface-fill);color:var(--text-secondary);
+  display:flex;align-items:center;justify-content:center;font:500 12px/1 var(--font-core)}
+.av.sq{border-radius:9px}
+.av i{width:16px;height:16px;background:var(--ink-500);font-style:normal}
+.i-clock{-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat}
+.i-spark{-webkit-mask:url(../assets/icons/sparkles.svg) center/contain no-repeat;mask:url(../assets/icons/sparkles.svg) center/contain no-repeat}
+.i-cloud{-webkit-mask:url(../assets/icons/cloudy.svg) center/contain no-repeat;mask:url(../assets/icons/cloudy.svg) center/contain no-repeat}
+.i-msg{-webkit-mask:url(../assets/icons/message-circle.svg) center/contain no-repeat;mask:url(../assets/icons/message-circle.svg) center/contain no-repeat}
+.tx{flex:1;min-width:0}
+.tx b{display:block;font:500 15px/1.35 var(--font-core)}
+.tx q{display:block;quotes:none;font:var(--text-quiet-role);font-size:14px;line-height:1.4;color:var(--text-secondary);margin-top:2px}
+.tx em{display:block;font-style:normal;font-size:12px;color:var(--text-tertiary);margin-top:4px}
+.when{font-size:12px;color:var(--text-tertiary);font-variant-numeric:tabular-nums;padding-top:2px;flex:0 0 auto}
+.unread{width:7px;height:7px;border-radius:999px;background:var(--blue-500);flex:0 0 auto;margin-top:14px}
+.foot{position:absolute;left:0;right:0;bottom:0;background:rgba(255,255,255,.8);backdrop-filter:blur(12px);padding:9px 16px 0}
+.field{display:flex;align-items:center;gap:8px;height:42px;border-radius:21px;background:var(--surface-fill);padding:0 8px 0 15px}
+.field i{flex:1;font-style:normal;font-size:14px;color:var(--text-tertiary)}
+.dot{width:26px;height:26px;border-radius:999px;background:var(--paper)}
+.dot.send{background:var(--ink-950)}
+.tabs{display:flex;justify-content:space-around;padding:10px 0 12px}
+.tab{width:19px;height:19px;border-radius:5px;background:var(--ink-150)}
+.tab.on{background:var(--ink-950)}
+.scrim{position:absolute;inset:0;background:rgba(11,11,11,.16)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--paper);border-radius:22px 22px 0 0;box-shadow:0 -14px 40px rgba(11,11,11,.14);display:flex;flex-direction:column}
+.grab{display:flex;justify-content:center;padding:8px 0 2px}
+.grab u{width:34px;height:4px;border-radius:2px;background:var(--ink-200);display:block}
+.drop{position:absolute;right:12px;top:52px;width:318px;background:var(--paper);border:1px solid var(--border-hairline);border-radius:18px;box-shadow:0 14px 40px rgba(11,11,11,.16);overflow:hidden}
+.drop .hdd{display:flex;align-items:center;padding:12px 14px 8px}
+.drop .hdd b{flex:1;font:600 14px/1 var(--font-core)}
+.drop .hdd u{text-decoration:none;font:500 12px/1 var(--font-core);color:var(--text-secondary)}
+.drop .n{padding:10px 14px;margin:0}
+.topsheet{position:absolute;left:0;right:0;top:0;background:var(--paper);border-radius:0 0 22px 22px;box-shadow:0 14px 40px rgba(11,11,11,.14);display:flex;flex-direction:column}
+.drop .all{display:block;text-align:center;padding:11px 0 13px;font:500 13px/1 var(--font-core);color:var(--text-secondary);box-shadow:inset 0 1px 0 var(--border-hairline)}
+.note{font-size:12px;color:var(--text-tertiary);margin:10px 0 0;line-height:1.5}
+.dim{opacity:.5}
+</style></head><body>
+<h1>Notifications</h1>
+<p class="lede">Seven items, four unread: Ana answered, a sale ends Friday, offload filed four things, Sam added photos, plus three already read. The bell keeps the icon it has in the kit and wears the count as a red bubble on its corner, iOS style; it clears when the list opens.</p>
+
+<div class="row">
+
+<div class="opt">
+<p class="hd">B. Sheet from the bottom<span class="tag">overlay</span></p>
+<p class="dk">The same list as a sheet over the page you were on, at about 70%. Consistent with the conversation overlay, and dismissing puts you back where you were rather than in a navigation stack.</p>
+<div class="ph">
+  <div class="bar"><span class="mark">offload</span><span class="ics"><span class="wrapbell"><span class="ic bell"></span><span class="bub">4</span></span><span class="ic cog"></span></span></div>
+  <div class="pg dim"><div class="sh"><b>Priority</b></div>
+    <div class="n"><span class="tx"><b>Ana needs an answer on the 14th&ndash;17th</b><em>Lisbon trip</em></span></div>
+    <div class="n"><span class="tx"><b>Split the flight cost: &euro;214 each</b><em>Lisbon trip</em></span></div>
+  </div>
+  <div class="scrim"></div>
+  <div class="sheet" style="height:70%">
+    <div class="grab"><u></u></div>
+    <div class="pg" style="overflow:hidden">
+      <div class="sh" style="margin-top:6px"><b>Notifications</b><i>4</i><u>Settings</u></div>
+      <div class="n"><span class="av">AD</span><span class="tx"><b>Ana answered about the dates</b><q>&ldquo;The 14th to the 17th works, book it&rdquo;</q><em>Lisbon trip</em></span><span class="when">2m</span></div>
+      <div class="n"><span class="av sq"><i class="i-clock"></i></span><span class="tx"><b>The bracket sale ends Friday</b><q>You saved these on the 6th.</q><em>Bookshelf build</em></span><span class="when">1h</span></div>
+      <div class="n"><span class="av sq"><i class="i-spark"></i></span><span class="tx"><b>I filed four things from yesterday</b><q>Two into Lisbon trip, one into Flat admin.</q></span><span class="when">3h</span></div>
+      <div class="n"><span class="av">SO</span><span class="tx"><b>Sam added three photos</b><q>Survey shots of the back wall.</q><em>Flat admin</em></span><span class="when">Yest</span></div>
+    </div>
+  </div>
+</div>
+<p class="note">Same mechanic as the conversation sheet, so the app has one overlay idea.</p>
+</div>
+
+<div class="opt">
+<p class="hd">C. Panel under the bell<span class="tag">overlay</span></p>
+<p class="dk">A small panel dropping from the bell itself, showing four at a time with a link to the rest. Lightest of the three, and it points at what you tapped, but each row has to be one line.</p>
+<div class="ph">
+  <div class="bar"><span class="mark">offload</span><span class="ics"><span class="wrapbell"><span class="ic bell"></span><span class="bub">4</span></span><span class="ic cog"></span></span></div>
+  <div class="pg dim"><div class="sh"><b>Priority</b></div>
+    <div class="n"><span class="tx"><b>Ana needs an answer on the 14th&ndash;17th</b><em>Lisbon trip</em></span></div>
+    <div class="n"><span class="tx"><b>Split the flight cost: &euro;214 each</b><em>Lisbon trip</em></span></div>
+    <div class="n"><span class="tx"><b>Order the oak brackets</b><em>Bookshelf build</em></span></div>
+    <div class="n"><span class="tx"><b>Renew the flat insurance</b><em>Flat admin</em></span></div>
+  </div>
+  <div class="drop">
+    <div class="hdd"><b>Notifications</b><u>Settings</u></div>
+    <div class="n"><span class="av">AD</span><span class="tx"><b>Ana answered about the dates</b><em>Lisbon trip &middot; 2m</em></span></div>
+    <div class="n"><span class="av sq"><i class="i-clock"></i></span><span class="tx"><b>The bracket sale ends Friday</b><em>Bookshelf build &middot; 1h</em></span></div>
+    <div class="n"><span class="av sq"><i class="i-spark"></i></span><span class="tx"><b>I filed four things from yesterday</b><em>3h</em></span></div>
+    <div class="n"><span class="av">SO</span><span class="tx"><b>Sam added three photos</b><em>Flat admin &middot; Yesterday</em></span></div>
+    <span class="all">All notifications</span>
+  </div>
+</div>
+<p class="note">Cheapest to open and close, thinnest content.</p>
+</div>
+
+
+
+<div class="opt">
+<p class="hd">E. Sheet from the top<span class="tag">overlay</span></p>
+<p class="dk">The same list as B, but it comes down from under the bar you tapped rather than up from the composer. Notifications arrive from above, so the direction matches where they came from, and the composer stays reachable underneath.</p>
+<div class="ph">
+  <div class="pg dim" style="padding-top:70px"><div class="sh"><b>Priority</b></div>
+    <div class="n"><span class="tx"><b>Ana needs an answer on the 14th&ndash;17th</b><em>Lisbon trip</em></span></div>
+    <div class="n"><span class="tx"><b>Split the flight cost: &euro;214 each</b><em>Lisbon trip</em></span></div>
+  </div>
+  <div class="scrim"></div>
+  <div class="topsheet" style="height:84%">
+    <div class="bar" style="position:relative;z-index:1"><span class="mark">offload</span><span class="ics"><span class="wrapbell"><span class="ic bell"></span><span class="bub">4</span></span><span class="ic cog"></span></span></div>
+    <div class="pg" style="overflow:hidden;flex:1">
+      <div class="sh" style="margin-top:2px"><b>Notifications</b><i>4</i><u>Settings</u></div>
+      <div class="n"><span class="av">AD</span><span class="tx"><b>Ana answered about the dates</b><q>&ldquo;The 14th to the 17th works, book it&rdquo;</q><em>Lisbon trip</em></span><span class="when">2m</span></div>
+      <div class="n"><span class="av sq"><i class="i-clock"></i></span><span class="tx"><b>The bracket sale ends Friday</b><q>You saved these on the 6th.</q><em>Bookshelf build</em></span><span class="when">1h</span></div>
+      <div class="n"><span class="av sq"><i class="i-spark"></i></span><span class="tx"><b>I filed four things from yesterday</b><q>Two into Lisbon trip, one into Flat admin.</q></span><span class="when">3h</span></div>
+      <div class="n"><span class="av">SO</span><span class="tx"><b>Sam added three photos</b><q>Survey shots of the back wall.</q><em>Flat admin</em></span><span class="when">Yest</span></div>
+      <div class="n dim"><span class="av sq"><i class="i-clock"></i></span><span class="tx"><b>Flat insurance renews on the 20th</b><q>&pound;340, up &pound;40 from last year.</q><em>Flat admin</em></span><span class="when">Mon</span></div>
+    </div>
+    <div class="grab" style="padding:2px 0 10px"><u></u></div>
+  </div>
+</div>
+<p class="note">Pulls down over the page and folds back up into the bell.</p>
+</div>
+
+</div>
+<p class="note" style="max-width:64ch">The count is live in all three and clears the moment the list opens; read items stay in place, dimmed, rather than disappearing. B and E are the same list with opposite entrances; C trades content for speed.</p>
+</body></html>

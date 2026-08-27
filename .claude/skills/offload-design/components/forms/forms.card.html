@@ -1,0 +1,40 @@
+<!-- @dsCard group="Components" viewport="700x338" name="Forms" subtitle="TextField, Switch, Checkbox, SegmentedControl" -->
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css?v=1786472643305"><style>body{margin:0;padding:0;font:var(--text-body-role);background:var(--surface-page)}#root{display:flex;flex-direction:column;gap:18px}.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.lbl{font:var(--text-caption-role);color:var(--text-tertiary);letter-spacing:var(--tracking-caps);text-transform:uppercase}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script></head><body><div data-ds-theme-root data-theme="light" style="background:var(--surface-page);color:var(--text-primary);padding:20px;min-height:100%;box-sizing:border-box"><div class="ds-theme-tg" role="group" aria-label="Theme" style="display:flex;border:1px solid var(--border-hairline);border-radius:var(--radius-pill);overflow:hidden;width:max-content;margin-bottom:14px">
+<button type="button" data-set="light" aria-pressed="true" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:var(--surface-inverse);color:var(--text-inverse)">Light</button>
+<button type="button" data-set="dark" aria-pressed="false" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:transparent;color:var(--text-secondary)">Dark</button>
+</div><div id="root"></div><script src="../../_ds_bundle.js?v=1787256974498"></script>
+<script type="text/babel">
+const {TextField,Switch,Checkbox,SegmentedControl}=window.OffloadDesignSystem_dc4a89;
+function Demo(){const [v,setV]=React.useState(""),[on,setOn]=React.useState(true),[a,setA]=React.useState(true),[b,setB]=React.useState(false),[t,setT]=React.useState("Everything");
+return <>
+<div className="row" style={{alignItems:"flex-start",gap:16}}>
+<TextField icon="search" placeholder="Search everything" value={v} onChange={setV} style={{width:260}}/>
+<TextField label="Thread name" placeholder="Lisbon trip" hint="Only you can see this" style={{width:260}}/></div>
+<div className="row" style={{gap:24}}>
+<SegmentedControl options={["Everything","Threads","Done"]} value={t} onChange={setT}/>
+<Switch label="Auto-sort" checked={on} onChange={setOn} style={{width:200}}/></div>
+<div className="row" style={{gap:32}}>
+<Checkbox checked={a} onChange={setA} label="Order the oak brackets" meta="added Tuesday"/>
+<Checkbox shape="circle" checked={b} onChange={setB} label="Book the hostel"/></div></>}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script></div><script>
+(function(){
+  var root=document.querySelector("[data-ds-theme-root]");
+  document.querySelectorAll(".ds-theme-tg button").forEach(function(b){
+    b.addEventListener("click",function(){
+      var t=b.dataset.set;
+      root.setAttribute("data-theme",t);
+      document.documentElement.setAttribute("data-theme",t);
+      document.querySelectorAll(".ds-theme-tg button").forEach(function(x){
+        var on=x.dataset.set===t;
+        x.setAttribute("aria-pressed",String(on));
+        x.style.background=on?"var(--surface-inverse)":"transparent";
+        x.style.color=on?"var(--text-inverse)":"var(--text-secondary)";
+      });
+    });
+  });
+})();
+</script></body></html>

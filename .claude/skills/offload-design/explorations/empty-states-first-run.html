@@ -1,0 +1,299 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Empty states, first time</title>
+<link rel="stylesheet" href="../styles.css?v=3">
+<link rel="stylesheet" href="frames.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400&display=swap">
+<style>
+.quiet{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-primary)}
+.big{font:var(--text-title-1);letter-spacing:var(--tracking-title)}
+.sub{font-size:14px;color:var(--text-secondary);margin-top:4px}
+.ex{display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:14px;background:var(--surface-raised);border:1px dashed var(--border-strong);font:var(--weight-regular) 15px/1.4 var(--font-core);color:var(--text-secondary)}
+.ex u{text-decoration:none;color:var(--text-accent);font-weight:500}
+.comp{display:flex;align-items:center;gap:12px;min-height:48px;padding:0 12px 0 20px;border-radius:var(--radius-pill);background:var(--surface-input);border:1px solid var(--border-focus)}
+.comp span{flex:1;font:var(--text-body-role);color:var(--text-tertiary)}
+.comp i{width:30px;height:30px;border-radius:99px;background:var(--ink-100);display:block}
+.comp.lit{background:var(--surface-raised);box-shadow:0 0 0 4px rgba(74,104,222,.12),var(--shadow-2)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font:var(--weight-medium) 13px/1 var(--font-core);padding:9px 13px;border-radius:99px;background:var(--surface-fill);color:var(--text-secondary)}
+.r{display:flex;align-items:flex-start;gap:12px;padding:12px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.r i{width:22px;height:22px;flex:0 0 auto;border-radius:99px;background:var(--surface-fill);color:var(--text-secondary);display:block;margin-top:2px}
+.r i.hot{background:var(--surface-attention);color:var(--paper)}
+.r b{display:block;font:var(--weight-medium) 16px/1.35 var(--font-core)}
+.r span{display:block;font-size:13px;line-height:1.4;color:var(--text-secondary);margin-top:2px}
+.tabs{flex:0 0 auto;display:flex;padding:10px 0 16px}
+.tabs u{flex:1;text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:6px;font:var(--weight-medium) 10.5px/1 var(--font-core);color:var(--text-tertiary)}
+.tabs u s{text-decoration:none;width:21px;height:21px;display:block;opacity:.5;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+.tabs u.on{color:var(--ink-950)}
+.tabs u.on s{opacity:1}
+.wside{width:236px;flex:0 0 auto;background:var(--surface-page);color:var(--text-primary);padding:22px 14px;display:flex;flex-direction:column;gap:6px}
+.wside .wm{display:flex;align-items:center;gap:8px;font:var(--weight-semibold) 17px/1 var(--font-core);letter-spacing:-.02em;padding:0 8px 12px}
+.wside .wm i{width:18px;height:18px;background:var(--text-primary)}
+.wside .sr{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-secondary)}
+.wside .sr.on{background:rgba(255,255,255,.10);color:var(--text-primary)}
+.wside .mk{width:3px;height:16px;border-radius:99px;background:var(--blue-600);flex:0 0 auto;margin:0 -4px 0 -7px}
+.wside .lb{font:var(--weight-medium) 11.5px/1 var(--font-core);color:var(--text-secondary);padding:14px 10px 2px}
+.wside .empty{font:var(--weight-regular) 12.5px/1.5 var(--font-core);color:var(--text-secondary);padding:2px 10px}
+.crumbs{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:14px 24px;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-primary);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.wpane{flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 40px 0}
+.wtitle{font:var(--weight-semibold) 30px/1.1 var(--font-core);letter-spacing:-.018em}
+.wcomp{flex:0 0 auto;padding:20px 40px 28px}
+.wcomp div{max-width:660px;margin:0 auto;padding:15px 22px;border-radius:30px;background:var(--surface-raised);border:1.5px solid var(--blue-500);box-shadow:var(--shadow-2);font:var(--text-body-role);color:var(--text-tertiary)}
+</style></head><body><div class="wrap">
+<h1>The first screen with nothing in it</h1>
+<p class="lede">Get started lands on Today, and Today is empty. This is the screen that decides whether anyone dumps a first thing. Three ways were drawn and the first one is built: it is in all three kits behind the <b>day one</b> control in each preview bar. Then the other two tabs, which are empty at the same moment and should not each invent their own answer, and what Today looks like once one thing is in. Mobile is the iOS kit's chrome, Android is the same with the Material bars.</p>
+
+<div class="sechead"><h2>1 · Today, empty</h2><u>decided: show what a dump looks like</u></div>
+<p class="snote">All three share one rule: no dashboard of zeros, no "0 things", no illustration, and the composer is never further than a thumb from the copy. What differs is how much offload says before you say anything.</p>
+
+<div class="rowlabel">Decided · Show what a dump looks like<u>three examples, tapping one fills the composer</u></div>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="padding:6px 22px 0"><div class="big">Today</div><div class="sub">Tue 11 Aug · sunset 19:15</div></div>
+      <div style="flex:1;min-height:0;padding:22px 22px 0;display:flex;flex-direction:column">
+        <div class="quiet">Dump the first thing and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:26px">
+          <span class="ex"><u><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m5%2012%207-7%207%207%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2019V5%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:14px;height:14px"></span></u>Book the Alfama flat for the 14th</span>
+          <span class="ex"><u><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m5%2012%207-7%207%207%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2019V5%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:14px;height:14px"></span></u>Ana can only travel the 14th to the 17th</span>
+          <span class="ex"><u><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m5%2012%207-7%207%207%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2019V5%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:14px;height:14px"></span></u>Oak brackets, 30cm, matte black</span>
+        </div>
+      </div>
+      <div style="flex:0 0 auto;padding:16px 22px 0"><div class="comp"><span>Dump anything</span><i></i></div></div>
+      <div class="tabs"><u class="on"><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Today</u><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></s>My threads</u><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Memories</u></div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b><span>already built in the kit</span></div>
+    <div class="f web"><div class="in" style="flex-direction:row;background:var(--surface-page)">
+      <div class="wside" data-theme="dark">
+        <div class="wm"><i class="lm"></i>offload</div>
+        <div class="sr on"><span class="mk"></span><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">My threads</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Memories</span></div>
+        <div class="lb">Pinned</div><div class="empty">Nothing pinned yet</div>
+        <div class="lb">Recent</div><div class="empty">Whatever you open shows up here</div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div class="crumbs">Today</div>
+        <div class="wpane">
+          <div class="wtitle">Today</div><div class="sub">Nothing in here yet</div>
+          <div style="max-width:52ch;padding-top:34px">
+            <div class="quiet" style="font-size:19px">Dump the first thing and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.</div>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:30px">
+              <span class="ex"><u><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m5%2012%207-7%207%207%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2019V5%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:14px;height:14px"></span></u>Book the Alfama flat for the 14th</span>
+              <span class="ex"><u><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m5%2012%207-7%207%207%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2019V5%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:14px;height:14px"></span></u>Ana can only travel the 14th to the 17th</span>
+              <span class="ex"><u><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22m5%2012%207-7%207%207%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2019V5%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:14px;height:14px"></span></u>Oak brackets, 30cm, matte black</span>
+            </div>
+          </div>
+        </div>
+        <div class="wcomp"><div>Dump anything</div></div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><span class="rec">Recommended</span> The examples do the teaching the tutorial could not: they show that half a sentence is a legitimate thing to type. Tapping one fills the composer rather than submitting, so the first dump is still theirs.</li>
+  <li><b>Costs</b> three dashed cards on an otherwise very quiet screen. They disappear for good after the first real dump, and they are never restored, even if everything is later deleted.</li>
+</ul>
+
+<div class="rowlabel">Considered · offload speaks once, then waits<u>one line, nothing else on the screen</u></div>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="padding:6px 22px 0"><div class="big">Today</div><div class="sub">Tue 11 Aug · sunset 19:15</div></div>
+      <div style="flex:1;min-height:0;padding:0 22px;display:flex;flex-direction:column;justify-content:center">
+        <div class="quiet" style="font-size:21px;line-height:1.45">Nothing in here yet. Tell me the first thing you would rather not carry around.</div>
+      </div>
+      <div style="flex:0 0 auto;padding:16px 22px 0"><div class="comp lit"><span>Dump anything</span><i></i></div></div>
+      <div class="tabs"><u class="on"><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Today</u><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></s>My threads</u><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Memories</u></div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="flex-direction:row;background:var(--surface-page)">
+      <div class="wside" data-theme="dark">
+        <div class="wm"><i class="lm"></i>offload</div>
+        <div class="sr on"><span class="mk"></span><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">My threads</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Memories</span></div>
+        <div class="lb">Pinned</div><div class="empty">Nothing pinned yet</div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div class="crumbs">Today</div>
+        <div class="wpane" style="justify-content:center">
+          <div style="max-width:46ch">
+            <div class="quiet" style="font-size:24px;line-height:1.4">Nothing in here yet. Tell me the first thing you would rather not carry around.</div>
+          </div>
+        </div>
+        <div class="wcomp"><div style="box-shadow:0 0 0 4px rgba(74,104,222,.12),var(--shadow-2)">Dump anything</div></div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>Buys</b> the most confident screen of the three, and the only one that sounds like the assistant rather than the onboarding team. The lit composer carries all the direction it needs.</li>
+  <li><b>Costs</b> the blank-page problem: an open question is harder to answer than an example is to copy. It also puts offload's voice on a screen where it has done nothing yet, which is the one place the voice can sound presumptuous.</li>
+</ul>
+
+<div class="rowlabel">Considered · Ask for one thing, with a way out<u>five chips for anyone who stalls</u></div>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="padding:6px 22px 0"><div class="big">Today</div><div class="sub">Tue 11 Aug · sunset 19:15</div></div>
+      <div style="flex:1;min-height:0;padding:22px 22px 0;display:flex;flex-direction:column">
+        <div class="quiet">What is on your mind right now? Whatever is loudest. One line is enough, and you can change your mind later.</div>
+        <div class="chips" style="margin-top:22px">
+          <span class="chip">A trip</span><span class="chip">A move</span><span class="chip">A build</span>
+          <span class="chip">Work</span><span class="chip">Family</span>
+        </div>
+      </div>
+      <div style="flex:0 0 auto;padding:16px 22px 0"><div class="comp"><span>Dump anything</span><i></i></div></div>
+      <div class="tabs"><u class="on"><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Today</u><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></s>My threads</u><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Memories</u></div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="flex-direction:row;background:var(--surface-page)">
+      <div class="wside" data-theme="dark">
+        <div class="wm"><i class="lm"></i>offload</div>
+        <div class="sr on"><span class="mk"></span><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">My threads</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Memories</span></div>
+        <div class="lb">Pinned</div><div class="empty">Nothing pinned yet</div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div class="crumbs">Today</div>
+        <div class="wpane">
+          <div class="wtitle">Today</div><div class="sub">Nothing in here yet</div>
+          <div style="max-width:50ch;padding-top:34px">
+            <div class="quiet" style="font-size:19px">What is on your mind right now? Whatever is loudest. One line is enough, and you can change your mind later.</div>
+            <div class="chips" style="margin-top:26px">
+              <span class="chip">A trip</span><span class="chip">A move</span><span class="chip">A build</span>
+              <span class="chip">Work</span><span class="chip">Family</span>
+            </div>
+          </div>
+        </div>
+        <div class="wcomp"><div>Dump anything</div></div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>Buys</b> a first thing that is about the person's actual life, which makes offload's first sort look clever instead of arbitrary.</li>
+  <li><b>Costs</b> a category choice, which is the one thing the product promises never to ask for. A chip named "A trip" is a folder with a friendlier hat on.</li>
+</ul>
+
+<div class="sechead"><h2>2 · The other two tabs, at the same moment</h2><u>one shape, quieter each time</u></div>
+<p class="snote">Both are empty on day one, and neither should repeat Today's invitation. They say what will appear here and who fills it, in one sentence, with no button. Whichever option wins above, these stay as they are.</p>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b><span>My threads</span></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="padding:6px 22px 0"><div class="big">My threads</div><div class="sub">Nothing in here yet</div></div>
+      <div style="flex:1;min-height:0;padding:0 22px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+        <i class="lm" style="width:30px;height:30px;opacity:.22"></i>
+        <div class="quiet" style="margin-top:18px;max-width:26ch">Threads appear here on their own, once there is enough in one place to be one.</div>
+      </div>
+      <div style="flex:0 0 auto;padding:16px 22px 0"><div class="comp"><span>Dump anything</span><i></i></div></div>
+      <div class="tabs"><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Today</u><u class="on"><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></s>My threads</u><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Memories</u></div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag i"><b>iOS</b><span>Memories</span></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="padding:6px 22px 0"><div class="big">Memories</div><div class="sub">Nothing yet</div></div>
+      <div style="flex:1;min-height:0;padding:0 22px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+        <i class="lm" style="width:30px;height:30px;opacity:.22"></i>
+        <div class="quiet" style="margin-top:18px;max-width:27ch">What offload learns about you collects here. Nothing is learned yet.</div>
+      </div>
+      <div style="flex:0 0 auto;padding:16px 22px 0"><div class="comp"><span>Dump anything</span><i></i></div></div>
+      <div class="tabs"><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Today</u><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></s>My threads</u><u class="on"><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Memories</u></div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b><span>My threads, and the sidebar's own empties</span></div>
+    <div class="f web"><div class="in" style="flex-direction:row;background:var(--surface-page)">
+      <div class="wside" data-theme="dark">
+        <div class="wm"><i class="lm"></i>offload</div>
+        <div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div><div class="sr on"><span class="mk"></span><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">My threads</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Memories</span></div>
+        <div class="lb">Pinned</div><div class="empty">Pin a thing and it stays here</div>
+        <div class="lb">Recent</div><div class="empty">Whatever you open shows up here</div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div class="crumbs">My threads</div>
+        <div class="wpane" style="align-items:center;justify-content:center;text-align:center">
+          <i class="lm" style="width:34px;height:34px;opacity:.22"></i>
+          <div class="quiet" style="font-size:19px;margin-top:20px;max-width:30ch">Threads appear here on their own, once there is enough in one place to be one.</div>
+        </div>
+        <div class="wcomp"><div>Dump anything</div></div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>The mark at 22% opacity</b> is the only ornament allowed in an empty state, and only on these two. Today never gets it: Today has the composer and the copy.</li>
+  <li><b>The sidebar has three empties of its own</b> on web, one line each, so a new account's nav does not read as broken.</li>
+  <li><b>No buttons.</b> Nothing here can be fixed by pressing something, so there is nothing to press.</li>
+</ul>
+
+<div class="sechead"><h2>3 · One thing in</h2><u>the state that has to feel like progress</u></div>
+<p class="snote">The first dump produces one row and one thing. This screen is the payoff for the empty one, so it says what offload did in its own words, with the undo that every automatic action carries.</p>
+<div class="row">
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="padding:6px 22px 0"><div class="big">Today</div><div class="sub">One thing in here, nothing needs you yet</div></div>
+      <div style="flex:1;min-height:0;padding:16px 22px 0;display:flex;flex-direction:column">
+        <div class="r"><i class="hot ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Order the oak brackets</b><span>Bookshelf build · sale ends Friday</span></span></div>
+        <div class="r" style="box-shadow:none"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Bookshelf build</b><span>1 thing · made from what you said</span></span></div>
+        <div style="margin-top:20px;padding:16px 18px;border-radius:18px;background:var(--surface-accent-soft)">
+          <div style="font:var(--text-quiet-role);font-size:15px;line-height:1.45;color:var(--text-accent)">I made a thing for the bookshelf and put Friday on it. Dump anything else about it and it lands in the same place.</div>
+        </div>
+        <div style="margin-top:auto;padding-bottom:14px"><div class="snack"><b>Saved to Bookshelf build</b><u>Undo</u></div></div>
+      </div>
+      <div style="flex:0 0 auto;padding:16px 22px 0"><div class="comp"><span>Dump anything</span><i></i></div></div>
+      <div class="tabs"><u class="on"><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Today</u><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></s>My threads</u><u><s style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></s>Memories</u></div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="flex-direction:row;background:var(--surface-page);position:relative">
+      <div class="wside" data-theme="dark">
+        <div class="wm"><i class="lm"></i>offload</div>
+        <div class="sr on"><span class="mk"></span><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%3E%3C%2Fcircle%3E%20%3Cpath%20d%3D%22M12%202v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M12%2020v2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m4.93%204.93%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m17.66%2017.66%201.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M2%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M20%2012h2%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m6.34%2017.66-1.41%201.41%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m19.07%204.93-1.41%201.41%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Today</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">My threads</span></div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M17.5%2012a1%201%200%201%201%200%209H9.006a7%207%200%201%201%206.702-9z%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M21.832%209A3%203%200%200%200%2019%207h-2.207a5.5%205.5%200%200%200-10.72.61%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Memories</span></div>
+        <div class="lb">Pinned</div><div class="empty">Pin a thing and it stays here</div>
+        <div class="lb">Recent</div><div class="sr"><span class="g" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E);width:17px;height:17px"></span><span style="flex:1">Bookshelf build</span></div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div class="crumbs">Today</div>
+        <div class="wpane">
+          <div class="wtitle">Today</div><div class="sub">One thing in here, nothing needs you yet</div>
+          <div style="margin-top:24px;max-width:60ch">
+            <div class="r"><i class="hot ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M21%2010.656V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h12.344%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%3E%3C%2Fpath%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Order the oak brackets</b><span>Bookshelf build · sale ends Friday</span></span></div>
+            <div class="r" style="box-shadow:none"><i class="ic" style="--ic:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%20%3Cpath%20d%3D%22M3.704%2014.467a10%208%200%201%201%203.115%202.375%22%3E%3C%2Fpath%3E%20%3Cpath%20d%3D%22M7%2022a5%205%200%200%201-2-3.994%22%3E%3C%2Fpath%3E%20%3Ccircle%20cx%3D%225%22%20cy%3D%2216%22%20r%3D%222%22%3E%3C%2Fcircle%3E%20%3C%2Fsvg%3E)"></i><span style="flex:1"><b>Bookshelf build</b><span>1 thing · made from what you said</span></span></div>
+            <div style="margin-top:22px;padding:18px 20px;border-radius:16px;background:var(--surface-accent-soft);max-width:56ch">
+              <div style="font:var(--text-quiet-role);font-size:16px;line-height:1.5;color:var(--text-accent)">I made a thing for the bookshelf and put Friday on it. Dump anything else about it and it lands in the same place.</div>
+            </div>
+          </div>
+        </div>
+        <div class="wcomp"><div>Dump anything</div></div>
+      </div>
+      <div style="position:absolute;left:236px;right:0;bottom:104px;display:flex;justify-content:center">
+        <div class="snack" style="width:380px"><b>Saved to Bookshelf build</b><u>Undo</u></div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>The moss note appears once</b>, on the first thing only, and never again. It is offload explaining its own filing, which is the one thing worth a sentence in the serif voice.</li>
+  <li><b>Two rows, not one.</b> The task and the thing it went into, because seeing both is what teaches the model of the product.</li>
+</ul>
+
+<div class="sechead"><h2>Rules for every empty state in the product</h2></div>
+<ul class="spec">
+  <li><b>Never a zero.</b> "Nothing in here yet", not "0 things". Counts appear only when there is something to count.</li>
+  <li><b>One sentence, two at most</b>, in the serif voice, with a full stop. No headline plus body plus button stack.</li>
+  <li><b>First time and emptied are different screens.</b> A new account gets the invitation and the examples. Someone who cleared everything gets one line, "Nothing left in here", and no teaching, because they know how it works.</li>
+  <li><b>No illustration, ever.</b> The mark at 22% is the ceiling, and only on My threads and Memories.</li>
+  <li><b>The composer stays.</b> Every empty screen in the app keeps it, because on every one of them the answer is to dump something.</li>
+  <li><b>Search has no empty state</b> any more: asking happens in the composer, and offload answers in words when it finds nothing.</li>
+</ul>
+</div></body></html>

@@ -1,0 +1,185 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Backgrounds and surfaces</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:40px 34px 80px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 30px;max-width:70ch}
+h2{font:600 15px/1.3 var(--font-core);margin:36px 0 4px}
+.why{font-size:13.5px;line-height:1.55;color:var(--text-secondary);margin:0 0 14px;max-width:70ch}
+.set{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.v{width:300px}
+.tag{display:flex;align-items:baseline;gap:7px;margin:0 0 7px}
+.tag b{font:600 12px/1 var(--font-core);background:var(--ink-950);color:var(--paper);padding:5px 7px;border-radius:6px}
+.tag span{font-size:13px;color:var(--text-secondary)}
+.note{font-size:12px;color:var(--text-tertiary);margin:8px 0 0;line-height:1.5}
+/* phone */
+.ph{position:relative;height:390px;border:1px solid var(--border-hairline);border-radius:22px;overflow:hidden;background:var(--paper);display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;justify-content:space-between;height:44px;padding:0 14px;flex:0 0 auto}
+.mark{font:600 16px/1 var(--font-core);letter-spacing:-.02em}
+.ics{display:flex;gap:9px}.ics u{width:15px;height:15px;border-radius:4px;background:var(--ink-200);display:block}
+.body{flex:1;min-height:0;overflow:hidden;padding:0 14px}
+.sh{display:flex;align-items:center;gap:7px;padding-bottom:6px;margin:10px 0 4px;border-bottom:1px solid var(--ink-950)}
+.sh b{font:600 16px/1.2 var(--font-core)}
+.cnt{font:500 10.5px/1 var(--font-core);background:var(--surface-attention);color:#fff;padding:4px 7px;border-radius:999px}
+.li{display:flex;gap:9px;padding:9px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.li u{width:20px;height:20px;border-radius:999px;background:var(--surface-fill);flex:0 0 auto;display:block;margin-top:1px}
+.li u.hot{background:var(--surface-attention)}
+.li .tx{flex:1;min-width:0}
+.li .tx b{display:block;font:500 14px/1.3 var(--font-core)}
+.li .tx span{display:block;font-size:11.5px;color:var(--text-secondary);margin-top:2px}
+.foot{flex:0 0 auto;padding:8px 14px 6px}
+.pill{display:flex;align-items:center;gap:7px;height:40px;border:1px solid var(--blue-500);border-radius:20px;padding:0 7px 0 14px;background:var(--surface-input)}
+.pill i{flex:1;font-style:normal;font-size:13px;color:var(--text-tertiary)}
+.d{width:24px;height:24px;border-radius:999px;background:var(--ink-150)}.d.s{background:var(--ink-950)}
+.tabs{display:flex;justify-content:space-around;padding:8px 0 10px}
+.tb{width:17px;height:17px;border-radius:5px;background:var(--ink-200)}.tb.on{background:var(--ink-950)}
+/* card variants */
+.card{border:1px solid var(--border-hairline);border-radius:13px;padding:11px 12px;margin:8px 0}
+.card b{display:block;font:500 14px/1.3 var(--font-core)}
+.card span{display:block;font-size:11.5px;color:var(--text-secondary);margin-top:3px}
+</style></head><body>
+<h1>Backgrounds and surfaces</h1>
+<p class="lede">The app is white on white: page, cards, sheets and chrome all share one surface, and only hairlines separate them. These are ways to give the screen some ground. Each frame shows the same Today, with the colour picks already in.</p>
+
+<h2>H. The page itself</h2>
+<p class="why">Everything sits on pure white. A page that is not white gives cards, sheets and the composer something to sit on.</p>
+<div class="set">
+  <div class="v"><div class="tag"><b>H1</b><span>now, white</span></div>
+    <div class="ph"><div class="bar"><span class="mark">offload</span><span class="ics"><u></u><u></u></span></div>
+      <div class="body"><div class="sh"><b>Priority</b><span class="cnt">5</span></div>
+        <div class="li"><u class="hot"></u><span class="tx"><b>Ana needs an answer</b><span>Lisbon trip</span></span></div>
+        <div class="li"><u></u><span class="tx"><b>Order the oak brackets</b><span>Bookshelf build</span></span></div>
+        <div class="li"><u></u><span class="tx"><b>Renew the flat insurance</b><span>Flat admin</span></span></div></div>
+      <div class="foot"><div class="pill"><i>Dump anything</i><span class="d"></span><span class="d s"></span></div><div class="tabs"><span class="tb on"></span><span class="tb"></span><span class="tb"></span></div></div></div></div>
+
+  <div class="v"><div class="tag"><b>H2</b><span>warm paper</span></div>
+    <div class="ph" style="background:#FAF9F7"><div class="bar"><span class="mark">offload</span><span class="ics"><u></u><u></u></span></div>
+      <div class="body"><div class="sh"><b>Priority</b><span class="cnt">5</span></div>
+        <div class="li"><u class="hot"></u><span class="tx"><b>Ana needs an answer</b><span>Lisbon trip</span></span></div>
+        <div class="li"><u></u><span class="tx"><b>Order the oak brackets</b><span>Bookshelf build</span></span></div>
+        <div class="li"><u></u><span class="tx"><b>Renew the flat insurance</b><span>Flat admin</span></span></div></div>
+      <div class="foot"><div class="pill" style="background:var(--paper)"><i>Dump anything</i><span class="d"></span><span class="d s"></span></div><div class="tabs"><span class="tb on"></span><span class="tb"></span><span class="tb"></span></div></div></div>
+    <p class="note">A half degree of warmth. White things now read as white, including the composer.</p></div>
+
+  <div class="v"><div class="tag"><b>H3</b><span>cool grey</span></div>
+    <div class="ph" style="background:#F6F7F9"><div class="bar"><span class="mark">offload</span><span class="ics"><u></u><u></u></span></div>
+      <div class="body"><div class="sh"><b>Priority</b><span class="cnt">5</span></div>
+        <div class="li"><u class="hot"></u><span class="tx"><b>Ana needs an answer</b><span>Lisbon trip</span></span></div>
+        <div class="li"><u></u><span class="tx"><b>Order the oak brackets</b><span>Bookshelf build</span></span></div>
+        <div class="li"><u></u><span class="tx"><b>Renew the flat insurance</b><span>Flat admin</span></span></div></div>
+      <div class="foot"><div class="pill" style="background:var(--paper)"><i>Dump anything</i><span class="d"></span><span class="d s"></span></div><div class="tabs"><span class="tb on"></span><span class="tb"></span><span class="tb"></span></div></div></div>
+    <p class="note">Same move, leaning toward the blue accent instead of away from it.</p></div>
+
+  <div class="v"><div class="tag"><b>H4</b><span>moss tinted</span></div>
+    <div class="ph" style="background:#F5F8F5"><div class="bar"><span class="mark">offload</span><span class="ics"><u></u><u></u></span></div>
+      <div class="body"><div class="sh"><b>Priority</b><span class="cnt">5</span></div>
+        <div class="li"><u class="hot"></u><span class="tx"><b>Ana needs an answer</b><span>Lisbon trip</span></span></div>
+        <div class="li"><u></u><span class="tx"><b>Order the oak brackets</b><span>Bookshelf build</span></span></div>
+        <div class="li"><u></u><span class="tx"><b>Renew the flat insurance</b><span>Flat admin</span></span></div></div>
+      <div class="foot"><div class="pill" style="background:var(--paper)"><i>Dump anything</i><span class="d"></span><span class="d s"></span></div><div class="tabs"><span class="tb on"></span><span class="tb"></span><span class="tb"></span></div></div></div>
+    <p class="note">The brand accent, at two percent. Reads as calm rather than as green.</p></div>
+</div>
+
+<h2>I. Sections as surfaces</h2>
+<p class="why">Instead of tinting the whole page, give each section a card. The hairline rules could go entirely.</p>
+<div class="set">
+  <div class="v"><div class="tag"><b>I1</b><span>now, rules only</span></div>
+    <div class="ph"><div class="bar"><span class="mark">offload</span><span class="ics"><u></u><u></u></span></div>
+      <div class="body"><div class="sh"><b>Priority</b><span class="cnt">5</span></div>
+        <div class="li"><u class="hot"></u><span class="tx"><b>Ana needs an answer</b><span>Lisbon trip</span></span></div>
+        <div class="li"><u></u><span class="tx"><b>Order the oak brackets</b><span>Bookshelf build</span></span></div>
+        <div class="sh" style="border-bottom-color:var(--moss-600)"><b>What moved</b></div>
+        <div class="li"><u></u><span class="tx"><b>Ana added two links</b><span>Lisbon trip</span></span></div></div></div></div>
+
+  <div class="v"><div class="tag"><b>I2</b><span>grey page, white sections</span></div>
+    <div class="ph" style="background:var(--surface-fill)"><div class="bar"><span class="mark">offload</span><span class="ics"><u></u><u></u></span></div>
+      <div class="body">
+        <div style="background:var(--paper);border-radius:14px;padding:2px 12px 4px;margin:8px 0">
+          <div class="sh" style="border:none;margin:8px 0 0;padding:0"><b>Priority</b><span class="cnt">5</span></div>
+          <div class="li"><u class="hot"></u><span class="tx"><b>Ana needs an answer</b><span>Lisbon trip</span></span></div>
+          <div class="li" style="box-shadow:none"><u></u><span class="tx"><b>Order the oak brackets</b><span>Bookshelf build</span></span></div></div>
+        <div style="background:var(--paper);border-radius:14px;padding:2px 12px 4px">
+          <div class="sh" style="border:none;margin:8px 0 0;padding:0"><b>What moved</b></div>
+          <div class="li" style="box-shadow:none"><u></u><span class="tx"><b>Ana added two links</b><span>Lisbon trip</span></span></div></div></div></div>
+    <p class="note">The settings pattern, applied everywhere. Very legible, and the app stops looking like a document.</p></div>
+
+  <div class="v"><div class="tag"><b>I3</b><span>only Priority lifts</span></div>
+    <div class="ph" style="background:#FAF9F7"><div class="bar"><span class="mark">offload</span><span class="ics"><u></u><u></u></span></div>
+      <div class="body">
+        <div style="background:var(--paper);border:1px solid var(--border-hairline);border-radius:14px;padding:2px 12px 4px;margin:8px 0;box-shadow:var(--shadow-1)">
+          <div class="sh" style="border:none;margin:8px 0 0;padding:0"><b>Priority</b><span class="cnt">5</span></div>
+          <div class="li"><u class="hot"></u><span class="tx"><b>Ana needs an answer</b><span>Lisbon trip</span></span></div>
+          <div class="li" style="box-shadow:none"><u></u><span class="tx"><b>Order the oak brackets</b><span>Bookshelf build</span></span></div></div>
+        <div class="sh" style="border-bottom-color:var(--moss-600)"><b>What moved</b></div>
+        <div class="li"><u></u><span class="tx"><b>Ana added two links</b><span>Lisbon trip</span></span></div></div></div>
+    <p class="note">One card on the whole screen, and it is the one that needs you. Everything else stays flat.</p></div>
+</div>
+
+<h2>J. The top of Today</h2>
+<p class="why">Today opens with a bare wordmark. It could open with something that says what kind of day this is.</p>
+<div class="set">
+  <div class="v"><div class="tag"><b>J1</b><span>now</span></div>
+    <div class="ph"><div class="bar"><span class="mark">offload</span><span class="ics"><u></u><u></u></span></div>
+      <div class="body"><div class="sh"><b>Priority</b><span class="cnt">5</span></div>
+        <div class="li"><u class="hot"></u><span class="tx"><b>Ana needs an answer</b><span>Lisbon trip</span></span></div></div></div></div>
+
+  <div class="v"><div class="tag"><b>J2</b><span>tinted header band</span></div>
+    <div class="ph"><div style="background:var(--surface-accent-soft)"><div class="bar"><span class="mark">offload</span><span class="ics"><u></u><u></u></span></div>
+      <div style="padding:0 14px 12px;font:400 13px/1.4 var(--font-core);color:var(--moss-700)">Rain at three. Take a coat.</div></div>
+      <div class="body"><div class="sh"><b>Priority</b><span class="cnt">5</span></div>
+        <div class="li"><u class="hot"></u><span class="tx"><b>Ana needs an answer</b><span>Lisbon trip</span></span></div>
+        <div class="li"><u></u><span class="tx"><b>Order the oak brackets</b><span>Bookshelf build</span></span></div></div></div>
+    <p class="note">The forecast gets its own ground. Moss by day; the same band could go ink after sunset.</p></div>
+
+  <div class="v"><div class="tag"><b>J3</b><span>ink band at night</span></div>
+    <div class="ph"><div style="background:var(--ink-950);color:var(--paper)"><div class="bar"><span class="mark" style="color:var(--paper)">offload</span><span class="ics"><u style="background:rgba(255,255,255,.35)"></u><u style="background:rgba(255,255,255,.35)"></u></span></div>
+      <div style="padding:0 14px 12px;font:400 13px/1.4 var(--font-core);color:rgba(255,255,255,.72)">Clear tonight. Sunset was at 19:13.</div></div>
+      <div class="body"><div class="sh"><b>Priority</b><span class="cnt">5</span></div>
+        <div class="li"><u class="hot"></u><span class="tx"><b>Ana needs an answer</b><span>Lisbon trip</span></span></div>
+        <div class="li"><u></u><span class="tx"><b>Order the oak brackets</b><span>Bookshelf build</span></span></div></div></div>
+    <p class="note">Today and Tonight actually look different. Works with J2 as the daytime state.</p></div>
+</div>
+
+<h2>K. The composer footer</h2>
+<p class="why">The footer is the app&rsquo;s one permanent instrument, and it currently shares the page&rsquo;s surface.</p>
+<div class="set">
+  <div class="v"><div class="tag"><b>K1</b><span>now</span></div>
+    <div class="ph"><div class="body" style="padding-top:10px"><div class="li"><u></u><span class="tx"><b>Renew the flat insurance</b><span>Flat admin</span></span></div><div class="li"><u></u><span class="tx"><b>Book the Alfama flat</b><span>Lisbon trip</span></span></div></div>
+      <div class="foot"><div class="pill"><i>Dump anything</i><span class="d"></span><span class="d s"></span></div><div class="tabs"><span class="tb on"></span><span class="tb"></span><span class="tb"></span></div></div></div></div>
+
+  <div class="v"><div class="tag"><b>K2</b><span>raised plate</span></div>
+    <div class="ph" style="background:#FAF9F7"><div class="body" style="padding-top:10px"><div class="li"><u></u><span class="tx"><b>Renew the flat insurance</b><span>Flat admin</span></span></div><div class="li"><u></u><span class="tx"><b>Book the Alfama flat</b><span>Lisbon trip</span></span></div></div>
+      <div class="foot" style="background:var(--paper);border-radius:18px 18px 0 0;box-shadow:0 -8px 24px rgba(11,11,11,.06)"><div class="pill"><i>Dump anything</i><span class="d"></span><span class="d s"></span></div><div class="tabs"><span class="tb on"></span><span class="tb"></span><span class="tb"></span></div></div></div>
+    <p class="note">The footer becomes a plane the page scrolls under. Pairs with any tinted page.</p></div>
+
+  <div class="v"><div class="tag"><b>K3</b><span>ink footer</span></div>
+    <div class="ph"><div class="body" style="padding-top:10px"><div class="li"><u></u><span class="tx"><b>Renew the flat insurance</b><span>Flat admin</span></span></div><div class="li"><u></u><span class="tx"><b>Book the Alfama flat</b><span>Lisbon trip</span></span></div></div>
+      <div class="foot" style="background:var(--ink-950);border-radius:18px 18px 0 0"><div class="pill" style="background:rgba(255,255,255,.10);border-color:var(--blue-400)"><i style="color:rgba(255,255,255,.6)">Dump anything</i><span class="d" style="background:rgba(255,255,255,.16)"></span><span class="d s" style="background:var(--paper)"></span></div><div class="tabs"><span class="tb on" style="background:var(--paper)"></span><span class="tb" style="background:rgba(255,255,255,.3)"></span><span class="tb" style="background:rgba(255,255,255,.3)"></span></div></div></div>
+    <p class="note">Boldest. The instrument is black, the page is paper, and the two never blur together.</p></div>
+</div>
+
+<h2>L. Thread pages</h2>
+<p class="why">A thread is a place. Its page could feel like one instead of like another list.</p>
+<div class="set">
+  <div class="v"><div class="tag"><b>L1</b><span>now</span></div>
+    <div class="ph"><div class="bar"><span class="ics"><u></u></span><span style="font:500 14px/1 var(--font-core)">Lisbon trip</span><span class="ics"><u></u></span></div>
+      <div class="body"><div style="font:400 14px/1.45 var(--font-core);color:var(--text-secondary);padding:6px 0 10px">Still four things to book, and the flight is in two weeks.</div>
+        <div class="sh"><b>To do</b><span class="cnt">4</span></div>
+        <div class="li"><u></u><span class="tx"><b>Book the Alfama flat</b><span>Ana is on it</span></span></div></div></div></div>
+
+  <div class="v"><div class="tag"><b>L2</b><span>blurb on colour</span></div>
+    <div class="ph"><div class="bar"><span class="ics"><u></u></span><span style="font:500 14px/1 var(--font-core)">Lisbon trip</span><span class="ics"><u></u></span></div>
+      <div class="body"><div style="background:var(--blue-50);border-radius:13px;padding:11px 12px;font:400 14px/1.45 var(--font-core);color:var(--blue-700);margin:4px 0 6px">Still four things to book, and the flight is in two weeks.</div>
+        <div class="sh"><b>To do</b><span class="cnt">4</span></div>
+        <div class="li"><u></u><span class="tx"><b>Book the Alfama flat</b><span>Ana is on it</span></span></div></div></div>
+    <p class="note">offload&rsquo;s read of the thread gets a surface, so it is clearly the app talking, not a note you wrote.</p></div>
+
+  <div class="v"><div class="tag"><b>L3</b><span>thread keeps a colour</span></div>
+    <div class="ph"><div style="background:var(--blue-50)"><div class="bar"><span class="ics"><u></u></span><span style="font:500 14px/1 var(--font-core)">Lisbon trip</span><span class="ics"><u></u></span></div>
+      <div style="padding:0 14px 12px;font:400 13.5px/1.45 var(--font-core);color:var(--blue-700)">Still four things to book, and the flight is in two weeks.</div></div>
+      <div class="body"><div class="sh"><b>To do</b><span class="cnt">4</span></div>
+        <div class="li"><u></u><span class="tx"><b>Book the Alfama flat</b><span>Ana is on it</span></span></div></div></div>
+    <p class="note">Each thread could own a colour, so you know where you are before reading the title. Risks looking like folders.</p></div>
+</div>
+
+<p class="note" style="max-width:70ch;margin-top:34px">The cheapest coherent set is H2 with K2: a warm page, and white reserved for the things you act on. If you want the app to feel more built, I2 goes further and makes every section a card. J3 and K3 are the loud options.</p>
+</body></html>

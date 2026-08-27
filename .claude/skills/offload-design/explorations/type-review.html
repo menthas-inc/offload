@@ -1,0 +1,199 @@
+<!doctype html><html><head><meta charset="utf-8"><title>offload, type review</title>
+<link rel="stylesheet" href="../styles.css?v=1">
+<style>
+body{margin:0;padding:56px 40px 96px;background:var(--surface-page);color:var(--text-primary)}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font:var(--text-display);letter-spacing:var(--tracking-display);margin:0 0 12px}
+.lede{font:var(--text-quiet-role);font-size:20px;color:var(--text-secondary);max-width:62ch;margin:0 0 20px}
+.flag{font-size:14px;line-height:1.55;color:var(--amber-700);background:var(--amber-100);padding:12px 14px;border-radius:var(--radius-sm);max-width:78ch;margin:0 0 48px}
+.flag b{font-weight:600}
+
+/* --- part 1: the roster --- */
+.sec{font:var(--weight-medium) var(--size-caption)/1 var(--font-core);letter-spacing:var(--tracking-caps);text-transform:uppercase;color:var(--text-tertiary);margin:0 0 16px}
+.roster{display:grid;grid-template-columns:repeat(2,1fr);border:1px solid var(--border-hairline);margin-bottom:64px}
+@media(max-width:900px){.roster{grid-template-columns:1fr}}
+.face{padding:26px 24px 28px;border-right:1px solid var(--border-hairline);display:flex;flex-direction:column;gap:14px}
+.face:last-child{border-right:none}
+@media(max-width:900px){.face{border-right:none;border-bottom:1px solid var(--border-hairline)}.face:last-child{border-bottom:none}}
+.spec{font-size:56px;line-height:1;color:var(--ink-950)}
+.fname{font:var(--text-title-3);letter-spacing:var(--tracking-title)}
+.fmeta{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.fnote{font-size:15px;line-height:1.5;color:var(--text-secondary);margin:0}
+.fwhere{font-size:13px;line-height:1.5;color:var(--text-primary);margin:0;padding-top:2px;border-top:1px solid var(--border-hairline);padding-top:12px}
+.fwhere b{font-weight:600}
+
+/* --- part 2: contexts --- */
+.ctx{margin-bottom:72px}
+.chead{display:flex;align-items:baseline;gap:14px;padding-bottom:8px;border-bottom:2px solid var(--ink-950);margin-bottom:6px}
+.chead h2{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0}
+.chead .src{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.cnote{font-size:15px;line-height:1.55;color:var(--text-secondary);max-width:78ch;margin:14px 0 26px}
+.pair{display:grid;grid-template-columns:390px minmax(320px,1fr);gap:36px;align-items:start}
+@media(max-width:820px){.pair{grid-template-columns:1fr}}
+.ph{width:390px;border:1px solid var(--border-strong);border-radius:32px;overflow:hidden;background:var(--paper);box-shadow:var(--shadow-2)}
+@media(max-width:440px){.ph{width:100%;border-radius:20px}}
+.bar{display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid var(--border-hairline)}
+.wm{font:600 21px/1 var(--font-core);letter-spacing:-0.03em}
+.sh{font:var(--weight-medium) var(--size-caption)/1 var(--font-core);letter-spacing:var(--tracking-caps);text-transform:uppercase;color:var(--text-tertiary);padding:18px 20px 8px;display:flex;justify-content:space-between}
+.li{display:flex;align-items:center;gap:12px;padding:12px 20px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.sq{width:36px;height:36px;border-radius:var(--radius-sm);background:var(--surface-fill);flex:0 0 auto}
+.li .txt{flex:1;min-width:0}
+.li .t{font:var(--weight-medium) var(--size-body)/1.3 var(--font-core);letter-spacing:var(--tracking-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .m{font-size:var(--size-body-sm);line-height:1.35;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .r{font:var(--text-numeric-role);color:var(--text-tertiary);flex:0 0 auto}
+.badge{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-xs);font:var(--weight-medium) var(--size-caption)/1 var(--font-core);flex:0 0 auto}
+.comp{display:flex;align-items:center;gap:8px;margin:14px 20px 18px;height:48px;padding:0 8px 0 16px;border-radius:var(--radius-pill);background:var(--surface-fill)}
+.comp span{flex:1;font:var(--text-body-role);color:var(--text-tertiary)}
+.send{width:32px;height:32px;border-radius:999px;background:var(--surface-inverse);flex:0 0 auto}
+.notes{display:flex;flex-direction:column;gap:14px}
+.note{display:grid;grid-template-columns:112px 1fr;gap:14px;align-items:baseline}
+.note dt{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.note dd{margin:0;font-size:14px;line-height:1.5;color:var(--text-secondary)}
+.note dd b{color:var(--text-primary);font-weight:500}
+.q{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:52px 32px}
+.q .qt{font:var(--text-title-3);letter-spacing:var(--tracking-title)}
+.q .qb{font:var(--text-quiet-role);font-size:17px;color:var(--text-secondary);max-width:30ch;margin:0}
+.answer{padding:0 20px}
+.acard{background:var(--surface-sunken);border-radius:var(--radius-md);padding:18px}
+.acard p{margin:0;font:var(--text-quiet-role);font-size:19px;line-height:1.5;color:var(--text-primary)}
+.field{margin:14px 20px 4px;display:flex;flex-direction:column;gap:6px}
+.field .lb{font:var(--text-label-role);color:var(--text-secondary)}
+.field .in{height:44px;display:flex;align-items:center;padding:0 14px;border:1px solid var(--border-focus);border-radius:var(--radius-field);font:var(--text-body-role);box-shadow:var(--shadow-focus)}
+.meta{display:flex;gap:18px;padding:10px 20px 18px;font:var(--text-numeric-role);color:var(--text-tertiary)}
+.scale{border:1px solid var(--border-hairline);border-radius:var(--radius-md);overflow:hidden}
+.srow{display:grid;grid-template-columns:120px 1fr;gap:18px;align-items:baseline;padding:13px 18px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.srow:last-child{box-shadow:none}
+.srow .k{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.foot{margin-top:8px;padding-top:26px;border-top:1px solid var(--border-hairline);font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:80ch}
+.foot b{color:var(--text-primary);font-weight:600}
+.foot ol{padding-left:20px;margin:14px 0 0}
+.foot li{margin-bottom:10px}
+</style></head><body><div class="wrap">
+<h1>Type review</h1>
+<p class="lede">Two faces, each with one job. Below: what they are, then each one shown in the context it will actually be read in.</p>
+<p class="flag"><b>Updated 11 August.</b> The monospace face is gone, numerals are Instrument Sans with <span style="font-family:var(--font-core)">tabular-nums</span>. The assistant voice is now upright Literata rather than Newsreader italic. Title-2 (21px) has been dropped from the scale. Both remaining faces are still unlicensed Google Fonts substitutes.</p>
+
+<p class="sec">Part one · the roster</p>
+<div class="roster">
+
+<div class="face">
+<div class="spec" style="font-family:var(--font-core);font-weight:600;letter-spacing:-0.03em">Aa Bb 123</div>
+<div><div class="fname">Instrument Sans</div><div class="fmeta">--font-core · 400 / 500 / 600</div></div>
+<p class="fnote">A neutral grotesque with slightly narrow proportions and a tall x-height, so dense lists stay legible without shouting. It carries the entire interface.</p>
+<p class="fwhere"><b>Used for:</b> everything you tap or scan, the wordmark, screen titles, row titles, labels, buttons, tab bar, section headers.</p>
+</div>
+
+<div class="face">
+<div class="face">
+<div class="spec" style="font-family:var(--font-quiet);font-weight:400">Aa Bb 123</div>
+<div><div class="fname">Literata</div><div class="fmeta">--font-quiet · 400 / 500, upright</div></div>
+<p class="fnote">A screen-first serif with low contrast, sturdy strokes and a large x-height. Upright, so it reads at speed in a chat, it sounds like a person rather than a magazine.</p>
+<p class="fwhere"><b>Used for:</b> the answer in Ask, empty states, occasional asides. Never a button, label, or row title.</p>
+</div>
+
+</div>
+
+<p class="sec">Part two · in context</p>
+
+<div class="ctx">
+<div class="chead"><h2>Instrument Sans, the inbox</h2><span class="src">--font-core</span></div>
+<p class="cnote">The hardest test for the core face: eight different type roles stacked in one scrolling view, most of them at 13–16px, all needing to stay distinct from each other by weight and colour alone.</p>
+<div class="pair">
+<div class="ph">
+<div class="bar"><img src="../assets/mark.svg" width="21" height="21" alt=""><span class="wm">offload</span></div>
+<div class="sh"><span>Today</span><span>3 things</span></div>
+<div class="li"><span class="sq"></span><span class="txt"><span class="t">Miradouro da Senhora do Monte</span><span class="m">Lisbon trip · from Safari</span></span><span class="badge" style="background:var(--surface-accent-soft);color:var(--text-accent)">sorted</span></div>
+<div class="li"><span class="sq"></span><span class="txt"><span class="t">Oak brackets, 30cm, matte black</span><span class="m">Bookshelf build · voice note, 0:14</span></span><span class="r">18m</span></div>
+<div class="li"><span class="sq"></span><span class="txt"><span class="t">Ana can only do the 14th–17th</span><span class="m">Lisbon trip · from Ana</span></span><span class="badge" style="background:var(--surface-attention-soft);color:var(--text-on-attention)">waiting</span></div>
+<div class="sh"><span>Earlier this week</span><span>See all</span></div>
+<div class="li" style="box-shadow:none"><span class="sq"></span><span class="txt"><span class="t">Tram 28 runs every 11 minutes</span><span class="m">Lisbon trip · from Messages</span></span><span class="r">Tue</span></div>
+<div class="comp"><span>Dump anything</span><span class="send"></span></div>
+</div>
+<div>
+<dl class="notes">
+<div class="note"><dt>wordmark</dt><dd><b>21px / 600 / -0.03em</b>, the only place tracking goes this tight.</dd></div>
+<div class="note"><dt>section header</dt><dd><b>12px / 500 / +0.08em / caps</b>, the one uppercase role in the system.</dd></div>
+<div class="note"><dt>row title</dt><dd><b>16px / 500 / 1.3</b>, medium, not semibold: it has to hold a whole list without turning it into a wall of bold.</dd></div>
+<div class="note"><dt>row meta</dt><dd><b>14px / 400</b> at <b>--text-secondary</b>, the drop to grey does more work than the size drop.</dd></div>
+<div class="note"><dt>badge</dt><dd><b>12px / 500</b>, same size as the section header, but sentence case and coloured.</dd></div>
+<div class="note"><dt>composer</dt><dd><b>16px / 400</b>, placeholder matches the size of what you are about to type.</dd></div>
+</dl>
+<p class="cnote" style="margin:22px 0 0">Watch for: whether 16px medium row titles feel heavy when four stack up, and whether the 14px meta line holds at arm's length on a real phone.</p>
+</div>
+</div>
+</div>
+
+<div class="ctx">
+<div class="chead"><h2>Literata, when offload speaks</h2><span class="src">--font-quiet</span></div>
+<p class="cnote">Two places, both moments where the product has something to say rather than something to label. The serif signals &ldquo;this is a sentence, not a control&rdquo; without needing a speech bubble or an avatar.</p>
+<div class="pair">
+<div class="ph">
+<div class="bar"><span class="wm" style="font-size:17px;font-weight:600">Ask</span></div>
+<div class="field"><span class="lb">Your question</span><span class="in">What did Ana say about dates?</span></div>
+<div class="sh" style="padding-top:20px"><span>Answer</span></div>
+<div class="answer"><div class="acard"><p>Ana can only travel the 14th to the 17th. Tom hasn't answered yet, and the Alfama flat is still unbooked.</p></div></div>
+<div class="sh"><span>From</span></div>
+<div class="li"><span class="sq"></span><span class="txt"><span class="t">Ana can only do the 14th–17th</span><span class="m">Lisbon trip · Tuesday</span></span></div>
+<div class="q" style="padding:36px 32px 44px"><span class="qt">Nothing waiting</span><p class="qb">Everything you dumped in has found a home.</p></div>
+</div>
+<div>
+<dl class="notes">
+<div class="note"><dt>the answer</dt><dd><b>19px / 400 / 1.5</b> in ink, on a sunken card. Large enough to read as prose, not as a system message.</dd></div>
+<div class="note"><dt>empty state</dt><dd><b>17px / 400</b> at <b>--text-secondary</b>, under a 17px sans title. The pairing is the point: sans states the fact, serif softens it.</dd></div>
+<div class="note"><dt>never</dt><dd>Buttons, labels, row titles, badges, section headers, anything numeric.</dd></div>
+<div class="note"><dt>length limit</dt><dd>Two sentences. Past that it stops feeling like an aside and starts feeling like a blog.</dd></div>
+</dl>
+<p class="cnote" style="margin:22px 0 0">Literata is a first pass at this voice. Five alternative pairings sit in <a href="type-combos.html">type-combos.html</a>.</p>
+</div>
+</div>
+</div>
+
+<div class="ctx">
+<div class="chead"><h2>Numerals, figures that hold still</h2><span class="src">tabular-nums</span></div>
+<p class="cnote">The mono face is gone. Instrument Sans has tabular figures, and <span style="font:var(--text-numeric-role);font-size:12px">font-variant-numeric: tabular-nums</span> is set on <span style="font:var(--text-numeric-role);font-size:12px">body</span>, so every timestamp holds its column without a third webfont.</p>
+<div class="pair">
+<div class="ph">
+<div class="bar"><span class="wm" style="font-size:17px;font-weight:600">Bookshelf build</span></div>
+<div class="li"><span class="sq"></span><span class="txt"><span class="t">Oak brackets, 30cm</span><span class="m">voice note</span></span><span class="r">14:02</span></div>
+<div class="li"><span class="sq"></span><span class="txt"><span class="t">Shelf dimensions</span><span class="m">screenshot</span></span><span class="r">11:41</span></div>
+<div class="li"><span class="sq"></span><span class="txt"><span class="t">Walnut vs oak, price</span><span class="m">from Safari</span></span><span class="r">09:07</span></div>
+<div class="li" style="box-shadow:none"><span class="sq"></span><span class="txt"><span class="t">Bracket spacing rule</span><span class="m">note</span></span><span class="r">08:55</span></div>
+<div class="meta"><span>4 things</span><span>3.2 MB</span><span>edited 2m ago</span></div>
+</div>
+<div>
+<dl class="notes">
+<div class="note"><dt>timestamps</dt><dd><b>12px / 400</b>, tertiary, right-aligned. Tabular by default, so 14:02 and 09:07 occupy identical width.</dd></div>
+<div class="note"><dt>counts &amp; sizes</dt><dd><b>12px / 400</b> in a footer row, "4 things · 3.2 MB".</dd></div>
+<div class="note"><dt>documentation</dt><dd>Token names in this design system: <span style="font:var(--text-numeric-role);font-size:12px">--surface-attention</span>.</dd></div>
+<div class="note"><dt>never</dt><dd>Labels, body copy, buttons, or anything a person reads as a sentence.</dd></div>
+</dl>
+<p class="cnote" style="margin:22px 0 0">Two webfonts instead of three, and one less thing to license later.</p>
+</div>
+</div>
+</div>
+
+<div class="ctx" style="margin-bottom:40px">
+<div class="chead"><h2>The whole scale, one page</h2><span class="src">all three</span></div>
+<p class="cnote">Every text role in the system at its real size, so you can see the steps and where two roles sit close enough to merge.</p>
+<div class="scale">
+<div class="srow"><span class="k">display · 34/600</span><span style="font:var(--text-display);letter-spacing:var(--tracking-display)">Dump it here</span></div>
+<div class="srow"><span class="k">title-1 · 26/600</span><span style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">Lisbon trip</span></div>
+<div class="srow"><span class="k">title-3 · 17/500</span><span style="font:var(--text-title-3);letter-spacing:var(--tracking-title)">Tram 28 timetable</span></div>
+<div class="srow"><span class="k">body · 16/400</span><span style="font:var(--text-body-role)">You dumped six things in today. Four of them belong to the Lisbon trip.</span></div>
+<div class="srow"><span class="k">body-sm · 14/400</span><span style="font-size:var(--size-body-sm);line-height:1.4;color:var(--text-secondary)">saved from Safari · 2 minutes ago</span></div>
+<div class="srow"><span class="k">label · 13/500</span><span style="font:var(--text-label-role)">Space name</span></div>
+<div class="srow"><span class="k">caption caps · 12/500</span><span style="font:var(--text-caption-role);letter-spacing:var(--tracking-caps);text-transform:uppercase;color:var(--text-tertiary)">Today</span></div>
+<div class="srow"><span class="k">quiet · 16 serif</span><span style="font:var(--text-quiet-role);color:var(--text-secondary)">Everything you dumped in has found a home.</span></div>
+<div class="srow"><span class="k">numeric · 12/400</span><span style="font:var(--text-numeric-role)">14:02 · 3.2 MB · --surface-card</span></div>
+</div>
+</div>
+
+<div class="foot"><b>Resolved 11 August.</b>
+<ol>
+<li><b>Three faces → two.</b> Mono dropped; numerals are Instrument Sans with tabular figures.</li>
+<li><b>Serif italic → upright.</b> Italic is slower to read and tiring in a chat. Literata is the first pass; see <a href="type-combos.html">type-combos.html</a> for five alternatives.</li>
+<li><b>Instrument Sans stays</b> as the core face for now, no licence to work from.</li>
+<li><b>Title-2 (21px) dropped.</b> Only the sheet header used it, and it sat too close to title-1 and title-3.</li>
+</ol>
+</div>
+</div></body></html>

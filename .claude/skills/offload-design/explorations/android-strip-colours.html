@@ -1,0 +1,142 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>E, strip colours</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:40px 34px 80px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 30px;max-width:68ch}
+.row{display:flex;gap:24px;flex-wrap:wrap}
+.opt{width:360px}
+.hd{margin:0 0 4px;font:600 15px/1.3 var(--font-core)}
+.dk{margin:0 0 12px;font-size:13px;line-height:1.5;color:var(--text-secondary);min-height:52px}
+.note{font-size:12px;color:var(--text-tertiary);margin:8px 0 0;line-height:1.5}
+.ph{--a-surface:#FAF9F7;--a-c-low:#F6F5F2;--a-c:#ECEBE7;--a-c-high:#E4E3DE;--a-outline:#DEDDD8;--a-on:#1B1B1A;--a-on-var:#5A5A57;
+  background:var(--a-surface);color:var(--a-on);border:1px solid var(--border-hairline);border-radius:22px;overflow:hidden;padding-bottom:10px}
+.bar{display:flex;align-items:center;gap:var(--space-2);height:64px;padding:0 var(--space-2) 0 var(--space-5);background:var(--surface-raised)}
+.bar svg{display:block;flex:0 0 auto}
+.mk{display:flex;align-items:center;gap:7px;font:600 17px/1 var(--font-core);letter-spacing:-.02em}
+.pg{padding:var(--space-5) var(--gutter-screen) 0}
+.li{display:flex;gap:var(--space-5);align-items:center;min-height:56px;box-sizing:border-box;padding:var(--space-4) 0;box-shadow:inset 0 -1px 0 var(--a-outline)}
+.li:last-child{box-shadow:none}
+.ic{width:40px;height:40px;flex:0 0 auto;border-radius:999px;background:var(--a-c-high);color:var(--a-on-var);display:flex;align-items:center;justify-content:center}
+.ic i{width:19px;height:19px;display:block;background:currentColor}
+.tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tx b{display:block;font:400 16px/24px var(--font-core);letter-spacing:.005em}
+.tx span{display:block;font:400 14px/20px var(--font-core);letter-spacing:.015em;color:var(--a-on-var)}
+/* the strip */
+.s{display:flex;align-items:center;gap:var(--space-3);margin:var(--space-5) calc(-1 * var(--gutter-screen)) var(--space-3);
+  padding:var(--space-4) var(--gutter-screen)}
+.s b{font:500 14px/20px var(--font-core)}
+.s .cnt{font:500 11px/16px var(--font-core);padding:1px 7px;border-radius:999px;flex:0 0 auto}
+.s .act{font:500 14px/20px var(--font-core);flex:0 0 auto}
+/* 1 neutral, as built */
+.n b{color:var(--a-on)}
+.n{background:var(--a-c)}
+.n .cnt{background:var(--a-c-high);color:var(--a-on-var)}
+.n .act{color:var(--blue-700)}
+/* 2 moss soft everywhere */
+.m{background:var(--surface-accent-soft)}
+.m b{color:var(--text-accent)}
+.m .cnt{background:rgba(63,107,79,.16);color:var(--moss-700)}
+.m .act{color:var(--moss-700)}
+/* 3 tone per section: moss for handled, blue for what needs you */
+.mm{background:var(--surface-accent-soft)}
+.mm b,.mm .act{color:var(--text-accent)}
+.mm .cnt{background:rgba(63,107,79,.16);color:var(--moss-700)}
+.bb{background:var(--blue-50)}
+.bb b,.bb .act{color:var(--blue-700)}
+.bb .cnt{background:var(--blue-100);color:var(--blue-700)}
+/* 4 paper strip on the warm page */
+.p{background:var(--surface-raised);box-shadow:inset 0 -1px 0 var(--a-outline),inset 0 1px 0 var(--a-outline)}
+.p b{color:var(--a-on)}
+.p .cnt{background:var(--surface-accent-soft);color:var(--text-accent)}
+.p .act{color:var(--blue-700)}
+/* 5 ink strip */
+.k{background:var(--ink-950)}
+.k b{color:var(--paper)}
+.k .cnt{background:rgba(255,255,255,.18);color:var(--paper)}
+.k .act{color:var(--paper);opacity:.8}
+/* 6 moss strip, solid */
+.ms{background:var(--moss-600)}
+.ms b{color:var(--text-on-solid)}
+.ms .cnt{background:rgba(255,255,255,.22);color:var(--text-on-solid)}
+.ms .act{color:var(--text-on-solid);opacity:.85}
+</style></head><body>
+<h1>E, with the brand in the strip</h1>
+<p class="lede">Option E in six colourways, everything else identical to the kit. Both sections appear in each frame, since the question is partly whether every strip should be one colour or whether it should carry the section&rsquo;s meaning, moss for what offload handled and blue for what needs you.</p>
+
+<div class="row">
+
+<div class="opt">
+<p class="hd">1. Neutral, as built</p>
+<p class="dk">The grey you have now: <b>surface-container</b> at #ECEBE7. Correct Material, no brand in it.</p>
+<div class="ph"><div class="bar"><span class="mk"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s n"><b>What moved</b><span class="cnt">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s n"><b>On the clock</b><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Reference. This is the one you said drifts from the brand.</p>
+</div>
+
+<div class="opt">
+<p class="hd">2. Moss soft, every strip</p>
+<p class="dk">One brand colour for all sections: <b>surface-accent-soft</b> with moss text. The page stays paper, the strips are the only colour.</p>
+<div class="ph"><div class="bar"><span class="mk"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s m"><b>What moved</b><span class="cnt">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s m"><b>On the clock</b><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Calm and unmistakably offload. Colour stops meaning anything, since every section has it.</p>
+</div>
+
+<div class="opt">
+<p class="hd">3. Tone per section</p>
+<p class="dk">Moss where offload handled it, blue where something needs you, the rule iOS already follows in its section rules.</p>
+<div class="ph"><div class="bar"><span class="mk"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s mm"><b>What moved</b><span class="cnt">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s bb"><b>On the clock</b><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Colour carries information. Two tints on one screen, so busier than 2.</p>
+</div>
+
+<div class="opt">
+<p class="hd">4. Paper strip on the warm page</p>
+<p class="dk">Inverts the idea: the strip is white against the warm page, hairlined top and bottom, and the brand shows only in the count.</p>
+<div class="ph"><div class="bar"><span class="mk"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s p"><b>What moved</b><span class="cnt">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s p"><b>On the clock</b><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Uses the palette you already committed to, warm page and white planes. Quietest of the five alternatives.</p>
+</div>
+
+<div class="opt">
+<p class="hd">5. Ink strip</p>
+<p class="dk">The strip goes near-black with paper text, borrowing the logo&rsquo;s own contrast rather than a tint.</p>
+<div class="ph"><div class="bar"><span class="mk"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s k"><b>What moved</b><span class="cnt">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s k"><b>On the clock</b><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Strongest separation possible. Heavy if a screen has four sections.</p>
+</div>
+
+<div class="opt">
+<p class="hd">6. Moss solid</p>
+<p class="dk">The accent at full strength with white text, so the section header reads as a brand element rather than a surface.</p>
+<div class="ph"><div class="bar"><span class="mk"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s ms"><b>What moved</b><span class="cnt">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s ms"><b>On the clock</b><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Loudest. At odds with an app whose premise is hiding complexity.</p>
+</div>
+
+</div>
+<p class="note" style="max-width:68ch;margin-top:30px">2 and 4 fit the brand best: 2 puts moss on every strip and keeps the page paper, 4 keeps colour out of the surfaces entirely and lets the warm page do the separating. 3 is the one to pick if you want the strip to mean something.</p>
+</body></html>

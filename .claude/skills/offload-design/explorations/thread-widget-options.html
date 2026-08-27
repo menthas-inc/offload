@@ -1,0 +1,184 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Thread widgets, options</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>body{margin:0;padding:48px 40px 88px;background:var(--surface-sunken);color:var(--text-primary)}
+.wrap{max-width:1280px;margin:0 auto}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 10px}
+.lede{font:var(--text-quiet-role);font-size:18px;color:var(--text-secondary);max-width:74ch;margin:0 0 20px}
+.flag{font-size:14px;line-height:1.55;color:var(--amber-700);background:var(--amber-100);padding:12px 14px;border-radius:var(--radius-sm);max-width:80ch;margin:0 0 40px}
+h2{font:var(--weight-semibold) var(--size-title-1)/1.15 var(--font-core);letter-spacing:var(--tracking-title);margin:0 0 6px;padding-bottom:10px;border-bottom:2px solid var(--ink-950)}
+.gnote{font-size:15px;line-height:1.55;color:var(--text-secondary);max-width:80ch;margin:14px 0 24px}
+.sec{margin-bottom:64px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:22px;align-items:start}
+.opt{background:var(--paper);border:1px solid var(--border-hairline);border-radius:var(--radius-lg);overflow:hidden}
+.oh{padding:16px 18px 14px;border-bottom:1px solid var(--border-hairline)}
+.on{font:var(--weight-semibold) var(--size-title-3)/1.2 var(--font-core);letter-spacing:var(--tracking-title)}
+.od{font-size:13px;line-height:1.5;color:var(--text-secondary);margin:7px 0 0}
+.demo{padding:16px 0 20px}
+.sh{display:flex;align-items:center;gap:9px;padding:0 18px 10px;margin:0 18px 12px;border-bottom:1px solid var(--ink-950);padding-left:0;margin-left:18px}
+.sh b{font:600 21px/1.15 var(--font-core);letter-spacing:-0.014em}
+.sh i{font-style:normal;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--surface-fill);font:500 13px/22px var(--font-core);color:var(--text-secondary);text-align:center}
+.sh u{text-decoration:none;margin-left:auto;font:500 13px/1 var(--font-core);color:var(--text-secondary)}
+.chips{display:flex;gap:6px;padding:0 18px 14px;overflow:auto}
+.chip{flex:0 0 auto;height:30px;padding:0 12px;border-radius:999px;background:var(--surface-fill);font:500 13px/30px var(--font-core);color:var(--text-primary)}
+.chip.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.chip.out{background:transparent;border:1px solid var(--border-strong);color:var(--text-secondary);line-height:28px}
+.chip.acc{background:var(--surface-accent-soft);color:var(--text-accent);border:1px solid var(--border-accent);line-height:28px}
+/* map */
+.mapbox{position:relative;background:var(--ink-50);border-top:1px solid var(--border-hairline);border-bottom:1px solid var(--border-hairline);overflow:hidden}
+.mapbox.r{margin:0 18px;border:1px solid var(--border-hairline);border-radius:var(--radius-md)}
+.mapnote{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:var(--text-numeric-role);font-size:11px;color:var(--ink-400);text-align:center;padding:0 20px;line-height:1.5}
+.pin{position:absolute;width:22px;height:22px;border-radius:999px;background:var(--ink-950);color:#fff;font:600 11px/22px var(--font-core);text-align:center;transform:translate(-50%,-100%)}
+.pin.a{background:var(--moss-600)}
+.pin.b{background:var(--blue-600)}
+.row{display:flex;gap:11px;align-items:flex-start;padding:10px 18px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.row:last-child{box-shadow:none}
+.row .n{width:20px;height:20px;border-radius:999px;background:var(--ink-950);color:#fff;font:600 11px/20px var(--font-core);text-align:center;flex:0 0 auto;margin-top:2px}
+.row .tx{flex:1;min-width:0}
+.row .tx b{display:block;font:500 15px/1.35 var(--font-core);letter-spacing:-0.006em}
+.row .tx span{display:block;font-size:13px;color:var(--text-secondary)}
+.row .r{font-size:12px;color:var(--text-tertiary);flex:0 0 auto;font-variant-numeric:tabular-nums}
+.thumbs{display:flex;gap:10px;padding:0 18px;overflow:auto}
+.tcard{flex:0 0 auto;width:150px;border:1px solid var(--border-hairline);border-radius:var(--radius-md);overflow:hidden}
+.tcard .tt{height:70px;background:var(--ink-50);display:flex;align-items:center;justify-content:center;font:var(--text-numeric-role);font-size:10px;color:var(--ink-400)}
+.tcard .tb{padding:9px 10px}
+.tcard b{display:block;font:500 14px/1.3 var(--font-core)}
+.tcard span{display:block;font-size:12px;color:var(--text-secondary);margin-top:2px}
+.side{display:flex;gap:12px;padding:0 18px}
+.sq{width:104px;height:104px;flex:0 0 auto;border:1px solid var(--border-hairline);border-radius:var(--radius-md);background:var(--ink-50);position:relative;overflow:hidden}
+/* timeline */
+.tl{position:relative;padding:0 18px 0 40px}
+.tl:before{content:"";position:absolute;left:25px;top:8px;bottom:8px;width:1px;background:var(--border-hairline)}
+.tli{position:relative;padding:9px 0}
+.tli:before{content:"";position:absolute;left:-18px;top:15px;width:7px;height:7px;border-radius:999px;background:var(--ink-900)}
+.tli.done:before{background:var(--moss-600)}
+.tli.next:before{background:var(--blue-600)}
+.tli u{text-decoration:none;display:block;font-size:12px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.tli b{font:500 15px/1.35 var(--font-core)}
+.dgroup{font:600 13px/1 var(--font-core);color:var(--text-primary);padding:14px 0 4px}
+.scrub{padding:0 18px}
+.axis{position:relative;height:56px;border-bottom:1px solid var(--border-hairline)}
+.axis u{position:absolute;bottom:0;text-decoration:none;font-size:10px;color:var(--text-tertiary);transform:translateX(-50%);font-variant-numeric:tabular-nums}
+.axis s{position:absolute;bottom:14px;text-decoration:none;width:1px;background:var(--border-hairline);height:8px}
+.node{position:absolute;transform:translateX(-50%);text-align:center;width:74px}
+.node i{display:block;width:9px;height:9px;border-radius:999px;background:var(--ink-900);margin:0 auto 5px}
+.node b{display:block;font:500 11px/1.25 var(--font-core)}
+.rail{display:flex;gap:0;padding:0 18px 12px}
+.rail div{flex:1;text-align:center;padding:8px 0;border-radius:var(--radius-xs)}
+.rail div.on{background:var(--surface-fill)}
+.rail u{text-decoration:none;display:block;font-size:11px;color:var(--text-tertiary)}
+.rail b{display:block;font:600 14px/1.3 var(--font-core);margin-top:2px}
+.rail s{text-decoration:none;display:block;width:5px;height:5px;border-radius:999px;background:var(--ink-900);margin:5px auto 0}
+/* files */
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 18px}
+.f{border:1px solid var(--border-hairline);border-radius:var(--radius-sm);overflow:hidden}
+.f .ft{height:64px;background:var(--ink-50);display:flex;align-items:center;justify-content:center}
+.f .fb{padding:7px 8px;font-size:11px;line-height:1.3;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g{display:block;width:18px;height:18px;background:var(--ink-400)}
+.frow{display:flex;align-items:center;gap:11px;padding:9px 18px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.frow .fi{width:34px;height:34px;border-radius:var(--radius-xs);background:var(--surface-fill);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.frow b{display:block;font:500 14px/1.3 var(--font-core)}
+.frow span{display:block;font-size:12px;color:var(--text-secondary)}
+.tagrow{display:flex;align-items:baseline;gap:8px;padding:14px 18px 8px}
+.tagrow b{font:600 15px/1 var(--font-core)}
+.tagrow u{text-decoration:none;font-size:12px;color:var(--text-tertiary)}
+.hscroll{display:flex;gap:8px;padding:0 18px;overflow:auto}
+.hscroll .f{flex:0 0 auto;width:104px}
+.foot{margin-top:8px;padding-top:24px;border-top:1px solid var(--border-hairline);font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:82ch}
+.foot b{color:var(--text-primary);font-weight:600}</style></head><body><div class="wrap">
+<h1>Thread widgets, three kinds, three options each</h1>
+<p class="lede">A thread shows only the widgets its contents justify: a trip earns a map, a build earns a timeline, a shopping thread earns a file grid. Each option below is drawn at the width of the thread page, under a real section header, so you can judge it in place.</p>
+<p class="flag"><b>On the map.</b> I cannot generate imagery, so the map surfaces below are placeholders with real pin placement and real list behaviour. A shipped version needs either a tile provider or a vector map drawn from actual coordinates, which I can do properly once we pick a layout.</p>
+
+<div class="sec"><h2>1. Map</h2>
+<p class="gnote">The question is how much room the map earns. It is the most attention-grabbing thing on the page, and for most threads the list of places is what you actually act on.</p>
+<div class="grid">
+<div class="opt"><div class="oh"><span class="on">1a. Map on top</span><p class="od">A 150px map above the numbered list, pins matching the numbers. Familiar, and the pairing means you can read the list and glance up. Moss pin marks a place someone else suggested, blue one that needs a decision.</p></div><div class="demo"><div class="sh"><b>Places</b><i>4</i><u>Open map</u></div>
+<div class="mapbox" style="height:150px"><span class="pin" style="left:30%;top:44%">1</span><span class="pin a" style="left:58%;top:62%">2</span><span class="pin b" style="left:72%;top:32%">3</span><span class="pin" style="left:44%;top:78%">4</span><span class="mapnote">map tile renders here, drawn from real coordinates</span></div>
+<div class="row"><span class="n">1</span><span class="tx"><b>Miradouro da Senhora do Monte</b><span>viewpoint · saved from Safari</span></span><span class="r">2m</span></div>
+<div class="row"><span class="n" style="background:var(--moss-600)">2</span><span class="tx"><b>Time Out Market</b><span>Ana suggested this</span></span><span class="r">Tue</span></div>
+<div class="row"><span class="n" style="background:var(--blue-600)">3</span><span class="tx"><b>Alfama flat</b><span>not booked yet</span></span><span class="r">Mon</span></div>
+<div class="row"><span class="n">4</span><span class="tx"><b>Tram 28 stop</b><span>every 11 minutes</span></span><span class="r">1h</span></div></div></div>
+<div class="opt"><div class="oh"><span class="on">1b. Map as a thumbnail</span><p class="od">The map shrinks to a 104px square beside a sentence about the places: how many, which neighbourhoods, how far apart. Least space for the most useful summary, and the map opens full screen when tapped.</p></div><div class="demo"><div class="sh"><b>Places</b><i>4</i></div>
+<div class="side">
+<div class="sq"><span class="mapnote" style="font-size:10px">map</span><span class="pin" style="left:34%;top:46%;width:16px;height:16px;line-height:16px;font-size:9px">1</span><span class="pin a" style="left:64%;top:66%;width:16px;height:16px;line-height:16px;font-size:9px">2</span></div>
+<div style="flex:1;min-width:0;font-size:13px;line-height:1.5;color:var(--text-secondary)">
+<b style="display:block;font:500 15px/1.35 var(--font-core);color:var(--text-primary)">Four places, all walkable</b>
+Two in Alfama, one in Graça. Furthest apart is 1.4km.
+<div style="margin-top:8px"><span class="chip out" style="height:26px;line-height:24px;font-size:12px">See them on a map</span></div>
+</div></div>
+<div style="height:12px"></div>
+<div class="row"><span class="n">1</span><span class="tx"><b>Miradouro da Senhora do Monte</b><span>viewpoint · saved from Safari</span></span><span class="r">2m</span></div>
+<div class="row"><span class="n" style="background:var(--moss-600)">2</span><span class="tx"><b>Time Out Market</b><span>Ana suggested this</span></span><span class="r">Tue</span></div>
+<div class="row"><span class="n" style="background:var(--blue-600)">3</span><span class="tx"><b>Alfama flat</b><span>not booked yet</span></span><span class="r">Mon</span></div>
+<div class="row"><span class="n">4</span><span class="tx"><b>Tram 28 stop</b><span>every 11 minutes</span></span><span class="r">1h</span></div></div></div>
+<div class="opt"><div class="oh"><span class="on">1c. Full-bleed with cards</span><p class="od">The map takes the full width and place cards float over its bottom edge, scrolling sideways. The most immersive and the most fun to browse. Costs the most height and pushes everything else down.</p></div><div class="demo"><div class="sh"><b>Places</b><i>4</i></div>
+<div class="mapbox r" style="height:190px"><span class="pin" style="left:30%;top:44%">1</span><span class="pin a" style="left:58%;top:62%">2</span><span class="pin b" style="left:72%;top:32%">3</span><span class="pin" style="left:44%;top:78%">4</span><span class="mapnote">full-bleed map, cards float over it</span>
+<div style="position:absolute;left:0;right:0;bottom:10px"><div class="thumbs">
+<div class="tcard" style="background:var(--paper)"><div class="tb"><b>Miradouro</b><span>viewpoint · 2m</span></div></div>
+<div class="tcard" style="background:var(--paper)"><div class="tb"><b>Time Out Market</b><span>Ana · Tue</span></div></div>
+<div class="tcard" style="background:var(--paper)"><div class="tb"><b>Alfama flat</b><span>not booked</span></div></div>
+</div></div></div></div></div>
+</div></div>
+
+<div class="sec"><h2>2. Timeline</h2>
+<p class="gnote">Granularity follows the thread: a trip spans days, a moving day spans hours. All three switch between the two, the difference is the shape.</p>
+<div class="grid">
+<div class="opt"><div class="oh"><span class="on">2a. Vertical spine, grouped by day</span><p class="od">Dates as small headers, entries hanging off one spine. Reads like the rest of offload, handles any span, and hour detail simply appears in the time slot. Dot colour marks done, next up, or waiting.</p></div><div class="demo"><div class="sh"><b>Timeline</b><u>Aug to Sep</u></div>
+<div class="tl">
+<div class="dgroup">Tue 11 Aug</div>
+<div class="tli done"><u>this morning</u><b>Ana confirmed the 14th to 17th</b></div>
+<div class="dgroup">Thu 14 Aug</div>
+<div class="tli next"><u>09:20</u><b>Flight out, TP1234</b></div>
+<div class="tli"><u>afternoon</u><b>Alfama flat check in</b></div>
+<div class="dgroup">Sun 17 Aug</div>
+<div class="tli"><u>21:05</u><b>Flight home</b></div>
+</div></div></div>
+<div class="opt"><div class="oh"><span class="on">2b. Horizontal scrubber</span><p class="od">One axis for a single day with events pinned along it. Best when the question is \u201Chow much room is between these\u201D. Weak for spans longer than a day, and labels crowd fast.</p></div><div class="demo"><div class="sh"><b>Timeline</b><u>Thu 14 Aug</u></div>
+<div class="scrub"><div class="axis">
+<s style="left:2%"></s><u style="left:2%">06:00</u>
+<s style="left:26%"></s><u style="left:26%">10:00</u>
+<s style="left:50%"></s><u style="left:50%">14:00</u>
+<s style="left:74%"></s><u style="left:74%">18:00</u>
+<s style="left:98%"></s><u style="left:98%">22:00</u>
+<span class="node" style="left:20%;top:0"><i></i><b>Flight out</b></span>
+<span class="node" style="left:46%;top:0"><i style="background:var(--moss-600)"></i><b>Check in</b></span>
+<span class="node" style="left:80%;top:0"><i style="background:var(--blue-600)"></i><b>Dinner, Ana</b></span>
+</div></div>
+<div style="height:12px"></div>
+<div class="row"><span class="tx"><b>09:20 Flight out</b><span>TP1234 · 2h 45</span></span></div>
+<div class="row"><span class="tx"><b>14:00 Alfama flat check in</b><span>Ana arrives at 13:00</span></span></div></div></div>
+<div class="opt"><div class="oh"><span class="on">2c. Week rail with a list</span><p class="od">A seven-day rail marking which days have anything, with a plain chronological list beneath. Compact, tappable, and it scales to months by switching the rail to weeks.</p></div><div class="demo"><div class="sh"><b>Timeline</b><u>This week</u></div>
+<div class="rail">
+<div><u>Mon</u><b>11</b><s style="background:transparent"></s></div>
+<div class="on"><u>Tue</u><b>12</b><s></s></div>
+<div><u>Wed</u><b>13</b><s style="background:transparent"></s></div>
+<div><u>Thu</u><b>14</b><s></s></div>
+<div><u>Fri</u><b>15</b><s></s></div>
+<div><u>Sat</u><b>16</b><s style="background:transparent"></s></div>
+<div><u>Sun</u><b>17</b><s></s></div>
+</div>
+<div class="row"><span class="tx"><b>Ana confirmed the dates</b><span>Tue 12 Aug</span></span></div>
+<div class="row"><span class="tx"><b>Flight out, 09:20</b><span>Thu 14 Aug</span></span></div>
+<div class="row"><span class="tx"><b>Flight home, 21:05</b><span>Sun 17 Aug</span></span></div></div></div>
+</div></div>
+
+<div class="sec"><h2>3. Files</h2>
+<p class="gnote">Filter chips are the same in all three: file type first, then tags offload derived from the contents (moss, because you did not type them). The variable is how the files themselves are presented.</p>
+<div class="grid">
+<div class="opt"><div class="oh"><span class="on">3a. Three-up grid</span><p class="od">Thumbnails first, names small underneath. Right when most things are images, which is usually true of a shopping or renovation thread. Poor for PDFs and links, which all look alike.</p></div><div class="demo"><div class="sh"><b>Files</b><i>31</i></div><div class="chips"><span class="chip on">All 31</span><span class="chip">Photos 18</span><span class="chip">Links 7</span><span class="chip">PDFs 4</span><span class="chip acc">Shoes 6</span><span class="chip acc">Receipts 5</span></div><div class="fgrid">
+<div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/image.svg) center/contain no-repeat;mask:url(../assets/icons/image.svg) center/contain no-repeat"></span></div><div class="fb">shelf-1.jpg</div></div><div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/image.svg) center/contain no-repeat;mask:url(../assets/icons/image.svg) center/contain no-repeat"></span></div><div class="fb">shelf-2.jpg</div></div><div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/image.svg) center/contain no-repeat;mask:url(../assets/icons/image.svg) center/contain no-repeat"></span></div><div class="fb">brackets.png</div></div>
+<div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/paperclip.svg) center/contain no-repeat;mask:url(../assets/icons/paperclip.svg) center/contain no-repeat"></span></div><div class="fb">invoice.pdf</div></div><div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/link.svg) center/contain no-repeat;mask:url(../assets/icons/link.svg) center/contain no-repeat"></span></div><div class="fb">walnut vs oak</div></div><div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/image.svg) center/contain no-repeat;mask:url(../assets/icons/image.svg) center/contain no-repeat"></span></div><div class="fb">alcove.jpg</div></div>
+</div></div></div>
+<div class="opt"><div class="oh"><span class="on">3b. List with type icons</span><p class="od">One row per file with size and where it came from. Scannable, honest about mixed content, and the metadata is what you search by. Loses the ability to recognise an image at a glance.</p></div><div class="demo"><div class="sh"><b>Files</b><i>31</i></div><div class="chips"><span class="chip on">All 31</span><span class="chip">Photos 18</span><span class="chip">Links 7</span><span class="chip">PDFs 4</span><span class="chip acc">Shoes 6</span><span class="chip acc">Receipts 5</span></div>
+<div class="frow"><span class="fi"><span class="g" style="-webkit-mask:url(../assets/icons/image.svg) center/contain no-repeat;mask:url(../assets/icons/image.svg) center/contain no-repeat"></span></span><span style="flex:1"><b>shelf-1.jpg</b><span>2.1 MB · added Tuesday</span></span></div>
+<div class="frow"><span class="fi"><span class="g" style="-webkit-mask:url(../assets/icons/paperclip.svg) center/contain no-repeat;mask:url(../assets/icons/paperclip.svg) center/contain no-repeat"></span></span><span style="flex:1"><b>invoice.pdf</b><span>84 KB · from an email</span></span></div>
+<div class="frow"><span class="fi"><span class="g" style="-webkit-mask:url(../assets/icons/link.svg) center/contain no-repeat;mask:url(../assets/icons/link.svg) center/contain no-repeat"></span></span><span style="flex:1"><b>Walnut vs oak, price per metre</b><span>from Safari · Sunday</span></span></div>
+<div class="frow" style="box-shadow:none"><span class="fi"><span class="g" style="-webkit-mask:url(../assets/icons/image.svg) center/contain no-repeat;mask:url(../assets/icons/image.svg) center/contain no-repeat"></span></span><span style="flex:1"><b>brackets.png</b><span>640 KB · from Messages</span></span></div></div></div>
+<div class="opt"><div class="oh"><span class="on">3c. Grouped by derived tag</span><p class="od">Sections per tag, each a sideways strip. This is the version that shows off the sorting: \u201CShoes, 6, offload grouped these\u201D. Best when tags are trustworthy, confusing when a file belongs to two.</p></div><div class="demo"><div class="sh"><b>Files</b><i>31</i></div><div class="chips"><span class="chip on">All 31</span><span class="chip">Photos 18</span><span class="chip">Links 7</span><span class="chip">PDFs 4</span><span class="chip acc">Shoes 6</span><span class="chip acc">Receipts 5</span></div>
+<div class="tagrow"><b>Shoes</b><u>6, offload grouped these</u></div>
+<div class="hscroll"><div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/image.svg) center/contain no-repeat;mask:url(../assets/icons/image.svg) center/contain no-repeat"></span></div><div class="fb">trainers.jpg</div></div><div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/image.svg) center/contain no-repeat;mask:url(../assets/icons/image.svg) center/contain no-repeat"></span></div><div class="fb">boots.jpg</div></div><div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/image.svg) center/contain no-repeat;mask:url(../assets/icons/image.svg) center/contain no-repeat"></span></div><div class="fb">sandals.jpg</div></div></div>
+<div class="tagrow"><b>Receipts</b><u>5</u></div>
+<div class="hscroll"><div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/paperclip.svg) center/contain no-repeat;mask:url(../assets/icons/paperclip.svg) center/contain no-repeat"></span></div><div class="fb">till.pdf</div></div><div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/image.svg) center/contain no-repeat;mask:url(../assets/icons/image.svg) center/contain no-repeat"></span></div><div class="fb">card.jpg</div></div><div class="f"><div class="ft"><span class="g" style="-webkit-mask:url(../assets/icons/paperclip.svg) center/contain no-repeat;mask:url(../assets/icons/paperclip.svg) center/contain no-repeat"></span></div><div class="fb">order.pdf</div></div></div></div></div>
+</div></div>
+
+<p class="foot"><b>My read.</b> <b>1b</b> for the map, because a sentence plus a thumbnail beats a map you cannot really use at 150px, and the full map is one tap away; <b>1a</b> if you want the map to be the thread's identity. <b>2a</b> for the timeline, since it is the only one that handles both granularities and any span without changing shape. <b>3a</b> for files, with <b>3c</b> as the state you switch to when a tag chip is selected, which gets you the grid by default and the clever grouping on demand.<br><br>Also worth deciding: whether widgets are chosen by offload from the contents, or pinned by you. My instinct is offload proposes, you can dismiss, and a dismissed widget never comes back for that thread.</p>
+</div></body></html>

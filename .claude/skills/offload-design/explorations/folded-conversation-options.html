@@ -1,0 +1,149 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Folded conversation</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:44px 36px 80px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 34px;max-width:64ch}
+.row{display:flex;gap:30px;flex-wrap:wrap}
+.opt{width:390px}
+.hd{margin:0 0 4px;font:600 15px/1.3 var(--font-core)}
+.dk{margin:0 0 14px;font-size:13px;line-height:1.5;color:var(--text-secondary);min-height:60px}
+.ph{position:relative;height:470px;background:var(--paper);border:1px solid var(--border-hairline);border-radius:24px;overflow:hidden}
+.bar{display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 16px}
+.mark{font:600 17px/1 var(--font-core);letter-spacing:-0.02em}
+.ic{width:17px;height:17px;background:var(--ink-300);border-radius:4px}
+.ics{display:flex;gap:10px}
+.pg{padding:0 16px}
+.sh{display:flex;align-items:center;gap:8px;padding-bottom:8px;margin:10px 0 10px;border-bottom:1px solid var(--ink-950)}
+.sh b{font:600 17px/1.2 var(--font-core)}
+.li{padding:10px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.li b{display:block;font:500 15px/1.35 var(--font-core)}
+.li span{display:block;font-size:12.5px;color:var(--text-secondary);margin-top:2px}
+.foot{position:absolute;left:0;right:0;bottom:0}
+.padded{padding:9px 16px 10px}
+.field{display:flex;align-items:center;gap:8px;height:42px;border:1px solid var(--border-strong);border-radius:21px;padding:0 8px 0 15px;background:var(--paper)}
+.field i{flex:1;font-style:normal;font-size:14px;color:var(--text-tertiary)}
+.dot{width:26px;height:26px;border-radius:999px;background:var(--surface-fill)}
+.dot.send{background:var(--ink-950)}
+.tabs{display:flex;justify-content:space-around;padding:8px 0 12px}
+.tab{width:19px;height:19px;border-radius:5px;background:var(--ink-150)}
+.tab.on{background:var(--ink-950)}
+.grab{display:flex;justify-content:center;padding:7px 0 4px}
+.grab u{width:34px;height:4px;border-radius:2px;background:var(--ink-200);display:block}
+.note{font-size:12px;color:var(--text-tertiary);margin:10px 0 0;line-height:1.5}
+/* 1 raised card */
+.card{background:var(--paper);border-radius:20px 20px 0 0;box-shadow:0 -1px 0 var(--border-hairline),0 -12px 30px rgba(11,11,11,.09)}
+.last{display:flex;align-items:center;gap:9px;padding:2px 16px 9px}
+.last b{flex:1;min-width:0;font:400 13.5px/1.35 var(--font-core);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xx{width:22px;height:22px;border-radius:999px;background:var(--surface-fill);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.xx i{width:11px;height:11px;background:var(--ink-500);font-style:normal;-webkit-mask:url(../assets/icons/x.svg) center/contain no-repeat;mask:url(../assets/icons/x.svg) center/contain no-repeat}
+/* 2 dark footer */
+.dark{background:var(--ink-950);border-radius:20px 20px 0 0}
+.dark .grab u{background:rgba(255,255,255,.32)}
+.dark .last b{color:rgba(255,255,255,.72)}
+.dark .field{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.18)}
+.dark .field i{color:rgba(255,255,255,.55)}
+.dark .dot{background:rgba(255,255,255,.16)}
+.dark .dot.send{background:var(--paper)}
+.dark .tabs .tab{background:rgba(255,255,255,.24)}
+.dark .tabs .tab.on{background:var(--paper)}
+.dark .xx{background:rgba(255,255,255,.16)}
+.dark .xx i{background:var(--paper)}
+/* 3 peek */
+.peek{background:var(--paper);border-radius:20px 20px 0 0;box-shadow:0 -1px 0 var(--border-hairline),0 -12px 30px rgba(11,11,11,.09)}
+.bub{margin:0 16px 10px;padding:9px 13px;background:var(--ink-50);border-radius:16px 16px 16px 4px;font:var(--text-quiet-role);font-size:14px;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* 4 rail */
+.rail{display:flex;align-items:center;gap:8px;padding:0 16px 8px}
+.chipm{display:flex;align-items:center;gap:7px;height:30px;padding:0 6px 0 12px;border-radius:999px;background:var(--surface-accent-soft);border:1px solid var(--border-accent);color:var(--text-accent);
+  font:500 13px/1 var(--font-core);max-width:100%;min-width:0}
+.chipm b{flex:1;min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chipm span{width:19px;height:19px;border-radius:999px;background:rgba(78,128,96,.18);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.chipm span i{width:10px;height:10px;background:var(--moss-700);font-style:normal;-webkit-mask:url(../assets/icons/x.svg) center/contain no-repeat;mask:url(../assets/icons/x.svg) center/contain no-repeat}
+</style></head><body>
+<h1>The folded conversation</h1>
+<p class="lede">Same moment in all four: you asked about money, offload answered, and you folded it away. The page is back, the composer is back, and the conversation has to stay reachable without floating loose above the footer.</p>
+
+<div class="row">
+
+<div class="opt">
+<p class="hd">1. The footer keeps the sheet</p>
+<p class="dk">The sheet does not leave, it shrinks to its own header. Same rounded top, same grabber, same shadow, with offload&rsquo;s last line where the transcript was. The composer and tabs sit inside it, so footer and conversation are one object.</p>
+<div class="ph">
+  <div class="bar"><span class="mark">offload</span><span class="ics"><span class="ic"></span><span class="ic"></span></span></div>
+  <div class="pg"><div class="sh"><b>Priority</b></div>
+    <div class="li"><b>Ana needs an answer on the 14th&ndash;17th</b><span>Lisbon trip &middot; asked Tuesday</span></div>
+    <div class="li"><b>Split the flight cost: &euro;214 each</b><span>Lisbon trip &middot; you said you&rsquo;d sort it</span></div>
+    <div class="li"><b>Order the oak brackets</b><span>Bookshelf build</span></div>
+  </div>
+  <div class="foot card">
+    <div class="grab"><u></u></div>
+    <div class="last"><b>Three things. You owe Ana &euro;214 for the flights&hellip;</b><span class="xx"><i></i></span></div>
+    <div class="padded" style="padding-top:0"><div class="field"><i>Add to this</i><span class="dot"></span><span class="dot send"></span></div></div>
+    <div class="tabs"><span class="tab"></span><span class="tab"></span><span class="tab on"></span></div>
+  </div>
+</div>
+<p class="note">Pulling the grabber up restores the full sheet. Nothing else moves.</p>
+</div>
+
+<div class="opt">
+<p class="hd">2. The footer goes dark</p>
+<p class="dk">Same structure as 1, but the whole footer inverts while a conversation is live, composer and tabs included. The state is unmissable and the ink matches the folded pill you already had, without a second floating object.</p>
+<div class="ph">
+  <div class="bar"><span class="mark">offload</span><span class="ics"><span class="ic"></span><span class="ic"></span></span></div>
+  <div class="pg"><div class="sh"><b>Priority</b></div>
+    <div class="li"><b>Ana needs an answer on the 14th&ndash;17th</b><span>Lisbon trip &middot; asked Tuesday</span></div>
+    <div class="li"><b>Split the flight cost: &euro;214 each</b><span>Lisbon trip &middot; you said you&rsquo;d sort it</span></div>
+    <div class="li"><b>Order the oak brackets</b><span>Bookshelf build</span></div>
+  </div>
+  <div class="foot dark">
+    <div class="grab"><u></u></div>
+    <div class="last"><b>Three things. You owe Ana &euro;214 for the flights&hellip;</b><span class="xx"><i></i></span></div>
+    <div class="padded" style="padding-top:0"><div class="field"><i>Add to this</i><span class="dot"></span><span class="dot send"></span></div></div>
+    <div class="tabs"><span class="tab"></span><span class="tab"></span><span class="tab on"></span></div>
+  </div>
+</div>
+<p class="note">Strong signal, but it inverts the tab bar too, which is a lot of ink for a folded state.</p>
+</div>
+
+<div class="opt">
+<p class="hd">3. One bubble peeking</p>
+<p class="dk">Instead of a summary line, the last reply itself stays, clipped to two lines in its own bubble. The conversation is not summarised, just cropped, so raising the sheet continues exactly what you can see.</p>
+<div class="ph">
+  <div class="bar"><span class="mark">offload</span><span class="ics"><span class="ic"></span><span class="ic"></span></span></div>
+  <div class="pg"><div class="sh"><b>Priority</b></div>
+    <div class="li"><b>Ana needs an answer on the 14th&ndash;17th</b><span>Lisbon trip &middot; asked Tuesday</span></div>
+    <div class="li"><b>Split the flight cost: &euro;214 each</b><span>Lisbon trip &middot; you said you&rsquo;d sort it</span></div>
+  </div>
+  <div class="foot peek">
+    <div class="grab"><u></u></div>
+    <div class="bub">Three things. You owe Ana &euro;214 for the flights, Sam &pound;12 for the drill bits, and the flat insurance renews at &pound;340 on the 20th.</div>
+    <div class="padded" style="padding-top:0"><div class="field"><i>Add to this</i><span class="dot"></span><span class="dot send"></span></div></div>
+    <div class="tabs"><span class="tab"></span><span class="tab"></span><span class="tab on"></span></div>
+  </div>
+</div>
+<p class="note">Costs the most height of the four. No close button: the grabber and a swipe down handle it.</p>
+</div>
+
+<div class="opt">
+<p class="hd">4. A tab above the field</p>
+<p class="dk">The lightest: a moss chip sitting on the composer, naming the live conversation. No sheet furniture at all, and the footer stays exactly as it is when nothing is live.</p>
+<div class="ph">
+  <div class="bar"><span class="mark">offload</span><span class="ics"><span class="ic"></span><span class="ic"></span></span></div>
+  <div class="pg"><div class="sh"><b>Priority</b></div>
+    <div class="li"><b>Ana needs an answer on the 14th&ndash;17th</b><span>Lisbon trip &middot; asked Tuesday</span></div>
+    <div class="li"><b>Split the flight cost: &euro;214 each</b><span>Lisbon trip &middot; you said you&rsquo;d sort it</span></div>
+    <div class="li"><b>Order the oak brackets</b><span>Bookshelf build</span></div>
+    <div class="li"><b>Renew the flat insurance</b><span>Flat admin</span></div>
+  </div>
+  <div class="foot" style="background:var(--paper)">
+    <div class="rail"><span class="chipm"><b>3 replies &middot; tap to reopen</b><span><i></i></span></span></div>
+    <div class="padded" style="padding-top:0"><div class="field"><i>Dump anything</i><span class="dot"></span><span class="dot send"></span></div></div>
+    <div class="tabs"><span class="tab"></span><span class="tab"></span><span class="tab on"></span></div>
+  </div>
+</div>
+<p class="note">Cheapest in height, weakest as a signal that a conversation is still open.</p>
+</div>
+
+</div>
+<p class="note" style="max-width:64ch">1, 2 and 3 are the same idea at three weights: the sheet never leaves, it just collapses into the footer. 4 drops the sheet entirely and marks the state with a chip.</p>
+</body></html>

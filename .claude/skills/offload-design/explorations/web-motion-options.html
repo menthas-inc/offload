@@ -1,0 +1,228 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Web motion options</title>
+<link rel="stylesheet" href="../styles.css?v=3">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../_ds_bundle.js?v=8"></script>
+<style>
+html,body{margin:0}
+body{background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);letter-spacing:var(--tracking-body)}
+#root{padding:34px 40px 80px;max-width:1420px;margin:0 auto}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+h2{font:var(--weight-semibold) 20px/1.2 var(--font-core);letter-spacing:-0.012em;margin:0}
+.lede{font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:74ch;margin:0 0 40px}
+.sechead{display:flex;align-items:center;gap:12px;padding-bottom:10px;margin:0 0 22px;border-bottom:1px solid var(--ink-950)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-bottom:52px}
+.opt{display:flex;flex-direction:column;gap:10px}
+.optname{display:flex;align-items:baseline;gap:8px;font:var(--weight-medium) 15px/1.2 var(--font-core)}
+.optname u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.optnote{font-size:13px;line-height:1.5;color:var(--text-secondary);margin:0;min-height:3.1em}
+.frame{position:relative;height:250px;border:1px solid var(--border-hairline);border-radius:var(--radius-md);overflow:hidden;background:var(--surface-page)}
+.bar{display:flex;align-items:center;gap:8px;margin-top:2px}
+@keyframes o-slide-in{from{transform:translateX(80px);opacity:0}to{transform:none;opacity:1}}
+@keyframes o-slide-shift{from{transform:translateX(56px)}to{transform:none}}
+@keyframes o-rise{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@keyframes o-push{from{transform:translateX(196px)}to{transform:none}}
+@keyframes o-fade{from{opacity:0}to{opacity:1}}
+</style></head><body>
+<div id="root"></div>
+<script type="text/babel">
+const {Icon,IconButton,Button,Badge,Toast}=window.OffloadDesignSystem_dc4a89;
+const ROWS=[["lasso","Lisbon trip","4 open"],["bookmark","Bookshelf build","2 open"],["cloudy","Reading later","9 kept"]];
+
+function Frame({children}){return <div className="frame">{children}</div>;}
+function Head({children,note}){return (
+  <div style={{padding:"12px 14px 10px",boxShadow:"0 1px 0 var(--border-hairline)",display:"flex",alignItems:"center",gap:7}}>
+    <Icon name="lasso" size={13} style={{color:"var(--text-tertiary)"}}/>
+    <b style={{font:"var(--weight-medium) 12.5px/1 var(--font-core)",color:"var(--text-secondary)",whiteSpace:"nowrap"}}>{children}</b>
+    {note?<span style={{marginLeft:"auto",font:"var(--weight-medium) 11px/1 var(--font-core)",color:"var(--text-tertiary)"}}>{note}</span>:null}
+  </div>);}
+function Lines({n=4,tint}){return (
+  <div style={{padding:"14px",display:"flex",flexDirection:"column",gap:11}}>
+    {Array.from({length:n},(_,i)=>(
+      <span key={i} style={{height:9,borderRadius:5,width:(i%3===0?"72%":i%3===1?"90%":"55%"),
+        background:tint?"var(--surface-accent-soft)":"var(--surface-fill)"}}/>
+    ))}
+  </div>);}
+
+/* 1. Pane transition. All three move transform and opacity only, so they stay on the
+   compositor on a phone as well as a desktop. */
+function PaneDemo({mode}){
+  const [open,setOpen]=React.useState(true);
+  const [n,setN]=React.useState(0);
+  const fire=()=>{setOpen(false);setTimeout(()=>{setN(v=>v+1);setOpen(true)},60)};
+  const dur=mode==="rise"?"160ms":mode==="push"?"300ms":"260ms";
+  const ease="var(--ease-out)";
+  const inAnim=mode==="rise"?"o-rise":mode==="push"?null:"o-slide-in";
+  return (
+    <>
+      <Frame>
+        {mode==="push"?null:<div style={{position:"absolute",inset:0,display:"flex",overflow:"hidden"}}>
+          <div style={{width:190,flex:"0 0 auto",
+            animation:open&&mode==="slide"?"o-slide-shift "+dur+" "+ease+" both":undefined}}>
+            <Head>My things</Head><Lines n={5}/>
+          </div>
+          <div key={n} style={{flex:1,minWidth:0,background:"var(--surface-raised)",
+            boxShadow:"-1px 0 0 var(--border-hairline)",opacity:open?1:0,
+            animation:open&&inAnim?inAnim+" "+dur+" "+ease+" both":undefined,
+            transition:"opacity 120ms var(--ease-out)"}}>
+            <Head note="Thing">Lisbon trip</Head><Lines n={4} tint/>
+          </div>
+        </div>}
+        {mode==="push"?<div key={"p"+n} style={{position:"absolute",inset:0,display:"flex",
+          animation:open?"o-push "+dur+" cubic-bezier(.22,.9,.24,1) both":undefined}}>
+          <div style={{width:190,flex:"0 0 auto"}}><Head>My things</Head><Lines n={5}/></div>
+          <div style={{flex:1,minWidth:0,background:"var(--surface-raised)",boxShadow:"-1px 0 0 var(--border-hairline)"}}>
+            <Head note="Thing">Lisbon trip</Head><Lines n={4} tint/></div>
+        </div>:null}
+      </Frame>
+      <div className="bar"><Button size="sm" variant="secondary" iconAfter="chevron-right" onClick={fire}>Open a thing</Button>
+        <span style={{font:"var(--text-numeric-role)",fontSize:11,color:"var(--text-tertiary)"}}>{dur}</span></div>
+    </>
+  );
+}
+
+/* 2. Deleting a row. Three ways to spend the same two seconds: ask first, ask after in a
+   toast, or ask after in the row's own place. */
+function Trash({onClick,label}){
+  const [h,setH]=React.useState(false);
+  return (
+    <button type="button" aria-label={label||"Delete"} onClick={onClick}
+      onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",border:"none",cursor:"pointer",
+        borderRadius:"var(--radius-sm)",background:h?"var(--clay-100)":"transparent",
+        color:h?"var(--text-danger)":"var(--text-tertiary)",transition:"background 120ms var(--ease-out),color 120ms var(--ease-out)"}}>
+      <Icon name="trash-2" size={15}/>
+    </button>
+  );
+}
+function Row({r,children,style,onHover,hovered}){
+  return (
+    <div onMouseEnter={onHover&&(()=>onHover(true))} onMouseLeave={onHover&&(()=>onHover(false))}
+      style={{display:"flex",alignItems:"center",gap:12,height:56,padding:"0 14px",
+        boxShadow:"inset 0 -1px 0 var(--border-hairline)",background:hovered?"var(--state-hover)":"transparent",
+        transition:"background 120ms var(--ease-out)",...style}}>
+      <span style={{width:28,height:28,flex:"0 0 auto",borderRadius:"var(--radius-sm)",background:"var(--surface-fill)",
+        display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-secondary)"}}>
+        <Icon name={r[0]} size={14}/></span>
+      <span style={{flex:1,minWidth:0}}>
+        <b style={{display:"block",font:"var(--weight-medium) 14px/1.3 var(--font-core)"}}>{r[1]}</b>
+        <span style={{display:"block",fontSize:12,color:"var(--text-secondary)"}}>{r[2]}</span></span>
+      {children}
+    </div>
+  );
+}
+function Collapse({gone,children}){
+  return <div style={{maxHeight:gone?0:56,opacity:gone?0:1,overflow:"hidden",
+    transition:"max-height 220ms var(--ease-out),opacity 140ms var(--ease-out)"}}>{children}</div>;
+}
+
+function DeleteDemo({mode}){
+  const [gone,setGone]=React.useState({});
+  const [ask,setAsk]=React.useState(null);
+  const [undo,setUndo]=React.useState(null);
+  const [slid,setSlid]=React.useState({});
+  const [hov,setHov]=React.useState(null);
+  const timer=React.useRef(null);
+  const reset=()=>{clearTimeout(timer.current);setGone({});setAsk(null);setUndo(null);setSlid({})};
+  const armUndo=(i)=>{setUndo(i);clearTimeout(timer.current);timer.current=setTimeout(()=>setUndo(null),4000)};
+  const del=(i)=>{
+    if(mode==="slide"){setSlid(s=>({...s,[i]:true}));setTimeout(()=>armUndo(i),200);return;}
+    setGone(g=>({...g,[i]:true}));armUndo(i);
+  };
+  const restore=(i)=>{setGone(g=>({...g,[i]:false}));setSlid(s=>({...s,[i]:false}));setUndo(null);clearTimeout(timer.current)};
+  return (
+    <>
+      <Frame>
+        <Head note={"3 things"}>My things</Head>
+        <div style={{position:"relative",height:"calc(100% - 40px)"}}>
+          {ROWS.map((r,i)=>{
+            const asking=mode==="confirm"&&ask===i;
+            const slidAway=mode==="slide"&&slid[i];
+            const showUndoStrip=mode==="slide"&&undo===i;
+            return (
+              <Collapse key={i} gone={mode==="slide"?(slid[i]&&undo!==i):gone[i]}>
+                {showUndoStrip?(
+                  <div style={{display:"flex",alignItems:"center",gap:10,height:56,padding:"0 14px",
+                    boxShadow:"inset 0 -1px 0 var(--border-hairline)",background:"var(--surface-fill)",
+                    animation:"o-fade 160ms var(--ease-out) both"}}>
+                    <Icon name="trash-2" size={14} style={{color:"var(--text-tertiary)"}}/>
+                    <span style={{flex:1,fontSize:13,color:"var(--text-secondary)"}}>{r[1]} deleted</span>
+                    <Button size="sm" variant="secondary" onClick={()=>restore(i)}>Undo</Button>
+                  </div>
+                ):asking?(
+                  <div style={{display:"flex",alignItems:"center",gap:10,height:56,padding:"0 14px",
+                    boxShadow:"inset 0 -1px 0 var(--border-hairline)",background:"var(--clay-100)",
+                    animation:"o-fade 140ms var(--ease-out) both"}}>
+                    <span style={{flex:1,fontSize:13,color:"var(--text-danger)"}}>Delete {r[1]}?</span>
+                    <Button size="sm" variant="ghost" onClick={()=>setAsk(null)}>Cancel</Button>
+                    <Button size="sm" variant="primary" tone="danger" onClick={()=>{setAsk(null);del(i)}}>Delete</Button>
+                  </div>
+                ):(
+                  <div style={{transform:slidAway?"translateX(-110%)":"none",opacity:slidAway?0:1,
+                    transition:"transform 200ms var(--ease-out),opacity 160ms var(--ease-out)"}}>
+                    <Row r={r} hovered={hov===i} onHover={(v)=>setHov(v?i:null)}>
+                      {hov===i?<Trash label={"Delete "+r[1]}
+                        onClick={()=>mode==="confirm"?setAsk(i):del(i)}/>:null}
+                    </Row>
+                  </div>
+                )}
+              </Collapse>
+            );
+          })}
+          {mode!=="slide"&&undo!==null?(
+            <div style={{position:"absolute",left:14,right:14,bottom:14,animation:"o-rise 200ms var(--ease-out) both"}}>
+              <Toast message={ROWS[undo][1]+" deleted"} action="Undo" icon="trash-2" onAction={()=>restore(undo)}/>
+            </div>
+          ):null}
+        </div>
+      </Frame>
+      <div className="bar"><Button size="sm" variant="ghost" icon="refresh-cw" onClick={reset}>Reset</Button>
+        <span style={{font:"var(--text-numeric-role)",fontSize:11,color:"var(--text-tertiary)"}}>hover a row</span></div>
+    </>
+  );
+}
+
+function Opt({name,tag,note,children}){
+  return (
+    <div className="opt">
+      <div className="optname">{name}<u>{tag}</u></div>
+      <p className="optnote">{note}</p>
+      {children}
+    </div>
+  );
+}
+
+function App(){
+  return (
+    <>
+      <h1>Web motion, two decisions</h1>
+      <p className="lede">Every option here moves transform and opacity only, under 300ms, and stops when
+        the user has stopped. Nothing animates layout, so a phone renders these on the compositor exactly
+        as a desktop does. Pick one from each row.</p>
+
+      <div className="sechead"><h2>1 · Opening a pane</h2><Badge tone="attention" variant="solid">3</Badge></div>
+      <div className="grid">
+        <Opt name="Slide" tag="260ms" note="The new pane arrives from the right, the pane behind it shifts with it. Directional: you can see where the thing came from.">
+          <PaneDemo mode="slide"/></Opt>
+        <Opt name="Rise" tag="160ms" note="Ten pixels up and a fade, no travel. The quietest of the three and the one that never fights a slow machine.">
+          <PaneDemo mode="rise"/></Opt>
+        <Opt name="Push" tag="300ms" note="Both panes move together, as one strip of paper sliding left. The strongest sense of a place you can go back to.">
+          <PaneDemo mode="push"/></Opt>
+      </div>
+
+      <div className="sechead"><h2>2 · Deleting a row</h2><Badge tone="attention" variant="solid">3</Badge></div>
+      <div className="grid">
+        <Opt name="Ask in place" tag="confirm first" note="The trash turns the row into its own question. Nothing leaves until you say so, then it collapses and a toast holds the undo.">
+          <DeleteDemo mode="confirm"/></Opt>
+        <Opt name="Toast undo" tag="one click" note="One click deletes. The row collapses and the undo lives in a toast for four seconds. Fewest clicks, safety net after the fact.">
+          <DeleteDemo mode="toast"/></Opt>
+        <Opt name="Undo in the gap" tag="one click" note="The row slides out to the left and its own place becomes the undo, so the list keeps its shape and nothing covers the page.">
+          <DeleteDemo mode="slide"/></Opt>
+      </div>
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script></body></html>

@@ -1,0 +1,101 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Choice rows</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:40px 34px 70px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 32px;max-width:66ch}
+.row{display:flex;gap:26px;flex-wrap:wrap}
+.opt{width:390px}
+.hd{margin:0 0 4px;font:600 15px/1.3 var(--font-core)}
+.dk{margin:0 0 14px;font-size:13px;line-height:1.5;color:var(--text-secondary);min-height:56px}
+.ph{background:var(--paper);border:1px solid var(--border-hairline);border-radius:22px;padding:18px 16px 22px}
+.lbl{font:500 12px/1 var(--font-core);color:var(--text-tertiary);margin:0 0 8px 2px}
+.box{background:var(--surface-fill);border-radius:var(--radius-lg);padding:0 16px}
+.r{padding:13px 0;box-shadow:inset 0 -1px 0 var(--border-hairline);display:flex;align-items:center;gap:12px}
+.r.last{box-shadow:none}
+.t{font:400 16px/1.35 var(--font-core);flex:1;min-width:0}
+.sub{display:block;font-size:12.5px;color:var(--text-secondary);margin-top:2px}
+.sw{width:44px;height:26px;border-radius:999px;background:var(--ink-200);position:relative;flex:0 0 auto}
+.sw u{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:999px;background:var(--paper);display:block;box-shadow:var(--shadow-1)}
+.chev{width:14px;height:14px;flex:0 0 auto;background:var(--ink-300);-webkit-mask:url(../assets/icons/chevron-right.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-right.svg) center/contain no-repeat}
+.note{font-size:12px;color:var(--text-tertiary);margin:10px 0 0;line-height:1.5}
+/* 1 value + chevron */
+.val{font-size:15px;color:var(--text-secondary);flex:0 0 auto}
+/* 2 segmented */
+.seg{display:flex;background:var(--ink-100);border-radius:999px;padding:2px;flex:0 0 auto}
+.seg b{font:500 13px/1 var(--font-core);padding:8px 13px;border-radius:999px;color:var(--text-secondary)}
+.seg b.on{background:var(--blue-600);color:#fff}
+.stack .seg{margin-top:10px;flex:1}
+.stack .seg b{flex:1;text-align:center}
+/* 3 radio list */
+.sec{font:500 12px/1 var(--font-core);color:var(--text-tertiary);padding:14px 0 8px}
+.rad{width:20px;height:20px;border-radius:999px;border:1.5px solid var(--ink-300);flex:0 0 auto;position:relative}
+.rad.on{border-color:var(--blue-600);border-width:6px}
+/* 4 pills */
+.pills{display:flex;gap:8px;flex-wrap:wrap;flex:0 0 auto}
+.pill{font:500 13px/1 var(--font-core);padding:9px 14px;border-radius:999px;border:1px solid var(--border-hairline);background:var(--paper);color:var(--text-secondary)}
+.pill.on{background:var(--blue-50);border-color:var(--blue-500);color:var(--blue-700)}
+/* 5 check list */
+.ck{width:16px;height:16px;flex:0 0 auto;background:var(--blue-600);-webkit-mask:url(../assets/icons/check.svg) center/contain no-repeat;mask:url(../assets/icons/check.svg) center/contain no-repeat}
+.ck.off{background:transparent}
+</style></head><body>
+<h1>Choice rows in settings</h1>
+<p class="lede">The same setting five ways, each next to a plain switch row so you can judge whether it reads as part of the list. All picks are blue now, not moss.</p>
+
+<div class="row">
+
+<div class="opt">
+<p class="hd">1. Value, then a page</p>
+<p class="dk">The row shows only what is chosen, and tapping it opens a short page of options. Identical in shape to every other row in settings, so nothing is an exception.</p>
+<div class="ph"><p class="lbl">What others see</p><div class="box">
+  <div class="r"><span class="t">When you share a thing, people see</span><span class="val">Everything in it</span><span class="chev"></span></div>
+  <div class="r last"><span class="t">Show when you were last in</span><span class="sw"><u></u></span></div>
+</div></div>
+<p class="note">Cheapest row, one extra tap to change.</p>
+</div>
+
+<div class="opt">
+<p class="hd">2. Segmented, in the row</p>
+<p class="dk">A compact blue segmented control sitting where the switch sits. Same row, same height, so a choice and a toggle look like the same family.</p>
+<div class="ph"><p class="lbl">What others see</p><div class="box">
+  <div class="r"><span class="t">People see</span><span class="seg"><b class="on">Everything</b><b>What you pick</b></span></div>
+  <div class="r last"><span class="t">Show when you were last in</span><span class="sw"><u></u></span></div>
+</div></div>
+<p class="note">Needs a short title and short option names. Breaks past three options.</p>
+</div>
+
+<div class="opt">
+<p class="hd">3. Segmented, under the title</p>
+<p class="dk">Today&rsquo;s layout, tidied: the control fills the width under the question instead of floating at its left edge, so the two lines read as one block.</p>
+<div class="ph"><p class="lbl">What others see</p><div class="box stack">
+  <div class="r" style="display:block"><span class="t" style="display:block">When you share a thing, people see</span><span class="seg"><b class="on">Everything in it</b><b>Only what you pick</b></span></div>
+  <div class="r last"><span class="t">Show when you were last in</span><span class="sw"><u></u></span></div>
+</div></div>
+<p class="note">Keeps the full question. Tallest of the compact options.</p>
+</div>
+
+<div class="opt">
+<p class="hd">4. Options as rows</p>
+<p class="dk">The question becomes the group label and each option is its own row with a radio. Everything in the container is a row, and there is room to say what each option means.</p>
+<div class="ph"><p class="lbl">When you share a thing, people see</p><div class="box">
+  <div class="r"><span class="t">Everything in it<span class="sub">Notes, files and dates</span></span><span class="rad on"></span></div>
+  <div class="r last"><span class="t">Only what you pick<span class="sub">You choose each time</span></span><span class="rad"></span></div>
+</div>
+<p class="lbl" style="margin-top:18px">What others see</p><div class="box">
+  <div class="r last"><span class="t">Show when you were last in</span><span class="sw"><u></u></span></div>
+</div></div>
+<p class="note">Clearest, costs the most height. Best when the options need explaining.</p>
+</div>
+
+<div class="opt">
+<p class="hd">5. Pills under the title</p>
+<p class="dk">Same idea as 3, but the options are separate outlined pills rather than one track. Wraps happily, so it takes three or four options where a segmented control cannot.</p>
+<div class="ph"><p class="lbl">What others see</p><div class="box">
+  <div class="r" style="display:block"><span class="t" style="display:block;margin-bottom:10px">When you share a thing, people see</span><span class="pills"><b class="pill on">Everything in it</b><b class="pill">Only what you pick</b></span></div>
+  <div class="r last"><span class="t">Show when you were last in</span><span class="sw"><u></u></span></div>
+</div></div>
+<p class="note">Same chip vocabulary as the rest of the app. Reads as filters to some people.</p>
+</div>
+
+</div>
+<p class="note" style="max-width:66ch">1 and 2 keep every setting on one row, which is the strongest argument for either. 4 is the most legible and the most honest about what the options do. 3 and 5 are the current layout, repaired.</p>
+</body></html>

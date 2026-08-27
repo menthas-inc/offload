@@ -1,0 +1,482 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Sign in, first run, landing</title>
+<link rel="stylesheet" href="../styles.css?v=3">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400&display=swap">
+<style>
+html,body{margin:0}
+body{background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);letter-spacing:var(--tracking-body);padding:34px 34px 100px}
+.wrap{max-width:1420px;margin:0 auto}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+h2{font:var(--weight-semibold) 20px/1.2 var(--font-core);letter-spacing:-.012em;margin:0}
+.lede{font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:88ch;margin:0 0 34px}
+.sechead{display:flex;align-items:baseline;gap:12px;padding-bottom:9px;border-bottom:1px solid var(--ink-950);margin:44px 0 16px}
+.sechead u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.snote{font-size:13.5px;line-height:1.6;color:var(--text-secondary);margin:0 0 18px;max-width:88ch}
+.rowlabel{display:flex;align-items:baseline;gap:10px;font:var(--weight-medium) 15px/1.2 var(--font-core);margin:26px 0 10px}
+.rowlabel u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.row{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.cell{display:flex;flex-direction:column;gap:7px}
+.tag{display:flex;align-items:center;gap:7px;font:var(--weight-medium) 11px/1 var(--font-core)}
+.tag b{padding:5px 7px;border-radius:6px;font-weight:600}
+.tag.w b{background:var(--ink-950);color:var(--paper)}
+.tag.i b{background:var(--ink-200);color:var(--ink-950)}
+.tag.a b{background:var(--blue-600);color:#fff}
+.tag span{color:var(--text-tertiary);font-weight:400;font-size:11.5px}
+.spec{margin:16px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;max-width:92ch}
+.spec li{font-size:13px;line-height:1.55;color:var(--text-secondary);padding-left:13px;position:relative}
+.spec li:before{content:"";position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:99px;background:var(--ink-300)}
+.spec b{color:var(--text-primary);font-weight:500}
+/* frames */
+.f{position:relative;overflow:hidden;border:1px solid var(--border-hairline);border-radius:14px;background:var(--surface-page);flex:0 0 auto}
+.f>.in{position:absolute;top:0;left:0;transform-origin:top left;box-sizing:border-box;display:flex;flex-direction:column;background:var(--surface-page)}
+.f.web{width:832px;height:520px}.f.web>.in{width:1280px;height:800px;transform:scale(.65)}
+.f.ios{width:240px;height:520px}.f.ios>.in{width:390px;height:844px;transform:scale(.616)}
+.f.and{width:234px;height:520px}.f.and>.in{width:412px;height:915px;transform:scale(.5683)}
+/* real-size primitives, used inside the frames */
+.mark{display:inline-flex;align-items:center;gap:9px;font:var(--weight-semibold) 20px/1 var(--font-core);letter-spacing:-.02em}
+.mark i{width:22px;height:22px;display:block;background:var(--ink-950);-webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="black"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="black" stroke-width="10" stroke-linecap="round"/></svg>') center/contain no-repeat;mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="black"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="black" stroke-width="10" stroke-linecap="round"/></svg>') center/contain no-repeat}
+.sb{display:flex;justify-content:space-between;align-items:center;flex:0 0 auto;font:var(--weight-medium) 13px/1 var(--font-core);font-variant-numeric:tabular-nums;padding:16px 22px 0}
+.sb em{font-style:normal;display:flex;gap:5px;align-items:center}
+.sb em s{text-decoration:none;width:15px;height:9px;border:1.4px solid currentColor;border-radius:2px;display:block;opacity:.75}
+.sb em s.d{width:11px;background:currentColor;border:none;height:8px;border-radius:1px;opacity:.55}
+.hi{flex:0 0 auto;display:flex;justify-content:center;padding:8px 0 9px}
+.hi b{width:136px;height:5px;border-radius:99px;background:var(--ink-300);display:block}
+.navbar{flex:0 0 auto;display:flex;justify-content:center;gap:56px;padding:14px 0 16px;color:var(--ink-400)}
+.navbar s{text-decoration:none;width:16px;height:16px;display:block;border:1.6px solid currentColor}
+.navbar s.t{border-radius:3px}.navbar s.c{border-radius:99px}
+.navbar s.b{width:0;height:0;border:none;border-top:9px solid transparent;border-bottom:9px solid transparent;border-right:12px solid currentColor}
+/* buttons */
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;box-sizing:border-box;border:1px solid transparent;font:var(--weight-medium) 16px/1 var(--font-core);letter-spacing:var(--tracking-body)}
+.btn.dark{background:var(--ink-950);color:var(--paper)}
+.btn.light{background:var(--paper);color:var(--ink-950);border-color:var(--border-strong)}
+.btn.blue{background:var(--blue-600);color:#fff}
+.btn.ghost{background:transparent;color:var(--text-secondary)}
+.btn svg{flex:0 0 auto}
+.ios .btn{height:52px;border-radius:var(--radius-pill)}
+.and .btn{height:56px;border-radius:var(--radius-pill);font-size:15px;letter-spacing:.01em}
+.web .btn{height:48px;border-radius:var(--radius-pill);font-size:15.5px}
+.foot{flex:0 0 auto;display:flex;flex-direction:column;gap:10px}
+.terms{font:var(--text-caption-role);color:var(--text-tertiary);text-align:center;line-height:1.45}
+.terms u{text-decoration:none;color:var(--text-accent);font-weight:500}
+/* web page chrome */
+.chrome{flex:0 0 auto;display:flex;align-items:center;gap:12px;height:48px;padding:0 16px;background:var(--ink-100);border-bottom:1px solid var(--border-hairline)}
+.chrome .dots{display:flex;gap:7px}
+.chrome .dots s{text-decoration:none;width:11px;height:11px;border-radius:99px;background:var(--ink-300);display:block}
+.chrome .url{flex:1;max-width:420px;height:28px;border-radius:99px;background:var(--paper);border:1px solid var(--border-hairline);display:flex;align-items:center;padding:0 12px;font:var(--weight-regular) 12.5px/1 var(--font-core);color:var(--text-tertiary)}
+/* onboarding pieces */
+.dots{display:flex;gap:6px;align-items:center}
+.dots s{text-decoration:none;height:6px;width:6px;border-radius:99px;background:var(--ink-200);display:block}
+.dots s.on{width:18px;background:var(--ink-950)}
+.bub{padding:11px 15px;border-radius:18px;background:var(--surface-fill);color:var(--text-secondary);font:var(--text-body-sm-role);font-size:15px}
+.thing{display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:16px;border:1px solid var(--border-hairline);background:var(--surface-raised)}
+.thing i{width:32px;height:32px;border-radius:9px;background:var(--surface-fill);display:block;flex:0 0 auto;position:relative}
+.thing i:before{content:"";position:absolute;inset:0;background:var(--text-secondary);-webkit-mask-size:16px;mask-size:16px;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.thing i.lasso:before{-webkit-mask-image:url(../assets/icons/lasso.svg);mask-image:url(../assets/icons/lasso.svg)}
+.thing i.bookmark:before{-webkit-mask-image:url(../assets/icons/bookmark.svg);mask-image:url(../assets/icons/bookmark.svg)}
+.thing i.cloudy:before{-webkit-mask-image:url(../assets/icons/cloudy.svg);mask-image:url(../assets/icons/cloudy.svg)}
+.thing b{flex:1;font:var(--weight-medium) 15px/1 var(--font-core)}
+.thing span{font-size:13px;color:var(--text-tertiary)}
+.notif{padding:16px 18px;border-radius:20px;background:var(--surface-raised);box-shadow:var(--shadow-2)}
+.notif .hd{display:flex;align-items:center;gap:9px;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary)}
+.notif .hd i{width:28px;height:28px;border-radius:8px;background:var(--ink-950);display:block;position:relative}
+.notif .hd i:before{content:"";position:absolute;inset:5px;background:var(--paper);-webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="black"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="black" stroke-width="10" stroke-linecap="round"/></svg>') center/contain no-repeat;mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="black"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="black" stroke-width="10" stroke-linecap="round"/></svg>') center/contain no-repeat}
+.notif .ti{font:var(--weight-semibold) 15px/1.3 var(--font-core);margin-top:9px}
+.notif .bd{font:var(--text-body-role);font-size:14px;color:var(--text-secondary);margin-top:2px}
+/* landing pieces */
+.field{display:flex;align-items:center;box-sizing:border-box;background:var(--paper);border:1px solid var(--border-strong);border-radius:var(--radius-pill);font:var(--text-body-role);color:var(--text-tertiary)}
+.hero{font:var(--weight-semibold) 60px/1.04 var(--font-core);letter-spacing:-.026em;margin:0}
+.herosub{font:var(--text-quiet-role);font-size:19px;line-height:1.5;color:var(--text-secondary);margin:22px 0 0;max-width:30ch}
+</style></head><body><div class="wrap">
+<h1>Sign in, first run, landing</h1>
+<p class="lede">Your three calls drawn out: Apple and Google as the only way in, flow B's three tutorial screens on first login, and an invite-only landing page with a waitlist. Every page is shown on web, iOS and Android at real size, scaled down together. Nothing is wired yet, this is the thing to confirm before it goes into the kits.</p>
+
+<div class="sechead"><h2>1 · Sign in</h2><u>the gate, nobody sees the app before it</u></div>
+<p class="snote">One screen, two buttons, no email field and no password anywhere. Order flips by platform: Apple leads on iOS, Google leads on Android, and web shows Apple first with Google directly under it. The invite check happens after the provider returns, so the waitlist line sits under the buttons rather than in front of them.</p>
+<div class="row">
+  <div class="cell"><div class="tag w"><b>Web</b><span>1280 × 800</span></div>
+    <div class="f web"><div class="in" style="background:var(--surface-sunken)">
+      <div class="chrome"><span class="dots"><s></s><s></s><s></s></span><span class="url">offload.app/signin</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:36px 44px">
+        <span class="mark"><i></i>offload</span>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <div style="width:420px;box-sizing:border-box;padding:44px 44px 34px;border-radius:26px;background:var(--surface-raised);box-shadow:var(--shadow-sheet);display:flex;flex-direction:column">
+            <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">Sign in to offload</div>
+            <div style="font:var(--text-body-role);color:var(--text-secondary);margin-top:10px;line-height:1.5">Use the account your invite was sent to.</div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin:28px 0 18px">
+              <span class="btn dark"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 1.43c0 1.14-.42 2.2-1.25 3.02-.9.9-2.02 1.42-3.02 1.33-.06-1.08.44-2.2 1.26-3.03.86-.87 2.1-1.4 3.01-1.32zM20.9 8.6c-1.7-.1-3.1.96-3.9.96-.83 0-2.05-.92-3.38-.9-1.74.03-3.35 1.01-4.24 2.57-1.82 3.15-.47 7.82 1.3 10.38.86 1.25 1.9 2.65 3.25 2.6 1.3-.05 1.8-.84 3.37-.84 1.57 0 2.02.84 3.38.82 1.4-.03 2.29-1.27 3.15-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.7-1.04-2.72-4.12-.03-2.58 2.1-3.82 2.2-3.88-1.2-1.77-3.07-1.97-3.71-2.01z"/></svg>Continue with Apple</span>
+              <span class="btn light"><svg width="17" height="17" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continue with Google</span>
+            </div>
+            <div class="terms">offload is invite only. <u>Join the waitlist</u></div>
+          </div>
+        </div>
+        <div class="terms" style="text-align:left">Terms · Privacy</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag i"><b>iOS</b><span>390 × 844</span></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:0 24px">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <span class="mark" style="flex-direction:column;gap:20px;font-size:30px"><i style="width:92px;height:92px"></i>offload</span>
+        </div>
+        <div style="text-align:center;padding-bottom:44px">
+          <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">One place for everything you would otherwise forget.</div>
+          <div style="font:var(--text-body-role);color:var(--text-secondary);margin-top:12px;line-height:1.45">Sign in to start. Invite only for now.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 18px">
+        <span class="btn dark"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 1.43c0 1.14-.42 2.2-1.25 3.02-.9.9-2.02 1.42-3.02 1.33-.06-1.08.44-2.2 1.26-3.03.86-.87 2.1-1.4 3.01-1.32zM20.9 8.6c-1.7-.1-3.1.96-3.9.96-.83 0-2.05-.92-3.38-.9-1.74.03-3.35 1.01-4.24 2.57-1.82 3.15-.47 7.82 1.3 10.38.86 1.25 1.9 2.65 3.25 2.6 1.3-.05 1.8-.84 3.37-.84 1.57 0 2.02.84 3.38.82 1.4-.03 2.29-1.27 3.15-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.7-1.04-2.72-4.12-.03-2.58 2.1-3.82 2.2-3.88-1.2-1.77-3.07-1.97-3.71-2.01z"/></svg>Continue with Apple</span>
+        <span class="btn light"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continue with Google</span>
+        <div class="terms">No invite yet? <u>Join the waitlist</u><br>Terms · Privacy</div>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag a"><b>Android</b><span>412 × 915</span></div>
+    <div class="f and"><div class="in">
+      <div class="sb" style="padding:14px 18px 0"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:0 24px">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <span class="mark" style="flex-direction:column;gap:20px;font-size:30px"><i style="width:92px;height:92px"></i>offload</span>
+        </div>
+        <div style="text-align:center;padding-bottom:44px">
+          <div style="font:var(--weight-semibold) 28px/1.18 var(--font-core);letter-spacing:-.014em">One place for everything you would otherwise forget.</div>
+          <div style="font:var(--weight-regular) 16px/24px var(--font-core);letter-spacing:.01em;color:var(--text-secondary);margin-top:14px">Sign in to start. Invite only for now.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 14px;gap:12px">
+        <span class="btn light"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continue with Google</span>
+        <span class="btn dark"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 1.43c0 1.14-.42 2.2-1.25 3.02-.9.9-2.02 1.42-3.02 1.33-.06-1.08.44-2.2 1.26-3.03.86-.87 2.1-1.4 3.01-1.32zM20.9 8.6c-1.7-.1-3.1.96-3.9.96-.83 0-2.05-.92-3.38-.9-1.74.03-3.35 1.01-4.24 2.57-1.82 3.15-.47 7.82 1.3 10.38.86 1.25 1.9 2.65 3.25 2.6 1.3-.05 1.8-.84 3.37-.84 1.57 0 2.02.84 3.38.82 1.4-.03 2.29-1.27 3.15-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.7-1.04-2.72-4.12-.03-2.58 2.1-3.82 2.2-3.88-1.2-1.77-3.07-1.97-3.71-2.01z"/></svg>Continue with Apple</span>
+        <div class="terms" style="font-size:12.5px">No invite yet? <u>Join the waitlist</u><br>Terms · Privacy</div>
+      </div>
+      <div class="navbar"><s class="t"></s><s class="c"></s><s class="b"></s></div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>Two providers only.</b> No email link, no password. Someone whose invite went to an address they cannot sign in with is a support case, not a screen.</li>
+  <li><b>Apple's rule</b> means the Apple button has to be at least as prominent as Google's wherever Google appears on iOS, so iOS leads with Apple. Android leads with Google because that account is already on the device.</li>
+  <li><b>Returning users</b> see this same screen. The provider sheet does the remembering, so there is no separate sign-in-again design.</li>
+</ul>
+
+<div class="sechead"><h2>2 · First run tutorial</h2><u>flow B, three screens, only on the first sign-in</u></div>
+<p class="snote">Three screens after the first successful sign-in: what you put in, what offload does with it, when it speaks. Dots and Skip sit at the top, one button at the bottom, and Get started on the third screen lands on Today. Web runs the same three screens as a centred column; iOS advances with the push transition, Android with shared axis X.</p>
+
+<div class="rowlabel">Screen 1 of 3<u>dump anything</u></div>
+<div class="row">
+  <div class="cell"><div class="tag w"><b>Web</b><span>centred column, 560</span></div>
+    <div class="f web"><div class="in" style="background:var(--surface-sunken)">
+      <div class="chrome"><span class="dots"><s></s><s></s><s></s></span><span class="url">offload.app/welcome</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:28px 44px 40px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="mark"><i></i>offload</span>
+          <span style="font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-secondary)">Skip</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px">
+          <div style="width:520px;display:flex;flex-direction:column;gap:12px">
+            <span class="bub" style="align-self:flex-start">Ana can only travel the 14th to the 17th</span>
+            <span class="bub" style="align-self:flex-end">€214 for the flights</span>
+            <span class="bub" style="align-self:flex-start">matte black, 30cm</span>
+            <span class="bub" style="align-self:flex-end">dentist after the 20th</span>
+          </div>
+          <div style="width:520px;text-align:center">
+            <div style="font:var(--weight-semibold) 34px/1.1 var(--font-core);letter-spacing:-.022em">Dump anything</div>
+            <div style="font:var(--text-body-role);font-size:17px;color:var(--text-secondary);margin-top:12px;line-height:1.5">Half a thought, a photo, a voice note. No folders, no tidying.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:20px">
+            <span class="btn dark" style="width:240px">Next</span>
+            <span class="dots"><s class="on"></s><s></s><s></s></span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag i"><b>iOS</b><span>push from right</span></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:14px 24px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="dots"><s class="on"></s><s></s><s></s></span>
+          <span style="font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-secondary)">Skip</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px">
+          <span class="bub" style="align-self:flex-start">Ana can only travel the 14th to the 17th</span>
+          <span class="bub" style="align-self:flex-end">€214 for the flights</span>
+          <span class="bub" style="align-self:flex-start">matte black, 30cm</span>
+          <span class="bub" style="align-self:flex-end">dentist after the 20th</span>
+        </div>
+        <div style="padding-bottom:24px">
+          <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">Dump anything</div>
+          <div style="font:var(--text-body-role);color:var(--text-secondary);margin-top:10px;line-height:1.45">Half a thought, a photo, a voice note. No folders, no tidying.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 18px"><span class="btn dark">Next</span></div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag a"><b>Android</b><span>shared axis X</span></div>
+    <div class="f and"><div class="in">
+      <div class="sb" style="padding:14px 18px 0"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:16px 24px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="dots"><s class="on"></s><s></s><s></s></span>
+          <span style="font:var(--weight-medium) 14px/20px var(--font-core);color:var(--blue-700)">Skip</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px">
+          <span class="bub" style="align-self:flex-start;border-radius:16px">Ana can only travel the 14th to the 17th</span>
+          <span class="bub" style="align-self:flex-end;border-radius:16px">€214 for the flights</span>
+          <span class="bub" style="align-self:flex-start;border-radius:16px">matte black, 30cm</span>
+          <span class="bub" style="align-self:flex-end;border-radius:16px">dentist after the 20th</span>
+        </div>
+        <div style="padding-bottom:24px">
+          <div style="font:var(--weight-semibold) 28px/1.18 var(--font-core);letter-spacing:-.014em">Dump anything</div>
+          <div style="font:var(--weight-regular) 16px/24px var(--font-core);letter-spacing:.01em;color:var(--text-secondary);margin-top:10px">Half a thought, a photo, a voice note. No folders, no tidying.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 14px"><span class="btn blue">Next</span></div>
+      <div class="navbar"><s class="t"></s><s class="c"></s><s class="b"></s></div>
+    </div></div>
+  </div>
+</div>
+
+<div class="rowlabel">Screen 2 of 3<u>offload sorts it</u></div>
+<div class="row">
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="background:var(--surface-sunken)">
+      <div class="chrome"><span class="dots"><s></s><s></s><s></s></span><span class="url">offload.app/welcome</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:28px 44px 40px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="mark"><i></i>offload</span>
+          <span style="font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-secondary)">Skip</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px">
+          <div style="width:520px;display:flex;flex-direction:column;gap:10px">
+            <span class="thing"><i class="lasso"></i><b>Lisbon trip</b><span>4 things</span></span>
+            <span class="thing"><i class="bookmark"></i><b>Bookshelf build</b><span>2 things</span></span>
+            <span class="thing"><i class="cloudy"></i><b>Read later</b><span>23 things</span></span>
+          </div>
+          <div style="width:520px;text-align:center">
+            <div style="font:var(--weight-semibold) 34px/1.1 var(--font-core);letter-spacing:-.022em">offload sorts it</div>
+            <div style="font:var(--text-body-role);font-size:17px;color:var(--text-secondary);margin-top:12px;line-height:1.5">Related bits end up together, with the dates and the money attached.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:20px">
+            <span class="btn dark" style="width:240px">Next</span>
+            <span class="dots"><s></s><s class="on"></s><s></s></span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag i"><b>iOS</b></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:14px 24px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="dots"><s></s><s class="on"></s><s></s></span>
+          <span style="font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-secondary)">Skip</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px">
+          <span class="thing"><i class="lasso"></i><b>Lisbon trip</b><span>4 things</span></span>
+          <span class="thing"><i class="bookmark"></i><b>Bookshelf build</b><span>2 things</span></span>
+          <span class="thing"><i class="cloudy"></i><b>Read later</b><span>23 things</span></span>
+        </div>
+        <div style="padding-bottom:24px">
+          <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">offload sorts it</div>
+          <div style="font:var(--text-body-role);color:var(--text-secondary);margin-top:10px;line-height:1.45">Related bits end up together, with the dates and the money attached.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 18px"><span class="btn dark">Next</span></div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag a"><b>Android</b></div>
+    <div class="f and"><div class="in">
+      <div class="sb" style="padding:14px 18px 0"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:16px 24px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="dots"><s></s><s class="on"></s><s></s></span>
+          <span style="font:var(--weight-medium) 14px/20px var(--font-core);color:var(--blue-700)">Skip</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px">
+          <span class="thing" style="border-radius:12px;background:var(--ink-50);border-color:transparent"><i class="lasso" style="border-radius:99px"></i><b>Lisbon trip</b><span>4 things</span></span>
+          <span class="thing" style="border-radius:12px;background:var(--ink-50);border-color:transparent"><i class="bookmark" style="border-radius:99px"></i><b>Bookshelf build</b><span>2 things</span></span>
+          <span class="thing" style="border-radius:12px;background:var(--ink-50);border-color:transparent"><i class="cloudy" style="border-radius:99px"></i><b>Read later</b><span>23 things</span></span>
+        </div>
+        <div style="padding-bottom:24px">
+          <div style="font:var(--weight-semibold) 28px/1.18 var(--font-core);letter-spacing:-.014em">offload sorts it</div>
+          <div style="font:var(--weight-regular) 16px/24px var(--font-core);letter-spacing:.01em;color:var(--text-secondary);margin-top:10px">Related bits end up together, with the dates and the money attached.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 14px"><span class="btn blue">Next</span></div>
+      <div class="navbar"><s class="t"></s><s class="c"></s><s class="b"></s></div>
+    </div></div>
+  </div>
+</div>
+
+<div class="rowlabel">Screen 3 of 3<u>when it speaks, then Get started sends you to Today</u></div>
+<div class="row">
+  <div class="cell"><div class="tag w"><b>Web</b></div>
+    <div class="f web"><div class="in" style="background:var(--surface-sunken)">
+      <div class="chrome"><span class="dots"><s></s><s></s><s></s></span><span class="url">offload.app/welcome</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:28px 44px 40px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="mark"><i></i>offload</span>
+          <span style="font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-secondary)">Skip</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px">
+          <div class="notif" style="width:420px">
+            <div class="hd"><i></i>offload<span style="margin-left:auto;color:var(--text-tertiary)">now</span></div>
+            <div class="ti">Brackets go up Friday</div>
+            <div class="bd">You saved the link on Tuesday.</div>
+          </div>
+          <div style="width:520px;text-align:center">
+            <div style="font:var(--weight-semibold) 34px/1.1 var(--font-core);letter-spacing:-.022em">It only interrupts when it matters</div>
+            <div style="font:var(--text-body-role);font-size:17px;color:var(--text-secondary);margin-top:12px;line-height:1.5">Deadlines and answers you are waiting on. Nothing else.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:20px">
+            <span class="btn dark" style="width:240px">Get started</span>
+            <span class="dots"><s></s><s></s><s class="on"></s></span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag i"><b>iOS</b><span>then the system permission sheet</span></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:14px 24px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="dots"><s></s><s></s><s class="on"></s></span>
+          <span style="font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-secondary)">Skip</span>
+        </div>
+        <div style="flex:1;display:flex;align-items:center">
+          <div class="notif" style="width:100%">
+            <div class="hd"><i></i>offload<span style="margin-left:auto">now</span></div>
+            <div class="ti">Brackets go up Friday</div>
+            <div class="bd">You saved the link on Tuesday.</div>
+          </div>
+        </div>
+        <div style="padding-bottom:24px">
+          <div style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">It only interrupts when it matters</div>
+          <div style="font:var(--text-body-role);color:var(--text-secondary);margin-top:10px;line-height:1.45">Deadlines and answers you are waiting on. Nothing else.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 18px"><span class="btn dark">Get started</span></div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag a"><b>Android</b><span>then the system permission dialog</span></div>
+    <div class="f and"><div class="in">
+      <div class="sb" style="padding:14px 18px 0"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:16px 24px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="dots"><s></s><s></s><s class="on"></s></span>
+          <span style="font:var(--weight-medium) 14px/20px var(--font-core);color:var(--blue-700)">Skip</span>
+        </div>
+        <div style="flex:1;display:flex;align-items:center">
+          <div class="notif" style="width:100%;border-radius:16px">
+            <div class="hd"><i style="border-radius:99px"></i>offload<span style="margin-left:auto">now</span></div>
+            <div class="ti">Brackets go up Friday</div>
+            <div class="bd">You saved the link on Tuesday.</div>
+          </div>
+        </div>
+        <div style="padding-bottom:24px">
+          <div style="font:var(--weight-semibold) 28px/1.18 var(--font-core);letter-spacing:-.014em">It only interrupts when it matters</div>
+          <div style="font:var(--weight-regular) 16px/24px var(--font-core);letter-spacing:.01em;color:var(--text-secondary);margin-top:10px">Deadlines and answers you are waiting on. Nothing else.</div>
+        </div>
+      </div>
+      <div class="foot" style="padding:0 24px 14px"><span class="btn blue">Get started</span></div>
+      <div class="navbar"><s class="t"></s><s class="c"></s><s class="b"></s></div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>Get started</b> dismisses the flow and lands on Today, which is empty except for the composer. The tutorial never comes back, and it is not repeated per platform: sign in on the phone first and the web does not show it again.</li>
+  <li><b>The notification ask</b> fires right after Get started on mobile, so the third screen is the reason it appears. Web has nothing to ask for.</li>
+  <li><b>Skip</b> jumps straight to Today from any screen. It stays in the same place on all three screens so it never moves under the cursor or thumb.</li>
+</ul>
+
+<div class="sechead"><h2>3 · Landing page and waitlist</h2><u>one page, one field, invite only</u></div>
+<p class="snote">The public page. A wordmark, one claim, one sentence of what it does, and the email field. No feature grid, no screenshots, no pricing, because there is nothing to buy yet. Mobile is the same page in the phone browser, not an app screen, so it carries browser chrome.</p>
+<div class="row">
+  <div class="cell"><div class="tag w"><b>Web</b><span>offload.app</span></div>
+    <div class="f web"><div class="in" style="background:var(--surface-page)">
+      <div class="chrome"><span class="dots"><s></s><s></s><s></s></span><span class="url">offload.app</span></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:34px 64px 34px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="mark"><i></i>offload</span>
+          <span style="font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-secondary)">Sign in</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;max-width:780px">
+          <h3 class="hero">Offload what you would otherwise forget.</h3>
+          <p class="herosub">Dump half a thought, a photo, a voice note. offload sorts it into things and speaks up when one of them needs you.</p>
+          <div style="display:flex;gap:12px;margin-top:38px">
+            <span class="field" style="width:320px;height:48px;padding:0 20px">you@example.com</span>
+            <span class="btn dark" style="padding:0 26px">Join the waitlist</span>
+          </div>
+          <div style="font:var(--text-caption-role);font-size:13px;color:var(--text-tertiary);margin-top:14px">Invite only. We are letting people in weekly.</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font:var(--text-caption-role);font-size:12.5px;color:var(--text-tertiary);padding-top:20px;border-top:1px solid var(--border-hairline)">
+          <span>offload</span><span>hello@offload.app · Privacy</span>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag i"><b>iOS web</b><span>Safari</span></div>
+    <div class="f ios"><div class="in">
+      <div class="sb"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:26px 24px 0">
+        <span class="mark"><i></i>offload</span>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+          <div style="font:var(--weight-semibold) 34px/1.06 var(--font-core);letter-spacing:-.022em">Offload what you would otherwise forget.</div>
+          <div style="font:var(--text-quiet-role);color:var(--text-secondary);margin-top:16px">Dump half a thought, a photo, a voice note. offload sorts it into things and speaks up when one of them needs you.</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:30px">
+            <span class="field" style="height:52px;padding:0 20px">you@example.com</span>
+            <span class="btn dark">Join the waitlist</span>
+          </div>
+          <div style="font:var(--text-caption-role);font-size:13px;color:var(--text-tertiary);margin-top:14px">Invite only. We are letting people in weekly.</div>
+        </div>
+      </div>
+      <div style="flex:0 0 auto;padding:10px 16px 6px;background:var(--ink-100);border-top:1px solid var(--border-hairline);display:flex;align-items:center;gap:10px">
+        <span style="flex:1;height:38px;border-radius:12px;background:var(--paper);border:1px solid var(--border-hairline);display:flex;align-items:center;justify-content:center;font:var(--weight-regular) 14px/1 var(--font-core);color:var(--text-tertiary)">offload.app</span>
+      </div>
+      <div class="hi"><b></b></div>
+    </div></div>
+  </div>
+  <div class="cell"><div class="tag a"><b>Android web</b><span>Chrome</span></div>
+    <div class="f and"><div class="in">
+      <div class="sb" style="padding:14px 18px 0"><span>9:41</span><em><s class="d"></s><s></s></em></div>
+      <div style="flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:10px 14px 12px">
+        <span style="flex:1;height:40px;border-radius:99px;background:var(--ink-100);display:flex;align-items:center;padding:0 16px;font:var(--weight-regular) 14px/1 var(--font-core);color:var(--text-tertiary)">offload.app</span>
+        <span style="width:4px;height:4px;border-radius:99px;background:var(--ink-400);box-shadow:0 -7px 0 var(--ink-400),0 7px 0 var(--ink-400);display:block;margin-right:6px"></span>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:16px 24px 0;border-top:1px solid var(--border-hairline)">
+        <span class="mark" style="margin-top:10px"><i></i>offload</span>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+          <div style="font:var(--weight-semibold) 34px/1.08 var(--font-core);letter-spacing:-.022em">Offload what you would otherwise forget.</div>
+          <div style="font:var(--text-quiet-role);color:var(--text-secondary);margin-top:16px">Dump half a thought, a photo, a voice note. offload sorts it into things and speaks up when one of them needs you.</div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:30px">
+            <span class="field" style="height:56px;padding:0 20px">you@example.com</span>
+            <span class="btn blue">Join the waitlist</span>
+          </div>
+          <div style="font:var(--weight-regular) 13px/20px var(--font-core);color:var(--text-tertiary);margin-top:14px">Invite only. We are letting people in weekly.</div>
+        </div>
+      </div>
+      <div class="navbar"><s class="t"></s><s class="c"></s><s class="b"></s></div>
+    </div></div>
+  </div>
+</div>
+<ul class="spec">
+  <li><b>One field.</b> Email only. No name, no "what do you want to use it for", because a longer form buys nothing while invites go out by hand.</li>
+  <li><b>After submit</b> the field and button swap for one line in their place: on the list, we will email you. Same page, no redirect.</li>
+  <li><b>Sign in</b> sits quietly top right for people who already have an invite. It is the only other link on the page.</li>
+  <li><b>The landing page is a website</b>, not part of the app kits. It uses the same tokens and type, and it is the one place the display size and the serif voice appear at web scale.</li>
+</ul>
+
+<div class="sechead"><h2>Still open, once you confirm</h2></div>
+<ul class="spec">
+  <li><b>Not invited yet, the invite email, and refusals</b> are drawn in <a href="not-invited-email-refusals.html">not-invited, email and refusals</a>. Decided there: the no-invite screen offers the waitlist inline, and the tutorial runs once per person, not once per device.</li>
+  <li><b>Sign out and delete everything</b>, promised in settings, still undrawn.</li>
+</ul>
+</div></body></html>

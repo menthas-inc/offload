@@ -1,0 +1,37 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+.pnpm-store/
+*.tsbuildinfo
+.next/
+.turbo/
+dist/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Expo
+.expo/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+
+# Editors
+.idea/
+*.swp
+
+# Claude Code local overrides
+.claude/settings.local.json

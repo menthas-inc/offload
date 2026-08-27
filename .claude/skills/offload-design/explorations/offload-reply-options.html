@@ -1,0 +1,121 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Offload replies</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:44px 36px 80px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 34px;max-width:62ch}
+.row{display:flex;gap:34px;flex-wrap:wrap}
+.opt{width:390px}
+.hd{margin:0 0 4px;font:600 15px/1.3 var(--font-core)}
+.dk{margin:0 0 14px;font-size:13px;line-height:1.5;color:var(--text-secondary)}
+.ph{background:var(--paper);border:1px solid var(--border-hairline);border-radius:22px;overflow:hidden;padding:16px 16px 18px;display:flex;flex-direction:column;gap:22px}
+.you{align-self:flex-end;max-width:84%;padding:10px 14px;border-radius:var(--radius-lg);background:var(--blue-50);border:1px solid var(--blue-100);color:var(--ink-950);font:400 15px/1.45 var(--font-core)}
+.ol{font:var(--text-quiet-role);font-size:16px;line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.c{height:28px;padding:0 11px;border-radius:999px;font:500 13px/26px var(--font-core);white-space:nowrap;display:inline-flex;align-items:center;gap:6px;border:1px solid transparent}
+.c.thread{background:var(--surface-accent-soft);border-color:var(--border-accent);color:var(--text-accent)}
+.c.time{background:var(--blue-50);border-color:var(--blue-100);color:var(--blue-700)}
+.c.money{background:var(--amber-100);border-color:var(--amber-100);color:var(--amber-700)}
+.dot{width:5px;height:5px;border-radius:999px;background:currentColor;opacity:.5}
+.ack{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary)}
+.tick{width:16px;height:16px;border-radius:999px;background:var(--moss-500);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px}
+/* A: quiet slab */
+.a .ol{padding:14px 15px;background:var(--surface-fill);border-radius:var(--radius-lg)}
+/* B: rule */
+.b .ol{padding-left:13px;border-left:2px solid var(--ink-950)}
+/* C: signed card */
+.c2 .card{border:1px solid var(--border-hairline);border-radius:var(--radius-lg);padding:13px 15px 14px;background:var(--paper)}
+.c2 .sig{display:flex;align-items:center;gap:6px;margin-bottom:8px;font:500 11px/1 var(--font-core);letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary)}
+.c2 .sig i{width:12px;height:12px;background:var(--ink-950);-webkit-mask:url(../assets/icons/sparkles.svg) center/contain no-repeat;mask:url(../assets/icons/sparkles.svg) center/contain no-repeat;font-style:normal}
+/* D: mark in the margin */
+.d .wrap{display:flex;gap:11px}
+.d .mk{width:20px;height:20px;flex:0 0 auto;margin-top:2px;background:var(--ink-950);-webkit-mask:url(../assets/icons/cloudy.svg) center/contain no-repeat;mask:url(../assets/icons/cloudy.svg) center/contain no-repeat}
+/* E: paper */
+.e .ol{padding:15px;background:var(--ink-50);border-radius:var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px}
+.note{font-size:12px;color:var(--text-tertiary);margin:10px 0 0}
+</style></head><body>
+<h1>Offload replies</h1>
+<p class="lede">Same three exchanges in each: a long answer with chips, a one liner, and a &ldquo;delete X&rdquo; that earns an acknowledgement instead of a sentence. Your messages are a light blue chip in all of them; the chips inside replies are coloured by what they point at, so they never read as your own messages.</p>
+
+<div class="row">
+
+<div class="opt a">
+<p class="hd">A. Quiet slab</p>
+<p class="dk">The reply gets a fill, the same grey as the composer. Two containers, distinguished by colour and side rather than by having one at all.</p>
+<div class="ph">
+  <div class="you">What do I still owe money for?</div>
+  <div class="ol">Three things. You owe Ana &euro;214 for the flights, Sam &pound;12 for the drill bits, and the flat insurance renews at &pound;340 on the 20th.
+    <div class="chips"><span class="c thread">Lisbon trip</span><span class="c money">&euro;214 to Ana</span><span class="c time">the 20th</span></div>
+  </div>
+  <div class="you">and the deposit for the flat</div>
+  <div class="ol">Added. That is four.</div>
+  <div class="you">delete the dentist reminder</div>
+  <div class="ack"><span class="tick">&check;</span> Deleted</div>
+</div>
+</div>
+
+<div class="opt b">
+<p class="hd">B. Rule in the margin</p>
+<p class="dk">No container, one hairline down the left. The lightest way to make a reply a block without boxing it. Chips sit inside the rule so they belong to the answer.</p>
+<div class="ph">
+  <div class="you">What do I still owe money for?</div>
+  <div class="ol">Three things. You owe Ana &euro;214 for the flights, Sam &pound;12 for the drill bits, and the flat insurance renews at &pound;340 on the 20th.
+    <div class="chips"><span class="c thread">Lisbon trip</span><span class="c money">&euro;214 to Ana</span><span class="c time">the 20th</span></div>
+  </div>
+  <div class="you">and the deposit for the flat</div>
+  <div class="ol">Added. That is four.</div>
+  <div class="you">delete the dentist reminder</div>
+  <div class="ack"><span class="tick">&check;</span> Deleted</div>
+</div>
+</div>
+
+<div class="opt c2">
+<p class="hd">C. Signed card</p>
+<p class="dk">A bordered card with a small label, so a reply looks like a thing offload produced rather than a message it sent. Most UI-like of the five; also the heaviest.</p>
+<div class="ph">
+  <div class="you">What do I still owe money for?</div>
+  <div class="card"><div class="sig"><i></i>offload</div>
+    <div class="ol">Three things. You owe Ana &euro;214 for the flights, Sam &pound;12 for the drill bits, and the flat insurance renews at &pound;340 on the 20th.
+      <div class="chips"><span class="c thread">Lisbon trip</span><span class="c money">&euro;214 to Ana</span><span class="c time">the 20th</span></div>
+    </div>
+  </div>
+  <div class="you">and the deposit for the flat</div>
+  <div class="ol">Added. That is four.</div>
+  <div class="you">delete the dentist reminder</div>
+  <div class="ack"><span class="tick">&check;</span> Deleted</div>
+</div>
+<p class="note">Short replies stay uncarded, or every &ldquo;Added&rdquo; costs three lines.</p>
+</div>
+
+<div class="opt d">
+<p class="hd">D. Mark in the margin</p>
+<p class="dk">The cloud mark instead of a rule. Same weight as B, but it names who is speaking, and it gives short replies a visible left edge to line up on.</p>
+<div class="ph">
+  <div class="you">What do I still owe money for?</div>
+  <div class="wrap"><span class="mk"></span><div class="ol">Three things. You owe Ana &euro;214 for the flights, Sam &pound;12 for the drill bits, and the flat insurance renews at &pound;340 on the 20th.
+    <div class="chips"><span class="c thread">Lisbon trip</span><span class="c money">&euro;214 to Ana</span><span class="c time">the 20th</span></div>
+  </div></div>
+  <div class="you">and the deposit for the flat</div>
+  <div class="wrap"><span class="mk"></span><div class="ol">Added. That is four.</div></div>
+  <div class="you">delete the dentist reminder</div>
+  <div class="ack"><span class="tick">&check;</span> Deleted</div>
+</div>
+</div>
+
+<div class="opt e">
+<p class="hd">E. Paper</p>
+<p class="dk">Both sides are bubbles, but the reply is warm grey with a squared bottom corner, so it reads as the app rather than a second person. Closest to a normal chat.</p>
+<div class="ph">
+  <div class="you">What do I still owe money for?</div>
+  <div class="ol">Three things. You owe Ana &euro;214 for the flights, Sam &pound;12 for the drill bits, and the flat insurance renews at &pound;340 on the 20th.
+    <div class="chips"><span class="c thread">Lisbon trip</span><span class="c money">&euro;214 to Ana</span><span class="c time">the 20th</span></div>
+  </div>
+  <div class="you">and the deposit for the flat</div>
+  <div class="ol" style="display:inline-block">Added. That is four.</div>
+  <div class="you">delete the dentist reminder</div>
+  <div class="ack"><span class="tick">&check;</span> Deleted</div>
+</div>
+</div>
+
+</div>
+<p class="note" style="max-width:62ch">The acknowledgement is the same in all five: a moss tick and one word, on its own line, no bubble. A thumbs up glyph is the alternative, but a tick reads as done where a thumb reads as agreed.</p>
+</body></html>

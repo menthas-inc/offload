@@ -1,0 +1,390 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>iOS and Android, page by page</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:40px 34px 90px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 6px;max-width:76ch}
+.src{font-size:12.5px;line-height:1.6;color:var(--text-tertiary);margin:0 0 8px;max-width:76ch}
+h2{font:600 16px/1.3 var(--font-core);margin:34px 0 10px}
+.pair{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-bottom:6px}
+.col{width:360px}
+.cap{display:flex;align-items:baseline;gap:8px;margin:0 0 7px 2px}
+.cap b{font:600 12px/1 var(--font-core);padding:5px 7px;border-radius:6px}
+.cap.ios b{background:var(--ink-950);color:var(--paper)}
+.cap.and b{background:var(--blue-600);color:#fff}
+.cap span{font-size:12.5px;color:var(--text-tertiary)}
+.diff{font-size:13px;line-height:1.6;color:var(--text-secondary);margin:0 0 18px;max-width:76ch}
+.diff b{color:var(--text-primary);font-weight:600}
+.note{font-size:12px;color:var(--text-tertiary);margin:10px 0 0;line-height:1.6;max-width:76ch}
+.lu{display:block;background:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+/* frame */
+.ph{position:relative;height:950px;border-radius:26px;overflow:hidden;display:flex;flex-direction:column;
+  border:1px solid var(--border-hairline);box-sizing:border-box}
+.sb{display:flex;justify-content:space-between;padding:10px 18px 2px;font:600 11px/1 var(--font-core);flex:0 0 auto}
+.body{flex:1;min-height:0;overflow:hidden;position:relative}
+.pg{padding:0 var(--gut);height:100%;box-sizing:border-box;overflow:hidden}
+/* ---------- iOS ---------- */
+.ios .ph{--gut:20px;background:var(--surface-page);color:var(--text-primary)}
+.ios .bar{display:flex;align-items:center;gap:6px;height:52px;padding:0 12px 0 20px;flex:0 0 auto}
+.ios .bar .mark{flex:1;font:600 19px/1 var(--font-core);letter-spacing:-.02em;display:flex;align-items:center;gap:7px}
+.ios .bar .t{flex:1;text-align:center;font:500 15px/1.2 var(--font-core)}
+.ios .ib{width:36px;height:36px;border:none;background:none;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);position:relative}
+.ios .ib .lu{width:19px;height:19px}
+.ios .sec{display:flex;align-items:center;gap:8px;padding-bottom:7px;margin:14px 0 4px;border-bottom:1px solid var(--ink-950)}
+.ios .sec b{font:600 21px/1.15 var(--font-core);letter-spacing:-.012em}
+.ios .cnt{font:500 11px/1 var(--font-core);padding:5px 8px;border-radius:999px;background:var(--surface-attention);color:#fff}
+.ios .cnt.q{background:var(--surface-fill);color:var(--text-secondary)}
+.ios .li{display:flex;align-items:flex-start;gap:12px;padding:12px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.ios .li:last-child{box-shadow:none}
+.ios .lead{width:22px;height:22px;margin-top:1px;flex:0 0 auto;border-radius:999px;background:var(--surface-fill);
+  color:var(--text-secondary);display:flex;align-items:center;justify-content:center}
+.ios .lead.hot{background:var(--surface-attention);color:#fff}
+.ios .lead.tile{width:36px;height:36px;border-radius:var(--radius-sm);margin-top:0}
+.ios .lead .lu{width:13px;height:13px}
+.ios .lead.tile .lu{width:18px;height:18px}
+.tx{flex:1;min-width:0}
+.ios .tx b{display:block;font:500 16px/1.35 var(--font-core);letter-spacing:-.006em}
+.ios .tx span{display:block;font-size:13px;line-height:1.4;color:var(--text-secondary);margin-top:2px}
+.ios .badge{font:500 11px/1 var(--font-core);padding:5px 8px;border-radius:999px;background:var(--surface-attention);color:#fff;flex:0 0 auto;margin-top:2px}
+.ios .badge.q{background:var(--surface-fill);color:var(--text-secondary)}
+.ios .plate{flex:0 0 auto;background:var(--surface-raised);border-radius:28px 28px 0 0;box-shadow:var(--shadow-sheet)}
+.ios .comp{margin:16px 20px 0;display:flex;align-items:center;gap:8px;height:48px;padding:0 8px 0 16px;
+  border-radius:999px;background:var(--surface-input);border:1px solid var(--border-focus)}
+.ios .comp .g{flex:1;min-width:0;font:400 15px/1 var(--font-core);color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ios .comp .ib{width:28px;height:28px}
+.ios .comp .send{background:var(--blue-600);border-radius:999px;color:#fff}
+.ios .tabs{display:flex;padding:10px 0 14px}
+.ios .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;font:500 10.5px/1 var(--font-core);color:var(--text-tertiary)}
+.ios .tab .lu{width:21px;height:21px}
+.ios .tab.on{color:var(--ink-950)}
+/* ---------- Android ---------- */
+.and .ph{--gut:16px;background:var(--m-surface);color:var(--m-on)}
+.and .ph{--m-surface:#FAF9F7;--m-c-low:#F6F5F2;--m-c:#ECEBE7;--m-c-high:#E4E3DE;--m-on:#1B1B1A;--m-on-var:#5A5A57;--m-outline:#DEDDD8;
+  --m-pill:var(--blue-600);--m-on-pill:#FFFFFF}
+.and .bar{display:flex;align-items:center;gap:4px;height:64px;padding:0 4px 0 16px;flex:0 0 auto;background:var(--m-surface)}
+.and .bar .mark{flex:1;font:600 20px/1 var(--font-core);letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+.and .bar .t{flex:1;min-width:0;font:400 22px/28px var(--font-core);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.and .ib{width:40px;height:40px;border:none;background:none;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--m-on-var);position:relative}
+.and .ib .lu{width:20px;height:20px}
+.and .sec{font:500 14px/20px var(--font-core);color:var(--m-on-var);padding:14px 4px 8px;display:flex;align-items:center;gap:8px}
+.and .cnt{font:500 11px/16px var(--font-core);padding:1px 7px;border-radius:999px;background:var(--m-c-high);color:var(--m-on-var)}
+.and .box{background:var(--m-c-low);border-radius:12px;padding:0 16px;margin-bottom:4px}
+.and .li{display:flex;align-items:center;gap:16px;min-height:56px;padding:8px 0;box-shadow:inset 0 -1px 0 var(--m-outline)}
+.and .li:last-child{box-shadow:none}
+.and .lead{width:40px;height:40px;flex:0 0 auto;border-radius:999px;background:var(--m-c-high);color:var(--m-on-var);display:flex;align-items:center;justify-content:center}
+.and .lead.hot{background:var(--blue-600);color:#fff}
+.and .lead .lu{width:19px;height:19px}
+.and .tx b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font:400 16px/24px var(--font-core);letter-spacing:.005em}
+.and .tx span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font:400 14px/20px var(--font-core);letter-spacing:.015em;color:var(--m-on-var)}
+.and .badge{font:500 11px/16px var(--font-core);padding:2px 8px;border-radius:999px;background:var(--blue-600);color:#fff;flex:0 0 auto}
+.and .badge.q{background:var(--m-c-high);color:var(--m-on-var)}
+.and .comp{margin:0 16px 12px;display:flex;align-items:center;gap:8px;height:56px;padding:0 8px 0 16px;
+  border-radius:999px;background:var(--paper);border:1px solid var(--border-focus)}
+.and .comp .g{flex:1;min-width:0;font:400 16px/24px var(--font-core);color:var(--m-on-var);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.and .comp .send{background:var(--blue-600);border-radius:999px;color:#fff}
+.and .tabs{display:flex;height:80px;padding-top:12px;background:var(--m-c-low);flex:0 0 auto;align-items:flex-start}
+.and .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font:500 12px/16px var(--font-core);color:var(--m-on-var)}
+.and .tab .pill{width:56px;height:32px;border-radius:999px;display:flex;align-items:center;justify-content:center}
+.and .tab .lu{width:21px;height:21px}
+.and .tab.on{color:var(--blue-700)}
+.and .tab.on .pill{background:var(--m-pill);color:var(--m-on-pill)}
+/* shared bits */
+.fc{display:flex;align-items:center;gap:8px;padding:4px 0 10px;font-size:13.5px;line-height:1.4}
+.ios .fc{color:var(--text-tertiary)}
+.and .fc{color:var(--m-on-var);font-size:14px;line-height:20px}
+.fc .lu{width:16px;height:16px;flex:0 0 auto}
+.ag{display:flex;gap:12px;padding:7px 0;font-size:14px;line-height:20px}
+.ag .h{width:106px;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.ios .ag .h{color:var(--text-secondary);font-size:13px}
+.and .ag .h{color:var(--m-on-var)}
+.agbar{width:3px;border-radius:999px;background:var(--moss-500)}
+.free{color:var(--moss-700);font-weight:500}
+.chat{display:flex;flex-direction:column;gap:22px;padding:12px 0}
+.you{align-self:flex-end;max-width:84%;padding:10px 16px}
+.them{align-self:flex-start;max-width:92%;padding:12px 16px}
+.ios .you{border-radius:20px 20px 4px 20px;background:var(--blue-50);border:1px solid var(--blue-100);font:400 15px/1.45 var(--font-core)}
+.ios .them{border-radius:20px 20px 20px 4px;background:var(--ink-50);font:var(--text-quiet-role);font-size:16px;line-height:1.5}
+.and .you{border-radius:16px 16px 4px 16px;background:var(--blue-600);color:#fff;font:400 15px/21px var(--font-core)}
+.and .them{border-radius:16px 16px 16px 4px;background:var(--m-c-low);font:400 15px/22px var(--font-core)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;font:500 13px/1 var(--font-core);padding:7px 11px;border-radius:999px}
+.chip .lu{width:13px;height:13px;flex:0 0 auto}
+.chip.accent{background:var(--moss-600);color:var(--text-on-solid)}
+.chip.attention{background:var(--blue-600);color:var(--text-on-solid)}
+.chip.warning{background:var(--amber-600);color:var(--amber-on)}
+.and .chip{border-radius:8px;padding:6px 12px;font-size:14px;line-height:20px}
+.and .chip .lu{width:15px;height:15px}
+.you{position:relative}
+.stat{position:absolute;left:-15px;bottom:-16px;display:inline-flex;align-items:center;gap:4px;height:22px;
+  border-radius:999px;box-shadow:var(--shadow-1)}
+.stat.seen{padding:0 7px;background:var(--surface-raised);border:1px solid var(--border-hairline);font-size:17px;line-height:1}
+.stat.done{padding:0 8px 0 6px;background:var(--moss-600);color:var(--paper);border:1px solid var(--moss-600);
+  font:500 11px/1 var(--font-core)}
+.stat.done .lu{width:11px;height:11px}
+.and .stat.seen{background:var(--m-surface);border-color:var(--m-outline)}
+.snack{position:absolute;left:16px;right:16px;bottom:16px;display:flex;align-items:center;gap:12px;padding:13px 16px;font-size:14px;line-height:20px}
+.ios .snack{border-radius:10px;background:var(--surface-inverse);color:var(--text-inverse);box-shadow:var(--shadow-3)}
+.and .snack{border-radius:4px;background:#313030;color:#F3F1EE}
+.snack b{flex:1;font-weight:400}
+.snack u{text-decoration:none;font-weight:500}
+.ios .snack u{color:var(--moss-200)}
+.and .snack u{color:#BFD9C4}
+.prof{display:flex;align-items:center;gap:14px;padding:6px 0 16px}
+.av{border-radius:999px;display:flex;align-items:center;justify-content:center;font:500 17px/1 var(--font-core);flex:0 0 auto}
+.ios .av{width:52px;height:52px;background:var(--surface-fill);color:var(--text-secondary)}
+.and .av{width:56px;height:56px;background:var(--m-c-high);color:var(--m-on)}
+.gl{font:500 12px/1 var(--font-core);color:var(--text-tertiary);margin:14px 0 8px 2px}
+.and .gl{font:500 14px/20px var(--font-core);color:var(--m-on-var);margin:14px 0 8px 4px}
+.iosbox{background:var(--surface-fill);border-radius:20px;padding:0 16px}
+.iosbox .li{box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.iosbox .li:last-child{box-shadow:none}
+.search{display:flex;align-items:center;gap:10px;border:1px solid var(--border-focus);border-radius:999px;margin-bottom:2px}
+.search .lu{width:15px;height:15px;flex:0 0 auto;color:var(--text-tertiary)}
+.search .g{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ios .search{height:38px;padding:0 16px;background:var(--surface-fill);font:400 14px/1 var(--font-core);color:var(--text-tertiary)}
+.and .search{height:52px;padding:0 18px;background:var(--m-c-high);font:400 16px/24px var(--font-core);color:var(--m-on-var)}
+.and .search .lu{width:18px;height:18px;color:var(--m-on-var)}
+.lead.sm{background:none}
+.ios .lead.sm{width:30px;height:30px;border-radius:10px;background:var(--surface-raised);color:var(--text-secondary)}
+.and .lead.sm{width:40px;height:40px;border-radius:999px;background:var(--m-c-high);color:var(--m-on-var)}
+.ios .lead.sm .lu{width:15px;height:15px}
+.and .lead.sm .lu{width:19px;height:19px}
+.more{display:flex;align-items:center;gap:6px;padding:12px 4px 0;font:500 13px/1 var(--font-core);color:var(--text-secondary)}
+.more .lu{width:14px;height:14px}
+.and .more{font:500 14px/20px var(--font-core);color:var(--blue-700);padding:12px 4px 0}
+.and .more .lu{width:16px;height:16px}
+.val{flex:0 0 auto}
+.ios .val{font-size:13px;color:var(--text-secondary)}
+.and .val{font:400 14px/20px var(--font-core);color:var(--m-on-var)}
+.chev{width:15px;height:15px;flex:0 0 auto}
+.ios .chev{color:var(--ink-300)}
+.and .chev{color:var(--m-on-var)}
+.ios .sec.accent{border-bottom-color:var(--moss-600)}
+.ios .cnt.accent{background:var(--surface-accent-soft);color:var(--text-accent)}
+.and .cnt.accent{background:var(--surface-accent-soft);color:var(--text-accent)}
+.act{font:500 13px/1 var(--font-core);color:var(--text-secondary)}
+.and .act{color:var(--m-on-var);font-size:14px;line-height:20px}
+.card{background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:14px;padding:0}
+.dh{display:flex;align-items:center;gap:12px;padding:12px 14px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.dh .lu{width:17px;height:17px;flex:0 0 auto;color:var(--text-secondary)}
+.dh .n{flex:1;min-width:0;font:600 17px/1.2 var(--font-core);letter-spacing:-.012em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.and .dh{box-shadow:inset 0 -1px 0 var(--m-outline);padding:12px 16px}
+.and .dh .n{font:400 16px/24px var(--font-core);color:var(--m-on)}
+.and .dh .lu{color:var(--m-on-var)}
+.badge.moss{background:var(--surface-accent-soft);color:var(--text-accent)}
+.dl{display:flex;flex-direction:column;gap:10px;padding:12px 14px}
+.and .dl{padding:12px 16px}
+.dr{display:flex;gap:12px;align-items:flex-start;font-size:13px;line-height:1.4}
+.and .dr{font:400 14px/20px var(--font-core)}
+.dr .lu{width:15px;height:15px;flex:0 0 auto;margin-top:1px;color:var(--text-tertiary)}
+.and .dr .lu{color:var(--m-on-var)}
+.dr span{flex:1;min-width:0}
+.dr em{font-style:normal;font-size:12px;color:var(--text-tertiary);flex:0 0 auto}
+.and .dr em{color:var(--m-on-var)}
+.and .box.card{background:var(--paper);border:1px solid var(--m-outline);padding:0;overflow:hidden}
+.and .box.card .dh{background:var(--m-c);box-shadow:none}
+.and .dh .n{font-weight:500}
+.sheet{position:absolute;left:0;right:0;bottom:0;height:62%;display:flex;flex-direction:column;overflow:hidden}
+.ios .sheet{background:var(--surface-raised);border-radius:28px 28px 0 0;box-shadow:var(--shadow-sheet)}
+.and .sheet{background:var(--m-c);border-radius:28px 28px 0 0;box-shadow:0 -1px 2px rgba(0,0,0,.30),0 -2px 6px 2px rgba(0,0,0,.15)}
+.grab{display:flex;justify-content:center;padding:8px 0 2px;flex:0 0 auto}
+.grab u{width:34px;height:4px;border-radius:999px;display:block}
+.ios .grab u{background:var(--ink-200)}
+.and .grab u{background:var(--m-c-high)}
+.foldrow{display:flex;align-items:center;gap:10px;padding:2px 16px 10px;flex:0 0 auto}
+.ft{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ios .ft{font:400 13.5px/1.35 var(--font-core);color:var(--text-secondary)}
+.ios .ft.big{font:500 16px/1.3 var(--font-core);color:var(--text-primary)}
+.and .ft{font:400 14px/20px var(--font-core);color:var(--m-on-var)}
+.and .ft.big{font:400 22px/28px var(--font-core);color:var(--m-on)}
+.ib.x{width:24px;height:24px;border-radius:999px}
+.ios .ib.x{background:var(--surface-fill)}
+.and .ib.x{background:var(--m-c)}
+.ib.x .lu{width:11px;height:11px}
+.chat.tight{padding:4px 16px 12px;gap:20px;overflow:hidden}
+.fold{flex:0 0 auto}
+.andplate{flex:0 0 auto;background:var(--m-c);border-radius:28px 28px 0 0;overflow:hidden}
+.andplate .tabs{background:transparent}
+.and .fold{background:transparent}
+.and .fold .foldrow{box-shadow:inset 0 -1px 0 var(--m-outline)}
+.ios .fold .foldrow{box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.ios .fold + .plate{border-radius:0;box-shadow:none;background:var(--surface-raised)}
+.and .fold + .comp{margin-top:12px}
+.dot{position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:999px;background:var(--clay-600);border:1.5px solid var(--surface-raised)}
+</style></head><body>
+<h1>iOS and Android, page by page</h1>
+<p class="lede">Direction A with your two changes: the active tab is now the deeper blue with a white glyph, and lists and section headers follow B, so no ink underline and every group sits in its own container. One icon set across both platforms, and no dynamic colour.</p>
+<p class="src">Both frames are drawn at 360dp so the comparison is about layout rather than width. Android side follows the current Material 3 spec: 64dp start-aligned top app bar with Title Large, 80dp navigation bar with the active pill, 56dp minimum list rows, Body Large titles with Body Medium supporting text, containers on the <code>surface-container-low</code> role at 12dp, and a 4dp snackbar. Surfaces are neutral greys, not moss-tinted. Every string, count and badge in both columns is read from the kit's own <code>data.js</code>, so the iOS side is the product rather than a drawing of it.</p>
+
+<div id="out"></div>
+
+<script src="../ui_kits/mobile_app/data.js"></script>
+<script>
+const D=window.OFFLOAD_DATA;
+const TV=D.today_view;
+const SP=(k)=>D.spaces.filter(s=>s.kind===k);
+const OLDER_SHOWN=3;
+const I={sun:"sun",lasso:"lasso",cloud:"cloudy",bell:"bell",gear:"settings",rain:"cloud-rain",clock:"clock",
+  bookmark:"bookmark",users:"users",cam:"camera",mic:"mic",send:"arrow-up",chev:"chevron-right",back:"chevron-left",logo:"lasso",
+  search:"search",account:"circle-dot",lock:"lock",link:"link",check:"check",x:"x"};
+function ic(k,cls){const n=I[k]||k;return '<i class="lu '+(cls||"")+'" style="-webkit-mask-image:url(../assets/icons/'+n+'.svg);mask-image:url(../assets/icons/'+n+'.svg)"></i>'}
+const MARK='<svg width="20" height="20" viewBox="0 0 96 96" style="display:block;flex:0 0 auto"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>';
+
+/* PriorityRow composes its meta as "thread \u00b7 meta", exactly as TodayScreen does. */
+const ROWS={
+  priority:TV.priority.slice(0,3).map(p=>({lead:p.icon,hot:p.tone==="attention",title:p.title,
+    meta:p.thread+" \u00b7 "+p.meta,badge:p.due,quiet:p.tone!=="attention"})),
+  threads:TV.threads,
+  now:SP("now").map(s=>({lead:s.icon,title:s.name,meta:s.meta,
+    badge:s.people.length?String(s.people.length+1):null,quiet:true})),
+  always:SP("always").map(s=>({lead:s.icon,title:s.name,meta:s.meta,
+    badge:s.people.length?String(s.people.length+1):null,quiet:true})),
+  older:SP("older").slice(0,OLDER_SHOWN).map(s=>({lead:s.icon,title:s.name,meta:s.meta})),
+  you:[{lead:"account",title:"My account",value:"jo@hey.com"},{lead:"users",title:"My people",value:"3"},
+    {lead:"lock",title:"Privacy"}],
+  reaching:[{lead:"bell",title:"Communication",value:"Quiet 22:00"},{lead:"link",title:"Connected apps",value:"2 of 4"}]
+};
+function li(p,r){
+  const lead=r.lead?'<span class="lead'+(r.hot?" hot":"")+(r.tile?" tile":"")+'">'+ic(r.lead)+'</span>':
+    (p==="and"?'<span class="lead">'+ic("lasso")+'</span>':'<span class="lead tile">'+ic("lasso")+'</span>');
+  return '<div class="li">'+(r.lead===null?'':lead)+
+    '<span class="tx"><b>'+r.title+'</b>'+(r.meta?'<span>'+r.meta+'</span>':'')+'</span>'+
+    (r.badge?'<span class="badge'+(r.quiet?" q":"")+'">'+r.badge+'</span>':'')+
+    (r.chev?ic("chev","chev"):'')+'</div>';
+}
+function group(p,label,rows,count,tone,action){
+  let head="";
+  if(label){
+    const act=action?'<span class="act">'+action+'</span>':'';
+    head=p==="ios"
+      ?'<div class="sec'+(tone?" "+tone:"")+'"><b>'+label+'</b>'+(count?'<span class="cnt'+(tone||(count.q?"q":""))+'">'+count.n+'</span>':'')+act+'</div>'
+      :'<div class="sec">'+label+(count?'<span class="cnt">'+count.n+'</span>':'')+act+'</div>';
+  }
+  if(!rows.length)return head;
+  const body=rows.map(r=>li(p,r)).join("");
+  return head+(p==="and"?'<div class="box">'+body+'</div>':body);
+}
+/* The What moved digest, as TodayScreen.jsx draws it. */
+function digest(p,d){
+  const cls=p==="ios"?"iosbox card":"box card";
+  return '<div class="'+cls+'"><div class="dh">'+ic("lasso")+'<span class="n">'+d.name+'</span>'+
+    '<span class="badge moss">+'+d.added+'</span></div><div class="dl">'+
+    d.lines.map(l=>'<div class="dr">'+ic(l.icon)+'<span>'+l.text+'</span><em>'+l.time+'</em></div>').join("")+
+    '</div></div>';
+}
+function bar(p,{title,back,right}){
+  if(back)return '<div class="bar"><button class="ib">'+ic("back")+'</button><span class="t">'+title+'</span>'+
+    (right?'<button class="ib">'+ic(right)+'</button>':'<span style="width:8px"></span>')+'</div>';
+  return '<div class="bar"><span class="mark">'+MARK+'offload</span>'+
+    '<button class="ib">'+ic("bell")+'<span class="dot"></span></button><button class="ib">'+ic("gear")+'</button></div>';
+}
+function tabs(p,active){
+  const items=[["sun","Today"],["lasso","My things"],["cloud","Memories"]];
+  return '<div class="tabs">'+items.map((it,i)=>{
+    const on=i===active?" on":"";
+    return p==="and"
+      ?'<span class="tab'+on+'"><span class="pill">'+ic(it[0])+'</span>'+it[1]+'</span>'
+      :'<span class="tab'+on+'">'+ic(it[0])+it[1]+'</span>';
+  }).join("")+'</div>';
+}
+function composer(p,placeholder){
+  return '<div class="comp"><span class="g">'+(placeholder||"Dump anything")+'</span><button class="ib">'+ic("cam")+
+    '</button><button class="ib">'+ic("mic")+'</button><button class="ib send">'+ic("send")+'</button></div>';
+}
+function footer(p,active,placeholder,tabbed){
+  const c=composer(p,placeholder);
+  if(p==="ios")return '<div class="plate">'+c+(tabbed?tabs(p,active):'')+'</div>';
+  return c+(tabbed?tabs(p,active):'');
+}
+function today(p){
+  return '<div class="pg">'+
+    group(p,null,ROWS.priority)+
+    group(p,"What moved",[],{n:TV.threads.length},"accent")+ROWS.threads.map(t=>digest(p,t)).join("")+
+    group(p,"On the clock",[],null,null,"Open calendar")+
+    (p==="and"?'<div class="box" style="padding:6px 16px">':'')+
+    '<div class="ag"><span class="h">9:30 \u2013 10:00</span><span>Standup</span></div>'+
+    '<div class="ag"><span class="agbar"></span><span class="h" style="margin-left:9px">10:00 \u2013 1:00</span><span class="free">3hrs free</span></div>'+
+    (p==="and"?'</div>':'')+'</div>';
+}
+function things(p){
+  const now=ROWS.now.map(r=>({...r,chev:true})),always=ROWS.always.map(r=>({...r,chev:true}));
+  const older=ROWS.older.map(r=>({...r,chev:true}));
+  const total=SP("older").length;
+  return '<div class="pg">'+group(p,null,now)+group(p,"Always on",always,{n:always.length},"accent")+
+    group(p,"Older things",older,{n:total})+
+    '<div class="more">'+ic("chev","chev")+'All '+total+' older things</div></div>';
+}
+const REF_TONE={thread:"accent",time:"attention",money:"warning"};
+const REF_ICON={thread:"lasso",time:"clock",money:null};
+const REFS=[{kind:"thread",name:"Lisbon trip"},{kind:"money",name:"\u20AC214 to Ana"},{kind:"time",name:"the 20th"}];
+function chat(p){
+  const chips=REFS.map(r=>'<span class="chip '+REF_TONE[r.kind]+'">'+(REF_ICON[r.kind]?ic(REF_ICON[r.kind]):"")+r.name+'</span>').join("");
+  return '<div class="pg"><div class="chat">'+
+    '<div class="you">What do I still owe money for?<span class="stat seen">\uD83D\uDC40</span></div>'+
+    '<div class="them">Three things. You owe Ana \u20ac214 for the flights, Sam \u00a312 for the drill bits, and the flat insurance renews at \u00a3340 on the 20th.'+
+    '<div class="chips">'+chips+'</div></div>'+
+    '<div class="you">Remind me on Friday<span class="stat done">'+ic("check")+'Done</span></div></div></div>';
+}
+/* The raised sheet and the folded footer, as LiveConversation.jsx draws them. */
+function sheetOver(p,folded){
+  const chips=REFS.slice(0,2).map(r=>'<span class="chip '+REF_TONE[r.kind]+'">'+(REF_ICON[r.kind]?ic(REF_ICON[r.kind]):"")+r.name+'</span>').join("");
+  if(folded)return '<div class="fold"><div class="grab"><u></u></div>'+
+    '<div class="foldrow"><span class="ft">'+D.memories.conversations[0].rows[0].title+'</span>'+
+    '<button class="ib x">'+ic("x")+'</button></div></div>';
+  return '<div class="sheet"><div class="grab"><u></u></div>'+
+    '<div class="foldrow"><span class="ft big">'+D.memories.conversations[0].rows[0].title+'</span>'+
+    '<button class="ib x">'+ic("x")+'</button></div>'+
+    '<div class="chat tight">'+
+      '<div class="you">What do I still owe money for?<span class="stat seen">\uD83D\uDC40</span></div>'+
+      '<div class="them">Three things. You owe Ana \u20ac214 for the flights, Sam \u00a312 for the drill bits, and the flat insurance renews at \u00a3340 on the 20th.'+
+      '<div class="chips">'+chips+'</div></div>'+
+    '</div>'+composer(p,"Add to this")+'</div>';
+}
+function settings(p){
+  const box=(s)=>p==="ios"?'<div class="iosbox">'+s+'</div>':'<div class="box">'+s+'</div>';
+  const row=(r)=>'<div class="li"><span class="lead sm">'+ic(r.lead)+'</span>'+
+    '<span class="tx"><b>'+r.title+'</b></span>'+
+    (r.value?'<span class="val">'+r.value+'</span>':'')+ic("chev","chev")+'</div>';
+  return '<div class="pg">'+
+    '<div class="prof"><span class="av">JM</span><span class="tx"><b>Jo Martins</b><span>jo@hey.com</span></span>'+
+      '<span class="badge q">Sign out</span></div>'+
+    '<div class="search">'+ic("search")+'<span class="g">Search settings</span></div>'+
+    '<div class="gl">You</div>'+box(ROWS.you.map(row).join(""))+
+    '<div class="gl">Reaching you</div>'+box(ROWS.reaching.map(row).join(""))+
+    '</div>';
+}
+const PAGES=[
+  {id:"today",name:"Today",render:today,tab:0,
+   diff:"Both open straight into the priority rows with no header, as the kit does. Android moves those rows into a <b>surface-container-low</b> block at 12dp with 40dp leading circles and 56dp minimum height, and the agenda gets the same container. Where iOS rules <b>What moved</b> in moss and counts it in a tinted pill, Android drops the rule and sets the label as Label Large grey; the digest itself is already a card on both."},
+  {id:"things",name:"My things",render:things,tab:1,
+   diff:"All three groups, with the first unlabelled on both. iOS separates the labelled ones with ruled headings and hairlines between rows; Android gives every group a container and lets the container edge do the separating. Note the counts: moss on <b>Always on</b>, neutral on <b>Older things</b>. Undo is a 10dp toast on iOS and a 4dp snackbar on Android."},
+  {id:"chat",name:"A conversation",render:chat,title:D.memories.conversations[0].rows[0].title,right:"ellipsis",
+   placeholder:"Add to this conversation",
+   diff:"Your bubble goes solid blue on Android, which is the platform's convention for the sender, against offload's tinted bubble on iOS. offload's reply keeps the quiet serif on iOS and moves to the core face at Body Large on Android. Reference chips keep the brand colours but square off to 8dp."},
+  {id:"open",name:"Today, conversation raised",render:today,tab:0,overlay:"open",
+   diff:"What you type on any page opens the conversation over that page rather than moving you to a new screen. iOS raises a 65% sheet with the composer inside it and the tab bar showing beneath; Android does the same, but the sheet takes the <b>extra-large</b> 28dp top corners and paints <code>surface-container</code>, a visible step up from the warm page, with the level-2 shadow the platform gives a raised sheet."},
+  {id:"folded",name:"Today, conversation folded",render:today,tab:0,overlay:"folded",
+   diff:"Folded, the conversation shrinks to a grabber and its title at the top of the same footer plate, with the composer and tabs still inside it. This is the state to judge the floating input in: on iOS the plate is white on the warm page with one soft shadow, on Android it is a <b>surface-container</b> plate with no shadow, separated by value and its 28dp corners; the input inside it goes white so the field still reads as the thing to type in."},
+  {id:"settings",name:"Settings",render:settings,title:"Settings",footer:false,
+   diff:"The real list page: the search field and the first two of its four groups. Closest of the four, since iOS was already grouped, so the changes are metric rather than structural: rows widen to 56dp, the container radius drops from 20 to 12, and the group label moves from 12px caption to Label Large. Toggles and radios are not on this page, they live in the detail screens behind each row."}
+];
+function frame(p,page){
+  const snack=page.id==="things"?'<div class="snack"><b>Deleted, gone in a moment</b><u>Undo</u></div>':'';
+  return '<div class="col '+p+'"><div class="cap '+(p==="ios"?"ios":"and")+'"><b>'+(p==="ios"?"iOS":"Android")+'</b><span>'+
+    (p==="ios"?"shipping today":"proposed")+'</span></div><div class="ph">'+
+    '<div class="sb"><span>9:41</span><span>\u25cf\u25cf\u25cf</span></div>'+
+    bar(p,{title:page.title,back:!!page.title,right:page.right})+
+    '<div class="body">'+page.render(p)+snack+(page.overlay==="open"?sheetOver(p,false):'')+'</div>'+
+
+    (page.footer===false?'':page.overlay==="open"
+      ?(p==="ios"?'<div class="plate">'+tabs(p,0)+'</div>':tabs(p,0))
+      :page.overlay==="folded"
+        ?'<div class="'+(p==="ios"?"plate":"andplate")+'">'+sheetOver(p,true)+composer(p,"Add to this")+tabs(p,0)+'</div>'
+        :footer(p,page.tab||0,page.placeholder,page.tab!==undefined))+'</div></div>';
+}
+document.getElementById("out").innerHTML=PAGES.map(pg=>
+  '<h2>'+pg.name+'</h2><p class="diff">'+pg.diff+'</p><div class="pair">'+frame("ios",pg)+frame("and",pg)+'</div>').join("");
+</script>
+<p class="note">Two things I did not change, so flag them if you disagree. The composer keeps its blue rim on Android rather than becoming a plain filled search bar, because that rim is now part of the brand. And the active tab pill uses <code>blue-600</code> with a white glyph as you asked, which is stronger than Material's usual <code>secondary-container</code> tint; the label under it takes <code>blue-700</code> so the pair reads as one selected item.</p>
+</body></html>

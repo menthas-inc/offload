@@ -1,0 +1,161 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Conversation overlay</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:44px 36px 80px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 34px;max-width:64ch}
+.row{display:flex;gap:32px;flex-wrap:wrap}
+.opt{width:390px}
+.hd{margin:0 0 4px;font:600 15px/1.3 var(--font-core)}
+.dk{margin:0 0 14px;font-size:13px;line-height:1.5;color:var(--text-secondary);min-height:56px}
+.ph{position:relative;height:620px;background:var(--paper);border:1px solid var(--border-hairline);border-radius:24px;overflow:hidden}
+.bar{display:flex;align-items:center;justify-content:space-between;height:50px;padding:0 16px}
+.mark{font:600 17px/1 var(--font-core);letter-spacing:-0.02em}
+.ic{width:17px;height:17px;background:var(--ink-300);border-radius:4px}
+.ics{display:flex;gap:10px}
+.pg{padding:0 16px}
+.sh{display:flex;align-items:center;gap:8px;padding-bottom:8px;margin:14px 0 11px;border-bottom:1px solid var(--ink-950)}
+.sh b{font:600 17px/1.2 var(--font-core)}
+.li{padding:11px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.li b{display:block;font:500 15px/1.35 var(--font-core)}
+.li span{display:block;font-size:12.5px;color:var(--text-secondary);margin-top:2px}
+.dim{filter:blur(0.6px);opacity:.42}
+.foot{position:absolute;left:0;right:0;bottom:0;padding:9px 16px 12px;background:rgba(255,255,255,.78);backdrop-filter:blur(12px)}
+.field{display:flex;align-items:center;gap:8px;height:42px;border:1px solid var(--border-strong);border-radius:21px;padding:0 8px 0 15px;background:var(--paper)}
+.field i{flex:1;font-style:normal;font-size:14px;color:var(--text-tertiary)}
+.dot{width:26px;height:26px;border-radius:999px;background:var(--surface-fill)}
+.dot.send{background:var(--ink-950)}
+.tabs{display:flex;justify-content:space-around;padding:10px 0 4px}
+.tab{width:19px;height:19px;border-radius:5px;background:var(--ink-150)}
+.tab.on{background:var(--ink-950)}
+.you{align-self:flex-end;max-width:82%;padding:8px 13px;border-radius:18px 18px 4px 18px;background:var(--blue-50);border:1px solid var(--blue-100);font:400 14.5px/1.4 var(--font-core)}
+.ol{align-self:flex-start;max-width:88%;padding:11px 14px;border-radius:18px 18px 18px 4px;background:var(--ink-50);font:var(--text-quiet-role);font-size:15px;line-height:1.45}
+.chips{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.c{height:26px;padding:0 10px;border-radius:999px;font:500 12.5px/24px var(--font-core);border:1px solid}
+.c.t{background:var(--surface-accent-soft);border-color:var(--border-accent);color:var(--text-accent)}
+.c.m{background:var(--amber-100);border-color:var(--amber-100);color:var(--amber-700)}
+.stream{display:flex;flex-direction:column;gap:13px}
+/* shared sheet */
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--paper);border-radius:22px 22px 0 0;box-shadow:0 -1px 0 var(--border-hairline),0 -18px 44px rgba(11,11,11,.13);display:flex;flex-direction:column}
+.grab{height:22px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.grab u{display:block;width:34px;height:4px;border-radius:2px;background:var(--ink-200)}
+.shead{display:flex;align-items:center;gap:8px;padding:0 14px 10px;flex:0 0 auto}
+.shead b{flex:1;min-width:0;font:500 13px/1.3 var(--font-core);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sq{width:26px;height:26px;border-radius:8px;background:var(--surface-fill);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.sq i{width:13px;height:13px;background:var(--ink-500);font-style:normal}
+.mask-min{-webkit-mask:url(../assets/icons/chevron-down.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-down.svg) center/contain no-repeat}
+.mask-max{-webkit-mask:url(../assets/icons/gallery-vertical-end.svg) center/contain no-repeat;mask:url(../assets/icons/gallery-vertical-end.svg) center/contain no-repeat}
+.mask-x{-webkit-mask:url(../assets/icons/x.svg) center/contain no-repeat;mask:url(../assets/icons/x.svg) center/contain no-repeat}
+.mask-up{-webkit-mask:url(../assets/icons/arrow-up.svg) center/contain no-repeat;mask:url(../assets/icons/arrow-up.svg) center/contain no-repeat}
+.sbody{flex:1;overflow:hidden;padding:0 14px 12px;display:flex;flex-direction:column;gap:13px}
+.note{font-size:12px;color:var(--text-tertiary);margin:10px 0 0;line-height:1.5}
+.pill{position:absolute;left:16px;right:16px;bottom:112px;display:flex;align-items:center;gap:9px;height:40px;padding:0 8px 0 14px;border-radius:20px;background:var(--ink-950);color:var(--paper);box-shadow:0 6px 20px rgba(11,11,11,.22)}
+.pill b{flex:1;min-width:0;font:400 13.5px/1.3 var(--font-core);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill span{width:24px;height:24px;border-radius:999px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+.pill span i{width:12px;height:12px;background:var(--paper);font-style:normal}
+.inline{margin:0 -16px;padding:14px 16px 16px;background:var(--ink-50);border-top:1px solid var(--border-hairline);border-bottom:1px solid var(--border-hairline);display:flex;flex-direction:column;gap:12px}
+.ilhead{display:flex;align-items:center;gap:8px;font:500 12px/1 var(--font-core);color:var(--text-tertiary)}
+</style></head><body>
+<h1>Where the conversation appears</h1>
+<p class="lede">You typed &ldquo;what do I still owe money for?&rdquo; on Today. The answer has to arrive without losing the page it came from. All four keep the composer where it is, keep the page visible behind, and offer the same two moves: fold it away, or open it as a full conversation.</p>
+
+<div class="row">
+
+<div class="opt">
+<p class="hd">A. Sheet over the page</p>
+<p class="dk">A rounded sheet rises to 65% and the page dims behind it. Two controls in its header: fold down, and open full. Swiping the grabber does the same thing. Most familiar; also the heaviest layer.</p>
+<div class="ph">
+  <div class="bar dim"><span class="mark">offload</span><span class="ics"><span class="ic"></span><span class="ic"></span></span></div>
+  <div class="pg dim"><div class="sh"><b>Priority</b></div>
+    <div class="li"><b>Ana needs an answer on the 14th&ndash;17th</b><span>Lisbon trip &middot; asked Tuesday</span></div>
+    <div class="li"><b>Split the flight cost: &euro;214 each</b><span>Lisbon trip &middot; you said you&rsquo;d sort it</span></div>
+    <div class="li"><b>Order the oak brackets</b><span>Bookshelf build</span></div>
+  </div>
+  <div class="sheet" style="height:65%">
+    <div class="grab"><u></u></div>
+    <div class="shead"><b>what do I still owe money for?</b><span class="sq"><i class="mask-max"></i></span><span class="sq"><i class="mask-min"></i></span></div>
+    <div class="sbody stream">
+      <div class="you">what do I still owe money for?</div>
+      <div class="ol">Three things. You owe Ana &euro;214 for the flights, Sam &pound;12 for the drill bits, and the flat insurance renews at &pound;340 on the 20th.
+        <div class="chips"><span class="c t">Lisbon trip</span><span class="c m">&euro;214 to Ana</span></div>
+      </div>
+    </div>
+    <div style="padding:0 12px 12px"><div class="field"><i>Add to this</i><span class="dot"></span><span class="dot send"></span></div></div>
+  </div>
+</div>
+<p class="note">Folded, it becomes a 44px strip above the composer with the last line of the answer.</p>
+</div>
+
+<div class="opt">
+<p class="hd">B. The composer grows</p>
+<p class="dk">No new surface. The field you typed into extends upward into a panel, so the conversation is physically attached to where it started. Fold and full-screen sit in its top corner.</p>
+<div class="ph">
+  <div class="bar dim"><span class="mark">offload</span><span class="ics"><span class="ic"></span><span class="ic"></span></span></div>
+  <div class="pg dim"><div class="sh"><b>Priority</b></div>
+    <div class="li"><b>Ana needs an answer on the 14th&ndash;17th</b><span>Lisbon trip &middot; asked Tuesday</span></div>
+    <div class="li"><b>Split the flight cost: &euro;214 each</b><span>Lisbon trip &middot; you said you&rsquo;d sort it</span></div>
+    <div class="li"><b>Order the oak brackets</b><span>Bookshelf build</span></div>
+  </div>
+  <div class="sheet" style="height:58%;border-radius:22px 22px 0 0;box-shadow:0 -1px 0 var(--border-hairline),0 -14px 34px rgba(11,11,11,.10)">
+    <div class="shead" style="padding:12px 14px 10px">
+      <span class="sq" style="background:var(--surface-accent-soft)"><i class="mask-up" style="background:var(--moss-600)"></i></span>
+      <b>Started from Today</b><span class="sq"><i class="mask-max"></i></span><span class="sq"><i class="mask-min"></i></span></div>
+    <div class="sbody stream">
+      <div class="you">what do I still owe money for?</div>
+      <div class="ol">Three things. You owe Ana &euro;214 for the flights, Sam &pound;12 for the drill bits, and the flat insurance renews at &pound;340 on the 20th.
+        <div class="chips"><span class="c t">Lisbon trip</span><span class="c m">&euro;214 to Ana</span></div>
+      </div>
+    </div>
+    <div style="padding:0 12px 12px"><div class="field" style="border-color:var(--blue-500)"><i>Add to this</i><span class="dot"></span><span class="dot send"></span></div></div>
+  </div>
+</div>
+<p class="note">Reads as one object with the composer, so folding is obviously reversible.</p>
+</div>
+
+<div class="opt">
+<p class="hd">C. In the page</p>
+<p class="dk">The answer is inserted at the top of the page itself, as a band the page scrolls with. Least layered, most &ldquo;this belongs to Today&rdquo;. Costs you the page&rsquo;s first rows and cannot be folded, only dismissed.</p>
+<div class="ph">
+  <div class="bar"><span class="mark">offload</span><span class="ics"><span class="ic"></span><span class="ic"></span></span></div>
+  <div class="pg">
+    <div class="inline">
+      <div class="ilhead"><span style="flex:1">Just now</span><span class="sq" style="width:22px;height:22px"><i class="mask-max" style="width:11px;height:11px"></i></span><span class="sq" style="width:22px;height:22px"><i class="mask-x" style="width:11px;height:11px"></i></span></div>
+      <div class="stream">
+        <div class="you">what do I still owe money for?</div>
+        <div class="ol">Three things. You owe Ana &euro;214 for the flights, Sam &pound;12 for the drill bits, and the flat insurance renews at &pound;340 on the 20th.
+          <div class="chips"><span class="c t">Lisbon trip</span><span class="c m">&euro;214 to Ana</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="sh"><b>Priority</b></div>
+    <div class="li"><b>Ana needs an answer on the 14th&ndash;17th</b><span>Lisbon trip &middot; asked Tuesday</span></div>
+    <div class="li"><b>Split the flight cost: &euro;214 each</b><span>Lisbon trip &middot; you said you&rsquo;d sort it</span></div>
+  </div>
+  <div class="foot"><div class="field"><i>Dump anything</i><span class="dot"></span><span class="dot send"></span></div>
+    <div class="tabs"><span class="tab"></span><span class="tab"></span><span class="tab on"></span></div></div>
+</div>
+<p class="note">No minimise button, because there is nothing to minimise.</p>
+</div>
+
+<div class="opt">
+<p class="hd">D. Sheet, folded</p>
+<p class="dk">The same sheet as A, shown in its folded state: a dark pill above the composer carrying the last thing offload said. Tap it to raise the sheet, tap the arrow to open it full. This is what A and B collapse to.</p>
+<div class="ph">
+  <div class="bar"><span class="mark">offload</span><span class="ics"><span class="ic"></span><span class="ic"></span></span></div>
+  <div class="pg">
+    <div class="sh"><b>Priority</b></div>
+    <div class="li"><b>Ana needs an answer on the 14th&ndash;17th</b><span>Lisbon trip &middot; asked Tuesday</span></div>
+    <div class="li"><b>Split the flight cost: &euro;214 each</b><span>Lisbon trip &middot; you said you&rsquo;d sort it</span></div>
+    <div class="li"><b>Order the oak brackets</b><span>Bookshelf build</span></div>
+    <div class="li"><b>Renew the flat insurance</b><span>Flat admin &middot; from an email you dumped</span></div>
+    <div class="li"><b>Call the dentist back</b><span>Flat admin &middot; voice note</span></div>
+  </div>
+  <div class="pill"><b>Three things. You owe Ana &euro;214&hellip;</b><span><i class="mask-up"></i></span><span><i class="mask-x"></i></span></div>
+  <div class="foot"><div class="field"><i>Dump anything</i><span class="dot"></span><span class="dot send"></span></div>
+    <div class="tabs"><span class="tab"></span><span class="tab"></span><span class="tab on"></span></div></div>
+</div>
+<p class="note">Only exists while a conversation is open, and disappears when you close it.</p>
+</div>
+
+</div>
+<p class="note" style="max-width:64ch">In all four, the full-screen control opens the same conversation page that Past conversations points at, so nothing is a dead end. A and B are the same mechanic at different weights: A is a layer over the page, B is the composer itself growing. C trades foldability for belonging to the page.</p>
+</body></html>

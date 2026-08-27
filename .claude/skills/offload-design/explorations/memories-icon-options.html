@@ -1,0 +1,75 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Memories, icon options</title>
+<link rel="stylesheet" href="../styles.css?v=2">
+<style>body{margin:0;padding:48px 40px;background:var(--surface-page);color:var(--text-primary)}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;color:var(--text-secondary);max-width:64ch;margin:0 0 30px}
+.bar{display:flex;align-items:center;gap:0;border:1px solid var(--border-hairline);border-radius:var(--radius-md);overflow:hidden;max-width:360px;margin:0 0 36px}
+.bar>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 0}
+.row{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--border-hairline);border-bottom:none}
+.row:last-of-type{border-bottom:1px solid var(--border-hairline)}
+@media(max-width:860px){.row{grid-template-columns:repeat(2,1fr)}}
+.o{padding:20px 16px 22px;border-right:1px solid var(--border-hairline);display:flex;flex-direction:column;gap:11px;align-items:center;text-align:center}
+.o:last-child{border-right:none}
+.tabs{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--ink-950)}
+.g{display:block;width:22px;height:22px;background:currentColor}
+.lb{font:500 10px/1 var(--font-core);letter-spacing:0.01em}
+.big{color:var(--ink-950)}.big .g{width:30px;height:30px}
+.n{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.d{font-size:13px;line-height:1.45;color:var(--text-secondary);margin:0}
+.rec{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-xs);background:var(--surface-inverse);color:var(--text-inverse);font:500 12px/1 var(--font-core)}
+.cap{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary);padding-bottom:8px;display:block}
+.note{margin-top:32px;font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:78ch}
+.note b{color:var(--text-primary);font-weight:600}
+</style></head><body><div class="wrap">
+<h1>Memories &mdash; ten icons</h1>
+<p class="lede">The tab bar as it stands, then every option at tab size. The three glyphs have to work as a set, so each candidate is judged next to <span style="font-family:var(--font-core)">house</span> and the lasso.</p>
+<span class="cap">the bar as it stands now</span>
+<div class="bar">
+<div style="color:var(--ink-950)"><span class="g" style="-webkit-mask:url(../assets/icons/house.svg) center/contain no-repeat;mask:url(../assets/icons/house.svg) center/contain no-repeat"></span><span class="lb">Home</span></div>
+<div style="color:var(--ink-950)"><span class="g" style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></span><span class="lb">My things</span></div>
+<div style="color:var(--text-tertiary)"><span class="g" style="-webkit-mask:url(../assets/icons/brain.svg) center/contain no-repeat;mask:url(../assets/icons/brain.svg) center/contain no-repeat"></span><span class="lb">Memories</span></div>
+</div>
+<div class="row"><div class="o">
+<span class="big"><span class="g" style="-webkit-mask:url(../assets/icons/brain.svg) center/contain no-repeat;mask:url(../assets/icons/brain.svg) center/contain no-repeat"></span></span>
+<span class="tabs"><span class="g" style="-webkit-mask:url(../assets/icons/brain.svg) center/contain no-repeat;mask:url(../assets/icons/brain.svg) center/contain no-repeat"></span><span class="lb">Memories</span></span>
+<span class="n">brain</span><span class="rec">in use</span>
+<p class="d">Literal, this is the app remembering for you. The current pick. Clear, but it is the icon every AI product reaches for.</p></div><div class="o">
+<span class="big"><span class="g" style="-webkit-mask:url(../assets/icons/sparkles.svg) center/contain no-repeat;mask:url(../assets/icons/sparkles.svg) center/contain no-repeat"></span></span>
+<span class="tabs"><span class="g" style="-webkit-mask:url(../assets/icons/sparkles.svg) center/contain no-repeat;mask:url(../assets/icons/sparkles.svg) center/contain no-repeat"></span><span class="lb">Memories</span></span>
+<span class="n">sparkles</span>
+<p class="d">offload&rsquo;s own mark for &ldquo;we did this&rdquo;, already used for inferred tags. Consistent, but overloaded and very AI-generic.</p></div><div class="o">
+<span class="big"><span class="g" style="-webkit-mask:url(../assets/icons/clock-fading.svg) center/contain no-repeat;mask:url(../assets/icons/clock-fading.svg) center/contain no-repeat"></span></span>
+<span class="tabs"><span class="g" style="-webkit-mask:url(../assets/icons/clock-fading.svg) center/contain no-repeat;mask:url(../assets/icons/clock-fading.svg) center/contain no-repeat"></span><span class="lb">Memories</span></span>
+<span class="n">clock-fading</span>
+<p class="d">Time, dissolving. The one glyph here that actually means &ldquo;memory&rdquo; rather than &ldquo;storage&rdquo; or &ldquo;a brain&rdquo;.</p></div><div class="o">
+<span class="big"><span class="g" style="-webkit-mask:url(../assets/icons/archive.svg) center/contain no-repeat;mask:url(../assets/icons/archive.svg) center/contain no-repeat"></span></span>
+<span class="tabs"><span class="g" style="-webkit-mask:url(../assets/icons/archive.svg) center/contain no-repeat;mask:url(../assets/icons/archive.svg) center/contain no-repeat"></span><span class="lb">Memories</span></span>
+<span class="n">archive</span>
+<p class="d">Everything filed away and retrievable. Honest, but sounds like cold storage rather than something alive.</p></div><div class="o">
+<span class="big"><span class="g" style="-webkit-mask:url(../assets/icons/gallery-vertical-end.svg) center/contain no-repeat;mask:url(../assets/icons/gallery-vertical-end.svg) center/contain no-repeat"></span></span>
+<span class="tabs"><span class="g" style="-webkit-mask:url(../assets/icons/gallery-vertical-end.svg) center/contain no-repeat;mask:url(../assets/icons/gallery-vertical-end.svg) center/contain no-repeat"></span><span class="lb">Memories</span></span>
+<span class="n">gallery-vertical-end</span>
+<p class="d">A stack of everything you have put down, seen edge-on. Quiet, abstract, no clich&eacute;.</p></div></div><div class="row"><div class="o">
+<span class="big"><span class="g" style="-webkit-mask:url(../assets/icons/album.svg) center/contain no-repeat;mask:url(../assets/icons/album.svg) center/contain no-repeat"></span></span>
+<span class="tabs"><span class="g" style="-webkit-mask:url(../assets/icons/album.svg) center/contain no-repeat;mask:url(../assets/icons/album.svg) center/contain no-repeat"></span><span class="lb">Memories</span></span>
+<span class="n">album</span>
+<p class="d">A photo album with a bookmark. Warm and personal &mdash; memories as something you look back through.</p></div><div class="o">
+<span class="big"><span class="g" style="-webkit-mask:url(../assets/icons/library-big.svg) center/contain no-repeat;mask:url(../assets/icons/library-big.svg) center/contain no-repeat"></span></span>
+<span class="tabs"><span class="g" style="-webkit-mask:url(../assets/icons/library-big.svg) center/contain no-repeat;mask:url(../assets/icons/library-big.svg) center/contain no-repeat"></span><span class="lb">Memories</span></span>
+<span class="n">library-big</span>
+<p class="d">Shelves of things you kept. Suggests a searchable body of knowledge.</p></div><div class="o">
+<span class="big"><span class="g" style="-webkit-mask:url(../assets/icons/rewind.svg) center/contain no-repeat;mask:url(../assets/icons/rewind.svg) center/contain no-repeat"></span></span>
+<span class="tabs"><span class="g" style="-webkit-mask:url(../assets/icons/rewind.svg) center/contain no-repeat;mask:url(../assets/icons/rewind.svg) center/contain no-repeat"></span><span class="lb">Memories</span></span>
+<span class="n">rewind</span>
+<p class="d">Going back through what happened. Distinctive, but reads as media playback.</p></div><div class="o">
+<span class="big"><span class="g" style="-webkit-mask:url(../assets/icons/message-circle.svg) center/contain no-repeat;mask:url(../assets/icons/message-circle.svg) center/contain no-repeat"></span></span>
+<span class="tabs"><span class="g" style="-webkit-mask:url(../assets/icons/message-circle.svg) center/contain no-repeat;mask:url(../assets/icons/message-circle.svg) center/contain no-repeat"></span><span class="lb">Memories</span></span>
+<span class="n">message-circle</span>
+<p class="d">What we had for Thoughts. Fits a question-and-answer screen, fits &ldquo;memories&rdquo; poorly.</p></div><div class="o">
+<span class="big"><span class="g" style="-webkit-mask:url(../assets/icons/search.svg) center/contain no-repeat;mask:url(../assets/icons/search.svg) center/contain no-repeat"></span></span>
+<span class="tabs"><span class="g" style="-webkit-mask:url(../assets/icons/search.svg) center/contain no-repeat;mask:url(../assets/icons/search.svg) center/contain no-repeat"></span><span class="lb">Memories</span></span>
+<span class="n">search</span>
+<p class="d">Drop the metaphor: the tab is where you go to find things. Boring and completely unambiguous.</p></div></div>
+<p class="note"><b>My picks.</b> <b>clock-fading</b> is the only glyph here that means memory rather than storage &mdash; and next to a hand-drawn lasso it keeps the set feeling human rather than technical. <b>gallery-vertical-end</b> is the strongest abstract option: a stack of everything you put down, no clich&eacute;. <b>album</b> if you want warmth. I would move off <b>brain</b> &mdash; it is the default AI glyph and it makes the tab about the software rather than about your own stuff.</p>
+</div></body></html>

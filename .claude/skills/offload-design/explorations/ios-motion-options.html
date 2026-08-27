@@ -1,0 +1,335 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>iOS motion options</title>
+<link rel="stylesheet" href="../styles.css?v=3">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../_ds_bundle.js?v=8"></script>
+<script>window.OFFLOAD_ICON_BASE="../assets/icons/"</script>
+<style>
+html,body{margin:0}
+body{background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);letter-spacing:var(--tracking-body)}
+#root{padding:34px 40px 90px;max-width:1320px;margin:0 auto}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+h2{font:var(--weight-semibold) 20px/1.2 var(--font-core);letter-spacing:-0.012em;margin:0}
+.lede{font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:78ch;margin:0 0 36px}
+.sechead{display:flex;align-items:center;gap:12px;padding-bottom:10px;margin:0 0 20px;border-bottom:1px solid var(--ink-950)}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-bottom:48px;align-items:start}
+.cell{display:flex;flex-direction:column;gap:10px}
+.cname{display:flex;align-items:baseline;gap:8px;font:var(--weight-medium) 15px/1.2 var(--font-core)}
+.cname u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.cnote{font-size:13px;line-height:1.5;color:var(--text-secondary);margin:0;min-height:4.5em}
+.flag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-xs);font:var(--weight-medium) 11px/1 var(--font-core);align-self:flex-start}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{border:none;cursor:pointer;height:26px;padding:0 11px;border-radius:var(--radius-pill);font:var(--weight-medium) 12px/1 var(--font-core)}
+.bar{display:flex;align-items:center;gap:8px}
+.mono{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+/* The UIKit push curve, and a spring for anything that lands. */
+@keyframes i-push-in{from{transform:translateX(100%)}to{transform:none}}
+@keyframes i-push-out{from{transform:none}to{transform:translateX(100%)}}
+@keyframes i-push-back{from{transform:translateX(-30%)}to{transform:none}}
+@keyframes i-under-out{from{transform:none;filter:brightness(1)}to{transform:translateX(-30%);filter:brightness(.94)}}
+@keyframes i-axis-in{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes i-through-in{from{transform:scale(.96);opacity:0}to{transform:none;opacity:1}}
+@keyframes i-fade{from{opacity:0}to{opacity:1}}
+@keyframes i-tick{from{stroke-dashoffset:22}to{stroke-dashoffset:0}}
+@keyframes i-pop{0%{transform:scale(.5)}55%{transform:scale(1.18)}100%{transform:scale(1)}}
+</style></head><body>
+<div id="root"></div>
+<script type="text/babel">
+const {Icon,IconButton,Button,Badge,Toast}=window.OffloadDesignSystem_dc4a89;
+const THINGS=[["lasso","Lisbon trip","4 open"],["bookmark","Bookshelf build","2 open"],["cloudy","Read later","23 things"],["users","Flat admin","6 things"]];
+const TABS=[["sun","Today"],["lasso","Things"],["cloudy","Memories"]];
+const PUSH="350ms cubic-bezier(.32,.72,0,1)";
+
+function Stage({children,tabs,title,back,onBack}){
+  return (
+    <div style={{width:"100%",height:430,position:"relative",overflow:"hidden",borderRadius:20,
+      background:"var(--surface-page)",border:"1px solid var(--border-hairline)",display:"flex",flexDirection:"column"}}>
+      <div style={{height:52,flex:"0 0 auto",display:"flex",alignItems:"center",padding:"0 10px",zIndex:3,
+        background:"var(--surface-chrome)",boxShadow:"0 0.5px 0 var(--border-hairline)"}}>
+        <span style={{flex:1,display:"flex",alignItems:"center",minWidth:0}}>
+          {back?<button type="button" onClick={onBack} style={{border:"none",background:"none",cursor:"pointer",padding:0,
+            display:"flex",alignItems:"center",gap:2,color:"var(--text-primary)",
+            font:"var(--weight-regular) 14px/1 var(--font-core)"}}>
+            <Icon name="chevron-left" size={17}/>Back</button>:null}
+        </span>
+        <b style={{font:"var(--weight-semibold) 15px/1 var(--font-core)",whiteSpace:"nowrap"}}>{title}</b>
+        <span style={{flex:1}}/>
+      </div>
+      <div style={{flex:1,minHeight:0,position:"relative",overflow:"hidden"}}>{children}</div>
+      {tabs}
+    </div>
+  );
+}
+function Tabs({value,onChange}){
+  return (
+    <nav style={{height:56,flex:"0 0 auto",display:"flex",background:"var(--surface-chrome)",
+      boxShadow:"0 -0.5px 0 var(--border-hairline)"}}>
+      {TABS.map(([ic,l])=>{
+        const on=l===value;
+        return (
+          <button key={l} type="button" onClick={()=>onChange&&onChange(l)}
+            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,
+              border:"none",background:"none",cursor:"pointer",padding:0,
+              color:on?"var(--text-primary)":"var(--text-tertiary)"}}>
+            <Icon name={ic} size={19}/>
+            <u style={{textDecoration:"none",font:"var(--weight-medium) 10.5px/1 var(--font-core)"}}>{l}</u>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+function Row({r,onClick,trailing,press}){
+  const [p,setP]=React.useState(false);
+  return (
+    <div onClick={onClick}
+      onMouseDown={()=>setP(true)} onMouseUp={()=>setP(false)} onMouseLeave={()=>setP(false)}
+      style={{display:"flex",alignItems:"center",gap:12,minHeight:56,padding:"8px 16px",cursor:"pointer",
+        background:press&&p?"var(--state-selected)":"transparent",
+        transition:press?"background 90ms var(--ease-out)":undefined,
+        boxShadow:"inset 0 -0.5px 0 var(--border-hairline)"}}>
+      <span style={{width:36,height:36,flex:"0 0 auto",borderRadius:"var(--radius-sm)",background:"var(--surface-fill)",
+        display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-secondary)"}}>
+        <Icon name={r[0]} size={16}/></span>
+      <span style={{flex:1,minWidth:0}}>
+        <b style={{display:"block",font:"var(--weight-medium) 16px/1.3 var(--font-core)"}}>{r[1]}</b>
+        <span style={{display:"block",fontSize:12.5,color:"var(--text-secondary)"}}>{r[2]}</span></span>
+      {trailing||<Icon name="chevron-right" size={14} style={{color:"var(--ink-300)"}}/>}
+    </div>
+  );
+}
+function List({rows=THINGS,onOpen,press}){
+  return <div>{rows.map((r,i)=><Row key={i} r={r} press={press} onClick={()=>onOpen&&onOpen(r)}/>)}</div>;
+}
+function Detail({r}){
+  return (
+    <div style={{padding:"14px 16px",background:"var(--surface-raised)",minHeight:"100%"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,paddingBottom:14}}>
+        <span style={{width:44,height:44,borderRadius:"var(--radius-md)",background:"var(--surface-fill)",display:"flex",
+          alignItems:"center",justifyContent:"center",color:"var(--text-secondary)"}}><Icon name={r[0]} size={19}/></span>
+        <span><b style={{display:"block",font:"var(--weight-semibold) 19px/1.2 var(--font-core)"}}>{r[1]}</b>
+          <span style={{fontSize:12.5,color:"var(--text-secondary)"}}>{r[2]}</span></span>
+      </div>
+      {[0,1,2,3].map(i=><span key={i} style={{display:"block",height:10,borderRadius:5,marginBottom:12,
+        width:i%2?"88%":"64%",background:"var(--surface-fill)"}}/>)}
+    </div>
+  );
+}
+
+/* 1 — Pushing a screen. The iOS one carries the whole screen; the Android one does not. */
+function PushDemo(){
+  const [mode,setMode]=React.useState("push");
+  const [open,setOpen]=React.useState(null);
+  const [leaving,setLeaving]=React.useState(null);
+  const [back,setBack]=React.useState(false);
+  const [n,setN]=React.useState(0);
+  const timer=React.useRef(null);
+  const go=(r)=>{clearTimeout(timer.current);setLeaving(null);setBack(false);setOpen(r);setN(v=>v+1)};
+  const close=()=>{
+    setBack(true);setLeaving(open);setOpen(null);setN(v=>v+1);
+    clearTimeout(timer.current);timer.current=setTimeout(()=>setLeaving(null),360);
+  };
+  const detailAnim=mode==="push"?"i-push-in "+PUSH+" both"
+    :mode==="axis"?"i-axis-in 300ms cubic-bezier(.05,.7,.1,1) both":undefined;
+  const listAnim=mode==="push"
+    ?(open?"i-under-out "+PUSH+" both":(back?"i-push-back "+PUSH+" both":undefined))
+    :(back&&mode==="axis"?"i-fade 240ms var(--ease-out) both":undefined);
+  return (
+    <>
+      <div className="seg">{[["push","UIKit push"],["axis","Shared axis X"],["none","Cut"]].map(([k,l])=>
+        <button key={k} onClick={()=>{setMode(k);setOpen(null);setBack(false)}}
+          style={{background:mode===k?"var(--surface-inverse)":"var(--surface-fill)",
+            color:mode===k?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>)}</div>
+      <Stage title={open?open[1]:"My things"} back={!!open} onBack={close} tabs={<Tabs value="Things" onChange={()=>{}}/>}>
+        <div key={"a"+n} style={{position:"absolute",inset:0,background:"var(--surface-page)",animation:listAnim}}>
+          <List onOpen={go}/>
+        </div>
+        {open?<div key={"b"+n} style={{position:"absolute",inset:0,animation:detailAnim,
+          boxShadow:mode==="push"?"-1px 0 6px rgba(11,11,11,.12)":"none"}}>
+          <Detail r={open}/>
+        </div>:null}
+        {leaving&&mode==="push"?<div key={"c"+n} style={{position:"absolute",inset:0,
+          animation:"i-push-out "+PUSH+" both",boxShadow:"-1px 0 6px rgba(11,11,11,.12)"}}>
+          <Detail r={leaving}/>
+        </div>:null}
+      </Stage>
+      <div className="bar"><span className="mono">{mode==="push"?"350ms, the screen behind slides 30% and dims":mode==="axis"?"300ms":"no motion"}</span></div>
+    </>
+  );
+}
+
+/* 2 — Switching tabs. UIKit does not animate this at all. */
+function TabDemo(){
+  const [mode,setMode]=React.useState("none");
+  const [tab,setTab]=React.useState("Today");
+  const [n,setN]=React.useState(0);
+  const body=tab==="Today"?[["sun","Ana needs an answer","Lisbon trip"],["check","Order the brackets","sale ends Friday"]]
+    :tab==="Things"?THINGS.slice(0,3):[["cloudy","\u20ac214 to Ana","money"],["cloudy","14th to 17th","dates"]];
+  return (
+    <>
+      <div className="seg">{[["none","Cut, as UIKit"],["fade","Cross-fade"],["through","Fade through, as Android"]].map(([k,l])=>
+        <button key={k} onClick={()=>setMode(k)} style={{background:mode===k?"var(--surface-inverse)":"var(--surface-fill)",
+          color:mode===k?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>)}</div>
+      <Stage title={tab} tabs={<Tabs value={tab} onChange={(t)=>{if(t!==tab){setTab(t);setN(v=>v+1)}}}/>}>
+        <div key={n} style={{position:"absolute",inset:0,
+          animation:mode==="none"?undefined:mode==="fade"?"i-fade 200ms var(--ease-out) both"
+            :"i-through-in 260ms var(--ease-out) both"}}>
+          <List rows={body}/>
+        </div>
+      </Stage>
+      <div className="bar"><span className="mono">tap the tabs</span></div>
+    </>
+  );
+}
+
+/* 3 — Press feedback: a fill that appears under the finger and leaves with it. */
+function PressDemo(){
+  const [on,setOn]=React.useState(true);
+  return (
+    <>
+      <div className="seg">{[["1","Highlight on press"],["0","Nothing"]].map(([k,l])=>
+        <button key={k} onClick={()=>setOn(k==="1")} style={{background:(on?"1":"0")===k?"var(--surface-inverse)":"var(--surface-fill)",
+          color:(on?"1":"0")===k?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>)}</div>
+      <Stage title="My things" tabs={<Tabs value="Things" onChange={()=>{}}/>}>
+        <div style={{position:"absolute",inset:0}}>
+          <List press={on}/>
+          <div style={{padding:"12px 16px",fontSize:12.5,color:"var(--text-secondary)"}}>press and hold a row</div>
+        </div>
+      </Stage>
+      <div className="bar"><span className="mono">90ms in, out with the finger</span></div>
+    </>
+  );
+}
+
+/* 4 — Revealing more rows: the Android decision, unchanged. */
+function ExpandDemo(){
+  const [mode,setMode]=React.useState("height");
+  const [open,setOpen]=React.useState(false);
+  const extra=[["archive","Berlin, March","kept"],["archive","Bike repair","kept"]];
+  return (
+    <>
+      <div className="seg">{[["height","Height only"],["none","Cut"]].map(([k,l])=>
+        <button key={k} onClick={()=>{setMode(k);setOpen(false)}} style={{background:mode===k?"var(--surface-inverse)":"var(--surface-fill)",
+          color:mode===k?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>)}</div>
+      <Stage title="My things" tabs={<Tabs value="Things" onChange={()=>{}}/>}>
+        <div style={{position:"absolute",inset:0,overflowY:"auto"}}>
+          <List rows={THINGS.slice(0,1)}/>
+          <div style={{maxHeight:open?114:0,overflow:"hidden",
+            transition:mode==="height"?"max-height 300ms cubic-bezier(.32,.72,0,1)":undefined}}>
+            {extra.map((r,i)=><Row key={i} r={r}/>)}
+          </div>
+          <div style={{padding:"10px 16px"}}>
+            <Button variant="ghost" size="sm" iconAfter={open?"chevron-up":"chevron-right"}
+              onClick={()=>setOpen(v=>!v)}>{open?"Fewer":"All 3 older things"}</Button>
+          </div>
+        </div>
+      </Stage>
+      <div className="bar"><span className="mono">300ms, no stagger</span></div>
+    </>
+  );
+}
+
+/* 5 — Ticking a task. Reminders draws its tick; a spring is the other iOS habit. */
+function TickDemo(){
+  const [mode,setMode]=React.useState("draw");
+  const [done,setDone]=React.useState({});
+  const rows=[["Ask Ana about the 14th","Lisbon trip"],["Order the oak brackets","sale ends Friday"],["Renew the flat insurance","the 20th"]];
+  return (
+    <>
+      <div className="seg">{[["draw","Tick draws, as Android"],["pop","Spring pop"]].map(([k,l])=>
+        <button key={k} onClick={()=>{setMode(k);setDone({})}} style={{background:mode===k?"var(--surface-inverse)":"var(--surface-fill)",
+          color:mode===k?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>)}</div>
+      <Stage title="Lisbon trip" back tabs={<Tabs value="Things" onChange={()=>{}}/>}>
+        <div style={{position:"absolute",inset:0}}>
+          {rows.map((r,i)=>{
+            const on=!!done[i];
+            return (
+              <div key={i} onClick={()=>setDone(d=>({...d,[i]:!d[i]}))}
+                style={{display:"flex",alignItems:"center",gap:14,minHeight:56,padding:"8px 16px",cursor:"pointer",
+                  boxShadow:"inset 0 -0.5px 0 var(--border-hairline)"}}>
+                <span style={{width:20,height:20,flex:"0 0 auto",borderRadius:"var(--radius-xs)",display:"flex",
+                  alignItems:"center",justifyContent:"center",
+                  border:"1px solid "+(on?"transparent":"var(--border-strong)"),
+                  background:on?"var(--surface-inverse)":"transparent",
+                  animation:on&&mode==="pop"?"i-pop 320ms cubic-bezier(.34,1.56,.64,1) both":undefined,
+                  transition:"background var(--transition-ui),border-color var(--transition-ui)"}}>
+                  {on?<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-inverse)" strokeWidth="3"
+                    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M20 6L9 17l-5-5" style={{strokeDasharray:22,
+                      animation:mode==="draw"?"i-tick 220ms cubic-bezier(.32,.72,0,1) both":undefined}}/></svg>:null}
+                </span>
+                <span style={{flex:1,minWidth:0}}>
+                  <b style={{display:"block",font:"var(--text-body-role)",
+                    color:on?"var(--text-tertiary)":"var(--text-primary)",textDecoration:on?"line-through":"none",
+                    transition:"color 180ms linear"}}>{r[0]}</b>
+                  <span style={{display:"block",font:"var(--text-caption-role)",color:"var(--text-tertiary)"}}>{r[1]}</span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </Stage>
+      <div className="bar"><span className="mono">{mode==="draw"?"220ms draw":"320ms spring"}</span></div>
+    </>
+  );
+}
+
+function Cell({name,tag,note,flag,children}){
+  const skin=flag==="new"?["var(--surface-attention-soft)","var(--text-on-attention)"]
+    :flag==="moved"?["var(--surface-accent-soft)","var(--text-accent)"]
+    :["var(--surface-fill)","var(--text-secondary)"];
+  const label=flag==="new"?"new on iOS":flag==="moved"?"moved from Android":"differs from Android";
+  return (
+    <div className="cell">
+      <div className="cname">{name}<u>{tag}</u></div>
+      <span className="flag" style={{background:skin[0],color:skin[1]}}>{label}</span>
+      <p className="cnote">{note}</p>
+      {children}
+    </div>
+  );
+}
+
+function App(){
+  return (
+    <>
+      <h1>iOS motion, what moves over and what does not</h1>
+      <p className="lede">Three of the Android decisions transfer as they are. Two do not: iOS carries the whole
+        screen on a push rather than sliding a pane 30dp, and UIKit does not animate a tab change at all. Each
+        card below says whether it moved over, differs, or is new here. Everything is live.</p>
+
+      <div className="sechead"><h2>Navigation</h2><Badge tone="attention" variant="solid">3</Badge></div>
+      <div className="row">
+        <Cell name="Opening a thing" tag="350ms" flag="differs"
+          note="The iOS push carries the whole screen in from the right while the screen behind slides 30% left and dims under it, so back has something to return. Android's 30dp slide and fade is here for comparison and reads shallow on a phone.">
+          <PushDemo/></Cell>
+        <Cell name="Switching tabs" tag="0ms" flag="differs"
+          note="UIKit cuts between tabs, and every iOS user expects that. The Android fade through is offered for consistency across the two kits, and a plain cross-fade sits between the two.">
+          <TabDemo/></Cell>
+        <Cell name="Press feedback" tag="90ms" flag="new"
+          note="Instead of Android's ripple, iOS flashes a fill under the finger that leaves the moment you lift. Nothing is animated on release, so a scroll that starts on a row never leaves a mark behind.">
+          <PressDemo/></Cell>
+      </div>
+
+      <div className="sechead"><h2>Lists and content</h2><Badge tone="attention" variant="solid">3</Badge></div>
+      <div className="row">
+        <Cell name="Revealing more" tag="300ms" flag="moved"
+          note="Height only, exactly the Android decision, on the iOS curve. No stagger, because the rows are already on the page and only the box is opening.">
+          <ExpandDemo/></Cell>
+        <Cell name="Ticking a task" tag="220ms" flag="moved"
+          note="The tick draws along its path, as on Android. The alternative is the spring iOS uses when something lands, which overshoots slightly and settles.">
+          <TickDemo/></Cell>
+        <Cell name="Deleting a row" tag="unchanged" flag="moved"
+          note="Nothing to decide: the iOS kit already swipes a row away and holds the undo in its own floating toast, which is the platform habit and matches what you kept on Android.">
+          <div style={{height:430,borderRadius:20,border:"1px dashed var(--border-hairline)",display:"flex",
+            alignItems:"center",justifyContent:"center",textAlign:"center",padding:24,boxSizing:"border-box",
+            font:"var(--text-body-sm-role)",color:"var(--text-tertiary)"}}>
+            Already in the kit. Swipe a row in the iOS build to see it.</div>
+        </Cell>
+      </div>
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script></body></html>

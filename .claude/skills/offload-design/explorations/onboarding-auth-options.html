@@ -1,0 +1,438 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Onboarding and auth options</title>
+<link rel="stylesheet" href="../styles.css?v=3">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../_ds_bundle.js?v=1787256974498"></script>
+<script>window.OFFLOAD_ICON_BASE="../assets/icons/"</script>
+<style>
+html,body{margin:0}
+body{background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);letter-spacing:var(--tracking-body)}
+#root{padding:34px 40px 90px;max-width:1260px;margin:0 auto}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+h2{font:var(--weight-semibold) 20px/1.2 var(--font-core);letter-spacing:-0.012em;margin:0}
+.lede{font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:78ch;margin:0 0 34px}
+.sechead{display:flex;align-items:baseline;gap:12px;padding-bottom:9px;border-bottom:1px solid var(--ink-950);margin:0 0 18px}
+.sechead u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.flow{margin-bottom:42px}
+.fname{display:flex;align-items:baseline;gap:10px;font:var(--weight-medium) 16px/1.2 var(--font-core);margin-bottom:4px}
+.fname u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.fnote{font-size:13.5px;line-height:1.55;color:var(--text-secondary);margin:0 0 14px;max-width:80ch}
+.strip{display:flex;gap:14px;flex-wrap:wrap}
+.step{width:212px}
+.cap{font-size:12.5px;line-height:1.45;color:var(--text-secondary);margin:8px 0 0}
+.cap b{color:var(--text-primary);font-weight:500;display:block}
+.spec{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;max-width:80ch}
+.spec li{font-size:13px;line-height:1.5;color:var(--text-secondary);padding-left:13px;position:relative}
+.spec li:before{content:"";position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:99px;background:var(--ink-300)}
+.spec b{color:var(--text-primary);font-weight:500}
+</style></head><body>
+<div id="root"></div>
+<script type="text/babel">
+const {Icon,IconButton,Button,Badge,Chip,Logo,TextField,Switch,Toast,TabBar,AppBar}=window.OffloadDesignSystem_dc4a89;
+const W=390,H=720,S=212/390;
+
+/* Every screen is drawn at 390x720 and scaled into a 212px column, so the type and hit
+   targets are the real ones. Chrome is the iOS kit's; Android is the same flow with the
+   Material bars, which is a mechanical swap. */
+function Screen({children,bar,back,style}){
+  return (
+    <div style={{width:212,height:Math.round(H*S),overflow:"hidden",borderRadius:16,
+      border:"1px solid var(--border-hairline)",background:"var(--surface-page)"}}>
+      <div style={{width:W,height:H,transform:"scale("+S+")",transformOrigin:"top left",display:"flex",
+        flexDirection:"column",background:"var(--surface-page)",...style}}>
+        <div style={{height:44,flex:"0 0 auto",display:"flex",alignItems:"flex-end",justifyContent:"space-between",
+          padding:"0 22px 6px",font:"var(--weight-medium) 13px/1 var(--font-core)",fontVariantNumeric:"tabular-nums"}}>
+          <span>9:41</span><span style={{display:"flex",gap:5,color:"var(--text-primary)"}}>
+            <Icon name="signal" size={13}/><Icon name="battery-full" size={13}/></span>
+        </div>
+        {bar!==false?(
+          <AppBar title={bar||undefined} border={false}
+            left={back?<IconButton icon="chevron-left" label={back}/>:null}/>
+        ):null}
+        {children}
+      </div>
+    </div>
+  );
+}
+function Body({children,style}){
+  return <div style={{flex:1,minHeight:0,padding:"0 22px",display:"flex",flexDirection:"column",...style}}>{children}</div>;
+}
+function Title({children,sub}){
+  return (
+    <div style={{padding:"6px 0 18px"}}>
+      <div style={{font:"var(--text-title-1)",letterSpacing:"var(--tracking-title)"}}>{children}</div>
+      {sub?<div style={{font:"var(--text-body-role)",color:"var(--text-secondary)",marginTop:8,lineHeight:1.45}}>{sub}</div>:null}
+    </div>
+  );
+}
+/* The kit's composer, geometry and controls included: 48pt pill, always the blue border,
+   camera, mic and send. `typed` shows the state where send is live. */
+function Composer({placeholder="Dump anything",typed,bare}){
+  return (
+    <div style={{padding:bare?0:"var(--space-4) var(--gutter-screen) var(--space-5)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"var(--space-3)",minHeight:48,
+        padding:"0 var(--space-3) 0 var(--space-6)",borderRadius:"var(--radius-pill)",
+        background:"var(--surface-input)",border:"1px solid var(--border-focus)"}}>
+        <span style={{flex:1,minWidth:0,font:"var(--text-body-role)",letterSpacing:"var(--tracking-body)",
+          whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
+          color:typed?"var(--text-primary)":"var(--text-tertiary)"}}>{typed||placeholder}</span>
+        <span style={{display:"flex",alignItems:"center",gap:"var(--space-2)",flex:"0 0 auto"}}>
+          <IconButton icon="camera" label="Photo" size="sm"/>
+          <IconButton icon="mic" label="Voice note" size="sm"/>
+          <IconButton icon="arrow-up" label="Send" size="sm" variant={typed?"primary":"quiet"}
+            tone={typed?"attention":undefined}/>
+        </span>
+      </div>
+    </div>
+  );
+}
+function Turn({from,text,chips}){
+  const you=from==="you";
+  return (
+    <div style={{alignSelf:you?"flex-end":"flex-start",maxWidth:"88%",marginBottom:12,
+      padding:"10px 14px",borderRadius:you?"18px 18px 5px 18px":"18px 18px 18px 5px",
+      background:you?"var(--blue-50)":"var(--ink-50)",border:you?"1px solid var(--blue-100)":"none"}}>
+      <div style={{font:you?"var(--text-body-role)":"var(--text-quiet-role)",fontSize:15,lineHeight:1.45}}>{text}</div>
+      {chips?<div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
+        {chips.map(c=><Chip key={c} tone="accent" icon="lasso">{c}</Chip>)}</div>:null}
+    </div>
+  );
+}
+function Row({icon,title,meta,tint}){
+  return (
+    <div style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 0",
+      boxShadow:"inset 0 -1px 0 var(--border-hairline)"}}>
+      <span style={{width:36,height:36,flex:"0 0 auto",borderRadius:10,display:"flex",alignItems:"center",
+        justifyContent:"center",background:tint?"var(--surface-attention)":"var(--surface-fill)",
+        color:tint?"var(--text-on-solid)":"var(--text-secondary)"}}><Icon name={icon} size={17}/></span>
+      <span style={{flex:1,minWidth:0}}>
+        <b style={{display:"block",font:"var(--weight-medium) 16px/1.3 var(--font-core)"}}>{title}</b>
+        <span style={{display:"block",fontSize:13.5,color:"var(--text-secondary)",marginTop:2}}>{meta}</span></span>
+    </div>
+  );
+}
+const TAB_ITEMS=[{value:"home",icon:"sun",label:"Today"},{value:"spaces",icon:"lasso",label:"My things"},
+  {value:"memories",icon:"cloudy",label:"Memories"}];
+function Tabs({active="home"}){
+  return <TabBar items={TAB_ITEMS} value={active} onChange={()=>{}}
+    style={{flex:"0 0 auto",background:"transparent",borderTop:"1px solid transparent"}}/>;
+}
+function Foot({children}){
+  return <div style={{flex:"0 0 auto",padding:"0 22px 30px",display:"flex",flexDirection:"column",gap:10}}>{children}</div>;
+}
+
+/* ---------------- the sign-in screens ---------------- */
+function PasskeyScreen(){
+  return (
+    <Screen bar={false}>
+      <Body style={{justifyContent:"center",alignItems:"center",textAlign:"center"}}>
+        <Logo size={34}/>
+        <div style={{font:"var(--text-title-1)",letterSpacing:"var(--tracking-title)",marginTop:22}}>Dump it here</div>
+        <div style={{font:"var(--text-body-role)",color:"var(--text-secondary)",marginTop:10,lineHeight:1.45}}>
+          One place for everything you would otherwise forget. offload sorts it.</div>
+      </Body>
+      <Foot>
+        <Button variant="primary" size="lg" block icon="lock">Continue with a passkey</Button>
+        <Button variant="ghost" size="md" block>Use an email link instead</Button>
+        <div style={{font:"var(--text-caption-role)",color:"var(--text-tertiary)",textAlign:"center",lineHeight:1.4}}>
+          No password to make, and nothing to remember. Your face or fingerprint stays on the phone.</div>
+      </Foot>
+    </Screen>
+  );
+}
+function EmailScreen(){
+  return (
+    <Screen bar={false}>
+      <Body>
+        <div style={{paddingTop:40}}><Logo size={30}/></div>
+        <Title sub="We send a link. Tap it and you are in, on this phone and the next one.">What is your email?</Title>
+        <TextField label="Email" value="jo@hey.com" onChange={()=>{}} placeholder="you@example.com"/>
+      </Body>
+      <Foot>
+        <Button variant="primary" size="lg" block>Send me a link</Button>
+        <div style={{font:"var(--text-caption-role)",color:"var(--text-tertiary)",textAlign:"center"}}>
+          No password. Nothing to remember.</div>
+      </Foot>
+    </Screen>
+  );
+}
+function ProviderScreen(){
+  return (
+    <Screen bar={false}>
+      <Body style={{justifyContent:"flex-end"}}>
+        <Logo size={30}/>
+        <Title sub="Sign in the way you already do. offload only ever reads your name and email.">Get in</Title>
+      </Body>
+      <Foot>
+        <Button variant="primary" size="lg" block>Continue with Apple</Button>
+        <Button variant="secondary" size="lg" block>Continue with Google</Button>
+        <Button variant="ghost" size="md" block>Email me a link</Button>
+      </Foot>
+    </Screen>
+  );
+}
+
+/* ---------------- flow A: dump first, account when it has to sync ---------------- */
+function A1(){
+  return (
+    <Screen bar={false}>
+      <Body style={{justifyContent:"flex-end"}}>
+        <div style={{paddingBottom:20}}>
+          <Logo size={26}/>
+          <div style={{font:"var(--text-title-1)",letterSpacing:"var(--tracking-title)",marginTop:18}}>
+            Start with anything</div>
+          <div style={{font:"var(--text-body-role)",color:"var(--text-secondary)",marginTop:8,lineHeight:1.45}}>
+            Half a thought is fine. No account yet, no setup.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:20}}>
+            {["Book the Alfama flat for the 14th","Ana can only travel the 14th to the 17th","Oak brackets, 30cm, matte black"]
+              .map(e=><div key={e} style={{padding:"12px 14px",borderRadius:14,background:"var(--surface-fill)",
+                font:"var(--text-body-sm-role)",color:"var(--text-secondary)"}}>{e}</div>)}
+          </div>
+        </div>
+      </Body>
+      <Composer/>
+    </Screen>
+  );
+}
+function A2(){
+  return (
+    <Screen bar={false}>
+      <Body style={{justifyContent:"flex-end"}}>
+        <Turn from="you" text="Oak brackets, 30cm, matte black, sale ends Friday"/>
+        <Turn text="Kept. I made a thing for the bookshelf and put Friday on it." chips={["Bookshelf build"]}/>
+      </Body>
+      <Composer/>
+    </Screen>
+  );
+}
+function A3(){
+  return (
+    <Screen bar={false}>
+      <Body style={{justifyContent:"flex-end"}}>
+        <Turn from="you" text="Oak brackets, 30cm, matte black, sale ends Friday"/>
+        <Turn text="Kept. I made a thing for the bookshelf and put Friday on it." chips={["Bookshelf build"]}/>
+      </Body>
+      <div style={{flex:"0 0 auto",margin:"0 12px 12px",padding:"20px 20px 18px",borderRadius:24,
+        background:"var(--surface-raised)",boxShadow:"var(--shadow-sheet)"}}>
+        <div style={{font:"var(--weight-semibold) 19px/1.25 var(--font-core)"}}>Somewhere to keep it</div>
+        <div style={{font:"var(--text-body-role)",color:"var(--text-secondary)",marginTop:8,lineHeight:1.45}}>
+          Two things are in here now. An account keeps them if you lose the phone.</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:18}}>
+          <Button variant="primary" size="lg" block icon="lock">Continue with a passkey</Button>
+          <Button variant="ghost" size="md" block>Not yet, keep it on this phone</Button>
+        </div>
+      </div>
+    </Screen>
+  );
+}
+function A4(){
+  return (
+    <Screen bar={false}>
+      <div style={{padding:"0 22px"}}>
+        <div style={{font:"var(--text-title-1)",letterSpacing:"var(--tracking-title)",paddingTop:6}}>Today</div>
+        <div style={{fontSize:14,color:"var(--text-secondary)",marginTop:4}}>Tue 11 Aug · sunset 19:15</div>
+      </div>
+      <Body style={{paddingTop:14}}>
+        <Row icon="check" title="Order the oak brackets" meta="Bookshelf build · sale ends Friday" tint/>
+        <Row icon="lasso" title="Bookshelf build" meta="1 thing · just you"/>
+        <div style={{marginTop:"auto",paddingBottom:14}}>
+          <Toast icon="sparkles" message="Saved to your account"/>
+        </div>
+      </Body>
+      <Composer/>
+      <Tabs/>
+    </Screen>
+  );
+}
+
+/* ---------------- flow B: three screens, then sign in ---------------- */
+function Intro({n,title,sub,art}){
+  return (
+    <Screen bar={false}>
+      <Body>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:8}}>
+          <span style={{display:"flex",gap:6}}>
+            {[1,2,3].map(i=><span key={i} style={{width:i===n?18:6,height:6,borderRadius:99,
+              background:i===n?"var(--ink-950)":"var(--ink-200)"}}/>)}
+          </span>
+          <span style={{font:"var(--weight-medium) 14px/1 var(--font-core)",color:"var(--text-secondary)"}}>Skip</span>
+        </div>
+        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>{art}</div>
+        <div style={{paddingBottom:18}}>
+          <div style={{font:"var(--text-title-1)",letterSpacing:"var(--tracking-title)"}}>{title}</div>
+          <div style={{font:"var(--text-body-role)",color:"var(--text-secondary)",marginTop:8,lineHeight:1.45}}>{sub}</div>
+        </div>
+      </Body>
+      <Foot><Button variant="primary" size="lg" block>{n===3?"Get started":"Next"}</Button></Foot>
+    </Screen>
+  );
+}
+function ArtDump(){
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:10,width:"100%"}}>
+      {["Ana can only travel the 14th–17th","€214 for the flights","matte black, 30cm","dentist after the 20th"]
+        .map((t,i)=><span key={t} style={{alignSelf:i%2?"flex-end":"flex-start",padding:"10px 14px",borderRadius:16,
+          background:"var(--surface-fill)",font:"var(--text-body-sm-role)",color:"var(--text-secondary)"}}>{t}</span>)}
+    </div>
+  );
+}
+function ArtSort(){
+  return (
+    <div style={{width:"100%",display:"flex",flexDirection:"column",gap:10}}>
+      {[["lasso","Lisbon trip","4 things"],["bookmark","Bookshelf build","2 things"],["cloudy","Read later","23 things"]]
+        .map(([i,t,m])=>(
+        <span key={t} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:16,
+          border:"1px solid var(--border-hairline)"}}>
+          <span style={{width:32,height:32,borderRadius:9,background:"var(--surface-fill)",display:"flex",
+            alignItems:"center",justifyContent:"center",color:"var(--text-secondary)"}}><Icon name={i} size={15}/></span>
+          <span style={{flex:1,font:"var(--weight-medium) 15px/1 var(--font-core)"}}>{t}</span>
+          <span style={{fontSize:13,color:"var(--text-tertiary)"}}>{m}</span></span>
+      ))}
+    </div>
+  );
+}
+function ArtNudge(){
+  return (
+    <div style={{width:"100%",padding:"16px 18px",borderRadius:20,background:"var(--surface-raised)",
+      boxShadow:"var(--shadow-2)"}}>
+      <div style={{display:"flex",gap:10,alignItems:"center"}}>
+        <span style={{width:30,height:30,borderRadius:8,background:"var(--ink-950)",display:"flex",alignItems:"center",
+          justifyContent:"center"}}><Logo variant="mark" size={17} tone="inverse"/></span>
+        <span style={{font:"var(--weight-medium) 12px/1 var(--font-core)",letterSpacing:"0.04em",
+          textTransform:"uppercase",color:"var(--text-tertiary)"}}>offload</span>
+        <span style={{marginLeft:"auto",fontSize:12,color:"var(--text-tertiary)"}}>now</span>
+      </div>
+      <div style={{font:"var(--weight-semibold) 15px/1.3 var(--font-core)",marginTop:8}}>Brackets go up Friday</div>
+      <div style={{font:"var(--text-body-role)",fontSize:14,marginTop:2}}>You saved the link on Tuesday.</div>
+    </div>
+  );
+}
+
+/* ---------------- flow C: sign in, one question, in ---------------- */
+function C2(){
+  return (
+    <Screen bar={false}>
+      <Body>
+        <Title sub="Whatever is loudest. One line is enough, and you can change your mind later.">
+          What is on your mind right now?</Title>
+        <div style={{padding:"14px 16px",borderRadius:18,background:"var(--surface-input)",
+          border:"1px solid var(--border-focus)",minHeight:120,
+          font:"var(--text-body-role)",color:"var(--text-primary)"}}>
+          A trip to Lisbon in August with Ana<span style={{opacity:.4}}>|</span></div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:16}}>
+          {["A trip","A move","A build","Work","Family"].map(c=><Chip key={c}>{c}</Chip>)}
+        </div>
+      </Body>
+      <Foot>
+        <Button variant="primary" size="lg" block>Make me a thing for it</Button>
+        <Button variant="ghost" size="md" block>Nothing yet</Button>
+      </Foot>
+    </Screen>
+  );
+}
+function C3(){
+  return (
+    <Screen bar={false}>
+      <div style={{padding:"0 22px"}}>
+        <div style={{font:"var(--text-title-1)",letterSpacing:"var(--tracking-title)",paddingTop:6}}>Today</div>
+        <div style={{fontSize:14,color:"var(--text-secondary)",marginTop:4}}>One thing in here, nothing needs you yet</div>
+      </div>
+      <Body style={{paddingTop:14}}>
+        <Row icon="lasso" title="Lisbon trip" meta="Made from what you said · just you"/>
+        <div style={{marginTop:16,padding:"16px 18px",borderRadius:18,background:"var(--surface-accent-soft)"}}>
+          <div style={{font:"var(--text-quiet-role)",fontSize:15,lineHeight:1.45,color:"var(--text-accent)"}}>
+            Dump anything about it and I will keep it together: dates, money, who said what.</div>
+        </div>
+      </Body>
+      <Composer/>
+      <Tabs/>
+    </Screen>
+  );
+}
+
+function Step({cap,note,children}){
+  return <div className="step">{children}<p className="cap"><b>{cap}</b>{note}</p></div>;
+}
+function Flow({name,tag,note,spec,children}){
+  return (
+    <div className="flow">
+      <div className="fname">{name}<u>{tag}</u></div>
+      <p className="fnote">{note}</p>
+      <div className="strip">{children}</div>
+      <ul className="spec">{spec.map(s=><li key={s} dangerouslySetInnerHTML={{__html:s}}/>)}</ul>
+    </div>
+  );
+}
+
+function App(){
+  return (
+    <>
+      <h1>Getting in, and the first five minutes</h1>
+      <p className="lede">Two decisions, drawn at real size: how you sign in, and what the app asks of you
+        before it is useful. Screens are the iOS kit's chrome; Android is the same flow with the Material bars,
+        which is a mechanical swap, and the web version reuses whichever sign-in you pick. Nothing here is
+        wired, it is a set of candidates to react to.</p>
+
+      <div className="sechead"><h2>1 · How you get in</h2><u>pick one, the other two become fallbacks</u></div>
+      <div className="strip" style={{marginBottom:14}}>
+        <Step cap="Passkey first" note="Face or fingerprint, no password to invent. Email link is the way in on a borrowed device.">
+          <PasskeyScreen/></Step>
+        <Step cap="Email link only" note="One field, no passwords anywhere. Slowest first run: you leave the app to fetch the link.">
+          <EmailScreen/></Step>
+        <Step cap="Apple and Google" note="Fastest tap, most familiar. Costs two SDKs and an account-linking case when someone switches.">
+          <ProviderScreen/></Step>
+      </div>
+      <ul className="spec" style={{marginBottom:42}}>
+        <li><b>Recommendation:</b> passkey first with the email link underneath. It matches offload's promise of nothing to remember, and it is the only one with no password reset flow at all.</li>
+        <li>Whichever wins, sign-in is one screen. No account type to choose, no name asked for before you have used anything.</li>
+      </ul>
+
+      <div className="sechead"><h2>2 · The first five minutes</h2><u>three shapes</u></div>
+
+      <Flow name="A · Dump first, account when it has to sync" tag="4 screens, 0 before value"
+        note="The app opens on the composer. You dump something, offload answers, and only then does it ask for an account, because that is the first moment an account buys you anything."
+        spec={["<b>Buys</b> the product's own argument: it proves what offload does before asking for anything.",
+          "<b>Costs</b> a local-only state and a migration when the account is made, plus an answer to \"what if they never sign in\".",
+          "<b>Notifications</b> are asked for after the first thing lands, in context, not on a cold screen."]}>
+        <Step cap="1 · Open" note="No splash, no carousel. The composer and three examples of what a dump looks like."><A1/></Step>
+        <Step cap="2 · Dump something" note="Offload answers in its own voice and shows the thing it made."><A2/></Step>
+        <Step cap="3 · The ask" note="A sheet, at the moment it matters, with a way to decline that is not a dead end."><A3/></Step>
+        <Step cap="4 · In" note="Today, built from what you dumped, with the toast confirming where it went."><A4/></Step>
+      </Flow>
+
+      <Flow name="B · Three screens, then sign in" tag="4 screens, value after"
+        note="The conventional shape: what it is, how it sorts, when it will reach you, then the account. Every screen is skippable, and the third one carries the notification ask."
+        spec={["<b>Buys</b> the chance to explain the model, which matters because \"dump anything\" is unusual enough to need one sentence.",
+          "<b>Costs</b> three screens before anything is yours, and the well-known fact that most people skip them.",
+          "<b>Weakness:</b> asking for notifications on a cold screen is the lowest-consent moment in the whole flow."]}>
+        <Step cap="1 · What it is" note="Everything in one place, in any order."><Intro n={1} title="Dump anything" sub="Half a thought, a photo, a voice note. No folders, no tidying." art={<ArtDump/>}/></Step>
+        <Step cap="2 · What it does" note="It sorts what you dumped into things."><Intro n={2} title="offload sorts it" sub="Related bits end up together, with the dates and the money attached." art={<ArtSort/>}/></Step>
+        <Step cap="3 · When it speaks" note="The permission ask, framed as a promise about volume."><Intro n={3} title="It only interrupts when it matters" sub="Deadlines and answers you are waiting on. Nothing else." art={<ArtNudge/>}/></Step>
+        <Step cap="4 · Sign in" note="The screen you picked in section 1."><PasskeyScreen/></Step>
+      </Flow>
+
+      <Flow name="C · Sign in, one question, in" tag="3 screens, one thing asked"
+        note="One question after sign-in, in offload's voice, and the answer becomes the first thing in the app. The account exists before anything is stored, so there is no local-only state to migrate."
+        spec={["<b>Buys</b> a non-empty first screen without a tour, and one honest piece of context offload can actually use.",
+          "<b>Costs</b> the risk of the blank-page moment: a question is harder to answer than a prompt is to copy.",
+          "<b>Notifications</b> are asked for on the first thing offload wants to tell you about, days later."]}>
+        <Step cap="1 · Sign in" note="Nothing before it."><PasskeyScreen/></Step>
+        <Step cap="2 · One question" note="Free text, with five chips for anyone who stalls."><C2/></Step>
+        <Step cap="3 · In, with something in it" note="The thing it made, and one line about what to do next."><C3/></Step>
+      </Flow>
+
+      <div className="sechead"><h2>What any of these still owes you</h2></div>
+      <ul className="spec">
+        <li><b>Second device.</b> Signing in where there is already data: merge, or replace, or keep both.</li>
+        <li><b>Coming back.</b> The returning-user screen, which is not the same as the first-run one.</li>
+        <li><b>Refusals.</b> Notifications denied, passkey cancelled, email link expired, offline on first run.</li>
+        <li><b>Leaving.</b> Sign out, and delete everything, which the phone settings promise but no screen shows yet.</li>
+        <li><b>The invited case.</b> Someone shares a thing with you before you have an account.</li>
+      </ul>
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script></body></html>

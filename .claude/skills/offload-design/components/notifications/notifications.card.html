@@ -1,0 +1,38 @@
+<!-- @dsCard group="Components" viewport="920x640" name="Notifications" subtitle="Three shapes, iOS banner and Android shade card" -->
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css?v=3"><style>
+body{margin:0;padding:0;font:var(--text-body-role);background:var(--surface-page)}
+#root{padding:20px;box-sizing:border-box}
+.cols{display:flex;gap:24px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:14px}
+.lbl{font:var(--text-caption-role);color:var(--text-tertiary);letter-spacing:var(--tracking-caps);text-transform:uppercase}
+.stage{border-radius:18px;padding:16px;width:max-content;background:linear-gradient(160deg,#8E9AA8,#5F6B7A)}
+.stage.a{background:linear-gradient(160deg,#7C8878,#4E5A4C)}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script></head><body>
+<div id="root"></div><script src="../../_ds_bundle.js?v=1787256974498"></script>
+<script>window.OFFLOAD_ICON_BASE="../../assets/icons/"</script>
+<script type="text/babel">
+const {NotificationIOS,NotificationAndroid}=window.OffloadDesignSystem_dc4a89;
+const A={title:"Ana answered",body:"She can only travel the 14th to the 17th. That is inside your window."};
+const B={title:"Brackets go up in price Friday",body:"Oak brackets, 30cm, matte black. You saved the link on Tuesday.",
+  actions:[{label:"Order now"}]};
+const C={title:"\u20ac214 to Ana for the flights",body:"You said you would sort it. Nothing has moved since Tuesday."};
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <div className="cols">
+    <div className="col">
+      <span className="lbl">iOS, 390pt</span>
+      <div className="stage"><NotificationIOS {...A}/></div>
+      <div className="stage"><NotificationIOS {...B}/></div>
+      <div className="stage"><NotificationIOS {...C} actions={[{label:"Mark as paid"},{label:"Remind me tomorrow"}]}/></div>
+    </div>
+    <div className="col">
+      <span className="lbl">Android, 360dp</span>
+      <div className="stage a"><NotificationAndroid {...A}/></div>
+      <div className="stage a"><NotificationAndroid {...B}/></div>
+      <div className="stage a"><NotificationAndroid {...C} actions={[{label:"Mark as paid"},{label:"Tomorrow"}]}/></div>
+    </div>
+  </div>
+);
+</script></body></html>

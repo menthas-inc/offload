@@ -1,0 +1,183 @@
+<!doctype html><html><head><meta charset="utf-8"><title>offload, type combinations</title>
+<link rel="stylesheet" href="../styles.css?v=2">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Literata:opsz,wght@7..72,400;7..72,500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Instrument+Serif&family=Plus+Jakarta+Sans:wght@400..700&family=Vollkorn:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:56px 40px 96px;background:var(--surface-page);color:var(--text-primary)}
+.wrap{max-width:1240px;margin:0 auto}
+h1{font:var(--text-display);letter-spacing:var(--tracking-display);margin:0 0 12px}
+.lede{font:var(--text-quiet-role);font-size:20px;color:var(--text-secondary);max-width:64ch;margin:0 0 20px}
+.premise{font-size:15px;line-height:1.55;color:var(--text-secondary);max-width:80ch;margin:0 0 44px;padding-left:16px;border-left:2px solid var(--ink-950)}
+.premise b{color:var(--text-primary);font-weight:600}
+
+.opt{margin-bottom:64px}
+.ohead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding-bottom:10px;border-bottom:2px solid var(--ink-950);margin-bottom:6px}
+.onum{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.ohead h2{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0}
+.tagline{font:var(--text-label-role);color:var(--text-secondary)}
+.now{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-xs);background:var(--surface-inverse);color:var(--text-inverse);font:var(--weight-medium) var(--size-caption)/1 var(--font-core)}
+.onote{font-size:15px;line-height:1.55;color:var(--text-secondary);max-width:80ch;margin:14px 0 24px}
+.body3{display:grid;grid-template-columns:300px 1fr 240px;gap:28px;align-items:start}
+@media(max-width:1080px){.body3{grid-template-columns:1fr}}
+
+.specimens{display:flex;flex-direction:column;gap:18px;border:1px solid var(--border-hairline);border-radius:var(--radius-md);padding:20px}
+.sp{display:flex;flex-direction:column;gap:6px}
+.sp .big{font-size:40px;line-height:1.05}
+.k{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+
+.ph{width:340px;border:1px solid var(--border-strong);border-radius:28px;overflow:hidden;background:var(--paper);box-shadow:var(--shadow-2)}
+@media(max-width:400px){.ph{width:100%}}
+.bar{display:flex;align-items:center;gap:8px;padding:13px 18px;border-bottom:1px solid var(--border-hairline)}
+.wm{font-size:19px;font-weight:600;letter-spacing:-0.03em}
+.sh{padding:16px 18px 6px;font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-tertiary);display:flex;justify-content:space-between}
+.li{display:flex;align-items:center;gap:11px;padding:11px 18px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.sq{width:32px;height:32px;border-radius:var(--radius-sm);background:var(--surface-fill);flex:0 0 auto}
+.li .txt{flex:1;min-width:0}
+.li .t{font-size:15px;font-weight:500;line-height:1.3;letter-spacing:-0.006em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .m{font-size:13px;line-height:1.35;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .r{font-size:12px;color:var(--text-tertiary);flex:0 0 auto;font-variant-numeric:tabular-nums}
+.badge{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-xs);font-size:12px;font-weight:500;flex:0 0 auto}
+.acard{margin:14px 18px;background:var(--surface-sunken);border-radius:var(--radius-md);padding:16px}
+.acard p{margin:0;font-size:18px;line-height:1.5}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:26px 28px 34px}
+.empty .et{font-size:17px;font-weight:500;letter-spacing:-0.014em}
+.empty .eb{margin:0;font-size:16px;line-height:1.5;color:var(--text-secondary);max-width:30ch}
+
+.verdict{display:flex;flex-direction:column;gap:12px}
+.pros,.cons{font-size:14px;line-height:1.5;margin:0}
+.pros b,.cons b{display:block;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary);margin-bottom:4px}
+.pros{color:var(--text-primary)}
+.cons{color:var(--text-secondary)}
+.foot{margin-top:8px;padding-top:26px;border-top:1px solid var(--border-hairline);font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:80ch}
+.foot b{color:var(--text-primary);font-weight:600}
+</style></head><body><div class="wrap">
+<h1>Five type combinations</h1>
+<p class="lede">The core face carries the interface; the second face is offload speaking. Each option below shows both, then the same three moments, an inbox, an answer, an empty state, so you can judge them where they will actually be read.</p>
+<p class="premise"><b>What changed already.</b> The monospace face is gone: numerals are the core sans with tabular figures. The assistant voice is upright, never italic. Title-2 has been dropped from the scale. All faces here are Google Fonts, since there is no licence to work from, so any of these can ship today, and any can be swapped for a licensed face later.</p>
+
+<!-- 1 -->
+<div class="opt" style="--core:'Instrument Sans',sans-serif;--voice:'Literata',Georgia,serif">
+<div class="ohead"><span class="onum">01</span><h2 style="font-family:var(--core)">Instrument Sans + Literata</h2><span class="now">chosen</span><span class="tagline">sturdy, neutral, quietly bookish</span></div>
+<p class="onote">Literata was built for long-form reading on screens: low contrast, thick strokes, big x-height. Against a tight grotesque it sounds settled and unhurried, an assistant that has already finished thinking.</p>
+<div class="body3">
+<div class="specimens">
+<div class="sp"><span class="big" style="font-family:var(--core);font-weight:600;letter-spacing:-0.03em">offload</span><span class="k">core · Instrument Sans 600</span></div>
+<div class="sp"><span class="big" style="font-family:var(--voice)">Found it.</span><span class="k">voice · Literata 400</span></div>
+<div class="sp"><span style="font-family:var(--core);font-variant-numeric:tabular-nums;font-size:15px">14:02 · 09:07 · 3.2 MB</span><span class="k">numerals · tabular</span></div>
+</div>
+<div class="ph">
+<div class="bar"><img src="../assets/mark.svg" width="19" height="19" alt=""><span class="wm" style="font-family:var(--core)">offload</span></div>
+<div class="sh" style="font-family:var(--core)"><span>Today</span><span>3 things</span></div>
+<div class="li" style="font-family:var(--core)"><span class="sq"></span><span class="txt"><span class="t">Miradouro da Senhora do Monte</span><span class="m">Lisbon trip · from Safari</span></span><span class="badge" style="background:var(--surface-accent-soft);color:var(--text-accent)">sorted</span></div>
+<div class="li" style="font-family:var(--core)"><span class="sq"></span><span class="txt"><span class="t">Ana can only do the 14th–17th</span><span class="m">Lisbon trip · from Ana</span></span><span class="r">14:02</span></div>
+<div class="acard"><p style="font-family:var(--voice)">Ana can only travel the 14th to the 17th. Tom hasn't answered yet, and the flat is still unbooked.</p></div>
+<div class="empty"><span class="et" style="font-family:var(--core)">Nothing waiting</span><p class="eb" style="font-family:var(--voice)">Everything you dumped in has found a home.</p></div>
+</div>
+<div class="verdict">
+<p class="pros"><b>for</b>Reads fast at 16–19px. Warm without being decorative. Ships with two weights and covers most languages.</p>
+<p class="cons"><b>against</b>The serif is slightly heavy next to a light grotesque, so on a busy screen the answer card pulls more attention than it needs.</p>
+</div>
+</div>
+</div>
+
+<!-- 2 -->
+<div class="opt" style="--core:'Instrument Sans',sans-serif;--voice:'Source Serif 4',Georgia,serif">
+<div class="ohead" style="border-bottom-color:var(--border-hairline)"><span class="onum">02</span><h2 style="font-family:var(--core)">Instrument Sans + Source Serif 4</h2><span class="tagline">plain-spoken, humanist, unfussy</span></div>
+<p class="onote">The most transparent of the serifs here, it has almost no period or personality of its own, which makes it read as a person talking rather than a publication. Lighter on the page than Literata at the same size.</p>
+<div class="body3">
+<div class="specimens">
+<div class="sp"><span class="big" style="font-family:var(--core);font-weight:600;letter-spacing:-0.03em">offload</span><span class="k">core · Instrument Sans 600</span></div>
+<div class="sp"><span class="big" style="font-family:var(--voice)">Found it.</span><span class="k">voice · Source Serif 4 400</span></div>
+<div class="sp"><span style="font-family:var(--core);font-variant-numeric:tabular-nums;font-size:15px">14:02 · 09:07 · 3.2 MB</span><span class="k">numerals · tabular</span></div>
+</div>
+<div class="ph">
+<div class="bar"><img src="../assets/mark.svg" width="19" height="19" alt=""><span class="wm" style="font-family:var(--core)">offload</span></div>
+<div class="sh" style="font-family:var(--core)"><span>Today</span><span>3 things</span></div>
+<div class="li" style="font-family:var(--core)"><span class="sq"></span><span class="txt"><span class="t">Miradouro da Senhora do Monte</span><span class="m">Lisbon trip · from Safari</span></span><span class="badge" style="background:var(--surface-accent-soft);color:var(--text-accent)">sorted</span></div>
+<div class="li" style="font-family:var(--core)"><span class="sq"></span><span class="txt"><span class="t">Ana can only do the 14th–17th</span><span class="m">Lisbon trip · from Ana</span></span><span class="r">14:02</span></div>
+<div class="acard"><p style="font-family:var(--voice)">Ana can only travel the 14th to the 17th. Tom hasn't answered yet, and the flat is still unbooked.</p></div>
+<div class="empty"><span class="et" style="font-family:var(--core)">Nothing waiting</span><p class="eb" style="font-family:var(--voice)">Everything you dumped in has found a home.</p></div>
+</div>
+<div class="verdict">
+<p class="pros"><b>for</b>The friendliest read of the five. Sits lighter than Literata, so the answer card stops competing with the list above it.</p>
+<p class="cons"><b>against</b>So neutral it barely registers as a second face, some of the "offload is talking" signal is lost.</p>
+</div>
+</div>
+</div>
+
+<!-- 3 -->
+<div class="opt" style="--core:'Instrument Sans',sans-serif;--voice:'Newsreader',Georgia,serif">
+<div class="ohead" style="border-bottom-color:var(--border-hairline)"><span class="onum">03</span><h2 style="font-family:var(--core)">Instrument Sans + Newsreader, upright</h2><span class="tagline">open, airy, a little more voice</span></div>
+<p class="onote">The same family as the italic you rejected, standing up. Upright it loses the editorial slant and keeps the openness, wide counters, generous spacing, a distinctly spoken rhythm.</p>
+<div class="body3">
+<div class="specimens">
+<div class="sp"><span class="big" style="font-family:var(--core);font-weight:600;letter-spacing:-0.03em">offload</span><span class="k">core · Instrument Sans 600</span></div>
+<div class="sp"><span class="big" style="font-family:var(--voice)">Found it.</span><span class="k">voice · Newsreader 400 upright</span></div>
+<div class="sp"><span style="font-family:var(--core);font-variant-numeric:tabular-nums;font-size:15px">14:02 · 09:07 · 3.2 MB</span><span class="k">numerals · tabular</span></div>
+</div>
+<div class="ph">
+<div class="bar"><img src="../assets/mark.svg" width="19" height="19" alt=""><span class="wm" style="font-family:var(--core)">offload</span></div>
+<div class="sh" style="font-family:var(--core)"><span>Today</span><span>3 things</span></div>
+<div class="li" style="font-family:var(--core)"><span class="sq"></span><span class="txt"><span class="t">Miradouro da Senhora do Monte</span><span class="m">Lisbon trip · from Safari</span></span><span class="badge" style="background:var(--surface-accent-soft);color:var(--text-accent)">sorted</span></div>
+<div class="li" style="font-family:var(--core)"><span class="sq"></span><span class="txt"><span class="t">Ana can only do the 14th–17th</span><span class="m">Lisbon trip · from Ana</span></span><span class="r">14:02</span></div>
+<div class="acard"><p style="font-family:var(--voice)">Ana can only travel the 14th to the 17th. Tom hasn't answered yet, and the flat is still unbooked.</p></div>
+<div class="empty"><span class="et" style="font-family:var(--core)">Nothing waiting</span><p class="eb" style="font-family:var(--voice)">Everything you dumped in has found a home.</p></div>
+</div>
+<div class="verdict">
+<p class="pros"><b>for</b>Clearly a second voice, and comfortable at 18–19px. Optical sizing means it holds up small too.</p>
+<p class="cons"><b>against</b>Lighter strokes look thin on low-brightness screens, and it still carries a trace of the newspaper.</p>
+</div>
+</div>
+</div>
+
+<!-- 4 -->
+<div class="opt" style="--core:'Instrument Sans',sans-serif;--voice:'Instrument Sans',sans-serif">
+<div class="ohead" style="border-bottom-color:var(--border-hairline)"><span class="onum">04</span><h2 style="font-family:var(--core)">Instrument Sans alone</h2><span class="tagline">one face, no second voice</span></div>
+<p class="onote">Drop the serif entirely. offload's voice is marked by size, weight and colour instead: the answer is set larger, in a lighter weight, with more line-height, on a tinted card. One webfont, nothing to license, nothing to load.</p>
+<div class="body3">
+<div class="specimens">
+<div class="sp"><span class="big" style="font-family:var(--core);font-weight:600;letter-spacing:-0.03em">offload</span><span class="k">core · Instrument Sans 600</span></div>
+<div class="sp"><span class="big" style="font-family:var(--core);font-weight:400;letter-spacing:-0.01em">Found it.</span><span class="k">voice · Instrument Sans 400, larger + looser</span></div>
+<div class="sp"><span style="font-family:var(--core);font-variant-numeric:tabular-nums;font-size:15px">14:02 · 09:07 · 3.2 MB</span><span class="k">numerals · tabular</span></div>
+</div>
+<div class="ph">
+<div class="bar"><img src="../assets/mark.svg" width="19" height="19" alt=""><span class="wm" style="font-family:var(--core)">offload</span></div>
+<div class="sh" style="font-family:var(--core)"><span>Today</span><span>3 things</span></div>
+<div class="li" style="font-family:var(--core)"><span class="sq"></span><span class="txt"><span class="t">Miradouro da Senhora do Monte</span><span class="m">Lisbon trip · from Safari</span></span><span class="badge" style="background:var(--surface-accent-soft);color:var(--text-accent)">sorted</span></div>
+<div class="li" style="font-family:var(--core)"><span class="sq"></span><span class="txt"><span class="t">Ana can only do the 14th–17th</span><span class="m">Lisbon trip · from Ana</span></span><span class="r">14:02</span></div>
+<div class="acard"><p style="font-family:var(--core);font-size:19px;line-height:1.55;letter-spacing:-0.01em">Ana can only travel the 14th to the 17th. Tom hasn't answered yet, and the flat is still unbooked.</p></div>
+<div class="empty"><span class="et" style="font-family:var(--core)">Nothing waiting</span><p class="eb" style="font-family:var(--core);font-size:17px;line-height:1.55">Everything you dumped in has found a home.</p></div>
+</div>
+<div class="verdict">
+<p class="pros"><b>for</b>The most disciplined and the fastest to load. Nothing on screen is ever competing for tone. Fits "offload hides the complexity" better than any pairing.</p>
+<p class="cons"><b>against</b>The assistant's voice loses its distinct texture, at a glance an answer looks like another piece of UI copy.</p>
+</div>
+</div>
+</div>
+
+<!-- 5 -->
+<div class="opt" style="--core:'Plus Jakarta Sans',sans-serif;--voice:'Vollkorn',Georgia,serif">
+<div class="ohead" style="border-bottom-color:var(--border-hairline)"><span class="onum">05</span><h2 style="font-family:var(--core)">Plus Jakarta Sans + Vollkorn</h2><span class="tagline">rounder, softer, more human</span></div>
+<p class="onote">The one option that changes the core face too. Plus Jakarta Sans is geometric but soft-cornered, noticeably friendlier than a neutral grotesque; Vollkorn is a sturdy, slightly rounded serif with real warmth. Included as the counter-argument: if offload should feel gentle rather than precise, this is what that looks like.</p>
+<div class="body3">
+<div class="specimens">
+<div class="sp"><span class="big" style="font-family:var(--core);font-weight:700;letter-spacing:-0.03em">offload</span><span class="k">core · Plus Jakarta Sans 700</span></div>
+<div class="sp"><span class="big" style="font-family:var(--voice)">Found it.</span><span class="k">voice · Vollkorn 400</span></div>
+<div class="sp"><span style="font-family:var(--core);font-variant-numeric:tabular-nums;font-size:15px">14:02 · 09:07 · 3.2 MB</span><span class="k">numerals · tabular</span></div>
+</div>
+<div class="ph">
+<div class="bar"><img src="../assets/mark.svg" width="19" height="19" alt=""><span class="wm" style="font-family:var(--core);font-weight:700">offload</span></div>
+<div class="sh" style="font-family:var(--core)"><span>Today</span><span>3 things</span></div>
+<div class="li" style="font-family:var(--core)"><span class="sq"></span><span class="txt"><span class="t">Miradouro da Senhora do Monte</span><span class="m">Lisbon trip · from Safari</span></span><span class="badge" style="background:var(--surface-accent-soft);color:var(--text-accent)">sorted</span></div>
+<div class="li" style="font-family:var(--core)"><span class="sq"></span><span class="txt"><span class="t">Ana can only do the 14th–17th</span><span class="m">Lisbon trip · from Ana</span></span><span class="r">14:02</span></div>
+<div class="acard"><p style="font-family:var(--voice)">Ana can only travel the 14th to the 17th. Tom hasn't answered yet, and the flat is still unbooked.</p></div>
+<div class="empty"><span class="et" style="font-family:var(--core)">Nothing waiting</span><p class="eb" style="font-family:var(--voice)">Everything you dumped in has found a home.</p></div>
+</div>
+<div class="verdict">
+<p class="pros"><b>for</b>Warmest of the five, and the least likely to read as a work tool. Good if offload is a personal companion first.</p>
+<p class="cons"><b>against</b>Wider than Instrument Sans, so long row titles truncate sooner. Softer letterforms fight the black-on-white, hairline-everything austerity the brand is built on, this is a different brand, not a tweak.</p>
+</div>
+</div>
+</div>
+
+<div class="foot"><b>Decided 11 August: option 01, Instrument Sans + Literata.</b> Kept as the record of what it was weighed against.<br><br><b>My read at the time.</b> <b>02 (Source Serif 4)</b> is the closest fit to what you described, friendly, easy on the eye, no newsletter in it, and it fixes the one real complaint about Literata, which is weight. <b>04 (sans only)</b> is the option I would take seriously if you want maximum discipline; it is the most consistent with a product whose whole promise is hiding complexity, and it costs you a webfont rather than gaining one. <b>03</b> is fine but keeps a trace of the thing you rejected. <b>05</b> is a different brand, worth looking at once, then probably setting aside.<br><br>Tell me which to lock in and I will fold it into the tokens, the specimen cards, the components and the app kit.</div>
+</div></body></html>

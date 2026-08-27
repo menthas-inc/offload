@@ -1,0 +1,141 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Denser lists, Android</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:40px 34px 80px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 28px;max-width:70ch}
+h2{font:600 15px/1.3 var(--font-core);margin:34px 0 4px}
+.why{font-size:13.5px;line-height:1.55;color:var(--text-secondary);margin:0 0 14px;max-width:70ch}
+.set{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.v{width:340px}
+.tag{display:flex;align-items:baseline;gap:7px;margin:0 0 7px}
+.tag b{font:600 12px/1 var(--font-core);background:var(--ink-950);color:var(--paper);padding:5px 7px;border-radius:6px}
+.tag span{font-size:13px;color:var(--text-secondary)}
+.note{font-size:12px;color:var(--text-tertiary);margin:8px 0 0;line-height:1.5}
+.ph{--a-surface:#FAF9F7;--a-c-low:#F6F5F2;--a-c:#ECEBE7;--a-c-high:#E4E3DE;--a-outline:#DEDDD8;--a-on:#1B1B1A;--a-on-var:#5A5A57;
+  background:var(--a-surface);color:var(--a-on);border:1px solid var(--border-hairline);border-radius:22px;overflow:hidden;
+  padding:0 var(--gutter-screen) 14px}
+/* Section header, as the kit draws it now */
+.sec{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-6) var(--space-2) var(--space-3);
+  margin-bottom:var(--space-5);box-shadow:inset 0 -1px 0 var(--a-outline)}
+.sec b{font:400 22px/28px var(--font-core)}
+.sec .cnt{font:500 11px/16px var(--font-core);padding:1px 7px;border-radius:999px;background:var(--a-c-high);color:var(--a-on-var)}
+/* Baseline row, as built */
+.li{display:flex;gap:var(--space-5);align-items:center;min-height:56px;box-sizing:border-box;padding:var(--space-4) 0;
+  box-shadow:inset 0 -1px 0 var(--a-outline)}
+.li:last-child{box-shadow:none}
+.tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tx b{font:400 16px/24px var(--font-core);letter-spacing:.005em}
+.tx span{font:400 14px/20px var(--font-core);letter-spacing:.015em;color:var(--a-on-var)}
+.when{font:400 14px/20px var(--font-core);color:var(--a-on-var);flex:0 0 auto}
+.ic{width:40px;height:40px;flex:0 0 auto;border-radius:999px;background:var(--a-c-high);color:var(--a-on-var);display:flex;align-items:center;justify-content:center}
+.ic i{width:19px;height:19px;display:block;background:currentColor}
+.pill{display:inline-flex;align-items:center;gap:6px;font:500 12px/1 var(--font-core);padding:6px 10px;border-radius:999px}
+.pill.moss{background:var(--surface-accent-soft);color:var(--text-accent)}
+.pill.blue{background:var(--blue-50);color:var(--blue-700)}
+.pill.amber{background:var(--amber-100);color:var(--amber-700)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+</style></head><body>
+<h1>Making dense lists scannable</h1>
+<p class="lede">The problem in your screenshot: every row is two lines of similar weight and colour, so eight rows read as sixteen lines with nothing to anchor the eye. Each option below changes one variable, so they can be combined. Same content throughout.</p>
+
+<h2>Memories, past conversations</h2>
+<p class="why">Eight rows, title plus a supporting line, with the time trailing.</p>
+<div class="set">
+
+<div class="v"><div class="tag"><b>M1</b><span>now</span></div>
+<div class="ph">
+  <div class="sec"><b>Past conversations</b><span class="cnt">8</span></div>
+  <div class="li"><span class="tx"><b>What do I still owe money for?</b><span>3 answers &middot; Lisbon trip, Flat admin</span></span><span class="when">2m</span></div>
+  <div class="li"><span class="tx"><b>Everything about the bookshelf</b><span>offload listed 9 things</span></span><span class="when">Tue</span></div>
+  <div class="li"><span class="tx"><b>What did Ana say about dates?</b><span>the 14th to the 17th</span></span><span class="when">Mon</span></div>
+  <div class="li"><span class="tx"><b>Turn off the weekly email</b><span>settings &middot; done</span></span><span class="when">Jul</span></div>
+</div>
+<p class="note">Reference. Title and meta are 16 and 14, both dark enough to compete.</p></div>
+
+<div class="v"><div class="tag"><b>M2</b><span>one line each</span></div>
+<div class="ph">
+  <div class="sec"><b>Past conversations</b><span class="cnt">8</span></div>
+  <div class="li" style="min-height:48px"><span class="tx"><b>What do I still owe money for?</b></span><span class="when">2m</span></div>
+  <div class="li" style="min-height:48px"><span class="tx"><b>Everything about the bookshelf</b></span><span class="when">Tue</span></div>
+  <div class="li" style="min-height:48px"><span class="tx"><b>What did Ana say about dates?</b></span><span class="when">Mon</span></div>
+  <div class="li" style="min-height:48px"><span class="tx"><b>Turn off the weekly email</b></span><span class="when">Jul</span></div>
+  <div class="li" style="min-height:48px"><span class="tx"><b>Which brackets did I pick?</b></span><span class="when">Jul</span></div>
+  <div class="li" style="min-height:48px"><span class="tx"><b>When did Sam lend me the drill?</b></span><span class="when">Jul</span></div>
+</div>
+<p class="note">The cheapest fix: the question is the row, the answer is one tap away. Six rows in the space of four, and the list scans instantly. Costs the preview of what offload said.</p></div>
+
+<div class="v"><div class="tag"><b>M3</b><span>quieter supporting line</span></div>
+<div class="ph">
+  <div class="sec"><b>Past conversations</b><span class="cnt">8</span></div>
+  <div class="li"><span class="tx"><b style="font-weight:500">What do I still owe money for?</b><span style="font-size:12.5px;line-height:17px;color:#8A8A86">3 answers &middot; Lisbon trip, Flat admin</span></span><span class="when">2m</span></div>
+  <div class="li"><span class="tx"><b style="font-weight:500">Everything about the bookshelf</b><span style="font-size:12.5px;line-height:17px;color:#8A8A86">offload listed 9 things</span></span><span class="when">Tue</span></div>
+  <div class="li"><span class="tx"><b style="font-weight:500">What did Ana say about dates?</b><span style="font-size:12.5px;line-height:17px;color:#8A8A86">the 14th to the 17th</span></span><span class="when">Mon</span></div>
+  <div class="li"><span class="tx"><b style="font-weight:500">Turn off the weekly email</b><span style="font-size:12.5px;line-height:17px;color:#8A8A86">settings &middot; done</span></span><span class="when">Jul</span></div>
+</div>
+<p class="note">Keeps both lines but stops them competing: title goes medium, meta drops to 12.5px and a lighter grey. Smallest change of all.</p></div>
+
+<div class="v"><div class="tag"><b>M4</b><span>day groups</span></div>
+<div class="ph">
+  <div class="sec"><b>Past conversations</b><span class="cnt">8</span></div>
+  <div style="font:500 12px/1 var(--font-core);color:var(--a-on-var);padding:0 0 8px 2px">Today</div>
+  <div class="li"><span class="tx"><b>What do I still owe money for?</b><span>3 answers &middot; Lisbon trip, Flat admin</span></span><span class="when">2m</span></div>
+  <div style="font:500 12px/1 var(--font-core);color:var(--a-on-var);padding:18px 0 8px 2px">Earlier this week</div>
+  <div class="li"><span class="tx"><b>Everything about the bookshelf</b><span>offload listed 9 things</span></span><span class="when">Tue</span></div>
+  <div class="li"><span class="tx"><b>What did Ana say about dates?</b><span>the 14th to the 17th</span></span><span class="when">Mon</span></div>
+</div>
+<p class="note">Breaks the run into short groups so the eye always has a landing place. Adds height, and the time column becomes partly redundant.</p></div>
+
+<div class="v"><div class="tag"><b>M5</b><span>a mark per row</span></div>
+<div class="ph">
+  <div class="sec"><b>Past conversations</b><span class="cnt">8</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/message-circle.svg) center/contain no-repeat;mask:url(../assets/icons/message-circle.svg) center/contain no-repeat"></i></span><span class="tx"><b>What do I still owe money for?</b><span>3 answers &middot; Lisbon trip, Flat admin</span></span><span class="when">2m</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Everything about the bookshelf</b><span>offload listed 9 things</span></span><span class="when">Tue</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>What did Ana say about dates?</b><span>the 14th to the 17th</span></span><span class="when">Mon</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/settings.svg) center/contain no-repeat;mask:url(../assets/icons/settings.svg) center/contain no-repeat"></i></span><span class="tx"><b>Turn off the weekly email</b><span>settings &middot; done</span></span><span class="when">Jul</span></div>
+</div>
+<p class="note">The 40dp circle gives every row a fixed anchor at the start, which is what Material assumes two-line rows have. Costs 56px of width.</p></div>
+
+<div class="v"><div class="tag"><b>M6</b><span>M2 plus a kind pill</span></div>
+<div class="ph">
+  <div class="sec"><b>Past conversations</b><span class="cnt">8</span></div>
+  <div class="li" style="min-height:52px"><span class="tx"><b>What do I still owe money for?</b></span><span class="pill amber">money</span><span class="when">2m</span></div>
+  <div class="li" style="min-height:52px"><span class="tx"><b>Everything about the bookshelf</b></span><span class="pill moss">thread</span><span class="when">Tue</span></div>
+  <div class="li" style="min-height:52px"><span class="tx"><b>What did Ana say about dates?</b></span><span class="pill blue">dates</span><span class="when">Mon</span></div>
+  <div class="li" style="min-height:52px"><span class="tx"><b>Turn off the weekly email</b></span><span class="pill moss">settings</span><span class="when">Jul</span></div>
+</div>
+<p class="note">One line, and the pill says what kind of thing it was, using the memory colours already in the system. Densest option that still tells you something.</p></div>
+
+</div>
+
+<h2>My things</h2>
+<p class="why">Fewer rows, but the same two-line pattern, and the meta is the part you actually scan.</p>
+<div class="set">
+
+<div class="v"><div class="tag"><b>T1</b><span>now</span></div>
+<div class="ph">
+  <div class="sec"><b>Always on</b><span class="cnt">2</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Flat admin</b><span>12 things &middot; Sam</span></span><span class="when">&rsaquo;</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/bookmark.svg) center/contain no-repeat;mask:url(../assets/icons/bookmark.svg) center/contain no-repeat"></i></span><span class="tx"><b>Books to read</b><span>31 things</span></span><span class="when">&rsaquo;</span></div>
+</div>
+<p class="note">Reference.</p></div>
+
+<div class="v"><div class="tag"><b>T2</b><span>count as a figure</span></div>
+<div class="ph">
+  <div class="sec"><b>Always on</b><span class="cnt">2</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Flat admin</b><span>Sam</span></span><span style="font:var(--text-numeric-role);font-variant-numeric:tabular-nums;font-size:15px;color:var(--a-on-var);flex:0 0 auto">12</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/bookmark.svg) center/contain no-repeat;mask:url(../assets/icons/bookmark.svg) center/contain no-repeat"></i></span><span class="tx"><b>Books to read</b><span>just you</span></span><span style="font:var(--text-numeric-role);font-variant-numeric:tabular-nums;font-size:15px;color:var(--a-on-var);flex:0 0 auto">31</span></div>
+</div>
+<p class="note">The number leaves the sentence and becomes a right-aligned figure, so counts compare down the column instead of being read.</p></div>
+
+<div class="v"><div class="tag"><b>T3</b><span>one line</span></div>
+<div class="ph">
+  <div class="sec"><b>Always on</b><span class="cnt">2</span></div>
+  <div class="li" style="min-height:52px"><span class="ic" style="width:32px;height:32px"><i style="width:16px;height:16px;-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Flat admin</b></span><span class="when">12 &middot; Sam</span></div>
+  <div class="li" style="min-height:52px"><span class="ic" style="width:32px;height:32px"><i style="width:16px;height:16px;-webkit-mask:url(../assets/icons/bookmark.svg) center/contain no-repeat;mask:url(../assets/icons/bookmark.svg) center/contain no-repeat"></i></span><span class="tx"><b>Books to read</b></span><span class="when">31</span></div>
+</div>
+<p class="note">Name on the left, everything else trailing and quiet. Shortest rows, and the thread names line up as a single column of text.</p></div>
+
+</div>
+
+<p class="note" style="max-width:70ch;margin-top:32px">My read: <b>M2</b> for past conversations, since the supporting line is a preview of an answer you are one tap from reading anyway, with <b>M3</b> as the conservative version if you want to keep it. On My things, <b>T2</b> costs nothing and makes the counts comparable. M5 and M6 are the ones to pick if you want the list to carry a legend.</p>
+</body></html>

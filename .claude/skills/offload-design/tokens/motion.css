@@ -1,0 +1,27 @@
+:root{
+  --duration-instant:80ms; /* @kind other */
+  --duration-fast:140ms; /* @kind other */
+  --duration-base:200ms; /* @kind other */
+  --duration-slow:280ms; /* @kind other */
+  --duration-sheet:340ms; /* @kind other */
+  --ease-out:cubic-bezier(0.22,0.85,0.24,1); /* @kind other */
+  --ease-in-out:cubic-bezier(0.4,0,0.2,1); /* @kind other */
+  --ease-entrance:cubic-bezier(0.16,1,0.3,1); /* @kind other */
+  --transition-ui:var(--duration-fast) var(--ease-out); /* @kind other */
+  --press-scale:0.98; /* @kind other */
+}
+
+/* Reduced motion is a cut. Not a shorter slide, not a cross-fade: the new state is simply
+   there. Panes, the iOS push, Material's shared axis, the drawn tick, the toast rise and
+   every hover transition all stop moving. 0.01ms rather than 0 so animation-end still
+   fires and nothing that waits on it gets stuck. */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;
+    animation-delay:0ms !important;
+    transition-duration:0.01ms !important;
+    transition-delay:0ms !important;
+    scroll-behavior:auto !important;
+  }
+}

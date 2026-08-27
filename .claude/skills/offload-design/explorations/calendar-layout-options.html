@@ -1,0 +1,141 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Calendar layouts, free time first</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>body{margin:0;padding:48px 40px 88px;background:var(--surface-sunken);color:var(--text-primary)}
+.wrap{max-width:1280px;margin:0 auto}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 10px}
+.lede{font:var(--text-quiet-role);font-size:18px;color:var(--text-secondary);max-width:72ch;margin:0 0 22px}
+.res{background:var(--paper);border:1px solid var(--border-hairline);border-radius:var(--radius-md);padding:20px 22px;margin:0 0 36px;max-width:88ch}
+.res h2{font:var(--text-title-3);letter-spacing:var(--tracking-title);margin:0 0 10px}
+.res p{margin:0 0 10px;font-size:14px;line-height:1.55;color:var(--text-secondary)}
+.res p:last-child{margin:0}
+.res b{color:var(--text-primary);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:24px;align-items:start}
+.opt{background:var(--paper);border:1px solid var(--border-hairline);border-radius:var(--radius-lg);overflow:hidden}
+.oh{padding:18px 20px 16px;border-bottom:1px solid var(--border-hairline)}
+.on{font:var(--weight-semibold) var(--size-title-2)/1.15 var(--font-core);letter-spacing:var(--tracking-title)}
+.src{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary);display:block;margin-top:4px}
+.od{font-size:13px;line-height:1.5;color:var(--text-secondary);margin:9px 0 0}
+.body{padding:18px 20px 24px}
+.day{display:flex;align-items:baseline;gap:9px;padding-bottom:12px}
+.day b{font:500 15px/1.2 var(--font-core)}
+.day em{font-style:normal;font-size:12px;color:var(--text-tertiary)}
+.day i{margin-left:auto;font-style:normal;font-size:12px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.t{font-variant-numeric:tabular-nums}
+/* 1 */
+.free1{background:var(--moss-50);border:1px solid var(--moss-200);border-radius:var(--radius-md);padding:14px 14px;margin:7px 0}
+.free1 b{display:block;font:600 19px/1.2 var(--font-core);letter-spacing:-0.014em;color:var(--moss-700)}
+.free1 span{display:block;font-size:12px;color:var(--moss-600);margin-top:3px;font-variant-numeric:tabular-nums}
+.ev1{display:flex;gap:10px;align-items:baseline;padding:7px 2px}
+.ev1 u{text-decoration:none;width:56px;flex:0 0 auto;font-size:13px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.ev1 b{font:500 14px/1.3 var(--font-core)}
+.ev1 i{font-style:normal;font-size:12px;color:var(--text-tertiary)}
+/* 2 */
+.bar{display:flex;height:34px;border-radius:var(--radius-xs);overflow:hidden;border:1px solid var(--border-hairline)}
+.bar span{display:flex;align-items:center;justify-content:center;font:500 11px/1 var(--font-core);overflow:hidden;white-space:nowrap}
+.bz{background:var(--ink-900);color:var(--paper)}
+.bf{background:var(--moss-50);color:var(--moss-700);border-left:1px solid var(--moss-200);border-right:1px solid var(--moss-200)}
+.legend{display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--text-secondary)}
+.legend s{text-decoration:none;display:flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:3px}
+.cap{font:600 21px/1.2 var(--font-core);letter-spacing:-0.014em;margin:14px 0 2px}
+.capsub{font-size:13px;color:var(--text-secondary)}
+.list2{margin-top:12px;border-top:1px solid var(--border-hairline)}
+.list2 div{display:flex;gap:10px;padding:8px 0;font-size:13px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.list2 div:last-child{box-shadow:none}
+.list2 u{text-decoration:none;width:56px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+/* 3 */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.colh{font:500 11px/1 var(--font-core);color:var(--text-tertiary);padding-bottom:8px;border-bottom:1px solid var(--border-hairline);margin-bottom:8px}
+.c3{padding:8px 0;font-size:13px;line-height:1.4}
+.c3 u{text-decoration:none;display:block;color:var(--text-tertiary);font-size:12px;font-variant-numeric:tabular-nums}
+.open3{background:var(--moss-50);border-radius:var(--radius-xs);padding:9px 10px;margin-bottom:7px}
+.open3 b{display:block;font:600 15px/1.2 var(--font-core);color:var(--moss-700)}
+.open3 u{text-decoration:none;display:block;font-size:12px;color:var(--moss-600);margin-top:2px;font-variant-numeric:tabular-nums}
+/* 4 */
+.run{position:relative;padding-left:16px}
+.run:before{content:"";position:absolute;left:3px;top:6px;bottom:6px;width:1px;background:var(--border-hairline)}
+.anchor{position:relative;display:flex;gap:10px;align-items:baseline;padding:6px 0}
+.anchor:before{content:"";position:absolute;left:-16px;top:12px;width:7px;height:7px;border-radius:999px;background:var(--ink-900)}
+.anchor u{text-decoration:none;width:54px;flex:0 0 auto;font-size:13px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.anchor b{font:500 14px/1.3 var(--font-core)}
+.gap4{margin:4px 0 4px -16px;padding:12px 0 12px 16px;border-left:3px solid var(--moss-500);background:linear-gradient(90deg,var(--moss-50),rgba(255,255,255,0))}
+.gap4 b{font:600 17px/1.2 var(--font-core);letter-spacing:-0.014em;color:var(--moss-700)}
+.gap4 span{display:block;font-size:12px;color:var(--moss-600);margin-top:2px;font-variant-numeric:tabular-nums}
+/* 5 */
+.h5{font:600 26px/1.15 var(--font-core);letter-spacing:-0.022em;margin:14px 0 2px}
+.h5 em{font-style:normal;color:var(--ink-300)}
+.sub5{font-size:13px;color:var(--text-secondary);margin-bottom:10px}
+.ev5{display:flex;gap:10px;align-items:baseline;padding:5px 0;font-size:13px;color:var(--text-secondary)}
+.ev5 u{text-decoration:none;width:54px;flex:0 0 auto;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.ev5 b{font-weight:500;color:var(--text-primary)}
+.foot{margin-top:36px;padding-top:24px;border-top:1px solid var(--border-hairline);font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:82ch}
+.foot b{color:var(--text-primary);font-weight:600}</style></head><body><div class="wrap">
+<h1>Five calendar layouts, free time first</h1>
+<p class="lede">You asked for free time to dominate. That is a real position in calendar design, not a styling choice, so each layout below takes a different view of what a day is: a container of commitments, a budget, or a supply of open time that events eat into.</p>
+
+<div class="res"><h2>What the research says</h2>
+<p><b>Whitespace is the message, not the leftover.</b> Practitioner write-ups converge on restraint: one team describes prioritising <span style="font-style:italic">"plenty of white space, consistent layouts, and only the most relevant value on each screen"</span> so that <span style="font-style:italic">"scheduling feels intuitive, not stressful"</span>, and notes that showing free slots at a glance was the goal for shift workers rather than showing every detail. In a conventional grid, though, free time is literally nothing: empty pixels. If it matters, it has to be drawn.</p>
+<p><b>Long unbroken stretches are what people actually want to know.</b> The maker versus manager distinction, from Paul Graham's well-known essay, is that some people need hours in one piece and a single meeting in the middle destroys the afternoon. Under that view the useful number is not "four events today", it is "the longest clear run is three and a half hours". Time-blocking practice, popularised by Cal Newport, treats unassigned time as capacity to be spent deliberately, which again means the gap needs a size and a name.</p>
+<p><b>A calendar is a workflow, not a grid.</b> Design writing on the subject repeatedly makes the point that a calendar is <span style="font-style:italic">"more than a grid of cells and dates"</span> and warns that a poorly designed one frustrates people into abandoning the task. For offload specifically the screen is a briefing, so the question is what one sentence about your day it should leave you with.</p>
+<p><b>Inverted figure and ground.</b> Timepage-style day arcs, Rise-style focus-time reports and Google's find-a-time all took the same step at different scales: stop rendering appointments and start rendering the shape of the remaining day. Layouts 1, 2 and 4 below are variations on that move.</p>
+</div>
+
+<div class="grid">
+<div class="opt"><div class="oh"><span class="on">1. Free time as the block</span><span class="src">inverted figure and ground</span><p class="od">Free windows become the filled cards, in moss, with the duration set large. Events shrink to one quiet line each, the way a divider behaves. The day reads as three big openings interrupted by four small obligations, which is the literal truth of it.</p></div><div class="body"><div class="day"><b>Today</b><em>Tue 11 Aug</em><i>5 of 13 hours committed</i></div>
+<div class="ev1"><u>9:30am</u><b>Standup</b><i>30 mins</i></div>
+<div class="free1"><b>3 hours free</b><span>10am to 1pm</span></div>
+<div class="ev1"><u>1pm</u><b>Call with Ana</b><i>30 mins</i></div>
+<div class="free1"><b>3 h 30 free</b><span>1:30pm to 5pm</span></div>
+<div class="ev1"><u>5pm</u><b>Timber yard closes</b><i>30 mins</i></div>
+<div class="free1"><b>2 hours free</b><span>5:30pm to 7:30pm</span></div>
+<div class="ev1"><u>7:30pm</u><b>Dinner, Sam</b><i>1 h 30</i></div></div></div>
+<div class="opt"><div class="oh"><span class="on">2. The day as a budget</span><span class="src">capacity gauge</span><p class="od">One bar for the whole waking day: moss for free, ink for committed, in true proportion. A headline states the total, then the events sit underneath as a plain list. Best if the message is \u201Chow much of today is actually mine\u201D rather than \u201Cwhen is my next thing\u201D.</p></div><div class="body"><div class="day"><b>Today</b><em>Tue 11 Aug</em><i>07:00 to 23:00</i></div>
+<div class="bar">
+<span class="bf" style="flex:2.5">2 h 30</span><span class="bz" style="flex:0.5">·</span>
+<span class="bf" style="flex:3">3 hours</span><span class="bz" style="flex:0.5">·</span>
+<span class="bf" style="flex:3.5">3 h 30</span><span class="bz" style="flex:0.5">·</span>
+<span class="bf" style="flex:2">2 hours</span><span class="bz" style="flex:1.5">Dinner</span>
+</div>
+<div class="legend"><s><span class="sw" style="background:var(--moss-50);border:1px solid var(--moss-200)"></span>free</s><s><span class="sw" style="background:var(--ink-900)"></span>committed</s></div>
+<div class="cap">11 hours free</div>
+<div class="capsub">Four windows, the longest is three and a half hours after lunch.</div>
+<div class="list2">
+<div><u>9:30am</u><span>Standup, 30 mins</span></div>
+<div><u>1pm</u><span>Call with Ana, 30 mins</span></div>
+<div><u>5pm</u><span>Timber yard closes, 30 mins</span></div>
+<div><u>7:30pm</u><span>Dinner with Sam, 1 h 30</span></div>
+</div></div></div>
+<div class="opt"><div class="oh"><span class="on">3. Committed and open, side by side</span><span class="src">two columns</span><p class="od">Two columns, the second one made of the gaps. Nothing is nested, so both readings are available at a glance and the open column can hold an action later, such as putting a loose thing into a window. Narrow on a phone, so titles will truncate.</p></div><div class="body"><div class="day"><b>Today</b><em>Tue 11 Aug</em><i>4 things</i></div>
+<div class="cols">
+<div><div class="colh">Committed</div>
+<div class="c3"><u>9:30am</u><b>Standup</b></div>
+<div class="c3"><u>1pm</u><b>Call with Ana</b></div>
+<div class="c3"><u>5pm</u><b>Timber yard closes</b></div>
+<div class="c3"><u>7:30pm</u><b>Dinner, Sam</b></div></div>
+<div><div class="colh">Open</div>
+<div class="open3"><b>3 hours</b><u>10am to 1pm</u></div>
+<div class="open3"><b>3 h 30</b><u>1:30pm to 5pm</u></div>
+<div class="open3"><b>2 hours</b><u>5:30pm to 7:30pm</u></div></div>
+</div></div></div>
+<div class="opt"><div class="oh"><span class="on">4. The runway</span><span class="src">anchors and clear runs</span><p class="od">A single spine down the day. Events are small anchors on it; the gaps between them are wide, labelled bands that carry the weight and name the longest clear run. Keeps chronology obvious while still making emptiness the loudest thing.</p></div><div class="body"><div class="day"><b>Today</b><em>Tue 11 Aug</em><i>5 of 13 hours committed</i></div>
+<div class="run">
+<div class="anchor"><u>9:30am</u><b>Standup</b></div>
+<div class="gap4"><b>3 hours clear</b><span>10am to 1pm, nothing in the way</span></div>
+<div class="anchor"><u>1pm</u><b>Call with Ana</b></div>
+<div class="gap4"><b>3 h 30 clear</b><span>1:30pm to 5pm, the longest run today</span></div>
+<div class="anchor"><u>5pm</u><b>Timber yard closes</b></div>
+<div class="gap4"><b>2 hours clear</b><span>5:30pm to 7:30pm</span></div>
+<div class="anchor"><u>7:30pm</u><b>Dinner, Sam</b></div>
+</div></div></div>
+<div class="opt"><div class="oh"><span class="on">5. Free time as the headline</span><span class="src">text first, hierarchy inverted</span><p class="od">No blocks at all. The day opens with a display-size sentence about your free time, and the appointments follow as small grey metadata. This is closest to what offload already does elsewhere: state the outcome, hide the machinery. Also the most compact, and it scales to two days easily.</p></div><div class="body"><div class="day"><b>Today</b><em>Tue 11 Aug</em><i>4 things</i></div>
+<div class="h5">3 hours free <em>after 10am</em></div>
+<div class="sub5">Then 3 h 30 clear from 1:30pm, and 2 hours before dinner.</div>
+<div class="ev5"><u>9:30am</u><b>Standup</b> 30 mins</div>
+<div class="ev5"><u>1pm</u><b>Call with Ana</b> 30 mins</div>
+<div class="ev5"><u>5pm</u><b>Timber yard closes</b> 30 mins</div>
+<div class="ev5"><u>7:30pm</u><b>Dinner, Sam</b> 1 h 30</div>
+<div class="h5" style="margin-top:20px">Tomorrow <em>is wide open</em></div>
+<div class="sub5">One appointment at 8:30am, then nothing until 6pm.</div></div></div>
+</div>
+
+<p class="foot"><b>My read.</b> <b>5</b> then <b>1</b>. Layout 5 fits offload better than anything else here: the rest of this screen already speaks in one summarising sentence, and a 26px line saying “3 hours free after 10am” is unmissable without adding a single box or colour. Layout 1 is the strongest if you want a real widget, since inverting the fill is the most honest way to make openness dominant, and it still supports tapping a window. Layout 4 is the compromise that keeps a timeline feel. Layout 2 is a great weekly or reflective view but it answers a different question than “what is my day”. Layout 3 I would set aside on a phone: two columns at 390px will truncate every title.<br><br>One thing to decide either way: what counts as free. All five assume waking hours of 07:00 to 23:00 and ignore gaps under 45 minutes. If a working day is the frame instead, the numbers change a lot.</p>
+</div></body></html>

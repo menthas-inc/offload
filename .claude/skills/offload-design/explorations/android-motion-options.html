@@ -1,0 +1,407 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Android motion options</title>
+<link rel="stylesheet" href="../styles.css?v=3">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../_ds_bundle.js?v=8"></script>
+<script>window.OFFLOAD_ICON_BASE="../assets/icons/"</script>
+<style>
+html,body{margin:0}
+body{background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);letter-spacing:var(--tracking-body)}
+#root{padding:34px 40px 90px;max-width:1320px;margin:0 auto}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+h2{font:var(--weight-semibold) 20px/1.2 var(--font-core);letter-spacing:-0.012em;margin:0}
+.lede{font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:78ch;margin:0 0 36px}
+.sechead{display:flex;align-items:center;gap:12px;padding-bottom:10px;margin:0 0 20px;border-bottom:1px solid var(--ink-950)}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-bottom:48px;align-items:start}
+.cell{display:flex;flex-direction:column;gap:10px}
+.cname{display:flex;align-items:baseline;gap:8px;font:var(--weight-medium) 15px/1.2 var(--font-core)}
+.cname u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.cnote{font-size:13px;line-height:1.5;color:var(--text-secondary);margin:0;min-height:4.5em}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{border:none;cursor:pointer;height:26px;padding:0 11px;border-radius:var(--radius-pill);font:var(--weight-medium) 12px/1 var(--font-core)}
+.bar{display:flex;align-items:center;gap:8px}
+.mono{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+[data-platform="android"]{
+  --a-surface:var(--surface-page);
+  --a-c-low:#F6F5F2;--a-c:#ECEBE7;--a-c-high:#E4E3DE;
+  --a-outline:#DEDDD8;--a-on:#1B1B1A;--a-on-var:#5A5A57;--a-on-quiet:#8A8A86;
+  --radius-xs:4px;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:28px;
+}
+/* Material's easing set, named as Material names it. */
+.stage{--m-standard:cubic-bezier(.2,0,0,1);--m-emph:cubic-bezier(.2,0,0,1);
+  --m-emph-dec:cubic-bezier(.05,.7,.1,1);--m-emph-acc:cubic-bezier(.3,0,.8,.15)}
+@keyframes a-in-x{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes a-in-x-back{from{transform:translateX(-30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes a-out-x{from{transform:none;opacity:1}to{transform:translateX(-30px);opacity:0}}
+@keyframes a-through-in{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+@keyframes a-through-out{from{transform:none;opacity:1}to{transform:scale(1.04);opacity:0}}
+@keyframes a-morph{from{transform:translate(var(--fx),var(--fy)) scale(var(--fs));opacity:.4}to{transform:none;opacity:1}}
+@keyframes a-ripple{from{transform:scale(0);opacity:.28}to{transform:scale(2.6);opacity:0}}
+@keyframes a-snack{from{transform:translateY(64px);opacity:0}to{transform:none;opacity:1}}
+@keyframes a-snack-out{from{transform:none;opacity:1}to{transform:translateY(64px);opacity:0}}
+@keyframes a-stagger{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+@keyframes a-tick{from{stroke-dashoffset:22}to{stroke-dashoffset:0}}
+@keyframes a-pop{0%{transform:scale(.6)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+</style></head><body>
+<div id="root"></div>
+<script type="text/babel">
+const {Icon,IconButton,Button,Badge,Toast}=window.OffloadDesignSystem_dc4a89;
+const THINGS=[["lasso","Lisbon trip","4 open"],["bookmark","Bookshelf build","2 open"],["cloudy","Read later","23 things"],["users","Flat admin","6 things"]];
+const TABS=[["sun","Today"],["lasso","Things"],["cloudy","Memories"]];
+
+/* A 300x430 stand-in for the frame: app bar, content, navigation bar. */
+function Stage({children,nav,bar="My things",back,onBack}){
+  return (
+    <div className="stage" data-platform="android" data-theme="light"
+      style={{width:"100%",height:430,position:"relative",overflow:"hidden",borderRadius:20,
+        background:"var(--a-surface)",border:"1px solid var(--a-outline)",display:"flex",flexDirection:"column"}}>
+      <div style={{height:56,flex:"0 0 auto",display:"flex",alignItems:"center",gap:6,padding:"0 8px 0 12px",zIndex:2}}>
+        {back?<Ripple round onClick={onBack}><Icon name="chevron-left" size={20} style={{color:"var(--a-on)"}}/></Ripple>:null}
+        <b style={{font:"var(--weight-medium) 19px/1.2 var(--font-core)",color:"var(--a-on)"}}>{bar}</b>
+      </div>
+      <div style={{flex:1,minHeight:0,position:"relative",overflow:"hidden"}}>{children}</div>
+      {nav}
+    </div>
+  );
+}
+/* Material's one non-negotiable: touch produces a ripple from the point of contact. */
+function Ripple({children,onClick,round,style,disabled}){
+  const [rip,setRip]=React.useState([]);
+  const go=(e)=>{
+    if(!disabled){
+      const b=e.currentTarget.getBoundingClientRect();
+      const id=Date.now()+Math.random();
+      setRip(r=>[...r,{id,x:e.clientX-b.left,y:e.clientY-b.top,d:Math.max(b.width,b.height)}]);
+      setTimeout(()=>setRip(r=>r.filter(x=>x.id!==id)),480);
+    }
+    onClick&&onClick(e);
+  };
+  return (
+    <span onClick={go} style={{position:"relative",overflow:"hidden",cursor:"pointer",display:"flex",
+      alignItems:"center",justifyContent:round?"center":undefined,
+      width:round?40:undefined,height:round?40:undefined,borderRadius:round?999:undefined,...style}}>
+      {children}
+      {rip.map(r=><span key={r.id} style={{position:"absolute",left:r.x-r.d/2,top:r.y-r.d/2,width:r.d,height:r.d,
+        borderRadius:999,background:"var(--a-on)",pointerEvents:"none",
+        animation:"a-ripple 460ms cubic-bezier(.2,0,0,1) both"}}/>)}
+    </span>
+  );
+}
+function ARow({r,onClick,trailing,noRipple,style}){
+  const body=(
+    <span style={{display:"flex",alignItems:"center",gap:14,minHeight:56,padding:"8px 14px",width:"100%",
+      boxSizing:"border-box",...style}}>
+      <span style={{width:40,height:40,flex:"0 0 auto",borderRadius:999,background:"var(--a-c)",display:"flex",
+        alignItems:"center",justifyContent:"center",color:"var(--a-on-var)"}}><Icon name={r[0]} size={17}/></span>
+      <span style={{flex:1,minWidth:0}}>
+        <b style={{display:"block",font:"var(--weight-regular) 15.5px/1.35 var(--font-core)",color:"var(--a-on)"}}>{r[1]}</b>
+        <span style={{display:"block",fontSize:12.5,color:"var(--a-on-var)"}}>{r[2]}</span></span>
+      {trailing}
+    </span>
+  );
+  return noRipple
+    ?<span onClick={onClick} style={{display:"flex",cursor:"pointer"}}>{body}</span>
+    :<Ripple onClick={onClick} style={{width:"100%"}}>{body}</Ripple>;
+}
+function Nav({value,onChange,mode}){
+  const idx=TABS.findIndex(t=>t[1]===value);
+  return (
+    <nav style={{height:64,flex:"0 0 auto",display:"flex",position:"relative",borderTop:"1px solid var(--a-outline)"}}>
+      {mode==="slide"?<span style={{position:"absolute",top:8,left:"calc("+(idx*100/3)+"% + 50%/3 - 32px)",width:64,height:32,
+        borderRadius:999,background:"var(--blue-600)",
+        transition:"left 250ms cubic-bezier(.2,0,0,1)"}}/>:null}
+      {TABS.map(([ic,l],i)=>{
+        const on=l===value;
+        return (
+          <Ripple key={l} onClick={()=>onChange(l)} style={{flex:1,flexDirection:"column",justifyContent:"center",gap:3}}>
+            <span style={{position:"relative",width:64,height:32,display:"flex",alignItems:"center",justifyContent:"center",
+              borderRadius:999,zIndex:1,
+              background:mode==="slide"?"transparent":(on?"var(--blue-600)":"transparent"),
+              transform:on&&mode==="lift"?"translateY(-1px)":"none",
+              transition:"background 200ms cubic-bezier(.2,0,0,1),transform 200ms cubic-bezier(.05,.7,.1,1)"}}>
+              <span style={{position:"absolute",inset:0,borderRadius:999,background:"var(--blue-600)",
+                opacity:mode==="grow"&&on?1:0,transform:mode==="grow"?(on?"scaleX(1)":"scaleX(.3)"):"none",
+                transition:"opacity 180ms linear,transform 260ms cubic-bezier(.05,.7,.1,1)"}}/>
+              <Icon name={ic} size={18} style={{position:"relative",color:on?"var(--text-on-solid)":"var(--a-on-var)",
+                transition:"color 160ms linear"}}/>
+            </span>
+            <u style={{textDecoration:"none",font:"var(--weight-medium) 11.5px/1 var(--font-core)",
+              color:on?"var(--blue-700)":"var(--a-on-var)"}}>{l}</u>
+          </Ripple>
+        );
+      })}
+    </nav>
+  );
+}
+function List({rows=THINGS,onOpen,noRipple}){
+  return <div style={{padding:"2px 0"}}>{rows.map((r,i)=>
+    <ARow key={i} r={r} noRipple={noRipple} onClick={()=>onOpen&&onOpen(r)}/>)}</div>;
+}
+function Detail({r,tint}){
+  return (
+    <div style={{padding:"6px 16px 16px",background:tint?"var(--a-c-low)":"transparent",minHeight:"100%"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,padding:"6px 0 14px"}}>
+        <span style={{width:48,height:48,borderRadius:999,background:"var(--a-c)",display:"flex",alignItems:"center",
+          justifyContent:"center",color:"var(--a-on-var)"}}><Icon name={r[0]} size={20}/></span>
+        <span><b style={{display:"block",font:"var(--weight-medium) 20px/1.2 var(--font-core)",color:"var(--a-on)"}}>{r[1]}</b>
+          <span style={{fontSize:12.5,color:"var(--a-on-var)"}}>{r[2]}</span></span>
+      </div>
+      {[0,1,2,3].map(i=><span key={i} style={{display:"block",height:10,borderRadius:5,marginBottom:12,
+        width:i%2?"88%":"64%",background:"var(--a-c)"}}/>)}
+    </div>
+  );
+}
+
+/* 1 — Screen transition, three Material patterns for the same tap. */
+function ScreenDemo(){
+  const [mode,setMode]=React.useState("axis");
+  const [open,setOpen]=React.useState(null);
+  const [back,setBack]=React.useState(false);
+  const [n,setN]=React.useState(0);
+  const anim=(entering)=>{
+    if(mode==="axis")return (entering?(back?"a-in-x-back":"a-in-x"):"a-out-x")+" 300ms cubic-bezier(.05,.7,.1,1) both";
+    if(mode==="through")return (entering?"a-through-in":"a-through-out")+" 300ms cubic-bezier(.2,0,0,1) both";
+    return entering?"a-morph 380ms cubic-bezier(.05,.7,.1,1) both":"a-through-out 180ms cubic-bezier(.3,0,.8,.15) both";
+  };
+  const open_=(r)=>{setBack(false);setOpen(r);setN(v=>v+1)};
+  const close=()=>{setBack(true);setOpen(null);setN(v=>v+1)};
+  return (
+    <>
+      <div className="seg">{[["axis","Shared axis X"],["through","Fade through"],["morph","Container transform"]].map(([k,l])=>
+        <button key={k} onClick={()=>{setMode(k);setOpen(null)}}
+          style={{background:mode===k?"var(--surface-inverse)":"var(--surface-fill)",
+            color:mode===k?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>)}</div>
+      <Stage bar={open?open[1]:"My things"} back={!!open} onBack={close}
+        nav={<Nav value="Things" onChange={()=>{}} mode="slide"/>}>
+        <div key={"a"+n} style={{position:"absolute",inset:0,overflow:"hidden",
+          animation:open?anim(false):anim(true),
+          "--fx":"0px","--fy":"120px","--fs":.9}}>
+          <List onOpen={open_}/>
+        </div>
+        {open?<div key={"b"+n} style={{position:"absolute",inset:0,background:"var(--a-surface)",
+          animation:anim(true),"--fx":"0px","--fy":"96px","--fs":.86}}>
+          <Detail r={open} tint={mode==="morph"}/>
+        </div>:null}
+      </Stage>
+      <div className="bar"><span className="mono">{mode==="morph"?"380ms emphasized decelerate":"300ms"}</span>
+        <span className="mono">tap a row, then back</span></div>
+    </>
+  );
+}
+
+/* 2 — Switching a bottom-nav destination, plus the indicator itself. */
+function TabDemo(){
+  const [motion,setMotion]=React.useState("through");
+  const [ind,setInd]=React.useState("slide");
+  const [tab,setTab]=React.useState("Today");
+  const [n,setN]=React.useState(0);
+  const go=(t)=>{if(t!==tab){setTab(t);setN(v=>v+1)}};
+  const body=tab==="Today"?[["sun","Ana needs an answer","Lisbon trip"],["check","Order the brackets","sale ends Friday"]]
+    :tab==="Things"?THINGS.slice(0,3):[["cloudy","€214 to Ana","money"],["cloudy","14th to 17th","dates"]];
+  return (
+    <>
+      <div className="seg">{[["through","Fade through"],["axis","Shared axis X"],["none","Cut"]].map(([k,l])=>
+        <button key={k} onClick={()=>setMotion(k)} style={{background:motion===k?"var(--surface-inverse)":"var(--surface-fill)",
+          color:motion===k?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>)}</div>
+      <div className="seg">{[["slide","Pill slides"],["grow","Pill grows"],["lift","Pill fades, icon lifts"]].map(([k,l])=>
+        <button key={k} onClick={()=>setInd(k)} style={{background:ind===k?"var(--blue-600)":"var(--surface-fill)",
+          color:ind===k?"var(--text-on-solid)":"var(--text-secondary)"}}>{l}</button>)}</div>
+      <Stage bar={tab} nav={<Nav value={tab} onChange={go} mode={ind}/>}>
+        <div key={n} style={{position:"absolute",inset:0,
+          animation:motion==="none"?undefined
+            :(motion==="through"?"a-through-in 300ms cubic-bezier(.2,0,0,1) both":"a-in-x 300ms cubic-bezier(.05,.7,.1,1) both")}}>
+          <List rows={body}/>
+        </div>
+      </Stage>
+      <div className="bar"><span className="mono">tap the tabs</span></div>
+    </>
+  );
+}
+
+/* 3 — Press feedback. The ripple is what makes a list feel Android. */
+function RippleDemo(){
+  const [on,setOn]=React.useState(true);
+  return (
+    <>
+      <div className="seg">{[["1","Ripple on"],["0","Ripple off"]].map(([k,l])=>
+        <button key={k} onClick={()=>setOn(k==="1")} style={{background:(on?"1":"0")===k?"var(--surface-inverse)":"var(--surface-fill)",
+          color:(on?"1":"0")===k?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>)}</div>
+      <Stage bar="My things" nav={<Nav value="Things" onChange={()=>{}} mode="slide"/>}>
+        <div style={{position:"absolute",inset:0}}><List noRipple={!on}/>
+          <div style={{display:"flex",gap:10,padding:"14px"}}>
+            {on?<Ripple round><Icon name="plus" size={20} style={{color:"var(--a-on)"}}/></Ripple>
+              :<span style={{width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <Icon name="plus" size={20} style={{color:"var(--a-on)"}}/></span>}
+            <span style={{alignSelf:"center",fontSize:12.5,color:"var(--a-on-var)"}}>press a row or the plus</span>
+          </div>
+        </div>
+      </Stage>
+      <div className="bar"><span className="mono">460ms, from the touch point</span></div>
+    </>
+  );
+}
+
+/* 4 — Swipe a row away, snackbar holds the undo. */
+function SwipeDemo(){
+  const [gone,setGone]=React.useState({});
+  const [snack,setSnack]=React.useState(null);
+  const [out,setOut]=React.useState(false);
+  const t=React.useRef(null);
+  const kill=(i)=>{
+    setGone(g=>({...g,[i]:true}));setSnack(i);setOut(false);
+    clearTimeout(t.current);t.current=setTimeout(()=>{setOut(true);setTimeout(()=>setSnack(null),200)},3400);
+  };
+  const undo=()=>{clearTimeout(t.current);setGone(g=>{const n={...g};delete n[snack];return n});setSnack(null)};
+  return (
+    <>
+      <div className="seg"><button onClick={()=>{setGone({});setSnack(null);clearTimeout(t.current)}}
+        style={{background:"var(--surface-fill)",color:"var(--text-secondary)"}}>Reset</button></div>
+      <Stage bar="My things" nav={<Nav value="Things" onChange={()=>{}} mode="slide"/>}>
+        <div style={{position:"absolute",inset:0}}>
+          {THINGS.map((r,i)=>(
+            <div key={i} style={{maxHeight:gone[i]?0:72,opacity:gone[i]?0:1,overflow:"hidden",
+              transition:"max-height 280ms cubic-bezier(.05,.7,.1,1),opacity 120ms linear"}}>
+              <div style={{position:"relative",background:"var(--clay-600)"}}>
+                <span style={{position:"absolute",right:14,top:0,bottom:0,display:"flex",alignItems:"center",
+                  color:"var(--text-on-solid)"}}><Icon name="trash-2" size={16}/></span>
+                <div style={{background:"var(--a-surface)",transform:gone[i]?"translateX(-100%)":"none",
+                  transition:"transform 220ms cubic-bezier(.3,0,.8,.15)"}}>
+                  <ARow r={r} trailing={<Ripple round onClick={()=>kill(i)}>
+                    <Icon name="trash-2" size={16} style={{color:"var(--a-on-var)"}}/></Ripple>}/>
+                </div>
+              </div>
+            </div>
+          ))}
+          {snack!==null?(
+            <div style={{position:"absolute",left:8,right:8,bottom:8,
+              animation:(out?"a-snack-out 200ms cubic-bezier(.3,0,.8,.15)":"a-snack 250ms cubic-bezier(.05,.7,.1,1)")+" both"}}>
+              <Toast style={{borderRadius:"var(--radius-xs)",boxShadow:"0 1px 2px rgba(0,0,0,0.3),0 2px 6px 2px rgba(0,0,0,0.15)"}}
+                message={THINGS[snack][1]+", gone in a moment"} action="Undo" onAction={undo}/>
+            </div>
+          ):null}
+        </div>
+      </Stage>
+      <div className="bar"><span className="mono">row out 220ms, gap closes 280ms, snackbar 250ms</span></div>
+    </>
+  );
+}
+
+/* 5 — Revealing more rows, and ticking a task. */
+function ExpandDemo(){
+  const [mode,setMode]=React.useState("stagger");
+  const [open,setOpen]=React.useState(false);
+  const [n,setN]=React.useState(0);
+  const extra=[["archive","Berlin, March","kept"],["archive","Bike repair","kept"]];
+  return (
+    <>
+      <div className="seg">{[["stagger","Stagger in"],["plain","Height only"]].map(([k,l])=>
+        <button key={k} onClick={()=>{setMode(k);setOpen(false)}} style={{background:mode===k?"var(--surface-inverse)":"var(--surface-fill)",
+          color:mode===k?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>)}</div>
+      <Stage bar="My things" nav={<Nav value="Things" onChange={()=>{}} mode="slide"/>}>
+        <div style={{position:"absolute",inset:0,overflowY:"auto"}}>
+          <List rows={THINGS.slice(0,1)}/>
+          <div style={{maxHeight:open?144:0,overflow:"hidden",
+            transition:"max-height 320ms cubic-bezier(.05,.7,.1,1)"}}>
+            {extra.map((r,i)=>(
+              <div key={i+"-"+n} style={{animation:open&&mode==="stagger"
+                ?"a-stagger 260ms cubic-bezier(.05,.7,.1,1) "+(60+i*45)+"ms both":undefined}}>
+                <ARow r={r}/>
+              </div>
+            ))}
+          </div>
+          <div style={{padding:"6px 8px"}}>
+            <Ripple onClick={()=>{setOpen(v=>!v);setN(v=>v+1)}} style={{padding:"0 12px",height:40,borderRadius:20,width:"fit-content",gap:6}}>
+              <b style={{font:"var(--weight-medium) 13.5px/1 var(--font-core)",color:"var(--blue-700)"}}>
+                {open?"Fewer":"All 2 older things"}</b>
+              <Icon name={open?"chevron-up":"chevron-down"} size={15} style={{color:"var(--blue-700)"}}/>
+            </Ripple>
+          </div>
+        </div>
+      </Stage>
+      <div className="bar"><span className="mono">320ms open, rows 45ms apart</span></div>
+    </>
+  );
+}
+
+/* 6 — Ticking a task off. */
+function TickDemo(){
+  const [mode,setMode]=React.useState("draw");
+  const [done,setDone]=React.useState({});
+  const rows=[["Ask Ana about the 14th","Lisbon trip"],["Order the oak brackets","sale ends Friday"],["Renew the flat insurance","the 20th"]];
+  return (
+    <>
+      <div className="seg">{[["draw","Tick draws"],["pop","Box pops"]].map(([k,l])=>
+        <button key={k} onClick={()=>{setMode(k);setDone({})}} style={{background:mode===k?"var(--surface-inverse)":"var(--surface-fill)",
+          color:mode===k?"var(--text-inverse)":"var(--text-secondary)"}}>{l}</button>)}</div>
+      <Stage bar="Lisbon trip" back nav={<Nav value="Things" onChange={()=>{}} mode="slide"/>}>
+        <div style={{position:"absolute",inset:0}}>
+          {rows.map((r,i)=>{
+            const on=!!done[i];
+            return (
+              <Ripple key={i} onClick={()=>setDone(d=>({...d,[i]:!d[i]}))} style={{width:"100%"}}>
+                <span style={{display:"flex",alignItems:"center",gap:14,minHeight:56,padding:"8px 16px",width:"100%",boxSizing:"border-box"}}>
+                  <span style={{width:20,height:20,flex:"0 0 auto",borderRadius:4,display:"flex",alignItems:"center",
+                    justifyContent:"center",border:on?"none":"2px solid var(--a-on-quiet)",
+                    background:on?"var(--moss-600)":"transparent",
+                    animation:on&&mode==="pop"?"a-pop 260ms cubic-bezier(.05,.7,.1,1) both":undefined,
+                    transition:"background 140ms linear,border-color 140ms linear"}}>
+                    {on?<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2"
+                      strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6L9 17l-5-5" style={{strokeDasharray:22,
+                        animation:mode==="draw"?"a-tick 220ms cubic-bezier(.05,.7,.1,1) both":undefined}}/></svg>:null}
+                  </span>
+                  <span style={{flex:1,minWidth:0}}>
+                    <b style={{display:"block",font:"var(--weight-regular) 15.5px/1.35 var(--font-core)",
+                      color:on?"var(--a-on-quiet)":"var(--a-on)",textDecoration:on?"line-through":"none",
+                      transition:"color 180ms linear"}}>{r[0]}</b>
+                    <span style={{display:"block",fontSize:12.5,color:"var(--a-on-var)"}}>{r[1]}</span></span>
+                </span>
+              </Ripple>
+            );
+          })}
+        </div>
+      </Stage>
+      <div className="bar"><span className="mono">tick 220ms, label settles 180ms</span></div>
+    </>
+  );
+}
+
+function Cell({name,tag,note,children}){
+  return <div className="cell"><div className="cname">{name}<u>{tag}</u></div><p className="cnote">{note}</p>{children}</div>;
+}
+
+function App(){
+  return (
+    <>
+      <h1>Android motion, six places worth animating</h1>
+      <p className="lede">Material's own patterns, its easing curves and its durations: shared axis for
+        hierarchy, fade through for peers, container transform when a row becomes a page, a ripple from the
+        point of contact, and a snackbar that holds the undo. Everything moves transform and opacity only,
+        nothing runs past 400ms, and every demo below is live.</p>
+
+      <div className="sechead"><h2>Navigation</h2><Badge tone="attention" variant="solid">3</Badge></div>
+      <div className="row">
+        <Cell name="Opening a thing" tag="forward and back" note="Shared axis X is Material's default for going deeper: the new screen enters 30dp from the right as the old one leaves left. Fade through drops the direction. Container transform grows the page out of the row you tapped, which is the showy one.">
+          <ScreenDemo/></Cell>
+        <Cell name="Switching tabs" tag="peers + indicator" note="Destinations are peers, so Material fades them through with a small scale rather than sliding. The pill under the icon is its own decision: slide it between tabs, grow it in place, or leave it and lift the icon.">
+          <TabDemo/></Cell>
+        <Cell name="Press feedback" tag="the Android tell" note="A ripple spreading from the finger is what separates an Android list from a web one. It costs nothing and it applies to every row, icon button, tab and snackbar action in the kit.">
+          <RippleDemo/></Cell>
+      </div>
+
+      <div className="sechead"><h2>Lists and content</h2><Badge tone="attention" variant="solid">3</Badge></div>
+      <div className="row">
+        <Cell name="Deleting a row" tag="swipe, collapse, undo" note="The row leaves to the left over the red container, then the gap closes underneath it, then the kit's own snackbar rises with the undo. Three short moves in sequence read as one action.">
+          <SwipeDemo/></Cell>
+        <Cell name="Revealing more" tag="expand" note="Older things unfold with an emphasized-decelerate height change. Staggering the new rows 45ms apart makes the list feel like it grew rather than jumped; height only is the cheaper option.">
+          <ExpandDemo/></Cell>
+        <Cell name="Ticking a task" tag="checkbox" note="The tick draws itself along its path while the label settles into its done state. The alternative pops the whole box, which is louder and slightly more playful.">
+          <TickDemo/></Cell>
+      </div>
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script></body></html>

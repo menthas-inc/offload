@@ -1,0 +1,7 @@
+/* offload webfonts. Two faces only.
+   NOTE: no licensed binaries were provided, so these are Google Fonts substitutes
+   served from the Google CDN. Instrument Sans = the whole interface; Literata =
+   the voice offload speaks in. Numerals use Instrument Sans with tabular figures,
+   so there is no third face. Replace with self-hosted @font-face rules +
+   /assets/fonts binaries when the real files arrive. */
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap");

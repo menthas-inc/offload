@@ -1,0 +1,85 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Memories tab</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:48px 40px 88px;background:var(--surface-sunken);color:var(--text-primary)}
+.wrap{max-width:900px;margin:0 auto;display:flex;gap:44px;align-items:flex-start}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 10px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 26px}
+.note{font-size:14px;line-height:1.6;color:var(--text-secondary);margin:0 0 16px;max-width:46ch}
+.note b{font-weight:500;color:var(--text-primary)}
+.phone{width:390px;flex:0 0 auto;background:var(--paper);border:1px solid var(--border-hairline);border-radius:26px;overflow:hidden}
+.bar{display:flex;align-items:center;justify-content:space-between;height:52px;padding:0 16px}
+.mark{font:600 17px/1 var(--font-core);letter-spacing:-0.02em}
+.ico{width:18px;height:18px;border-radius:5px;background:var(--ink-150)}
+.icos{display:flex;gap:10px}
+.body{padding:16px 16px 20px}
+.sh{display:flex;align-items:center;gap:9px;padding-bottom:9px;margin:26px 0 13px;border-bottom:1px solid var(--ink-950)}
+.sh b{font:600 17px/1.2 var(--font-core);letter-spacing:-0.012em}
+.sh i{font-style:normal;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--surface-fill);font:500 13px/22px var(--font-core);color:var(--text-secondary);text-align:center}
+.sh u{text-decoration:none;margin-left:auto;font:500 13px/1 var(--font-core);color:var(--text-secondary)}
+.pills{display:flex;flex-wrap:wrap;gap:7px}
+.p{height:30px;padding:0 12px;border-radius:999px;background:var(--surface-fill);font:500 14px/30px var(--font-core);color:var(--text-primary);white-space:nowrap}
+.p.out{background:transparent;border:1px solid var(--border-strong);line-height:28px;color:var(--text-secondary)}
+.p.acc{background:var(--surface-accent-soft);border:1px solid var(--border-accent);line-height:28px;color:var(--text-accent)}
+.p.dot::before{content:"";display:inline-block;width:5px;height:5px;border-radius:999px;background:currentColor;opacity:.45;margin-right:7px;vertical-align:middle}
+.grp{margin:0 0 14px}
+.grp:last-child{margin-bottom:0}
+.gl{font:500 12px/1 var(--font-core);color:var(--text-tertiary);margin:0 0 8px}
+.tl{font:500 12px/1 var(--font-core);color:var(--text-tertiary);margin:16px 0 4px}
+.conv{display:flex;align-items:flex-start;gap:11px;padding:11px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.conv:last-child{box-shadow:none}
+.conv .tx{flex:1;min-width:0}
+.conv .tx b{display:block;font:500 16px/1.35 var(--font-core);letter-spacing:-0.006em}
+.conv .tx span{display:block;font-size:13px;color:var(--text-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conv .r{font-size:12px;color:var(--text-tertiary);font-variant-numeric:tabular-nums;padding-top:3px}
+.maplink{display:flex;align-items:center;gap:10px;margin-top:18px;padding:12px 14px;border:1px solid var(--border-hairline);border-radius:var(--radius-md)}
+.mini{position:relative;width:52px;height:34px;flex:0 0 auto;border-radius:var(--radius-sm);background:var(--ink-50);overflow:hidden}
+.mini span{position:absolute;border-radius:999px;background:var(--ink-300)}
+.mini .n1{left:9px;top:9px;width:8px;height:8px;background:var(--ink-950)}
+.mini .n2{left:31px;top:6px;width:6px;height:6px}
+.mini .n3{left:24px;top:22px;width:6px;height:6px;background:var(--moss-500)}
+.mini .n4{left:41px;top:20px;width:5px;height:5px}
+.mini i{position:absolute;height:1px;background:var(--ink-200);transform-origin:0 50%}
+.maplink .lx{flex:1;min-width:0}
+.maplink .lx b{display:block;font:500 15px/1.3 var(--font-core)}
+.maplink .lx span{display:block;font-size:13px;color:var(--text-secondary);margin-top:2px}
+.chev{width:14px;height:14px;border-right:1.5px solid var(--ink-300);border-top:1.5px solid var(--ink-300);transform:rotate(45deg);flex:0 0 auto}
+.bottom{display:flex;align-items:center;gap:8px;padding:10px 16px 16px}
+.field{flex:1;height:44px;border-radius:22px;background:var(--surface-fill);font:400 15px/44px var(--font-core);color:var(--text-tertiary);padding:0 16px}
+.tabs{display:flex;justify-content:space-around;padding:8px 0 14px;border-top:1px solid var(--border-hairline)}
+.tab{width:22px;height:22px;border-radius:6px;background:var(--ink-150)}
+.tab.on{background:var(--ink-950)}
+</style></head><body><div class="wrap">
+<div>
+<h1>Memories</h1>
+<p class="lede">B&rsquo;s groups, A&rsquo;s conversation list, C&rsquo;s time headings, and D&rsquo;s map behind a link.</p>
+<p class="note"><b>No section title at the top.</b> The screen opens straight into the groups, as Today opens straight into the priority list. &ldquo;Past conversations&rdquo; keeps its header because it needs the edge.</p>
+<p class="note"><b>The count moved.</b> With no &ldquo;Memories 34&rdquo; header there is nowhere to put the total, so it sits on the map link instead, where it is also the reason to tap.</p>
+<p class="note"><b>Edit</b> moved to the first group&rsquo;s label row, since that is now the top of the screen.</p>
+<p class="note"><b>Conversations</b> are rows with the answer as the second line, under <em>This week</em> and <em>Earlier</em>. Tapping one opens it as a chat and the composer appends to that context.</p>
+</div>
+<div class="phone">
+  <div class="bar"><span class="mark">offload</span><span class="icos"><span class="ico"></span><span class="ico"></span></span></div>
+  <div class="body">
+    <div class="grp"><p class="gl">Going on<span style="float:right;color:var(--text-secondary)">Edit</span></p><div class="pills"><span class="p">Lisbon in August</span><span class="p">the bookshelf</span><span class="p">flat insurance</span><span class="p">dentist</span></div></div>
+    <div class="grp"><p class="gl">People</p><div class="pills"><span class="p dot">Ana</span><span class="p dot">Tom</span><span class="p dot">Sam</span></div></div>
+    <div class="grp"><p class="gl">How you like things</p><div class="pills"><span class="p out">quiet after 22:00</span><span class="p out">metric</span><span class="p out">no email digests</span><span class="p out">week starts Monday</span></div></div>
+    <div class="grp"><p class="gl">Noticed</p><div class="pills"><span class="p acc">you put things off on Fridays</span><span class="p acc">you never open reading later</span></div></div>
+    <div class="maplink">
+      <span class="mini"><i style="left:13px;top:13px;width:20px;transform:rotate(-16deg)"></i><i style="left:13px;top:13px;width:16px;transform:rotate(48deg)"></i><i style="left:27px;top:25px;width:17px;transform:rotate(-16deg)"></i><span class="n1"></span><span class="n2"></span><span class="n3"></span><span class="n4"></span></span>
+      <span class="lx"><b>Memory map</b><span>34 memories, and how they connect</span></span>
+      <span class="chev"></span>
+    </div>
+    <div class="sh"><b>Past conversations</b><i>12</i></div>
+    <p class="tl">This week</p>
+    <div class="conv"><span class="tx"><b>What do I still owe money for?</b><span>3 answers · Lisbon trip, Flat admin</span></span><span class="r">2m</span></div>
+    <div class="conv"><span class="tx"><b>Everything about the bookshelf</b><span>offload listed 9 things</span></span><span class="r">Tue</span></div>
+    <div class="conv"><span class="tx"><b>What did Ana say about dates?</b><span>the 14th to the 17th</span></span><span class="r">Mon</span></div>
+    <p class="tl">Earlier</p>
+    <div class="conv"><span class="tx"><b>Turn off the weekly email</b><span>settings · done</span></span><span class="r">Jul</span></div>
+    <div class="conv"><span class="tx"><b>Which brackets did I pick?</b><span>matte black, 30cm</span></span><span class="r">Jul</span></div>
+    <div class="conv"><span class="tx" style="color:var(--text-secondary)"><b style="font-weight:500;color:var(--text-secondary)">All 12 conversations</b></span></div>
+  </div>
+  <div class="bottom"><span class="field">Ask about anything</span><span class="ico"></span><span class="ico"></span></div>
+  <div class="tabs"><span class="tab"></span><span class="tab"></span><span class="tab on"></span></div>
+</div>
+</div></body></html>

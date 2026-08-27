@@ -1,0 +1,355 @@
+<!doctype html><html><head><meta charset="utf-8"><title>offload, logo exploration log</title>
+<link rel="stylesheet" href="../styles.css">
+<style>body{margin:0;padding:56px 40px 96px;background:var(--surface-page);color:var(--text-primary)}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font:var(--text-display);letter-spacing:var(--tracking-display);margin:0 0 12px}
+.lede{font:var(--text-quiet-role);font-size:20px;color:var(--text-secondary);max-width:60ch;margin:0 0 40px}
+.part{margin-top:72px;padding-top:32px;border-top:2px solid var(--ink-950)}
+.pnum{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary);letter-spacing:0.08em;text-transform:uppercase}
+.ptitle{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:6px 0 10px}
+.pintro{font:var(--text-quiet-role);font-size:18px;color:var(--text-secondary);max-width:60ch;margin:0 0 36px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:1px;background:var(--border-hairline);border:1px solid var(--border-hairline)}
+.dir{background:var(--paper);padding:28px 28px 32px;display:grid;grid-template-columns:190px minmax(280px,1fr);gap:28px}
+@media(max-width:700px){.dir{grid-template-columns:1fr;gap:20px}.sketch{align-items:flex-start!important}}
+.sketch{display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:flex-start}
+.dir .stage{width:170px;height:120px}
+.num{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.name{font:var(--text-title-3);letter-spacing:var(--tracking-title);margin:2px 0 10px}
+.dir p{margin:0 0 12px;font-size:15px;line-height:1.5}
+.obj{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.tag{font:var(--text-caption-role);letter-spacing:0.01em;background:var(--surface-fill);color:var(--text-secondary);padding:4px 9px;border-radius:var(--radius-pill)}
+.mark{color:var(--text-secondary);font-size:14px;line-height:1.5}
+.mark b{color:var(--text-primary);font-weight:500}
+.concept{margin-bottom:52px}
+.chead{display:flex;align-items:baseline;gap:14px;padding-bottom:6px;border-bottom:1px solid var(--border-hairline);margin-bottom:4px}
+.chead h2{font:var(--text-title-3);letter-spacing:var(--tracking-title);margin:0}
+.chead .src{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.cnote{font-size:15px;line-height:1.5;color:var(--text-secondary);max-width:76ch;margin:12px 0 24px}
+.row{display:grid;border:1px solid var(--border-hairline)}
+.row.four{grid-template-columns:repeat(4,1fr)}
+.row.five{grid-template-columns:repeat(5,1fr)}
+.v{background:var(--paper);padding:22px 20px 26px;display:flex;flex-direction:column;gap:14px;border-right:1px solid var(--border-hairline)}
+.v:last-child{border-right:none}
+@media(max-width:1080px){.row.four,.row.five{grid-template-columns:repeat(2,1fr)}.v{border-bottom:1px solid var(--border-hairline)}.v:nth-child(2n){border-right:none}.v:last-child{border-bottom:none;border-right:none}.v:last-child:nth-child(odd){grid-column:1 / -1}}
+@media(max-width:600px){.row.four,.row.five{grid-template-columns:1fr}.v{border-right:none}}
+.stage{height:132px;background:var(--surface-sunken);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center}
+.set{display:flex;align-items:center;gap:14px}
+.lockup{display:flex;align-items:center;gap:7px;font:600 19px/1 var(--font-core);letter-spacing:-0.03em;color:var(--ink-950)}
+.tile{width:46px;height:46px;border-radius:11px;background:var(--ink-950);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.vname{font:var(--text-title-3);letter-spacing:var(--tracking-title)}
+.vnote{font-size:14px;line-height:1.45;color:var(--text-secondary);margin:0}
+.flag{font-size:13px;line-height:1.45;color:var(--amber-600);background:var(--amber-100);padding:8px 10px;border-radius:var(--radius-xs);margin:0}
+.tiny{display:flex;align-items:center;gap:22px;padding:14px 22px;background:var(--surface-sunken);border:1px solid var(--border-hairline);border-top:none}
+.tiny span{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary);margin-right:2px}
+.foot{margin-top:8px;padding-top:24px;border-top:1px solid var(--border-hairline);font-size:15px;line-height:1.55;color:var(--text-secondary);max-width:76ch}
+.foot b{color:var(--text-primary);font-weight:600}
+.chosen{display:grid;grid-template-columns:280px minmax(280px,1fr);gap:36px;align-items:start;border:1px solid var(--border-hairline);border-radius:var(--radius-md);padding:32px;background:var(--paper)}
+@media(max-width:760px){.chosen{grid-template-columns:1fr}}
+.chosen .stage{height:200px}
+img.ball{display:block;object-fit:contain}</style></head><body><div class="wrap">
+<h1>Logo exploration log</h1>
+<p class="lede">The whole path to the offload mark, in one place: ten directions, four concepts taken to sixteen marks, five objects over one vessel, and the decision.</p>
+<div class="part" style="border-top-width:2px">
+<div class="pnum">Decision</div>
+<h2 class="ptitle">The drop, with a dot</h2>
+<p class="pintro">Chosen 6 August 2026. The mark is now in the design system as <code style="font:var(--text-numeric-role);font-size:13px">components/brand/Logo</code>; everything below this line is the record of how it was arrived at.</p>
+<div class="chosen">
+<div>
+<div class="stage"><svg width="128" height="128" viewBox="0 0 96 96"><circle cx="48" cy="21" r="9" fill="#0B0B0B"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/></svg></div>
+<div class="set" style="margin-top:16px"><div class="lockup"><svg width="21" height="21" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="#0B0B0B"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg><span>offload</span></div>
+<div class="tile"><svg width="26" height="26" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="#FFFFFF"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/></svg></div></div>
+</div>
+<div>
+<p style="margin:0 0 14px;font-size:16px;line-height:1.55">A thought arrives at the worst possible time and you do one thing with it: let go of it downwards, into something that will catch it. The vessel is open at the top and never closes.</p>
+<p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:var(--text-secondary)">The dot stays deliberately mute about what it is carrying. A link, a photo, a voice note and half a sentence all become the same unit the moment they are inside, and the mark says so. It is also the only candidate that is unmistakable at 16px, reproduces in one colour anywhere, and needs no explanation.</p>
+<p style="margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary)">Rejected alongside it: the teardrop (water-app language), the photographic paper ball (cannot be one colour, needs a flat fallback anyway), the crumple silhouette (closes up below 24px) and the tilted note (too specific about the kind of thing you saved). The crumpled paper ball is still the right image for marketing and empty states, where it can be big, it just is not the mark.</p>
+</div>
+</div>
+</div>
+<div class="part"><div class="pnum">Part one</div>
+<h2 class="ptitle">Ten directions for the offload mark</h2>
+<p class="pintro">Each one starts with a moment, what the person is doing the second they reach for the app, and works backwards to an object, then to a mark. Sketches are rough geometry, not finished drawings; they exist to test whether the idea survives being reduced to one shape.</p>
+
+<div class="grid">
+
+<div class="dir"><div class="sketch">
+<div class="stage"><svg width="72" height="72" viewBox="0 0 72 72"><rect x="28" y="14" width="16" height="16" rx="3" fill="#0B0B0B"/><rect x="28" y="42" width="16" height="16" rx="3" fill="#0B0B0B"/></svg></div>
+<div class="lockup"><span>offload</span><svg width="9" height="24" viewBox="0 0 9 24"><rect x="0" y="4" width="9" height="9" rx="2" fill="#0B0B0B"/><rect x="0" y="16" width="9" height="9" rx="2" fill="#0B0B0B"/></svg></div>
+</div><div>
+<div class="num">01</div><div class="name">The colon</div>
+<p class="story">You are standing on a platform with a phone in one hand. You open the app and it is already waiting mid-sentence, <i>offload:</i>, and everything you type after it belongs to you, not to a form.</p>
+<div class="obj"><span class="tag">punctuation</span><span class="tag">an open sentence</span><span class="tag">from your own brief</span></div>
+<p class="mark"><b>Mark:</b> the two squares of a colon, sitting after the wordmark and able to stand alone as an app icon. It is the only mark here that is already in the name you wrote. Reads as "what follows is yours", and as a list about to begin.</p>
+</div></div>
+
+<div class="dir"><div class="sketch">
+<div class="stage"><svg width="86" height="86" viewBox="0 0 86 86"><circle cx="43" cy="20" r="8" fill="#0B0B0B"/><path d="M18 40 V56 a10 10 0 0 0 10 10 h30 a10 10 0 0 0 10 -10 V40" fill="none" stroke="#0B0B0B" stroke-width="6" stroke-linecap="round"/></svg></div>
+<div class="lockup"><svg width="26" height="26" viewBox="0 0 86 86"><circle cx="43" cy="20" r="8" fill="#0B0B0B"/><path d="M18 40 V56 a10 10 0 0 0 10 10 h30 a10 10 0 0 0 10 -10 V40" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/></svg><span>offload</span></div>
+</div><div>
+<div class="num">02</div><div class="name">The drop</div>
+<p class="story">A thought arrives at the worst possible time, in the shower, on a call, halfway up the stairs. You do one thing with it: let go of it downwards, into something that will catch it.</p>
+<div class="obj"><span class="tag">a thing falling in</span><span class="tag">a vessel with no lid</span></div>
+<p class="mark"><b>Mark:</b> a dot above an open container. Literal, warm, instantly legible at 16px. Risk: it is close to the download glyph and to a dozen note apps, needs a very particular proportion to escape that.</p>
+</div></div>
+
+<div class="dir"><div class="sketch">
+<div class="stage"><svg width="92" height="72" viewBox="0 0 92 72"><rect x="16" y="8" width="60" height="9" rx="4.5" fill="#0B0B0B"/><rect x="16" y="40" width="60" height="9" rx="4.5" fill="#0B0B0B" opacity="0.28"/><rect x="16" y="55" width="60" height="9" rx="4.5" fill="#0B0B0B" opacity="0.28"/></svg></div>
+<div class="lockup"><svg width="24" height="24" viewBox="0 0 92 92"><rect x="10" y="12" width="72" height="11" rx="5.5" fill="#0B0B0B"/><rect x="10" y="52" width="72" height="11" rx="5.5" fill="#0B0B0B" opacity="0.3"/><rect x="10" y="70" width="72" height="11" rx="5.5" fill="#0B0B0B" opacity="0.3"/></svg><span>offload</span></div>
+</div><div>
+<div class="num">03</div><div class="name">Weight off</div>
+<p class="story">You are carrying eleven small things at once and none of them are written down. You put one down and the stack gets lighter, that is the physical sensation the name is describing.</p>
+<div class="obj"><span class="tag">a stack</span><span class="tag">the top layer lifting</span><span class="tag">relief</span></div>
+<p class="mark"><b>Mark:</b> three bars where the top one has floated free of the other two. The gap is the whole idea. Abstract enough to feel like a brand rather than an icon, and it animates beautifully, the bar lifts every time you capture something.</p>
+</div></div>
+
+<div class="dir"><div class="sketch">
+<div class="stage"><svg width="60" height="86" viewBox="0 0 60 86"><path d="M16 10 h26 v66 h-26" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="square"/></svg></div>
+<div class="lockup"><span>offload</span><svg width="14" height="26" viewBox="0 0 30 86"><path d="M4 10 h20 v66 h-20" fill="none" stroke="#0B0B0B" stroke-width="9" stroke-linecap="square"/></svg></div>
+</div><div>
+<div class="num">04</div><div class="name">The closing bracket</div>
+<p class="story">Six unrelated messages to yourself, a screenshot, a link, a voice note. You hand them over and something closes around them, you no longer have to hold the boundary of the group in your head.</p>
+<div class="obj"><span class="tag">a bracket</span><span class="tag">containment</span><span class="tag">the end of the pile</span></div>
+<p class="mark"><b>Mark:</b> a single heavy <i>]</i>. Typographic, sits naturally beside the lowercase wordmark, and quietly says "everything before this is handled". Very cheap to reproduce anywhere. Risk: reads as code to a developer audience.</p>
+</div></div>
+
+<div class="dir"><div class="sketch">
+<div class="stage"><svg width="80" height="80" viewBox="0 0 80 80"><path d="M40 8 a32 32 0 1 1 -0.1 0" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round" stroke-dasharray="150 51" transform="rotate(-115 40 40)"/></svg></div>
+<div class="lockup"><svg width="24" height="24" viewBox="0 0 80 80"><path d="M40 8 a32 32 0 1 1 -0.1 0" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round" stroke-dasharray="150 51" transform="rotate(-115 40 40)"/></svg><span>offload</span></div>
+</div><div>
+<div class="num">05</div><div class="name">The opening</div>
+<p class="story">You do not want to file anything. You want a hole in the wall that things go into, and a promise that you will be able to get them back out.</p>
+<div class="obj"><span class="tag">a ring with a gap</span><span class="tag">a port</span><span class="tag">an unclosed loop</span></div>
+<p class="mark"><b>Mark:</b> an almost-complete circle, open at the top. The gap is where things go in; the ring is everything already held. Nearly identical to the <i>o</i> that starts the name, so mark and wordmark share one letterform.</p>
+</div></div>
+
+<div class="dir"><div class="sketch">
+<div class="stage"><svg width="88" height="80" viewBox="0 0 88 80"><path d="M44 12 v34 M30 34 l14 14 l14 -14" fill="none" stroke="#0B0B0B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="60" width="60" height="8" rx="4" fill="#0B0B0B"/></svg></div>
+<div class="lockup"><svg width="24" height="24" viewBox="0 0 88 88"><path d="M44 14 v36 M28 36 l16 16 l16 -16" fill="none" stroke="#0B0B0B" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><rect x="12" y="66" width="64" height="9" rx="4.5" fill="#0B0B0B"/></svg><span>offload</span></div>
+</div><div>
+<div class="num">06</div><div class="name">Down to the shelf</div>
+<p class="story">You are buying parts for a bookshelf across four sites over three weeks. Every fragment you find goes down onto the same surface, and one day the surface is the shelf.</p>
+<div class="obj"><span class="tag">an arrow meeting a line</span><span class="tag">a shelf</span><span class="tag">ground</span></div>
+<p class="mark"><b>Mark:</b> a short down-stroke landing on a solid baseline. It is the most explicit of the ten: put it down, it stays there. Also the most generic, the line has to be doing something distinctive (extending past the arrow, a different weight) to earn it.</p>
+</div></div>
+
+<div class="dir"><div class="sketch">
+<div class="stage"><svg width="110" height="72" viewBox="0 0 110 72"><g fill="#0B0B0B"><rect x="8" y="16" width="34" height="7" rx="3.5" transform="rotate(-7 25 19)"/><rect x="8" y="32" width="26" height="7" rx="3.5" transform="rotate(5 21 35)"/><rect x="8" y="48" width="38" height="7" rx="3.5" transform="rotate(-3 27 51)"/><rect x="64" y="16" width="38" height="7" rx="3.5"/><rect x="64" y="32" width="38" height="7" rx="3.5"/><rect x="64" y="48" width="38" height="7" rx="3.5"/></g></svg></div>
+<div class="lockup"><svg width="24" height="24" viewBox="0 0 72 72"><g fill="#0B0B0B"><rect x="10" y="16" width="52" height="9" rx="4.5"/><rect x="10" y="32" width="52" height="9" rx="4.5"/><rect x="10" y="48" width="52" height="9" rx="4.5"/></g></svg><span>offload</span></div>
+</div><div>
+<div class="num">07</div><div class="name">Loose to flush</div>
+<p class="story">Your notes to yourself are a mess of half sentences at odd angles. You never tidy them. Something else does, overnight, and in the morning the same six things are simply in order.</p>
+<div class="obj"><span class="tag">ragged lines</span><span class="tag">a flush edge</span><span class="tag">quiet sorting</span></div>
+<p class="mark"><b>Mark:</b> three lines that go from tilted and uneven to aligned. As a static mark you ship only the resolved half, three flush bars, and the tilted state becomes the loading and empty-state animation. The brand's whole promise as one transition.</p>
+</div></div>
+
+<div class="dir"><div class="sketch">
+<div class="stage"><svg width="80" height="80" viewBox="0 0 80 80"><path d="M40 12 a28 28 0 1 0 28 28" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="butt"/><rect x="58" y="34" width="12" height="12" fill="#0B0B0B"/></svg></div>
+<div class="lockup"><svg width="24" height="24" viewBox="0 0 80 80"><path d="M40 12 a28 28 0 1 0 28 28" fill="none" stroke="#0B0B0B" stroke-width="12" stroke-linecap="butt"/><rect x="56" y="34" width="14" height="12" fill="#0B0B0B"/></svg><span>offload</span></div>
+</div><div>
+<div class="num">08</div><div class="name">The cut o</div>
+<p class="story">Everything you dump in has to come back out on demand, a trip, a shelf, a receipt. The container is not sealed; it has a slot you can reach into from either side.</p>
+<div class="obj"><span class="tag">the letter o</span><span class="tag">a slot cut through it</span></div>
+<p class="mark"><b>Mark:</b> take the <i>o</i> from the wordmark and cut one flat notch out of its right side. Purely typographic, so it can never feel bolted on, and the notch gives the app icon a memorable silhouette at 44px. Doubles as the container for a colour if one is ever needed.</p>
+</div></div>
+
+<div class="dir"><div class="sketch">
+<div class="stage"><svg width="104" height="60" viewBox="0 0 104 60"><g fill="#0B0B0B"><circle cx="14" cy="30" r="5"/><circle cx="34" cy="30" r="5"/><circle cx="52" cy="30" r="5"/><circle cx="82" cy="30" r="14"/></g></svg></div>
+<div class="lockup"><svg width="26" height="24" viewBox="0 0 104 60"><g fill="#0B0B0B"><circle cx="16" cy="30" r="6"/><circle cx="38" cy="30" r="6"/><circle cx="60" cy="30" r="6"/><circle cx="88" cy="30" r="14"/></g></svg><span>offload</span></div>
+</div><div>
+<div class="num">09</div><div class="name">Many into one</div>
+<p class="story">A calendar, a self-DM thread, three screenshots, a notes app. Four places holding one trip. You want one place, and you want the other four to stop existing.</p>
+<div class="obj"><span class="tag">scattered dots</span><span class="tag">one larger dot</span><span class="tag">consolidation</span></div>
+<p class="mark"><b>Mark:</b> three small dots resolving into one big one. Speaks directly to the problem in your brief rather than to the app's mechanics. Very strong as motion; as a still mark it needs the size jump to be extreme or it just reads as an ellipsis.</p>
+</div></div>
+
+<div class="dir"><div class="sketch">
+<div class="stage"><svg width="80" height="80" viewBox="0 0 80 80"><path d="M12 24 a12 12 0 0 1 12 -12 h32 a12 12 0 0 1 12 12 v32 a12 12 0 0 1 -12 12 h-32 a12 12 0 0 1 -12 -12 z" fill="#0B0B0B"/><circle cx="40" cy="12" r="13" fill="#FFFFFF"/></svg></div>
+<div class="lockup"><svg width="24" height="24" viewBox="0 0 80 80"><path d="M8 22 a14 14 0 0 1 14 -14 h36 a14 14 0 0 1 14 14 v36 a14 14 0 0 1 -14 14 h-36 a14 14 0 0 1 -14 -14 z" fill="#0B0B0B"/><circle cx="40" cy="8" r="13" fill="#FFFFFF"/></svg><span>offload</span></div>
+</div><div>
+<div class="num">10</div><div class="name">Taken off your plate</div>
+<p class="story">You are trying to organise a trip with two friends while doing something else entirely. You do not want a workspace. You want less on the plate than you had a minute ago.</p>
+<div class="obj"><span class="tag">a solid block</span><span class="tag">a bite removed</span><span class="tag">negative space</span></div>
+<p class="mark"><b>Mark:</b> a filled ink square with a circular notch taken out of the top edge. Confident, black-on-white by construction, and the notch is where things enter. The only direction here that is a solid shape rather than strokes, so it holds up smallest and prints hardest.</p>
+</div></div>
+
+</div>
+
+<div class="foot"><b>My read, if it helps.</b> <b>01 (the colon)</b> and <b>08 (the cut o)</b> are the two that come out of the name itself, which is usually where the durable marks live, nothing to explain, nothing bolted on. <b>03 (weight off)</b> and <b>07 (loose to flush)</b> are the two that best describe how the app <i>feels</i>, and both have an obvious motion life. <b>02</b> and <b>06</b> are the most immediately readable and the most crowded territory. Tell me which two or three to take further and I will draw them properly, at real sizes, in lockup and as app icons.</div>
+</div>
+<div class="part"><div class="pnum">Part two</div>
+<h2 class="ptitle">Four concepts, four variations each</h2>
+<p class="pintro">Sixteen marks: the drop, the opening, the cut o, and the bin you asked for. Each row is one idea pushed four ways, proportion, weight, literal versus abstract. Under every row the same four sit at 20px, which is where most of them will live or die.</p>
+
+<!-- ============ THE DROP ============ -->
+<div class="concept">
+<div class="chead"><h2>The drop</h2><span class="src">from 02</span></div>
+<p class="cnote">A thought arrives at the worst possible time and you do one thing with it: let go of it downwards, into something that will catch it.</p>
+<div class="row four">
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="21" r="9" fill="#0B0B0B"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="#0B0B0B"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg><span>offload</span></div>
+<div class="vname">a. Above the cup</div><p class="vnote">The plain reading. Dot clear of the vessel, generous air between them, the moment before letting go.</p></div>
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/><circle cx="48" cy="46" r="11" fill="#0B0B0B"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/><circle cx="48" cy="46" r="12" fill="#0B0B0B"/></svg><span>offload</span></div>
+<div class="vname">b. At the rim</div><p class="vnote">Dot sitting on the opening, half in. Tighter silhouette, and the mark is one connected shape at small sizes.</p></div>
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="20" r="9" fill="#0B0B0B"/><path d="M20 44 a28 28 0 0 0 56 0" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><circle cx="48" cy="20" r="10" fill="#0B0B0B"/><path d="M20 44 a28 28 0 0 0 56 0" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg><span>offload</span></div>
+<div class="vname">c. The bowl</div><p class="vnote">Container reduced to a single arc, no walls, nothing closing. Softest of the four; least like a download.</p></div>
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><rect x="44" y="8" width="8" height="16" rx="4" fill="#0B0B0B" opacity="0.3"/><circle cx="48" cy="36" r="9" fill="#0B0B0B"/><path d="M22 52 V66 a10 10 0 0 0 10 10 h32 a10 10 0 0 0 10 -10 V52" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><rect x="43" y="8" width="10" height="16" rx="5" fill="#0B0B0B" opacity="0.3"/><circle cx="48" cy="36" r="10" fill="#0B0B0B"/><path d="M22 52 V66 a10 10 0 0 0 10 10 h32 a10 10 0 0 0 10 -10 V52" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg><span>offload</span></div>
+<div class="vname">d. In motion</div><p class="vnote">A faded trail above the dot. Carries speed, and the trail is the obvious thing to animate on capture. Two-tone, so it needs a mono fallback.</p></div>
+
+</div>
+<div class="tiny"><span>at 20px</span>
+<svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="#0B0B0B"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg>
+<svg width="20" height="20" viewBox="0 0 96 96"><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/><circle cx="48" cy="46" r="12" fill="#0B0B0B"/></svg>
+<svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="20" r="10" fill="#0B0B0B"/><path d="M20 44 a28 28 0 0 0 56 0" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg>
+<svg width="20" height="20" viewBox="0 0 96 96"><rect x="43" y="8" width="10" height="16" rx="5" fill="#0B0B0B" opacity="0.3"/><circle cx="48" cy="36" r="10" fill="#0B0B0B"/><path d="M22 52 V66 a10 10 0 0 0 10 10 h32 a10 10 0 0 0 10 -10 V52" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg>
+</div>
+</div>
+
+<!-- ============ THE OPENING ============ -->
+<div class="concept">
+<div class="chead"><h2>The opening</h2><span class="src">from 05</span></div>
+<p class="cnote">You do not want to file anything. You want a hole in the wall that things go into, and a promise you can get them back out. The ring is what is already held; the gap is where things enter.</p>
+<div class="row four">
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="30" fill="none" stroke="#0B0B0B" stroke-width="9" stroke-linecap="round" stroke-dasharray="148.5 40" transform="rotate(-51.5 48 48)"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><circle cx="48" cy="48" r="30" fill="none" stroke="#0B0B0B" stroke-width="11" stroke-linecap="round" stroke-dasharray="148.5 40" transform="rotate(-51.5 48 48)"/></svg><span>offload</span></div>
+<div class="vname">a. Gap at twelve</div><p class="vnote">Symmetrical, round terminals. Calm and neutral, the closest to the <i>o</i> in the wordmark.</p></div>
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="30" fill="none" stroke="#0B0B0B" stroke-width="9" stroke-linecap="butt" stroke-dasharray="175 13" transform="rotate(-42 48 48)"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><circle cx="48" cy="48" r="30" fill="none" stroke="#0B0B0B" stroke-width="11" stroke-linecap="butt" stroke-dasharray="175 13" transform="rotate(-42 48 48)"/></svg><span>offload</span></div>
+<div class="vname">b. Narrow slit</div><p class="vnote">Tiny gap, flat-cut ends. Almost a closed <i>o</i>, the opening reads as a seam rather than a mouth. Most typographic, weakest at 20px.</p></div>
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="52" r="27" fill="none" stroke="#0B0B0B" stroke-width="9" stroke-linecap="round" stroke-dasharray="121 48" transform="rotate(-59 48 52)"/><circle cx="48" cy="15" r="7.5" fill="#0B0B0B"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><circle cx="48" cy="52" r="27" fill="none" stroke="#0B0B0B" stroke-width="11" stroke-linecap="round" stroke-dasharray="121 48" transform="rotate(-59 48 52)"/><circle cx="48" cy="15" r="9" fill="#0B0B0B"/></svg><span>offload</span></div>
+<div class="vname">c. Ring and dot</div><p class="vnote">Wide mouth with something about to enter it. Explains itself instantly, but it borrows the drop's dot, the two concepts start converging here.</p></div>
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="28" fill="none" stroke="#0B0B0B" stroke-width="15" stroke-linecap="butt" stroke-dasharray="131.9 44"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><circle cx="48" cy="48" r="28" fill="none" stroke="#0B0B0B" stroke-width="16" stroke-linecap="butt" stroke-dasharray="131.9 44"/></svg><span>offload</span></div>
+<div class="vname">d. Heavy, off-axis</div><p class="vnote">Thick stroke, gap swung to the upper right so the mark has a direction. Holds up best at icon size and prints hardest.</p></div>
+
+</div>
+<div class="tiny"><span>at 20px</span>
+<svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="48" r="30" fill="none" stroke="#0B0B0B" stroke-width="11" stroke-linecap="round" stroke-dasharray="148.5 40" transform="rotate(-51.5 48 48)"/></svg>
+<svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="48" r="30" fill="none" stroke="#0B0B0B" stroke-width="11" stroke-linecap="butt" stroke-dasharray="175 13" transform="rotate(-42 48 48)"/></svg>
+<svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="52" r="27" fill="none" stroke="#0B0B0B" stroke-width="11" stroke-linecap="round" stroke-dasharray="121 48" transform="rotate(-59 48 52)"/><circle cx="48" cy="15" r="9" fill="#0B0B0B"/></svg>
+<svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="48" r="28" fill="none" stroke="#0B0B0B" stroke-width="16" stroke-linecap="butt" stroke-dasharray="131.9 44"/></svg>
+</div>
+</div>
+
+<!-- ============ THE CUT O ============ -->
+<div class="concept">
+<div class="chead"><h2>The cut o</h2><span class="src">from 08</span></div>
+<p class="cnote">Everything you dump in has to come back out on demand, so the container is not sealed, it has a slot you can reach into. This one is the letter that starts the name with a piece taken out of it, which means the mark and the wordmark are the same letterform and nothing ever looks bolted on. It is a close cousin of the opening; the difference is that these cuts are straight and flat, so the shape reads as a letter that was sliced rather than a ring that was left ajar.</p>
+<div class="row four">
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><defs><mask id="ma1"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="64" y="-4" width="44" height="104" fill="#000"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#ma1)"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><defs><mask id="ma2"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="64" y="-4" width="44" height="104" fill="#000"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#ma2)"/></svg><span>offload</span></div>
+<div class="vname">a. Sliced flat</div><p class="vnote">A vertical cut takes the whole right side off. Blunt and confident, a letterform with a decision made about it. Least like anything else in the category.</p></div>
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><defs><mask id="mb1"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="52" y="-10" width="60" height="60" fill="#000" transform="rotate(38 82 20)"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#mb1)"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><defs><mask id="mb2"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="52" y="-10" width="60" height="60" fill="#000" transform="rotate(38 82 20)"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#mb2)"/></svg><span>offload</span></div>
+<div class="vname">b. Cut on the diagonal</div><p class="vnote">The slice comes in at an angle across the top right, so the mark leans. Livelier, and the angle gives it a direction to animate along.</p></div>
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><defs><mask id="mc1"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="56" y="39" width="52" height="18" fill="#000"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#mc1)"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><defs><mask id="mc2"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="56" y="39" width="52" height="18" fill="#000"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#mc2)"/></svg><span>offload</span></div>
+<div class="vname">c. The slot</div><p class="vnote">A single narrow slot through the right stroke. The ring stays whole, so it still reads as an o first and a container second, the quietest of the four.</p></div>
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><defs><mask id="md1"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="56" y="30" width="52" height="13" fill="#000"/><rect x="56" y="55" width="52" height="13" fill="#000"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#md1)"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><defs><mask id="md2"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="56" y="30" width="52" height="13" fill="#000"/><rect x="56" y="55" width="52" height="13" fill="#000"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#md2)"/></svg><span>offload</span></div>
+<div class="vname">d. Two slots</div><p class="vnote">In and out. Two cuts on the same side say the thing goes in and comes back, which is the actual promise, not just the capture half. Busiest at small sizes.</p></div>
+</div>
+<div class="tiny"><span>at 20px</span><svg width="20" height="20" viewBox="0 0 96 96"><defs><mask id="ta"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="64" y="-4" width="44" height="104" fill="#000"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#ta)"/></svg><svg width="20" height="20" viewBox="0 0 96 96"><defs><mask id="tb"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="52" y="-10" width="60" height="60" fill="#000" transform="rotate(38 82 20)"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#tb)"/></svg><svg width="20" height="20" viewBox="0 0 96 96"><defs><mask id="tc"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="56" y="39" width="52" height="18" fill="#000"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#tc)"/></svg><svg width="20" height="20" viewBox="0 0 96 96"><defs><mask id="td"><rect x="0" y="0" width="96" height="96" fill="#fff"/><rect x="56" y="30" width="52" height="13" fill="#000"/><rect x="56" y="55" width="52" height="13" fill="#000"/></mask></defs><path d="M14 48 a34 34 0 1 0 68 0 a34 34 0 1 0 -68 0 Z M28 48 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0 Z" fill="#0B0B0B" fill-rule="evenodd" mask="url(#td)"/></svg></div>
+</div>
+
+<!-- ============ THE BIN ============ -->
+<div class="concept">
+<div class="chead"><h2>The bin</h2><span class="src">new</span></div>
+<p class="cnote">Your version: you crumple it up and throw it in, and someone you never meet deals with what happens next. The container is not a filing cabinet, it is a receptacle, and the crumple says the thing you threw in was messy, unfinished, half a sentence. Worth naming the risk up front: a bin also means <i>delete</i>, and in a product about never losing anything that is the one wrong meaning. Everything below is an attempt to keep the throwing-away gesture and lose the destruction.</p>
+<div class="row four">
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><path d="M40 5 L50 2 L57 9 L63 8 L61 18 L56 22 L58 29 L47 31 L38 26 L33 17 L37 11 Z" fill="#0B0B0B"/><path d="M24 44 L30 80 H66 L72 44" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><path d="M40 5 L50 2 L57 9 L63 8 L61 18 L56 22 L58 29 L47 31 L38 26 L33 17 L37 11 Z" fill="#0B0B0B"/><path d="M24 44 L30 80 H66 L72 44" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg><span>offload</span></div>
+<div class="vname">a. Crumple and bin</div><p class="vnote">The recycling-sign reading, straight. Warmest and funniest of the four; also the one most likely to be mistaken for delete.</p></div>
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><path d="M40 3 L50 0 L57 7 L63 6 L61 16 L56 20 L58 27 L47 29 L38 24 L33 15 L37 9 Z" fill="#0B0B0B"/><rect x="16" y="38" width="64" height="9" rx="4.5" fill="#0B0B0B"/><path d="M26 54 L31 80 H65 L70 54" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><path d="M40 3 L50 0 L57 7 L63 6 L61 16 L56 20 L58 27 L47 29 L38 24 L33 15 L37 9 Z" fill="#0B0B0B"/><rect x="16" y="38" width="64" height="10" rx="5" fill="#0B0B0B"/><path d="M26 54 L31 80 H65 L70 54" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg><span>offload</span></div>
+<div class="vname">b. With the lid off</div><p class="vnote">Lid lifted and floating clear. Three elements is a lot for 20px, but the raised lid is a good animation: it opens as you capture.</p></div>
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><path d="M40 5 L50 2 L57 9 L63 8 L61 18 L56 22 L58 29 L47 31 L38 26 L33 17 L37 11 Z" fill="#0B0B0B"/><path d="M22 48 V66 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V48" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/><rect x="30" y="42" width="36" height="8" rx="4" fill="#0B0B0B"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><path d="M40 5 L50 2 L57 9 L63 8 L61 18 L56 22 L58 29 L47 31 L38 26 L33 17 L37 11 Z" fill="#0B0B0B"/><path d="M22 48 V66 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V48" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/><rect x="30" y="42" width="36" height="8" rx="4" fill="#0B0B0B"/></svg><span>offload</span></div>
+<div class="vname">c. Slot, not bin</div><p class="vnote">Rounded container with a posting slot, a letterbox rather than a rubbish bin. Keeps the gesture, drops the destruction.</p></div>
+
+<div class="v"><div class="stage"><svg width="96" height="96" viewBox="0 0 96 96"><path d="M22 34 h52 l-6 42 a8 8 0 0 1 -8 7 H36 a8 8 0 0 1 -8 -7 Z" fill="#0B0B0B"/><path d="M44 42 L52 40 L57 45 L62 45 L60 52 L57 56 L59 62 L50 64 L43 60 L39 53 L42 46 Z" fill="#FFFFFF"/></svg></div>
+<div class="lockup"><svg width="22" height="22" viewBox="0 0 96 96"><path d="M22 34 h52 l-6 42 a8 8 0 0 1 -8 7 H36 a8 8 0 0 1 -8 -7 Z" fill="#0B0B0B"/><path d="M44 42 L52 40 L57 45 L62 45 L60 52 L57 56 L59 62 L50 64 L43 60 L39 53 L42 46 Z" fill="#FFFFFF"/></svg><span>offload</span></div>
+<div class="vname">d. Solid, crumple inside</div><p class="vnote">Filled ink container, the crumple held in white negative space, it is <i>kept</i>, not thrown away. Strongest silhouette here and the only one that survives being tiny.</p></div>
+
+</div>
+<div class="tiny"><span>at 20px</span>
+<svg width="20" height="20" viewBox="0 0 96 96"><path d="M40 5 L50 2 L57 9 L63 8 L61 18 L56 22 L58 29 L47 31 L38 26 L33 17 L37 11 Z" fill="#0B0B0B"/><path d="M24 44 L30 80 H66 L72 44" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg width="20" height="20" viewBox="0 0 96 96"><path d="M40 3 L50 0 L57 7 L63 6 L61 16 L56 20 L58 27 L47 29 L38 24 L33 15 L37 9 Z" fill="#0B0B0B"/><rect x="16" y="38" width="64" height="10" rx="5" fill="#0B0B0B"/><path d="M26 54 L31 80 H65 L70 54" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg width="20" height="20" viewBox="0 0 96 96"><path d="M40 5 L50 2 L57 9 L63 8 L61 18 L56 22 L58 29 L47 31 L38 26 L33 17 L37 11 Z" fill="#0B0B0B"/><path d="M22 48 V66 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V48" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/><rect x="30" y="42" width="36" height="8" rx="4" fill="#0B0B0B"/></svg>
+<svg width="20" height="20" viewBox="0 0 96 96"><path d="M22 34 h52 l-6 42 a8 8 0 0 1 -8 7 H36 a8 8 0 0 1 -8 -7 Z" fill="#0B0B0B"/><path d="M44 42 L52 40 L57 45 L62 45 L60 52 L57 56 L59 62 L50 64 L43 60 L39 53 L42 46 Z" fill="#FFFFFF"/></svg>
+</div>
+</div>
+
+<div class="foot"><b>Where I would push next.</b> The three that hold their shape at 20px and owe nothing to another app's glyph are <b>cut o a</b> (sliced flat), <b>opening d</b> (heavy, off-axis) and <b>bin d</b> (solid, crumple inside). <b>Drop b</b> is the best of the drops for the same reason, it is one connected silhouette. Worth noting that the opening and the cut o are the same family seen from two angles; if you like both, the real choice is round terminals versus flat cuts. Pick a shortlist and I will redraw those properly: real optical correction, a full lockup, app icon on ink and on paper, and a capture animation for each.</div>
+</div>
+<div class="part"><div class="pnum">Part three</div>
+<h2 class="ptitle">The drop, five things to drop</h2>
+<p class="pintro">Same container in all five: an open vessel, nothing closing over the top. Only the falling object changes. Each is shown large, in lockup at 19px, and as an app icon on ink, the three places it has to survive.</p>
+
+<div class="row five">
+
+<div class="v">
+<div class="stage"><svg width="104" height="104" viewBox="0 0 96 96"><circle cx="48" cy="21" r="9" fill="#0B0B0B"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/></svg></div>
+<div class="set">
+<div class="lockup"><svg width="21" height="21" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="#0B0B0B"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg><span>offload</span></div>
+<div class="tile"><svg width="26" height="26" viewBox="0 0 96 96"><circle cx="48" cy="21" r="10" fill="#FFFFFF"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/></svg></div>
+</div>
+<div class="vname">a. The dot</div><p class="vnote">The original. Says nothing about what the thing is, which is the point, a link, a photo, half a sentence all reduce to the same unit. Cheapest to reproduce anywhere and the only one that is unmistakable at 16px.</p>
+</div>
+
+<div class="v">
+<div class="stage"><svg width="104" height="104" viewBox="0 0 96 96"><path d="M48 6 C48 6 60 20 60 27 a12 12 0 0 1 -24 0 C36 20 48 6 48 6 Z" fill="#0B0B0B"/><path d="M22 48 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V48" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/></svg></div>
+<div class="set">
+<div class="lockup"><svg width="21" height="21" viewBox="0 0 96 96"><path d="M48 6 C48 6 60 20 60 27 a12 12 0 0 1 -24 0 C36 20 48 6 48 6 Z" fill="#0B0B0B"/><path d="M22 48 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V48" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg><span>offload</span></div>
+<div class="tile"><svg width="26" height="26" viewBox="0 0 96 96"><path d="M48 6 C48 6 60 20 60 27 a12 12 0 0 1 -24 0 C36 20 48 6 48 6 Z" fill="#FFFFFF"/><path d="M22 48 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V48" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/></svg></div>
+</div>
+<div class="vname">b. An actual drop</div><p class="vnote">A teardrop instead of a dot. It points, so the direction is built into the object and the mark gains a top. Read the risk honestly: droplet plus vessel is the visual language of water, weather and health apps.</p>
+</div>
+
+<div class="v">
+<div class="stage"><svg width="104" height="104" viewBox="0 0 96 96"><path d="M40 6 L50 2 L58 8 L64 7 L62 17 L57 22 L59 30 L48 32 L38 27 L33 17 L37 11 Z" fill="#0B0B0B"/><path d="M22 50 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V50" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/></svg></div>
+<div class="set">
+<div class="lockup"><svg width="21" height="21" viewBox="0 0 96 96"><path d="M40 6 L50 2 L58 8 L64 7 L62 17 L57 22 L59 30 L48 32 L38 27 L33 17 L37 11 Z" fill="#0B0B0B"/><path d="M22 50 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V50" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg><span>offload</span></div>
+<div class="tile"><svg width="26" height="26" viewBox="0 0 96 96"><path d="M40 6 L50 2 L58 8 L64 7 L62 17 L57 22 L59 30 L48 32 L38 27 L33 17 L37 11 Z" fill="#FFFFFF"/><path d="M22 50 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V50" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/></svg></div>
+</div>
+<div class="vname">c. Crumpled, as a silhouette</div><p class="vnote">Your paper-ball idea drawn flat, in the same weight as the container. It says the thing you are throwing in was messy and unfinished, the strongest story of the five. Below about 24px the facets close up and it becomes a lump.</p>
+</div>
+
+<div class="v">
+<div class="stage"><div style="position:relative;width:104px;height:104px"><svg width="104" height="104" viewBox="0 0 96 96" style="position:absolute;inset:0"><path d="M22 50 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V50" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/></svg><img class="ball" src="../uploads/Screenshot%202026-08-06%20at%205.43.15%20PM.png" alt="crumpled paper" style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:44px;height:44px"></div></div>
+<div class="set">
+<div class="lockup"><span style="position:relative;display:inline-block;width:21px;height:21px"><svg width="21" height="21" viewBox="0 0 96 96" style="position:absolute;inset:0"><path d="M22 50 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V50" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg><img class="ball" src="../uploads/Screenshot%202026-08-06%20at%205.43.15%20PM.png" alt="" style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:10px;height:10px"></span><span>offload</span></div>
+<div class="tile"><span style="position:relative;display:inline-block;width:26px;height:26px"><svg width="26" height="26" viewBox="0 0 96 96" style="position:absolute;inset:0"><path d="M22 50 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V50" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/></svg><img class="ball" src="../uploads/Screenshot%202026-08-06%20at%205.43.15%20PM.png" alt="" style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:12px"></span></div>
+</div>
+<div class="vname">d. Crumpled, photographic</div><p class="vnote">A real paper ball above a drawn container. Warm and tactile, and it makes the object feel like something of yours rather than a symbol. Mixing a photograph with a line drawing is a real commitment: it cannot be one colour, it will not emboss, engrave or fax, and it needs a flat fallback anyway, which is c.</p>
+<p class="flag">Placeholder only. This is the watermarked stock image you attached, used to test the idea. A shippable version needs a licensed or photographed paper ball, shot on white, knocked out, at 4× the largest use.</p>
+</div>
+
+<div class="v">
+<div class="stage"><svg width="104" height="104" viewBox="0 0 96 96"><g transform="rotate(-14 48 20)"><rect x="34" y="6" width="28" height="28" rx="4" fill="#0B0B0B"/><path d="M40 14 h16 M40 21 h16 M40 28 h9" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/></g><path d="M22 50 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V50" fill="none" stroke="#0B0B0B" stroke-width="8" stroke-linecap="round"/></svg></div>
+<div class="set">
+<div class="lockup"><svg width="21" height="21" viewBox="0 0 96 96"><g transform="rotate(-14 48 20)"><rect x="34" y="6" width="28" height="28" rx="4" fill="#0B0B0B"/></g><path d="M22 50 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V50" fill="none" stroke="#0B0B0B" stroke-width="10" stroke-linecap="round"/></svg><span>offload</span></div>
+<div class="tile"><svg width="26" height="26" viewBox="0 0 96 96"><g transform="rotate(-14 48 20)"><rect x="34" y="6" width="28" height="28" rx="4" fill="#FFFFFF"/></g><path d="M22 50 V64 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V50" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/></svg></div>
+</div>
+<div class="vname">e. A note, falling</div><p class="vnote">A small square tumbling in at an angle, a scrap of paper before anyone crumpled it. The tilt does the falling, so the object can stay geometric and it drops the ruled lines cleanly at icon size.</p>
+</div>
+
+</div>
+
+<div class="foot"><b>My read.</b> <b>a</b> and <b>c</b> are the two real candidates. <b>a</b> is the most durable, one dot, one arc, works at any size, in any medium, and the neutrality is honest to a product where everything becomes the same kind of thing once it is inside. <b>c</b> is the one with a story, and it is the flat version you would need anyway to support <b>d</b>. If you want the tactility of <b>d</b>, the usual arrangement is: ship <b>c</b> as the mark, and use the photographic paper ball in marketing, onboarding and the empty state, where it can be big. Say which one and I will take it to a real drawing, optical sizes, clear space, lockup rules, monochrome and inverse, and the capture animation.</div>
+</div>
+</div></body></html>

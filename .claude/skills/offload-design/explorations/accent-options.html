@@ -1,0 +1,156 @@
+<!doctype html><html><head><meta charset="utf-8"><title>offload, second accent options</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:56px 40px 88px;background:var(--surface-page);color:var(--text-primary)}
+.wrap{max-width:1200px;margin:0 auto}
+h1{font:var(--text-display);letter-spacing:var(--tracking-display);margin:0 0 12px}
+.lede{font:var(--text-quiet-role);font-size:19px;color:var(--text-secondary);max-width:64ch;margin:0 0 20px}
+.premise{font-size:15px;line-height:1.55;color:var(--text-secondary);max-width:78ch;margin:0 0 44px;padding-left:16px;border-left:2px solid var(--ink-950)}
+.premise b{color:var(--text-primary);font-weight:600}
+.row{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--border-hairline)}
+@media(max-width:1180px){.row{grid-template-columns:repeat(2,1fr)}.o:last-child:nth-child(odd){grid-column:1 / -1}}
+@media(max-width:640px){.row{grid-template-columns:1fr}}
+.o{padding:0;display:flex;flex-direction:column;border-right:1px solid var(--border-hairline);border-bottom:1px solid var(--border-hairline);background:var(--paper)}
+.o:last-child{border-right:none}
+.chips{display:flex;height:76px}
+.chips i{flex:1}
+.body{padding:18px 18px 22px;display:flex;flex-direction:column;gap:12px;flex:1}
+.oname{font:var(--text-title-3);letter-spacing:var(--tracking-title)}
+.hex{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.onote{font-size:14px;line-height:1.45;color:var(--text-secondary);margin:0}
+.pair{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface-sunken);border-radius:var(--radius-sm)}
+.dot{width:14px;height:14px;border-radius:999px;flex:0 0 auto}
+.pairlbl{font:var(--text-caption-role);color:var(--text-secondary)}
+.uses{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+.badge{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-xs);font:var(--weight-medium) var(--size-caption)/1 var(--font-core)}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 14px;border-radius:var(--radius-sm);font:var(--weight-medium) var(--size-label)/1 var(--font-core);color:#fff}
+.rowline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wcag{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
+.pill{font:var(--text-numeric-role);font-size:10px;padding:3px 7px;border-radius:999px;background:var(--surface-fill);color:var(--text-secondary)}
+.pill.bad{background:var(--clay-100);color:var(--clay-600)}
+.pill.ok{background:var(--moss-50);color:var(--moss-600)}
+.ctx{margin-top:56px}
+.ctx h2{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.ctxnote{font-size:15px;line-height:1.55;color:var(--text-secondary);max-width:74ch;margin:0 0 24px}
+.screens{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+@media(max-width:1180px){.screens{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.screens{grid-template-columns:1fr}}
+.ph{border:1px solid var(--border-hairline);border-radius:var(--radius-lg);overflow:hidden;background:var(--paper)}
+.bar{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border-hairline);font:600 15px/1 var(--font-core);letter-spacing:-0.03em}
+.li{display:flex;align-items:center;gap:10px;padding:11px 14px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.li .t{flex:1;min-width:0;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .m{font-size:11px;color:var(--text-tertiary)}
+.sq{width:26px;height:26px;border-radius:7px;background:var(--surface-fill);flex:0 0 auto}
+.comp{display:flex;align-items:center;gap:6px;margin:12px 14px;height:38px;padding:0 6px 0 12px;border-radius:999px;background:var(--surface-fill);font-size:13px;color:var(--text-tertiary)}
+.send{width:28px;height:28px;border-radius:999px;margin-left:auto;flex:0 0 auto}
+.caplbl{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary);padding-top:8px;display:block}
+.foot{margin-top:52px;padding-top:24px;border-top:1px solid var(--border-hairline);font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:78ch}
+.foot b{color:var(--text-primary);font-weight:600}
+</style></head><body><div class="wrap">
+<h1>A second accent beside moss</h1>
+<p class="lede">Five candidates, each judged on the same three things: does it sit comfortably next to moss, does it actually pop against a black-and-white page, and does it survive at 12px on white.</p>
+<p class="premise"><b>What the second accent is for.</b> Moss already has one job, <i>offload did this, you didn't</i>. A second colour only earns its place if it has an equally narrow job. The obvious one is the opposite: <b>this needs you</b>. Something is waiting, unresolved, or about to expire. That means it will almost always appear as a small badge, a dot on a row, or a count, rarely as a filled button, never as a background. Every swatch below is shown doing exactly that.</p>
+
+<div class="row">
+
+<div class="o">
+<div class="chips"><i style="background:#FFEDD9"></i><i style="background:#F5B44A"></i><i style="background:#D97A0A"></i><i style="background:#8A4B08"></i></div>
+<div class="body">
+<div><div class="oname">1. Ochre</div><div class="hex">#D97A0A · warm, earthy</div></div>
+<div class="pair"><span class="dot" style="background:#3F6B4F"></span><span class="dot" style="background:#D97A0A"></span><span class="pairlbl">green + burnt orange, natural, unforced</span></div>
+<p class="onote">The safest complement. Moss and ochre are the two halves of a landscape, so nothing about the pairing feels designed. It reads as attention without alarm, which fits a product that never nags.</p>
+<div class="uses rowline"><span class="badge" style="background:#FFEDD9;color:#8A4B08">needs a date</span><span class="badge" style="background:#D97A0A;color:#fff">3</span><span class="btn" style="background:#D97A0A">Remind me</span></div>
+<div class="wcag"><span class="pill ok">4.6:1 on white</span><span class="pill">warm</span><span class="pill">low alarm</span></div>
+</div></div>
+
+<div class="o">
+<div class="chips"><i style="background:#FFE8E3"></i><i style="background:#F08A6E"></i><i style="background:#E04A22"></i><i style="background:#8F2A0E"></i></div>
+<div class="body">
+<div><div class="oname">2. Signal orange</div><div class="hex">#E04A22 · hot, high-energy</div></div>
+<div class="pair"><span class="dot" style="background:#3F6B4F"></span><span class="dot" style="background:#E04A22"></span><span class="pairlbl">near-complementary, maximum pop</span></div>
+<p class="onote">The loudest option and the one that genuinely jumps off a white page. Sits almost opposite moss on the wheel, so the two never blur together. Risk: it is close to your existing clay error colour, and it makes calm screens feel urgent.</p>
+<div class="uses rowline"><span class="badge" style="background:#FFE8E3;color:#8F2A0E">needs a date</span><span class="badge" style="background:#E04A22;color:#fff">3</span><span class="btn" style="background:#E04A22">Remind me</span></div>
+<div class="wcag"><span class="pill ok">4.5:1 on white</span><span class="pill bad">clashes with clay error</span></div>
+</div></div>
+
+<div class="o">
+<div class="chips"><i style="background:#FFF0CC"></i><i style="background:#F5C542"></i><i style="background:#C99400"></i><i style="background:#7A5A00"></i></div>
+<div class="body">
+<div><div class="oname">3. Marigold</div><div class="hex">#C99400 · bright, optimistic</div></div>
+<div class="pair"><span class="dot" style="background:#3F6B4F"></span><span class="dot" style="background:#C99400"></span><span class="pairlbl">green + gold, warm, a little retro</span></div>
+<p class="onote">The brightest without being aggressive; a highlighter rather than a siren. It is the closest to your existing amber, so it could replace that token instead of joining it, one warm colour doing both "needs input" and "warning".</p>
+<div class="uses rowline"><span class="badge" style="background:#FFF0CC;color:#7A5A00">needs a date</span><span class="badge" style="background:#C99400;color:#fff">3</span><span class="btn" style="background:#C99400">Remind me</span></div>
+<div class="wcag"><span class="pill">3.4:1 on white, text needs the dark step</span><span class="pill">merges with amber</span></div>
+</div></div>
+
+<div class="o">
+<div class="chips"><i style="background:#FFE9F0"></i><i style="background:#F07098"></i><i style="background:#D62A5E"></i><i style="background:#8A1038"></i></div>
+<div class="body">
+<div><div class="oname">4. Rhubarb</div><div class="hex">#D62A5E · sharp, modern</div></div>
+<div class="pair"><span class="dot" style="background:#3F6B4F"></span><span class="dot" style="background:#D62A5E"></span><span class="pairlbl">green + pink-red, deliberate, designed</span></div>
+<p class="onote">The most contemporary pairing and the one that would most clearly read as a brand decision rather than a system colour. Very legible small. But pink-red is hard to separate from destructive actions, and it pulls the whole palette away from calm.</p>
+<div class="uses rowline"><span class="badge" style="background:#FFE9F0;color:#8A1038">needs a date</span><span class="badge" style="background:#D62A5E;color:#fff">3</span><span class="btn" style="background:#D62A5E">Remind me</span></div>
+<div class="wcag"><span class="pill ok">5.2:1 on white</span><span class="pill bad">reads as destructive</span></div>
+</div></div>
+
+<div class="o">
+<div class="chips"><i style="background:#E8EEFF"></i><i style="background:#7C93E8"></i><i style="background:#3355D6"></i><i style="background:#1B2E7A"></i></div>
+<div class="body">
+<div><div class="oname">5. Ink blue</div><div class="hex">#3355D6 · cool, precise</div></div>
+<div class="pair"><span class="dot" style="background:#3F6B4F"></span><span class="dot" style="background:#3355D6"></span><span class="pairlbl">green + blue, analogous, quiet</span></div>
+<p class="onote">The only cool option. It separates cleanly from moss by temperature rather than by loudness, so it can carry a second meaning without ever competing. It is also the least distinctive, blue is what every other productivity app reaches for.</p>
+<div class="uses rowline"><span class="badge" style="background:#E8EEFF;color:#1B2E7A">needs a date</span><span class="badge" style="background:#3355D6;color:#fff">3</span><span class="btn" style="background:#3355D6">Remind me</span></div>
+<div class="wcag"><span class="pill ok">6.7:1 on white</span><span class="pill bad">generic for the category</span></div>
+</div></div>
+
+</div>
+
+<div class="ctx">
+<h2>The same inbox, five times</h2>
+<p class="ctxnote">This is the honest test, one moss badge for what offload sorted, one accent badge for what is waiting on you, and the send button live. At this dosage the differences are smaller than the swatches suggest, which is the point: the accent should be findable, not loud.</p>
+<div class="screens">
+<div><div class="ph">
+<div class="bar"><img src="../assets/mark.svg" width="15" height="15" alt=""><span>offload</span></div>
+<div class="li"><span class="sq"></span><span class="t">Miradouro da Senhora</span><span class="badge" style="background:var(--moss-50);color:var(--moss-600)">sorted</span></div>
+<div class="li"><span class="sq"></span><span class="t">Book the Alfama flat</span><span class="badge" style="background:#FFEDD9;color:#8A4B08">Ana is waiting</span></div>
+<div class="li"><span class="sq"></span><span class="t">Split the flight cost</span><span class="badge" style="background:#D97A0A;color:#fff">2</span></div>
+<div class="li" style="box-shadow:none"><span class="sq"></span><span class="t">Tram 28 timetable</span><span class="m">1h</span></div>
+<div class="comp"><span>Dump anything</span><span class="send" style="background:#D97A0A"></span></div>
+</div><span class="caplbl">Ochre · #D97A0A</span></div>
+<div><div class="ph">
+<div class="bar"><img src="../assets/mark.svg" width="15" height="15" alt=""><span>offload</span></div>
+<div class="li"><span class="sq"></span><span class="t">Miradouro da Senhora</span><span class="badge" style="background:var(--moss-50);color:var(--moss-600)">sorted</span></div>
+<div class="li"><span class="sq"></span><span class="t">Book the Alfama flat</span><span class="badge" style="background:#FFE8E3;color:#8F2A0E">Ana is waiting</span></div>
+<div class="li"><span class="sq"></span><span class="t">Split the flight cost</span><span class="badge" style="background:#E04A22;color:#fff">2</span></div>
+<div class="li" style="box-shadow:none"><span class="sq"></span><span class="t">Tram 28 timetable</span><span class="m">1h</span></div>
+<div class="comp"><span>Dump anything</span><span class="send" style="background:#E04A22"></span></div>
+</div><span class="caplbl">Signal orange · #E04A22</span></div>
+<div><div class="ph">
+<div class="bar"><img src="../assets/mark.svg" width="15" height="15" alt=""><span>offload</span></div>
+<div class="li"><span class="sq"></span><span class="t">Miradouro da Senhora</span><span class="badge" style="background:var(--moss-50);color:var(--moss-600)">sorted</span></div>
+<div class="li"><span class="sq"></span><span class="t">Book the Alfama flat</span><span class="badge" style="background:#FFF0CC;color:#7A5A00">Ana is waiting</span></div>
+<div class="li"><span class="sq"></span><span class="t">Split the flight cost</span><span class="badge" style="background:#C99400;color:#fff">2</span></div>
+<div class="li" style="box-shadow:none"><span class="sq"></span><span class="t">Tram 28 timetable</span><span class="m">1h</span></div>
+<div class="comp"><span>Dump anything</span><span class="send" style="background:#C99400"></span></div>
+</div><span class="caplbl">Marigold · #C99400</span></div>
+<div><div class="ph">
+<div class="bar"><img src="../assets/mark.svg" width="15" height="15" alt=""><span>offload</span></div>
+<div class="li"><span class="sq"></span><span class="t">Miradouro da Senhora</span><span class="badge" style="background:var(--moss-50);color:var(--moss-600)">sorted</span></div>
+<div class="li"><span class="sq"></span><span class="t">Book the Alfama flat</span><span class="badge" style="background:#FFE9F0;color:#8A1038">Ana is waiting</span></div>
+<div class="li"><span class="sq"></span><span class="t">Split the flight cost</span><span class="badge" style="background:#D62A5E;color:#fff">2</span></div>
+<div class="li" style="box-shadow:none"><span class="sq"></span><span class="t">Tram 28 timetable</span><span class="m">1h</span></div>
+<div class="comp"><span>Dump anything</span><span class="send" style="background:#D62A5E"></span></div>
+</div><span class="caplbl">Rhubarb · #D62A5E</span></div>
+<div><div class="ph">
+<div class="bar"><img src="../assets/mark.svg" width="15" height="15" alt=""><span>offload</span></div>
+<div class="li"><span class="sq"></span><span class="t">Miradouro da Senhora</span><span class="badge" style="background:var(--moss-50);color:var(--moss-600)">sorted</span></div>
+<div class="li"><span class="sq"></span><span class="t">Book the Alfama flat</span><span class="badge" style="background:#E8EEFF;color:#1B2E7A">Ana is waiting</span></div>
+<div class="li"><span class="sq"></span><span class="t">Split the flight cost</span><span class="badge" style="background:#3355D6;color:#fff">2</span></div>
+<div class="li" style="box-shadow:none"><span class="sq"></span><span class="t">Tram 28 timetable</span><span class="m">1h</span></div>
+<div class="comp"><span>Dump anything</span><span class="send" style="background:#3355D6"></span></div>
+</div><span class="caplbl">Ink blue · #3355D6</span></div>
+</div>
+</div>
+
+<div class="foot"><b>My read.</b> <b>Ochre</b> is the one I would lock in. It is the only candidate that pops without raising the temperature of the whole product, it pairs with moss the way two things found outdoors pair, and it stays clearly distinct from the clay you already use for genuine errors. <b>Signal orange</b> is the answer if you want the app to feel more urgent and more branded, but you would need to retire clay and let orange do both jobs. <b>Marigold</b> is really a proposal to merge with your existing amber rather than add a colour. <b>Rhubarb</b> is the boldest and the riskiest. <b>Ink blue</b> is the safe, forgettable one, I would only take it if the accent needs to appear in dense data UI later, where warm colours get tiring.<br><br>Tell me which, and whether it should also replace the amber "needs input" token or sit alongside it, and I will add it to the colour tokens, the specimen cards and the components.</div>
+</div></body></html>

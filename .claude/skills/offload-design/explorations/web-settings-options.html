@@ -1,0 +1,340 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Settings on web, three shapes</title>
+<link rel="stylesheet" href="../styles.css?v=3">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../_ds_bundle.js?v=1787256974498"></script>
+<script>window.OFFLOAD_ICON_BASE="../assets/icons/"</script>
+<style>
+html,body{margin:0}
+body{background:var(--surface-sunken);color:var(--text-primary);font:var(--text-body-role);letter-spacing:var(--tracking-body)}
+#root{padding:34px 40px 90px;max-width:1220px;margin:0 auto}
+a{color:var(--text-accent)}a:hover{color:var(--moss-700)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+h2{font:var(--weight-semibold) 20px/1.2 var(--font-core);letter-spacing:-0.012em;margin:0}
+.lede{font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:78ch;margin:0 0 36px}
+.opt{margin-bottom:48px}
+.ohead{display:flex;align-items:baseline;gap:12px;padding-bottom:9px;border-bottom:1px solid var(--ink-950);margin-bottom:14px}
+.ohead u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.two{display:grid;grid-template-columns:1fr 300px;gap:26px;align-items:start}
+.spec{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+.spec li{font-size:13px;line-height:1.5;color:var(--text-secondary);padding-left:13px;position:relative}
+.spec li:before{content:"";position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:99px;background:var(--ink-300)}
+.spec b{color:var(--text-primary);font-weight:500}
+.shot{width:100%;overflow:hidden;border-radius:var(--radius-md);border:1px solid var(--border-hairline);background:var(--surface-page)}
+</style></head><body>
+<div id="root"></div>
+<script type="text/babel">
+const {Icon,IconButton,Button,Badge,Switch,SegmentedControl,ListRow,SectionHeader,TextField,Chip,Logo,Card}=window.OffloadDesignSystem_dc4a89;
+
+/* The ten pages the phone kits already ship, in the same five groups. */
+const GROUPS=[
+  ["You",[["circle-dot","My account","jo@hey.com"],["users","My people","3"],["lock","Privacy",null]]],
+  ["Reaching you",[["bell","Communication","Quiet 22:00"],["link","Connected apps","2 of 4"]]],
+  ["What offload keeps",[["archive","Memory and data","34"],["clock-fading","Conversations kept","60 days"]]],
+  ["The app",[["blend","Appearance","System"],["orbit","Language and region","EN, metric"],["compass","Help and about","2.1.0"]]]
+];
+const FLAT=GROUPS.flatMap(([g,rows])=>rows.map(r=>[...r,g]));
+
+/* A 1240x720 drawing, scaled to whatever width the column actually gives it. */
+function Shot({w=1240,h=720,children}){
+  const box=React.useRef(null);
+  const [scale,setScale]=React.useState(0.5);
+  React.useLayoutEffect(()=>{
+    const fit=()=>{if(box.current)setScale(box.current.clientWidth/w)};
+    fit();window.addEventListener("resize",fit);
+    return ()=>window.removeEventListener("resize",fit);
+  },[w]);
+  return (
+    <div className="shot" ref={box} style={{height:Math.round(h*scale)}}>
+      <div style={{width:w,height:h,transform:"scale("+scale+")",transformOrigin:"top left",display:"flex",
+        overflow:"hidden",background:"var(--surface-page)"}}>{children}</div>
+    </div>
+  );
+}
+function Sidebar({active="Settings"}){
+  const items=[["sun","Today"],["lasso","My things"],["cloudy","Memories"]];
+  return (
+    <div data-theme="dark" style={{width:248,flex:"0 0 auto",display:"flex",flexDirection:"column",
+      background:"var(--surface-page)",color:"var(--text-primary)",paddingBottom:20}}>
+      <div style={{padding:"18px 16px 22px"}}><Logo size={21}/></div>
+      <div style={{display:"flex",flexDirection:"column",gap:2,padding:"0 8px"}}>
+        {items.map(([i,l])=>(
+          <span key={l} style={{display:"flex",alignItems:"center",gap:11,height:38,padding:"0 8px",borderRadius:8,
+            font:"var(--weight-medium) 14.5px/1 var(--font-core)",color:"var(--text-secondary)"}}>
+            <Icon name={i} size={17}/>{l}</span>
+        ))}
+      </div>
+      <div style={{marginTop:"auto",display:"flex",flexDirection:"column",gap:2,padding:"0 8px"}}>
+        {[["search","Search"],["bell","Activity"],["settings","Settings"]].map(([i,l])=>{
+          const on=l===active;
+          return (
+            <span key={l} style={{display:"flex",alignItems:"center",gap:11,height:38,padding:"0 8px",borderRadius:8,
+              font:"var(--weight-medium) 14.5px/1 var(--font-core)",
+              background:on?"var(--blue-50)":"transparent",color:on?"var(--text-on-solid)":"var(--text-secondary)"}}>
+              {on?<span style={{width:3,height:16,borderRadius:99,background:"var(--blue-600)",margin:"0 -4px 0 -7px"}}/>:null}
+              <Icon name={i} size={17}/>{l}</span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+function Crumbs({trail}){
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:6,padding:"12px 16px",flex:"0 0 auto",
+      boxShadow:"0 1px 0 var(--border-hairline)"}}>
+      {trail.map((c,i)=>(
+        <React.Fragment key={c}>
+          {i?<Icon name="chevron-right" size={11} style={{color:"var(--ink-300)"}}/>:null}
+          <span style={{display:"inline-flex",alignItems:"center",height:26,padding:"0 10px",borderRadius:99,
+            font:"var(--weight-medium) 12.5px/1 var(--font-core)",
+            background:i===trail.length-1?"var(--surface-inverse)":"var(--surface-fill)",
+            color:i===trail.length-1?"var(--text-inverse)":"var(--text-secondary)"}}>{c}</span>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+function Row({icon,title,value,on}){
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:12,minHeight:52,padding:"8px 12px",borderRadius:8,
+      background:on?"var(--surface-fill)":"transparent",boxShadow:on?"none":"inset 0 -1px 0 var(--border-hairline)"}}>
+      <span style={{width:30,height:30,flex:"0 0 auto",borderRadius:8,background:"var(--surface-fill)",display:"flex",
+        alignItems:"center",justifyContent:"center",color:"var(--text-secondary)"}}><Icon name={icon} size={15}/></span>
+      <span style={{flex:1,font:"var(--weight-medium) 15px/1.3 var(--font-core)"}}>{title}</span>
+      {value?<span style={{fontSize:13.5,color:"var(--text-secondary)"}}>{value}</span>:null}
+      <Icon name="chevron-right" size={14} style={{color:"var(--ink-300)"}}/>
+    </div>
+  );
+}
+/* The one page every option has to hold: Communication, the busiest of the ten. */
+function Communication({wide}){
+  const rows=[["Anything urgent","Straight away"],["What moved without you","Once a day, 18:00"],
+    ["What offload sorted","Weekly"],["Someone shared a thing","Straight away"]];
+  return (
+    <div style={{display:wide?"grid":"block",gridTemplateColumns:wide?"1fr 1fr":undefined,gap:wide?"32px":undefined}}>
+      <div>
+        <div style={{font:"var(--weight-semibold) 15px/1 var(--font-core)",margin:"0 0 12px"}}>What reaches you, and when</div>
+        <div style={{display:"flex",flexDirection:"column"}}>
+          {rows.map(([l,v])=>(
+            <div key={l} style={{display:"flex",alignItems:"center",gap:14,minHeight:52,
+              boxShadow:"inset 0 -1px 0 var(--border-hairline)"}}>
+              <span style={{flex:1,font:"var(--text-body-role)"}}>{l}</span>
+              <span style={{fontSize:13.5,color:"var(--text-secondary)"}}>{v}</span>
+              <Icon name="chevron-right" size={14} style={{color:"var(--ink-300)"}}/>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{marginTop:wide?0:28}}>
+        <div style={{font:"var(--weight-semibold) 15px/1 var(--font-core)",margin:"0 0 12px"}}>Quiet hours</div>
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          <Switch label="Hold everything overnight" checked={true} onChange={()=>{}}/>
+          <div style={{display:"flex",gap:16}}>
+            <TextField label="From" value="22:00" onChange={()=>{}} style={{flex:1}}/>
+            <TextField label="Until" value="07:30" onChange={()=>{}} style={{flex:1}}/>
+          </div>
+          <Switch label="Let urgent things through anyway" checked={false} onChange={()=>{}}/>
+          <div style={{paddingTop:4}}>
+            <div style={{font:"var(--weight-semibold) 15px/1 var(--font-core)",margin:"0 0 10px"}}>How offload reaches you</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {["Push","Email","Neither"].map((c,i)=><Chip key={c} tone={i===0?"accent":undefined}>{c}</Chip>)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* A — settings inside the pane model the kit already has. */
+function OptionPanes(){
+  return (
+    <Shot>
+      <Sidebar/>
+      <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column"}}>
+        <Crumbs trail={["Settings","Communication"]}/>
+        <div style={{flex:1,minHeight:0,display:"flex",overflow:"hidden"}}>
+          <div style={{width:520,flex:"0 0 auto",padding:"20px 24px",overflow:"hidden"}}>
+            <div style={{font:"var(--text-title-2)",letterSpacing:"var(--tracking-title)",marginBottom:4}}>Settings</div>
+            <div style={{fontSize:13.5,color:"var(--text-secondary)",marginBottom:16}}>jo@hey.com · signed in on two devices</div>
+            {GROUPS.map(([g,rows])=>(
+              <React.Fragment key={g}>
+                <div style={{font:"var(--weight-medium) 11.5px/1 var(--font-core)",textTransform:"uppercase",
+                  letterSpacing:"0.06em",color:"var(--text-tertiary)",margin:"18px 0 6px"}}>{g}</div>
+                {rows.map(([i,t,v])=><Row key={t} icon={i} title={t} value={v} on={t==="Communication"}/>)}
+              </React.Fragment>
+            ))}
+          </div>
+          <div style={{flex:1,minWidth:0,background:"var(--surface-raised)",boxShadow:"-1px 0 0 var(--border-hairline)",
+            padding:"20px 28px",overflow:"hidden"}}>
+            <div style={{font:"var(--text-title-2)",letterSpacing:"var(--tracking-title)",marginBottom:2}}>Communication</div>
+            <div style={{fontSize:13.5,color:"var(--text-secondary)",marginBottom:20}}>Quiet 22:00 to 07:30</div>
+            <Communication/>
+          </div>
+        </div>
+      </div>
+    </Shot>
+  );
+}
+
+/* B — one wide page, everything on it, an index that follows the scroll. */
+function OptionOnePage(){
+  return (
+    <Shot>
+      <Sidebar/>
+      <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column"}}>
+        <Crumbs trail={["Settings"]}/>
+        <div style={{flex:1,minHeight:0,display:"flex",overflow:"hidden",background:"var(--surface-raised)"}}>
+          <div style={{width:216,flex:"0 0 auto",padding:"24px 12px 0 24px"}}>
+            {FLAT.map(([i,t],n)=>(
+              <div key={t} style={{display:"flex",alignItems:"center",gap:9,height:32,padding:"0 10px",borderRadius:8,
+                font:"var(--weight-medium) 13.5px/1 var(--font-core)",
+                background:n===3?"var(--surface-fill)":"transparent",
+                color:n===3?"var(--text-primary)":"var(--text-secondary)"}}>
+                <Icon name={i} size={14} style={{color:"var(--text-tertiary)"}}/>{t}</div>
+            ))}
+          </div>
+          <div style={{flex:1,minWidth:0,padding:"24px 40px",overflow:"hidden"}}>
+            <div style={{maxWidth:760}}>
+              <div style={{font:"var(--text-title-1)",letterSpacing:"var(--tracking-title)"}}>Settings</div>
+              <div style={{fontSize:14,color:"var(--text-secondary)",marginTop:4}}>Everything in one page. Changes save as you make them.</div>
+              <div style={{display:"flex",alignItems:"center",gap:14,margin:"22px 0 0",padding:"14px 16px",
+                border:"1px solid var(--border-hairline)",borderRadius:14}}>
+                <span style={{width:42,height:42,borderRadius:99,background:"var(--surface-fill)",display:"flex",
+                  alignItems:"center",justifyContent:"center",color:"var(--text-secondary)"}}><Icon name="circle-dot" size={20}/></span>
+                <span style={{flex:1}}>
+                  <b style={{display:"block",font:"var(--weight-medium) 15px/1.3 var(--font-core)"}}>Jo Meyer</b>
+                  <span style={{fontSize:13.5,color:"var(--text-secondary)"}}>jo@hey.com · two devices</span></span>
+                <Button variant="secondary" size="sm">Sign out</Button>
+              </div>
+              <div style={{margin:"28px 0 10px",paddingBottom:8,borderBottom:"1px solid var(--ink-950)",
+                font:"var(--weight-semibold) 18px/1.2 var(--font-core)"}}>Communication</div>
+              <Communication wide/>
+              <div style={{margin:"30px 0 10px",paddingBottom:8,borderBottom:"1px solid var(--ink-950)",
+                font:"var(--weight-semibold) 18px/1.2 var(--font-core)"}}>Connected apps</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                {[["Calendar","Reading your week"],["Mail","Watching for things you dump"],
+                  ["Photos","Not connected"],["Files","Not connected"]].map(([n,s],i)=>(
+                  <div key={n} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",
+                    border:"1px solid var(--border-hairline)",borderRadius:12}}>
+                    <span style={{flex:1}}>
+                      <b style={{display:"block",font:"var(--weight-medium) 14.5px/1.3 var(--font-core)"}}>{n}</b>
+                      <span style={{fontSize:13,color:"var(--text-secondary)"}}>{s}</span></span>
+                    <Switch checked={i<2} onChange={()=>{}}/>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Shot>
+  );
+}
+
+/* C — preferences over the app, the way a desktop tool does it. */
+function OptionOverlay(){
+  return (
+    <Shot>
+      <div style={{position:"relative",flex:1,display:"flex",overflow:"hidden"}}>
+        <Sidebar active="none"/>
+        <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",filter:"blur(1.5px)",opacity:0.5}}>
+          <Crumbs trail={["Today"]}/>
+          <div style={{flex:1,padding:"24px 40px"}}>
+            {[0,1,2,3,4].map(i=><span key={i} style={{display:"block",height:12,borderRadius:6,marginBottom:16,
+              width:i%2?"70%":"48%",background:"var(--surface-fill)"}}/>)}
+          </div>
+        </div>
+        <div style={{position:"absolute",inset:0,background:"var(--surface-scrim-soft)"}}/>
+        <div style={{position:"absolute",left:120,right:120,top:56,bottom:56,display:"flex",overflow:"hidden",
+          borderRadius:20,background:"var(--surface-raised)",boxShadow:"var(--shadow-sheet)"}}>
+          <div style={{width:232,flex:"0 0 auto",padding:"20px 10px",background:"var(--surface-page)",
+            boxShadow:"inset -1px 0 0 var(--border-hairline)"}}>
+            <div style={{font:"var(--weight-semibold) 15px/1 var(--font-core)",padding:"0 12px 14px"}}>Settings</div>
+            {FLAT.map(([i,t],n)=>(
+              <div key={t} style={{display:"flex",alignItems:"center",gap:10,height:34,padding:"0 12px",borderRadius:8,
+                font:"var(--weight-medium) 13.5px/1 var(--font-core)",
+                background:n===3?"var(--surface-inverse)":"transparent",
+                color:n===3?"var(--text-inverse)":"var(--text-secondary)"}}>
+                <Icon name={i} size={14}/>{t}</div>
+            ))}
+          </div>
+          <div style={{flex:1,minWidth:0,padding:"20px 28px"}}>
+            <div style={{display:"flex",alignItems:"flex-start"}}>
+              <div style={{flex:1}}>
+                <div style={{font:"var(--text-title-2)",letterSpacing:"var(--tracking-title)"}}>Communication</div>
+                <div style={{fontSize:13.5,color:"var(--text-secondary)",marginTop:2}}>Quiet 22:00 to 07:30</div>
+              </div>
+              <span style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{font:"var(--weight-medium) 11px/1 var(--font-core)",color:"var(--text-tertiary)",
+                  border:"1px solid var(--border-hairline)",borderRadius:5,padding:"4px 6px"}}>esc</span>
+                <IconButton icon="x" label="Close" size="sm" variant="quiet"/>
+              </span>
+            </div>
+            <div style={{marginTop:22}}><Communication wide/></div>
+          </div>
+        </div>
+      </div>
+    </Shot>
+  );
+}
+
+function Option({name,tag,note,spec,children}){
+  return (
+    <div className="opt">
+      <div className="ohead"><h2>{name}</h2><u>{tag}</u></div>
+      <p className="lede" style={{margin:"0 0 14px"}}>{note}</p>
+      <div className="two">
+        {children}
+        <ul className="spec">{spec.map(s=><li key={s} dangerouslySetInnerHTML={{__html:s}}/>)}</ul>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  return (
+    <>
+      <h1>Settings on web, three shapes</h1>
+      <p className="lede">The phones have ten settings pages in five groups, one page at a time. On a 1440
+        window all ten fit beside their contents, so the question is not how to shrink the phone screen but
+        how much to show at once. Same ten pages in all three, same copy, so only the shape differs.</p>
+
+      <Option name="A · Two panes" tag="the kit's own model"
+        note="Settings is a pane like anything else: the index on the left, the page you picked on the right, breadcrumb above, composer below. Nothing new to learn and nothing new to build."
+        spec={["<b>Uses the extra space</b> by keeping the index visible, so moving between pages is one click, never a back button.",
+          "<b>Costs nothing.</b> It is the pane model, the paper alternation and the breadcrumb you already have.",
+          "<b>Weakness:</b> a 520pt index for ten rows is a lot of paper for very little, and the busiest page still lives in the right pane at about 700pt.",
+          "Sidebar keeps marking Settings, so the orphan rule holds."]}>
+        <OptionPanes/></Option>
+
+      <Option name="B · One wide page" tag="everything at once"
+        note="One page holding all ten sections, with an index down the left that follows the scroll. Two-column rows where a page has two halves, so quiet hours sits beside what reaches you rather than under it."
+        spec={["<b>Uses the extra space</b> by putting a whole page's controls side by side, and by never hiding a setting behind a click.",
+          "<b>Buys</b> search-and-scan: ⌘F finds any setting, and a support answer can link to an anchor.",
+          "<b>Costs</b> one new layout the phones do not have: a scroll-spy index and a two-column section.",
+          "<b>Weakness:</b> ten sections in one scroll is long, and destructive controls end up on the same page as appearance."]}>
+        <OptionOnePage/></Option>
+
+      <Option name="C · Preferences over the app" tag="modal, like a desktop tool"
+        note="Settings never becomes a pane. It opens over whatever you were doing, with its own rail, and Escape puts you back exactly where you were. The page behind stays live and unblurred in the real thing."
+        spec={["<b>Uses the extra space</b> for a wide two-column page while keeping the app underneath, so settings never costs you your place.",
+          "<b>Buys</b> the ⌘K path a natural home: the launcher already opens modal things.",
+          "<b>Costs</b> a second navigation model, and a scrim, which the kit has so far only used for the launcher.",
+          "<b>Weakness:</b> a modal cannot be linked to or bookmarked, and it fights the breadcrumb everywhere else."]}>
+        <OptionOverlay/></Option>
+
+      <div className="ohead"><h2>What all three still owe you</h2></div>
+      <ul className="spec" style={{maxWidth:"76ch"}}>
+        <li>Sign out, and what happens to the pane stack when you do.</li>
+        <li>The destructive corner: delete everything offload keeps, which the phones put at the bottom of Memory and data.</li>
+        <li>Two-device state: the account page says "two devices" and nothing yet shows them.</li>
+        <li>Where an admin or billing surface would go, if offload ever has one.</li>
+      </ul>
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script></body></html>

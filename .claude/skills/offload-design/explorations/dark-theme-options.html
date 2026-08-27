@@ -1,0 +1,205 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Dark theme options</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:44px 36px 90px;background:#e9e9e9;color:#0B0B0B}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:#555;margin:0 0 34px;max-width:66ch}
+.opt{margin-bottom:46px}
+.hd{margin:0 0 4px;font:600 16px/1.3 var(--font-core)}
+.dk{margin:0 0 16px;font-size:13.5px;line-height:1.55;color:#555;max-width:70ch}
+.row{display:flex;gap:26px;flex-wrap:wrap}
+.ph{position:relative;width:340px;height:620px;border-radius:26px;overflow:hidden;background:var(--surface-page);color:var(--text-primary);border:1px solid rgba(0,0,0,.25)}
+.swatches{display:flex;gap:6px;margin:0 0 14px}
+.sw{width:34px;height:34px;border-radius:8px;border:1px solid rgba(0,0,0,.12)}
+.bar{display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 16px}
+.mark{font:600 17px/1 var(--font-core);letter-spacing:-.02em}
+.ics{display:flex;gap:12px}
+.ic{width:17px;height:17px;background:var(--text-secondary);flex:0 0 auto}
+.i-bell{-webkit-mask:url(../assets/icons/bell.svg) center/contain no-repeat;mask:url(../assets/icons/bell.svg) center/contain no-repeat}
+.i-set{-webkit-mask:url(../assets/icons/settings.svg) center/contain no-repeat;mask:url(../assets/icons/settings.svg) center/contain no-repeat}
+.i-back{-webkit-mask:url(../assets/icons/chevron-left.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-left.svg) center/contain no-repeat}
+.i-chev{-webkit-mask:url(../assets/icons/chevron-right.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-right.svg) center/contain no-repeat;background:var(--text-tertiary);width:13px;height:13px}
+.i-cloud{-webkit-mask:url(../assets/icons/cloud-rain.svg) center/contain no-repeat;mask:url(../assets/icons/cloud-rain.svg) center/contain no-repeat;background:var(--text-tertiary);width:14px;height:14px}
+.pg{padding:0 16px}
+.fc{display:flex;align-items:center;gap:7px;padding:2px 0 12px;font-size:12.5px;color:var(--text-tertiary)}
+.sh{display:flex;align-items:center;gap:8px;padding-bottom:7px;margin:8px 0 6px;border-bottom:1px solid var(--text-primary)}
+.sh b{font:600 17px/1.2 var(--font-core)}
+.pill{height:20px;padding:0 8px;border-radius:999px;background:var(--surface-fill);font:500 11px/20px var(--font-core);color:var(--text-secondary)}
+.li{padding:10px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.li b{display:block;font:500 14.5px/1.35 var(--font-core)}
+.li span{display:block;font-size:12px;color:var(--text-secondary);margin-top:2px}
+.ag{display:flex;gap:10px;padding:9px 0 9px 12px;border-left:3px solid var(--border-hairline)}
+.ag.free{border-left-color:var(--text-accent);color:var(--text-secondary)}
+.ag .t{width:112px;flex:0 0 auto;font:var(--text-numeric-role);font-variant-numeric:tabular-nums;font-size:12px;color:var(--text-secondary)}
+.ag .n{font-size:13.5px}
+.ag.free .n{font-size:12.5px;color:var(--text-accent)}
+.foot{position:absolute;left:0;right:0;bottom:0;background:var(--surface-page);padding-top:6px}
+.field{display:flex;align-items:center;gap:8px;height:42px;border:1px solid var(--border-strong);border-radius:21px;padding:0 8px 0 15px;margin:0 16px}
+.field i{flex:1;font-style:normal;font-size:13.5px;color:var(--text-tertiary)}
+.dot{width:26px;height:26px;border-radius:999px;background:var(--surface-fill)}
+.dot.send{background:var(--text-primary)}
+.tabs{display:flex;justify-content:space-around;padding:10px 0 12px}
+.tab{width:18px;height:18px;border-radius:5px;background:var(--surface-fill-strong)}
+.tab.on{background:var(--text-primary)}
+.bub{max-width:80%;padding:9px 14px;font-size:14px;line-height:1.45;border-radius:16px}
+.you{margin-left:auto;background:var(--surface-attention-soft);border:1px solid var(--border-attention);border-radius:16px 16px 4px 16px;color:var(--text-primary)}
+.off{background:var(--surface-fill);border-radius:16px 16px 16px 4px}
+.chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.chip{height:24px;padding:0 9px;border-radius:999px;font:500 11.5px/24px var(--font-core)}
+.chip.a{background:var(--surface-accent-soft);color:var(--text-accent);border:1px solid var(--border-accent)}
+.chip.b{background:var(--surface-attention-soft);color:var(--text-attention);border:1px solid var(--border-attention)}
+.chip.c{background:var(--amber-100);color:var(--amber-700);border:1px solid var(--amber-100)}
+.stack{display:flex;flex-direction:column;gap:14px;padding:10px 16px}
+.gl{font:500 11.5px/1 var(--font-core);color:var(--text-tertiary);margin:14px 0 7px 2px}
+.card{background:var(--surface-fill);border-radius:16px;padding:2px 14px}
+.r{display:flex;align-items:center;gap:12px;padding:11px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.r:last-child{box-shadow:none}
+.r .tx{flex:1;min-width:0;font-size:14.5px}
+.r .val{font-size:12.5px;color:var(--text-secondary)}
+.me{display:flex;align-items:center;gap:12px;padding:6px 16px 4px}
+.av{width:46px;height:46px;border-radius:999px;background:var(--surface-fill);display:flex;align-items:center;justify-content:center;font:500 15px/1 var(--font-core);color:var(--text-secondary)}
+.me b{display:block;font:600 19px/1.2 var(--font-core)}
+.me span{display:block;font-size:12.5px;color:var(--text-secondary);margin-top:2px}
+.btn{height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--border-strong);font:500 12.5px/28px var(--font-core);color:var(--text-primary)}
+.cap{font:500 12px/1 var(--font-core);color:#777;margin:0 0 8px}
+.note{font-size:12px;color:#777;margin:12px 0 0;line-height:1.5}
+
+/* A. Inverted paper. Pure black page, ink scale simply flipped. */
+[data-dark="a"]{
+  --paper:#000000;--ink-50:#0E0E0E;--ink-100:#161616;--ink-150:#1F1F1F;--ink-200:#2C2C2C;--ink-300:#3E3E3E;
+  --ink-400:#6A6A6A;--ink-500:#8C8C8C;--ink-600:#ADADAD;--ink-700:#CFCFCF;--ink-800:#E4E4E4;--ink-900:#F2F2F2;--ink-950:#FFFFFF;
+  --moss-50:#12251A;--moss-100:#173021;--moss-200:#255138;--moss-600:#7FB894;--moss-700:#A6D2B6;
+  --blue-50:#101838;--blue-100:#182450;--blue-200:#2B3D7E;--blue-600:#8FA4F5;--blue-700:#B4C2FF;
+  --amber-100:#3A2A05;--amber-700:#F4C462;--clay-100:#3A1512;--clay-600:#F08074;
+  --surface-scrim:rgba(0,0,0,0.6);
+  --state-hover:rgba(255,255,255,0.06);--state-press:rgba(255,255,255,0.1);
+  --text-primary:var(--ink-950);--text-secondary:var(--ink-600);--text-tertiary:var(--ink-400);
+  --text-inverse:var(--paper);--text-accent:var(--moss-600);--text-attention:var(--blue-600);
+  --text-on-attention:var(--blue-700);--text-link:var(--ink-950);--text-danger:var(--clay-600);
+  --surface-page:var(--paper);--surface-raised:var(--ink-50);--surface-card:var(--ink-50);
+  --surface-sunken:var(--ink-50);--surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);
+  --surface-inverse:var(--ink-950);--surface-accent-soft:var(--moss-50);
+  --surface-attention-soft:var(--blue-100);--surface-attention:var(--blue-600);
+  --border-hairline:var(--ink-150);--border-strong:var(--ink-200);--border-focus:var(--blue-600);
+  --border-accent:var(--moss-200);--border-attention:var(--blue-200);
+  --state-selected:var(--ink-100);--state-disabled-text:var(--ink-400);--state-disabled-surface:var(--ink-100);
+  --surface-raised:var(--paper);--surface-card:var(--paper);--surface-sunken:#000000;
+}
+/* B. Charcoal. Page lifted off black, cards lifted again, so depth reads. */
+[data-dark="b"]{
+  --paper:#141414;--ink-50:#1C1C1C;--ink-100:#232323;--ink-150:#2C2C2C;--ink-200:#383838;--ink-300:#4A4A4A;
+  --ink-400:#767676;--ink-500:#969696;--ink-600:#B3B3B3;--ink-700:#D2D2D2;--ink-800:#E8E8E8;--ink-900:#F4F4F4;--ink-950:#FAFAFA;
+  --moss-50:#182E20;--moss-100:#1E3928;--moss-200:#2C5A3F;--moss-600:#82BC97;--moss-700:#A9D5B8;
+  --blue-50:#161F42;--blue-100:#1E2A57;--blue-200:#334388;--blue-600:#95A9F7;--blue-700:#BAC7FF;
+  --amber-100:#3E2E08;--amber-700:#F6C86A;--clay-100:#3E1915;--clay-600:#F28679;
+  --surface-scrim:rgba(0,0,0,0.55);
+  --state-hover:rgba(255,255,255,0.06);--state-press:rgba(255,255,255,0.1);
+  --text-primary:var(--ink-950);--text-secondary:var(--ink-600);--text-tertiary:var(--ink-400);
+  --text-inverse:var(--paper);--text-accent:var(--moss-600);--text-attention:var(--blue-600);
+  --text-on-attention:var(--blue-700);--text-link:var(--ink-950);--text-danger:var(--clay-600);
+  --surface-page:var(--paper);--surface-raised:var(--ink-50);--surface-card:var(--ink-50);
+  --surface-sunken:var(--ink-50);--surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);
+  --surface-inverse:var(--ink-950);--surface-accent-soft:var(--moss-50);
+  --surface-attention-soft:var(--blue-100);--surface-attention:var(--blue-600);
+  --border-hairline:var(--ink-150);--border-strong:var(--ink-200);--border-focus:var(--blue-600);
+  --border-accent:var(--moss-200);--border-attention:var(--blue-200);
+  --state-selected:var(--ink-100);--state-disabled-text:var(--ink-400);--state-disabled-surface:var(--ink-100);
+  --surface-page:#141414;--surface-raised:#1C1C1C;--surface-card:#1C1C1C;--surface-sunken:#0C0C0C;
+}
+/* C. Warm ink. Same structure as B, but every grey carries a little warmth
+   and text stops short of white, so long reading is easier at night. */
+[data-dark="c"]{
+  --paper:#16130F;--ink-50:#1E1A16;--ink-100:#25211C;--ink-150:#2E2924;--ink-200:#3A342D;--ink-300:#4C453D;
+  --ink-400:#7A7167;--ink-500:#998F83;--ink-600:#B5AB9E;--ink-700:#D2C9BD;--ink-800:#E6DFD5;--ink-900:#F0EAE2;--ink-950:#F5F0E8;
+  --moss-50:#1B2B1F;--moss-100:#213526;--moss-200:#31553C;--moss-600:#8CBE9B;--moss-700:#AFD6BB;
+  --blue-50:#1A1E36;--blue-100:#22284A;--blue-200:#3A4478;--blue-600:#9FAEEF;--blue-700:#C2CBFB;
+  --amber-100:#3D2E0F;--amber-700:#F0C877;--clay-100:#3C1D18;--clay-600:#EE8B7C;
+  --surface-scrim:rgba(0,0,0,0.55);
+  --state-hover:rgba(255,255,255,0.05);--state-press:rgba(255,255,255,0.09);
+  --text-primary:var(--ink-950);--text-secondary:var(--ink-600);--text-tertiary:var(--ink-400);
+  --text-inverse:var(--paper);--text-accent:var(--moss-600);--text-attention:var(--blue-600);
+  --text-on-attention:var(--blue-700);--text-link:var(--ink-950);--text-danger:var(--clay-600);
+  --surface-page:var(--paper);--surface-raised:var(--ink-50);--surface-card:var(--ink-50);
+  --surface-sunken:var(--ink-50);--surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);
+  --surface-inverse:var(--ink-950);--surface-accent-soft:var(--moss-50);
+  --surface-attention-soft:var(--blue-100);--surface-attention:var(--blue-600);
+  --border-hairline:var(--ink-150);--border-strong:var(--ink-200);--border-focus:var(--blue-600);
+  --border-accent:var(--moss-200);--border-attention:var(--blue-200);
+  --state-selected:var(--ink-100);--state-disabled-text:var(--ink-400);--state-disabled-surface:var(--ink-100);
+  --surface-page:#16130F;--surface-raised:#1E1A16;--surface-card:#1E1A16;--surface-sunken:#100E0B;
+}
+</style></head><body>
+<h1>Dark theme</h1>
+<p class="lede">Three ways to invert the same system. Each is shown on Today, a conversation, and Settings, since those three stress different things: rules and dense text, coloured chips against bubbles, and large filled containers.</p>
+
+<div id="out"></div>
+
+<script>
+const PAGES={
+today:`<div class="bar"><span class="mark">offload</span><span class="ics"><span class="ic i-bell"></span><span class="ic i-set"></span></span></div>
+<div class="pg">
+  <div class="fc"><span class="ic i-cloud"></span><span>Rain at 3pm, take a coat</span></div>
+  <div class="sh"><b>Priority</b><span class="pill">4</span></div>
+  <div class="li"><b>Ana needs an answer on the 14th to 17th</b><span>Lisbon trip &middot; asked Tuesday</span></div>
+  <div class="li"><b>Split the flight cost: &euro;214 each</b><span>Lisbon trip &middot; you said you&rsquo;d sort it</span></div>
+  <div class="li"><b>Order the oak brackets</b><span>Bookshelf build &middot; sale ends Friday</span></div>
+  <div class="sh" style="margin-top:16px"><b>Today</b></div>
+  <div class="ag"><span class="t">9:30 - 10:00am</span><span class="n">Standup</span></div>
+  <div class="ag free"><span class="t">10:00am - 1:00pm</span><span class="n">3hrs free</span></div>
+  <div class="ag"><span class="t">1:00 - 1:30pm</span><span class="n">Call with Ana</span></div>
+</div>`,
+chat:`<div class="bar"><span class="ic i-back"></span><span class="mark" style="font-size:15px;font-weight:500">What do I still owe money for?</span><span></span></div>
+<div class="stack">
+  <div class="bub you">What do I still owe money for?</div>
+  <div class="bub off">Three things. You owe Ana &euro;214 for the flights, Sam &pound;12 for the drill bits, and the flat insurance renews at &pound;340 on the 20th.
+    <div class="chips"><span class="chip a">Lisbon trip</span><span class="chip c">&euro;214 to Ana</span><span class="chip b">the 20th</span></div>
+  </div>
+  <div class="bub you">remind me about Ana on Friday</div>
+  <div class="bub off">Kept. I will bring it up Friday morning.</div>
+</div>`,
+settings:`<div class="bar"><span class="ic i-back"></span><span class="mark" style="font-size:15px;font-weight:500">Settings</span><span></span></div>
+<div class="me"><span class="av">JM</span><span style="flex:1"><b>Jo Martins</b><span>jo@hey.com &middot; free plan</span></span><span class="btn">Sign out</span></div>
+<div class="pg">
+  <div class="gl">You</div>
+  <div class="card">
+    <div class="r"><span class="tx">My account</span><span class="val">jo@hey.com</span><span class="ic i-chev"></span></div>
+    <div class="r"><span class="tx">My people</span><span class="val">3</span><span class="ic i-chev"></span></div>
+    <div class="r"><span class="tx">Privacy</span><span class="ic i-chev"></span></div>
+  </div>
+  <div class="gl">Reaching you</div>
+  <div class="card">
+    <div class="r"><span class="tx">Communication</span><span class="val">Quiet 22:00</span><span class="ic i-chev"></span></div>
+    <div class="r"><span class="tx">Connected apps</span><span class="val">2 of 4</span><span class="ic i-chev"></span></div>
+  </div>
+  <div class="gl">What offload keeps</div>
+  <div class="card">
+    <div class="r"><span class="tx">Memory and data</span><span class="val">34</span><span class="ic i-chev"></span></div>
+    <div class="r"><span class="tx">Conversations kept</span><span class="val">60 days</span><span class="ic i-chev"></span></div>
+  </div>
+</div>`};
+const FOOT=`<div class="foot"><div class="field"><i>Dump anything</i><span class="dot"></span><span class="dot send"></span></div>
+<div class="tabs"><span class="tab on"></span><span class="tab"></span><span class="tab"></span></div></div>`;
+const OPTS=[
+ {k:"a",name:"A. Inverted paper",
+  note:"The ink scale simply flips: the page is true black, text is pure white, and every grey lands at its mirrored value. Accents lighten enough to stay legible on black. Deepest contrast, cheapest to reason about, and on OLED the page disappears entirely. Large filled containers in Settings can look like floating slabs, and pure white on pure black is tiring to read at length.",
+  sw:["#000000","#161616","#7FB894","#8FA4F5"]},
+ {k:"b",name:"B. Charcoal, lifted surfaces",
+  note:"The page sits off black at #141414 and cards lift again to #1C1C1C, so the depth that white paper gets from shadow comes from value instead. Text stops at #FAFAFA. The most conventional of the three and the safest across screens, at the cost of the stark quality the light theme has.",
+  sw:["#141414","#1C1C1C","#82BC97","#95A9F7"]},
+ {k:"c",name:"C. Warm ink",
+  note:"Same structure as B, but every grey carries a little warmth and text stops short of white at #F5F0E8. Reads as lamp light rather than a screen, which suits an app you use last thing at night. It does put a colour temperature on a brand that is strictly achromatic in daylight.",
+  sw:["#16130F","#1E1A16","#8CBE9B","#9FAEEF"]}
+];
+document.getElementById("out").innerHTML=OPTS.map(o=>`
+<div class="opt">
+  <p class="hd">${o.name}</p>
+  <div class="swatches">${o.sw.map(c=>`<span class="sw" style="background:${c}"></span>`).join("")}</div>
+  <p class="dk">${o.note}</p>
+  <div class="row" data-dark="${o.k}">
+    <div><p class="cap">Today</p><div class="ph">${PAGES.today}${FOOT}</div></div>
+    <div><p class="cap">Conversation</p><div class="ph">${PAGES.chat}${FOOT}</div></div>
+    <div><p class="cap">Settings</p><div class="ph">${PAGES.settings}</div></div>
+  </div>
+</div>`).join("");
+</script>
+<p class="note" style="max-width:66ch">All three keep the light theme untouched and swap only the semantic aliases, so components need no dark-specific code. Whichever you pick becomes a scope in tokens/colors.css that follows the system setting, with the manual override already stubbed in Settings &gt; Appearance.</p>
+</body></html>

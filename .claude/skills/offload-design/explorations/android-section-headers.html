@@ -1,0 +1,146 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Android section headers</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:40px 34px 80px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.5;color:var(--text-secondary);margin:0 0 30px;max-width:68ch}
+.row{display:flex;gap:24px;flex-wrap:wrap}
+.opt{width:360px}
+.hd{margin:0 0 4px;font:600 15px/1.3 var(--font-core)}
+.dk{margin:0 0 12px;font-size:13px;line-height:1.5;color:var(--text-secondary);min-height:52px}
+.note{font-size:12px;color:var(--text-tertiary);margin:8px 0 0;line-height:1.5}
+/* Android surface roles, as the kit defines them */
+.ph{--a-surface:#FAF9F7;--a-c-low:#F6F5F2;--a-c:#ECEBE7;--a-c-high:#E4E3DE;--a-outline:#DEDDD8;--a-on:#1B1B1A;--a-on-var:#5A5A57;
+  background:var(--a-surface);color:var(--a-on);border:1px solid var(--border-hairline);border-radius:22px;overflow:hidden;padding-bottom:10px}
+.bar{display:flex;align-items:center;gap:var(--space-2);height:64px;padding:0 var(--space-2) 0 var(--space-5);background:var(--surface-raised)}
+.bar svg{display:block;flex:0 0 auto}
+.pg{padding:var(--space-5) var(--gutter-screen) 0}
+.li{display:flex;gap:var(--space-5);align-items:center;min-height:56px;box-sizing:border-box;padding:var(--space-4) 0;box-shadow:inset 0 -1px 0 var(--a-outline)}
+.li:last-child{box-shadow:none}
+.ic{width:40px;height:40px;flex:0 0 auto;border-radius:999px;background:var(--a-c-high);color:var(--a-on-var);
+  display:flex;align-items:center;justify-content:center}
+.ic i{width:19px;height:19px;display:block;background:currentColor}
+.tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tx b{display:block;font:400 16px/24px var(--font-core);letter-spacing:.005em}
+.tx span{display:block;font:400 14px/20px var(--font-core);letter-spacing:.015em;color:var(--a-on-var)}
+.cnt{font:500 11px/16px var(--font-core);padding:1px 7px;border-radius:999px;background:var(--a-c-high);color:var(--a-on-var);flex:0 0 auto}
+.cnt.moss{background:var(--surface-accent-soft);color:var(--text-accent)}
+.act{font:500 14px/20px var(--font-core);color:var(--blue-700);flex:0 0 auto}
+/* A: today */
+.s-a{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-5) var(--space-2) var(--space-3);font:500 14px/20px var(--font-core);color:var(--a-on-var)}
+/* B: title large, on colour */
+.s-b{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-6) var(--space-2) var(--space-3)}
+.s-b b{font:400 22px/28px var(--font-core);color:var(--a-on)}
+/* C: overline, letterspaced */
+.s-c{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-6) var(--space-2) var(--space-3)}
+.s-c b{font:600 11px/16px var(--font-core);letter-spacing:.14em;text-transform:uppercase;color:var(--a-on-var)}
+/* D: divider above */
+.s-d{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4) var(--space-2);margin-top:20px;border-top:1px solid var(--a-outline)}
+.s-d b{font:500 16px/24px var(--font-core);color:var(--a-on)}
+/* E: header on its own tonal strip, full bleed */
+.s-e{display:flex;align-items:center;gap:var(--space-3);margin:var(--space-5) calc(-1 * var(--gutter-screen)) var(--space-3);padding:var(--space-4) var(--gutter-screen);background:var(--a-c);}
+.s-e b{font:500 14px/20px var(--font-core);color:var(--a-on)}
+/* F: leading accent bar */
+.s-f{display:flex;align-items:center;gap:10px;padding:var(--space-6) var(--space-2) var(--space-3)}
+.s-f i{width:3px;height:18px;border-radius:999px;background:var(--moss-600);display:block;flex:0 0 auto}
+.s-f b{font:500 17px/24px var(--font-core);color:var(--a-on)}
+.s-f.blue i{background:var(--blue-600)}
+/* G: big label plus supporting line */
+.s-g{padding:var(--space-6) var(--space-2) var(--space-3)}
+.s-g b{display:block;font:500 18px/24px var(--font-core);color:var(--a-on)}
+.s-g em{display:block;font-style:normal;font:400 13px/18px var(--font-core);color:var(--a-on-var);margin-top:2px}
+</style></head><body>
+<h1>Section headers on Android</h1>
+<p class="lede">The same two sections in each frame, so you can judge separation directly. A is what the kit does now: Label Large grey, which Material specifies for list subheaders and which is quieter than the 16px rows beneath it.</p>
+
+<div class="row">
+
+<div class="opt">
+<p class="hd">A. Label Large grey</p>
+<p class="dk">Today. Material&rsquo;s own list-subheader style: 14px medium in the on-surface-variant grey, no rule.</p>
+<div class="ph"><div class="bar"><span style="display:flex;align-items:center;gap:7px;font:600 17px/1 var(--font-core);letter-spacing:-.02em"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s-a"><span>What moved</span><span class="cnt moss">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s-a"><span>On the clock</span><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Smaller and lighter than its own content, which is the complaint.</p>
+</div>
+
+<div class="opt">
+<p class="hd">B. Title Large</p>
+<p class="dk">The header becomes Material&rsquo;s Title Large, 22px regular in full on-surface ink, so it is unambiguously bigger than the rows.</p>
+<div class="ph"><div class="bar"><span style="display:flex;align-items:center;gap:7px;font:600 17px/1 var(--font-core);letter-spacing:-.02em"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s-b"><b>What moved</b><span class="cnt moss">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s-b"><b>On the clock</b><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Closest in spirit to iOS&rsquo;s 21px headers. Costs vertical space.</p>
+</div>
+
+<div class="opt">
+<p class="hd">C. Uppercase overline</p>
+<p class="dk">Small, wide-tracked and uppercase. It does not compete on size, it separates by being a different kind of text altogether.</p>
+<div class="ph"><div class="bar"><span style="display:flex;align-items:center;gap:7px;font:600 17px/1 var(--font-core);letter-spacing:-.02em"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s-c"><b>What moved</b><span class="cnt moss">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s-c"><b>On the clock</b><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Cheapest in height. Reads as a label rather than a heading.</p>
+</div>
+
+<div class="opt">
+<p class="hd">D. Rule above the header</p>
+<p class="dk">A full-width divider ends the previous section, then the header sits under it at 16px medium. The rule does the separating, not the type.</p>
+<div class="ph"><div class="bar"><span style="display:flex;align-items:center;gap:7px;font:600 17px/1 var(--font-core);letter-spacing:-.02em"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s-d"><b>What moved</b><span class="cnt moss">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s-d"><b>On the clock</b><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Material uses dividers between groups, so this is idiomatic. Adds a lot of lines.</p>
+</div>
+
+<div class="opt">
+<p class="hd">E. Header on a tonal strip</p>
+<p class="dk">The header gets its own full-bleed band in <b>surface-container</b>. Nothing about the type changes; the ground does the work.</p>
+<div class="ph"><div class="bar"><span style="display:flex;align-items:center;gap:7px;font:600 17px/1 var(--font-core);letter-spacing:-.02em"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s-e"><b>What moved</b><span class="cnt moss">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s-e"><b>On the clock</b><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Strongest separation of the six, and unmistakably Android. Busy if there are many sections.</p>
+</div>
+
+<div class="opt">
+<p class="hd">F. Leading accent bar</p>
+<p class="dk">17px medium ink with a short coloured bar at the start, taking the section&rsquo;s own tone: moss for what offload handled, blue for what needs you.</p>
+<div class="ph"><div class="bar"><span style="display:flex;align-items:center;gap:7px;font:600 17px/1 var(--font-core);letter-spacing:-.02em"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s-f"><i></i><b>What moved</b><span class="cnt moss">3</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s-f blue"><i></i><b>On the clock</b><span style="flex:1"></span><span class="act">Open calendar</span></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Keeps the blue-versus-moss meaning iOS carries in its rules, without importing the rule itself.</p>
+</div>
+
+</div>
+
+<div class="row" style="margin-top:26px">
+<div class="opt">
+<p class="hd">G. Header with a supporting line</p>
+<p class="dk">18px medium plus a small grey line saying what the section is. The two-line block is impossible to read as a row.</p>
+<div class="ph"><div class="bar"><span style="display:flex;align-items:center;gap:7px;font:600 17px/1 var(--font-core);letter-spacing:-.02em"><svg width="20" height="20" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round"/></svg>offload</span></div><div class="pg">
+  <div class="s-g"><b>What moved</b><em>3 threads changed while you were away</em></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat"></i></span><span class="tx"><b>Ana added two links</b><span>Lisbon trip &middot; 20m</span></span></div>
+  <div class="s-g"><b>On the clock</b><em>Today and tomorrow</em></div>
+  <div class="li"><span class="ic"><i style="-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat"></i></span><span class="tx"><b>Standup</b><span>9:30 &ndash; 10:00</span></span></div>
+</div></div>
+<p class="note">Most informative, tallest, and it needs a line of copy written per section.</p>
+</div>
+</div>
+
+<p class="note" style="max-width:68ch;margin-top:30px">B and F are the two I would pick between: B matches iOS&rsquo;s hierarchy most closely, F separates just as clearly while keeping the accent meaning and costing less height. E is the most Android-native answer if you want the sections to feel built rather than written.</p>
+</body></html>

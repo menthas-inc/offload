@@ -1,0 +1,57 @@
+<!-- @dsCard group="Android app" viewport="360x800" name="offload for Android" subtitle="Material 3 build of the same product, interactive click-through" -->
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>offload, Android</title>
+<link rel="stylesheet" href="../../styles.css?v=1786472643305">
+<style>
+@keyframes offload-rec-pulse{0%,100%{opacity:1}50%{opacity:.25}}
+/* Material motion: shared axis X for hierarchy, fade through between peers, and the tick
+   that draws itself. Emphasized decelerate for entrances, standard for the fade. */
+@keyframes a-in-x{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes a-in-x-back{from{transform:translateX(-30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes a-through-in{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+.no-bar::-webkit-scrollbar{display:none}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--surface-sunken);padding:16px 0}
+/* The Material surface roles, derived from offload's own neutrals so the brand still owns
+   the palette. Containers step up from the page; nothing is moss-tinted. */
+[data-platform="android"]{
+  --a-surface:var(--surface-page);
+  --a-c-low:#F6F5F2;--a-c:#ECEBE7;--a-c-high:#E4E3DE;
+  --a-outline:#DEDDD8;--a-on:#1B1B1A;--a-on-var:#5A5A57;--a-on-quiet:#8A8A86;
+  /* Material's shape scale replaces offload's radii inside the Android kit. */
+  --radius-xs:4px;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:28px;
+  --radius-card:12px;--radius-sheet:28px;--radius-field:8px;
+  --appbar-height:64px;--row-height:56px;--row-height-lg:72px;
+}
+[data-platform="android"][data-theme="dark"]{
+  --a-c-low:#232220;--a-c:#2A2927;--a-c-high:#333230;
+  --a-outline:#3A3937;--a-on:#EDEDED;--a-on-var:#B3B3B3;--a-on-quiet:#8B8B87;
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head><body>
+<div id="root"></div>
+<script src="../../_ds_bundle.js?v=1787256974498"></script>
+<script>window.OFFLOAD_ICON_BASE="../../assets/icons/"</script>
+<!-- The same data and the same sunset maths as the iOS kit, so the two can never drift. -->
+<script src="../mobile_app/data.js"></script>
+<script src="../mobile_app/sun.js"></script>
+<script type="text/babel" src="M3.jsx"></script>
+<script type="text/babel" src="M3Phone.jsx"></script>
+<script type="text/babel" src="M3Composer.jsx"></script>
+<script type="text/babel" src="M3DayAgenda.jsx"></script>
+<script type="text/babel" src="M3TodayScreen.jsx"></script>
+<script type="text/babel" src="M3ThreadsScreen.jsx"></script>
+<script type="text/babel" src="M3ThreadWidgets.jsx"></script>
+<script type="text/babel" src="M3ThreadScreen.jsx"></script>
+<script type="text/babel" src="M3PersonScreen.jsx"></script>
+<script type="text/babel" src="M3MemoriesScreen.jsx"></script>
+<script type="text/babel" src="M3LiveConversation.jsx"></script>
+<script type="text/babel" src="M3NotificationSheet.jsx"></script>
+<script type="text/babel" src="M3SettingsScreen.jsx"></script>
+<script type="text/babel" src="M3SettingsDetail.jsx"></script>
+<script type="text/babel" src="M3Sharing.jsx"></script>
+<script type="text/babel" src="M3FirstRun.jsx"></script>
+<script type="text/babel" src="M3App.jsx"></script>
+<script type="text/babel">ReactDOM.createRoot(document.getElementById("root")).render(<App/>);</script>
+</body></html>

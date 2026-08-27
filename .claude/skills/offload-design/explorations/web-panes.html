@@ -1,0 +1,257 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>offload web, panes</title>
+<link rel="stylesheet" href="../styles.css?v=3"><style>
+body{margin:0;padding:44px 40px 90px;background:var(--surface-sunken);color:var(--text-primary)}
+h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0 0 8px}
+.lede{font:var(--text-quiet-role);font-size:17px;line-height:1.55;color:var(--text-secondary);margin:0 0 8px;max-width:78ch}
+h2{font:600 19px/1.3 var(--font-core);margin:46px 0 6px}
+.why{font-size:14px;line-height:1.6;color:var(--text-secondary);margin:0 0 16px;max-width:84ch}
+.why b{color:var(--text-primary);font-weight:500}
+.note{font-size:12.5px;color:var(--text-tertiary);margin:12px 0 0;line-height:1.55;max-width:84ch}
+.tag{display:inline-flex;align-items:baseline;gap:8px;margin:0 0 8px}
+.tag b{font:600 12px/1 var(--font-core);background:var(--ink-950);color:var(--paper);padding:5px 7px;border-radius:6px}
+.tag span{font-size:13px;color:var(--text-secondary)}
+.stack{display:flex;flex-direction:column;gap:24px}
+.row3{display:flex;gap:16px;flex-wrap:wrap}
+.hold{width:952px;height:580px;overflow:hidden;border-radius:14px;border:1px solid var(--border-hairline);background:var(--surface-page)}
+.hold.third{width:472px;height:300px}
+.hold.third .win{transform:scale(.3122)}
+.win{width:1512px;height:920px;transform:scale(.6296);transform-origin:top left;display:flex;background:var(--surface-page);
+  font:400 15px/1.45 var(--font-core);color:var(--text-primary);position:relative}
+.side{width:248px;flex:0 0 auto;display:flex;flex-direction:column;padding:0 0 14px;box-shadow:inset -1px 0 0 var(--border-hairline)}
+.mark{display:flex;align-items:center;gap:9px;font:600 19px/1 var(--font-core);letter-spacing:-.02em;padding:16px 20px 18px}
+.mark svg{display:block;flex:0 0 auto}
+.nav{display:flex;flex-direction:column;gap:2px;padding:0 10px}
+.nv{display:flex;align-items:center;gap:11px;height:38px;padding:0 10px;border-radius:10px;font:500 14.5px/1 var(--font-core);color:var(--text-secondary)}
+.nv .lu{width:17px;height:17px;flex:0 0 auto}
+.nv.on{background:var(--blue-50);color:var(--blue-700)}
+.nv.on .sp{width:3px;height:16px;border-radius:999px;background:var(--blue-600);flex:0 0 auto;margin:0 -4px 0 -7px}
+.nv em{margin-left:auto;font-style:normal;font-size:12.5px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.sl{display:flex;align-items:center;gap:7px;font:500 11.5px/1 var(--font-core);color:var(--text-tertiary);padding:22px 20px 8px}
+.sl .lu{width:12px;height:12px;margin-left:auto;color:var(--ink-300)}
+.foot{margin-top:auto;padding:0 10px}
+.scut{margin-left:auto;font:500 11px/1 var(--font-core);color:var(--text-tertiary);border:1px solid var(--border-hairline);border-radius:5px;padding:4px 5px}
+/* right of the sidebar: crumbs, panes, then one composer across the width */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.panes{flex:1;min-height:0;display:flex;overflow:hidden;position:relative}
+.pane{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--surface-page)}
+.pane.top{background:var(--surface-raised);box-shadow:-1px 0 0 var(--border-hairline)}
+.pane.half{flex:0 0 auto;width:632px}
+.pane{position:relative;z-index:1}
+.pane.leaving{position:absolute;left:0;top:0;bottom:0;width:632px;z-index:0;opacity:.5;
+  transform:translateX(-390px);background:var(--surface-page);box-shadow:1px 0 0 var(--border-hairline)}
+.panes.mid>.pane:not(.leaving){transform:translateX(242px)}
+.ph{display:flex;align-items:center;gap:12px;padding:18px 34px 0;flex:0 0 auto}
+.h1{font:600 25px/1.2 var(--font-core);letter-spacing:-.016em}
+.h1 small{display:block;font:400 13.5px/1.4 var(--font-core);color:var(--text-secondary);letter-spacing:0;margin-top:3px}
+.h1.p{font-size:20px}
+.pt{margin-left:auto;display:flex;gap:6px}
+.body{flex:1;min-height:0;overflow:hidden;padding:0 0 12px}
+.inner{max-width:700px;margin:0 auto;padding:0 34px}
+.sec{display:flex;align-items:center;gap:9px;padding-bottom:8px;margin:22px 0 4px;border-bottom:1px solid var(--ink-950)}
+.sec b{font:600 18px/1.2 var(--font-core);letter-spacing:-.012em}
+.sec.accent{border-bottom-color:var(--moss-600)}
+.cnt{font:500 11.5px/1 var(--font-core);background:var(--surface-attention);color:var(--text-on-solid);padding:5px 8px;border-radius:999px;font-variant-numeric:tabular-nums}
+.cnt.accent{background:var(--surface-accent-soft);color:var(--text-accent)}
+.act{margin-left:auto;font:500 13px/1 var(--font-core);color:var(--text-secondary)}
+.li{display:flex;align-items:flex-start;gap:14px;padding:12px 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.li:last-child{box-shadow:none}
+.li.on{background:var(--surface-fill);box-shadow:none;border-radius:10px;padding:12px;margin:0 -12px}
+.tile{width:32px;height:32px;flex:0 0 auto;border-radius:9px;background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;margin-top:1px}
+.tile .lu{width:15px;height:15px}
+.tile.hot{background:var(--surface-attention);color:var(--text-on-solid)}
+.tx{flex:1;min-width:0}
+.tx b{display:block;font:500 15.5px/1.35 var(--font-core)}
+.tx span{display:block;font-size:13px;color:var(--text-secondary);margin-top:2px}
+.due{flex:0 0 auto;font:500 11.5px/1 var(--font-core);padding:5px 8px;border-radius:999px;background:var(--surface-attention);color:var(--text-on-solid);margin-top:3px}
+.due.q{background:var(--surface-fill);color:var(--text-secondary)}
+.tools{display:flex;gap:4px;flex:0 0 auto;margin-top:1px}
+.tool{width:28px;height:28px;border-radius:8px;background:var(--surface-fill);color:var(--text-tertiary);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.tool .lu{width:14px;height:14px}
+.chk{width:17px;height:17px;flex:0 0 auto;border-radius:5px;border:1.5px solid var(--ink-300);margin-top:9px}
+.blurb{font:var(--text-quiet-role);font-size:15.5px;line-height:1.5;margin:4px 0 2px;max-width:58ch}
+.wrote{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-tertiary);margin:9px 0 0}
+.wrote .lu{width:13px;height:13px}
+/* composer, one instance, full width under the panes */
+.comp{flex:0 0 auto;padding:10px 34px 22px;box-shadow:0 -1px 0 var(--border-hairline)}
+.pill{display:flex;align-items:center;gap:10px;min-height:50px;border:1px solid var(--border-focus);border-radius:25px;padding:0 10px 0 20px;
+  background:var(--surface-input);max-width:940px;margin:0 auto}
+.pill .g{flex:1;min-width:0;font-size:15px;color:var(--text-tertiary)}
+.ib{width:34px;height:34px;border-radius:999px;background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.ib .lu{width:16px;height:16px}
+.ib.send{background:var(--blue-600);color:var(--text-on-solid)}
+/* crumbs, three homes */
+.topbar{display:flex;align-items:center;gap:8px;padding:12px 34px 10px;flex:0 0 auto;box-shadow:0 1px 0 var(--border-hairline)}
+.crumb{display:inline-flex;align-items:center;gap:6px;font:500 12.5px/1 var(--font-core);color:var(--text-secondary);
+  padding:6px 10px;border-radius:999px;background:var(--surface-fill);white-space:nowrap}
+.crumb.on{background:var(--ink-950);color:var(--paper)}
+.crumb .lu{width:12px;height:12px}
+.sep{width:11px;height:11px;color:var(--ink-300);flex:0 0 auto}
+.pcrumb{display:flex;align-items:center;gap:6px;padding:14px 34px 0;font-size:12.5px;color:var(--text-tertiary)}
+.trail{display:flex;flex-direction:column;gap:3px;padding:6px 10px 0}
+.trail .t{display:flex;align-items:center;gap:9px;height:30px;padding:0 10px 0 22px;border-radius:8px;font:500 13px/1 var(--font-core);color:var(--text-tertiary);position:relative}
+.trail .t.on{color:var(--blue-700);background:var(--blue-50)}
+.trail .t u{position:absolute;left:12px;width:5px;height:5px;border-radius:999px;background:currentColor;display:block}
+.lu{display:inline-block;background:currentColor;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
+/* week strip, K1 */
+.strip{display:flex;gap:9px;padding:8px 0 2px}
+.sd{flex:1;min-width:0;border:1px solid var(--border-hairline);border-radius:12px;padding:9px 10px 11px;background:var(--surface-raised)}
+.sd.today{border-color:var(--blue-500);box-shadow:0 0 0 2px var(--blue-50)}
+.sd .d{display:flex;align-items:baseline;gap:6px;font:500 12px/1 var(--font-core);color:var(--text-secondary);margin-bottom:8px}
+.sd .d b{font:600 14px/1 var(--font-core);color:var(--text-primary);font-variant-numeric:tabular-nums}
+.sd .e{padding:5px 7px;border-radius:6px;margin-bottom:4px;background:var(--surface-fill)}
+.sd .e u{display:block;font:500 10px/1.2 var(--font-core);text-decoration:none;opacity:.72;font-variant-numeric:tabular-nums}
+.sd .e i{display:block;font:400 11.5px/1.3 var(--font-core);font-style:normal;margin-top:1px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sd .e.attention{background:var(--blue-50);color:var(--blue-700)}
+.sd .e.accent{background:var(--surface-accent-soft);color:var(--text-accent)}
+.sd .f{font:500 11px/1 var(--font-core);color:var(--text-accent);padding:5px 0 0}
+.arrow{display:flex;align-items:center;justify-content:center;font:500 12px/1 var(--font-core);color:var(--text-tertiary);gap:7px;padding:2px 0 0}
+.arrow .lu{width:14px;height:14px}
+</style></head><body>
+<h1>Panes, taken to p1</h1>
+<p class="lede">One rule holds it all together: <b>the rightmost pane is the one you are in.</b> It is white, the sidebar highlights it, the breadcrumb ends on it, and there are never more than two.</p>
+<p class="lede">The composer now sits below both panes and spans the width, as it does on the phone, so it never belongs to one pane or moves when a pane opens. The week strip from k1 is on Today.</p>
+
+<div id="out"></div>
+
+<script src="../ui_kits/mobile_app/data.js"></script>
+<script>
+const D=window.OFFLOAD_DATA,TV=D.today_view,DAYS=TV.days;
+const SP=k=>D.spaces.filter(s=>s.kind===k);
+const MARK='<svg width="21" height="21" viewBox="0 0 96 96"><circle cx="48" cy="21" r="11" fill="currentColor"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/></svg>';
+function ic(n,c){return '<i class="lu '+(c||"")+'" style="-webkit-mask-image:url(../assets/icons/'+n+'.svg);mask-image:url(../assets/icons/'+n+'.svg)"></i>'}
+function clock(h,mer){const H=Math.floor(h),M=Math.round((h-H)*60);const h12=H%12===0?12:H%12;
+  return h12+(M?":"+String(M).padStart(2,"0"):"")+(mer?(H<12?"am":"pm"):"")}
+const PRI=TV.priority.map(p=>({icon:p.icon,hot:p.tone==="attention",title:p.title,meta:p.thread+" \u00b7 "+p.meta,due:p.due}));
+
+function row(r,o){o=o||{};
+  return '<div class="li'+(r.on?" on":"")+'">'+(o.check?'<span class="chk"></span>':'')+
+    (o.noTile?'':'<span class="tile'+(r.hot?" hot":"")+'">'+ic(r.icon||"bookmark")+'</span>')+
+    '<span class="tx"><b>'+r.title+'</b>'+(r.meta?'<span>'+r.meta+'</span>':'')+'</span>'+
+    (o.tools?'<span class="tools">'+o.tools.map(n=>'<span class="tool">'+ic(n)+'</span>').join("")+'</span>':'')+
+    (r.due?'<span class="due'+(r.hot?"":" q")+'">'+r.due+'</span>':'')+'</div>';
+}
+function sec(label,count,tone,action){
+  return '<div class="sec'+(tone?" "+tone:"")+'"><b>'+label+'</b>'+
+    (count!==undefined?'<span class="cnt'+(tone==="accent"?" accent":"")+'">'+count+'</span>':'')+
+    (action?'<span class="act">'+action+'</span>':'')+'</div>';
+}
+function digest(t){const l=t.lines&&t.lines[0];
+  return '<div class="li"><span class="tile">'+ic(l?l.icon:"lasso")+'</span><span class="tx"><b>'+t.name+'</b>'+
+    '<span>'+(l?l.text+" \u00b7 "+l.time:"")+'</span></span><span class="due q">+'+t.added+'</span></div>';
+}
+/* Note 3: whatever the rightmost pane is showing is what the sidebar marks. */
+function sidebar(active,trail){
+  const tabs=[["sun","Today"],["lasso","My things"],["cloudy","Memories"]];
+  const counts={"My things":String(D.spaces.length),Memories:String(D.memories.total)};
+  const pinned=SP("now").slice(0,3);
+  const recent=[D.spaces[3],D.spaces[6],D.spaces[7]].filter(Boolean).filter(s=>!pinned.some(p=>p.name===s.name));
+  const item=s=>'<div class="nv'+(active===s.name?" on":"")+'">'+(active===s.name?'<span class="sp"></span>':'')+ic(s.icon)+s.name+'</div>';
+  return '<div class="side"><div class="mark">'+MARK+'offload</div>'+
+    '<div class="nav">'+tabs.map(([i,l])=>'<div class="nv'+(active===l?" on":"")+'">'+
+      (active===l?'<span class="sp"></span>':'')+ic(i)+l+(counts[l]?'<em>'+counts[l]+'</em>':'')+'</div>').join("")+'</div>'+
+    (trail?'<div class="trail">'+trail.map((t,i)=>'<div class="t'+(i===trail.length-1?" on":"")+'"><u></u>'+t+'</div>').join("")+'</div>':'')+
+    '<div class="sl">Pinned'+ic("plus")+'</div><div class="nav">'+pinned.map(item).join("")+'</div>'+
+    '<div class="sl">Recent</div><div class="nav">'+recent.map(item).join("")+'</div>'+
+    '<div class="foot"><div class="nav">'+
+      '<div class="nv">'+ic("search")+'Search<span class="scut">\u2318K</span></div>'+
+      '<div class="nv">'+ic("bell")+'Activity<em>'+D.notifications.filter(n=>n.unread).length+'</em></div>'+
+      '<div class="nv">'+ic("settings")+'Settings</div></div></div></div>';
+}
+function composer(){
+  return '<div class="comp"><div class="pill"><span class="g">Dump anything</span>'+
+    '<span class="ib">'+ic("camera")+'</span><span class="ib">'+ic("mic")+'</span><span class="ib send">'+ic("arrow-up")+'</span></div></div>';
+}
+/* K1, the week as five cards inside Today. */
+function strip(){
+  const week=[["Mon","10",[]],["Tue","11",DAYS[0].events],["Wed","12",DAYS[1]?DAYS[1].events:[]],["Thu","13",[]],["Fri","14",[]]];
+  return '<div class="strip">'+week.map(([d,n,ev],i)=>{
+    const list=ev.slice(0,2);
+    return '<div class="sd'+(i===1?" today":"")+'"><span class="d"><b>'+n+'</b>'+d+'</span>'+
+      list.map(e=>'<div class="e '+e.tone+'"><u>'+clock(e.start,true)+'</u><i>'+e.title+'</i></div>').join("")+
+      (list.length?'<div class="f">'+(i===1?"2hrs free":"4:30hrs free")+'</div>':'<div class="f">nothing on</div>')+'</div>';
+  }).join("")+'</div>';
+}
+function today(o){o=o||{};
+  return '<div class="pane'+(o.half?" half":"")+(o.top?" top":"")+'">'+
+    '<div class="ph"><div class="h1">Today<small>Tue 11 Aug \u00b7 sunset 19:00</small></div></div>'+
+    '<div class="body"><div class="inner">'+
+      PRI.slice(0,o.pri||4).map((r,i)=>row(Object.assign({},r,{on:o.selected===i}),{tools:["archive","trash-2"]})).join("")+
+      sec("This week",undefined,null,"Open calendar")+strip()+
+      sec("What moved",TV.threads.length,"accent")+TV.threads.map(digest).join("")+
+    '</div></div></div>';
+}
+function threadPane(o){o=o||{};
+  const t=D.spaces[0],c=D.lisbon,st=D.standing.lisbon;
+  return '<div class="pane'+(o.half?" half":"")+(o.top?" top":"")+'">'+
+    (o.crumb?'<div class="pcrumb"><span class="crumb">Today</span>'+ic("chevron-right","sep")+'<span class="crumb on">'+t.name+'</span></div>':'')+
+    '<div class="ph"><div class="h1 p">'+t.name+'</div><span class="pt">'+
+      ['maximize-2','users','ellipsis','x'].map(n=>'<span class="tool">'+ic(n)+'</span>').join("")+'</span></div>'+
+    '<div class="body"><div class="inner">'+
+      '<div class="blurb">'+st.text+'</div><div class="wrote">'+ic("sparkles")+'offload wrote this, '+st.updated.replace("updated ","")+'</div>'+
+      sec("To do",c.tasks.filter(x=>!x.done).length)+
+      c.tasks.slice(0,3).map((x,i)=>row({title:x.label,meta:x.meta,on:o.selected===i},{check:true,noTile:true,tools:["pencil","trash-2"]})).join("")+
+      sec("Everything in here",t.count,"accent","See all")+
+      c.notes.slice(0,2).map(x=>row({icon:x.icon,title:x.title,meta:x.meta})).join("")+
+    '</div></div></div>';
+}
+function taskPane(o){o=o||{};const task=D.lisbon.tasks[0];
+  return '<div class="pane'+(o.half?" half":"")+(o.top?" top":"")+(o.leaving?" leaving":"")+'">'+
+    '<div class="ph"><div class="h1 p">'+task.label+'</div><span class="pt">'+
+      ['maximize-2','ellipsis','x'].map(n=>'<span class="tool">'+ic(n)+'</span>').join("")+'</span></div>'+
+    '<div class="body"><div class="inner">'+
+      '<div class="blurb">'+task.meta+'.</div><div class="wrote">'+ic("sparkles")+'from your Lisbon trip</div>'+
+      sec("Sources",D.lisbon.notes.length)+
+      D.lisbon.notes.slice(0,3).map(x=>row({icon:x.icon,title:x.title,meta:x.meta})).join("")+
+    '</div></div></div>';
+}
+/* One pane: off-white, nothing raised, sidebar marks Today. */
+function one(){
+  return '<div class="win">'+sidebar("Today")+'<div class="main"><div class="panes">'+today({pri:5})+'</div>'+composer()+'</div></div>';
+}
+/* Two panes: left stays off-white, the new one is white and marked in the nav. */
+function two(crumbs){
+  const bar=crumbs==="top"?'<div class="topbar"><span class="crumb">'+ic("sun")+'Today</span>'+ic("chevron-right","sep")+
+    '<span class="crumb on">'+ic("lasso")+D.spaces[0].name+'</span><span style="margin-left:auto" class="crumb">'+ic("x")+'Close pane</span></div>':'';
+  return '<div class="win">'+sidebar(D.spaces[0].name,crumbs==="trail"?["Today",D.spaces[0].name]:null)+
+    '<div class="main">'+bar+'<div class="panes">'+today({half:true,selected:0,pri:4})+
+    threadPane({top:true,crumb:crumbs==="pane"})+'</div>'+composer()+'</div></div>';
+}
+/* Note 5, in three states: two open, the swap mid-flight, and where it lands. */
+function swap(stage){
+  const active=stage===0?D.spaces[0].name:D.lisbon.tasks[0].label;
+  let panes;
+  if(stage===0)panes=today({half:true,selected:0,pri:4})+threadPane({top:true,selected:0});
+  else if(stage===1)panes=taskPane({leaving:true})+threadPane({half:true,selected:0})+taskPane({top:true});
+  else panes=threadPane({half:true,selected:0})+taskPane({top:true});
+  return '<div class="win">'+sidebar(active)+
+    '<div class="main"><div class="panes'+(stage===1?" mid":"")+'">'+panes+'</div>'+composer()+'</div></div>';
+}
+
+function frame(h,cls){return '<div class="hold'+(cls?" "+cls:"")+'">'+h+'</div>'}
+document.getElementById("out").innerHTML=
+  '<h2>The two states</h2><p class="why">Note 1 and 2, applied. A single pane sits on the page colour with nothing raised; open something and it arrives white, so the paper itself tells you where you are. The composer never moves.</p>'+
+  '<div class="stack">'+
+  '<div><div class="tag"><b>1</b><span>one pane, sidebar marks Today</span></div>'+frame(one())+
+    '<p class="note">Today is off-white and full width, the week strip from k1 sits between the priority rows and What moved, and the composer spans the window. Clicking Today, My things or Memories in the sidebar always returns to this shape, which is note 6.</p></div>'+
+  '<div><div class="tag"><b>2</b><span>two panes, sidebar marks the thread</span></div>'+frame(two("pane"))+
+    '<p class="note">Today keeps its place and narrows to 632px; the thread arrives on white with a shadowed left edge. The row you came from stays highlighted, and Lisbon trip is now the marked item in the sidebar rather than Today, since it is the pane you are in.</p></div>'+
+  '</div>'+
+  '<h2>Where the breadcrumb lives</h2><p class="why">Note 4, three homes. All three show the same trail, Today then Lisbon trip, and all three end on the pane you are in.</p>'+
+  '<div class="stack">'+
+  '<div><div class="tag"><b>c1</b><span>above the panes, spanning the width</span></div>'+frame(two("top"))+
+    '<p class="note">One line across the top of the content, with a close on the right. Always in the same place no matter how many panes are open, and it has room for a deep trail. Costs 44px of height and puts a horizontal rule above the panes, which the design otherwise avoids.</p></div>'+
+  '<div><div class="tag"><b>c2</b><span>inside the pane header</span></div>'+frame(two("pane"))+
+    '<p class="note">The trail belongs to the pane that owns it, so it travels when the pane moves and disappears when the pane closes. Cheapest, and it reads like Notion. It can only show the path to that one pane, and it repeats Today twice on screen.</p></div>'+
+  '<div><div class="tag"><b>c3</b><span>as a trail in the sidebar</span></div>'+frame(two("trail"))+
+    '<p class="note">The path appears under the tabs as an indented trail, so the sidebar answers both where you live and where you are, and the content area stays clean. The risk is that it competes with Pinned and Recent, and it is the least conventional of the three.</p></div>'+
+  '</div>'+
+  '<h2>Opening a third thing</h2><p class="why">Note 5: two are open and you click something inside the right pane. The left one leaves, the right slides into its place, the new one comes in from the right edge.</p>'+
+  '<div class="row3">'+
+  '<div><div class="tag"><b>s1</b><span>before</span></div>'+frame(swap(0),"third")+'</div>'+
+  '<div><div class="tag"><b>s2</b><span>mid, 220ms</span></div>'+frame(swap(1),"third")+'</div>'+
+  '<div><div class="tag"><b>s3</b><span>after</span></div>'+frame(swap(2),"third")+'</div>'+
+  '</div>'+
+  '<p class="note">Today fades and translates left as it goes, Lisbon trip moves from the right half into the left half, and the new pane arrives white. 220ms on the standard ease for the moves, 140ms for the fade, so the whole thing reads as one gesture. The pane that left is not gone, it is still in Recent and one click away. Note that in s2 and s3 nothing is marked in the sidebar: the active pane is a task, which has no sidebar entry, which is one of the questions below.</p>';
+</script>
+</body></html>
