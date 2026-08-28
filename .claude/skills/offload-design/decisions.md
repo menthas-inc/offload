@@ -11,6 +11,25 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-08-27 · A thing has no designed appearance between being dumped and being sorted
+**Surface:** iOS, Android, web
+**Raised by:** the codebase, while settling the processing model.
+**What is missing:** sorting is asynchronous by design, because putting something down must be
+instant and the filing happens afterwards. So there is a window, usually short but not always,
+where a thing exists and its thread is not yet decided. Today rows show the thread as metadata,
+`Lisbon trip · from Safari`, and there is no drawn state for a row that does not have one yet.
+**What the codebase decided:** every thing has a thread from the moment it is written, and a new
+dump lands in a default thread that every account has, which the sorter then moves it out of if
+it belongs somewhere better. That keeps the data model free of an unsorted state, but it means
+the row's metadata changes shortly after it appears, which is a visible thing that needs
+designing rather than happening by accident.
+**Two questions for design:** what the default thread is called, in the product's own vocabulary,
+since it is a real thread a person can open, and what a row looks like in the moment before its
+thread is known. Options might be showing the default thread name and letting it change, showing
+nothing where the thread would go, or a quiet marker. The row must not reflow when it settles.
+**Design system impact:** the Today row spec in all three kits, the My threads list which will
+show the default thread among the others, and the empty-state copy for it. Not yet done.
+
 ### 2026-08-26 · The share sheet does not say what happens when a member deletes their account
 **Surface:** iOS, Android, web
 **Raised by:** the codebase, while settling how shared content is keyed.

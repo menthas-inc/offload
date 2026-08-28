@@ -18,6 +18,8 @@ Two hats, applied together.
 
 **Technical.**
 - Data modeling: right entities and relationships? Ownership and grants correct? Queryable later?
+- Volume and access: does the spec state records per account, fan-out, growth, and the queries each screen needs, and do its pagination, index and denormalisation choices actually follow from those numbers? A missing or hand-waved section here is a finding, because it is the one that turns into a refactor rather than a fix.
+- Context growth (OFF-8): does anything this feature adds to a prompt grow with account age?
 - Does it hold as the account count grows by an order of magnitude? Flag anything that only works at toy scale, without demanding infrastructure we decided not to build yet.
 - Simplicity and altitude (DEV-1, DEV-3): the smallest, most boring approach that works. Call out speculative complexity and premature optimization.
 - Fit: aligns with `decisions.md`, or silently diverges? A silent divergence is the thing you are here to catch.

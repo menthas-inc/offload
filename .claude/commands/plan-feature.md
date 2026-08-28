@@ -33,7 +33,11 @@ Pay particular attention to the ones this product gets wrong most easily:
 End the phase with a single line: `GATE: PASS` or `GATE: BLOCKED (open MUST violations: <ids>)`. Do not continue while a MUST is open.
 
 ## 5. Impl-spec, the how
-Write `docs/specs/NNN-slug/impl-spec.md`: data flow, data model, interfaces, dependencies, edge cases, and a constitution check saying which principles apply and how they are satisfied. Ground every choice in `docs/tech/`. If the feature depends on one of the open decisions at the bottom of `docs/tech/decisions.md`, say so explicitly rather than assuming an answer.
+Write `docs/specs/NNN-slug/impl-spec.md`: data flow, data model, **volume and access**, interfaces, dependencies, edge cases, and a constitution check saying which principles apply and how they are satisfied.
+
+The **volume and access** section is required whenever the feature adds or changes a table, a list or a feed, and its format is in `docs/specs/README.md`. Write it before the schema, not after: pagination, indexes and denormalisation should fall out of stated numbers. Estimates are fine, blanks are not.
+
+If the feature puts anything into a model prompt, say what bounds it (OFF-8). Ground every choice in `docs/tech/`. If the feature depends on one of the open decisions at the bottom of `docs/tech/decisions.md`, say so explicitly rather than assuming an answer.
 
 ## 6. Tasks
 Write `docs/specs/NNN-slug/tasks.md`: ordered testable tasks (setup, foundational, feature, tests), each citing the acceptance criteria and principles it satisfies. Split by track (API, Mobile, Web) where the feature touches the clients.

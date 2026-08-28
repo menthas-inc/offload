@@ -45,6 +45,36 @@ Sorting is asynchronous by design. The product's promise is that putting somethi
 
 Client to Core API to agent plane over sync HTTP, streamed back through the Core API to the client. The composer is a tool, not a chat: a turn can create or change a thing, share a thread with a connection, or answer a question, and the reply carries the outcome plus an Undo. Reversible actions execute; outward-facing ones are proposed and confirmed (OFF-6).
 
+## Two processing modes
+
+Every unit of work is one of two kinds, and the distinction is who is waiting.
+
+**Interactive.** Someone is looking at a spinner. The composer, a question, any tool call made from the composer. The request is admitted to the queue, the agent plane picks it up, and the answer comes back to the client.
+
+The queue is here for **admission control, not durability**: it is what lets us bound concurrency and throttle request volume globally and per account, which is the same mechanism the token ledger and the admin panel's Limits page act on. Without it, a burst of dumps is a burst of uncapped Claude calls.
+
+**Scheduled.** Nobody is waiting, and offload is pushing rather than answering. Hourly, daily, nightly: compacting memories, the brief telling someone what needs them, pulling a connected app, retention purges. These may use Claude's Batch API, which is half price and is only viable precisely because nobody is waiting.
+
+Both run through the same `jobs` table. What differs is priority, deadline, and whether a delay is visible to anyone. Two consequences worth stating: an interactive job needs a deadline and a defined behaviour when it misses it, and scheduled work must never be able to starve interactive work, which means the queue is not FIFO.
+
+## Everything is in a thread
+
+`thread_id` is NOT NULL on a thing. There is no unsorted state in the data model, because a partially-placed thing is a state every query and every screen would then have to handle.
+
+Every account gets a **default thread** at creation for one-offs and things that never earn a home of their own: a link sent from a phone to a laptop, a note with nowhere to go. A new dump lands there and the sorter moves it if it belongs somewhere better. It is an ordinary thread, so it opens, holds things and reads like the others.
+
+This also removes a special case from the key hierarchy: an object key is always wrapped by a thread key, never by an account key, because there is never a moment when a thing has no thread.
+
+## Everything is a tool
+
+The composer is a tool surface, not a chat. The design system puts it plainly: any UI task in offload can be said instead of tapped. That makes the tool registry the real API of the product, and it has three consequences.
+
+**Two execution sites.** Server-side tools change data: create a thing, move it, share a thread, change a setting. Client-side tools change what you are looking at: open a thread, jump to a settings page, focus the composer. The response envelope therefore carries actions for the client to perform, not only text to render.
+
+**Every tool declares its OFF-6 tier.** Reversible tools execute and offer Undo. Outward-facing tools are proposed and confirmed. The tier belongs on the tool definition, so that adding a tool forces the question rather than leaving it to the caller.
+
+**The registry threatens the context budget.** If everything is a tool, the tool list itself grows without limit and is sent on every call. Past roughly a few dozen tools, use the Anthropic tool-search tools with `defer_loading: true` on the long tail, so the model retrieves the tools it needs instead of carrying all of them. This is the same discipline as OFF-8 applied to tools rather than to memories.
+
 ## Boundaries and ownership
 
 - **Core API owns** the canonical schema, migrations, every authorization decision, and the encryption boundary. It is the only writer of canonical tables.

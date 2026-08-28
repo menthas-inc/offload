@@ -10,6 +10,28 @@ Each folder holds three artifacts, produced in order by `/plan-feature`:
 
 `/implement` consumes all three. `/tweak` updates them in place for a small change.
 
+## Volume and access is a required section
+
+Every impl-spec that adds or changes a table, a list or a feed carries a **Volume and access** section, written before the schema and not after. The point is to make pagination, indexing and normalisation decisions fall out of stated numbers, rather than be discovered when a screen gets slow and the fix is a refactor.
+
+Estimates are fine. Stating a number you later find wrong is useful; leaving it blank is not.
+
+| Field | What to write |
+| --- | --- |
+| Records per account | Typical, and a realistic heavy case. "40 threads typical, 300 heavy." |
+| Fan-out | Children per parent, and its worst case. "Things per thread: 15 typical, 500 heavy." |
+| Growth | Per day or week for an active account, so the two-year number is derivable. |
+| Read pattern | Which screens read it, how often, and what they need. Name the screen. |
+| Write pattern | Rate, and whether it is bursty. |
+| Sort and filter | Every ordering and predicate any screen needs, because that is the index list. |
+
+Then say what follows from it, explicitly:
+
+- **Pagination:** server-side or client-side, page size, and cursor or offset. Anything with a heavy case above a few hundred rows is server-side and cursor-based.
+- **Indexes:** the covering indexes for the queries above, with the leading column stated. Account or thread scope leads, since every query is scoped by one of them.
+- **Normalisation:** what is denormalised on purpose, such as a count on a thread row rather than a `COUNT(*)`, and what keeps it correct.
+- **Partitioning:** only for hot append tables, and only once the numbers say so.
+
 ## Conventions
 
 - Acceptance criteria are numbered `AC-1`, `AC-2` and are testable. If you cannot write a test for it, it is too vague.
