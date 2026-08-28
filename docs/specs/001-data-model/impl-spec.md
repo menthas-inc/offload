@@ -55,7 +55,7 @@ The object key lives on `blobs.wrapped_object_key`. Four layers, four separately
 
 A thread has **no owner column**. It has members, and the creator is simply the first one. `created_by_account_id` records who started it because the UI wants to say so, and it carries no permission: an owner-versus-grantee distinction is a role, and the design's single permission rules roles out.
 
-`kind` distinguishes threads that end from threads that never close, which is the kits' "for now" and "always on". The third group, "older threads", is **derived** from `last_activity_at`, not stored, because it is a function of time rather than a property of the thread. One `is_default` thread per account, enforced by a partial unique index.
+`kind` distinguishes threads that end from threads that never close, which is the kits' "for now" and "always on". The third group, "older threads", is **derived** from `last_activity_at`, not stored, because it is a function of time rather than a property of the thread. One `is_default` thread per account, enforced by a partial unique index, created at promotion and named **Miscellaneous**. It is an ordinary thread in every other respect: it can be opened, renamed and shared, and it is not special-cased in any query.
 
 **`things`**
 `id` · `account_id` (author) · `thread_id` **NOT NULL** · `kind` (`note|link|image|screenshot|voice|file|task|event`) · `title` · `body` · `url` · `occurs_at`, `occurs_end_at` · `due_at`, `done_at` · `needs_attention` · `source_kind` (`person|gmail|calendar|browser`, default `person`) · `source_ref` (nullable) · `attrs jsonb` · `embedding vector` · `sorted_at` · `created_at`, `updated_at`, `deleted_at`, `purge_after`

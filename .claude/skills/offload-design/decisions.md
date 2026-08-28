@@ -32,7 +32,7 @@ after the undo window.
 the thread menu on web. The Ending things settings page may also want a line, since it covers
 deleting things without mentioning shared threads. Not yet done.
 
-### 2026-08-27 · A thing has no designed appearance between being dumped and being sorted
+### 2026-08-27 · A thing has no designed appearance between being dumped and being sorted (name resolved, row state open)
 **Surface:** iOS, Android, web
 **Raised by:** the codebase, while settling the processing model.
 **What is missing:** sorting is asynchronous by design, because putting something down must be
@@ -44,10 +44,12 @@ dump lands in a default thread that every account has, which the sorter then mov
 it belongs somewhere better. That keeps the data model free of an unsorted state, but it means
 the row's metadata changes shortly after it appears, which is a visible thing that needs
 designing rather than happening by accident.
-**Two questions for design:** what the default thread is called, in the product's own vocabulary,
-since it is a real thread a person can open, and what a row looks like in the moment before its
-thread is known. Options might be showing the default thread name and letting it change, showing
-nothing where the thread would go, or a quiet marker. The row must not reflow when it settles.
+**The name is answered.** The brand owner named it **Miscellaneous** on 27 August 2026. Set in
+sentence case to match every other thread name in the kits, "Read later", "Gift ideas", "Flat
+admin". It is an ordinary thread: it opens, holds things, and can be renamed.
+**What is still open:** what a row looks like in the moment before its thread is known. Options
+might be showing Miscellaneous and letting it change, showing nothing where the thread would go,
+or a quiet marker. The row must not reflow when it settles.
 **Design system impact:** the Today row spec in all three kits, the My threads list which will
 show the default thread among the others, and the empty-state copy for it. Not yet done.
 

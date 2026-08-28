@@ -61,7 +61,7 @@ Both run through the same `jobs` table. What differs is priority, deadline, and 
 
 `thread_id` is NOT NULL on a thing. There is no unsorted state in the data model, because a partially-placed thing is a state every query and every screen would then have to handle.
 
-Every account gets a **default thread** at creation for one-offs and things that never earn a home of their own: a link sent from a phone to a laptop, a note with nowhere to go. A new dump lands there and the sorter moves it if it belongs somewhere better. It is an ordinary thread, so it opens, holds things and reads like the others.
+Every account gets a default thread at creation, named **Miscellaneous**, for one-offs and things that never earn a home of their own: a link sent from a phone to a laptop, a note with nowhere to go. A new dump lands there and the sorter moves it if it belongs somewhere better. It is an ordinary thread, so it opens, holds things and reads like the others.
 
 This also removes a special case from the key hierarchy: an object key is always wrapped by a thread key, never by an account key, because there is never a moment when a thing has no thread.
 

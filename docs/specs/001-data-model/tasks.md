@@ -12,7 +12,7 @@ Ordered. Each cites the acceptance criteria it satisfies. Migrations are hand-wr
 
 - [ ] **T4** `accounts`, `account_identities`, `staff`. Unique on `(provider, subject)`. State check constraint. *(AC-1)*
 - [ ] **T5** `account_keys` with `wrapped_by`, and the `RootKeyProvider` interface with its `db:v1` implementation. *(AC-11)*
-- [ ] **T6** `threads` and `thread_keys`. Partial unique index for one default thread per account. Promotion creates account key and default thread in one transaction. *(AC-2, AC-11)*
+- [ ] **T6** `threads` and `thread_keys`. Partial unique index for one default thread per account. Promotion creates the account key and the default thread, named Miscellaneous, in one transaction. *(AC-2, AC-11)*
 - [ ] **T7** `things`, with the promoted columns, `source_kind` and `source_ref`, `attrs`, and `deleted_at` / `purge_after`. `thread_id` NOT NULL. *(AC-2, AC-5, AC-6)*
 - [ ] **T8** `blobs`, with `wrapped_object_key` and the denormalised `thread_id`. *(AC-11)*
 - [ ] **T9** `people` and `thread_members`. Unique on `(thread_id, account_id)` and on `(owner_account_id, linked_account_id)` where linked is not null. Creator inserted as `accepted` with a null `invited_by`. *(AC-3)*

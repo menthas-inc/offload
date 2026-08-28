@@ -12,7 +12,7 @@ The entities the product needs, and only those. In dependency order:
 
 **Identity.** An `account` is a person. It links many provider identities, so signing in with Apple and with Google reaches the same account. Accounts move through `waitlist → invited → active → disabled`.
 
-**Content.** A `thread` holds `things`. Every thing is in exactly one thread. A thing may carry `blobs`, its photos, screenshots and voice-note audio. Every account has one default thread so nothing is ever unplaced.
+**Content.** A `thread` holds `things`. Every thing is in exactly one thread. A thing may carry `blobs`, its photos, screenshots and voice-note audio. Every account has one default thread, **Miscellaneous**, so nothing is ever unplaced.
 
 **People and sharing.** A `person` is someone in an account's own address book. Some are linked to an offload account, and those are the ones a thread can be shared with; the rest are people offload knows about but who will never sign up. A thread has `thread_members`, and the creator is simply the first one: there is no owner, because an owner would be a role and the design allows none.
 
