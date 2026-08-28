@@ -11,25 +11,24 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
-### 2026-08-28 · One dump can now become several things, and nothing draws that
+### 2026-08-28 · One dump can become several things, and it lives in the composer
 **Surface:** iOS, Android, web
-**Raised by:** the codebase, after the product owner asked for it from earlier story notes.
-**What changed:** a dump is no longer always one thing. Describing your day in a voice note should
-produce the tasks in it, so the sorter can now extract several things from one dump. The record of
-what was handed over stays a thing in its own right, and everything extracted from it points back
-at that record, which is what keeps Undo a single action.
-**What is missing, three questions:** what appears on Today in the moment a dump lands, before the
-sorter has decided whether it is one thing or four. What the toast says, since "Saved to Lisbon
-trip" assumes one destination and four things may land in three threads. And whether the verbatim
-record should sit on Today alongside the tasks it produced, which is honest but duplicative when
-the record is a paragraph of speech and the tasks restate it, or fold away behind them, which is
-cleaner but hides what the person actually said.
-**Worth knowing:** the kits already draw a dumped voice note as a row in its own right, `Oak
-brackets, 30cm, matte black · Bookshelf build · voice note, 0:14`, so the record-as-a-thing idea
-is already in the design. What is new is the case where that record also spawns others.
-**Design system impact:** the Today row spec and the undo toast copy in all three kits, and
-possibly a grouping treatment for a record and its derived things. The schema supports whichever
-answer design picks. Not yet done.
+**Raised by:** the codebase, then corrected by the product owner.
+**Withdrawn, the part about Today.** An earlier version of this entry asked what a dump looks like
+on Today. That question was based on a misreading: Today is a summary assembled from threads and
+calendars, not a feed of dumps, so a dump never appears there at all. The voice-note row the kits
+show, `Oak brackets, 30cm, matte black · Bookshelf build · voice note, 0:14`, is a thing in a
+thread that came from a voice note. Apologies for the noise.
+**What is actually true:** a dump is a message in a composer session, of a kind that is not
+necessarily text, and offload replies to it in the same composer. One dump can now produce several
+things, each filed into its own thread. A dump is visible in conversation history and nowhere else.
+**What may need design:** the composer's reply when one dump became several things in several
+threads. "Saved to Lisbon trip" assumes one destination. Also the share-sheet case, where someone
+shares from Safari with the app closed and later opens it to find the dump and offload's reply
+waiting in a conversation they did not start.
+**Design system impact:** composer reply copy in all three kits, and possibly the conversation
+entry point for a dump that arrived while the app was closed. Lower priority than it looked
+yesterday, since no list screen is affected. Not yet done.
 
 ### 2026-08-27 · Removing a shared thread is leaving it, and the kits draw one control
 **Surface:** iOS, Android, web

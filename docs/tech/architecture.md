@@ -33,13 +33,15 @@ Four deployable services in one monorepo, talking over a typed API and a queue.
 This is the flow the whole product is built around, so it is worth writing down once.
 
 1. A person dumps text, a link, a photo, a screenshot or a voice note. The client writes it to its local outbox and shows it immediately. Nothing blocks on the network.
-2. The client posts the dump to the Core API, blobs included. The API mints an object key per blob, encrypts with AES-GCM and streams the ciphertext to R2, which never receives a key.
-3. The Core API writes the thing into the account's default thread, and enqueues its sort job **in the same transaction**, so a thing can never exist unqueued. It returns immediately. The person already has what they need.
+2. The client posts the dump to the Core API as a message, blobs included. The API mints an object key per blob, encrypts with AES-GCM and streams the ciphertext to R2, which never receives a key.
+3. The Core API writes the message, encrypts each blob under an object key wrapped for the account, and enqueues its sort job **in the same transaction**, so a dump can never exist unqueued. It returns immediately. The person already has what they need.
 4. The worker picks up the job, calls the agent plane, which runs a `sort` tier structured call: which thread does this belong to, what kind of thing is it, does it have a date, does it need the person, **and does it contain several things rather than one**.
-5. The agent plane writes the derived result back through a Core API internal endpoint, so there stays exactly one writer. The thing is moved to its real thread if it belongs somewhere better, and gains tags and an embedding. If the dump held several things, the extra ones are created here, each pointing back at the record through `derived_from_thing_id` and each filed on its own.
-6. The client learns about it through its next poll or a push. The person sees "Saved to Lisbon trip" with one way back, which is Undo.
+5. The agent plane writes back through a Core API internal endpoint, so there stays exactly one writer. It creates zero or more `things`, each filed into its thread, each pointing at the message through `derived_from_message_id`, and each with tags and an embedding. Media gets a thread key wrap only where a thing actually carries it.
+6. offload replies in the same composer, saying what it did, with one way back, which is Undo. The things it created appear in their threads, and in Today if they need attention.
 
-A dump is not always one thing. Describing your day in a voice note should produce the tasks in it, so the record of what was handed over stays a thing in its own right and everything extracted from it points back at it. That keeps Undo a single action, keeps provenance a foreign key, and keeps blobs on things where the thread key can reach them.
+**A dump is a message in a composer session**, not a thing and not its own entity. Sharing a photo from Safari with the app closed takes the same path: it arrives as a message, offload ingests it and replies in the same composer, so the dump and the answer sit together in one history. A dump is visible there and nowhere else. Today is a summary assembled from threads and calendars, so a dump never appears on it, only the things it produced.
+
+A dump is not always one thing either. Describing your day in a voice note should produce the tasks in it, each filed on its own, all pointing back at the message they came from.
 
 Sorting is asynchronous by design. The product's promise is that putting something down is instant and the filing happens afterwards, so the architecture makes exactly that guarantee and nothing stronger.
 
