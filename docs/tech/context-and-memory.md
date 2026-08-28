@@ -30,11 +30,15 @@ Rules that make it safe:
 
 ## Retention
 
-**Raw content is kept for as long as the retention setting says. Derived data is kept forever.**
+**User-facing content is kept indefinitely.** Things, their media and conversation turns are kept until the person deletes them. There is no purge clock on anything a person put into offload.
 
-The design states one retention rule in the product, on conversations, as a setting whose options include Forever. The consequence of the split above is that offload can keep knowing something after it can no longer show you where it learned it.
+Retention applies instead to the data that exists for us rather than for them: analytics events, application logs, traces, and the LLM metadata in Langfuse. Those are minimised on a short clock, because they carry operational value that decays fast and risk that does not.
 
-That is the correct behaviour, and it needs to be visible rather than eerie. A memory whose sources have aged out should say so. A memory should never be silently unexplainable, because an assistant that knows things about you and cannot say why is exactly the thing people are right to distrust.
+That split is the honest version of data minimisation for this product. Deleting someone's photos on a timer is not privacy, it is losing their things. Not keeping six months of logs about how they used it is.
+
+One consequence worth noticing, because it removes a problem rather than creating one: since raw content never ages out, **a memory can always show its sources.** The design draws a memory with the things it came from, and that stays true forever rather than degrading into an assistant that knows something and cannot say why.
+
+The obligation this creates is on storage growth rather than on deletion. Nothing shrinks, so per-account storage only goes up, and that is a cost line to watch rather than a correctness problem. Deletion is still real and immediate when a person asks for it, and it still cascades.
 
 ## The prompt budget
 

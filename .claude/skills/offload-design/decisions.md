@@ -50,6 +50,34 @@ mentioning shared threads. Copy is design's call, not the codebase's. Not yet do
 
 ---
 
+## 2026-08-27
+
+### 2026-08-27 · Nothing a person puts in is deleted on a clock
+**Surface:** all
+**Was:** "offload only keeps conversations from the past 60 days", stated in `readme.md` and drawn
+in Settings as a Keep conversations for page with a Conversations kept row, options including
+Forever, and a Delete all conversations action.
+**Is:** things, media, conversations and memories are kept until the person deletes them. There is
+no purge clock on anything they put in. Retention now applies only to data that exists for us
+rather than for them: analytics events, application logs, traces and LLM metadata, all minimised
+on a short clock and none of it visible in the product.
+**Why:** deleting someone's photos on a timer is not privacy, it is losing their things. The
+product's promise is that offload is the one place you put things and they are still there, and
+the kits already rely on that, showing a wedding thread from last year holding 44 things "mostly
+photos and the seating plan" and a finished trip whose blurb says everything is still here if you
+want the addresses again. A 60-day clock would empty both. Minimising our own operational data
+achieves the privacy intent without costing anyone their stuff.
+**One thing this fixes rather than breaks:** the kits draw a memory with the things it came from.
+Because raw content no longer ages out, that provenance stays true forever, instead of degrading
+into a memory that cannot say where it came from.
+**Design system impact:** the Keep conversations for settings page and the Conversations kept row
+become vestigial unless they are re-drawn as a Forever-only statement or removed. The retention
+sentence in `readme.md` under Content fundamentals is now wrong. Delete all conversations is
+unaffected and should stay, since manual deletion is still real, immediate and cascading. Not yet
+done, and the copy is design's call.
+
+---
+
 ## 2026-08-26
 
 ### 2026-08-26 · Thread screens renamed from space
