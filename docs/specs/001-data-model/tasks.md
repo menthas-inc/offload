@@ -23,7 +23,7 @@ Ordered. Each cites the acceptance criteria it satisfies. Migrations are hand-wr
 ## Indexes and access
 
 - [ ] **T13** Every index in the impl-spec's query table, each partial on `deleted_at IS NULL`. *(AC-10)*
-- [ ] **T14** HNSW index on `things.embedding` and a `tsvector` GIN column for exact terms. Confirm the chosen embedding width sits under pgvector's 2,000-dimension index ceiling. *(Depends on open item B3, the embedding provider.)*
+- [ ] **T14** `things.embedding` and `memories.embedding` as `halfvec(1024)` for Voyage 4, an HNSW index on each, and a `tsvector` GIN column for exact terms. *(No longer blocked; the provider was settled on 2026-08-27.)*
 - [ ] **T15** Cursor pagination helper on `(created_at, id)`, used by things-in-a-thread, messages-in-a-conversation, and the conversations list. *(AC-10)*
 
 ## Behaviour the schema alone does not give

@@ -151,7 +151,7 @@ Fan-out worth naming: **things per thread** is 15 typical and 500 heavy, and the
 | A person | memories about them | `(account_id, scope, subject_id) WHERE scope = 'person'` |
 | Conversations | grouped by period | `(account_id, last_message_at DESC)` |
 | One conversation | its messages | `(conversation_id, created_at)` |
-| Search, ⌘K | similarity, scoped | HNSW on `things.embedding`, plus a `tsvector` GIN for exact terms |
+| Search, ⌘K | similarity, scoped | HNSW on `things.embedding` (`halfvec(1024)`), plus a `tsvector` GIN for exact terms |
 | Queue drain | next runnable job | `(state, priority, run_after) WHERE state = 'queued'` |
 
 Every predicate above appears in a partial index rather than a full one, because `deleted_at IS NULL` is true for almost every row and the index should not carry the tombstones.
@@ -183,4 +183,4 @@ Every predicate above appears in a partial index rather than a full one, because
 - **Delete on a shared thread means leave.** Removing a thread you share removes your membership and your key and leaves every other member's view intact. Destroying it outright would delete things you did not author, which the single permission forbids.
 - **A person becomes a connection:** an unlinked `people` row gains a `linked_account_id`. Person-scoped memories follow automatically because they point at the person, not the account.
 - **A waitlist account is deleted before promotion:** no keys, no default thread, no content, so it is a plain row delete.
-- **Two devices dump the same thing from an outbox retry:** the client-supplied idempotency key on the write path deduplicates, the same mechanism `jobs.idempotency_key` uses.
+- **Two devices dump the same thing from an outbox retry:** the client-supplied idempotency key on the write path deduplicates, the same mechanism `jobs.idempotency_key` uses. *Note for any future content-level dedup: it must not use a vector distance threshold. Dense embeddings place a statement and its negation close together, so two things that contradict each other look like duplicates. Use an exact check or a model reading both.*

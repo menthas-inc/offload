@@ -56,6 +56,7 @@ The design system at `.claude/skills/offload-design/` specifies five, all at hig
 - **Structured outputs are the contract.** Pydantic schemas via `output_config.format`. No free-text parsing at a boundary (OFF-5).
 - **Harness:** thin orchestration over the SDK, no LangChain. Prompts as code, versioned in git, eval-gated in CI.
 - **Cost levers:** prompt caching on the frozen system prompt and stable per-account context, verified with `usage.cache_read_input_tokens`. Batch API (50% off) for anything not on the request path. A per-account token ledger in Postgres, which is exactly what the admin panel's Costs and Limits pages read.
+- **Embeddings:** Voyage 4, stored as `halfvec(1024)`. Chosen on quality rather than cost, which is negligible at our volume, and it ships a reranker for when retrieval precision matters. *Dense embeddings do not handle negation, which is structural and not a vendor choice; the mitigations we already have and the rule that follows are in `decisions.md`.*
 - **LLMOps:** Langfuse Cloud. Metadata only by rule: ids, model, tokens, latency, tool names, outcomes. No prompt content, no completions, no tool inputs (OFF-1).
 
 ## Multimodal
