@@ -62,7 +62,7 @@ The design system at `.claude/skills/offload-design/` specifies five, all at hig
 ## Multimodal
 
 - **Images:** screenshots and photos go to Claude as image blocks. No separate OCR step.
-- **Audio:** voice notes go to a hosted transcription API (Deepgram Nova as the working choice, on latency, price and accent handling). Only the transcript is retained alongside the audio blob.
+- **Audio:** voice notes go to **AssemblyAI** for transcription. Both the audio blob and the transcript are kept: the waveform is part of the product and the transcript is what makes it findable. *Requires a no-training term and short provider-side retention, and it is the one place a second company receives a person's voice. Self-hosting Whisper is the named alternative and gets cheaper as we grow; see `decisions.md`.*
 - **Links:** server-side unfurl for title, description and canonical URL. No headless browser until something needs one.
 
 ## Auth

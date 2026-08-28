@@ -25,7 +25,7 @@ Four deployable services in one monorepo, talking over a typed API and a queue.
              │             ▼
              │        Worker (Python) ──► connected apps: mail, calendar, browser
              ▼             │
-      Agent plane (FastAPI)◄┘ ──► Claude, Deepgram, Langfuse Cloud
+      Agent plane (FastAPI)◄┘ ──► Claude, Voyage, AssemblyAI, Langfuse
 ```
 
 ## The path a dump takes

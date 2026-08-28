@@ -103,7 +103,11 @@ Recorded 2026-08-27 from the product owner's technical direction. Detail in `arc
 ## Multimodal
 
 - ✅ **Images to Claude as image blocks**, no separate OCR step.
-- 🔶 **Voice notes to a hosted transcription API**, Deepgram Nova as the working choice on latency, price and accent handling. *Rejected: on-device transcription, which is free and private but noticeably worse with accents and noise and has no web equivalent. Revisit if audio egress becomes a stated user concern.*
+- ✅ **Transcription: AssemblyAI (2026-08-27).** Replaces Deepgram Nova, which had been a working choice on reputation rather than analysis and was the last component in the stack picked that way. AssemblyAI wins on both axes: 7.0% WER against Deepgram's second place on an independent benchmark, and $0.0025 a minute against $0.0043. Its alphanumeric accuracy is also the relevant strength for the kind of voice note the kits show, "Oak brackets, 30cm, matte black".
+- ✅ **Deepgram's headline number is self-reported, and that is why it lost.** Its claimed 5.26% WER comes from Deepgram's own comparison page. On an independent benchmark the order is Speechmatics 6.4%, AssemblyAI 7.0%, Whisper 8.3%, gpt-4o-transcribe 8.9%. *Recorded because we made this mistake once already, citing Railway's own marketing blog for a latency claim their support forum contradicted.*
+- ✅ **Conditions on the vendor, not just the choice.** A no-training-on-our-data term and short provider-side retention are requirements, not preferences. This is the one place a second company receives a person's actual voice, which is the most sensitive thing in the product, and it is a sub-processor line in the privacy policy.
+- 🔶 **Self-hosting Whisper is the named alternative, and it gets cheaper as we grow.** This inverts the embeddings conclusion and the reason is worth keeping: transcription is compute-heavy per unit and hosted vendors bill per minute, so the curve crosses. Roughly $0.50 a month hosted at alpha against about $15 self-hosted, and about $250 hosted at ten thousand accounts against about $50 self-hosted. `whisper-large-v3-turbo` is 809M parameters, about 1.6GB at INT8, and faster than real time on CPU for short clips, which is fine because transcription is on the async path. *The cost is accuracy, Whisper-grade at about 8.3% WER, and the gap typically widens on accented speech. Move if voice egress becomes a stated user concern or the bill justifies it.*
+- ✅ **Rejected: on-device transcription.** Free, and the strongest privacy for phones since audio would never leave the device. It means two transcription paths with different quality, it is worse than any hosted option, and browser speech APIs send audio to Google, so web has no private equivalent. *Reconsidered on 2026-08-27 because voice is more sensitive than the content types that decision originally covered, and rejected again on the same grounds.*
 - ✅ **Audio blob and transcript are both retained.** The waveform is part of the product and the transcript is what makes it findable.
 - 🔶 **Server-side link unfurl** for title, description and canonical URL. No headless browser until something needs one.
 
@@ -169,6 +173,8 @@ Shortcuts taken deliberately for alpha and beta. Each says why it is affordable 
 
 ## Open, needing a call before the thing they touch is built
 
-1. ⚠️ **Transcription provider.** Deepgram Nova is a working choice on reputation rather than analysis, and it is the only component in the stack picked that way.
+Nothing. Every decision this file opened has been closed.
 
-*The data model itself is no longer here: it is specced at `docs/specs/001-data-model/`. What remains of it is implementation.*
+What is left is not decisions but work, and it lives elsewhere: the deferred hardening above, to revisit before GA; the design questions raised in `.claude/skills/offload-design/decisions.md` under Open, which are design's to answer; and the specified-but-undefined items, which are implementation details each spec settles as it is written, not calls to make in the abstract.
+
+*The data model is specced at `docs/specs/001-data-model/`. What remains of it is implementation.*
