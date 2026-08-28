@@ -156,6 +156,6 @@ Shortcuts taken deliberately for alpha and beta. Each says why it is affordable 
 
 ## Open, needing a call before the thing they touch is built
 
-1. ⚠️ The data model itself. Before any migration. Its own spec. Blocked on the four questions in "Processing, threads, tools and context" above.
+1. ⚠️ The data model itself. Before any migration. Its own spec, and no longer blocked: the four questions above were answered on 2026-08-27.
 2. ⚠️ How a blob gets encrypted on the way into R2: key on the client, a Cloudflare Worker holding it, or bytes through the Core API. Before the first upload path. See the encryption entries above.
 3. ⚠️ Embedding provider. No longer gated on the encryption scheme, since vectors are plaintext. Now a quality, cost and content-egress choice, bounded by pgvector's indexable dimension ceiling above: 2,000 as `vector`, 4,000 as `halfvec`.
