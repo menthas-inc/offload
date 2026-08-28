@@ -14,6 +14,8 @@ The entities the product needs, and only those. In dependency order:
 
 **Content.** A `thread` holds `things`. Every thing is in exactly one thread. A thing may carry `blobs`, its photos, screenshots and voice-note audio. Every account has one default thread, **Miscellaneous**, so nothing is ever unplaced.
 
+One dump may become several things: the record of what a person handed over is itself a thing, and anything offload extracts from it points back at that record. Describing your day in a voice note should produce the tasks in it, not one undifferentiated note.
+
 **People and sharing.** A `person` is someone in an account's own address book. Some are linked to an offload account, and those are the ones a thread can be shared with; the rest are people offload knows about but who will never sign up. A thread has `thread_members`, and the creator is simply the first one: there is no owner, because an owner would be a role and the design allows none.
 
 **Derived.** A `memory` is something offload learned, at one of three scopes: about you, about a thread, about a person. A thread's memory belongs to the thread and every member reads it. Memories keep their sources, and record whether they came from something the person said or from a connected app. They are compacted rather than accumulated.
@@ -41,6 +43,7 @@ The entities the product needs, and only those. In dependency order:
 - **AC-13** Activity rows are their own table with per-row read and dismissed state, carrying rendered content, and are never an analytics source.
 - **AC-14** A memory that compaction has replaced does not appear in any current-memory query, and is purged, so `memories` does not grow with account age (OFF-8).
 - **AC-15** The authorization predicate is defined once, in SQL, and both the Core API and the agent plane read through it. Neither reimplements it.
+- **AC-16** One dump can produce several things. The record of what was handed over is itself a thing, everything extracted from it points back at that record, and undoing the dump reverses the whole set in one action.
 
 ## Out of scope
 

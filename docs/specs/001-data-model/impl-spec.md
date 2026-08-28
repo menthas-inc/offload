@@ -60,13 +60,39 @@ A thread has **no owner column**. It has members, and the creator is simply the 
 `kind` distinguishes threads that end from threads that never close, which is the kits' "for now" and "always on". The third group, "older threads", is **derived** from `last_activity_at`, not stored, because it is a function of time rather than a property of the thread. **There is no `is_default` column.** The default thread is named by `accounts.default_thread_id`, which is a plain foreign key, so one default per account is structural: an account is one row and one row holds one pointer. *An earlier draft put `is_default` on `threads` and claimed a partial unique index enforced one per account. It cannot: when the owner column was removed, `threads` lost every account column, so that index would have permitted exactly one default thread across the whole product.* The thread itself is created at promotion, named **Miscellaneous**, and is ordinary in every other respect: it opens, holds things, can be renamed and shared, and is special-cased in no query.
 
 **`things`**
-`id` · `account_id` (author) · `thread_id` **NOT NULL** · `kind` (`note|link|image|screenshot|voice|file|task|event`) · `title` · `body` · `url` · `tags text[]` · `occurs_at`, `occurs_end_at` · `due_at`, `done_at` · `needs_attention` · `waiting_on_person_id` (nullable) · `waiting_on` (`you|them`, nullable) · `source_kind` (`person|gmail|calendar|browser`, default `person`) · `source_ref` (nullable) · `attrs jsonb` · `embedding vector` · `sorted_at` · `created_at`, `updated_at`, `deleted_at`, `purge_after`
+`id` · `account_id` (author) · `thread_id` **NOT NULL** · `derived_from_thing_id` (nullable, self-FK) · `client_key` (nullable) · `kind` (`note|link|image|screenshot|voice|file|task|event`) · `title` · `body` · `url` · `tags text[]` · `occurs_at`, `occurs_end_at` · `due_at`, `done_at` · `needs_attention` · `waiting_on_person_id` (nullable) · `waiting_on` (`you|them`, nullable) · `source_kind` (`person|gmail|calendar|browser`, default `person`) · `source_ref` (nullable) · `attrs jsonb` · `embedding vector` · `sorted_at` · `created_at`, `updated_at`, `deleted_at`, `purge_after`
 
 One table, kind plus promoted columns. `occurs_at`, `due_at` and `done_at` are real columns because the agenda and the to-do lists filter and sort on them and JSONB cannot be indexed for that cheaply. `needs_attention` is set by the sorter and is the Today screen's whole query, so it is a column rather than a derivation. `source_kind` and `source_ref` are the connector seam (AC-6): two columns now so a later connector spec never migrates the busiest table.
 
 `waiting_on_person_id` and `waiting_on` are what let the product say who something is stuck on, and they are not optional extras: the kits' Today rows carry a person (`Ana needs an answer on the 14th to 17th`, `Reply to Tom about the Alfama flat`) and the person screen's whole middle section is "what they are waiting on", with a direction. Without them two designed screens cannot be built. *Modelled as two columns rather than a join table because a thing waits on at most one person in every screen drawn; promote to `thing_people` if that turns out to be false.*
 
 `tags text[]` with a GIN index, because the thread widgets filter and count by tag, including tags offload derived rather than the person typed (`Food`, `Views`, `Receipts`). By this spec's own rule, `attrs` holds what no screen queries; these screens query it, so it is a column.
+
+`client_key` is the outbox's idempotency key, unique per account, so a retry from a device that did not hear the response cannot create the thing twice.
+
+### One dump, many things
+
+A dump does not always mean one thing. Describe your day in a voice note and it should become a handful of tasks with dates, not one undifferentiated note. So **the record of what you handed over is itself a thing, and everything extracted from it points back at that record** through `derived_from_thing_id`:
+
+```
+voice note dumped  →  thing #1  kind = voice, owns the audio blob, filed normally
+                          ↑
+     sorter extracts  ────┼──── thing #2  kind = task   "Call the dentist"
+                          ├──── thing #3  kind = task   "Finish the insurance form"
+                          └──── thing #4  kind = task   "Return Sam's drill"
+```
+
+`derived_from_thing_id IS NULL` means this is what a person actually handed over. Not null means offload made it. That single column carries all three things a separate `dumps` table would have:
+
+- **The undo unit.** Undoing a dump soft-deletes the record and everything derived from it, in one transaction, and Undo restores the set. Without a grouping the four tasks are independent rows and Undo has nothing to reverse together.
+- **Provenance.** "Where did this task come from" is a foreign key, and playing the original audio from any derived task is one hop to the record that owns the blob.
+- **Blob ownership stays where it is.** *This is the reason for the self-reference rather than a `dumps` table. Blobs are sealed with an object key wrapped by a **thread** key, and a dump whose things land in three threads has no single thread to wrap under. Wrapping under the account key instead would kill someone's photos on account deletion even where the thing lives on in a shared thread, which OFF-3 forbids. Keeping blobs on things keeps the key chain untouched.*
+
+It also matches what the kits already draw: a dumped voice note is a row on Today in its own right, `Oak brackets, 30cm, matte black · Bookshelf build · voice note, 0:14`.
+
+**Derived things inherit `source_kind` from their record**, so a task extracted from a forwarded email still knows it came from email and OFF-4 still applies to it.
+
+⚠️ **The screen behaviour is a design question and it is open.** When one dump becomes four things in three threads, the kits have no answer for what appears on Today at that moment, what the toast says instead of "Saved to Lisbon trip", or whether the verbatim record should be visible alongside the tasks it produced or fold away behind them. Raised in the design system's log; the schema supports any of those answers.
 
 **`blobs`**
 `id` · `account_id` · `thing_id` · `thread_id` (denormalised) · `r2_key` · `content_type` · `byte_size` · `wrapped_object_key` · `encryption_scheme` · `sha256` · `duration_ms`, `width`, `height` · `created_at`, `deleted_at`, `purge_after`
@@ -158,7 +184,7 @@ Estimates. Stating a number we later find wrong is useful; leaving it blank is n
 | Table | Per account, typical | Heavy | Growth |
 | --- | --- | --- | --- |
 | `threads` | 40 | 300 | 1 to 3 a week |
-| `things` | 600 | 20,000 | 5 to 20 a day active |
+| `things` | 600 | 20,000 | 5 to 20 a day active, and a dump may produce several |
 | `blobs` | 300 | 12,000 | tracks things |
 | `memories` | 150 | 500 | **bounded by compaction, does not grow with age** |
 | `people` | 25 | 250 | slow |
@@ -197,6 +223,7 @@ Every read of `things`, `blobs` and `memories` goes through the equivalent view.
 | Agenda | things with a time in a range | `(account_id, occurs_at) WHERE occurs_at IS NOT NULL AND deleted_at IS NULL` |
 | Thread to-dos | open tasks in a thread | `(thread_id, due_at) WHERE kind = 'task' AND done_at IS NULL AND deleted_at IS NULL` |
 | A thread | its things, newest first | `(thread_id, created_at DESC) WHERE deleted_at IS NULL` |
+| Undo a dump | the record and its derived things | `(derived_from_thing_id) WHERE deleted_at IS NULL` |
 | My threads | threads I am in | `thread_members(account_id, state, thread_id)` joined to `threads(last_activity_at DESC)` |
 | Memories tab | account-scope memories | `(account_id, scope, updated_at DESC) WHERE superseded_at IS NULL AND deleted_at IS NULL` |
 | A person | memories about them | `(account_id, scope, subject_id) WHERE scope = 'person' AND superseded_at IS NULL AND deleted_at IS NULL` |
@@ -245,4 +272,6 @@ Every predicate above appears in a partial index rather than a full one, because
 - **A waitlist account is deleted before promotion:** no keys, no default thread, no content, so it is a plain row delete.
 - **There is no way to remove another member from a thread**, only to leave one yourself. That is deliberate for now. If it is ever added, it must not become a role: any member removing any member is consistent with the single permission, a privileged remover is not.
 - **A member may edit a thing they did not author.** Only deletion is restricted to the author. That follows from co-ownership and is stated here affirmatively so it is not implemented inconsistently by guesswork.
-- **Two devices dump the same thing from an outbox retry:** the client-supplied idempotency key on the write path deduplicates, the same mechanism `jobs.idempotency_key` uses. *Note for any future content-level dedup: it must not use a vector distance threshold. Dense embeddings place a statement and its negation close together, so two things that contradict each other look like duplicates. Use an exact check or a model reading both.*
+- **Undoing a dump that became several things:** soft-delete the record and every thing whose `derived_from_thing_id` is that record, in one transaction, with one `purge_after`. Undo restores the whole set. *A derived thing may be deleted on its own; deleting the record takes its derived things with it.*
+- **A derived thing is moved or edited independently.** Expected, and it does not affect its record. The record is where it was dumped; the tasks go wherever they belong.
+- **Two devices dump the same thing from an outbox retry:** `things.client_key`, unique per account, deduplicates on the write path, the same mechanism `jobs.idempotency_key` uses. *Note for any future content-level dedup: it must not use a vector distance threshold. Dense embeddings place a statement and its negation close together, so two things that contradict each other look like duplicates. Use an exact check or a model reading both.*

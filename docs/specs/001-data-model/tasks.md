@@ -13,7 +13,7 @@ Ordered. Each cites the acceptance criteria it satisfies. Migrations are hand-wr
 - [ ] **T4** `accounts`, `account_identities`, `staff`. Unique on `(provider, subject)`. State check constraint. *(AC-1)*
 - [ ] **T5** `account_keys` with `wrapped_by`, and the `RootKeyProvider` interface with its `db:v1` implementation. *(AC-11)*
 - [ ] **T6** `threads` and `thread_keys`. No `is_default` column: the default thread is `accounts.default_thread_id`, a plain FK, so one per account is structural. Promotion creates the account key and the default thread, named Miscellaneous, in one transaction. *(AC-2, AC-11)*
-- [ ] **T7** `things`, with the promoted columns, `tags text[]`, `waiting_on_person_id` and `waiting_on`, `source_kind` and `source_ref`, `attrs`, and `deleted_at` / `purge_after`. `thread_id` NOT NULL. *(AC-2, AC-5, AC-6, AC-12)*
+- [ ] **T7** `things`, with the promoted columns, `tags text[]`, `waiting_on_person_id` and `waiting_on`, `derived_from_thing_id` self-FK, `client_key` unique per account, `source_kind` and `source_ref`, `attrs`, and `deleted_at` / `purge_after`. `thread_id` NOT NULL. *(AC-2, AC-5, AC-6, AC-12, AC-16)*
 - [ ] **T8** `blobs`, with `wrapped_object_key`, `encryption_scheme`, `purge_after`, the denormalised `thread_id`, and `ON DELETE CASCADE` from `things`. *(AC-5, AC-11)*
 - [ ] **T9** `people` and `thread_members`. Unique on `(thread_id, account_id)` and on `(owner_account_id, linked_account_id)` where linked is not null. Creator inserted as `accepted` with a null `invited_by`. *(AC-3)*
 - [ ] **T10** `memories` and `memory_sources`, with `account_id` NULL for thread scope, `purge_after`, `derived_from_untrusted`, and the partial unique index giving one standing memory per thread. *(AC-7, AC-8, AC-14)*
@@ -34,6 +34,8 @@ Ordered. Each cites the acceptance criteria it satisfies. Migrations are hand-wr
 - [ ] **T18** Queue drain with `FOR UPDATE SKIP LOCKED` ordered by `(priority, run_after)`, plus visibility timeout, attempts with backoff, and a dead state. *(AC-9)*
 - [ ] **T19** Soft-delete and purge job: hard-delete rows past `purge_after` across `things`, `threads`, `memories`, `blobs` and `conversations`, deleting the R2 object before the blob row. Also sweeps memories past `superseded_at`. *(AC-5, AC-14)*
 - [ ] **T19b** Analytics and log purge job on its own window, covering `analytics_events` and the log and trace sinks. *(The short clock promised in `decisions.md` needs a job or it silently never happens.)*
+- [ ] **T20a** Dump fan-out: the sort job's output schema returns a record plus zero or more derived things, each with its own thread, kind and dates, written in one transaction with `derived_from_thing_id` set and `source_kind` inherited. *(AC-16)*
+- [ ] **T20b** Undo-a-dump: soft-delete the record and everything derived from it under one `purge_after`, and restore the set together. *(AC-5, AC-16)*
 - [ ] **T20** Move-a-thing operation: update `thread_id`, rewrap the object keys, adjust both `thing_count`s, in one transaction, with its inverse for Undo. *(AC-5, AC-11)*
 - [ ] **T21** Account deletion and leaving. Delete, by name: `account_identities`, `account_keys`, `thread_members`, `thread_keys`, `people` and their person-scope memories, account-scope memories, `conversations` and `messages`, `notifications`, `staff`, and every thing and blob in a thread the account was alone in. Leave things in shared threads. When a thread loses its last member, delete the thread and everything in it. Block deletion of the last staff owner. *(AC-4)*
 - [ ] **T22** Counter maintenance for `threads.thing_count` and `last_activity_at`, in the same transaction as the write that changes them.
@@ -54,4 +56,6 @@ Ordered. Each cites the acceptance criteria it satisfies. Migrations are hand-wr
 - [ ] **T35** After account deletion, none of the tables named in T21 still holds a row for that account. *(AC-4)*
 - [ ] **T36** A superseded memory does not appear in any current-memory query, and is gone after the purge window. *(AC-14)*
 - [ ] **T37** No orphaned blob row or R2 object survives its thing's purge. *(AC-5)*
+- [ ] **T38** One dump producing four things across three threads: all four exist, all point at the record, the record owns the blob, and Undo removes all five together. *(AC-16)*
+- [ ] **T39** Deleting a derived thing on its own leaves the record and its siblings intact. *(AC-16)*
 - [ ] **T30** Moving a thing between threads keeps its blobs readable, and Undo restores both thread and keys. *(AC-11)*

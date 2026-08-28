@@ -35,9 +35,11 @@ This is the flow the whole product is built around, so it is worth writing down 
 1. A person dumps text, a link, a photo, a screenshot or a voice note. The client writes it to its local outbox and shows it immediately. Nothing blocks on the network.
 2. The client posts the dump to the Core API, blobs included. The API mints an object key per blob, encrypts with AES-GCM and streams the ciphertext to R2, which never receives a key.
 3. The Core API writes the thing into the account's default thread, and enqueues its sort job **in the same transaction**, so a thing can never exist unqueued. It returns immediately. The person already has what they need.
-4. The worker picks up the job, calls the agent plane, which runs a `sort` tier structured call: which thread does this belong to, what kind of thing is it, does it have a date, does it need the person.
-5. The agent plane writes the derived result back through a Core API internal endpoint, so there stays exactly one writer. The thing is moved to its real thread if it belongs somewhere better, and gains tags and an embedding.
+4. The worker picks up the job, calls the agent plane, which runs a `sort` tier structured call: which thread does this belong to, what kind of thing is it, does it have a date, does it need the person, **and does it contain several things rather than one**.
+5. The agent plane writes the derived result back through a Core API internal endpoint, so there stays exactly one writer. The thing is moved to its real thread if it belongs somewhere better, and gains tags and an embedding. If the dump held several things, the extra ones are created here, each pointing back at the record through `derived_from_thing_id` and each filed on its own.
 6. The client learns about it through its next poll or a push. The person sees "Saved to Lisbon trip" with one way back, which is Undo.
+
+A dump is not always one thing. Describing your day in a voice note should produce the tasks in it, so the record of what was handed over stays a thing in its own right and everything extracted from it points back at it. That keeps Undo a single action, keeps provenance a foreign key, and keeps blobs on things where the thread key can reach them.
 
 Sorting is asynchronous by design. The product's promise is that putting something down is instant and the filing happens afterwards, so the architecture makes exactly that guarantee and nothing stronger.
 
