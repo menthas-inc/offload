@@ -16,7 +16,9 @@ The entities the product needs, and only those. In dependency order:
 
 **People and sharing.** A `person` is someone in an account's own address book. Some are linked to an offload account, and those are the ones a thread can be shared with; the rest are people offload knows about but who will never sign up. A thread has `thread_members`, and the creator is simply the first one: there is no owner, because an owner would be a role and the design allows none.
 
-**Derived.** A `memory` is something offload learned, at one of three scopes: about you, about a thread, about a person. Memories keep their sources. They are compacted rather than accumulated.
+**Derived.** A `memory` is something offload learned, at one of three scopes: about you, about a thread, about a person. A thread's memory belongs to the thread and every member reads it. Memories keep their sources, and record whether they came from something the person said or from a connected app. They are compacted rather than accumulated.
+
+**Activity.** A `notification` is something offload interrupted you for: a person acted, a deadline approaches, or offload did something itself. Read and dismissed state is per row.
 
 **Conversation.** A `conversation` holds `messages`. Conversations persist and can be added to.
 
@@ -35,6 +37,10 @@ The entities the product needs, and only those. In dependency order:
 - **AC-9** Enqueueing a job and writing the row that caused it happen in one transaction.
 - **AC-10** Every query a designed screen performs is served by a stated index, and every list whose heavy case exceeds a few hundred rows is cursor-paginated.
 - **AC-11** The four key layers exist as separate, separately-rewrappable rows, and the account key carries the name of the root that wrapped it.
+- **AC-12** A thing can record who it is waiting on and in which direction, so the person screen and Today's person-attributed rows can be built.
+- **AC-13** Activity rows are their own table with per-row read and dismissed state, carrying rendered content, and are never an analytics source.
+- **AC-14** A memory that compaction has replaced does not appear in any current-memory query, and is purged, so `memories` does not grow with account age (OFF-8).
+- **AC-15** The authorization predicate is defined once, in SQL, and both the Core API and the agent plane read through it. Neither reimplements it.
 
 ## Out of scope
 

@@ -145,6 +145,22 @@ Recorded 2026-08-27 from the product owner's technical direction. Detail in `arc
 - ✅ **Environments: `main` is production, plus one on-demand staging.** Changed from superparent's dev/staging/prod. `staging.offload.club` is a permanent hostname on a service that sleeps when idle and wakes on request, so mobile builds always have a stable URL without an always-on second stack. Pull requests run against an ephemeral Postgres container in CI, seeded by the `seed` script.
 - ✅ **No IaC at first, on purpose (DEV-3).** Railway config per service in `railway.json`, the rest documented in `docs/local-dev.md`. Revisit when the resource set stops changing weekly. *This is a decision to re-examine, not a permanent stance.*
 
+## Review of spec 001, 2026-08-28
+
+Three reviewers were run against the data model spec: `project-lead`, `security-reviewer` and `client-reviewer`. Every finding below was verified against the file before being accepted; the notable ones are recorded here because each changed the schema.
+
+- ✅ **`threads.is_default` could not be enforced and is gone.** Removing the owner column left `threads` with no account column at all, so the partial unique index claimed to give one default thread per account would in fact have permitted one across the entire product. The default thread is now `accounts.default_thread_id`, a plain foreign key, where one-per-account is structural. *A bug introduced by the membership refactor and not propagated.*
+- ✅ **Two designed screens could not have been built.** There was no `notifications` table, so the Activity sheet and Today's "what moved without you" had nothing behind them, and the analytics outbox cannot serve them because OFF-1 forbids content there. And there was no link from a thing to a person, so the person screen's "what they are waiting on" and Today's person-attributed rows were unbuildable. Both are now in the schema.
+- ✅ **Tags are a column, not `attrs`.** The thread widgets filter and count by tag. This spec's own rule is that `attrs` holds what no screen queries, so by that rule they belong as `text[]` with a GIN index.
+- ✅ **One authorizer, not just one writer.** The agent plane reads directly for retrieval, so the membership rule would have been implemented twice in two languages and drifted. It is now one SQL view both planes read. *This is the finding with the widest blast radius: it changes `architecture.md`, not just the spec.*
+- ✅ **Thread-scope memories have no owning account.** A standing blurb is read by every member, so `account_id` is NULL for that scope and access resolves through `thread_members`. Left as written it failed in both directions: filter by account and no member but the author sees it, drop the filter and any guessed thread id reads it.
+- ✅ **`superseded_at` was never filtered by any query.** Compaction would have marked memories stale and every one of them would have kept being returned forever, which is precisely the OFF-8 failure the spec names. Now filtered everywhere and swept by the purge job.
+- ✅ **The analytics table contradicted the envelope this file decides.** It had a single `payload jsonb`, reintroducing the catch-all the analytics decision explicitly rejects. The dimensions are typed columns now.
+- ✅ **Connector-derived memories carry a taint flag.** OFF-8 puts memory text into cached, trusted context while OFF-4 content is untrusted, which is a two-hop injection path: connector content, summarised into a memory, injected as background. `derived_from_untrusted` closes it. *`origin` does not, it is about correction priority.*
+- ✅ **Smaller, all real:** `blobs` and `memories` lacked `purge_after` while carrying `deleted_at`, so a soft delete had no scheduled hard delete; account deletion named only membership and key rows, leaving address books, memories and conversations readable; nothing blocked the last staff owner deleting their account; blob authorization could have been written against the denormalised `blobs.thread_id` and gone stale; a move did not check membership of the destination thread; an invitation accepted after the inviter left had no key to unwrap from; `jobs.last_error` was an unscrubbed path for content to reach a log.
+- 🔶 **pgvector filters after the index scan**, so a per-account slice of a shared HNSW index returns far fewer rows than the limit asks for. Enable `hnsw.iterative_scan` from the start. Not an alpha problem, a real one as accounts multiply.
+- ⚠️ **Open, needs a product call: the thread map widget.** The kits name real places with plot coordinates. Whether that is a geocoded map, which needs a geocode step and location columns, or a stylised layout, which the current schema already supports, is a design question nobody has answered.
+
 ## Design adherence and tooling
 
 - ✅ **The design system's adherence config runs under ESLint, not oxlint, and is read at run time.** `.claude/skills/offload-design/_adherence.oxlintrc.json` is the machine-readable version of the token rules and its handoff asks for it to be wired into the lint step. It is wired into `eslint.config.mjs` at the repo root, which `require`s the generated file and maps its two rules rather than copying anything out of it, so regenerating it on a design sync propagates with no edit and the generated file is never hand-edited.
@@ -173,7 +189,7 @@ Shortcuts taken deliberately for alpha and beta. Each says why it is affordable 
 
 ## Open, needing a call before the thing they touch is built
 
-Nothing. Every decision this file opened has been closed.
+1. ⚠️ **The thread map widget.** Raised by the spec 001 review. The kits name real places with plot coordinates; whether that is a geocoded map, needing a geocode step and location columns, or a stylised layout the current schema already supports, is a design question. Before the map widget is built, and nothing else waits on it.
 
 What is left is not decisions but work, and it lives elsewhere: the deferred hardening above, to revisit before GA; the design questions raised in `.claude/skills/offload-design/decisions.md` under Open, which are design's to answer; and the specified-but-undefined items, which are implementation details each spec settles as it is written, not calls to make in the abstract.
 
