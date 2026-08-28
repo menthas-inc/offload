@@ -8,6 +8,25 @@ cmd="$(printf '%s' "$payload" | grep -oE '"command"\s*:\s*"[^"]*"' | head -1 || 
 case "$cmd" in
   *"git commit"*)
     cd "${CLAUDE_PROJECT_DIR:-.}"
+
+    # Em dashes are a design-system non-negotiable and this is the only gate that
+    # sees every file however it was written. design-guard.sh runs on the Write and
+    # Edit tools only, so anything authored through a shell heredoc bypasses it.
+    # The design system owns its own files and generates some of them, so it is skipped.
+    emdash="$(printf '\xe2\x80\x94')"
+    offenders=""
+    while IFS= read -r f; do
+      case "$f" in
+        .claude/skills/offload-design/*|*.lock|pnpm-lock.yaml) continue ;;
+      esac
+      [ -f "$f" ] || continue
+      if grep -qF "$emdash" "$f" 2>/dev/null; then offenders="$offenders $f"; fi
+    done <<< "$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null)"
+    if [ -n "$offenders" ]; then
+      echo "BLOCKED by pre-commit gate: em dash found in:$offenders" >&2
+      echo "The brand uses a comma, a colon or a full stop instead, and a middle dot for metadata (OFF-7)." >&2
+      exit 2
+    fi
     # Set these once the toolchain exists (see docs/tech/stack.md). Skips gracefully while absent.
     TEST_CMD="${PROJECT_TEST_CMD:-}"
     LINT_CMD="${PROJECT_LINT_CMD:-}"

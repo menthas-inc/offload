@@ -39,9 +39,11 @@ At least one owner, enforced in the delete path, and nobody may remove their own
 
 ### Keys
 
-**`account_keys`** — `account_id` (pk) · `wrapped_dek` · `wrapped_by` (`db:v1`, later `aws-kms:<arn>`) · `version` · `created_at`, `rotated_at`
+**`account_keys`**
+`account_id` (pk) · `wrapped_dek` · `wrapped_by` (`db:v1`, later `aws-kms:<arn>`) · `version` · `created_at`, `rotated_at`
 
-**`thread_keys`** — `(thread_id, account_id)` (pk) · `wrapped_tk` · `created_at`
+**`thread_keys`**
+`(thread_id, account_id)` (pk) · `wrapped_tk` · `created_at`
 One row per member per thread. Sharing inserts one. Account deletion deletes that account's rows and its `account_keys` row, leaving every other member's copy intact (AC-4).
 
 The object key lives on `blobs.wrapped_object_key`. Four layers, four separately-rewrappable places (AC-11).
@@ -83,14 +85,17 @@ Unique on `(thread_id, account_id)`. Default receiving behaviour is ask-first, s
 `origin` exists because corrections beat inference: something a person said outranks something offload worked out, and compaction must never generalise away a `stated` memory. A partial unique index gives exactly one standing memory per thread (AC-8):
 `UNIQUE (subject_id) WHERE scope = 'thread' AND kind = 'standing' AND deleted_at IS NULL`
 
-**`memory_sources`** — `(memory_id, thing_id)` (pk) · `created_at`
+**`memory_sources`**
+`(memory_id, thing_id)` (pk) · `created_at`
 Provenance (AC-7). Cheap because raw content is never purged, so a source is always resolvable.
 
 ### Conversation
 
-**`conversations`** — `id` · `account_id` · `title` · `started_at`, `last_message_at` · `created_at`, `deleted_at`
+**`conversations`**
+`id` · `account_id` · `title` · `started_at`, `last_message_at` · `created_at`, `deleted_at`
 
-**`messages`** — `id` · `conversation_id` · `account_id` · `role` (`person|offload`) · `turn_id` · `text` · `state` (`queued|seen|answered|failed`) · `attrs jsonb` · `created_at`
+**`messages`**
+`id` · `conversation_id` · `account_id` · `role` (`person|offload`) · `turn_id` · `text` · `state` (`queued|seen|answered|failed`) · `attrs jsonb` · `created_at`
 
 `state` is what the 👀 marker renders: `seen` means offload has the message and has not answered it. `turn_id` groups the messages belonging to one model turn, so an at-least-once delivery cannot double-render an answer.
 
@@ -101,9 +106,11 @@ Provenance (AC-7). Cheap because raw content is never purged, so a source is alw
 
 Drained with `SELECT ... FOR UPDATE SKIP LOCKED` ordered by `(priority, run_after)`. Interactive jobs take a lower `priority` number than scheduled ones, which is how scheduled work is stopped from starving interactive work. Enqueue happens in the same transaction as the write that caused it (AC-9).
 
-**`llm_usage`** — `id` · `account_id` · `job_kind` · `category` (`interactive|scheduled`) · `model` · `input_tokens`, `output_tokens`, `cache_read_tokens` · `cost_micros` · `latency_ms` · `created_at`
+**`llm_usage`**
+`id` · `account_id` · `job_kind` · `category` (`interactive|scheduled`) · `model` · `input_tokens`, `output_tokens`, `cache_read_tokens` · `cost_micros` · `latency_ms` · `created_at`
 
-**`analytics_events`** — an outbox: `id` · `name` · `version` · `payload jsonb` · `emitted_at`, `shipped_at`
+**`analytics_events`**, an outbox
+ `id` · `name` · `version` · `payload jsonb` · `emitted_at`, `shipped_at`
 The one table retention applies to, along with logs and traces. Nothing here carries content (OFF-1).
 
 ## Volume and access
