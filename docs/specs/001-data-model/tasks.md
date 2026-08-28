@@ -15,7 +15,7 @@ Ordered. Each cites the acceptance criteria it satisfies. Migrations are hand-wr
 - [ ] **T6** `threads` and `thread_keys`. Partial unique index for one default thread per account. Promotion creates account key and default thread in one transaction. *(AC-2, AC-11)*
 - [ ] **T7** `things`, with the promoted columns, `source_kind` and `source_ref`, `attrs`, and `deleted_at` / `purge_after`. `thread_id` NOT NULL. *(AC-2, AC-5, AC-6)*
 - [ ] **T8** `blobs`, with `wrapped_object_key` and the denormalised `thread_id`. *(AC-11)*
-- [ ] **T9** `people` and `grants`. Unique on `(thread_id, account_id)` and on `(owner_account_id, linked_account_id)` where linked is not null. *(AC-3)*
+- [ ] **T9** `people` and `thread_members`. Unique on `(thread_id, account_id)` and on `(owner_account_id, linked_account_id)` where linked is not null. Creator inserted as `accepted` with a null `invited_by`. *(AC-3)*
 - [ ] **T10** `memories` and `memory_sources`, including the partial unique index giving one standing memory per thread. *(AC-7, AC-8)*
 - [ ] **T11** `conversations` and `messages`, with `turn_id` and the message `state` the 👀 marker renders.
 - [ ] **T12** `jobs`, `llm_usage`, `analytics_events`. *(AC-9)*
@@ -28,18 +28,18 @@ Ordered. Each cites the acceptance criteria it satisfies. Migrations are hand-wr
 
 ## Behaviour the schema alone does not give
 
-- [ ] **T16** Authorization helpers: resolve an account's readable threads as owned `UNION ALL` accepted-granted, never an `OR`. Delete authorization checks `things.account_id` per row. *(AC-1, AC-3)*
+- [ ] **T16** Authorization helpers: readable threads are one indexed lookup on `thread_members` where state is accepted. Delete authorization checks `things.account_id` per row. *(AC-1, AC-3)*
 - [ ] **T17** Enqueue-in-transaction helper, so no caller can write a row and enqueue its job separately. *(AC-9)*
 - [ ] **T18** Queue drain with `FOR UPDATE SKIP LOCKED` ordered by `(priority, run_after)`, plus visibility timeout, attempts with backoff, and a dead state. *(AC-9)*
 - [ ] **T19** Soft-delete and purge job: hard-delete rows past `purge_after`, cascading to blobs in R2. *(AC-5)*
 - [ ] **T20** Move-a-thing operation: update `thread_id`, rewrap the object keys, adjust both `thing_count`s, in one transaction, with its inverse for Undo. *(AC-5, AC-11)*
-- [ ] **T21** Account deletion: drop `account_keys` and that account's `thread_keys` rows, delete private content, leave things in shared threads, and transfer thread ownership to the oldest remaining accepted grant. *(AC-4)*
+- [ ] **T21** Account deletion and leaving: drop the account's `thread_members` and `thread_keys` rows, delete content in threads it was alone in, leave things in shared threads. When a thread loses its last member, delete the thread and everything in it. *(AC-4)*
 - [ ] **T22** Counter maintenance for `threads.thing_count` and `last_activity_at`, in the same transaction as the write that changes them.
 
 ## Tests
 
 - [ ] **T23** A grantee can add a thing to a shared thread and cannot delete one they did not author. *(AC-3)*
-- [ ] **T24** Deleting an account leaves its things in a shared thread readable by the remaining member, and its account key gone. *(AC-4)*
+- [ ] **T24** Deleting an account leaves its things in a shared thread readable by the remaining member, and its account key gone. When that member also leaves, the thread and its things are gone. *(AC-4)*
 - [ ] **T25** A delete is invisible immediately and the row still exists until `purge_after`. *(AC-5)*
 - [ ] **T26** A thing cannot be inserted without a thread. *(AC-2)*
 - [ ] **T27** A second standing memory for a thread is rejected by the database. *(AC-8)*

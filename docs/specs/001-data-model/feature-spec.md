@@ -14,7 +14,7 @@ The entities the product needs, and only those. In dependency order:
 
 **Content.** A `thread` holds `things`. Every thing is in exactly one thread. A thing may carry `blobs`, its photos, screenshots and voice-note audio. Every account has one default thread so nothing is ever unplaced.
 
-**People and sharing.** A `person` is someone in an account's own address book. Some are linked to an offload account, and those are the ones a thread can be shared with; the rest are people offload knows about but who will never sign up. A `grant` shares one thread with one account.
+**People and sharing.** A `person` is someone in an account's own address book. Some are linked to an offload account, and those are the ones a thread can be shared with; the rest are people offload knows about but who will never sign up. A thread has `thread_members`, and the creator is simply the first one: there is no owner, because an owner would be a role and the design allows none.
 
 **Derived.** A `memory` is something offload learned, at one of three scopes: about you, about a thread, about a person. Memories keep their sources. They are compacted rather than accumulated.
 
@@ -26,8 +26,8 @@ The entities the product needs, and only those. In dependency order:
 
 - **AC-1** Every content-bearing row resolves to exactly one owning account, and every read path is scoped by account or by an accepted grant (OFF-3).
 - **AC-2** A thing always has a thread. There is no state in which `thread_id` is null.
-- **AC-3** A grant lets the grantee add things to a thread and never lets them delete a thing they did not author, enforced per row by author (OFF-3).
-- **AC-4** Deleting an account destroys its private content and leaves its things inside shared threads in place (OFF-3).
+- **AC-3** A member can add things to a thread and can never delete a thing they did not author, enforced per row by author (OFF-3).
+- **AC-4** Deleting an account destroys its private content and leaves its things inside shared threads in place. A thread is deleted only when its last member leaves (OFF-3).
 - **AC-5** Deleting anything is a flag first. Nothing is destroyed inside the undo window (OFF-6).
 - **AC-6** A thing carries a source kind and an optional source reference, so a thing that later comes from a connected app needs no migration of the `things` table (OFF-4 groundwork).
 - **AC-7** Memory rows carry their sources, and a memory can always name the things it came from.

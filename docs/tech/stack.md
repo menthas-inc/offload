@@ -28,7 +28,7 @@ The design system at `.claude/skills/offload-design/` specifies five, all at hig
 
 ## Backend, two planes
 
-- **Core API: TypeScript on Fastify.** User-facing data, threads, things, memories, connections and grants, auth sessions, the blob path, the outbox drain. Owns the canonical schema and the migrations. Stateless. Chosen over NestJS deliberately: less ceremony for one developer plus agents, and everything we actually wanted from Nest (dependency injection boundaries, validated DTOs, OpenAPI generation) is available on Fastify with `zod` and `fastify-type-provider-zod`.
+- **Core API: TypeScript on Fastify.** User-facing data, threads, things, memories, people and thread membership, auth sessions, the blob path, the outbox drain. Owns the canonical schema and the migrations. Stateless. Chosen over NestJS deliberately: less ceremony for one developer plus agents, and everything we actually wanted from Nest (dependency injection boundaries, validated DTOs, OpenAPI generation) is available on Fastify with `zod` and `fastify-type-provider-zod`.
 - **Agent plane: Python on FastAPI.** The only thing that talks to Claude. Owns prompts, the harness, structured output schemas, retrieval over pgvector, transcription, and the ingestion jobs for connected apps. Scales and fails independently of the request path.
 - **The split earns its keep** for the same reason it did in superparent: the slow, expensive, bursty plane should not share a process with the one serving list views, and the Python ecosystem is where embeddings, audio and eval tooling live. If it stops earning it, collapsing into the Core API is a smaller job than splitting later.
 

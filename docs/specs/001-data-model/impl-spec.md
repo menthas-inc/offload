@@ -51,7 +51,9 @@ The object key lives on `blobs.wrapped_object_key`. Four layers, four separately
 ### Content
 
 **`threads`**
-`id` · `owner_account_id` · `name` · `kind` (`now|always`) · `icon` · `is_default` · `thing_count` · `last_activity_at` · `created_at`, `updated_at`, `deleted_at`, `purge_after`
+`id` · `created_by_account_id` (informational) · `name` · `kind` (`now|always`) · `icon` · `is_default` · `thing_count` · `last_activity_at` · `created_at`, `updated_at`, `deleted_at`, `purge_after`
+
+A thread has **no owner column**. It has members, and the creator is simply the first one. `created_by_account_id` records who started it because the UI wants to say so, and it carries no permission: an owner-versus-grantee distinction is a role, and the design's single permission rules roles out.
 
 `kind` distinguishes threads that end from threads that never close, which is the kits' "for now" and "always on". The third group, "older threads", is **derived** from `last_activity_at`, not stored, because it is a function of time rather than a property of the thread. One `is_default` thread per account, enforced by a partial unique index.
 
@@ -72,10 +74,12 @@ Many blobs per thing, because the composer takes multiple attachments. `thread_i
 
 Each account keeps its own address book, so a person row is owned like everything else and there is no cross-account registry. `linked_account_id` set means this person is on offload and threads can be shared with them. Unset means offload knows about them but they are not a user, which is most people in anyone's life. Unique on `(owner_account_id, linked_account_id)` where linked is not null.
 
-**`grants`**
-`id` · `thread_id` · `account_id` (grantee) · `granted_by` · `state` (`pending|accepted|declined|expired`) · `created_at`, `responded_at`, `expires_at`
+**`thread_members`**
+`id` · `thread_id` · `account_id` · `invited_by` (nullable, null for the creator) · `state` (`pending|accepted|declined|expired`) · `created_at`, `responded_at`, `expires_at`
 
-Unique on `(thread_id, account_id)`. Default receiving behaviour is ask-first, so a grant starts `pending` and expires after 30 days. "Not now" is `declined` and is not a decline in the UI sense: it sits at the top of My threads and never becomes an inbox, which is a client concern, not a schema one.
+Unique on `(thread_id, account_id)`. The creator is inserted as `accepted` with a null `invited_by`, so membership is one concept rather than an owner plus a grants table. Default receiving behaviour is ask-first, so an invitation starts `pending` and expires after 30 days. "Not now" is `declined` and is not a decline in the UI sense: it sits at the top of My threads and never becomes an inbox, which is a client concern, not a schema one.
+
+A `thread_keys` row is created on **accept**, not on invite, so a pending member holds no key and can read nothing.
 
 ### Derived
 
@@ -124,7 +128,7 @@ Estimates. Stating a number we later find wrong is useful; leaving it blank is n
 | `blobs` | 300 | 12,000 | tracks things |
 | `memories` | 150 | 500 | **bounded by compaction, does not grow with age** |
 | `people` | 25 | 250 | slow |
-| `grants` | 10 | 100 | slow |
+| `thread_members` | 12 | 120 | slow |
 | `conversations` | 200 | 3,000 | 1 to 5 a day |
 | `messages` | 2,000 | 40,000 | 10 to 40 per conversation |
 | `jobs` | transient | | roughly one per dump plus scheduled |
@@ -142,7 +146,7 @@ Fan-out worth naming: **things per thread** is 15 typical and 500 heavy, and the
 | Agenda | things with a time in a range | `(account_id, occurs_at) WHERE occurs_at IS NOT NULL AND deleted_at IS NULL` |
 | Thread to-dos | open tasks in a thread | `(thread_id, due_at) WHERE kind = 'task' AND done_at IS NULL AND deleted_at IS NULL` |
 | A thread | its things, newest first | `(thread_id, created_at DESC) WHERE deleted_at IS NULL` |
-| My threads | mine plus granted | `threads(owner_account_id, last_activity_at DESC)` and `grants(account_id, state, thread_id)` |
+| My threads | threads I am in | `thread_members(account_id, state, thread_id)` joined to `threads(last_activity_at DESC)` |
 | Memories tab | account-scope memories | `(account_id, scope, updated_at DESC) WHERE deleted_at IS NULL` |
 | A person | memories about them | `(account_id, scope, subject_id) WHERE scope = 'person'` |
 | Conversations | grouped by period | `(account_id, last_message_at DESC)` |
@@ -157,13 +161,13 @@ Every predicate above appears in a partial index rather than a full one, because
 - **Pagination is server-side and cursor-based** on `things` in a thread, `messages` in a conversation, and the full conversations list, since each has a heavy case in the thousands. The cursor is `(created_at, id)`, which UUIDv7 makes monotonic. Threads, memories and people are client-side: their heavy cases are in the hundreds and they are read whole.
 - **Denormalised on purpose:** `threads.thing_count`, so a thread list never runs a `COUNT(*)` per row; `threads.last_activity_at`, which drives both ordering and the derived "older" group; `blobs.thread_id`, so a move can rewrap keys without a join. All three are maintained in the same transaction as the write that changes them.
 - **Partitioning: none yet.** `messages`, `jobs` and `analytics_events` are the candidates. At 40,000 messages for a heavy account they are nowhere near needing it. Revisit when a table passes tens of millions of rows, not before.
-- **The shared-thread read** is the one query that is not a simple account scope. `My threads` is threads owned by me plus threads with an accepted grant to me, which is a `UNION ALL` of two indexed lookups rather than an `OR`, because an `OR` across two tables will not use either index.
+- **The shared-thread read is an ordinary indexed lookup**, because membership replaced ownership. `My threads` is one join from `thread_members` where `account_id = ?` and `state = 'accepted'`. *An earlier draft gave threads an owner column, which made this a `UNION ALL` of owned and granted; dropping the owner removed the union along with the role it implied.*
 
 ## Constitution check
 
 - **OFF-1** Content is durable; `analytics_events` carries structured references only, never a title, a transcript or a dumped URL.
 - **OFF-2** Blob encryption only. No content column is encrypted, and the docs claim nothing more.
-- **OFF-3** Every content table carries `account_id`, and it leads every index. Reads are scoped by account or by an accepted grant. Delete authorization checks `things.account_id`, per row, by author. Account deletion drops `account_keys` and that account's `thread_keys` rows, leaving other members' copies, so shared threads survive.
+- **OFF-3** Every content table carries `account_id`, and it leads every index. A thing resolves to its author; a thread resolves to its member set. Reads are scoped by an accepted membership. Delete authorization checks `things.account_id`, per row, by author. Account deletion drops `account_keys` and that account's `thread_members` and `thread_keys` rows, leaving other members' copies, so shared threads survive until the last member leaves.
 - **OFF-4** `source_kind` and `source_ref` exist so connector content can point at a source without a body ever being stored.
 - **OFF-5** Not applicable to the schema, applies to the callers.
 - **OFF-6** `deleted_at` plus `purge_after`, and a move is an update to `thread_id` plus a rewrap, so both are reversible inside the window.
@@ -173,8 +177,10 @@ Every predicate above appears in a partial index rather than a full one, because
 ## Edge cases
 
 - **A thing moves threads:** update `thread_id`, rewrap `blobs.wrapped_object_key` from the old thread key to the new one, update both `thing_count`s, all in one transaction. Undo is the same operation reversed.
-- **A grant is accepted:** insert a `thread_keys` row for the grantee by unwrapping the thread key with the granter's account key. Revoking deletes that row.
-- **The last owner deletes their account on a shared thread:** the thread has to survive (OFF-3) but `owner_account_id` cannot dangle. ⚠️ **Proposed, not decided:** ownership transfers to the oldest remaining accepted grant. Alternatives are an ownerless thread, which means every query that assumes an owner grows a null case, or blocking the deletion, which is not acceptable. Needs a call before T21.
+- **An invitation is accepted:** flip `thread_members.state` to `accepted` and insert a `thread_keys` row for the new member, unwrapping the thread key with the inviter's account key. Leaving or being removed deletes both rows.
+- **A member deletes their account on a shared thread:** their `thread_members` and `thread_keys` rows go, their things stay, and everyone else is untouched. There is no ownership to transfer because there is no owner.
+- **The last member leaves a thread:** the thread and everything in it is deleted, because nothing can reach it any more. This is the only path that destroys another person's things, and it is correct: by then nobody is left who could read them.
+- **Delete on a shared thread means leave.** Removing a thread you share removes your membership and your key and leaves every other member's view intact. Destroying it outright would delete things you did not author, which the single permission forbids.
 - **A person becomes a connection:** an unlinked `people` row gains a `linked_account_id`. Person-scoped memories follow automatically because they point at the person, not the account.
 - **A waitlist account is deleted before promotion:** no keys, no default thread, no content, so it is a plain row delete.
 - **Two devices dump the same thing from an outbox retry:** the client-supplied idempotency key on the write path deduplicates, the same mechanism `jobs.idempotency_key` uses.

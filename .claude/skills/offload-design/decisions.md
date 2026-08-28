@@ -11,6 +11,27 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-08-27 · Removing a shared thread is leaving it, and the kits draw one control
+**Surface:** iOS, Android, web
+**Raised by:** the codebase, while settling how threads are owned.
+**What the codebase decided:** a thread has members and no owner, because an owner would be a
+role and the single permission rules roles out. So removing a thread other people are in cannot
+destroy it, since that would delete things you did not author. It removes your membership and
+your key, and every other member's view is untouched. The thread and its contents are deleted
+only when the last member leaves, at which point nobody remains who could read them.
+**What is missing:** the kits give a thread one destructive control, the same swipe-to-delete and
+the same undo toast as anything else. That control now does two different things depending on
+whether anyone else is in the thread, and the difference matters: one is reversible and private,
+the other removes you from something shared with other people.
+**Questions for design:** does a shared thread show a different word, Leave rather than Delete,
+and does it need a different confirmation given the swipe is the same gesture? Does the toast say
+something different? And is there anything to show for the case where you are the last member and
+leaving really does destroy everything, which is the one place the action is not recoverable
+after the undo window.
+**Design system impact:** the thread row's swipe action and its toast copy in all three kits, and
+the thread menu on web. The Ending things settings page may also want a line, since it covers
+deleting things without mentioning shared threads. Not yet done.
+
 ### 2026-08-27 · A thing has no designed appearance between being dumped and being sorted
 **Surface:** iOS, Android, web
 **Raised by:** the codebase, while settling the processing model.
