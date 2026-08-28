@@ -9,13 +9,15 @@ An assistant that remembers by accumulating gets slower, more expensive and wors
 
 offload inverts that. **What goes into a model call is bounded and roughly constant, whether the account is a week old or three years old.** Growth happens in storage, not in context.
 
-## Two tiers of data, with different lifetimes
+## Two tiers of data, with different roles
 
 **Raw.** Things, their media, conversation turns. Stored as given, never rewritten, and shown back to the person exactly as they dumped it. This is the product's promise: it is the one place you put things, and they are still there.
 
 **Derived.** Memories, preferences, the standing blurb on a thread, what offload knows about a person. Continuously compacted and generalised. This is what gets injected into a prompt, and it is the reason the prompt does not grow.
 
 The relationship is one-way. Derived data is computed from raw data. Raw data is never rewritten to match a derived conclusion.
+
+The tiers differ in what a prompt carries, **not** in what survives. Both are kept indefinitely; compaction bounds the prompt, it does not delete what it compacted from.
 
 ## Compaction
 

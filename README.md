@@ -13,7 +13,7 @@ Run `pnpm install` then `pnpm lint`.
 | Path | What |
 | --- | --- |
 | `docs/constitution/` | The enforced principles. The gate. |
-| `docs/tech/` | Stack, architecture, decisions, CI/CD. |
+| `docs/tech/` | Stack, architecture, decisions, CI/CD, and how context and memory stay bounded. |
 | `docs/specs/` | One folder per feature: feature-spec, impl-spec, tasks. |
 | `.claude/` | The agentic coding harness: agents, commands, hooks, scripts. |
 | `.claude/skills/offload-design/` | The design system. Tokens, components, five UI kits, brand decisions. |
