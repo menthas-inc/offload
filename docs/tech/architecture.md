@@ -33,7 +33,7 @@ Four deployable services in one monorepo, talking over a typed API and a queue.
 This is the flow the whole product is built around, so it is worth writing down once.
 
 1. A person dumps text, a link, a photo, a screenshot or a voice note. The client writes it to its local outbox and shows it immediately. Nothing blocks on the network.
-2. The client uploads any blob to R2, then posts the dump to the Core API. *The exact transfer path is still open, see the SSE-C entry in `decisions.md`.*
+2. The client posts the dump to the Core API, blobs included. The API mints an object key per blob, encrypts with AES-GCM and streams the ciphertext to R2, which never receives a key.
 3. The Core API writes the thing into the account's default thread, and enqueues its sort job **in the same transaction**, so a thing can never exist unqueued. It returns immediately. The person already has what they need.
 4. The worker picks up the job, calls the agent plane, which runs a `sort` tier structured call: which thread does this belong to, what kind of thing is it, does it have a date, does it need the person.
 5. The agent plane writes the derived result back through a Core API internal endpoint, so there stays exactly one writer. The thing is moved to its real thread if it belongs somewhere better, and gains tags and an embedding.
@@ -85,7 +85,7 @@ The composer is a tool surface, not a chat. The design system puts it plainly: a
 ## Cross-cutting concerns
 
 - **Authorization (SEC-2, OFF-3).** Every access resolves to an owning account or an explicit thread grant, server-side. A grant permits adding to a thread and never permits deleting another person's things, which is a per-row check by author, not a per-thread one.
-- **Encryption (OFF-2).** Cold storage only. Blobs in R2 are sealed with a key R2 does not hold; database content is plaintext. The Core API owns the key path and is the only thing that unwraps. A grantee reads a shared blob because the server checked the grant and unwrapped the key chain, never because they hold a key themselves.
+- **Encryption (OFF-2).** Cold storage only. Blobs in R2 are sealed by the Core API with a key R2 never sees; database content is plaintext. The Core API owns the key path and is the only thing that unwraps. A grantee reads a shared blob because the server checked the grant and unwrapped the key chain, never because they hold a key themselves.
 - **Key layout.** Four layers, one primitive. The root wraps each account key; an account key wraps that account's copy of a thread key; the thread key wraps a per-object key; the object key encrypts the blob. A thread key exists once and every member holds their own wrapped copy, which is what makes a shared thread co-owned rather than borrowed.
 - **What each layer buys.** Sharing a thread rewraps one small key for the new member. Deleting an account destroys its account key and its wrapped thread-key copies, so private content goes and shared threads survive untouched, with no departed key retained and no blob rewritten. Moving a thing between threads rewraps the object key, 60 bytes, so the eight-second Undo is free. Through alpha and beta the root sits in the database; moving it is a rewrap over `account_keys` alone. Losing the root loses every blob, including for Cloudflare, so backing it up is an operational requirement.
 - **Privacy (OFF-1, OFF-4).** Dumped content is durable. Connected-app content is derived and discarded with a source reference kept for re-fetch. Neither ever reaches analytics, LLM traces or logs.

@@ -28,9 +28,9 @@
 ## offload (OFF)
 
 - **OFF-1 (MUST): Content is durable, egress is not.** Keeping what you dumped is the product, so content is stored, not discarded. The hard line is on the way out: no content in analytics events, no content in LLM traces, no content in application logs, no content in error reports. Those carry ids, kinds, counts, tokens, latency and outcomes only. Rationale: the product needs the data; nothing else does.
-- **OFF-2 (MUST): Cold storage is encrypted, database content is not, and we describe it as exactly that.** Blobs in R2, the photos, screenshots and voice-note audio, are encrypted with a key R2 does not hold. Database content is not encrypted by us: titles, notes, transcripts, memories and retrieval vectors sit in Postgres in plaintext, protected by the provider's own disk encryption and by access control, like most software.
+- **OFF-2 (MUST): Cold storage is encrypted, database content is not, and we describe it as exactly that.** Blobs in R2, the photos, screenshots and voice-note audio, are encrypted by us before they are stored, with a key R2 never receives. Database content is not encrypted by us: titles, notes, transcripts, memories and retrieval vectors sit in Postgres in plaintext, protected by the provider's own disk encryption and by access control, like most software.
 
-  What this defends against: a leaked, misconfigured or stolen R2 bucket, which is the single most common way media escapes a product, and it is defended because no key material lives in R2.
+  What this defends against: a leaked, misconfigured or stolen R2 bucket, which is the single most common way media escapes a product, and it is defended because no key material ever reaches R2 at all.
 
   What it does **not** defend against, and must never be described as defending against: **a database dump, which exposes all text content**; **what a blob says, as opposed to the blob itself**, since a voice note's audio is encrypted while its transcript is a plaintext column, and the same is true of screenshot text and image descriptions; and a compromised running service.
 

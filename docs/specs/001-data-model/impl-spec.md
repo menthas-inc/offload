@@ -63,9 +63,9 @@ A thread has **no owner column**. It has members, and the creator is simply the 
 One table, kind plus promoted columns. `occurs_at`, `due_at` and `done_at` are real columns because the agenda and the to-do lists filter and sort on them and JSONB cannot be indexed for that cheaply. `needs_attention` is set by the sorter and is the Today screen's whole query, so it is a column rather than a derivation. `source_kind` and `source_ref` are the connector seam (AC-6): two columns now so a later connector spec never migrates the busiest table.
 
 **`blobs`**
-`id` · `account_id` · `thing_id` · `thread_id` (denormalised) · `r2_key` · `content_type` · `byte_size` · `wrapped_object_key` · `sha256` · `duration_ms`, `width`, `height` · `created_at`, `deleted_at`
+`id` · `account_id` · `thing_id` · `thread_id` (denormalised) · `r2_key` · `content_type` · `byte_size` · `wrapped_object_key` · `encryption_scheme` · `sha256` · `duration_ms`, `width`, `height` · `created_at`, `deleted_at`
 
-Many blobs per thing, because the composer takes multiple attachments. `thread_id` is denormalised so a move can find and rewrap object keys without joining `things`.
+Many blobs per thing, because the composer takes multiple attachments. `thread_id` is denormalised so a move can find and rewrap object keys without joining `things`. `encryption_scheme` records how each object was sealed, so the transfer path can change later without re-uploading anything: bytes currently go through the Core API, which encrypts with AES-GCM and streams ciphertext to R2.
 
 ### People and sharing
 
