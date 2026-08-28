@@ -145,6 +145,16 @@ Recorded 2026-08-27 from the product owner's technical direction. Detail in `arc
 - ✅ **Environments: `main` is production, plus one on-demand staging.** Changed from superparent's dev/staging/prod. `staging.offload.club` is a permanent hostname on a service that sleeps when idle and wakes on request, so mobile builds always have a stable URL without an always-on second stack. Pull requests run against an ephemeral Postgres container in CI, seeded by the `seed` script.
 - ✅ **No IaC at first, on purpose (DEV-3).** Railway config per service in `railway.json`, the rest documented in `docs/local-dev.md`. Revisit when the resource set stops changing weekly. *This is a decision to re-examine, not a permanent stance.*
 
+## Story notes reviewed, 2026-08-28
+
+The product owner's earlier story notes were checked against the design and the schema. Most of it was already covered, including the notes' own open question, "how to deal with entities of different kinds", which is answered by one `things` table with a `kind` plus promoted columns. What was not covered is recorded here so it is visible rather than living in a file nobody opens.
+
+- ✅ **A task can carry a time estimate**, as `attrs.time_estimate`, deliberately unstructured. The product should be able to reason about how long something takes and schedule around it; no designed screen filters or sorts by it yet, so it stays in `attrs` until one does.
+- 🔶 **Deferred to a later version, deliberately, not overlooked.** A concept graph, "build the graph, links different concepts and ideas": we have containers and facts, and nothing relates a thing to a thing. *Worth knowing this is not something the codebase dropped; the design system does not draw a graph or a think tab either, so the idea exists in the notes and in neither the design nor the schema.* Also deferred: offload going away and doing work on request ("want me to do it?", "find the product links"), which OFF-6 governs the safety of but which has no model of work in progress; and a mood-board view alongside the existing thread widgets.
+- ⛔ **Adaptive UI, "reorganize the UI?", is not being pursued.** It conflicts directly with the thing this project treats as the specification. The design system pins every component, motion curve and hit area, with a linter enforcing it. A self-reorganising interface and a fixed design system are not compatible, and choosing one is a product decision rather than a technical one.
+- ⚠️ **Logging what offload could not do** is an open item above rather than a deferral. It is the highest-signal product feedback available and it is invisible unless recorded.
+- ⚠️ **One dump can currently only become one thing**, and the notes want otherwise: "I describe my day, it creates a timeline and a set of tasks." See the open item below.
+
 ## Review of spec 001, 2026-08-28
 
 Three reviewers were run against the data model spec: `project-lead`, `security-reviewer` and `client-reviewer`. Every finding below was verified against the file before being accepted; the notable ones are recorded here because each changed the schema.
@@ -189,7 +199,8 @@ Shortcuts taken deliberately for alpha and beta. Each says why it is affordable 
 
 ## Open, needing a call before the thing they touch is built
 
-1. ⚠️ **The thread map widget.** Raised by the spec 001 review. The kits name real places with plot coordinates; whether that is a geocoded map, needing a geocode step and location columns, or a stylised layout the current schema already supports, is a design question. Before the map widget is built, and nothing else waits on it.
+1. ⚠️ **Log what offload could not do.** From the product owner's earlier story notes, and worth its own conversation rather than a quiet default. When offload does not know how to do something a person asked for, that is the highest-signal product feedback there is, and it is invisible unless it is recorded. The question is what to capture, how to aggregate it, and how to keep it inside OFF-1: a capability gap is only useful with some context, and context is content. *The rest of that note, turning the aggregate into feature specs and shipping them automatically, is development process rather than product, and is deliberately not in scope.*
+2. ⚠️ **The thread map widget.** Raised by the spec 001 review. The kits name real places with plot coordinates; whether that is a geocoded map, needing a geocode step and location columns, or a stylised layout the current schema already supports, is a design question. Before the map widget is built, and nothing else waits on it.
 
 What is left is not decisions but work, and it lives elsewhere: the deferred hardening above, to revisit before GA; the design questions raised in `.claude/skills/offload-design/decisions.md` under Open, which are design's to answer; and the specified-but-undefined items, which are implementation details each spec settles as it is written, not calls to make in the abstract.
 

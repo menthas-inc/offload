@@ -9,6 +9,8 @@ Grounded in `docs/tech/stack.md`, `architecture.md`, `decisions.md` and `context
 - **Soft delete is `deleted_at`, plus `purge_after`** set to `deleted_at + 8 seconds`, on **every** table the undo window covers: `things`, `threads`, `memories`, `blobs`, `conversations`. A scheduled job hard-deletes past `purge_after`. Nothing is destroyed while the toast is up (OFF-6, AC-5). *If a table has `deleted_at` it has `purge_after`; a soft delete with no scheduled hard delete is content that survives a deletion the person believes happened.*
 - **Timestamps** are `timestamptz`, always UTC.
 - **`attrs jsonb`** on `things` and `memories` holds what no screen queries yet. Promoting a field to a column is a normal migration and expected (unstructured-first).
+- **Known `attrs` keys are documented rather than left to be discovered.** A key living in `attrs` is a decision that no screen queries it yet, not an absence of thinking. Current keys on `things`:
+  - `time_estimate`, how long a task is expected to take. Deliberately unstructured for now: no unit, no format, whatever the model or the person produced. It exists because the product should be able to reason about how long something takes and about scheduling around it, and it is in `attrs` rather than a column because no designed screen filters or sorts by it yet. Promote it the moment one does.
 - **No enum types.** Kinds and states are `text` with a `CHECK`, because adding a value to a Postgres enum is a migration that locks and adding one to a check constraint is not.
 
 ## Vocabulary mapping
