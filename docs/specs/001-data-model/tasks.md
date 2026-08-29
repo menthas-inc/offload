@@ -37,7 +37,7 @@ Ordered. Each cites the acceptance criteria it satisfies. Migrations are hand-wr
 - [ ] **T20a** Dump fan-out: the sort job's output schema returns zero or more things for one message, each with its own thread, kind and dates, written in one transaction with `derived_from_message_id` set and `source_kind` copied. Blobs get a `blob_keys` thread wrap only where a thing actually carries the media. *(AC-16)*
 - [ ] **T20b** Undo-a-dump: soft-delete the record and everything derived from it under one `purge_after`, and restore the set together. *(AC-5, AC-16)*
 - [ ] **T20** Move-a-thing operation: update `thread_id`, rewrap the object keys, adjust both `thing_count`s, in one transaction, with its inverse for Undo. *(AC-5, AC-11)*
-- [ ] **T21** Account deletion and leaving. Delete, by name: `account_identities`, `account_keys`, `thread_members`, `thread_keys`, `people` and their person-scope memories, account-scope memories, `conversations` and `messages`, `notifications`, `staff`, and every thing and blob in a thread the account was alone in. Leave things in shared threads. When a thread loses its last member, delete the thread and everything in it. Block deletion of the last staff owner. *(AC-4)*
+- [ ] **T21** Account deletion and leaving. Delete, by name: `account_identities`, `account_keys`, `thread_members`, `thread_keys`, `people` and their person-scope memories, account-scope memories, `conversations`, `messages` and `notifications`, `staff`, every thing in a thread the account was alone in, and every account-scoped `blob_keys` row. Leave things in shared threads. A blob is destroyed only when nothing references it, message gone and no living `thing_blobs` row; until then only its account wrap goes and `blobs.account_id` is nulled. When a thread loses its last member, delete the thread and everything in it. Block deletion of the last staff owner. *(AC-4)*
 - [ ] **T22** Counter maintenance for `threads.thing_count` and `last_activity_at`, in the same transaction as the write that changes them.
 
 ## Tests
@@ -59,4 +59,6 @@ Ordered. Each cites the acceptance criteria it satisfies. Migrations are hand-wr
 - [ ] **T38** One dump producing three things across three threads: all three exist, all point at the message, the message owns the blob, and Undo removes the message and all three together. *(AC-16)*
 - [ ] **T39** Deleting a derived thing on its own leaves the message and its siblings intact. *(AC-16)*
 - [ ] **T40** A photo dumped into two threads has three wraps (account plus two threads), one R2 object, and stays readable in both threads after the dumper's account is deleted while its conversation copy does not. *(AC-11, AC-16)*
+- [ ] **T41** A dump arriving while the app is closed leaves its conversation unread, and opening the app shows it in the composer. *(AC-16)*
+- [ ] **T42** A blob whose message is deleted but which a living thing still links to is not destroyed; when that last thing goes, the object and its wraps do. *(AC-4, AC-5)*
 - [ ] **T30** Moving a thing between threads keeps its blobs readable, and Undo restores both thread and keys. *(AC-11)*
