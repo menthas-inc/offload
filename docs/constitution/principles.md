@@ -27,7 +27,9 @@
 
 ## offload (OFF)
 
-- **OFF-1 (MUST): Content is durable, egress is not.** Keeping what you dumped is the product, so content is stored, not discarded. The hard line is on the way out: no content in analytics events, no content in LLM traces, no content in application logs, no content in error reports. Those carry ids, kinds, counts, tokens, latency and outcomes only. Rationale: the product needs the data; nothing else does.
+- **OFF-1 (MUST): Content is durable, egress is not.** Keeping what you dumped is the product, so content is stored, not discarded. The hard line is on the way out: no content in analytics events, no content in LLM traces, no content in application logs, no content in error reports. Those carry ids, kinds, counts, tokens, latency and outcomes only.
+
+  **The warehouse is never a second copy of content under weaker controls.** Analysis and machine learning that need content read the production tables, under the same per-account authorization as everything else and for a stated purpose. They do not get a parallel store where the same data sits with looser access, longer reach and no membership check. *This is the specific way an honest privacy posture usually dies: not by a decision to leak, but by an analytics pipeline that was allowed one reasonable-sounding field at a time.* Rationale: the product needs the data; nothing else does.
 - **OFF-2 (MUST): Cold storage is encrypted, database content is not, and we describe it as exactly that.** Blobs in R2, the photos, screenshots and voice-note audio, are encrypted by us before they are stored, with a key R2 never receives. Database content is not encrypted by us: titles, notes, transcripts, memories and retrieval vectors sit in Postgres in plaintext, protected by the provider's own disk encryption and by access control, like most software.
 
   What this defends against: a leaked, misconfigured or stolen R2 bucket, which is the single most common way media escapes a product, and it is defended because no key material ever reaches R2 at all.

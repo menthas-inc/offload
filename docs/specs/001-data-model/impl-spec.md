@@ -192,7 +192,7 @@ Drained with `SELECT ... FOR UPDATE SKIP LOCKED` ordered by `(priority, run_afte
 `id` · `account_id` · `job_kind` · `category` (`interactive|scheduled`) · `model` · `input_tokens`, `output_tokens`, `cache_read_tokens` · `cost_micros` · `latency_ms` · `created_at`
 
 **`analytics_events`**, an outbox
-`id` · `name` · `version` · `occurred_at` · `anonymous_id` · `account_id` (nullable) · `source` · `platform` · `properties jsonb` · `shipped_at`
+`id` · `name` · `version` · `occurred_at` (device) · `received_at` (server) · `anonymous_id` · `account_id` (nullable) · `session_id` · `source` · `platform` · `properties jsonb` · `shipped_at`
 
 The flat typed envelope `decisions.md` specifies, with the dimensions as real columns rather than buried in a blob. *An earlier draft had a single `payload jsonb`, which reintroduced exactly the catch-all that decision rejected: unqueryable once a warehouse exists, impossible to select and purge one account's rows, and it forces the OFF-1 deny-list check to reach inside an opaque blob instead of checking typed columns.*
 
