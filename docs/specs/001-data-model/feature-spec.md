@@ -43,6 +43,7 @@ One dump may become several things: the record of what a person handed over is i
 - **AC-13** Activity rows are their own table with per-row read and dismissed state, carrying rendered content, and are never an analytics source.
 - **AC-14** A memory that compaction has replaced does not appear in any current-memory query, and is purged, so `memories` does not grow with account age (OFF-8).
 - **AC-15** The authorization predicate is defined once, in SQL, and both the Core API and the agent plane read through it. Neither reimplements it.
+- **AC-17** No analytics event carries a real account id. Events carry a per-account pseudonym, and erasure destroys the mapping so already-written events become permanently unattributable without rewriting any file.
 - **AC-16** One dump can produce several things. The record of what was handed over is itself a thing, everything extracted from it points back at that record, and undoing the dump reverses the whole set in one action.
 
 ## Out of scope
