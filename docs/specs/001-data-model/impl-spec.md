@@ -192,7 +192,9 @@ Drained with `SELECT ... FOR UPDATE SKIP LOCKED` ordered by `(priority, run_afte
 `id` · `account_id` · `job_kind` · `category` (`interactive|scheduled`) · `model` · `input_tokens`, `output_tokens`, `cache_read_tokens` · `cost_micros` · `latency_ms` · `created_at`
 
 **`analytics_events`**, an outbox
-`id` · `name` · `version` · `occurred_at` (device) · `received_at` (server) · `anonymous_id` · `subject_id` (nullable) · `session_id` · `source` · `platform` · `properties jsonb` · `shipped_at`
+`id` · `name` · `version` · `occurred_at` (device) · `received_at` (server) · `anonymous_id` · `subject_id` (nullable) · `session_id` (nullable) · `source` · `platform` · `properties jsonb` · `shipped_at`
+
+`session_id` is nullable and null is meaningful: a share-sheet dump with the app closed, a connector pull or a scheduled job has no foreground period and gets no session, so `sessions per day` keeps meaning what it sounds like. Sessions are an analytics construct minted client-side; nothing here stores one.
 
 **`subject_id`, never `account_id`.** It is `accounts.analytics_subject_id`, a random pseudonym with no relationship to anything else, and it is what reaches R2. Erasure destroys the mapping by nulling that column, after which every event already written is permanently unattributable without touching a single file. *With a real account id on the wire, one erasure request means rewriting every archive file that mentions the person, and then doing it again for the next request. Analytics files are immutable and the archive only grows.*
 
