@@ -53,26 +53,26 @@ The object key lives on `blobs.wrapped_object_key`. Four layers, four separately
 ### Content
 
 **`threads`**
-`id` · `created_by_account_id` (informational) · `name` · `kind` (`now|always`) · `icon` · `thing_count` · `last_activity_at` · `created_at`, `updated_at`, `deleted_at`, `purge_after`
+`id` · `created_by_account_id` (informational) · `name` · `always_on` · `icon` · `thing_count` · `last_activity_at` · `created_at`, `updated_at`, `deleted_at`, `purge_after`
 
 A thread has **no owner column**. It has members, and the creator is simply the first one. `created_by_account_id` records who started it because the UI wants to say so, and it carries no permission: an owner-versus-grantee distinction is a role, and the design's single permission rules roles out.
 
-`kind` distinguishes threads that end from threads that never close, which is the kits' "for now" and "always on". The third group, "older threads", is **derived** from `last_activity_at`, not stored, because it is a function of time rather than a property of the thread. **There is no `is_default` column.** The default thread is named by `accounts.default_thread_id`, which is a plain foreign key, so one default per account is structural: an account is one row and one row holds one pointer. *An earlier draft put `is_default` on `threads` and claimed a partial unique index enforced one per account. It cannot: when the owner column was removed, `threads` lost every account column, so that index would have permitted exactly one default thread across the whole product.* The thread itself is created at promotion, named **Miscellaneous**, and is ordinary in every other respect: it opens, holds things, can be renamed and shared, and is special-cased in no query.
+`always_on` is a flag, not a category: false means a thread that ends, true means one that never closes, which is the kits' "for now" and "always on". *It was an enum of two values, which is a flag wearing a costume.* The third group, "older threads", is **derived** from `last_activity_at`, not stored, because it is a function of time rather than a property of the thread. **There is no `is_default` column.** The default thread is named by `accounts.default_thread_id`, which is a plain foreign key, so one default per account is structural: an account is one row and one row holds one pointer. *An earlier draft put `is_default` on `threads` and claimed a partial unique index enforced one per account. It cannot: when the owner column was removed, `threads` lost every account column, so that index would have permitted exactly one default thread across the whole product.* The thread itself is created at promotion, named **Miscellaneous**, and is ordinary in every other respect: it opens, holds things, can be renamed and shared, and is special-cased in no query.
 
 **`things`**
-`id` · `account_id` (author) · `thread_id` **NOT NULL** · `derived_from_message_id` (nullable) · `kind` (`note|link|image|screenshot|voice|file|task|event`) · `title` · `body` · `url` · `tags text[]` · `occurs_at`, `occurs_end_at` · `due_at`, `done_at` · `needs_attention` · `waiting_on_person_id` (nullable) · `waiting_on` (`you|them`, nullable) · `source_kind` (`person|share|gmail|calendar|browser`, default `person`) · `source_ref` (nullable) · `attrs jsonb` · `embedding vector` · `sorted_at` · `created_at`, `updated_at`, `deleted_at`, `purge_after`
+`id` · `account_id` (author) · `thread_id` **NOT NULL** · `derived_from_message_id` (nullable) · `type` (`note|link|image|screenshot|voice|file|task|event`) · `title` · `body` · `url` · `tags text[]` · `occurs_at`, `occurs_end_at` · `due_at`, `done_at` · `needs_attention` · `waiting_on_person_id` (nullable) · `waiting_on` (`you|them`, nullable) · `source` (`person|share|gmail|calendar|browser`, default `person`) · `source_ref` (nullable) · `attrs jsonb` · `embedding vector` · `sorted_at` · `created_at`, `updated_at`, `deleted_at`, `purge_after`
 
-One table, kind plus promoted columns. `occurs_at`, `due_at` and `done_at` are real columns because the agenda and the to-do lists filter and sort on them and JSONB cannot be indexed for that cheaply. `needs_attention` is set by the sorter and is the Today screen's whole query, so it is a column rather than a derivation. `source_kind` and `source_ref` are the connector seam (AC-6): two columns now so a later connector spec never migrates the busiest table.
+One table, `type` plus promoted columns. `occurs_at`, `due_at` and `done_at` are real columns because the agenda and the to-do lists filter and sort on them and JSONB cannot be indexed for that cheaply. `needs_attention` is set by the sorter and is the Today screen's whole query, so it is a column rather than a derivation. `source` and `source_ref` are the connector seam (AC-6): two columns now so a later connector spec never migrates the busiest table.
 
 `waiting_on_person_id` and `waiting_on` are what let the product say who something is stuck on, and they are not optional extras: the kits' Today rows carry a person (`Ana needs an answer on the 14th to 17th`, `Reply to Tom about the Alfama flat`) and the person screen's whole middle section is "what they are waiting on", with a direction. Without them two designed screens cannot be built. *Modelled as two columns rather than a join table because a thing waits on at most one person in every screen drawn; promote to `thing_people` if that turns out to be false.*
 
 `tags text[]` with a GIN index, because the thread widgets filter and count by tag, including tags offload derived rather than the person typed (`Food`, `Views`, `Receipts`). By this spec's own rule, `attrs` holds what no screen queries; these screens query it, so it is a column.
 
-`source_kind` here is a denormalised copy of the message's, kept because a thing's row shows where it came from (`Lisbon trip · from Safari`) and that is a hot read. The message is canonical. **The two must hold identical value sets**, or the copy is lossy: an earlier draft omitted `share` from this one, which would have mislabelled every dump that arrived through a share sheet, and `from Safari` is the most common source label in the kits.
+`source` here is a denormalised copy of the message's, kept because a thing's row shows where it came from (`Lisbon trip · from Safari`) and that is a hot read. The message is canonical. **The two must hold identical value sets**, or the copy is lossy: an earlier draft omitted `share` from this one, which would have mislabelled every dump that arrived through a share sheet, and `from Safari` is the most common source label in the kits.
 
 ### A dump is a message, and one dump can become many things
 
-**A dump is a message in a composer session.** Not a thing, and not its own entity. You type, or speak, or share a photo in from Safari with the app closed, and it arrives as a message whose `kind` is not necessarily text. offload ingests it, acts, and replies in the same composer, so the dump and the answer sit together in one history.
+**A dump is a message in a composer session.** Not a thing, and not its own entity. You type, or speak, or share a photo in from Safari with the app closed, and it arrives as a message whose `type` is not necessarily text. offload ingests it, acts, and replies in the same composer, so the dump and the answer sit together in one history.
 
 Everything offload extracts is a `thing` in a thread, pointing back at the message it came from:
 
@@ -140,7 +140,7 @@ A `thread_keys` row is created on **accept**, not on invite, so a pending member
 `origin` exists because corrections beat inference: something a person said outranks something offload worked out, and compaction must never generalise away a `stated` memory. A partial unique index gives exactly one standing memory per thread (AC-8):
 `UNIQUE (subject_id) WHERE scope = 'thread' AND kind = 'standing' AND deleted_at IS NULL`
 
-`kind` is what the Memories tab tints a chip by, and the values come from the groups the kits already draw: `going_on` is "Going on", `preference` is "How you like things", `noticed` is "Noticed", and person-scope memories render under "People". `standing` is the one-per-thread blurb.
+`kind` is what the Memories tab tints a chip by, and it keeps that name because it is a category rather than a type of thing, and the values come from the groups the kits already draw: `going_on` is "Going on", `preference` is "How you like things", `noticed` is "Noticed", and person-scope memories render under "People". `standing` is the one-per-thread blurb.
 
 *`noticed` and `origin = 'learned'` overlap and it is deliberate rather than redundant: `origin` governs compaction, where something a person stated outranks something offload worked out, while `kind` governs where a chip appears and how it is tinted. A `noticed` memory is always `learned`; a `learned` memory is not always `noticed`.*
 
@@ -175,13 +175,13 @@ The same table backs Today's "what moved without you", which is these rows filte
 `unread_at` is set when offload replies and cleared when the person reads it. **On opening the app, if any conversation is unread, the composer opens showing it.** That is how a dump shared in while the app was closed reaches the person: they open offload and find their dump and offload's answer waiting, in a conversation they did not start. A boolean-ish nullable column rather than comparing two timestamps, so the "anything unread" check is one partial index.
 
 **`messages`**
-`id` · `conversation_id` · `account_id` · `role` (`person|offload`) · `kind` (`text|link|image|screenshot|voice|file`) · `turn_id` · `text` · `state` (`queued|seen|answered|failed`) · `client_key` (nullable, unique per account) · `source_kind` (`person|share|gmail|calendar|browser`) · `source_ref` (nullable) · `attrs jsonb` · `created_at`, `deleted_at`, `purge_after`
+`id` · `conversation_id` · `account_id` · `role` (`person|offload`) · `type` (`text|link|image|screenshot|voice|file`) · `turn_id` · `text` · `state` (`queued|seen|answered|failed`) · `client_key` (nullable, unique per account) · `source` (`person|share|gmail|calendar|browser`) · `source_ref` (nullable) · `attrs jsonb` · `created_at`, `deleted_at`, `purge_after`
 
 `state` is what the 👀 marker renders: `seen` means offload has the message and has not answered it. `turn_id` groups the messages belonging to one model turn, so an at-least-once delivery cannot double-render an answer.
 
-*`messages.kind` and `things.kind` are close but not the same set on purpose. A message has no `task` or `event`, because you cannot dump a task, offload extracts one. And a dumped `text` message becomes a `note` thing: the word changes because the shape changes, from what you said to what it turned into. Written down because a near-miss between two enums is exactly what causes a mapping bug.*
+*`messages.type` and `things.type` are close but not the same set on purpose. A message has no `task` or `event`, because you cannot dump a task, offload extracts one. And a dumped `text` message becomes a `note` thing: the word changes because the shape changes, from what you said to what it turned into. Written down because a near-miss between two enums is exactly what causes a mapping bug.*
 
-**A message from a person is a dump**, which is why `kind` lives here, and why `client_key`, the outbox's idempotency key, is on this table rather than on `things`: a retry from a device that never heard the response must not create the dump twice. `source_kind` records how it arrived, with `share` as its own value because a share sheet with the app closed is a common and distinct path.
+**A message from a person is a dump**, which is why `type` lives here, and why `client_key`, the outbox's idempotency key, is on this table rather than on `things`: a retry from a device that never heard the response must not create the dump twice. `source` records how it arrived, with `share` as its own value because a share sheet with the app closed is a common and distinct path.
 
 ⚠️ **Which conversation a dump joins is deliberately open**: a new one each time, one long-running one, or the most recent. A product decision, it does not change this schema, and it is recorded in `decisions.md`.
 
@@ -254,7 +254,7 @@ Every read of `things`, `blobs` and `memories` goes through the equivalent view.
 | Today, priority | things needing you | `(account_id, created_at DESC) WHERE needs_attention AND deleted_at IS NULL` |
 | Today, recent | latest things | `(account_id, created_at DESC) WHERE deleted_at IS NULL` |
 | Agenda | things with a time in a range | `(account_id, occurs_at) WHERE occurs_at IS NOT NULL AND deleted_at IS NULL` |
-| Thread to-dos | open tasks in a thread | `(thread_id, due_at) WHERE kind = 'task' AND done_at IS NULL AND deleted_at IS NULL` |
+| Thread to-dos | open tasks in a thread | `(thread_id, due_at) WHERE type = 'task' AND done_at IS NULL AND deleted_at IS NULL` |
 | A thread | its things, newest first | `(thread_id, created_at DESC) WHERE deleted_at IS NULL` |
 | Undo a dump | the message's derived things | `things(derived_from_message_id) WHERE deleted_at IS NULL` |
 | Conversation history | a dump and its reply | `messages(conversation_id, created_at) WHERE deleted_at IS NULL` |
@@ -279,7 +279,7 @@ Every predicate above appears in a partial index rather than a full one, because
 ### What follows
 
 - **Pagination is server-side and cursor-based** on `things` in a thread, `messages` in a conversation, and the full conversations list, since each has a heavy case in the thousands. The cursor is `(created_at, id)`, which UUIDv7 makes monotonic. Threads, memories and people are client-side: their heavy cases are in the hundreds and they are read whole.
-- **Denormalised on purpose:** `threads.thing_count`, so a thread list never runs a `COUNT(*)` per row; `threads.last_activity_at`, which drives both ordering and the derived "older" group; and `things.source_kind`, a copy of the message's so a row can show where it came from without a join. All three are maintained in the same transaction as the write that changes them.
+- **Denormalised on purpose:** `threads.thing_count`, so a thread list never runs a `COUNT(*)` per row; `threads.last_activity_at`, which drives both ordering and the derived "older" group; and `things.source`, a copy of the message's so a row can show where it came from without a join. All three are maintained in the same transaction as the write that changes them.
 - **Partitioning: none yet.** `messages`, `jobs` and `analytics_events` are the candidates. At 40,000 messages for a heavy account they are nowhere near needing it. Revisit when a table passes tens of millions of rows, not before.
 - **The shared-thread read is an ordinary indexed lookup**, because membership replaced ownership. `My threads` is one join from `thread_members` where `account_id = ?` and `state = 'accepted'`. *An earlier draft gave threads an owner column, which made this a `UNION ALL` of owned and granted; dropping the owner removed the union along with the role it implied.*
 
@@ -288,7 +288,7 @@ Every predicate above appears in a partial index rather than a full one, because
 - **OFF-1** Content is durable. `analytics_events` carries structured references only, never a title, a transcript or a dumped URL, and its dimensions are typed columns so the check does not have to read inside a blob. `notifications` carries rendered content and is therefore never an analytics source. `jobs.last_error` is scrubbed.
 - **OFF-2** Blob encryption only. No content column is encrypted, and the docs claim nothing more. One object key per object, wrapped once per place entitled to open it: the account for the dump, each thread whose things carry it.
 - **OFF-3** A thing resolves to its author; a thread resolves to its member set. Every read goes through the `readable_things` predicate, defined once in SQL so both planes share it rather than reimplementing it. Delete authorization checks `things.account_id`, per row, by author; edit is open to any member. Account deletion drops the tables enumerated in the edge cases, leaving other members' copies, so shared threads survive until the last member leaves.
-- **OFF-4** `source_kind` and `source_ref` exist so connector content can point at a source without a body ever being stored.
+- **OFF-4** `source` and `source_ref` exist so connector content can point at a source without a body ever being stored.
 - **OFF-5** Not applicable to the schema, applies to the callers.
 - **OFF-6** `deleted_at` plus `purge_after`, and a move is an update to `thread_id` plus a rewrap, so both are reversible inside the window.
 - **OFF-8** `memories` is bounded by compaction and is the row to watch; only the thread scope has a database-level cap, so the other two are a monitoring obligation. `superseded_at` is filtered by every current-memory query and swept by the purge job, without which the table grows with account age. `derived_from_untrusted` keeps connector-derived memories from being laundered into trusted context.
