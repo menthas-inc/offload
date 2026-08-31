@@ -1,0 +1,29 @@
+# Local Postgres for development.
+#
+# Port 4710, not 5432: two Postgres instances are already listening on 5432 and
+# 5433 on this machine. offload's reserved block is 4700 to 4719, see
+# docs/local-dev.md.
+#
+# The image carries pgvector because the extension binary has to exist on the
+# server before CREATE EXTENSION can work, and discovering that later is the
+# provisioning trap recorded in decisions.md.
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: offload-postgres
+    environment:
+      POSTGRES_USER: offload
+      POSTGRES_PASSWORD: offload
+      POSTGRES_DB: offload
+    ports:
+      - "4710:5432"
+    volumes:
+      - offload-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U offload -d offload"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  offload-pgdata:

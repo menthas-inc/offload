@@ -16,11 +16,11 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
   | `localhost:4700`, `localhost:4701` | Web and API in development, from offload's reserved 4700 to 4719 block |
 - [ ] **A1** 🔴 Infrastructure prerequisites: Railway login, Google OAuth, Resend. Batched into one list rather than asked one at a time.
 - [ ] **A1b** 🔴 **Apple credentials, started now and not in Phase E.** Developer Program enrolment, an App ID, a Services ID, and a Sign in with Apple key giving a `.p8`, a Team ID and a Key ID. *Enrolment alone can take days, so this is pure lead time and nothing about it is sequenced after the code. Started in parallel with A1; if it is not ready when Phase D arrives, ship Google-only and add Apple behind it.*
-- [ ] **A2** Monorepo skeleton: pnpm workspaces, Turborepo, shared tsconfig, ESLint already wired. `apps/web`, `apps/core-api`, `packages/api`, `packages/tokens`, `schemas/events`.
-- [ ] **A3** `packages/tokens`: generate design tokens as JSON from `.claude/skills/offload-design/tokens/`, plus a Tailwind theme built from it. *Generated, never hand-copied, so a design sync propagates (OFF-7).*
-- [ ] **A4** Core API skeleton: Fastify, `zod` and `fastify-type-provider-zod`, `/healthz`, structured logging that carries ids and outcomes only (OFF-1).
-- [ ] **A5** Migration runner and the spec 001 subset: `accounts` (with `UNIQUE (lower(email)) WHERE deleted_at IS NULL` and `waitlist_email_sent_at`), `account_identities`, `staff`, `threads`, `thread_members`, `account_keys`, `thread_keys`, `jobs`, `analytics_events`. Kysely codegen so types come from the schema.
-- [ ] **A6** `seed` script producing realistic shape and volume, since there is no database branching and this is what stands in for it.
+- [x] **A2** Monorepo skeleton: pnpm workspaces, Turborepo, shared tsconfig, ESLint already wired. `apps/web`, `apps/core-api`, `packages/api`, `packages/tokens`, `schemas/events`.
+- [x] **A3** `packages/tokens`: generate design tokens as JSON from `.claude/skills/offload-design/tokens/`, plus a Tailwind theme built from it. *Generated, never hand-copied, so a design sync propagates (OFF-7).*
+- [x] **A4** Core API skeleton: Fastify, `zod` and `fastify-type-provider-zod`, `/healthz`, structured logging that carries ids and outcomes only (OFF-1).
+- [x] **A5** Migration runner and the spec 001 subset: `accounts` (with `UNIQUE (lower(email)) WHERE deleted_at IS NULL` and `waitlist_email_sent_at`), `account_identities`, `staff`, `threads`, `thread_members`, `account_keys`, `thread_keys`, `jobs`, `analytics_events`. Kysely codegen so types come from the schema.
+- [x] **A6** `seed` script producing realistic shape and volume, since there is no database branching and this is what stands in for it.
 - [ ] **A7** Railway project: Postgres from a **pgvector-enabled template**, PITR on from day one, services in one region on private networking. Automated via the Railway CLI where it allows.
 - [ ] **A8** GitHub Actions: lint, typecheck, test, and migrations against an ephemeral Postgres seeded by A6.
 
