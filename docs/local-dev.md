@@ -4,6 +4,12 @@
 
 **There is nothing to run yet.** The repository holds the harness, the decisions and the design-adherence lint. No service exists.
 
+## Railway CLI: `--json` shows resolved values, not raw ones
+
+`railway variables --json` and `--kv` both claim in the CLI's own help to print raw values. They do not: a variable stored as a `${{Service.VAR}}` reference reads back as the resolved string. Verified by probe, and then corrected after checking the dashboard, which showed the reference intact.
+
+**So the CLI cannot tell you whether a variable is a reference or a literal.** Check the dashboard when it matters. This cost one wrong conclusion already.
+
 ## Ports: 4700 to 4719 are offload's
 
 One block, reserved so a second service never restarts this argument. Chosen after checking what was actually listening: 3000 and 3001 are the usual collision, 4321 was taken, and **5432 and 5433 both had Postgres on them**, so the local database cannot use either default.
