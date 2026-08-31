@@ -21,7 +21,7 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 - [x] **A4** Core API skeleton: Fastify, `zod` and `fastify-type-provider-zod`, `/healthz`, structured logging that carries ids and outcomes only (OFF-1).
 - [x] **A5** Migration runner and the spec 001 subset: `accounts` (with `UNIQUE (lower(email)) WHERE deleted_at IS NULL` and `waitlist_email_sent_at`), `account_identities`, `staff`, `threads`, `thread_members`, `account_keys`, `thread_keys`, `jobs`, `analytics_events`. Kysely codegen so types come from the schema.
 - [x] **A6** `seed` script producing realistic shape and volume, since there is no database branching and this is what stands in for it.
-- [ ] **A7** Railway project: Postgres from a **pgvector-enabled template**, PITR on from day one, services in one region on private networking. Automated via the Railway CLI where it allows.
+- [~] **A7** Railway project `offload` created, Postgres added, **pgvector 0.8.6 verified present** on the managed service so there is no trade against PITR. Remaining: service for the API, variables, PITR on, custom domain.
 - [ ] **A8** GitHub Actions: lint, typecheck, test, and migrations against an ephemeral Postgres seeded by A6.
 
 ## Phase B, the waitlist
