@@ -11,7 +11,8 @@
     "tokens": "pnpm --filter @offload/tokens build",
     "db:migrate": "pnpm --filter @offload/core-api migrate",
     "db:seed": "pnpm --filter @offload/core-api seed",
-    "seed:admins": "pnpm --filter @offload/core-api seed:admins"
+    "seed:admins": "pnpm --filter @offload/core-api seed:admins",
+    "start": "node apps/core-api/dist/server.js"
   },
   "devDependencies": {
     "eslint": "^9.39.0",

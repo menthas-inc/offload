@@ -13,7 +13,23 @@ import { db, closeDb } from "./db.js";
 
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), "../migrations");
 
+// One arbitrary constant, shared by every instance. Two containers starting at
+// once would otherwise both see the same pending migration and both try to run
+// it; the second fails on a duplicate object and takes the deploy with it.
+const MIGRATION_LOCK = 4700_0001;
+
 export async function migrate(log: (msg: string) => void = console.log): Promise<number> {
+  // Session-level advisory lock: whoever gets here first migrates, the others
+  // wait and then find nothing pending. Released explicitly in the finally.
+  await sql`select pg_advisory_lock(${MIGRATION_LOCK})`.execute(db);
+  try {
+    return await runMigrations(log);
+  } finally {
+    await sql`select pg_advisory_unlock(${MIGRATION_LOCK})`.execute(db);
+  }
+}
+
+async function runMigrations(log: (msg: string) => void): Promise<number> {
   await sql`
     create table if not exists schema_migrations (
       name       text primary key,
