@@ -60,7 +60,7 @@ A thread has **no owner column**. It has members, and the creator is simply the 
 `kind` distinguishes threads that end from threads that never close, which is the kits' "for now" and "always on". The third group, "older threads", is **derived** from `last_activity_at`, not stored, because it is a function of time rather than a property of the thread. **There is no `is_default` column.** The default thread is named by `accounts.default_thread_id`, which is a plain foreign key, so one default per account is structural: an account is one row and one row holds one pointer. *An earlier draft put `is_default` on `threads` and claimed a partial unique index enforced one per account. It cannot: when the owner column was removed, `threads` lost every account column, so that index would have permitted exactly one default thread across the whole product.* The thread itself is created at promotion, named **Miscellaneous**, and is ordinary in every other respect: it opens, holds things, can be renamed and shared, and is special-cased in no query.
 
 **`things`**
-`id` · `account_id` (author) · `thread_id` **NOT NULL** · `derived_from_message_id` (nullable) · `kind` (`note|link|image|screenshot|voice|file|task|event`) · `title` · `body` · `url` · `tags text[]` · `occurs_at`, `occurs_end_at` · `due_at`, `done_at` · `needs_attention` · `waiting_on_person_id` (nullable) · `waiting_on` (`you|them`, nullable) · `source_kind` (`person|gmail|calendar|browser`, default `person`) · `source_ref` (nullable) · `attrs jsonb` · `embedding vector` · `sorted_at` · `created_at`, `updated_at`, `deleted_at`, `purge_after`
+`id` · `account_id` (author) · `thread_id` **NOT NULL** · `derived_from_message_id` (nullable) · `kind` (`note|link|image|screenshot|voice|file|task|event`) · `title` · `body` · `url` · `tags text[]` · `occurs_at`, `occurs_end_at` · `due_at`, `done_at` · `needs_attention` · `waiting_on_person_id` (nullable) · `waiting_on` (`you|them`, nullable) · `source_kind` (`person|share|gmail|calendar|browser`, default `person`) · `source_ref` (nullable) · `attrs jsonb` · `embedding vector` · `sorted_at` · `created_at`, `updated_at`, `deleted_at`, `purge_after`
 
 One table, kind plus promoted columns. `occurs_at`, `due_at` and `done_at` are real columns because the agenda and the to-do lists filter and sort on them and JSONB cannot be indexed for that cheaply. `needs_attention` is set by the sorter and is the Today screen's whole query, so it is a column rather than a derivation. `source_kind` and `source_ref` are the connector seam (AC-6): two columns now so a later connector spec never migrates the busiest table.
 
@@ -68,7 +68,7 @@ One table, kind plus promoted columns. `occurs_at`, `due_at` and `done_at` are r
 
 `tags text[]` with a GIN index, because the thread widgets filter and count by tag, including tags offload derived rather than the person typed (`Food`, `Views`, `Receipts`). By this spec's own rule, `attrs` holds what no screen queries; these screens query it, so it is a column.
 
-`source_kind` here is a denormalised copy of the message's, kept because a thing's row shows where it came from (`Lisbon trip · from Safari`) and that is a hot read. The message is canonical.
+`source_kind` here is a denormalised copy of the message's, kept because a thing's row shows where it came from (`Lisbon trip · from Safari`) and that is a hot read. The message is canonical. **The two must hold identical value sets**, or the copy is lossy: an earlier draft omitted `share` from this one, which would have mislabelled every dump that arrived through a share sheet, and `from Safari` is the most common source label in the kits.
 
 ### A dump is a message, and one dump can become many things
 
@@ -135,10 +135,14 @@ A `thread_keys` row is created on **accept**, not on invite, so a pending member
 ### Derived
 
 **`memories`**
-`id` · `account_id` (**NULL when `scope = 'thread'`**) · `scope` (`account|thread|person`) · `subject_id` (nullable: a `thread_id` or a `person_id`) · `kind` (the chip kind) · `text` · `origin` (`stated|learned`) · `derived_from_untrusted` (bool) · `attrs jsonb` · `embedding vector` · `created_at`, `updated_at`, `superseded_at`, `deleted_at`, `purge_after`
+`id` · `account_id` (**NULL when `scope = 'thread'`**) · `scope` (`account|thread|person`) · `subject_id` (nullable: a `thread_id` or a `person_id`) · `kind` (`going_on|person|preference|noticed|standing`) · `text` · `origin` (`stated|learned`) · `derived_from_untrusted` (bool) · `attrs jsonb` · `embedding vector` · `created_at`, `updated_at`, `superseded_at`, `deleted_at`, `purge_after`
 
 `origin` exists because corrections beat inference: something a person said outranks something offload worked out, and compaction must never generalise away a `stated` memory. A partial unique index gives exactly one standing memory per thread (AC-8):
 `UNIQUE (subject_id) WHERE scope = 'thread' AND kind = 'standing' AND deleted_at IS NULL`
+
+`kind` is what the Memories tab tints a chip by, and the values come from the groups the kits already draw: `going_on` is "Going on", `preference` is "How you like things", `noticed` is "Noticed", and person-scope memories render under "People". `standing` is the one-per-thread blurb.
+
+*`noticed` and `origin = 'learned'` overlap and it is deliberate rather than redundant: `origin` governs compaction, where something a person stated outranks something offload worked out, while `kind` governs where a chip appears and how it is tinted. A `noticed` memory is always `learned`; a `learned` memory is not always `noticed`.*
 
 **Thread-scope memories belong to the thread, not to an account.** A thread's standing blurb is read by every accepted member, so `account_id` is NULL for `scope = 'thread'` and access resolves through `thread_members` on `subject_id` (AC-1). *Left as a plain `account_id` this is a hole in both directions: filter by it and the blurb is invisible to every member but whoever generated it; drop the filter and anyone who can guess a `thread_id` reads another thread's blurb.*
 
@@ -175,6 +179,8 @@ The same table backs Today's "what moved without you", which is these rows filte
 
 `state` is what the 👀 marker renders: `seen` means offload has the message and has not answered it. `turn_id` groups the messages belonging to one model turn, so an at-least-once delivery cannot double-render an answer.
 
+*`messages.kind` and `things.kind` are close but not the same set on purpose. A message has no `task` or `event`, because you cannot dump a task, offload extracts one. And a dumped `text` message becomes a `note` thing: the word changes because the shape changes, from what you said to what it turned into. Written down because a near-miss between two enums is exactly what causes a mapping bug.*
+
 **A message from a person is a dump**, which is why `kind` lives here, and why `client_key`, the outbox's idempotency key, is on this table rather than on `things`: a retry from a device that never heard the response must not create the dump twice. `source_kind` records how it arrived, with `share` as its own value because a share sheet with the app closed is a common and distinct path.
 
 ⚠️ **Which conversation a dump joins is deliberately open**: a new one each time, one long-running one, or the most recent. A product decision, it does not change this schema, and it is recorded in `decisions.md`.
@@ -183,6 +189,8 @@ The same table backs Today's "what moved without you", which is these rows filte
 
 **`jobs`**
 `id` · `kind` · `account_id` (nullable, scheduled jobs may be global) · `payload jsonb` · `priority smallint` · `run_after` · `attempts`, `max_attempts` · `state` (`queued|running|done|failed|dead`) · `locked_at`, `locked_by` · `idempotency_key` (unique) · `last_error` · `created_at`, `updated_at`
+
+`kind` is an **open set** matching `^[a-z][a-z0-9_]*$`, not a CHECK constraint, so adding a job is a registry line rather than a migration. **`llm_usage.job_kind` draws from the same set and must match it**, because the admin panel's Costs page groups spend by the job being paid for; if the two drift that page silently misgroups.
 
 `last_error` is truncated and scrubbed of payload content before it is written, because an exception message that embeds the dumped text is a way content reaches a log or an error reporter (OFF-1).
 
