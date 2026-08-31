@@ -3,9 +3,23 @@
   "private": true,
   "packageManager": "pnpm@10.5.0",
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "dev": "turbo run dev",
+    "tokens": "pnpm --filter @offload/tokens build",
+    "db:migrate": "pnpm --filter @offload/core-api migrate",
+    "db:seed": "pnpm --filter @offload/core-api seed",
+    "seed:admins": "pnpm --filter @offload/core-api seed:admins"
   },
   "devDependencies": {
-    "eslint": "^9.39.0"
+    "eslint": "^9.39.0",
+    "turbo": "^2.5.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.69.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

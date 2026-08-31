@@ -17,6 +17,7 @@
 //     all 21 components including the allowed values of every enum prop.
 
 import { createRequire } from "node:module";
+import tseslint from "typescript-eslint";
 
 const require = createRequire(import.meta.url);
 const adherence = require("./.claude/skills/offload-design/_adherence.oxlintrc.json");
@@ -49,9 +50,23 @@ export default [
       "packages/tokens/generated/**",
     ],
   },
+  // Plain JS and JSX: the default parser handles these.
   {
-    files: ["**/*.{js,jsx,mjs,cjs,ts,tsx}"],
+    files: ["**/*.{js,jsx,mjs,cjs}"],
     languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+    rules: adherenceRules,
+  },
+  // TypeScript needs its own parser. The adherence rules are esquery selectors
+  // over Literal and JSXOpeningElement nodes, which the TS parser also emits,
+  // so they apply unchanged to both.
+  {
+    files: ["**/*.{ts,tsx,mts,cts}"],
+    languageOptions: {
+      parser: tseslint.parser,
       ecmaVersion: "latest",
       sourceType: "module",
       parserOptions: { ecmaFeatures: { jsx: true } },

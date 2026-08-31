@@ -1,0 +1,13 @@
+{
+  "name": "@offload/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": "./dist/index.js", "./tokens.json": "./dist/tokens.json" },
+  "scripts": {
+    "build": "node src/generate.mjs && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}
