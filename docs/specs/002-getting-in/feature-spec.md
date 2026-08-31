@@ -42,5 +42,5 @@ Dumping anything, threads beyond the Miscellaneous one created at promotion, thi
 
 ## Notes
 
-- **The design says the landing page lives at `offload.app`; we have been writing `offload.club`.** One of them is wrong and it needs settling before DNS is configured, since email deliverability depends on it.
+- **The domain is `offload.club`**, settled 2026-08-31. The design's marketing README says `offload.app`, which is now stale and is logged as a divergence in the design system's own decisions file.
 - **This feature migrates only the tables it uses.** Spec 001 designs the whole model; bringing up tables no code reads would be building ahead of a spec (DEV-1). The rest arrive with the features that need them.

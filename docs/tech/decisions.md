@@ -97,6 +97,12 @@ offload starts from superparent's stack rather than from nothing, because most o
 - ✅ **The `source` overload is naming only, not security.** Confirmed: separate columns, separate tables, disjoint value sets, no shared enum or validation path. *One preventative note carried forward: never define a single shared Postgres enum or a CI rule keyed on the column name `source` across both, since that would conflate an OFF-4 provenance signal with an analytics emitter tag.*
 - ✅ **What the reviewer found sound**, worth recording because it is the part that was reshaped hardest: blob authorization resolving dynamically through `thing_blobs`, `messages` and `thread_members` rather than a denormalised column; revocation on leave and account deletion; pending invitees holding no key until accept; and delete authorization being per-row by author with edit open to any member, with no per-thread role masquerading as the rule.
 
+## Domain and hosts, 2026-08-31
+
+- ✅ **The domain is `offload.club`.** The design system's marketing README says `offload.app`; that is stale and is logged as a divergence there.
+- ✅ **Hosts:** `offload.club` serves the web app, marketing and admin. `api.offload.club` serves the Core API, which is where Better Auth mounts and therefore where every OAuth redirect lands. Staging mirrors both under `staging.`. Development is `localhost:3000` and `:3001`.
+- ✅ **The session cookie is scoped to `.offload.club`**, so the web app and the API share it across subdomains. *This is why the API gets a subdomain of the product domain rather than a Railway-generated hostname: a cookie cannot span unrelated domains, and putting auth on the API means the cookie has to reach both.*
+
 ## Naming, 2026-08-31
 
 - ✅ **`kind` was doing too many jobs, so three of them were renamed.** It appeared on six tables meaning six different things, which is how a reader stops reading the word and starts guessing.

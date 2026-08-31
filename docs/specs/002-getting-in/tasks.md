@@ -6,7 +6,14 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 
 ## Phase A, foundation
 
-- [ ] **A0** 🔴 **Settle the domain**, `offload.app` or `offload.club`. Blocks A7, B3 and D1: it is the sending domain for Resend's SPF and DKIM, the associated domain for Sign in with Apple, and the OAuth redirect host. *It was a footnote in an earlier draft while F4 quietly assumed one of them, which is how a decision gets made by omission.*
+- [x] **A0** ✅ **Domain settled: `offload.club`** (2026-08-31). Host plan, used by everything below:
+
+  | Host | What |
+  | --- | --- |
+  | `offload.club` | Web: marketing, app, admin |
+  | `api.offload.club` | Core API, which is where Better Auth mounts |
+  | `staging.offload.club`, `api.staging.offload.club` | Staging, asleep until woken |
+  | `localhost:3000`, `localhost:3001` | Web and API in development |
 - [ ] **A1** 🔴 Infrastructure prerequisites: Railway login, Google OAuth, Resend. Batched into one list rather than asked one at a time.
 - [ ] **A1b** 🔴 **Apple credentials, started now and not in Phase E.** Developer Program enrolment, an App ID, a Services ID, and a Sign in with Apple key giving a `.p8`, a Team ID and a Key ID. *Enrolment alone can take days, so this is pure lead time and nothing about it is sequenced after the code. Started in parallel with A1; if it is not ready when Phase D arrives, ship Google-only and add Apple behind it.*
 - [ ] **A2** Monorepo skeleton: pnpm workspaces, Turborepo, shared tsconfig, ESLint already wired. `apps/web`, `apps/core-api`, `packages/api`, `packages/tokens`, `schemas/events`.
