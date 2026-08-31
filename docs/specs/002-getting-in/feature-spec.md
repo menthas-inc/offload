@@ -22,7 +22,7 @@ Doing it first is deliberate. The alternative, building the dump loop against a 
 
 - **AC-1** A public visitor can join the waitlist with an email address and receives a confirmation email. Submitting twice, or submitting an address that already has an account, produces an identical response and takes indistinguishable time.
 - **AC-2** An admin can see the waitlist and promote one person or a selection. Promotion creates the account, its `account_keys` row, its Miscellaneous thread and its `thread_members` row in one transaction, and sends the invite email.
-- **AC-3** Only an account whose verified email is on the staff allowlist can reach the admin panel. Support and owner see different pages; support does not see the owner pages at all rather than seeing them refused.
+- **AC-3** Only an account whose verified email is on the staff allowlist can reach the admin panel. *The support-versus-owner page split is specified here but only testable once owner-only pages exist, so that half is verified in the spec that builds them.*
 - **AC-4** Sign in with Apple and with Google works on iOS, Android and web, with the provider order the design specifies per platform.
 - **AC-5** A valid provider login for an identity that was never invited gets the no-invite screen and can join the waitlist in one tap using that same address. No account is auto-provisioned.
 - **AC-6** Signing in with a second provider whose **verified** email matches an existing account links to that account rather than creating a new one. An unverified email never links.
@@ -31,6 +31,10 @@ Doing it first is deliberate. The alternative, building the dump loop against a 
 - **AC-9** A disabled account cannot sign in and its live sessions stop working.
 - **AC-10** The funnel is measurable server-side end to end: `waitlist_joined`, `invite_sent`, `first_sign_in`, `onboarding_completed`, each carrying `subject_id` and never a real account id.
 - **AC-11** Every transactional email is the design's one template with four slots filled, ships a plain-text alternative, and contains no images.
+
+## What this feature does not make possible
+
+**Inviting anyone real.** Nothing can be dumped until 003, and first run's third screen teaches people to dump. This feature is done when *we* can get in, not when a stranger can. The waitlist and the promotion path are built and exercised on our own accounts.
 
 ## Out of scope
 

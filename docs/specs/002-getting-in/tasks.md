@@ -6,7 +6,9 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 
 ## Phase A, foundation
 
-- [ ] **A1** 🔴 Infrastructure prerequisites: Railway login, domain, Google OAuth, Apple Sign in, Resend. Batched into one list rather than asked for one at a time.
+- [ ] **A0** 🔴 **Settle the domain**, `offload.app` or `offload.club`. Blocks A7, B3 and D1: it is the sending domain for Resend's SPF and DKIM, the associated domain for Sign in with Apple, and the OAuth redirect host. *It was a footnote in an earlier draft while F4 quietly assumed one of them, which is how a decision gets made by omission.*
+- [ ] **A1** 🔴 Infrastructure prerequisites: Railway login, Google OAuth, Resend. Batched into one list rather than asked one at a time.
+- [ ] **A1b** 🔴 **Apple credentials, started now and not in Phase E.** Developer Program enrolment, an App ID, a Services ID, and a Sign in with Apple key giving a `.p8`, a Team ID and a Key ID. *Enrolment alone can take days, so this is pure lead time and nothing about it is sequenced after the code. Started in parallel with A1; if it is not ready when Phase D arrives, ship Google-only and add Apple behind it.*
 - [ ] **A2** Monorepo skeleton: pnpm workspaces, Turborepo, shared tsconfig, ESLint already wired. `apps/web`, `apps/core-api`, `packages/api`, `packages/tokens`, `schemas/events`.
 - [ ] **A3** `packages/tokens`: generate design tokens as JSON from `.claude/skills/offload-design/tokens/`, plus a Tailwind theme built from it. *Generated, never hand-copied, so a design sync propagates (OFF-7).*
 - [ ] **A4** Core API skeleton: Fastify, `zod` and `fastify-type-provider-zod`, `/healthz`, structured logging that carries ids and outcomes only (OFF-1).
@@ -35,8 +37,8 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 
 ## Phase D, auth on web
 
-- [ ] **D1** Better Auth with Google and Apple, sessions in Postgres, httpOnly cookie on web.
-- [ ] **D2** The invite gate as specified: identity lookup, then verified-email link, then refuse. Never auto-provision.
+- [ ] **D1** Better Auth **remapped onto `accounts` and `account_identities`**, not running parallel identity tables. Sessions in Postgres, httpOnly cookie on web, 15-minute access TTL.
+- [ ] **D2** The invite gate in **two layers**: a `user.create.before` hook returning false, and no session issued for an account that is not invited or active. *Better Auth has open issues about before-hooks not firing on every path, and this is the product's entire access control, so it does not get to be the only thing standing there. Verify the hook fires on both the Google and the Apple callback.*
 - [ ] **D3** Identity linking, and the Apple relay-address limitation surfaced to the person by name.
 - [ ] **D4** Session refresh checks `accounts.state`, so disabling stops live sessions.
 - [ ] **D5** Sign-in screen, Apple first on web, with the refusal as one line above the buttons.
@@ -48,23 +50,23 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 ## Phase E, mobile
 
 - [ ] **E1** Expo app with a custom dev build, Expo Router, NativeWind driven by `packages/tokens`.
-- [ ] **E2** 🔴 EAS project and credentials, which needs your Apple and Google accounts.
+- [ ] **E2** 🔴 EAS project, plus the iOS credentials that A1b started: provisioning for a custom dev build, the associated domain for Sign in with Apple, and a reversed client ID for Google on iOS.
 - [ ] **E3** Native Apple and Google sign-in, session in `expo-secure-store`, provider order per platform.
-- [ ] **E4** Gate, no-invite, first run and Today empty on both phones, with Material 3 chrome on Android.
-- [ ] **E5** `email.download_app` job, sent from the invite email's footer link rather than automatically.
+- [ ] **E4** Gate, no-invite, first run and Today empty on both phones, with Material 3 chrome on Android. **The notification permission ask fires straight after Get started**, which is where the design puts it so the third screen is the reason the dialog appears.
+- [ ] **E5** `email.download_app` job, sent from the invite email's footer link rather than automatically. *Gates no acceptance criterion; first to cut if the feature runs long.*
 
 ## Phase F, closing
 
 - [ ] **F1** Tests for every acceptance criterion, named by AC.
 - [ ] **F2** `/review` over the whole diff, then fix what it finds.
 - [ ] **F3** `docs/local-dev.md` filled in for real: the one command, ports, environment variables, the seed.
-- [ ] **F4** Deploy to Railway, `staging.offload.club` awake on request, and a smoke test of the full path.
+- [ ] **F4** Deploy to Railway, staging awake on request at the domain settled in A0, and a smoke test of the full path.
 
 ## Tests, by acceptance criterion
 
 - [ ] **T-AC1** Waitlist join is enumeration-safe: identical body, status and indistinguishable timing for new, waiting and existing addresses.
 - [ ] **T-AC2** Promotion is one transaction. Forcing a failure at each step leaves no half-promoted account.
-- [ ] **T-AC3** A non-staff account gets 403 on every admin route. Support gets 404, not 403, on owner-only pages.
+- [ ] **T-AC3** A non-staff account gets 403 on every admin route. *The support-sees-404-not-403 half of AC-3 moves to the spec that builds the owner-only pages: with Costs, Limits, People and Staff out of scope here, that test would pass because the route does not exist rather than because the pattern works, which is false confidence.*
 - [ ] **T-AC5** A valid provider login for an uninvited identity provisions nothing and returns the no-invite state.
 - [ ] **T-AC6** Apple then Google with the same verified email is one account. An unverified email never links.
 - [ ] **T-AC7** First run completes once per person; a second device resumes rather than restarts.

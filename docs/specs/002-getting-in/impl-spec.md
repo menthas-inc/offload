@@ -42,6 +42,25 @@ first run done  →  state='active'                         + onboarding_complet
 
 **Better Auth**, self-hosted, sessions in our Postgres. Apple and Google only.
 
+### How Better Auth maps onto our schema
+
+*This is the highest-risk task in the feature and it was previously one asserted line.*
+
+**Better Auth is remapped onto our tables, it does not run its own alongside them.** Its `user` model maps to `accounts` and its `account` model to `account_identities`, via its model and field naming options, with our extra columns (`state`, `default_thread_id`, `analytics_subject_id`) declared as additional fields. Its `session` and `verification` tables are its own and we do not care about their shape.
+
+*The alternative, letting it own a parallel identity table that we reconcile against, gives two sources of truth for who someone is. That is the kind of thing that works until an edge case makes them disagree, and then the disagreement is an authorization bug.*
+
+### Where the invite gate actually runs, and why it runs twice
+
+AC-5 says never auto-provision, which means intercepting **before** a user row is written, not cleaning up after.
+
+- **Primary: a `databaseHooks.user.create.before` hook.** Returning `false` aborts the create, which is the documented mechanism.
+- **Backstop: no session is issued for an account that is not `invited` or `active`.** Checked at issuance, not only at refresh.
+
+**Two layers on purpose.** Better Auth has open issues reporting that before-hooks do not fire on every path and do not always respect a returned object. We are betting the product's entire access control on that hook, so it does not get to be the only thing standing there. If the hook silently fails, an un-invited identity may get a row, and it still cannot get a usable session. Verify the hook fires on both the Google and the Apple callback path as part of D2, rather than assuming symmetry.
+
+**Access token TTL is 15 minutes**, which bounds how long a disabled account keeps working (AC-9). Stated here because it is a security parameter, not an implementation detail.
+
 - **Web** keeps the session in an httpOnly cookie. A token never reaches JavaScript.
 - **Mobile** uses native sign-in on each platform and stores the session in `expo-secure-store`.
 - **Provider order is per platform**, from the design: Apple then Google on iOS, Google then Apple on Android, Apple then Google on web.
@@ -88,6 +107,8 @@ Short-lived access with a refresh, so disabling an account stops live sessions r
 
 *All of it or none of it. A half-promoted account is one that can sign in and has nowhere to put anything.*
 
+**Idempotent by a guarded update, not by a check-then-act.** The transaction opens with `UPDATE accounts SET state='invited' WHERE id = ? AND state='waitlist'`, and zero rows affected means someone else already promoted them, so it returns success having done nothing. *Two admins clicking at once is the ordinary case, not the exotic one.*
+
 ## Admin authorization
 
 A seeded, verified-email allowlist in `staff`, checked app-side. A caller is staff if and only if their token's **verified** email has a row.
@@ -125,9 +146,19 @@ Expo, custom dev build from day one, so **not Expo Go**. Native Apple and Google
 
 *The two mobile kits differ in navigation motion and chrome. This feature has almost no navigation, so the differences are limited to the sign-in button order and Material 3 chrome on Android.*
 
+### The composer on Today is inert, and that is a staging state
+
+The design is explicit that every empty screen keeps a working composer, "because on every one of them the answer is to dump something", and first run's third screen teaches exactly that one screen earlier. This feature cannot dump anything.
+
+**So nobody real is invited until 003 ships.** This feature is done when *we* can get in, not when a stranger can. The waitlist accepts addresses and the admin panel promotes them, but promotions are for our own accounts until the dump loop exists. A person invited into an app that taught them to dump and then cannot take a dump would be the worst possible first impression, and it is entirely avoidable by not sending the invite.
+
+*Logged as an OFF-7 divergence in the design system's own decisions file, because the composer's designed behaviour and its built behaviour differ for the length of one feature.*
+
 ### First run
 
 Three screens, dots and Skip in the same place on all three, one button at the bottom, Get started lands on Today. It runs **once per person, not once per device** (AC-7), so completion is a server-side flag, the `invited` to `active` transition, not local storage.
+
+**The notification permission ask fires straight after Get started, on mobile only.** The design puts it there deliberately: the third screen, which says offload only interrupts when it matters, is the reason the system dialog appears, so the ask arrives already explained. Asking anywhere else wastes the one chance the platform gives you.
 
 ## Analytics
 
@@ -137,12 +168,14 @@ Four events, all server-side, so the whole funnel is measurable without any brow
 
 ## Volume and access
 
-| Table | Per account | Notes |
-| --- | --- | --- |
-| `accounts` | 1 | The whole table is small for a long time. Alpha is tens of rows. |
-| `account_identities` | 1 to 3 | One per linked provider. |
-| `staff` | | Single digits, ever. |
-| `jobs` | transient | A handful per promotion. |
+| Field | This feature |
+| --- | --- |
+| Records per account | `accounts` 1. `account_identities` 1 typical, 3 heavy, one per linked provider. `staff` single digits across the whole product, ever. |
+| Fan-out | One account to at most three identities. One promotion to exactly one thread and one membership. |
+| Growth | Alpha is tens of rows. A public waitlist is the only thing here that can grow unattended, which is why it is the one with a cursor. |
+| Read pattern | Admin Waitlist page lists waiting and invited-not-signed-in. Sign-in looks up an identity on every authentication. |
+| Write pattern | Waitlist joins are bursty and adversarial, since the endpoint is public. Promotions are a handful a week, by hand. |
+| Sort and filter | Waitlist by `state` then `created_at`. Sign-in by `(provider, subject)` and by verified email. |
 
 Reads: the admin Waitlist page lists `accounts WHERE state = 'waitlist'` ordered by `created_at`, which needs `(state, created_at)`. Sign-in looks up `(provider, subject)`, unique, and by verified email, which needs an index on `lower(email)`. Nothing here is close to needing pagination, but the waitlist list gets a cursor anyway because it is the one that grows unattended.
 

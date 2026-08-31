@@ -11,6 +11,25 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-08-31 · Today's composer is inert while feature 002 is the only thing built
+**Surface:** iOS, Android, web
+**Raised by:** the codebase, during the spec review for 002.
+**Was, and will be again:** every empty screen keeps a working composer, "because on every one
+of them the answer is to dump something", and day one on Today shows three dashed examples that
+fill it. First run's third screen teaches exactly that, one screen before landing there.
+**Is, temporarily:** feature 002 builds the way in, the waitlist, the invite, sign in and first
+run, and nothing that can accept a dump. So Today renders its designed empty state with a
+composer that cannot submit.
+**Why this is not a design change:** nobody real is invited during this window. The feature is
+done when the team can get in, not when a stranger can, and the promotion path runs against our
+own accounts until the dump loop ships in 003. A person invited into an app that just taught
+them to dump, and then cannot take a dump, would be the worst possible first impression, and
+not sending the invite avoids it entirely.
+**Design system impact:** none, and deliberately so. Nothing in the kits changes and no copy is
+rewritten. This entry exists because OFF-7 requires a divergence to be logged even when it is
+temporary and self-resolving, and because the resolution is a scheduling promise rather than a
+code change: **this entry is closed by 003 shipping, not by anything in 002.**
+
 ### 2026-08-28 · One dump can become several things, and it lives in the composer
 **Surface:** iOS, Android, web
 **Raised by:** the codebase, then corrected by the product owner.
