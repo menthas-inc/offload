@@ -1,0 +1,5 @@
+# Railway builds from the repository root because this is a monorepo and the
+# lockfile lives here. Each service points at its own railway.json for the
+# build and start commands.
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm-9"]
