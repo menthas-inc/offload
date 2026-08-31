@@ -4,6 +4,22 @@
 
 **There is nothing to run yet.** The repository holds the harness, the decisions and the design-adherence lint. No service exists.
 
+## Ports: 4700 to 4719 are offload's
+
+One block, reserved so a second service never restarts this argument. Chosen after checking what was actually listening: 3000 and 3001 are the usual collision, 4321 was taken, and **5432 and 5433 both had Postgres on them**, so the local database cannot use either default.
+
+| Port | Service |
+| --- | --- |
+| 4700 | Web (Next.js): marketing, app, admin |
+| 4701 | Core API (Fastify), where Better Auth mounts |
+| 4702 | Agent plane (FastAPI), when it exists |
+| 4703 | Worker health, when it exists |
+| 4710 | Postgres, mapped out of Docker |
+| 4711 | Redis, if it is ever needed |
+| 4704 to 4709, 4712 to 4719 | Reserved |
+
+Anything new takes the next free port in the block rather than a framework default.
+
 What works today:
 
 ```

@@ -13,7 +13,7 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
   | `offload.club` | Web: marketing, app, admin |
   | `api.offload.club` | Core API, which is where Better Auth mounts |
   | `staging.offload.club`, `api.staging.offload.club` | Staging, asleep until woken |
-  | `localhost:3000`, `localhost:3001` | Web and API in development |
+  | `localhost:4700`, `localhost:4701` | Web and API in development, from offload's reserved 4700 to 4719 block |
 - [ ] **A1** 🔴 Infrastructure prerequisites: Railway login, Google OAuth, Resend. Batched into one list rather than asked one at a time.
 - [ ] **A1b** 🔴 **Apple credentials, started now and not in Phase E.** Developer Program enrolment, an App ID, a Services ID, and a Sign in with Apple key giving a `.p8`, a Team ID and a Key ID. *Enrolment alone can take days, so this is pure lead time and nothing about it is sequenced after the code. Started in parallel with A1; if it is not ready when Phase D arrives, ship Google-only and add Apple behind it.*
 - [ ] **A2** Monorepo skeleton: pnpm workspaces, Turborepo, shared tsconfig, ESLint already wired. `apps/web`, `apps/core-api`, `packages/api`, `packages/tokens`, `schemas/events`.

@@ -100,7 +100,7 @@ offload starts from superparent's stack rather than from nothing, because most o
 ## Domain and hosts, 2026-08-31
 
 - ✅ **The domain is `offload.club`.** The design system's marketing README says `offload.app`; that is stale and is logged as a divergence there.
-- ✅ **Hosts:** `offload.club` serves the web app, marketing and admin. `api.offload.club` serves the Core API, which is where Better Auth mounts and therefore where every OAuth redirect lands. Staging mirrors both under `staging.`. Development is `localhost:3000` and `:3001`.
+- ✅ **Hosts:** `offload.club` serves the web app, marketing and admin. `api.offload.club` serves the Core API, which is where Better Auth mounts and therefore where every OAuth redirect lands. Staging mirrors both under `staging.`. Development uses **4700 to 4719**, reserved as a block: 4700 web, 4701 API, 4702 agent plane, 4710 Postgres. *Chosen against what was actually listening on the machine rather than by convention: 3000 and 3001 collide with everything, and both 5432 and 5433 already had a Postgres, so the local database could not take either default. Full table in `docs/local-dev.md`.*
 - ✅ **The session cookie is scoped to `.offload.club`**, so the web app and the API share it across subdomains. *This is why the API gets a subdomain of the product domain rather than a Railway-generated hostname: a cookie cannot span unrelated domains, and putting auth on the API means the cookie has to reach both.*
 
 ## Naming, 2026-08-31
