@@ -27,7 +27,11 @@ There is no `connections` table; a connection is a state of a person, not a sepa
 ### Identity
 
 **`accounts`**
-`id` · `state` (`waitlist|invited|active|disabled`) · `display_name` · `email` · `email_verified` · `default_thread_id` (nullable until promotion) · `referred_by_account_id`, `referral_thread_id` (both nullable) · `analytics_subject_id` (nullable) · `tier` (`beta`) · `consent_version`, `consented_at` · `created_at`, `updated_at`, `disabled_at`, `deleted_at`
+`id` · `state` (`waitlist|invited|active|disabled`) · `display_name` · `email` · `email_verified` · `default_thread_id` (nullable until promotion) · `referred_by_account_id`, `referral_thread_id` (both nullable) · `analytics_subject_id` (nullable) · `waitlist_email_sent_at` (nullable) · `tier` (`beta`) · `consent_version`, `consented_at` · `created_at`, `updated_at`, `disabled_at`, `deleted_at`
+
+**`UNIQUE (lower(email)) WHERE deleted_at IS NULL`.** One address is one account, enforced by the database rather than by whoever writes the next insert. *Without it, two waitlist submissions of the same address produce two rows, and then "look up the account by verified email" during sign-in has two answers and an admin promoting one leaves the other holding the address forever. The public waitlist endpoint is bursty and adversarial by design, so this is the ordinary case rather than a race.* Every write and read normalises with trim and lowercase; the index is what makes that a guarantee instead of a convention.
+
+`waitlist_email_sent_at` gates the confirmation email so it is sent once per account, ever. *Rate limiting bounds request rate, not total sends over time or across addresses, so without this the endpoint mails a stranger's inbox as often as someone cares to submit it.*
 
 A waitlist signup writes an account in state `waitlist` carrying name and email only, with no keys and no default thread. Promotion moves it to `invited` and creates its account key and default thread in the same transaction. `invited → active` flips when the authenticated person finishes first run, never on an admin action. The admin panel's Waitlist page is `state = 'waitlist'`; its People page is the other three. `referred_by_account_id` and `referral_thread_id` are set when someone is added by a share to an address-book person with no account yet, which is how the Waitlist page tells people who came from a shared thread from people who signed up on their own.
 

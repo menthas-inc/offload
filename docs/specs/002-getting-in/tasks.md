@@ -19,24 +19,24 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 - [ ] **A2** Monorepo skeleton: pnpm workspaces, Turborepo, shared tsconfig, ESLint already wired. `apps/web`, `apps/core-api`, `packages/api`, `packages/tokens`, `schemas/events`.
 - [ ] **A3** `packages/tokens`: generate design tokens as JSON from `.claude/skills/offload-design/tokens/`, plus a Tailwind theme built from it. *Generated, never hand-copied, so a design sync propagates (OFF-7).*
 - [ ] **A4** Core API skeleton: Fastify, `zod` and `fastify-type-provider-zod`, `/healthz`, structured logging that carries ids and outcomes only (OFF-1).
-- [ ] **A5** Migration runner and the spec 001 subset: `accounts`, `account_identities`, `staff`, `threads`, `thread_members`, `account_keys`, `thread_keys`, `jobs`, `analytics_events`. Kysely codegen so types come from the schema.
+- [ ] **A5** Migration runner and the spec 001 subset: `accounts` (with `UNIQUE (lower(email)) WHERE deleted_at IS NULL` and `waitlist_email_sent_at`), `account_identities`, `staff`, `threads`, `thread_members`, `account_keys`, `thread_keys`, `jobs`, `analytics_events`. Kysely codegen so types come from the schema.
 - [ ] **A6** `seed` script producing realistic shape and volume, since there is no database branching and this is what stands in for it.
 - [ ] **A7** Railway project: Postgres from a **pgvector-enabled template**, PITR on from day one, services in one region on private networking. Automated via the Railway CLI where it allows.
 - [ ] **A8** GitHub Actions: lint, typecheck, test, and migrations against an ephemeral Postgres seeded by A6.
 
 ## Phase B, the waitlist
 
-- [ ] **B1** `POST /v1/waitlist`: honeypot, per-IP and per-email rate limiting, enumeration-safe in body, status and timing.
+- [ ] **B1** `POST /v1/waitlist`: honeypot, per-IP and per-email rate limiting, one upsert in every branch, a fixed minimum response duration, and trim-and-lowercase normalisation on every boundary.
 - [ ] **B2** `jobs` runner in the Core API with `FOR UPDATE SKIP LOCKED`, visibility timeout, attempts with backoff, dead state.
-- [ ] **B3** `Mailer` interface, Resend implementation, and the design's 600px template with four slots plus a plain-text alternative.
-- [ ] **B4** `email.waitlist_joined` job.
+- [ ] **B3** `Mailer` interface, Resend implementation, and the design's 600px template with four slots plus a plain-text alternative. From `offload@offload.club`.
+- [ ] **B4** `email.waitlist_joined` job, gated on `waitlist_email_sent_at` so it sends once per account ever, and scrubbing the recipient from `jobs.last_error`.
 - [ ] **B5** Landing page in `(marketing)`: one field, success line in place, `Sign in` top right, responsive to 375.
 - [ ] **B6** `waitlist_joined` event, and the `schemas/events` entry plus its CI validation.
 
 ## Phase C, the admin panel
 
-- [ ] **C1** `staff` table seeded by `seed:admins` from `ADMIN_EMAILS`, which is then discarded. No runtime env check on the request path.
-- [ ] **C2** Admin authorization middleware: staff if and only if the token's **verified** email has a row. Support and owner resolve to different page sets.
+- [ ] **C1** `staff` seeded by `seed:admins` from `ADMIN_EMAILS`, which is then discarded. No runtime env check on the request path. **The seed runs the same promotion transaction as C5** for an email with no account yet, so the first owner is assembled exactly like every other account rather than by a second code path.
+- [ ] **C2** Admin authorization middleware: `staff.account_id = session.account_id`, using the account the session already resolved rather than re-deriving one from an email claim. Support and owner resolve to different page sets.
 - [ ] **C3** `(admin)` route group: moss navigation, the `admin` tag by the wordmark, its own layout.
 - [ ] **C4** Waitlist page: waiting, invited-not-signed-in, cursor-paginated, select one or many.
 - [ ] **C5** `POST /v1/admin/waitlist/:id/invite` and the batch variant. One transaction: state, `account_keys`, Miscellaneous thread, `thread_members`, `thread_keys`, enqueue email, emit `invite_sent`. Idempotent.
@@ -44,9 +44,9 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 
 ## Phase D, auth on web
 
-- [ ] **D1** Better Auth **remapped onto `accounts` and `account_identities`**, not running parallel identity tables. Sessions in Postgres, httpOnly cookie on web, 15-minute access TTL.
+- [ ] **D1** Better Auth **remapped onto `accounts` and `account_identities`**, with its own `accountLinking` **disabled**. Sessions in Postgres; cookie `Domain=.offload.club`, `HttpOnly`, `Secure`, `SameSite=Lax`; CORS on the API allowing only the web origin with credentials; 15-minute access TTL.
 - [ ] **D2** The invite gate in **two layers**: a `user.create.before` hook returning false, and no session issued for an account that is not invited or active. *Better Auth has open issues about before-hooks not firing on every path, and this is the product's entire access control, so it does not get to be the only thing standing there. Verify the hook fires on both the Google and the Apple callback.*
-- [ ] **D3** Identity linking, and the Apple relay-address limitation surfaced to the person by name.
+- [ ] **D3** Identity linking, entirely in our code. The Apple relay-address limitation surfaced by name. Linking onto a `staff` account notifies existing identities and needs a second admin's approval.
 - [ ] **D4** Session refresh checks `accounts.state`, so disabling stops live sessions.
 - [ ] **D5** Sign-in screen, Apple first on web, with the refusal as one line above the buttons.
 - [ ] **D6** No-invite screen: names the address it checked, joins the waitlist in one tap reusing it, "Use a different account" as the quiet secondary.
@@ -71,12 +71,12 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 
 ## Tests, by acceptance criterion
 
-- [ ] **T-AC1** Waitlist join is enumeration-safe: identical body, status and indistinguishable timing for new, waiting and existing addresses.
+- [ ] **T-AC1** Waitlist join is enumeration-safe: identical body and status, and **measured** timing variance within noise across new, waiting and existing addresses. Two submissions of one address produce one account row and one email.
 - [ ] **T-AC2** Promotion is one transaction. Forcing a failure at each step leaves no half-promoted account.
 - [ ] **T-AC3** A non-staff account gets 403 on every admin route. *The support-sees-404-not-403 half of AC-3 moves to the spec that builds the owner-only pages: with Costs, Limits, People and Staff out of scope here, that test would pass because the route does not exist rather than because the pattern works, which is false confidence.*
-- [ ] **T-AC5** A valid provider login for an uninvited identity provisions nothing and returns the no-invite state.
+- [ ] **T-AC5** A valid provider login for an uninvited identity provisions nothing and returns the no-invite state. **A sign-in attempt against a `waitlist` or `disabled` account creates no `account_identities` row**, so a refusal has no side effects.
 - [ ] **T-AC6** Apple then Google with the same verified email is one account. An unverified email never links.
 - [ ] **T-AC7** First run completes once per person; a second device resumes rather than restarts.
 - [ ] **T-AC9** Disabling an account stops an existing session at its next refresh, not at token expiry.
-- [ ] **T-AC10** Every emitted event validates against its schema and contains no email address and no real account id.
+- [ ] **T-AC10** Every emitted event validates against its schema and contains no email address and **no field shaped like an account id**, asserted against the four funnel schemas specifically.
 - [ ] **T-AC11** Every email has a plain-text alternative and no image references.

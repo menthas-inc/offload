@@ -54,10 +54,21 @@ first run done  →  state='active'                         + onboarding_complet
 
 AC-5 says never auto-provision, which means intercepting **before** a user row is written, not cleaning up after.
 
+- **Better Auth's own account linking is turned off.** `accountLinking` disabled, no trusted providers. **Every linking decision runs in our code, in the steps below, and nowhere else.**
+
+  *This is the hole the two layers would otherwise have left. A waitlist join already writes an `accounts` row, so a later sign-in with that address is not a user creation and never reaches the create hook. With Better Auth's linking enabled, it would attach the new identity at the account level on verified email, on a path neither layer sees. The session backstop still refuses to sign them in, so it is not a full bypass, but a `disabled` account, disabled for cause, would silently gain an unreviewed provider identity as a side effect of a refusal that was supposed to do nothing.*
 - **Primary: a `databaseHooks.user.create.before` hook.** Returning `false` aborts the create, which is the documented mechanism.
 - **Backstop: no session is issued for an account that is not `invited` or `active`.** Checked at issuance, not only at refresh.
 
 **Two layers on purpose.** Better Auth has open issues reporting that before-hooks do not fire on every path and do not always respect a returned object. We are betting the product's entire access control on that hook, so it does not get to be the only thing standing there. If the hook silently fails, an un-invited identity may get a row, and it still cannot get a usable session. Verify the hook fires on both the Google and the Apple callback path as part of D2, rather than assuming symmetry.
+
+### Cookies, CORS and CSRF
+
+The web app is `offload.club` and the API is `api.offload.club`, which are **different origins sharing a session cookie**, so none of this is implicit:
+
+- Cookie: `Domain=.offload.club`, `HttpOnly`, `Secure`, `SameSite=Lax`. Lax rather than Strict so a link from an email lands signed in, which is the whole point of the invite mail.
+- CORS on the API allows exactly `https://offload.club` (and the staging equivalent) with credentials. **Never a wildcard**, which is not merely bad practice here but inoperative, since browsers refuse credentialed requests against `*`.
+- Every state-changing route, which in this feature means promotion, carries CSRF protection. Confirm Better Auth's own protection covers the cross-origin POSTs this feature adds rather than assuming it.
 
 **Access token TTL is 15 minutes**, which bounds how long a disabled account keeps working (AC-9). Stated here because it is a security parameter, not an implementation detail.
 
@@ -88,7 +99,8 @@ Short-lived access with a refresh, so disabling an account stops live sessions r
 
 `POST /v1/waitlist { email }` and it is public, which makes it the most exposed surface in the product.
 
-- **Enumeration-safe.** Identical response body, status and timing whether the address is new, already waiting, or already an account (AC-1). Achieved by doing the same work in every branch and returning before any branch-specific email decision.
+- **Enumeration-safe.** Identical response body, status and timing whether the address is new, already waiting, or already an account (AC-1). Every branch performs **the same single upsert** against the unique email index, and the response is held to a **fixed minimum duration** so a faster branch cannot be timed. *"The same work in every branch" was the intent in an earlier draft, but an insert, a no-op and a lookup have different costs and identical HTTP responses still leak through timing.*
+- **Normalised at every boundary.** Trim and lowercase on write and on read, with the unique index making it a guarantee rather than a convention.
 - **Honeypot field** plus **per-IP and per-email rate limiting** in Postgres.
 - ⚠️ **Turnstile is a pre-public gate, not built here.** A honeypot stops scripts, not a determined actor, and the cost of a flooded waitlist is a mailbox full of confirmation emails sent to people who did not ask. Add it before the landing page is publicly linked.
 - The response is always the design's line: *"You are on the list, we will email you when your account is ready to use."*
@@ -113,7 +125,10 @@ Short-lived access with a refresh, so disabling an account stops live sessions r
 
 A seeded, verified-email allowlist in `staff`, checked app-side. A caller is staff if and only if their token's **verified** email has a row.
 
+- **The check is `staff.account_id = session.account_id`.** The session already resolved which account this is; re-deriving one from a raw email claim would be a second account-resolution path for the same request, which is how two paths come to disagree (SEC-2). *An earlier draft said "the caller's verified email has a row", which `staff` cannot answer: it holds `account_id`, not an email.*
 - Seeded once from `ADMIN_EMAILS` by a `seed:admins` script, after which the variable is discarded. **No runtime `email IN env` check on the request path**, which would be both a privilege-escalation surface and a way for a secret to reach a log.
+- **Bootstrapping the first owner.** Every account reaches `invited` through admin promotion, and promotion needs an admin, so the first one cannot come from the product. `seed:admins` therefore runs **the same promotion transaction as C5** for a seeded email with no account yet, rather than inserting a `staff` row beside a half-made account. *Two code paths that both create accounts is how the invariant "an account is assembled all at once" quietly stops being true.*
+- **A new provider identity linking onto a `staff` account is not automatic.** It notifies the account's existing identities and requires a second admin to approve. *Verified-email linking trusts that whoever controls the address today is who controlled it before, which is fine for an ordinary account and not fine for one that can promote and disable people.*
 - `support` sees Waitlist. `owner` also sees the pages this feature does not build. Support does not see them at all (AC-3).
 
 ## Email
@@ -121,6 +136,8 @@ A seeded, verified-email allowlist in `staff`, checked app-side. A caller is sta
 **Resend**, behind a `Mailer` interface with one method, so swapping it is one class. *Chosen for DX and price at this volume; Postmark is the alternative if deliverability ever needs a specialist. The interface is the point, not the vendor.*
 
 Sending is **a job, never inline**. A slow provider must not slow a request, and a failed send must retry without the person resubmitting. `jobs.kind` values: `email.waitlist_joined`, `email.invited`.
+
+⚠️ **`email.*` jobs are the first place a real email address can reach a log (OFF-1).** A provider rejection or bounce quotes the recipient, and `jobs.last_error` is persisted. For these job kinds, store the job id, the kind, the provider status code and the attempt count, and nothing else. *The 001 review already flagged `last_error` as an unscrubbed path for content to reach a log; this feature is where that path first carries something.*
 
 Three sends, all the design's single 600px table template with four slots, no images, each shipping a plain-text alternative (AC-11):
 
