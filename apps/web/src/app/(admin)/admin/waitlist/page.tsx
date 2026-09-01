@@ -16,6 +16,10 @@ import styles from "../../admin.module.css";
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 const PAGE = 50;
 
+/** Shown in the confirmation so the number is not a surprise. The server owns
+ *  the real value and ignores anything sent from here; this is copy. */
+const BATCH = 25;
+
 interface Row {
   id: string;
   email: string;
@@ -66,6 +70,7 @@ export default function WaitlistPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const load = useCallback(async (search: string, after: string | null) => {
     setLoading(true);
@@ -131,6 +136,7 @@ export default function WaitlistPage() {
   }
 
   async function inviteNext() {
+    setConfirming(false);
     setBusy(true);
     const response = await fetch(`${API}/v1/admin/waitlist/invite-next`, {
       method: "POST",
@@ -190,11 +196,31 @@ export default function WaitlistPage() {
               aria-label="Search by email"
             />
           </span>
-          <button type="button" className={styles.small} onClick={() => void inviteNext()} disabled={busy}>
+          <button type="button" className={styles.small} onClick={() => setConfirming(true)} disabled={busy}>
             Invite the next batch
           </button>
         </span>
       </div>
+
+      {/* OFF-6: anything that leaves offload is confirmed per action, and this
+          one leaves in bulk. A single row's Invite is its own confirmation,
+          because the click names the person. This click names nobody and
+          emails everybody in the batch, and no part of it is reversible once
+          the mail is out. */}
+      {confirming ? (
+        <div className={styles.selection}>
+          <b className={styles.selectionCount}>
+            Invite the oldest {BATCH} still waiting? They each get one email, and it cannot be
+            taken back.
+          </b>
+          <button type="button" className={styles.ghost} onClick={() => setConfirming(false)}>
+            Cancel
+          </button>
+          <button type="button" className={styles.smallPrimary} onClick={() => void inviteNext()} disabled={busy}>
+            Invite {BATCH}
+          </button>
+        </div>
+      ) : null}
 
       {picked.size ? (
         <div className={styles.selection}>

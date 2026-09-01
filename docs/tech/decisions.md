@@ -284,3 +284,9 @@ Shortcuts taken deliberately for alpha and beta. Each says why it is affordable 
 What is left is not decisions but work, and it lives elsewhere: the deferred hardening above, to revisit before GA; the design questions raised in `.claude/skills/offload-design/decisions.md` under Open, which are design's to answer; and the specified-but-undefined items, which are implementation details each spec settles as it is written, not calls to make in the abstract.
 
 *The data model is specced at `docs/specs/001-data-model/`. What remains of it is implementation.*
+
+## The admin panel, decided during 002
+
+- ✅ **A staff member's single Invite click is its own confirmation; the batch is not.** OFF-6 requires anything leaving offload to be confirmed per action. One row's Invite names the person in the click, so the click is the confirmation. "Invite the next batch" names nobody, emails twenty five people at once and cannot be taken back, so it confirms with the count first. *Found by the constitution pass, not by a reviewer: the kit has no confirmation on either, and following the mock exactly would have shipped it.*
+- 🔶 **The weekly batch size is a constant in `apps/core-api/src/routes/admin.ts`.** The kit reads it from a Limits page that does not exist and belongs to another spec. Named rather than a literal at the call site, so moving it to a real setting is one change.
+- ⛔ **The kit's invite semantics, not implemented.** Its notes describe an invite as a single-use link that expires in 14 days, where resending voids the old one and the account is created when they sign in. This product has no such link: promotion creates the account, its keys and its Miscellaneous thread in one transaction (AC-2), and sign-in is by provider on the invited address. Resend therefore re-sends the email rather than reissuing anything. *The spec wins over the kit here, per CLAUDE.md, and the admin page's own notes were rewritten to describe what actually happens.*

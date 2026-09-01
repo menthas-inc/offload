@@ -17,7 +17,15 @@ The Python agent plane is **not** created here. Nothing in this feature calls Cl
 
 ## Tables migrated
 
-Only what this feature reads or writes, per the note in the feature spec: `accounts`, `account_identities`, `staff`, `threads`, `thread_members`, `account_keys`, `thread_keys`, `jobs`, `analytics_events`. Column definitions come from spec 001 unchanged; this feature adds none.
+Only what this feature reads or writes, per the note in the feature spec: `accounts`, `account_identities`, `staff`, `threads`, `thread_members`, `account_keys`, `thread_keys`, `jobs`, `analytics_events`.
+
+Column definitions come from spec 001 unchanged, **except for three changes to `accounts` in migration `0003_promotion.sql`.** They were added during implementation rather than specified ahead of it, which is a DATA-1 miss; they are written down here now:
+
+| Change | Why |
+| --- | --- |
+| `analytics_subject_id` gains `default gen_random_uuid()` and becomes `not null` | It had no default, so whichever code path created the account assigned it, and the auth hook was using "is it still null?" as its once-only lock for `first_sign_in`. The moment promotion also assigned one, that event would have stopped firing for everyone. `gen_random_uuid` and not `uuid_v7`: a v4 is unordered, and a time-ordered pseudonym would put account creation time into the warehouse in the clear, in every event, forever. |
+| `first_signed_in_at timestamptz` | The once-only claim for `first_sign_in`, freed by the change above. Not derivable from `sessions`: "is this the only session?" is true again as soon as the first one expires and a second device signs in. |
+| `invite_email_sent_at timestamptz` | The same claim the waitlist confirmation uses, for the same reason. The queue's idempotency key stops a second enqueue, not a second send by a job that retried after the mailer succeeded and the acknowledgement did not. Released deliberately by the admin panel's Resend. |
 
 *`account_keys` and `thread_keys` are created at promotion even though nothing is encrypted yet, because promotion is the one moment the whole account is assembled and splitting it later means a backfill.*
 
