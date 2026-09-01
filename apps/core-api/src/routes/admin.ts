@@ -49,6 +49,23 @@ const outcome = z.object({
 });
 
 export async function adminRoutes(app: App): Promise<void> {
+  // What the panel's own shell asks first: am I staff, and which pages exist
+  // for me? The role decides which nav items render at all, because support
+  // does not see costs and limits refused, it does not see them.
+  app.get(
+    "/v1/admin/me",
+    {
+      preHandler: requireStaff(),
+      schema: {
+        response: {
+          200: z.object({ role: z.enum(["support", "owner"]) }),
+          404: z.object({ error: z.literal("not-found") }),
+        },
+      },
+    },
+    async (request, reply) => reply.send({ role: request.staff!.role })
+  );
+
   app.get(
     "/v1/admin/waitlist",
     {

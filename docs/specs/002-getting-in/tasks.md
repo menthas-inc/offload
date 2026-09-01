@@ -37,8 +37,8 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 
 - [x] **C1** `staff` seeded by `seed:admins` from `ADMIN_EMAILS`, which is then discarded. No runtime env check on the request path. **The seed runs the same promotion transaction as C5** for an email with no account yet, so the first owner is assembled exactly like every other account rather than by a second code path.
 - [x] **C2** Admin authorization middleware: `staff.account_id = session.account_id`, using the account the session already resolved rather than re-deriving one from an email claim. Support and owner resolve to different page sets.
-- [ ] **C3** `(admin)` route group: moss navigation, the `admin` tag by the wordmark, its own layout.
-- [ ] **C4** Waitlist page: waiting, invited-not-signed-in, cursor-paginated, select one or many.
+- [x] **C3** `(admin)` route group: moss navigation, the `admin` tag by the wordmark, its own layout.
+- [x] **C4** Waitlist page: waiting, invited-not-signed-in, cursor-paginated, select one or many.
 - [x] **C5** `POST /v1/admin/waitlist/:id/invite` and the batch variant. One transaction: state, `account_keys`, Miscellaneous thread, `thread_members`, `thread_keys`, enqueue email, emit `invite_sent`. Idempotent.
 - [x] **C6** `email.invited` job.
 
