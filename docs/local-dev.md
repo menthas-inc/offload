@@ -137,7 +137,14 @@ is what CI does.
 
 `.nvmrc` pins **22**, which is what CI uses. Run `nvm use` before anything else.
 
-**Use it for real, not just for `node`.** nvm installs pnpm per Node version and
+**pnpm comes from corepack, not from a global install.** The root
+`package.json` sets `packageManager: pnpm@10.5.0`, so `corepack enable pnpm`
+once per Node version is all it takes. nvm installs globals per Node version,
+so a pnpm added under Node 20 simply does not exist under 22, and the failure
+surfaces somewhere unhelpful: Expo shells out to `pnpm` to add a native module
+and dies mid-build with `spawn pnpm ENOENT`.
+
+**Use `nvm use` for real, not just for `node`.** nvm installs pnpm per Node version and
 the shim carries a hard shebang, so a `pnpm` from a Node 20 install runs
 everything under Node 20 no matter what `PATH` says about `node`. Expo then
 starts Metro under a version it does not support and hangs at "Starting Metro
