@@ -17,6 +17,11 @@ const schema = z.object({
   API_URL: z.string().url(),
   WEB_URL: z.string().url(),
   COOKIE_DOMAIN: z.string().min(1),
+  // Additional origins the web app may be served from, comma separated. The
+  // canonical one is WEB_URL; this is for the platform-generated domain during
+  // setup and for staging later. Every entry is trusted for CORS and for
+  // OAuth returns, so it is an allowlist and never a wildcard.
+  EXTRA_WEB_ORIGINS: z.string().optional(),
 
   // Auth. The secret signs sessions; without it nothing can sign in, so it is
   // required rather than defaulted to something guessable.
@@ -58,6 +63,15 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 export const isProduction = env.NODE_ENV === "production";
+
+/** Every origin the web app may legitimately be served from. */
+export const webOrigins: string[] = [
+  env.WEB_URL,
+  ...(env.EXTRA_WEB_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim().replace(/\/$/, ""))
+    .filter(Boolean),
+];
 
 if (isProduction && !env.DATA_ROOT_KEY) {
   throw new Error("DATA_ROOT_KEY is required in production: account keys cannot be wrapped without it.");

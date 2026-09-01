@@ -9,7 +9,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
-import { env } from "./env.js";
+import { webOrigins } from "./env.js";
 import { loggerOptions } from "./logger.js";
 import { healthRoutes } from "./routes/health.js";
 import { waitlistRoutes } from "./routes/waitlist.js";
@@ -45,7 +45,7 @@ export async function buildApp(): Promise<App> {
   // so this is explicit rather than defaulted. Never a wildcard: a browser
   // refuses credentialed requests against one anyway.
   await app.register(cors, {
-    origin: [env.WEB_URL],
+    origin: webOrigins,
     credentials: true,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   });

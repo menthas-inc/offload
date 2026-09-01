@@ -34,7 +34,7 @@
 import { betterAuth } from "better-auth";
 import { expo } from "@better-auth/expo";
 import { db } from "../db.js";
-import { env, isProduction } from "../env.js";
+import { env, isProduction, webOrigins } from "../env.js";
 import { decideLink } from "./gate.js";
 import { recordAttempt } from "./attempt.js";
 import { emit } from "../analytics.js";
@@ -90,7 +90,7 @@ export const auth = betterAuth({
   // it has to be trusted explicitly. Narrow on purpose: "offload://" and not a
   // wildcard, because a permissive entry here is an open redirect at the end of
   // an authenticated flow.
-  trustedOrigins: [env.WEB_URL, "offload://"],
+  trustedOrigins: [...webOrigins, "offload://"],
 
   // Rewrites the session cookie into a form a React Native client can store,
   // and accepts it back on the header the client sends. Without it the phones
