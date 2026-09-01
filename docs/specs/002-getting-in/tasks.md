@@ -22,7 +22,7 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 - [x] **A5** Migration runner and the spec 001 subset: `accounts` (with `UNIQUE (lower(email)) WHERE deleted_at IS NULL` and `waitlist_email_sent_at`), `account_identities`, `staff`, `threads`, `thread_members`, `account_keys`, `thread_keys`, `jobs`, `analytics_events`. Kysely codegen so types come from the schema.
 - [x] **A6** `seed` script producing realistic shape and volume, since there is no database branching and this is what stands in for it.
 - [x] **A7** Railway project `offload` up. Postgres added with **pgvector 0.8.6 verified present**, so there is no trade against the managed backup story. `core-api` deployed and serving, reaching Postgres over the private network. Migrations run on boot under an advisory lock. **PITR enabled 2026-08-31.** *`DATABASE_URL` is a proper `${{Postgres.DATABASE_URL}}` reference; an earlier note here said otherwise and was wrong.* Remaining: the custom domain, which waits on a DNS record.
-- [ ] **A8** GitHub Actions: lint, typecheck, test, and migrations against an ephemeral Postgres seeded by A6.
+- [x] **A8** GitHub Actions: lint, typecheck, test, and migrations against an ephemeral Postgres seeded by A6.
 
 ## Phase B, the waitlist
 

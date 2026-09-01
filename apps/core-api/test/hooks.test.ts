@@ -63,14 +63,12 @@ describe("AC-5 nothing provisions an account", () => {
   it("refuses to create a user, whatever the provider asserts", async () => {
     const before = hooks.user!.create!.before!;
     await expect(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       before({ email: "stranger@example.com", emailVerified: true, name: "A" } as any, undefined as never)
     ).resolves.toBe(false);
   });
 
   it("leaves no account behind after a refused sign-in", async () => {
     const before = hooks.user!.create!.before!;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await before({ email: "stranger@example.com", emailVerified: true } as any, undefined as never);
     const rows = await db.selectFrom("accounts").selectAll().execute();
     expect(rows).toHaveLength(0);
@@ -82,20 +80,17 @@ describe("AC-5 a refusal creates no identity row", () => {
 
   it("refuses an account still on the waitlist", async () => {
     const id = await account("waiting@example.com", "waitlist");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(before()(identity(id) as any, undefined as never)).resolves.toBe(false);
     expect(await db.selectFrom("account_identities").selectAll().execute()).toHaveLength(0);
   });
 
   it("refuses a disabled account", async () => {
     const id = await account("gone@example.com", "disabled");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(before()(identity(id) as any, undefined as never)).resolves.toBe(false);
   });
 
   it("allows an invited one, which is the whole point of the gate", async () => {
     const id = await account("invited@example.com", "invited");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const verdict = await before()(identity(id) as any, undefined as never);
     expect(verdict).not.toBe(false);
   });
@@ -107,13 +102,11 @@ describe("AC-9 a session is not issued or extended for an account that may not h
 
   it("refuses to issue one for a waitlisted account", async () => {
     const id = await account("waiting@example.com", "waitlist");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(create()(session(id) as any, undefined as never)).resolves.toBe(false);
   });
 
   it("issues one for an invited account, so first sign-in works", async () => {
     const id = await account("invited@example.com", "invited");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(create()(session(id) as any, undefined as never)).resolves.not.toBe(false);
   });
 
@@ -121,7 +114,6 @@ describe("AC-9 a session is not issued or extended for an account that may not h
     const id = await account("live@example.com", "active");
     const live = session(id);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(update()(live as any, undefined as never)).resolves.not.toBe(false);
 
     await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", id).execute();
@@ -129,7 +121,6 @@ describe("AC-9 a session is not issued or extended for an account that may not h
     // The refresh is where a session that should have died gets its extension,
     // so refusing here is what makes disabling take effect in minutes rather
     // than at the end of a thirty day cookie.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(update()(live as any, undefined as never)).resolves.toBe(false);
   });
 
@@ -137,7 +128,6 @@ describe("AC-9 a session is not issued or extended for an account that may not h
     const id = await account("erased@example.com", "active");
     const live = session(id);
     await db.updateTable("accounts").set({ deleted_at: new Date() }).where("id", "=", id).execute();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(update()(live as any, undefined as never)).resolves.toBe(false);
   });
 });

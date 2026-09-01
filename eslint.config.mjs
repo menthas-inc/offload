@@ -71,6 +71,21 @@ export default [
       sourceType: "module",
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
-    rules: adherenceRules,
+    plugins: { "@typescript-eslint": tseslint.plugin },
+    rules: {
+      ...adherenceRules,
+      // Not the full recommended set. This one rule, because `any` in
+      // application code is how a typed boundary quietly stops being one, and
+      // every other rule in that set is either already enforced by tsc's
+      // strict flags or a style opinion this repository has not formed.
+      "@typescript-eslint/no-explicit-any": "error",
+    },
+  },
+  {
+    // Tests reach into libraries' internal shapes on purpose: the gate hooks
+    // are typed by Better Auth and not exported, and a test that reconstructs
+    // those types is testing its own reconstruction.
+    files: ["**/test/**/*.{ts,tsx}", "**/*.test.{ts,tsx}"],
+    rules: { "@typescript-eslint/no-explicit-any": "off" },
   },
 ];

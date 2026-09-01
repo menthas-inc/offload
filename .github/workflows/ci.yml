@@ -1,0 +1,89 @@
+# Lint, typecheck, test, and run the migrations against a real Postgres.
+#
+# The database is the point. Half of what this repository gets wrong is only
+# wrong against Postgres: a partial unique index, a cursor comparison losing
+# microseconds, a transaction that does not roll back. A suite that mocks the
+# database would have passed while every one of those was broken.
+#
+# pgvector rather than plain postgres:17, because migration 0001 creates the
+# extension and a stock image cannot.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # A new push supersedes the run in flight for the same ref. Nothing here is
+  # worth finishing for a commit that has already been replaced.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: offload
+          POSTGRES_PASSWORD: offload
+          POSTGRES_DB: offload_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U offload"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      NODE_ENV: test
+      # localhost is not decoration: test/setup.ts refuses to run against
+      # anything else, because these tests truncate tables.
+      DATABASE_URL: postgres://offload:offload@localhost:5432/offload_test
+      API_URL: http://localhost:4701
+      WEB_URL: http://localhost:4700
+      COOKIE_DOMAIN: localhost
+      # A throwaway. Nothing signed with it leaves this runner, and no real
+      # secret is needed to prove the code works.
+      BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      EMAIL_FROM: ci@offload.club
+      # RESEND_API_KEY is deliberately absent, which selects the in-memory
+      # mailer. CI must not be one typo away from mailing a real person.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Generated from the design system's CSS, and nothing that imports a
+      # token compiles without it.
+      - run: pnpm tokens
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      # Migrations first and on their own, so a broken migration fails as a
+      # broken migration rather than as forty confusing test failures.
+      - run: pnpm db:migrate
+
+      # Against the schema the migrations just produced, with the volumes the
+      # admin waitlist page actually pages through.
+      - run: pnpm db:seed
+
+      - run: pnpm test
+
+      - run: pnpm build

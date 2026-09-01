@@ -139,7 +139,6 @@ describe("T-AC3 the admin API", () => {
       },
       async send() {},
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await guard({ headers: { cookie } } as any, reply as any);
     expect(status).toBe(404);
   });
