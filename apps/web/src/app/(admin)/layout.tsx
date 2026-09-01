@@ -1,15 +1,11 @@
 "use client";
 
-// The admin shell.
+// The admin shell, from ui_kits/admin_web/A.jsx (ASideNav).
 //
-// Moss nav, an `admin` tag beside the wordmark, sidebar plus one pane. The
-// colour is the point: support keeps this window and the app open next to each
-// other all day, and the two must never be confused at a glance.
-//
-// The nav renders from the role. Support does not see costs, limits and staff
-// refused, it does not see them at all, so those items are absent rather than
-// disabled. Right now only the waitlist exists, and an item that leads to a
-// page nobody has built is the same lie as a disabled one.
+// Moss nav, mark plus wordmark plus an `admin` tag, nav items carrying their
+// own counts, the signed-in address at the bottom and a way back to the app.
+// An earlier version had only the mark, no count, no address and no way back,
+// which is what the kit is for and what reading it would have prevented.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -19,16 +15,31 @@ import styles from "./admin.module.css";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
-type Role = "support" | "owner";
+interface Staff {
+  role: "support" | "owner";
+  email: string;
+  waiting: number;
+}
 
-const PAGES: Array<{ href: string; label: string; owner?: boolean }> = [
-  { href: "/admin/waitlist", label: "Waitlist" },
+/** Only the pages that exist. An item leading nowhere is the same lie as a
+ *  disabled one, and support does not see owner pages refused, it does not see
+ *  them: the `owner` flag is how that stays true when they arrive. */
+const PAGES: Array<{ href: string; label: string; owner?: boolean; count?: keyof Staff }> = [
+  { href: "/admin/waitlist", label: "Waitlist", count: "waiting" },
 ];
+
+function ChevronLeft() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  );
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [role, setRole] = useState<Role | null>(null);
+  const [staff, setStaff] = useState<Staff | null>(null);
 
   useEffect(() => {
     fetch(`${API}/v1/admin/me`, { credentials: "include" })
@@ -40,35 +51,49 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           router.replace("/");
           return;
         }
-        const data = (await response.json()) as { role: Role };
-        setRole(data.role);
+        setStaff((await response.json()) as Staff);
       })
       .catch(() => {});
-  }, [router]);
+  }, [router, pathname]);
 
-  if (!role) return null;
+  if (!staff) return null;
 
   return (
     <div className={styles.frame}>
       <nav className={styles.nav}>
         <div className={styles.brand}>
           <Logo variant="mark" size={19} tone="inverse" />
+          <span className={styles.brandWord}>offload</span>
           <span className={styles.tag}>admin</span>
         </div>
 
         <div className={styles.navList}>
-          {PAGES.filter((page) => !page.owner || role === "owner").map((page) => (
-            <Link
-              key={page.href}
-              href={page.href}
-              className={`${styles.navItem} ${pathname === page.href ? styles.navItemOn : ""}`}
-            >
-              {page.label}
-            </Link>
-          ))}
+          {PAGES.filter((page) => !page.owner || staff.role === "owner").map((page) => {
+            const count = page.count ? staff[page.count] : null;
+            return (
+              <Link
+                key={page.href}
+                href={page.href}
+                className={`${styles.navItem} ${pathname === page.href ? styles.navItemOn : ""}`}
+              >
+                <span className={styles.navLabel}>{page.label}</span>
+                {/* Only when there is something to do. A zero is not news. */}
+                {typeof count === "number" && count > 0 ? (
+                  <em className={styles.navCount}>{count.toLocaleString("en-GB")}</em>
+                ) : null}
+              </Link>
+            );
+          })}
         </div>
 
-        <p className={styles.who}>Signed in as {role}</p>
+        <div className={styles.navFoot}>
+          <span className={styles.who}>Signed in as {staff.email}</span>
+          {/* Bidirectional: the app has a way here too, for staff only. */}
+          <Link href="/today" className={styles.back}>
+            <ChevronLeft />
+            Back to the app
+          </Link>
+        </div>
       </nav>
 
       <main className={styles.pane}>{children}</main>

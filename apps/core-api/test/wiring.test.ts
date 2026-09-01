@@ -68,16 +68,23 @@ describe("the job runner the server builds", () => {
     for (const kind of kinds) expect(Object.keys(handlers)).toContain(kind);
   });
 
-  it("marks a job with no handler as failed rather than leaving it queued", async () => {
+  it("records an attempt against a job with no handler rather than ignoring it", async () => {
     const mailer = new MemoryMailer();
     const runner = createJobRunner(undefined, () => mailer);
 
     await enqueue({ kind: "email.nonexistent", payload: {} });
     await runner.tick();
 
-    const job = await db.selectFrom("jobs").select(["state", "attempts"]).executeTakeFirstOrThrow();
-    // Either retrying or dead, but never still sitting in queued as though
-    // nothing had touched it.
-    expect(job.state).not.toBe("queued");
+    const job = await db
+      .selectFrom("jobs")
+      .select(["state", "attempts", "last_error"])
+      .executeTakeFirstOrThrow();
+
+    // Back to queued is correct: an unknown kind is retried with backoff like
+    // any other failure, and a deploy that adds the handler drains it. What
+    // must not happen is the row sitting untouched, which is what a runner
+    // that never claimed it would look like.
+    expect(job.attempts).toBeGreaterThan(0);
+    expect(job.last_error).not.toBeNull();
   });
 });

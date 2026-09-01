@@ -275,3 +275,21 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **Why the code wins:** the spec, not the mock, defines what promotion does, and copy that describes a mechanism the product does not have is worse than no copy. Support reads this panel.
 
 **Design system impact:** `ui_kits/admin_web/AdminApp.jsx`'s `NOTES` array should be corrected to match, and the "single use, expires in 14 days" line dropped until such a mechanism exists.
+
+### 2026-09-01 · Removing a waitlist address, which the kit leaves out
+**Surface:** admin
+**Is:** The waitlist table has a Remove action beside Invite, for rows still waiting only. It confirms first and names the address.
+
+**The kit says not to have it.** `AdminApp.jsx`'s notes read "Removing an address from the waitlist is not here on purpose. Support does it from People once the account exists." Two things make that unworkable today: People does not exist, and an address that arrived by typo or by bot has no account to remove it from, because until an invite goes out there is nothing but a row.
+
+**Kept narrow so the kit's reasoning still holds where it applies.** The route refuses anything past `waitlist`, so an invited or active account can never be removed this way; that account has keys, a thread and a membership, and removing it here would orphan all three. It is also a soft delete, because the unique index on the address only covers rows where `deleted_at` is null: a hard delete would let the same address rejoin and be counted as new, and the rate limiter would lose sight of it.
+
+**Design system impact:** the kit's notes array should describe Remove and keep the "belongs on People" rule for accounts that exist, rather than forbidding removal outright.
+
+### 2026-09-01 · The admin nav, and a link back the other way
+**Surface:** admin, web
+**Is:** The nav was rebuilt against `A.jsx`'s `ASideNav`, which it had only partly followed: the wordmark beside the mark, a count on Waitlist, the signed-in address rather than the role, and "Back to the app" were all specified and all missing.
+
+**One addition the kit does not have:** a moss `admin` link in the web app, top right, rendered only for staff. The kit gives the panel a way back to the app and the app no way in, which leaves typing a URL as the only route. It reuses the nav's own moss so the destination is legible before the click, and it is the only moss chrome in the app. The staff check is the same request the panel makes, which 404s for everyone else, so a non-staff account cannot learn the panel exists from it.
+
+**Design system impact:** `ui_kits/web_app/` gains the staff link on the app side; `A.jsx` is already correct and was simply not followed.

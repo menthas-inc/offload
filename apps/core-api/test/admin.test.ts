@@ -104,7 +104,9 @@ describe("AC-3 the admin API", () => {
       headers: { cookie },
     });
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ role: "support" });
+    // The nav needs the address and the waiting count too, not just the role.
+    expect(response.json()).toMatchObject({ role: "support", email: "support@example.test" });
+    expect(typeof response.json().waiting).toBe("number");
   });
 
   it("closes again the moment that account is disabled", async () => {
@@ -341,5 +343,126 @@ describe("the waitlist page's data", () => {
       payload: { ids },
     });
     expect(second.json().results.every((r: { status: string }) => r.status === "already-in")).toBe(true);
+  });
+});
+
+describe("removing someone from the waitlist", () => {
+  async function staffCookie2(): Promise<string> {
+    const id = await activeAccount("remover@example.test");
+    await db.insertInto("staff").values({ account_id: id, role: "owner" }).execute();
+    return signIn(id);
+  }
+
+  it("removes someone still waiting, and hides them from the list", async () => {
+    const cookie = await staffCookie2();
+    const { id } = await db
+      .insertInto("accounts")
+      .values({ email: "typo@example.test", state: "waitlist" })
+      .returning(["id"])
+      .executeTakeFirstOrThrow();
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: `/v1/admin/waitlist/${id}`,
+      headers: { cookie },
+    });
+    expect(response.json()).toEqual({ status: "removed" });
+
+    const listed = await app.inject({ method: "GET", url: "/v1/admin/waitlist", headers: { cookie } });
+    expect(listed.json().rows.map((r: { email: string }) => r.email)).not.toContain("typo@example.test");
+  });
+
+  it("refuses anyone past the waitlist, who has keys and a thread to orphan", async () => {
+    const cookie = await staffCookie2();
+    const promoted = await promote("invited@example.test");
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: `/v1/admin/waitlist/${promoted.accountId}`,
+      headers: { cookie },
+    });
+    expect(response.json()).toEqual({ status: "not-waiting" });
+
+    const still = await db
+      .selectFrom("accounts")
+      .select(["state", "deleted_at"])
+      .where("id", "=", promoted.accountId)
+      .executeTakeFirstOrThrow();
+    expect(still.state).toBe("invited");
+    expect(still.deleted_at).toBeNull();
+  });
+
+  it("is a soft delete, so the same address cannot rejoin as though it were new", async () => {
+    const cookie = await staffCookie2();
+    const { id } = await db
+      .insertInto("accounts")
+      .values({ email: "again@example.test", state: "waitlist" })
+      .returning(["id"])
+      .executeTakeFirstOrThrow();
+
+    await app.inject({ method: "DELETE", url: `/v1/admin/waitlist/${id}`, headers: { cookie } });
+
+    const row = await db
+      .selectFrom("accounts")
+      .select(["deleted_at"])
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow();
+    expect(row.deleted_at).not.toBeNull();
+  });
+
+  it("is invisible to someone who is not staff", async () => {
+    const id = await activeAccount("nosy@example.test");
+    const cookie = await signIn(id);
+    const { id: victim } = await db
+      .insertInto("accounts")
+      .values({ email: "safe@example.test", state: "waitlist" })
+      .returning(["id"])
+      .executeTakeFirstOrThrow();
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: `/v1/admin/waitlist/${victim}`,
+      headers: { cookie },
+    });
+    expect(response.statusCode).toBe(404);
+
+    const row = await db
+      .selectFrom("accounts")
+      .select(["deleted_at"])
+      .where("id", "=", victim)
+      .executeTakeFirstOrThrow();
+    expect(row.deleted_at).toBeNull();
+  });
+});
+
+describe("what the nav needs", () => {
+  it("says who is signed in by address, not by role", async () => {
+    const id = await activeAccount("boss2@example.test");
+    await db.insertInto("staff").values({ account_id: id, role: "owner" }).execute();
+    const cookie = await signIn(id);
+
+    const response = await app.inject({ method: "GET", url: "/v1/admin/me", headers: { cookie } });
+    expect(response.json().email).toBe("boss2@example.test");
+    expect(response.json().role).toBe("owner");
+  });
+
+  it("counts only the people actually still waiting", async () => {
+    const id = await activeAccount("boss3@example.test");
+    await db.insertInto("staff").values({ account_id: id, role: "owner" }).execute();
+    const cookie = await signIn(id);
+
+    await db
+      .insertInto("accounts")
+      .values([
+        { email: "w-a@example.test", state: "waitlist" },
+        { email: "w-b@example.test", state: "waitlist" },
+        { email: "w-c@example.test", state: "waitlist", deleted_at: new Date() },
+      ])
+      .execute();
+    await promote("gone-from-count@example.test");
+
+    const response = await app.inject({ method: "GET", url: "/v1/admin/me", headers: { cookie } });
+    // Two waiting. Not the removed one, and not the invited one.
+    expect(response.json().waiting).toBe(2);
   });
 });

@@ -274,3 +274,22 @@
   color: var(--text-inverse);
   font: var(--weight-medium) 14px/1 var(--font-core);
 }
+
+/* The one piece of moss chrome in the app: the way into the staff panel.
+   Same colour as the panel's nav, so the destination is obvious before the
+   click. Only staff ever render it. */
+.adminLink {
+  position: fixed;
+  right: var(--gutter-screen);
+  top: var(--gutter-screen);
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--moss-700);
+  color: var(--paper);
+  font: var(--weight-medium) 13px/1 var(--font-core);
+  text-decoration: none;
+}
+.adminLink:hover { background: var(--moss-600); color: var(--paper); }

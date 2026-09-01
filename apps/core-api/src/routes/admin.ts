@@ -107,12 +107,40 @@ export async function adminRoutes(app: App): Promise<void> {
       preHandler: requireStaff(),
       schema: {
         response: {
-          200: z.object({ role: z.enum(["support", "owner"]) }),
+          200: z.object({
+            role: z.enum(["support", "owner"]),
+            /** Shown in the nav. The kit says "signed in as" and then an
+             *  address, because a role is not who you are and support often
+             *  has two accounts open. */
+            email: z.string(),
+            /** The count beside Waitlist in the nav. */
+            waiting: z.number().int(),
+          }),
           404: z.object({ error: z.literal("not-found") }),
         },
       },
     },
-    async (request, reply) => reply.send({ role: request.staff!.role })
+    async (request, reply) => {
+      const [account, counts] = await Promise.all([
+        db
+          .selectFrom("accounts")
+          .select(["email"])
+          .where("id", "=", request.staff!.accountId)
+          .executeTakeFirstOrThrow(),
+        db
+          .selectFrom("accounts")
+          .select(db.fn.countAll<string>().as("n"))
+          .where("state", "=", "waitlist")
+          .where("deleted_at", "is", null)
+          .executeTakeFirstOrThrow(),
+      ]);
+
+      return reply.send({
+        role: request.staff!.role,
+        email: account.email,
+        waiting: Number(counts.n),
+      });
+    }
   );
 
   app.get(
@@ -313,6 +341,60 @@ export async function adminRoutes(app: App): Promise<void> {
       });
 
       return reply.send({ status: "queued" as const });
+    }
+  );
+
+  // Removing someone from the waitlist.
+  //
+  // The kit says this is deliberately absent, and that support does it from
+  // People once the account exists. People does not exist, and an address
+  // submitted by a bot or a typo has no account to remove it from, so it is
+  // here. Narrower than the kit's account deletion in two ways that keep it
+  // safe: it refuses anything past `waitlist`, so an invited or active account
+  // can never be removed by this route, and it is a soft delete.
+  //
+  // Soft, because the unique index on the address is partial: it only covers
+  // rows where deleted_at is null. Clearing the row hard would let the same
+  // address rejoin and be counted as new, and keeping a tombstone means the
+  // rate limiter and the audit trail both still see it.
+  app.delete(
+    "/v1/admin/waitlist/:id",
+    {
+      preHandler: requireStaff(),
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          200: z.object({ status: z.enum(["removed", "not-waiting"]) }),
+          404: z.object({ error: z.enum(["not-found"]) }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const removed = await db
+        .updateTable("accounts")
+        .set({ deleted_at: new Date(), updated_at: new Date() })
+        // Only someone still waiting. An invited account has keys, a thread
+        // and a membership, and removing it here would leave all three behind.
+        .where("id", "=", request.params.id)
+        .where("state", "=", "waitlist")
+        .where("deleted_at", "is", null)
+        .returning("id")
+        .executeTakeFirst();
+
+      if (removed) return reply.send({ status: "removed" as const });
+
+      // Tell apart "there is no such row" from "that person is past the
+      // waitlist", because the second is a refusal an admin needs explaining
+      // and the first is a stale page.
+      const exists = await db
+        .selectFrom("accounts")
+        .select("id")
+        .where("id", "=", request.params.id)
+        .executeTakeFirst();
+
+      return exists
+        ? reply.send({ status: "not-waiting" as const })
+        : reply.status(404).send({ error: "not-found" as const });
     }
   );
 

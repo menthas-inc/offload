@@ -51,7 +51,7 @@ const NOTES = [
   "Inviting sends the one transactional email and creates the account, its keys and its Miscellaneous thread in a single transaction. They can sign in with Apple or Google on that address as soon as it arrives.",
   "Inviting twice is inviting once. A second invite sends no second email and creates no second thread.",
   "Someone who came from a shared thread is already vouched for by a member, so those usually go in the next batch.",
-  "Removing an address from the waitlist is not here on purpose. Support does it from People once the account exists.",
+  "Remove takes an address off the list without telling them, for a typo or a bot. It only works before an invite goes out: after that the account has keys and a thread, and removing it belongs on People.",
 ] as const;
 
 function SearchIcon() {
@@ -73,6 +73,7 @@ export default function WaitlistPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [batch, setBatch] = useState<number | null>(BATCH_UNKNOWN);
+  const [removing, setRemoving] = useState<Row | null>(null);
 
   const load = useCallback(async (search: string, after: string | null) => {
     setLoading(true);
@@ -178,6 +179,22 @@ export default function WaitlistPage() {
     void load(query, null);
   }
 
+  async function remove(row: Row) {
+    setRemoving(null);
+    const response = await fetch(`${API}/v1/admin/waitlist/${row.id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      say("That did not go through.");
+      return;
+    }
+    const { status } = (await response.json()) as { status: "removed" | "not-waiting" };
+    say(status === "removed" ? "Removed from the waitlist" : "That account has already been invited.");
+    void load(query, null);
+  }
+
   function toggle(id: string) {
     setPicked((current) => {
       const next = new Set(current);
@@ -234,6 +251,24 @@ export default function WaitlistPage() {
           </button>
           <button type="button" className={styles.smallPrimary} onClick={() => void inviteNext()} disabled={busy}>
             {batch === null ? "Invite the batch" : `Invite ${batch}`}
+          </button>
+        </div>
+      ) : null}
+
+      {/* Destructive and not undoable from here, so it names the address
+          rather than asking about "this row". Only ever offered for someone
+          still waiting: an invited account has keys, a thread and a membership
+          that this would orphan, and the server refuses it anyway. */}
+      {removing ? (
+        <div className={styles.selection}>
+          <b className={styles.selectionCount}>
+            Remove {removing.email} from the waitlist? They are not told, and they can join again.
+          </b>
+          <button type="button" className={styles.ghost} onClick={() => setRemoving(null)}>
+            Cancel
+          </button>
+          <button type="button" className={styles.smallPrimary} onClick={() => void remove(removing)}>
+            Remove
           </button>
         </div>
       ) : null}
@@ -298,9 +333,14 @@ export default function WaitlistPage() {
 
             <span style={{ width: 96, flex: "0 0 auto", textAlign: "right" }}>
               {row.state === "waiting" ? (
-                <button type="button" className={styles.small} onClick={() => void invite([row.id])} disabled={busy}>
-                  Invite
-                </button>
+                <span style={{ display: "inline-flex", gap: 4 }}>
+                  <button type="button" className={styles.small} onClick={() => void invite([row.id])} disabled={busy}>
+                    Invite
+                  </button>
+                  <button type="button" className={styles.ghost} onClick={() => setRemoving(row)}>
+                    Remove
+                  </button>
+                </span>
               ) : row.state === "invited" ? (
                 <button type="button" className={styles.ghost} onClick={() => void resend(row.id)}>
                   Resend

@@ -11,6 +11,7 @@
 // same: dump something. Nothing it accepts is wired up yet.
 
 import { useRef, useState } from "react";
+import { AdminLink } from "../../../components/AdminLink";
 import { useMe } from "../../../lib/use-me";
 import styles from "../auth.module.css";
 
@@ -31,6 +32,7 @@ export default function TodayPage() {
 
   return (
     <main className={styles.screen} style={{ alignItems: "flex-start", paddingTop: 96 }}>
+      <AdminLink />
       <div className={styles.today}>
         <p className={styles.emptyTitle}>
           {firstName ? `Nothing here yet, ${firstName}.` : "Nothing here yet."} Dump the first
