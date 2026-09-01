@@ -1,0 +1,32 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": { "EXPO_PUBLIC_API_URL": "https://api.offload.club" },
+      "ios": { "simulator": false },
+      "android": { "buildType": "apk" }
+    },
+    "development-simulator": {
+      "extends": "development",
+      "ios": { "simulator": true }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "env": { "EXPO_PUBLIC_API_URL": "https://api.offload.club" },
+      "android": { "buildType": "apk" }
+    },
+    "production": {
+      "channel": "production",
+      "autoIncrement": true,
+      "env": { "EXPO_PUBLIC_API_URL": "https://api.offload.club" }
+    }
+  },
+  "submit": { "production": {} }
+}
