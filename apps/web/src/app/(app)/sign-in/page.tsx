@@ -1,14 +1,14 @@
 "use client";
 
-// The gate. Two buttons and one line of copy, because there is no third way in
-// and nothing here to configure.
+// The gate. From ui_kits/web_app/WFirstRunGate.jsx: one 440px card on a sunken
+// page, the same copy and the same order as the phones.
 //
-// Apple is listed above Google on web. On iOS that ordering is an App Store
-// requirement, and matching it everywhere means the screen a person sees on
-// their phone is the screen they see on their laptop.
+// Apple is the filled button and Google the outlined one. That is not only the
+// App Store's prominence requirement, it is what stops the pair reading as an
+// arbitrary choice between two identical things.
 
 import { useState } from "react";
-import { Logo } from "../../../components/Logo";
+import { AppleMark, GateCard, GateChrome, GoogleMark } from "../../../components/GateChrome";
 import { signIn, WEB_PROVIDER_ORDER, type Provider } from "../../../lib/auth-client";
 import styles from "../auth.module.css";
 
@@ -19,52 +19,54 @@ const LABEL: Record<Provider, string> = {
 
 export default function SignInPage() {
   const [pending, setPending] = useState<Provider | null>(null);
-  const [refusal, setRefusal] = useState<string | null>(null);
+  const [refused, setRefused] = useState(false);
 
   async function go(provider: Provider) {
-    setRefusal(null);
+    setRefused(false);
     setPending(provider);
     const { error } = await signIn(provider);
     // On success the browser has already left for the provider, so reaching
     // here at all means it did not.
     if (error) {
       setPending(null);
-      setRefusal("That did not go through. Try again.");
+      setRefused(true);
     }
   }
 
   return (
-    <main className={styles.screen}>
-      <div className={styles.card}>
-        <div className={styles.mark}>
-          <Logo size={44} />
-        </div>
+    <GateChrome>
+      <GateCard>
+        <h1 className={styles.title}>Sign in to offload</h1>
+        <p className={styles.sub}>Use the account your invite was sent to.</p>
 
-        <h1 className={styles.claim}>Offload what you would otherwise forget.</h1>
-        <p className={styles.quiet}>
-          Invite only for now. Sign in with the address your invite went to.
-        </p>
+        {refused ? (
+          <p className={styles.refusal} role="alert">
+            That did not go through. Nothing was sent, try again.
+          </p>
+        ) : null}
 
-        <div className={styles.actions}>
-          {refusal ? (
-            <p className={styles.refusal} role="alert">
-              {refusal}
-            </p>
-          ) : null}
-
+        <div className={`${styles.providers} ${refused ? styles.providersTight : ""}`}>
           {WEB_PROVIDER_ORDER.map((provider) => (
             <button
               key={provider}
               type="button"
-              className={styles.provider}
+              className={`${styles.provider} ${provider === "apple" ? styles.providerDark : styles.providerLight}`}
               onClick={() => void go(provider)}
               disabled={pending !== null}
             >
+              {provider === "apple" ? <AppleMark /> : <GoogleMark />}
               {pending === provider ? "Taking you there…" : LABEL[provider]}
             </button>
           ))}
         </div>
-      </div>
-    </main>
+
+        <p className={styles.caption}>
+          offload is invite only.{" "}
+          <a href="/#waitlist" className={styles.captionLink}>
+            Join the waitlist
+          </a>
+        </p>
+      </GateCard>
+    </GateChrome>
   );
 }

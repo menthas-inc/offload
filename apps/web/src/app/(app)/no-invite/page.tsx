@@ -1,41 +1,38 @@
 "use client";
 
-// The screen for someone who signed in successfully and still cannot come in.
+// Authentication worked, authorization did not.
 //
-// Authentication worked. Authorization did not. That distinction is invisible
-// to the person standing here, so the screen does not explain it. It says
-// which address it looked at, offers the one useful next step, and gets out of
-// the way.
+// From the kit: the address is named inside the sentence rather than on a line
+// of its own, both actions are full-width buttons rather than one button and a
+// quiet link, and the footer answers the question the screen provokes, which is
+// "but I was invited".
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Logo } from "../../../components/Logo";
+import { useRouter } from "next/navigation";
+import { GateCard, GateChrome } from "../../../components/GateChrome";
 import styles from "../auth.module.css";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
-type Status = "reading" | "ready" | "joined";
-
 export default function NoInvitePage() {
+  const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
-  const [status, setStatus] = useState<Status>("reading");
+  const [joined, setJoined] = useState(false);
 
   useEffect(() => {
-    // Read once, and the server clears the cookie as it answers. A reload
-    // after that shows the screen without the address rather than a stale one.
+    // Read once; the server clears the cookie as it answers, so a reload shows
+    // the screen without the address rather than a stale one.
     fetch(`${API}/api/sign-in/attempt`, { credentials: "include" })
       .then((response) => (response.ok ? response.json() : { email: null }))
       .then((data: { email: string | null }) => setEmail(data.email))
-      .catch(() => setEmail(null))
-      .finally(() => setStatus("ready"));
+      .catch(() => setEmail(null));
   }, []);
 
-  async function join() {
+  function join() {
     if (!email) return;
-    setStatus("joined");
-    // Deliberately not awaited for its verdict. The endpoint answers the same
-    // way for every address by design, so there is nothing to branch on and
-    // showing a spinner would imply otherwise.
+    setJoined(true);
+    // Not awaited for a verdict. The endpoint answers identically for every
+    // address by design, so there is nothing to branch on.
     void fetch(`${API}/v1/waitlist`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -43,45 +40,49 @@ export default function NoInvitePage() {
     }).catch(() => {});
   }
 
+  if (joined) {
+    return (
+      <GateChrome>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 22 }}>
+          <GateCard>
+            <h1 className={styles.title}>You are on the list</h1>
+            <p className={styles.sub}>
+              We will email {email ? <span className={styles.subStrong}>{email}</span> : "you"} when your
+              account is ready to use.
+            </p>
+          </GateCard>
+          <p className={styles.toast}>Added to the waitlist</p>
+        </div>
+      </GateChrome>
+    );
+  }
+
   return (
-    <main className={styles.screen}>
-      <div className={styles.card}>
-        <div className={styles.mark}>
-          <Logo size={44} />
+    <GateChrome>
+      <GateCard>
+        <h1 className={styles.title}>You are not on the list yet</h1>
+        <p className={styles.sub}>
+          offload is invite only right now.{" "}
+          {email ? (
+            <>
+              We checked <span className={styles.subStrong}>{email}</span> and found no invite.
+            </>
+          ) : (
+            "We found no invite for that account."
+          )}
+        </p>
+
+        <div className={styles.actions}>
+          <button type="button" className={styles.primary} onClick={join} disabled={!email}>
+            Join the waitlist with this email
+          </button>
+          <button type="button" className={styles.secondary} onClick={() => router.replace("/sign-in")}>
+            Use a different account
+          </button>
         </div>
 
-        {status === "joined" ? (
-          <>
-            <h1 className={styles.claim}>You are on the list.</h1>
-            <p className={styles.quiet}>
-              We are letting people in weekly. You will get an email the moment it is your turn.
-            </p>
-          </>
-        ) : (
-          <>
-            <h1 className={styles.claim}>offload is invite only right now.</h1>
-            <p className={styles.quiet}>
-              That account does not have an invite yet.
-            </p>
-            {email ? <p className={styles.address}>{email}</p> : null}
-
-            <div className={styles.actions}>
-              {email ? (
-                <button type="button" className={styles.primary} onClick={() => void join()}>
-                  Join the waitlist
-                </button>
-              ) : (
-                <Link href="/#waitlist" className={styles.primary} style={{ display: "grid", placeItems: "center" }}>
-                  Join the waitlist
-                </Link>
-              )}
-              <Link href="/sign-in" className={styles.secondary} style={{ textAlign: "center" }}>
-                Use a different account
-              </Link>
-            </div>
-          </>
-        )}
-      </div>
-    </main>
+        <p className={styles.caption}>Invited on another address? Sign in with that one instead.</p>
+      </GateCard>
+    </GateChrome>
   );
 }

@@ -224,3 +224,22 @@ Full reasoning for each is in `readme.md`.
 **Why it matters here:** the design-adherence lint rejects a raw px in application code, which is the rule working. Both of these reached the point of being written as literals before being caught, which is the signal that the scale is missing a step rather than that the screen is wrong.
 
 **Design system impact:** `tokens/space.css` or equivalent gains a `--control-height`, and either the dot becomes 6px in the kits or the scale gains a 7px step. Until then both deviations are commented at their use site.
+
+### 2026-09-01 · The web gate was built without reading its kit
+**Surface:** web
+**Is:** The sign-in, no-invite and first-run screens were implemented from `readme.md` and the feature spec's acceptance criteria, and `ui_kits/web_app/WFirstRunGate.jsx` was never opened. They have been rebuilt against it. What differed:
+
+- The card. The kit is a 440px raised card with a sheet shadow on a sunken page, wordmark top left, `Terms · Privacy` bottom left. The build had a bare centred column on the page background.
+- The title. The kit says "Sign in to offload". The build had reused the marketing headline, "Offload what you would otherwise forget.", which is the site's argument and not a gate's instruction.
+- The provider buttons. The kit fills Apple and outlines Google, both with their glyphs, at 48px. The build had two identical outlined buttons with no icons at 52px, which makes the pair read as an arbitrary choice.
+- The refusal. The kit is a soft attention block above the buttons. The build had a line of danger-red text, which says the person made a mistake.
+- The no-invite screen. The kit names the address inside the sentence, offers two full-width buttons, and closes with "Invited on another address? Sign in with that one instead.". The build had the address on its own line, a quiet text link for the secondary, and no footer.
+- First run. The kit carries an illustration per screen, a 34px title, a 240px button, and progress dots below it whose active step is an 18px pill. The build had no art, a 26px title, a full-width button, and three equal dots at the top.
+
+**Why it matters:** every one of these was individually defensible and collectively a different product. The rule that would have caught it is "read the kit for the screen you are building", not "read the design system".
+
+**Two gaps found in the system while doing it:**
+1. The kit uses `--radius-2xl`, which the token set does not define. The rebuild uses `--radius-xl`.
+2. Google's four brand hexes cannot be tokens, because Google's branding requirements mandate them for the sign-in button. They are the one lint exception in the web app, scoped to that component with the reason at the use site.
+
+**Design system impact:** `tokens/` gains `--radius-2xl` or the kit changes to `--radius-xl`. The mobile and Android gates have the same divergence and are not yet rebuilt.
