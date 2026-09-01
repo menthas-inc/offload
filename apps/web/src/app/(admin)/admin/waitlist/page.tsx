@@ -11,6 +11,7 @@
 // address, per-row actions and the notes below the table.
 
 import { useCallback, useEffect, useState } from "react";
+import { useAdmin } from "../../admin-context";
 import styles from "../../admin.module.css";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
@@ -76,6 +77,9 @@ export default function WaitlistPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // The nav counts who is waiting, and every action below changes that number.
+  // The page knows when it moved; the nav does not.
+  const { refresh } = useAdmin();
   const [confirming, setConfirming] = useState(false);
   const [batch, setBatch] = useState<number | null>(BATCH_UNKNOWN);
   const [removing, setRemoving] = useState<Row | null>(null);
@@ -141,6 +145,7 @@ export default function WaitlistPage() {
         : `Invited ${letIn}${already ? `, ${already} already in` : ""}`
     );
     setPicked(new Set());
+    refresh();
     void load(query, null);
   }
 
@@ -165,6 +170,7 @@ export default function WaitlistPage() {
     };
     setBatch(batchSize);
     say(`Invited ${results.filter((r) => r.status === "invited").length}`);
+    refresh();
     void load(query, null);
   }
 
@@ -206,6 +212,7 @@ export default function WaitlistPage() {
     // and the click, and saying so is more use than a number that hides it.
     say(`Removed ${removed}${skipped ? `, ${skipped} already invited` : ""}`);
     setPicked(new Set());
+    refresh();
     void load(query, null);
   }
 
@@ -222,6 +229,7 @@ export default function WaitlistPage() {
     }
     const { status } = (await response.json()) as { status: "removed" | "not-waiting" };
     say(status === "removed" ? "Removed from the waitlist" : "That account has already been invited.");
+    refresh();
     void load(query, null);
   }
 

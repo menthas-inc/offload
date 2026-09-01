@@ -7,19 +7,14 @@
 // An earlier version had only the mark, no count, no address and no way back,
 // which is what the kit is for and what reading it would have prevented.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "../../components/Logo";
+import { AdminProvider, type Staff } from "./admin-context";
 import styles from "./admin.module.css";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
-
-interface Staff {
-  role: "support" | "owner";
-  email: string;
-  waiting: number;
-}
 
 /** Only the pages that exist. An item leading nowhere is the same lie as a
  *  disabled one, and support does not see owner pages refused, it does not see
@@ -76,7 +71,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [staff, setStaff] = useState<Staff | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     fetch(`${API}/v1/admin/me`, { credentials: "include" })
       .then(async (response) => {
         // 404, not 403. The panel does not confirm its own existence to
@@ -88,13 +83,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
         setStaff((await response.json()) as Staff);
       })
-      .catch(() => {});
-  }, [router, pathname]);
+      .catch(() => {
+        // A network blip is not a signed-out state. The nav keeps whatever it
+        // last knew rather than throwing the person out of the panel.
+      });
+  }, [router]);
+
+  useEffect(load, [load, pathname]);
 
   if (!staff) return null;
 
   return (
-    <div className={styles.frame}>
+    <AdminProvider value={{ staff, refresh: load }}>
+      <div className={styles.frame}>
       <nav className={styles.nav}>
         <div className={styles.brand}>
           <Logo variant="mark" size={19} tone="inverse" />
@@ -132,7 +133,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </nav>
 
-      <main className={styles.pane}>{children}</main>
-    </div>
+        <main className={styles.pane}>{children}</main>
+      </div>
+    </AdminProvider>
   );
 }
