@@ -103,6 +103,23 @@ const tokens = {
 mkdirSync(OUT_DIR, { recursive: true });
 writeFileSync(join(OUT_DIR, "tokens.json"), JSON.stringify(tokens, null, 2) + "\n");
 
+// A CSS file too, with the references intact, because in a browser var() is
+// the point: one :root and one dark scope, and a component names a semantic
+// alias rather than a value. This is what the web app imports, and it is
+// generated for the same reason the JSON is: so no value is ever retyped.
+const cssLines = [
+  "/* Generated from the design system. Do not edit: run `pnpm tokens`. */",
+  ":root {",
+  ...Object.entries(light).map(([k, v]) => `  --${k}: ${v};`),
+  "}",
+  "",
+  '[data-theme="dark"] {',
+  ...Object.entries(dark).map(([k, v]) => `  --${k}: ${v};`),
+  "}",
+  "",
+];
+writeFileSync(join(OUT_DIR, "tokens.css"), cssLines.join("\n"));
+
 console.log(
   `tokens: ${Object.keys(light).length} light, ${Object.keys(dark).length} dark, ` +
     `${Object.keys(resolvedLight).length} resolved, from ${files.length} files`

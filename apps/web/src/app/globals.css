@@ -1,0 +1,42 @@
+/* The design system's tokens, generated. Never a literal value here (OFF-7). */
+@import "@offload/tokens/tokens.css";
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html,
+body { margin: 0; padding: 0; }
+
+body {
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font: var(--text-body-role);
+  letter-spacing: var(--tracking-body);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--text-accent); text-decoration: none; }
+a:hover { color: var(--moss-700); }
+
+/* Focus is a 2px ink outline offset 2px, and it is never removed. */
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Reduced motion is a cut, not a shortening: the new state is simply there.
+   Handled once, here, so no component writes a second rule. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
