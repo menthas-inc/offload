@@ -11,6 +11,19 @@ import { fileURLToPath } from "node:url";
 config({ path: join(dirname(fileURLToPath(import.meta.url)), "../../../.env") });
 
 // These tests truncate tables. Refuse to run anywhere that is not local.
-if (!process.env.DATABASE_URL?.includes("localhost")) {
+//
+// The two cases are separate messages on purpose. "Not local" and "not there at
+// all" have completely different causes, and collapsing them cost a CI debug:
+// turbo filters the environment, so a variable the workflow sets is absent
+// inside the task unless turbo.json names it, and the suite reported that as a
+// non-local database.
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL is not set. Locally that means no root .env; under turbo it " +
+      "means the variable is not in globalPassThroughEnv (docs/tech/turbo-env.md)."
+  );
+}
+
+if (!process.env.DATABASE_URL.includes("localhost")) {
   throw new Error("Tests refuse a non-local DATABASE_URL: they truncate tables.");
 }

@@ -1,9 +1,33 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "API_URL",
+    "WEB_URL",
+    "API_PORT",
+    "WEB_PORT",
+    "PORT",
+    "COOKIE_DOMAIN",
+    "BETTER_AUTH_SECRET",
+    "DATA_ROOT_KEY",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "APPLE_CLIENT_ID",
+    "APPLE_TEAM_ID",
+    "APPLE_KEY_ID",
+    "APPLE_PRIVATE_KEY",
+    "APPLE_BUNDLE_ID",
+    "RESEND_API_KEY",
+    "EMAIL_FROM",
+    "ADMIN_EMAILS",
+    "NEXT_PUBLIC_API_URL",
+    "NEXT_PUBLIC_WEB_URL"
+  ],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
     "typecheck": { "dependsOn": ["^build"] },
-    "test": { "dependsOn": ["^build"] },
+    "test": { "dependsOn": ["^build"], "cache": false },
     "lint": {},
     "dev": { "cache": false, "persistent": true }
   }
