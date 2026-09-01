@@ -33,6 +33,18 @@ Things that bite most often:
 - One emoji in the product, 👀, on a message offload has seen but not answered, and it needs a text alternative.
 - Never hand-edit `_ds_bundle.js`, `_ds_manifest.json` or `_adherence.oxlintrc.json`. They are generated.
 
+## Things that have already gone wrong here
+
+Short list, kept short. Each one cost real time in this repo.
+
+- **Verify through the real loader, not a bespoke one.** A hand-written line-by-line read of `.env` reported a complete Apple key as a 28-character fragment, because the format supports multi-line quoted values and my parser did not. The check is always "load it the way the app loads it and see what comes out".
+- **Never overwrite a file you did not create.** `cat > .env` destroyed credentials that existed nowhere else. Now blocked by `.claude/hooks/protect-secrets.sh`, which is the control that replaced the good intention.
+- **A test that passes only in your shell is not passing.** The suite depended on a manually sourced `.env` and would have failed for CI and for everyone else. Tests load their own environment.
+- **Distrust vendor marketing, including in docs.** Railway's blog claimed sub-millisecond private networking that their own support forum contradicts. Deepgram's headline accuracy came from Deepgram. Prefer an independent benchmark or the vendor's own bug tracker.
+- **A CLI can lie about its own output.** `railway variables --json` documents itself as printing raw values and prints resolved ones, which produced a confident wrong conclusion about a stored reference.
+- **The defect class that matters most is two documents written days apart.** Almost every real finding from the review passes was a contradiction between things that each read fine alone: a cascade specified in one file and refcounting in another, an event carrying an account id in one place and a pseudonym in another.
+- **Deploying finds things local runs cannot.** The builder, the injected `PORT`, and a pool error that killed the process all appeared only on the platform.
+
 ## Where things live
 
 - Product and technical specs: `docs/specs/NNN-feature-slug/` (feature-spec, impl-spec, tasks)
