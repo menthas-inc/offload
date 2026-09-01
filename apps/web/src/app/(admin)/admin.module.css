@@ -127,11 +127,14 @@
 }
 .selectionCount { flex: 1; font: var(--weight-medium) 14px/1 var(--font-core); color: var(--text-primary); }
 
+/* Drawn at 32, hit at 44. The design system's Button compensates the same way,
+   and a staff-only surface is not an excuse to skip it. */
 .ghost {
   border: none;
   background: none;
   cursor: pointer;
-  height: 32px;
+  min-height: 32px;
+  padding-block: 6px;
   padding: 0 var(--space-4);
   border-radius: var(--radius-sm);
   font: var(--weight-medium) var(--size-label)/1 var(--font-core);
@@ -140,7 +143,8 @@
 .ghost:hover { background: var(--state-hover); color: var(--text-primary); }
 
 .small {
-  height: 32px;
+  min-height: 32px;
+  padding-block: 6px;
   padding: 0 var(--space-4);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
@@ -152,7 +156,8 @@
 .small:hover { background: var(--state-hover); }
 
 .smallPrimary {
-  height: 32px;
+  min-height: 32px;
+  padding-block: 6px;
   padding: 0 var(--space-4);
   border: none;
   border-radius: var(--radius-sm);

@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className={styles.frame}>
       <nav className={styles.nav}>
         <div className={styles.brand}>
-          <Logo size={20} />
+          <Logo variant="mark" size={19} tone="inverse" />
           <span className={styles.tag}>admin</span>
         </div>
 

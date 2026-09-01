@@ -8,8 +8,8 @@
 -- Auth's account model requires provider token columns. We do not want them. We
 -- never call a Google API on someone's behalf; connector tokens are a separate
 -- vault by decision. The columns exist because the library needs them, and a
--- hook blanks them immediately after sign-in, so a live provider refresh token
--- is never at rest in this database.
+-- hook blanks them before the insert, so a live provider token is never at rest
+-- in this database at all, not even for the width of a transaction.
 
 -- ------------------------------------------------- account_identities, extended
 

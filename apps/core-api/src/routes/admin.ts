@@ -157,7 +157,9 @@ export async function adminRoutes(app: App): Promise<void> {
       else if (state === "invited") query = query.where("state", "=", "invited");
       // Everyone who has ever been on the waitlist, which is not everyone:
       // staff seeded straight to active were never waiting for anything.
-      else query = query.where("state", "in", ["waitlist", "invited", "active"]);
+      // Disabled is included, because a disabled account was on this list at
+      // some point and hiding it makes it look as though it never existed.
+      else query = query.where("state", "in", ["waitlist", "invited", "active", "disabled"]);
 
       if (q) {
         // Substring, case-insensitive. An admin searching a waitlist is

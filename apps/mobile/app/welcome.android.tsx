@@ -76,7 +76,7 @@ export default function Welcome() {
         <Pressable
           onPress={() => (last ? void finish(true) : setStep(step + 1))}
           disabled={leaving}
-          className="h-a-row-height w-full items-center justify-center rounded-pill bg-blue-600 active:opacity-90"
+          className="min-h-a-row-height w-full items-center justify-center rounded-pill bg-blue-600 active:opacity-90"
         >
           <Text className="font-core text-body font-medium text-text-inverse">
             {last ? "Get started" : "Next"}

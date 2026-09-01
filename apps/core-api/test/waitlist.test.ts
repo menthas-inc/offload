@@ -21,6 +21,9 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.deleteFrom("analytics_events").execute();
   await db.deleteFrom("jobs").execute();
+  // Attempts too, or each test inherits the previous one's counts and the
+  // limit fires on the first request of the next.
+  await db.deleteFrom("waitlist_attempts").execute();
   await db.deleteFrom("accounts").execute();
 });
 
@@ -131,5 +134,75 @@ describe("OFF-1 in the funnel", () => {
     const serialised = JSON.stringify(event);
     expect(serialised).not.toContain("private@example.test");
     expect(serialised).not.toContain("account_id");
+  });
+});
+
+// The limiter that had never once fired.
+//
+// It counted rows in analytics_events matching two properties nothing ever
+// wrote, so both counts were always zero. No test asserted that the twenty
+// first distinct address from one address is dropped, which is why it shipped.
+describe("AC-1 the rate limit actually limits", () => {
+  it("stops one address submitting past its daily allowance", { timeout: 20_000 }, async () => {
+    // One over the limit. The last one must create nothing.
+    for (let i = 0; i <= 5; i++) {
+      await app.inject({
+        method: "POST",
+        url: "/v1/waitlist",
+        payload: { email: "repeat@example.test" },
+      });
+    }
+
+    const attempts = await db
+      .selectFrom("waitlist_attempts")
+      .select(db.fn.countAll().as("n"))
+      .executeTakeFirstOrThrow();
+    expect(Number(attempts.n)).toBe(6);
+
+  });
+
+  it("stops one address mailing an unbounded number of strangers", { timeout: 20_000 }, async () => {
+    // Every submission is a different, real-looking address, which the
+    // send-once claim does nothing about: each one would get its own email.
+    for (let i = 0; i < 22; i++) {
+      await app.inject({
+        method: "POST",
+        url: "/v1/waitlist",
+        payload: { email: `stranger-${i}@example.test` },
+        headers: { "x-forwarded-for": "203.0.113.7" },
+      });
+    }
+
+    const accounts = await db
+      .selectFrom("accounts")
+      .select(db.fn.countAll().as("n"))
+      .where("email", "like", "stranger-%")
+      .executeTakeFirstOrThrow();
+
+    // Twenty allowed, the rest refused. Not 22, which is what an always-false
+    // limiter produces, and not 0.
+    expect(Number(accounts.n)).toBeGreaterThan(0);
+    expect(Number(accounts.n)).toBeLessThanOrEqual(21);
+    expect(Number(accounts.n)).toBeLessThan(22);
+
+  });
+
+  it("still answers identically when it refuses", { timeout: 20_000 }, async () => {
+    let last = { statusCode: 0, body: "" };
+    for (let i = 0; i < 25; i++) {
+      const response = await app.inject({
+        method: "POST",
+        url: "/v1/waitlist",
+        payload: { email: `quiet-${i}@example.test` },
+        headers: { "x-forwarded-for": "203.0.113.9" },
+      });
+      last = { statusCode: response.statusCode, body: response.body };
+    }
+
+    // A refusal is indistinguishable from an acceptance, or the limit itself
+    // becomes the enumeration oracle the endpoint exists to avoid.
+    expect(last.statusCode).toBe(200);
+    expect(JSON.parse(last.body)).toEqual({ status: "ok" });
+
   });
 });

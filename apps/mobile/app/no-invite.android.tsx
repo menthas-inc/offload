@@ -56,7 +56,11 @@ export default function NoInvite() {
 
       <View className="px-gutter-screen pb-space-8 gap-space-4">
         {joined ? (
-          <View className="self-center rounded-pill bg-ink-950 px-space-7 py-space-5">
+          <View
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            className="self-center rounded-pill bg-ink-950 px-space-7 py-space-5"
+          >
             <Text className="font-core text-body-sm font-medium text-text-inverse">
               {GATE.joined.toast}
             </Text>
@@ -66,7 +70,7 @@ export default function NoInvite() {
             <Pressable
               onPress={join}
               disabled={!email}
-              className="h-a-row-height w-full items-center justify-center rounded-pill bg-blue-600 active:opacity-90"
+              className="min-h-a-row-height w-full items-center justify-center rounded-pill bg-blue-600 active:opacity-90"
             >
               <Text className="font-core text-body font-medium text-text-inverse">
                 {GATE.notInvited.join}
@@ -75,7 +79,7 @@ export default function NoInvite() {
 
             <Pressable
               onPress={() => router.replace("/sign-in")}
-              className="h-a-row-height w-full items-center justify-center rounded-pill border border-a-outline bg-surface-raised active:opacity-90"
+              className="min-h-a-row-height w-full items-center justify-center rounded-pill border border-a-outline bg-surface-raised active:opacity-90"
             >
               <Text className="font-core text-body font-medium text-a-on">{GATE.notInvited.switch}</Text>
             </Pressable>

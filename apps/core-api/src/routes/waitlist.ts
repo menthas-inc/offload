@@ -14,11 +14,12 @@
 //   Normalised. Trim and lowercase on every boundary, with the unique index
 //   making that a guarantee rather than a convention.
 
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { sql } from "kysely";
 import { z } from "zod";
 import type { App } from "../app.js";
 import { db } from "../db.js";
+import { env } from "../env.js";
 import { emit } from "../analytics.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 
@@ -74,22 +75,46 @@ async function settle(started: number): Promise<{ status: "ok" }> {
   return { status: "ok" };
 }
 
+/** HMAC, not a hash. An unsalted digest of an email address is reversible
+ *  against any common address list, and this row outlives the request. */
+function hmac(value: string): Buffer {
+  return createHmac("sha256", env.BETTER_AUTH_SECRET).update(value).digest();
+}
+
+/** Record the attempt and answer whether it is over either limit.
+ *
+ *  Recorded for every submission, including the ones that create nothing, so
+ *  the limit counts attempts rather than successes. Counting successes would
+ *  let an attacker resubmit one known address without limit while never
+ *  incrementing anything.
+ *
+ *  Deliberately not a count over analytics_events, which is what this used to
+ *  be: that outbox ships to R2 and is never a second copy of anything (OFF-1),
+ *  and the two properties it matched on were never written, so the limit had
+ *  never once fired.
+ */
 async function overLimit(email: string, ip: string): Promise<boolean> {
-  const { rows } = await sql<{ by_email: number; by_ip: number }>`
+  const emailHmac = hmac(email);
+  const ipHmac = hmac(ip);
+
+  await db.insertInto("waitlist_attempts").values({ email_hmac: emailHmac, ip_hmac: ipHmac }).execute();
+
+  const { rows } = await sql<{ by_email: string; by_ip: string }>`
     select
-      (select count(*) from analytics_events
-        where name = 'waitlist_joined'
-          and properties ->> 'email_hash' = md5(${email})
-          and received_at > now() - interval '1 day') as by_email,
-      (select count(*) from analytics_events
-        where name = 'waitlist_joined'
-          and properties ->> 'ip_hash' = md5(${ip})
-          and received_at > now() - interval '1 hour') as by_ip
+      (select count(*) from waitlist_attempts
+        where email_hmac = ${emailHmac}
+          and created_at > now() - interval '1 day') as by_email,
+      (select count(*) from waitlist_attempts
+        where ip_hmac = ${ipHmac}
+          and created_at > now() - interval '1 hour') as by_ip
   `.execute(db);
 
   const counts = rows[0];
   if (!counts) return false;
-  return counts.by_email >= RATE_LIMIT.perEmailPerDay || counts.by_ip >= RATE_LIMIT.perIpPerHour;
+  return (
+    Number(counts.by_email) > RATE_LIMIT.perEmailPerDay ||
+    Number(counts.by_ip) > RATE_LIMIT.perIpPerHour
+  );
 }
 
 async function joinWaitlist(email: string, log: App["log"]): Promise<void> {

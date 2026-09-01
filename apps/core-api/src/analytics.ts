@@ -7,7 +7,7 @@
 //
 // Two rules this module enforces rather than trusts:
 //   OFF-1  properties carries structured references only, never content.
-//   AC-17  the subject is a pseudonym, never a real account id.
+//   AC-10  the subject is a pseudonym, never a real account id.
 
 import { db } from "./db.js";
 import type { Kysely, Transaction } from "kysely";

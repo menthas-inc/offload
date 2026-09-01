@@ -29,10 +29,22 @@ export default function SignIn() {
   async function go(provider: Provider) {
     setRefused(false);
     setPending(provider);
-    const { error } = await signIn(provider);
+    const result = await signIn(provider);
     setPending(null);
-    if (!error) router.replace("/");
-    else setRefused(true);
+
+    if (result.ok) {
+      router.replace("/");
+      return;
+    }
+    // A refusal that means "you were never invited" is its own screen, which
+    // names the address it checked and offers the waitlist. Collapsing it into
+    // the banner here is what made that screen unreachable.
+    if (result.reason === "no-invite") {
+      router.replace("/no-invite");
+      return;
+    }
+    // Cancelling the Apple sheet is not a failure and must not look like one.
+    if (result.reason === "failed") setRefused(true);
   }
 
   const providers: Provider[] = hasApple ? ["apple", "google"] : ["google"];

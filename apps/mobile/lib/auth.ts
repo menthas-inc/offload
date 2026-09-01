@@ -44,13 +44,31 @@ export const authClient = createAuthClient({
 
 export type Provider = "apple" | "google";
 
+/** What the gate screens do next.
+ *
+ *  `no-invite` is its own outcome rather than an error string, because the two
+ *  need different screens and folding them together is how the no-invite
+ *  screen became unreachable on both phones: every refusal, including "you
+ *  were never invited", surfaced as the generic banner on the gate itself. The
+ *  web client had an errorCallbackURL and the phones had nothing. */
+export type SignInResult = { ok: true } | { ok: false; reason: "no-invite" | "failed" | "cancelled" };
+
+/** Better Auth surfaces the gate's refusal through its own error vocabulary.
+ *  Anything that means "the account exists but may not in", or "there is no
+ *  account", is the no-invite screen; everything else is a genuine failure. */
+function classify(message: string | undefined): "no-invite" | "failed" {
+  const text = (message ?? "").toLowerCase();
+  const refused = ["no-invite", "not linked", "account not linked", "signup", "sign up", "forbidden", "unable to create"];
+  return refused.some((needle) => text.includes(needle)) ? "no-invite" : "failed";
+}
+
 /** Apple first on iOS because the App Store requires it to be at least as
  *  prominent as any other option. Google first on Android because that account
  *  is already on the device and asking for an Apple one there is a detour. */
 export const providerOrder: Provider[] =
   Platform.OS === "ios" ? ["apple", "google"] : ["google", "apple"];
 
-export async function signInWithApple(): Promise<{ error?: string }> {
+export async function signInWithApple(): Promise<SignInResult> {
   try {
     const credential = await AppleAuthentication.signInAsync({
       requestedScopes: [
@@ -59,7 +77,7 @@ export async function signInWithApple(): Promise<{ error?: string }> {
       ],
     });
 
-    if (!credential.identityToken) return { error: "no-token" };
+    if (!credential.identityToken) return { ok: false, reason: "failed" };
 
     // The id token goes to our API, which verifies it against Apple's keys.
     // Nothing here decides anything: the gate runs on the server, because a
@@ -68,25 +86,33 @@ export async function signInWithApple(): Promise<{ error?: string }> {
       provider: "apple",
       idToken: { token: credential.identityToken },
     });
-    return error ? { error: error.message ?? "failed" } : {};
+    // Apple's native sheet has no redirect, so there is no errorCallbackURL to
+    // carry a refusal. The outcome is classified here instead and the screen
+    // navigates.
+    return error ? { ok: false, reason: classify(error.message) } : { ok: true };
   } catch (thrown) {
     // Apple reports a cancelled sheet as a thrown error with this code, which
     // is not a failure and must not surface as one.
     const code = (thrown as { code?: string })?.code;
-    if (code === "ERR_REQUEST_CANCELED") return {};
-    return { error: "failed" };
+    if (code === "ERR_REQUEST_CANCELED") return { ok: false, reason: "cancelled" };
+    return { ok: false, reason: "failed" };
   }
 }
 
-export async function signInWithGoogle(): Promise<{ error?: string }> {
+export async function signInWithGoogle(): Promise<SignInResult> {
   const { error } = await authClient.signIn.social({
     provider: "google",
-    callbackURL: "/welcome",
+    callbackURL: "offload://welcome",
+    // Without this a refused sign-in comes back as a generic error and the
+    // no-invite screen is never reached. The scheme is already in the API's
+    // trusted origins, and the server checks it there rather than trusting it
+    // from here.
+    errorCallbackURL: "offload://no-invite",
   });
-  return error ? { error: error.message ?? "failed" } : {};
+  return error ? { ok: false, reason: classify(error.message) } : { ok: true };
 }
 
-export function signIn(provider: Provider): Promise<{ error?: string }> {
+export function signIn(provider: Provider): Promise<SignInResult> {
   return provider === "apple" ? signInWithApple() : signInWithGoogle();
 }
 

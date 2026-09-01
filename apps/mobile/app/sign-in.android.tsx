@@ -33,10 +33,22 @@ export default function SignIn() {
   async function go(provider: Provider) {
     setRefused(false);
     setPending(provider);
-    const { error } = await signIn(provider);
+    const result = await signIn(provider);
     setPending(null);
-    if (!error) router.replace("/");
-    else setRefused(true);
+
+    if (result.ok) {
+      router.replace("/");
+      return;
+    }
+    // A refusal that means "you were never invited" is its own screen, which
+    // names the address it checked and offers the waitlist. Collapsing it into
+    // the banner here is what made that screen unreachable.
+    if (result.reason === "no-invite") {
+      router.replace("/no-invite");
+      return;
+    }
+    // Cancelling the Apple sheet is not a failure and must not look like one.
+    if (result.reason === "failed") setRefused(true);
   }
 
   const providers: Provider[] = hasApple ? ["google", "apple"] : ["google"];
@@ -82,8 +94,9 @@ export default function SignIn() {
               key={provider}
               onPress={() => void go(provider)}
               disabled={pending !== null}
-              // 56, not 52: Material's button height.
-              className={`h-a-row-height w-full flex-row items-center justify-center gap-space-4 rounded-pill active:opacity-90 ${
+              // 56, not 52: Material's button height. min-h and not h, because
+              // text scales to 200% and a fixed height clips it.
+              className={`min-h-a-row-height w-full flex-row items-center justify-center gap-space-4 rounded-pill active:opacity-90 ${
                 filled ? "bg-blue-600" : dark ? "bg-ink-950" : "border border-a-outline bg-surface-raised"
               }`}
             >

@@ -13,6 +13,16 @@ import { Logo } from "../../components/Logo";
 import { DAY_ONE_INVITATION, EXAMPLES } from "../../lib/gate";
 import { COLOR } from "../../lib/colors";
 
+/** The same glyph as the examples, inverted for the solid button, rather than
+ *  a literal text arrow that picks up the system font. */
+function SendArrow() {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24">
+      <Path d="M12 19V5M12 5l-6 6M12 5l6 6" stroke={COLOR.onSolid} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  );
+}
+
 function ArrowUp() {
   return (
     <Svg width={14} height={14} viewBox="0 0 24 24">
@@ -71,9 +81,14 @@ export default function Today() {
           />
           <Pressable
             disabled={draft.trim().length === 0}
+            accessibilityRole="button"
+            accessibilityLabel="Send"
+            // Drawn at 40 and hit at 44. A control smaller than the minimum
+            // needs the difference given back, not ignored.
+            hitSlop={2}
             className="h-space-10 w-space-10 items-center justify-center rounded-pill bg-ink-950 disabled:bg-ink-200"
           >
-            <Text className="text-paper">↑</Text>
+            <SendArrow />
           </Pressable>
         </View>
       </View>

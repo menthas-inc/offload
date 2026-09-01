@@ -7,7 +7,7 @@
 
 import { claim, complete, fail, type ClaimedJob } from "./queue.js";
 import { handlers } from "./handlers.js";
-import type { Mailer } from "../mail/index.js";
+import { createMailer as defaultMailer, type Mailer } from "../mail/index.js";
 
 export interface RunnerOptions {
   mailer: Mailer;
@@ -85,4 +85,19 @@ export class JobRunner {
     this.running = false;
     if (this.timer) clearTimeout(this.timer);
   }
+}
+
+/** The runner the API process actually uses.
+ *
+ *  A factory rather than a `new` at the call site, so a test can assert the
+ *  production wiring exists. It did not for a while: enqueueing worked, the
+ *  handlers were tested, and nothing drained the table, because every test
+ *  built its own runner by hand and the server built none. A suite cannot see
+ *  a missing call it never makes itself.
+ */
+export function createJobRunner(
+  log?: RunnerOptions["log"],
+  mailerFactory: () => Mailer = defaultMailer
+): JobRunner {
+  return new JobRunner(log ? { mailer: mailerFactory(), log } : { mailer: mailerFactory() });
 }

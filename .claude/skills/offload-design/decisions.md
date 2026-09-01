@@ -255,3 +255,23 @@ Full reasoning for each is in `readme.md`.
 **What the adherence lint caught during this, both correctly:** a `markOnly` prop invented for `Logo`, which declares `variant` and a `tone` of `ink` or `inverse`; and hard-coded hexes in SVG props, where NativeWind cannot reach and a literal is tempting. Those colours now come from the generated tokens through `lib/colors.ts`.
 
 **Design system impact:** none. The Android platform scope stays where it is and is now consumed rather than copied.
+
+### 2026-09-01 · Android's primary button wears the attention accent, unresolved
+**Surface:** android
+**Is:** Every primary action on Android is `--blue-600`: the filled Google button, Join the waitlist, Get started, and Skip's label at `--blue-700`.
+
+**The problem is that the design system says two things.** `ui_kits/android_app/README.md` specifies "first-run buttons: ink primary on iOS, filled blue primary on Android", and `M3FirstRun.jsx` uses `var(--blue-600)` directly. `readme.md` says of the two accents that "neither accent fills a primary button (that is always ink)", and that ink blue means *this needs you*.
+
+Both cannot hold. Following the Android kit, as the fork does, spends the "something is waiting for you" colour on every ordinary button on that platform, which is the signal Tonight and overdue things will need later.
+
+**Not resolved in code.** The kit is the more specific instruction and the fork follows it, so Android ships blue primaries today. Raised here rather than decided, because the answer is a brand call and the fix is one token either way.
+
+**Design system impact:** either `readme.md`'s rule gains an explicit Android exception, or the Android kit gains a semantic `--a-primary` that is not the attention accent and `M3FirstRun.jsx` stops reaching for `--blue-600` directly. Until then this is a divergence with a log entry rather than a silent one.
+
+### 2026-09-01 · The admin waitlist notes describe this product, not the kit's
+**Surface:** admin
+**Is:** The "what an invite does" notes under the waitlist table are rewritten from `ui_kits/admin_web/AdminApp.jsx`. The kit says an invite "creates nothing: the account exists when they sign in", and that it is "single use, expires in 14 days, and resend voids the old link". Neither is true here: promotion creates the account, its keys, its Miscellaneous thread and its membership in one transaction (AC-2), and there is no link at all, because sign-in is by provider on the invited address. Resend re-sends the email.
+
+**Why the code wins:** the spec, not the mock, defines what promotion does, and copy that describes a mechanism the product does not have is worse than no copy. Support reads this panel.
+
+**Design system impact:** `ui_kits/admin_web/AdminApp.jsx`'s `NOTES` array should be corrected to match, and the "single use, expires in 14 days" line dropped until such a mechanism exists.

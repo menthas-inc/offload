@@ -40,13 +40,22 @@ export default function WelcomePage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [leaving, setLeaving] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   async function finish() {
     if (leaving) return;
     setLeaving(true);
     // The write happens before the navigation, so Today is never rendered for
     // an account the server still considers mid-onboarding.
-    await completeOnboarding();
+    const recorded = await completeOnboarding();
+    if (!recorded) {
+      // Stay put and let them try again. Going on to Today would show a screen
+      // the server still thinks belongs to someone mid-onboarding, and the
+      // next reload would send them back here anyway.
+      setLeaving(false);
+      setFailed(true);
+      return;
+    }
     router.replace("/today");
   }
 
@@ -75,6 +84,11 @@ export default function WelcomePage() {
         </div>
 
         <div className={styles.runFoot}>
+          {failed ? (
+            <p className={styles.refusal} role="alert" style={{ marginTop: 0 }}>
+              That did not go through. Check your connection and try again.
+            </p>
+          ) : null}
           <button
             type="button"
             className={styles.runButton}

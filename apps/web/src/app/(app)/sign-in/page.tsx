@@ -1,7 +1,12 @@
 "use client";
 
 // The gate. From ui_kits/web_app/WFirstRunGate.jsx: one 440px card on a sunken
-// page, the same copy and the same order as the phones.
+// page.
+//
+// The copy is deliberately not the phones'. Web opens on "Sign in to offload",
+// an instruction for someone who came here on purpose; the phones open on the
+// claim, because an app icon is not a page someone chose. Both are faithful to
+// their own kit, so do not sync one to the other on sight.
 //
 // Apple is the filled button and Google the outlined one. That is not only the
 // App Store's prominence requirement, it is what stops the pair reading as an

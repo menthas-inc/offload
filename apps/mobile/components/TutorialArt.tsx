@@ -9,7 +9,7 @@
 // rather than existing twice with the same layout in both copies.
 
 import { Text, View } from "react-native";
-import Svg, { Circle, Ellipse, Path } from "react-native-svg";
+import Svg, { Ellipse, Path } from "react-native-svg";
 import { DUMPS, THINGS } from "../lib/gate";
 import { COLOR } from "../lib/colors";
 
@@ -66,7 +66,6 @@ function ThingIcon({ name, color }: { name: string; color: string }) {
   return (
     <Svg width={17} height={17} viewBox="0 0 24 24">
       <Path d="M7 18h10a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.6 1.3A3.4 3.4 0 0 0 7 18z" strokeLinejoin="round" {...stroke} />
-      <Circle cx="0" cy="0" r="0" {...stroke} />
     </Svg>
   );
 }

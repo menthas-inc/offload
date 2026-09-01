@@ -131,3 +131,64 @@ describe("AC-9 a session is not issued or extended for an account that may not h
     await expect(update()(live as any, undefined as never)).resolves.toBe(false);
   });
 });
+
+// The provider tokens, which two comments claimed were blanked by a hook that
+// did not exist. Google and Apple access and refresh tokens were sitting in
+// account_identities in plaintext: a live third-party credential at rest, in a
+// database whose content is deliberately not encrypted (OFF-2), and a
+// credential is not what OFF-2's ceiling covers.
+describe("provider tokens never reach the database", () => {
+  const create = () => hooks.account!.create!.before!;
+  const update = () => hooks.account!.update!.before!;
+
+  const withTokens = (accountId: string) => ({
+    ...identity(accountId),
+    accessToken: "ya29.a0-live-access-token",
+    refreshToken: "1//0e-live-refresh-token",
+    idToken: "eyJ-live-id-token",
+    accessTokenExpiresAt: new Date(),
+    refreshTokenExpiresAt: new Date(),
+    scope: "openid email profile",
+  });
+
+  it("strips them on the way in, not after the row is written", async () => {
+    const id = await account("invited@example.com", "invited");
+    const verdict = await create()(withTokens(id) as any, undefined as never);
+
+    expect(verdict).not.toBe(false);
+    const data = (verdict as { data: Record<string, unknown> }).data;
+    for (const field of [
+      "accessToken",
+      "refreshToken",
+      "idToken",
+      "accessTokenExpiresAt",
+      "refreshTokenExpiresAt",
+      "scope",
+    ]) {
+      expect(data[field], `${field} must not be persisted`).toBeNull();
+    }
+  });
+
+  it("strips them again on a second sign-in, which updates rather than creates", async () => {
+    const id = await account("returning@example.com", "active");
+    const verdict = await update()(withTokens(id) as any, undefined as never);
+
+    const data = (verdict as { data: Record<string, unknown> }).data;
+    expect(data["accessToken"]).toBeNull();
+    expect(data["refreshToken"]).toBeNull();
+    expect(data["idToken"]).toBeNull();
+  });
+
+  it("keeps the parts of the identity that are not credentials", async () => {
+    const id = await account("keeps@example.com", "invited");
+    const row = withTokens(id);
+    const verdict = await create()(row as any, undefined as never);
+
+    const data = (verdict as { data: Record<string, unknown> }).data;
+    // The provider and its subject are how the identity is found again, so
+    // stripping is targeted rather than a blanket wipe.
+    expect(data["providerId"]).toBe(row.providerId);
+    expect(data["accountId"]).toBe(row.accountId);
+    expect(data["userId"]).toBe(id);
+  });
+});

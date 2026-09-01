@@ -51,7 +51,9 @@ export default function NoInvitePage() {
               account is ready to use.
             </p>
           </GateCard>
-          <p className={styles.toast}>Added to the waitlist</p>
+          <p className={styles.toast} role="status" aria-live="polite">
+            Added to the waitlist
+          </p>
         </div>
       </GateChrome>
     );

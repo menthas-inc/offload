@@ -164,6 +164,14 @@ export interface SchemaMigrationsTable {
   applied_at: Timestamp;
 }
 
+export interface WaitlistAttemptsTable {
+  id: Generated<string>;
+  /** HMAC, never the address. See migration 0004. */
+  email_hmac: Buffer;
+  ip_hmac: Buffer;
+  created_at: Generated<Timestamp>;
+}
+
 export interface Database {
   accounts: AccountsTable;
   account_identities: AccountIdentitiesTable;
@@ -176,5 +184,6 @@ export interface Database {
   thread_keys: ThreadKeysTable;
   jobs: JobsTable;
   analytics_events: AnalyticsEventsTable;
+  waitlist_attempts: WaitlistAttemptsTable;
   schema_migrations: SchemaMigrationsTable;
 }

@@ -238,8 +238,54 @@ export const auth = betterAuth({
           // A refusal leaves no row behind: no identity, no account, nothing
           // to clean up and nothing that makes a second attempt behave
           // differently from the first (AC-5).
-          return verdict.allow ? { data: identity } : false;
+          if (!verdict.allow) return false;
+
+          // Strip the provider tokens before the row is written, not after.
+          //
+          // schema.ts and migration 0002 both claimed a hook blanked these
+          // "straight after sign-in". No such hook existed, so every account
+          // carried a live Google or Apple access and refresh token at rest,
+          // in plaintext, in a database whose content is deliberately not
+          // encrypted (OFF-2). That is a credential, not content, and OFF-2's
+          // stated ceiling does not cover it.
+          //
+          // Blanked here rather than in an `after` hook because an `after`
+          // hook means the tokens are written first and deleted second, and
+          // the window between is a backup, a replica and a WAL segment.
+          //
+          // Safe to discard: offload never calls a provider API on anyone's
+          // behalf. Connector tokens are a separate vault by decision, and the
+          // columns exist only because Better Auth's schema requires them.
+          return {
+            data: {
+              ...identity,
+              accessToken: null,
+              refreshToken: null,
+              idToken: null,
+              accessTokenExpiresAt: null,
+              refreshTokenExpiresAt: null,
+              scope: null,
+            },
+          };
         },
+      },
+
+      // A second sign-in with the same provider updates the identity row
+      // rather than creating one, and Better Auth writes fresh tokens when it
+      // does. The create hook alone would blank them once and let the next
+      // sign-in put them straight back.
+      update: {
+        before: async (identity) => ({
+          data: {
+            ...identity,
+            accessToken: null,
+            refreshToken: null,
+            idToken: null,
+            accessTokenExpiresAt: null,
+            refreshTokenExpiresAt: null,
+            scope: null,
+          },
+        }),
       },
     },
 

@@ -13,13 +13,13 @@ const INK = resolved.light["ink-950"]!;
 const INVERSE = resolved.light["text-inverse"] ?? resolved.light["paper"]!;
 
 export function Logo({
-  variant = "full",
+  variant = "lockup",
   size = 22,
   tone = "ink",
 }: {
   /** `mark` is the vessel alone, which the gate sets at 92px with the wordmark
    *  laid out beneath it rather than beside it. */
-  variant?: "full" | "mark";
+  variant?: "lockup" | "mark";
   size?: number;
   tone?: "ink" | "inverse";
 }) {
@@ -38,7 +38,7 @@ export function Logo({
         />
       </Svg>
 
-      {variant === "full" ? (
+      {variant === "lockup" ? (
         /* Live text, always lowercase, never an outlined file. */
         <Text
           className="font-core"

@@ -56,7 +56,11 @@ export default function NoInvite() {
 
       <View className="px-gutter-screen pb-space-8 gap-space-4">
         {joined ? (
-          <View className="self-center rounded-pill bg-ink-950 px-space-7 py-space-5">
+          <View
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            className="self-center rounded-pill bg-ink-950 px-space-7 py-space-5"
+          >
             <Text className="font-core text-body-sm font-medium text-text-inverse">
               {GATE.joined.toast}
             </Text>

@@ -16,9 +16,10 @@ import styles from "../../admin.module.css";
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 const PAGE = 50;
 
-/** Shown in the confirmation so the number is not a surprise. The server owns
- *  the real value and ignores anything sent from here; this is copy. */
-const BATCH = 25;
+/** Only until the server has told us. It returns batchSize precisely so the
+ *  client does not carry a second copy of a number that is documented as
+ *  moving to a Limits page. */
+const BATCH_UNKNOWN = null;
 
 interface Row {
   id: string;
@@ -71,6 +72,7 @@ export default function WaitlistPage() {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [batch, setBatch] = useState<number | null>(BATCH_UNKNOWN);
 
   const load = useCallback(async (search: string, after: string | null) => {
     setLoading(true);
@@ -150,7 +152,11 @@ export default function WaitlistPage() {
       say("That did not go through. Nobody was invited.");
       return;
     }
-    const { results } = (await response.json()) as { results: Array<{ status: string }> };
+    const { results, batchSize } = (await response.json()) as {
+      results: Array<{ status: string }>;
+      batchSize: number;
+    };
+    setBatch(batchSize);
     say(`Invited ${results.filter((r) => r.status === "invited").length}`);
     void load(query, null);
   }
@@ -160,7 +166,15 @@ export default function WaitlistPage() {
       method: "POST",
       credentials: "include",
     });
-    say(response.ok ? "Invite sent again" : "That did not go through.");
+
+    if (!response.ok) {
+      say("That did not go through.");
+      return;
+    }
+    // 200 does not mean it sent. The row's state can have changed since this
+    // page loaded, and reporting success then would be a lie the admin acts on.
+    const { status } = (await response.json()) as { status: "queued" | "not-invited" };
+    say(status === "queued" ? "Invite sent again" : "Nothing to resend, that account has moved on.");
     void load(query, null);
   }
 
@@ -210,14 +224,16 @@ export default function WaitlistPage() {
       {confirming ? (
         <div className={styles.selection}>
           <b className={styles.selectionCount}>
-            Invite the oldest {BATCH} still waiting? They each get one email, and it cannot be
-            taken back.
+            {batch === null
+              ? "Invite the next batch of the oldest still waiting?"
+              : `Invite the oldest ${batch} still waiting?`}{" "}
+            They each get one email, and it cannot be taken back.
           </b>
           <button type="button" className={styles.ghost} onClick={() => setConfirming(false)}>
             Cancel
           </button>
           <button type="button" className={styles.smallPrimary} onClick={() => void inviteNext()} disabled={busy}>
-            Invite {BATCH}
+            {batch === null ? "Invite the batch" : `Invite ${batch}`}
           </button>
         </div>
       ) : null}
@@ -321,7 +337,11 @@ export default function WaitlistPage() {
         ))}
       </ul>
 
-      {toast ? <p className={styles.toast}>{toast}</p> : null}
+      {toast ? (
+        <p className={styles.toast} role="status" aria-live="polite">
+          {toast}
+        </p>
+      ) : null}
     </>
   );
 }

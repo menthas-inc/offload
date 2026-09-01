@@ -58,6 +58,19 @@ export function useMe(expect: "first-run" | "shell"): MeState {
   return state;
 }
 
-export async function completeOnboarding(): Promise<void> {
-  await fetch(`${API}/api/onboarding/complete`, { method: "POST", credentials: "include" });
+/** Returns whether the server actually recorded it.
+ *
+ *  Not void: a network failure or a session that expired mid-onboarding used
+ *  to throw out of here, which left the caller's "leaving" flag stuck true and
+ *  every button on the screen disabled with no way back but a reload. */
+export async function completeOnboarding(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API}/api/onboarding/complete`, {
+      method: "POST",
+      credentials: "include",
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
