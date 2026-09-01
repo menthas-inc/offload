@@ -293,3 +293,13 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **One addition the kit does not have:** a moss `admin` link in the web app, top right, rendered only for staff. The kit gives the panel a way back to the app and the app no way in, which leaves typing a URL as the only route. It reuses the nav's own moss so the destination is legible before the click, and it is the only moss chrome in the app. The staff check is the same request the panel makes, which 404s for everyone else, so a non-staff account cannot learn the panel exists from it.
 
 **Design system impact:** `ui_kits/web_app/` gains the staff link on the app side; `A.jsx` is already correct and was simply not followed.
+
+### 2026-09-01 · Clay at rest on Remove, and a selection bar that floats
+**Surface:** admin
+**Is:** Two changes to the waitlist table the kit does not describe, both from watching it used.
+
+**The selection bar floats instead of sitting above the table.** `AdminApp.jsx` puts it in the flow, which pushes the whole table down the moment a row is ticked, moving every other row out from under the pointer that just ticked one. Selecting a second row means finding it again. It is now a fixed pill at the bottom of the pane, so the table never moves.
+
+**Remove is clay at rest, not on hover.** `ADanger` in `A.jsx` keeps a destructive row action grey until the pointer is on it: "clay is only ever on a destructive control, and it only turns red once the pointer is on it." The product owner asked for it to read as destructive before you touch it, which is the trade this makes: a clay outline and clay text at rest, filling to `--clay-100` on hover. The solid confirmation stays exactly as `ADanger` specifies, and clay still appears nowhere that is not destructive.
+
+**Design system impact:** `A.jsx`'s `ADanger` gains a resting variant, or the rule in its comment gains an exception for a row action that sits beside a non-destructive one, where grey-until-hover makes the two look alike. The bulk bar's position should change in `AdminApp.jsx` regardless of the clay question.

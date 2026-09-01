@@ -398,6 +398,44 @@ export async function adminRoutes(app: App): Promise<void> {
     }
   );
 
+  // Removing a selection.
+  //
+  // Same rule as one row: only people still waiting, and a soft delete. Done
+  // in a single statement rather than a loop, because unlike promotion there
+  // is no per-row work to serialise, and a partial batch here would be a list
+  // that half changed under someone.
+  app.post(
+    "/v1/admin/waitlist/remove",
+    {
+      preHandler: requireStaff(),
+      schema: {
+        body: z.object({ ids: z.array(z.string().uuid()).min(1).max(MAX_BATCH) }),
+        response: {
+          200: z.object({ removed: z.number().int(), skipped: z.number().int() }),
+          404: z.object({ error: z.enum(["not-found"]) }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const removed = await db
+        .updateTable("accounts")
+        .set({ deleted_at: new Date(), updated_at: new Date() })
+        .where("id", "in", request.body.ids)
+        .where("state", "=", "waitlist")
+        .where("deleted_at", "is", null)
+        .returning("id")
+        .execute();
+
+      // Skipped rather than failed: a selection can legitimately contain
+      // someone who was invited between the page loading and the click, and
+      // the honest report is what happened to each, not an error for all.
+      return reply.send({
+        removed: removed.length,
+        skipped: request.body.ids.length - removed.length,
+      });
+    }
+  );
+
   // The weekly batch: the oldest N still waiting.
   //
   // Oldest first, and chosen by the server rather than by whichever rows the

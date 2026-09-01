@@ -79,6 +79,7 @@ export default function WaitlistPage() {
   const [confirming, setConfirming] = useState(false);
   const [batch, setBatch] = useState<number | null>(BATCH_UNKNOWN);
   const [removing, setRemoving] = useState<Row | null>(null);
+  const [removingMany, setRemovingMany] = useState(false);
 
   const load = useCallback(async (search: string, after: string | null) => {
     setLoading(true);
@@ -184,6 +185,30 @@ export default function WaitlistPage() {
     void load(query, null);
   }
 
+  async function removeSelected() {
+    const ids = [...picked];
+    setRemovingMany(false);
+    setBusy(true);
+    const response = await fetch(`${API}/v1/admin/waitlist/remove`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    setBusy(false);
+
+    if (!response.ok) {
+      say("That did not go through. Nobody was removed.");
+      return;
+    }
+    const { removed, skipped } = (await response.json()) as { removed: number; skipped: number };
+    // Skipped is not an error: someone can be invited between the page loading
+    // and the click, and saying so is more use than a number that hides it.
+    say(`Removed ${removed}${skipped ? `, ${skipped} already invited` : ""}`);
+    setPicked(new Set());
+    void load(query, null);
+  }
+
   async function remove(row: Row) {
     setRemoving(null);
     const response = await fetch(`${API}/v1/admin/waitlist/${row.id}`, {
@@ -209,7 +234,11 @@ export default function WaitlistPage() {
     });
   }
 
+  const allPicked = rows.length > 0 && picked.size === rows.length;
   const waiting = rows.filter((row) => row.state === "waiting").length;
+  /** Removal only applies to people still waiting, so the button says how many
+   *  of the selection it would actually touch rather than the selection size. */
+  const pickedWaiting = rows.filter((row) => picked.has(row.id) && row.state === "waiting").length;
 
   return (
     <>
@@ -272,18 +301,40 @@ export default function WaitlistPage() {
           <button type="button" className={styles.ghost} onClick={() => setRemoving(null)}>
             Cancel
           </button>
-          <button type="button" className={styles.smallPrimary} onClick={() => void remove(removing)}>
+          <button type="button" className={styles.dangerSolid} onClick={() => void remove(removing)}>
             Remove
           </button>
         </div>
       ) : null}
 
-      {picked.size ? (
+      {removingMany ? (
+        <div className={styles.selection}>
+          <b className={styles.selectionCount}>
+            Remove {pickedWaiting} from the waitlist? They are not told, and they can join again.
+          </b>
+          <button type="button" className={styles.ghost} onClick={() => setRemovingMany(false)}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={styles.dangerSolid}
+            onClick={() => void removeSelected()}
+            disabled={busy}
+          >
+            Remove {pickedWaiting}
+          </button>
+        </div>
+      ) : picked.size ? (
         <div className={styles.selection}>
           <b className={styles.selectionCount}>{picked.size} selected</b>
           <button type="button" className={styles.ghost} onClick={() => setPicked(new Set())}>
             Clear
           </button>
+          {pickedWaiting > 0 ? (
+            <button type="button" className={styles.danger} onClick={() => setRemovingMany(true)}>
+              Remove {pickedWaiting}
+            </button>
+          ) : null}
           <button
             type="button"
             className={styles.smallPrimary}
@@ -297,7 +348,19 @@ export default function WaitlistPage() {
 
       <div className={styles.table}>
         <div className={styles.thead}>
-          <span style={{ width: 24, flex: "0 0 auto" }} />
+          <span style={{ width: 24, flex: "0 0 auto" }}>
+            <input
+              type="checkbox"
+              checked={allPicked}
+              // Indeterminate when some but not all are picked, so the box
+              // reports the state rather than guessing at it.
+              ref={(node) => {
+                if (node) node.indeterminate = picked.size > 0 && !allPicked;
+              }}
+              onChange={() => setPicked(allPicked ? new Set() : new Set(rows.map((r) => r.id)))}
+              aria-label={allPicked ? "Clear the selection" : "Select every row on this page"}
+            />
+          </span>
           <span style={{ flex: 1, minWidth: 0 }}>Email</span>
           <span style={{ width: 80, flex: "0 0 auto" }}>Joined</span>
           <span style={{ width: 130, flex: "0 0 auto" }}>Came from</span>
@@ -342,7 +405,7 @@ export default function WaitlistPage() {
                   <button type="button" className={styles.small} onClick={() => void invite([row.id])} disabled={busy}>
                     Invite
                   </button>
-                  <button type="button" className={styles.ghost} onClick={() => setRemoving(row)}>
+                  <button type="button" className={styles.danger} onClick={() => setRemoving(row)}>
                     Remove
                   </button>
                 </span>

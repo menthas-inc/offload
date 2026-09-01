@@ -160,17 +160,31 @@
   margin-top: 6px;
 }
 
-/* The selection bar only exists when a selection does. */
+/* The selection bar floats rather than sitting in the flow.
+   Inline, it pushed the table down the moment a row was ticked, which moves
+   every other row out from under the pointer that just ticked one. A selection
+   bar that makes the next selection harder is worse than none. */
 .selection {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-8);
+  transform: translateX(-50%);
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-5);
-  margin-bottom: var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--surface-accent-soft);
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-3, var(--shadow-2));
+  max-width: calc(100vw - var(--space-9) * 2);
 }
-.selectionCount { flex: 1; font: var(--weight-medium) 14px/1 var(--font-core); color: var(--text-primary); }
+.selectionCount {
+  font: var(--weight-medium) 14px/1.35 var(--font-core);
+  color: var(--text-primary);
+  margin-right: var(--space-3);
+}
 
 /* Drawn at 32, hit at 44. The design system's Button compensates the same way,
    and a staff-only surface is not an excuse to skip it. */
@@ -319,3 +333,35 @@
   font: var(--weight-medium) 14px/1 var(--font-core);
   box-shadow: var(--shadow-2);
 }
+
+/* Clay is only ever on a destructive control.
+   The kit keeps a row action grey until the pointer is on it; this one is clay
+   at rest, at the product owner's request, so Remove reads as destructive
+   before you touch it. Logged in the design system's decisions. */
+.danger {
+  min-height: 32px;
+  padding: 6px var(--space-4);
+  border: 1px solid var(--clay-600);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-danger);
+  cursor: pointer;
+  font: var(--weight-medium) var(--size-label)/1 var(--font-core);
+  transition: background var(--transition-ui), color var(--transition-ui);
+}
+.danger:hover { background: var(--clay-100); }
+
+/* The confirmation itself: solid clay, and the only solid clay anywhere. */
+.dangerSolid {
+  min-height: 40px;
+  padding: 8px var(--space-6);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--clay-600);
+  color: var(--text-on-solid);
+  cursor: pointer;
+  font: var(--weight-medium) 15px/1 var(--font-core);
+  transition: background var(--transition-ui);
+}
+.dangerSolid:hover { background: var(--clay-700); }
+.dangerSolid:disabled { background: var(--state-disabled-surface); color: var(--state-disabled-text); cursor: default; }

@@ -466,3 +466,68 @@ describe("what the nav needs", () => {
     expect(response.json().waiting).toBe(2);
   });
 });
+
+describe("removing a selection", () => {
+  async function staffCookie3(): Promise<string> {
+    const id = await activeAccount("bulk@example.test");
+    await db.insertInto("staff").values({ account_id: id, role: "owner" }).execute();
+    return signIn(id);
+  }
+
+  it("removes the waiting ones and reports the rest as skipped", async () => {
+    const cookie = await staffCookie3();
+    const waiting = await db
+      .insertInto("accounts")
+      .values([
+        { email: "bulk-a@example.test", state: "waitlist" },
+        { email: "bulk-b@example.test", state: "waitlist" },
+      ])
+      .returning(["id"])
+      .execute();
+    // Someone invited between the page loading and the click.
+    const promoted = await promote("bulk-invited@example.test");
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/waitlist/remove",
+      headers: { cookie },
+      payload: { ids: [...waiting.map((r) => r.id), promoted.accountId] },
+    });
+
+    // The honest report is what happened to each, not an error for all.
+    expect(response.json()).toEqual({ removed: 2, skipped: 1 });
+
+    const survivor = await db
+      .selectFrom("accounts")
+      .select(["state", "deleted_at"])
+      .where("id", "=", promoted.accountId)
+      .executeTakeFirstOrThrow();
+    expect(survivor.deleted_at).toBeNull();
+    expect(survivor.state).toBe("invited");
+  });
+
+  it("is invisible to someone who is not staff", async () => {
+    const id = await activeAccount("bulk-nosy@example.test");
+    const cookie = await signIn(id);
+    const { id: victim } = await db
+      .insertInto("accounts")
+      .values({ email: "bulk-safe@example.test", state: "waitlist" })
+      .returning(["id"])
+      .executeTakeFirstOrThrow();
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/waitlist/remove",
+      headers: { cookie },
+      payload: { ids: [victim] },
+    });
+    expect(response.statusCode).toBe(404);
+
+    const row = await db
+      .selectFrom("accounts")
+      .select(["deleted_at"])
+      .where("id", "=", victim)
+      .executeTakeFirstOrThrow();
+    expect(row.deleted_at).toBeNull();
+  });
+});
