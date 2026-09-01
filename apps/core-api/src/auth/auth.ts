@@ -118,9 +118,27 @@ export const auth = betterAuth({
       createdAt: "created_at",
       updatedAt: "updated_at",
     },
-    // Enabled so an invited account can gain its first identity, and governed
-    // by the hook below rather than by the library's own rules.
-    accountLinking: { enabled: true, trustedProviders: ["google", "apple"] },
+    // Three settings, and each one is load bearing. Read from
+    // better-auth/dist/oauth2/link-account.mjs, which refuses to link when:
+    //
+    //   (!isTrustedProvider && !providerEmailVerified)
+    //   || (requireLocalEmailVerified && !ourEmailVerified)
+    //   || !enabled || disableImplicitLinking
+    //
+    // enabled: an invited account gains its first identity by linking, so with
+    // this off and user creation refused there is no way in at all.
+    //
+    // trustedProviders: deliberately NOT set. Naming a provider trusted waives
+    // the check on ITS emailVerified, which is the one assertion this whole
+    // gate rests on. Google and Apple both always send it, so listing them
+    // buys nothing and gives up the check that matters.
+    //
+    // requireLocalEmailVerified: false, because accounts.email_verified means
+    // "we confirmed this address", and at invite time we have not: an admin
+    // typed it. Left at its default of true, every invited person is refused
+    // at their first sign-in. The address is verified by the provider
+    // asserting it, which is the clause above.
+    accountLinking: { enabled: true, requireLocalEmailVerified: false },
   },
 
   session: {
@@ -228,6 +246,18 @@ export const auth = betterAuth({
           // still valid, so it asks the durable question instead: has this
           // account ever emitted the event before.
           await emitFirstSignInOnce(session.userId);
+        },
+      },
+
+      // D4: disabling an account stops a live session at its next refresh
+      // rather than at token expiry. Better Auth refreshes a session every
+      // updateAge, which is where a session that should have died gets its
+      // extension, so that is where the state is checked again.
+      update: {
+        before: async (session) => {
+          const accountId = session.userId;
+          if (!accountId) return { data: session };
+          return (await accountMaySignIn(accountId)) ? { data: session } : false;
         },
       },
     },

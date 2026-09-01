@@ -44,10 +44,10 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 
 ## Phase D, auth on web
 
-- [ ] **D1** Better Auth **remapped onto `accounts` and `account_identities`**, with its own `accountLinking` **disabled**. Sessions in Postgres; cookie `Domain=.offload.club`, `HttpOnly`, `Secure`, `SameSite=Lax`; CORS on the API allowing only the web origin with credentials; 15-minute access TTL.
-- [ ] **D2** The invite gate in **two layers**: a `user.create.before` hook returning false, and no session issued for an account that is not invited or active. *Better Auth has open issues about before-hooks not firing on every path, and this is the product's entire access control, so it does not get to be the only thing standing there. Verify the hook fires on both the Google and the Apple callback.*
-- [ ] **D3** Identity linking, entirely in our code. The Apple relay-address limitation surfaced by name. Linking onto a `staff` account notifies existing identities and needs a second admin's approval.
-- [ ] **D4** Session refresh checks `accounts.state`, so disabling stops live sessions.
+- [x] **D1** Better Auth **remapped onto `accounts` and `account_identities`**, with its own `accountLinking` **enabled and governed by our hook**. *Corrected during implementation: with linking disabled and user creation refused, an invited person has no path in at all, because attaching a first identity is a link. See `docs/tech/decisions.md`.* Sessions in Postgres; cookie `Domain=.offload.club`, `HttpOnly`, `Secure`, `SameSite=Lax`; CORS on the API allowing only the web origin with credentials; 15-minute access TTL.
+- [x] **D2** The invite gate in **three layers**: a `user.create.before` hook returning false, and no session issued for an account that is not invited or active. *Better Auth has open issues about before-hooks not firing on every path, and this is the product's entire access control, so it does not get to be the only thing standing there. Verify the hook fires on both the Google and the Apple callback.*
+- [x] **D3** Identity linking governed by the gate. **Linking onto a `staff` account that already has an identity fails closed** rather than notifying and asking a second admin: stricter than the flow it stands in for, and the approval flow is deferred with the owner-only pages. *The Apple relay-address limitation still needs surfacing by name in the UI copy.*
+- [x] **D4** Session refresh checks `accounts.state`, so disabling stops live sessions. `session.update.before` refuses the refresh, which is where a session that should have died gets its extension.
 - [x] **D5** Sign-in screen, Apple first on web, with the refusal as one line above the buttons.
 - [x] **D6** No-invite screen: names the address it checked, joins the waitlist in one tap reusing it, "Use a different account" as the quiet secondary.
 - [x] **D7** First run, three screens, server-side completion flipping `invited` to `active`.

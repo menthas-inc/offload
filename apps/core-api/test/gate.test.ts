@@ -9,7 +9,9 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
-import { decide, decideLink, link, type ProviderIdentity } from "../src/auth/gate.js";
+import { decideLink } from "../src/auth/gate.js";
+import { auth } from "../src/auth/auth.js";
+import { uuidv7 } from "../src/uuid.js";
 
 await migrate(() => {});
 
@@ -18,6 +20,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  await db.deleteFrom("staff").execute();
   await db.deleteFrom("account_identities").execute();
   await db.deleteFrom("accounts").execute();
 });
@@ -33,128 +36,19 @@ async function account(email: string, state: State): Promise<string> {
   return row.id;
 }
 
-const google = (subject: string, email: string | null, verified = true): ProviderIdentity => ({
-  provider: "google",
-  subject,
-  email,
-  emailVerified: verified,
-});
+async function identity(accountId: string, provider: "google" | "apple"): Promise<void> {
+  await db
+    .insertInto("account_identities")
+    .values({ account_id: accountId, provider, subject: uuidv7(), email_verified: true })
+    .execute();
+}
 
-describe("AC-5 nobody gets in who was not invited", () => {
-  it("refuses an identity with no account at all", async () => {
-    const verdict = await decide(google("sub-1", "stranger@example.test"));
-    expect(verdict).toEqual({ allow: false, reason: "no-invite" });
-  });
-
-  it("provisions nothing when it refuses", async () => {
-    await decide(google("sub-2", "stranger@example.test"));
-    const accounts = await db.selectFrom("accounts").selectAll().execute();
-    const identities = await db.selectFrom("account_identities").selectAll().execute();
-    expect(accounts).toHaveLength(0);
-    expect(identities).toHaveLength(0);
-  });
-
-  it("refuses someone who is on the waitlist but not through it", async () => {
-    await account("waiting@example.test", "waitlist");
-    const verdict = await decide(google("sub-3", "waiting@example.test"));
-    expect(verdict).toEqual({ allow: false, reason: "waitlisted" });
-  });
-
-  it("leaves no identity row behind for a waitlisted refusal", async () => {
-    await account("waiting@example.test", "waitlist");
-    await decide(google("sub-4", "waiting@example.test"));
-    // The refusal must have no side effects. A disabled or waitlisted account
-    // silently gaining an unreviewed provider identity is a landmine for
-    // whoever looks at it later.
-    const identities = await db.selectFrom("account_identities").selectAll().execute();
-    expect(identities).toHaveLength(0);
-  });
-
-  it("refuses a disabled account, by email and by known identity alike", async () => {
-    const id = await account("gone@example.test", "disabled");
-    expect(await decide(google("sub-5", "gone@example.test"))).toEqual({
-      allow: false,
-      reason: "disabled",
-    });
-
-    await db
-      .insertInto("account_identities")
-      .values({ account_id: id, provider: "google", subject: "sub-6", email_verified: true })
-      .execute();
-    expect(await decide(google("sub-6", "gone@example.test"))).toEqual({
-      allow: false,
-      reason: "disabled",
-    });
-  });
-});
-
-describe("AC-6 one person, several providers", () => {
-  it("links a new provider onto an invited account on a verified email", async () => {
-    const id = await account("invited@example.test", "invited");
-    const verdict = await decide(google("sub-7", "invited@example.test"));
-    expect(verdict).toEqual({ allow: true, accountId: id, link: true });
-  });
-
-  it("never links on an unverified email", async () => {
-    await account("invited@example.test", "invited");
-    const verdict = await decide(google("sub-8", "invited@example.test", false));
-    expect(verdict).toEqual({ allow: false, reason: "unverified-email" });
-  });
-
-  it("matches an address regardless of case or surrounding space", async () => {
-    const id = await account("mixed@example.test", "active");
-    const verdict = await decide(google("sub-9", "  Mixed@Example.TEST  "));
-    expect(verdict).toEqual({ allow: true, accountId: id, link: true });
-  });
-
-  it("recognises an already linked identity without linking again", async () => {
-    const id = await account("known@example.test", "active");
-    await link(id, google("sub-10", "known@example.test"));
-
-    const verdict = await decide(google("sub-10", "known@example.test"));
-    expect(verdict).toEqual({ allow: true, accountId: id, link: false });
-
-    await link(id, google("sub-10", "known@example.test"));
-    const identities = await db.selectFrom("account_identities").selectAll().execute();
-    expect(identities).toHaveLength(1);
-  });
-
-  it("reaches the same account from two different providers", async () => {
-    const id = await account("both@example.test", "active");
-
-    const first = await decide(google("g-1", "both@example.test"));
-    expect(first).toMatchObject({ allow: true, accountId: id });
-    await link(id, google("g-1", "both@example.test"));
-
-    const second = await decide({
-      provider: "apple",
-      subject: "a-1",
-      email: "both@example.test",
-      emailVerified: true,
-    });
-    expect(second).toMatchObject({ allow: true, accountId: id, link: true });
-  });
-
-  it("cannot be reached by an Apple relay address, which is a documented limit", async () => {
-    await account("real@example.test", "active");
-    const verdict = await decide({
-      provider: "apple",
-      subject: "a-2",
-      email: "abc123@privaterelay.appleid.com",
-      emailVerified: true,
-    });
-    // Not a bug. The relay address matches no account, so the person sees the
-    // no-invite screen and is told why, rather than failing silently.
-    expect(verdict).toEqual({ allow: false, reason: "no-invite" });
-  });
-});
-
-// AC-5 again, from the other direction. decideLink is what actually runs when
-// an invited person signs in for the very first time, and the bug it was
-// written to fix made that impossible: the account hook asked decide() with no
-// email, decide() found no identity row because there was not one yet, and
-// every invited person was told they had no invite.
-describe("attaching a first identity to an existing account", () => {
+// AC-5, from the direction that actually runs. decideLink is what the account
+// hook calls when an invited person signs in for the very first time, and the
+// bug it was written to fix made that impossible: the hook asked a function
+// that needed an email it did not have, found no identity row because there
+// was not one yet, and told every invited person they had no invite.
+describe("AC-5 attaching a first identity to an existing account", () => {
   it("lets an invited account through, which is first sign-in", async () => {
     const id = await account("invited@example.com", "invited");
     await expect(decideLink(id)).resolves.toMatchObject({ allow: true, accountId: id });
@@ -186,5 +80,52 @@ describe("attaching a first identity to an existing account", () => {
       allow: false,
       reason: "no-invite",
     });
+  });
+});
+
+describe("linking a provider onto a staff account", () => {
+  it("is refused once that account already has one", async () => {
+    const id = await account("support@example.com", "active");
+    await identity(id, "google");
+    await db.insertInto("staff").values({ account_id: id, role: "support" }).execute();
+
+    // Fails closed. Anyone who can get a provider to assert a staff member's
+    // address would otherwise inherit the admin panel with one button.
+    await expect(decideLink(id)).resolves.toEqual({ allow: false, reason: "staff-linking" });
+  });
+
+  it("still allows the first one, so a new admin can sign in at all", async () => {
+    const id = await account("newadmin@example.com", "invited");
+    await db.insertInto("staff").values({ account_id: id, role: "owner" }).execute();
+    await expect(decideLink(id)).resolves.toMatchObject({ allow: true });
+  });
+});
+
+// AC-6 lives in Better Auth's linking rule, not in our code, so this asserts
+// the configuration rather than a function. Three settings decide whether an
+// invited person can sign in and whether an unverified address can claim an
+// account, and all three are easy to change without noticing either effect.
+describe("AC-6 the account linking configuration", () => {
+  const linking = auth.options.account?.accountLinking;
+
+  it("is enabled, because a first identity is attached by linking", () => {
+    expect(linking?.enabled).toBe(true);
+  });
+
+  it("names no trusted provider, which would waive the provider's own email check", () => {
+    // better-auth refuses to link when (!isTrustedProvider && !providerEmailVerified).
+    // Listing a provider here turns off the left side, and the provider's
+    // verified email is the single assertion this gate rests on.
+    expect(linking?.trustedProviders ?? []).toEqual([]);
+  });
+
+  it("does not require our own email_verified, which is false at invite time", () => {
+    // An admin typed the address; we have not confirmed it. Left at its
+    // default of true, every invited person is refused at first sign-in.
+    expect(linking?.requireLocalEmailVerified).toBe(false);
+  });
+
+  it("does not disable implicit linking", () => {
+    expect(linking?.disableImplicitLinking ?? false).toBe(false);
   });
 });

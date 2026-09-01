@@ -257,6 +257,16 @@ Three reviewers were run against the data model spec: `project-lead`, `security-
 
 - ✅ **Not now, and not blocked.** No payment provider and no plans table. The account carries a tier field and the token ledger exists from day one, so the admin panel's caps work and adding a provider later is additive. The Settings "Current plan" row shows the beta tier.
 
+## Sign-in, corrected during implementation
+
+- ⛔ **Better Auth's own `accountLinking` disabled, all linking in our code.** Superseded, and kept because the reasoning was wrong in an instructive way. With linking off and user creation refused, an invited person has no path in at all: attaching a first identity *is* a link. Caught by a test, not by a review.
+- ✅ **Linking enabled and governed by `account.create.before`.** Stricter than switching it off, because the hook also refuses waitlisted, disabled and soft-deleted accounts that the library would have linked. The hook reads the account Better Auth already resolved by verified email and judges only its state.
+- ✅ **No provider is listed in `trustedProviders`.** Naming one waives the check on *that provider's* `emailVerified`, which is the single assertion this gate rests on. Google and Apple both always send it, so listing them buys nothing and gives up the check that matters. *Read out of `better-auth/dist/oauth2/link-account.mjs` rather than from the docs, because the docs describe trust as a convenience and the code shows it is a waiver.*
+- ✅ **`requireLocalEmailVerified: false`.** `accounts.email_verified` means "we confirmed this address", and at invite time we have not: an admin typed it. The library defaults this to true, and left there it refuses every invited person at their first sign-in. The address is verified by the provider asserting it.
+- ✅ **Linking a new provider onto a `staff` account fails closed.** The spec asked for notifying existing identities and a second admin's approval; until that exists, a staff account that already has one identity gains no more. Anyone who can get a provider to assert a staff member's address would otherwise inherit the admin panel with one button. *Unblocking a locked-out admin is another admin's job, not a self-service link.*
+- ✅ **Google always shows its account chooser (`prompt=select_account`).** Without it, "Use a different account" on the no-invite screen silently reauthenticates the account just refused, and the person lands back on the same screen having done exactly what was asked of them.
+- ✅ **The analytics pseudonym is `gen_random_uuid`, not `uuid_v7`.** Every other id here is v7 because time ordering clusters inserts. A pseudonym must not be time ordered: the warehouse never holds account creation time, and a v7 subject id would put it there in the clear, in every event, forever.
+
 ## Deferred hardening, to revisit before GA
 
 Shortcuts taken deliberately for alpha and beta. Each says why it is affordable now and what changes later. None may ship to a general audience without a decision, and OFF-2 forbids describing the product as though they were already resolved.
