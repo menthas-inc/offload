@@ -217,6 +217,30 @@ WEB_URL=http://192.168.1.71:4700
 Google's OAuth client needs the matching redirect URI added too. Sign in with
 Apple needs the real domain and cannot be done this way.
 
+## Two services, one repository
+
+Railway runs `pnpm start` from the repository root for every service, so the
+root start script dispatches on `OFFLOAD_SERVICE`:
+
+| Service | `OFFLOAD_SERVICE` | Runs |
+| --- | --- | --- |
+| `core-api` | `core-api` (also the default) | `apps/core-api/dist/server.js`, imported so it is PID 1 and gets SIGTERM directly |
+| `web` | `web` | `next start`, spawned, with signals forwarded by hand |
+
+A dispatcher rather than per-service configuration because Railpack ignores the
+per-service config file at prepare time, and the CLI has no flag for a start
+command. The remaining option is the dashboard, which puts a deployment setting
+nowhere in the repository. An unrecognised value throws rather than falling
+back, because silently starting the wrong service is the failure it exists to
+prevent.
+
+`EXTRA_WEB_ORIGINS` on `core-api` is a comma-separated allowlist of additional
+origins the web app may be served from, on top of `WEB_URL`. Every entry is
+trusted for credentialed CORS and for OAuth returns, so it is never a wildcard.
+The sign-in callback itself comes from `window.location.origin` rather than a
+build-time constant, so the app returns you to wherever you started and the
+server checks that against this list.
+
 ## Railway CLI: `--json` shows resolved values, not raw ones
 
 `railway variables --json` and `--kv` both claim in the CLI's own help to print
