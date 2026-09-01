@@ -24,10 +24,25 @@ const schema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 
+  // Apple gives a signing key rather than a secret, so all four are needed to
+  // mint one. See auth/apple.ts. APPLE_CLIENT_ID is the service id, not the
+  // app bundle id; APPLE_BUNDLE_ID is the latter, which Apple requires when a
+  // native sign-in and a web one share a service id.
+  APPLE_CLIENT_ID: z.string().min(1).optional(),
+  APPLE_TEAM_ID: z.string().min(1).optional(),
+  APPLE_KEY_ID: z.string().min(1).optional(),
+  APPLE_PRIVATE_KEY: z.string().min(1).optional(),
+  APPLE_BUNDLE_ID: z.string().min(1).optional(),
+
   // Email. Optional so the API boots without it: a missing key means the
   // in-memory mailer, which is what development and tests want anyway.
   RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().email().default("offload@offload.club"),
+
+  // The root of the key hierarchy, 32 bytes base64. Required in production and
+  // derived from BETTER_AUTH_SECRET otherwise, so a test database needs no key
+  // provisioning and a real one cannot run without a real key.
+  DATA_ROOT_KEY: z.string().min(1).optional(),
 
   // Read once by seed:admins and never on a request path, so that an email in
   // an env var can never become an authorization decision at runtime.
@@ -43,6 +58,10 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 export const isProduction = env.NODE_ENV === "production";
+
+if (isProduction && !env.DATA_ROOT_KEY) {
+  throw new Error("DATA_ROOT_KEY is required in production: account keys cannot be wrapped without it.");
+}
 
 /** The port to actually bind. */
 export const port = env.PORT ?? env.API_PORT;

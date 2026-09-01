@@ -44,6 +44,44 @@ const waitlistJoined: Handler = async (payload, { mailer }) => {
   });
 };
 
+/** The invite. The one email in this product that someone is waiting for, so
+ *  it is the one that carries a link rather than only news.
+ *
+ *  Claimed the same way as the waitlist confirmation, and for the same reason:
+ *  the queue's idempotency key prevents a second enqueue, not a second send by
+ *  a job that retried after the mailer succeeded and the acknowledgement did
+ *  not. */
+const invited: Handler = async (payload, { mailer }) => {
+  const accountId = String(payload["accountId"] ?? "");
+  if (!accountId) throw new Error("invited job has no accountId");
+
+  const claimed = await db
+    .updateTable("accounts")
+    .set({ invite_email_sent_at: new Date() })
+    .where("id", "=", accountId)
+    .where("invite_email_sent_at", "is", null)
+    .where("state", "=", "invited")
+    .returning(["email"])
+    .executeTakeFirst();
+
+  if (!claimed) return;
+
+  await mailer.send({
+    to: claimed.email,
+    subject: "You are in",
+    slots: {
+      headline: "You are in",
+      body:
+        "Your offload account is ready. Sign in with this address, using Google or Apple, " +
+        "and dump the first thing you would otherwise forget.",
+      buttonLabel: "Open offload",
+      buttonUrl: `${env.WEB_URL}/sign-in`,
+      footer: `You are receiving this because you joined the offload waitlist at ${new URL(env.WEB_URL).host}.`,
+    },
+  });
+};
+
 export const handlers: Record<string, Handler> = {
   "email.waitlist_joined": waitlistJoined,
+  "email.invited": invited,
 };

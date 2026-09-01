@@ -38,6 +38,7 @@ import { decideLink } from "./gate.js";
 import { recordAttempt } from "./attempt.js";
 import { emit } from "../analytics.js";
 import { uuidv7 } from "../uuid.js";
+import { appleClientSecret, appleConfigured } from "./apple.js";
 
 /** 15 minutes. Bounds how long a disabled account keeps working, so it is a
  *  security parameter rather than a tuning knob. */
@@ -57,26 +58,23 @@ async function accountMaySignIn(accountId: string): Promise<boolean> {
   return account?.state === "invited" || account?.state === "active";
 }
 
-/** Assign the analytics pseudonym on first use and emit first_sign_in exactly
- *  once. Both live here because they are the same moment: the pseudonym exists
- *  so that events can be attributed without an account id, so it has to be
- *  there before the first event is written.
+/** Emit first_sign_in exactly once per account, ever.
  *
- *  The insert is the lock. analytics_events has no natural key to conflict on,
- *  so the once-ness comes from claiming the subject id: the update only
- *  matches while analytics_subject_id is still null, and the loser of a race
- *  updates no rows and emits nothing. */
+ *  The claim is the update: first_signed_in_at only moves off null once, so
+ *  two devices signing in at the same moment produce one winner and one
+ *  no-op. It is a column rather than a count of sessions because a session
+ *  count is right only until the first session expires. */
 async function emitFirstSignInOnce(accountId: string): Promise<void> {
   try {
     const claimed = await db
       .updateTable("accounts")
-      .set({ analytics_subject_id: uuidv7(), updated_at: new Date() })
+      .set({ first_signed_in_at: new Date(), updated_at: new Date() })
       .where("id", "=", accountId)
-      .where("analytics_subject_id", "is", null)
+      .where("first_signed_in_at", "is", null)
       .returning("analytics_subject_id")
       .executeTakeFirst();
 
-    if (!claimed?.analytics_subject_id) return;
+    if (!claimed) return;
     await emit({ name: "first_sign_in", subjectId: claimed.analytics_subject_id });
   } catch {
     // Analytics never breaks sign-in. Losing one event is a reporting gap;
@@ -144,8 +142,8 @@ export const auth = betterAuth({
     fields: { expiresAt: "expires_at", createdAt: "created_at", updatedAt: "updated_at" },
   },
 
-  socialProviders:
-    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+  socialProviders: {
+    ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
       ? {
           google: {
             clientId: env.GOOGLE_CLIENT_ID,
@@ -157,7 +155,17 @@ export const auth = betterAuth({
             prompt: "select_account",
           },
         }
-      : {},
+      : {}),
+    ...(appleConfigured()
+      ? {
+          apple: {
+            clientId: env.APPLE_CLIENT_ID!,
+            clientSecret: appleClientSecret(),
+            ...(env.APPLE_BUNDLE_ID ? { appBundleIdentifier: env.APPLE_BUNDLE_ID } : {}),
+          },
+        }
+      : {}),
+  },
 
   advanced: {
     // Better Auth generates nanoid-style string ids by default, and every id

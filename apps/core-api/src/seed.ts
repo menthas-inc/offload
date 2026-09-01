@@ -7,6 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 import { db, closeDb } from "./db.js";
+import { promote } from "./admin/promote.js";
 
 const HEAVY_WAITLIST = 120;
 
@@ -31,53 +32,19 @@ export async function seed(log: (msg: string) => void = console.log): Promise<vo
   }));
   await db.insertInto("accounts").values(waiting).execute();
 
-  // One fully promoted account, assembled exactly as promotion assembles one,
-  // so the seed exercises the same invariant rather than a shortcut.
-  const account = await db
-    .insertInto("accounts")
-    .values({
-      email: "owner@example.test",
-      display_name: "Seed Owner",
-      state: "active",
-      email_verified: true,
-      analytics_subject_id: randomUUID(),
-    })
-    .returning(["id"])
-    .executeTakeFirstOrThrow();
-
-  const thread = await db
-    .insertInto("threads")
-    .values({
-      name: "Miscellaneous",
-      always_on: true,
-      icon: "lasso",
-      created_by_account_id: account.id,
-    })
-    .returning(["id"])
-    .executeTakeFirstOrThrow();
+  // One fully promoted account, through the same transaction the admin panel
+  // uses. Not a shortcut that resembles it: a seed that assembles accounts its
+  // own way stops being evidence that promotion works.
+  const promoted = await promote("owner@example.test");
+  if (promoted.status === "refused") throw new Error("seed could not promote its owner");
 
   await db
     .updateTable("accounts")
-    .set({ default_thread_id: thread.id })
-    .where("id", "=", account.id)
+    .set({ display_name: "Seed Owner", state: "active", email_verified: true })
+    .where("id", "=", promoted.accountId)
     .execute();
 
-  await db
-    .insertInto("thread_members")
-    .values({ thread_id: thread.id, account_id: account.id, state: "accepted" })
-    .execute();
-
-  await db
-    .insertInto("account_keys")
-    .values({ account_id: account.id, wrapped_dek: Buffer.from("seed-not-a-real-key"), wrapped_by: "db:v1" })
-    .execute();
-
-  await db
-    .insertInto("thread_keys")
-    .values({ thread_id: thread.id, account_id: account.id, wrapped_tk: Buffer.from("seed-not-a-real-key") })
-    .execute();
-
-  await db.insertInto("staff").values({ account_id: account.id, role: "owner" }).execute();
+  await db.insertInto("staff").values({ account_id: promoted.accountId, role: "owner" }).execute();
 
   // An invited account that has not signed in, which is a state the admin
   // waitlist page shows separately and which is easy to forget exists.

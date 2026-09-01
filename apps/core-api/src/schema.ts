@@ -24,7 +24,9 @@ export interface AccountsTable {
   default_thread_id: string | null;
   referred_by_account_id: string | null;
   referral_thread_id: string | null;
-  analytics_subject_id: string | null;
+  analytics_subject_id: Generated<string>;
+  first_signed_in_at: Timestamp | null;
+  invite_email_sent_at: Timestamp | null;
   waitlist_email_sent_at: Timestamp | null;
   tier: Generated<string>;
   consent_version: string | null;
