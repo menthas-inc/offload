@@ -34,7 +34,9 @@
 import { betterAuth } from "better-auth";
 import { db } from "../db.js";
 import { env, isProduction } from "../env.js";
-import { decide } from "./gate.js";
+import { decideLink } from "./gate.js";
+import { recordAttempt } from "./attempt.js";
+import { emit } from "../analytics.js";
 import { uuidv7 } from "../uuid.js";
 
 /** 15 minutes. Bounds how long a disabled account keeps working, so it is a
@@ -53,6 +55,33 @@ async function accountMaySignIn(accountId: string): Promise<boolean> {
     .where("deleted_at", "is", null)
     .executeTakeFirst();
   return account?.state === "invited" || account?.state === "active";
+}
+
+/** Assign the analytics pseudonym on first use and emit first_sign_in exactly
+ *  once. Both live here because they are the same moment: the pseudonym exists
+ *  so that events can be attributed without an account id, so it has to be
+ *  there before the first event is written.
+ *
+ *  The insert is the lock. analytics_events has no natural key to conflict on,
+ *  so the once-ness comes from claiming the subject id: the update only
+ *  matches while analytics_subject_id is still null, and the loser of a race
+ *  updates no rows and emits nothing. */
+async function emitFirstSignInOnce(accountId: string): Promise<void> {
+  try {
+    const claimed = await db
+      .updateTable("accounts")
+      .set({ analytics_subject_id: uuidv7(), updated_at: new Date() })
+      .where("id", "=", accountId)
+      .where("analytics_subject_id", "is", null)
+      .returning("analytics_subject_id")
+      .executeTakeFirst();
+
+    if (!claimed?.analytics_subject_id) return;
+    await emit({ name: "first_sign_in", subjectId: claimed.analytics_subject_id });
+  } catch {
+    // Analytics never breaks sign-in. Losing one event is a reporting gap;
+    // throwing here would be an outage.
+  }
 }
 
 export const auth = betterAuth({
@@ -117,7 +146,17 @@ export const auth = betterAuth({
 
   socialProviders:
     env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
-      ? { google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } }
+      ? {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+            // Always show the account chooser. Without it "Use a different
+            // account" on the no-invite screen is a lie: Google would silently
+            // reauthenticate the same account it just refused, and the person
+            // would land back on the same screen having done what we asked.
+            prompt: "select_account",
+          },
+        }
       : {},
 
   advanced: {
@@ -137,23 +176,32 @@ export const auth = betterAuth({
 
   databaseHooks: {
     user: {
-      // Never provision. An account exists only because an admin made one.
-      create: { before: async () => false },
+      create: {
+        before: async (candidate) => {
+          // Never provision. An account exists only because an admin made one.
+          //
+          // This is also the only point in the flow that sees the address the
+          // person actually signed in with, so it is where the no-invite
+          // screen's copy comes from. Remembering it is not a side effect of
+          // the refusal: nothing is written, the value rides a request-scoped
+          // slot back out to a cookie (attempt.ts).
+          recordAttempt(candidate.email);
+          return false;
+        },
+      },
     },
 
     account: {
       create: {
         before: async (identity) => {
-          const verdict = await decide({
-            provider: identity.providerId === "apple" ? "apple" : "google",
-            subject: identity.accountId,
-            email: null,
-            emailVerified: false,
-          });
-          // decide() falls back to a subject lookup when it has no email, so a
-          // refusal here means the identity is not attached to any account we
-          // let in. Returning false leaves no row behind: a refusal has no
-          // side effects (AC-5).
+          // Better Auth reaches here having already matched this provider's
+          // verified email to an existing account, so identity.userId is the
+          // account being opened up. The question left is whether that account
+          // may hold an identity at all, which is a state check.
+          const verdict = await decideLink(identity.userId);
+          // A refusal leaves no row behind: no identity, no account, nothing
+          // to clean up and nothing that makes a second attempt behave
+          // differently from the first (AC-5).
           return verdict.allow ? { data: identity } : false;
         },
       },
@@ -164,6 +212,14 @@ export const auth = betterAuth({
         before: async (session) => {
           const allowed = await accountMaySignIn(session.userId);
           return allowed ? { data: session } : false;
+        },
+        after: async (session) => {
+          // first_sign_in fires once per account, ever. "Is this the only
+          // session row?" is the cheap version of that and it is wrong the
+          // moment someone signs in on a second device while the first is
+          // still valid, so it asks the durable question instead: has this
+          // account ever emitted the event before.
+          await emitFirstSignInOnce(session.userId);
         },
       },
     },

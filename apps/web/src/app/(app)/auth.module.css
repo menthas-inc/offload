@@ -1,0 +1,228 @@
+/* The screens before the shell: sign in, no invite, first run.
+   Every value is a token. Nothing here is a literal (OFF-7). */
+
+.screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* On web the gate is the same copy as the phones, in a 440px card. */
+.card {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.mark { margin-bottom: 28px; }
+
+.claim {
+  font: var(--weight-semibold) 26px/1.25 var(--font-core);
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* Literata, offload's own voice. Never a UI label, never more than two
+   sentences, and deliberately upright rather than italic. */
+.quiet {
+  font: var(--text-quiet-role);
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 12px 0 0;
+  max-width: 34ch;
+  text-wrap: pretty;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 36px;
+}
+
+.provider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  /* min-height, never height: text scales to 200%. */
+  min-height: 52px;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font: var(--weight-medium) 16px/1 var(--font-core);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.provider:hover { background: var(--state-hover); }
+.provider:active { transform: scale(var(--press-scale)); }
+.provider:disabled { background: var(--state-disabled-surface); color: var(--state-disabled-text); cursor: default; }
+
+.primary {
+  min-height: 52px;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--ink-950);
+  color: var(--paper);
+  font: var(--weight-medium) 16px/1 var(--font-core);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.primary:hover { background: var(--ink-800); }
+.primary:active { transform: scale(var(--press-scale)); }
+
+/* The quiet secondary: "Use a different account". */
+.secondary {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font: var(--weight-medium) 14px/1 var(--font-core);
+  cursor: pointer;
+  /* 44px hit area, larger than the drawn control. */
+  padding: 15px 12px;
+  margin: 4px 0 -15px;
+}
+.secondary:hover { color: var(--text-primary); }
+
+/* A refusal is one line above the buttons, never a dialog. */
+.refusal {
+  font: var(--text-body-sm-role);
+  color: var(--text-danger);
+  margin: 0 0 4px;
+  max-width: 34ch;
+}
+
+.address {
+  font: var(--weight-medium) 16px/1.4 var(--font-core);
+  color: var(--text-primary);
+  margin: 16px 0 0;
+  word-break: break-all;
+}
+
+/* First run: dots and Skip in the same place on all three screens. */
+.runTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+}
+
+.dots { display: flex; gap: 8px; }
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--ink-200);
+}
+.dotOn { background: var(--ink-950); }
+
+.skip {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font: var(--weight-medium) 14px/1 var(--font-core);
+  cursor: pointer;
+  padding: 15px 12px;
+  margin: -15px -12px;
+}
+.skip:hover { color: var(--text-primary); }
+
+.runScreen { position: relative; }
+
+/* Today, day one. One invitation in the serif voice and three dashed examples
+   that fill the composer rather than submitting. Never a zero. */
+.today { width: 100%; max-width: var(--content-max); margin: 0 auto; padding: 0 var(--gutter-screen); }
+
+.emptyTitle {
+  font: var(--text-quiet-role);
+  font-size: 19px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin: 0 0 20px;
+  max-width: 34ch;
+}
+
+.examples { display: flex; flex-direction: column; gap: 10px; }
+
+.example {
+  text-align: left;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-card);
+  background: none;
+  color: var(--text-secondary);
+  font: var(--text-body-role);
+  padding: 14px 16px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.example:hover { background: var(--state-hover); color: var(--text-primary); }
+
+/* The composer never leaves an empty screen, because on every one of them the
+   answer is to dump something. */
+.composer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  padding: 16px var(--gutter-screen) 24px;
+  background: linear-gradient(to top, var(--surface-raised) 60%, transparent);
+}
+
+.composerInner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: var(--content-max);
+  min-height: var(--composer-height, 52px);
+  padding: 0 8px 0 20px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-attention);
+  background: var(--surface-attention-soft);
+}
+
+.composerInput {
+  flex: 1;
+  border: none;
+  background: none;
+  font: var(--text-body-role);
+  color: var(--text-primary);
+  min-height: 44px;
+}
+.composerInput:focus { outline: none; }
+.composerInput::placeholder { color: var(--text-tertiary); }
+
+.send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--ink-950);
+  color: var(--paper);
+  cursor: pointer;
+}
+.send:disabled { background: var(--state-disabled-surface); color: var(--state-disabled-text); cursor: default; }

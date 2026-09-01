@@ -9,7 +9,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
-import { decide, link, type ProviderIdentity } from "../src/auth/gate.js";
+import { decide, decideLink, link, type ProviderIdentity } from "../src/auth/gate.js";
 
 await migrate(() => {});
 
@@ -146,5 +146,45 @@ describe("AC-6 one person, several providers", () => {
     // Not a bug. The relay address matches no account, so the person sees the
     // no-invite screen and is told why, rather than failing silently.
     expect(verdict).toEqual({ allow: false, reason: "no-invite" });
+  });
+});
+
+// AC-5 again, from the other direction. decideLink is what actually runs when
+// an invited person signs in for the very first time, and the bug it was
+// written to fix made that impossible: the account hook asked decide() with no
+// email, decide() found no identity row because there was not one yet, and
+// every invited person was told they had no invite.
+describe("attaching a first identity to an existing account", () => {
+  it("lets an invited account through, which is first sign-in", async () => {
+    const id = await account("invited@example.com", "invited");
+    await expect(decideLink(id)).resolves.toMatchObject({ allow: true, accountId: id });
+  });
+
+  it("lets an active account gain a second provider", async () => {
+    const id = await account("active@example.com", "active");
+    await expect(decideLink(id)).resolves.toMatchObject({ allow: true });
+  });
+
+  it("refuses an account still on the waitlist", async () => {
+    const id = await account("waiting@example.com", "waitlist");
+    await expect(decideLink(id)).resolves.toEqual({ allow: false, reason: "waitlisted" });
+  });
+
+  it("refuses a disabled account", async () => {
+    const id = await account("gone@example.com", "disabled");
+    await expect(decideLink(id)).resolves.toEqual({ allow: false, reason: "disabled" });
+  });
+
+  it("refuses a soft-deleted account", async () => {
+    const id = await account("erased@example.com", "active");
+    await db.updateTable("accounts").set({ deleted_at: new Date() }).where("id", "=", id).execute();
+    await expect(decideLink(id)).resolves.toEqual({ allow: false, reason: "no-invite" });
+  });
+
+  it("refuses an account id that does not exist", async () => {
+    await expect(decideLink("00000000-0000-7000-8000-000000000000")).resolves.toEqual({
+      allow: false,
+      reason: "no-invite",
+    });
   });
 });

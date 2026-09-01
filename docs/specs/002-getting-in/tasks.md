@@ -48,11 +48,11 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 - [ ] **D2** The invite gate in **two layers**: a `user.create.before` hook returning false, and no session issued for an account that is not invited or active. *Better Auth has open issues about before-hooks not firing on every path, and this is the product's entire access control, so it does not get to be the only thing standing there. Verify the hook fires on both the Google and the Apple callback.*
 - [ ] **D3** Identity linking, entirely in our code. The Apple relay-address limitation surfaced by name. Linking onto a `staff` account notifies existing identities and needs a second admin's approval.
 - [ ] **D4** Session refresh checks `accounts.state`, so disabling stops live sessions.
-- [ ] **D5** Sign-in screen, Apple first on web, with the refusal as one line above the buttons.
-- [ ] **D6** No-invite screen: names the address it checked, joins the waitlist in one tap reusing it, "Use a different account" as the quiet secondary.
-- [ ] **D7** First run, three screens, server-side completion flipping `invited` to `active`.
-- [ ] **D8** Today's day-one empty state, in the serif voice, with the composer present but inert.
-- [ ] **D9** `first_sign_in` and `onboarding_completed` events.
+- [x] **D5** Sign-in screen, Apple first on web, with the refusal as one line above the buttons.
+- [x] **D6** No-invite screen: names the address it checked, joins the waitlist in one tap reusing it, "Use a different account" as the quiet secondary.
+- [x] **D7** First run, three screens, server-side completion flipping `invited` to `active`.
+- [x] **D8** Today's day-one empty state, in the serif voice, with the composer present but inert.
+- [x] **D9** `first_sign_in` and `onboarding_completed` events.
 
 ## Phase E, mobile
 

@@ -7,7 +7,26 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
-import { env } from "../env.js";
+import { ATTEMPT_COOKIE, seal, withAttempt } from "../auth/attempt.js";
+import { env, isProduction } from "../env.js";
+
+const ATTEMPT_MAX_AGE = 10 * 60;
+
+function attemptCookie(email: string): string {
+  const parts = [
+    `${ATTEMPT_COOKIE}=${encodeURIComponent(seal(email, Date.now()))}`,
+    "Path=/",
+    `Max-Age=${ATTEMPT_MAX_AGE}`,
+    "HttpOnly",
+    // Lax, not Strict: the browser arrives here on a top-level redirect back
+    // from Google or Apple, and Strict would drop the cookie on exactly that
+    // navigation.
+    "SameSite=Lax",
+  ];
+  if (isProduction) parts.push("Secure");
+  if (env.COOKIE_DOMAIN !== "localhost") parts.push(`Domain=${env.COOKIE_DOMAIN}`);
+  return parts.join("; ");
+}
 
 export async function authRoutes(app: App): Promise<void> {
   // Better Auth owns everything under its base path: the provider redirects,
@@ -24,15 +43,20 @@ export async function authRoutes(app: App): Promise<void> {
         headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
       }
 
-      const response = await auth.handler(
-        new Request(url, {
-          method: request.method,
-          headers,
-          ...(request.method === "GET" || request.method === "HEAD"
-            ? {}
-            : { body: JSON.stringify(request.body ?? {}) }),
-        })
-      );
+      // The store is opened here so the gate's refusal, several layers down
+      // inside Better Auth, can hand the attempted address back out.
+      const { response, attempt } = await withAttempt(async (store) => ({
+        response: await auth.handler(
+          new Request(url, {
+            method: request.method,
+            headers,
+            ...(request.method === "GET" || request.method === "HEAD"
+              ? {}
+              : { body: JSON.stringify(request.body ?? {}) }),
+          })
+        ),
+        attempt: store.email,
+      }));
 
       reply.status(response.status);
       response.headers.forEach((value, key) => {
@@ -41,6 +65,10 @@ export async function authRoutes(app: App): Promise<void> {
         if (key.toLowerCase() === "set-cookie") reply.header("set-cookie", value);
         else reply.header(key, value);
       });
+
+      // Only ever set on a refusal, and only on the redirect that carries the
+      // browser to the no-invite screen.
+      if (attempt) reply.header("set-cookie", attemptCookie(attempt));
 
       return reply.send(response.body ? await response.text() : null);
     },

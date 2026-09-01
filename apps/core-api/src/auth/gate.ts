@@ -81,3 +81,33 @@ export async function link(accountId: string, identity: ProviderIdentity): Promi
     .onConflict((oc) => oc.columns(["provider", "subject"]).doNothing())
     .execute();
 }
+
+/** The verdict for attaching a provider identity to an account that already
+ *  exists, which is the ordinary first sign-in of an invited person.
+ *
+ *  Better Auth has already matched the provider's verified email to that
+ *  account by this point, so the only question left is whether the account is
+ *  allowed to gain an identity at all. It is deliberately not the same
+ *  function as decide(): decide() answers "which account is this identity?"
+ *  and needs an email to do it, and at this moment in the flow we do not have
+ *  one: the identity row being created carries a provider subject, not an
+ *  address. Asking decide() here returned no-invite for every invited person,
+ *  which made first sign-in impossible. */
+export async function decideLink(accountId: string): Promise<GateVerdict> {
+  const account = await db
+    .selectFrom("accounts")
+    .select(["id", "state"])
+    .where("id", "=", accountId)
+    .where("deleted_at", "is", null)
+    .executeTakeFirst();
+
+  if (!account) return { allow: false, reason: "no-invite" };
+  switch (account.state) {
+    case "disabled":
+      return { allow: false, reason: "disabled" };
+    case "waitlist":
+      return { allow: false, reason: "waitlisted" };
+    default:
+      return { allow: true, accountId: account.id, link: true };
+  }
+}
