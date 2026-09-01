@@ -26,6 +26,27 @@ def walk(node, out):
 
 def main():
     want = sys.argv[1] if len(sys.argv) > 1 else "content"
+    if want == "command":
+        found = []
+
+        def find_cmd(node):
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    if key == "command" and isinstance(value, str):
+                        found.append(value)
+                    else:
+                        find_cmd(value)
+            elif isinstance(node, list):
+                for value in node:
+                    find_cmd(value)
+
+        try:
+            payload = json.load(sys.stdin)
+        except Exception:
+            return 0
+        find_cmd(payload)
+        print(found[0] if found else "")
+        return 0
     try:
         payload = json.load(sys.stdin)
     except Exception:

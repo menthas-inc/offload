@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/envelope.schema.json",
+  "title": "Event envelope",
+  "description": "Every analytics event. Flat and typed on purpose: a catch-all blob is unqueryable the moment a warehouse exists, and it forces the no-content check to read inside an opaque field.",
+  "type": "object",
+  "required": ["name", "version", "occurred_at", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "description": "object_verb, for example waitlist_joined" },
+    "version": { "type": "integer", "minimum": 1 },
+    "occurred_at": { "type": "string", "format": "date-time", "description": "Device clock. May be wrong and may be late." },
+    "anonymous_id": { "type": ["string", "null"], "format": "uuid" },
+    "subject_id": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "The per-account pseudonym, never a real account id. Erasure destroys the mapping, after which every event already written is permanently unattributable."
+    },
+    "session_id": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "Null is meaningful: background work has no foreground session and must not inflate engagement."
+    },
+    "source": { "type": "string", "enum": ["core-api", "agent", "worker", "web", "ios", "android"] },
+    "platform": { "type": ["string", "null"], "enum": ["web", "ios", "android", null] },
+    "properties": {
+      "type": "object",
+      "description": "Structured references only. Never a title, a transcript, an address or a URL a person dumped (OFF-1)."
+    }
+  }
+}

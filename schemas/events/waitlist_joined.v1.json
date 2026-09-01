@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/waitlist_joined.v1.json",
+  "title": "waitlist_joined",
+  "description": "Someone asked to be let in. Emitted for every accepted submission, including a repeat, so the funnel counts attempts rather than only first attempts.",
+  "type": "object",
+  "required": ["referred"],
+  "additionalProperties": false,
+  "properties": {
+    "referred": { "type": "boolean", "description": "Whether they arrived from a shared thread rather than on their own." }
+  }
+}
