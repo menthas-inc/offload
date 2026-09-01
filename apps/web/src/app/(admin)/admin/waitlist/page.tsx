@@ -1,14 +1,14 @@
 "use client";
 
-// The waitlist.
+// The waitlist, from ui_kits/admin_web/AdminApp.jsx.
 //
-// Two tabs, because "invited and never signed in" is the state that looks like
-// success and is not: someone was let in, the email went out, and nothing
-// happened. It gets its own view rather than a column nobody sorts by.
+// One table with a state column, not a tab split: everyone who has ever been
+// on the list sits together, so "invited and never signed in" is visible beside
+// the people still waiting rather than behind a tab nobody opens.
 //
-// Selection is many-at-once because letting people in weekly is a batch job.
-// The action bar appears only when something is selected; a permanently
-// disabled button teaches nothing and is always in the way.
+// The stats row in the kit is deliberately not built. Everything else is:
+// search, the weekly batch button, the source column, the quiet note under an
+// address, per-row actions and the notes below the table.
 
 import { useCallback, useEffect, useState } from "react";
 import styles from "../../admin.module.css";
@@ -16,56 +16,150 @@ import styles from "../../admin.module.css";
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 const PAGE = 50;
 
-type Tab = "waiting" | "invited";
-
 interface Row {
   id: string;
   email: string;
-  state: "waitlist" | "invited";
-  createdAt: string;
-  awaitingFirstSignIn: boolean;
+  state: "waiting" | "invited" | "accepted" | "disabled";
+  joined: string;
+  source: "waitlist" | "thread";
+  note: string | null;
 }
 
-const joined = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const STATE_LABEL: Record<Row["state"], string> = {
+  waiting: "waiting",
+  invited: "invited",
+  accepted: "signed up",
+  disabled: "disabled",
+};
+
+const STATE_TONE: Record<Row["state"], string> = {
+  waiting: "",
+  invited: styles.badgeAttention!,
+  accepted: styles.badgeAccent!,
+  disabled: "",
+};
+
+// What an invite does, and two things it deliberately does not. Straight from
+// the kit, minus its claims about single-use links, which this product does
+// not have: sign-in is by provider on the invited address.
+const NOTES = [
+  "Inviting sends the one transactional email and creates the account, its keys and its Miscellaneous thread in a single transaction. They can sign in with Apple or Google on that address as soon as it arrives.",
+  "Inviting twice is inviting once. A second invite sends no second email and creates no second thread.",
+  "Someone who came from a shared thread is already vouched for by a member, so those usually go in the next batch.",
+  "Removing an address from the waitlist is not here on purpose. Support does it from People once the account exists.",
+] as const;
+
+function SearchIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true" style={{ color: "var(--text-tertiary)", flex: "none" }}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="M16 16l4 4" />
+    </svg>
+  );
+}
 
 export default function WaitlistPage() {
-  const [tab, setTab] = useState<Tab>("waiting");
   const [rows, setRows] = useState<Row[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [inviting, setInviting] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (which: Tab, after: string | null) => {
-      setLoading(true);
-      const query = new URLSearchParams({ state: which, limit: String(PAGE) });
-      if (after) query.set("cursor", after);
+  const load = useCallback(async (search: string, after: string | null) => {
+    setLoading(true);
+    const params = new URLSearchParams({ limit: String(PAGE) });
+    if (search) params.set("q", search);
+    if (after) params.set("cursor", after);
 
-      const response = await fetch(`${API}/v1/admin/waitlist?${query}`, { credentials: "include" });
-      if (!response.ok) {
-        setLoading(false);
-        return;
-      }
-      const page = (await response.json()) as { rows: Row[]; nextCursor: string | null };
-      // Appended on "load more", replaced on a tab change, which is what the
-      // null cursor distinguishes.
-      setRows((existing) => (after ? [...existing, ...page.rows] : page.rows));
-      setCursor(page.nextCursor);
+    const response = await fetch(`${API}/v1/admin/waitlist?${params}`, { credentials: "include" });
+    if (!response.ok) {
       setLoading(false);
-    },
-    []
-  );
+      return;
+    }
+    const page = (await response.json()) as { rows: Row[]; nextCursor: string | null };
+    setRows((existing) => (after ? [...existing, ...page.rows] : page.rows));
+    setCursor(page.nextCursor);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    setSelected(new Set());
-    setNote(null);
-    void load(tab, null);
-  }, [tab, load]);
+    // Debounced, so typing an address is one request at the end rather than
+    // one per keystroke against a table of thousands.
+    const timer = setTimeout(() => {
+      setPicked(new Set());
+      void load(query, null);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [query, load]);
+
+  function say(message: string) {
+    setToast(message);
+    // Long enough to read, short enough not to sit there. The toast is
+    // confirmation, not a status bar.
+    setTimeout(() => setToast(null), 4000);
+  }
+
+  async function invite(ids: string[]) {
+    setBusy(true);
+    const response = await fetch(`${API}/v1/admin/waitlist/invite`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    setBusy(false);
+
+    if (!response.ok) {
+      say("That did not go through. Nobody was invited.");
+      return;
+    }
+    const { results } = (await response.json()) as { results: Array<{ status: string }> };
+    const letIn = results.filter((r) => r.status === "invited").length;
+    const already = results.length - letIn;
+    // Says what happened including the part that did nothing: promotion is
+    // idempotent, so an already-invited row sent no second email and counting
+    // it as a success would misreport that.
+    say(
+      letIn === 1 && !already
+        ? "Invite sent"
+        : `Invited ${letIn}${already ? `, ${already} already in` : ""}`
+    );
+    setPicked(new Set());
+    void load(query, null);
+  }
+
+  async function inviteNext() {
+    setBusy(true);
+    const response = await fetch(`${API}/v1/admin/waitlist/invite-next`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    setBusy(false);
+
+    if (!response.ok) {
+      say("That did not go through. Nobody was invited.");
+      return;
+    }
+    const { results } = (await response.json()) as { results: Array<{ status: string }> };
+    say(`Invited ${results.filter((r) => r.status === "invited").length}`);
+    void load(query, null);
+  }
+
+  async function resend(id: string) {
+    const response = await fetch(`${API}/v1/admin/waitlist/${id}/resend`, {
+      method: "POST",
+      credentials: "include",
+    });
+    say(response.ok ? "Invite sent again" : "That did not go through.");
+    void load(query, null);
+  }
 
   function toggle(id: string) {
-    setSelected((current) => {
+    setPicked((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -73,148 +167,135 @@ export default function WaitlistPage() {
     });
   }
 
-  async function invite() {
-    setInviting(true);
-    const ids = [...selected];
-    const response = await fetch(`${API}/v1/admin/waitlist/invite`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ids }),
-    });
-
-    if (!response.ok) {
-      setNote("That did not go through. Nobody was invited.");
-      setInviting(false);
-      return;
-    }
-
-    const { results } = (await response.json()) as {
-      results: Array<{ status: "invited" | "already-in" | "refused" }>;
-    };
-    const letIn = results.filter((result) => result.status === "invited").length;
-    const already = results.filter((result) => result.status === "already-in").length;
-
-    // Says what happened, including the part that did nothing. Promotion is
-    // idempotent, so a row that was already in is not an error, but silently
-    // counting it as a success would misreport how many emails went out.
-    setNote(
-      [
-        `${letIn} invited`,
-        already ? `${already} already in` : null,
-        results.length - letIn - already ? `${results.length - letIn - already} refused` : null,
-      ]
-        .filter(Boolean)
-        .join(", ")
-    );
-
-    setSelected(new Set());
-    setInviting(false);
-    void load(tab, null);
-  }
-
-  const allSelected = rows.length > 0 && selected.size === rows.length;
+  const waiting = rows.filter((row) => row.state === "waiting").length;
 
   return (
     <>
       <div className={styles.paneHead}>
-        <h1 className={styles.paneTitle}>Waitlist</h1>
-        <div className={styles.tabs}>
-          {(["waiting", "invited"] as const).map((which) => (
-            <button
-              key={which}
-              type="button"
-              className={`${styles.tab} ${tab === which ? styles.tabOn : ""}`}
-              onClick={() => setTab(which)}
-            >
-              {which === "waiting" ? "Waiting" : "Invited"}
-            </button>
-          ))}
+        <span>
+          <h1 className={styles.paneTitle}>Waitlist</h1>
+          <span className={styles.paneSub}>
+            {waiting.toLocaleString("en-GB")} waiting on this page
+          </span>
+        </span>
+
+        <span className={styles.headTools}>
+          <span className={styles.search}>
+            <SearchIcon />
+            <input
+              className={styles.searchInput}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by email"
+              aria-label="Search by email"
+            />
+          </span>
+          <button type="button" className={styles.small} onClick={() => void inviteNext()} disabled={busy}>
+            Invite the next batch
+          </button>
+        </span>
+      </div>
+
+      {picked.size ? (
+        <div className={styles.selection}>
+          <b className={styles.selectionCount}>{picked.size} selected</b>
+          <button type="button" className={styles.ghost} onClick={() => setPicked(new Set())}>
+            Clear
+          </button>
+          <button
+            type="button"
+            className={styles.smallPrimary}
+            onClick={() => void invite([...picked])}
+            disabled={busy}
+          >
+            Invite {picked.size}
+          </button>
         </div>
-      </div>
+      ) : null}
 
-      <div className={styles.bar}>
-        {selected.size > 0 ? (
-          <>
-            <button
-              type="button"
-              className={styles.action}
-              onClick={() => void invite()}
-              disabled={inviting}
-            >
-              {inviting ? "Letting them in…" : `Invite ${selected.size}`}
-            </button>
-            <button
-              type="button"
-              className={styles.quietAction}
-              onClick={() => setSelected(new Set())}
-            >
-              Clear
-            </button>
-          </>
-        ) : null}
-        {note ? <span className={styles.count}>{note}</span> : null}
-      </div>
+      <div className={styles.table}>
+        <div className={styles.thead}>
+          <span style={{ width: 24, flex: "0 0 auto" }} />
+          <span style={{ flex: 1, minWidth: 0 }}>Email</span>
+          <span style={{ width: 80, flex: "0 0 auto" }}>Joined</span>
+          <span style={{ width: 130, flex: "0 0 auto" }}>Came from</span>
+          <span style={{ width: 110, flex: "0 0 auto" }}>State</span>
+          <span style={{ width: 96, flex: "0 0 auto", textAlign: "right" }} />
+        </div>
 
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th className={styles.pick}>
+        {rows.map((row, index) => (
+          <div
+            key={row.id}
+            className={`${styles.row} ${index === rows.length - 1 ? styles.rowLast : ""} ${row.state === "accepted" ? styles.rowMuted : ""}`}
+          >
+            <span style={{ width: 24, flex: "0 0 auto" }}>
               <input
                 type="checkbox"
-                checked={allSelected}
-                onChange={() => setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)))}
-                aria-label="Select every row on this page"
+                checked={picked.has(row.id)}
+                onChange={() => toggle(row.id)}
+                aria-label={`Select ${row.email}`}
               />
-            </th>
-            <th>Email</th>
-            <th>State</th>
-            <th className={styles.numeric}>Joined</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.id}>
-              <td className={styles.pick}>
-                <input
-                  type="checkbox"
-                  checked={selected.has(row.id)}
-                  onChange={() => toggle(row.id)}
-                  aria-label={`Select ${row.email}`}
-                />
-              </td>
-              <td>{row.email}</td>
-              <td>
-                {row.awaitingFirstSignIn ? (
-                  <span className={styles.chip}>Invited, never signed in</span>
-                ) : (
-                  <span className={styles.count}>{row.state === "waitlist" ? "Waiting" : "Invited"}</span>
-                )}
-              </td>
-              <td className={styles.numeric}>{joined.format(new Date(row.createdAt))}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </span>
+
+            <span className={styles.cellEmail}>
+              <b className={styles.email}>{row.email}</b>
+              {row.note ? <span className={styles.note}>{row.note}</span> : null}
+            </span>
+
+            <span className={`${styles.quiet}`} style={{ width: 80, flex: "0 0 auto", fontVariantNumeric: "tabular-nums" }}>
+              {row.joined}
+            </span>
+
+            <span className={styles.quiet} style={{ width: 130, flex: "0 0 auto" }}>
+              {row.source === "thread" ? "A shared thread" : "Waitlist"}
+            </span>
+
+            <span style={{ width: 110, flex: "0 0 auto" }}>
+              <span className={`${styles.badge} ${STATE_TONE[row.state]}`}>{STATE_LABEL[row.state]}</span>
+            </span>
+
+            <span style={{ width: 96, flex: "0 0 auto", textAlign: "right" }}>
+              {row.state === "waiting" ? (
+                <button type="button" className={styles.small} onClick={() => void invite([row.id])} disabled={busy}>
+                  Invite
+                </button>
+              ) : row.state === "invited" ? (
+                <button type="button" className={styles.ghost} onClick={() => void resend(row.id)}>
+                  Resend
+                </button>
+              ) : (
+                <span className={styles.quiet} style={{ fontSize: 12.5 }}>
+                  in the app
+                </span>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
 
       {rows.length === 0 && !loading ? (
-        <p className={styles.empty}>
-          {tab === "waiting" ? "Nobody is waiting." : "Nobody has been invited yet."}
-        </p>
+        <p className={styles.empty}>{query ? "No address matches that." : "Nobody is waiting."}</p>
       ) : null}
 
       {cursor ? (
         <div className={styles.more}>
-          <button
-            type="button"
-            className={styles.quietAction}
-            onClick={() => void load(tab, cursor)}
-            disabled={loading}
-          >
+          <button type="button" className={styles.ghost} onClick={() => void load(query, cursor)} disabled={loading}>
             {loading ? "Loading…" : "Load more"}
           </button>
         </div>
       ) : null}
+
+      <span className={styles.sectionLabel}>Notes · what an invite does</span>
+      <ul className={styles.notes}>
+        {NOTES.map((note) => (
+          <li key={note} className={styles.noteItem}>
+            <span className={styles.noteBullet}>·</span>
+            {note}
+          </li>
+        ))}
+      </ul>
+
+      {toast ? <p className={styles.toast}>{toast}</p> : null}
     </>
   );
 }

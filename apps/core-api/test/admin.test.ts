@@ -151,7 +151,7 @@ describe("the waitlist page's data", () => {
     return signIn(id);
   }
 
-  it("separates waiting from invited-and-never-signed-in", async () => {
+  it("returns one list carrying the state, not a tab split", async () => {
     const cookie = await staffCookie();
     await db
       .insertInto("accounts")
@@ -162,23 +162,121 @@ describe("the waitlist page's data", () => {
       .execute();
     await promote("i1@example.test");
 
-    const waiting = await app.inject({
-      method: "GET",
-      url: "/v1/admin/waitlist?state=waiting",
-      headers: { cookie },
-    });
-    expect(waiting.json().rows.map((r: { email: string }) => r.email).sort()).toEqual([
-      "w1@example.test",
-      "w2@example.test",
-    ]);
+    const all = await app.inject({ method: "GET", url: "/v1/admin/waitlist", headers: { cookie } });
+    const rows = all.json().rows as Array<{ email: string; state: string; note: string | null; source: string }>;
 
-    const invited = await app.inject({
+    const byEmail = Object.fromEntries(rows.map((r) => [r.email, r]));
+    expect(byEmail["w1@example.test"]?.state).toBe("waiting");
+    expect(byEmail["i1@example.test"]?.state).toBe("invited");
+    // The line under the address, which is the only thing on this page an
+    // admin can act on.
+    expect(byEmail["i1@example.test"]?.note).toMatch(/not accepted|email not sent/);
+    expect(byEmail["w1@example.test"]?.note).toBeNull();
+    expect(byEmail["w1@example.test"]?.source).toBe("waitlist");
+  });
+
+  it("searches by part of an address, because support rarely has all of it", async () => {
+    const cookie = await staffCookie();
+    await db
+      .insertInto("accounts")
+      .values([
+        { email: "ana.romero@example.test", state: "waitlist" },
+        { email: "bruno@example.test", state: "waitlist" },
+      ])
+      .execute();
+
+    const found = await app.inject({
       method: "GET",
-      url: "/v1/admin/waitlist?state=invited",
+      url: "/v1/admin/waitlist?q=ROME",
       headers: { cookie },
     });
-    const rows = invited.json().rows as Array<{ email: string; awaitingFirstSignIn: boolean }>;
-    expect(rows.find((r) => r.email === "i1@example.test")?.awaitingFirstSignIn).toBe(true);
+    const emails = found.json().rows.map((r: { email: string }) => r.email);
+    expect(emails).toContain("ana.romero@example.test");
+    expect(emails).not.toContain("bruno@example.test");
+  });
+
+  it("invites the oldest N still waiting, chosen by the server", async () => {
+    const cookie = await staffCookie();
+    // Distinct timestamps, because a real waitlist accumulates over days. A
+    // bulk insert shares one transaction timestamp, which makes "oldest" a
+    // coin toss and would test nothing.
+    for (let i = 0; i < 6; i++) {
+      await db
+        .insertInto("accounts")
+        .values({
+          email: `q${i}@example.test`,
+          state: "waitlist",
+          created_at: new Date(Date.UTC(2026, 0, 1 + i)),
+        })
+        .execute();
+    }
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/admin/waitlist/invite-next",
+      headers: { cookie },
+      payload: { count: 4 },
+    });
+    expect(response.json().results).toHaveLength(4);
+
+    const stillWaiting = await db
+      .selectFrom("accounts")
+      .select("email")
+      .where("state", "=", "waitlist")
+      .execute();
+    // The two youngest are still waiting, so it took the oldest four rather
+    // than an arbitrary four.
+    expect(stillWaiting.map((r) => r.email).sort()).toEqual(["q4@example.test", "q5@example.test"]);
+  });
+
+  it("resends the invite email, which the original claim would otherwise block", async () => {
+    const cookie = await staffCookie();
+    const promoted = await promote("resend@example.test");
+
+    // Pretend the first send happened.
+    await db
+      .updateTable("accounts")
+      .set({ invite_email_sent_at: new Date() })
+      .where("id", "=", promoted.accountId)
+      .execute();
+    await db.deleteFrom("jobs").execute();
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/v1/admin/waitlist/${promoted.accountId}/resend`,
+      headers: { cookie },
+    });
+    expect(response.json()).toEqual({ status: "queued" });
+
+    const account = await db
+      .selectFrom("accounts")
+      .select("invite_email_sent_at")
+      .where("id", "=", promoted.accountId)
+      .executeTakeFirstOrThrow();
+    // The claim is released, or the handler would find nothing to send.
+    expect(account.invite_email_sent_at).toBeNull();
+    expect(await db.selectFrom("jobs").selectAll().execute()).toHaveLength(1);
+  });
+
+  it("refuses to resend to someone who was never invited", async () => {
+    const cookie = await staffCookie();
+    const { id } = await db
+      .insertInto("accounts")
+      .values({ email: "waiting@example.test", state: "waitlist" })
+      .returning(["id"])
+      .executeTakeFirstOrThrow();
+
+    // Creating the staff account promoted it, which queued an invite of its
+    // own. Clear it so the assertion is about this request.
+    await db.deleteFrom("jobs").execute();
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/v1/admin/waitlist/${id}/resend`,
+      headers: { cookie },
+    });
+    expect(response.json()).toEqual({ status: "not-invited" });
+    expect(await db.selectFrom("jobs").selectAll().execute()).toHaveLength(0);
   });
 
   it("pages with a cursor rather than an offset", async () => {
