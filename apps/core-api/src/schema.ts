@@ -42,7 +42,39 @@ export interface AccountIdentitiesTable {
   subject: string;
   email: string | null;
   email_verified: Generated<boolean>;
+  // Better Auth's account model requires these. We do not want them: we never
+  // call a provider API on someone's behalf, and connector tokens are a
+  // separate vault by decision. A hook blanks them straight after sign-in so a
+  // live provider refresh token is never at rest here. See migration 0002.
+  access_token: string | null;
+  refresh_token: string | null;
+  id_token: string | null;
+  access_token_expires_at: Timestamp | null;
+  refresh_token_expires_at: Timestamp | null;
+  scope: string | null;
+  password: string | null;
   created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+export interface SessionsTable {
+  id: Generated<string>;
+  account_id: string;
+  token: string;
+  expires_at: Timestamp;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+export interface VerificationsTable {
+  id: Generated<string>;
+  identifier: string;
+  value: string;
+  expires_at: Timestamp;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export interface StaffTable {
@@ -133,6 +165,8 @@ export interface SchemaMigrationsTable {
 export interface Database {
   accounts: AccountsTable;
   account_identities: AccountIdentitiesTable;
+  sessions: SessionsTable;
+  verifications: VerificationsTable;
   staff: StaffTable;
   threads: ThreadsTable;
   thread_members: ThreadMembersTable;

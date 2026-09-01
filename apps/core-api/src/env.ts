@@ -18,6 +18,12 @@ const schema = z.object({
   WEB_URL: z.string().url(),
   COOKIE_DOMAIN: z.string().min(1),
 
+  // Auth. The secret signs sessions; without it nothing can sign in, so it is
+  // required rather than defaulted to something guessable.
+  BETTER_AUTH_SECRET: z.string().min(32),
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+
   // Email. Optional so the API boots without it: a missing key means the
   // in-memory mailer, which is what development and tests want anyway.
   RESEND_API_KEY: z.string().min(1).optional(),
