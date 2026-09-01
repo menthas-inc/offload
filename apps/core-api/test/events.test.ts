@@ -1,13 +1,13 @@
-// T-AC10. Every event emitted by the invite funnel validates against its
-// schema, carries no email address, and carries no field shaped like an
-// account id.
+// AC-10. The funnel is measurable server-side end to end, and every event it
+// emits validates against its schema, carries no email address, and carries no
+// field shaped like an account id.
 //
 // The last two are not stylistic. Analytics is the one place content can leak
 // out of the system permanently: the outbox ships to R2 and stays there, so an
 // address written once is an address in cold storage forever (OFF-1). And a
 // real account id in an event defeats erasure for everyone, because
 // crypto-shredding works by destroying the pseudonym mapping and an event that
-// never used the pseudonym is unaffected by that (AC-17).
+// never used the pseudonym is unaffected by that (AC-10).
 
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -72,7 +72,7 @@ async function written() {
   return db.selectFrom("analytics_events").selectAll().execute();
 }
 
-describe("T-AC10 the four funnel events", () => {
+describe("AC-10 the four funnel events", () => {
   it("each has a schema file, so none of them is unversioned", () => {
     const files = readdirSync(SCHEMAS);
     for (const name of FUNNEL) expect(files).toContain(`${name}.v1.json`);

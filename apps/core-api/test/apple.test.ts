@@ -1,3 +1,5 @@
+// AC-4, the half of it that can be checked without a device.
+//
 // Apple's client secret is a JWT we mint, so it is the one credential in this
 // system that can be wrong in a way only Apple notices, at the end of a
 // redirect chain, as "invalid_client". This verifies it here instead.

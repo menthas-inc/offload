@@ -1,7 +1,8 @@
 // The transactional emails.
 //
-// T-AC11: every email has a plain-text alternative and no image references.
-// AC-10:  the invite goes out once per account, ever.
+// AC-11: every email is the one template with its slots filled, ships a
+//         plain-text alternative, and contains no images.
+// AC-2:  the invite that promotion queues goes out once per account, ever.
 //
 // The mailer is the in-memory one here. Nothing in this file may ever reach a
 // real inbox, and the default mailer only becomes Resend when a key is set,
@@ -33,7 +34,7 @@ beforeEach(async () => {
   await db.deleteFrom("accounts").execute();
 });
 
-describe("AC-10 the invite email", () => {
+describe("AC-2 the invite email", () => {
   async function invited(): Promise<string> {
     const result = await promote("ana@example.test");
     return result.accountId;
@@ -78,7 +79,7 @@ describe("AC-10 the invite email", () => {
   });
 });
 
-describe("T-AC11 what every email is made of", () => {
+describe("AC-11 what every email is made of", () => {
   const cases: Record<string, EmailSlots> = {
     "waitlist confirmation": {
       headline: "You are on the list",

@@ -14,8 +14,8 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
   | `api.offload.club` | Core API, which is where Better Auth mounts |
   | `staging.offload.club`, `api.staging.offload.club` | Staging, asleep until woken |
   | `localhost:4700`, `localhost:4701` | Web and API in development, from offload's reserved 4700 to 4719 block |
-- [ ] **A1** 🔴 Infrastructure prerequisites: Railway login, Google OAuth, Resend. Batched into one list rather than asked one at a time.
-- [ ] **A1b** 🔴 **Apple credentials, started now and not in Phase E.** Developer Program enrolment, an App ID, a Services ID, and a Sign in with Apple key giving a `.p8`, a Team ID and a Key ID. *Enrolment alone can take days, so this is pure lead time and nothing about it is sequenced after the code. Started in parallel with A1; if it is not ready when Phase D arrives, ship Google-only and add Apple behind it.*
+- [x] **A1** 🔴 Infrastructure prerequisites: Railway login, Google OAuth, Resend. Batched into one list rather than asked one at a time.
+- [x] **A1b** 🔴 **Apple credentials, started now and not in Phase E.** Developer Program enrolment, an App ID, a Services ID, and a Sign in with Apple key giving a `.p8`, a Team ID and a Key ID. *Enrolment alone can take days, so this is pure lead time and nothing about it is sequenced after the code. Started in parallel with A1; if it is not ready when Phase D arrives, ship Google-only and add Apple behind it.*
 - [x] **A2** Monorepo skeleton: pnpm workspaces, Turborepo, shared tsconfig, ESLint already wired. `apps/web`, `apps/core-api`, `packages/api`, `packages/tokens`, `schemas/events`.
 - [x] **A3** `packages/tokens`: generate design tokens as JSON from `.claude/skills/offload-design/tokens/`, plus a Tailwind theme built from it. *Generated, never hand-copied, so a design sync propagates (OFF-7).*
 - [x] **A4** Core API skeleton: Fastify, `zod` and `fastify-type-provider-zod`, `/healthz`, structured logging that carries ids and outcomes only (OFF-1).
@@ -60,14 +60,14 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 - [ ] **E2** 🔴 EAS project, plus the iOS credentials that A1b started: provisioning for a custom dev build, the associated domain for Sign in with Apple, and a reversed client ID for Google on iOS.
 - [x] **E3** **Apple native** through `expo-apple-authentication`, **Google browser-based** through Better Auth's Expo plugin, session in `expo-secure-store`, provider order per platform. *Native Google needs `@react-native-google-signin` and a reversed client id that only exists once E2 does. The browser flow is the same gate and swapping it later changes `lib/auth.ts` and nothing else.*
 - [x] **E4** Gate, no-invite, first run and Today empty on both phones, with Material 3 chrome on Android. **The notification permission ask fires straight after Get started**, which is where the design puts it so the third screen is the reason the dialog appears. *A refused or errored permission still lands on Today: it is not a failure of first run.*
-- [ ] **E5** `email.download_app` job, sent from the invite email's footer link rather than automatically. *Gates no acceptance criterion; first to cut if the feature runs long.*
+- [~] **E5** Not built, deliberately. `email.download_app` job, sent from the invite email's footer link rather than automatically. *Gates no acceptance criterion; first to cut if the feature runs long.*
 
 ## Phase F, closing
 
-- [ ] **F1** Tests for every acceptance criterion, named by AC.
+- [x] **F1** Tests for every acceptance criterion, named by AC. **AC-1 through AC-11 except AC-8**, which is the day-one empty state: a visual criterion with no server surface to assert. *The test names were wrong at first: they cited AC-12 and AC-17, numbers that came from this task list rather than from the spec, which stops at AC-11. Remapped, because a citation that does not resolve is worse than none.*
 - [ ] **F2** `/review` over the whole diff, then fix what it finds.
 - [x] **F3** `docs/local-dev.md` filled in for real: the one command, ports, environment variables, the seed.
-- [ ] **F4** Deploy to Railway, staging awake on request at the domain settled in A0, and a smoke test of the full path.
+- [~] **F4** Deployed to Railway and smoke tested: migrations 0002 and 0003 applied at boot, both providers redirect, `/api/me` 401s and `/v1/admin/waitlist` 404s unauthenticated, the waitlist accepts. **Still open:** the custom domain (`railway domain` returns Unauthorized on a paid account while every other command works, so it needs the dashboard), and a staging environment.
 
 ## Tests, by acceptance criterion
 

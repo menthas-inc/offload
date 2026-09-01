@@ -1,10 +1,10 @@
 // Promotion. The most consequential transaction in this spec, because a
 // half-promoted account signs in successfully and then does not work.
 //
-// AC-8:  an admin promoting someone makes an account that can sign in, with
-//        its keys and its Miscellaneous thread, in one transaction.
-// AC-9:  promoting twice is promoting once. No second thread, no second email.
-// AC-17: the event carries the pseudonym.
+// AC-2:  an admin promoting someone makes an account that can sign in, with
+//         its account_keys row, its Miscellaneous thread and its membership, in
+//         one transaction, and promoting twice is promoting once.
+// AC-10: the event it emits carries the pseudonym, never the account id.
 
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
@@ -50,7 +50,7 @@ const account = (id: string) =>
 const count = async (table: "threads" | "thread_members" | "thread_keys" | "account_keys" | "jobs" | "analytics_events"): Promise<number> =>
   Number((await db.selectFrom(table).select(db.fn.countAll().as("n")).executeTakeFirstOrThrow()).n);
 
-describe("AC-8 promoting someone off the waitlist", () => {
+describe("AC-2 promoting someone off the waitlist", () => {
   it("assembles the whole account in one go", async () => {
     const id = await waiting("ana@example.test");
     const result = await promote("ana@example.test");
@@ -108,7 +108,7 @@ describe("AC-8 promoting someone off the waitlist", () => {
     const events = await db.selectFrom("analytics_events").selectAll().execute();
     expect(events).toHaveLength(1);
     expect(events[0]?.name).toBe("invite_sent");
-    // AC-17: the pseudonym, never the account id.
+    // AC-10: the pseudonym, never the account id.
     expect(events[0]?.subject_id).toBe((await account(id)).analytics_subject_id);
     expect(events[0]?.subject_id).not.toBe(id);
   });
@@ -142,7 +142,7 @@ describe("the key layers it creates", () => {
   });
 });
 
-describe("AC-9 promoting twice", () => {
+describe("AC-2 promoting twice", () => {
   it("is promoting once", async () => {
     await waiting("ana@example.test");
     const first = await promote("ana@example.test");

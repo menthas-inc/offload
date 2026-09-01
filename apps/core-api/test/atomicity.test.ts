@@ -1,5 +1,5 @@
-// T-AC2. Promotion is one transaction, and forcing a failure at each step
-// leaves no half-promoted account.
+// AC-2. Promotion is one transaction, and forcing a failure at each step leaves
+// no half-promoted account.
 //
 // This matters more than it reads. A half-promoted account is worse than an
 // unpromoted one: state 'invited' with no Miscellaneous thread signs in
@@ -61,7 +61,7 @@ afterEach(async () => {
   for (const table of STEPS) await repair(table);
 });
 
-describe("T-AC2 a failure at any step promotes nobody", () => {
+describe("AC-2 a failure at any step promotes nobody", () => {
   for (const table of STEPS) {
     it(`rolls everything back when ${table} fails`, async () => {
       const { id } = await db

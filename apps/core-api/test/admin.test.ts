@@ -1,4 +1,4 @@
-// T-AC3. Who may call the admin API.
+// AC-3. Who may reach the admin panel.
 //
 // Sessions here are real ones: a row in `sessions` plus a cookie signed with
 // the same HMAC Better Auth signs its own with. A test that stubs the session
@@ -69,7 +69,7 @@ async function activeAccount(email: string): Promise<string> {
   return promoted.accountId;
 }
 
-describe("T-AC3 the admin API", () => {
+describe("AC-3 the admin API", () => {
   it("is invisible without a session", async () => {
     for (const url of ["/v1/admin/me", "/v1/admin/waitlist"]) {
       const response = await app.inject({ method: "GET", url });

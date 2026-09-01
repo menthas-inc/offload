@@ -1,9 +1,10 @@
 // First run's ending, and the address a refusal carries back.
 //
-// AC-12: completing (or skipping) first run is a server-side write, and the
-//        client cannot claim it happened.
-// AC-17: the event that write emits is attributed to the pseudonym, never to
-//        the account id.
+// AC-7:  first run shows once per person, and completing it flips `invited`
+//         to `active`. The write is server-side and the client cannot claim it
+//         happened.
+// AC-10: the event that write emits is attributed to the pseudonym, never to
+//         the account id.
 
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
@@ -46,7 +47,7 @@ const stateOf = async (id: string): Promise<string> =>
 const events = async (): Promise<Array<{ name: string; subject_id: string | null }>> =>
   db.selectFrom("analytics_events").select(["name", "subject_id"]).execute();
 
-describe("AC-12 finishing first run", () => {
+describe("AC-7 finishing first run", () => {
   it("flips invited to active", async () => {
     const id = await invited();
     await completeFirstRun(id);
