@@ -9,7 +9,10 @@
     "ios": {
       "bundleIdentifier": "club.offload.app",
       "supportsTablet": false,
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "club.offload.app"
@@ -30,6 +33,12 @@
       "eas": {
         "projectId": "9b52f487-7c53-4d9d-a389-889ccc79798d"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9b52f487-7c53-4d9d-a389-889ccc79798d"
     }
   }
 }
