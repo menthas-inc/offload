@@ -255,6 +255,11 @@ Check the dashboard when it matters. This cost one wrong conclusion already.
 back looking truncated. Use `--json` and a real parser before concluding a
 secret is broken. That cost a second wrong conclusion.
 
-`railway domain` returns `Unauthorized` on this account while every other
-command works, including listing domains on the same service. Custom domains are
-added in the dashboard for now.
+`railway domain` returns `Unauthorized` when *adding* a custom domain, on a paid
+account, while generating one and listing them both work on the same service.
+Custom domains are added in the dashboard.
+
+`railway variables --set "KEY="` does not clear a variable. It reports success
+and leaves the previous value in place, which is worse than failing, because the
+next deploy still has it. `railway variable delete KEY` (singular `variable`) is
+the one that works; `railway variables delete` prints a usage error.
