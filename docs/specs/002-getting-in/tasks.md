@@ -66,7 +66,7 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 
 - [ ] **F1** Tests for every acceptance criterion, named by AC.
 - [ ] **F2** `/review` over the whole diff, then fix what it finds.
-- [ ] **F3** `docs/local-dev.md` filled in for real: the one command, ports, environment variables, the seed.
+- [x] **F3** `docs/local-dev.md` filled in for real: the one command, ports, environment variables, the seed.
 - [ ] **F4** Deploy to Railway, staging awake on request at the domain settled in A0, and a smoke test of the full path.
 
 ## Tests, by acceptance criterion
