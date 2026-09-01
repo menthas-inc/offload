@@ -62,10 +62,10 @@ describe("identity uniqueness", () => {
       .insertInto("accounts").values({ email: email("ident") }).returning(["id"]).executeTakeFirstOrThrow();
     const subject = `sub-${Date.now()}`;
     await db.insertInto("account_identities")
-      .values({ account_id: account.id, provider: "google", subject }).execute();
+      .values({ account_id: account.id, provider: "google", issuer: "google", subject }).execute();
     await expect(
       db.insertInto("account_identities")
-        .values({ account_id: account.id, provider: "google", subject }).execute()
+        .values({ account_id: account.id, provider: "google", issuer: "google", subject }).execute()
     ).rejects.toThrow(/account_identities_provider_subject_key/);
   });
 });

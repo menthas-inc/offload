@@ -12,7 +12,7 @@
 // App Store's prominence requirement, it is what stops the pair reading as an
 // arbitrary choice between two identical things.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppleMark, GateCard, GateChrome, GoogleMark } from "../../../components/GateChrome";
 import { signIn, WEB_PROVIDER_ORDER, type Provider } from "../../../lib/auth-client";
 import styles from "../auth.module.css";
@@ -25,6 +25,16 @@ const LABEL: Record<Provider, string> = {
 export default function SignInPage() {
   const [pending, setPending] = useState<Provider | null>(null);
   const [refused, setRefused] = useState(false);
+  useEffect(() => {
+    // Better Auth bounces a failed callback back here with a code in the query
+    // string. Showing the banner is the whole point of being bounced somewhere
+    // real rather than to a 404 on the API.
+    //
+    // Read off location rather than through useSearchParams, which opts the
+    // page out of static prerendering unless it is wrapped in Suspense. This
+    // page has one query parameter and no reason to stop being static.
+    if (new URLSearchParams(window.location.search).has("error")) setRefused(true);
+  }, []);
 
   async function go(provider: Provider) {
     setRefused(false);

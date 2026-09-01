@@ -19,6 +19,9 @@ export interface AccountsTable {
   id: Generated<string>;
   state: Generated<"waitlist" | "invited" | "active" | "disabled">;
   display_name: string | null;
+  /** Better Auth's user model declares it. Nullable and unread: offload shows
+   *  no avatar anywhere. See migration 0006. */
+  image: string | null;
   email: string;
   email_verified: Generated<boolean>;
   default_thread_id: string | null;
@@ -41,13 +44,18 @@ export interface AccountIdentitiesTable {
   id: Generated<string>;
   account_id: string;
   provider: "apple" | "google";
+  /** Better Auth 1.7 scopes an identity by issuer as well as subject, and
+   *  queries it on every sign-in. For a social provider the issuer is the
+   *  provider, so this mirrors it. See migration 0005. */
+  issuer: Generated<string>;
   subject: string;
   email: string | null;
   email_verified: Generated<boolean>;
   // Better Auth's account model requires these. We do not want them: we never
   // call a provider API on someone's behalf, and connector tokens are a
-  // separate vault by decision. A hook blanks them straight after sign-in so a
-  // live provider refresh token is never at rest here. See migration 0002.
+  // separate vault by decision. A hook blanks them before the row is
+  // written, so a live provider token is never at rest here at all. See
+  // migration 0002 and auth.ts.
   access_token: string | null;
   refresh_token: string | null;
   id_token: string | null;

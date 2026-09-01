@@ -99,6 +99,17 @@ export const auth = betterAuth({
 
   database: { db, type: "postgres" },
 
+  // Where a failure inside the callback lands.
+  //
+  // Better Auth's default is baseURL-relative, so a server-side error during
+  // the provider round trip redirected to the API's own "/", which has no
+  // route: the person saw a raw Fastify 404 with an error code in the query
+  // string. The client's errorCallbackURL does not cover this, because that is
+  // only consulted once the request gets far enough to read it.
+  onAPIError: {
+    errorURL: `${env.WEB_URL}/sign-in`,
+  },
+
   user: {
     modelName: "accounts",
     fields: {

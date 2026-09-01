@@ -39,7 +39,9 @@ async function account(email: string, state: State): Promise<string> {
 async function identity(accountId: string, provider: "google" | "apple"): Promise<void> {
   await db
     .insertInto("account_identities")
-    .values({ account_id: accountId, provider, subject: uuidv7(), email_verified: true })
+    // issuer as well as provider, which is what Better Auth writes: 1.7 scopes
+    // an identity by issuer, and for a social provider the two are the same.
+    .values({ account_id: accountId, provider, issuer: provider, subject: uuidv7(), email_verified: true })
     .execute();
 }
 
