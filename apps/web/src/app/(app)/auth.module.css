@@ -26,8 +26,9 @@
   max-width: 100%;
   box-sizing: border-box;
   padding: 44px;
-  /* The kit asks for --radius-2xl, which the token set does not define. xl is
-     the nearest step up from card; logged in the design system's decisions. */
+  /* xl is the largest rectangular radius there is. The ladder is closed at
+     xs 6, sm 10, md 14, lg 20, xl 28, pill 999, and the kit's --radius-2xl was
+     a reference to a token that does not exist. */
   border-radius: var(--radius-xl);
   background: var(--surface-raised);
   box-shadow: var(--shadow-sheet);

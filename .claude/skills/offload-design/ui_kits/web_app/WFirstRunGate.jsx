@@ -37,7 +37,7 @@ function WWordmark(){
 }
 function WGateCard({children}){
   return (
-    <div style={{width:440,boxSizing:"border-box",padding:"44px",borderRadius:"var(--radius-2xl)",
+    <div style={{width:440,boxSizing:"border-box",padding:"44px",borderRadius:"var(--radius-xl)",
       background:"var(--surface-raised)",boxShadow:"var(--shadow-sheet)",display:"flex",flexDirection:"column"}}>
       {children}
     </div>

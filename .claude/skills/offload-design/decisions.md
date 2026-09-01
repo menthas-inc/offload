@@ -239,7 +239,7 @@ Full reasoning for each is in `readme.md`.
 **Why it matters:** every one of these was individually defensible and collectively a different product. The rule that would have caught it is "read the kit for the screen you are building", not "read the design system".
 
 **Two gaps found in the system while doing it:**
-1. The kit uses `--radius-2xl`, which the token set does not define. The rebuild uses `--radius-xl`.
+1. The kit used `--radius-2xl`, which does not exist. **Answered by design: `--radius-xl` (28px) is the largest rectangular radius, there is no 2xl and there will not be. The ladder is xs 6, sm 10, md 14, lg 20, xl 28, pill 999, plus the semantic aliases `--radius-card`, `--radius-sheet`, `--radius-field`.** The kit's `WGateCard` has been corrected to `--radius-xl`, which is also what the rebuild uses. It was not a gap in the tokens: the reference resolved to nothing, so the kit's own card was rendering square.
 2. Google's four brand hexes cannot be tokens, because Google's branding requirements mandate them for the sign-in button. They are the one lint exception in the web app, scoped to that component with the reason at the use site.
 
-**Design system impact:** `tokens/` gains `--radius-2xl` or the kit changes to `--radius-xl`. The mobile and Android gates have the same divergence and are not yet rebuilt.
+**Design system impact:** `ui_kits/web_app/WFirstRunGate.jsx` corrected. **`_ds_bundle.js` still carries the old value at `WGateCard` and is generated, so it needs regenerating rather than hand-editing.** The mobile and Android gates have the same divergence from their kits and are not yet rebuilt.
