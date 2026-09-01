@@ -264,7 +264,7 @@ Full reasoning for each is in `readme.md`.
 
 Both cannot hold. Following the Android kit, as the fork does, spends the "something is waiting for you" colour on every ordinary button on that platform, which is the signal Tonight and overdue things will need later.
 
-**Not resolved in code.** The kit is the more specific instruction and the fork follows it, so Android ships blue primaries today. Raised here rather than decided, because the answer is a brand call and the fix is one token either way.
+**Parked, following the kits.** The brand owner's call, 1 September: ship what the kits say for now and revisit after testing it on a device. So Android keeps its blue primaries and no code changes. The fix stays one token either way whenever that revisit happens.
 
 **Design system impact:** either `readme.md`'s rule gains an explicit Android exception, or the Android kit gains a semantic `--a-primary` that is not the attention accent and `M3FirstRun.jsx` stops reaching for `--blue-600` directly. Until then this is a divergence with a log entry rather than a silent one.
 
