@@ -17,6 +17,15 @@ const schema = z.object({
   API_URL: z.string().url(),
   WEB_URL: z.string().url(),
   COOKIE_DOMAIN: z.string().min(1),
+
+  // Email. Optional so the API boots without it: a missing key means the
+  // in-memory mailer, which is what development and tests want anyway.
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().email().default("offload@offload.club"),
+
+  // Read once by seed:admins and never on a request path, so that an email in
+  // an env var can never become an authorization decision at runtime.
+  ADMIN_EMAILS: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);

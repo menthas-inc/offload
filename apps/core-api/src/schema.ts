@@ -6,6 +6,8 @@
 
 import type { Generated, ColumnType } from "kysely";
 
+// Insert allows undefined because every timestamp column here has a DEFAULT,
+// so Generated<> on top of this would double-wrap and break the update type.
 type Timestamp = ColumnType<Date, Date | string | undefined, Date | string>;
 
 // Generated<T> here means "has a SQL DEFAULT": optional on insert, always
@@ -27,8 +29,8 @@ export interface AccountsTable {
   tier: Generated<string>;
   consent_version: string | null;
   consented_at: Timestamp | null;
-  created_at: Generated<Timestamp>;
-  updated_at: Generated<Timestamp>;
+  created_at: Timestamp;
+  updated_at: Timestamp;
   disabled_at: Timestamp | null;
   deleted_at: Timestamp | null;
 }
@@ -40,13 +42,13 @@ export interface AccountIdentitiesTable {
   subject: string;
   email: string | null;
   email_verified: Generated<boolean>;
-  created_at: Generated<Timestamp>;
+  created_at: Timestamp;
 }
 
 export interface StaffTable {
   account_id: string;
   role: "support" | "owner";
-  created_at: Generated<Timestamp>;
+  created_at: Timestamp;
 }
 
 export interface ThreadsTable {
@@ -56,9 +58,9 @@ export interface ThreadsTable {
   always_on: Generated<boolean>;
   icon: string | null;
   thing_count: Generated<number>;
-  last_activity_at: Generated<Timestamp>;
-  created_at: Generated<Timestamp>;
-  updated_at: Generated<Timestamp>;
+  last_activity_at: Timestamp;
+  created_at: Timestamp;
+  updated_at: Timestamp;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;
 }
@@ -69,7 +71,7 @@ export interface ThreadMembersTable {
   account_id: string;
   invited_by: string | null;
   state: Generated<"pending" | "accepted" | "declined" | "expired">;
-  created_at: Generated<Timestamp>;
+  created_at: Timestamp;
   responded_at: Timestamp | null;
   expires_at: Timestamp | null;
 }
@@ -79,7 +81,7 @@ export interface AccountKeysTable {
   wrapped_dek: Buffer;
   wrapped_by: string;
   version: Generated<number>;
-  created_at: Generated<Timestamp>;
+  created_at: Timestamp;
   rotated_at: Timestamp | null;
 }
 
@@ -87,7 +89,7 @@ export interface ThreadKeysTable {
   thread_id: string;
   account_id: string;
   wrapped_tk: Buffer;
-  created_at: Generated<Timestamp>;
+  created_at: Timestamp;
 }
 
 export interface JobsTable {
@@ -96,7 +98,7 @@ export interface JobsTable {
   account_id: string | null;
   payload: Generated<unknown>;
   priority: Generated<number>;
-  run_after: Generated<Timestamp>;
+  run_after: Timestamp;
   attempts: Generated<number>;
   max_attempts: Generated<number>;
   state: Generated<"queued" | "running" | "done" | "failed" | "dead">;
@@ -104,8 +106,8 @@ export interface JobsTable {
   locked_by: string | null;
   idempotency_key: string | null;
   last_error: string | null;
-  created_at: Generated<Timestamp>;
-  updated_at: Generated<Timestamp>;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 export interface AnalyticsEventsTable {
@@ -113,7 +115,7 @@ export interface AnalyticsEventsTable {
   name: string;
   version: Generated<number>;
   occurred_at: Timestamp;
-  received_at: Generated<Timestamp>;
+  received_at: Timestamp;
   anonymous_id: string | null;
   subject_id: string | null;
   session_id: string | null;
@@ -125,7 +127,7 @@ export interface AnalyticsEventsTable {
 
 export interface SchemaMigrationsTable {
   name: string;
-  applied_at: Generated<Timestamp>;
+  applied_at: Timestamp;
 }
 
 export interface Database {

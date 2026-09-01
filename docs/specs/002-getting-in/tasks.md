@@ -26,12 +26,12 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 
 ## Phase B, the waitlist
 
-- [ ] **B1** `POST /v1/waitlist`: honeypot, per-IP and per-email rate limiting, one upsert in every branch, a fixed minimum response duration, and trim-and-lowercase normalisation on every boundary.
-- [ ] **B2** `jobs` runner in the Core API with `FOR UPDATE SKIP LOCKED`, visibility timeout, attempts with backoff, dead state.
-- [ ] **B3** `Mailer` interface, Resend implementation, and the design's 600px template with four slots plus a plain-text alternative. From `offload@offload.club`.
-- [ ] **B4** `email.waitlist_joined` job, gated on `waitlist_email_sent_at` so it sends once per account ever, and scrubbing the recipient from `jobs.last_error`.
+- [x] **B1** `POST /v1/waitlist`: honeypot, per-IP and per-email rate limiting, one upsert in every branch, a fixed minimum response duration, and trim-and-lowercase normalisation on every boundary.
+- [x] **B2** `jobs` runner in the Core API with `FOR UPDATE SKIP LOCKED`, visibility timeout, attempts with backoff, dead state.
+- [x] **B3** `Mailer` interface, Resend implementation, and the design's 600px template with four slots plus a plain-text alternative. From `offload@offload.club`.
+- [x] **B4** `email.waitlist_joined` job, gated on `waitlist_email_sent_at` so it sends once per account ever, and scrubbing the recipient from `jobs.last_error`.
 - [ ] **B5** Landing page in `(marketing)`: one field, success line in place, `Sign in` top right, responsive to 375.
-- [ ] **B6** `waitlist_joined` event, and the `schemas/events` entry plus its CI validation.
+- [x] **B6** `waitlist_joined` event, and the `schemas/events` entry plus its CI validation.
 
 ## Phase C, the admin panel
 

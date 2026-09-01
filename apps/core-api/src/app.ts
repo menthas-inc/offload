@@ -12,6 +12,7 @@ import {
 import { env } from "./env.js";
 import { loggerOptions } from "./logger.js";
 import { healthRoutes } from "./routes/health.js";
+import { waitlistRoutes } from "./routes/waitlist.js";
 
 /** The app carries the Zod type provider, so routes get their schemas inferred
  *  rather than restated. Naming it keeps that off every call site. */
@@ -46,6 +47,7 @@ export async function buildApp(): Promise<App> {
   });
 
   await app.register(healthRoutes);
+  await app.register(waitlistRoutes);
 
   return app;
 }
