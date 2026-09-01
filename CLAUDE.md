@@ -23,6 +23,11 @@ Five surfaces: iOS, Android, web app, admin panel, marketing site. Invite only, 
 
 `.claude/skills/offload-design/` is the whole design system: tokens, 21 component contracts, five click-through UI kits, 43 exploration logs, and the brand decisions. It loads as a project skill, so ask for offload design guidance and it reads the real tokens rather than working from memory.
 
+**Before building any screen, find its mock.** `.claude/scripts/find-kit.sh <screen>` answers
+"is this already designed?" in one command, computed from the kits rather than an index that
+can go stale. If a kit exists, its layout and design are the design: use them. There are
+detailed mocks across mobile, web and admin, and most screens worth building already have one.
+
 Read `.claude/skills/offload-design/readme.md` in full before building anything with a visual result. It is long because it is the whole system, and almost every question that comes up during the build is answered in it. `handoff/CONTRIBUTING.md` is the working agreement.
 
 Things that bite most often:
@@ -43,6 +48,7 @@ Short list, kept short. Each one cost real time in this repo.
 - **Distrust vendor marketing, including in docs.** Railway's blog claimed sub-millisecond private networking that their own support forum contradicts. Deepgram's headline accuracy came from Deepgram. Prefer an independent benchmark or the vendor's own bug tracker.
 - **A CLI can lie about its own output.** `railway variables --json` documents itself as printing raw values and prints resolved ones, which produced a confident wrong conclusion about a stored reference.
 - **The defect class that matters most is two documents written days apart.** Almost every real finding from the review passes was a contradiction between things that each read fine alone: a cascade specified in one file and refcounting in another, an event carrying an account id in one place and a pseudonym in another.
+- **A screen almost certainly already has a mock, and reading the readme is not reading it.** The web gate, the refusal and the no-invite screen were built from `readme.md` and the acceptance criteria while `ui_kits/web_app/WFirstRunGate.jsx` sat unopened. Wrong card, wrong title, wrong button treatment, wrong refusal colour, no first-run art. Each difference was individually defensible and together they were a different product. `find-kit.sh` exists so there is no excuse.
 - **Deploying finds things local runs cannot.** The builder, the injected `PORT`, and a pool error that killed the process all appeared only on the platform.
 
 ## Where things live
