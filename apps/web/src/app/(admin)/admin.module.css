@@ -29,13 +29,13 @@
   color: var(--paper);
 }
 
+/* A filled chip, not an outline. The kit fills it at 16% white, which reads as
+   a label on the nav rather than as a button someone forgot to style. */
 .tag {
-  font: var(--weight-medium) 11px/1 var(--font-core);
-  letter-spacing: 0.06em;
-  text-transform: lowercase;
-  padding: 4px 7px;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgb(255 255 255 / 0.34);
+  font: var(--weight-medium) 10.5px/1 var(--font-core);
+  padding: 4px 6px;
+  border-radius: var(--radius-xs);
+  background: rgb(255 255 255 / 0.16);
   color: var(--paper);
 }
 
@@ -102,6 +102,14 @@
   background: var(--surface-page);
   padding: 32px 36px 64px;
   min-width: 0;
+}
+
+/* The kit is drawn at 1440. Past that the email column is the only flexible
+   one, so it takes every extra pixel and the row turns into an address adrift
+   in white space. Capping the content keeps the proportions the design has
+   rather than inventing new ones for a wide monitor. */
+.pane > * {
+  max-width: 1144px;
 }
 
 .paneHead {

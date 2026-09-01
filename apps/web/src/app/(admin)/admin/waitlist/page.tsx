@@ -21,6 +21,11 @@ const PAGE = 50;
  *  moving to a Limits page. */
 const BATCH_UNKNOWN = null;
 
+/** The kit sizes the action column at 96, which fits one button. Waiting rows
+ *  carry two, so it is wider here; the alternative is Remove hanging off the
+ *  edge of the table, which is what it did. */
+const ACTION_W = 156;
+
 interface Row {
   id: string;
   email: string;
@@ -297,7 +302,7 @@ export default function WaitlistPage() {
           <span style={{ width: 80, flex: "0 0 auto" }}>Joined</span>
           <span style={{ width: 130, flex: "0 0 auto" }}>Came from</span>
           <span style={{ width: 110, flex: "0 0 auto" }}>State</span>
-          <span style={{ width: 96, flex: "0 0 auto", textAlign: "right" }} />
+          <span style={{ width: ACTION_W, flex: "0 0 auto", textAlign: "right" }} />
         </div>
 
         {rows.map((row, index) => (
@@ -331,7 +336,7 @@ export default function WaitlistPage() {
               <span className={`${styles.badge} ${STATE_TONE[row.state]}`}>{STATE_LABEL[row.state]}</span>
             </span>
 
-            <span style={{ width: 96, flex: "0 0 auto", textAlign: "right" }}>
+            <span style={{ width: ACTION_W, flex: "0 0 auto", textAlign: "right" }}>
               {row.state === "waiting" ? (
                 <span style={{ display: "inline-flex", gap: 4 }}>
                   <button type="button" className={styles.small} onClick={() => void invite([row.id])} disabled={busy}>
