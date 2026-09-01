@@ -29,18 +29,28 @@ const page = z.object({
   nextCursor: z.string().nullable(),
 });
 
-/** (created_at, id) rather than an offset. Offsets skip and repeat rows when
- *  the underlying set changes between requests, and this set changes every
- *  time someone joins the waitlist, which is continuously. */
-function encodeCursor(createdAt: Date, id: string): string {
-  return Buffer.from(`${createdAt.toISOString()}|${id}`).toString("base64url");
+/** The cursor is the last row's id, and the order is by id.
+ *
+ *  Not an offset: offsets skip and repeat rows when the underlying set changes
+ *  between requests, and this set changes every time someone joins the
+ *  waitlist, which is continuously.
+ *
+ *  And not (created_at, id), which is the usual answer and was wrong here. A
+ *  timestamptz has microsecond precision; a JavaScript Date has milliseconds.
+ *  Round-tripping the cursor through one truncates it, so `created_at = cursor`
+ *  never matches and the `created_at > cursor` branch returns rows the previous
+ *  page already showed. A bulk insert puts every row in the same transaction
+ *  timestamp, so that is the ordinary case rather than a rare tie.
+ *
+ *  Ids are UUIDv7, so ordering by id is chronological to the millisecond and a
+ *  total order below that. Lossless, one column, one comparison. */
+function encodeCursor(id: string): string {
+  return Buffer.from(id).toString("base64url");
 }
 
-function decodeCursor(cursor: string): { createdAt: Date; id: string } | null {
-  const [at, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|");
-  if (!at || !id) return null;
-  const createdAt = new Date(at);
-  return Number.isNaN(createdAt.getTime()) ? null : { createdAt, id };
+function decodeCursor(cursor: string): string | null {
+  const id = Buffer.from(cursor, "base64url").toString("utf8");
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null;
 }
 
 const outcome = z.object({
@@ -88,20 +98,12 @@ export async function adminRoutes(app: App): Promise<void> {
         .select(["id", "email", "state", "created_at", "first_signed_in_at"])
         .where("state", "=", state === "waiting" ? "waitlist" : "invited")
         .where("deleted_at", "is", null)
-        .orderBy("created_at", "asc")
         .orderBy("id", "asc")
         // One extra row, so "is there a next page" is answered by the query
         // rather than by a second count that can disagree with it.
         .limit(limit + 1);
 
-      if (after) {
-        query = query.where((eb) =>
-          eb.or([
-            eb("created_at", ">", after.createdAt),
-            eb.and([eb("created_at", "=", after.createdAt), eb("id", ">", after.id)]),
-          ])
-        );
-      }
+      if (after) query = query.where("id", ">", after);
 
       const found = await query.execute();
       const rows = found.slice(0, limit);
@@ -115,8 +117,7 @@ export async function adminRoutes(app: App): Promise<void> {
           createdAt: account.created_at.toISOString(),
           awaitingFirstSignIn: account.state === "invited" && account.first_signed_in_at === null,
         })),
-        nextCursor:
-          found.length > limit && last ? encodeCursor(last.created_at, last.id) : null,
+        nextCursor: found.length > limit && last ? encodeCursor(last.id) : null,
       });
     }
   );

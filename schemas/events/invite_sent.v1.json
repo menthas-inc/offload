@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/invite_sent.v1.json",
+  "title": "invite_sent",
+  "description": "An account was promoted off the waitlist and the invite email was queued. Emitted inside the promotion transaction, so it cannot survive a rollback or be lost by a commit. Promotion is idempotent, so this fires once per account rather than once per click.",
+  "type": "object",
+  "required": ["invited_by_staff"],
+  "additionalProperties": false,
+  "properties": {
+    "invited_by_staff": {
+      "type": "boolean",
+      "description": "False when the seed promoted them, which is how the first owner and any scripted invite arrive. Deliberately not the staff account's id: who let someone in is an audit question, and the audit trail is not the warehouse."
+    }
+  }
+}

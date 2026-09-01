@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/first_sign_in.v1.json",
+  "title": "first_sign_in",
+  "description": "The first session an account was ever issued. Claimed on accounts.first_signed_in_at rather than counted from the sessions table, because a session count is right only until the first one expires and a second device signs in.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {}
+}

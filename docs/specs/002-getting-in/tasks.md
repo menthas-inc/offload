@@ -71,12 +71,12 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 
 ## Tests, by acceptance criterion
 
-- [ ] **T-AC1** Waitlist join is enumeration-safe: identical body and status, and **measured** timing variance within noise across new, waiting and existing addresses. Two submissions of one address produce one account row and one email.
-- [ ] **T-AC2** Promotion is one transaction. Forcing a failure at each step leaves no half-promoted account.
-- [ ] **T-AC3** A non-staff account gets 403 on every admin route. *The support-sees-404-not-403 half of AC-3 moves to the spec that builds the owner-only pages: with Costs, Limits, People and Staff out of scope here, that test would pass because the route does not exist rather than because the pattern works, which is false confidence.*
-- [ ] **T-AC5** A valid provider login for an uninvited identity provisions nothing and returns the no-invite state. **A sign-in attempt against a `waitlist` or `disabled` account creates no `account_identities` row**, so a refusal has no side effects.
-- [ ] **T-AC6** Apple then Google with the same verified email is one account. An unverified email never links.
-- [ ] **T-AC7** First run completes once per person; a second device resumes rather than restarts.
-- [ ] **T-AC9** Disabling an account stops an existing session at its next refresh, not at token expiry.
-- [ ] **T-AC10** Every emitted event validates against its schema and contains no email address and **no field shaped like an account id**, asserted against the four funnel schemas specifically.
-- [ ] **T-AC11** Every email has a plain-text alternative and no image references.
+- [x] **T-AC1** Waitlist join is enumeration-safe: identical body and status, and **measured** timing variance within noise across new, waiting and existing addresses. Two submissions of one address produce one account row and one email.
+- [x] **T-AC2** Promotion is one transaction. Forcing a failure at each step leaves no half-promoted account.
+- [x] **T-AC3** A non-staff account gets **404**, not 403, on every admin route. *Changed during implementation to match the design's own rule for owner-only pages: support does not see them refused, it does not see them. Applying that to the whole API costs nothing and confirms less.* *The support-sees-404-not-403 half of AC-3 moves to the spec that builds the owner-only pages: with Costs, Limits, People and Staff out of scope here, that test would pass because the route does not exist rather than because the pattern works, which is false confidence.*
+- [x] **T-AC5** A valid provider login for an uninvited identity provisions nothing and returns the no-invite state. **A sign-in attempt against a `waitlist` or `disabled` account creates no `account_identities` row**, so a refusal has no side effects.
+- [x] **T-AC6** Apple then Google with the same verified email is one account. An unverified email never links.
+- [x] **T-AC7** First run completes once per person; a second device resumes rather than restarts. *Server-side: `invited` to `active` is the only marker, the client never claims it, and the flip is idempotent by its where clause.*
+- [x] **T-AC9** Disabling an account stops an existing session at its next refresh, not at token expiry.
+- [x] **T-AC10** Every emitted event validates against its schema and contains no email address and **no field shaped like an account id**, asserted against the four funnel schemas specifically.
+- [x] **T-AC11** Every email has a plain-text alternative and no image references.

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/onboarding_completed.v1.json",
+  "title": "onboarding_completed",
+  "description": "First run ended and the account moved from invited to active. There is no `skipped` property because there is no difference: the three screens are an introduction, nothing is collected, and a skipped run is a finished one. Adding the flag later would mean pretending the two were ever distinguishable.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {}
+}
