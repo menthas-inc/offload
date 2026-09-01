@@ -5,23 +5,24 @@
     "scheme": "offload",
     "version": "0.1.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "club.offload.app",
       "supportsTablet": false,
       "usesAppleSignIn": true
     },
     "android": {
-      "package": "club.offload.app",
-      "edgeToEdgeEnabled": true
+      "package": "club.offload.app"
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
       "expo-web-browser",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-system-ui"
     ],
-    "experiments": { "typedRoutes": true }
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

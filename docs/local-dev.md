@@ -172,6 +172,14 @@ Studio installed. `ios/` and `android/` are gitignored: they are outputs of the
 Expo config, and a committed copy is a second source of truth for the same
 settings.
 
+**Known problem, unresolved.** `expo export` on this machine hangs immediately
+after "Starting Metro Bundler": no error, 0% CPU, indefinitely. It reproduces
+with the stock Metro config, with a hoisted `node_modules`, offline, and with
+one worker, so it is not this repository's config. `expo config --type
+introspect` and `expo-doctor` both run fine and the app typechecks, so the code
+is checked; the bundle is not. Worth another look on a machine with Xcode
+installed, which is needed for a dev build anyway.
+
 The theme comes from `pnpm tokens`, which emits `nativewind.css` and
 `tailwind-preset.js` alongside the web outputs. Colours ship as RGB channels in
 CSS variables so a dark theme is a variable swap rather than a second palette.
