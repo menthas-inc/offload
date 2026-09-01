@@ -1,34 +1,44 @@
-// Today, on day one.
+// Today on day one, from ui_kits/mobile_app/FirstRun.jsx.
 //
 // Not a zero and not an illustration of one: an invitation in offload's own
-// voice, three dashed examples, and the composer. Tapping an example fills the
-// composer rather than submitting it, because the first thing that lands in an
-// account should be something the person meant.
+// voice, then three examples that fill the composer rather than submitting.
+// The first thing that lands in an account should be something the person
+// meant, not a sample.
 
 import { useRef, useState, type ComponentRef } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
+import { Logo } from "../../components/Logo";
+import { DAY_ONE_INVITATION, EXAMPLES } from "../../lib/gate";
+import { COLOR } from "../../lib/colors";
 
-const EXAMPLES = [
-  "Ana's birthday is in March, she wants the ceramics class",
-  "flight to Lisbon on the 14th, check in opens the day before",
-  "that podcast about the bridge collapse, listen on the train",
-] as const;
+function ArrowUp() {
+  return (
+    <Svg width={14} height={14} viewBox="0 0 24 24">
+      <Path d="M12 19V5M12 5l-6 6M12 5l6 6" stroke={COLOR.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </Svg>
+  );
+}
 
 export default function Today() {
   const [draft, setDraft] = useState("");
-  // ComponentRef, not TextInput: the class and its instance are different
-  // types, and the element ref is the instance.
   const input = useRef<ComponentRef<typeof TextInput>>(null);
 
   return (
     <SafeAreaView className="flex-1 bg-surface-page" edges={["top"]}>
-      <ScrollView contentContainerClassName="px-gutter-screen pt-space-8 pb-space-8">
-        <Text className="font-quiet text-title-3 text-text-primary">
-          Nothing here yet. Dump the first thing and offload will start filing.
+      {/* Day one has no title: the wordmark is the bar, because there is
+          nothing yet to name. */}
+      <View className="h-appbar-height flex-row items-center px-gutter-screen">
+        <Logo size={21} />
+      </View>
+
+      <ScrollView contentContainerClassName="px-gutter-screen pt-space-6 pb-space-8">
+        <Text className="font-quiet text-text-primary" style={{ fontSize: 17, lineHeight: 25.5 }}>
+          {DAY_ONE_INVITATION}
         </Text>
 
-        <View className="mt-space-7 gap-space-4">
+        <View className="mt-space-7 gap-space-3">
           {EXAMPLES.map((example) => (
             <Pressable
               key={example}
@@ -36,9 +46,12 @@ export default function Today() {
                 setDraft(example);
                 input.current?.focus();
               }}
-              className="min-h-tap-min rounded-card border border-dashed border-border-strong px-space-6 py-space-5 active:bg-ink-50"
+              className="min-h-tap-min flex-row items-center gap-space-4 rounded-md border border-dashed border-border-strong bg-surface-raised px-space-6 py-space-5"
             >
-              <Text className="font-core text-body text-text-secondary">{example}</Text>
+              <ArrowUp />
+              <Text className="flex-1 font-core text-text-secondary" style={{ fontSize: 15, lineHeight: 21 }}>
+                {example}
+              </Text>
             </Pressable>
           ))}
         </View>

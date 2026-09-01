@@ -26,4 +26,9 @@ export const dark = tokens.dark;
 
 /** Resolved values, no references. For React Native and anything native. */
 export const resolved = tokens.resolved;
+
+/** The Android platform scope: Material's surface roles, shape scale and bar
+ *  heights, generated from the Android kit rather than retyped. Only the
+ *  Android half of the fork reads these. */
+export const android = tokens.android;
 export default tokens;

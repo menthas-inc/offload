@@ -243,3 +243,15 @@ Full reasoning for each is in `readme.md`.
 2. Google's four brand hexes cannot be tokens, because Google's branding requirements mandate them for the sign-in button. They are the one lint exception in the web app, scoped to that component with the reason at the use site.
 
 **Design system impact:** `ui_kits/web_app/WFirstRunGate.jsx` corrected. **`_ds_bundle.js` still carries the old value at `WGateCard` and is generated, so it needs regenerating rather than hand-editing.** The mobile and Android gates have the same divergence from their kits and are not yet rebuilt.
+
+### 2026-09-01 · Android is a real fork, and its palette is generated
+**Surface:** android, ios
+**Is:** The phones' gate, no-invite, first run and day-one Today are rebuilt from their kits. Android is a genuine fork rather than a skin, using Expo Router's platform route files (`sign-in.android.tsx` beside `sign-in.ios.tsx`), because the two kits differ in more than colour: Google leads on Android, the primary is a filled Material button at 56 rather than 52, the shape scale is Material's rather than offload's, the bar is `row-height-lg` rather than `tabbar-height`, and the type sits on Material's tracking.
+
+**The palette is generated, not retyped.** `[data-platform="android"]` in the Android kit's `index.html` defines the Material surface roles, the replaced radii and the taller bars. The token generator now reads that scope and emits them as `a-*` colours, `a-*` radii and `a-*` heights, so the fork consumes tokens like everything else. A hex typed into the app is what OFF-7 exists to prevent, and "it was only for Android" is how that starts.
+
+**Copy does not fork.** Both platforms read `lib/gate.ts`, so a copy change that reaches one and not the other is impossible by construction rather than by discipline.
+
+**What the adherence lint caught during this, both correctly:** a `markOnly` prop invented for `Logo`, which declares `variant` and a `tone` of `ink` or `inverse`; and hard-coded hexes in SVG props, where NativeWind cannot reach and a literal is tempting. Those colours now come from the generated tokens through `lib/colors.ts`.
+
+**Design system impact:** none. The Android platform scope stays where it is and is now consumed rather than copied.

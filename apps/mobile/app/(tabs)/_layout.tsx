@@ -7,24 +7,28 @@
 
 import { Tabs } from "expo-router";
 import { Platform } from "react-native";
-import { resolved } from "@offload/tokens";
+import { resolved, android as androidTokens } from "@offload/tokens";
 
 const light = resolved.light;
+// Material's own bar height and surface roles, generated from the Android
+// kit's platform scope rather than typed here.
+const m3 = androidTokens.light;
+const isAndroid = Platform.OS === "android";
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: light["text-primary"],
-        tabBarInactiveTintColor: light["text-tertiary"],
+        tabBarActiveTintColor: isAndroid ? m3["a-on"] : light["text-primary"],
+        tabBarInactiveTintColor: isAndroid ? m3["a-on-quiet"] : light["text-tertiary"],
         tabBarStyle: {
-          backgroundColor: light["surface-raised"],
-          borderTopColor: light["border-hairline"],
-          // Material 3 chrome on Android is taller and unlabelled-on-inactive;
-          // iOS keeps the platform bar. The height comes from the design system
-          // either way rather than from a framework default.
-          height: Platform.OS === "android" ? 72 : parseInt(light["tabbar-height"] ?? "64", 10),
+          backgroundColor: isAndroid ? m3["a-c-low"] : light["surface-raised"],
+          borderTopColor: isAndroid ? m3["a-outline"] : light["border-hairline"],
+          // Material's navigation bar is taller than the iOS tab bar. Both
+          // numbers come from the design system rather than a framework
+          // default.
+          height: parseInt((isAndroid ? m3["row-height-lg"] : light["tabbar-height"]) ?? "64", 10),
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
       }}

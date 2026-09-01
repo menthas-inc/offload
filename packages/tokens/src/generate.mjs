@@ -251,3 +251,120 @@ console.log(
   `nativewind: ${colorNames.length} colours as channels, ` +
     `${Object.keys(preset.spacing).length} spacing, ${Object.keys(preset.height).length} heights`
 );
+
+// ------------------------------------------------------------------ Android
+//
+// Android is a real fork, not a skin. The design system's Android kit defines a
+// platform scope that replaces three things: the Material surface roles (--a-*,
+// derived from offload's own neutrals so the brand still owns the palette),
+// Material's shape scale in place of offload's radii, and taller bars.
+//
+// Those live in the kit's index.html rather than in tokens/, so they are read
+// from there rather than retyped. A hex typed into the app is the thing OFF-7
+// exists to prevent, and "it was only for Android" is how that starts.
+//
+// Emitted with an `a-` prefix into the same preset, always defined rather than
+// swapped at runtime: the Android screens are separate files by platform
+// extension, so each set is only reachable from the surface it belongs to.
+
+const ANDROID_KIT = join(here, "../../../.claude/skills/offload-design/ui_kits/android_app/index.html");
+
+function parsePlatformScope(html) {
+  const light = {};
+  const dark = {};
+  const scopes = html.matchAll(/\[data-platform="android"\](\[data-theme="dark"\])?\s*\{([^}]*)\}/g);
+  for (const [, isDark, body] of scopes) {
+    const target = isDark ? dark : light;
+    for (const [, name, value] of body.matchAll(DECL_RE)) target[name.slice(2)] = value.trim();
+  }
+  return { light, dark };
+}
+
+const android = parsePlatformScope(readFileSync(ANDROID_KIT, "utf8"));
+
+if (Object.keys(android.light).length === 0) {
+  throw new Error(
+    "No Android platform tokens parsed. The Android kit's scope moved or changed shape; " +
+      "fix this generator rather than hand-copying values into the app."
+  );
+}
+
+/** Android values resolve against the light theme's variables, since the scope
+ *  references them (--a-surface is var(--surface-page)). */
+const resolveAndroid = (source, base) =>
+  Object.fromEntries(
+    Object.entries(source).map(([name, value]) => [
+      name,
+      value.replace(/var\(\s*(--[a-z0-9-]+)\s*\)/gi, (_, ref) => base[ref.slice(2)] ?? ref),
+    ])
+  );
+
+const androidLight = resolveAndroid(android.light, resolvedLight);
+const androidDark = resolveAndroid({ ...android.light, ...android.dark }, resolvedDark);
+
+tokens.android = { light: androidLight, dark: androidDark };
+writeFileSync(join(OUT_DIR, "tokens.json"), JSON.stringify(tokens, null, 2) + "\n");
+
+// Colours join the channel variables so `bg-a-c-low` works and swaps with the
+// theme like every other colour.
+const androidColors = Object.keys(androidLight).filter((n) => toChannels(androidLight[n]) !== null);
+
+/** The surface roles are already named a-*, so they are used as-is. Prefixing
+ *  again gives a-a-surface, which is nobody's idea of a class name. */
+const androidCss = readFileSync(join(OUT_DIR, "nativewind.css"), "utf8")
+  .replace(
+    /(  :root \{\n)/,
+    (m) =>
+      m +
+      androidColors.map((n) => `    --c-${n}: ${toChannels(androidLight[n])};`).join("\n") +
+      "\n"
+  )
+  .replace(
+    /(  \.dark:root \{\n)/,
+    (m) =>
+      m +
+      androidColors
+        .filter((n) => toChannels(androidDark[n]) !== null)
+        .map((n) => `    --c-${n}: ${toChannels(androidDark[n])};`)
+        .join("\n") +
+      "\n"
+  );
+writeFileSync(join(OUT_DIR, "nativewind.css"), androidCss);
+
+const androidPreset = {
+  colors: Object.fromEntries(
+    androidColors.map((n) => [n, `rgb(var(--c-${n}) / <alpha-value>)`])
+  ),
+  borderRadius: Object.fromEntries(
+    Object.entries(androidLight)
+      .filter(([n]) => n.startsWith("radius-"))
+      .map(([n, v]) => [`a-${n.slice("radius-".length)}`, v])
+  ),
+  // -height anywhere in the name, not only at the end: row-height-lg is a
+  // height too and a suffix test silently drops it.
+  height: Object.fromEntries(
+    Object.entries(androidLight)
+      .filter(([n]) => n.includes("-height"))
+      .map(([n, v]) => [`a-${n}`, v])
+  ),
+};
+androidPreset.minHeight = androidPreset.height;
+
+const presetFile = join(OUT_DIR, "tailwind-preset.cjs");
+const merged = readFileSync(presetFile, "utf8").replace(
+  /module\.exports = \{ theme: \{ extend: ([\s\S]*)\} \};\n$/,
+  (_, body) => {
+    const extend = JSON.parse(body);
+    for (const key of Object.keys(androidPreset)) {
+      extend[key] = { ...(extend[key] ?? {}), ...androidPreset[key] };
+    }
+    return "module.exports = { theme: { extend: " + JSON.stringify(extend, null, 2) + " } };\n";
+  }
+);
+writeFileSync(presetFile, merged);
+
+console.log(
+  `android: ${androidColors.length} surface roles, ` +
+    `${Object.keys(androidPreset.borderRadius).length} radii, ` +
+    `${Object.keys(androidPreset.height).length} heights`
+);
