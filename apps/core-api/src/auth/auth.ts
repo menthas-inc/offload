@@ -35,6 +35,7 @@ import { betterAuth } from "better-auth";
 import { db } from "../db.js";
 import { env, isProduction } from "../env.js";
 import { decide } from "./gate.js";
+import { uuidv7 } from "../uuid.js";
 
 /** 15 minutes. Bounds how long a disabled account keeps working, so it is a
  *  security parameter rather than a tuning knob. */
@@ -120,6 +121,11 @@ export const auth = betterAuth({
       : {},
 
   advanced: {
+    // Better Auth generates nanoid-style string ids by default, and every id
+    // column here is a uuid, so an insert fails on the type. UUIDv7 for the
+    // same reason spec 001 chose it: time-ordered, so rows cluster on insert.
+    database: { generateId: () => uuidv7() },
+
     // The web app and the API are different origins under one registrable
     // domain, so the cookie has to span subdomains. Lax rather than Strict so
     // a link from the invite email lands signed in, which is the point of it.
