@@ -133,12 +133,60 @@ They run against the same local Postgres and they truncate tables, so
 The Apple tests skip themselves when no Apple credentials are configured, which
 is what CI does.
 
-## Pointing a mobile build at a local API
+## Node version
 
-The phone is not on `localhost`. Set the API base URL to the machine's LAN
-address on the same port, and add that origin to the API's CORS allowlist:
+`.nvmrc` pins **22**, which is what CI uses. Run `nvm use` before anything else.
+
+**Use it for real, not just for `node`.** nvm installs pnpm per Node version and
+the shim carries a hard shebang, so a `pnpm` from a Node 20 install runs
+everything under Node 20 no matter what `PATH` says about `node`. Expo then
+starts Metro under a version it does not support and hangs at "Starting Metro
+Bundler" with no error, 0% CPU, forever. `nvm use` fixes it; putting a newer
+`node` on `PATH` by hand does not.
+
+This is not optional for the mobile app: Expo SDK 57 requires Node >= 20.19.4
+and refuses to start below it. The API and the web app run on 20 as well, so the
+pin exists to keep one version across the repository rather than to work around
+each package's floor separately.
+
+## The mobile app
 
 ```
+nvm use
+cd apps/mobile
+pnpm dev            # Metro, expecting a custom dev build
+```
+
+`pnpm dev` starts with `--dev-client`, so it wants a development build rather
+than Expo Go. Expo Go cannot load this app: Sign in with Apple and secure store
+are native modules that a generic client container does not carry.
+
+Until the EAS project exists (task E2), build locally:
+
+```
+pnpm ios            # or: pnpm android
+```
+
+Both generate the native project and compile it, which needs Xcode or Android
+Studio installed. `ios/` and `android/` are gitignored: they are outputs of the
+Expo config, and a committed copy is a second source of truth for the same
+settings.
+
+The theme comes from `pnpm tokens`, which emits `nativewind.css` and
+`tailwind-preset.js` alongside the web outputs. Colours ship as RGB channels in
+CSS variables so a dark theme is a variable swap rather than a second palette.
+Run it after a design sync; nothing in `apps/mobile` holds a value.
+
+## Pointing a mobile build at a local API
+
+The phone is not on `localhost`. Point the app at the machine's LAN address and
+tell the API to expect that origin:
+
+```
+# apps/mobile
+EXPO_PUBLIC_API_URL=http://192.168.1.71:4701
+
+# root .env, so CORS and the OAuth redirect agree with it
 API_URL=http://192.168.1.71:4701
 WEB_URL=http://192.168.1.71:4700
 ```

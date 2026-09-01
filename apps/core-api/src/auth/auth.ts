@@ -32,6 +32,7 @@
 // not get to be the only thing standing there.
 
 import { betterAuth } from "better-auth";
+import { expo } from "@better-auth/expo";
 import { db } from "../db.js";
 import { env, isProduction } from "../env.js";
 import { decideLink } from "./gate.js";
@@ -85,7 +86,16 @@ async function emitFirstSignInOnce(accountId: string): Promise<void> {
 export const auth = betterAuth({
   baseURL: env.API_URL,
   secret: env.BETTER_AUTH_SECRET,
-  trustedOrigins: [env.WEB_URL],
+  // The phones return through a custom scheme rather than an https origin, so
+  // it has to be trusted explicitly. Narrow on purpose: "offload://" and not a
+  // wildcard, because a permissive entry here is an open redirect at the end of
+  // an authenticated flow.
+  trustedOrigins: [env.WEB_URL, "offload://"],
+
+  // Rewrites the session cookie into a form a React Native client can store,
+  // and accepts it back on the header the client sends. Without it the phones
+  // authenticate successfully and then have nowhere to keep the result.
+  plugins: [expo()],
 
   database: { db, type: "postgres" },
 

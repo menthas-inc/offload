@@ -124,3 +124,130 @@ console.log(
   `tokens: ${Object.keys(light).length} light, ${Object.keys(dark).length} dark, ` +
     `${Object.keys(resolvedLight).length} resolved, from ${files.length} files`
 );
+
+// ---------------------------------------------------------------- NativeWind
+//
+// Two more outputs, for the phones. NativeWind is Tailwind's authoring model
+// over React Native styles, and it reads a theme the same way Tailwind does, so
+// the theme has to come from here rather than from a hand-written config that
+// drifts.
+//
+// Colours go out as CSS variables holding space-separated RGB channels, which
+// is the shape `rgb(var(--x) / <alpha-value>)` needs. That indirection is not
+// decoration: it is what makes dark mode a variable swap rather than a second
+// palette, so `bg-surface-page` is one class that means the right thing in both
+// themes. A generated map of literal hexes cannot do that.
+//
+// Everything that is not a colour goes out as a literal, because a border
+// radius does not change with the theme.
+
+/** #RGB, #RRGGBB or an rgb()/rgba() function, to "R G B". Returns null for
+ *  anything else, which is how non-colour tokens are filtered out. */
+function toChannels(value) {
+  const hex = value.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    const digits = hex[1].length === 3 ? [...hex[1]].map((d) => d + d) : hex[1].match(/../g);
+    return digits.map((pair) => parseInt(pair, 16)).join(" ");
+  }
+  const fn = value.trim().match(/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i);
+  // The alpha of an rgba() token is deliberately dropped: Tailwind applies its
+  // own through <alpha-value>, and keeping both multiplies them. State layers
+  // like state-hover carry their alpha in the utility that uses them.
+  return fn ? [fn[1], fn[2], fn[3]].map((n) => Math.round(Number(n))).join(" ") : null;
+}
+
+const colorNames = Object.keys(light).filter((name) => toChannels(light[name]) !== null);
+
+const channelLines = (source) =>
+  colorNames
+    .filter((name) => source[name] !== undefined && toChannels(source[name]) !== null)
+    .map((name) => `  --c-${name}: ${toChannels(source[name])};`);
+
+writeFileSync(
+  join(OUT_DIR, "nativewind.css"),
+  [
+    "/* Generated from the design system. Do not edit: run `pnpm tokens`. */",
+    "@tailwind base;",
+    "@tailwind components;",
+    "@tailwind utilities;",
+    "",
+    "@layer base {",
+    "  :root {",
+    ...channelLines(light).map((line) => "  " + line),
+    "  }",
+    "",
+    "  .dark:root {",
+    // Dark only redefines what it actually changes, so a token the design
+    // system leaves alone stays alone rather than being restated identically.
+    ...channelLines(dark).map((line) => "  " + line),
+    "  }",
+    "}",
+    "",
+  ].join("\n")
+);
+
+/** Strip a token prefix, so `radius-sm` becomes `sm` under borderRadius. Only
+ *  used where shadowing a Tailwind default is the intent. */
+const group = (prefix) =>
+  Object.fromEntries(
+    Object.entries(resolvedLight)
+      .filter(([name]) => name.startsWith(`${prefix}-`))
+      .map(([name, value]) => [name.slice(prefix.length + 1), value])
+  );
+
+/** Keep the full token name as the key. For scales where a short key would
+ *  silently shadow a Tailwind default with a different value, which is the
+ *  worst kind of wrong: `p-4` still compiles and quietly means 8px instead of
+ *  16px. */
+const named = (...prefixes) =>
+  Object.fromEntries(
+    Object.entries(resolvedLight).filter(([name]) =>
+      prefixes.some((prefix) => name === prefix || name.startsWith(`${prefix}-`))
+    )
+  );
+
+// Fixed heights the design system names. Exposed so a screen writes
+// `min-h-composer-height` rather than a raw 52px, which the adherence lint
+// rejects and OFF-7 forbids.
+const heights = named("appbar", "composer", "row", "tabbar", "tap");
+
+const preset = {
+  colors: Object.fromEntries(
+    colorNames.map((name) => [name, `rgb(var(--c-${name}) / <alpha-value>)`])
+  ),
+  // Shadowing Tailwind's radius scale is deliberate: the design system's
+  // radii should be the only ones reachable, and every key here has a
+  // counterpart there.
+  borderRadius: group("radius"),
+  spacing: named("space", "gutter", "tap"),
+  height: heights,
+  minHeight: heights,
+  width: heights,
+  fontSize: group("size"),
+  fontWeight: group("weight"),
+  lineHeight: group("leading"),
+  letterSpacing: group("tracking"),
+  fontFamily: {
+    // The first family only. React Native has no font stack: it resolves one
+    // name, and a comma-separated list silently matches nothing.
+    core: [light["font-core"].split(",")[0].replace(/"/g, "")],
+    quiet: [light["font-quiet"].split(",")[0].replace(/"/g, "")],
+  },
+};
+
+writeFileSync(
+  join(OUT_DIR, "tailwind-preset.cjs"),
+  "// Generated from the design system. Do not edit: run `pnpm tokens`.\n" +
+    "//\n" +
+    "// .cjs, not .js: this package is type: module, and a Tailwind config is\n" +
+    "// loaded with require(). A .js file here is an ES module and the require\n" +
+    "// throws ERR_REQUIRE_ESM before Tailwind ever sees the theme.\n" +
+    "module.exports = { theme: { extend: " +
+    JSON.stringify(preset, null, 2) +
+    " } };\n"
+);
+
+console.log(
+  `nativewind: ${colorNames.length} colours as channels, ` +
+    `${Object.keys(preset.spacing).length} spacing, ${Object.keys(preset.height).length} heights`
+);

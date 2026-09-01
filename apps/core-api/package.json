@@ -14,6 +14,7 @@
     "seed:admins": "node --import tsx --import ./src/preload-env.ts src/seed-admins.ts"
   },
   "dependencies": {
+    "@better-auth/expo": "^1.7.2",
     "@fastify/cors": "^11.0.0",
     "@offload/tokens": "workspace:^",
     "better-auth": "^1.7.2",

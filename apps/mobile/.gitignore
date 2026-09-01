@@ -1,0 +1,5 @@
+*.log
+.expo/
+dist/
+ios/
+android/

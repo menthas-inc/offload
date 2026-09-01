@@ -8,7 +8,9 @@
   "exports": {
     ".": "./dist/index.js",
     "./tokens.json": "./dist/tokens.json",
-    "./tokens.css": "./dist/tokens.css"
+    "./tokens.css": "./dist/tokens.css",
+    "./nativewind.css": "./dist/nativewind.css",
+    "./tailwind-preset": "./dist/tailwind-preset.cjs"
   },
   "scripts": {
     "build": "node src/generate.mjs && tsc -p tsconfig.json",

@@ -213,3 +213,14 @@ Full reasoning for each is in `readme.md`.
 **Surface:** admin
 **Is:** Support gets waitlist and people. Owner also gets costs, limits and staff. Support does not see those pages at all rather than seeing them refused. Always at least one owner, and nobody can edit themselves out of the panel.
 **Design system impact:** `ui_kits/admin_web/`.
+
+### 2026-09-01 · Two gaps the token scale has, found by building the phones
+**Surface:** mobile, web
+**Is:** The mobile screens are built entirely from `packages/tokens`, and two values in the kits have no token behind them.
+
+1. **Control height.** The gate's buttons, the primary button and the composer are all 52px. There is a `--composer-height` and an `--appbar-height` at that value, but no `--control-height`, so a button either borrows a token that means something else or hard-codes the number. The mobile app currently uses `min-h-composer-height` on buttons, which is honest about where the value came from and wrong about what it means.
+2. **The first-run dot is 7px.** The spacing scale steps 6, 8; there is no 7. The dots use `space-3` at 6px.
+
+**Why it matters here:** the design-adherence lint rejects a raw px in application code, which is the rule working. Both of these reached the point of being written as literals before being caught, which is the signal that the scale is missing a step rather than that the screen is wrong.
+
+**Design system impact:** `tokens/space.css` or equivalent gains a `--control-height`, and either the dot becomes 6px in the kits or the scale gains a 7px step. Until then both deviations are commented at their use site.
