@@ -39,6 +39,10 @@
     },
     "updates": {
       "url": "https://u.expo.dev/9b52f487-7c53-4d9d-a389-889ccc79798d"
-    }
+    },
+    "platforms": [
+      "ios",
+      "android"
+    ]
   }
 }
