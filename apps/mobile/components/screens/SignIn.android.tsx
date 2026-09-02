@@ -80,7 +80,10 @@ export default function SignIn() {
         </Text>
       </View>
 
-      <View className="px-gutter-screen pb-space-8 gap-space-4">
+      {/* gap-space-5, because the Android kit's foot gap is 12 and space-5 is
+          12. The 8 that was here is space-4 and belongs to nothing on this
+          screen. */}
+      <View className="px-gutter-screen pb-space-8 gap-space-5">
         {refused ? (
           <View className="rounded-a-md bg-surface-attention-soft px-space-6 py-space-5">
             <Text className="font-core text-body-sm text-text-on-attention">{GATE.refused}</Text>
