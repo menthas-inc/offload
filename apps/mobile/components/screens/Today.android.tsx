@@ -1,4 +1,4 @@
-// Today on day one, from ui_kits/mobile_app/FirstRun.jsx.
+// Today on day one, from ui_kits/android_app/M3FirstRun.jsx.
 //
 // Not a zero and not an illustration of one: an invitation in offload's own
 // voice, then three examples that fill the composer rather than submitting.
@@ -9,7 +9,7 @@ import { useRef, useState, type ComponentRef } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { Logo } from "../../components/Logo";
+import { Logo } from "../Logo";
 import { DAY_ONE_INVITATION, EXAMPLES } from "../../lib/gate";
 import { COLOR } from "../../lib/colors";
 
@@ -36,7 +36,7 @@ export default function Today() {
   const input = useRef<ComponentRef<typeof TextInput>>(null);
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-page" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-a-surface" edges={["top"]}>
       {/* Day one has no title: the wordmark is the bar, because there is
           nothing yet to name. */}
       <View className="h-appbar-height flex-row items-center px-gutter-screen">
@@ -44,7 +44,7 @@ export default function Today() {
       </View>
 
       <ScrollView contentContainerClassName="px-gutter-screen pt-space-6 pb-space-8">
-        <Text className="font-quiet text-text-primary" style={{ fontSize: 17, lineHeight: 25.5 }}>
+        <Text className="font-quiet text-a-on" style={{ fontSize: 17, lineHeight: 25.5 }}>
           {DAY_ONE_INVITATION}
         </Text>
 
@@ -56,10 +56,10 @@ export default function Today() {
                 setDraft(example);
                 input.current?.focus();
               }}
-              className="min-h-tap-min flex-row items-center gap-space-4 rounded-md border border-dashed border-border-strong bg-surface-raised px-space-6 py-space-5"
+              className="min-h-tap-min flex-row items-center gap-space-4 rounded-a-lg  bg-a-c-low px-space-6 py-space-5"
             >
               <ArrowUp />
-              <Text className="flex-1 font-core text-text-secondary" style={{ fontSize: 15, lineHeight: 21 }}>
+              <Text className="flex-1 font-core text-a-on-var" style={{ fontSize: 15, lineHeight: 21 }}>
                 {example}
               </Text>
             </Pressable>

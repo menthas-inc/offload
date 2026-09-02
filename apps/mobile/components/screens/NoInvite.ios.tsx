@@ -6,9 +6,9 @@ import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Logo } from "../components/Logo";
-import { GATE } from "../lib/gate";
-import { API_URL } from "../lib/auth";
+import { Logo } from "../Logo";
+import { GATE } from "../../lib/gate";
+import { API_URL } from "../../lib/auth";
 
 export default function NoInvite() {
   const router = useRouter();

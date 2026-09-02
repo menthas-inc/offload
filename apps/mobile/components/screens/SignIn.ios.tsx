@@ -10,11 +10,11 @@ import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Logo } from "../components/Logo";
-import { AppleGlyph, GoogleGlyph } from "../components/Glyphs";
-import { GATE } from "../lib/gate";
-import { COLOR } from "../lib/colors";
-import { appleAvailable, signIn, type Provider } from "../lib/auth";
+import { Logo } from "../Logo";
+import { AppleGlyph, GoogleGlyph } from "../Glyphs";
+import { GATE } from "../../lib/gate";
+import { COLOR } from "../../lib/colors";
+import { appleAvailable, signIn, type Provider } from "../../lib/auth";
 
 export default function SignIn() {
   const router = useRouter();
