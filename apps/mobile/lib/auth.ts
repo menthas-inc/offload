@@ -69,6 +69,21 @@ export const providerOrder: Provider[] =
   Platform.OS === "ios" ? ["apple", "google"] : ["google", "apple"];
 
 export async function signInWithApple(): Promise<SignInResult> {
+  // Android gets the browser flow, the same one Google uses there.
+  //
+  // expo-apple-authentication is the native sheet and exists only on iOS, but
+  // Sign in with Apple itself is not iOS-only, and the Android kit offers it.
+  // Hiding the button off iOS meant an invited person whose account is an
+  // Apple one had no way in on Android at all.
+  if (Platform.OS !== "ios") {
+    const { error } = await authClient.signIn.social({
+      provider: "apple",
+      callbackURL: "offload://welcome",
+      errorCallbackURL: "offload://no-invite",
+    });
+    return error ? { ok: false, reason: classify(error.message) } : { ok: true };
+  }
+
   try {
     const credential = await AppleAuthentication.signInAsync({
       requestedScopes: [
@@ -116,10 +131,13 @@ export function signIn(provider: Provider): Promise<SignInResult> {
   return provider === "apple" ? signInWithApple() : signInWithGoogle();
 }
 
-/** Apple's sheet does not exist off iOS, and on older iOS versions it may not
- *  be available at all. Asking rather than assuming keeps a dead button off the
- *  screen instead of behind an error. */
+/** Whether to offer Apple at all.
+ *
+ *  Everywhere except iOS the answer is yes, because the browser flow works
+ *  anywhere. On iOS it depends on the native sheet actually being available,
+ *  which asking is cheaper than assuming: a dead button is worse than an
+ *  absent one. */
 export async function appleAvailable(): Promise<boolean> {
-  if (Platform.OS !== "ios") return false;
+  if (Platform.OS !== "ios") return true;
   return AppleAuthentication.isAvailableAsync();
 }
