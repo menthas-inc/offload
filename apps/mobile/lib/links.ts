@@ -11,3 +11,4 @@ export const WEB_URL =
   "https://offload.club";
 
 export const PRIVACY_URL = `${WEB_URL}/privacy`;
+

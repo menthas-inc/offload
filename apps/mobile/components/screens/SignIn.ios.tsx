@@ -105,7 +105,13 @@ export default function SignIn() {
 
         <Text className="text-center font-core text-caption text-text-tertiary">
           {GATE.signIn.terms}
-          <Text className="font-medium text-text-accent">{GATE.signIn.termsAccent}</Text>
+          <Text
+            className="font-medium text-text-accent"
+            accessibilityRole="link"
+            onPress={() => router.push("/waitlist")}
+          >
+            {GATE.signIn.termsAccent}
+          </Text>
         </Text>
         {/* 44px of touch around a 12.5px line, per the design system's hit
             area rule: the text stays the size the kit draws it. */}

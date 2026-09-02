@@ -31,6 +31,19 @@ export const GATE = {
     switch: "Use a different account",
     terms: "Invited on another address? Sign in with that one.",
   },
+  // Reaching the waitlist without a refused sign-in, which the kits do not
+  // draw: their no-invite screen always knows the address, because the only
+  // way in was an OAuth attempt that failed. Tapping "Join the waitlist" on
+  // the gate has no address, so it has to ask for one. The copy follows the
+  // marketing page's form, which is the same waitlist and the same voice.
+  waitlist: {
+    title: "Join the waitlist",
+    sub: "Invite only for now. We will email you when your account is ready to use.",
+    placeholder: "you@example.com",
+    join: "Join the waitlist",
+    back: "Back to sign in",
+    invalid: "That does not look like an email address.",
+  },
   joined: {
     title: "You are on the list",
     sub: (email: string) => `We will email ${email} when your account is ready to use.`,
