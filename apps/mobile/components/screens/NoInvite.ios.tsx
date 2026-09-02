@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Logo } from "../Logo";
+import { GateLockup } from "../GateLockup";
 import { GATE } from "../../lib/gate";
 import { API_URL } from "../../lib/auth";
 
@@ -38,17 +38,15 @@ export default function NoInvite() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface-page">
-      <View className="flex-1 items-center justify-center">
-        <View className="items-center gap-space-7">
-          <Logo variant="mark" size={92} />
-          <Text className="font-core text-text-primary" style={{ fontSize: 30, fontWeight: "600", letterSpacing: -0.9 }}>
-            offload
-          </Text>
-        </View>
-      </View>
+      <GateLockup />
 
-      <View className="items-center px-gutter-screen pb-space-9">
-        <Text className="text-center font-core text-title-1 font-semibold text-text-primary">{copy.title}</Text>
+      <View
+        className="items-center justify-end px-gutter-screen pb-space-9"
+        style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
+      >
+        <Text className="text-center font-core text-title-1 font-semibold text-text-primary">
+          {copy.title}
+        </Text>
         <Text className="mt-space-5 text-center font-core text-body text-text-secondary">
           {email ? copy.sub(email) : copy.subNoEmail}
         </Text>
@@ -81,10 +79,14 @@ export default function NoInvite() {
               onPress={() => router.replace("/sign-in")}
               className="min-h-composer-height w-full items-center justify-center rounded-pill border border-border-strong bg-surface-raised active:opacity-90"
             >
-              <Text className="font-core text-body font-medium text-text-primary">{GATE.notInvited.switch}</Text>
+              <Text className="font-core text-body font-medium text-text-primary">
+                {GATE.notInvited.switch}
+              </Text>
             </Pressable>
 
-            <Text className="text-center font-core text-caption text-text-tertiary">{GATE.notInvited.terms}</Text>
+            <Text className="text-center font-core text-caption text-text-tertiary">
+              {GATE.notInvited.terms}
+            </Text>
           </>
         )}
       </View>

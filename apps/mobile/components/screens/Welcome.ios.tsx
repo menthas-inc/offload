@@ -40,7 +40,8 @@ export default function Welcome() {
 
     // A refused or errored permission still lands on Today: it is not a
     // failure of first run.
-    if (ask) await Notifications.requestPermissionsAsync().catch(() => undefined);
+    if (ask)
+      await Notifications.requestPermissionsAsync().catch(() => undefined);
 
     router.replace("/today");
   }
@@ -70,8 +71,13 @@ export default function Welcome() {
         </View>
 
         {consenting ? null : (
-          <Pressable onPress={() => void finish(false)} className="min-h-tap-min justify-center">
-            <Text className="font-core font-medium text-text-secondary">Skip</Text>
+          <Pressable
+            onPress={() => void finish(false)}
+            className="min-h-tap-min justify-center"
+          >
+            <Text className="font-core font-medium text-text-secondary">
+              Skip
+            </Text>
           </Pressable>
         )}
       </View>
@@ -79,8 +85,12 @@ export default function Welcome() {
       {consenting ? (
         <>
           <View className="px-gutter-screen pt-space-9">
-            <Text className="font-core text-title-1 font-semibold text-text-primary">{CONSENT.title}</Text>
-            <Text className="mt-space-5 font-core text-body text-text-secondary">{CONSENT.sub}</Text>
+            <Text className="font-core text-title-1 font-semibold text-text-primary">
+              {CONSENT.title}
+            </Text>
+            <Text className="mt-space-5 font-core text-body text-text-secondary">
+              {CONSENT.sub}
+            </Text>
           </View>
 
           <View className="flex-1 justify-center px-gutter-screen">
@@ -100,8 +110,12 @@ export default function Welcome() {
           </View>
 
           <View className="px-gutter-screen pb-space-8">
-            <Text className="font-core text-title-1 font-semibold text-text-primary">{screen!.title}</Text>
-            <Text className="mt-space-5 font-core text-body text-text-secondary">{screen!.sub}</Text>
+            <Text className="font-core text-title-1 font-semibold text-text-primary">
+              {screen!.title}
+            </Text>
+            <Text className="mt-space-5 font-core text-body text-text-secondary">
+              {screen!.sub}
+            </Text>
           </View>
         </>
       )}

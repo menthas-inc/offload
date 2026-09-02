@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Logo } from "../Logo";
+import { GateLockup } from "../GateLockup";
 import { GATE } from "../../lib/gate";
 import { API_URL } from "../../lib/auth";
 
@@ -38,17 +38,15 @@ export default function NoInvite() {
 
   return (
     <SafeAreaView className="flex-1 bg-a-surface">
-      <View className="flex-1 items-center justify-center">
-        <View className="items-center gap-space-7">
-          <Logo variant="mark" size={92} />
-          <Text className="font-core text-a-on" style={{ fontSize: 30, fontWeight: "600", letterSpacing: -0.9 }}>
-            offload
-          </Text>
-        </View>
-      </View>
+      <GateLockup />
 
-      <View className="items-center px-gutter-screen pb-space-9">
-        <Text className="text-center font-core text-title-1 font-semibold text-a-on">{copy.title}</Text>
+      <View
+        className="items-center justify-end px-gutter-screen pb-space-9"
+        style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
+      >
+        <Text className="text-center font-core text-title-1 font-semibold text-a-on">
+          {copy.title}
+        </Text>
         <Text className="mt-space-5 text-center font-core text-body text-a-on-var">
           {email ? copy.sub(email) : copy.subNoEmail}
         </Text>
@@ -81,10 +79,17 @@ export default function NoInvite() {
               onPress={() => router.replace("/sign-in")}
               className="min-h-a-row-height w-full items-center justify-center rounded-pill border border-a-outline bg-surface-raised active:opacity-90"
             >
-              <Text className="font-core text-body font-medium text-a-on">{GATE.notInvited.switch}</Text>
+              <Text className="font-core text-body font-medium text-a-on">
+                {GATE.notInvited.switch}
+              </Text>
             </Pressable>
 
-            <Text className="text-center font-core text-a-on-var" style={{ fontSize: 12.5, lineHeight: 18 }}>{GATE.notInvited.terms}</Text>
+            <Text
+              className="text-center font-core text-a-on-var"
+              style={{ fontSize: 12.5, lineHeight: 18 }}
+            >
+              {GATE.notInvited.terms}
+            </Text>
           </>
         )}
       </View>

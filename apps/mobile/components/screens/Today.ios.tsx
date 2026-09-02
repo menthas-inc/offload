@@ -19,7 +19,14 @@ import { COLOR } from "../../lib/colors";
 function SendArrow() {
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24">
-      <Path d="M12 19V5M12 5l-6 6M12 5l6 6" stroke={COLOR.onSolid} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path
+        d="M12 19V5M12 5l-6 6M12 5l6 6"
+        stroke={COLOR.onSolid}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
     </Svg>
   );
 }
@@ -27,7 +34,14 @@ function SendArrow() {
 function ArrowUp() {
   return (
     <Svg width={14} height={14} viewBox="0 0 24 24">
-      <Path d="M12 19V5M12 5l-6 6M12 5l6 6" stroke={COLOR.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path
+        d="M12 19V5M12 5l-6 6M12 5l6 6"
+        stroke={COLOR.accent}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
     </Svg>
   );
 }
@@ -46,7 +60,10 @@ export default function Today() {
       </View>
 
       <ScrollView contentContainerClassName="px-gutter-screen pt-space-6 pb-space-8">
-        <Text className="font-quiet text-text-primary" style={{ fontSize: 17, lineHeight: 25.5 }}>
+        <Text
+          className="font-quiet text-text-primary"
+          style={{ fontSize: 17, lineHeight: 25.5 }}
+        >
           {DAY_ONE_INVITATION}
         </Text>
 
@@ -61,7 +78,10 @@ export default function Today() {
               className="min-h-tap-min flex-row items-center gap-space-4 rounded-md border border-dashed border-border-strong bg-surface-raised px-space-6 py-space-5"
             >
               <ArrowUp />
-              <Text className="flex-1 font-core text-text-secondary" style={{ fontSize: 15, lineHeight: 21 }}>
+              <Text
+                className="flex-1 font-core text-text-secondary"
+                style={{ fontSize: 15, lineHeight: 21 }}
+              >
                 {example}
               </Text>
             </Pressable>

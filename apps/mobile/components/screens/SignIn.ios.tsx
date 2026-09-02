@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Logo } from "../Logo";
+import { GateLockup } from "../GateLockup";
 import { AppleGlyph, GoogleGlyph } from "../Glyphs";
 import { GATE } from "../../lib/gate";
 import { PRIVACY_URL } from "../../lib/links";
@@ -54,19 +54,12 @@ export default function SignIn() {
     <SafeAreaView className="flex-1 bg-surface-page">
       {/* The lockup takes the space that is left, so it centres in the upper
           half without a magic offset. */}
-      <View className="flex-1 items-center justify-center">
-        <View className="items-center gap-space-7">
-          <Logo variant="mark" size={92} />
-          <Text
-            className="font-core text-text-primary"
-            style={{ fontSize: 30, fontWeight: "600", letterSpacing: -0.9 }}
-          >
-            offload
-          </Text>
-        </View>
-      </View>
+      <GateLockup />
 
-      <View className="items-center px-gutter-screen pb-space-9">
+      <View
+        className="items-center justify-end px-gutter-screen pb-space-9"
+        style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
+      >
         <Text className="text-center font-core text-title-1 font-semibold text-text-primary">
           {GATE.signIn.title}
         </Text>
@@ -78,7 +71,9 @@ export default function SignIn() {
       <View className="px-gutter-screen pb-space-8 gap-space-4">
         {refused ? (
           <View className="rounded-md bg-surface-attention-soft px-space-6 py-space-5">
-            <Text className="font-core text-body-sm text-text-on-attention">{GATE.refused}</Text>
+            <Text className="font-core text-body-sm text-text-on-attention">
+              {GATE.refused}
+            </Text>
           </View>
         ) : null}
 
@@ -90,14 +85,18 @@ export default function SignIn() {
               onPress={() => void go(provider)}
               disabled={pending !== null}
               className={`min-h-composer-height w-full flex-row items-center justify-center gap-space-4 rounded-pill active:opacity-90 ${
-                dark ? "bg-ink-950" : "border border-border-strong bg-surface-raised"
+                dark
+                  ? "bg-ink-950"
+                  : "border border-border-strong bg-surface-raised"
               }`}
             >
               {dark ? <AppleGlyph color={COLOR.onSolid} /> : <GoogleGlyph />}
               <Text
                 className={`font-core text-body font-medium ${dark ? "text-text-inverse" : "text-text-primary"}`}
               >
-                {pending === provider ? "Taking you there…" : GATE.signIn[provider]}
+                {pending === provider
+                  ? "Taking you there…"
+                  : GATE.signIn[provider]}
               </Text>
             </Pressable>
           );

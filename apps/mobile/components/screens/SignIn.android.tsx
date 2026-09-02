@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Logo } from "../Logo";
+import { GateLockup } from "../GateLockup";
 import { AppleGlyph, GoogleGlyph } from "../Glyphs";
 import { GATE } from "../../lib/gate";
 import { PRIVACY_URL } from "../../lib/links";
@@ -56,19 +56,12 @@ export default function SignIn() {
 
   return (
     <SafeAreaView className="flex-1 bg-a-surface">
-      <View className="flex-1 items-center justify-center">
-        <View className="items-center gap-space-7">
-          <Logo variant="mark" size={92} />
-          <Text
-            className="font-core text-a-on"
-            style={{ fontSize: 30, fontWeight: "600", letterSpacing: -0.9 }}
-          >
-            offload
-          </Text>
-        </View>
-      </View>
+      <GateLockup />
 
-      <View className="items-center px-gutter-screen pb-space-9">
+      <View
+        className="items-center justify-end px-gutter-screen pb-space-9"
+        style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
+      >
         <Text
           className="text-center font-core text-title-1 font-semibold text-a-on"
           style={{ letterSpacing: 0 }}
@@ -86,7 +79,9 @@ export default function SignIn() {
       <View className="px-gutter-screen pb-space-8 gap-space-5">
         {refused ? (
           <View className="rounded-a-md bg-surface-attention-soft px-space-6 py-space-5">
-            <Text className="font-core text-body-sm text-text-on-attention">{GATE.refused}</Text>
+            <Text className="font-core text-body-sm text-text-on-attention">
+              {GATE.refused}
+            </Text>
           </View>
         ) : null}
 
@@ -101,21 +96,34 @@ export default function SignIn() {
               // 56, not 52: Material's button height. min-h and not h, because
               // text scales to 200% and a fixed height clips it.
               className={`min-h-a-row-height w-full flex-row items-center justify-center gap-space-4 rounded-pill active:opacity-90 ${
-                filled ? "bg-blue-600" : dark ? "bg-ink-950" : "border border-a-outline bg-surface-raised"
+                filled
+                  ? "bg-blue-600"
+                  : dark
+                    ? "bg-ink-950"
+                    : "border border-a-outline bg-surface-raised"
               }`}
             >
-              {provider === "apple" ? <AppleGlyph color={COLOR.onSolid} /> : <GoogleGlyph />}
+              {provider === "apple" ? (
+                <AppleGlyph color={COLOR.onSolid} />
+              ) : (
+                <GoogleGlyph />
+              )}
               <Text
                 className={`font-core font-medium ${filled || dark ? "text-text-inverse" : "text-a-on"}`}
                 style={{ fontSize: 15, letterSpacing: 0.15 }}
               >
-                {pending === provider ? "Taking you there…" : GATE.signIn[provider]}
+                {pending === provider
+                  ? "Taking you there…"
+                  : GATE.signIn[provider]}
               </Text>
             </Pressable>
           );
         })}
 
-        <Text className="text-center font-core text-a-on-var" style={{ fontSize: 12.5, lineHeight: 18 }}>
+        <Text
+          className="text-center font-core text-a-on-var"
+          style={{ fontSize: 12.5, lineHeight: 18 }}
+        >
           {GATE.signIn.terms}
           <Text
             className="font-medium text-blue-700"
@@ -133,7 +141,10 @@ export default function SignIn() {
           style={{ minHeight: 44 }}
           accessibilityRole="link"
         >
-          <Text className="text-center font-core text-a-on-var" style={{ fontSize: 12.5, lineHeight: 18 }}>
+          <Text
+            className="text-center font-core text-a-on-var"
+            style={{ fontSize: 12.5, lineHeight: 18 }}
+          >
             {GATE.signIn.legal}
           </Text>
         </Pressable>

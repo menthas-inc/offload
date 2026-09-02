@@ -21,7 +21,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Logo } from "../Logo";
+import { GateLockup } from "../GateLockup";
 import { GATE } from "../../lib/gate";
 import { joinWaitlist, looksLikeEmail } from "../../lib/waitlist";
 
@@ -49,31 +49,24 @@ export default function Waitlist() {
     <SafeAreaView className="flex-1 bg-a-surface">
       <KeyboardAvoidingView
         className="flex-1"
-          // "padding" on both, which is not the usual advice.
-          //
-          // The usual advice assumes Android resizes the window for the
-          // keyboard, so the layout adapts on its own and padding would
-          // double-count it. This app runs edge to edge
-          // (gradle.properties: edgeToEdgeEnabled=true), and under edge to
-          // edge Android ignores adjustResize outright: the manifest still
-          // says adjustResize, the window still does not move, and the form
-          // sat underneath the keyboard with the field and both buttons
-          // unreachable. Verified on a Pixel, not reasoned about.
-          behavior="padding"
+        // "padding" on both, which is not the usual advice.
+        //
+        // The usual advice assumes Android resizes the window for the
+        // keyboard, so the layout adapts on its own and padding would
+        // double-count it. This app runs edge to edge
+        // (gradle.properties: edgeToEdgeEnabled=true), and under edge to
+        // edge Android ignores adjustResize outright: the manifest still
+        // says adjustResize, the window still does not move, and the form
+        // sat underneath the keyboard with the field and both buttons
+        // unreachable. Verified on a Pixel, not reasoned about.
+        behavior="padding"
       >
-        <View className="flex-1 items-center justify-center">
-          <View className="items-center gap-space-7">
-            <Logo variant="mark" size={92} />
-            <Text
-              className="font-core text-a-on"
-              style={{ fontSize: 30, fontWeight: "600", letterSpacing: -0.9 }}
-            >
-              offload
-            </Text>
-          </View>
-        </View>
+        <GateLockup />
 
-        <View className="items-center px-gutter-screen pb-space-9">
+        <View
+          className="items-center justify-end px-gutter-screen pb-space-9"
+          style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
+        >
           <Text className="text-center font-core text-title-1 font-semibold text-a-on">
             {joined ? GATE.joined.title : copy.title}
           </Text>
