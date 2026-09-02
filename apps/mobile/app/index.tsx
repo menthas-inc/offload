@@ -20,6 +20,7 @@ export default function Index() {
 
   useEffect(() => {
     let live = true;
+
     getMe()
       .then((me) => {
         if (!live) return;
@@ -27,16 +28,24 @@ export default function Index() {
         else router.replace(me.needsFirstRun ? "/welcome" : "/today");
       })
       .catch(() => {
-        // A network failure is not a signed-out state. Holding here and
-        // letting a retry happen beats bouncing someone to the gate because
-        // their train went into a tunnel.
+        // Could not tell. Show the gate rather than nothing.
+        //
+        // This used to hold here on the theory that a network failure is not a
+        // signed-out state, which is true and was still the wrong behaviour: a
+        // screen that never changes is indistinguishable from a broken app,
+        // and the gate is both honest about what we know and somewhere a
+        // person can act. It cost an afternoon on a device, showing a blank
+        // screen while behaving exactly as written.
+        if (live) router.replace("/sign-in");
       });
+
     return () => {
       live = false;
     };
   }, [router]);
 
   // The splash screen is still up behind this, so it is deliberately empty
-  // rather than a second loading state layered on the first.
+  // rather than a second loading state layered on the first. Empty is only
+  // safe because every path out of the effect above navigates somewhere.
   return <View className="flex-1 bg-surface-page" />;
 }
