@@ -14,7 +14,8 @@
   },
   "scripts": {
     "build": "node src/generate.mjs && tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepare": "node src/generate.mjs && tsc -p tsconfig.json"
   },
   "devDependencies": {
     "typescript": "~6.0.3"
