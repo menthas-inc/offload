@@ -5,7 +5,8 @@
 // one place in this app a colour is not a token, because it is not ours.
 
 /* eslint-disable no-restricted-syntax -- Google's brand colours, see above. */
-import Svg, { Path } from "react-native-svg";
+import type { ColorValue } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 
 export function AppleGlyph({ size = 18, color = "currentColor" }: { size?: number; color?: string }) {
   return (
@@ -29,3 +30,24 @@ export function GoogleGlyph({ size = 18 }: { size?: number }) {
   );
 }
 /* eslint-enable no-restricted-syntax */
+
+// Tab glyphs. Lucide sun and moon, the same two the design system's Icon
+// resolves from lucide-static, drawn as paths here because a mask-image over a
+// CDN URL is a web technique with no React Native equivalent.
+
+export function SunGlyph({ size = 24, color = "currentColor" }: { size?: number; color?: ColorValue }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Circle cx={12} cy={12} r={4} />
+      <Path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </Svg>
+  );
+}
+
+export function MoonGlyph({ size = 24, color = "currentColor" }: { size?: number; color?: ColorValue }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+    </Svg>
+  );
+}

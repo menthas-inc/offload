@@ -7,6 +7,8 @@
 
 import { Tabs } from "expo-router";
 import { Platform } from "react-native";
+import { SunGlyph, MoonGlyph } from "../../components/Glyphs";
+import { timeOfDay } from "../../lib/sun";
 import { resolved, android as androidTokens } from "@offload/tokens";
 
 const light = resolved.light;
@@ -16,6 +18,8 @@ const m3 = androidTokens.light;
 const isAndroid = Platform.OS === "android";
 
 export default function TabsLayout() {
+  const tod = timeOfDay();
+
   return (
     <Tabs
       screenOptions={{
@@ -33,7 +37,18 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
       }}
     >
-      <Tabs.Screen name="today" options={{ title: "Today" }} />
+      {/* Today until sunset, Tonight after, on the real curve rather than a
+          fixed hour. Read once per mount: the bar does not need to flip the
+          moment the sun sets, and a ticking timer to catch it would run all
+          day for a label. Next launch has it right. */}
+      <Tabs.Screen
+        name="today"
+        options={{
+          title: tod.label,
+          tabBarIcon: ({ color }) =>
+            tod.icon === "moon" ? <MoonGlyph size={24} color={color} /> : <SunGlyph size={24} color={color} />,
+        }}
+      />
     </Tabs>
   );
 }
