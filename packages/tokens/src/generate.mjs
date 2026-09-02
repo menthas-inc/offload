@@ -163,28 +163,51 @@ const channelLines = (source) =>
     .filter((name) => source[name] !== undefined && toChannels(source[name]) !== null)
     .map((name) => `  --c-${name}: ${toChannels(source[name])};`);
 
-writeFileSync(
-  join(OUT_DIR, "nativewind.css"),
-  [
+const NATIVEWIND_CSS = [
     "/* Generated from the design system. Do not edit: run `pnpm tokens`. */",
     "@tailwind base;",
     "@tailwind components;",
     "@tailwind utilities;",
     "",
-    "@layer base {",
-    "  :root {",
-    ...channelLines(light).map((line) => "  " + line),
-    "  }",
-    "",
-    "  .dark:root {",
-    // Dark only redefines what it actually changes, so a token the design
-    // system leaves alone stays alone rather than being restated identically.
-    ...channelLines(dark).map((line) => "  " + line),
-    "  }",
+    // Deliberately NOT wrapped in @layer base.
+    //
+    // NativeWind's Metro transformer hangs on an @layer base block, forever,
+    // with no error and no CPU. It is a known issue (nativewind#1532) and it
+    // cost most of an evening: every bundle on this machine stalled the moment
+    // this file was involved, and the failure looked like a broken bundler
+    // rather than a stylesheet.
+    //
+    // Plain :root works identically here. The variables are consumed by the
+    // Tailwind preset's rgb(var(--c-x) / <alpha-value>) colours, which do not
+    // care which layer declared them.
+    ":root {",
+    ...channelLines(light),
     "}",
     "",
-  ].join("\n")
-);
+    ".dark:root {",
+    // Dark only redefines what it actually changes, so a token the design
+    // system leaves alone stays alone rather than being restated identically.
+    ...channelLines(dark),
+    "}",
+    "",
+  ].join("\n");
+
+writeFileSync(join(OUT_DIR, "nativewind.css"), NATIVEWIND_CSS);
+
+// And straight into the app, because a CSS `@import` across a workspace
+// package hangs NativeWind's Metro transformer outright: no error, no CPU,
+// forever. Verified by bisection, and it cost most of a session. The same
+// bytes inlined bundle in about a minute.
+//
+// Generated rather than committed, and gitignored, so it cannot drift from the
+// design system: `pnpm tokens` is what puts it there and nothing else edits it.
+const MOBILE_CSS = join(here, "../../../apps/mobile/global.css");
+try {
+  writeFileSync(MOBILE_CSS, NATIVEWIND_CSS);
+} catch {
+  // The mobile app is not always present, a web-only checkout for instance.
+  // Its absence is not a reason for the token build to fail.
+}
 
 /** Strip a token prefix, so `radius-sm` becomes `sm` under borderRadius. Only
  *  used where shadowing a Tailwind default is the intent. */
