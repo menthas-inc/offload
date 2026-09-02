@@ -84,6 +84,7 @@ export default function WaitlistPage() {
   const [batch, setBatch] = useState<number | null>(BATCH_UNKNOWN);
   const [removing, setRemoving] = useState<Row | null>(null);
   const [removingMany, setRemovingMany] = useState(false);
+  const [invitingMany, setInvitingMany] = useState(false);
 
   const load = useCallback(async (search: string, after: string | null) => {
     setLoading(true);
@@ -315,7 +316,28 @@ export default function WaitlistPage() {
         </div>
       ) : null}
 
-      {removingMany ? (
+      {invitingMany ? (
+        <div className={styles.selection}>
+          <b className={styles.selectionCount}>
+            Invite {picked.size} from the waitlist? They each get one email, and it cannot be taken
+            back.
+          </b>
+          <button type="button" className={styles.ghost} onClick={() => setInvitingMany(false)}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={styles.smallPrimary}
+            onClick={() => {
+              setInvitingMany(false);
+              void invite([...picked]);
+            }}
+            disabled={busy}
+          >
+            Invite {picked.size}
+          </button>
+        </div>
+      ) : removingMany ? (
         <div className={styles.selection}>
           <b className={styles.selectionCount}>
             Remove {pickedWaiting} from the waitlist? They are not told, and they can join again.
@@ -343,10 +365,15 @@ export default function WaitlistPage() {
               Remove {pickedWaiting}
             </button>
           ) : null}
+          {/* OFF-6 again, and for the same reason as the batch above: one
+              row's Invite is its own confirmation because the click names the
+              person, and this click names a set. It emails all of them and no
+              part of it comes back. A single pick still goes straight through,
+              since that click does name someone. */}
           <button
             type="button"
             className={styles.smallPrimary}
-            onClick={() => void invite([...picked])}
+            onClick={() => (picked.size > 1 ? setInvitingMany(true) : void invite([...picked]))}
             disabled={busy}
           >
             Invite {picked.size}

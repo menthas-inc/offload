@@ -72,7 +72,13 @@ export default function Welcome() {
 
         {consenting ? null : (
           <Pressable
-            onPress={() => void finish(false)}
+            // Skip lands on the consent screen, it does not complete first run.
+            // Completing here wrote consent_version and consented_at for two
+            // ticks nobody was shown, which is the exact thing AC-7a exists to
+            // prevent. The web has always done this correctly; only the phones
+            // regressed, and the comment at the top of this file already said
+            // what the code was supposed to do.
+            onPress={() => setStep(TUTORIAL.length)}
             className="min-h-tap-min justify-center"
           >
             <Text
