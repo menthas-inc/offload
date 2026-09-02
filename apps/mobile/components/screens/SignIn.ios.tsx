@@ -7,12 +7,13 @@
 // arbitrary choice.
 
 import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Logo } from "../Logo";
 import { AppleGlyph, GoogleGlyph } from "../Glyphs";
 import { GATE } from "../../lib/gate";
+import { PRIVACY_URL } from "../../lib/links";
 import { COLOR } from "../../lib/colors";
 import { appleAvailable, signIn, type Provider } from "../../lib/auth";
 
@@ -104,10 +105,20 @@ export default function SignIn() {
 
         <Text className="text-center font-core text-caption text-text-tertiary">
           {GATE.signIn.terms}
+          <Text className="font-medium text-text-accent">{GATE.signIn.termsAccent}</Text>
         </Text>
-        <Text className="text-center font-core text-caption text-text-tertiary">
-          {GATE.signIn.legal}
-        </Text>
+        {/* 44px of touch around a 12.5px line, per the design system's hit
+            area rule: the text stays the size the kit draws it. */}
+        <Pressable
+          onPress={() => void Linking.openURL(PRIVACY_URL)}
+          className="items-center justify-center"
+          style={{ minHeight: 44 }}
+          accessibilityRole="link"
+        >
+          <Text className="text-center font-core text-caption text-text-tertiary">
+            {GATE.signIn.legal}
+          </Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );

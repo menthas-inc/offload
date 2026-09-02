@@ -11,8 +11,16 @@ export const GATE = {
     sub: "Sign in to start. Invite only for now.",
     apple: "Continue with Apple",
     google: "Continue with Google",
-    terms: "No invite yet? Join the waitlist",
-    legal: "Terms · Privacy",
+    // Split because the kits emphasise the second half in the accent colour
+    // inside the sentence. It is emphasis, not a link: there is no public
+    // waitlist page, and joining needs an identity you only have after a
+    // sign-in attempt, which is what the no-invite screen is for.
+    terms: "No invite yet? ",
+    termsAccent: "Join the waitlist",
+    // The kits say "Terms · Privacy". There is no terms page yet, and a line
+    // naming a document that does not exist is worse than a shorter line, so
+    // this is Privacy alone until there is a second thing to name.
+    legal: "Privacy",
   },
   refused: "That did not go through. Nothing was sent, try again.",
   notInvited: {
@@ -29,6 +37,29 @@ export const GATE = {
     subNoEmail: "We will email you when your account is ready to use.",
     toast: "Added to the waitlist",
   },
+} as const;
+
+/** The fourth screen of first run, which is the one that asks something.
+ *
+ *  Two ticks and not one. A single "I agree to the privacy policy" is bundled
+ *  consent, which is treated as no consent at all, and the second of these is
+ *  the only lawful basis offload has for the private things people dump in.
+ *  The wording is deliberately about what offload will hold rather than about
+ *  a document, because that is the thing being agreed to.
+ *
+ *  Kept here with the rest of the gate copy so the two platforms cannot drift.
+ *  The web app repeats it in its own welcome screen; the three have to match. */
+export const CONSENT = {
+  title: "One thing before you start",
+  sub: "offload holds what you put in it, so it is worth knowing what that means before you put anything in.",
+  policyBefore: "I have read the ",
+  policyLink: "privacy policy",
+  policyAfter: ".",
+  processing:
+    "I understand offload will hold whatever I dump in, which can include health, money and other private things, and I agree to it being processed to run offload.",
+  // Not a consent and not a warning about us. It is the one piece of advice on
+  // the screen and it applies to every assistant, not only this one.
+  note: "One piece of advice rather than a condition: never dump a password, a card number or a government id, into offload or into any other AI tool. offload never needs them.",
 } as const;
 
 export const TUTORIAL = [

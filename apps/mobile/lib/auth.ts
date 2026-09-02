@@ -141,3 +141,22 @@ export async function appleAvailable(): Promise<boolean> {
   if (Platform.OS !== "ios") return true;
   return AppleAuthentication.isAvailableAsync();
 }
+
+/** TEMPORARY, for testing the gate. Remove with components/TempSignOut.tsx.
+ *
+ *  Best effort, and deliberately not blocking on the server. The point is to
+ *  get back to the gate; a signOut call that never settles would otherwise
+ *  leave the button doing nothing at all, which is the failure mode the
+ *  unbounded getCookie() already cost us an afternoon on. The local keys are
+ *  cleared either way, so the next launch has no session to find.
+ */
+export async function signOutForTesting(): Promise<void> {
+  await Promise.race([
+    authClient.signOut().catch(() => undefined),
+    new Promise((resolve) => setTimeout(resolve, 3000)),
+  ]);
+  await Promise.all([
+    SecureStore.deleteItemAsync("offload_cookie").catch(() => undefined),
+    SecureStore.deleteItemAsync("offload_session_data").catch(() => undefined),
+  ]);
+}

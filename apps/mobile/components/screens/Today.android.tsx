@@ -10,6 +10,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { Logo } from "../Logo";
+import { TempSignOut } from "../TempSignOut";
 import { DAY_ONE_INVITATION, EXAMPLES } from "../../lib/gate";
 import { COLOR } from "../../lib/colors";
 
@@ -41,6 +42,7 @@ export default function Today() {
           nothing yet to name. */}
       <View className="h-appbar-height flex-row items-center px-gutter-screen">
         <Logo size={21} />
+        <TempSignOut />
       </View>
 
       <ScrollView contentContainerClassName="px-gutter-screen pt-space-6 pb-space-8">
