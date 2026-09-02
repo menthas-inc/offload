@@ -26,7 +26,8 @@ Doing it first is deliberate. The alternative, building the dump loop against a 
 - **AC-4** Sign in with Apple and with Google works on iOS, Android and web, with the provider order the design specifies per platform.
 - **AC-5** A valid provider login for an identity that was never invited gets the no-invite screen and can join the waitlist in one tap using that same address. No account is auto-provisioned.
 - **AC-6** Signing in with a second provider whose **verified** email matches an existing account links to that account rather than creating a new one. An unverified email never links.
-- **AC-7** First run shows once per person. Completing it flips `invited` to `active`. Signing in later on another device shows no tutorial.
+- **AC-7** First run shows once per person. Completing it flips `invited` to `active` and records the consent, in one transaction. Signing in later on another device shows no tutorial.
+- **AC-7a** First run ends on a consent screen with two ticks, and neither Get started nor Skip can pass it. The server refuses `POST /api/onboarding/complete` without both, so no account can reach `active` with null consent columns. *Added 1 September 2026, after the privacy policy was written and the legal basis for special category content turned out to be missing. The tutorial is still the three screens the kits draw, with nothing to fill in; the consent is a fourth screen and carries no dot.*
 - **AC-8** An active account lands on Today and sees the designed day-one empty state on all three clients.
 - **AC-9** A disabled account cannot sign in and its live sessions stop working.
 - **AC-10** The funnel is measurable server-side end to end: `waitlist_joined`, `invite_sent`, `first_sign_in`, `onboarding_completed`, each carrying `subject_id` and never a real account id.

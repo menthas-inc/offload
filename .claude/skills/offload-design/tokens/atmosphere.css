@@ -1,0 +1,41 @@
+/* The atmosphere: the drifting watercolour wash behind the pre-account screens.
+
+   Everything the product proper draws sits on a flat --surface-page, and
+   readme.md's "Backgrounds" rule still holds there: no imagery, no pattern, no
+   gradient fields. This palette is the deliberate exception, and it is scoped
+   to the two screens nobody has an account on yet, the landing page and the
+   gate. See decisions.md, 1 September 2026.
+
+   Two steps per hue, because the effect has two depths. The 100s are the four
+   page-wide clouds, pale enough that multiply over #FAF9F7 barely tints it.
+   The 200s are the washes masked into the mark, which sit closer to the eye and
+   have to survive a turbulence displacement without dissolving.
+
+   Light only. The atmosphere has never been drawn on a dark page, and guessing
+   at one here would put five invented values in the token file rather than in
+   a design review. The pre-account screens are forced light until then. */
+
+:root{
+  --wash-blue-100:#DEEAF4;
+  --wash-blue-200:#CBE1F3;
+  --wash-violet-100:#EEE4F3;
+  --wash-violet-200:#DDCBEC;
+  --wash-sand-100:#FBEBDC;
+  --wash-sand-200:#FBDCC2;
+  --wash-moss-100:#E3F1E9;
+  --wash-moss-200:#CFEBDB;
+
+  /* Straw exists at one step only: it is the sixth mark layer and never a
+     page cloud, because a yellow that wide reads as a stain rather than light. */
+  --wash-straw-200:#F1E4B9;
+
+  /* The single soft halo behind the mark, under all six layers. */
+  --wash-glow:#E9DCF0;
+
+  /* The prism split. Three ghosts of the cycling word, spreading outward as it
+     leaves. Saturated, unlike everything above, because they are only ever
+     visible at low opacity and mid-blur. */
+  --prism-violet:#9C6BD4;
+  --prism-amber:#DE8A4E;
+  --prism-blue:#4E8FC8;
+}

@@ -274,7 +274,7 @@ function WSetting({id,onOpenPerson}){
         </SBlock>
         <SBlock title="Getting help">
           <SLine title="Ask offload about offload" meta="It answers in the composer, like anything else" onClick={()=>{}}/>
-          <SLine title="Write to a person" meta="hello@offload.app" onClick={()=>{}} last/>
+          <SLine title="Write to a person" meta="hello@offload.club" onClick={()=>{}} last/>
         </SBlock>
       </>
     );

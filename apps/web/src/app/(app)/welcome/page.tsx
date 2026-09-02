@@ -1,14 +1,21 @@
 "use client";
 
-// First run: three screens, and nothing to fill in.
+// First run: three screens with nothing to fill in, and then one that asks.
 //
 // From ui_kits/web_app/WFirstRunGate.jsx. The illustration carries each screen
 // and the sentence explains it, rather than the sentence carrying it alone. The
-// wordmark and Skip stay in the same place on all three so nothing moves, and
-// the progress dots sit under the button where they report rather than offer.
+// wordmark and Skip stay in the same place so nothing moves, and the progress
+// dots sit under the button where they report rather than offer.
 //
-// Skip and Get started do the same thing: nothing is collected, so a skipped
-// run is a finished one.
+// The consent is a fourth screen rather than a footnote on the third, and that
+// is deliberate twice over. The kit's rule survives intact: the tutorial is
+// still three screens and still has nothing to fill in. And consent that has to
+// be specific cannot sit underneath an illustration about notifications, where
+// it reads as small print on something else. It carries no dot, because it is
+// not one of the three.
+//
+// Skip therefore skips the tutorial and lands here rather than completing first
+// run. Nobody has to read the three screens; everybody has to answer this.
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -35,12 +42,34 @@ const SCREENS = [
   },
 ] as const;
 
+/** The tick, drawn along its own length. Straight from the design system's
+ *  Checkbox, which both phone kits animate the same way. */
+function Tick() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--text-inverse)"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path className={styles.tickMark} d="M20 6L9 17l-5-5" />
+    </svg>
+  );
+}
+
 export default function WelcomePage() {
   const state = useMe("first-run");
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [readPolicy, setReadPolicy] = useState(false);
+  const [agreeToProcessing, setAgreeToProcessing] = useState(false);
 
   async function finish() {
     if (leaving) return;
@@ -63,25 +92,74 @@ export default function WelcomePage() {
   // few milliseconds and a spinner that flashes reads as slower than nothing.
   if (state.status === "loading") return <main className={`${styles.page} ${styles.run}`} />;
 
-  const screen = SCREENS[step]!;
-  const last = step === SCREENS.length - 1;
+  // step 0..2 are the tutorial, step 3 is the consent. `screen` is undefined on
+  // the consent step, which is what distinguishes them.
+  const screen = SCREENS[step];
+  const consenting = step === SCREENS.length;
+  const ready = readPolicy && agreeToProcessing;
 
   return (
     <main className={`${styles.page} ${styles.run}`}>
       <div className={styles.runTop}>
         <Logo size={22} />
-        <button type="button" className={styles.skip} onClick={() => void finish()}>
-          Skip
-        </button>
+        {consenting ? null : (
+          <button type="button" className={styles.skip} onClick={() => setStep(SCREENS.length)}>
+            Skip
+          </button>
+        )}
       </div>
 
       <div className={styles.runMiddle}>
-        <RunArt kind={screen.art} />
+        {screen ? <RunArt kind={screen.art} /> : null}
 
         <div className={styles.runCopy}>
-          <h1 className={styles.runTitle}>{screen.title}</h1>
-          <p className={styles.runSub}>{screen.sub}</p>
+          <h1 className={styles.runTitle}>{screen ? screen.title : "One thing before you start"}</h1>
+          <p className={styles.runSub}>
+            {screen
+              ? screen.sub
+              : "offload holds what you put in it, so it is worth knowing what that means before you put anything in."}
+          </p>
         </div>
+
+        {consenting ? (
+          <div className={styles.consent}>
+            <label className={styles.tick}>
+              <input
+                type="checkbox"
+                className={styles.tickInput}
+                checked={readPolicy}
+                onChange={(event) => setReadPolicy(event.target.checked)}
+              />
+              <span className={styles.tickBox}>{readPolicy ? <Tick /> : null}</span>
+              <span className={styles.tickLabel}>
+                I have read the{" "}
+                <a className={styles.tickLink} href="/privacy" target="_blank" rel="noreferrer">
+                  privacy policy
+                </a>
+                .
+              </span>
+            </label>
+
+            <label className={styles.tick}>
+              <input
+                type="checkbox"
+                className={styles.tickInput}
+                checked={agreeToProcessing}
+                onChange={(event) => setAgreeToProcessing(event.target.checked)}
+              />
+              <span className={styles.tickBox}>{agreeToProcessing ? <Tick /> : null}</span>
+              <span className={styles.tickLabel}>
+                I understand offload will hold whatever I dump in, which can include health, money
+                and other private things, and I agree to it being processed to run offload.
+              </span>
+            </label>
+
+            <p className={styles.consentNote}>
+              One piece of advice rather than a condition: never dump a password, a card number or
+              a government id, into offload or into any other AI tool. offload never needs them.
+            </p>
+          </div>
+        ) : null}
 
         <div className={styles.runFoot}>
           {failed ? (
@@ -92,20 +170,22 @@ export default function WelcomePage() {
           <button
             type="button"
             className={styles.runButton}
-            onClick={() => (last ? void finish() : setStep(step + 1))}
-            disabled={leaving}
+            onClick={() => (consenting ? void finish() : setStep(step + 1))}
+            disabled={leaving || (consenting && !ready)}
           >
-            {last ? "Get started" : "Next"}
+            {consenting ? "Get started" : "Next"}
           </button>
 
-          <span className={styles.dots} role="presentation">
-            {SCREENS.map((item, index) => (
-              <span
-                key={item.title}
-                className={`${styles.dot} ${index === step ? styles.dotOn : ""}`}
-              />
-            ))}
-          </span>
+          {consenting ? null : (
+            <span className={styles.dots} role="presentation">
+              {SCREENS.map((item, index) => (
+                <span
+                  key={item.title}
+                  className={`${styles.dot} ${index === step ? styles.dotOn : ""}`}
+                />
+              ))}
+            </span>
+          )}
         </div>
       </div>
     </main>

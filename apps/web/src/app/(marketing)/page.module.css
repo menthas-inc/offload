@@ -1,48 +1,113 @@
-/* Landing page. Every value is a token; nothing is retyped (OFF-7). */
+/* The landing page. One screen, invite only, one action.
 
-.wrap { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 64px; }
+   The frame around this, the mark, the header row, the Privacy line and the
+   background, is components/screen.module.css and is shared with the gate. Only
+   the middle is here. */
 
-.header { padding: 34px 0; }
-.bar { display: flex; align-items: center; justify-content: space-between; }
+.hero {
+  /* The marketing scale, and the only place in the product outside the type
+     ramp. It is one screen sized to the viewport rather than a document, so
+     the headline is set by the window and everything else is set by the
+     headline. Declared once, consumed below, never retyped.
+     Logged in the design system's decisions.md, 1 September 2026. */
+  --hero-size: clamp(38px, min(7.2vw, 11.5vh), 104px);
+  --hero-tracking: -0.042em;
+  --hero-sub: 23px;
+  --hero-gap: 64px;
+  /* Long, because the word is dissolving rather than swapping. Every duration
+     token is a UI response time and none of them is this. */
+  --word-cycle: 1120ms;
 
-.signin {
-  font: var(--weight-medium) 14px/1 var(--font-core);
-  color: var(--text-secondary);
-  /* 44px minimum hit area, larger than the drawn control. */
-  padding: 14px 0;
-  margin: -14px 0;
+  width: 100%;
+  max-width: 780px;
+  text-align: center;
 }
-.signin:hover { color: var(--text-primary); }
-
-.main { flex: 1; display: flex; align-items: center; }
-.hero { max-width: 780px; }
 
 .title {
-  font: var(--weight-semibold) 60px/1.04 var(--font-core);
-  letter-spacing: -0.026em;
-  margin: 0;
+  margin: 0 0 0 -0.06em;
+  font-family: var(--font-core);
+  font-weight: var(--weight-semibold);
+  font-size: var(--hero-size);
+  line-height: 0.96;
+  letter-spacing: var(--hero-tracking);
   text-wrap: pretty;
 }
+
+.line { display: block; }
+
+/* ------------------------------------------------------- the cycling word */
+
+/* The word does not swap, it bleeds. Turbulence displaces it as it goes, and
+   three coloured ghosts spread outward behind it, so the change reads as ink
+   moving in water rather than as text being replaced. */
+.cycle {
+  position: relative;
+  display: inline-block;
+  filter: url(#wordBleed);
+}
+
+.word,
+.ghost {
+  display: inline-block;
+  transition:
+    opacity var(--word-cycle) var(--ease-out),
+    filter var(--word-cycle) var(--ease-out),
+    transform var(--word-cycle) var(--ease-out);
+}
+
+.word { opacity: 1; filter: blur(0); }
+.cycle[data-state="out"] .word { opacity: 0; filter: blur(0.109em); }
+
+/* The prism split. Offsets are in em so the spread stays proportional to the
+   headline, which is sized by the viewport and never the same twice. */
+.ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  filter: blur(0.022em);
+  mix-blend-mode: multiply;
+}
+.cycle[data-state="out"] .ghost { opacity: 0.5; filter: blur(0.152em); }
+
+.ghostViolet { color: var(--prism-violet); }
+.ghostAmber { color: var(--prism-amber); }
+.ghostBlue { color: var(--prism-blue); }
+
+.cycle[data-state="out"] .ghostViolet { transform: translate(-0.565em, -0.174em) scale(1.12); }
+.cycle[data-state="out"] .ghostAmber { transform: translate(0.522em, 0.152em) scale(1.14); }
+.cycle[data-state="out"] .ghostBlue { transform: translate(0.065em, -0.370em) scale(1.2); }
+
+.defs { position: absolute; width: 0; height: 0; }
+
+/* --------------------------------------------------------------- the rest */
 
 /* Literata, offload's own voice, upright. Never a UI label. */
 .sub {
+  margin: var(--space-8) auto 0;
   font: var(--text-quiet-role);
-  font-size: 19px;
-  line-height: 1.5;
+  font-size: var(--hero-sub);
+  line-height: 1.55;
   color: var(--text-secondary);
-  margin: 22px 0 0;
-  max-width: 34ch;
+  max-width: 30ch;
   text-wrap: pretty;
 }
 
-.form { display: flex; gap: 12px; margin: 38px 0 0; flex-wrap: wrap; }
+.form {
+  display: flex;
+  gap: var(--space-5);
+  margin-top: var(--hero-gap);
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
 
 .input {
-  width: 320px;
-  /* min-height, never height: text scales to 200% and nothing holding text
-     may have a fixed height. */
+  width: 330px;
+  /* min-height, never height: text scales to 200% and nothing holding text may
+     have a fixed one. */
   min-height: 48px;
-  padding: 0 20px;
+  padding: 0 var(--space-7);
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-strong);
   background: var(--surface-raised);
@@ -52,54 +117,84 @@
 }
 .input::placeholder { color: var(--text-tertiary); }
 .input:focus { outline: none; border-color: var(--ink-950); box-shadow: var(--shadow-focus); }
+.input[aria-invalid="true"] { border-color: var(--text-danger); }
 
+/* The design system's Button at primary/lg/pill. Every value is the one
+   Button.jsx uses; the web app has no React copy of the kit yet. */
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 48px;
-  padding: 0 26px;
-  border: none;
+  padding: 0 var(--space-7);
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  background: var(--ink-950);
-  color: var(--paper);
-  font: var(--weight-medium) 15.5px/1 var(--font-core);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font: var(--weight-medium) var(--size-body)/1 var(--font-core);
   letter-spacing: var(--tracking-body);
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
+  transition: background var(--transition-ui), transform var(--duration-instant) var(--ease-out);
 }
 .button:hover { background: var(--ink-800); }
 .button:active { transform: scale(var(--press-scale)); }
-.button:disabled { background: var(--state-disabled-surface); color: var(--state-disabled-text); cursor: default; }
+.button:disabled {
+  background: var(--state-disabled-surface);
+  color: var(--state-disabled-text);
+  cursor: default;
+  transform: none;
+}
 
-.note { font: var(--text-body-sm-role); color: var(--text-tertiary); margin: 14px 0 0; }
+/* The space is reserved whether or not there is a message, so a rejected
+   submit does not shove the form up the page. */
+.error {
+  margin: var(--space-6) 0 0;
+  min-height: var(--space-7);
+  font: var(--text-body-sm-role);
+  color: var(--text-danger);
+}
 
-/* The success line replaces the form in place. Same page, no redirect, no
+/* The confirmation replaces the form in place. Same page, no redirect, no
    separate thank-you route. */
 .done {
-  margin: 38px 0 0;
+  margin: var(--space-10) 0 0;
+  max-width: 48ch;
   font: var(--text-quiet-role);
   font-size: 19px;
   line-height: 1.5;
   color: var(--text-primary);
-  max-width: 34ch;
+  animation: rise var(--duration-slow) var(--ease-entrance) both;
+}
+.doneAddress { font-weight: var(--weight-medium); }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
 }
 
-.footer { padding: 22px 0 30px; font: var(--text-caption-role); font-size: 12.5px; color: var(--text-tertiary); }
-.frow {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-hairline);
+/* The honeypot. Real people never see it; scripts fill everything. */
+.trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  min-height: 1px;
+  opacity: 0;
 }
 
-/* Below 820 the hero drops to 34px, the form stacks, and the controls go full
-   width at 52px so they clear the 44px minimum. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Below 820 the form stacks and both controls go full width at 52px, clear of
+   the 44px minimum with a glove on. */
 @media (max-width: 820px) {
-  .wrap { padding: 0 24px; }
-  .header { padding: 22px 0; }
-  .title { font-size: 34px; line-height: 1.06; letter-spacing: var(--tracking-display); }
-  .sub { font-size: 17px; margin-top: 16px; max-width: none; }
-  .main { align-items: flex-start; padding-top: 8px; }
-  .form { flex-direction: column; gap: 12px; margin-top: 30px; }
-  .input, .button { width: 100%; min-height: 52px; }
-  .frow { flex-direction: column; gap: 6px; }
+  .hero { --hero-sub: 18px; --hero-gap: 36px; }
+  .form { flex-direction: column; }
+  .input,
+  .button { width: 100%; min-height: 52px; }
 }

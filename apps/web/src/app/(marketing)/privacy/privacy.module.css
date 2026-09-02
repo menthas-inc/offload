@@ -1,0 +1,194 @@
+/* The privacy policy. A document, so it reads like one: one column at a
+   comfortable measure, the frame from components/screen.module.css around it,
+   and no atmosphere behind the text.
+
+   There is no kit for this page. It is built from the type ramp and the
+   surfaces the rest of the product uses, which is what the design system
+   asks for when a screen has no mock. */
+
+.document {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 68ch;
+  margin: 0 auto;
+  padding: var(--space-11) var(--frame-gutter) var(--space-12);
+}
+
+.updated {
+  font: var(--text-caption-role);
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.title {
+  font: var(--weight-semibold) 44px/1.04 var(--font-core);
+  letter-spacing: var(--tracking-display);
+  color: var(--text-primary);
+  margin: var(--space-5) 0 0;
+}
+
+.standfirst {
+  font: var(--text-quiet-role);
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: var(--space-6) 0 0;
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------------------ the summary */
+
+/* Raised, so it reads as a note attached to the document rather than the
+   document's own first section. It is the part most people will read and the
+   only part that is not the policy. */
+.summary {
+  margin: var(--space-10) 0 var(--space-11);
+  padding: var(--space-9);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-hairline);
+  background: var(--surface-raised);
+}
+
+.summaryTitle {
+  font: var(--text-title-2);
+  letter-spacing: var(--tracking-title);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.disclaimer {
+  margin: var(--space-5) 0 0;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--surface-attention-soft);
+  color: var(--text-on-attention);
+  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
+}
+
+.bullets {
+  margin: var(--space-7) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.bullets li {
+  font: var(--text-body-role);
+  line-height: 1.55;
+  color: var(--text-secondary);
+  padding-left: var(--space-7);
+  position: relative;
+}
+
+/* The mark's own dot, at text scale. */
+.bullets li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--text-accent);
+}
+
+.bullets strong { color: var(--text-primary); font-weight: var(--weight-medium); }
+
+/* ------------------------------------------------------------ the policy */
+
+.section { margin-top: var(--space-11); }
+
+.h2 {
+  font: var(--text-title-2);
+  letter-spacing: var(--tracking-title);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-6);
+}
+
+.h3 {
+  font: var(--text-title-3);
+  color: var(--text-primary);
+  margin: var(--space-8) 0 var(--space-4);
+}
+
+.section p,
+.section li {
+  font: var(--text-body-role);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.section p { margin: 0 0 var(--space-6); }
+.section p:last-child { margin-bottom: 0; }
+
+.section ul { margin: 0 0 var(--space-6); padding-left: var(--space-7); }
+.section li { margin-bottom: var(--space-4); }
+
+.section strong { color: var(--text-primary); font-weight: var(--weight-medium); }
+
+.section a { color: var(--text-accent); font-weight: var(--weight-medium); }
+
+/* A value we have not filled in yet, drawn so it cannot be mistaken for one we
+   have. It should be impossible to publish this page without noticing them. */
+.todo {
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-xs);
+  background: var(--amber-100);
+  color: var(--amber-700);
+  font-weight: var(--weight-medium);
+}
+
+/* Wide content scrolls inside its own box; the page never scrolls sideways. */
+.scroller {
+  margin: 0 0 var(--space-6);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: var(--space-5) var(--space-6) var(--space-5) 0;
+  border-bottom: 1px solid var(--border-hairline);
+  vertical-align: top;
+  font: var(--text-body-sm-role);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.table th {
+  font: var(--text-label-role);
+  color: var(--text-tertiary);
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.table td:first-child { color: var(--text-primary); font-weight: var(--weight-medium); }
+
+/* An aside inside a section: true today, and expected to stop being true.
+   Dated in the copy so a stale one is obvious. */
+.note {
+  margin: 0 0 var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  border-left: 2px solid var(--border-accent);
+  background: var(--surface-accent-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font: var(--text-body-sm-role);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 820px) {
+  .document { padding: var(--space-9) var(--frame-gutter) var(--space-11); }
+  .title { font-size: 32px; }
+  .standfirst { font-size: 17px; }
+  .summary { padding: var(--space-7); }
+}

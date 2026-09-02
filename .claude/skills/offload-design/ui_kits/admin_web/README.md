@@ -26,7 +26,7 @@ Two roles, and the only difference between them is money: **Support** gets Waitl
 People, **Owner** also gets Costs, Limits and Staff. Support does not see those pages at all
 rather than seeing them and being refused.
 
-Four guards, each stated on the page: staff sign in with Apple or Google on an offload.app
+Four guards, each stated on the page: staff sign in with Apple or Google on an offload.club
 address so adding someone creates no password; there is always at least one owner, and the
 last one cannot be demoted or removed; you cannot remove or demote yourself; and removing
 someone ends their access here without touching their own offload account.

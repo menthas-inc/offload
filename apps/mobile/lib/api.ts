@@ -70,5 +70,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T | nul
 
 export const getMe = (): Promise<Me | null> => request<Me>("/api/me");
 
+/** Finishing first run, with both ticks from the consent screen. The server
+ *  refuses anything else, so a build that predates the consent screen gets a
+ *  400 rather than quietly producing an active account that agreed to nothing. */
 export const completeOnboarding = (): Promise<unknown> =>
-  request("/api/onboarding/complete", { method: "POST" });
+  request("/api/onboarding/complete", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ readPolicy: true, agreeToProcessing: true }),
+  });

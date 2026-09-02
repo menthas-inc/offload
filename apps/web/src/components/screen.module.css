@@ -1,0 +1,98 @@
+/* The frame the landing page and the gate both sit in.
+
+   One stylesheet, not two, because the point of it is that nothing moves
+   between the two screens: the mark, the header row and the Privacy line are
+   at the same coordinates on both, so going from the landing page to sign in
+   is a card arriving over a background that never changed.
+
+   The 64px gutter is wider than --gutter-screen, which is the product's, and
+   deliberately so: these are one-thing-per-screen pages with nothing in the
+   margins to justify a tighter one. Declared once here and consumed by both. */
+
+.screen {
+  --frame-gutter: 64px;
+  --frame-top: 34px;
+  --frame-bottom: 26px;
+  /* The header row is as tall as the primary button in it, whether or not the
+     screen has one. Without this the mark sits 9px higher on the gate than on
+     the landing page, which is the whole of what "seamless" means here. */
+  --frame-row: 40px;
+
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--surface-page);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+/* Everything but the atmosphere sits above it. */
+.header,
+.main,
+.footer { position: relative; z-index: 1; }
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  min-height: var(--frame-row);
+  padding: var(--frame-top) var(--frame-gutter) 0;
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10) var(--frame-gutter);
+}
+
+.footer {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-7) var(--frame-gutter) var(--frame-bottom);
+  font: var(--text-caption-role);
+  color: var(--text-tertiary);
+}
+
+.footerLink { color: var(--text-tertiary); }
+.footerLink:hover { color: var(--text-secondary); }
+
+/* The header's one action, the design system's Button at primary/md/pill.
+   Written out rather than imported because the web app has no React copy of
+   the kit's components yet; every value below is the one Button.jsx uses. */
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--frame-row);
+  padding: 0 var(--space-6);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font: var(--weight-medium) var(--size-body-sm)/1 var(--font-core);
+  letter-spacing: var(--tracking-body);
+  cursor: pointer;
+  transition: background var(--transition-ui), transform var(--duration-instant) var(--ease-out);
+}
+.action:hover { background: var(--ink-800); color: var(--text-inverse); }
+.action:active { transform: scale(var(--press-scale)); }
+
+/* On a phone the gutter comes in to the product's own and the header tightens,
+   but the row height does not change, so the two screens still line up. */
+@media (max-width: 820px) {
+  .screen {
+    --frame-gutter: 24px;
+    --frame-top: 22px;
+    --frame-bottom: 20px;
+  }
+  .main { padding-left: var(--frame-gutter); padding-right: var(--frame-gutter); }
+}

@@ -389,7 +389,7 @@ function StaffPage({say}){
         </ATable>
         <ASection>Rules</ASection>
         <ul style={{margin:0,padding:0,listStyle:"none",display:"flex",flexDirection:"column",gap:8,maxWidth:"78ch"}}>
-          {["Staff sign in with Apple or Google on an offload.app address, like everyone else. Adding someone here does not create a password.",
+          {["Staff sign in with Apple or Google on an offload.club address, like everyone else. Adding someone here does not create a password.",
             "There is always at least one owner. The last one cannot be demoted or removed.",
             "You cannot remove or demote yourself: your own role is fixed here and the remove is not offered. Ask the other owner.",
             "Removing someone signs them out of this panel immediately. Their own offload account, if they have one, is untouched.",
@@ -409,7 +409,7 @@ function StaffPage({say}){
               They sign in with the provider on this address. We email them a note saying they have access.</div>
             <div style={{display:"flex",flexDirection:"column",gap:"var(--space-4)",marginTop:"var(--space-6)"}}>
               <AField label="Email" value={form.email} onChange={(v)=>setForm(f=>({...f,email:v}))} width="100%"
-                hint="An offload.app address"/>
+                hint="An offload.club address"/>
               <AField label="Name" value={form.name} onChange={(v)=>setForm(f=>({...f,name:v}))} width="100%"
                 hint="Optional, we use the address if you leave it"/>
               <span style={{display:"flex",flexDirection:"column",gap:6}}>

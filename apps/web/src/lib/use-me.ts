@@ -68,6 +68,12 @@ export async function completeOnboarding(): Promise<boolean> {
     const response = await fetch(`${API}/api/onboarding/complete`, {
       method: "POST",
       credentials: "include",
+      headers: { "content-type": "application/json" },
+      // Both ticks, and the server refuses anything else. Sent as the literal
+      // pair rather than one "consented" flag so that adding or changing a
+      // consent is a change the server can see, not a boolean that silently
+      // starts meaning something else.
+      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true }),
     });
     return response.ok;
   } catch {

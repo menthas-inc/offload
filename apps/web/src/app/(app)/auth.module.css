@@ -1,9 +1,10 @@
 /* The gate, the refusal, the no-invite screen and first run.
    Built from ui_kits/web_app/WFirstRunGate.jsx. Every value is a token. */
 
-/* Web is a centred card on a sunken page, not a full-bleed screen. The
-   wordmark sits top left and the legal line bottom left, so the card is the
-   only thing in the middle. */
+/* Web is a centred card, not a full-bleed screen. The gate itself is now
+   framed by components/Screen.tsx, shared with the landing page, so only first
+   run still uses .page: it is the first screen behind the account, where the
+   atmosphere has done its job and stops. */
 .page {
   flex: 1;
   display: flex;
@@ -11,14 +12,6 @@
   background: var(--surface-sunken);
   padding: 36px 44px;
   min-height: 100vh;
-}
-
-.middle {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .card {
@@ -137,7 +130,6 @@
   text-align: center;
   line-height: 1.45;
 }
-.captionLeft { text-align: left; }
 .captionLink { color: var(--text-accent); font-weight: var(--weight-medium); }
 
 /* ------------------------------------------------------------- first run */
@@ -293,3 +285,83 @@
   text-decoration: none;
 }
 .adminLink:hover { background: var(--moss-600); color: var(--paper); }
+
+/* ------------------------------------------------------- first run consent */
+
+/* The last screen of first run collects two ticks, which is the one thing the
+   kit says this flow does not do. It is here because the second of them is the
+   only lawful basis we have for the private things people dump in, and the
+   moment before the first dump is the last honest place to ask. Logged in
+   decisions.md, 1 September 2026. */
+.consent {
+  width: 520px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  text-align: left;
+}
+
+/* The design system's Checkbox at 20px with a 6px box, minus the strike-through
+   it gives a ticked label: that behaviour is for a task being crossed off, and
+   a consent line drawn as struck through would read as withdrawn. */
+.tick {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  cursor: pointer;
+  /* 44px of target around a 20px box without moving the box. */
+  padding: var(--space-3) 0;
+  margin: calc(var(--space-3) * -1) 0;
+}
+
+.tickInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  margin: 0;
+}
+
+.tickBox {
+  width: 20px;
+  min-height: 20px;
+  margin-top: 1px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  transition: background var(--transition-ui), border-color var(--transition-ui);
+}
+
+.tickInput:checked + .tickBox { background: var(--surface-inverse); border-color: transparent; }
+.tickInput:focus-visible + .tickBox { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
+.tickMark { stroke-dasharray: 22; animation: tickDraw var(--duration-slow) var(--ease-out) both; }
+
+@keyframes tickDraw {
+  from { stroke-dashoffset: 22; }
+  to { stroke-dashoffset: 0; }
+}
+
+.tickLabel {
+  font: var(--text-body-sm-role);
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.tickLink { color: var(--text-accent); font-weight: var(--weight-medium); }
+
+/* Not a consent and not a warning about us. It is the one piece of advice on
+   this screen, and it applies to every assistant, not only this one. */
+.consentNote {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--surface-attention-soft);
+  color: var(--text-on-attention);
+  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
+}

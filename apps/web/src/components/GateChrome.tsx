@@ -1,17 +1,25 @@
-// The frame every pre-shell screen shares: wordmark top left, one card in the
-// middle, the legal line bottom left. From ui_kits/web_app/WFirstRunGate.jsx.
+// The frame every pre-shell screen shares: the mark top left, one card in the
+// middle, Privacy bottom right.
+//
+// It is components/Screen.tsx, the same frame the landing page uses, rather
+// than the sunken page ui_kits/web_app/WFirstRunGate.jsx draws. The kit was
+// written when the landing page was flat too; now that it is not, a card
+// arriving over the background someone was already looking at is the join
+// between the two screens. Nothing in the frame moves: same mark, same header
+// row, same Privacy line, same drifting page. Logged in the design system's
+// decisions.md, 1 September 2026.
 
 import type { ReactNode } from "react";
-import { Logo } from "./Logo";
+import { Screen, ScreenFooter, ScreenHeader, ScreenMain } from "./Screen";
 import styles from "../app/(app)/auth.module.css";
 
 export function GateChrome({ children }: { children: ReactNode }) {
   return (
-    <main className={styles.page}>
-      <Logo size={22} />
-      <div className={styles.middle}>{children}</div>
-      <p className={`${styles.caption} ${styles.captionLeft}`}>Terms · Privacy</p>
-    </main>
+    <Screen>
+      <ScreenHeader />
+      <ScreenMain>{children}</ScreenMain>
+      <ScreenFooter />
+    </Screen>
   );
 }
 

@@ -44,17 +44,36 @@ const meResponse = z.object({
   needsFirstRun: z.boolean(),
 });
 
-/** invited -> active, plus the event, in one transaction.
+/** The version of the privacy policy the consent on first run is against.
+ *
+ *  The date the policy carries at the top, so a row in `accounts` says which
+ *  wording someone agreed to rather than only that they agreed to something.
+ *  When the policy changes materially this changes with it, and the gap between
+ *  a stored version and this one is the query that finds who has to be asked
+ *  again. Must match UPDATED in apps/web/src/app/(marketing)/privacy/page.tsx. */
+export const CONSENT_VERSION = "2026-09-01";
+
+/** invited -> active, plus the consent record and the event, in one transaction.
  *
  *  Idempotent by the where clause rather than by a read-then-write: the update
  *  only matches an account still in `invited`, so a double tap or a reload of
  *  the last screen flips nothing a second time and emits nothing a second
- *  time. Two concurrent requests are the same case as one slow one. */
+ *  time. Two concurrent requests are the same case as one slow one.
+ *
+ *  The consent is written by the same update for the same reason the thread and
+ *  the keys are written by promotion's: an active account that never agreed to
+ *  anything is a state we would then have to handle everywhere, and one
+ *  transaction means it cannot exist. */
 export async function completeFirstRun(accountId: string): Promise<void> {
   await db.transaction().execute(async (tx) => {
     const flipped = await tx
       .updateTable("accounts")
-      .set({ state: "active", updated_at: new Date() })
+      .set({
+        state: "active",
+        consent_version: CONSENT_VERSION,
+        consented_at: new Date(),
+        updated_at: new Date(),
+      })
       .where("id", "=", accountId)
       .where("state", "=", "invited")
       .returning("analytics_subject_id")
@@ -70,6 +89,21 @@ export async function completeFirstRun(accountId: string): Promise<void> {
     });
   });
 }
+
+/** Both ticks on the last screen of first run, and both must be true.
+ *
+ *  Two rather than one, and specific rather than "I agree to the policy",
+ *  because a bundled acknowledgement is treated as no consent at all, and the
+ *  second of these is the only lawful basis we have for the private things
+ *  people will inevitably dump in. See the privacy policy, section 4.
+ *
+ *  A boolean the client asserts is all a server can ever receive here. What it
+ *  buys is that a client which does not present the ticks cannot complete
+ *  first run by accident. */
+const consentBody = z.object({
+  readPolicy: z.literal(true),
+  agreeToProcessing: z.literal(true),
+});
 
 export async function sessionRoutes(app: App): Promise<void> {
   app.get("/api/me", { schema: { response: { 200: meResponse, 401: unauthenticated } } }, async (request, reply) => {
@@ -125,12 +159,23 @@ export async function sessionRoutes(app: App): Promise<void> {
   );
 
   // Finishing first run is a server-side write, not a flag the client keeps.
-  // Skipping and completing are the same call: the three screens are an
-  // introduction, not a form, so there is nothing to collect and nothing that
-  // makes a skipped run less finished than a read one.
+  //
+  // It now collects one thing, which is why Skip no longer completes it: the
+  // two consents on the last screen. `z.literal(true)` on both is the whole
+  // enforcement. A client that does not know about consent sends no body and
+  // gets a 400 rather than quietly producing an active account with null
+  // consent columns, and there is no branch here that could forget to check.
   app.post(
     "/api/onboarding/complete",
-    { schema: { response: { 200: z.object({ state: z.literal("active") }), 401: unauthenticated } } },
+    {
+      schema: {
+        body: consentBody,
+        response: {
+          200: z.object({ state: z.literal("active") }),
+          401: unauthenticated,
+        },
+      },
+    },
     async (request, reply) => {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" });

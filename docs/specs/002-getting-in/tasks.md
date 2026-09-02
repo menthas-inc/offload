@@ -51,6 +51,7 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 - [x] **D5** Sign-in screen, Apple first on web, with the refusal as one line above the buttons.
 - [x] **D6** No-invite screen: names the address it checked, joins the waitlist in one tap reusing it, "Use a different account" as the quiet secondary.
 - [x] **D7** First run, three screens, server-side completion flipping `invited` to `active`.
+- [x] **D7a** The consent screen, fourth and dotless, on all three clients: two ticks, the privacy link, and the advice line about passwords and card numbers. `consent_version` and `consented_at` are written by the same update that flips the state, and `z.literal(true)` on both fields is the whole enforcement. **Skip now lands here rather than completing first run.** *Existing `active` accounts, which are all ours, have null consent columns and are not backfilled: a consent nobody gave is not a consent.*
 - [x] **D8** Today's day-one empty state, in the serif voice, with the composer present but inert.
 - [x] **D9** `first_sign_in` and `onboarding_completed` events.
 
@@ -77,6 +78,7 @@ Ordered so each phase is verifiable before the next begins. Phases A to D are we
 - [x] **T-AC5** A valid provider login for an uninvited identity provisions nothing and returns the no-invite state. **A sign-in attempt against a `waitlist` or `disabled` account creates no `account_identities` row**, so a refusal has no side effects.
 - [x] **T-AC6** Apple then Google with the same verified email is one account. An unverified email never links.
 - [x] **T-AC7** First run completes once per person; a second device resumes rather than restarts. *Server-side: `invited` to `active` is the only marker, the client never claims it, and the flip is idempotent by its where clause.*
+- [x] **T-AC7a** `POST /api/onboarding/complete` is refused with either tick missing or absent, and the account stays `invited`. A completed first run has both `consent_version` and `consented_at` set, in the same transaction as the state flip.
 - [x] **T-AC9** Disabling an account stops an existing session at its next refresh, not at token expiry.
 - [x] **T-AC10** Every emitted event validates against its schema and contains no email address and **no field shaped like an account id**, asserted against the four funnel schemas specifically.
 - [x] **T-AC11** Every email has a plain-text alternative and no image references.

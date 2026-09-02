@@ -1,0 +1,266 @@
+/* The atmosphere. Six masked washes inside the mark, four page-wide clouds
+   behind them, one halo under everything, all drifting on loops long enough
+   that no two are ever in the same relationship twice.
+
+   It is decoration and nothing else: the whole tree is aria-hidden and
+   pointer-events:none, and every colour is a --wash-* token. Values that are
+   not tokens are geometry, and geometry has never been tokenised in this
+   system because a percentage offset inside one effect is not a design
+   decision anyone reuses.
+
+   Motion is handled in two places. globals.css cuts every animation under
+   prefers-reduced-motion, which lands each loop on its first keyframe. The
+   pointer parallax and the shader clock are JavaScript and are gated in
+   Atmosphere.tsx, because a rule cannot stop a rAF. */
+
+.atmosphere {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------- the clouds */
+
+.clouds {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  filter: blur(96px) saturate(115%);
+  opacity: 0.72;
+}
+
+.cloud {
+  position: absolute;
+  border-radius: var(--radius-pill);
+  mix-blend-mode: multiply;
+}
+
+.cloud1 {
+  left: -26%;
+  top: -34%;
+  width: 104vw;
+  height: 104vw;
+  background: radial-gradient(circle at 45% 45%, var(--wash-blue-100) 0%, transparent 62%);
+  animation: cloud1 62s var(--ease-in-out) infinite;
+}
+.cloud2 {
+  right: -30%;
+  top: -26%;
+  width: 96vw;
+  height: 96vw;
+  background: radial-gradient(circle at 52% 48%, var(--wash-violet-100) 0%, transparent 60%);
+  animation: cloud2 78s var(--ease-in-out) infinite;
+}
+.cloud3 {
+  left: 6%;
+  bottom: -52%;
+  width: 110vw;
+  height: 110vw;
+  background: radial-gradient(circle at 48% 52%, var(--wash-sand-100) 0%, transparent 58%);
+  animation: cloud3 86s var(--ease-in-out) infinite;
+}
+.cloud4 {
+  right: -14%;
+  bottom: -40%;
+  width: 92vw;
+  height: 92vw;
+  background: radial-gradient(circle at 50% 50%, var(--wash-moss-100) 0%, transparent 58%);
+  animation: cloud4 70s var(--ease-in-out) infinite;
+}
+
+@keyframes cloud1 {
+  0%, 100% { transform: translate3d(-5%, -3%, 0) scale(1); }
+  50% { transform: translate3d(9%, 7%, 0) scale(1.18); }
+}
+@keyframes cloud2 {
+  0%, 100% { transform: translate3d(7%, 5%, 0) scale(1.12); }
+  50% { transform: translate3d(-8%, -6%, 0) scale(0.94); }
+}
+@keyframes cloud3 {
+  0%, 100% { transform: translate3d(-3%, 8%, 0) scale(1); }
+  50% { transform: translate3d(8%, -5%, 0) scale(1.16); }
+}
+@keyframes cloud4 {
+  0%, 100% { transform: translate3d(5%, -8%, 0) scale(1.1); }
+  50% { transform: translate3d(-6%, 5%, 0) scale(0.98); }
+}
+
+/* --------------------------------------------------------------- the halo */
+
+/* One soft field under the mark, so the six layers sit in light rather than
+   on paper. Blurred past the point of having an edge. */
+.glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(100vh, 110vw);
+  height: min(100vh, 110vw);
+  filter: blur(120px);
+  opacity: 0.4;
+  mix-blend-mode: multiply;
+  background: radial-gradient(
+    circle at 50% 52%,
+    var(--wash-glow) 0%,
+    color-mix(in srgb, var(--wash-sand-100) 70%, transparent) 44%,
+    color-mix(in srgb, var(--wash-moss-100) 30%, transparent) 68%,
+    transparent 80%
+  );
+}
+
+/* --------------------------------------------------------------- the mark */
+
+.mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(74vh, 82vw);
+  height: min(74vh, 82vw);
+  opacity: 0.75;
+}
+
+/* The outer element carries the displacement filter, the depth offset the
+   pointer writes into --fx/--fy, and the layer's own resting position. The
+   inner one carries the colour, the mask and the drift, because a filter and
+   an animated transform on the same element makes the browser re-run the
+   turbulence every frame. */
+.flare {
+  position: absolute;
+  inset: 0;
+  transform: translate(calc(var(--x) + var(--fx, 0px)), calc(var(--y) + var(--fy, 0px)))
+    scale(var(--s));
+}
+
+.wash {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: multiply;
+
+  /* Two masks intersected: the logo shape, and a radial fade that stops the
+     shape reading as a hard sticker. The mark is the window, the fade is the
+     light falling through it. */
+  -webkit-mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='17 11 62 68'%3E%3Ccircle cx='48' cy='21' r='10' fill='black'/%3E%3Cpath d='M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46' fill='none' stroke='black' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E"),
+    radial-gradient(
+      circle at 50% 46%,
+      rgb(0 0 0 / 1) 30%,
+      rgb(0 0 0 / 0.8) 58%,
+      rgb(0 0 0 / 0.42) 80%,
+      rgb(0 0 0 / 0.1) 100%
+    );
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='17 11 62 68'%3E%3Ccircle cx='48' cy='21' r='10' fill='black'/%3E%3Cpath d='M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46' fill='none' stroke='black' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E"),
+    radial-gradient(
+      circle at 50% 46%,
+      rgb(0 0 0 / 1) 30%,
+      rgb(0 0 0 / 0.8) 58%,
+      rgb(0 0 0 / 0.42) 80%,
+      rgb(0 0 0 / 0.1) 100%
+    );
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  -webkit-mask-size: contain, 130% 130%;
+  mask-size: contain, 130% 130%;
+  -webkit-mask-repeat: no-repeat, no-repeat;
+  mask-repeat: no-repeat, no-repeat;
+  -webkit-mask-position: center, center;
+  mask-position: center, center;
+}
+
+.flare1 { --x: -9%; --y: 5%; --s: 1.22; filter: url(#atmoA); }
+.flare2 { --x: -5%; --y: 3%; --s: 1.12; filter: url(#atmoB); }
+.flare3 { --x: -2%; --y: 1%; --s: 1.05; filter: url(#atmoC); }
+.flare4 { --x: 4%; --y: -2%; --s: 0.94; filter: url(#atmoD); }
+.flare5 { --x: 7%; --y: -4%; --s: 0.84; filter: url(#atmoB); }
+.flare6 { --x: 0%; --y: 0%; --s: 1; filter: url(#atmoE); }
+
+.wash1 {
+  opacity: 0.8;
+  background: radial-gradient(
+    circle at 45% 45%,
+    var(--wash-violet-200) 0%,
+    color-mix(in srgb, var(--wash-violet-200) 30%, transparent) 72%,
+    transparent 100%
+  );
+  animation: drift1 54s var(--ease-in-out) infinite;
+}
+.wash2 {
+  opacity: 0.75;
+  background: radial-gradient(
+    circle at 55% 48%,
+    var(--wash-sand-200) 0%,
+    color-mix(in srgb, var(--wash-sand-200) 30%, transparent) 70%,
+    transparent 100%
+  );
+  animation: drift2 67s var(--ease-in-out) infinite;
+}
+.wash3 {
+  opacity: 0.7;
+  background: radial-gradient(
+    circle at 50% 55%,
+    var(--wash-blue-200) 0%,
+    color-mix(in srgb, var(--wash-blue-200) 30%, transparent) 68%,
+    transparent 100%
+  );
+  animation: drift3 61s var(--ease-in-out) infinite;
+}
+.wash4 {
+  opacity: 0.65;
+  background: radial-gradient(
+    circle at 58% 42%,
+    var(--wash-moss-200) 0%,
+    color-mix(in srgb, var(--wash-moss-200) 30%, transparent) 66%,
+    transparent 100%
+  );
+  animation: drift4 73s var(--ease-in-out) infinite;
+}
+.wash5 {
+  opacity: 0.6;
+  background: radial-gradient(
+    circle at 40% 56%,
+    var(--wash-straw-200) 0%,
+    color-mix(in srgb, var(--wash-straw-200) 30%, transparent) 64%,
+    transparent 100%
+  );
+  animation: drift5 83s var(--ease-in-out) infinite;
+}
+
+/* The sixth layer is the shader rather than a gradient: a thin-film prism,
+   masked to the same shape as the five washes over it. */
+.wash6 {
+  opacity: 0.8;
+  animation: drift6 47s var(--ease-in-out) infinite;
+}
+
+.canvas { width: 100%; height: 100%; display: block; }
+
+@keyframes drift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-2.5%, 1.8%) scale(1.08); }
+}
+@keyframes drift2 {
+  0%, 100% { transform: translate(1.5%, -1%) scale(1.04); }
+  50% { transform: translate(-1%, 2.2%) scale(0.97); }
+}
+@keyframes drift3 {
+  0%, 100% { transform: translate(-1.2%, 1.4%) scale(0.98); }
+  50% { transform: translate(2.4%, -1.6%) scale(1.07); }
+}
+@keyframes drift4 {
+  0%, 100% { transform: translate(2%, 1%) scale(1.06); }
+  50% { transform: translate(-1.8%, -1.4%) scale(0.96); }
+}
+@keyframes drift5 {
+  0%, 100% { transform: translate(-2%, -1.6%) scale(1.02); }
+  50% { transform: translate(1.6%, 1.2%) scale(1.1); }
+}
+@keyframes drift6 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(0.8%, -0.8%) scale(1.03); }
+}
+
+/* The filter definitions are drawn into a zero-sized svg, which is the only
+   way to reference an SVG filter from CSS. */
+.defs { position: absolute; width: 0; height: 0; }
