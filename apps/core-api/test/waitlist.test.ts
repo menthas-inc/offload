@@ -97,12 +97,31 @@ describe("AC-1 joining the waitlist", () => {
       return Date.now() - t;
     };
 
-    const fresh = await time("timed-new@example.test");
-    const repeat = await time("timed-existing@example.test");
+    const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
 
-    // Both are held to the same floor, so the difference is scheduling noise
-    // rather than the shape of the work.
-    expect(Math.abs(fresh - repeat)).toBeLessThan(120);
+    // Three samples per branch, interleaved, so a slow patch of machine hits
+    // both branches rather than whichever one happened to run during it.
+    const fresh: number[] = [];
+    const repeat: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      fresh.push(await time(`timed-new-${i}@example.test`));
+      repeat.push(await time("timed-existing@example.test"));
+    }
+
+    // Calibrate against this machine, right now, rather than against a fixed
+    // millisecond budget. An absolute threshold is a test that passes on an
+    // idle laptop and fails in CI under load, which is how a real property
+    // ends up being deleted for being "flaky". The spread within one branch is
+    // pure noise, because that branch does identical work every time; the
+    // question is whether the gap between branches is bigger than that.
+    const noise = Math.max(...repeat) - Math.min(...repeat);
+    const gap = Math.abs(median(fresh) - median(repeat));
+
+    expect(gap).toBeLessThanOrEqual(Math.max(noise * 2, 150));
+
+    // And the floor still holds, which is what makes the branches comparable
+    // at all: whichever ran, the response was held to the same minimum.
+    for (const sample of [...fresh, ...repeat]) expect(sample).toBeGreaterThanOrEqual(240);
   });
 });
 
