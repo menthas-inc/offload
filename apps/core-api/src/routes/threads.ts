@@ -609,15 +609,17 @@ export async function threadRoutes(app: App): Promise<void> {
 
       // Composed here rather than in the client. It is one string in three
       // clients, and composing it three times is how they drift.
+      // "14 · Ana, Tom", which is the kit's line minus its unit. The count
+      // carries no noun, per the vocabulary rule: the word for what is in a
+      // thread was retired and nothing replaced it in anything a person reads.
       const meta = (count: number, people: string[]): string => {
-        const unit = `${count}`;
         const who =
           people.length === 0
             ? "just you"
             : people.length <= 2
-              ? people.join(" and ")
+              ? people.join(", ")
               : `${people.slice(0, 2).join(", ")} and ${people.length - 2} more`;
-        return `${unit} · ${who}`;
+        return `${count} · ${who}`;
       };
 
       type Row = z.infer<typeof threadRow>;

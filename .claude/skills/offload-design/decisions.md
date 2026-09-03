@@ -11,6 +11,49 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-03 · A pass over the web UI against the kit, and what it exposed
+**Surface:** web
+**Raised by:** the product owner, with screenshots of the kit beside the running app.
+
+**The build had drifted a long way from `ui_kits/web_app` and most of it was one omission.**
+There were no icons at all: the shell used text glyphs where every kit uses Lucide. The design
+system vendors eighty of them in `assets/icons/`, so they are copied into `public/icons` and
+rendered as a `currentColor` mask, which is the kit's own `Icon` primitive rather than a new
+one. `.claude/scripts/dead-icons.mjs` now checks every slug resolves, because a name that does
+not exist renders an empty box and nothing complains: no error, no warning, no build failure.
+Same invisible failure as a Tailwind class nobody defined, which is why it sits beside the two
+scanners that already exist for that.
+
+**Fixed to match the kit:** crumbs are chips with glyphs and the current one inverts to ink;
+the top pane is raised and the ones behind it are the page, which is what makes a stack read as
+a stack; head and body share the 700px reading measure; a section rule is solid ink rather than
+a hairline, which is what makes it a break rather than a divider; rows carry a 32px tile, a
+15.5px title and an inset separator so a row that loses one does not change height; the composer
+is the rounded card with a blue ring rather than a bar with a border; delete asks in the row's
+own place before the eight seconds.
+
+**Two things I had backwards and would not have found without the screenshots.** The badge
+tones: `WThings` gives "Always on" the accent and leaves "Older threads" on the default, so the
+solid blue lands on the group that is finished rather than the one that never closes. And the
+first group has no heading at all, which reads as obvious on screen and as an omission in code.
+
+**One thing the kit draws that the code should not have.** The sidebar's Pinned group took the
+first three threads by recency and called them pinned, so a thread created a minute ago appeared
+pinned to itself. Nothing pins, so nothing is shown as pinned. **Real pinning is `pinned_at` on
+`thread_members`**, per person because threads are shared, and it arrives with the control that
+sets it. A group that looks like a feature misbehaving is worse than one that is absent.
+
+**One behaviour changed on the product owner's call, and it is a good rule.** A ticked task
+sinks to the bottom of its list rather than leaving it: its importance drops below everything
+still outstanding the moment it is finished. It stays visible, struck through, because something
+you did this morning disappearing is how you end up wondering whether you did it, and the tick
+is the reward for doing the work.
+
+**Design system impact:** none of the above is a change to the design, it is the code catching
+up. Two things do belong to the kit. **Pinned needs a source**: it is drawn with a `+`, which
+implies somebody chose what is in it, and nothing in the data model says what. And the kit has
+no completed-task state in a list, which it now needs, because a ticked row stays.
+
 ### 2026-09-03 · Widgets, and a group heading that had to be invented
 **Surface:** web, and the phones next
 **Raised by:** the codebase, building feature 007.

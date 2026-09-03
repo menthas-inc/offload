@@ -643,8 +643,9 @@ describe("the routes, with a real session", () => {
     expect(byKey["always"]!.map((t) => t.name)).toEqual(["Read later"]);
     expect(byKey["older"]!.map((t) => t.name)).toEqual(["Berlin"]);
 
-    // The meta line is composed server-side so three clients cannot drift.
-    // A count with no unit, per the vocabulary rule.
+    // Composed server-side so three clients cannot drift, and the count
+    // carries no noun: the word for what is in a thread was retired and
+    // nothing replaced it in anything a person reads.
     expect(byKey["now"]![0]!.meta).toBe("1 · Sam Ibekwe");
     expect(byKey["always"]![0]!.meta).toBe("0 · just you");
   });
@@ -964,5 +965,27 @@ describe("the answer says where it filed things (005 links)", () => {
     });
     // A link to a thread the content no longer sits in is a link to nothing.
     expect((response.json() as { threads: unknown[] }).threads).toEqual([]);
+  });
+});
+
+describe("the meta line names people the way the kit does", () => {
+  it("lists two by comma and folds the rest into a count", async () => {
+    const me = await account("Ana Duarte");
+    const t = await thread(me, "Big thread");
+    for (const name of ["Sam Ibekwe", "Tom Reilly", "Mia Fell"]) {
+      await join(await account(name), t);
+    }
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/threads",
+      headers: { cookie: await signIn(me) },
+    });
+    const body = response.json() as { groups: { threads: { meta: string }[] }[] };
+    const meta = body.groups.flatMap((g) => g.threads)[0]!.meta;
+
+    expect(meta).toMatch(/^0 · .+, .+ and 1 more$/);
+    // No unit after the count, ever.
+    expect(meta).not.toContain("things");
   });
 });

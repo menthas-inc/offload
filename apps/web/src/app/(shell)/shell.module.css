@@ -375,27 +375,45 @@
   cursor: pointer;
 }
 
-/* A row. Everything in a thread is one of these. */
+/* A row is the whole width of its pane; the pane supplies the gutter. The
+   negative margin is what lets hover and selection extend past the reading
+   measure without the text moving.
+
+   Hover is a fill, never a colour change, so a row never looks disabled. The
+   separator is an inset shadow rather than a border, so a row that gains or
+   loses one does not change height. */
 .row {
   display: flex;
   align-items: flex-start;
   gap: var(--space-5);
-  width: 100%;
-  padding: var(--space-5) 0;
+  width: calc(100% + var(--space-5) + var(--space-5));
+  margin: 0 calc(-1 * var(--space-5));
+  padding: var(--space-4) var(--space-5);
   border: 0;
-  border-bottom: 1px solid var(--border-hairline);
-  background: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
   text-align: left;
+  text-decoration: none;
+  color: inherit;
   cursor: pointer;
+  transition: background var(--transition-ui);
+}
+
+.row:hover {
+  background: var(--state-hover);
 }
 
 .row:last-child {
-  border-bottom: 0;
+  box-shadow: none;
 }
 
+/* The tile. 32px, radius-sm, a quiet fill, and the glyph at roughly half its
+   size, which is the kit's own ratio. */
 .rowIcon {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
+  margin-top: 1px;
   flex: 0 0 auto;
   border-radius: var(--radius-sm);
   background: var(--surface-fill);
@@ -403,7 +421,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
 }
 
 .rowText {
@@ -412,21 +429,24 @@
 }
 
 .rowTitle {
-  font: var(--weight-medium) 14.5px/1.35 var(--font-core);
+  display: block;
+  font: var(--weight-medium) 15.5px/1.35 var(--font-core);
   color: var(--text-primary);
+  text-decoration: none;
   overflow-wrap: anywhere;
 }
 
 .rowMeta {
-  margin-top: 3px;
-  font-size: 12.5px;
-  color: var(--text-tertiary);
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
 .rowCount {
   flex: 0 0 auto;
-  align-self: center;
+  margin-top: 3px;
   font: var(--weight-medium) 14px/1 var(--font-core);
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
@@ -448,18 +468,33 @@
 }
 
 .tool {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
-  background: none;
-  padding: 6px;
   border-radius: var(--radius-sm);
-  color: var(--text-tertiary);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
   cursor: pointer;
-  line-height: 0;
+  transition: background var(--transition-ui), color var(--transition-ui);
 }
 
 .tool:hover {
-  background: var(--surface-fill);
-  color: var(--text-primary);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+/* The one red control in the product, and it only turns red once you are on
+   it. Red at rest would make every row look dangerous. */
+.toolDanger {
+  composes: tool;
+}
+
+.toolDanger:hover {
+  background: var(--clay-100);
+  color: var(--text-danger);
 }
 
 .archived {
@@ -700,10 +735,14 @@
   cursor: pointer;
 }
 
+/* Native, deliberately. The kit draws its own box and a native checkbox is
+   reachable, announced and toggled by a keyboard with no help, which is worth
+   more than the two pixels of difference. Sized and coloured to match. */
 .check input {
-  margin-top: 2px;
-  width: 18px;
-  height: 18px;
+  margin-top: 6px;
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
   accent-color: var(--surface-inverse);
   flex: 0 0 auto;
 }
@@ -714,4 +753,56 @@
 .checkDone .rowTitle {
   text-decoration: line-through;
   color: var(--text-tertiary);
+}
+
+/* The row, asking. Same footprint as the row it replaces, so nothing below it
+   moves while the question is up. */
+.confirmRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  width: calc(100% + var(--space-5) + var(--space-5));
+  margin: 0 calc(-1 * var(--space-5));
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-sm);
+  background: var(--clay-100);
+}
+
+.confirmIcon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-raised);
+  color: var(--text-danger);
+}
+
+.confirmText {
+  flex: 1;
+  min-width: 0;
+  font: var(--weight-medium) 14.5px/1.35 var(--font-core);
+  color: var(--text-danger);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.danger {
+  height: 32px;
+  padding: 0 var(--space-5);
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: var(--weight-medium) var(--size-label)/1 var(--font-core);
+  color: var(--text-on-solid);
+  background: var(--clay-600);
+  cursor: pointer;
+  transition: background var(--transition-ui);
+}
+
+.danger:hover {
+  background: var(--clay-700);
 }

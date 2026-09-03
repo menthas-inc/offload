@@ -14,6 +14,8 @@
 // rather than through a prop, which is the price of the composer not being
 // anybody's child.
 
+import { Icon } from "../Icon";
+import pane from "../../app/(shell)/shell.module.css";
 import styles from "../../app/(shell)/today.module.css";
 
 // The kit's three, verbatim, and the same three both phones show from
@@ -27,8 +29,9 @@ const EXAMPLES = [
   "Oak brackets, 30cm, matte black",
 ] as const;
 
+// The kit's line, verbatim, from WFirstRun.
 const DAY_ONE_INVITATION =
-  "Dump anything and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.";
+  "Dump the first thing and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.";
 
 /** How an example reaches a composer that is nobody's child.
  *
@@ -40,23 +43,37 @@ export const FILL_COMPOSER = "offload:fill-composer";
 
 export function TodayPane() {
   return (
-    <div className={styles.today}>
-      <p className={styles.emptyTitle}>{DAY_ONE_INVITATION}</p>
-
-      <div className={styles.examples}>
-        {EXAMPLES.map((example) => (
-          <button
-            key={example}
-            type="button"
-            className={styles.example}
-            onClick={() =>
-              window.dispatchEvent(new CustomEvent(FILL_COMPOSER, { detail: example }))
-            }
-          >
-            {example}
-          </button>
-        ))}
+    <>
+      <div className={pane.paneHead}>
+        <div style={{ minWidth: 0 }}>
+          <h1 className={`${pane.paneTitle} ${pane.paneTitleBig}`}>Today</h1>
+          {/* The kit's own sub for this state, and it stays honest until Today
+              is a view over an agenda and a week rather than an invitation. */}
+          <p className={pane.paneSub}>Nothing in here yet</p>
+        </div>
       </div>
-    </div>
+
+      <div className={pane.paneBody}>
+        <div className={styles.today}>
+          <p className={styles.emptyTitle}>{DAY_ONE_INVITATION}</p>
+
+          <div className={styles.examples}>
+            {EXAMPLES.map((example) => (
+              <button
+                key={example}
+                type="button"
+                className={styles.example}
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent(FILL_COMPOSER, { detail: example }))
+                }
+              >
+                <Icon name="arrow-up" size={14} className={styles.exampleMark} />
+                {example}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

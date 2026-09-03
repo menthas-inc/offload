@@ -44,6 +44,9 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [renaming, setRenaming] = useState(false);
+  // Which row is asking to be deleted. The kit asks in the row's own place
+  // rather than in a dialog, so the question never covers what it is about.
+  const [asking, setAsking] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const input = useRef<HTMLInputElement>(null);
 
@@ -113,6 +116,7 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   }
 
   async function remove(row: ContentRow): Promise<void> {
+    setAsking(null);
     if (!(await deleteContent(row.id))) return;
     await load();
     onChanged();
@@ -288,6 +292,34 @@ export function Thread({ id, onChanged, onUndo }: Props) {
           </p>
         ) : (
           rows.map((row) => (
+            asking === row.id ? (
+              // The row asks in its own place. Both a confirm and an undo,
+              // which is more than OFF-6 requires, and it is the kit's call:
+              // this is the only control in the product that destroys
+              // something, and the eight seconds afterwards is a safety net
+              // rather than the whole safety story.
+              <div key={row.id} className={styles.confirmRow}>
+                <span className={styles.confirmIcon}>
+                  <Icon name="trash-2" size={15} />
+                </span>
+                <span className={styles.confirmText}>Delete {row.title}?</span>
+                <button
+                  type="button"
+                  className={styles.sectionAction}
+                  style={{ marginLeft: 0 }}
+                  onClick={() => setAsking(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={styles.danger}
+                  onClick={() => void remove(row)}
+                >
+                  Delete
+                </button>
+              </div>
+            ) : (
             <div
               key={row.id}
               className={`${styles.row} ${row.archivedAt ? styles.archived : ""}`}
@@ -350,16 +382,17 @@ export function Thread({ id, onChanged, onUndo }: Props) {
                 {row.canDelete ? (
                   <button
                     type="button"
-                    className={styles.tool}
-                    aria-label="Delete"
+                    className={styles.toolDanger}
+                    aria-label={`Delete ${row.title}`}
                     title="Delete"
-                    onClick={() => void remove(row)}
+                    onClick={() => setAsking(row.id)}
                   >
                     <Icon name="trash-2" size={15} />
                   </button>
                 ) : null}
               </span>
             </div>
+            )
           ))
         )}
 
