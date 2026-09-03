@@ -31,6 +31,15 @@ const MAX_DUMP_CHARS = 10_000;
  *  conversation and tomorrow morning is a new one. */
 const CONVERSATION_GAP = "6 hours";
 
+/** Every tick re-checks the session, so this is also the window in which a
+ *  revoked session keeps receiving. Short enough to be honest, long enough not
+ *  to hammer the session check. */
+const STREAM_TICK_MS = 15_000;
+
+/** Then the client reconnects. Bounds the revocation gap above and keeps a
+ *  proxy from closing the stream first and making it look like a failure. */
+const STREAM_LIFETIME_MS = 300_000;
+
 function fetchHeaders(request: FastifyRequest): Headers {
   const headers = new Headers();
   for (const [key, value] of Object.entries(request.headers)) {
@@ -86,6 +95,49 @@ async function replyFor(turnId: string, accountId: string): Promise<string | nul
     .where("deleted_at", "is", null)
     .executeTakeFirst();
   return row?.text ?? null;
+}
+
+
+/** What an open stream should do right now.
+ *
+ *  Extracted from the stream itself so it can be tested: Better Auth signs its
+ *  session cookie, so driving the endpoint from a test would mean replicating
+ *  that signing, which is a test that breaks when the library changes rather
+ *  than when the behaviour does. The authorization around this is covered by
+ *  its own 401 and 404 cases; this is the part with the states in it.
+ */
+export type StreamStep =
+  | { do: "answered"; reply: string | null }
+  | { do: "failed" }
+  | { do: "close" }
+  | { do: "wait" };
+
+export async function streamStep(messageId: string, accountId: string): Promise<StreamStep> {
+  const account = await db
+    .selectFrom("accounts")
+    .select("state")
+    .where("id", "=", accountId)
+    .executeTakeFirst();
+
+  // Disabling an account has to reach an open stream. 002 enforces revocation
+  // at Better Auth's refresh, which fires on a request, and a stream makes
+  // none once it is open (AC-17).
+  if (!account || account.state === "disabled") return { do: "close" };
+
+  const current = await db
+    .selectFrom("messages")
+    .select(["state", "turn_id"])
+    .where("id", "=", messageId)
+    .where("account_id", "=", accountId)
+    .where("deleted_at", "is", null)
+    .executeTakeFirst();
+
+  if (!current) return { do: "close" };
+  if (current.state === "answered") {
+    return { do: "answered", reply: await replyFor(current.turn_id, accountId) };
+  }
+  if (current.state === "failed") return { do: "failed" };
+  return { do: "wait" };
 }
 
 export async function dumpRoutes(app: App): Promise<void> {
@@ -244,6 +296,101 @@ export async function dumpRoutes(app: App): Promise<void> {
         text: message.text,
         reply: message.state === "answered" ? await replyFor(message.turn_id, accountId) : null,
       });
+    }
+  );
+
+  // The answer, pushed rather than polled.
+  //
+  // This reverses a recorded decision, that "the queue carries the response, so
+  // there is no second channel... and no reconnection or resumption cases".
+  // It is a second channel and it does have those cases. Logged in
+  // decisions.md with its cost.
+  //
+  // **It is an optimisation over polling, not a replacement for it.** GET
+  // /v1/messages/:id stays, and the client falls back to it whenever the stream
+  // closes without an answer. That is what makes it safe to be an optimisation:
+  // nothing is lost if the stream never connects at all.
+  app.get(
+    "/v1/messages/:id/stream",
+    { schema: { params: z.object({ id: z.string().uuid() }) } },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+      const message = await db
+        .selectFrom("messages")
+        .select(["id", "state", "turn_id"])
+        .where("id", "=", request.params.id)
+        .where("account_id", "=", accountId)
+        .where("deleted_at", "is", null)
+        .executeTakeFirst();
+
+      if (!message) return reply.code(404).send({ error: "not_found" as const });
+
+      reply.raw.writeHead(200, {
+        "content-type": "text/event-stream",
+        "cache-control": "no-cache, no-transform",
+        connection: "keep-alive",
+        // Nginx and friends buffer by default, which turns a stream into one
+        // large response delivered at the end.
+        "x-accel-buffering": "no",
+      });
+
+      const send = (event: string, data: unknown): void => {
+        reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      };
+
+      let closed = false;
+      const finish = (): void => {
+        if (closed) return;
+        closed = true;
+        clearInterval(timer);
+        reply.raw.end();
+      };
+      request.raw.on("close", finish);
+
+      /** One look at the message, and at whether this person may still see it.
+       *
+       *  The session check runs on every tick and not only at connect. 002
+       *  enforces revocation at Better Auth's refresh, which fires on a
+       *  request, and an open stream makes none: without this, disabling an
+       *  account would leave its stream delivering conversation updates for as
+       *  long as it stayed open. The tick interval is therefore the exposure,
+       *  and it is stated rather than discovered. */
+      const tick = async (): Promise<void> => {
+        if (closed) return;
+
+        // The session, every tick and not only at connect.
+        const stillAllowed = await currentAccountId(request);
+        if (stillAllowed !== accountId) return finish();
+
+        const step = await streamStep(message.id, accountId);
+        if (step.do === "answered") {
+          send("done", { state: "answered", reply: step.reply });
+          return finish();
+        }
+        if (step.do === "failed") {
+          send("failed", { state: "failed" });
+          return finish();
+        }
+        if (step.do === "close") return finish();
+
+        // A comment frame. Keeps an idle proxy from dropping a stream that is
+        // legitimately waiting on a model.
+        reply.raw.write(": keep-alive\n\n");
+      };
+
+      send("thinking", { state: message.state });
+      const timer = setInterval(() => void tick(), STREAM_TICK_MS);
+
+      // Bounded. The client reconnects, which re-runs the authorization above
+      // and bounds how stale an open stream's view of a session can be.
+      setTimeout(finish, STREAM_LIFETIME_MS);
+
+      // Answered before the first tick, which is common on a fast model.
+      await tick();
+
+      return reply;
     }
   );
 }

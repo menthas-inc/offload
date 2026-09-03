@@ -19,6 +19,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
+import { streamStep } from "../src/routes/dumps.js";
 import { uuidv7 } from "../src/uuid.js";
 
 await migrate(() => {});
@@ -370,5 +371,46 @@ describe("AC-18 the funnel events", () => {
       .where("name", "=", "dump_failed")
       .executeTakeFirstOrThrow();
     expect(JSON.stringify(event.properties)).toContain("timeout");
+  });
+});
+
+
+describe("AC-17 and AC-4 what an open stream does each tick", () => {
+  it("waits while the answer is still coming", async () => {
+    const id = await account();
+    const { messageId } = await dump(id, "hello");
+    expect(await streamStep(messageId, id)).toEqual({ do: "wait" });
+  });
+
+  it("delivers the answer once it lands", async () => {
+    const id = await account();
+    const { messageId, jobId } = await dump(id, "hello");
+    await post({ outcome: "answered", jobId, replyText: "Noted.", usage: goodUsage });
+    expect(await streamStep(messageId, id)).toEqual({ do: "answered", reply: "Noted." });
+  });
+
+  it("reports a failure rather than waiting forever", async () => {
+    const id = await account();
+    const { messageId, jobId } = await dump(id, "hello");
+    await post({ outcome: "failed", jobId, reason: "model_error" });
+    expect(await streamStep(messageId, id)).toEqual({ do: "failed" });
+  });
+
+  it("closes when the account is disabled mid-stream", async () => {
+    const id = await account();
+    const { messageId } = await dump(id, "hello");
+
+    // The revocation 002 built fires at Better Auth's refresh, which happens on
+    // a request. An open stream makes none, so without this check a disabled
+    // account keeps receiving its conversation for as long as the stream lives.
+    await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", id).execute();
+    expect(await streamStep(messageId, id)).toEqual({ do: "close" });
+  });
+
+  it("closes rather than leaking when asked for another account's message", async () => {
+    const mine = await account();
+    const theirs = await account();
+    const { messageId } = await dump(mine, "private");
+    expect(await streamStep(messageId, theirs)).toEqual({ do: "close" });
   });
 });

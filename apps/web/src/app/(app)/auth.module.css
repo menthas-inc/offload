@@ -478,3 +478,130 @@
 }
 
 .send:disabled { background: var(--ink-200); cursor: default; }
+
+/* The live composer.
+ *
+ * The turns sit above the field inside the same box, which is the kit's live
+ * state: the field stays where it was so nothing moves under the cursor when an
+ * answer arrives. */
+
+.turns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-height: 420px;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-5) var(--space-5);
+}
+
+.turnYou {
+  position: relative;
+  align-self: flex-end;
+  max-width: 78%;
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid var(--blue-100);
+  border-radius: 18px 18px 5px 18px;
+  background: var(--blue-50);
+  font: var(--weight-regular) 15px/1.45 var(--font-core);
+  color: var(--text-primary);
+}
+
+.turnOffload {
+  align-self: flex-start;
+  max-width: 92%;
+  padding: var(--space-4) var(--space-5);
+  border-radius: 18px 18px 18px 5px;
+  background: var(--ink-50);
+  font: var(--text-quiet-role);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+/* Ported from the mobile kit's StatusChip. The web kit draws a chip for done
+   and has no branch for seen at all, so this is new surface on this surface. */
+.seen {
+  position: absolute;
+  left: -15px;
+  bottom: -16px;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--border-hairline);
+  border-radius: 99px;
+  background: var(--paper);
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* No kit draws a failed message. Inline and persistent, never a toast: a toast
+   clears in eight seconds and a dump that went unanswered has to still be
+   there when somebody comes back to the tab. */
+.turnFailed {
+  margin: var(--space-3) 0 0;
+  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
+  color: var(--text-on-attention);
+}
+
+.retry {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: var(--weight-medium);
+  color: var(--text-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.writing {
+  align-self: flex-start;
+  display: flex;
+  gap: 5px;
+  padding: var(--space-4) var(--space-5);
+  border-radius: 18px 18px 18px 5px;
+  background: var(--ink-50);
+}
+
+.writing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--ink-300);
+  animation: writingPulse 1.2s var(--ease-in-out) infinite;
+}
+
+.writing span:nth-child(2) { animation-delay: 0.16s; }
+.writing span:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes writingPulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+/* Reduced motion removes the movement rather than shortening it. An infinite
+   pulse is exactly what that rule is for, and the dots still read as a waiting
+   state without it. */
+@media (prefers-reduced-motion: reduce) {
+  .writing span { animation: none; opacity: 0.6; }
+}
+
+.composerError {
+  margin: var(--space-3) 0 0;
+  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
+  color: var(--text-on-attention);
+}
+
+/* Announced, not seen. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
