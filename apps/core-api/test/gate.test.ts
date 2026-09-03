@@ -118,7 +118,21 @@ describe("linking a provider onto a staff account", () => {
     });
   });
 
-  it("still allows the first one, so a new admin can sign in at all", async () => {
+  // The application check and the database constraint are not redundant.
+    // decideLink's SELECT ... FOR UPDATE runs outside any transaction this code
+    // owns, because Better Auth calls the hook and then, separately, the
+    // INSERT. The row lock is released before the insert happens, so the window
+    // the comment claimed to close was open. The trigger runs inside that
+    // INSERT, which is the only place it can actually be closed.
+    it("is refused by the database too, not only by the gate", async () => {
+      const id = await account("locked@example.com", "active");
+      await identity(id, "google");
+      await db.insertInto("staff").values({ account_id: id, role: "support" }).execute();
+
+      await expect(identity(id, "apple")).rejects.toThrow(/second identity/i);
+    });
+
+    it("still allows the first one, so a new admin can sign in at all", async () => {
     const id = await account("newadmin@example.com", "invited");
     await db.insertInto("staff").values({ account_id: id, role: "owner" }).execute();
     await expect(decideLink(id)).resolves.toMatchObject({ allow: true });

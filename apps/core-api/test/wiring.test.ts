@@ -78,6 +78,10 @@ describe("the job runner the server builds", () => {
     const job = await db
       .selectFrom("jobs")
       .select(["state", "attempts", "last_error"])
+      // Scoped to the row this test enqueued. Unscoped it read whichever job
+      // happened to be first in the table, so a previous run that aborted
+      // before its cleanup left a row behind and this failed against that.
+      .where("kind", "=", "email.nonexistent")
       .executeTakeFirstOrThrow();
 
     // Back to queued is correct: an unknown kind is retried with backoff like

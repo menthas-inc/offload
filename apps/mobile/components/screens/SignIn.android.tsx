@@ -19,7 +19,12 @@ import { AppleGlyph, GoogleGlyph } from "../Glyphs";
 import { GATE } from "../../lib/gate";
 import { PRIVACY_URL } from "../../lib/links";
 import { COLOR } from "../../lib/colors";
-import { appleAvailable, signIn, type Provider } from "../../lib/auth";
+import {
+  appleAvailable,
+  providerOrder,
+  signIn,
+  type Provider,
+} from "../../lib/auth";
 
 export default function SignIn() {
   const router = useRouter();
@@ -52,7 +57,10 @@ export default function SignIn() {
     if (result.reason === "failed") setRefused(true);
   }
 
-  const providers: Provider[] = hasApple ? ["google", "apple"] : ["google"];
+  // From lib/auth.ts rather than restated here. It was exported and unused
+  // while both screens recomputed the same ordering, which is the second
+  // source of truth this file warns about elsewhere.
+  const providers = providerOrder.filter((p) => p !== "apple" || hasApple);
 
   return (
     <SafeAreaView className="flex-1 bg-a-surface">
@@ -78,7 +86,11 @@ export default function SignIn() {
           screen. */}
       <View className="px-gutter-screen pb-space-8 gap-space-5">
         {refused ? (
-          <View className="rounded-a-md bg-surface-attention-soft px-space-6 py-space-5">
+          <View
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            className="rounded-a-md bg-surface-attention-soft px-space-6 py-space-5"
+          >
             <Text className="font-core text-body-sm text-text-on-attention">
               {GATE.refused}
             </Text>

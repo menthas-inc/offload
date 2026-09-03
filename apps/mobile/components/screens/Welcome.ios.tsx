@@ -28,6 +28,7 @@ export default function Welcome() {
   const [step, setStep] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const [failed, setFailed] = useState(false);
+
   const [readPolicy, setReadPolicy] = useState(false);
   const [agreeToProcessing, setAgreeToProcessing] = useState(false);
 
@@ -66,6 +67,9 @@ export default function Welcome() {
   const screen = TUTORIAL[step];
   const consenting = step === TUTORIAL.length;
   const ready = readPolicy && agreeToProcessing;
+  // Disabled while the write is in flight, and while the consent screen is
+  // showing with either tick unanswered.
+  const blocked = leaving || (consenting && !ready);
 
   return (
     <SafeAreaView className="flex-1 bg-surface-page">
@@ -152,10 +156,14 @@ export default function Welcome() {
         ) : null}
         <Pressable
           onPress={() => (consenting ? void finish(true) : setStep(step + 1))}
-          disabled={leaving || (consenting && !ready)}
-          className="min-h-composer-height w-full items-center justify-center rounded-pill bg-ink-950 active:opacity-90"
+          disabled={blocked}
+          className={`min-h-composer-height w-full items-center justify-center rounded-pill active:opacity-90 ${
+            blocked ? "bg-ink-100" : "bg-ink-950"
+          }`}
         >
-          <Text className="font-core text-body font-medium text-text-inverse">
+          <Text
+            className={`font-core text-body font-medium ${blocked ? "text-ink-400" : "text-text-inverse"}`}
+          >
             {consenting ? "Get started" : "Next"}
           </Text>
         </Pressable>

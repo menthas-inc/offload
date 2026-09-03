@@ -25,16 +25,24 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: isAndroid ? m3["a-on"] : light["text-primary"],
-        tabBarInactiveTintColor: isAndroid ? m3["a-on-quiet"] : light["text-tertiary"],
+        tabBarInactiveTintColor: isAndroid
+          ? m3["a-on-quiet"]
+          : light["text-tertiary"],
         tabBarStyle: {
           backgroundColor: isAndroid ? m3["a-c-low"] : light["surface-raised"],
-          borderTopColor: isAndroid ? m3["a-outline"] : light["border-hairline"],
+          borderTopColor: isAndroid
+            ? m3["a-outline"]
+            : light["border-hairline"],
           // Material's navigation bar is taller than the iOS tab bar. Both
           // numbers come from the design system rather than a framework
           // default.
-          height: parseInt((isAndroid ? m3["row-height-lg"] : light["tabbar-height"]) ?? "64", 10),
+          height: parseInt(
+            (isAndroid ? m3["row-height-lg"] : light["tabbar-height"]) ?? "64",
+            10,
+          ),
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
+        // 12, which is the design system's stated mobile minimum. It was 11.
+        tabBarLabelStyle: { fontSize: 12, fontWeight: "500" },
       }}
     >
       {/* Today until sunset, Tonight after, on the real curve rather than a
@@ -46,7 +54,11 @@ export default function TabsLayout() {
         options={{
           title: tod.label,
           tabBarIcon: ({ color }) =>
-            tod.icon === "moon" ? <MoonGlyph size={24} color={color} /> : <SunGlyph size={24} color={color} />,
+            tod.icon === "moon" ? (
+              <MoonGlyph size={22} color={color} />
+            ) : (
+              <SunGlyph size={22} color={color} />
+            ),
         }}
       />
     </Tabs>
