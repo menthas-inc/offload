@@ -457,10 +457,6 @@ export default function Privacy() {
               too.
             </li>
             <li>
-              <strong>Your waitlist address:</strong> until you ask us to remove it, which you can do
-              at any time by writing to us.
-            </li>
-            <li>
               <strong>Product events:</strong> kept, but detached. Deleting your account destroys
               the identifier that connects them to you.
             </li>
