@@ -35,7 +35,13 @@ import {
   touchThread,
   type Executor,
 } from "../threads/access.js";
-import { editContent, moveContent, renameThread, setArchived } from "./threads.js";
+import {
+  editContent,
+  moveContent,
+  renameThread,
+  setArchived,
+  setPreference,
+} from "./threads.js";
 
 /** The only string that ever leaves for a geocoder.
  *
@@ -152,6 +158,16 @@ const body = z.discriminatedUnion("tool", [
     toolCallId: z.string().min(1).max(120),
     contentId: z.string().uuid(),
     archived: z.boolean().default(true),
+  }),
+  z.strictObject({
+    tool: z.literal("set_thread_preference"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    threadId: z.string().uuid(),
+    /** Which tag dimension each widget groups by. */
+    groupBy: z.record(z.string(), z.string()).nullish(),
+    /** What order the widgets come in. */
+    widgets: z.array(z.string()).nullish(),
   }),
   z.strictObject({
     tool: z.literal("rename_thread"),
@@ -291,6 +307,19 @@ async function existing(
   if (call.tool === "rename_thread") {
     await requireMember(accountId, call.threadId, trx);
     await renameThread(accountId, call.threadId, call.name);
+    return { ok: true, done: true };
+  }
+
+  if (call.tool === "set_thread_preference") {
+    // Co-owned, like the name. `readPreference` drops anything it does not
+    // recognise, so a widget kind the model invented is ignored rather than
+    // stored and rendered as nothing later. A dimension nothing carries is
+    // kept, because "group this by city" said before anything has a city is a
+    // reasonable thing to say and it starts working when something does.
+    await setPreference(accountId, call.threadId, {
+      ...(call.widgets === undefined ? {} : { widgets: call.widgets }),
+      ...(call.groupBy === undefined ? {} : { groupBy: call.groupBy }),
+    });
     return { ok: true, done: true };
   }
 

@@ -22,6 +22,8 @@ import { uuidv7 } from "../src/uuid.js";
 import { BadTags, dimensionsIn, normaliseTags } from "../src/threads/tags.js";
 import { queryHash, resolvePlace, type Geocoder } from "../src/places/resolve.js";
 import { LIST_PAGE } from "../src/routes/tools.js";
+import { completeContent, reprioritise, setPreference } from "../src/routes/threads.js";
+import { readPreference } from "../src/threads/widgets.js";
 
 await migrate(() => {});
 
@@ -650,3 +652,158 @@ async function dumpFor(accountId: string) {
     .returning("id").executeTakeFirstOrThrow();
   return { messageId: message.id, jobId: job.id };
 }
+
+describe("arranging a thread", () => {
+  async function own() {
+    const me = await account();
+    const t = await thread(me, "Lisbon trip");
+    return { me, thread: t };
+  }
+
+  it("merges a preference rather than replacing it", async () => {
+    // Setting the grouping must not silently clear the widget order, which is
+    // what a straight overwrite would do the second time somebody asks for
+    // something.
+    const { me, thread: t } = await own();
+
+    await setPreference(me, t, { widgets: ["map", "todo"] });
+    await setPreference(me, t, { groupBy: { todo: "city" } });
+
+    const row = await db
+      .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
+    expect(readPreference(row.attrs)).toEqual({
+      widgets: ["map", "todo"],
+      groupBy: { todo: "city" },
+    });
+  });
+
+  it("returns what was there, so Undo is the same call (AC-7a)", async () => {
+    const { me, thread: t } = await own();
+    await setPreference(me, t, { widgets: ["map"] });
+    const previous = await setPreference(me, t, { widgets: ["todo"] });
+    expect(previous).toEqual({ widgets: ["map"] });
+  });
+
+  it("drops a widget kind nobody defined, rather than storing it", async () => {
+    const { me, thread: t } = await own();
+    await setPreference(me, t, { widgets: ["todo", "nonsense"] });
+    const row = await db
+      .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
+    expect(readPreference(row.attrs)).toEqual({ widgets: ["todo"] });
+  });
+
+  it("keeps a dimension nothing carries yet", async () => {
+    // "Group this by city" said before anything has a city is a reasonable
+    // thing to say, and the answer is that it starts working when something
+    // does.
+    const { me, thread: t } = await own();
+    await setPreference(me, t, { groupBy: { todo: "city" } });
+    const row = await db
+      .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
+    expect(readPreference(row.attrs)).toEqual({ groupBy: { todo: "city" } });
+  });
+
+  it("lets the planner set it too, through the tool", async () => {
+    const { me, thread: t } = await own();
+    const { jobId } = await dumpFor(me);
+
+    expect((await tool({
+      tool: "set_thread_preference", jobId, toolCallId: "t1",
+      threadId: t, groupBy: { todo: "city" },
+    })).json()).toEqual({ ok: true, done: true });
+
+    const row = await db
+      .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
+    expect(readPreference(row.attrs)).toEqual({ groupBy: { todo: "city" } });
+  });
+
+  it("refuses a thread the account is not in", async () => {
+    const stranger = await account();
+    const theirs = await thread(stranger, "Not yours");
+    const me = await account();
+    const { jobId } = await dumpFor(me);
+
+    expect((await tool({
+      tool: "set_thread_preference", jobId, toolCallId: "t1",
+      threadId: theirs, widgets: ["todo"],
+    })).json()).toEqual({ ok: false, error: "unknown_thread" });
+  });
+});
+
+describe("ticking and reprioritising", () => {
+  it("a person changing a priority pins it, and the planner then leaves it (AC-8)", async () => {
+    const me = await account();
+    const t = await thread(me, "Flat admin");
+    const id = (
+      await db
+        .insertInto("content")
+        .values({
+          account_id: me, thread_id: t, title: "Boiler service",
+          type: "task", priority: 50, updated_at: new Date(),
+        })
+        .returning("id").executeTakeFirstOrThrow()
+    ).id;
+
+    const previous = await reprioritise(me, id, 90);
+    expect(previous).toEqual({ priority: 50, priorityPinned: false });
+
+    const after = await db
+      .selectFrom("content").select(["priority", "priority_pinned"]).where("id", "=", id)
+      .executeTakeFirstOrThrow();
+    expect(after.priority).toBe(90);
+    // Set by the person's action, never by the model, so "somebody decided" and
+    // "offload guessed" stay distinguishable forever.
+    expect(after.priority_pinned).toBe(true);
+
+    const { jobId } = await dumpFor(me);
+    await tool({ tool: "edit_content", jobId, toolCallId: "t1", contentId: id, priority: 10 });
+
+    const still = await db
+      .selectFrom("content").select("priority").where("id", "=", id).executeTakeFirstOrThrow();
+    expect(still.priority).toBe(90);
+  });
+
+  it("ticks and un-ticks, returning what it was (AC-7)", async () => {
+    const me = await account();
+    const t = await thread(me, "Flat admin");
+    const id = (
+      await db
+        .insertInto("content")
+        .values({
+          account_id: me, thread_id: t, title: "Boiler service",
+          type: "task", updated_at: new Date(),
+        })
+        .returning("id").executeTakeFirstOrThrow()
+    ).id;
+
+    expect(await completeContent(me, id, true)).toEqual({ done: false });
+    expect(await completeContent(me, id, false)).toEqual({ done: true });
+
+    const after = await db
+      .selectFrom("content").select("done_at").where("id", "=", id).executeTakeFirstOrThrow();
+    expect(after.done_at).toBeNull();
+  });
+
+  it("lets any member tick somebody else's row (AC-7)", async () => {
+    const alice = await account();
+    const bob = await account();
+    const t = await thread(alice, "Flat admin");
+    await db
+      .insertInto("thread_members")
+      .values({ thread_id: t, account_id: bob, state: "accepted" })
+      .execute();
+    const id = (
+      await db
+        .insertInto("content")
+        .values({
+          account_id: alice, thread_id: t, title: "Put the trash out",
+          type: "task", updated_at: new Date(),
+        })
+        .returning("id").executeTakeFirstOrThrow()
+    ).id;
+
+    // A shared thread's contents belong to everybody in it, and ticking
+    // destroys nothing.
+    await expect(completeContent(bob, id, true)).resolves.toEqual({ done: false });
+  });
+});

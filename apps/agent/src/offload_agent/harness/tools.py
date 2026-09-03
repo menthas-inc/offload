@@ -14,9 +14,9 @@ is a model that can lose somebody's dump on a misread. `archive_content` is the
 reversible thing offload is allowed to do and it covers every case a person
 would phrase as "get rid of that".
 
-**`set_thread_preference` is not here either.** It belongs with the column it
-writes and the screen that reads it, both of which arrive in 007. A tool shipped
-a version ahead of its storage is a tool that cannot work.
+**`set_thread_preference` arrived in 007**, with the column it writes and the
+screen that reads it. It was drafted for 006 and held back, because a tool
+shipped a version ahead of its storage is a tool that cannot work.
 """
 
 from typing import Any, Literal
@@ -114,6 +114,16 @@ class ArchiveContent(BaseModel):
     archived: bool = True
 
 
+class SetThreadPreference(BaseModel):
+    """Say how a thread should be arranged."""
+
+    thread_id: str = Field(min_length=1)
+    # Which tag dimension each widget groups by, e.g. {"todo": "city"}.
+    group_by: dict[str, str] | None = None
+    # What order the widgets come in, e.g. ["map", "todo"].
+    widgets: list[str] | None = None
+
+
 class RenameThread(BaseModel):
     """Rename a thread."""
 
@@ -129,6 +139,7 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "move_content": MoveContent,
     "complete_content": CompleteContent,
     "archive_content": ArchiveContent,
+    "set_thread_preference": SetThreadPreference,
     "rename_thread": RenameThread,
 }
 
@@ -173,6 +184,11 @@ _DESCRIPTIONS = {
     "archive_content": (
         "Take something out of a thread's active list without destroying it. This "
         "is what to use when they say to get rid of something. You cannot delete."
+    ),
+    "set_thread_preference": (
+        "Say how a thread should be arranged: which tag dimension a widget groups "
+        "by, and what order the widgets come in. Use it when they ask for one, not "
+        "on your own initiative."
     ),
     "rename_thread": "Rename a thread.",
 }

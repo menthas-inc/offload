@@ -522,3 +522,89 @@
 @media (prefers-reduced-motion: reduce) {
   .toast { animation: none; }
 }
+
+/* ------------------------------------------------------------- widgets */
+
+/* A group heading. New surface: the design system has SectionHeader, 21px over
+   a rule and far too heavy for a sub-group, and Chip, which the kit already
+   uses with tone="accent" and a sparkles glyph for anything offload derived.
+   This is built from that vocabulary. */
+.groupHeading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: var(--space-6) 0 var(--space-3);
+  padding: 0;
+  font: var(--weight-medium) 12.5px/1 var(--font-core);
+  color: var(--text-accent);
+  text-transform: lowercase;
+}
+
+/* The group holding rows with no tag in this dimension. No accent and no
+   sparkle: offload did not derive it, it is simply what was left. */
+.groupHeadingBare {
+  composes: groupHeading;
+  color: var(--text-tertiary);
+}
+
+/* Pins on a plain surface, as the kits draw it. No tiles, so nothing about
+   where somebody has been leaves for a map company to render a background. */
+.mapSurface {
+  position: relative;
+  height: 150px;
+  margin: var(--space-4) 0 var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-hairline);
+  background: var(--surface-fill);
+  overflow: hidden;
+}
+
+.mapNote {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font: var(--weight-semibold) 11px/22px var(--font-core);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A task. The tick is a real checkbox rather than a styled div, so it is
+   reachable, announced and toggled by a keyboard without any help. */
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding: var(--space-4) 0;
+  cursor: pointer;
+}
+
+.check input {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--surface-inverse);
+  flex: 0 0 auto;
+}
+
+/* A ticked row stays in the list, struck through, rather than vanishing. Undo
+   needs something to point at, and so does the person wondering whether they
+   already did it. */
+.checkDone .rowTitle {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}

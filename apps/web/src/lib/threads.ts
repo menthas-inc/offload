@@ -42,11 +42,21 @@ export interface ThreadBundle {
   alwaysOn: boolean;
   counts: { active: number; archived: number };
   members: Member[];
+  /** How this thread wants to look. Absent fields mean derived from content. */
+  preference: { widgets?: string[]; groupBy?: Record<string, string> };
   /** Always null today. offload does not summarise a thread yet and nothing
    *  writes a standing memory. The field is here so the empty state renders
    *  from a value rather than from an absence, and so the day something writes
    *  one, no client changes. */
   standing: null;
+}
+
+export interface Place {
+  id: string;
+  name: string;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
 }
 
 export interface ContentRow {
@@ -56,6 +66,17 @@ export interface ContentRow {
   body: string | null;
   createdAt: string;
   archivedAt: string | null;
+  /** What 006 extracts. All of it may be null or empty, which is what a thread
+   *  of plain notes looks like and is why 007's widgets are earned rather than
+   *  configured. */
+  doneAt: string | null;
+  dueAt: string | null;
+  occursAt: string | null;
+  isReminder: boolean;
+  priority: number;
+  priorityPinned: boolean;
+  tags: string[];
+  place: Place | null;
   author: { accountId: string; displayName: string; isYou: boolean };
   /** Both computed by the server, using the same predicate it enforces. The
    *  client never decides what somebody is allowed to do. */
@@ -168,4 +189,36 @@ export async function renameThread(id: string, name: string): Promise<Renamed | 
   });
   if (!response.ok) return null;
   return (await response.json()) as Renamed;
+}
+
+/** Tick something off, or put it back. Any member; nothing is destroyed. */
+export async function completeContent(id: string, done: boolean): Promise<boolean> {
+  const response = await fetch(`${API}/v1/content/${id}/complete`, {
+    ...json,
+    method: "POST",
+    body: JSON.stringify({ done }),
+  });
+  return response.ok;
+}
+
+/** Change a priority. Doing this pins it, so offload stops guessing. */
+export async function setPriority(id: string, priority: number): Promise<boolean> {
+  const response = await fetch(`${API}/v1/content/${id}/priority`, {
+    ...json,
+    method: "POST",
+    body: JSON.stringify({ priority }),
+  });
+  return response.ok;
+}
+
+export async function setPreference(
+  threadId: string,
+  patch: { widgets?: string[] | null; groupBy?: Record<string, string> | null },
+): Promise<boolean> {
+  const response = await fetch(`${API}/v1/threads/${threadId}/preference`, {
+    ...json,
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+  return response.ok;
 }

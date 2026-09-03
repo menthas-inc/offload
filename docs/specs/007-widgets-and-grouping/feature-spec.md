@@ -2,7 +2,7 @@
 
 > The what and the why. No tech choices; those are in `impl-spec.md`.
 >
-> Sketched during the 005 review, when 005 turned out to be three features. Written far enough to hold the decisions rather than lose them. **Not ready to implement**: it needs its own review pass once 006 has shipped and there are real threads to look at.
+> Sketched during the 005 review and built on 2026-09-03, once 006 gave it something to arrange.
 
 ## Why
 
@@ -49,9 +49,7 @@ Two, both optional, both settable by a person and by offload through `set_thread
 
 005 shipped edit, archive, move, delete and rename, because those work on a note. The ones that need 006's fields arrive here: ticking a task off, and changing a priority. Both are available to any member, both reversible, both on the reversible allowlist before they ship.
 
-## Acceptance criteria, provisional
-
-Not reviewed yet. Written so the decisions survive.
+## Acceptance criteria
 
 - **AC-1** A thread renders a widget only when its own content justifies one, and never renders one empty.
 - **AC-2** Every row in a widget is a row in the thread's content. A widget is a view and a piece of content removed from one is gone from both.
@@ -77,8 +75,8 @@ Not reviewed yet. Written so the decisions survive.
 - **Real map tiles.** Pins on a plain surface, as the kits draw.
 - **Recurrence, notifications, search, the agenda, Today.**
 
-## Open, needing a decision before this is written properly
+## What was open, and how it closed
 
-- **Does `priority` interact with `needs_attention` at all?** 006 says no: priority orders inside a thread, `needs_attention` decides what reaches Today. Today is not built, so the collision is theoretical until it is not.
-- **Is a tag group heading new surface?** The design system has `SectionHeader`, which is 21px over a rule and too heavy for a sub-group, and `Chip`, which the kit already uses with `tone="accent"` and a sparkles icon for anything offload derived. A heading built from that vocabulary is the consistent guess, and it is still an OFF-7 entry.
-- **Filtering versus grouping.** The kit's `ChipRow` is a single-select filter above a flat list. This feature renders headed sections instead. Both may be wanted, and shipping both without deciding which is primary is how a screen ends up with two ways to do one thing.
+- **`priority` versus `needs_attention`:** they never meet. Priority orders inside a thread; `needs_attention` decides what reaches Today, and nothing writes or reads it yet. Settled in 006 and unchanged here.
+- **The group heading:** new surface, built from the kit's `Chip tone="accent"` vocabulary because `SectionHeader` is far too heavy for a sub-group. **The weakest thing in this feature**, because it is the only part with no drawn precedent, and the first thing for the design system to look at.
+- **Filtering versus grouping:** only grouping is drawn. Both may eventually be wanted and shipping both without deciding which is primary is how a screen ends up with two ways to do one thing. Logged for the kit to decide.

@@ -18,7 +18,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import styles from "../../app/(shell)/shell.module.css";
+import { Widgets } from "./Widgets";
 import {
+  completeContent,
   deleteContent,
   editContent,
   fetchContent,
@@ -124,6 +126,18 @@ export function Thread({ id, onChanged, onUndo }: Props) {
     });
   }
 
+  /** Tick, or put it back. Any member: a thread's contents belong to everybody
+   *  in it and neither direction destroys anything. */
+  async function toggle(row: ContentRow): Promise<void> {
+    const wasDone = row.doneAt !== null;
+    if (!(await completeContent(row.id, !wasDone))) return;
+    await load();
+    onUndo(wasDone ? "Back on the list" : "Ticked off", async () => {
+      await completeContent(row.id, wasDone);
+      await load();
+    });
+  }
+
   async function saveName(): Promise<void> {
     const name = nameDraft.trim();
     setRenaming(false);
@@ -206,6 +220,17 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             phones already draw this exact line; the web kit draws nothing,
             which would leave a hole where the most prominent block should be. */}
         <p className={styles.standingEmpty}>offload has not summarised this one yet</p>
+
+        {/* Widgets first, then everything. A widget is a view over the same
+            rows the list below shows, so a piece removed from one is gone from
+            both, and nothing here costs a second query. */}
+        {showArchived ? null : (
+          <Widgets
+            rows={rows}
+            preference={thread.preference}
+            onToggle={(row) => void toggle(row)}
+          />
+        )}
 
         <h2 className={styles.section}>
           {showArchived ? "Archived" : "Everything in here"}

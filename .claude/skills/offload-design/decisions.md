@@ -11,6 +11,44 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-03 · Widgets, and a group heading that had to be invented
+**Surface:** web, and the phones next
+**Raised by:** the codebase, building feature 007.
+
+**Built to the kit.** `M3ThreadWidgets.jsx` states the rule and the code follows it: widgets a
+thread earns from its own contents, a map when it has places, a timeline when it has dated
+steps, a file grid when it has assets. None is ever drawn empty and none is configured into
+existence. The map is pins on a plain surface with "drawn from real coordinates" behind them,
+which is exactly what the kit draws and is now a decision rather than a placeholder: real tiles
+would mean a map company receiving where somebody has been, and nobody needs that yet.
+
+**One: the kit filters, the code groups.** `ChipRow` is a single-select filter above a flat
+list. The product owner asked for grouping, which is headed sections, and both may eventually be
+wanted. **Shipping both without deciding which is primary is how a screen ends up with two ways
+to do one thing**, so only grouping is drawn. The kit should decide, and if the answer is both,
+it should say which one a thread uses by default.
+
+**Two: a group heading is new surface, and there was nothing to reuse.** The 21 components offer
+`SectionHeader`, 21px semibold over an ink rule, which is far too heavy for a sub-group inside a
+widget that already has one, and `Chip`, which the kit uses with `tone="accent"` and a sparkles
+glyph for anything offload derived. The heading is built from that vocabulary: 12.5px, accent,
+lowercase, with a small mark. **It is the weakest thing in this feature** because it is the only
+part with no drawn precedent, and it is the first thing to look at on the next sync.
+
+**Three: the unnamed group has no heading at all.** Rows carrying no tag in the dimension a
+thread groups by go last, under nothing, or under "Everything else" when there is more than one
+group. Not "Other", and not "Untagged": both are labels offload would be inventing for content
+nobody categorised, and the whole pitch is that nobody has to categorise anything.
+
+**Four: a ticked row stays in the list, struck through.** No kit draws a completed task in
+place. It does not vanish, because Undo needs something to point at and so does the person
+wondering whether they already did it.
+
+**Design system impact:** the group heading first, then the filter-versus-group question, then
+the completed and archived states. The widget contract is defined once in code
+(`lib/widgets.ts`, mirrored in the Core API) so the phones render the same four widgets from the
+same data when their turn comes, which is what parity means here.
+
 ### 2026-09-03 · The thread page, and four places the kit and the code disagree
 **Surface:** web
 **Raised by:** the codebase, building feature 005.

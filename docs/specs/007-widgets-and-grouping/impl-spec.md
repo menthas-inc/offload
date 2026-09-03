@@ -1,0 +1,147 @@
+# 007 Widgets and grouping, implementation spec
+
+> How. The what and the why are in `feature-spec.md`.
+
+## Shape
+
+Almost entirely client work, plus one column and one tool.
+
+```
+threads.attrs jsonb          the two preferences
+POST /internal/v1/tool-call  gains set_thread_preference
+apps/web  the widgets, the grouping, tick and reprioritise
+```
+
+## Data model
+
+```sql
+alter table threads add column attrs jsonb not null default '{}'::jsonb;
+```
+
+**`attrs` rather than columns, and this is the one place 001's rule bends.** 001 says `attrs` holds what no screen queries, and a screen queries these. The rule is a proxy for the real test, which is whether a value ever appears in a `WHERE` clause: these are read whole with the thread they belong to, on the one query that already fetches it, and nothing filters or sorts by them. A column per preference would be two columns today and one per widget kind forever.
+
+Shape, validated on write and tolerated on read:
+
+```jsonc
+{
+  // Which tag dimension each widget groups by. Absent means one flat list.
+  "groupBy": { "todo": "city", "files": "kind" },
+  // Widget kinds, in the order they appear. Absent means derived from content.
+  "widgets": ["map", "todo", "timeline", "files"]
+}
+```
+
+**Tolerated on read** matters more than it sounds. A preference naming a widget that no longer exists, or a dimension nothing is tagged with any more, must render as though it were absent rather than as an error. A thread whose contents changed under a preference is the normal case, not an edge one.
+
+### Indexes
+
+The three 006 deliberately did not add, now that something reads them:
+
+```sql
+create index content_thread_priority_idx
+  on content (thread_id, priority desc, created_at desc)
+  where deleted_at is null and archived_at is null;
+
+create index content_thread_open_tasks_idx
+  on content (thread_id, priority desc)
+  where type = 'task' and done_at is null
+    and deleted_at is null and archived_at is null;
+
+create index content_thread_dated_idx
+  on content (thread_id, occurs_at)
+  where occurs_at is not null and deleted_at is null and archived_at is null;
+```
+
+*006 left these out on the grounds that nothing read them and 007 might want a different column order. It did not; they are as drafted. Recorded because the discipline was right even though the guess turned out fine.*
+
+## Volume and access
+
+| | Typical | Heavy |
+| --- | --- | --- |
+| content per thread | 15 | 500 |
+| widgets a thread earns | 1 to 2 | 4 |
+| distinct dimensions in one thread | 0 to 1 | 3 |
+
+**The page still makes a fixed number of queries and this feature must not change that.** One query per widget is the shape 005's AC-2 forbids, and four widgets is where it would start to look reasonable.
+
+So: **one content page, bucketed in memory.** The thread page already fetches a page ordered by priority then recency; widgets are `filter` calls over rows already in hand, and groups are a second `filter` over those. 001's heavy case is 500 rows in one thread, and the page shows 30. A widget wanting its full list opens its own paginated view, which is a navigation rather than part of the bundle.
+
+Enumerating a thread's dimensions is a scan over the fetched page, not a query. A GIN on `text[]` indexes whole elements and not the prefix before a colon, so an indexed answer would need a different structure and nothing wants one.
+
+## Widgets are earned
+
+Derived from the page, in one pass:
+
+| Widget | Earns it | Renders |
+| --- | --- | --- |
+| `todo` | any `task` with `done_at` null | checkboxes, priority order |
+| `map` | any row with a `place_id` | pins on a plain surface, then a list |
+| `timeline` | any row with `occurs_at` | dated rows, oldest first |
+| `files` | any `image`, `screenshot`, `file` or `link` | a grid |
+
+**Never drawn empty and never configured into existence.** A thread that loses its last dated row loses its timeline, and that is the widget system working rather than state going missing.
+
+Default order when the thread has no preference: by how much of the thread each widget accounts for, descending, so a trip full of places leads with the map without anyone choosing. Ties break in the table's order above, so the same thread always draws the same way.
+
+## Grouping
+
+One mechanism, applied inside a widget:
+
+1. Take the widget's rows.
+2. If the thread names a dimension for that widget, bucket by the value of that dimension.
+3. Rows with no tag in that dimension go in one unnamed group, **last**. Nothing is invisible for not being tagged.
+4. Groups are ordered by their highest-priority row, so the group that matters leads.
+
+A group heading is new surface. The design system has `SectionHeader`, 21px over a rule and too heavy for a sub-group, and `Chip`, which the kit already uses with `tone="accent"` and a sparkles icon for anything offload derived. **The heading is built from that vocabulary**, and it is an OFF-7 entry.
+
+## `set_thread_preference`
+
+The ninth tool, arriving with the column it writes.
+
+```
+{ "tool": "set_thread_preference", "jobId": uuid, "toolCallId": string,
+  "threadId": uuid,
+  "groupBy": { "todo": "city" } | null,
+  "widgets": ["map","todo"] | null }
+```
+
+- Membership-checked per call, like every thread-targeting tool.
+- Validated against the closed sets of widget kinds and against `MAX_TAGS`-shaped dimension names. A dimension nothing is tagged with is **accepted**, because somebody saying "group this by city" before anything has a city is a reasonable thing to say and the answer is that it starts working when something does.
+- Reversible, and on the OFF-6 allowlist **before it ships**. Changing how a thread is arranged is a structural change somebody has to be able to take back.
+- `previous` is returned, so Undo is the same call with the old value.
+
+## Tick and reprioritise
+
+Both open to any member, both on 005's co-owned side, both reversible.
+
+- Ticking writes `done_at`, and a ticked row stays in the list struck through rather than vanishing, so Undo has something to point at.
+- Reprioritising sets `priority` and **`priority_pinned` to true**, which is what stops the planner overwriting it. The flag is set by a person's action, never by the model.
+
+## Edge cases
+
+- **A preference naming a widget the thread no longer earns.** Ignored, not an error.
+- **A preference naming a dimension nothing carries.** One unnamed group holding everything, which reads as ungrouped and is honest.
+- **A row tagged in two dimensions the thread could group by.** Only the named dimension is used. The other is still there and still groupable if the preference changes.
+- **Every row in a group is ticked.** The group collapses to a heading and a count rather than disappearing, so the work that was done is visible.
+- **A thread with 500 rows and four widgets.** One page of 30, bucketed four ways. The counts come from the bundle's aggregate, so a widget's header is honest even though its list is one page.
+
+## Constitution check
+
+| | |
+| --- | --- |
+| DEV-1 | One column, one tool, three indexes that now have readers. |
+| DEV-2 | 001 amended with `threads.attrs` in the same change. |
+| DEV-3 | No new dependency. The map is pins on a surface. |
+| QUAL-1 | Every criterion mapped in `tasks.md`. |
+| QUAL-2 | Bucketing is one function over rows already fetched, called by each widget. |
+| SEC-1 | No model output is trusted; the preference is validated against closed sets. |
+| SEC-2 | `set_thread_preference` is membership-checked per call. |
+| DATA-1 | Schema, indexes, volumes and access paths above. |
+| OFF-1 | No event, log or trace gains a tag, a dimension or a title. |
+| OFF-2 | No blobs. |
+| OFF-3 | Tick and reprioritise are co-owned; nothing here deletes. |
+| OFF-4 | No connectors. A thread-scoped connection is still the connector spec's. |
+| OFF-5 | Tool arguments validated before execution. |
+| OFF-6 | Tick, reprioritise and `set_thread_preference` **added to the allowlist before they ship**. |
+| OFF-7 | The group heading is new surface and gets an entry. |
+| OFF-8 | No prompt growth: the tool adds roughly 80 tokens against a 1,500 budget now at 1,031. |

@@ -1,0 +1,209 @@
+// The web copy of the widget logic, against the same cases as the server's.
+//
+// `apps/web/src/lib/widgets.ts` is a deliberate copy of
+// `apps/core-api/src/threads/widgets.ts`: `stack.md` says the clients share
+// design tokens and TypeScript types only, never behaviour, and this is a
+// hundred lines of arithmetic with no imports and no environment. **The price
+// of a copy is that it can drift, and the only thing that makes it not drift is
+// this file holding the same assertions.** If a third caller ever wants it,
+// that is the moment for a package.
+//
+// Which widgets a thread earns, and how their contents group.
+//
+// AC-1 a widget only when the content justifies one, never drawn empty.
+// AC-3 preference order overrides the derived one, with one mechanism.
+// AC-4 grouping by the dimension the thread names.
+// AC-5 rows with no tag in that dimension are still shown, in one group, last.
+// AC-6 enumerating dimensions is a scan over the page.
+//
+// Pure functions over rows, so these are fast and exhaustive rather than
+// database-bound. What they assert is the arithmetic the screen depends on.
+
+import { describe, expect, it } from "vitest";
+import {
+  dimensionsIn,
+  groupBy,
+  readPreference,
+  widgetsFor,
+  type Sortable,
+} from "../src/lib/widgets";
+
+let n = 0;
+function row(over: Partial<Sortable> = {}): Sortable {
+  return {
+    id: `r${n++}`,
+    type: "note",
+    priority: 50,
+    tags: [],
+    doneAt: null,
+    occursAt: null,
+    place: null,
+    ...over,
+  };
+}
+
+describe("widgets are earned", () => {
+  it("draws none for a thread of plain notes (AC-1)", () => {
+    expect(widgetsFor([row(), row()])).toEqual([]);
+  });
+
+  it("draws none at all for an empty thread (AC-1)", () => {
+    expect(widgetsFor([])).toEqual([]);
+  });
+
+  it("earns each one from its own predicate (AC-1)", () => {
+    const rows = [
+      row({ place: { id: "p1", lat: 1, lng: 1 } }),
+      row({ type: "task" }),
+      row({ occursAt: "2026-09-20T00:00:00Z" }),
+      row({ type: "image" }),
+    ];
+    expect(widgetsFor(rows).map((w) => w.kind).sort()).toEqual([
+      "files",
+      "map",
+      "timeline",
+      "todo",
+    ]);
+  });
+
+  it("loses a widget when the content that earned it goes (AC-1)", () => {
+    // A thread that loses its last dated row loses its timeline. That is the
+    // system working, not state going missing.
+    const dated = row({ occursAt: "2026-09-20T00:00:00Z" });
+    expect(widgetsFor([dated]).map((w) => w.kind)).toEqual(["timeline"]);
+    expect(widgetsFor([{ ...dated, occursAt: null }])).toEqual([]);
+  });
+
+  it("does not earn a to-do list from tasks that are all done (AC-1)", () => {
+    expect(widgetsFor([row({ type: "task", doneAt: "2026-09-01T00:00:00Z" })])).toEqual([]);
+  });
+
+  it("leads with whatever the thread is mostly made of", () => {
+    // A trip full of places leads with the map, without anybody choosing.
+    const rows = [
+      ...Array.from({ length: 5 }, () => row({ place: { id: "p", lat: 1, lng: 1 } })),
+      row({ type: "task" }),
+    ];
+    expect(widgetsFor(rows).map((w) => w.kind)).toEqual(["map", "todo"]);
+  });
+
+  it("breaks a tie the same way every time", () => {
+    const rows = [row({ type: "task" }), row({ place: { id: "p", lat: 1, lng: 1 } })];
+    expect(widgetsFor(rows).map((w) => w.kind)).toEqual(["map", "todo"]);
+    expect(widgetsFor([...rows].reverse()).map((w) => w.kind)).toEqual(["map", "todo"]);
+  });
+});
+
+describe("a stated order", () => {
+  const rows = [row({ type: "task" }), row({ place: { id: "p", lat: 1, lng: 1 } }), row({ type: "image" })];
+
+  it("overrides the derived one (AC-3)", () => {
+    expect(widgetsFor(rows, ["todo", "map"]).map((w) => w.kind)).toEqual([
+      "todo",
+      "map",
+      // Earned but unnamed, so it follows rather than disappearing: a widget
+      // that appeared after the preference was set should be visible.
+      "files",
+    ]);
+  });
+
+  it("ignores a kind the thread no longer earns (AC-3)", () => {
+    // A thread whose contents changed under a preference is the normal case.
+    expect(widgetsFor([row({ type: "task" })], ["timeline", "todo"]).map((w) => w.kind)).toEqual([
+      "todo",
+    ]);
+  });
+
+  it("ignores a kind that does not exist", () => {
+    expect(widgetsFor(rows, ["nonsense", "map"]).map((w) => w.kind)).toEqual([
+      "map",
+      "todo",
+      "files",
+    ]);
+  });
+});
+
+describe("grouping", () => {
+  it("is one flat list when the thread names no dimension (AC-4)", () => {
+    const rows = [row({ tags: ["city:alfama"] }), row()];
+    expect(groupBy(rows, null)).toEqual([{ value: null, rows }]);
+  });
+
+  it("buckets by the named dimension (AC-4)", () => {
+    const a = row({ tags: ["city:alfama"], priority: 80 });
+    const b = row({ tags: ["city:porto"], priority: 20 });
+    const c = row({ tags: ["city:alfama"], priority: 10 });
+
+    expect(groupBy([a, b, c], "city")).toEqual([
+      // The group holding the highest-priority row leads.
+      { value: "alfama", rows: [a, c] },
+      { value: "porto", rows: [b] },
+    ]);
+  });
+
+  it("shows an untagged row, in one group, last (AC-5)", () => {
+    // Nothing is ever invisible for not having been tagged, which would be the
+    // worst possible failure of a feature whose pitch is that you never file.
+    const tagged = row({ tags: ["city:alfama"], priority: 10 });
+    const bare = row({ priority: 99 });
+    const other = row({ tags: ["receipt"], priority: 99 });
+
+    const groups = groupBy([tagged, bare, other], "city");
+    expect(groups).toHaveLength(2);
+    // Last, despite holding the highest priority rows.
+    expect(groups.at(-1)).toEqual({ value: null, rows: [bare, other] });
+    expect(groups[0]!.value).toBe("alfama");
+  });
+
+  it("puts everything in one unnamed group when nothing carries the dimension (AC-5)", () => {
+    const rows = [row({ tags: ["receipt"] }), row()];
+    // Reads as ungrouped, which is honest: somebody asked to group by city
+    // before anything had one.
+    expect(groupBy(rows, "city")).toEqual([{ value: null, rows }]);
+  });
+
+  it("uses only the named dimension when a row carries two (AC-4)", () => {
+    const both = row({ tags: ["city:alfama", "room:kitchen"] });
+    expect(groupBy([both], "city")[0]!.value).toBe("alfama");
+    expect(groupBy([both], "room")[0]!.value).toBe("kitchen");
+  });
+
+  it("puts every row in exactly one group", () => {
+    const rows = [
+      row({ tags: ["city:alfama"] }),
+      row({ tags: ["city:porto"] }),
+      row(),
+      row({ tags: ["receipt"] }),
+    ];
+    const total = groupBy(rows, "city").reduce((n, g) => n + g.rows.length, 0);
+    expect(total).toBe(rows.length);
+  });
+
+  it("enumerates the dimensions a page uses, over the page (AC-6)", () => {
+    expect(
+      dimensionsIn([
+        { tags: ["city:alfama", "receipt"] },
+        { tags: ["room:kitchen"] },
+        { tags: [] },
+      ])
+    ).toEqual(["city", "room"]);
+  });
+});
+
+describe("reading a stored preference", () => {
+  it("tolerates nonsense rather than failing", () => {
+    // A thread whose preference names something that no longer exists must
+    // render as though it had none.
+    expect(readPreference(null)).toEqual({});
+    expect(readPreference("nope")).toEqual({});
+    expect(readPreference({ widgets: ["nonsense"] })).toEqual({});
+    expect(readPreference({ groupBy: { nonsense: "city" } })).toEqual({});
+    expect(readPreference({ groupBy: { todo: 7 } })).toEqual({});
+  });
+
+  it("keeps what it recognises", () => {
+    expect(
+      readPreference({ widgets: ["todo", "nonsense", "map"], groupBy: { todo: "City" } })
+    ).toEqual({ widgets: ["todo", "map"], groupBy: { todo: "city" } });
+  });
+});

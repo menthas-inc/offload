@@ -100,6 +100,11 @@ export interface ThreadsTable {
   always_on: Generated<boolean>;
   icon: string | null;
   content_count: Generated<number>;
+  /** How this thread wants to look: which tag dimension each widget groups by,
+   *  and what order the widgets come in. Read whole with the thread and never
+   *  in a WHERE clause, which is the test 001's "attrs holds what no screen
+   *  queries" rule is really a proxy for. */
+  attrs: Generated<unknown>;
   last_activity_at: Timestamp;
   created_at: Timestamp;
   updated_at: Timestamp;

@@ -17,6 +17,7 @@ import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
+import { readPreference, type ThreadPreference } from "../threads/widgets.js";
 import {
   NotYours,
   requireAuthor,
@@ -97,6 +98,11 @@ const threadBundle = z.object({
   alwaysOn: z.boolean(),
   counts: z.object({ active: z.number(), archived: z.number() }),
   members: z.array(memberSchema),
+  /** How this thread wants to look. Absent fields mean derived from content. */
+  preference: z.object({
+    widgets: z.array(z.string()).optional(),
+    groupBy: z.record(z.string(), z.string()).optional(),
+  }),
   /** Always null. offload does not summarise a thread yet and nothing writes a
    *  standing memory, so the field is here in the shape the client already
    *  renders an empty state from. When something writes one, no client changes. */
@@ -110,6 +116,24 @@ const contentRow = z.object({
   body: z.string().nullable(),
   createdAt: z.string(),
   archivedAt: z.string().nullable(),
+  /** What 006 extracts, and what 007's widgets are derived from. All of it may
+   *  be null or empty, which is what a thread of plain notes looks like. */
+  doneAt: z.string().nullable(),
+  dueAt: z.string().nullable(),
+  occursAt: z.string().nullable(),
+  isReminder: z.boolean(),
+  priority: z.number(),
+  priorityPinned: z.boolean(),
+  tags: z.array(z.string()),
+  place: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      address: z.string().nullable(),
+      lat: z.number().nullable(),
+      lng: z.number().nullable(),
+    })
+    .nullable(),
   author: z.object({
     accountId: z.string(),
     displayName: z.string(),
@@ -164,19 +188,30 @@ async function membersOf(threadId: string, viewerId: string) {
 }
 
 /** The row shape both the page and the detail return, so the two cannot drift. */
-function toRow(
-  row: {
-    id: string;
-    type: string;
-    title: string;
-    body: string | null;
-    created_at: Date;
-    archived_at: Date | null;
-    account_id: string;
-    authorName: string | null;
-  },
-  viewerId: string
-) {
+interface RawRow {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  created_at: Date;
+  archived_at: Date | null;
+  account_id: string;
+  authorName: string | null;
+  done_at: Date | null;
+  due_at: Date | null;
+  occurs_at: Date | null;
+  is_reminder: boolean;
+  priority: number;
+  priority_pinned: boolean;
+  tags: string[];
+  place_id: string | null;
+  placeName: string | null;
+  placeAddress: string | null;
+  placeLat: number | null;
+  placeLng: number | null;
+}
+
+function toRow(row: RawRow, viewerId: string) {
   const mine = row.account_id === viewerId;
   return {
     id: row.id,
@@ -185,6 +220,22 @@ function toRow(
     body: row.body,
     createdAt: row.created_at.toISOString(),
     archivedAt: row.archived_at ? row.archived_at.toISOString() : null,
+    doneAt: row.done_at ? row.done_at.toISOString() : null,
+    dueAt: row.due_at ? row.due_at.toISOString() : null,
+    occursAt: row.occurs_at ? row.occurs_at.toISOString() : null,
+    isReminder: row.is_reminder,
+    priority: row.priority,
+    priorityPinned: row.priority_pinned,
+    tags: row.tags,
+    place: row.place_id
+      ? {
+          id: row.place_id,
+          name: row.placeName ?? "",
+          address: row.placeAddress,
+          lat: row.placeLat,
+          lng: row.placeLng,
+        }
+      : null,
     author: {
       accountId: row.account_id,
       displayName: row.authorName ?? "Someone",
@@ -369,6 +420,98 @@ export async function deleteContent(
   });
 }
 
+/** Tick something off, or put it back. Co-owned: a thread's contents belong to
+ *  everybody in it, and neither direction destroys anything. */
+export async function completeContent(
+  accountId: string,
+  contentId: string,
+  done: boolean,
+): Promise<{ done: boolean }> {
+  const ref = await requireReadable(accountId, contentId);
+  const before = await db
+    .selectFrom("content")
+    .select("done_at")
+    .where("id", "=", ref.id)
+    .executeTakeFirstOrThrow();
+
+  await db.transaction().execute(async (trx) => {
+    await trx
+      .updateTable("content")
+      .set({ done_at: done ? sql`now()` : null, updated_at: sql`now()` })
+      .where("id", "=", ref.id)
+      .execute();
+    await touchThread(ref.threadId, trx);
+  });
+
+  return { done: before.done_at !== null };
+}
+
+/** Change a priority.
+ *
+ *  **A person doing this pins it**, which is what stops the planner overwriting
+ *  it later. The flag is set by this action and never by the model, so "somebody
+ *  decided" and "offload guessed" stay distinguishable forever. */
+export async function reprioritise(
+  accountId: string,
+  contentId: string,
+  priority: number,
+): Promise<{ priority: number; priorityPinned: boolean }> {
+  const ref = await requireReadable(accountId, contentId);
+  const before = await db
+    .selectFrom("content")
+    .select(["priority", "priority_pinned"])
+    .where("id", "=", ref.id)
+    .executeTakeFirstOrThrow();
+
+  await db.transaction().execute(async (trx) => {
+    await trx
+      .updateTable("content")
+      .set({ priority, priority_pinned: true, updated_at: sql`now()` })
+      .where("id", "=", ref.id)
+      .execute();
+    await touchThread(ref.threadId, trx);
+  });
+
+  return { priority: before.priority, priorityPinned: before.priority_pinned };
+}
+
+/** How a thread wants to look.
+ *
+ *  Co-owned, like the name: a shared thread's arrangement belongs to everybody
+ *  in it. Merged rather than replaced, so setting the grouping does not silently
+ *  clear the widget order. */
+export async function setPreference(
+  accountId: string,
+  threadId: string,
+  patch: { widgets?: string[] | null; groupBy?: Record<string, string> | null },
+): Promise<ThreadPreference> {
+  await requireMember(accountId, threadId);
+
+  return db.transaction().execute(async (trx) => {
+    const row = await trx
+      .selectFrom("threads")
+      .select("attrs")
+      .where("id", "=", threadId)
+      .where("deleted_at", "is", null)
+      .executeTakeFirst();
+    if (!row) throw new NotYours();
+
+    const before = readPreference(row.attrs);
+    const merged = readPreference({
+      widgets: patch.widgets === undefined ? before.widgets : patch.widgets,
+      groupBy: patch.groupBy === undefined ? before.groupBy : patch.groupBy,
+    });
+
+    await trx
+      .updateTable("threads")
+      .set({ attrs: JSON.stringify(merged), updated_at: sql`now()` })
+      .where("id", "=", threadId)
+      .execute();
+
+    return before;
+  });
+}
+
 /** Rename a thread. Co-owned: a shared thread's name belongs to everybody in
  *  it, and renaming touches no content. */
 export async function renameThread(
@@ -524,7 +667,7 @@ export async function threadRoutes(app: App): Promise<void> {
 
         const thread = await db
           .selectFrom("threads")
-          .select(["id", "name", "icon", "always_on"])
+          .select(["id", "name", "icon", "always_on", "attrs"])
           .where("id", "=", id)
           .where("deleted_at", "is", null)
           .executeTakeFirst();
@@ -550,6 +693,11 @@ export async function threadRoutes(app: App): Promise<void> {
           alwaysOn: thread.always_on,
           counts: { active: Number(counts.active), archived: Number(counts.archived) },
           members: await membersOf(id, accountId),
+          // Validated on the way out as well as on the way in. A preference
+          // naming a widget that no longer exists renders as though it were
+          // absent, because a thread whose contents changed under a preference
+          // is the normal case rather than an edge one.
+          preference: readPreference(thread.attrs),
           standing: null,
         });
       })
@@ -581,6 +729,7 @@ export async function threadRoutes(app: App): Promise<void> {
         let query = db
           .selectFrom("content")
           .leftJoin("accounts", "accounts.id", "content.account_id")
+          .leftJoin("places", "places.id", "content.place_id")
           .select([
             "content.id as id",
             "content.type as type",
@@ -589,7 +738,19 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.created_at as created_at",
             "content.archived_at as archived_at",
             "content.account_id as account_id",
+            "content.done_at as done_at",
+            "content.due_at as due_at",
+            "content.occurs_at as occurs_at",
+            "content.is_reminder as is_reminder",
+            "content.priority as priority",
+            "content.priority_pinned as priority_pinned",
+            "content.tags as tags",
+            "content.place_id as place_id",
             "accounts.display_name as authorName",
+            "places.name as placeName",
+            "places.formatted_address as placeAddress",
+            "places.lat as placeLat",
+            "places.lng as placeLng",
           ])
           .where("content.thread_id", "=", id)
           .where("content.deleted_at", "is", null)
@@ -644,6 +805,7 @@ export async function threadRoutes(app: App): Promise<void> {
           .selectFrom("content")
           .innerJoin("threads", "threads.id", "content.thread_id")
           .leftJoin("accounts", "accounts.id", "content.account_id")
+          .leftJoin("places", "places.id", "content.place_id")
           .select([
             "content.id as id",
             "content.type as type",
@@ -652,10 +814,22 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.created_at as created_at",
             "content.archived_at as archived_at",
             "content.account_id as account_id",
+            "content.done_at as done_at",
+            "content.due_at as due_at",
+            "content.occurs_at as occurs_at",
+            "content.is_reminder as is_reminder",
+            "content.priority as priority",
+            "content.priority_pinned as priority_pinned",
+            "content.tags as tags",
+            "content.place_id as place_id",
             "content.derived_from_message_id as fromMessageId",
             "content.thread_id as threadId",
             "threads.name as threadName",
             "accounts.display_name as authorName",
+            "places.name as placeName",
+            "places.formatted_address as placeAddress",
+            "places.lat as placeLat",
+            "places.lng as placeLng",
           ])
           .where("content.id", "=", request.params.id)
           .executeTakeFirstOrThrow();
@@ -828,6 +1002,100 @@ export async function threadRoutes(app: App): Promise<void> {
         });
       })
   );
+
+  // Tick, reprioritise and arrange. All co-owned, all reversible, all returning
+  // what was there so Undo is one more call with the old value.
+  app.post(
+    "/v1/content/:id/complete",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({ done: z.boolean() }),
+        response: {
+          200: z.object({ content: contentRow, previous: z.object({ done: z.boolean() }) }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+        const previous = await completeContent(accountId, request.params.id, request.body.done);
+        return reply.send({ content: await rowById(request.params.id, accountId), previous });
+      })
+  );
+
+  app.post(
+    "/v1/content/:id/priority",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({ priority: z.number().int().min(0).max(100) }),
+        response: {
+          200: z.object({
+            content: contentRow,
+            previous: z.object({ priority: z.number(), priorityPinned: z.boolean() }),
+          }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+        const previous = await reprioritise(accountId, request.params.id, request.body.priority);
+        return reply.send({ content: await rowById(request.params.id, accountId), previous });
+      })
+  );
+
+  app.patch(
+    "/v1/threads/:id/preference",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({
+          widgets: z.array(z.string()).nullish(),
+          groupBy: z.record(z.string(), z.string()).nullish(),
+        }),
+        response: {
+          200: z.object({
+            preference: z.object({
+              widgets: z.array(z.string()).optional(),
+              groupBy: z.record(z.string(), z.string()).optional(),
+            }),
+            previous: z.object({
+              widgets: z.array(z.string()).optional(),
+              groupBy: z.record(z.string(), z.string()).optional(),
+            }),
+          }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        const previous = await setPreference(accountId, request.params.id, {
+          ...(request.body.widgets === undefined ? {} : { widgets: request.body.widgets }),
+          ...(request.body.groupBy === undefined ? {} : { groupBy: request.body.groupBy }),
+        });
+
+        const now = await db
+          .selectFrom("threads")
+          .select("attrs")
+          .where("id", "=", request.params.id)
+          .executeTakeFirstOrThrow();
+
+        return reply.send({ preference: readPreference(now.attrs), previous });
+      })
+  );
 }
 
 /** One row, shaped the way every response shapes it. Re-read after a write
@@ -837,6 +1105,7 @@ async function rowById(contentId: string, viewerId: string) {
   const row = await db
     .selectFrom("content")
     .leftJoin("accounts", "accounts.id", "content.account_id")
+    .leftJoin("places", "places.id", "content.place_id")
     .select([
       "content.id as id",
       "content.type as type",
@@ -845,7 +1114,19 @@ async function rowById(contentId: string, viewerId: string) {
       "content.created_at as created_at",
       "content.archived_at as archived_at",
       "content.account_id as account_id",
+      "content.done_at as done_at",
+      "content.due_at as due_at",
+      "content.occurs_at as occurs_at",
+      "content.is_reminder as is_reminder",
+      "content.priority as priority",
+      "content.priority_pinned as priority_pinned",
+      "content.tags as tags",
+      "content.place_id as place_id",
       "accounts.display_name as authorName",
+      "places.name as placeName",
+      "places.formatted_address as placeAddress",
+      "places.lat as placeLat",
+      "places.lng as placeLng",
     ])
     .where("content.id", "=", contentId)
     .executeTakeFirstOrThrow();
