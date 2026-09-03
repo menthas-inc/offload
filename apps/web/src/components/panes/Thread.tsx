@@ -8,12 +8,10 @@
 // and a widget drawn over nothing is a widget drawn for nobody. They arrive
 // in 007.
 //
-// **Three divergences from the kit, each logged in the design system's
-// decisions.md:** the web kit renders nothing at all when a thread has no
-// standing summary where the phones render an empty state, and since nothing
-// writes summaries yet that empty state is what everybody sees; the kit draws
-// `trash-2` on every row where delete is the author's alone; and no kit draws
-// an archived state though every kit draws an archive control.
+// **Two divergences from the kit, each logged in the design system's
+// decisions.md:** the kit draws `trash-2` on every row where delete is the
+// author's alone, and no kit draws an archived state though every kit draws an
+// archive control.
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -216,10 +214,12 @@ export function Thread({ id, onChanged, onUndo }: Props) {
       </div>
 
       <div className={styles.paneBody}>
-        {/* offload writes no summaries yet, so this is what everybody sees. The
-            phones already draw this exact line; the web kit draws nothing,
-            which would leave a hole where the most prominent block should be. */}
-        <p className={styles.standingEmpty}>offload has not summarised this one yet</p>
+        {/* No summary, nothing drawn. `WThing.jsx` has `{st ? ... : null}` and
+            it is right: a line saying offload has not done something is not
+            information, it is an apology taking up the most prominent space on
+            the screen. Nothing writes summaries yet, so today this is always
+            absent, and the day one lands the block appears with something in
+            it. The phones draw a placeholder and should stop. */}
 
         {/* Widgets first, then everything. A widget is a view over the same
             rows the list below shows, so a piece removed from one is gone from

@@ -34,7 +34,7 @@
 ## C. The screens
 
 - [x] **C1** My threads, from `WThings`: three groups, counts, "All N older threads" *(**AC-1**, **AC-3**)*
-- [x] **C2** The thread page, from `WThing`: head, faces, standing empty state, "Everything in here" *(**AC-4**, **AC-7**)*
+- [x] **C2** The thread page, from `WThing`: head, faces, the standing summary when there is one, "Everything in here" *(**AC-4**, **AC-7**)*
 - [x] **C3** The item pane, from `WTask`: thread chip, "Where this came from" *(**AC-16**)*
 - [x] **C4** Empty states for a thread with nothing in it and an account with no threads *(**AC-3**, **AC-7**)*
 - [x] **C5** `dead-css` and `dead-classes` clean, `pnpm lint` clean.
@@ -60,7 +60,7 @@
 
 - [x] **E1** `decisions.md`: **`archive` added to the OFF-6 reversible allowlist**, before D2 ships.
 - [x] **E2** `decisions.md`: move is author-only, and why a per-thread role check on it routed around OFF-3.
-- [x] **E3** Design system `decisions.md`: three divergences, each with **Design system impact** filled in, the archived state, the conditional delete control, and the standing empty state on web.
+- [x] **E3** Design system `decisions.md`: the divergences, each with **Design system impact** filled in.
 - [x] **E4** The privacy policy re-read. "Visible to you" becomes true when this ships; "can be moved at any time afterwards" becomes true for the author and is now precisely bounded for everybody else. **Update the page in this change**, and close the ⚠️ entry `004` left open.
 - [x] **E5** `001-data-model` amended with `archived_at`.
 

@@ -20,24 +20,23 @@ A thread is a place. It has a name, whoever else is in it, and everything that h
 My threads                          Lisbon trip              [A][T] [Share]
                                     14 in here · Ana, Tom
   For now
-  🔗 Lisbon trip      14            offload has not summarised
-  🔗 Bookshelf build   9            this one yet
-  🔗 Dentist           5
-                                    Everything in here  14
-  Always on
-  📖 Read later       23            🔗 Tram 28 runs every 11 minutes
-  🏠 Flat admin        6               from Safari · 1h
-                                    🎤 "Oak brackets, 30cm, matte black"
-  Older threads                        you · 18m
-  🔗 Berlin, March    31            📷 Screenshot of the dimensions
+  🔗 Lisbon trip      14            Everything in here  14
+  🔗 Bookshelf build   9
+  🔗 Dentist           5            🔗 Tram 28 runs every 11 minutes
+                                       from Safari · 1h
+  Always on                         🎤 "Oak brackets, 30cm, matte black"
+  📖 Read later       23               you · 18m
+  🏠 Flat admin        6            📷 Screenshot of the dimensions
                                        Ana · Tue
+  Older threads
+  🔗 Berlin, March    31
 ```
 
 ### This is deliberately the thin version
 
 The thread page in the kits has a standing summary, a map, a timeline, a file grid and a to-do list grouped by tag. None of those can be built yet, and not because of effort:
 
-- **Nothing writes a standing summary.** `memories` is specified in 001 and has never been migrated, and no code anywhere summarises a thread. The block renders the kit's own designed empty state, "offload has not summarised this one yet", which is honest.
+- **Nothing writes a standing summary.** `memories` is specified in 001 and has never been migrated, and no code anywhere summarises a thread. **The block is simply absent**, which the web kit already did and the phones do not: a line saying offload has not summarised a thread is not information, it is an apology in the most prominent space on the screen.
 - **Every widget is earned from content that does not exist.** A map needs locations, a timeline needs dates, a to-do list needs tasks. 004 writes exactly one shape: a `note` with a title. A widget drawn over nothing is a widget drawn for nobody.
 - **Grouping needs tags, and nothing produces tags.**
 
@@ -89,7 +88,7 @@ The reversible allowlist in `decisions.md` gains **archive** in the same change.
 
 **The page**
 
-- **AC-4** A thread renders its name, the members already in it, and its content. It says offload has not summarised it yet rather than showing an empty space where a summary would be.
+- **AC-4** A thread renders its name, the members already in it, and its content. A thread offload has not summarised shows nothing where a summary would be, rather than a line saying so.
 - **AC-5** Everything the page needs is fetched in a fixed number of queries that does not grow with the size of the thread, and every one is an indexed lookup. The same query shape serves the agent plane when it reads a thread, so it is bounded for both.
 - **AC-6** Content is paginated on a stable cursor. The heavy case is 500 rows in one thread and the page must not fetch them to show twelve.
 - **AC-7** A thread with nothing in it renders an invitation, not a zero.
@@ -129,7 +128,7 @@ Named rather than implied, because most of these are things the kit draws.
 
 Logged here and in the design system's `decisions.md`, per OFF-7.
 
-- **The web kit renders nothing when a thread has no standing summary.** `WThing.jsx` has `{st ? ... : null}`. The phones render "offload has not summarised this one yet". Since nothing writes a summary at all, web takes the phones' behaviour and the web kit is what has to catch up.
+- **The phones render "offload has not summarised this one yet" and web renders nothing.** `WThing.jsx`'s `{st ? ... : null}` is the correct one: a line saying offload has not done something is not information. The phones are what has to catch up, by deleting theirs.
 - **The kit shows `pencil` and `trash-2` on every row unconditionally.** Delete is author-only, so the control is conditional on authorship.
 - **The kit's thread rows carry an `archive` tool with no archived state drawn anywhere.** Archive gains a destination in this feature: an archived section, or a filter, and that is new surface.
 

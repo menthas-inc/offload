@@ -375,8 +375,9 @@
   opacity: 0.55;
 }
 
-/* The standing summary, and its empty state. offload writes nothing here yet,
-   so the empty state is what everybody sees. */
+/* The standing summary, when there is one. There is no empty state and that is
+   deliberate: a line saying offload has not summarised a thread is not
+   information, it is an apology in the most prominent space on the screen. */
 .standing {
   margin: var(--space-4) 0 0;
   max-width: 58ch;
@@ -384,11 +385,6 @@
   font-size: 15.5px;
   line-height: 1.5;
   color: var(--text-primary);
-}
-
-.standingEmpty {
-  composes: standing;
-  color: var(--text-tertiary);
 }
 
 .wrote {

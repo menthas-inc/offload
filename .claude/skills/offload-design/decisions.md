@@ -56,11 +56,13 @@ same data when their turn comes, which is what parity means here.
 `WApp.jsx`, `WMisc.jsx` and `WThing.jsx`. What follows is only where the code came out
 different, and each one is deliberate.
 
-**One: the web kit renders nothing when a thread has no standing summary.** `WThing.jsx` has
+**One: no summary, nothing drawn, and the web kit was right.** `WThing.jsx` has
 `{st ? ... : null}`; the phones render "offload has not summarised this one yet" from a
-`Standing` component. Nothing in the product writes a summary at all yet, so the web kit's
-version leaves a hole where the most prominent block on the screen should be. Web takes the
-phones' line. **The web kit should gain the empty state.**
+`Standing` component. This shipped with the phones' line and the product owner reversed it the
+same day: **a line saying offload has not done something is not information, it is an apology
+occupying the most prominent space on the screen.** Nothing writes summaries yet, so the block
+is simply absent, and the day one lands it appears with something in it. **The phones should
+drop the placeholder**, which is the opposite of what this entry first said.
 
 **Two: delete is drawn on every row and belongs to the author.** Both kits put `trash-2` on
 every row unconditionally. OFF-3 says a member can never delete what is not theirs, so the
@@ -88,8 +90,9 @@ should draw it**, and the honest place is beneath offload's turn in the composer
 more than it looks: it is the first time the composer does something other than talk, and the
 readme's claim that any UI task can be said rather than tapped starts here.
 
-**Design system impact:** one, two, three and five are kit changes on the next sync, listed in the
-order they matter. Four is closed. Separately,
+**Design system impact:** two, three and five are kit changes on the next sync, listed in the
+order they matter. One is now a change to the *phones* rather than to web, and it is a deletion.
+Four is closed. Separately,
 the design system has **no breakpoint tokens**, and the shell needs one: 1180 comes from
 `WApp.jsx`'s own preview toggle and now lives as a literal in one stylesheet, deliberately in
 one place rather than two. A `--breakpoint-*` family would be worth adding.

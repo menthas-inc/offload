@@ -141,7 +141,7 @@ The fix could have been narrow, letting a non-author move only within the author
   standing: null }
 ```
 
-`standing` is always `null` and is in the shape now so the client renders the empty state from a field rather than from an absence. When something writes summaries, the field fills and no client changes.
+`standing` is always `null` today. The field is in the shape so that when something writes summaries it fills and no client changes. **Null renders nothing at all**, not an empty state: a line saying offload has not summarised a thread is an apology in the most prominent space on the screen.
 
 ### `GET /v1/threads/:id/content?cursor=&archived=`
 
@@ -180,11 +180,11 @@ The kit is `web_app/WApp.jsx` for the shell and `WThing.jsx` for the thread. Rea
 - **The composer is in the shell, under every pane, on every tab.** The kit's own words: "one composer, under both panes, spanning the window. It never belongs to a pane." The readme has the reason: the composer is a tool rather than a chat, and any UI task in offload can be said instead of tapped, so a place you can say things cannot be one tab. Today keeps the invitation and the three examples, and an example reaches the composer through one custom event rather than a store, because one message is not a store's worth of machinery.
 - **offload's reply links to the threads it wrote to.** `GET /v1/messages/:id` and the stream both carry `threads`, built from `content(derived_from_message_id)` joined to `threads`, deduplicated, in filing order. **From the rows, never from the reply**: a link that came from parsing a sentence could point at a thread the turn never touched, which is the failure 004's truthfulness criterion exists to prevent.
 - **My threads** is `WThings`: three groups, a count on each row, "All N older threads" behind a ghost button.
-- **The thread** is `WThing`: head with faces and share, the standing empty state, "Everything in here", per-row tools.
+- **The thread** is `WThing`: head with faces and share, the standing summary when there is one, "Everything in here", per-row tools.
 - **An item** is `WTask`: its own pane, the thread as a chip, "Where this came from".
 - **Undo** is the `Toast` component 004 already wired, unchanged.
 
-**New surface, needing a `decisions.md` entry each:** the archived state, which no kit draws though every kit draws an `archive` control; the conditional delete control; and the standing empty state on web, which the web kit omits and the phones have.
+**New surface, needing a `decisions.md` entry each:** the archived state, which no kit draws though every kit draws an `archive` control, and the conditional delete control.
 
 ## Dependencies
 
