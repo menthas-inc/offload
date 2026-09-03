@@ -26,6 +26,10 @@ const schema = z.object({
   // Auth. The secret signs sessions; without it nothing can sign in, so it is
   // required rather than defaulted to something guessable.
   BETTER_AUTH_SECRET: z.string().min(32),
+  /** Shared with the Python worker, which posts model results back through the
+   *  internal endpoint. Long enough that guessing is not a strategy, and never
+   *  compared with ===: a timing-safe compare costs nothing here. */
+  INTERNAL_SERVICE_TOKEN: z.string().min(32),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 

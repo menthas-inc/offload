@@ -17,6 +17,7 @@ import { authRoutes } from "./routes/auth.js";
 import { sessionRoutes } from "./routes/session.js";
 import { adminRoutes } from "./routes/admin.js";
 import { dumpRoutes } from "./routes/dumps.js";
+import { internalRoutes } from "./routes/internal.js";
 import { wellKnownRoutes } from "./routes/well-known.js";
 
 /** The app carries the Zod type provider, so routes get their schemas inferred
@@ -57,6 +58,7 @@ export async function buildApp(): Promise<App> {
   await app.register(waitlistRoutes);
   await app.register(adminRoutes);
   await app.register(dumpRoutes);
+  await app.register(internalRoutes);
   await app.register(wellKnownRoutes);
 
   return app;
