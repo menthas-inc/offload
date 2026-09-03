@@ -1,6 +1,7 @@
 /* The privacy policy. A document, so it reads like one: one column at a
    comfortable measure, the frame from components/screen.module.css around it,
-   and no atmosphere behind the text.
+   and the same atmosphere the landing page and the gate have, pinned to the
+   window so it does not scroll away.
 
    There is no kit for this page. It is built from the type ramp and the
    surfaces the rest of the product uses, which is what the design system
@@ -10,7 +11,7 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 68ch;
+  max-width: 88ch;
   margin: 0 auto;
   padding: var(--space-11) var(--frame-gutter) var(--space-12);
 }

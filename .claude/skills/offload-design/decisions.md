@@ -567,3 +567,18 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **"upload" replaces "dump", on this page only, deliberately.** The product's word is still dump everywhere else: the apps, the landing page, `readme.md`'s vocabulary list and this file. The product owner's call was to change the privacy page now and leave the question of whether the word changes everywhere for later. So this page is knowingly out of step with the rest of the product, and a header comment in `page.tsx` says so, because the next person to read it will otherwise fix it back.
 
 **Design system impact:** none to the tokens or the components. Two things for whoever holds the vocabulary. `readme.md`'s vocabulary section should note that `/privacy` says upload, so the divergence is recorded where the rule lives rather than only here. And if upload is ever adopted product-wide, the note in `page.tsx` and this entry both come out in the same change. Kits are unaffected; none of them draw this page.
+
+### 2026-09-03 · The privacy page gets the atmosphere, and a wider measure
+**Surface:** marketing
+
+**Is:** `/privacy` now sits on the same background as the landing page and the gate, mark and prism and all, and its column is 88ch rather than 68ch.
+
+**Why the atmosphere was off, and why that reasoning was wrong.** `Screen` has had an `atmosphere={false}` since it was written, with a comment saying that behind a page of running text the effect is unreadable and a rAF nobody is looking at. The first half is not true at these opacities: the washes are pale enough that body text over them reads as well as it does on paper, which the built page settles. The second half was true and is now the trade being made on purpose: the shader and the pointer loop run for as long as somebody has the page open. Requested by the product owner, who wanted the page to look like the rest of the site rather than like a separate document.
+
+**Pinned, not absolute, and that is the whole of the work.** The atmosphere is centred on its own box. On a page fifteen screens tall an absolute one puts the mark seven screens down the article, where nobody will ever see it, and leaves only the two top-anchored clouds visible at the top. `position: fixed` makes it the window's background and the text scrolls over it. Everything else about it is unchanged: the mark, the halo and the clouds were already sized in viewport units, so nothing needed re-tuning. `Atmosphere` takes a `pinned` prop and `Screen`'s `atmosphere` prop takes `"pinned"` beside its boolean, so the landing page and the gate are untouched.
+
+**Most of the mark is behind the summary card, by accident of layout.** The card is opaque `--surface-raised` and lands almost exactly over the centre of the first screen, so what you see on load is the halo and the clouds around it. The mark comes out from under the card as you scroll. Worth knowing before anyone concludes the effect is not working.
+
+**88ch is a wide measure and is deliberate.** 68ch is inside the usual 45 to 75 characters for long prose and 88ch is outside it, at roughly 105 characters a line. The product owner read the page at 68ch and found it too narrow, and asked for 30% more. The same judgement as the gate lockup on 2026-09-02: the current answer rather than a settled one, and the kind of call that only survives contact with the real page.
+
+**Design system impact:** none to the tokens or the components. `readme.md` says nothing about document pages, and there is now one: worth a line saying that a document uses the shared frame with a pinned atmosphere, and that its measure is 88ch, so the next long page does not re-derive both. If the measure moves back, this entry and the one above it move together.

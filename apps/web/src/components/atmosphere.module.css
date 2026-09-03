@@ -20,6 +20,14 @@
   pointer-events: none;
 }
 
+/* Held to the window, for a page that scrolls. Nothing else about it changes:
+   the mark, the halo and the clouds are already sized in viewport units, so
+   pinning is the only difference between the background of a one-screen page
+   and the background of a document. */
+.atmosphere.pinned {
+  position: fixed;
+}
+
 /* ------------------------------------------------------------- the clouds */
 
 .clouds {

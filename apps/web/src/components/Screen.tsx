@@ -16,14 +16,14 @@ export function Screen({
   atmosphere = true,
 }: {
   children: ReactNode;
-  /** Off for a document. The atmosphere is centred on the mark and drifts, so
-   *  behind a page of running text it is both unreadable and a rAF nobody is
-   *  looking at. The frame around it stays identical either way. */
-  atmosphere?: boolean;
+  /** `"pinned"` for a document: the same background, held to the window rather
+   *  than to the page, because a page of running text is many screens tall and
+   *  an atmosphere centred on it would sit halfway down the article. */
+  atmosphere?: boolean | "pinned";
 }) {
   return (
     <div className={styles.screen}>
-      {atmosphere ? <Atmosphere /> : null}
+      {atmosphere ? <Atmosphere pinned={atmosphere === "pinned"} /> : null}
       {children}
     </div>
   );

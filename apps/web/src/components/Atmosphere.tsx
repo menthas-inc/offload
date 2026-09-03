@@ -13,6 +13,11 @@
 // The layers shift away from the pointer at different depths, which is the
 // part that has to be JavaScript: it is a light source at the cursor casting a
 // stack, and CSS cannot follow a pointer.
+//
+// `pinned` is for a page taller than the window. The atmosphere is centred on
+// its own box, so on a long document an absolute one puts the mark halfway down
+// the article where nobody will ever see it. Pinned, it is the window's
+// background and the text scrolls over it.
 
 import { useEffect, useRef } from "react";
 import styles from "./atmosphere.module.css";
@@ -65,7 +70,7 @@ function reducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function Atmosphere() {
+export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -172,7 +177,11 @@ export function Atmosphere() {
   }, []);
 
   return (
-    <div ref={rootRef} className={styles.atmosphere} aria-hidden="true">
+    <div
+      ref={rootRef}
+      className={pinned ? `${styles.atmosphere} ${styles.pinned}` : styles.atmosphere}
+      aria-hidden="true"
+    >
       <div className={styles.clouds}>
         <div className={`${styles.cloud} ${styles.cloud1}`} />
         <div className={`${styles.cloud} ${styles.cloud2}`} />

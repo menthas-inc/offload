@@ -31,7 +31,7 @@ function Todo({ children }: { children: ReactNode }) {
 
 export default function Privacy() {
   return (
-    <Screen atmosphere={false}>
+    <Screen atmosphere="pinned">
       <ScreenHeader
         action={
           <a className={screenStyles.action} href="/sign-in">
