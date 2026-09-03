@@ -17,7 +17,7 @@ import { db, closeDb } from "../src/db.js";
 import { stopListening, waiterCount } from "../src/dumps/answers.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
-import { env } from "../src/env.js";
+import { env, webOrigins } from "../src/env.js";
 import { uuidv7 } from "../src/uuid.js";
 
 await migrate(() => {});
@@ -168,6 +168,34 @@ const usage = {
 };
 
 describe("the stream, over a real socket", () => {
+  it("carries CORS, because hijacking bypasses the plugin that would (AC-4)", async () => {
+    // **The reason the composer never received an answer in a browser.**
+    // `reply.hijack()` takes the socket away from Fastify and
+    // `reply.raw.writeHead` writes exactly what it is given, so the header
+    // @fastify/cors sets on the reply object never reached the wire. Every test
+    // in this repo is same-origin and none of them noticed; a browser on
+    // another origin blocked the response and the person watched a thinking
+    // indicator until they reloaded.
+    const { accountId, cookie } = await signedIn();
+    const { messageId } = await dump(accountId);
+    const site = webOrigins[0]!;
+
+    const allowed = await fetch(`${origin}/v1/messages/${messageId}/stream`, {
+      headers: { cookie, origin: site },
+    });
+    expect(allowed.headers.get("access-control-allow-origin")).toBe(site);
+    expect(allowed.headers.get("access-control-allow-credentials")).toBe("true");
+    expect(allowed.headers.get("vary")).toContain("Origin");
+    await allowed.body!.cancel();
+
+    // And it is not a way around the allowlist.
+    const refused = await fetch(`${origin}/v1/messages/${messageId}/stream`, {
+      headers: { cookie, origin: "https://not-us.example" },
+    });
+    expect(refused.headers.get("access-control-allow-origin")).toBeNull();
+    await refused.body!.cancel();
+  });
+
   it("sends the right headers and does not buffer", async () => {
     const { accountId, cookie } = await signedIn();
     const { messageId } = await dump(accountId);

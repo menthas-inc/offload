@@ -16,6 +16,7 @@ import { z } from "zod";
 import { sql } from "kysely";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
+import { webOrigins } from "../env.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { onAnswer } from "../dumps/answers.js";
@@ -583,6 +584,26 @@ export async function dumpRoutes(app: App): Promise<void> {
       // waiting means sending a response on top of one already in flight.
       reply.hijack();
 
+      // CORS, by hand, because hijacking bypasses the plugin that would
+      // otherwise add it.
+      //
+      // **This is why the composer never received an answer in a browser.**
+      // `reply.hijack()` takes the socket away from Fastify, and
+      // `reply.raw.writeHead` writes exactly the headers listed here, so the
+      // `access-control-allow-origin` @fastify/cors sets on the reply object
+      // never reaches the wire. Same-origin callers, including every test in
+      // this repo, never notice. A browser on a different origin blocks the
+      // response, the EventSource errors, and the person watches a thinking
+      // indicator until they reload.
+      //
+      // The origin is echoed only when it is on the same allowlist the plugin
+      // uses, so this cannot become a way around it.
+      const requestOrigin = request.headers.origin;
+      const allowed =
+        typeof requestOrigin === "string" && webOrigins.includes(requestOrigin)
+          ? requestOrigin
+          : null;
+
       reply.raw.writeHead(200, {
         "content-type": "text/event-stream",
         "cache-control": "no-cache, no-transform",
@@ -590,6 +611,15 @@ export async function dumpRoutes(app: App): Promise<void> {
         // Nginx and friends buffer by default, which turns a stream into one
         // large response delivered at the end.
         "x-accel-buffering": "no",
+        ...(allowed
+          ? {
+              "access-control-allow-origin": allowed,
+              "access-control-allow-credentials": "true",
+              // The origin decides the body, so a shared cache must not serve
+              // one origin's response to another.
+              vary: "Origin",
+            }
+          : {}),
       });
 
       // A socket that dies mid-write emits on the response. Unhandled, that is
