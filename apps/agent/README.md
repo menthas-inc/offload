@@ -19,14 +19,18 @@ pointed there, the builder sees `pyproject.toml` and `uv.lock` and builds a
 Python app, with no Node build involved at all. This directory imports nothing
 from the rest of the monorepo, so it stands alone.
 
-The start command is `uv run offload-worker`. It is in `railway.json` here and
-should also be set in the service settings, because `decisions.md` records that
-Railpack ignored a per-service config file at prepare time once already, and a
-start command that lives only in a file that might be ignored is a service that
-might not start.
+**There is deliberately no `railway.json` in this directory.** Config as Code is
+deprecated, and a service that has never used it cannot opt in after 2026-08-28,
+so a file here could never apply to a service created later than that. The
+configuration lives in the environment instead:
 
-If the root directory approach turns out not to work, the fallback is sharing
-the repository root with the other services and setting `OFFLOAD_SERVICE=agent`,
+```
+railway environment edit --service-config agent source.rootDirectory apps/agent
+railway environment edit --service-config agent deploy.startCommand "uv run offload-worker"
+```
+
+If the root directory turns out not to work, the fallback is sharing the
+repository root with the other services and setting `OFFLOAD_SERVICE=agent`,
 which `scripts/start.mjs` already dispatches on.
 
 ## What it is allowed to do
