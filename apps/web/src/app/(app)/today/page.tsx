@@ -27,7 +27,7 @@ const EXAMPLES = [
 ] as const;
 
 const DAY_ONE_INVITATION =
-  "Dump the first thing and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.";
+  "Dump anything and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.";
 
 export default function TodayPage() {
   const state = useMe("shell");

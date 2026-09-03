@@ -63,13 +63,13 @@ export const GATE = {
  *  Kept here with the rest of the gate copy so the two platforms cannot drift.
  *  The web app repeats it in its own welcome screen; the three have to match. */
 export const CONSENT = {
-  title: "One thing before you start",
+  title: "Before you start",
   sub: "offload holds what you put in it, so it is worth knowing what that means before you put anything in.",
   policyBefore: "I have read the ",
   policyLink: "privacy policy",
   policyAfter: ".",
   processing:
-    "I understand offload will hold whatever I dump in, which can include health, money and other private things, and I agree to it being processed to run offload.",
+    "I understand offload will hold whatever I dump in, which can include health, money and other private matters, and I agree to it being processed to run offload.",
   // Not a consent and not a warning about us. It is the one piece of advice on
   // the screen and it applies to every assistant, not only this one.
   note: "One piece of advice rather than a condition: never dump a password, a card number or a government id, into offload or into any other AI tool. offload never needs them.",
@@ -84,7 +84,7 @@ export const TUTORIAL = [
   {
     title: "offload sorts it",
     sub: "Related bits end up together, with the dates and the money attached.",
-    art: "things",
+    art: "threads",
   },
   {
     title: "It only interrupts when it matters",
@@ -100,10 +100,17 @@ export const DUMPS = [
   "dentist after the 20th",
 ] as const;
 
-export const THINGS = [
-  ["lasso", "Lisbon trip", "4 things"],
-  ["bookmark", "Bookshelf build", "2 things"],
-  ["cloudy", "Read later", "23 things"],
+/** Threads with a count, for the tutorial's second screen.
+ *
+ *  The count carries no unit. It used to read "4 things", and "thing" is not a
+ *  word the product says any more: it named the unit vaguely on a screen whose
+ *  whole job is to show that you never have to name anything. A bare number
+ *  beside a thread is unambiguous in context and says less, which is the
+ *  point. */
+export const THREADS = [
+  ["lasso", "Lisbon trip", "4"],
+  ["bookmark", "Bookshelf build", "2"],
+  ["cloudy", "Read later", "23"],
 ] as const;
 
 /** Day one on Today. Real sentences from one trip and one build, not "Buy
@@ -116,4 +123,4 @@ export const EXAMPLES = [
 ] as const;
 
 export const DAY_ONE_INVITATION =
-  "Dump the first thing and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.";
+  "Dump anything and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.";

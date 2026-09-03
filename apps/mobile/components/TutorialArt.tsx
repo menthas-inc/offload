@@ -10,7 +10,7 @@
 
 import { Text, View } from "react-native";
 import Svg, { Ellipse, Path } from "react-native-svg";
-import { DUMPS, THINGS } from "../lib/gate";
+import { DUMPS, THREADS } from "../lib/gate";
 import { COLOR } from "../lib/colors";
 
 export interface ArtTone {
@@ -95,10 +95,10 @@ export function TutorialArt({ kind, tone }: { kind: string; tone: ArtTone }) {
     );
   }
 
-  if (kind === "things") {
+  if (kind === "threads") {
     return (
       <View className="w-full gap-space-4">
-        {THINGS.map(([icon, name, meta]) => (
+        {THREADS.map(([icon, name, meta]) => (
           <View
             key={name}
             className={`flex-row items-center gap-space-5 px-space-6 py-space-5 ${tone.radius} ${tone.rowBorder} ${tone.row}`}

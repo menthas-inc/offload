@@ -183,7 +183,7 @@ export default function Landing() {
           </h1>
 
           <p className={styles.sub}>
-            Dump things that clutter your mind and let us organize them for you.
+            Dump whatever is cluttering your mind, and offload sorts it for you.
           </p>
 
           {state === "sent" ? (

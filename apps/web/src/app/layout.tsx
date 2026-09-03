@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   // Lowercase always, including at the start of a sentence.
   title: "offload",
   description:
-    "Dump half a thought, a photo, a voice note. offload sorts it into things and speaks up when one of them needs you.",
+    "Dump half a thought, a photo, a voice note. offload files it into threads and speaks up when something needs you.",
 };
 
 export const viewport: Viewport = {

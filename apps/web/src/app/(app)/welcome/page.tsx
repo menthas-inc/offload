@@ -33,7 +33,7 @@ const SCREENS = [
   {
     title: "offload sorts it",
     sub: "Related bits end up together, with the dates and the money attached.",
-    art: "things",
+    art: "threads",
   },
   {
     title: "It only interrupts when it matters",
@@ -113,7 +113,7 @@ export default function WelcomePage() {
         {screen ? <RunArt kind={screen.art} /> : null}
 
         <div className={styles.runCopy}>
-          <h1 className={styles.runTitle}>{screen ? screen.title : "One thing before you start"}</h1>
+          <h1 className={styles.runTitle}>{screen ? screen.title : "Before you start"}</h1>
           <p className={styles.runSub}>
             {screen
               ? screen.sub
@@ -150,7 +150,7 @@ export default function WelcomePage() {
               <span className={styles.tickBox}>{agreeToProcessing ? <Tick /> : null}</span>
               <span className={styles.tickLabel}>
                 I understand offload will hold whatever I dump in, which can include health, money
-                and other private things, and I agree to it being processed to run offload.
+                and other private matters, and I agree to it being processed to run offload.
               </span>
             </label>
 

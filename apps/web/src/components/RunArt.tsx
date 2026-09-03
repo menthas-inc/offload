@@ -14,9 +14,11 @@ const DUMPS = [
 ] as const;
 
 const THINGS = [
-  ["lasso", "Lisbon trip", "4 things"],
-  ["bookmark", "Bookshelf build", "2 things"],
-  ["cloudy", "Read later", "23 things"],
+  // The count carries no unit, matching the phones. It read "4 things", and
+  // "thing" is not a word the product says any more.
+  ["lasso", "Lisbon trip", "4"],
+  ["bookmark", "Bookshelf build", "2"],
+  ["cloudy", "Read later", "23"],
 ] as const;
 
 /** Three icons at 17px, drawn to the same weight as the rest of the set. */
@@ -54,7 +56,7 @@ function ThingIcon({ name }: { name: string }) {
   );
 }
 
-export function RunArt({ kind }: { kind: "bubbles" | "things" | "notification" }) {
+export function RunArt({ kind }: { kind: "bubbles" | "threads" | "notification" }) {
   if (kind === "bubbles") {
     return (
       <div className={styles.art}>
@@ -67,7 +69,7 @@ export function RunArt({ kind }: { kind: "bubbles" | "things" | "notification" }
     );
   }
 
-  if (kind === "things") {
+  if (kind === "threads") {
     return (
       <div className={styles.art}>
         {THINGS.map(([icon, name, meta]) => (

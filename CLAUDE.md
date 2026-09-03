@@ -33,7 +33,7 @@ Read `.claude/skills/offload-design/readme.md` in full before building anything 
 
 Things that bite most often:
 - Consume tokens, never retype a value. Use semantic aliases (`--text-accent`), not ramps (`--moss-600`). `pnpm lint` enforces this, along with the prop contract of all 21 components, by reading the design system's generated rule file. It is wired already, so a violation is caught rather than discussed.
-- Vocabulary applies to identifiers, not just copy: **thread** holds **things**, plus **memory**, **connection**, **dump**, **sorted**, **Undo**. Never folder, item, space, project, capture, classified. The kits' prototype fixture still says `space` in places; that is residue, not a schema.
+- Vocabulary applies to identifiers, not just copy: **thread**, **memory**, **connection**, **dump**, **sorted**, **Undo**. Never folder, item, space, project, capture, classified, and **no longer thing**: retired 2026-09-02, so a thread holds what you dumped in and a count stands on its own with no unit. Reword around it rather than swapping in a synonym. The kits still say it throughout and are the thing that has to catch up; their prototype fixture also still says `space` in places, which is residue, not a schema.
 - No em dashes anywhere: UI copy, marketing, comments, commit messages, these docs.
 - Sentence case everywhere. The brand name is lowercase even at the start of a sentence.
 - One emoji in the product, 👀, on a message offload has seen but not answered, and it needs a text alternative.
