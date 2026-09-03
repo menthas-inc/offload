@@ -73,7 +73,10 @@ describe("the job runner the server builds", () => {
     const runner = createJobRunner(undefined, () => mailer);
 
     await enqueue({ kind: "email.nonexistent", payload: {} });
-    await runner.tick();
+    // The tick must actually have claimed something. Without this the test
+    // passes when nothing ran at all, which is how two milliseconds of clock
+    // skew between Node and Postgres hid behind it.
+    expect(await runner.tick()).toBe(true);
 
     const job = await db
       .selectFrom("jobs")

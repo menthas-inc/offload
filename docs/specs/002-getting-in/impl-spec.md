@@ -29,6 +29,16 @@ Column definitions come from spec 001 unchanged, **except for three changes to `
 
 *`account_keys` and `thread_keys` are created at promotion even though nothing is encrypted yet, because promotion is the one moment the whole account is assembled and splitting it later means a backfill.*
 
+**Four more migrations landed after the ones above**, and they are recorded here for the same DATA-1 reason:
+
+| Migration | Change | Why |
+| --- | --- | --- |
+| `0004_waitlist_attempts.sql` | `waitlist_attempts (email_hash, ip_hash, created_at)` | The rate limiter read two properties off `analytics_events` that nothing ever wrote, so it had never once fired. HMACs rather than addresses, because a rate limiter does not need to be able to read its own subjects. |
+| `0005_account_issuer.sql` | `account_identities.issuer` | Better Auth 1.7 scopes an identity by issuer as well as subject. We moved 1.6 to 1.7.2 mid-flight and never ran the schema change, so the first real OAuth callback in production failed on a missing column. The guard against a repeat is the schema-drift test, not this migration. |
+| `0006_account_image.sql` | `accounts.image` | Better Auth's user model expects it. Written by the provider, read by nothing yet. |
+| `0007_staff_single_identity.sql` | Trigger refusing a second `account_identities` row for an account in `staff` | The application guard took a `SELECT ... FOR UPDATE` and a comment claiming the lock closed the check-then-act window. It does not: Better Auth calls the hook and the insert as separate statements with no transaction around either, so the row lock is released before the insert runs. A trigger runs inside that insert, which is the only place the window can be closed. The application check stays, because it is what makes this a refusal the gate can explain. |
+
+
 ## The lifecycle, end to end
 
 ```

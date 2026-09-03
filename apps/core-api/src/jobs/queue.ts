@@ -37,7 +37,16 @@ export async function enqueue(options: EnqueueOptions): Promise<void> {
       account_id: options.accountId ?? null,
       payload: JSON.stringify(options.payload),
       priority: options.priority ?? PRIORITY.scheduled,
-      run_after: options.runAfter ?? new Date(),
+        // The database's clock, not Node's.
+        //
+        // `new Date()` here is measurably ahead of `now()` inside Postgres, by
+        // one or two milliseconds on this machine, and the claim query asks for
+        // `run_after <= now()`. So a job enqueued with no explicit time was
+        // briefly in the queue's own future and invisible to a tick that ran
+        // straight after it. The running server polls, so it only ever cost a
+        // poll interval, but it made a test that ticks once fail about one run
+        // in three. One clock is the fix.
+        run_after: options.runAfter ?? sql<Date>`now()`,
       state: "queued",
       idempotency_key: options.idempotencyKey ?? null,
     })
