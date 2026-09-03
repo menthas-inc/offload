@@ -111,7 +111,7 @@ People do not dump coordinates. They dump a place name, a Google Maps link, an A
 - **AC-11a** The reversible allowlist in `decisions.md` names every one of them before any of them ships. OFF-6 says an action is reversible only once listed.
 - **AC-12** There is no delete tool. Asserted structurally, not just by absence: the closed set is enumerated in one place and a test reads it.
 - **AC-13** A priority a person set is not overwritten by the planner.
-- **AC-14** `move_content` obeys 005's rule: the destination must be a thread the content's author is already an accepted member of, unless the mover is the author. The planner is not exempt, and it is acting for one account, so it moves under that account's authority.
+- **AC-14** `move_content` obeys 005's rule: only the author may move. The planner acts for one account and is not exempt, so it can move only that account's own content, into a thread that account is in.
 
 **Locations**
 

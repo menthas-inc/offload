@@ -11,6 +11,42 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-03 · The thread page, and four places the kit and the code disagree
+**Surface:** web
+**Raised by:** the codebase, building feature 005.
+**What shipped:** the shell, My threads, a thread page and a content pane, built from
+`WApp.jsx`, `WMisc.jsx` and `WThing.jsx`. What follows is only where the code came out
+different, and each one is deliberate.
+
+**One: the web kit renders nothing when a thread has no standing summary.** `WThing.jsx` has
+`{st ? ... : null}`; the phones render "offload has not summarised this one yet" from a
+`Standing` component. Nothing in the product writes a summary at all yet, so the web kit's
+version leaves a hole where the most prominent block on the screen should be. Web takes the
+phones' line. **The web kit should gain the empty state.**
+
+**Two: delete is drawn on every row and belongs to the author.** Both kits put `trash-2` on
+every row unconditionally. OFF-3 says a member can never delete what is not theirs, so the
+control is conditional now, and the server computes the flag rather than the client inferring
+it. **The kits should draw the row tools as conditional.**
+
+**Three: archive has a control everywhere and a destination nowhere.** Every kit draws an
+`archive` tool and no kit draws what an archived thing looks like or where it goes. 005 gives it
+one: a section header that toggles between "Everything in here" and "Archived N", with archived
+rows dimmed. Invented here, and the weakest of the four, because it is the only one with no
+drawn precedent. **Worth designing properly.**
+
+**Four: the composer is still on Today and the kit says it should not be.** `WMisc.jsx` states
+it plainly: "one composer, under both panes, spanning the window. It never belongs to a pane."
+That is right. It is not done, because moving it is a change to the working dump loop for no
+gain in what this feature is for, and the consequence is that you go back to Today to dump
+something. **This is a debt in the code, not a change to the design.**
+
+**Design system impact:** the first three are kit changes on the next sync, listed above in the
+order they matter. The fourth is ours to pay back and needs nothing from the design. Separately,
+the design system has **no breakpoint tokens**, and the shell needs one: 1180 comes from
+`WApp.jsx`'s own preview toggle and now lives as a literal in one stylesheet, deliberately in
+one place rather than two. A `--breakpoint-*` family would be worth adding.
+
 ### 2026-09-03 · Undo is the Toast as drawn; the partial reply is new surface
 **Surface:** web
 **Raised by:** the codebase, building feature 004.

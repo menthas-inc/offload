@@ -61,13 +61,14 @@ That was written about deletion and leaves the middle undefined, which this scre
 | --- | --- | --- |
 | Edit a title or a note | ✓ | |
 | Archive it out of the active list | ✓ | |
-| Move it somewhere the author can still reach | ✓ | |
-| Move it beyond the author's reach | | ✓ |
+| Move it to another thread | | ✓ |
 | Delete it | | ✓ |
 
 **Archive is what makes co-ownership work.** Without it, a shared list accumulates rows only their author can clear, which is the friction that makes people abandon a shared list. Archive is reversible, non-destructive and available to everyone; delete is none of those and stays with the author.
 
-**Move is restricted, and this is a correction.** An earlier draft let any member move any content anywhere they themselves could reach. That is a delete with extra steps: Bob moves Alice's content into a thread Alice is not in, and it is gone from her view, unrecoverable, with no consent and no notice. Worse than the delete OFF-3 protects against, because delete is at least the author's own. **A non-author may move content only to a thread the author is already an accepted member of.** The author may move their own content anywhere. Moving something out of somebody's reach is a sharing decision, and sharing is outward facing.
+**Move is author-only, and this is a correction.** An earlier draft let any member move any content anywhere they themselves could reach. That is a delete with extra steps: Bob moves Alice's content into a thread Alice is not in, and it is gone from her view, unrecoverable, with no consent and no notice. Worse than the delete OFF-3 protects against, because delete is at least the author's own.
+
+A middle position was available, letting a non-author move within the author's reach, and the product owner chose the simpler rule instead. **Moving is the author's, like deleting.** It changes which people can see something, which makes it a sharing decision, and sharing is outward facing. It also means one sentence describes the whole permission model rather than two: *what you put in a thread stays where you put it until you move it, and everyone can help with the rest.*
 
 ### Undo, everywhere
 
@@ -98,7 +99,7 @@ The reversible allowlist in `decisions.md` gains **archive** in the same change.
 
 - **AC-9** Any accepted member can edit and archive any content in the thread. Enforced server-side against membership, per call.
 - **AC-10** Only the author can delete. Enforced server-side, per row, by author. A member who is not the author is not shown the control and is refused if they call it anyway.
-- **AC-11** A non-author may move content only to a thread the content's author is already an accepted member of. The author may move their own content to any thread they are a member of. Both checks are server-side, and a refusal gives one reason.
+- **AC-11** Only the author can move content, to any thread they are an accepted member of. Enforced server-side, per row, by author, on the same predicate delete uses. A non-author is not shown the control and is refused if they call it anyway.
 - **AC-12** Moving adjusts both threads' counts in one transaction.
 - **AC-13** Renaming a thread is one action, reversible, and does not touch its content.
 - **AC-14** Every action here is reversible for eight seconds, and nothing is destroyed inside that window.
@@ -136,7 +137,7 @@ Logged here and in the design system's `decisions.md`, per OFF-7.
 
 - **The scope was three features and is now one.** Both reviewers said so independently and the shell being absent from the codebase confirmed it. The widget and grouping system moved to 007, behind 006, because grouping needs tags and nothing produces tags.
 - **Priority was assumed to exist.** It was described as something offload already sets, given an acceptance criterion, and left off the out-of-scope list that names tags and dates. There is no priority column. It moved to 006 with everything else that has to be produced before it can be read, and its relationship to `needs_attention` is 007's problem rather than a silent collision.
-- **Move by a non-author was a delete with extra steps.** The security review traced it: Bob moves Alice's content to a thread Alice is not in, and it is unrecoverable by her. The destination check only looked at the mover. Now a non-author can only move within the author's reach.
+- **Move by a non-author was a delete with extra steps.** The security review traced it: Bob moves Alice's content to a thread Alice is not in, and it is unrecoverable by her. The destination check only looked at the mover. The product owner's call was the simpler of the two fixes: moving is the author's, like deleting.
 - **Provenance after a move could leak a thread name** to people who were never in the source thread. AC-17 exists because of that.
 - **Archive was not on the reversible allowlist.** OFF-6 says an action is reversible only once listed, and listing it is now part of this change.
 - **The standing summary had no writer**, which nothing in the first draft said out loud.

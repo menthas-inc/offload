@@ -237,6 +237,10 @@ export interface ContentTable {
   attrs: Generated<unknown>;
   created_at: Timestamp;
   updated_at: Timestamp;
+  /** Out of the active list, reversibly, by anybody in the thread. The opposite
+   *  of `deleted_at` despite the resemblance: nothing is destroyed and nothing
+   *  is scheduled. */
+  archived_at: Timestamp | null;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;
 }

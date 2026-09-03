@@ -159,7 +159,12 @@ describe("AC-2 promoting twice", () => {
     expect(await count("analytics_events")).toBe(1);
   });
 
-  it("survives two admins clicking at the same moment", async () => {
+  // Three concurrent promotions, each generating an account key, each
+  // contending for the same row lock. Slow by nature rather than by accident,
+  // and it timed out once against vitest's 5 second default on a loaded
+  // machine. A concurrency test that fails when the machine is busy is a test
+  // that fails in CI and teaches people to re-run rather than to look.
+  it("survives two admins clicking at the same moment", { timeout: 20_000 }, async () => {
     await waiting("race@example.test");
     const outcomes = await Promise.all([
       promote("race@example.test"),

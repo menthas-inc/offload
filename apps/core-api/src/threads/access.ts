@@ -1,0 +1,153 @@
+// Who may do what, in one place.
+//
+// Every read and every write in the thread feature goes through these. Written
+// once rather than repeated per endpoint, because the failure mode of a
+// repeated authorization check is that one copy is subtly different and nobody
+// can tell which one is right (QUAL-2).
+//
+// Two predicates, and the difference between them is the whole permission
+// model:
+//
+//   memberOf   you are in the thread, so you can add to it and help with what
+//              is in it. Everything co-owned resolves through here.
+//   authorOf   you put this row there. Only you may delete it or move it
+//              somewhere else, because both of those change who can see it.
+//
+// OFF-3 states the first half of that in the constitution and the product says
+// it identically everywhere: they can add to it, and they can never delete what
+// is yours. Move joins delete because moving content out of a thread its author
+// is in, into one they are not, is a delete performed by somebody else.
+
+import { sql } from "kysely";
+import type { Kysely, Transaction } from "kysely";
+import { db } from "../db.js";
+import type { Database } from "../schema.js";
+
+type Executor = Kysely<Database> | Transaction<Database>;
+
+/** Accepted membership, per call, never cached.
+ *
+ *  `accepted` specifically. A pending invitation is not a thread you can write
+ *  into, and a declined one is not a thread at all as far as you are concerned.
+ */
+export async function memberOf(
+  accountId: string,
+  threadId: string,
+  trx: Executor = db,
+): Promise<boolean> {
+  const row = await trx
+    .selectFrom("thread_members")
+    .innerJoin("threads", "threads.id", "thread_members.thread_id")
+    .select("thread_members.id")
+    .where("thread_members.thread_id", "=", threadId)
+    .where("thread_members.account_id", "=", accountId)
+    .where("thread_members.state", "=", "accepted")
+    .where("threads.deleted_at", "is", null)
+    .executeTakeFirst();
+  return row !== undefined;
+}
+
+export interface ContentRef {
+  id: string;
+  threadId: string;
+  authorId: string;
+}
+
+/** The row, if this account can see it at all.
+ *
+ *  Resolved through membership rather than through `content.account_id`, which
+ *  is the mistake 001 names explicitly: filtering reads by author would hide
+ *  content other members wrote in a shared thread, and the instinct on
+ *  discovering that is to loosen the filter rather than narrow it.
+ */
+export async function readableContent(
+  accountId: string,
+  contentId: string,
+  trx: Executor = db,
+  /** Include a row inside its eight second delete window.
+   *
+   *  Off by default, because a deleted row must not be editable, archivable or
+   *  readable on the page. On for exactly one caller: restore, which is the
+   *  Undo for delete and therefore has to find the thing it is undoing.
+   *
+   *  Found by a test. Without it `deleteContent` twice raised instead of
+   *  returning false, and restoring a deleted row was impossible, which meant
+   *  the Undo the whole delete story rests on did not work at all. */
+  includeDeleted = false,
+): Promise<ContentRef | null> {
+  let query = trx
+    .selectFrom("content")
+    .innerJoin("thread_members", "thread_members.thread_id", "content.thread_id")
+    .select([
+      "content.id as id",
+      "content.thread_id as threadId",
+      "content.account_id as authorId",
+    ])
+    .where("content.id", "=", contentId)
+    .where("thread_members.account_id", "=", accountId)
+    .where("thread_members.state", "=", "accepted");
+
+  if (!includeDeleted) query = query.where("content.deleted_at", "is", null);
+
+  const row = await query.executeTakeFirst();
+  return row ?? null;
+}
+
+/** One refusal, whatever the reason.
+ *
+ *  A thread that does not exist, a thread you are not in, and a row you did not
+ *  author are one answer. Distinguishing them turns every endpoint here into an
+ *  oracle: ask about an id, learn whether it exists and whether somebody else
+ *  can see it. 004's tool endpoint made the same choice for the same reason.
+ */
+export class NotYours extends Error {
+  constructor() {
+    super("not_found");
+  }
+}
+
+/** Read access to a thread, or a refusal. */
+export async function requireMember(
+  accountId: string,
+  threadId: string,
+  trx: Executor = db,
+): Promise<void> {
+  if (!(await memberOf(accountId, threadId, trx))) throw new NotYours();
+}
+
+/** Access to a row for anything co-owned: edit, archive, restore. */
+export async function requireReadable(
+  accountId: string,
+  contentId: string,
+  trx: Executor = db,
+  includeDeleted = false,
+): Promise<ContentRef> {
+  const row = await readableContent(accountId, contentId, trx, includeDeleted);
+  if (!row) throw new NotYours();
+  return row;
+}
+
+/** Access to a row for the two actions that change who can see it.
+ *
+ *  Membership first, then authorship, so somebody outside the thread entirely
+ *  and somebody inside it who did not write the row get the same answer. */
+export async function requireAuthor(
+  accountId: string,
+  contentId: string,
+  trx: Executor = db,
+  includeDeleted = false,
+): Promise<ContentRef> {
+  const row = await requireReadable(accountId, contentId, trx, includeDeleted);
+  if (row.authorId !== accountId) throw new NotYours();
+  return row;
+}
+
+/** Bump a thread's activity clock. Its own function because three writes want
+ *  it and a missed one makes My threads order by a lie. */
+export async function touchThread(threadId: string, trx: Executor): Promise<void> {
+  await trx
+    .updateTable("threads")
+    .set({ last_activity_at: sql`now()`, updated_at: sql`now()` })
+    .where("id", "=", threadId)
+    .execute();
+}

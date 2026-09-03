@@ -124,7 +124,7 @@ Eight. Defined once in `harness/tools.py` as pydantic models with the Anthropic 
 | `add_content` | thread | membership |
 | `list_thread_content` | thread | membership |
 | `edit_content` | content | membership **and** authorship of the row |
-| `move_content` | content | 005's reach rule |
+| `move_content` | content | membership **and** authorship, 005's rule |
 | `complete_content` | content | membership |
 | `archive_content` | content | membership |
 | `rename_thread` | thread | membership |

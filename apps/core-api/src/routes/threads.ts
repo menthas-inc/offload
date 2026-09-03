@@ -1,0 +1,855 @@
+// Threads, and what is in them.
+//
+// Four reads and six writes. The reads are the ones with a performance
+// contract: the thread bundle is a fixed number of queries whatever the thread
+// holds, because the alternative shape, one query per thing the screen draws,
+// grows with a thread's shape rather than with its size and is the one that
+// gets slow invisibly.
+//
+// Every route here resolves authorization through `../threads/access.js` and
+// none of them touches `thread_members` directly. Every refusal is the same
+// refusal, for the reason stated there.
+
+import { z } from "zod";
+import { sql } from "kysely";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import type { App } from "../app.js";
+import { auth } from "../auth/auth.js";
+import { db } from "../db.js";
+import { enqueue, PRIORITY } from "../jobs/queue.js";
+import {
+  NotYours,
+  requireAuthor,
+  requireMember,
+  requireReadable,
+  touchThread,
+} from "../threads/access.js";
+
+/** One screenful. 001's heavy case is 500 rows in one thread and the page draws
+ *  a dozen, so fetching them all to show twelve is the thing this prevents. */
+const PAGE = 30;
+
+/** Past this, a thread is "older" on My threads. Derived from activity rather
+ *  than stored, because it is a function of time rather than a property of the
+ *  thread, which is 001's own reasoning for not storing it. */
+const STALE_DAYS = 30;
+
+function fetchHeaders(request: FastifyRequest): Headers {
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(request.headers)) {
+    if (value === undefined) continue;
+    headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
+  }
+  return headers;
+}
+
+async function currentAccountId(request: FastifyRequest): Promise<string | null> {
+  const result = await auth.api.getSession({ headers: fetchHeaders(request) });
+  return result?.session.userId ?? null;
+}
+
+/** Wraps a handler so a `NotYours` becomes the one refusal rather than a 500.
+ *  Written once so no endpoint can forget, and so no endpoint can accidentally
+ *  distinguish its refusals from any other's. */
+function guard<T>(
+  reply: FastifyReply,
+  run: () => Promise<T>,
+): Promise<T | FastifyReply> {
+  return run().catch((error: unknown) => {
+    if (error instanceof NotYours) {
+      return reply.code(404).send({ error: "not_found" as const });
+    }
+    throw error;
+  });
+}
+
+const notFound = z.object({ error: z.literal("not_found") });
+const unauthenticated = z.object({ error: z.literal("unauthenticated") });
+
+const memberSchema = z.object({
+  accountId: z.string(),
+  displayName: z.string(),
+  initials: z.string(),
+  isYou: z.boolean(),
+});
+
+const threadRow = z.object({
+  id: z.string(),
+  name: z.string(),
+  icon: z.string().nullable(),
+  count: z.number(),
+  meta: z.string(),
+});
+
+const threadList = z.object({
+  groups: z.array(
+    z.object({
+      key: z.enum(["now", "always", "older"]),
+      threads: z.array(threadRow),
+    })
+  ),
+});
+
+const threadBundle = z.object({
+  id: z.string(),
+  name: z.string(),
+  icon: z.string().nullable(),
+  alwaysOn: z.boolean(),
+  counts: z.object({ active: z.number(), archived: z.number() }),
+  members: z.array(memberSchema),
+  /** Always null. offload does not summarise a thread yet and nothing writes a
+   *  standing memory, so the field is here in the shape the client already
+   *  renders an empty state from. When something writes one, no client changes. */
+  standing: z.null(),
+});
+
+const contentRow = z.object({
+  id: z.string(),
+  type: z.string(),
+  title: z.string(),
+  body: z.string().nullable(),
+  createdAt: z.string(),
+  archivedAt: z.string().nullable(),
+  author: z.object({
+    accountId: z.string(),
+    displayName: z.string(),
+    isYou: z.boolean(),
+  }),
+  /** Computed by the same predicate the endpoints enforce, so the client cannot
+   *  draw a control the server will refuse or hide one it would allow. */
+  canDelete: z.boolean(),
+  canMove: z.boolean(),
+});
+
+const contentPage = z.object({
+  rows: z.array(contentRow),
+  nextCursor: z.string().nullable(),
+});
+
+const contentDetail = contentRow.extend({
+  threadId: z.string(),
+  threadName: z.string(),
+  from: z
+    .object({ messageId: z.string(), text: z.string().nullable(), at: z.string() })
+    .nullable(),
+});
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return (parts[0]![0]! + parts.at(-1)![0]!).toUpperCase();
+}
+
+/** Members of one thread, with the viewer marked. */
+async function membersOf(threadId: string, viewerId: string) {
+  const rows = await db
+    .selectFrom("thread_members")
+    .innerJoin("accounts", "accounts.id", "thread_members.account_id")
+    .select(["accounts.id as id", "accounts.display_name as displayName"])
+    .where("thread_members.thread_id", "=", threadId)
+    .where("thread_members.state", "=", "accepted")
+    .where("accounts.deleted_at", "is", null)
+    .execute();
+
+  return rows.map((row) => {
+    const name = row.displayName ?? "Someone";
+    return {
+      accountId: row.id,
+      displayName: name,
+      initials: initialsOf(name),
+      isYou: row.id === viewerId,
+    };
+  });
+}
+
+/** The row shape both the page and the detail return, so the two cannot drift. */
+function toRow(
+  row: {
+    id: string;
+    type: string;
+    title: string;
+    body: string | null;
+    created_at: Date;
+    archived_at: Date | null;
+    account_id: string;
+    authorName: string | null;
+  },
+  viewerId: string
+) {
+  const mine = row.account_id === viewerId;
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    body: row.body,
+    createdAt: row.created_at.toISOString(),
+    archivedAt: row.archived_at ? row.archived_at.toISOString() : null,
+    author: {
+      accountId: row.account_id,
+      displayName: row.authorName ?? "Someone",
+      isYou: mine,
+    },
+    // Both actions change who can see something, so both are the author's.
+    canDelete: mine,
+    canMove: mine,
+  };
+}
+
+// ============================================================== the writes
+//
+// Exported and session-free, with the routes below as thin wrappers. Better
+// Auth signs its session cookie, so a test cannot reach a session-scoped route
+// by pretending, and the interesting behaviour here is the transaction: which
+// counts move, what `previous` actually holds, what a second call does. Same
+// shape as `takeDump` and `undoTurn` in dumps.ts.
+
+export interface ContentSnapshot {
+  title: string;
+  body: string | null;
+}
+
+/** Edit. Co-owned: anybody in the thread may fix a title offload got wrong,
+ *  which is most of what the page is for. */
+export async function editContent(
+  accountId: string,
+  contentId: string,
+  patch: { title?: string | undefined; body?: string | null | undefined },
+): Promise<ContentSnapshot> {
+  const ref = await requireReadable(accountId, contentId);
+  return db.transaction().execute(async (trx) => {
+    const before = await trx
+      .selectFrom("content")
+      .select(["title", "body"])
+      .where("id", "=", ref.id)
+      .executeTakeFirstOrThrow();
+
+    await trx
+      .updateTable("content")
+      .set({
+        ...(patch.title === undefined ? {} : { title: patch.title }),
+        ...(patch.body === undefined ? {} : { body: patch.body }),
+        updated_at: sql`now()`,
+      })
+      .where("id", "=", ref.id)
+      .execute();
+
+    await touchThread(ref.threadId, trx);
+    return before;
+  });
+}
+
+/** Archive and restore, the co-owned soft action.
+ *
+ *  Restore clears a pending destruction as well as an archive, so one control
+ *  brings back an archived row and an undone delete alike, and the count it
+ *  decremented comes back with it. */
+export async function setArchived(
+  accountId: string,
+  contentId: string,
+  archived: boolean,
+): Promise<void> {
+  // Restore is the Undo for delete as well as for archive, so it has to be able
+  // to find a row inside its eight second window. Archive must not: archiving
+  // something already on its way out is meaningless.
+  const ref = await requireReadable(accountId, contentId, db, !archived);
+  await db.transaction().execute(async (trx) => {
+    const before = await trx
+      .selectFrom("content")
+      .select(["deleted_at"])
+      .where("id", "=", ref.id)
+      .executeTakeFirstOrThrow();
+
+    await trx
+      .updateTable("content")
+      .set({
+        archived_at: archived ? sql`now()` : null,
+        ...(archived ? {} : { deleted_at: null, purge_after: null }),
+        updated_at: sql`now()`,
+      })
+      .where("id", "=", ref.id)
+      .execute();
+
+    // Undeleting puts the count back. Without this an undo restores the row and
+    // leaves the header saying one fewer, which is AC-8 broken by the undo path
+    // rather than by the delete.
+    if (!archived && before.deleted_at !== null) {
+      await trx
+        .updateTable("threads")
+        .set({ content_count: sql`content_count + 1` })
+        .where("id", "=", ref.threadId)
+        .execute();
+    }
+
+    await touchThread(ref.threadId, trx);
+  });
+}
+
+/** Move. The author's, like delete, because both change who can see something. */
+export async function moveContent(
+  accountId: string,
+  contentId: string,
+  destination: string,
+): Promise<{ threadId: string }> {
+  const ref = await requireAuthor(accountId, contentId);
+  await requireMember(accountId, destination);
+
+  if (destination === ref.threadId) return { threadId: ref.threadId };
+
+  await db.transaction().execute(async (trx) => {
+    await trx
+      .updateTable("content")
+      .set({ thread_id: destination, updated_at: sql`now()` })
+      .where("id", "=", ref.id)
+      .execute();
+
+    // Both counts, in the same transaction as the write that changes them, per
+    // 001. A count maintained anywhere else drifts.
+    await trx
+      .updateTable("threads")
+      .set({ content_count: sql`greatest(content_count - 1, 0)` })
+      .where("id", "=", ref.threadId)
+      .execute();
+    await trx
+      .updateTable("threads")
+      .set({ content_count: sql`content_count + 1` })
+      .where("id", "=", destination)
+      .execute();
+
+    await touchThread(ref.threadId, trx);
+    await touchThread(destination, trx);
+  });
+
+  return { threadId: ref.threadId };
+}
+
+/** Delete. Author only, soft, on 004's mechanism exactly. */
+export async function deleteContent(
+  accountId: string,
+  contentId: string,
+): Promise<boolean> {
+  // Sees a row already inside its window, so a second call reports "nothing to
+  // do" rather than "no such thing". A repeated delete is a double click, not
+  // an error.
+  const ref = await requireAuthor(accountId, contentId, db, true);
+  return db.transaction().execute(async (trx) => {
+    const result = await trx
+      .updateTable("content")
+      .set({
+        deleted_at: sql`now()`,
+        purge_after: sql`now() + interval '8 seconds'`,
+        updated_at: sql`now()`,
+      })
+      .where("id", "=", ref.id)
+      .where("deleted_at", "is", null)
+      .executeTakeFirst();
+
+    if (Number(result.numUpdatedRows) === 0) return false;
+
+    await trx
+      .updateTable("threads")
+      .set({ content_count: sql`greatest(content_count - 1, 0)` })
+      .where("id", "=", ref.threadId)
+      .execute();
+    await touchThread(ref.threadId, trx);
+
+    // Enqueued by the delete rather than left to a timer, exactly as 004's undo
+    // does. A timer that stops running leaves content the person believes is
+    // gone, and nothing notices.
+    await enqueue({
+      kind: "content.purge",
+      accountId,
+      payload: {},
+      priority: PRIORITY.background,
+      runAfterSeconds: 10,
+      tx: trx,
+    });
+
+    return true;
+  });
+}
+
+/** Rename a thread. Co-owned: a shared thread's name belongs to everybody in
+ *  it, and renaming touches no content. */
+export async function renameThread(
+  accountId: string,
+  threadId: string,
+  name: string,
+): Promise<{ name: string }> {
+  await requireMember(accountId, threadId);
+
+  // Read then write, in one transaction. `returning` on an UPDATE gives the NEW
+  // value in Postgres, so returning it as `previous` would hand the client an
+  // Undo that restores the name it just set. The kind of bug that looks correct
+  // and does nothing.
+  const before = await db.transaction().execute(async (trx) => {
+    const current = await trx
+      .selectFrom("threads")
+      .select("name")
+      .where("id", "=", threadId)
+      .where("deleted_at", "is", null)
+      .executeTakeFirst();
+    if (!current) return null;
+
+    await trx
+      .updateTable("threads")
+      .set({ name, updated_at: sql`now()` })
+      .where("id", "=", threadId)
+      .execute();
+
+    return current;
+  });
+  if (!before) throw new NotYours();
+  return { name: before.name };
+}
+
+export async function threadRoutes(app: App): Promise<void> {
+  // ------------------------------------------------------------ My threads
+  //
+  // Three groups, and only one of them is stored. `always_on` is a column;
+  // "older" is derived from activity, because a thread does not become old, it
+  // stops being used.
+  app.get(
+    "/v1/threads",
+    { schema: { response: { 200: threadList, 401: unauthenticated } } },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+      const rows = await db
+        .selectFrom("threads")
+        .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
+        .select([
+          "threads.id as id",
+          "threads.name as name",
+          "threads.icon as icon",
+          "threads.always_on as alwaysOn",
+          "threads.content_count as count",
+          "threads.last_activity_at as lastActivityAt",
+        ])
+        .where("thread_members.account_id", "=", accountId)
+        .where("thread_members.state", "=", "accepted")
+        .where("threads.deleted_at", "is", null)
+        .orderBy("threads.last_activity_at", "desc")
+        .execute();
+
+      // One extra query for every thread's members rather than one per thread.
+      // A person is in tens of threads, so the N+1 here would be tens of round
+      // trips to render one list.
+      const ids = rows.map((row) => row.id);
+      const memberRows = ids.length
+        ? await db
+            .selectFrom("thread_members")
+            .innerJoin("accounts", "accounts.id", "thread_members.account_id")
+            .select([
+              "thread_members.thread_id as threadId",
+              "accounts.display_name as displayName",
+            ])
+            .where("thread_members.thread_id", "in", ids)
+            .where("thread_members.state", "=", "accepted")
+            .where("thread_members.account_id", "!=", accountId)
+            .where("accounts.deleted_at", "is", null)
+            .execute()
+        : [];
+
+      const others = new Map<string, string[]>();
+      for (const row of memberRows) {
+        const list = others.get(row.threadId) ?? [];
+        list.push(row.displayName ?? "Someone");
+        others.set(row.threadId, list);
+      }
+
+      const stale = Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000;
+
+      // Composed here rather than in the client. It is one string in three
+      // clients, and composing it three times is how they drift.
+      const meta = (count: number, people: string[]): string => {
+        const unit = `${count}`;
+        const who =
+          people.length === 0
+            ? "just you"
+            : people.length <= 2
+              ? people.join(" and ")
+              : `${people.slice(0, 2).join(", ")} and ${people.length - 2} more`;
+        return `${unit} · ${who}`;
+      };
+
+      type Row = z.infer<typeof threadRow>;
+      const groups = { now: [] as Row[], always: [] as Row[], older: [] as Row[] };
+      for (const row of rows) {
+        const shaped = {
+          id: row.id,
+          name: row.name,
+          icon: row.icon,
+          count: row.count,
+          meta: meta(row.count, others.get(row.id) ?? []),
+        };
+        // always_on wins over staleness: a thread that never closes has not
+        // gone quiet, it is just waiting.
+        if (row.alwaysOn) groups.always.push(shaped);
+        else if (row.lastActivityAt.getTime() < stale) groups.older.push(shaped);
+        else groups.now.push(shaped);
+      }
+
+      return reply.send({
+        groups: [
+          { key: "now" as const, threads: groups.now },
+          { key: "always" as const, threads: groups.always },
+          { key: "older" as const, threads: groups.older },
+        ],
+      });
+    }
+  );
+
+  // ---------------------------------------------------------- one thread
+  //
+  // Four queries: membership, the thread, its members, its counts. It does not
+  // become five because the thread holds more, and it must not become one per
+  // widget when 007 draws them.
+  app.get(
+    "/v1/threads/:id",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: { 200: threadBundle, 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        const { id } = request.params;
+        await requireMember(accountId, id);
+
+        const thread = await db
+          .selectFrom("threads")
+          .select(["id", "name", "icon", "always_on"])
+          .where("id", "=", id)
+          .where("deleted_at", "is", null)
+          .executeTakeFirst();
+        if (!thread) throw new NotYours();
+
+        // One query, two counts. Postgres will not scan two partial indexes in
+        // one statement, so this rides content_thread_idx, which covers both
+        // states, with a filter per count.
+        const counts = await db
+          .selectFrom("content")
+          .select([
+            sql<string>`count(*) filter (where archived_at is null)`.as("active"),
+            sql<string>`count(*) filter (where archived_at is not null)`.as("archived"),
+          ])
+          .where("thread_id", "=", id)
+          .where("deleted_at", "is", null)
+          .executeTakeFirstOrThrow();
+
+        return reply.send({
+          id: thread.id,
+          name: thread.name,
+          icon: thread.icon,
+          alwaysOn: thread.always_on,
+          counts: { active: Number(counts.active), archived: Number(counts.archived) },
+          members: await membersOf(id, accountId),
+          standing: null,
+        });
+      })
+  );
+
+  // ------------------------------------------------- a thread's content
+  app.get(
+    "/v1/threads/:id/content",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        querystring: z.object({
+          cursor: z.string().optional(),
+          archived: z.enum(["true", "false"]).default("false"),
+        }),
+        response: { 200: contentPage, 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        const { id } = request.params;
+        await requireMember(accountId, id);
+
+        const wantArchived = request.query.archived === "true";
+
+        let query = db
+          .selectFrom("content")
+          .leftJoin("accounts", "accounts.id", "content.account_id")
+          .select([
+            "content.id as id",
+            "content.type as type",
+            "content.title as title",
+            "content.body as body",
+            "content.created_at as created_at",
+            "content.archived_at as archived_at",
+            "content.account_id as account_id",
+            "accounts.display_name as authorName",
+          ])
+          .where("content.thread_id", "=", id)
+          .where("content.deleted_at", "is", null)
+          .where("content.archived_at", wantArchived ? "is not" : "is", null)
+          .orderBy("content.id", "desc")
+          .limit(PAGE + 1);
+
+        // The cursor is the id alone, and the ordering is by id alone.
+        //
+        // 001 specifies "(created_at, id), which UUIDv7 makes monotonic", and
+        // the id is what makes it monotonic, so the id is the whole cursor. The
+        // pair version is worse in a way that only shows up under load:
+        // Postgres stores `created_at` to the microsecond and a JavaScript Date
+        // holds milliseconds, so round-tripping the timestamp through the
+        // cursor truncates it. Rows written inside the same millisecond then
+        // fall in the gap, because `created_at < cursor` skips them and the
+        // `created_at = cursor` tie-break never matches a value that has
+        // microseconds. Eighty rows inserted in a loop lost one, which is what
+        // a real thread filled by one dump would do.
+        if (request.query.cursor) {
+          query = query.where("content.id", "<", request.query.cursor);
+        }
+
+        const rows = await query.execute();
+        const page = rows.slice(0, PAGE);
+        const last = page.at(-1);
+
+        return reply.send({
+          rows: page.map((row) => toRow(row, accountId)),
+          nextCursor: rows.length > PAGE && last ? last.id : null,
+        });
+      })
+  );
+
+  // ------------------------------------------------------ one piece
+  app.get(
+    "/v1/content/:id",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: { 200: contentDetail, 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        await requireReadable(accountId, request.params.id);
+
+        const row = await db
+          .selectFrom("content")
+          .innerJoin("threads", "threads.id", "content.thread_id")
+          .leftJoin("accounts", "accounts.id", "content.account_id")
+          .select([
+            "content.id as id",
+            "content.type as type",
+            "content.title as title",
+            "content.body as body",
+            "content.created_at as created_at",
+            "content.archived_at as archived_at",
+            "content.account_id as account_id",
+            "content.derived_from_message_id as fromMessageId",
+            "content.thread_id as threadId",
+            "threads.name as threadName",
+            "accounts.display_name as authorName",
+          ])
+          .where("content.id", "=", request.params.id)
+          .executeTakeFirstOrThrow();
+
+        // Provenance is the dump and the author, never the history of where
+        // this has been. Content that moved must not carry its old thread's
+        // name to people who were never in it.
+        const from = row.fromMessageId
+          ? await db
+              .selectFrom("messages")
+              .select(["id", "text", "created_at"])
+              .where("id", "=", row.fromMessageId)
+              .where("deleted_at", "is", null)
+              .executeTakeFirst()
+          : undefined;
+
+        return reply.send({
+          ...toRow(row, accountId),
+          threadId: row.threadId,
+          threadName: row.threadName,
+          from: from
+            ? {
+                messageId: from.id,
+                text: from.text,
+                at: from.created_at.toISOString(),
+              }
+            : null,
+        });
+      })
+  );
+
+  // ================================================================ writes
+  //
+  // All of them return the row as it now is and what it was, so Undo is one
+  // more call to the same endpoint with the old value and the client holds
+  // nothing across a reload.
+
+  const previousTitle = z.object({ title: z.string(), body: z.string().nullable() });
+
+  // Edit. Co-owned: anybody in the thread may fix a title offload got wrong,
+  // which is most of what this page is for.
+  app.patch(
+    "/v1/content/:id",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({
+          title: z.string().min(1).max(200).optional(),
+          body: z.string().max(4000).nullable().optional(),
+        }),
+        response: {
+          200: z.object({ content: contentRow, previous: previousTitle }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        const previous = await editContent(accountId, request.params.id, request.body);
+        return reply.send({
+          content: await rowById(request.params.id, accountId),
+          previous,
+        });
+      })
+  );
+
+  // Archive and restore. The co-owned soft action, and the reason a shared list
+  // is usable: without it a thread fills with rows only their author can clear.
+  for (const [path, archive] of [
+    ["archive", true],
+    ["restore", false],
+  ] as const) {
+    app.post(
+      `/v1/content/:id/${path}`,
+      {
+        schema: {
+          params: z.object({ id: z.string().uuid() }),
+          response: { 200: z.object({ content: contentRow }), 401: unauthenticated, 404: notFound },
+        },
+      },
+      async (request, reply) =>
+        guard(reply, async () => {
+          const accountId = await currentAccountId(request);
+          if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+          await setArchived(accountId, request.params.id, archive);
+          return reply.send({ content: await rowById(request.params.id, accountId) });
+        })
+    );
+  }
+
+  // Move. The author's, like delete, because both change who can see something.
+  app.post(
+    "/v1/content/:id/move",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({ threadId: z.string().uuid() }),
+        response: {
+          200: z.object({ content: contentRow, previous: z.object({ threadId: z.string() }) }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        const previous = await moveContent(accountId, request.params.id, request.body.threadId);
+        return reply.send({
+          content: await rowById(request.params.id, accountId),
+          previous,
+        });
+      })
+  );
+
+  // Delete. Author only, soft, on 004's mechanism exactly: eight seconds, then
+  // the purge job that is the only hard delete in the codebase.
+  app.delete(
+    "/v1/content/:id",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: { 200: z.object({ deleted: z.boolean() }), 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        const deleted = await deleteContent(accountId, request.params.id);
+        return reply.send({ deleted });
+      })
+  );
+
+  // Rename a thread. Co-owned: a shared thread's name belongs to everybody in
+  // it, and renaming touches no content.
+  app.patch(
+    "/v1/threads/:id",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({ name: z.string().min(1).max(80) }),
+        response: {
+          200: z.object({
+            thread: z.object({ id: z.string(), name: z.string() }),
+            previous: z.object({ name: z.string() }),
+          }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        const previous = await renameThread(accountId, request.params.id, request.body.name);
+        return reply.send({
+          thread: { id: request.params.id, name: request.body.name },
+          previous,
+        });
+      })
+  );
+}
+
+/** One row, shaped the way every response shapes it. Re-read after a write
+ *  rather than assembled from the update, so what the client renders is what
+ *  the database holds. */
+async function rowById(contentId: string, viewerId: string) {
+  const row = await db
+    .selectFrom("content")
+    .leftJoin("accounts", "accounts.id", "content.account_id")
+    .select([
+      "content.id as id",
+      "content.type as type",
+      "content.title as title",
+      "content.body as body",
+      "content.created_at as created_at",
+      "content.archived_at as archived_at",
+      "content.account_id as account_id",
+      "accounts.display_name as authorName",
+    ])
+    .where("content.id", "=", contentId)
+    .executeTakeFirstOrThrow();
+  return toRow(row, viewerId);
+}
+
+export const THREAD_LIMITS = { PAGE, STALE_DAYS } as const;

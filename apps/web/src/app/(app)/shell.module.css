@@ -1,0 +1,524 @@
+/* The application shell.
+ *
+ * A sidebar and a stack of panes, two of which are on screen. From
+ * ui_kits/web_app/WApp.jsx and WMisc.jsx, which are the design.
+ *
+ * Three rules the kit states and this has to keep:
+ *   a third pane pushes the leftmost out rather than shrinking everything
+ *   clicking a sidebar link resets to a single pane
+ *   narrow windows drop to one pane and the crumb becomes a back button
+ */
+
+.shell {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--surface-page);
+  color: var(--text-primary);
+}
+
+/* ------------------------------------------------------------- sidebar */
+
+/* Dark, always, whatever the rest of the window is doing. The kit stamps
+   data-theme="dark" on it rather than tinting it, so it uses the same token
+   names as everything else and simply resolves them differently. */
+.sidebar {
+  width: 248px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-5);
+  background: var(--surface-page);
+  color: var(--text-primary);
+  overflow-y: auto;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: var(--space-5) var(--space-6) var(--space-6);
+}
+
+.wordmark {
+  font: var(--weight-semibold) 21px/1 var(--font-display, var(--font-core));
+  letter-spacing: var(--tracking-title);
+  color: var(--text-primary);
+}
+
+.navGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--space-4);
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  height: 38px;
+  padding: 0 var(--space-4);
+  min-width: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font: var(--weight-medium) 14.5px/1 var(--font-core);
+  background: transparent;
+  color: var(--text-secondary);
+  transition: background var(--transition-ui);
+}
+
+.navItem:hover {
+  background: var(--surface-fill);
+}
+
+.navItem[data-on="true"] {
+  background: var(--blue-50);
+  color: var(--text-on-solid);
+}
+
+/* The active marker: a 3px rule pulled into the padding, so the label does not
+   shift when it appears. */
+.marker {
+  width: 3px;
+  height: 16px;
+  border-radius: 99px;
+  background: var(--blue-600);
+  flex: 0 0 auto;
+  margin: 0 -4px 0 -7px;
+}
+
+.navLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navCount {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sideLabel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: var(--space-6) var(--space-6) var(--space-3);
+  font: var(--weight-medium) 11.5px/1 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.sideFoot {
+  margin-top: auto;
+  padding: 0 var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* --------------------------------------------------------------- panes */
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* The toast is absolutely positioned inside this, not the viewport, so it
+     sits over the panes rather than over the sidebar too. */
+  position: relative;
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 46px;
+  flex: 0 0 auto;
+  padding: 0 var(--space-6);
+  border-bottom: 1px solid var(--border-hairline);
+  font: var(--weight-medium) 13px/1 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.crumb {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.crumb:last-child {
+  color: var(--text-primary);
+}
+
+/* The trail and the back button both render; the breakpoint below picks one.
+   Kept in the stylesheet alone because the design system has no breakpoint
+   token, so a JavaScript copy of this number would be a second place for it to
+   live and a second place for it to be wrong. */
+.crumbBack {
+  display: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.crumbTrail {
+  display: inline;
+}
+
+.crumbSep {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.paneRow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--surface-page);
+  animation: paneIn var(--duration-slow) var(--ease-entrance) both;
+}
+
+/* The pane that is not on top keeps a fixed width so the top one grows into
+   the rest, which is what makes a third pane push the first out rather than
+   squeezing all three. */
+.paneLeft {
+  flex: 0 0 520px;
+  border-right: 1px solid var(--border-hairline);
+}
+
+@keyframes paneIn {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pane { animation: none; }
+}
+
+/* --------------------------------------------------------- pane content */
+
+.paneHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding: var(--space-7) var(--space-7) var(--space-5);
+}
+
+.paneTitle {
+  margin: 0;
+  font: var(--text-title-1);
+  letter-spacing: var(--tracking-title);
+  font-variant-numeric: tabular-nums;
+}
+
+.paneTitleBig {
+  font-size: 28px;
+}
+
+.paneSub {
+  margin: var(--space-3) 0 0;
+  font-size: 13.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.paneTools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+}
+
+.paneBody {
+  padding: 0 var(--space-7) var(--space-9);
+}
+
+.section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-8) 0 var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-hairline);
+  font: var(--weight-semibold) 15px/1 var(--font-core);
+  color: var(--text-primary);
+}
+
+.sectionCount {
+  font-style: normal;
+  font-weight: var(--weight-medium);
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sectionAction {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: var(--weight-medium) 13px/1 var(--font-core);
+  color: var(--text-link);
+  cursor: pointer;
+}
+
+/* A row. Everything in a thread is one of these. */
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  width: 100%;
+  padding: var(--space-5) 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-hairline);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.rowIcon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowTitle {
+  font: var(--weight-medium) 14.5px/1.35 var(--font-core);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rowCount {
+  flex: 0 0 auto;
+  align-self: center;
+  font: var(--weight-medium) 14px/1 var(--font-core);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Row tools appear on hover and on focus. Focus matters more: without it the
+   only way to reach them is a pointer. */
+.rowTools {
+  flex: 0 0 auto;
+  display: flex;
+  gap: var(--space-2);
+  opacity: 0;
+  transition: opacity var(--transition-ui);
+}
+
+.row:hover .rowTools,
+.row:focus-within .rowTools {
+  opacity: 1;
+}
+
+.tool {
+  border: 0;
+  background: none;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.tool:hover {
+  background: var(--surface-fill);
+  color: var(--text-primary);
+}
+
+.archived {
+  opacity: 0.55;
+}
+
+/* The standing summary, and its empty state. offload writes nothing here yet,
+   so the empty state is what everybody sees. */
+.standing {
+  margin: var(--space-4) 0 0;
+  max-width: 58ch;
+  font: var(--text-quiet-role);
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.standingEmpty {
+  composes: standing;
+  color: var(--text-tertiary);
+}
+
+.wrote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  font-size: var(--size-caption);
+  color: var(--text-tertiary);
+}
+
+/* Faces on the thread head. */
+.faces {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.face {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--weight-semibold) 10.5px/1 var(--font-core);
+}
+
+.empty {
+  padding: var(--space-9) 0;
+  max-width: 46ch;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--text-tertiary);
+}
+
+.provenance {
+  margin: 0;
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface-fill);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+  font: var(--weight-medium) 13px/1 var(--font-core);
+  cursor: pointer;
+}
+
+.titleInput {
+  width: 100%;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font: var(--weight-medium) 14.5px/1.35 var(--font-core);
+  color: var(--text-primary);
+  background: var(--surface-raised);
+}
+
+/* Narrow: one pane, and the crumb becomes the way back. */
+/* 1180 is the kit's own one-pane width, from WApp.jsx's preview toggle. Below
+   it there is one pane, no sidebar, and the crumb is the way back. */
+@media (max-width: 1180px) {
+  .paneLeft { display: none; }
+  .sidebar { display: none; }
+  .crumbBack { display: inline; }
+  .crumbTrail { display: none; }
+}
+
+/* Undo, floated over the pane it applies to. The same Toast contract 004 wired
+   for the dump: ink bar, one action, a side gutter. */
+.toastRow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--space-7);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin: 0 var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-3);
+  animation: toastRise var(--duration-slow) var(--ease-entrance) both;
+}
+
+.toastMessage {
+  font: var(--text-body-sm-role);
+}
+
+.toastAction {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--text-inverse);
+  font: var(--weight-medium) var(--size-body-sm)/1 var(--font-core);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+@keyframes toastRise {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}

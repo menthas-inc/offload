@@ -378,6 +378,18 @@
 /* The frame. Not `.page`, which is the gate's sunken card ground: Today is
    behind the account and sits on the app surface. The two inline styles that
    used to sit on this element, alignItems and paddingTop, live here now. */
+/* Today as a pane. It no longer owns the window, so it fills the pane it is
+   given rather than the viewport. `todayScreen`'s full-height rule was correct
+   when Today was a standalone page and would fight the shell now. */
+.todayPane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--space-6);
+}
+
 .todayScreen {
   flex: 1;
   display: flex;

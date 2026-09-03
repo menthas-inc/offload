@@ -17,7 +17,7 @@ core-api
   GET    /v1/threads/:id/content        one page, cursor
   GET    /v1/content/:id                one piece, with provenance
   PATCH  /v1/content/:id                title, body
-  POST   /v1/content/:id/move           with the reach rule
+  POST   /v1/content/:id/move           author only
   POST   /v1/content/:id/archive        and /restore
   DELETE /v1/content/:id                author only, soft
   PATCH  /v1/threads/:id                rename
@@ -100,20 +100,21 @@ authorOf(accountId, contentId)  -> content.account_id = accountId, per row
 | read a thread or its content | `memberOf(viewer, thread)` |
 | edit, archive, restore | `memberOf(actor, thread)` |
 | delete | `memberOf(actor, thread)` **and** `authorOf(actor, content)` |
-| move | see below |
+| move | `memberOf(actor, source)` and `memberOf(actor, destination)` **and** `authorOf(actor, content)` |
 | rename a thread | `memberOf(actor, thread)` |
 
-### The move rule, stated as code because it is the one that was wrong
+### Move is author-only, and it is worth saying why
 
 ```
 move(actor, content, destination):
+  require authorOf(actor, content)
   require memberOf(actor, content.thread)
   require memberOf(actor, destination)
-  if actor != content.account_id:
-      require memberOf(content.account_id, destination)
 ```
 
-The last line is the whole correction. Without it, a member moves somebody else's content into a thread that person is not in, and it is gone from their view with no notice and no way back. That is a delete performed by a non-author, which is precisely what OFF-3 forbids, arrived at by a route OFF-3 does not mention.
+An earlier draft allowed any member to move any content anywhere they themselves could reach, which is a delete performed by a non-author: the content leaves a thread its author is in and lands in one they are not, with no notice and no way back. Precisely what OFF-3 forbids, arrived at by a route OFF-3 does not mention.
+
+The fix could have been narrow, letting a non-author move only within the author's reach. The product owner chose the broad one. **Move sits with delete**, because both change who can see something, and the result is a permission model that fits in one sentence rather than two.
 
 **One refusal reason** for every failure above, exactly as `004`'s tool endpoint does. A thread that does not exist, a thread you are not in, and a thread the author is not in are one answer, or the endpoint is a membership oracle for other people's threads.
 
