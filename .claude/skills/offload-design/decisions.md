@@ -549,3 +549,18 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **The camera and microphone are not rendered**, though `WComposer` draws them unconditionally. Text only in this feature, and a control that does nothing is worse than one that is absent.
 
 **Design system impact:** `WTurns` needs a `seen` branch, and the seen treatment should be lifted out of the mobile kit so one definition serves both. The failed state needs drawing properly in all three kits, since it is a real message state and every surface will hit it. `WComposer` should say that the camera and microphone are conditional on attachments existing, rather than drawing them as though they always work. And the readme's Toast guidance is worth a sentence on when not to use one: an eight second dismissal is wrong for anything the person may not be present for.
+
+### 2026-09-03 · The privacy policy's voice, and "upload" on that page only
+**Surface:** marketing
+
+**Is:** the whole of `/privacy` rewritten for tone. Short, professional, direct. The short version at the top took the heaviest pass, because it was the most casual part of the page and the part most people will actually read, but every section below it was tightened in the same direction.
+
+**What the voice was doing wrong.** The page was casual in a way that read as pally rather than plain, and it kept reaching for a line when a fact would do: "written to be read rather than to be airtight", "there is no advertising business here that would want us to", "we would rather you heard it here than found it later", "we would rather tell you exactly where that line is than say 'your data is encrypted' and be wrong about it". Each of those is defensible alone and together they are a voice that is performing its own honesty. The rule applied throughout: say the thing, then stop. We are not the reader's friend and we are not their solicitor.
+
+**Nothing in the substance moved**, with one exception below. Every legal basis, every right, the CCPA statements, the 30 day window, the shared-thread reasoning in section 10 and the precision of section 12 are intact. Two existing faults were fixed on the way past: the consent paragraph in section 4 pointed at "that fourth row" and the row it describes is the fifth, so it now names the row instead of counting it, and a sentence in section 10 was garbled mid-clause ("the reason the next four what you added to that thread says what it says").
+
+**The one substantive change: the page now says we plan to encrypt text as well.** At the product owner's instruction. It sits as a note under section 12's three consequences and as a clause in the summary bullet, and it is a forward-looking commitment on a claim surface, so it is logged in `docs/tech/decisions.md` too, against the deferred-hardening item that used to say the opposite.
+
+**"upload" replaces "dump", on this page only, deliberately.** The product's word is still dump everywhere else: the apps, the landing page, `readme.md`'s vocabulary list and this file. The product owner's call was to change the privacy page now and leave the question of whether the word changes everywhere for later. So this page is knowingly out of step with the rest of the product, and a header comment in `page.tsx` says so, because the next person to read it will otherwise fix it back.
+
+**Design system impact:** none to the tokens or the components. Two things for whoever holds the vocabulary. `readme.md`'s vocabulary section should note that `/privacy` says upload, so the divergence is recorded where the rule lives rather than only here. And if upload is ever adopted product-wide, the note in `page.tsx` and this entry both come out in the same change. Kits are unaffected; none of them draw this page.

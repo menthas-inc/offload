@@ -8,6 +8,9 @@
 //
 // Not reviewed by a lawyer. Everything still to be decided is wrapped in
 // <Todo>, which draws in amber, so an unfilled value cannot be missed.
+//
+// Copy on this page says "upload" where the rest of the product says "dump".
+// That is deliberate and, for now, local to this page. See decisions.md.
 
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
@@ -41,58 +44,53 @@ export default function Privacy() {
         <p className={styles.updated}>Last updated {UPDATED}</p>
         <h1 className={styles.title}>Privacy</h1>
         <p className={styles.standfirst}>
-          offload only works if you are willing to put real material into it, and you should only be
-          willing to do that if you know where they go. This page says where they go.
+          offload only works if you put real material into it, and you should only do that if you
+          know where it goes. This page says where it goes.
         </p>
 
         <section className={styles.summary}>
           <h2 className={styles.summaryTitle}>The short version</h2>
           <p className={styles.disclaimer}>
-            This part is not the legal document. It is our own summary of the rest of the page,
-            written to be read rather than to be airtight. Where the two disagree, the sections
-            below are the ones that count.
+            This section is not a legal document. It is our attempt to summarise this page to make
+            it more readable. Where the two disagree, the sections below are the ones that count.
           </p>
 
           <ul className={styles.bullets}>
             <li>
-              <strong>What you dump in is yours.</strong> We do not sell it, rent it, trade it or
-              hand it to advertisers, and there is no advertising business here that would want us
-              to. If offload is ever bought, the buyer is bound by this page as it stands, and
-              section 8 says exactly what that means.
+              <strong>What you upload is yours.</strong> We do not sell it, rent it, trade it or
+              hand it to advertisers. If offload is ever bought, the buyer is bound by this page as
+              it stands, and section 8 says what that means.
             </li>
             <li>
-              <strong>We do not train AI on what you dump in.</strong> It is off, and it stays off unless
-              you turn it on yourself. If you ever do, you can turn it back off, and either way
-              nothing you dumped is handed to another company to train on.
+              <strong>We do not train AI on what you upload.</strong> That stays off unless you
+              explicitly allow us to improve the product with your content, and you can withdraw
+              that at any time.
             </li>
             <li>
-              <strong>Delete anything, whenever you want.</strong> A dump, a thread, or the whole
-              account. It leaves our live systems immediately and our backups within 30 days. One
-              exception, and we would rather you heard it here than found it later: a thread you
-              chose to share stops being yours alone, and it ends when the last person in it
-              leaves.
+              <strong>Delete anything, whenever you want.</strong> A single upload, a thread, or the
+              whole account. It leaves our live systems immediately and our backups within 30 days.
+              One exception: what you put into a thread you share stops being yours alone. Section
+              10 explains why.
             </li>
             <li>
               <strong>Your photos, screenshots and voice notes are encrypted</strong> before we
               store them, with a key our storage provider never receives. The text in offload is
-              not encrypted by us. We would rather tell you exactly where that line is than say
-              "your data is encrypted" and be wrong about it.
+              not. We plan to encrypt that too.
             </li>
             <li>
               <strong>No ad trackers and no cookie banner.</strong> Nothing on our site follows you
-              anywhere else. We count what happens in the product against a random identifier, not
-              against your name or your address.
+              anywhere else.
             </li>
             <li>
               <strong>A few companies help us run offload.</strong> All of them are named below,
-              none of them may use what you dump in for their own purposes, and we do not add one
-              quietly. The only other route into what you dumped in is a court telling us
-              to hand them over, and section 7 says what we do about that.
+              none of them may use what you upload for their own purposes, and we do not add one
+              quietly. We may also be obliged by a court to hand over your content, and section 7
+              describes how we handle that.
             </li>
             <li>
-              <strong>We look at your content to fix faults, not to browse it.</strong> Someone here
-              may read what you dumped when you ask us for help, or when we are chasing a bug that
-              needs it. Not otherwise.
+              <strong>We only look at your content to fix problems.</strong> Someone here may read
+              it when you ask us for help, or when we are chasing a bug that needs it. Not
+              otherwise.
             </li>
             <li>
               <strong>You can take it all with you.</strong> One export, readable without offload.
@@ -138,17 +136,17 @@ export default function Privacy() {
               never hold one.
             </li>
             <li>
-              <strong>Everything you dump in.</strong> Notes, links, screenshots, photos, voice
+              <strong>Everything you upload.</strong> Notes, links, screenshots, photos, voice
               notes, and what you say to offload in the composer. This is the product, so we keep
-              it rather than discarding it.
+              it.
             </li>
           </ul>
 
           <h3 className={styles.h3}>What offload makes from it</h3>
           <ul>
             <li>
-                What your dumps are sorted into, the <strong>threads</strong> those sit in, and
-                the tags, dates and amounts pulled out of them.
+              The <strong>threads</strong> what you upload is sorted into, and the tags, dates and
+              amounts pulled out of it.
             </li>
             <li>
               <strong>Transcripts</strong> of your voice notes, and text read out of screenshots.
@@ -169,10 +167,10 @@ export default function Privacy() {
           <h3 className={styles.h3}>What comes from an app you connect</h3>
           <p>
             If you connect an email account, a calendar or a browser, offload reads what is there,
-            keeps what it describes, and throws the rest away. We store that plus
-            a reference we can use to fetch the original again on demand. We do not keep the raw
-            message, the raw event or the raw page. A dump is something you chose to hand us; a
-            connected inbox is not, and the two are deliberately treated differently.
+            keeps what it describes, and throws the rest away. We store that plus a reference we can
+            use to fetch the original again on demand. We do not keep the raw message, the raw event
+            or the raw page. What you upload is something you chose to hand us. A connected inbox is
+            not, and we treat the two differently on purpose.
           </p>
 
           <h3 className={styles.h3}>What we collect because software has to run</h3>
@@ -213,7 +211,7 @@ export default function Privacy() {
               <tbody>
                 <tr>
                   <td>To give you offload at all</td>
-                  <td>Your account and everything you dump in</td>
+                  <td>Your account and everything you upload</td>
                   <td>Performance of our contract with you</td>
                 </tr>
                 <tr>
@@ -232,13 +230,13 @@ export default function Privacy() {
                   <td>Our legitimate interest in improving the product</td>
                 </tr>
                 <tr>
-                  <td>To hold the private material people inevitably dump in</td>
+                  <td>To hold the private material people inevitably upload</td>
                   <td>Health, money, and anything else personal that lands in a thread</td>
                   <td>Your explicit consent, given on the last screen of first run</td>
                 </tr>
                 <tr>
                   <td>To improve offload using your own content</td>
-                  <td>What you dumped in, only if you switch this on</td>
+                  <td>What you upload, only if you switch this on</td>
                   <td>Your consent, and off until you give it</td>
                 </tr>
                 <tr>
@@ -254,20 +252,20 @@ export default function Privacy() {
             Where it is consent, you can withdraw it at any time without losing anything else.
           </p>
           <p>
-            <strong>The consent on that fourth row is the one that matters most</strong>, and it is
-            why first run ends with two tick boxes rather than a button. Some of what people dump in
-            is going to be health, money, beliefs or relationships, because those are the subjects
-            worth not forgetting, and European law asks for consent that is explicit and specific
-            before anyone holds them. That is the tick, it is separate from acknowledging this page,
-            and if you withdraw it we can no longer run offload for you, so withdrawing it means
-            closing the account and taking your export with you.
+            <strong>The consent on the private material row is the one that matters most</strong>,
+            and it is why first run ends with two tick boxes rather than a button. Some of what
+            people upload will be health, money, beliefs or relationships, because those are the
+            subjects worth not forgetting, and European law asks for consent that is explicit and
+            specific before anyone holds them. That is the tick. It is separate from acknowledging
+            this page, and if you withdraw it we can no longer run offload for you, so withdrawing
+            it means closing the account and taking your export with you.
           </p>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.h2}>5. AI, and what it does with what you dump in</h2>
+          <h2 className={styles.h2}>5. AI, and what it does with what you upload</h2>
           <p>
-            Sorting a dump into a thread, pulling a date out of a sentence, transcribing a voice
+            Sorting an upload into a thread, pulling a date out of a sentence, transcribing a voice
             note and answering you in the composer are all done by AI models we call on your behalf.
             To do that, the relevant part of your content is sent to the companies in the table
             below.
@@ -276,10 +274,10 @@ export default function Privacy() {
             <li>
               <strong>They do not train on it.</strong> Every company in the table below publishes
               terms that rule out using what an API sends them to train or improve their own models,
-              and not publishing such a term is disqualifying rather than a mark against. We rely on
-              those published terms rather than on separately negotiated ones, which is worth
-              knowing because a published term can be changed by the company that published it. We
-              check them, and section 17 says what happens when something material moves.
+              and not publishing such a term disqualifies a company from this list. We rely on those
+              published terms rather than on separately negotiated ones, which is worth knowing
+              because a published term can be changed by the company that published it. We check
+              them, and section 17 says what happens when something material moves.
             </li>
             <li>
               <strong>Only what the task needs goes out.</strong> Not your account, not your
@@ -300,8 +298,7 @@ export default function Privacy() {
             <strong>Automated decisions.</strong> Filing is automatic, which is the whole point of
             offload, but it produces no legal or similarly significant effect on anyone. Every
             decision it makes is visible to you and reversible by you, and anything filed in the
-            wrong place can be moved at any time afterwards. We do not profile you to decide
-            anything about you.
+            wrong place can be moved afterwards. We do not profile you to decide anything about you.
           </p>
         </section>
 
@@ -334,7 +331,7 @@ export default function Privacy() {
                 </tr>
                 <tr>
                   <td>Voyage AI</td>
-                  <td>Turns what you dumped in into something searchable</td>
+                  <td>Turns what you upload into something searchable</td>
                   <td>The text being indexed</td>
                 </tr>
                 <tr>
@@ -357,7 +354,7 @@ export default function Privacy() {
                   <td>Sign you in</td>
                   <td>
                     They tell us your verified email address. We tell them nothing about what you
-                    dump
+                    upload
                   </td>
                 </tr>
               </tbody>
@@ -376,30 +373,29 @@ export default function Privacy() {
           <p>
             The companies in section 6 are not the only way something could leave offload. A court,
             a regulator or the police can compel disclosure, and no privacy policy can promise
-            otherwise. So here is what we actually do.
+            otherwise. Here is what we do.
           </p>
           <ul>
             <li>
-              <strong>We ask what the law requires and give that, not more.</strong> A request for
-              an account gets that account. It does not get a thread other people are also in, and
-              it does not get an adjacent account because it would be convenient.
+              <strong>We give what the law requires, not more.</strong> A request for an account
+              gets that account. It does not get a thread other people are also in, and it does not
+              get an adjacent account because it would be convenient.
             </li>
             <li>
               <strong>We check that a request is valid before we answer it.</strong> A demand
-              without the paperwork behind it gets refused, and we will push back on one that is
+              without the paperwork behind it gets refused, and we push back on one that is
               overbroad rather than treating any letterhead as an order.
             </li>
             <li>
               <strong>We tell you, unless we are forbidden from telling you.</strong> If we can say
               that your content has been asked for, we will, before we hand anything over if there
-              is time and afterwards if there is not. Where a gag order applies we will say nothing,
-              because that is what a gag order is, and we will tell you the moment it lifts.
+              is time and afterwards if there is not. Where a gag order applies we say nothing,
+              because that is what a gag order is, and we tell you the moment it lifts.
             </li>
             <li>
-              <strong>We cannot hand over a key we do not have</strong>, and that cuts both ways:
-              your photos, screenshots and voice notes are encrypted, and your text is not. Section
-              12 is precise about which is which, and it is precise partly because this section
-              exists.
+              <strong>We cannot hand over a key we do not have.</strong> That cuts both ways: your
+              photos, screenshots and voice notes are encrypted, and your text is not. Section 12 is
+              precise about which is which.
             </li>
           </ul>
         </section>
@@ -407,9 +403,8 @@ export default function Privacy() {
         <section className={styles.section}>
           <h2 className={styles.h2}>8. If offload is bought or merges</h2>
           <p>
-            Companies get bought, merge, and occasionally wind up, and personal information usually
-            moves with the rest of the business when they do. Rather than leave that unsaid, or
-            promise something we could not deliver, here is the commitment:
+            Companies get bought, merge and occasionally wind up, and personal information usually
+            moves with the rest of the business when they do. Our commitment:
           </p>
           <ul>
             <li>
@@ -425,8 +420,8 @@ export default function Privacy() {
             </li>
             <li>
               <strong>You get told before it completes, and you can leave with everything you put in.</strong>{" "}
-              We will email account holders ahead of a change of ownership, with enough time to
-              export everything and delete the account first if that is what you want.
+              We email account holders ahead of a change of ownership, with enough time to export
+              everything and delete the account first if that is what you want.
             </li>
           </ul>
         </section>
@@ -445,9 +440,9 @@ export default function Privacy() {
           <h2 className={styles.h2}>10. How long we keep it</h2>
           <ul>
             <li>
-              <strong>What you dumped in: for as long as your account exists.</strong> offload does
-              not quietly age your dumps out or thin them down over time. Being able to find
-              something from three years ago is the product, so nothing expires on a clock.
+              <strong>What you upload: for as long as your account exists.</strong> offload does not
+              age your uploads out or thin them down over time. Being able to find something from
+              three years ago is the product, so nothing expires on a clock.
             </li>
             <li>
               <strong>Anything you delete: immediately, then 30 days.</strong> It goes from the live
@@ -463,13 +458,12 @@ export default function Privacy() {
 
           <h3 className={styles.h3}>Deleting your account, and shared threads</h3>
           <p>
-            Deleting your account removes what you dumped in privately, your memories, and your membership of
-            every thread you were in. There is one exception, deliberate:{" "}
+            Deleting your account removes what you uploaded privately, your memories, and your
+            membership of every thread you were in. There is one deliberate exception:{" "}
             <strong>
               what you put into a thread you shared with other people stays in that thread.
             </strong>{" "}
-            This is the most important sentence on this page to understand before you share
-            anything, so here is the whole of the reasoning behind it.
+            Understand this before you share anything, so here is the reasoning behind it.
           </p>
           <p>
             <strong>Sharing is a deliberate act, on one thread, with one person you already know.</strong>{" "}
@@ -481,27 +475,27 @@ export default function Privacy() {
             <strong>What you put in a shared thread becomes part of a shared record.</strong> The
             moment you add something to a thread with other people in it, it stops being only your
             information and becomes theirs as well: their record of a trip you are planning
-            together, their copy of the answer to a question they asked, the reason the next four
-            what you added to that thread says what it says. Taking your part back out later would not
-            return a thread to some earlier state. It would leave the other members with a
-            conversation full of holes and no way to know what used to be there, and it would delete
-            information about them, on your instruction, without their agreement.
+            together, their copy of the answer to a question they asked, the context for everything
+            they added after it. Taking your part back out later would not return the thread to some
+            earlier state. It would leave the other members with a conversation full of holes and no
+            way to know what used to be there, and it would delete information about them, on your
+            instruction, without their agreement.
           </p>
           <p>
             <strong>So nobody owns a shared thread, including us.</strong> A thread has members and
             no owner. There is no role that can throw someone out, take it over, or empty it, and
             being the person who created it grants nothing beyond having been the first one in it.
-            Nobody, including you, can delete what they did not write themselves. That symmetry
-            is the point: the protection you are giving up over your own contribution is exactly the
-            protection you are being given over everybody else's.
+            Nobody, including you, can delete what they did not write themselves. That symmetry is
+            the point: the protection you give up over your own contribution is exactly the
+            protection you get over everybody else's.
           </p>
           <p>
-            <strong>What you keep is the right to leave, and the thread dies with its last
+            <strong>What you keep is the right to leave, and the thread ends with its last
             member.</strong> You can take yourself out of a shared thread at any time. Your
             membership and your access go, and the other members' view is untouched. When the last
             member leaves, the thread and everything in it is deleted, which is the only moment at
-            which nobody is left who could read it. So nothing is kept forever against everyone's
-            wishes. It is kept for as long as somebody in the room still wants it.
+            which nobody is left who could read it. Nothing is kept forever against everyone's
+            wishes. It is kept for as long as somebody in it still wants it.
           </p>
           <p>
             We tell you all of this at the moment you share a thread, not afterwards, so the trade
@@ -533,8 +527,8 @@ export default function Privacy() {
         <section className={styles.section}>
           <h2 className={styles.h2}>12. Security, described exactly</h2>
           <p>
-            We would rather give you a narrow claim that is true than a broad one that sounds
-            better. So, precisely:
+            We would rather make a narrow claim that is true than a broad one that sounds better.
+            Precisely:
           </p>
 
           <h3 className={styles.h3}>What is encrypted by us</h3>
@@ -548,8 +542,8 @@ export default function Privacy() {
           <p>
             The text in offload is not encrypted by us. Titles, notes, transcripts, memories and
             search indexes sit in our database as ordinary text, protected by our provider's own
-            disk encryption and by access control, the way most software works. Three consequences follow
-            from that, and we will not describe them any other way:
+            disk encryption and by access control, the way most software works. Three consequences
+            follow from that:
           </p>
           <ul>
             <li>
@@ -562,6 +556,10 @@ export default function Privacy() {
             </li>
             <li>None of this defends against a compromise of the running service itself.</li>
           </ul>
+          <p className={styles.note}>
+            We plan to encrypt text as well. This section changes when that ships, and section 17
+            says how we tell you.
+          </p>
 
           <h3 className={styles.h3}>The rest of it</h3>
           <ul>
@@ -594,8 +592,8 @@ export default function Privacy() {
           </p>
           <ul>
             <li>
-              <strong>Improve offload with my data.</strong> Off. Nothing you dump is used to train
-              anything unless you turn this on yourself.
+              <strong>Improve offload with my data.</strong> Off. Nothing you upload is used to
+              train anything unless you turn this on yourself.
             </li>
             <li>
               <strong>Let offload notice patterns.</strong> On. This is what lets it work out that
@@ -608,7 +606,7 @@ export default function Privacy() {
               <strong>Export everything.</strong> One file, readable without offload.
             </li>
             <li>
-              <strong>Delete.</strong> Anything you dumped in, a thread, or your whole account.
+              <strong>Delete.</strong> A single upload, a thread, or your whole account.
             </li>
           </ul>
         </section>
@@ -643,8 +641,7 @@ export default function Privacy() {
           <p>
             You also have the right to complain to your data protection authority. In the UK that is
             the Information Commissioner's Office; in the EEA it is the authority for the country
-            you live in. We would rather you came to us first, but it is your call and not a step
-            you have to clear with us.
+            you live in. We would rather you came to us first, but it is your call.
           </p>
 
           <h3 className={styles.h3}>If you are in California</h3>
@@ -663,10 +660,9 @@ export default function Privacy() {
             opt out of, and no "do not sell" link, because there is no sale.
           </p>
           <p>
-            Some of what you dump in may count as sensitive personal information, depending on what
-            you dumped. We use it only to give you offload, which is a purpose the Act permits
-            without a separate right to limit, and never to infer anything about you for anyone
-            else.
+            Some of what you upload may count as sensitive personal information. We use it only to
+            give you offload, which is a purpose the Act permits without a separate right to limit,
+            and never to infer anything about you for anyone else.
           </p>
 
           <h3 className={styles.h3}>If you are elsewhere in the United States</h3>
@@ -700,8 +696,8 @@ export default function Privacy() {
           <h2 className={styles.h2}>17. Changes to this page</h2>
           <p>
             When we change this we change the date at the top. If a change actually matters, meaning
-            it affects what we do with your content rather than how a sentence is worded, we will
-            email account holders before it takes effect rather than relying on you to notice.
+            it affects what we do with your content rather than how a sentence is worded, we email
+            account holders before it takes effect rather than relying on you to notice.
           </p>
         </section>
 
