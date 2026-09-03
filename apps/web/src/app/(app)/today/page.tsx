@@ -15,29 +15,32 @@ import { AdminLink } from "../../../components/AdminLink";
 import { useMe } from "../../../lib/use-me";
 import styles from "../auth.module.css";
 
+// The kit's three, verbatim, and the same three both phones show from
+// apps/mobile/lib/gate.ts. Web had invented its own set and its own
+// invitation line, which is the drift the shared copy on mobile exists to
+// stop, except nothing shared it with web. Until there is one source both
+// clients read, these have to be kept identical by hand.
 const EXAMPLES = [
-  "Ana's birthday is in March, she wants the ceramics class",
-  "flight to Lisbon on the 14th, check in opens the day before",
-  "that podcast about the bridge collapse, listen on the train",
+  "Book the Alfama flat for the 14th",
+  "Ana can only travel the 14th to the 17th",
+  "Oak brackets, 30cm, matte black",
 ] as const;
+
+const DAY_ONE_INVITATION =
+  "Dump the first thing and offload will sort it. You do not need to pick a place for it, or name it, or come back and tidy it up.";
 
 export default function TodayPage() {
   const state = useMe("shell");
   const [draft, setDraft] = useState("");
   const input = useRef<HTMLInputElement>(null);
 
-  if (state.status === "loading") return <main className={styles.screen} />;
-
-  const firstName = state.me.displayName?.trim().split(/\s+/)[0];
+  if (state.status === "loading") return <main className={styles.todayScreen} />;
 
   return (
-    <main className={styles.screen} style={{ alignItems: "flex-start", paddingTop: 96 }}>
+    <main className={styles.todayScreen}>
       <AdminLink />
       <div className={styles.today}>
-        <p className={styles.emptyTitle}>
-          {firstName ? `Nothing here yet, ${firstName}.` : "Nothing here yet."} Dump the first
-          thing and offload will start filing.
-        </p>
+        <p className={styles.emptyTitle}>{DAY_ONE_INVITATION}</p>
 
         <div className={styles.examples}>
           {EXAMPLES.map((example) => (

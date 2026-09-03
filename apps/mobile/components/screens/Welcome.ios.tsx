@@ -27,16 +27,28 @@ export default function Welcome() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [leaving, setLeaving] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [readPolicy, setReadPolicy] = useState(false);
   const [agreeToProcessing, setAgreeToProcessing] = useState(false);
 
   async function finish(ask: boolean) {
     if (leaving) return;
     setLeaving(true);
+    setFailed(false);
 
     // The write first. Today is never rendered for an account the server still
     // considers mid-onboarding.
-    await completeOnboarding();
+    //
+    // And the answer is checked. Discarding it meant a 401 from a session that
+    // expired mid-onboarding, or a dropped connection, still navigated to
+    // Today with the account left `invited` and no consent recorded, which is
+    // the one thing AC-7a is for. Staying put is also the honest outcome: the
+    // next launch would send them back here regardless.
+    if (!(await completeOnboarding())) {
+      setLeaving(false);
+      setFailed(true);
+      return;
+    }
 
     // A refused or errored permission still lands on Today: it is not a
     // failure of first run.
@@ -127,6 +139,17 @@ export default function Welcome() {
       )}
 
       <View className="px-gutter-screen pb-space-8">
+        {/* Announced, because the button simply stops working otherwise and
+            nothing on screen says why. Same copy as the web. */}
+        {failed ? (
+          <Text
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            className="mb-space-5 text-center font-core text-body-sm text-text-on-attention"
+          >
+            That did not go through. Check your connection and try again.
+          </Text>
+        ) : null}
         <Pressable
           onPress={() => (consenting ? void finish(true) : setStep(step + 1))}
           disabled={leaving || (consenting && !ready)}

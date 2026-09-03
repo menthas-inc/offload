@@ -72,10 +72,26 @@ export const getMe = (): Promise<Me | null> => request<Me>("/api/me");
 
 /** Finishing first run, with both ticks from the consent screen. The server
  *  refuses anything else, so a build that predates the consent screen gets a
- *  400 rather than quietly producing an active account that agreed to nothing. */
-export const completeOnboarding = (): Promise<unknown> =>
-  request("/api/onboarding/complete", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ readPolicy: true, agreeToProcessing: true }),
-  });
+ *  400 rather than quietly producing an active account that agreed to nothing.
+ *
+ *  Returns whether the server actually recorded it, which the caller has to
+ *  check. It used to return the parsed body as `unknown` and every caller
+ *  discarded it, so a 401 from a session that expired mid-onboarding, or a
+ *  network failure, landed the person on Today with the account still
+ *  `invited` and no consent written. The web has always checked; this is the
+ *  same contract. */
+export async function completeOnboarding(): Promise<boolean> {
+  try {
+    const result = await request("/api/onboarding/complete", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true }),
+    });
+    return result !== null;
+  } catch {
+    // request() resolves to null on a bad response but still rejects if fetch
+    // itself throws, and an uncaught rejection here left `leaving` true
+    // forever with nothing on screen to say why.
+    return false;
+  }
+}

@@ -249,7 +249,19 @@ export const auth = betterAuth({
           // A refusal leaves no row behind: no identity, no account, nothing
           // to clean up and nothing that makes a second attempt behave
           // differently from the first (AC-5).
-          if (!verdict.allow) return false;
+          if (!verdict.allow) {
+            // Remember the address here too, not only in user.create.before.
+            //
+            // That hook only runs when no account matches the email at all, so
+            // it covered the stranger and missed everyone this branch sees: the
+            // person already on the waitlist who got impatient and tapped Sign
+            // in, and the disabled account. For all of them the no-invite
+            // screen fell back to "we found no invite for that account" with
+            // the join button disabled, which is exactly the dead end AC-5 is
+            // written against, and it is the likelier route onto that screen.
+            recordAttempt(verdict.email);
+            return false;
+          }
 
           // Strip the provider tokens before the row is written, not after.
           //

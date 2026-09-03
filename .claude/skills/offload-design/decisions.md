@@ -344,3 +344,36 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **One deliberate divergence from `Checkbox`.** The component greys and strikes through a ticked label, which is right for a task being crossed off and wrong here: a struck-through consent line reads as one that has been withdrawn. The box, the 6px radius, the ink fill and the tick drawing itself along its length are all as specified; only the label treatment is dropped. React Native has no checkbox primitive, so the phones draw the same box by hand in `components/ConsentTicks.tsx`, forked only on colour: ink on iOS, Material's primary on Android, which is the pair their gates already use.
 
 **Design system impact:** all three first-run kits need the fourth screen, and their "nothing to fill in" comments need the sentence that says the tutorial is what has nothing to fill in. `Checkbox` should say that the strike-through is for task ticks and name the exception, or gain a variant without it. `WSettings.jsx` and `SettingsDetail.jsx` already draw "Improve offload with my data", off by default, and are already right; what they still lack is anywhere to see or withdraw the consent given here, which the Privacy settings page should show.
+
+### 2026-09-02 · The phones were never wearing the design system
+**Surface:** iOS, Android
+
+**Is:** They are now. Nothing about the screens changed; what changed is that the tokens and the faces they name actually reach the device.
+
+**Two faults in `packages/tokens`, both silent by construction.** The generator filtered colours from the raw light scope, and its hex-to-channels helper returns null for anything holding a `var()`. Semantic tokens are almost all aliases, so 27 of 81 colours were dropped and 24 of them were semantic: `text-primary`, `text-inverse`, `text-accent`, `text-link`, `surface-raised`, `border-hairline` and their neighbours. Separately the Android platform scope was inserted into the stylesheet by a pattern that hard-coded two spaces of indentation, correct while those variables sat inside `@layer base` and matching nothing once that wrapper came off, so every `a-` class was dead too. Neither failure raised: Tailwind emitted `rgb(var(--c-text-inverse) / 1)`, the variable did not exist, and the platform substituted its own default. The gate rendered in system greys with a black label on the black Apple button and every file involved read correctly.
+
+**And no font was ever loaded.** `--font-core` names Instrument Sans, no such family exists on either OS, and both quietly substituted Roboto or SF. Every screen built so far has been rendered in the wrong typeface. The faces are registered natively now, all three weights under one family name, because that is what makes a weight class resolve to the cut it names rather than to nothing.
+
+**Design system impact:** none to the tokens or the kits, which were right throughout. The generator now asserts instead of failing quietly, and `.claude/scripts/dead-classes.mjs` checks every class in the app against the generated theme, which is the check that would have caught this on the day. Worth knowing when reading any screenshot of the phones taken before this date: it is not showing this design system.
+
+### 2026-09-02 · The gate lockup is 40% larger than the kits draw
+**Surface:** iOS, Android
+
+**Is:** The mark is 129 and the wordmark 42, against the 92 and 30 that `FirstRun.jsx` and `M3FirstRun.jsx` both draw. Tracking is computed from the size rather than frozen at the `-0.9` that was only `-0.03em` at 30px.
+
+**Why:** it read as too small on a real device. The kits are drawn in a 390-wide frame in a browser and the lockup is the first thing anyone sees, so this is exactly the kind of judgement that only survives contact with a phone in a hand. Deliberate, at the user's request, and it is the current answer rather than a settled one.
+
+**It also stopped moving between screens.** The lockup sat in a `flex-1` container, taking whatever the content below did not want, so it hung lower on the waitlist than on sign in purely because the waitlist has a field: moving between them, the mark visibly dropped. It is a share of the screen height now, and it lands at the same y on every gate screen. Two limits keep that honest on a small screen or under a keyboard: it shrinks before the copy does, since the lockup is decoration and the words are not, and it stops shrinking at the height of its own contents, because `justify-center` on a box smaller than what it holds overflows in both directions and put the wordmark on top of the waitlist's title.
+
+**Design system impact:** if this size is kept, `FirstRun.jsx` and `M3FirstRun.jsx` want 129 and 42 and the web gate should be looked at beside them, since a lockup that differs by 40% across surfaces is worse than either size. The kits should also say that the lockup's band is a share of the screen rather than the leftover space, because the drift they encode is invisible in a prototype where every screen is viewed alone.
+
+### 2026-09-02 · A waitlist screen the kits do not draw
+**Surface:** iOS, Android
+
+**Is:** `Waitlist.{ios,android}.tsx`, reached by tapping "Join the waitlist" on the gate. It is the no-invite screen with a field added, built from the same primitives at the same measurements, and its copy follows the marketing page's form because that is the same waitlist.
+
+**Why there is no kit for it.** Both phone kits draw "Join the waitlist" on the gate as a bold span with no click, and their no-invite screen is where joining happens. That works in the kits because the only way onto no-invite is a sign-in attempt that was refused, so the screen always knows the address. From the gate there is no address, and the line did nothing at all: tapping it was the bug that started this. The web gate points at the landing page's form, which the phones have no equivalent of.
+
+**One thing a prototype cannot show.** The keyboard covered the whole form on the device, field and both buttons. The fix is `behavior="padding"` on both platforms, against the usual advice, because that advice assumes Android resizes the window and this app runs edge to edge, where Android ignores `adjustResize` outright.
+
+**Design system impact:** the phone kits need this screen, or they need the gate's "Join the waitlist" to be honestly inert. They also have no text field on any pre-account screen, so there is no drawn answer for what one looks like on the gate's surface; this borrows the composer's pill and the gate's outline. More generally the kits have no way to show a keyboard, and every screen with a field will hit the same thing, so the first-run kits should carry a note about what is on screen when one is up.

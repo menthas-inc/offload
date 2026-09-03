@@ -63,24 +63,42 @@ describe("AC-5 attaching a first identity to an existing account", () => {
 
   it("refuses an account still on the waitlist", async () => {
     const id = await account("waiting@example.com", "waitlist");
-    await expect(decideLink(id)).resolves.toEqual({ allow: false, reason: "waitlisted" });
+    // The address rides on the verdict so the no-invite screen can name it.
+    // This is the likeliest way onto that screen: join the waitlist, get
+    // impatient, tap Sign in.
+    await expect(decideLink(id)).resolves.toEqual({
+      allow: false,
+      reason: "waitlisted",
+      email: "waiting@example.com",
+    });
   });
 
   it("refuses a disabled account", async () => {
     const id = await account("gone@example.com", "disabled");
-    await expect(decideLink(id)).resolves.toEqual({ allow: false, reason: "disabled" });
+    await expect(decideLink(id)).resolves.toEqual({
+      allow: false,
+      reason: "disabled",
+      email: "gone@example.com",
+    });
   });
 
   it("refuses a soft-deleted account", async () => {
     const id = await account("erased@example.com", "active");
     await db.updateTable("accounts").set({ deleted_at: new Date() }).where("id", "=", id).execute();
-    await expect(decideLink(id)).resolves.toEqual({ allow: false, reason: "no-invite" });
+    // Soft-deleted reads as no account at all, so there is no address to name
+    // and the screen falls back to its address-less copy.
+    await expect(decideLink(id)).resolves.toEqual({
+      allow: false,
+      reason: "no-invite",
+      email: null,
+    });
   });
 
   it("refuses an account id that does not exist", async () => {
     await expect(decideLink("00000000-0000-7000-8000-000000000000")).resolves.toEqual({
       allow: false,
       reason: "no-invite",
+      email: null,
     });
   });
 });
@@ -93,7 +111,11 @@ describe("linking a provider onto a staff account", () => {
 
     // Fails closed. Anyone who can get a provider to assert a staff member's
     // address would otherwise inherit the admin panel with one button.
-    await expect(decideLink(id)).resolves.toEqual({ allow: false, reason: "staff-linking" });
+    await expect(decideLink(id)).resolves.toEqual({
+      allow: false,
+      reason: "staff-linking",
+      email: "support@example.com",
+    });
   });
 
   it("still allows the first one, so a new admin can sign in at all", async () => {

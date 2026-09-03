@@ -365,3 +365,116 @@
   color: var(--text-on-attention);
   font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
 }
+
+/* Today on day one.
+ *
+ * These nine classes were used by `(app)/today/page.tsx` and defined nowhere,
+ * so every className on that page resolved to undefined and the screen this
+ * whole feature builds toward shipped with no styling at all. `types.d.ts`
+ * declares `*.css` with no shape, so `styles.anything` is `any` and neither
+ * typecheck nor lint could see it. Drawn from `ui_kits/web_app/WMisc.jsx`'s
+ * WFirstRun, which is the mock for this screen. */
+
+/* The frame. Not `.page`, which is the gate's sunken card ground: Today is
+   behind the account and sits on the app surface. The two inline styles that
+   used to sit on this element, alignItems and paddingTop, live here now. */
+.todayScreen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 96px 44px 0;
+  background: var(--surface-page);
+}
+
+.today {
+  width: 100%;
+  /* The kit's measure. Long-form invitation copy, not a column of UI. */
+  max-width: 52ch;
+  padding: var(--space-8) var(--gutter-screen) 0;
+}
+
+.emptyTitle {
+  margin: 0;
+  font: var(--text-quiet-role);
+  font-size: 19px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.examples {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-7);
+}
+
+/* Dashed, because an example is an invitation and not a control that already
+   holds something. Tapping one fills the composer rather than submitting. */
+.example {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  font: var(--weight-regular) 15px/1.4 var(--font-core);
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.example:hover { background: var(--state-hover); }
+
+.composer {
+  width: 100%;
+  max-width: 52ch;
+  padding: var(--space-6) var(--gutter-screen) var(--space-8);
+}
+
+/* Neutral at rest, like both phone kits: the attention tint is a focus ring,
+   never the resting surface. */
+.composerInner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--composer-height);
+  padding: 0 var(--space-3) 0 var(--space-6);
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-pill);
+  background: var(--surface-input);
+  transition: box-shadow var(--transition-ui);
+}
+
+.composerInner:focus-within { box-shadow: 0 0 0 3px var(--surface-attention-soft); }
+
+.composerInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  outline: none;
+  font: var(--text-body-role);
+  color: var(--text-primary);
+}
+
+.composerInput::placeholder { color: var(--text-tertiary); }
+
+.send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Drawn at 40, hit at 44, per the design system's hit-area rule. */
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--ink-950);
+  color: var(--text-inverse);
+  cursor: pointer;
+}
+
+.send:disabled { background: var(--ink-200); cursor: default; }

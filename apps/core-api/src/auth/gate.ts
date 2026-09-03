@@ -15,7 +15,18 @@ import { db } from "../db.js";
 
 export type GateVerdict =
   | { allow: true; accountId: string; link: boolean }
-  | { allow: false; reason: "no-invite" | "waitlisted" | "disabled" | "staff-linking" };
+  | {
+      allow: false;
+      reason: "no-invite" | "waitlisted" | "disabled" | "staff-linking";
+      /** The address on the account that was refused, for the no-invite
+       *  screen to name. Null when there is no account to read one from.
+       *
+       *  Carried on the verdict rather than fetched again by the caller
+       *  because this function has the row in hand, and because a refusal
+       *  that cannot say which address it checked is the dead end the
+       *  attempt cookie exists to avoid. */
+      email: string | null;
+    };
 
 /** The verdict for attaching a provider identity to an account that already
  *  exists, which is the ordinary first sign-in of an invited person.
@@ -31,14 +42,16 @@ export type GateVerdict =
 export async function decideLink(accountId: string): Promise<GateVerdict> {
   const account = await db
     .selectFrom("accounts")
-    .select(["id", "state"])
+    .select(["id", "state", "email"])
     .where("id", "=", accountId)
     .where("deleted_at", "is", null)
     .executeTakeFirst();
 
-  if (!account) return { allow: false, reason: "no-invite" };
-  if (account.state === "disabled") return { allow: false, reason: "disabled" };
-  if (account.state === "waitlist") return { allow: false, reason: "waitlisted" };
+  if (!account) return { allow: false, reason: "no-invite", email: null };
+  if (account.state === "disabled")
+    return { allow: false, reason: "disabled", email: account.email };
+  if (account.state === "waitlist")
+    return { allow: false, reason: "waitlisted", email: account.email };
 
   // Attaching a provider to a staff account is a privilege escalation with a
   // sign-in button on it: anyone who can get a provider to assert a staff
@@ -59,7 +72,8 @@ export async function decideLink(accountId: string): Promise<GateVerdict> {
     .forUpdate()
     .executeTakeFirst();
 
-  if (alreadyHasIdentity) return { allow: false, reason: "staff-linking" };
+  if (alreadyHasIdentity)
+    return { allow: false, reason: "staff-linking", email: account.email };
 
   return { allow: true, accountId: account.id, link: true };
 }
