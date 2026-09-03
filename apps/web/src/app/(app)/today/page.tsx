@@ -21,7 +21,13 @@
 import { useEffect, useRef, useState } from "react";
 import { AdminLink } from "../../../components/AdminLink";
 import { useMe } from "../../../lib/use-me";
-import { awaitAnswer, DumpTooLong, sendDump, type MessageState } from "../../../lib/dump";
+import {
+  awaitAnswer,
+  DumpTooLong,
+  fetchCurrent,
+  sendDump,
+  type MessageState,
+} from "../../../lib/dump";
 import styles from "../auth.module.css";
 
 // The kit's three, verbatim, and the same three both phones show from
@@ -52,14 +58,71 @@ export default function TodayPage() {
   const [sending, setSending] = useState(false);
   const [tooLong, setTooLong] = useState<number | null>(null);
   const input = useRef<HTMLInputElement>(null);
-  const cancels = useRef<Array<() => void>>([]);
+  // Keyed by message, so a settled stream drops its own entry. A plain array
+  // grew for the life of the tab: harmless per call, since closing a closed
+  // EventSource is a no-op, but an unbounded pile of closures on a page
+  // somebody leaves open all day.
+  const cancels = useRef<Map<string, () => void>>(new Map());
 
   // An EventSource left open holds a connection the server pays to keep alive,
   // and React mounts twice in development.
   useEffect(() => {
     const list = cancels.current;
     return () => {
-      for (const cancel of list) cancel();
+      for (const cancel of list.values()) cancel();
+      list.clear();
+    };
+  }, []);
+
+  // Rebuild the conversation on load, and pick up waiting on anything that is
+  // still unanswered. A dump sent just before the tab closed is in the database
+  // either way; this is what makes it visible again, and what makes a reload
+  // mid-answer resume rather than lose the thread.
+  useEffect(() => {
+    let live = true;
+
+    void fetchCurrent().then((messages) => {
+      if (!live || messages.length === 0) return;
+
+      setTurns(
+        messages.map((message) => ({
+          id: message.id,
+          from: message.role === "person" ? "you" : "offload",
+          text: message.text ?? "",
+          state: message.state,
+        })),
+      );
+
+      for (const message of messages) {
+        if (message.role !== "person" || message.state !== "seen") continue;
+        cancels.current.set(
+          message.id,
+          awaitAnswer(message.id, (answer) => {
+            cancels.current.delete(message.id);
+            setTurns((current) => {
+              const next = current.map((turn) =>
+                turn.id === message.id
+                  ? { ...turn, state: answer.state }
+                  : turn,
+              );
+              return answer.reply
+                ? [
+                    ...next,
+                    {
+                      id: `${message.id}-reply`,
+                      from: "offload" as const,
+                      text: answer.reply,
+                    },
+                  ]
+                : next;
+            });
+          }),
+        );
+      }
+    });
+
+    return () => {
+      live = false;
     };
   }, []);
 
@@ -82,17 +145,28 @@ export default function TodayPage() {
         { id: sent.messageId, from: "you", text, state: sent.state },
       ]);
 
-      cancels.current.push(
+      cancels.current.set(
+        sent.messageId,
         awaitAnswer(sent.messageId, (answer) => {
+          cancels.current.delete(sent.messageId);
           setTurns((current) => {
             const next = current.map((turn) =>
-              turn.id === sent.messageId ? { ...turn, state: answer.state } : turn
+              turn.id === sent.messageId
+                ? { ...turn, state: answer.state }
+                : turn,
             );
             return answer.reply
-              ? [...next, { id: `${sent.messageId}-reply`, from: "offload" as const, text: answer.reply }]
+              ? [
+                  ...next,
+                  {
+                    id: `${sent.messageId}-reply`,
+                    from: "offload" as const,
+                    text: answer.reply,
+                  },
+                ]
               : next;
           });
-        })
+        }),
       );
     } catch (error) {
       if (error instanceof DumpTooLong) setTooLong(error.maxChars);
@@ -111,10 +185,13 @@ export default function TodayPage() {
     input.current?.focus();
   }
 
-  if (state.status === "loading") return <main className={styles.todayScreen} />;
+  if (state.status === "loading")
+    return <main className={styles.todayScreen} />;
 
   const live = turns.length > 0;
-  const waiting = turns.some((turn) => turn.from === "you" && turn.state === "seen");
+  const waiting = turns.some(
+    (turn) => turn.from === "you" && turn.state === "seen",
+  );
 
   return (
     <main className={styles.todayScreen}>
@@ -155,7 +232,10 @@ export default function TodayPage() {
                     // The label is the readme's fuller string, not the kit's
                     // shorter "Seen", because the marker has to say what it
                     // means to somebody who cannot see it.
-                    <span className={styles.seen} aria-label="seen, not answered yet">
+                    <span
+                      className={styles.seen}
+                      aria-label="seen, not answered yet"
+                    >
                       <span aria-hidden="true">👀</span>
                     </span>
                   ) : null}
@@ -166,7 +246,11 @@ export default function TodayPage() {
                     // away would never learn their dump went unanswered.
                     <p className={styles.turnFailed} role="alert">
                       offload could not answer that one. Your dump is saved.{" "}
-                      <button type="button" className={styles.retry} onClick={() => void retry(turn.id)}>
+                      <button
+                        type="button"
+                        className={styles.retry}
+                        onClick={() => void retry(turn.id)}
+                      >
                         Try again
                       </button>
                     </p>
@@ -176,14 +260,18 @@ export default function TodayPage() {
                 <div key={turn.id} className={styles.turnOffload}>
                   {turn.text}
                 </div>
-              )
+              ),
             )}
 
             {/* One live region for the whole exchange, polite, announced once
                 per transition rather than per frame. Without it the thinking
                 state and the answer are silent changes to a screen reader. */}
             <p className={styles.srOnly} role="status" aria-live="polite">
-              {waiting ? "offload is thinking" : turns.at(-1)?.from === "offload" ? "offload answered" : ""}
+              {waiting
+                ? "offload is thinking"
+                : turns.at(-1)?.from === "offload"
+                  ? "offload answered"
+                  : ""}
             </p>
 
             {waiting ? (

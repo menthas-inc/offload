@@ -18,7 +18,7 @@ Ordered so each phase is verifiable before the next. A to C are API and worker, 
 - [x] **B1** `POST /v1/dumps`: length refusal, `clientKey` dedup, the six-hour conversation join, message insert and enqueue, all in one transaction. (AC-1, AC-2, AC-11, AC-14)
 - [x] **B2** `GET /v1/messages/:id`, account-scoped, returning state and reply. (AC-3, AC-4, AC-9)
 - [x] **B3** `POST /internal/v1/turn-result`: service token, account and conversation derived from the job row, idempotent on `jobId`, one transaction writing the reply, the state flip and `llm_usage`. (AC-6, AC-16)
-- [x] **B4** The worker's claim loop with the per-account cap, and a shared test asserting the TypeScript and Python claim queries agree on the cap and the priority order. (AC-12)
+- [x] **B4** The worker's claim loop with the per-account cap, and tests asserting the cap, the priority order and that neither runner takes the other's kinds. (AC-12) *Marked done once before the tests existed, which the review caught.*
 - [x] **B5** The harness: frozen system prompt in git, three-block user turn, structured output with one repair-and-revalidate retry, prompt caching. (AC-7, AC-22, OFF-5)
 - [x] **B6** Prompt assembly with all three bounds enforced before the call, and the thread list resolved through `thread_members`. (AC-10, AC-15, OFF-3, OFF-8)
 - [x] **B7** Failure path: one retry, then the message marked failed through the internal endpoint, with `jobs.last_error` scrubbed. (AC-5, AC-8)
@@ -31,7 +31,7 @@ Ordered so each phase is verifiable before the next. A to C are API and worker, 
 
 ## Phase D, the screen
 
-- [x] **D1** The composer submits, optimistically renders the person's turn, and opens the stream. Stays on Today; no conversation list and no full-pane view, which is the stated limitation.
+- [x] **D1** The composer submits, optimistically renders the person's turn, and opens the stream, and rebuilds the conversation on load through `GET /v1/conversations/current`. Stays on Today; no conversation list and no full-pane view, which is the stated limitation.
 - [x] **D2** The seen marker on web, ported from `ui_kits/mobile_app/LiveConversation.jsx`'s `StatusChip`, with the readme's fuller text alternative. **First stab, to be adjusted.** (AC-20)
 - [x] **D3** The thinking state, and the answer rendering into the same composer. (AC-3)
 - [x] **D4** The failed state: inline, persistent, with Try again. **Invented here, no kit draws it. First stab, to be adjusted.** (AC-5)
@@ -40,9 +40,9 @@ Ordered so each phase is verifiable before the next. A to C are API and worker, 
 
 ## Phase E, closing
 
-- [ ] **E1** Tests for every acceptance criterion, named by AC.
+- [x] **E1** Tests for every acceptance criterion, named by AC. 151 TypeScript and 22 Python.
 - [x] **E2** Three `decisions.md` entries in the design system: the seen marker on web, the failed state, and the hidden camera and microphone. Each with **Design system impact** filled in. (OFF-7)
-- [ ] **E3** `/review` panel, then the constitution pass, then fixes.
+- [x] **E3** `/review` panel, then the constitution pass, then fixes. **One critical, six highs.** The worst: an SSE tick could write to an ended response and take the API process down with an unhandled rejection, which is the ordinary case of closing a tab mid-dump; dump jobs inherited the email default of five attempts, so a failing dump retried four times before anybody was told; the idempotency key was check-then-insert, so the concurrent retry it exists for raised a 500 on the unique index; and nothing rebuilt the conversation on load, so AC-1's promise was true of the database and false of the product.
 - [ ] **E4** Deploy: migration on boot, the worker as a new Railway service, and a real dump answered in production.
 
 ## Tests, by acceptance criterion

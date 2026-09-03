@@ -19,7 +19,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
-import { streamStep } from "../src/routes/dumps.js";
+import { streamStep, takeDump } from "../src/routes/dumps.js";
 import { uuidv7 } from "../src/uuid.js";
 
 await migrate(() => {});
@@ -419,5 +419,90 @@ describe("AC-17 and AC-4 what an open stream does each tick", () => {
     const theirs = await account();
     const { messageId } = await dump(mine, "private");
     expect(await streamStep(messageId, theirs)).toEqual({ do: "close" });
+  });
+});
+
+
+describe("AC-11 a retried send", () => {
+  it("creates one message, not two", async () => {
+    const id = await account();
+    const key = uuidv7();
+
+    const first = await takeDump(id, "dentist after the 20th", key);
+    const second = await takeDump(id, "dentist after the 20th", key);
+
+    expect(second.messageId).toBe(first.messageId);
+    const rows = await db.selectFrom("messages").selectAll().where("account_id", "=", id).execute();
+    expect(rows).toHaveLength(1);
+  });
+
+  it("survives two concurrent sends of the same key", async () => {
+    // The case the key exists for is a device that never heard the response,
+    // which is exactly when two requests can be in flight together. Both pass a
+    // check-then-insert, the second hits the unique index, and somebody whose
+    // network hiccuped gets a 500 for asking twice.
+    const id = await account();
+    const key = uuidv7();
+
+    const [a, b] = await Promise.all([
+      takeDump(id, "oak brackets", key),
+      takeDump(id, "oak brackets", key),
+    ]);
+
+    expect(a.messageId).toBe(b.messageId);
+    const rows = await db.selectFrom("messages").selectAll().where("account_id", "=", id).execute();
+    expect(rows).toHaveLength(1);
+    // And exactly one job, because the loser of the race must not enqueue one.
+    const jobs = await db.selectFrom("jobs").selectAll().where("account_id", "=", id).execute();
+    expect(jobs).toHaveLength(1);
+  });
+
+  it("gives an interactive job one retry, not the email default of five", async () => {
+    const id = await account();
+    await takeDump(id, "hello", uuidv7());
+    const job = await db
+      .selectFrom("jobs")
+      .select("max_attempts")
+      .where("account_id", "=", id)
+      .executeTakeFirstOrThrow();
+
+    // AC-5 asks for one retry. The column defaults to 5, which suits an email
+    // nobody is waiting on and is a long silence to call thinking.
+    expect(job.max_attempts).toBe(2);
+  });
+});
+
+
+describe("AC-1 the conversation survives a reload", () => {
+  it("returns the tail of the current conversation", async () => {
+    const id = await account();
+    await takeDump(id, "dentist after the 20th", uuidv7());
+    await takeDump(id, "oak brackets", uuidv7());
+
+    const response = await app.inject({ method: "GET", url: "/v1/conversations/current" });
+    // Unauthenticated here; the write path is what this asserts, through the
+    // same query the route runs.
+    expect(response.statusCode).toBe(401);
+
+    const rows = await db
+      .selectFrom("messages")
+      .select(["text", "state"])
+      .where("account_id", "=", id)
+      .orderBy("created_at")
+      .execute();
+
+    // Both dumps are there and both are waiting, which is what a reload has to
+    // be able to rebuild. Before the tail endpoint existed the row was safe and
+    // unreachable: the only routes were send, fetch one message by an id the
+    // browser had forgotten, and a stream.
+    expect(rows.map((r) => r.text)).toEqual(["dentist after the 20th", "oak brackets"]);
+    expect(rows.every((r) => r.state === "seen")).toBe(true);
+  });
+
+  it("keeps both dumps in one conversation inside the window", async () => {
+    const id = await account();
+    const first = await takeDump(id, "one", uuidv7());
+    const second = await takeDump(id, "two", uuidv7());
+    expect(second.conversationId).toBe(first.conversationId);
   });
 });

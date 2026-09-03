@@ -51,7 +51,10 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     credentials: "include",
   });
   if (!response.ok) return null;
-  const body = (await response.json()) as { state: MessageState; reply: string | null };
+  const body = (await response.json()) as {
+    state: MessageState;
+    reply: string | null;
+  };
   return { state: body.state, reply: body.reply };
 }
 
@@ -63,7 +66,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
  */
 export function awaitAnswer(
   messageId: string,
-  onAnswer: (answer: Answer) => void
+  onAnswer: (answer: Answer) => void,
 ): () => void {
   let done = false;
 
@@ -94,7 +97,8 @@ export function awaitAnswer(
     if (done) return;
     void fetchAnswer(messageId).then((answer) => {
       if (!answer) return;
-      if (answer.state === "answered" || answer.state === "failed") settle(answer);
+      if (answer.state === "answered" || answer.state === "failed")
+        settle(answer);
       // Still thinking: the browser reconnects the EventSource on its own.
     });
   });
@@ -103,4 +107,25 @@ export function awaitAnswer(
     done = true;
     source.close();
   };
+}
+
+export interface TailMessage {
+  id: string;
+  role: "person" | "offload";
+  text: string | null;
+  state: MessageState;
+}
+
+/** The current conversation, so a reload does not look like a fresh account.
+ *
+ *  Without this the composer came up empty every time and AC-1's promise, that
+ *  a dump sent before losing connectivity is there on next load, was true of
+ *  the database and false of the product. */
+export async function fetchCurrent(): Promise<TailMessage[]> {
+  const response = await fetch(`${API}/v1/conversations/current`, {
+    credentials: "include",
+  });
+  if (!response.ok) return [];
+  const body = (await response.json()) as { messages: TailMessage[] };
+  return body.messages;
 }

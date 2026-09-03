@@ -36,6 +36,16 @@ export interface EnqueueOptions {
   idempotencyKey?: string;
   /** Enqueue inside the caller's transaction. Almost always what you want. */
   tx?: Transaction<Database> | Kysely<Database>;
+  /** How many times this may be attempted before it is given up on.
+   *
+   *  The column defaults to 5, which suits an email: nobody is waiting and a
+   *  transient SMTP failure deserves patience. An interactive job is the
+   *  opposite case, and 003 asks for exactly one retry, so it passes 2 rather
+   *  than inheriting a default chosen for a different kind of work. Without
+   *  this a failing dump was retried four times before the person was told
+   *  anything, which is a long silence to call thinking.
+   */
+  maxAttempts?: number;
 }
 
 export async function enqueue(options: EnqueueOptions): Promise<void> {
@@ -58,6 +68,7 @@ export async function enqueue(options: EnqueueOptions): Promise<void> {
         // in three. One clock is the fix.
         run_after: options.runAfter ?? sql<Date>`now()`,
       state: "queued",
+      ...(options.maxAttempts === undefined ? {} : { max_attempts: options.maxAttempts }),
       idempotency_key: options.idempotencyKey ?? null,
     })
     .onConflict((oc) => oc.column("idempotency_key").doNothing())
