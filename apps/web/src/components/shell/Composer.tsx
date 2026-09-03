@@ -59,6 +59,7 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
   const [tooLong, setTooLong] = useState<number | null>(null);
   const [undoable, setUndoable] = useState<Undoable | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  const turnsBox = useRef<HTMLDivElement>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Keyed by message, so a settled stream drops its own entry. A plain array
   // grew for the life of the tab.
@@ -72,6 +73,14 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
       if (undoTimer.current) clearTimeout(undoTimer.current);
     };
   }, []);
+
+  // A new turn scrolls the conversation to the bottom. Without it the reply
+  // arrives below the fold and the composer looks like it did nothing, which is
+  // the same failure as not delivering it at all.
+  useEffect(() => {
+    const box = turnsBox.current;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [turns]);
 
   // Today's examples fill the field rather than submitting it, and they reach
   // it through an event because the composer is nobody's child any more. One
@@ -242,7 +251,7 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
 
       <div className={styles.card}>
       {live ? (
-        <div className={styles.turns}>
+        <div className={styles.turns} ref={turnsBox}>
           {turns.map((turn) =>
             turn.from === "you" ? (
               <div key={turn.id} className={styles.turnYou}>
@@ -253,6 +262,15 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
                   // what it means to somebody who cannot see it.
                   <span className={styles.seen} aria-label="seen, not answered yet">
                     <span aria-hidden="true">👀</span>
+                  </span>
+                ) : null}
+                {turn.state === "answered" ? (
+                  // The kit's Done badge, in the same place. A different state
+                  // rather than a second version of the same one: 👀 means
+                  // offload has it, this means it finished.
+                  <span className={styles.done}>
+                    <Icon name="check" size={11} />
+                    Done
                   </span>
                 ) : null}
                 {turn.state === "failed" ? (
@@ -295,6 +313,7 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
                         href={`/threads/${thread.id}`}
                         className={styles.threadLink}
                       >
+                        <Icon name="lasso" size={13} />
                         {thread.name}
                       </Link>
                     ))}

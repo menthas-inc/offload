@@ -115,16 +115,19 @@
 
 .send:disabled { background: var(--ink-200); cursor: default; }
 
+/* Yours: right, tight, and the corner nearest the field is squared off, which
+   is what makes a stack of bubbles read as a conversation rather than a list. */
 .turnYou {
-  position: relative;
   align-self: flex-end;
   max-width: 78%;
+  position: relative;
   padding: var(--space-3) var(--space-5);
-  border: 1px solid var(--blue-100);
   border-radius: 18px 18px 5px 18px;
   background: var(--blue-50);
+  border: 1px solid var(--blue-100);
   font: var(--weight-regular) 15px/1.45 var(--font-core);
   color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
 
 .turnOffload {
@@ -137,8 +140,12 @@
   font-size: 15px;
   line-height: 1.5;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
 
+/* Two markers on your own bubble, bottom left, and they are different states
+   rather than two versions of one. 👀 is the readme's: offload has it and has
+   not answered. Done is the kit's: the turn finished. */
 .seen {
   position: absolute;
   left: -15px;
@@ -152,6 +159,22 @@
   background: var(--paper);
   font-size: 11px;
   line-height: 1;
+}
+
+.done {
+  position: absolute;
+  left: -15px;
+  bottom: -16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px 0 6px;
+  border: 1px solid var(--moss-600);
+  border-radius: 99px;
+  background: var(--moss-600);
+  color: var(--paper);
+  font: var(--weight-medium) 11px/1 var(--font-core);
 }
 
 .turnFailed {
@@ -214,25 +237,28 @@
 .wentTo {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
+/* A reference, as a Chip. Accent because offload derived it, and clickable
+   because a reply that names a place you cannot go to makes you go looking. */
 .threadLink {
   display: inline-flex;
   align-items: center;
-  height: 26px;
-  padding: 0 var(--space-4);
+  gap: 6px;
+  height: 30px;
+  padding: 0 var(--space-5);
   border-radius: var(--radius-pill);
-  background: var(--surface-fill);
-  color: var(--text-secondary);
-  font: var(--weight-medium) 12.5px/1 var(--font-core);
+  background: var(--moss-100);
+  color: var(--text-accent);
+  font: var(--weight-medium) 13px/1 var(--font-core);
   text-decoration: none;
 }
 
 .threadLink:hover {
-  background: var(--surface-inverse);
-  color: var(--text-inverse);
+  background: var(--moss-200);
+  color: var(--text-accent);
 }
 
 /* Undo, floated over the composer rather than over a pane, because the action
@@ -282,6 +308,12 @@
    was so nothing moves under the cursor. Capped so a long conversation scrolls
    rather than pushing the field off the screen. */
 .turns {
+  flex: 1;
+  min-height: 0;
   max-height: 40vh;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-3) var(--space-6);
 }
