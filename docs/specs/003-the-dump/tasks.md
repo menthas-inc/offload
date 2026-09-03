@@ -6,7 +6,7 @@ Ordered so each phase is verifiable before the next. A to C are API and worker, 
 
 ## Phase A, foundation
 
-- [~] **A1** 🔴 `ANTHROPIC_API_KEY` **in the root `.env`, done, and a real dump answered locally.** Still needed on the worker service when it is deployed. **A service account key scoped to a workspace**, not an organisation key, so spend and revocation are per workload. *Blocks the first real model call and nothing before it: everything through B4 is testable with a stubbed client. Workload Identity Federation would remove this secret entirely and cannot be used here, because it needs an ambient OIDC identity and Railway has none. See `decisions.md`.*
+- [x] **A1** `ANTHROPIC_API_KEY` in the root `.env` and on the worker service. A real dump has been answered in both places. **A service account key scoped to a workspace**, not an organisation key, so spend and revocation are per workload. *Blocks the first real model call and nothing before it: everything through B4 is testable with a stubbed client. Workload Identity Federation would remove this secret entirely and cannot be used here, because it needs an ambient OIDC identity and Railway has none. See `decisions.md`.*
 - [x] **A2** Migration `0008_the_dump.sql`: `conversations`, `messages`, `llm_usage`, with the five indexes named in the impl-spec. `things` and `blobs` deliberately not created. (DATA-1)
 - [x] **A3** Kysely codegen so the new tables are typed from the schema, and the schema-drift test still passes.
 - [x] **A4** A restricted Postgres role for the worker: `select` on `conversations`, `messages`, `threads`, `thread_members`, `jobs`, `accounts`; `update` on `jobs`; nothing on `sessions`, `account_identities`, `account_keys`, `staff`. (SEC-2)
@@ -43,7 +43,9 @@ Ordered so each phase is verifiable before the next. A to C are API and worker, 
 - [x] **E1** Tests for every acceptance criterion, named by AC. 151 TypeScript and 22 Python.
 - [x] **E2** Three `decisions.md` entries in the design system: the seen marker on web, the failed state, and the hidden camera and microphone. Each with **Design system impact** filled in. (OFF-7)
 - [x] **E3** `/review` panel, then the constitution pass, then fixes. **One critical, six highs.** The worst: an SSE tick could write to an ended response and take the API process down with an unhandled rejection, which is the ordinary case of closing a tab mid-dump; dump jobs inherited the email default of five attempts, so a failing dump retried four times before anybody was told; the idempotency key was check-then-insert, so the concurrent retry it exists for raised a 500 on the unique index; and nothing rebuilt the conversation on load, so AC-1's promise was true of the database and false of the product.
-- [ ] **E4** Deploy: migration on boot, the worker as a new Railway service, and a real dump answered in production.
+- [x] **E4** Deployed. Migrations 0008 to 0010 applied on boot, the worker runs as its own Railway service with root directory `apps/agent`, and a real dump was answered in production: `claude-sonnet-5`, 478 input tokens, 2,380ms, job closed, usage recorded.
+- [ ] **F1** 🔴 Look at the composer in a browser. The seen marker and the failed state are first stabs on surfaces no kit draws, and neither has been seen by a person. Unverifiable from here: Better Auth signs its session cookie, so the tests exercise the states through `streamStep` rather than the rendering.
+- [ ] **F2** Merge to `main`, and point the agent service's branch at it. It tracks `003-composer` today.
 
 ## Tests, by acceptance criterion
 
