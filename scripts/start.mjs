@@ -1,10 +1,18 @@
 // Which service is this container?
 //
-// Railway runs `pnpm start` from the repository root, and Railpack ignores the
-// per-service config file at prepare time (decisions.md), so the root start
-// script is the only reliable place to decide. The CLI has no flag for a start
-// command either, and the dashboard is the alternative, which means a setting
-// that lives nowhere in the repository.
+// Railway runs `pnpm start` from the repository root for the TypeScript
+// services, so this is where the decision lands.
+//
+// It used to say the root config file was the only reliable place to set a
+// start command. That file is gone: Railway deprecated Config as Code, a
+// service created after 2026-08-28 cannot opt into it, and it stops working
+// entirely on 2026-12-01. Build and start commands live in the environment now,
+// set with `railway environment edit`, which takes the whole config on stdin.
+//
+// This script stays anyway, because the two TypeScript services genuinely do
+// share one image and one `pnpm start`, and something has to choose between
+// them. The agent is not one of them: it is a Python service with its own root
+// directory and its own start command, and it never reaches this file.
 //
 // So: one variable, OFFLOAD_SERVICE, set per service. It defaults to core-api
 // because that service predates this file and its behaviour must not change
