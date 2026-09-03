@@ -597,3 +597,18 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **Frozen rather than removed, and it is the same picture.** `animation: none` lands each loop on its first keyframe and the shader draws at a fixed clock, which is exactly what `prefers-reduced-motion` already does, so this is the view a good share of visitors to the landing page were already getting. Verified after the change: 0 running CSS animations and 0 rAF callbacks a second on `/privacy`, against 10 and 181 on `/`.
 
 **Design system impact:** worth a line in `readme.md` where the atmosphere is described. It is a one-screen effect. Behind anything that scrolls it has to be still, and the reason is measurable rather than aesthetic. If the effect is ever put behind another long page, `pinned` is the prop that does both halves.
+
+### 2026-09-03 · The atmosphere costs what it should now, everywhere
+**Surface:** marketing
+
+**Is:** the same effect on every page, drawn far less often. Four changes, all in the shared component, so the landing page and the gate get them too rather than only the document that exposed the problem.
+
+**The loops step instead of easing.** Every drift and every cloud now runs on `steps(duration × 2)`, so a wash moves twice a second rather than sixty times. Each one drifts *inside* a parent carrying a turbulence filter, so any change re-runs the filter and repaints the layer, measured at 96ms across the nine of them. The loops run 47 to 86 seconds and travel about 2%, which makes one step about a third of a pixel. The easing is the only thing given up: a 54 second drift that eases and one that does not are the same drift.
+
+**The prism draws ten times a second, and wakes ten times a second to do it.** Its own clock advances at 0.03, so a second of it is a thirtieth of a cycle and fifty frames in sixty were redrawing something indistinguishable. It was already throttled once in this pass and still scheduling at 60fps to draw at 10; the timer now sets the rate.
+
+**Two easing loops ran forever with nowhere to go.** The pointer parallax eased towards a target it had already reached, on a page usually sitting still with nobody's pointer on it. The landing page's word dissolve was worse: a permanent 60fps loop that called `getComputedStyle` for the font size and wrote the displacement scale every frame, including the seconds between swaps when the value never changed. Both stop when they arrive and are woken by the thing that gives them somewhere to go. **The dissolve is untouched as an animation** and was checked rather than assumed: 34 distinct scale values across a cycle, peaking where it did before.
+
+**Numbers, from a trace of a production build.** Main thread busy per second: the landing page 301ms to 212ms, the gate 100ms to 73ms, privacy 2ms. Idle rAF callbacks a second: the landing page 181 to 68, the gate 60 to 8.5, privacy 0. *Measured in headless Chrome on software rendering, so the absolute numbers are worse than any real machine and only the ratios should be believed. What is left on the landing page above the gate is the word dissolve actually running, which is the animation working rather than waste.*
+
+**Design system impact:** none to the tokens, the components or the look. The rule worth carrying into `readme.md` beside the atmosphere: an effect that sits behind a turbulence filter must not be animated at frame rate, and an easing loop must stop when it arrives. Both were written the expensive way here and neither was visible as a defect until a page with text on it had to share the thread.

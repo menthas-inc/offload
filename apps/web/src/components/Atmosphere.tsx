@@ -65,6 +65,9 @@ const FRAGMENT_SHADER = [
  *  order is front to back: the widest, softest wash moves most. */
 const DEPTHS = [46, 35, 25, 16, 9, 0];
 
+/** The prism redraws ten times a second. See the note in `draw`. */
+const SHADER_INTERVAL_MS = 100;
+
 /** The shader's ground has to be the page's own colour or the mark sits on a
  *  slightly different white than the paper around it. Read from the token
  *  rather than restated, so it follows --surface-page wherever that goes. */
@@ -104,6 +107,11 @@ export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
       target.y = (event.clientY / (window.innerHeight || 1) - 0.5) * 2;
     };
 
+    // Runs only while it has somewhere to go. Easing towards a target it has
+    // already reached is a rAF a second forever for no movement at all, on a
+    // page that is usually sitting still with nobody's pointer on it.
+    const settled = () => Math.abs(target.x - eased.x) < 0.001 && Math.abs(target.y - eased.y) < 0.001;
+
     const tick = () => {
       eased.x += (target.x - eased.x) * 0.06;
       eased.y += (target.y - eased.y) * 0.06;
@@ -112,13 +120,17 @@ export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
         flare.style.setProperty("--fx", (-eased.x * depth).toFixed(2) + "px");
         flare.style.setProperty("--fy", (-eased.y * depth).toFixed(2) + "px");
       });
-      frame = requestAnimationFrame(tick);
+      frame = settled() ? 0 : requestAnimationFrame(tick);
     };
 
-    window.addEventListener("pointermove", onMove);
-    frame = requestAnimationFrame(tick);
+    const wake = (event: PointerEvent) => {
+      onMove(event);
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+
+    window.addEventListener("pointermove", wake);
     return () => {
-      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointermove", wake);
       cancelAnimationFrame(frame);
     };
   }, [still]);
@@ -173,18 +185,26 @@ export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
     // A still atmosphere draws once, at a fixed clock, exactly as reduced motion
     // does. The prism is part of the mark, not an animation of it, so removing
     // it would remove the picture rather than the movement.
+    // Ten draws a second, and ten wake-ups a second to make them. The field's
+    // own clock advances at 0.03, so a second of it is a thirtieth of a cycle:
+    // fifty of every sixty frames were redrawing something indistinguishable
+    // from what was already on screen, and each redraw pushes the canvas back
+    // through its filter. The timer sets the rate and the frame keeps the draw
+    // on the browser's own schedule, so nothing is drawn into a hidden tab.
     const reduced = still || reducedMotion();
     const start = performance.now();
     let frame = 0;
+    let timer = 0;
     const draw = (now: number) => {
       gl.uniform1f(uTime, reduced ? 40 : (now - start) / 1000);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      if (!reduced) frame = requestAnimationFrame(draw);
+      if (!reduced) timer = window.setTimeout(() => (frame = requestAnimationFrame(draw)), SHADER_INTERVAL_MS);
     };
     frame = requestAnimationFrame(draw);
 
     return () => {
       window.removeEventListener("resize", resize);
+      window.clearTimeout(timer);
       cancelAnimationFrame(frame);
     };
   }, [still]);

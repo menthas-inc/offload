@@ -47,6 +47,7 @@ export default function Landing() {
   const outRef = useRef(false);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const bleedRef = useRef<SVGFEDisplacementMapElement | null>(null);
+  const wakeBleed = useRef<(() => void) | null>(null);
 
   outRef.current = out;
 
@@ -70,28 +71,60 @@ export default function Landing() {
 
     // The bleed is an SVG attribute, which CSS cannot transition, so it is
     // eased by hand towards whichever end the word is at.
+    //
+    // It runs while a word is dissolving or arriving and stops the moment it
+    // gets there, which is most of the time: the word holds for seconds between
+    // swaps and the loop has nothing to do in any of them. Left running, every
+    // frame recalculated style to read the font size and wrote an attribute
+    // that re-runs the title's displacement filter, which measured as the
+    // single most expensive thing on the page.
     let frame = 0;
     let scale = 0;
+    let size = BLEED_AT;
+
+    const measure = () => {
+      if (titleRef.current) size = parseFloat(getComputedStyle(titleRef.current).fontSize) || BLEED_AT;
+    };
+
     const tick = () => {
       const map = bleedRef.current;
-      if (map) {
-        const size = titleRef.current
-          ? parseFloat(getComputedStyle(titleRef.current).fontSize) || BLEED_AT
-          : BLEED_AT;
-        const target = outRef.current ? (BLEED * size) / BLEED_AT : 0;
-        scale += (target - scale) * 0.06;
-        map.setAttribute("scale", scale.toFixed(2));
+      // Clear the handle on the way out, or the loop is neither running nor
+      // restartable and the dissolve stops for the life of the page.
+      if (!map) {
+        frame = 0;
+        return;
       }
-      frame = requestAnimationFrame(tick);
+      const target = outRef.current ? (BLEED * size) / BLEED_AT : 0;
+      scale += (target - scale) * 0.06;
+      const done = Math.abs(target - scale) < 0.01;
+      if (done) scale = target;
+      map.setAttribute("scale", scale.toFixed(2));
+      frame = done ? 0 : requestAnimationFrame(tick);
     };
-    frame = requestAnimationFrame(tick);
+
+    // Woken by the swap, not polled. `out` is what the loop is chasing, so a
+    // change to it is the only thing that can give it somewhere to go.
+    wakeBleed.current = () => {
+      measure();
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
 
     return () => {
       window.clearInterval(interval);
       window.clearTimeout(arriving);
+      window.removeEventListener("resize", measure);
+      wakeBleed.current = null;
       cancelAnimationFrame(frame);
     };
   }, []);
+
+  // Both ends of the swap wake it: the word leaving and the next one arriving.
+  useEffect(() => {
+    wakeBleed.current?.();
+  }, [out]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
