@@ -30,6 +30,13 @@ rewritten. This entry exists because OFF-7 requires a divergence to be logged ev
 temporary and self-resolving, and because the resolution is a scheduling promise rather than a
 code change: **this entry is closed by 003 shipping, not by anything in 002.**
 
+**Amended 2026-09-02:** 003 is web only, so it closes this for web and leaves it open on the
+phones. Their composer stays inert until their own feature lands, and the promotion discipline
+above, no real invites while a composer cannot take a dump, still binds because a person invited
+today reaches a phone before they reach a browser. *Amended rather than rewritten: the entry
+promised a resolution on three surfaces and one of them is arriving, which is exactly the kind of
+half-kept promise that reads as kept if nobody writes the other half down.*
+
 ### 2026-08-28 · One dump can become several things, and it lives in the composer
 **Surface:** iOS, Android, web
 **Raised by:** the codebase, then corrected by the product owner.

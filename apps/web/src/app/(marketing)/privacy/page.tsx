@@ -299,9 +299,9 @@ export default function Privacy() {
           <p>
             <strong>Automated decisions.</strong> Filing is automatic, which is the whole point of
             offload, but it produces no legal or similarly significant effect on anyone. Every
-            decision it makes is visible to you and reversible by you: there is an eight second Undo
-            on the action, and anything filed in the wrong place can be moved at any time afterwards.
-            We do not profile you to decide anything about you.
+            decision it makes is visible to you and reversible by you, and anything filed in the
+            wrong place can be moved at any time afterwards. We do not profile you to decide
+            anything about you.
           </p>
         </section>
 
