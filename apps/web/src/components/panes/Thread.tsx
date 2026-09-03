@@ -15,6 +15,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { Widgets } from "./Widgets";
 import {
@@ -154,6 +155,8 @@ export function Thread({ id, onChanged, onUndo }: Props) {
 
   if (!thread) return <div className={styles.paneBody} />;
 
+  const counted = showArchived ? thread.counts.archived : thread.counts.active;
+
   const others = thread.members.filter((member) => !member.isYou);
 
   return (
@@ -193,6 +196,8 @@ export function Thread({ id, onChanged, onUndo }: Props) {
         </div>
 
         <div className={styles.paneTools}>
+          {/* Who is already in, then the share control: the same order as the
+              phones, and the first thing the kit puts on a thread. */}
           <div className={styles.faces}>
             {thread.members.map((member) => (
               <span key={member.accountId} className={styles.face} title={member.displayName}>
@@ -200,15 +205,33 @@ export function Thread({ id, onChanged, onUndo }: Props) {
               </span>
             ))}
           </div>
+
+          {/* Inert until inviting exists. Drawn because the thread page without
+              it is a different screen from the one that was designed, and
+              because a control that says "not yet" is honest where a missing
+              one is silent. */}
           <button
             type="button"
-            className={styles.chip}
+            className={styles.shareButton}
+            disabled
+            aria-disabled="true"
+            title="Sharing is not built yet"
+          >
+            <Icon name="share-2" size={15} />
+            Share
+          </button>
+
+          <button
+            type="button"
+            className={styles.tool}
+            aria-label="Rename this thread"
+            title="Rename"
             onClick={() => {
               setNameDraft(thread.name);
               setRenaming(true);
             }}
           >
-            Rename
+            <Icon name="pencil" size={16} />
           </button>
         </div>
       </div>
@@ -220,6 +243,15 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             the screen. Nothing writes summaries yet, so today this is always
             absent, and the day one lands the block appears with something in
             it. The phones draw a placeholder and should stop. */}
+        {thread.standing ? (
+          <>
+            <p className={styles.standing}>{thread.standing}</p>
+            <p className={styles.wrote}>
+              <Icon name="sparkles" size={13} />
+              offload wrote this
+            </p>
+          </>
+        ) : null}
 
         {/* Widgets first, then everything. A widget is a view over the same
             rows the list below shows, so a piece removed from one is gone from
@@ -234,8 +266,8 @@ export function Thread({ id, onChanged, onUndo }: Props) {
 
         <h2 className={styles.section}>
           {showArchived ? "Archived" : "Everything in here"}
-          <em className={styles.sectionCount}>
-            {showArchived ? thread.counts.archived : thread.counts.active}
+          <em className={styles.sectionCount} data-tone="accent">
+            {counted}
           </em>
           {thread.counts.archived > 0 || showArchived ? (
             <button
@@ -260,8 +292,8 @@ export function Thread({ id, onChanged, onUndo }: Props) {
               key={row.id}
               className={`${styles.row} ${row.archivedAt ? styles.archived : ""}`}
             >
-              <span className={styles.rowIcon} aria-hidden="true">
-                ◦
+              <span className={styles.rowIcon}>
+                <Icon name={rowIcon(row.type)} size={18} />
               </span>
               <span className={styles.rowText}>
                 {editing === row.id ? (
@@ -296,20 +328,22 @@ export function Thread({ id, onChanged, onUndo }: Props) {
                   type="button"
                   className={styles.tool}
                   aria-label="Edit"
+                  title="Edit"
                   onClick={() => {
                     setDraft(row.title);
                     setEditing(row.id);
                   }}
                 >
-                  ✎
+                  <Icon name="pencil" size={15} />
                 </button>
                 <button
                   type="button"
                   className={styles.tool}
                   aria-label={row.archivedAt ? "Put back in the list" : "Archive"}
+                  title={row.archivedAt ? "Put back in the list" : "Archive"}
                   onClick={() => void archive(row)}
                 >
-                  {row.archivedAt ? "↩" : "▤"}
+                  <Icon name={row.archivedAt ? "rewind" : "archive"} size={15} />
                 </button>
                 {/* Only the author. The kit draws this unconditionally; OFF-3
                     says otherwise, and the server refuses either way. */}
@@ -318,9 +352,10 @@ export function Thread({ id, onChanged, onUndo }: Props) {
                     type="button"
                     className={styles.tool}
                     aria-label="Delete"
+                    title="Delete"
                     onClick={() => void remove(row)}
                   >
-                    ✕
+                    <Icon name="trash-2" size={15} />
                   </button>
                 ) : null}
               </span>
@@ -329,11 +364,35 @@ export function Thread({ id, onChanged, onUndo }: Props) {
         )}
 
         {cursor ? (
-          <button type="button" className={styles.sectionAction} onClick={() => void more()}>
+          <button type="button" className={styles.showMore} onClick={() => void more()}>
             Show more
           </button>
         ) : null}
       </div>
     </>
   );
+}
+
+/** The glyph for a piece of content, from its type. The kit's own mapping:
+ *  a pin for a place, a link for a link, a picture for a picture. */
+function rowIcon(type: string): string {
+  switch (type) {
+    case "location":
+      return "map-pin";
+    case "link":
+      return "link";
+    case "image":
+    case "screenshot":
+      return "image";
+    case "file":
+      return "paperclip";
+    case "voice":
+      return "mic";
+    case "task":
+      return "square-check-big";
+    case "event":
+      return "calendar";
+    default:
+      return "text-quote";
+  }
 }

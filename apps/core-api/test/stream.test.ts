@@ -112,7 +112,6 @@ function openStream(url: string, cookie: string) {
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      // eslint-disable-next-line no-constant-condition
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;

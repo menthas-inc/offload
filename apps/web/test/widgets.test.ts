@@ -74,8 +74,13 @@ describe("widgets are earned", () => {
     expect(widgetsFor([{ ...dated, occursAt: null }])).toEqual([]);
   });
 
-  it("does not earn a to-do list from tasks that are all done (AC-1)", () => {
-    expect(widgetsFor([row({ type: "task", doneAt: "2026-09-01T00:00:00Z" })])).toEqual([]);
+  it("still earns a to-do list from tasks that are all done (AC-1)", () => {
+    // Reversed deliberately. This asserted the opposite until somebody ticked
+    // something off and watched it vanish: a done task leaves the widget's
+    // predicate but not the widget, because the list is a record of a finished
+    // job and the tick is the reward for doing the work.
+    expect(widgetsFor([row({ type: "task", doneAt: "2026-09-01T00:00:00Z" })]).map((w) => w.kind))
+      .toEqual(["todo"]);
   });
 
   it("leads with whatever the thread is mostly made of", () => {
@@ -187,6 +192,43 @@ describe("grouping", () => {
         { tags: [] },
       ])
     ).toEqual(["city", "room"]);
+  });
+});
+
+describe("a ticked item sinks rather than vanishing", () => {
+  it("keeps the to-do list when every task is done (AC-1)", () => {
+    // The list is a record of a finished job, not an empty widget. Something
+    // you did this morning disappearing is how you end up wondering whether
+    // you did it.
+    const done = row({ type: "task", doneAt: "2026-09-01T00:00:00Z" });
+    expect(widgetsFor([done]).map((w) => w.kind)).toEqual(["todo"]);
+  });
+
+  it("puts done tasks last, whatever their priority", () => {
+    const urgentDone = row({ type: "task", priority: 99, doneAt: "2026-09-01T00:00:00Z" });
+    const idle = row({ type: "task", priority: 1 });
+    const mid = row({ type: "task", priority: 50 });
+
+    const todo = widgetsFor([urgentDone, idle, mid])[0]!;
+    // Its importance dropped below everything outstanding the moment it was
+    // finished, which is what "move it to the bottom" means.
+    expect(todo.rows.map((r) => r.priority)).toEqual([50, 1, 99]);
+  });
+
+  it("sinks done rows inside a group too", () => {
+    const done = row({ type: "task", tags: ["city:alfama"], priority: 90, doneAt: "2026-09-01T00:00:00Z" });
+    const open = row({ type: "task", tags: ["city:alfama"], priority: 10 });
+    const group = groupBy([done, open], "city")[0]!;
+    expect(group.rows.map((r) => r.priority)).toEqual([10, 90]);
+  });
+
+  it("ranks a group of finished work below one with anything left", () => {
+    const finished = row({ type: "task", tags: ["city:porto"], priority: 99, doneAt: "2026-09-01T00:00:00Z" });
+    const outstanding = row({ type: "task", tags: ["city:alfama"], priority: 5 });
+    expect(groupBy([finished, outstanding], "city").map((g) => g.value)).toEqual([
+      "alfama",
+      "porto",
+    ]);
   });
 });
 

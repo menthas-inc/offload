@@ -38,6 +38,7 @@
   align-items: center;
   gap: 9px;
   padding: var(--space-5) var(--space-6) var(--space-6);
+  color: var(--text-primary);
 }
 
 .wordmark {
@@ -137,24 +138,57 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  height: 46px;
+  height: 52px;
   flex: 0 0 auto;
   padding: 0 var(--space-6);
-  border-bottom: 1px solid var(--border-hairline);
   font: var(--weight-medium) 13px/1 var(--font-core);
   color: var(--text-tertiary);
 }
 
-.crumb {
-  border: 0;
-  background: none;
-  padding: 0;
-  font: inherit;
-  color: var(--text-tertiary);
-  cursor: pointer;
+.crumbItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
-.crumb:last-child {
+/* A crumb is a chip, not a word in a path. The current one inverts to ink,
+   which is how the kit shows where you are. */
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition-ui);
+}
+
+.crumb:hover {
+  background: var(--surface-fill);
+}
+
+.crumb[data-on="true"] {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+.closePane {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  font: inherit;
+}
+
+.closePane:hover {
   color: var(--text-primary);
 }
 
@@ -164,11 +198,14 @@
    live and a second place for it to be wrong. */
 .crumbBack {
   display: none;
+  align-items: center;
+  gap: 6px;
   border: 0;
   background: none;
   padding: 0;
   font: inherit;
   color: var(--text-primary);
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -194,8 +231,10 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  background: var(--surface-page);
+  overflow: hidden;
+  /* The top pane is raised and the ones behind it are the page. That contrast
+     is what makes a stack read as a stack rather than as two columns. */
+  background: var(--surface-raised);
   animation: paneIn var(--duration-slow) var(--ease-entrance) both;
 }
 
@@ -204,7 +243,10 @@
    squeezing all three. */
 .paneLeft {
   flex: 0 0 520px;
-  border-right: 1px solid var(--border-hairline);
+  background: var(--surface-page);
+  /* A shadow rather than a border, so the pane's own width is unchanged and
+     two panes do not shift by a pixel when one arrives. */
+  box-shadow: -1px 0 0 var(--border-hairline);
 }
 
 @keyframes paneIn {
@@ -219,27 +261,34 @@
 /* --------------------------------------------------------- pane content */
 
 .paneHead {
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
-  gap: var(--space-5);
-  padding: var(--space-7) var(--space-7) var(--space-5);
+  gap: var(--space-4);
+  max-width: 700px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-8) 0;
 }
 
 .paneTitle {
   margin: 0;
-  font: var(--text-title-1);
-  letter-spacing: var(--tracking-title);
+  font: var(--weight-semibold) 20px/1.2 var(--font-core);
+  letter-spacing: -0.016em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
 .paneTitleBig {
-  font-size: 28px;
+  font-size: 25px;
 }
 
 .paneSub {
-  margin: var(--space-3) 0 0;
-  font-size: 13.5px;
-  color: var(--text-tertiary);
+  margin: 3px 0 0;
+  font: var(--weight-regular) 13.5px/1.4 var(--font-core);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -252,30 +301,72 @@
 }
 
 .paneBody {
-  padding: 0 var(--space-7) var(--space-9);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  max-width: 700px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 var(--space-8) var(--space-7);
 }
 
 .section {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  margin: var(--space-8) 0 var(--space-4);
+  gap: var(--space-3);
+  margin: var(--space-7) 0 var(--space-2);
   padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border-hairline);
-  font: var(--weight-semibold) 15px/1 var(--font-core);
+  border-bottom: 1px solid var(--ink-950);
+  font: var(--weight-semibold) 18px/1.2 var(--font-core);
+  letter-spacing: -0.012em;
   color: var(--text-primary);
 }
 
+/* The count, as a Badge beside the title.
+ *
+ * Solid attention by default and soft accent where the kit asks for it. Which
+ * group gets which is not a free choice: `WThings` gives "Always on" the accent
+ * and leaves "Older threads" on the default, so the blue lands on the group
+ * that is finished rather than the one that never closes. */
 .sectionCount {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
   font-style: normal;
   font-weight: var(--weight-medium);
-  font-size: 12.5px;
-  color: var(--text-tertiary);
+  font-size: 12px;
+  background: var(--blue-600);
+  color: var(--text-inverse);
   font-variant-numeric: tabular-nums;
 }
 
+.sectionCount[data-tone="accent"] {
+  background: var(--moss-100);
+  color: var(--text-accent);
+}
+
+/* A ghost button at the end of the rule, per the SectionHeader contract. */
 .sectionAction {
   margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 0 var(--space-3);
+  height: 26px;
+  border-radius: var(--radius-sm);
+  font: var(--weight-medium) 13px/1 var(--font-core);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.sectionAction:hover {
+  background: var(--surface-fill);
+  color: var(--text-primary);
+}
+
+.showMore {
+  margin-top: var(--space-5);
   border: 0;
   background: none;
   padding: 0;
@@ -434,6 +525,26 @@
   overflow-wrap: anywhere;
 }
 
+/* Share, drawn as the kit draws it and inert until inviting exists. */
+.shareButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 var(--space-5);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font: var(--weight-medium) 13.5px/1 var(--font-core);
+  cursor: pointer;
+}
+
+.shareButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
@@ -464,7 +575,7 @@
 @media (max-width: 1180px) {
   .paneLeft { display: none; }
   .sidebar { display: none; }
-  .crumbBack { display: inline; }
+  .crumbBack { display: inline-flex; }
   .crumbTrail { display: none; }
 }
 

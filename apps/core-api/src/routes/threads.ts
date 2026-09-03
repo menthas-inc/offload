@@ -106,7 +106,10 @@ const threadBundle = z.object({
   /** Always null. offload does not summarise a thread yet and nothing writes a
    *  standing memory, so the field is here in the shape the client already
    *  renders an empty state from. When something writes one, no client changes. */
-  standing: z.null(),
+  /** Null until something writes summaries, which nothing does. Nullable
+   *  string rather than `null` so the client's branch is real code that is
+   *  typechecked and tested rather than a branch nobody can reach. */
+  standing: z.string().nullable(),
 });
 
 const contentRow = z.object({

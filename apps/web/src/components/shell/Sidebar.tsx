@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import type { ThreadRow } from "../../lib/threads";
 
@@ -16,36 +17,35 @@ interface Props {
   threadCount: number;
 }
 
+/** A thread's icon, from its own `icon` column, falling back to the kit's
+ *  default. `lasso` is what offload gives a thread it made, and the kit's own
+ *  fixture uses `bookmark` and `house` for threads with a character of their
+ *  own. */
+export const threadIcon = (icon: string | null): string => icon ?? "message-circle";
+
 export function Sidebar({ threads, threadCount }: Props) {
   const pathname = usePathname();
 
   const tabs = [
-    { href: "/today", label: "Today", icon: "☀", count: undefined as number | undefined },
-    { href: "/threads", label: "My threads", icon: "◎", count: threadCount },
+    { href: "/today", label: "Today", icon: "sun", count: undefined as number | undefined },
+    { href: "/threads", label: "My threads", icon: "message-circle", count: threadCount },
   ];
 
-  const pinned = threads.slice(0, 3);
-  const recent = threads.slice(3, 6);
-
-  const item = (thread: ThreadRow) => {
-    const on = pathname === `/threads/${thread.id}`;
-    return (
-      <Link
-        key={thread.id}
-        href={`/threads/${thread.id}`}
-        className={styles.navItem}
-        data-on={on}
-      >
-        {on ? <span className={styles.marker} /> : null}
-        <span aria-hidden="true">◦</span>
-        <span className={styles.navLabel}>{thread.name}</span>
-      </Link>
-    );
-  };
+  // **Nothing is pinned, so nothing is shown as pinned.**
+  //
+  // The kit has a Pinned group with a `+`, which implies somebody chose what is
+  // in it. This took the first three threads by recency and called them pinned,
+  // so a thread created a minute ago appeared pinned to itself, which is worse
+  // than having no group at all: it looks like a feature misbehaving rather
+  // than a feature that does not exist. Real pinning is a `pinned_at` on
+  // `thread_members`, per person because threads are shared, and it arrives
+  // with the control that sets it.
+  const recent = threads.slice(0, 6);
 
   return (
     <nav className={styles.sidebar} data-theme="dark" aria-label="Sections">
       <div className={styles.brand}>
+        <Icon name="lasso" size={21} />
         <span className={styles.wordmark}>offload</span>
       </div>
 
@@ -55,7 +55,7 @@ export function Sidebar({ threads, threadCount }: Props) {
           return (
             <Link key={tab.href} href={tab.href} className={styles.navItem} data-on={on}>
               {on ? <span className={styles.marker} /> : null}
-              <span aria-hidden="true">{tab.icon}</span>
+              <Icon name={tab.icon} size={17} />
               <span className={styles.navLabel}>{tab.label}</span>
               {tab.count ? <em className={styles.navCount}>{tab.count}</em> : null}
             </Link>
@@ -72,24 +72,59 @@ export function Sidebar({ threads, threadCount }: Props) {
           aria-disabled="true"
           title="Nothing here yet"
         >
-          <span aria-hidden="true">☁</span>
+          <Icon name="cloudy" size={17} />
           <span className={styles.navLabel}>Memories</span>
         </button>
       </div>
 
-      {pinned.length ? (
-        <>
-          <div className={styles.sideLabel}>Pinned</div>
-          <div className={styles.navGroup}>{pinned.map(item)}</div>
-        </>
-      ) : null}
-
       {recent.length ? (
         <>
           <div className={styles.sideLabel}>Recent</div>
-          <div className={styles.navGroup}>{recent.map(item)}</div>
+          <div className={styles.navGroup}>
+            {recent.map((thread) => {
+              const on = pathname === `/threads/${thread.id}`;
+              return (
+                <Link
+                  key={thread.id}
+                  href={`/threads/${thread.id}`}
+                  className={styles.navItem}
+                  data-on={on}
+                >
+                  {on ? <span className={styles.marker} /> : null}
+                  <Icon name={threadIcon(thread.icon)} size={17} />
+                  <span className={styles.navLabel}>{thread.name}</span>
+                </Link>
+              );
+            })}
+          </div>
         </>
       ) : null}
+
+      {/* The kit puts both at the bottom and both are inert: Activity needs
+          notifications and Settings needs somewhere to go. Drawn, because the
+          shape of the nav should not change under somebody as features land. */}
+      <div className={styles.sideFoot}>
+        <button
+          type="button"
+          className={styles.navItem}
+          disabled
+          aria-disabled="true"
+          title="Nothing here yet"
+        >
+          <Icon name="bell" size={17} />
+          <span className={styles.navLabel}>Activity</span>
+        </button>
+        <button
+          type="button"
+          className={styles.navItem}
+          disabled
+          aria-disabled="true"
+          title="Nothing here yet"
+        >
+          <Icon name="settings" size={17} />
+          <span className={styles.navLabel}>Settings</span>
+        </button>
+      </div>
     </nav>
   );
 }

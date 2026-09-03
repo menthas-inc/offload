@@ -26,6 +26,7 @@ import {
   type MessageState,
   type TouchedThread,
 } from "../../lib/dump";
+import { Icon } from "../Icon";
 import { FILL_COMPOSER } from "../panes/Today";
 import styles from "../../app/(shell)/composer.module.css";
 
@@ -239,6 +240,7 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
         </div>
       ) : null}
 
+      <div className={styles.card}>
       {live ? (
         <div className={styles.turns}>
           {turns.map((turn) =>
@@ -338,6 +340,29 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
           aria-label="Dump anything"
           disabled={sending}
         />
+        {/* Photo and voice, drawn and inert. Attachments are text-only until
+            blobs exist, and the kit's composer is three affordances and a
+            field: shipping one of them leaves a different object. */}
+        <button
+          type="button"
+          className={styles.quiet}
+          disabled
+          aria-disabled="true"
+          aria-label="Add a photo"
+          title="Photos are not built yet"
+        >
+          <Icon name="camera" size={17} />
+        </button>
+        <button
+          type="button"
+          className={styles.quiet}
+          disabled
+          aria-disabled="true"
+          aria-label="Record a voice note"
+          title="Voice notes are not built yet"
+        >
+          <Icon name="mic" size={17} />
+        </button>
         <button
           type="button"
           className={styles.send}
@@ -345,16 +370,7 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
           aria-label="Send"
           onClick={() => void submit()}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              d="M8 13V3M8 3L3.5 7.5M8 3l4.5 4.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <Icon name="arrow-up" size={17} />
         </button>
       </div>
 
@@ -364,6 +380,7 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
           {tooLong.toLocaleString()} characters.
         </p>
       ) : null}
+      </div>
     </div>
   );
 }

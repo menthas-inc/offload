@@ -12,24 +12,37 @@
 .composer {
   position: relative;
   flex: 0 0 auto;
+  padding: var(--space-4) var(--space-8) var(--space-6);
+}
+
+/* The kit's card: a rounded well with a blue ring and an inner glow, holding
+   the conversation and the field. Not a bar with a border on top, which is
+   what this was. */
+.card {
+  max-width: 940px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-5) var(--space-7) var(--space-6);
-  border-top: 1px solid var(--border-hairline);
-  background: var(--surface-page);
+  min-height: 0;
+  padding: calc(var(--space-3) + 5px);
+  border-radius: 33px;
+  border: 1.5px solid var(--blue-500);
+  background: var(--surface-raised);
+  box-shadow:
+    inset 0 10px 26px -14px rgb(74 104 222 / 0.28),
+    inset 0 0 16px -6px rgb(74 104 222 / 0.15),
+    var(--shadow-2);
 }
 
 .composerInner {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: var(--composer-height);
+  min-height: 50px;
+  flex: 0 0 auto;
+  border-radius: 25px;
   padding: 0 var(--space-3) 0 var(--space-6);
-  border: 1px solid var(--border-focus);
-  border-radius: var(--radius-pill);
   background: var(--surface-input);
-  transition: box-shadow var(--transition-ui);
 }
 
 .composerInner:focus-within { box-shadow: 0 0 0 3px var(--surface-attention-soft); }
@@ -38,27 +51,66 @@
   flex: 1;
   min-width: 0;
   border: 0;
-  background: none;
   outline: none;
+  background: transparent;
   font: var(--text-body-role);
+  letter-spacing: var(--tracking-body);
   color: var(--text-primary);
 }
 
 .composerInput::placeholder { color: var(--text-tertiary); }
 
+/* Quiet until there is something to send, then it fills. The kit's own rule:
+   the send button earns its colour from the field having content. */
 .send {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* Drawn at 40, hit at 44, per the design system's hit-area rule. */
-  width: 40px;
-  height: 40px;
-  padding: 2px;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
   border: 0;
   border-radius: var(--radius-pill);
-  background: var(--ink-950);
-  color: var(--text-inverse);
+  background: transparent;
+  color: var(--text-tertiary);
   cursor: pointer;
+  transition: background var(--transition-ui), color var(--transition-ui);
+}
+
+.send:hover:not(:disabled) {
+  background: var(--surface-fill);
+  color: var(--text-primary);
+}
+
+.send:not(:disabled) {
+  background: var(--blue-600);
+  color: var(--text-inverse);
+}
+
+.send:disabled {
+  cursor: default;
+}
+
+/* Photo and voice. Inert: attachments are text-only until blobs exist, and a
+   control that says so is better than one that is missing, because the kit's
+   composer is three affordances and a field. */
+.quiet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.quiet:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .send:disabled { background: var(--ink-200); cursor: default; }

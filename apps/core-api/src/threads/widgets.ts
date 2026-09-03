@@ -44,7 +44,12 @@ export interface Sortable {
  */
 const EARNS: Record<WidgetKind, (row: Sortable) => boolean> = {
   map: (row) => row.placeId !== null,
-  todo: (row) => row.type === "task" && row.doneAt === null,
+  // Done tasks included. A ticked item does not leave the list, it sinks to the
+  // bottom of it: something you finished this morning disappearing is how you
+  // end up wondering whether you did it, and the tick is the reward for doing
+  // the work. A thread whose tasks are all done still shows the list, which is
+  // a record of a finished job rather than an empty widget.
+  todo: (row) => row.type === "task",
   timeline: (row) => row.occursAt !== null,
   files: (row) =>
     row.type === "image" ||
@@ -56,6 +61,23 @@ const EARNS: Record<WidgetKind, (row: Sortable) => boolean> = {
 export interface Widget<T extends Sortable> {
   kind: WidgetKind;
   rows: T[];
+}
+
+/** Done last, then by priority, then by recency.
+ *
+ *  **A ticked item sinks rather than vanishing.** Its importance dropped below
+ *  everything still outstanding the moment it was finished, which is exactly
+ *  what "move it to the bottom" means, and it stays visible so the tick can be
+ *  undone and so somebody can see they already did it. Applied to every widget,
+ *  because a done task in a timeline is no more urgent than a done task in a
+ *  list.
+ */
+export function sinkDone<T extends Sortable>(rows: readonly T[]): T[] {
+  return [...rows].sort((a, b) => {
+    const done = Number(a.doneAt !== null) - Number(b.doneAt !== null);
+    if (done !== 0) return done;
+    return b.priority - a.priority;
+  });
 }
 
 /** Which widgets these rows justify, in the order they should appear.
@@ -72,7 +94,7 @@ export function widgetsFor<T extends Sortable>(
 ): Widget<T>[] {
   const earned = WIDGET_KINDS.map((kind) => ({
     kind,
-    rows: rows.filter(EARNS[kind]),
+    rows: sinkDone(rows.filter(EARNS[kind])),
   })).filter((widget) => widget.rows.length > 0);
 
   if (!order || order.length === 0) {
@@ -134,14 +156,16 @@ export function groupBy<T extends Sortable>(
     buckets.set(match.value, bucket);
   }
 
+  // A group leads on its best outstanding row. A group of finished work sorts
+  // below one with anything left in it, however important that work was.
   const best = (list: readonly T[]) =>
-    list.reduce((top, row) => Math.max(top, row.priority), -1);
+    list.reduce((top, row) => (row.doneAt ? top : Math.max(top, row.priority)), -1);
 
   const groups: Group<T>[] = [...buckets.entries()]
-    .map(([value, list]) => ({ value, rows: list }))
+    .map(([value, list]) => ({ value, rows: sinkDone(list) }))
     .sort((a, b) => best(b.rows) - best(a.rows));
 
-  if (untagged.length > 0) groups.push({ value: null, rows: untagged });
+  if (untagged.length > 0) groups.push({ value: null, rows: sinkDone(untagged) });
   return groups;
 }
 

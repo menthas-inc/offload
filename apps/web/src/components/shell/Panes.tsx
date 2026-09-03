@@ -10,11 +10,15 @@
 // get out of step with the URL.
 
 import Link from "next/link";
+import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 
 export interface Crumb {
   label: string;
   href: string;
+  /** Lucide slug. The kit draws a crumb as a chip with its own glyph, so a
+   *  trail reads as places rather than as a path. */
+  icon?: string;
 }
 
 interface Props {
@@ -36,20 +40,37 @@ export function Panes({ crumbs, panes }: Props) {
             system has no breakpoint token to hold it in one. */}
         {back ? (
           <Link href={back.href} className={styles.crumbBack}>
-            ‹ {back.label}
+            <Icon name="chevron-left" size={14} />
+            {back.label}
           </Link>
         ) : null}
 
         <span className={styles.crumbTrail}>
           {crumbs.map((crumb, index) => (
-            <span key={crumb.href}>
-              {index > 0 ? <span className={styles.crumbSep}> / </span> : null}
-              <Link href={crumb.href} className={styles.crumb}>
+            <span key={crumb.href} className={styles.crumbItem}>
+              {index > 0 ? (
+                <Icon name="chevron-right" size={13} className={styles.crumbSep} />
+              ) : null}
+              <Link
+                href={crumb.href}
+                className={styles.crumb}
+                data-on={index === crumbs.length - 1}
+              >
+                {crumb.icon ? <Icon name={crumb.icon} size={13} /> : null}
                 {crumb.label}
               </Link>
             </span>
           ))}
         </span>
+
+        {/* Closing the rightmost pane, which the kit puts at the far end of the
+            trail. Only when there is one to close. */}
+        {back ? (
+          <Link href={back.href} className={styles.closePane}>
+            <Icon name="x" size={14} />
+            Close pane
+          </Link>
+        ) : null}
       </div>
 
       <div className={styles.paneRow}>

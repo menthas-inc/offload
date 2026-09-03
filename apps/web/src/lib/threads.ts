@@ -44,11 +44,11 @@ export interface ThreadBundle {
   members: Member[];
   /** How this thread wants to look. Absent fields mean derived from content. */
   preference: { widgets?: string[]; groupBy?: Record<string, string> };
-  /** Always null today. offload does not summarise a thread yet and nothing
-   *  writes a standing memory. The field is here so the empty state renders
-   *  from a value rather than from an absence, and so the day something writes
-   *  one, no client changes. */
-  standing: null;
+  /** Null until something writes summaries, which nothing does. Typed as a
+   *  nullable string rather than `null` so the screen that renders it is
+   *  written and tested now: a branch typed unreachable is a branch nobody
+   *  checks, and it would be discovered broken on the day it first fills. */
+  standing: string | null;
 }
 
 export interface Place {
