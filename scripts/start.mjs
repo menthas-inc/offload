@@ -35,9 +35,26 @@ if (service === "core-api") {
     process.on(signal, () => child.kill(signal));
   }
   child.on("exit", (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
+} else if (service === "agent") {
+  // The Python worker. Spawned for the same reason web is: there is nothing to
+  // import from Node, and uv owns resolving the interpreter and the lockfile.
+  //
+  // It gets the signals rather than this wrapper keeping them, because a
+  // SIGTERM that does not reach the worker means the job it is holding stays
+  // locked until its visibility timeout expires, and somebody is waiting on
+  // that job.
+  const child = spawn("uv", ["run", "offload-worker"], {
+    cwd: join(root, "apps/agent"),
+    stdio: "inherit",
+    env: process.env,
+  });
+  for (const signal of ["SIGTERM", "SIGINT"]) {
+    process.on(signal, () => child.kill(signal));
+  }
+  child.on("exit", (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
 } else {
   throw new Error(
-    `OFFLOAD_SERVICE is "${service}". Expected "core-api" or "web". ` +
+    `OFFLOAD_SERVICE is "${service}". Expected "core-api", "web" or "agent". ` +
       `An unrecognised value must fail here rather than silently start the wrong service.`
   );
 }
