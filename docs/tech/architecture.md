@@ -36,10 +36,10 @@ This is the flow the whole product is built around, so it is worth writing down 
 2. The client posts the dump to the Core API as a message, blobs included. The API mints an object key per blob, encrypts with AES-GCM and streams the ciphertext to R2, which never receives a key.
 3. The Core API writes the message, encrypts each blob under an object key wrapped for the account, and enqueues its sort job **in the same transaction**, so a dump can never exist unqueued. It returns immediately. The person already has what they need.
 4. The worker picks up the job and runs the **planner**: a model call in a loop that may call tools, read what they return, call more, and then answer. Filing happens through those tools rather than through a structured verdict the worker then applies. *This replaced a `sort` tier one-shot structured call in 004, deliberately and at a higher cost per dump, because a one-shot cannot recover from a tool that fails and tools are the architecture every later capability arrives on. See `docs/specs/004-the-planner/`.*
-5. The agent plane writes back through a Core API internal endpoint, so there stays exactly one writer. It creates zero or more `things`, each filed into its thread, each pointing at the message through `derived_from_message_id`, and each with tags and an embedding. Media gets a thread key wrap only where a thing actually carries it.
-6. offload replies in the same composer, saying what it did, with one way back, which is Undo. The things it created appear in their threads, and in Today if they need attention.
+5. The agent plane writes back through a Core API internal endpoint, so there stays exactly one writer. It creates zero or more `content`, each filed into its thread, each pointing at the message through `derived_from_message_id`, and each with tags and an embedding. Media gets a thread key wrap only where a thing actually carries it.
+6. offload replies in the same composer, saying what it did, with one way back, which is Undo. The content it created appears in its threads, and in Today if they need attention.
 
-**A dump is a message in a composer session**, not a thing and not its own entity. Sharing a photo from Safari with the app closed takes the same path: it arrives as a message, offload ingests it and replies in the same composer, so the dump and the answer sit together in one history. A dump is visible there and nowhere else. Today is a summary assembled from threads and calendars, so a dump never appears on it, only the things it produced.
+**A dump is a message in a composer session**, not content and not its own entity. Sharing a photo from Safari with the app closed takes the same path: it arrives as a message, offload ingests it and replies in the same composer, so the dump and the answer sit together in one history. A dump is visible there and nowhere else. Today is a summary assembled from threads and calendars, so a dump never appears on it, only the things it produced.
 
 A dump is not always one thing either. Describing your day in a voice note should produce the tasks in it, each filed on its own, all pointing back at the message they came from.
 
@@ -63,9 +63,9 @@ Both run through the same `jobs` table. What differs is priority, deadline, and 
 
 ## Everything is in a thread
 
-`thread_id` is NOT NULL on a thing. There is no unsorted state in the data model, because a partially-placed thing is a state every query and every screen would then have to handle.
+`thread_id` is NOT NULL on content. There is no unsorted state in the data model, because a partially-placed row is a state every query and every screen would then have to handle.
 
-Every account gets a default thread at creation, named **Miscellaneous**, for one-offs and things that never earn a home of their own: a link sent from a phone to a laptop, a note with nowhere to go. A new dump lands there and the sorter moves it if it belongs somewhere better. It is an ordinary thread, so it opens, holds things and reads like the others.
+Every account gets a default thread at creation, named **Miscellaneous**, for one-offs and anything that never earns a home of its own: a link sent from a phone to a laptop, a note with nowhere to go. A new dump lands there and the sorter moves it if it belongs somewhere better. It is an ordinary thread, so it opens, holds content and reads like the others.
 
 This also removes a special case from the key hierarchy: an object key is always wrapped by a thread key, never by an account key, because there is never a moment when a thing has no thread.
 
@@ -73,7 +73,7 @@ This also removes a special case from the key hierarchy: an object key is always
 
 The composer is a tool surface, not a chat. The design system puts it plainly: any UI task in offload can be said instead of tapped. That makes the tool registry the real API of the product, and it has three consequences.
 
-**Two execution sites.** Server-side tools change data: create a thing, move it, share a thread, change a setting. Client-side tools change what you are looking at: open a thread, jump to a settings page, focus the composer. The response envelope therefore carries actions for the client to perform, not only text to render.
+**Two execution sites.** Server-side tools change data: create content, move it, share a thread, change a setting. Client-side tools change what you are looking at: open a thread, jump to a settings page, focus the composer. The response envelope therefore carries actions for the client to perform, not only text to render.
 
 **Every tool declares its OFF-6 tier.** Reversible tools execute and offer Undo. Outward-facing tools are proposed and confirmed. The tier belongs on the tool definition, so that adding a tool forces the question rather than leaving it to the caller.
 
@@ -94,7 +94,7 @@ The composer is a tool surface, not a chat. The design system puts it plainly: a
 - **Key layout.** Four layers, one primitive. The root wraps each account key; an account key wraps that account's copy of a thread key; the thread key wraps a per-object key; the object key encrypts the blob. A thread key exists once and every member holds their own wrapped copy, which is what makes a shared thread co-owned rather than borrowed.
 - **What each layer buys.** Sharing a thread rewraps one small key for the new member. Deleting an account destroys its account key and its wrapped thread-key copies, so private content goes and shared threads survive untouched, with no departed key retained and no blob rewritten. Moving a thing between threads rewraps the object key, 60 bytes, so the eight-second Undo is free. Through alpha and beta the root sits in the database; moving it is a rewrap over `account_keys` alone. Losing the root loses every blob, including for Cloudflare, so backing it up is an operational requirement.
 - **Privacy (OFF-1, OFF-4).** Dumped content is durable. Connected-app content is derived and discarded with a source reference kept for re-fetch. Neither ever reaches analytics, LLM traces or logs.
-- **Retention.** Nothing a person put in is purged on a clock: things, media, conversations and memories are kept until deleted. Retention applies only to data that exists for us, meaning analytics events, logs, traces and LLM metadata, which are minimised on a short clock. Deletion, when a person asks for it, is real, immediate and cascading. *This diverges from the design, which states a 60-day conversation rule; logged in the design system's own decisions file.*
+- **Retention.** Nothing a person put in is purged on a clock: content, media, conversations and memories are kept until deleted. Retention applies only to data that exists for us, meaning analytics events, logs, traces and LLM metadata, which are minimised on a short clock. Deletion, when a person asks for it, is real, immediate and cascading. *This diverges from the design, which states a 60-day conversation rule; logged in the design system's own decisions file.*
 - **Undo.** Deletes are a flag flip plus a purge after the window, never an immediate destroy, because nothing may be destroyed while the toast is up (OFF-6).
 - **Observability.** OpenTelemetry for application traces, structured JSON logs carrying ids and outcomes only, Langfuse Cloud for LLM metadata.
 

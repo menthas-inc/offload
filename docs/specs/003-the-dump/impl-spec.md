@@ -44,11 +44,11 @@ Three tables from `001-data-model`, migrated now as `0008_the_dump.sql`. Columns
 
 *`llm_usage` is a ledger and is kept indefinitely. It carries no content and no free text, so nothing in it ages out. Stated because `001` left its retention unwritten and DATA-1 asks.*
 
-`blobs`, `thing_blobs` and `things` are **not** created. Nothing here writes them and creating a table before its first writer is how a column gets a meaning nobody remembers choosing.
+`blobs`, `content_blobs` and `content` are **not** created. Nothing here writes them and creating a table before its first writer is how a column gets a meaning nobody remembers choosing.
 
-### Deliberately not adding `things`
+### Deliberately not adding `content`
 
-The naming question raised in the feature spec, that "thing" is retired as the product's noun while `001` names the central table `things`, is **not resolved here and does not need to be**. The product owner intends to revise the data model after this feature. Recorded so the next spec knows it is still open rather than settled by silence.
+The naming question raised in the feature spec, that "thing" is retired as the product's noun while `001` names the central table `content`, is **not resolved here and does not need to be**. The product owner intends to revise the data model after this feature. Recorded so the next spec knows it is still open rather than settled by silence.
 
 ## Volume and access
 

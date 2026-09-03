@@ -1,4 +1,4 @@
-"""The worker. Claims a dump, answers it, posts the answer back.
+"""The worker. Claims a dump, files it, posts the reply back.
 
 Long-running and single-purpose. It holds no HTTP surface because nothing calls
 it: work arrives by polling the jobs table, which is also the admission control
@@ -20,10 +20,15 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent import context as ctx_mod
 from offload_agent.config import Config
-from offload_agent.harness.answer import InvalidOutput, answer
+from offload_agent.harness.plan import Outcome, plan
 from offload_agent.queue import ClaimedJob, claim, release_for_retry
 
 log = structlog.get_logger()
+
+
+class InvalidOutput(Exception):
+    """The model finished without saying anything. Kept distinct from a
+    transport failure so the two retry differently."""
 
 
 class ReportFailed(Exception):
@@ -60,6 +65,72 @@ async def _post_result(client: httpx.AsyncClient, cfg: Config, body: dict) -> No
                 await asyncio.sleep(0.5 * (attempt + 1))
 
     raise ReportFailed(str(type(last).__name__)) from last
+
+
+def _tool_caller(
+    http: httpx.AsyncClient, cfg: Config, job_id: str
+):
+    """The loop's only route to a write.
+
+    A closure over the job id rather than a parameter the loop passes, because
+    the job id is what the Core API derives the account from, and a loop that
+    can name a job is a loop that could name the wrong one.
+
+    Retried on transport failure and not on a refusal. A refusal comes back as a
+    200 with ok false and is data the planner is meant to read; only the network
+    is retried, and the endpoint is idempotent on the tool call id so a repeat
+    cannot file twice.
+    """
+
+    async def call(tool: str, tool_call_id: str, args: dict) -> dict:
+        payload = {"tool": tool, "jobId": job_id, "toolCallId": tool_call_id, **_camel(args)}
+        last: Exception | None = None
+        for attempt in range(3):
+            try:
+                response = await http.post(
+                    f"{cfg.api_url}/internal/v1/tool-call",
+                    json=payload,
+                    headers={"authorization": f"Bearer {cfg.internal_token}"},
+                    timeout=30.0,
+                )
+                response.raise_for_status()
+                return response.json()
+            except Exception as exc:  # noqa: BLE001, PERF203
+                last = exc
+                if attempt < 2:
+                    await asyncio.sleep(0.5 * (attempt + 1))
+
+        # Three failures is the network, not a decision. Reported to the model
+        # as a failed tool so the turn can still finish and say what landed,
+        # rather than raised, which would throw away everything already filed.
+        log.error("tool call undeliverable", job_id=job_id, error_type=type(last).__name__)
+        return {"ok": False, "error": "unavailable"}
+
+    return call
+
+
+def _camel(args: dict) -> dict:
+    """snake_case in Python, camelCase on the wire. One mapping, here, rather
+    than a second spelling of every field in the pydantic models."""
+    out = {}
+    for key, value in args.items():
+        head, *rest = key.split("_")
+        out[head + "".join(part.title() for part in rest)] = value
+    return out
+
+
+def _usage_wire(outcome: Outcome) -> list[dict]:
+    return [
+        {
+            "model": u.model,
+            "inputTokens": u.input_tokens,
+            "outputTokens": u.output_tokens,
+            "cacheReadTokens": u.cache_read_tokens,
+            "costMicros": 0,
+            "latencyMs": u.latency_ms,
+        }
+        for u in outcome.usage
+    ]
 
 
 async def handle(
@@ -103,7 +174,35 @@ async def handle(
             return
 
         fitted = ctx_mod.fit(loaded, cfg.max_prompt_tokens)
-        result, usage = await answer(anthropic, fitted, cfg.model)
+        outcome = await plan(
+            anthropic, fitted, cfg.model, _tool_caller(http, cfg, job.id)
+        )
+
+        if not outcome.finished:
+            # The loop ran out of round trips. Everything in `landed` is
+            # committed, so this is partial rather than failed, and the person
+            # is offered a way to finish it rather than a way to start again.
+            #
+            # The reply is written here rather than asked of the model, because
+            # the model is the thing that did not finish. It names threads from
+            # `landed`, which is the record of what actually happened.
+            await _post_result(
+                http,
+                cfg,
+                {
+                    "outcome": "partial",
+                    "jobId": job.id,
+                    "replyText": _partial_reply(outcome),
+                    "usage": _usage_wire(outcome),
+                },
+            )
+            log.warning(
+                "dump partial", job_id=job.id, calls=len(outcome.usage), filed=len(outcome.landed)
+            )
+            return
+
+        if outcome.reply is None:
+            raise InvalidOutput("model finished without a reply")
 
         await _post_result(
             http,
@@ -111,19 +210,20 @@ async def handle(
             {
                 "outcome": "answered",
                 "jobId": job.id,
-                "replyText": result.reply,
-                "usage": {
-                    "model": usage.model,
-                    "inputTokens": usage.input_tokens,
-                    "outputTokens": usage.output_tokens,
-                    "cacheReadTokens": usage.cache_read_tokens,
-                    "costMicros": 0,
-                    "latencyMs": usage.latency_ms,
-                },
+                "replyText": outcome.reply,
+                "usage": _usage_wire(outcome),
             },
         )
-        # Ids and outcomes only. Never the dump, never the reply (OFF-1).
-        log.info("dump answered", job_id=job.id, latency_ms=usage.latency_ms)
+        # Ids and counts only. Never the dump, never the reply, never a thread
+        # name: a thread the model named after a diagnosis is as identifying as
+        # the sentence it came from (OFF-1).
+        log.info(
+            "dump answered",
+            job_id=job.id,
+            calls=len(outcome.usage),
+            filed=len(outcome.landed),
+            latency_ms=sum(u.latency_ms for u in outcome.usage),
+        )
 
     except ReportFailed as exc:
         # The answer was produced and could not be delivered. Do not report a
@@ -143,6 +243,24 @@ async def handle(
         # log (OFF-1).
         log.error("dump failed", job_id=job.id, attempt=job.attempts, error_type=type(exc).__name__)
         await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
+
+
+def _partial_reply(outcome: Outcome) -> str:
+    """What offload says when it ran out of room.
+
+    Built from `landed`, never from the model's own account of itself, because
+    the model stopped mid-turn and its last word on the subject is unreliable
+    by construction. Names threads, states the outcome, no mechanism.
+    """
+    names: list[str] = []
+    for item in outcome.landed:
+        if item.thread_name and item.thread_name not in names:
+            names.append(item.thread_name)
+
+    if not names:
+        return "offload did not manage to file that one. Nothing was lost."
+    placed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+    return f"Added to {placed}. There was more in that one than offload got through."
 
 
 async def _give_up_or_retry(

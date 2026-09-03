@@ -1,0 +1,710 @@
+// Filing, and taking it back.
+//
+// AC-1  a dump becomes content in threads, pointing back at the message.
+// AC-2  a piece always has a thread; the default is found by id, not by name.
+// AC-4  one refusal reason, so a failure cannot probe for other accounts.
+// AC-5  membership on every call, through thread_members, state accepted.
+// AC-7  the account comes from the job row and there is no field for one.
+// AC-9  Undo reverses the whole turn under one purge_after.
+// AC-10 nothing is destroyed while Undo is available.
+// AC-11 Undo is idempotent.
+// AC-12 the purge job deletes only what is due, and halts past its ceiling.
+// AC-14 a tool that fails answers rather than erroring.
+// AC-16 a partial turn can be resumed, and only a partial one.
+// AC-17 a retried tool call files one row.
+// AC-18 the bound is enforced by the API, not only by the loop.
+// AC-20 every model call writes a usage row.
+//
+// Through the built app rather than the functions underneath: the properties
+// asserted here are properties of the request, and the transaction boundary is
+// the thing most likely to be got wrong.
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { db, closeDb } from "../src/db.js";
+import { migrate } from "../src/migrate.js";
+import { buildApp, type App } from "../src/app.js";
+import { env } from "../src/env.js";
+import { handlers, PURGE_CEILING } from "../src/jobs/handlers.js";
+import { undoTurn } from "../src/routes/dumps.js";
+import { MAX_TOOL_CALLS } from "../src/routes/tools.js";
+import { uuidv7 } from "../src/uuid.js";
+
+await migrate(() => {});
+
+let app: App;
+beforeAll(async () => {
+  app = await buildApp();
+});
+
+afterAll(async () => {
+  await app.close();
+  await closeDb();
+});
+
+beforeEach(async () => {
+  await db.deleteFrom("analytics_events").execute();
+  await db.deleteFrom("llm_usage").execute();
+  await db.deleteFrom("jobs").execute();
+  await db.deleteFrom("content").execute();
+  await db.deleteFrom("messages").execute();
+  await db.deleteFrom("conversations").execute();
+  await db.updateTable("accounts").set({ default_thread_id: null }).execute();
+  await db.deleteFrom("thread_members").execute();
+  await db.deleteFrom("threads").execute();
+  await db.deleteFrom("accounts").execute();
+});
+
+async function account(): Promise<string> {
+  const row = await db
+    .insertInto("accounts")
+    .values({
+      email: `${uuidv7()}@example.com`,
+      state: "active",
+      email_verified: true,
+      analytics_subject_id: uuidv7(),
+    })
+    .returning(["id"])
+    .executeTakeFirstOrThrow();
+  return row.id;
+}
+
+/** A thread the account is an accepted member of, unless told otherwise. */
+async function thread(
+  accountId: string,
+  name: string,
+  state: "accepted" | "pending" = "accepted"
+): Promise<string> {
+  const row = await db
+    .insertInto("threads")
+    .values({ created_by_account_id: accountId, name, last_activity_at: new Date(), updated_at: new Date() })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  await db
+    .insertInto("thread_members")
+    .values({ thread_id: row.id, account_id: accountId, state })
+    .execute();
+  return row.id;
+}
+
+/** A dump with a job against it, the way the route writes one. */
+async function dump(accountId: string, text = "dentist after the 20th") {
+  const conversation = await db
+    .insertInto("conversations")
+    .values({ account_id: accountId })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+
+  const turnId = uuidv7();
+  const message = await db
+    .insertInto("messages")
+    .values({
+      conversation_id: conversation.id,
+      account_id: accountId,
+      role: "person",
+      type: "text",
+      turn_id: turnId,
+      text,
+      state: "seen",
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+
+  const job = await db
+    .insertInto("jobs")
+    .values({
+      kind: "dump.answer",
+      account_id: accountId,
+      payload: JSON.stringify({
+        messageId: message.id,
+        conversationId: conversation.id,
+        turnId,
+      }),
+      priority: 10,
+      run_after: new Date(),
+      state: "running",
+      locked_at: new Date(),
+      locked_by: "test",
+      attempts: 1,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+
+  return { conversationId: conversation.id, messageId: message.id, turnId, jobId: job.id };
+}
+
+const tool = (payload: unknown, token = env.INTERNAL_SERVICE_TOKEN) =>
+  app.inject({
+    method: "POST",
+    url: "/internal/v1/tool-call",
+    headers: { authorization: `Bearer ${token}` },
+    payload: payload as Record<string, unknown>,
+  });
+
+const turnResult = (payload: unknown) =>
+  app.inject({
+    method: "POST",
+    url: "/internal/v1/turn-result",
+    headers: { authorization: `Bearer ${env.INTERNAL_SERVICE_TOKEN}` },
+    payload: payload as Record<string, unknown>,
+  });
+
+const usage = {
+  model: "claude-sonnet-5",
+  inputTokens: 100,
+  outputTokens: 20,
+  cacheReadTokens: 0,
+  costMicros: 0,
+  latencyMs: 500,
+};
+
+describe("the tool endpoint is not trusted with an identity", () => {
+  it("refuses without a token, and with the wrong one", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId } = await dump(accountId);
+
+    const call = { tool: "add_content", jobId, toolCallId: "t1", threadId, title: "x" };
+
+    const none = await app.inject({
+      method: "POST",
+      url: "/internal/v1/tool-call",
+      payload: call,
+    });
+    expect(none.statusCode).toBe(401);
+
+    expect((await tool(call, "wrong-token-entirely")).statusCode).toBe(401);
+    expect((await tool(call)).statusCode).toBe(200);
+  });
+
+  it("takes the account from the job row, and a job of another kind is unknown", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+
+    // A job carrying a messageId, of a kind this endpoint does not serve. The
+    // scoping is what stops the next job kind being written into silently.
+    const other = await db
+      .insertInto("jobs")
+      .values({
+        kind: "email.invited",
+        account_id: accountId,
+        payload: JSON.stringify({ messageId: uuidv7() }),
+        run_after: new Date(),
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    const response = await tool({
+      tool: "add_content",
+      jobId: other.id,
+      toolCallId: "t1",
+      threadId,
+      title: "x",
+    });
+    expect(response.statusCode).toBe(404);
+  });
+
+  it("rejects a body that tries to name an account (AC-7)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId } = await dump(accountId);
+
+    // There is no accountId field, and the union is strict, so naming one is a
+    // schema failure rather than something quietly ignored.
+    const response = await tool({
+      tool: "add_content",
+      jobId,
+      toolCallId: "t1",
+      threadId,
+      title: "x",
+      accountId: uuidv7(),
+    });
+    expect(response.statusCode).toBe(400);
+  });
+});
+
+describe("authority over a thread", () => {
+  it("files into a thread the account is an accepted member of (AC-1)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, messageId } = await dump(accountId);
+
+    const response = await tool({
+      tool: "add_content",
+      jobId,
+      toolCallId: "t1",
+      threadId,
+      title: "Dentist after the 20th",
+      body: "",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ ok: true, threadName: "Flat admin" });
+
+    const rows = await db
+      .selectFrom("content")
+      .selectAll()
+      .where("derived_from_message_id", "=", messageId)
+      .execute();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.title).toBe("Dentist after the 20th");
+    expect(rows[0]!.thread_id).toBe(threadId);
+    expect(rows[0]!.account_id).toBe(accountId);
+  });
+
+  it("refuses a pending membership, an absent thread and somebody else's, identically (AC-4, AC-5)", async () => {
+    const mine = await account();
+    const theirs = await account();
+    const pending = await thread(mine, "Not yet", "pending");
+    const other = await thread(theirs, "Theirs");
+    const { jobId } = await dump(mine);
+
+    const bodies: string[] = [];
+    for (const [i, threadId] of [pending, other, uuidv7()].entries()) {
+      const response = await tool({
+        tool: "add_content",
+        jobId,
+        toolCallId: `t${i}`,
+        threadId,
+        title: "x",
+      });
+      expect(response.statusCode).toBe(200);
+      bodies.push(response.body);
+    }
+
+    // Byte-identical. Two reasons would make this a membership oracle for any
+    // thread id a caller could guess.
+    expect(new Set(bodies).size).toBe(1);
+    expect(JSON.parse(bodies[0]!)).toEqual({ ok: false, error: "unknown_thread" });
+
+    expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(0);
+  });
+
+  it("creates a thread with its first membership, and can file into it (AC-2)", async () => {
+    const accountId = await account();
+    const { jobId } = await dump(accountId);
+
+    const created = await tool({
+      tool: "create_thread",
+      jobId,
+      toolCallId: "c1",
+      name: "Bookshelf build",
+    });
+    expect(created.json()).toMatchObject({ ok: true, threadName: "Bookshelf build" });
+    const threadId = created.json().threadId;
+
+    const members = await db
+      .selectFrom("thread_members")
+      .selectAll()
+      .where("thread_id", "=", threadId)
+      .execute();
+    expect(members).toHaveLength(1);
+    expect(members[0]!.state).toBe("accepted");
+
+    // The membership query add_content runs is the one that has to find it.
+    const filed = await tool({
+      tool: "add_content",
+      jobId,
+      toolCallId: "t1",
+      threadId,
+      title: "Oak brackets, 30cm, matte black",
+    });
+    expect(filed.json().ok).toBe(true);
+  });
+});
+
+describe("bounds and repeats", () => {
+  it("files one row for a repeated tool call (AC-17)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, messageId } = await dump(accountId);
+
+    const call = {
+      tool: "add_content",
+      jobId,
+      toolCallId: "toolu_same",
+      threadId,
+      title: "Dentist",
+    };
+
+    const first = await tool(call);
+    const second = await tool(call);
+
+    expect(first.json().contentId).toBe(second.json().contentId);
+
+    const rows = await db
+      .selectFrom("content")
+      .selectAll()
+      .where("derived_from_message_id", "=", messageId)
+      .execute();
+    expect(rows).toHaveLength(1);
+
+    // And the counter moved once, not twice.
+    const t = await db
+      .selectFrom("threads")
+      .select("content_count")
+      .where("id", "=", threadId)
+      .executeTakeFirstOrThrow();
+    expect(t.content_count).toBe(1);
+  });
+
+  it("stops at the bound, with the loop's own counter bypassed (AC-18)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, messageId } = await dump(accountId);
+
+    for (let i = 0; i < MAX_TOOL_CALLS; i++) {
+      const response = await tool({
+        tool: "add_content",
+        jobId,
+        toolCallId: `t${i}`,
+        threadId,
+        title: `piece ${i}`,
+      });
+      expect(response.json().ok).toBe(true);
+    }
+
+    const over = await tool({
+      tool: "add_content",
+      jobId,
+      toolCallId: "one-too-many",
+      threadId,
+      title: "nope",
+    });
+    expect(over.statusCode).toBe(200);
+    expect(over.json()).toEqual({ ok: false, error: "limit_reached" });
+
+    const rows = await db
+      .selectFrom("content")
+      .selectAll()
+      .where("derived_from_message_id", "=", messageId)
+      .execute();
+    expect(rows).toHaveLength(MAX_TOOL_CALLS);
+  });
+
+  it("bumps the thread's count and activity in the same write (AC-1)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId } = await dump(accountId);
+
+    const before = await db
+      .selectFrom("threads")
+      .select(["content_count", "last_activity_at"])
+      .where("id", "=", threadId)
+      .executeTakeFirstOrThrow();
+
+    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "a" });
+    await tool({ tool: "add_content", jobId, toolCallId: "t2", threadId, title: "b" });
+
+    const after = await db
+      .selectFrom("threads")
+      .select(["content_count", "last_activity_at"])
+      .where("id", "=", threadId)
+      .executeTakeFirstOrThrow();
+
+    expect(after.content_count).toBe(before.content_count + 2);
+    expect(after.last_activity_at.getTime()).toBeGreaterThanOrEqual(
+      before.last_activity_at.getTime()
+    );
+  });
+});
+
+describe("a turn that stopped partway", () => {
+  it("writes the reply, marks the message partial, and keeps the content (AC-15)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, messageId, turnId } = await dump(accountId);
+
+    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+
+    const response = await turnResult({
+      outcome: "partial",
+      jobId,
+      replyText: "Added to Flat admin. There was more in that one than offload got through.",
+      usage: [usage, usage],
+    });
+    expect(response.json()).toEqual({ status: "written" });
+
+    const person = await db
+      .selectFrom("messages")
+      .select("state")
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(person.state).toBe("partial");
+
+    const reply = await db
+      .selectFrom("messages")
+      .selectAll()
+      .where("turn_id", "=", turnId)
+      .where("role", "=", "offload")
+      .execute();
+    expect(reply).toHaveLength(1);
+
+    // Nothing already filed is touched by a partial outcome.
+    expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(1);
+
+    // One row per model call, not per turn (AC-20).
+    expect(await db.selectFrom("llm_usage").selectAll().execute()).toHaveLength(2);
+  });
+
+  it("accepts the single-object usage shape for one release (AC-20)", async () => {
+    const accountId = await account();
+    const { jobId } = await dump(accountId);
+
+    await turnResult({ outcome: "answered", jobId, replyText: "Done.", usage });
+    expect(await db.selectFrom("llm_usage").selectAll().execute()).toHaveLength(1);
+  });
+
+  it("resumes a partial turn, and refuses to resume an answered one (AC-16)", async () => {
+    const accountId = await account();
+    const { jobId, messageId } = await dump(accountId);
+
+    await turnResult({ outcome: "partial", jobId, replyText: "Added to Flat admin.", usage: [usage] });
+
+    // Unauthenticated here: the route's session check is covered with the rest
+    // of the session-scoped routes. What this asserts is the state machine.
+    const before = await db
+      .selectFrom("messages")
+      .select("state")
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(before.state).toBe("partial");
+
+    // A resumed turn's result arrives against a `partial` message and must not
+    // be discarded as a duplicate.
+    const resumeJob = await db
+      .insertInto("jobs")
+      .values({
+        kind: "dump.answer",
+        account_id: accountId,
+        payload: JSON.stringify({
+          messageId,
+          conversationId: (
+            await db
+              .selectFrom("messages")
+              .select("conversation_id")
+              .where("id", "=", messageId)
+              .executeTakeFirstOrThrow()
+          ).conversation_id,
+          turnId: (
+            await db
+              .selectFrom("messages")
+              .select("turn_id")
+              .where("id", "=", messageId)
+              .executeTakeFirstOrThrow()
+          ).turn_id,
+        }),
+        run_after: new Date(),
+        state: "running",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    const finished = await turnResult({
+      outcome: "answered",
+      jobId: resumeJob.id,
+      replyText: "And the brackets went in Bookshelf build.",
+      usage: [usage],
+    });
+    expect(finished.json()).toEqual({ status: "written" });
+
+    const after = await db
+      .selectFrom("messages")
+      .select("state")
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(after.state).toBe("answered");
+
+    // A third result against an answered message changes nothing.
+    const again = await turnResult({
+      outcome: "answered",
+      jobId: resumeJob.id,
+      replyText: "again",
+      usage: [usage],
+    });
+    expect(again.json()).toEqual({ status: "already" });
+  });
+});
+
+describe("undo", () => {
+  it("refuses the route without a session", async () => {
+    const accountId = await account();
+    const { turnId } = await dump(accountId);
+    const response = await app.inject({
+      method: "POST",
+      url: `/v1/turns/${turnId}/undo`,
+    });
+    expect(response.statusCode).toBe(401);
+  });
+
+  it("reverses the dump, the content and the reply together (AC-9)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, messageId, turnId } = await dump(accountId);
+
+    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+    await tool({ tool: "add_content", jobId, toolCallId: "t2", threadId, title: "Brackets" });
+    await turnResult({ outcome: "answered", jobId, replyText: "Added to Flat admin.", usage: [usage] });
+
+    expect(await undoTurn(accountId, turnId)).toEqual({ undone: true });
+
+    const messages = await db
+      .selectFrom("messages")
+      .select(["role", "deleted_at", "purge_after"])
+      .where("turn_id", "=", turnId)
+      .execute();
+    const rows = await db
+      .selectFrom("content")
+      .select(["deleted_at", "purge_after"])
+      .where("derived_from_message_id", "=", messageId)
+      .execute();
+
+    // The person's dump, offload's reply, and both pieces of content.
+    expect(messages).toHaveLength(2);
+    expect(rows).toHaveLength(2);
+
+    const all = [...messages, ...rows];
+    for (const row of all) {
+      expect(row.deleted_at).not.toBeNull();
+      expect(row.purge_after).not.toBeNull();
+    }
+
+    // One deletion, one purge window, for the whole turn. Two would mean two
+    // purges, and half a turn surviving the other half.
+    expect(new Set(all.map((r) => r.deleted_at!.getTime())).size).toBe(1);
+    expect(new Set(all.map((r) => r.purge_after!.getTime())).size).toBe(1);
+
+    // Eight seconds, not eight minutes and not zero.
+    const gap = all[0]!.purge_after!.getTime() - all[0]!.deleted_at!.getTime();
+    expect(gap).toBe(8_000);
+  });
+
+  it("destroys nothing while Undo is available (AC-10)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, messageId, turnId } = await dump(accountId);
+    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+    await turnResult({ outcome: "answered", jobId, replyText: "Added.", usage: [usage] });
+
+    await undoTurn(accountId, turnId);
+
+    // Still selectable with the deleted_at filter dropped, which is the whole
+    // difference between an undo and a delete.
+    expect(
+      await db.selectFrom("content").selectAll().where("derived_from_message_id", "=", messageId).execute()
+    ).toHaveLength(1);
+    expect(
+      await db.selectFrom("messages").selectAll().where("turn_id", "=", turnId).execute()
+    ).toHaveLength(2);
+  });
+
+  it("is idempotent, and enqueues one purge per undo (AC-11)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, turnId } = await dump(accountId);
+    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+
+    expect(await undoTurn(accountId, turnId)).toEqual({ undone: true });
+
+    const after = await db.selectFrom("content").select("deleted_at").execute();
+
+    expect(await undoTurn(accountId, turnId)).toEqual({ undone: false });
+
+    // Unchanged by the second press, including the timestamps: a second undo
+    // that re-stamped purge_after would extend the window every time somebody
+    // pressed it twice.
+    expect(await db.selectFrom("content").select("deleted_at").execute()).toEqual(after);
+
+    const purges = await db
+      .selectFrom("jobs")
+      .selectAll()
+      .where("kind", "=", "content.purge")
+      .execute();
+    expect(purges).toHaveLength(1);
+    // Enqueued by the delete, not a timer, and set to run after the window.
+    expect(purges[0]!.run_after.getTime()).toBeGreaterThan(Date.now() + 5_000);
+  });
+
+  it("refuses another account's turn (AC-9)", async () => {
+    const mine = await account();
+    const theirs = await account();
+    const { turnId } = await dump(mine);
+
+    expect(await undoTurn(theirs, turnId)).toBeNull();
+    expect(
+      await db.selectFrom("messages").select("deleted_at").where("turn_id", "=", turnId).execute()
+    ).toEqual([{ deleted_at: null }]);
+  });
+});
+
+describe("the purge job", () => {
+  const purge = handlers["content.purge"]!;
+  const deps = { mailer: { send: async () => {} } } as never;
+
+  it("leaves a row that is inside its window, and takes it after (AC-10, AC-12)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, messageId } = await dump(accountId);
+    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+
+    // Soft-deleted, purge eight seconds out, exactly as undo writes it.
+    await db
+      .updateTable("content")
+      .set({ deleted_at: new Date(), purge_after: new Date(Date.now() + 8_000) })
+      .where("derived_from_message_id", "=", messageId)
+      .execute();
+
+    await purge({}, deps);
+    expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(1);
+
+    await db
+      .updateTable("content")
+      .set({ purge_after: new Date(Date.now() - 1_000) })
+      .execute();
+
+    await purge({}, deps);
+    expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(0);
+  });
+
+  it("never takes a row that was not soft-deleted, however old its purge_after (AC-12)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId } = await dump(accountId);
+    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+
+    // The dangerous shape: due, and never deleted. Both predicates are stated
+    // in the handler precisely so this row survives.
+    await db
+      .updateTable("content")
+      .set({ deleted_at: null, purge_after: new Date(Date.now() - 60_000) })
+      .execute();
+
+    await purge({}, deps);
+    expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(1);
+  });
+
+  it("halts rather than deleting past its ceiling (AC-12)", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { messageId } = await dump(accountId);
+
+    const past = new Date(Date.now() - 60_000);
+    const rows = Array.from({ length: PURGE_CEILING + 1 }, (_, i) => ({
+      account_id: accountId,
+      thread_id: threadId,
+      derived_from_message_id: messageId,
+      title: `piece ${i}`,
+      updated_at: new Date(),
+      deleted_at: past,
+      purge_after: past,
+    }));
+    await db.insertInto("content").values(rows).execute();
+
+    await expect(purge({}, deps)).rejects.toThrow(/ceiling/);
+
+    // Nothing deleted. A run that wants to destroy an absurd number of rows is
+    // a bug, and the right response to a bug in a delete is to stop.
+    expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(
+      PURGE_CEILING + 1
+    );
+  });
+});

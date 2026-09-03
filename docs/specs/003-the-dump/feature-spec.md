@@ -10,7 +10,7 @@ Everything shipped so far gets a person to an empty screen. 002 ends with an acc
 
 It is also the feature that forces the architecture. Nothing in the product has yet talked to a model, and the whole stack for doing so is designed and unbuilt: a second service in a second language, a queue drained by a consumer that is not the producer, a token ledger, a structured prompt boundary, and an answer that has to find its way back to a client that is waiting. Picking the dump first means those get built against something small and real rather than against the first hard feature.
 
-**What it deliberately does not do yet is file anything.** offload reads the dump, answers as though it had filed it, and files nothing. That is a decision with a cost, recorded in `docs/tech/decisions.md` under "The dump, decided during 003", with the condition that retires it: 004 ships the sorter and the `things` table. The purpose is to build and prove the plane end to end without also landing the first content table, the first sorter and the first tool call in the same change.
+**What it deliberately does not do yet is file anything.** offload reads the dump, answers as though it had filed it, and files nothing. That is a decision with a cost, recorded in `docs/tech/decisions.md` under "The dump, decided during 003", with the condition that retires it: 004 ships the sorter and the `content` table. The purpose is to build and prove the plane end to end without also landing the first content table, the first sorter and the first tool call in the same change.
 
 **It makes a live claim on `/privacy` false for that window**, which says filing is automatic, visible and reversible. That was put to the product owner and accepted rather than resolved, on the grounds that 004 follows immediately. It is recorded in `decisions.md` so the window is visible and closes on the same condition.
 
@@ -108,7 +108,7 @@ The model call is retried once. If it fails twice the composer says so, in a lin
 
 Named because each is a live temptation while building this one.
 
-- **Filing anything.** No `things` table, no sorter, no thread assignment. The reply describes filing that does not happen. Retired by the condition in `decisions.md`.
+- **Filing anything.** No `content` table, no sorter, no thread assignment. The reply describes filing that does not happen. Retired by the condition in `decisions.md`.
 - **Tools of any kind**, server-side or client-side. The response envelope is shaped to carry client actions later, and carries none now.
 - **Attachments.** No object storage, no encryption at rest for blobs, no transcription. The composer's camera and microphone are not rendered.
 - **iOS and Android.** The phones keep the inert composer they already have.
@@ -130,7 +130,7 @@ Both need a drawn treatment and a `decisions.md` entry when built, because they 
 
 ## Open, needing a call before the work it touches
 
-- **`things` as a table name now contradicts the vocabulary.** "thing" was retired as the product's noun on 2026-09-02, and `docs/specs/001-data-model/impl-spec.md` names the central content table `things`, with `thing_blobs` and `derived_from_message_id` around it. The analytics convention in `decisions.md` carries it too, as `thing_dumped` and `thing_sorted`, and AC-18 emits those names. This feature does not create that table, so nothing is blocked today, and the next feature creates it and cannot avoid the question. Renaming after the first migration is expensive; renaming before it is free.
+- **`content` as a table name now contradicts the vocabulary.** "thing" was retired as the product's noun on 2026-09-02, and `docs/specs/001-data-model/impl-spec.md` names the central content table `content`, with `content_blobs` and `derived_from_message_id` around it. The analytics convention in `decisions.md` carries it too, as `thing_dumped` and `thing_sorted`, and AC-18 emits those names. This feature does not create that table, so nothing is blocked today, and the next feature creates it and cannot avoid the question. Renaming after the first migration is expensive; renaming before it is free.
 
 ## What the review changed
 

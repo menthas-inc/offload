@@ -1,0 +1,32 @@
+-- 0012 One more column on accounts for the worker.
+--
+-- The planner needs `accounts.default_thread_id`. A dump with no obvious home
+-- goes in the account's default thread, and that thread is named by this column
+-- rather than by matching the name "Miscellaneous", which a person can rename.
+--
+-- Its own migration rather than a line appended to 0011, which was already
+-- applied: a migration that has run is history, and editing it makes every
+-- database that ran the old version silently different from every database that
+-- runs the new one, with nothing to tell them apart.
+--
+-- Named rather than widened. This is the fourth migration to touch this grant
+-- and every one has moved in the same direction, from `select on accounts`
+-- (0009, every column including email) to `select (state)` (0010) to this. That
+-- is the direction to keep moving in.
+--
+-- Found by a test, and only because the test started running. The Python suite
+-- had no equivalent of the TypeScript side's `test/setup.ts`, so the isolation
+-- tests skipped themselves whenever the two database urls were not already in
+-- the shell. Three tests standing between one account's private text and
+-- another account's model call, reporting as skipped. `apps/agent/tests/
+-- conftest.py` loads the file now, and the first thing it did was fail here.
+-- Three columns, not one. A column-level grant in Postgres covers every column
+-- the query touches, and this one filters on `a.id` as well as reading
+-- `a.default_thread_id`, so granting the column being selected is not enough.
+-- The first version granted only default_thread_id and failed with a flat
+-- "permission denied for table accounts", which names the table and not the
+-- column and sends you looking in the wrong place.
+--
+-- `id` is not a widening worth worrying about: the worker is handed an account
+-- id by the job before it opens a connection.
+grant select (id, state, default_thread_id) on accounts to offload_agent;

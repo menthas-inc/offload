@@ -3,6 +3,7 @@
 // Handlers are pure of transport concerns: claiming, retrying, backoff and
 // scrubbing live in the runner. A handler does the work or throws.
 
+import { sql } from "kysely";
 import { db } from "../db.js";
 import type { Mailer } from "../mail/index.js";
 import { env } from "../env.js";
@@ -81,7 +82,68 @@ const invited: Handler = async (payload, { mailer }) => {
   });
 };
 
+/** How many rows one run may destroy before it stops and asks for help.
+ *
+ *  A real run is a handful. This is far above anything normal and far below
+ *  what a bad predicate would produce, which is the only useful place for a
+ *  number like this to sit. */
+export const PURGE_CEILING = 500;
+
+/** The hard delete, and the only one in the codebase.
+ *
+ *  Undo is a soft delete under a `purge_after` eight seconds out. This is what
+ *  makes the deletion real, and it is the single most dangerous handler here:
+ *  it destroys rows on a timer, and a wrong predicate is a silent irreversible
+ *  mass delete with nothing to roll back to.
+ *
+ *  So it is written defensively on purpose:
+ *
+ *  - **Both conditions, always.** `purge_after < now()` alone would take rows
+ *    that were never soft-deleted at all, since a null `purge_after` compares
+ *    false today and a future column default is one character away from
+ *    changing that. Either condition implies the other right now. They are both
+ *    stated anyway.
+ *  - **Count before deleting, and stop if the count is absurd.** A run that
+ *    suddenly wants 40,000 rows is a bug, and the right response to a bug in a
+ *    delete is to do nothing and say so.
+ *  - **One transaction**, content before messages, so a crash mid-purge cannot
+ *    leave a message whose content is already gone. */
+const contentPurge: Handler = async () => {
+  await db.transaction().execute(async (trx) => {
+    const due = sql<boolean>`deleted_at is not null and purge_after is not null and purge_after < now()`;
+
+    const counts = await Promise.all([
+      trx
+        .selectFrom("content")
+        .select(({ fn }) => fn.countAll<string>().as("n"))
+        .where(due)
+        .executeTakeFirstOrThrow(),
+      trx
+        .selectFrom("messages")
+        .select(({ fn }) => fn.countAll<string>().as("n"))
+        .where(due)
+        .executeTakeFirstOrThrow(),
+    ]);
+
+    const total = Number(counts[0].n) + Number(counts[1].n);
+    if (total === 0) return;
+
+    if (total > PURGE_CEILING) {
+      // Counts only, and it throws rather than returning, so the job is
+      // recorded as failed and shows up rather than passing quietly.
+      throw new Error(`purge ceiling exceeded: ${total} rows due, ceiling ${PURGE_CEILING}`);
+    }
+
+    // Content first. `derived_from_message_id` is on delete set null, so the
+    // other order would silently orphan a row from the message it came from
+    // in the moment before it was deleted itself.
+    await trx.deleteFrom("content").where(due).execute();
+    await trx.deleteFrom("messages").where(due).execute();
+  });
+};
+
 export const handlers: Record<string, Handler> = {
   "email.waitlist_joined": waitlistJoined,
   "email.invited": invited,
+  "content.purge": contentPurge,
 };

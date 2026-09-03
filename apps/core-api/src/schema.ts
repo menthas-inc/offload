@@ -99,7 +99,7 @@ export interface ThreadsTable {
   name: string;
   always_on: Generated<boolean>;
   icon: string | null;
-  thing_count: Generated<number>;
+  content_count: Generated<number>;
   last_activity_at: Timestamp;
   created_at: Timestamp;
   updated_at: Timestamp;
@@ -205,12 +205,38 @@ export interface MessagesTable {
   turn_id: string;
   text: string | null;
   /** `queued` is internal and never reaches a client. */
-  state: Generated<"queued" | "seen" | "answered" | "failed">;
+  state: Generated<"queued" | "seen" | "answered" | "failed" | "partial">;
   client_key: string | null;
   source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
   source_ref: string | null;
   attrs: Generated<unknown>;
   created_at: Timestamp;
+  deleted_at: Timestamp | null;
+  purge_after: Timestamp | null;
+}
+
+export interface ContentTable {
+  id: Generated<string>;
+  /** The author. Never the read predicate on its own: that resolves through
+   *  thread_members, or a shared thread is invisible to every member but
+   *  whoever wrote in it (OFF-3). */
+  account_id: string;
+  thread_id: string;
+  /** The undo unit and the provenance. */
+  derived_from_message_id: string | null;
+  type: Generated<
+    "note" | "link" | "image" | "screenshot" | "voice" | "file" | "task" | "event"
+  >;
+  title: string;
+  body: string | null;
+  source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
+  source_ref: string | null;
+  /** The model's tool_use block id. Idempotent within a turn, and deliberately
+   *  not across a resume. */
+  tool_call_id: string | null;
+  attrs: Generated<unknown>;
+  created_at: Timestamp;
+  updated_at: Timestamp;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;
 }
@@ -243,6 +269,7 @@ export interface Database {
   thread_keys: ThreadKeysTable;
   conversations: ConversationsTable;
   messages: MessagesTable;
+  content: ContentTable;
   llm_usage: LlmUsageTable;
   jobs: JobsTable;
   analytics_events: AnalyticsEventsTable;

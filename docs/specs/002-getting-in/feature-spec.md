@@ -43,7 +43,7 @@ Doing it first is deliberate. The alternative, building the dump loop against a 
 
 ## Out of scope
 
-Dumping anything, threads beyond the Miscellaneous one created at promotion, things, memories, sharing, connectors, the admin panel's People, Costs, Limits and Staff pages, billing, and any Today content beyond the empty state. Bot protection beyond a honeypot and rate limiting, which is named as a pre-public gate rather than built now.
+Dumping anything, threads beyond the Miscellaneous one created at promotion, content, memories, sharing, connectors, the admin panel's People, Costs, Limits and Staff pages, billing, and any Today content beyond the empty state. Bot protection beyond a honeypot and rate limiting, which is named as a pre-public gate rather than built now.
 
 ## Notes
 

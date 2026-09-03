@@ -63,18 +63,26 @@ const dumpBody = z.object({
   clientKey: z.string().max(200).optional(),
 });
 
-type MessageState = "queued" | "seen" | "answered" | "failed";
+type MessageState = "queued" | "seen" | "answered" | "failed" | "partial";
+
+/** One list, used by every response that carries a state, so a value added to
+ *  the CHECK constraint cannot reach one endpoint and not another. */
+const messageState = z.enum(["queued", "seen", "answered", "failed", "partial"]);
 
 const dumpResponse = z.object({
   messageId: z.string(),
   conversationId: z.string(),
-  state: z.enum(["queued", "seen", "answered", "failed"]),
+  state: messageState,
+  /** The undo unit, returned at send time so the composer never has to ask for
+   *  it later. Undo is offered eight seconds after the reply, and a round trip
+   *  inside that window is a round trip that can miss it. */
+  turnId: z.string(),
 });
 
 const messageResponse = z.object({
   id: z.string(),
   conversationId: z.string(),
-  state: z.enum(["queued", "seen", "answered", "failed"]),
+  state: messageState,
   text: z.string().nullable(),
   reply: z.string().nullable(),
 });
@@ -90,10 +98,15 @@ const currentConversation = z.object({
       id: z.string(),
       role: z.enum(["person", "offload"]),
       text: z.string().nullable(),
-      state: z.enum(["queued", "seen", "answered", "failed"]),
+      state: messageState,
+      /** What an Undo would reverse. The whole turn, not this row. */
+      turnId: z.string(),
     })
   ),
 });
+
+const undoResponse = z.object({ undone: z.boolean() });
+const notFinishable = z.object({ error: z.literal("not_finishable") });
 
 const tooLong = z.object({
   error: z.literal("too_long"),
@@ -183,7 +196,12 @@ export async function takeDump(
   accountId: string,
   text: string,
   clientKey?: string,
-): Promise<{ messageId: string; conversationId: string; state: MessageState }> {
+): Promise<{
+  messageId: string;
+  conversationId: string;
+  state: MessageState;
+  turnId: string;
+}> {
   const turnId = randomUUID();
 
   return db.transaction().execute(async (trx) => {
@@ -254,7 +272,7 @@ export async function takeDump(
       // and enqueue nothing: it already did.
       const existing = await trx
         .selectFrom("messages")
-        .select(["id", "conversation_id", "state"])
+        .select(["id", "conversation_id", "state", "turn_id"])
         .where("account_id", "=", accountId)
         .where("client_key", "=", clientKey!)
         .executeTakeFirstOrThrow();
@@ -262,6 +280,10 @@ export async function takeDump(
         messageId: existing.id,
         conversationId: existing.conversation_id,
         state: existing.state,
+        // The winning request's turn, not the one this call generated and
+        // threw away. Returning the local one would hand back an undo id that
+        // matches nothing.
+        turnId: existing.turn_id,
       };
     }
 
@@ -308,7 +330,7 @@ export async function takeDump(
       tx: trx,
     });
 
-    return { messageId: message.id, conversationId, state: message.state };
+    return { messageId: message.id, conversationId, state: message.state, turnId };
   });
 }
 
@@ -340,7 +362,7 @@ export async function dumpRoutes(app: App): Promise<void> {
       if (clientKey) {
         const existing = await db
           .selectFrom("messages")
-          .select(["id", "conversation_id", "state"])
+          .select(["id", "conversation_id", "state", "turn_id"])
           .where("account_id", "=", accountId)
           .where("client_key", "=", clientKey)
           .executeTakeFirst();
@@ -349,6 +371,7 @@ export async function dumpRoutes(app: App): Promise<void> {
             messageId: existing.id,
             conversationId: existing.conversation_id,
             state: existing.state,
+            turnId: existing.turn_id,
           });
         }
       }
@@ -430,7 +453,7 @@ export async function dumpRoutes(app: App): Promise<void> {
 
       const rows = await db
         .selectFrom("messages")
-        .select(["id", "role", "text", "state", "created_at"])
+        .select(["id", "role", "text", "state", "turn_id", "created_at"])
         .where("conversation_id", "=", conversation.id)
         .where("account_id", "=", accountId)
         .where("deleted_at", "is", null)
@@ -445,6 +468,7 @@ export async function dumpRoutes(app: App): Promise<void> {
           role: row.role,
           text: row.text,
           state: row.state,
+          turnId: row.turn_id,
         })),
       });
     }
@@ -578,6 +602,194 @@ export async function dumpRoutes(app: App): Promise<void> {
       return;
     },
   );
+
+  // Undo, and the one thing it must not leave behind.
+  //
+  // The unit is the whole turn: the person's message, every piece of content
+  // derived from it, and offload's reply. The reply especially. A reply saying
+  // "Added to Flat admin" that survives its own undo is a false statement
+  // sitting permanently in history, which is exactly the pretence 004 exists to
+  // retire, recreated by the mechanism meant to protect against it.
+  //
+  // **No server-side time window.** The eight seconds is the toast's lifetime
+  // in the client. A window here would add a clock-skew failure mode to defend
+  // against somebody deleting their own content, which is not a threat and is
+  // arguably a feature. Written down because the acceptance criterion says
+  // "available for eight seconds" and a reader would otherwise look for a check
+  // that is deliberately absent.
+  app.post(
+    "/v1/turns/:turnId/undo",
+    {
+      schema: {
+        params: z.object({ turnId: z.string().uuid() }),
+        response: { 200: undoResponse, 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId)
+        return reply.code(401).send({ error: "unauthenticated" as const });
+
+      const outcome = await undoTurn(accountId, request.params.turnId);
+
+      if (!outcome) return reply.code(404).send({ error: "not_found" as const });
+      return reply.send(outcome);
+    },
+  );
+
+  // Finish a turn that stopped partway.
+  //
+  // A fresh job against the same message, not a fresh dump. The planner is
+  // given what already landed and asked to do the rest, so the resume adds to
+  // the turn rather than replacing it, and nothing already filed is touched.
+  app.post(
+    "/v1/dumps/:messageId/resume",
+    {
+      schema: {
+        params: z.object({ messageId: z.string().uuid() }),
+        response: { 200: dumpResponse, 401: unauthenticated, 404: notFound, 409: notFinishable },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId)
+        return reply.code(401).send({ error: "unauthenticated" as const });
+
+      const message = await db
+        .selectFrom("messages")
+        .select(["id", "conversation_id", "state", "turn_id"])
+        .where("id", "=", request.params.messageId)
+        .where("account_id", "=", accountId)
+        .where("role", "=", "person")
+        .where("deleted_at", "is", null)
+        .executeTakeFirst();
+
+      if (!message) return reply.code(404).send({ error: "not_found" as const });
+
+      // Only a turn that stopped. Resuming an answered one would file a second
+      // copy of everything, and resuming one still in flight would put two
+      // planners on the same message.
+      if (message.state !== "partial" && message.state !== "failed") {
+        return reply.code(409).send({ error: "not_finishable" as const });
+      }
+
+      const state = await db.transaction().execute(async (trx) => {
+        // Back to seen, so the composer's existing wait path applies unchanged
+        // and turn-result's idempotency guard has something to match.
+        await trx
+          .updateTable("messages")
+          .set({ state: "seen" })
+          .where("id", "=", message.id)
+          .execute();
+
+        await enqueue({
+          kind: "dump.answer",
+          accountId,
+          payload: {
+            messageId: message.id,
+            conversationId: message.conversation_id,
+            turnId: message.turn_id,
+          },
+          priority: PRIORITY.interactive,
+          maxAttempts: 2,
+          tx: trx,
+        });
+
+        return "seen" as const;
+      });
+
+      return reply.send({
+        messageId: message.id,
+        conversationId: message.conversation_id,
+        state,
+        turnId: message.turn_id,
+      });
+    },
+  );
+}
+
+/** Undo one turn: what they dumped, everything derived from it, and what
+ *  offload said about it.
+ *
+ *  Exported for the same reason `takeDump` is. Better Auth signs its session
+ *  cookie, so a test cannot reach a session-scoped route by pretending, and the
+ *  properties worth asserting here are properties of the transaction. The route
+ *  owns the session check; this owns the write.
+ *
+ *  Returns null when the turn is not this account's or does not exist, which
+ *  are one answer for the same reason the tool endpoint has one refusal.
+ */
+export async function undoTurn(
+  accountId: string,
+  turnId: string,
+): Promise<{ undone: boolean } | null> {
+  return db.transaction().execute(async (trx) => {
+    const owned = await trx
+      .selectFrom("messages")
+      .select(["id"])
+      .where("turn_id", "=", turnId)
+      .where("account_id", "=", accountId)
+      .execute();
+
+    if (owned.length === 0) return null;
+
+    const live = await trx
+      .selectFrom("messages")
+      .select(["id"])
+      .where("turn_id", "=", turnId)
+      .where("account_id", "=", accountId)
+      .where("deleted_at", "is", null)
+      .execute();
+
+    // Idempotent. The second press matches nothing and changes nothing.
+    if (live.length === 0) return { undone: false };
+
+    // One timestamp for the whole turn. Two now() calls in one transaction do
+    // return the same value in Postgres, but relying on that is relying on a
+    // detail rather than stating the requirement, which is that a turn purges
+    // as a unit.
+    const stamp = sql<Date>`now()`;
+    const purge = sql<Date>`now() + interval '8 seconds'`;
+
+    await trx
+      .updateTable("content")
+      .set({ deleted_at: stamp, purge_after: purge, updated_at: stamp })
+      .where(
+        "derived_from_message_id",
+        "in",
+        live.map((row) => row.id),
+      )
+      .where("account_id", "=", accountId)
+      .where("deleted_at", "is", null)
+      .execute();
+
+    await trx
+      .updateTable("messages")
+      .set({ deleted_at: stamp, purge_after: purge })
+      .where("turn_id", "=", turnId)
+      .where("account_id", "=", accountId)
+      .where("deleted_at", "is", null)
+      .execute();
+
+    // The conversation stays. A conversation with every message undone is an
+    // empty conversation, not a deleted one.
+    //
+    // The hard delete is enqueued by the delete rather than left to a timer,
+    // which is the difference between a purge that is late and a purge that
+    // never happens because a scheduler stopped and nobody noticed. Ten seconds
+    // out, two past the window, and the handler is idempotent so overlapping
+    // enqueues cost nothing.
+    await enqueue({
+      kind: "content.purge",
+      accountId,
+      payload: {},
+      priority: PRIORITY.background,
+      runAfterSeconds: 10,
+      tx: trx,
+    });
+
+    return { undone: true };
+  });
 }
 
 export const DUMP_LIMITS = { MAX_DUMP_CHARS, CONVERSATION_GAP } as const;

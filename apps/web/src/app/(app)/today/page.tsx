@@ -25,7 +25,10 @@ import {
   awaitAnswer,
   DumpTooLong,
   fetchCurrent,
+  resumeDump,
   sendDump,
+  undoTurn,
+  type Answer,
   type MessageState,
 } from "../../../lib/dump";
 import styles from "../auth.module.css";
@@ -49,6 +52,20 @@ interface Turn {
   from: "you" | "offload";
   text: string;
   state?: MessageState;
+  /** The undo unit. Every row in one turn carries the same one. */
+  turnId?: string;
+}
+
+/** What the toast offers to take back.
+ *
+ *  Eight seconds, per OFF-6 and the readme, up from four because four is not
+ *  enough time to read a toast, reach for a pointer or hear a screen reader
+ *  announce it. */
+const UNDO_WINDOW_MS = 8_000;
+
+interface Undoable {
+  turnId: string;
+  message: string;
 }
 
 export default function TodayPage() {
@@ -57,6 +74,8 @@ export default function TodayPage() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sending, setSending] = useState(false);
   const [tooLong, setTooLong] = useState<number | null>(null);
+  const [undoable, setUndoable] = useState<Undoable | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const input = useRef<HTMLInputElement>(null);
   // Keyed by message, so a settled stream drops its own entry. A plain array
   // grew for the life of the tab: harmless per call, since closing a closed
@@ -71,8 +90,21 @@ export default function TodayPage() {
     return () => {
       for (const cancel of list.values()) cancel();
       list.clear();
+      if (undoTimer.current) clearTimeout(undoTimer.current);
     };
   }, []);
+
+  /** Offer the way back, for eight seconds.
+   *
+   *  The message names the threads from offload's own reply, so what the toast
+   *  says and what the conversation says come from one source and cannot
+   *  disagree. */
+  function offerUndo(turnId: string | undefined, reply: string): void {
+    if (!turnId) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndoable({ turnId, message: reply });
+    undoTimer.current = setTimeout(() => setUndoable(null), UNDO_WINDOW_MS);
+  }
 
   // Rebuild the conversation on load, and pick up waiting on anything that is
   // still unanswered. A dump sent just before the tab closed is in the database
@@ -90,34 +122,15 @@ export default function TodayPage() {
           from: message.role === "person" ? "you" : "offload",
           text: message.text ?? "",
           state: message.state,
+          turnId: message.turnId,
         })),
       );
 
+      // No toast on hydration, deliberately. The eight seconds belongs to the
+      // moment offload answered, and a reload an hour later is not that moment.
       for (const message of messages) {
         if (message.role !== "person" || message.state !== "seen") continue;
-        cancels.current.set(
-          message.id,
-          awaitAnswer(message.id, (answer) => {
-            cancels.current.delete(message.id);
-            setTurns((current) => {
-              const next = current.map((turn) =>
-                turn.id === message.id
-                  ? { ...turn, state: answer.state }
-                  : turn,
-              );
-              return answer.reply
-                ? [
-                    ...next,
-                    {
-                      id: `${message.id}-reply`,
-                      from: "offload" as const,
-                      text: answer.reply,
-                    },
-                  ]
-                : next;
-            });
-          }),
-        );
+        watch(message.id, message.turnId);
       }
     });
 
@@ -125,6 +138,40 @@ export default function TodayPage() {
       live = false;
     };
   }, []);
+
+  /** Wait for one message's answer, wherever the waiting started.
+   *
+   *  Written once. This block existed twice, identical apart from the id it
+   *  closed over: once for a dump just sent and once for a dump found still
+   *  unanswered on load. Undo would have landed in one of them. */
+  function watch(messageId: string, turnId: string | undefined): void {
+    cancels.current.set(
+      messageId,
+      awaitAnswer(messageId, (answer: Answer) => {
+        cancels.current.delete(messageId);
+        setTurns((current) => {
+          const next = current.map((turn) =>
+            turn.id === messageId ? { ...turn, state: answer.state } : turn,
+          );
+          return answer.reply
+            ? [
+                ...next,
+                {
+                  id: `${messageId}-reply`,
+                  from: "offload" as const,
+                  text: answer.reply,
+                  turnId,
+                },
+              ]
+            : next;
+        });
+        // Only a finished turn offers a way back. A partial one offers a way
+        // forward instead, and putting both on screen at once would ask
+        // somebody to choose between finishing and undoing in eight seconds.
+        if (answer.state === "answered" && answer.reply) offerUndo(turnId, answer.reply);
+      }),
+    );
+  }
 
   async function submit(): Promise<void> {
     const text = draft.trim();
@@ -142,32 +189,16 @@ export default function TodayPage() {
       setDraft("");
       setTurns((current) => [
         ...current,
-        { id: sent.messageId, from: "you", text, state: sent.state },
+        {
+          id: sent.messageId,
+          from: "you",
+          text,
+          state: sent.state,
+          turnId: sent.turnId,
+        },
       ]);
 
-      cancels.current.set(
-        sent.messageId,
-        awaitAnswer(sent.messageId, (answer) => {
-          cancels.current.delete(sent.messageId);
-          setTurns((current) => {
-            const next = current.map((turn) =>
-              turn.id === sent.messageId
-                ? { ...turn, state: answer.state }
-                : turn,
-            );
-            return answer.reply
-              ? [
-                  ...next,
-                  {
-                    id: `${sent.messageId}-reply`,
-                    from: "offload" as const,
-                    text: answer.reply,
-                  },
-                ]
-              : next;
-          });
-        }),
-      );
+      watch(sent.messageId, sent.turnId);
     } catch (error) {
       if (error instanceof DumpTooLong) setTooLong(error.maxChars);
       else setTooLong(null);
@@ -177,12 +208,46 @@ export default function TodayPage() {
     }
   }
 
-  async function retry(messageId: string): Promise<void> {
+  /** Nothing landed, so there is nothing to resume. Put the text back where
+   *  they can see it and let them send it again. */
+  function retry(messageId: string): void {
     const failed = turns.find((turn) => turn.id === messageId);
     if (!failed) return;
     setTurns((current) => current.filter((turn) => turn.id !== messageId));
     setDraft(failed.text);
     input.current?.focus();
+  }
+
+  /** Something landed and something did not. Ask offload to do the rest.
+   *
+   *  Not a re-send: the dump is still where it was and part of it is already in
+   *  a thread. Sending it again would file that part twice. */
+  async function finish(messageId: string): Promise<void> {
+    const sent = await resumeDump(messageId);
+    if (!sent) return;
+    setTurns((current) =>
+      current
+        // The partial reply goes. It described a turn that is being finished,
+        // and leaving it above the new one reads as two separate answers.
+        .filter((turn) => turn.id !== `${messageId}-reply`)
+        .map((turn) =>
+          turn.id === messageId ? { ...turn, state: sent.state } : turn,
+        ),
+    );
+    watch(messageId, sent.turnId);
+  }
+
+  async function undo(): Promise<void> {
+    if (!undoable) return;
+    const { turnId } = undoable;
+    setUndoable(null);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    // Optimistic, and safe to be: the rows are soft-deleted server-side and a
+    // failed call leaves the conversation exactly as the database has it on the
+    // next load. Waiting would leave the turn on screen for a round trip after
+    // somebody asked for it to go.
+    setTurns((current) => current.filter((turn) => turn.turnId !== turnId));
+    await undoTurn(turnId);
   }
 
   if (state.status === "loading")
@@ -249,9 +314,27 @@ export default function TodayPage() {
                       <button
                         type="button"
                         className={styles.retry}
-                        onClick={() => void retry(turn.id)}
+                        onClick={() => retry(turn.id)}
                       >
                         Try again
+                      </button>
+                    </p>
+                  ) : null}
+                  {turn.state === "partial" ? (
+                    // The same treatment as failed, and for the same reason: a
+                    // toast would take the only way forward with it. Different
+                    // words because the situations differ. Some of this is
+                    // already filed, so the offer is to finish rather than to
+                    // start again, and saying so is what stops somebody
+                    // re-sending and filing half of it twice.
+                    <p className={styles.turnFailed} role="alert">
+                      offload did not finish that one.{" "}
+                      <button
+                        type="button"
+                        className={styles.retry}
+                        onClick={() => void finish(turn.id)}
+                      >
+                        Finish it
                       </button>
                     </p>
                   ) : null}
@@ -281,6 +364,22 @@ export default function TodayPage() {
                 <span />
               </div>
             ) : null}
+          </div>
+        ) : null}
+
+        {undoable ? (
+          // The design system's Toast: ink bar, one action, floated above the
+          // composer. role="status" rather than "alert", so it is announced
+          // without interrupting, which is what a confirmation is.
+          <div className={styles.toast} role="status">
+            <span className={styles.toastMessage}>{undoable.message}</span>
+            <button
+              type="button"
+              className={styles.toastAction}
+              onClick={() => void undo()}
+            >
+              Undo
+            </button>
           </div>
         ) : null}
 

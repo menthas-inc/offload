@@ -587,6 +587,53 @@
   .writing span { animation: none; opacity: 0.6; }
 }
 
+/* Undo, as the design system's Toast: ink bar, one action, floated above the
+   composer with a side gutter. The component contract, not an invention, which
+   is the whole reason the toast was already drawn. */
+.toast {
+  position: sticky;
+  bottom: var(--space-5);
+  z-index: 2;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin: 0 var(--space-5) var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-3);
+  animation: toastIn var(--duration-slow) var(--ease-entrance) both;
+}
+
+.toastMessage {
+  flex: 1;
+  font: var(--text-body-sm-role);
+}
+
+.toastAction {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--text-inverse);
+  font: var(--weight-medium) var(--size-body-sm)/1 var(--font-core);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+@keyframes toastIn {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* The toast arriving is not information; what it says is. Somebody who has
+   asked for less motion still gets the eight seconds and the Undo. */
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
+
 .composerError {
   margin: var(--space-3) 0 0;
   font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);

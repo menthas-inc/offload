@@ -8,12 +8,20 @@
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
-export type MessageState = "queued" | "seen" | "answered" | "failed";
+export type MessageState =
+  | "queued"
+  | "seen"
+  | "answered"
+  | "failed"
+  /** Content landed, the reply describes it, and the turn did not finish. */
+  | "partial";
 
 export interface Sent {
   messageId: string;
   conversationId: string;
   state: MessageState;
+  /** The undo unit. Carried from the send so the toast never has to ask. */
+  turnId: string;
 }
 
 export interface Answer {
@@ -114,6 +122,8 @@ export interface TailMessage {
   role: "person" | "offload";
   text: string | null;
   state: MessageState;
+  /** What an Undo would reverse. The whole turn, not this row. */
+  turnId: string;
 }
 
 /** The current conversation, so a reload does not look like a fresh account.
@@ -128,4 +138,33 @@ export async function fetchCurrent(): Promise<TailMessage[]> {
   if (!response.ok) return [];
   const body = (await response.json()) as { messages: TailMessage[] };
   return body.messages;
+}
+
+/** Take back a whole turn: what you dumped, what offload filed, and what it
+ *  said about it.
+ *
+ *  All three, because a reply saying "Added to Flat admin" that survives its
+ *  own undo is a false sentence sitting permanently in the conversation. */
+export async function undoTurn(turnId: string): Promise<boolean> {
+  const response = await fetch(`${API}/v1/turns/${turnId}/undo`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!response.ok) return false;
+  const body = (await response.json()) as { undone: boolean };
+  return body.undone;
+}
+
+/** Finish a turn that stopped partway.
+ *
+ *  Not a re-send. The dump is still where it was and some of it is already
+ *  filed; this asks offload to do the rest, and returns the same envelope a
+ *  new dump does so the composer waits for it the same way. */
+export async function resumeDump(messageId: string): Promise<Sent | null> {
+  const response = await fetch(`${API}/v1/dumps/${messageId}/resume`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!response.ok) return null;
+  return (await response.json()) as Sent;
 }

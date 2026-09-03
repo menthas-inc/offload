@@ -33,7 +33,8 @@ pytestmark = pytest.mark.skipif(
 
 
 async def seed(conn, name: str) -> dict:
-    """An account with a thread and a conversation holding one dump."""
+    """An account with a thread, a conversation holding one dump, and one piece
+    of content already filed against it."""
     account = (
         await conn.execute(
             text(
@@ -50,8 +51,35 @@ async def seed(conn, name: str) -> dict:
             {"name": f"{name} thread"},
         )
     ).scalar_one()
+    # accepted, explicitly. The column defaults to pending, and the first
+    # version of this fixture took the default, which meant it was seeding a
+    # membership nobody can write through and asserting on it anyway.
     await conn.execute(
-        text("insert into thread_members (thread_id, account_id) values (:t, :a)"),
+        text(
+            "insert into thread_members (thread_id, account_id, state) "
+            "values (:t, :a, 'accepted')"
+        ),
+        {"t": thread, "a": account},
+    )
+
+    # A thread they were invited to and have not answered. It must not reach the
+    # prompt: an invitation is not somewhere you can file.
+    pending = (
+        await conn.execute(
+            text("insert into threads (name) values (:name) returning id"),
+            {"name": f"{name} pending thread"},
+        )
+    ).scalar_one()
+    await conn.execute(
+        text(
+            "insert into thread_members (thread_id, account_id, state) "
+            "values (:t, :a, 'pending')"
+        ),
+        {"t": pending, "a": account},
+    )
+
+    await conn.execute(
+        text("update accounts set default_thread_id = :t where id = :a"),
         {"t": thread, "a": account},
     )
 
@@ -65,14 +93,28 @@ async def seed(conn, name: str) -> dict:
     message = (
         await conn.execute(
             text(
-                "insert into messages (conversation_id, account_id, role, type, turn_id, text, state) "
+                "insert into messages "
+                "(conversation_id, account_id, role, type, turn_id, text, state) "
                 "values (:c, :a, 'person', 'text', gen_random_uuid(), :text, 'seen') returning id"
             ),
             {"c": conversation, "a": account, "text": f"{name} private text"},
         )
     ).scalar_one()
 
-    return {"account": str(account), "conversation": str(conversation), "message": str(message)}
+    await conn.execute(
+        text(
+            "insert into content (account_id, thread_id, derived_from_message_id, title) "
+            "values (:a, :t, :m, :title)"
+        ),
+        {"a": account, "t": thread, "m": message, "title": f"{name} filed title"},
+    )
+
+    return {
+        "account": str(account),
+        "conversation": str(conversation),
+        "message": str(message),
+        "thread": str(thread),
+    }
 
 
 @pytest.fixture
@@ -106,7 +148,18 @@ async def test_a_prompt_holds_only_its_own_accounts_rows(two_accounts):
         )
 
     assert ctx is not None
-    everything = ctx.dump + " ".join(t.text for t in ctx.turns) + " ".join(ctx.threads)
+    everything = " ".join(
+        [
+            ctx.dump,
+            *(t.text for t in ctx.turns),
+            *(t.name for t in ctx.threads),
+            # Content titles too. They are model-derived from what a person
+            # wrote, so a title leaking across accounts is the same failure as a
+            # dump leaking (AC-22).
+            *(f.title for f in ctx.landed),
+            *(f.thread_name for f in ctx.landed),
+        ]
+    )
     assert "alice" in everything
     assert "bob" not in everything, "another account's rows reached the prompt"
 
@@ -144,4 +197,48 @@ async def test_threads_come_only_through_membership(two_accounts):
     # `threads` has no owner column at all, so membership is the only path.
     # Filtering by anything else would either hide a shared thread from a member
     # or show one to somebody who is not.
-    assert ctx.threads == ["alice thread"]
+    #
+    # And accepted membership specifically: the pending one is an invitation,
+    # not a place to file, and offering it to the planner would mean writing
+    # into a thread on somebody's behalf before they said yes.
+    assert [t.name for t in ctx.threads] == ["alice thread"]
+
+    # The default thread is found by id, never by matching the name
+    # "Miscellaneous", which a person can rename.
+    assert ctx.default_thread_id == alice["thread"]
+    assert [t.name for t in ctx.threads if t.is_default] == ["alice thread"]
+
+
+async def test_what_already_landed_is_scoped_to_the_account_and_the_message(two_accounts):
+    engine, alice, bob = two_accounts
+    async with engine.connect() as conn:
+        ctx = await load(
+            conn,
+            account_id=alice["account"],
+            conversation_id=alice["conversation"],
+            message_id=alice["message"],
+            max_turns=20,
+            max_threads=12,
+        )
+
+    assert ctx is not None
+    assert [f.title for f in ctx.landed] == ["alice filed title"]
+
+
+async def test_the_worker_cannot_write_content(two_accounts):
+    """One writer, asserted rather than trusted.
+
+    The whole tool loop exists so that filing goes through the Core API. That
+    only means anything if the worker's own connection cannot do it directly.
+    """
+    engine, alice, _ = two_accounts
+    async with engine.connect() as conn:
+        for statement in (
+            "insert into content (account_id, thread_id, title) values (:a, :t, 'x')",
+            "update content set title = 'x' where account_id = :a",
+            "delete from content where account_id = :a",
+        ):
+            with pytest.raises(Exception) as caught:
+                await conn.execute(text(statement), {"a": alice["account"], "t": alice["thread"]})
+            assert "permission denied" in str(caught.value).lower()
+            await conn.rollback()

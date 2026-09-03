@@ -31,7 +31,7 @@ function tokenMatches(presented: string | undefined): boolean {
   return timingSafeEqual(a, b);
 }
 
-const usage = z.object({
+const usageEntry = z.object({
   model: z.string().max(64),
   inputTokens: z.number().int().min(0),
   outputTokens: z.number().int().min(0),
@@ -40,17 +40,38 @@ const usage = z.object({
   latencyMs: z.number().int().min(0),
 });
 
+/** A turn is several model calls now, and each one writes its own ledger row
+ *  (AC-20). The single-object form is still accepted and mapped to a
+ *  one-element array, so a worker and an API deployed a minute apart do not
+ *  silently lose a row: for the length of one release the old shape is a
+ *  supported shape rather than a bug. */
+const usage = z.union([usageEntry, z.array(usageEntry)]).transform((u) => (Array.isArray(u) ? u : [u]));
+
 // A discriminated union rather than an optional reply, so "answered with
 // nothing" cannot be expressed. The worker either has an answer or has a
 // reason it does not.
+//
+// `partial` is a third arm rather than a flag on `answered` because the three
+// want different things from the client: nothing more, a resume, or the text
+// back in the composer.
+// Strict, for the reason the header states. Without it "a body naming an
+// account is refused, not ignored" was a claim about a schema that silently
+// dropped the field instead.
 const body = z.discriminatedUnion("outcome", [
-  z.object({
+  z.strictObject({
     outcome: z.literal("answered"),
     jobId: z.string().uuid(),
     replyText: z.string().min(1),
     usage,
   }),
-  z.object({
+  z.strictObject({
+    outcome: z.literal("partial"),
+    jobId: z.string().uuid(),
+    /** Describes what actually landed, and only that (AC-15). */
+    replyText: z.string().min(1),
+    usage,
+  }),
+  z.strictObject({
     outcome: z.literal("failed"),
     jobId: z.string().uuid(),
     /** An enum, never the exception. An error message can carry the dumped
@@ -124,9 +145,13 @@ export async function internalRoutes(app: App): Promise<void> {
           .where("account_id", "=", accountId)
           .executeTakeFirst();
 
-        if (!person || person.state !== "seen") return false;
+        // Idempotent. At-least-once delivery means a retry must not write a
+        // second reply. `partial` is admitted alongside `seen` because a
+        // resumed turn's result arrives against a message this endpoint itself
+        // left partial.
+        if (!person || (person.state !== "seen" && person.state !== "partial")) return false;
 
-        if (result.outcome === "answered") {
+        if (result.outcome === "answered" || result.outcome === "partial") {
           await trx
             .insertInto("messages")
             .values({
@@ -142,7 +167,7 @@ export async function internalRoutes(app: App): Promise<void> {
 
           await trx
             .updateTable("messages")
-            .set({ state: "answered" })
+            .set({ state: result.outcome })
             .where("id", "=", person.id)
             .execute();
 
@@ -162,20 +187,25 @@ export async function internalRoutes(app: App): Promise<void> {
             .execute();
         }
 
-        if (result.usage) {
+        // One row per model call, not per turn. A planner turn is several
+        // calls and billing every one of them to the first row understates
+        // every turn that used a tool.
+        if (result.usage && result.usage.length > 0) {
           await trx
             .insertInto("llm_usage")
-            .values({
-              account_id: accountId,
-              job_kind: "dump.answer",
-              category: "interactive",
-              model: result.usage.model,
-              input_tokens: result.usage.inputTokens,
-              output_tokens: result.usage.outputTokens,
-              cache_read_tokens: result.usage.cacheReadTokens,
-              cost_micros: result.usage.costMicros,
-              latency_ms: result.usage.latencyMs,
-            })
+            .values(
+              result.usage.map((entry) => ({
+                account_id: accountId,
+                job_kind: "dump.answer",
+                category: "interactive" as const,
+                model: entry.model,
+                input_tokens: entry.inputTokens,
+                output_tokens: entry.outputTokens,
+                cache_read_tokens: entry.cacheReadTokens,
+                cost_micros: entry.costMicros,
+                latency_ms: entry.latencyMs,
+              }))
+            )
             .execute();
         }
 
@@ -198,13 +228,18 @@ export async function internalRoutes(app: App): Promise<void> {
           .executeTakeFirst();
 
         await emit(
-          result.outcome === "answered"
+          result.outcome !== "failed"
             ? {
                 name: "dump_answered",
                 subjectId: subject?.analytics_subject_id ?? null,
+                // Counts and enums. `calls` is how many model round trips the
+                // turn took, which is the number worth watching once a loop
+                // can take several, and it says nothing about what was in them.
                 properties: {
-                  latency_ms: result.usage?.latencyMs ?? 0,
-                  model: result.usage?.model ?? "unknown",
+                  latency_ms: result.usage.reduce((n, e) => n + e.latencyMs, 0),
+                  model: result.usage[0]?.model ?? "unknown",
+                  calls: result.usage.length,
+                  outcome: result.outcome,
                 },
                 tx: trx,
               }

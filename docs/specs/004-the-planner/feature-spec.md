@@ -96,17 +96,18 @@ Short. "Done" is enough, "Added to Flat admin" is better. It states the outcome 
 
 - **AC-13** Tool calls are validated against their schemas before execution, and an invalid call is refused rather than coerced.
 - **AC-14** A tool that fails returns its failure to the planner, which may recover.
-- **AC-15** **Partial success is a first-class outcome, not an error.** Content already written stays written and stays undoable, the reply describes only what actually succeeded, and any piece the planner tried and failed to file still lands in Miscellaneous rather than disappearing. A dump is never lost is the product's hardest promise and it holds when the turn goes wrong.
-- **AC-16** Each tool call carries a stable identifier and its endpoint is idempotent on it, so an at-least-once retry cannot file the same piece twice.
-- **AC-17** The number of tool calls in a turn is bounded, and the bound is enforced by the Core API as well as by the loop, so a bug in the loop's own counter is not the only thing standing between a model and an unbounded bill.
-- **AC-18** Prompt size does not grow with the age of the account. Separately, the tool definitions have their own budget that grows with the number of features, and the threshold at which that needs `defer_loading` is stated even though two tools is nowhere near it.
-- **AC-19** Every model call in a turn writes a usage row, not just the first.
+- **AC-15** **Partial success is a first-class outcome, not an error.** Content already written stays written and stays undoable, and the reply describes only what actually succeeded. A dump is never lost is the product's hardest promise and it holds when the turn goes wrong.
+- **AC-16** A partly finished turn offers to finish itself. The reply says what landed and what did not, and a Retry resumes the turn rather than restarting it: the planner is told what has already been filed and asked to do the rest. Retrying must not file anything twice, which is what the per-call identifier in AC-17 is for.
+- **AC-17** Each tool call carries a stable identifier and its endpoint is idempotent on it, so an at-least-once retry cannot file the same piece twice.
+- **AC-18** The number of tool calls in a turn is bounded, and the bound is enforced by the Core API as well as by the loop, so a bug in the loop's own counter is not the only thing standing between a model and an unbounded bill.
+- **AC-19** Prompt size does not grow with the age of the account. Separately, the tool definitions have their own budget that grows with the number of features, and the threshold at which that needs `defer_loading` is stated even though two tools is nowhere near it.
+- **AC-20** Every model call in a turn writes a usage row, not just the first.
 
 **Isolation and truthfulness**
 
-- **AC-20** Tool results re-enter the loop as data, never as instruction, and any pre-existing content text a tool returns is treated as untrusted exactly like the dump. The trusted and untrusted separation 003 built for the first turn holds for every later one.
-- **AC-21** No dumped text reaches an analytics event, a log, a trace or a job error, including tool arguments and tool results. **Thread names and content titles are dumped text for this purpose**: the model derives them from what a person wrote, and a thread named for a diagnosis is as identifying as the sentence it came from.
-- **AC-22** offload never claims an action it did not take, and never takes one it does not mention. Asserted in both directions on a body of real dumps, including turns that fail partway.
+- **AC-21** Tool results re-enter the loop as data, never as instruction, and any pre-existing content text a tool returns is treated as untrusted exactly like the dump. The trusted and untrusted separation 003 built for the first turn holds for every later one.
+- **AC-22** No dumped text reaches an analytics event, a log, a trace or a job error, including tool arguments and tool results. **Thread names and content titles are dumped text for this purpose**: the model derives them from what a person wrote, and a thread named for a diagnosis is as identifying as the sentence it came from.
+- **AC-23** offload never claims an action it did not take, and never takes one it does not mention. Asserted in both directions on a body of real dumps, including turns that fail partway.
 
 ## Out of scope
 
@@ -135,7 +136,8 @@ It is not one identifier. In `001-data-model` alone: `things` appears 40 times, 
 - **The `sort` tier.** The spec replaced a decided architecture without saying so. Now stated, with the reasoning and the cost consequence, and both `architecture.md` and `decisions.md` are amended in the same change.
 - **Two tools cut.** `move_content` and `edit_content` had no path to being called correctly: no content ids in context and no search. The worked example never used them either, which was the tell.
 - **Undo now covers offload's reply.** Without that, undoing a filing left the sentence describing it in history forever, recreating this feature's own reason for existing.
-- **Partial success became an acceptance criterion** rather than an unanswered question. Both reviewers reached it independently, and so had I before either reported.
+- **Partial success became two acceptance criteria** rather than an unanswered question. Both reviewers reached it independently, and so had I before either reported. The product owner's call on what to do about it: a partly finished turn offers to finish itself, resuming with what already landed in context rather than starting again.
+- **The planner runs on Sonnet.** Tool use plus a natural reply is what `converse` already covers, and correctness on filing is worth more than the price at this size.
 - **Authority got its own section.** Membership through `thread_members` rather than authorship, ids rather than names, account from the job rather than the call, closed-set dispatch, and one failure reason so refusals cannot be used to probe.
 - **Thread names and titles are content for OFF-1.** They are model-derived from what a person wrote, and the existing guard only catches long strings, emails and URLs, so a short sensitive thread name would sail through.
 - **The purge job is specified as a thing that can go wrong**, since it deletes on a timer and a bad predicate is a silent irreversible mass delete.

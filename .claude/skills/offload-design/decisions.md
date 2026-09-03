@@ -11,6 +11,62 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-03 · Undo is the Toast as drawn; the partial reply is new surface
+**Surface:** web
+**Raised by:** the codebase, building feature 004.
+**Undo, and why there is nothing to decide here:** offload now files what you dump, so it needs the
+one way back the readme promises. That is `Toast`, whose contract already says it: ink bar, one
+optional action, "float it above the composer with 16px of side gutter", eight seconds. Built to the
+contract, with the message naming the threads from offload's own reply so the toast and the
+conversation cannot disagree about where something went. `role="status"` rather than `alert`,
+because a confirmation is announced without interrupting.
+**The partial reply, which is new:** a turn can now file some of what you dumped and not the rest.
+No kit draws that. It reuses the treatment 003 invented for a failed message, inline and persistent
+rather than a toast, for the same reason: a toast clears itself after eight seconds and would take
+the only way forward with it. The copy differs because the situations differ. A failed dump says
+"offload could not answer that one. Your dump is saved." with **Try again**, which puts the text
+back in the composer. A partial one says "offload did not finish that one." with **Finish it**,
+which asks offload to do the rest. Saying "try again" on a partial turn would invite somebody to
+re-send a dump that is already half filed.
+**Why two words and not one control:** the two states want opposite actions. One has nothing in a
+thread and everything in the composer; the other has the reverse. A single "retry" that did the
+wrong one of those in either case would file half a dump twice.
+**Not on screen together:** a finished turn offers Undo, a partial one offers Finish it, never both.
+Asking somebody to choose between finishing and undoing inside eight seconds is not a choice.
+**Design system impact:** two things for the next sync. **One:** the web kit has no failed and no
+partial state for a composer turn, and now both exist in code. `WToday.jsx` should draw them, and
+the phones need the same pair when their composer stops being inert. **Two:** the readme's Undo
+section describes the toast for a delete. It now also covers an automatic action offload took on
+its own, which is the commoner case by far and reads slightly differently: "Sorted into Lisbon trip"
+rather than "Lisbon trip deleted". Worth a line.
+
+### 2026-09-03 · The retired word gets a name in code, and still has none in copy
+**Surface:** iOS, Android, web, admin
+**Raised by:** the codebase, building feature 004.
+**Was:** "thing" was the product's noun for one piece inside a thread, in the kits, in the specs
+and in the schema. It was retired on 2026-09-02 as user-facing copy, with the instruction to
+reword around it rather than swap in a synonym, which is why a count in the kits now reads "4"
+and not "4 things".
+**Is:** the split is now explicit and runs along the audience line. **In schema and code the noun
+is `content`**: feature 004 creates the table and the identifier families that go with it
+(`content_count`, `content_blobs`, `content_id`, `readable_content`). **In anything a person
+reads there is still no noun at all.** A thread holds what you dumped in, a count stands on its
+own, and no screen ever says "content" any more than it said "thing".
+**Why a synonym in code and none in copy:** a table needs a name and `content` is the plainest
+one available, but the same word on a screen would be worse than the one it replaced. "Thing" at
+least sounded like a person talking. "Content" sounds like a CMS, and the whole argument for
+retiring the word was that naming the unit makes people think about filing, which is the thing
+offload exists to take off them.
+**One collision, accepted:** `content` is also the general word for what people dump, in OFF-1
+and in the model API's own content blocks. Disambiguated locally in code, not by finding a third
+word.
+**Design system impact:** the kits and `data.js` still say `thing` and `things` throughout, and
+the explorations do too. **The kits should catch up; the explorations should not.** An
+exploration log is a record of what was tried on a date, and rewriting one to match a decision
+taken afterwards falsifies it. The concrete list for the next sync: `WThing.jsx` and its route,
+the `things` arrays in `ui_kits/mobile_app/data.js`, and the vocabulary section of `readme.md`,
+which is the contract rather than a record and is the one that matters most.
+
 ### 2026-08-31 · Today's composer is inert while feature 002 is the only thing built
 **Surface:** iOS, Android, web
 **Raised by:** the codebase, during the spec review for 002.

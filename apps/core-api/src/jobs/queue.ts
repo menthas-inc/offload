@@ -20,11 +20,12 @@ export type JobKind =
   | "email.waitlist_joined"
   | "email.invited"
   | "email.download_app"
-  | "dump.answer";
+  | "dump.answer"
+  | "content.purge";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */
-export const PRIORITY = { interactive: 10, scheduled: 100 } as const;
+export const PRIORITY = { interactive: 10, scheduled: 100, background: 200 } as const;
 
 export interface EnqueueOptions {
   kind: JobKind;
@@ -32,6 +33,10 @@ export interface EnqueueOptions {
   accountId?: string | null;
   priority?: number;
   runAfter?: Date;
+  /** Same thing, relative, and against the database's clock rather than Node's.
+   *  See the note on `run_after` below for why that distinction is not
+   *  pedantry. */
+  runAfterSeconds?: number;
   /** Makes the enqueue safe to retry. A repeated key is silently ignored. */
   idempotencyKey?: string;
   /** Enqueue inside the caller's transaction. Almost always what you want. */
@@ -66,7 +71,11 @@ export async function enqueue(options: EnqueueOptions): Promise<void> {
         // straight after it. The running server polls, so it only ever cost a
         // poll interval, but it made a test that ticks once fail about one run
         // in three. One clock is the fix.
-        run_after: options.runAfter ?? sql<Date>`now()`,
+        run_after:
+          options.runAfter ??
+          (options.runAfterSeconds === undefined
+            ? sql<Date>`now()`
+            : sql<Date>`now() + make_interval(secs => ${options.runAfterSeconds})`),
       state: "queued",
       ...(options.maxAttempts === undefined ? {} : { max_attempts: options.maxAttempts }),
       idempotency_key: options.idempotencyKey ?? null,
