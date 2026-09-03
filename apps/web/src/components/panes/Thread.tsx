@@ -18,6 +18,7 @@ import Link from "next/link";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { Widgets } from "./Widgets";
+import { widgetsFor } from "../../lib/widgets";
 import {
   completeContent,
   deleteContent,
@@ -159,7 +160,23 @@ export function Thread({ id, onChanged, onUndo }: Props) {
 
   if (!thread) return <div className={styles.paneBody} />;
 
-  const counted = showArchived ? thread.counts.archived : thread.counts.active;
+  // What the widgets took. A piece of content appears once on this screen: if
+  // a task is in the to-do list and a place is on the map, printing them again
+  // below is the same information twice and makes the list look longer than
+  // the thread is.
+  const inWidgets = showArchived
+    ? new Set<string>()
+    : new Set(
+        widgetsFor(rows, thread.preference.widgets).flatMap((widget) =>
+          widget.rows.map((row) => row.id)
+        )
+      );
+  const rest = rows.filter((row) => !inWidgets.has(row.id));
+
+  // "Everything else" once something has been lifted out, "Everything in here"
+  // when nothing has: else what, otherwise.
+  const restHeading =
+    inWidgets.size > 0 ? "Everything else" : "Everything in here";
 
   const others = thread.members.filter((member) => !member.isYou);
 
@@ -269,10 +286,15 @@ export function Thread({ id, onChanged, onUndo }: Props) {
         )}
 
         <h2 className={styles.section}>
-          {showArchived ? "Archived" : "Everything in here"}
-          <em className={styles.sectionCount} data-tone="accent">
-            {counted}
-          </em>
+          {showArchived ? "Archived" : restHeading}
+          {/* The count is what is in this list, so it is only shown once the
+              whole list is loaded. A number that counts one page is a number
+              that disagrees with the list under it the moment somebody scrolls. */}
+          {cursor ? null : (
+            <em className={styles.sectionCount} data-tone="accent">
+              {rest.length}
+            </em>
+          )}
           {thread.counts.archived > 0 || showArchived ? (
             <button
               type="button"
@@ -284,14 +306,16 @@ export function Thread({ id, onChanged, onUndo }: Props) {
           ) : null}
         </h2>
 
-        {rows.length === 0 ? (
+        {rest.length === 0 ? (
           <p className={styles.empty}>
             {showArchived
               ? "Nothing archived here."
-              : "Nothing in this one yet. Dump something on Today and offload will file it."}
+              : inWidgets.size > 0
+                ? "Everything in this thread is above."
+                : "Nothing in this one yet. Dump something on Today and offload will file it."}
           </p>
         ) : (
-          rows.map((row) => (
+          rest.map((row) => (
             asking === row.id ? (
               // The row asks in its own place. Both a confirm and an undo,
               // which is more than OFF-6 requires, and it is the kit's call:

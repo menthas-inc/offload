@@ -74,14 +74,21 @@ export function Panes({ crumbs, panes }: Props) {
       </div>
 
       <div className={styles.paneRow}>
-        {panes.map((pane, index) => (
-          <div
-            key={crumbs[index]?.href ?? index}
-            className={`${styles.pane} ${index < panes.length - 1 ? styles.paneLeft : ""}`}
-          >
-            {pane}
-          </div>
-        ))}
+        {panes.map((pane, index) => {
+          const top = index === panes.length - 1;
+          return (
+            <div
+              key={crumbs[index]?.href ?? index}
+              // Only the arriving pane animates. Animating both was the glitch:
+              // the list you were already reading slid in alongside the thread
+              // you just opened, so nothing looked revealed and everything
+              // looked redrawn.
+              className={`${styles.pane} ${top ? styles.paneTop : styles.paneLeft}`}
+            >
+              {pane}
+            </div>
+          );
+        })}
       </div>
     </>
   );

@@ -251,6 +251,34 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
 
       <div className={styles.card}>
       {live ? (
+        <div className={styles.liveHead}>
+          {/* The kit's header for an open conversation: what it is about, and
+              two ways out of it. Without these the composer grows and there is
+              no way to put it back. */}
+          <Icon name="sparkles" size={15} className={styles.liveMark} />
+          <b className={styles.liveTitle}>{conversationTitle(turns)}</b>
+          <button
+            type="button"
+            className={styles.quiet}
+            aria-label="Open full"
+            title="A conversation of its own is not built yet"
+            disabled
+            aria-disabled="true"
+          >
+            <Icon name="maximize-2" size={16} />
+          </button>
+          <button
+            type="button"
+            className={styles.quiet}
+            aria-label="Close this conversation"
+            title="Close"
+            onClick={() => setTurns([])}
+          >
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+      ) : null}
+      {live ? (
         <div className={styles.turns} ref={turnsBox}>
           {turns.map((turn) =>
             turn.from === "you" ? (
@@ -402,4 +430,16 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
       </div>
     </div>
   );
+}
+
+/** What this conversation is about, for the composer's own header.
+ *
+ *  The first thing you said, truncated. The kit shows a thread name because its
+ *  fixture has one; a real conversation is not about a thread yet, and offload
+ *  does not title conversations, so the honest label is your own opening line.
+ *  When something names a conversation, this is where that name goes. */
+function conversationTitle(turns: Turn[]): string {
+  const first = turns.find((turn) => turn.from === "you");
+  if (!first) return "This conversation";
+  return first.text.length > 70 ? `${first.text.slice(0, 70)}…` : first.text;
 }

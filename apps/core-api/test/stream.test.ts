@@ -107,8 +107,16 @@ function openStream(url: string, cookie: string) {
   const frames: string[] = [];
   let notify: (() => void) | null = null;
 
-  const started = fetch(url, { headers: { cookie }, signal: controller.signal }).then(
-    async (response) => {
+  // The abort has to be caught here, not by the caller.
+  //
+  // `controller.abort()` rejects the in-flight fetch, and an uncaught rejection
+  // fails the whole run even when every assertion passed: vitest reports it as
+  // an error and the pre-commit gate treats that as a failure, correctly. It is
+  // also the same class of bug the SSE handler itself was fixed for in 003, and
+  // it would be embarrassing to leave one in the test that exists to prove that
+  // handler is sound.
+  const started = fetch(url, { headers: { cookie }, signal: controller.signal })
+    .then(async (response) => {
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -125,8 +133,12 @@ function openStream(url: string, cookie: string) {
         }
       }
       return response;
-    }
-  );
+    })
+    .catch((error: unknown) => {
+      // Closing a stream is the ordinary end of one, not a failure.
+      if (error instanceof Error && error.name === "AbortError") return null;
+      throw error;
+    });
 
   const waitForFrame = (match: RegExp, timeoutMs = 8_000) =>
     new Promise<string>((resolve, reject) => {

@@ -1,30 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Panes } from "../../../components/shell/Panes";
 import { MyThreads } from "../../../components/panes/MyThreads";
-import { fetchThreads, type ThreadGroup } from "../../../lib/threads";
+import { useThreads } from "../../../components/shell/threads-context";
 
 export default function ThreadsRoute() {
-  const [groups, setGroups] = useState<ThreadGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let live = true;
-    void fetchThreads().then((next) => {
-      if (!live) return;
-      setGroups(next);
-      setLoading(false);
-    });
-    return () => {
-      live = false;
-    };
-  }, []);
+  // From the shell, which already has it. Fetching a second copy here is what
+  // made navigating flash.
+  const { groups, ready } = useThreads();
 
   return (
     <Panes
       crumbs={[{ label: "My threads", href: "/threads", icon: "message-circle" }]}
-      panes={[<MyThreads key="threads" groups={groups} loading={loading} />]}
+      panes={[<MyThreads key="threads" groups={groups} loading={!ready} />]}
     />
   );
 }

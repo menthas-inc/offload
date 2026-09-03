@@ -11,6 +11,40 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-03 · The pane slide, and printing a thread's contents once
+**Surface:** web
+**Raised by:** the product owner, watching the running app beside the kit.
+
+**The pane animation read as a glitch rather than a reveal, and the animation was not the
+problem.** Every route fetched its own copy of My threads, so opening a thread unmounted the
+list, showed nothing, and filled it back in a moment later, while the pane it lives in was also
+sliding. Two things were moving and one of them was empty. No amount of tuning the curve would
+have fixed it: the pane had no content to show while it moved. The list is fetched once by the
+shell now and read by everything under it, and **only the arriving pane animates**, on the kit's
+own curve, in from the right over 260ms. The pane behind stays still, which is what makes the
+new one look revealed rather than everything look redrawn.
+
+**A thread's contents are printed once.** A widget lifts its rows out of the list below rather
+than duplicating them, and that list is headed **"Everything else"** once anything has been
+lifted, or "Everything in here" when nothing has, because otherwise it is else to nothing. The
+kit only ever draws the second heading, having no widgets in its web pane to lift anything.
+Printing a task in the to-do list and again underneath is the same information twice and makes a
+thread look longer than it is.
+
+**The count follows the list.** It is shown only when the whole list is loaded, because a number
+that counts one page disagrees with the list under it the moment somebody scrolls.
+
+**The composer gained its header.** An open conversation had no way to be closed: the kit's
+sparkles, title, expand and close were missing entirely, so the composer grew and stayed grown.
+Expand is inert, since a conversation of its own is not built. The title is your own opening
+line rather than a thread name, because offload does not name conversations yet and the kit's
+fixture has one where a real conversation does not.
+
+**Design system impact:** the "Everything else" heading is new and the kit should carry both,
+with the rule for which appears. The composer's title needs a decision the kit has already made
+for a case that does not exist yet: it shows a thread name, and a conversation is not about one
+thread.
+
 ### 2026-09-03 · A pass over the web UI against the kit, and what it exposed
 **Surface:** web
 **Raised by:** the product owner, with screenshots of the kit beside the running app.

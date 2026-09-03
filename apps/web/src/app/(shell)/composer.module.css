@@ -304,6 +304,39 @@
   .toast { animation: none; }
 }
 
+/* An open conversation gets a header: what it is about, and two ways out. */
+.liveHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+  padding: var(--space-3) var(--space-3) var(--space-4) var(--space-5);
+}
+
+.liveMark {
+  color: var(--text-accent);
+  flex: 0 0 auto;
+}
+
+.liveTitle {
+  flex: 1;
+  min-width: 0;
+  font: var(--weight-medium) 14px/1.3 var(--font-core);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Between the conversation and the field, so the two read as one object with
+   two parts rather than as two stacked things. */
+.liveRule {
+  flex: 0 0 auto;
+  height: 1px;
+  background: var(--border-hairline);
+  margin: var(--space-4) var(--space-4) var(--space-3);
+}
+
 /* The turns sit above the field, in the same box, and the field stays where it
    was so nothing moves under the cursor. Capped so a long conversation scrolls
    rather than pushing the field off the screen. */

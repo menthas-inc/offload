@@ -235,12 +235,18 @@
   /* The top pane is raised and the ones behind it are the page. That contrast
      is what makes a stack read as a stack rather than as two columns. */
   background: var(--surface-raised);
-  animation: paneIn var(--duration-slow) var(--ease-entrance) both;
 }
 
 /* The pane that is not on top keeps a fixed width so the top one grows into
    the rest, which is what makes a third pane push the first out rather than
    squeezing all three. */
+/* The pane behind. Fixed width so the top one grows into the rest, which is
+   what makes a third push the first out rather than squeezing all three.
+
+   **It does not animate.** Everything animating on every navigation was the
+   glitch: the list you were already reading slid in alongside the thread you
+   just opened, so nothing looked like it was being revealed and everything
+   looked like it was being redrawn. */
 .paneLeft {
   flex: 0 0 520px;
   background: var(--surface-page);
@@ -249,13 +255,19 @@
   box-shadow: -1px 0 0 var(--border-hairline);
 }
 
+/* The kit's own reveal: in from the right, 120px, over 260ms. Only ever on the
+   pane that is arriving. */
+.paneTop {
+  animation: paneIn 260ms var(--ease-out) both;
+}
+
 @keyframes paneIn {
-  from { transform: translateX(24px); opacity: 0; }
+  from { transform: translateX(120px); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pane { animation: none; }
+  .paneTop { animation: none; }
 }
 
 /* --------------------------------------------------------- pane content */

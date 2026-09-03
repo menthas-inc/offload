@@ -11,22 +11,26 @@ import { use, useCallback, useEffect, useState } from "react";
 import { Panes } from "../../../../components/shell/Panes";
 import { MyThreads } from "../../../../components/panes/MyThreads";
 import { Thread } from "../../../../components/panes/Thread";
-import { fetchThread, fetchThreads, type ThreadGroup } from "../../../../lib/threads";
+import { useThreads } from "../../../../components/shell/threads-context";
+import { fetchThread } from "../../../../lib/threads";
 
 export default function ThreadRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [groups, setGroups] = useState<ThreadGroup[]>([]);
+  const { groups, ready, reload: reloadThreads } = useThreads();
   const [name, setName] = useState<string>("Thread");
   const [nonce, setNonce] = useState(0);
 
-  const reload = useCallback(() => setNonce((n) => n + 1), []);
+  const reload = useCallback(() => {
+    setNonce((n) => n + 1);
+    reloadThreads();
+  }, [reloadThreads]);
 
+  // Only the thread's own name, for the crumb. The list beside it is already
+  // in hand, so the pane is drawn before the animation starts.
   useEffect(() => {
     let live = true;
-    void Promise.all([fetchThreads(), fetchThread(id)]).then(([next, bundle]) => {
-      if (!live) return;
-      setGroups(next);
-      if (bundle) setName(bundle.name);
+    void fetchThread(id).then((bundle) => {
+      if (live && bundle) setName(bundle.name);
     });
     return () => {
       live = false;
@@ -40,7 +44,7 @@ export default function ThreadRoute({ params }: { params: Promise<{ id: string }
         { label: name, href: `/threads/${id}`, icon: "lasso" },
       ]}
       panes={[
-        <MyThreads key="threads" groups={groups} loading={false} />,
+        <MyThreads key="threads" groups={groups} loading={!ready} />,
         <Thread key={id} id={id} onChanged={reload} onUndo={() => {}} />,
       ]}
     />

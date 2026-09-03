@@ -20,7 +20,9 @@ A widget splits content by what it **is**. A map when the thread has locations, 
 
 **Nobody configures a widget into existence.** A thread earns one from its own contents, and loses it when the contents go. That is the kit's own rule, in its own words: *"widgets a thread earns from its own contents."* It is what stops the product asking people to set a thread up, which is filing by another name.
 
-A widget is a **view, never a store**. Every row in a widget is a row in "Everything in here". Remove it from one and it is gone from both.
+A widget is a **view, never a store**. Every row in a widget is a row in the thread, and removing it from one removes it from both.
+
+**It is not printed twice, though.** Content a widget has already shown is lifted out of the list below, and that list is called "Everything else" once anything has been lifted. Printing a task in the to-do list and again underneath is the same information twice, and it makes a thread look longer than it is. Where no widget took anything, the list is still "Everything in here", because otherwise it is "else" to nothing.
 
 ### Groups are asked for
 
@@ -52,7 +54,7 @@ Two, both optional, both settable by a person and by offload through `set_thread
 ## Acceptance criteria
 
 - **AC-1** A thread renders a widget only when its own content justifies one, and never renders one empty.
-- **AC-2** Every row in a widget is a row in the thread's content. A widget is a view and a piece of content removed from one is gone from both.
+- **AC-2** A widget is a view: a piece of content removed from one is gone from both. **And nothing is printed twice**: content a widget has shown does not also appear in the list below, which is headed "Everything else" when anything was lifted out and "Everything in here" when nothing was.
 - **AC-3** Widget order comes from the thread's preference when there is one and from what the thread holds when there is not. There is exactly one ordering mechanism.
 - **AC-4** A widget groups by the dimension the thread names and renders one flat list when it names none.
 - **AC-5** Content with no tag in the grouping dimension appears in exactly one unnamed group, last.
