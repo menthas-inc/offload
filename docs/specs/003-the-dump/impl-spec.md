@@ -173,7 +173,7 @@ It stays on Today rather than being lifted into the shell, which is where `WComp
 
 ## Dependencies
 
-- `ANTHROPIC_API_KEY`, on the worker service and in local `.env`. **Blocks the first real run and nothing else**; tests use a stubbed client.
+- `ANTHROPIC_API_KEY`, on the worker service and in local `.env`. **Blocks the first real run and nothing else**; tests use a stubbed client. *A service account key scoped to a workspace, not an organisation key. Workload Identity Federation would be better and is not available to us: it needs an ambient OIDC identity and Railway has none. See `decisions.md`.*
 - A new Railway service for the worker, sharing `DATABASE_URL` through its own restricted role.
 - `INTERNAL_SERVICE_TOKEN`, shared by the Core API and the worker.
 - Python toolchain in CI: `uv`, `pytest`, `ruff`, path-filtered per `stack.md`.

@@ -6,7 +6,7 @@ Ordered so each phase is verifiable before the next. A to C are API and worker, 
 
 ## Phase A, foundation
 
-- [ ] **A1** 🔴 `ANTHROPIC_API_KEY` on the worker service and in the root `.env`. *Blocks the first real model call and nothing before it: everything through B4 is testable with a stubbed client.*
+- [ ] **A1** 🔴 `ANTHROPIC_API_KEY` on the worker service and in the root `.env`. **A service account key scoped to a workspace**, not an organisation key, so spend and revocation are per workload. *Blocks the first real model call and nothing before it: everything through B4 is testable with a stubbed client. Workload Identity Federation would remove this secret entirely and cannot be used here, because it needs an ambient OIDC identity and Railway has none. See `decisions.md`.*
 - [ ] **A2** Migration `0008_the_dump.sql`: `conversations`, `messages`, `llm_usage`, with the five indexes named in the impl-spec. `things` and `blobs` deliberately not created. (DATA-1)
 - [ ] **A3** Kysely codegen so the new tables are typed from the schema, and the schema-drift test still passes.
 - [ ] **A4** A restricted Postgres role for the worker: `select` on `conversations`, `messages`, `threads`, `thread_members`, `jobs`, `accounts`; `update` on `jobs`; nothing on `sessions`, `account_identities`, `account_keys`, `staff`. (SEC-2)
