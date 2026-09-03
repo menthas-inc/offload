@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/dump_failed.v1.json",
+  "title": "dump_failed",
+  "description": "A dump was not answered after its retry. The reason is an enum rather than the error, because an exception message can carry the dumped text (OFF-1).",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {"reason": { "type": "string", "enum": ["model_error", "invalid_output", "timeout"] }}
+}

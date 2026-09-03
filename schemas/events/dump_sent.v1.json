@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/dump_sent.v1.json",
+  "title": "dump_sent",
+  "description": "A person sent a dump. Emitted when the message is committed, not when it is answered, so the funnel separates dumping from being answered and a model outage shows as answers falling rather than dumps falling.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {}
+}

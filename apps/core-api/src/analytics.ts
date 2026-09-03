@@ -17,7 +17,10 @@ export type EventName =
   | "waitlist_joined"
   | "invite_sent"
   | "first_sign_in"
-  | "onboarding_completed";
+  | "onboarding_completed"
+  | "dump_sent"
+  | "dump_answered"
+  | "dump_failed";
 
 type Source = "core-api" | "agent" | "worker" | "web" | "ios" | "android";
 

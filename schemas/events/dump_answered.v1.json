@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/dump_answered.v1.json",
+  "title": "dump_answered",
+  "description": "offload answered a dump. Carries the latency in milliseconds and the model, so the thinking state's real cost is visible without reading the usage ledger. No text, ever.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {"latency_ms": { "type": "integer", "minimum": 0 }, "model": { "type": "string", "maxLength": 64 }}
+}

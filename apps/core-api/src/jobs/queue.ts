@@ -10,7 +10,17 @@ import { db } from "./../db.js";
 import type { Database } from "./../schema.js";
 import type { Kysely, Transaction } from "kysely";
 
-export type JobKind = "email.waitlist_joined" | "email.invited" | "email.download_app";
+/** Every kind anything enqueues, across both runners.
+ *
+ *  The email kinds are drained by this service; `dump.answer` is drained by the
+ *  Python worker. They share one type because they share one table, and because
+ *  a kind that exists in neither runner's registry is the failure `kinds.ts`
+ *  and its test exist to catch. */
+export type JobKind =
+  | "email.waitlist_joined"
+  | "email.invited"
+  | "email.download_app"
+  | "dump.answer";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */
