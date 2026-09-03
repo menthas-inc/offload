@@ -161,10 +161,9 @@ export default function Privacy() {
           </ul>
 
           <p className={styles.note}>
-            One piece of advice rather than a condition, and the same one first run gives you:
-            never dump a password, a card number or a government id, into offload or into any other
-            AI tool. offload never needs them, nothing in it is built to handle them, and no
-            assistant is the right place to keep them.
+            The same advice first run gives you: we do not recommend sharing passwords, card
+            numbers or government IDs in any AI tool. Nothing in offload is built to handle them,
+            and no assistant is the right place to keep them.
           </p>
 
           <h3 className={styles.h3}>What comes from an app you connect</h3>

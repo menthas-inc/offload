@@ -155,8 +155,7 @@ export default function WelcomePage() {
             </label>
 
             <p className={styles.consentNote}>
-              One piece of advice rather than a condition: never dump a password, a card number or
-              a government id, into offload or into any other AI tool. offload never needs them.
+              We do not recommend sharing passwords, card numbers or government IDs in any AI tool.
             </p>
           </div>
         ) : null}

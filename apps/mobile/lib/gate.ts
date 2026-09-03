@@ -72,7 +72,7 @@ export const CONSENT = {
     "I understand offload will hold whatever I dump in, which can include health, money and other private matters, and I agree to it being processed to run offload.",
   // Not a consent and not a warning about us. It is the one piece of advice on
   // the screen and it applies to every assistant, not only this one.
-  note: "One piece of advice rather than a condition: never dump a password, a card number or a government id, into offload or into any other AI tool. offload never needs them.",
+  note: "We do not recommend sharing passwords, card numbers or government IDs in any AI tool.",
 } as const;
 
 export const TUTORIAL = [
