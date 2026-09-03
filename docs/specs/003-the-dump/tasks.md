@@ -6,42 +6,42 @@ Ordered so each phase is verifiable before the next. A to C are API and worker, 
 
 ## Phase A, foundation
 
-- [ ] **A1** 🔴 `ANTHROPIC_API_KEY` on the worker service and in the root `.env`. **A service account key scoped to a workspace**, not an organisation key, so spend and revocation are per workload. *Blocks the first real model call and nothing before it: everything through B4 is testable with a stubbed client. Workload Identity Federation would remove this secret entirely and cannot be used here, because it needs an ambient OIDC identity and Railway has none. See `decisions.md`.*
-- [ ] **A2** Migration `0008_the_dump.sql`: `conversations`, `messages`, `llm_usage`, with the five indexes named in the impl-spec. `things` and `blobs` deliberately not created. (DATA-1)
-- [ ] **A3** Kysely codegen so the new tables are typed from the schema, and the schema-drift test still passes.
-- [ ] **A4** A restricted Postgres role for the worker: `select` on `conversations`, `messages`, `threads`, `thread_members`, `jobs`, `accounts`; `update` on `jobs`; nothing on `sessions`, `account_identities`, `account_keys`, `staff`. (SEC-2)
-- [ ] **A5** `apps/agent` skeleton: `uv`, `ruff`, `pytest`, one worker entrypoint, no HTTP surface. Path-filtered CI job running lint and tests.
-- [ ] **A6** `INTERNAL_SERVICE_TOKEN` in both services' environments, compared in constant time.
+- [~] **A1** 🔴 `ANTHROPIC_API_KEY` **in the root `.env`, done, and a real dump answered locally.** Still needed on the worker service when it is deployed. **A service account key scoped to a workspace**, not an organisation key, so spend and revocation are per workload. *Blocks the first real model call and nothing before it: everything through B4 is testable with a stubbed client. Workload Identity Federation would remove this secret entirely and cannot be used here, because it needs an ambient OIDC identity and Railway has none. See `decisions.md`.*
+- [x] **A2** Migration `0008_the_dump.sql`: `conversations`, `messages`, `llm_usage`, with the five indexes named in the impl-spec. `things` and `blobs` deliberately not created. (DATA-1)
+- [x] **A3** Kysely codegen so the new tables are typed from the schema, and the schema-drift test still passes.
+- [x] **A4** A restricted Postgres role for the worker: `select` on `conversations`, `messages`, `threads`, `thread_members`, `jobs`, `accounts`; `update` on `jobs`; nothing on `sessions`, `account_identities`, `account_keys`, `staff`. (SEC-2)
+- [x] **A5** `apps/agent` skeleton: `uv`, `ruff`, `pytest`, one worker entrypoint, no HTTP surface. Path-filtered CI job running lint and tests.
+- [x] **A6** `INTERNAL_SERVICE_TOKEN` in both services' environments, compared in constant time.
 
 ## Phase B, the loop without a screen
 
-- [ ] **B1** `POST /v1/dumps`: length refusal, `clientKey` dedup, the six-hour conversation join, message insert and enqueue, all in one transaction. (AC-1, AC-2, AC-11, AC-14)
-- [ ] **B2** `GET /v1/messages/:id`, account-scoped, returning state and reply. (AC-3, AC-4, AC-9)
-- [ ] **B3** `POST /internal/v1/turn-result`: service token, account and conversation derived from the job row, idempotent on `jobId`, one transaction writing the reply, the state flip and `llm_usage`. (AC-6, AC-16)
-- [ ] **B4** The worker's claim loop with the per-account cap, and a shared test asserting the TypeScript and Python claim queries agree on the cap and the priority order. (AC-12)
-- [ ] **B5** The harness: frozen system prompt in git, three-block user turn, structured output with one repair-and-revalidate retry, prompt caching. (AC-7, AC-22, OFF-5)
-- [ ] **B6** Prompt assembly with all three bounds enforced before the call, and the thread list resolved through `thread_members`. (AC-10, AC-15, OFF-3, OFF-8)
-- [ ] **B7** Failure path: one retry, then the message marked failed through the internal endpoint, with `jobs.last_error` scrubbed. (AC-5, AC-8)
-- [ ] **B8** `dump_sent`, `dump_answered`, `dump_failed` events with their `schemas/events` entries and CI validation, carrying no content. (AC-18, OFF-1)
+- [x] **B1** `POST /v1/dumps`: length refusal, `clientKey` dedup, the six-hour conversation join, message insert and enqueue, all in one transaction. (AC-1, AC-2, AC-11, AC-14)
+- [x] **B2** `GET /v1/messages/:id`, account-scoped, returning state and reply. (AC-3, AC-4, AC-9)
+- [x] **B3** `POST /internal/v1/turn-result`: service token, account and conversation derived from the job row, idempotent on `jobId`, one transaction writing the reply, the state flip and `llm_usage`. (AC-6, AC-16)
+- [x] **B4** The worker's claim loop with the per-account cap, and a shared test asserting the TypeScript and Python claim queries agree on the cap and the priority order. (AC-12)
+- [x] **B5** The harness: frozen system prompt in git, three-block user turn, structured output with one repair-and-revalidate retry, prompt caching. (AC-7, AC-22, OFF-5)
+- [x] **B6** Prompt assembly with all three bounds enforced before the call, and the thread list resolved through `thread_members`. (AC-10, AC-15, OFF-3, OFF-8)
+- [x] **B7** Failure path: one retry, then the message marked failed through the internal endpoint, with `jobs.last_error` scrubbed. (AC-5, AC-8)
+- [x] **B8** `dump_sent`, `dump_answered`, `dump_failed` events with their `schemas/events` entries and CI validation, carrying no content. (AC-18, OFF-1)
 
 ## Phase C, delivery
 
-- [ ] **C1** `GET /v1/messages/:id/stream`: SSE, heartbeat every 15 seconds, 300 second lifetime, `thinking` / `done` / `failed`. CORS to the web origin with credentials. (AC-4)
-- [ ] **C2** Session and account-state re-check on every heartbeat, closing the stream on failure. (AC-17)
+- [x] **C1** `GET /v1/messages/:id/stream`: SSE, heartbeat every 15 seconds, 300 second lifetime, `thinking` / `done` / `failed`. CORS to the web origin with credentials. (AC-4)
+- [x] **C2** Session and account-state re-check on every heartbeat, closing the stream on failure. (AC-17)
 
 ## Phase D, the screen
 
-- [ ] **D1** The composer submits, optimistically renders the person's turn, and opens the stream. Stays on Today; no conversation list and no full-pane view, which is the stated limitation.
-- [ ] **D2** The seen marker on web, ported from `ui_kits/mobile_app/LiveConversation.jsx`'s `StatusChip`, with the readme's fuller text alternative. **First stab, to be adjusted.** (AC-20)
-- [ ] **D3** The thinking state, and the answer rendering into the same composer. (AC-3)
-- [ ] **D4** The failed state: inline, persistent, with Try again. **Invented here, no kit draws it. First stab, to be adjusted.** (AC-5)
-- [ ] **D5** Live region around the thinking state and the answer, announced once per transition. Reduced motion replaces the pulse with a static label. (AC-19, AC-21)
-- [ ] **D6** Reconnect: on stream close before an answer, fetch the plain endpoint rather than assuming failure. (AC-4)
+- [x] **D1** The composer submits, optimistically renders the person's turn, and opens the stream. Stays on Today; no conversation list and no full-pane view, which is the stated limitation.
+- [x] **D2** The seen marker on web, ported from `ui_kits/mobile_app/LiveConversation.jsx`'s `StatusChip`, with the readme's fuller text alternative. **First stab, to be adjusted.** (AC-20)
+- [x] **D3** The thinking state, and the answer rendering into the same composer. (AC-3)
+- [x] **D4** The failed state: inline, persistent, with Try again. **Invented here, no kit draws it. First stab, to be adjusted.** (AC-5)
+- [x] **D5** Live region around the thinking state and the answer, announced once per transition. Reduced motion replaces the pulse with a static label. (AC-19, AC-21)
+- [x] **D6** Reconnect: on stream close before an answer, fetch the plain endpoint rather than assuming failure. (AC-4)
 
 ## Phase E, closing
 
 - [ ] **E1** Tests for every acceptance criterion, named by AC.
-- [ ] **E2** Three `decisions.md` entries in the design system: the seen marker on web, the failed state, and the hidden camera and microphone. Each with **Design system impact** filled in. (OFF-7)
+- [x] **E2** Three `decisions.md` entries in the design system: the seen marker on web, the failed state, and the hidden camera and microphone. Each with **Design system impact** filled in. (OFF-7)
 - [ ] **E3** `/review` panel, then the constitution pass, then fixes.
 - [ ] **E4** Deploy: migration on boot, the worker as a new Railway service, and a real dump answered in production.
 
