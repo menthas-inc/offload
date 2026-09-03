@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { Icon } from "../Icon";
+import { QuietEmpty } from "./QuietEmpty";
 import { threadIcon } from "../shell/Sidebar";
 import styles from "../../app/(shell)/shell.module.css";
 import type { ThreadGroup } from "../../lib/threads";
@@ -38,6 +39,18 @@ export function MyThreads({ groups, loading }: Props) {
   const total = groups.reduce((n, group) => n + group.threads.length, 0);
   const live = groups.find((group) => group.key === "now")?.threads.length ?? 0;
 
+  if (!loading && total === 0) {
+    // The kit's own line. True, and worth saying rather than showing a zero:
+    // nobody makes a thread, they appear once enough has landed in one place
+    // to be one.
+    return (
+      <QuietEmpty
+        title="My threads"
+        line="Threads appear here on their own, once there is enough in one place to be one."
+      />
+    );
+  }
+
   return (
     <>
       <div className={styles.paneHead}>
@@ -52,15 +65,7 @@ export function MyThreads({ groups, loading }: Props) {
       </div>
 
       <div className={styles.paneBody}>
-        {loading ? null : total === 0 ? (
-          // An invitation, not a zero. The kit's own line, and it is true:
-          // nobody makes a thread, they appear once enough has landed in one
-          // place to be one.
-          <p className={styles.empty}>
-            Threads appear here on their own, once there is enough in one place
-            to be one. Dump something on Today and offload will start filing.
-          </p>
-        ) : (
+        {loading ? null : (
           groups.map((group) =>
             group.threads.length === 0 ? null : (
               <section key={group.key}>
@@ -97,8 +102,7 @@ export function MyThreads({ groups, loading }: Props) {
                 ))}
               </section>
             )
-          )
-        )}
+          ))}
       </div>
     </>
   );

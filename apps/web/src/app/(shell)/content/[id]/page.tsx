@@ -10,11 +10,12 @@ import { use, useEffect, useState } from "react";
 import { Panes } from "../../../../components/shell/Panes";
 import { Thread } from "../../../../components/panes/Thread";
 import { ContentDetail } from "../../../../components/panes/ContentDetail";
-import { fetchOne, type ContentDetail as Detail } from "../../../../lib/threads";
+import { completeContent, fetchOne, type ContentDetail as Detail } from "../../../../lib/threads";
 
 export default function ContentRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [detail, setDetail] = useState<Detail | null>(null);
+  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
     let live = true;
@@ -24,7 +25,12 @@ export default function ContentRoute({ params }: { params: Promise<{ id: string 
     return () => {
       live = false;
     };
-  }, [id]);
+  }, [id, nonce]);
+
+  async function toggle(): Promise<void> {
+    if (!detail) return;
+    if (await completeContent(detail.id, detail.doneAt === null)) setNonce((n) => n + 1);
+  }
 
   if (!detail) {
     return <Panes crumbs={[{ label: "…", href: `/content/${id}` }]} panes={[<div key="wait" />]} />;
@@ -33,13 +39,18 @@ export default function ContentRoute({ params }: { params: Promise<{ id: string 
   return (
     <Panes
       crumbs={[
-        { label: "My threads", href: "/threads" },
-        { label: detail.threadName, href: `/threads/${detail.threadId}` },
-        { label: detail.title, href: `/content/${id}` },
+        { label: "My threads", href: "/threads", icon: "message-circle" },
+        { label: detail.threadName, href: `/threads/${detail.threadId}`, icon: "lasso" },
+        { label: detail.title, href: `/content/${id}`, icon: "text-quote" },
       ]}
       panes={[
-        <Thread key={detail.threadId} id={detail.threadId} onChanged={() => {}} onUndo={() => {}} />,
-        <ContentDetail key={id} detail={detail} />,
+        <Thread
+          key={`${detail.threadId}-${nonce}`}
+          id={detail.threadId}
+          onChanged={() => setNonce((n) => n + 1)}
+          onUndo={() => {}}
+        />,
+        <ContentDetail key={id} detail={detail} onToggle={() => void toggle()} />,
       ]}
     />
   );

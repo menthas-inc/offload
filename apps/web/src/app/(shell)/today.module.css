@@ -53,3 +53,28 @@
 
 .example:hover { background: var(--state-hover); }
 
+
+/* The quiet empty state. */
+.quiet {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 var(--space-8);
+}
+
+.quietMark {
+  opacity: 0.22;
+}
+
+.quietLine {
+  margin: var(--space-6) 0 0;
+  max-width: 30ch;
+  font: var(--text-quiet-role);
+  font-size: 19px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}

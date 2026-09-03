@@ -15,5 +15,5 @@ import { Panes } from "../../../components/shell/Panes";
 import { TodayPane } from "../../../components/panes/Today";
 
 export default function TodayRoute() {
-  return <Panes crumbs={[{ label: "Today", href: "/today" }]} panes={[<TodayPane key="today" />]} />;
+  return <Panes crumbs={[{ label: "Today", href: "/today", icon: "sun" }]} panes={[<TodayPane key="today" />]} />;
 }

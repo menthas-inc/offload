@@ -23,7 +23,7 @@ export default function ThreadsRoute() {
 
   return (
     <Panes
-      crumbs={[{ label: "My threads", href: "/threads" }]}
+      crumbs={[{ label: "My threads", href: "/threads", icon: "message-circle" }]}
       panes={[<MyThreads key="threads" groups={groups} loading={loading} />]}
     />
   );

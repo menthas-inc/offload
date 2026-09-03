@@ -36,8 +36,8 @@ export default function ThreadRoute({ params }: { params: Promise<{ id: string }
   return (
     <Panes
       crumbs={[
-        { label: "My threads", href: "/threads" },
-        { label: name, href: `/threads/${id}` },
+        { label: "My threads", href: "/threads", icon: "message-circle" },
+        { label: name, href: `/threads/${id}`, icon: "lasso" },
       ]}
       panes={[
         <MyThreads key="threads" groups={groups} loading={false} />,

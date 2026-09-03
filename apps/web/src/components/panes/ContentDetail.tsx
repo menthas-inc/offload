@@ -15,10 +15,20 @@
 // leak it to people who were never there.
 
 import Link from "next/link";
+import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import type { ContentDetail as Detail } from "../../lib/threads";
 
-export function ContentDetail({ detail }: { detail: Detail }) {
+interface Props {
+  detail: Detail;
+  /** Ticking from here, when this is a task. The pane is a place, so the
+   *  action that belongs to the thing belongs on it. */
+  onToggle?: (() => void) | undefined;
+}
+
+export function ContentDetail({ detail, onToggle }: Props) {
+  const done = detail.doneAt !== null;
+
   return (
     <>
       <div className={styles.paneHead}>
@@ -32,8 +42,23 @@ export function ContentDetail({ detail }: { detail: Detail }) {
               year: "numeric",
             })}
             {detail.archivedAt ? " · archived" : ""}
+            {done ? " · done" : ""}
           </p>
         </div>
+
+        {detail.type === "task" && onToggle ? (
+          <div className={styles.paneTools}>
+            <button
+              type="button"
+              className={styles.tool}
+              aria-label={done ? "Put it back on the list" : "Mark done"}
+              title={done ? "Put it back on the list" : "Mark done"}
+              onClick={onToggle}
+            >
+              <Icon name={done ? "rewind" : "check"} size={16} />
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className={styles.paneBody}>
