@@ -1,0 +1,18 @@
+-- 0015 Take back a grant the worker does not use.
+--
+-- 0014 granted `select on places to offload_agent` on the assumption that
+-- something in the agent plane would want to know whether a location resolved.
+-- Nothing does: the worker reads content titles and thread names for the
+-- prompt, and the map is drawn by the web app through the Core API. The grant
+-- was written in the same breath as the table and never earned.
+--
+-- Worth a migration of its own rather than a shrug. 0009 granted `select on
+-- accounts`, which was every column including email, and 0010 had to narrow it;
+-- its header argues that this role is the likeliest place in the product for a
+-- supply-chain problem to land, which is exactly the argument against leaving a
+-- grant lying there for a future dependency to pick up. **An unused grant is
+-- the kind that survives review by not being noticed.**
+--
+-- Its own migration rather than an edit to 0014, which has already run. A
+-- migration that has been applied is history.
+revoke select on places from offload_agent;

@@ -58,6 +58,11 @@ class DumpContext:
     threads: list[Thread]
     landed: list[Filed]
     default_thread_id: str | None
+    # "Friday 3 October 2026", from the database's clock rather than the
+    # worker's, so every worker in every region agrees with the rows it reads.
+    # The account's own timezone is not stored yet; when it is, this is the one
+    # place that changes.
+    today: str | None = None
 
 
 # Resolved through thread_members, which is the only path there is: `threads`
@@ -131,6 +136,13 @@ _DUMP = text(
     """
 )
 
+# The database's clock, not the worker's. Two workers in two regions must not
+# disagree about what day it is with each other or with the rows they read.
+# `accounts` has no timezone column yet, so this is UTC and the day boundary is
+# wrong for somebody dumping at 11pm in Lisbon; when a timezone lands, this
+# query is the one place that changes.
+_TODAY = text("select to_char(now(), 'FMDay FMDD FMMonth YYYY')")
+
 
 async def load(
     conn: AsyncConnection,
@@ -187,12 +199,15 @@ async def load(
         )
     ).all()
 
+    today = (await conn.execute(_TODAY)).scalar_one()
+
     return DumpContext(
         dump=dump_row.text,
         turns=[Turn(role=r.role, text=r.text) for r in reversed(turn_rows)],
         threads=threads,
         landed=[Filed(title=r.title, thread_name=r.thread_name) for r in landed_rows],
         default_thread_id=default_id,
+        today=today,
     )
 
 
@@ -244,4 +259,5 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         threads=threads,
         landed=ctx.landed,
         default_thread_id=ctx.default_thread_id,
+        today=ctx.today,
     )

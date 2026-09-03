@@ -21,7 +21,8 @@ export type JobKind =
   | "email.invited"
   | "email.download_app"
   | "dump.answer"
-  | "content.purge";
+  | "content.purge"
+  | "location.resolve";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */

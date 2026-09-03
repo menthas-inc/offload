@@ -155,6 +155,17 @@ async def test_a_real_model_claims_only_what_it_did(dump, must_file):
     async def call_tool(tool, tool_call_id, args):
         if tool == "create_thread":
             return {"ok": True, "threadId": "new", "threadName": args["name"]}
+
+        # Reads and ticks answer in their own shapes. The first version of this
+        # returned a filing-shaped result for every tool, which made the
+        # planner look like it had filed into every thread it merely read, and
+        # the eval reported that as the model lying. It was the harness.
+        if tool == "list_thread_content":
+            return {"ok": True, "rows": [], "truncated": False}
+        if tool in ("complete_content", "archive_content", "edit_content",
+                    "move_content", "rename_thread"):
+            return {"ok": True, "done": True}
+
         name = next((t.name for t in threads if t.id == args["thread_id"]), None)
         if name is None:
             return {"ok": False, "error": "unknown_thread"}
@@ -166,6 +177,7 @@ async def test_a_real_model_claims_only_what_it_did(dump, must_file):
         threads=threads,
         landed=[],
         default_thread_id=threads[-1].id,
+        today="Thursday 3 September 2026",
     )
 
     outcome = await plan(AsyncAnthropic(), ctx, "claude-sonnet-5", call_tool)

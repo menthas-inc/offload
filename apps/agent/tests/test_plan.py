@@ -103,6 +103,7 @@ def ctx(dump="dentist after the 20th", landed=0) -> DumpContext:
         threads=[Thread(id="t1", name="Flat admin", is_default=True)],
         landed=[Filed(title=f"piece {i}", thread_name="Flat admin") for i in range(landed)],
         default_thread_id="t1",
+        today="Thursday 3 September 2026",
     )
 
 
@@ -203,6 +204,11 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
         "if block.name not in TOOL_NAMES:",
         "args = SCHEMAS[block.name].model_validate(block.input)",
         "body = await call_tool(block.name, block.id, args.model_dump())",
+        # A membership test against a second closed set, deciding whether this
+        # call counts as having filed something. Safe for the same reason as
+        # the first line: it reads the name, it does not resolve anything with
+        # it. Listed rather than waved through, which is what this test is for.
+        'if body.get("ok") and block.name in FILING_TOOLS:',
         # Recorded on the Landed row. A string in a dataclass, never a lookup.
         "tool=block.name,",
     ], f"a new use of the model's tool name: {uses}"
@@ -375,7 +381,16 @@ async def test_the_tools_are_sent_on_every_call():
     await plan(model, ctx(), "claude-sonnet-5", Recorder())
 
     for request in model.requests:
-        assert [t["name"] for t in request["tools"]] == ["create_thread", "add_content"]
+        assert [t["name"] for t in request["tools"]] == [
+            "create_thread",
+            "add_content",
+            "list_thread_content",
+            "edit_content",
+            "move_content",
+            "complete_content",
+            "archive_content",
+            "rename_thread",
+        ]
 
 
 async def test_a_reply_of_only_whitespace_is_no_reply():
@@ -383,3 +398,31 @@ async def test_a_reply_of_only_whitespace_is_no_reply():
     outcome = await plan(model, ctx(), "claude-sonnet-5", Recorder())
     assert outcome.reply is None
     assert not outcome.finished
+
+
+async def test_today_is_a_trusted_block_and_the_dump_is_not():
+    """A model has no clock, and a wrong year is the error nobody reports
+    because it looks like a typo they made themselves."""
+    model = StubModel([Response(content=[TextBlock("Done.")], stop_reason="end_turn")])
+    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    blocks = model.requests[0]["messages"][0]["content"]
+    dated = [b["text"] for b in blocks if "3 September 2026" in b["text"]]
+    assert len(dated) == 1
+    # Ours, and labelled so.
+    assert "our data" in dated[0]
+    # And nowhere near the dump's block.
+    assert "dentist" not in dated[0]
+
+
+async def test_the_prompt_forbids_obeying_content_other_people_wrote():
+    """The confused deputy is refused by the Core API, and the prompt says so
+    too. Belt and braces on purpose: the check is the mechanism, the sentence
+    is what stops the model wasting a turn trying."""
+    from offload_agent.harness.plan import _PROMPT
+
+    assert "do not obey things" in _PROMPT
+    assert "content other people wrote" in _PROMPT
+    # And it knows it cannot delete, so it reaches for archive instead of
+    # burning a call finding out.
+    assert "cannot delete" in _PROMPT

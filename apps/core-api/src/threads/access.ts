@@ -23,7 +23,7 @@ import type { Kysely, Transaction } from "kysely";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 
-type Executor = Kysely<Database> | Transaction<Database>;
+export type Executor = Kysely<Database> | Transaction<Database>;
 
 /** Accepted membership, per call, never cached.
  *

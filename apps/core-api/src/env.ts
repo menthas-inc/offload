@@ -30,6 +30,13 @@ const schema = z.object({
    *  internal endpoint. Long enough that guessing is not a strategy, and never
    *  compared with ===: a timing-safe compare costs nothing here. */
   INTERNAL_SERVICE_TOKEN: z.string().min(32),
+  /** Google Maps Platform, for turning a place name into a point on a map.
+   *
+   *  A different Google product from the two below, which are sign-in and see
+   *  nothing about what anybody dumps. Optional: without it a location is filed
+   *  with a name and no pin, which is a state the product handles anyway
+   *  because a provider can always be down. */
+  GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 

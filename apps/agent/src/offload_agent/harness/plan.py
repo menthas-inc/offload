@@ -32,9 +32,9 @@ from anthropic import AsyncAnthropic
 from pydantic import ValidationError
 
 from offload_agent.context import DumpContext
-from offload_agent.harness.tools import SCHEMAS, TOOL_NAMES, TOOLS
+from offload_agent.harness.tools import FILING_TOOLS, SCHEMAS, TOOL_NAMES, TOOLS
 
-_PROMPT = (Path(__file__).parent.parent / "prompts" / "plan_v1.md").read_text()
+_PROMPT = (Path(__file__).parent.parent / "prompts" / "plan_v2.md").read_text()
 
 # Round trips. Two pieces of content is one call to plan and one to reply; six
 # leaves room for a failed tool and a recovery, and bounds the bill.
@@ -154,6 +154,13 @@ def build_blocks(ctx: DumpContext) -> list[dict]:
             }
         )
 
+    if ctx.today:
+        # A model has no clock. Without this "the 3rd" in late December becomes
+        # this year rather than next, which is a wrong date on somebody's
+        # calendar and the kind of error nobody reports because it looks like a
+        # typo they made.
+        blocks.append({"type": "text", "text": f"Today is {ctx.today}. This is our data."})
+
     if ctx.turns:
         history = "\n".join(f"{t.role}: {t.text}" for t in ctx.turns)
         blocks.append({"type": "text", "text": f"Earlier in this conversation:\n{history}"})
@@ -245,7 +252,12 @@ async def plan(
                 continue
 
             body = await call_tool(block.name, block.id, args.model_dump())
-            if body.get("ok"):
+
+            # `landed` is what the reply is checked against, so it holds only
+            # what was actually put somewhere. A successful read or tick is not
+            # a filing, and counting one would make the record claim a thread
+            # the turn merely looked at.
+            if body.get("ok") and block.name in FILING_TOOLS:
                 filed += 1
                 outcome.landed.append(
                     Landed(

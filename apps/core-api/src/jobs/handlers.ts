@@ -5,6 +5,7 @@
 
 import { sql } from "kysely";
 import { db } from "../db.js";
+import { resolvePlace } from "../places/resolve.js";
 import type { Mailer } from "../mail/index.js";
 import { env } from "../env.js";
 
@@ -142,8 +143,42 @@ const contentPurge: Handler = async () => {
   });
 };
 
+/** Turn a place name into a point on a map, out of band.
+ *
+ *  A job rather than part of the tool call, so a dump is never held up by a
+ *  third party and a provider that is down produces a location with a name and
+ *  no pin rather than a failed answer.
+ *
+ *  **The payload carries an id and nothing else.** A payload is the thing that
+ *  ends up in a log line when somebody debugs the queue, and a place name taken
+ *  out of a dump is content (OFF-1). The log line here is the same: ids,
+ *  outcome and latency, never the query, which is precisely the thing you would
+ *  reach for while debugging a geocoder. */
+const locationResolve: Handler = async (payload) => {
+  const contentId = String(payload["contentId"] ?? "");
+  if (!contentId) throw new Error("location.resolve job has no contentId");
+
+  const started = Date.now();
+  const outcome = await resolvePlace(contentId);
+
+  // An enum and two numbers. `provider_error` is not retried by throwing: an
+  // unresolved location is a normal permanent state and the row is already
+  // safe, so failing the job would buy retries for something nobody is waiting
+  // on.
+  console.log(
+    JSON.stringify({
+      level: "info",
+      msg: "location resolved",
+      content_id: contentId,
+      outcome,
+      latency_ms: Date.now() - started,
+    })
+  );
+};
+
 export const handlers: Record<string, Handler> = {
   "email.waitlist_joined": waitlistJoined,
   "email.invited": invited,
   "content.purge": contentPurge,
+  "location.resolve": locationResolve,
 };
