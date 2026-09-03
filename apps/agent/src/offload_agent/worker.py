@@ -197,6 +197,9 @@ async def handle(
             anthropic, fitted, cfg.model, _tool_caller(http, cfg, job.id)
         )
 
+        # Not finished means either the loop ran out of round trips or a tool
+        # failed. Both are partial, and in both the reply is ours: a model that
+        # could not do something is not a reliable narrator of what it did.
         if not outcome.finished:
             # The loop ran out of round trips. Everything in `landed` is
             # committed, so this is partial rather than failed, and the person
@@ -216,7 +219,11 @@ async def handle(
                 },
             )
             log.warning(
-                "dump partial", job_id=job.id, calls=len(outcome.usage), filed=len(outcome.landed)
+                "dump partial",
+                job_id=job.id,
+                calls=len(outcome.usage),
+                filed=len(outcome.landed),
+                failed=len(outcome.failed),
             )
             return
 
@@ -265,21 +272,25 @@ async def handle(
 
 
 def _partial_reply(outcome: Outcome) -> str:
-    """What offload says when it ran out of room.
+    """What offload says when a turn did not finish.
 
-    Built from `landed`, never from the model's own account of itself, because
-    the model stopped mid-turn and its last word on the subject is unreliable
-    by construction. Names threads, states the outcome, no mechanism.
+    Built from `landed`, never from the model's own account of itself. The model
+    either stopped mid-turn or had a tool refused, and in both cases its last
+    word on the subject is unreliable by construction: asked to explain, it
+    wrote "the task tool seems to be down" about a tool that was up.
     """
     names: list[str] = []
     for item in outcome.landed:
         if item.thread_name and item.thread_name not in names:
             names.append(item.thread_name)
 
+    # Short, and only what happened. No apology, no explanation, no mechanism,
+    # and nothing about what went wrong: the screen says that, next to the way
+    # to fix it, where somebody can act on it. A sentence cannot be clicked.
     if not names:
-        return "offload did not manage to file that one. Nothing was lost."
+        return "Nothing saved."
     placed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
-    return f"Added to {placed}. There was more in that one than offload got through."
+    return f"Saved to {placed}."
 
 
 async def _give_up_or_retry(

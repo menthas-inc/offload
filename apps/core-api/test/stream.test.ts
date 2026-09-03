@@ -14,6 +14,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { makeSignature } from "better-auth/crypto";
 import { db, closeDb } from "../src/db.js";
+import { stopListening, waiterCount } from "../src/dumps/answers.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
@@ -34,6 +35,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app.close();
+  await stopListening();
   await closeDb();
 });
 
@@ -186,13 +188,15 @@ describe("the stream, over a real socket", () => {
     await response.body!.cancel();
   });
 
-  it("delivers an answer within seconds of it landing", async () => {
-    // The production failure exactly, and **the four second budget is the
-    // assertion**. The stream was never broken: it polled every fifteen
-    // seconds, so a reply sat in the database while the composer showed a
-    // thinking indicator, and somebody reloaded before it arrived and
-    // reasonably concluded nothing had happened. A test that waits patiently
-    // would have passed all the way through that.
+  it("delivers an answer the moment it lands", async () => {
+    // The production failure exactly, and **the timeout is the assertion**. The
+    // stream was never broken: it polled every fifteen seconds, so a reply sat
+    // in the database while the composer showed a thinking indicator, and
+    // somebody reloaded before it arrived. A test that waits patiently would
+    // have passed all the way through that.
+    //
+    // Nothing polls now: the transaction that writes the reply notifies, and
+    // this wakes. Two seconds is generous for a round trip through Postgres.
     const { accountId, cookie } = await signedIn();
     const { messageId, conversationId, turnId } = await dump(accountId);
 
@@ -220,7 +224,7 @@ describe("the stream, over a real socket", () => {
       usage: [usage],
     });
 
-    const frame = await stream.waitForFrame(/event: done/, 4_000);
+    const frame = await stream.waitForFrame(/event: done/, 2_000);
     expect(frame).toContain("Added to EU with fam.");
     const data = JSON.parse(frame.split("data: ")[1]!) as { state: string };
     expect(data.state).toBe("answered");
@@ -255,7 +259,7 @@ describe("the stream, over a real socket", () => {
     });
 
     const data = JSON.parse(
-      (await stream.waitForFrame(/event: done/, 4_000)).split("data: ")[1]!
+      (await stream.waitForFrame(/event: done/, 2_000)).split("data: ")[1]!
     ) as { state: string };
     expect(data.state).toBe("partial");
 
@@ -283,7 +287,7 @@ describe("the stream, over a real socket", () => {
 
     await post({ outcome: "failed", jobId: job.id, reason: "model_error" });
 
-    expect(await stream.waitForFrame(/event: failed/, 4_000)).toContain("failed");
+    expect(await stream.waitForFrame(/event: failed/, 2_000)).toContain("failed");
     stream.close();
   });
 
@@ -309,5 +313,57 @@ describe("the stream, over a real socket", () => {
     const stream = openStream(`${origin}/v1/messages/${messageId}/stream`, cookie);
     expect(await stream.waitForFrame(/event: done/, 3_000)).toContain("Done.");
     stream.close();
+  });
+});
+
+describe("nobody polls, and nobody is left behind", () => {
+  it("is woken by the write rather than by a clock", async () => {
+    // The whole point. If this ever starts failing by timing out at exactly the
+    // session interval, somebody has reintroduced a poll and it is hiding the
+    // fact that the notification path is broken.
+    const { accountId, cookie } = await signedIn();
+    const { messageId, conversationId, turnId } = await dump(accountId);
+
+    // Relative, not absolute: `waiterCount` is process-wide and an earlier
+    // test's socket may not have finished closing. What matters is that this
+    // stream is waiting, not how many others are.
+    const before = waiterCount();
+    const stream = openStream(`${origin}/v1/messages/${messageId}/stream`, cookie);
+    await new Promise((r) => setTimeout(r, 300));
+    expect(waiterCount()).toBe(before + 1);
+
+    const job = await db
+      .insertInto("jobs")
+      .values({
+        kind: "dump.answer", account_id: accountId,
+        payload: JSON.stringify({ messageId, conversationId, turnId }),
+        run_after: new Date(), state: "running",
+      })
+      .returning("id").executeTakeFirstOrThrow();
+
+    const at = Date.now();
+    await post({ outcome: "answered", jobId: job.id, replyText: "Done.", usage: [usage] });
+    await stream.waitForFrame(/event: done/, 2_000);
+
+    // Well inside the session interval, which is the only clock left.
+    expect(Date.now() - at).toBeLessThan(2_000);
+    stream.close();
+  });
+
+  it("stops waiting when the client goes away", async () => {
+    // A stream that unsubscribes on close is the difference between a map that
+    // holds people currently waiting and one that grows for the life of the
+    // process.
+    const { accountId, cookie } = await signedIn();
+    const { messageId } = await dump(accountId);
+
+    const before = waiterCount();
+    const stream = openStream(`${origin}/v1/messages/${messageId}/stream`, cookie);
+    await new Promise((r) => setTimeout(r, 300));
+    expect(waiterCount()).toBe(before + 1);
+
+    stream.close();
+    await new Promise((r) => setTimeout(r, 800));
+    expect(waiterCount()).toBe(before);
   });
 });

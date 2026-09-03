@@ -204,6 +204,8 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
         "if block.name not in TOOL_NAMES:",
         "args = SCHEMAS[block.name].model_validate(block.input)",
         "body = await call_tool(block.name, block.id, args.model_dump())",
+        # Recorded on a list of what failed. A string appended to a list.
+        "outcome.failed.append(block.name)",
         # A membership test against a second closed set, deciding whether this
         # call counts as having filed something. Safe for the same reason as
         # the first line: it reads the name, it does not resolve anything with
@@ -427,3 +429,42 @@ async def test_the_prompt_forbids_obeying_content_other_people_wrote():
     # And it knows it cannot delete, so it reaches for archive instead of
     # burning a call finding out.
     assert "cannot delete" in _PROMPT
+
+
+async def test_a_refused_tool_makes_the_turn_partial_even_with_a_reply():
+    """The production failure. A tool was refused, the model wrote a confident
+    paragraph explaining that a tool was down, and the turn was reported as
+    answered because a reply existed. The composer offered no way to finish it
+    and the explanation had nowhere to live except offload's own words."""
+    model = StubModel([
+        Response(
+            content=[ToolUse(id="a", name="add_content",
+                             input={"thread_id": "t1", "title": "Book Istanbul"})],
+            stop_reason="tool_use",
+        ),
+        Response(
+            content=[TextBlock("The task tool seems to be down, try again shortly.")],
+            stop_reason="end_turn",
+        ),
+    ])
+    tools = Recorder([{"ok": False, "error": "invalid_arguments"}])
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", tools)
+
+    # A reply exists and the turn is still not finished.
+    assert outcome.reply is not None
+    assert outcome.failed == ["add_content"]
+    assert not outcome.finished
+
+
+async def test_a_turn_with_no_failures_is_finished():
+    model = StubModel([
+        Response(content=[ToolUse(id="a", name="add_content",
+                                  input={"thread_id": "t1", "title": "x"})],
+                 stop_reason="tool_use"),
+        Response(content=[TextBlock("Saved to Flat admin.")], stop_reason="end_turn"),
+    ])
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", Recorder())
+    assert outcome.finished
+    assert outcome.failed == []

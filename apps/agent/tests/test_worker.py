@@ -177,7 +177,7 @@ async def test_the_partial_reply_names_only_threads_that_were_written_to():
     """
     from offload_agent.worker import _partial_reply
 
-    assert _partial_reply(_outcome("Flat admin")).startswith("Added to Flat admin.")
+    assert _partial_reply(_outcome("Flat admin")) == "Saved to Flat admin."
     assert "Flat admin and Bookshelf build" in _partial_reply(
         _outcome("Flat admin", "Bookshelf build")
     )
@@ -191,9 +191,21 @@ async def test_the_partial_reply_names_only_threads_that_were_written_to():
 async def test_the_partial_reply_claims_nothing_when_nothing_landed():
     from offload_agent.worker import _partial_reply
 
-    reply = _partial_reply(_outcome())
-    assert "Added to" not in reply
-    assert "Nothing was lost" in reply
+    assert _partial_reply(_outcome()) == "Nothing saved."
+
+
+async def test_the_partial_reply_never_explains_itself():
+    """offload once wrote "the task tool seems to be down, you may want to try
+    again shortly" about a tool that was up. The screen says what did not save
+    and offers the button; the reply says what did and stops."""
+    from offload_agent.worker import _partial_reply
+
+    for reply in (_partial_reply(_outcome()), _partial_reply(_outcome("Flat admin"))):
+        lowered = reply.lower()
+        for word in ("try again", "sorry", "down", "unable", "could not", "failed", "shortly"):
+            assert word not in lowered, f"{word!r} in {reply!r}"
+        assert "\u2014" not in reply and "\u2013" not in reply
+        assert len(reply) < 80
 
 
 async def test_a_refused_tool_call_is_not_retried_as_a_network_failure():

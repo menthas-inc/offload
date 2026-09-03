@@ -14,6 +14,7 @@ Five surfaces: iOS, Android, web app, admin panel, marketing site. Invite only, 
 ## How to work with me in this repo
 
 - Be concise and direct. Surface real fork-in-the-road decisions, make the trivial calls yourself.
+- **Short, friendly, to the point. Not emphatic, not apologetic.** This applies to your replies to me and to every word the product says. It drifts, so it is written down: no restating what I just said, no preamble, no summarising work I can read in the diff.
 - Prefer the smallest change that satisfies the spec. No speculative abstraction.
 - Ground non-trivial decisions in `docs/constitution/principles.md` and `docs/tech/`.
 - When code and spec disagree, the spec wins. Update the code, or flag the spec as wrong.
@@ -34,7 +35,8 @@ Read `.claude/skills/offload-design/readme.md` in full before building anything 
 Things that bite most often:
 - Consume tokens, never retype a value. Use semantic aliases (`--text-accent`), not ramps (`--moss-600`). `pnpm lint` enforces this, along with the prop contract of all 21 components, by reading the design system's generated rule file. It is wired already, so a violation is caught rather than discussed.
 - Vocabulary applies to identifiers, not just copy: **thread**, **memory**, **connection**, **dump**, **sorted**, **Undo**. Never folder, item, space, project, capture, classified, and **no longer thing**, retired 2026-09-02. **The word splits by audience and the split is deliberate.** In schema and code the noun is **content**: a `content` row, in a thread, derived from a message. In anything a person reads there is no noun at all, so reword around it and let a count stand on its own with no unit. A thread holds what you dumped in. The kits still say thing throughout and are what has to catch up; their prototype fixture also still says `space` in places, which is residue, not a schema.
-- No em dashes anywhere: UI copy, marketing, comments, commit messages, these docs.
+- No em dashes or en dashes anywhere: UI copy, marketing, comments, commit messages, these docs, and **anything offload writes at runtime**. The prompt says so and models break this rule more than any other, so it is worth checking output rather than trusting the instruction.
+- **offload never explains a failure and never diagnoses itself.** It says what happened and the screen offers the way forward, next to a control that acts on it. A model cannot see whether a tool is down and will be wrong about it: it once told somebody "the task tool seems to be down" about a tool that had refused a malformed date. A sentence cannot be clicked, so the reply names what landed and links to it, and the failure line is one short clause plus a retry.
 - Sentence case everywhere. The brand name is lowercase even at the start of a sentence.
 - One emoji in the product, 👀, on a message offload has seen but not answered, and it needs a text alternative.
 - Never hand-edit `_ds_bundle.js`, `_ds_manifest.json` or `_adherence.oxlintrc.json`. They are generated.

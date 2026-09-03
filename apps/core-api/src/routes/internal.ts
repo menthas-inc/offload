@@ -251,6 +251,12 @@ export async function internalRoutes(app: App): Promise<void> {
               }
         );
 
+        // In the transaction, so nobody is woken to read a row that then rolls
+        // back. Postgres holds the notification until commit for exactly this.
+        // The payload is a message id and nothing else: a notification is a
+        // "look again", not a delivery.
+        await sql`select pg_notify(${"offload_answer"}, ${payload.messageId!})`.execute(trx);
+
         return true;
       });
 

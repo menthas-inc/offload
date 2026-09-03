@@ -18,6 +18,7 @@ import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
+import { onAnswer } from "../dumps/answers.js";
 import { emit } from "../analytics.js";
 
 /** Longer than anything the composer is designed for, and short enough that a
@@ -31,31 +32,18 @@ const MAX_DUMP_CHARS = 10_000;
  *  conversation and tomorrow morning is a new one. */
 const CONVERSATION_GAP = "6 hours";
 
-/** How often the stream looks for an answer.
+/** How often the stream re-checks the session and sends a keep-alive.
  *
- *  **This was 15 seconds and that was a real bug**, not a tuning choice. A dump
- *  was answered, the reply sat in the database, and the composer showed a
- *  thinking indicator for up to fifteen more seconds; somebody reloaded the
- *  page before it arrived and reasonably concluded nothing had happened.
+ *  **Nothing polls for the answer any more.** The stream reads once when it
+ *  opens, then waits to be woken by `pg_notify` from the transaction that
+ *  writes the reply, so an answer arrives the instant it commits and no
+ *  question is asked in the meantime. See `../dumps/answers.ts`.
  *
- *  The mistake was folding two different questions into one number: how quickly
- *  an answer should reach a waiting browser, and how often a session should be
- *  re-checked. The first wants to be as fast as is affordable and the second
- *  does not. They are separate constants now.
- *
- *  One primary-key lookup per second per open stream, and a stream is only open
- *  while somebody is watching a thinking indicator, so the number of them is
- *  bounded by people actively waiting rather than by accounts. */
-const STREAM_TICK_MS = 1_000;
-
-/** How often the stream re-checks that this person may still receive.
- *
- *  Kept at the old cadence deliberately. 002 enforces revocation at Better
- *  Auth's refresh, which fires on a request, and an open stream makes none, so
- *  this interval **is** the window in which a disabled account keeps receiving
- *  its own conversation updates. Fifteen seconds is that window, stated rather
- *  than discovered, and it is a session lookup rather than an indexed read
- *  which is why it does not run every tick. */
+ *  This interval is only two things now, and both genuinely want a clock. 002
+ *  enforces session revocation at Better Auth's refresh, which fires on a
+ *  request, and an open stream makes none, so **this interval is the window in
+ *  which a disabled account keeps receiving its own conversation updates**. And
+ *  an idle proxy drops a connection that has said nothing for long enough. */
 const STREAM_SESSION_MS = 15_000;
 
 /** Then the client reconnects. Bounds the revocation gap above and keeps a
@@ -576,9 +564,14 @@ export async function dumpRoutes(app: App): Promise<void> {
         return reply.code(404).send({ error: "not_found" as const });
 
       let closed = false;
+      // Set once the stream subscribes. A stream that goes away without
+      // unsubscribing leaves a closure in a map for the life of the process,
+      // which is the same leak as an EventSource nobody closes.
+      let unsubscribe: (() => void) | null = null;
       const finish = (): void => {
         if (closed) return;
         closed = true;
+        unsubscribe?.();
         clearInterval(timer);
         clearTimeout(lifetime);
         if (!reply.raw.writableEnded) reply.raw.end();
@@ -632,17 +625,13 @@ export async function dumpRoutes(app: App): Promise<void> {
        *  account would leave its stream delivering conversation updates for as
        *  long as it stayed open. The tick interval is therefore the exposure,
        *  and it is stated rather than discovered. */
-      let sessionCheckedAt = Date.now();
-      let keptAliveAt = Date.now();
-
-      const tick = async (): Promise<void> => {
+      const tick = async (checkSession: boolean): Promise<void> => {
         if (closed) return;
         try {
-          // The session, on its own slower cadence. Re-checking it every second
-          // would be a Better Auth call per second per open stream to shorten a
-          // revocation window nobody asked to shorten.
-          if (Date.now() - sessionCheckedAt >= STREAM_SESSION_MS) {
-            sessionCheckedAt = Date.now();
+          // The session only on the clock. The answer arrives by notification,
+          // and re-checking a session every time one lands would be a Better
+          // Auth call per answer for no gain.
+          if (checkSession) {
             const stillAllowed = await currentAccountId(request);
             if (stillAllowed !== accountId) return finish();
           }
@@ -662,15 +651,10 @@ export async function dumpRoutes(app: App): Promise<void> {
           }
           if (step.do === "close") return finish();
 
-          // A comment frame, on the session cadence rather than every tick: one
-          // a second would be a needless kilobyte a minute down a connection
-          // that exists to carry one sentence. Its job is only to keep an idle
+          // A comment frame, only on the clock. Its job is to keep an idle
           // proxy from dropping a stream that is legitimately waiting on a
           // model.
-          if (Date.now() - keptAliveAt >= STREAM_SESSION_MS) {
-            keptAliveAt = Date.now();
-            write(": keep-alive\n\n");
-          }
+          if (checkSession) write(": keep-alive\n\n");
         } catch {
           // A failed tick is not worth killing the process over. The client
           // reconnects, or falls back to asking.
@@ -679,14 +663,26 @@ export async function dumpRoutes(app: App): Promise<void> {
       };
 
       send("thinking", { state: message.state });
-      const timer = setInterval(() => void tick(), STREAM_TICK_MS);
+
+      // The clock, for the session check and the keep-alive only.
+      const timer = setInterval(() => void tick(true), STREAM_SESSION_MS);
 
       // Bounded. The client reconnects, which re-runs the authorization above
       // and bounds how stale an open stream's view of a session can be.
       const lifetime = setTimeout(finish, STREAM_LIFETIME_MS);
 
-      // Answered before the first tick, which is common on a fast model.
-      await tick();
+      // Woken by the transaction that writes the reply, so the answer goes out
+      // the instant it commits and nothing asks in the meantime.
+      //
+      // Subscribed before the first read, deliberately. The other order has a
+      // gap: an answer committing between the read and the subscribe would
+      // notify nobody, and the stream would then wait for a notification that
+      // had already happened.
+      unsubscribe = await onAnswer(message.id, () => void tick(false));
+
+      // And then read once, in case it landed before any of this, which is
+      // common on a fast model and on a reconnect.
+      await tick(false);
 
       return;
     },

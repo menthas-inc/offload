@@ -76,13 +76,27 @@ class Outcome:
     reply: str | None
     landed: list[Landed] = field(default_factory=list)
     usage: list[Usage] = field(default_factory=list)
+    #: Tools that were refused or unavailable. Kept because a turn where
+    #: something failed is not a finished turn even when the model wrote a
+    #: confident sentence about it.
+    failed: list[str] = field(default_factory=list)
 
     @property
     def finished(self) -> bool:
-        """A reply means the model stopped because it was done. No reply means
-        the loop ran out of room, which is partial rather than failed: whatever
-        is in `landed` is in the database."""
-        return self.reply is not None
+        """Did everything this turn set out to do actually happen.
+
+        A reply alone is not enough, and assuming it was produced a real
+        failure: a tool was refused, the model wrote "the task tool seems to be
+        down, you may want to try again shortly", and that reached somebody as
+        offload's own words. The turn was reported as answered because there was
+        a reply, so the composer offered no way to finish it and the explanation
+        had nowhere to live except the sentence.
+
+        A turn with a failed tool is partial. What landed is in the database,
+        the reply is written from that record rather than from the model's
+        account of itself, and the screen offers the way forward.
+        """
+        return self.reply is not None and not self.failed
 
 
 class ToolCaller(Protocol):
@@ -257,6 +271,10 @@ async def plan(
             # what was actually put somewhere. A successful read or tick is not
             # a filing, and counting one would make the record claim a thread
             # the turn merely looked at.
+            if not body.get("ok"):
+                # Names only. The reason is data for the model, not for a reply.
+                outcome.failed.append(block.name)
+
             if body.get("ok") and block.name in FILING_TOOLS:
                 filed += 1
                 outcome.landed.append(
