@@ -20,12 +20,25 @@
   pointer-events: none;
 }
 
-/* Held to the window, for a page that scrolls. Nothing else about it changes:
-   the mark, the halo and the clouds are already sized in viewport units, so
-   pinning is the only difference between the background of a one-screen page
-   and the background of a document. */
+/* Held to the window, for a page that scrolls, and still while it is held.
+
+   Fixed because the atmosphere is centred on its own box, so behind a document
+   an absolute one sits halfway down the article. Still because every drift here
+   moves a wash inside a parent carrying a turbulence filter, which re-runs the
+   filter and repaints the layer: ~96ms across the nine of them, every frame.
+   That is affordable on a page with nothing else to draw and it is not
+   affordable on one whose text is waiting for the same raster thread.
+
+   `animation: none` lands each loop on its first keyframe, which is what
+   globals.css already does under prefers-reduced-motion, so this is the same
+   picture that half the visitors to the landing page are already seeing. */
 .atmosphere.pinned {
   position: fixed;
+}
+
+.atmosphere.pinned .cloud,
+.atmosphere.pinned .wash {
+  animation: none;
 }
 
 /* ------------------------------------------------------------- the clouds */

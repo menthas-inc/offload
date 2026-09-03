@@ -14,10 +14,20 @@
 // part that has to be JavaScript: it is a light source at the cursor casting a
 // stack, and CSS cannot follow a pointer.
 //
-// `pinned` is for a page taller than the window. The atmosphere is centred on
-// its own box, so on a long document an absolute one puts the mark halfway down
-// the article where nobody will ever see it. Pinned, it is the window's
-// background and the text scrolls over it.
+// `pinned` is for a page taller than the window. Two things change and both are
+// forced by the same measurement. It is fixed rather than absolute, because the
+// atmosphere is centred on its own box and on a long document an absolute one
+// puts the mark halfway down the article where nobody will ever see it. And it
+// is *still*: no drift, no parallax, one draw of the shader.
+//
+// The stillness is not a taste decision. Each wash drifts inside a parent
+// carrying an SVG turbulence filter, so moving the child re-runs the filter,
+// and the whole stack costs ~96ms to paint: five 602px flares at ~9ms, three
+// blurred clouds at 6-9ms, the halo at 4.4ms. Animated, that is ~96ms of raster
+// work every frame, forever. On a one-screen page nothing else needs the raster
+// thread and it is free. On a document it competes with the text tiles, which
+// cost 2.7ms and lose, and the text arrives a second or two after the scroll.
+// Frozen, the same picture is painted once and never again.
 
 import { useEffect, useRef } from "react";
 import styles from "./atmosphere.module.css";
@@ -73,13 +83,16 @@ function reducedMotion() {
 export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  /** A pinned atmosphere is a still one, for the same reason reduced motion is:
+   *  both want the picture without anything that repaints it. */
+  const still = pinned;
 
   // The pointer parallax. Two loops on purpose: the pointer writes a target and
   // the frame eases towards it, so a fast flick across the page drags the stack
   // rather than teleporting it.
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || reducedMotion()) return;
+    if (!root || still || reducedMotion()) return;
 
     const flares = [...root.querySelectorAll<HTMLElement>("[data-flare]")];
     const target = { x: 0, y: 0 };
@@ -108,7 +121,7 @@ export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
       window.removeEventListener("pointermove", onMove);
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [still]);
 
   // The prism shader.
   useEffect(() => {
@@ -157,10 +170,10 @@ export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
     resize();
     window.addEventListener("resize", resize);
 
-    // Reduced motion still draws, once, at a fixed clock. The prism is part of
-    // the mark, not an animation of it, so removing it would remove the
-    // picture rather than the movement.
-    const reduced = reducedMotion();
+    // A still atmosphere draws once, at a fixed clock, exactly as reduced motion
+    // does. The prism is part of the mark, not an animation of it, so removing
+    // it would remove the picture rather than the movement.
+    const reduced = still || reducedMotion();
     const start = performance.now();
     let frame = 0;
     const draw = (now: number) => {
@@ -174,7 +187,7 @@ export function Atmosphere({ pinned = false }: { pinned?: boolean }) {
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [still]);
 
   return (
     <div

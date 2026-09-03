@@ -582,3 +582,18 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **88ch is a wide measure and is deliberate.** 68ch is inside the usual 45 to 75 characters for long prose and 88ch is outside it, at roughly 105 characters a line. The product owner read the page at 68ch and found it too narrow, and asked for 30% more. The same judgement as the gate lockup on 2026-09-02: the current answer rather than a settled one, and the kind of call that only survives contact with the real page.
 
 **Design system impact:** none to the tokens or the components. `readme.md` says nothing about document pages, and there is now one: worth a line saying that a document uses the shared frame with a pinned atmosphere, and that its measure is 88ch, so the next long page does not re-derive both. If the measure moves back, this entry and the one above it move together.
+
+### 2026-09-03 · A pinned atmosphere is a still one
+**Surface:** marketing
+
+**Is:** `/privacy` keeps the background it gained earlier today, and nothing in it moves. No drift on the washes or the clouds, no pointer parallax, one draw of the prism shader. The landing page and the gate are untouched and still move.
+
+**The symptom was text arriving a second or two after the scroll**, in bands, as though the page were loading. It was reported as "something weird about the new page" and the guess was the background, which was right.
+
+**What the compositor actually said.** The document column is promoted to its own layer, 938 by 9,655 pixels, for the reason "Overlaps other composited content": it sits over a fixed element that has to be composited. That layer paints in **2.7ms**, so it is not the problem. The nine atmosphere layers paint in **96ms** between them, five 602px flares at ~9ms each, three blurred clouds at 6 to 9ms, the halo at 4.4ms. Every drift moves a wash *inside* a parent carrying an SVG turbulence filter, which re-runs the filter and repaints the layer, so that 96ms was being spent every frame, forever. The text tiles were queued behind it on the same raster thread and lost.
+
+**Why the landing page never showed this.** Same cost, nothing competing for it. A one-screen page rasters once and then has nothing else to draw, so 96ms a frame is invisible. A document is many screens of text waiting on the same thread. The lesson is the one about kits not showing a keyboard, in a different costume: an effect built for a screen that does not scroll has a failure mode that only appears on one that does.
+
+**Frozen rather than removed, and it is the same picture.** `animation: none` lands each loop on its first keyframe and the shader draws at a fixed clock, which is exactly what `prefers-reduced-motion` already does, so this is the view a good share of visitors to the landing page were already getting. Verified after the change: 0 running CSS animations and 0 rAF callbacks a second on `/privacy`, against 10 and 181 on `/`.
+
+**Design system impact:** worth a line in `readme.md` where the atmosphere is described. It is a one-screen effect. Behind anything that scrolls it has to be still, and the reason is measurable rather than aesthetic. If the effect is ever put behind another long page, `pinned` is the prop that does both halves.
