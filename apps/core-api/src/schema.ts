@@ -225,10 +225,35 @@ export interface ContentTable {
   /** The undo unit and the provenance. */
   derived_from_message_id: string | null;
   type: Generated<
-    "note" | "link" | "image" | "screenshot" | "voice" | "file" | "task" | "event"
+    | "note"
+    | "link"
+    | "image"
+    | "screenshot"
+    | "voice"
+    | "file"
+    | "task"
+    | "event"
+    | "location"
   >;
   title: string;
   body: string | null;
+  /** When it was ticked off. A timestamp rather than a boolean, because when
+   *  something was done is a fact the agenda wants. */
+  done_at: Timestamp | null;
+  due_at: Timestamp | null;
+  occurs_at: Timestamp | null;
+  occurs_end_at: Timestamp | null;
+  /** A flag on a task or an event, never a type of its own. */
+  is_reminder: Generated<boolean>;
+  /** 0 to 100, higher first. Orders content inside a thread. Not
+   *  `needs_attention`, which decides what leaves one. */
+  priority: Generated<number>;
+  /** A person set the priority, so the planner must not overwrite it. */
+  priority_pinned: Generated<boolean>;
+  /** `dimension:value`, or a bare value whose dimension is implicitly `tag`. */
+  tags: Generated<string[]>;
+  /** Null forever is a normal state: a location with a name and no pin. */
+  place_id: string | null;
   source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
   source_ref: string | null;
   /** The model's tool_use block id. Idempotent within a turn, and deliberately
@@ -243,6 +268,29 @@ export interface ContentTable {
   archived_at: Timestamp | null;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;
+}
+
+export interface PlacesTable {
+  id: Generated<string>;
+  provider: Generated<"google">;
+  provider_place_id: string;
+  name: string;
+  formatted_address: string | null;
+  lat: number | null;
+  lng: number | null;
+  resolved_at: Timestamp;
+}
+
+/** Search text to place id. The half of the cache that actually saves the
+ *  outbound call, since caching by place id only saves the details lookup once
+ *  the id is already known. */
+export interface PlaceLookupsTable {
+  /** A hash of the normalised search string, never the string. This table must
+   *  not become a plaintext list of every place anybody has mentioned. */
+  query_hash: string;
+  /** Null is a remembered miss, so an unresolvable name is not retried forever. */
+  place_id: string | null;
+  looked_up_at: Timestamp;
 }
 
 export interface LlmUsageTable {
@@ -274,6 +322,8 @@ export interface Database {
   conversations: ConversationsTable;
   messages: MessagesTable;
   content: ContentTable;
+  places: PlacesTable;
+  place_lookups: PlaceLookupsTable;
   llm_usage: LlmUsageTable;
   jobs: JobsTable;
   analytics_events: AnalyticsEventsTable;

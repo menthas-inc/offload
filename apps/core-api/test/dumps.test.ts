@@ -393,7 +393,14 @@ describe("AC-17 and AC-4 what an open stream does each tick", () => {
     const id = await account();
     const { messageId, jobId } = await dump(id, "hello");
     await post({ outcome: "answered", jobId, replyText: "Noted.", usage: goodUsage });
-    expect(await streamStep(messageId, id)).toEqual({ do: "answered", reply: "Noted." });
+    // `threads` is empty rather than absent, and that is the honest answer: the
+    // turn filed nothing, so there is nowhere for the composer to link to. It
+    // is populated from the content rows, never from the reply.
+    expect(await streamStep(messageId, id)).toEqual({
+      do: "answered",
+      reply: "Noted.",
+      threads: [],
+    });
   });
 
   it("reports a failure rather than waiting forever", async () => {

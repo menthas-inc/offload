@@ -1,0 +1,235 @@
+/* The composer, and the conversation inside it.
+ *
+ * Moved out of `(app)/auth.module.css` when 005 gave the app a shell. It lived
+ * there because Today was a page under `(app)`; it is chrome now, under every
+ * pane and belonging to none of them, which is what the kit has always said.
+ *
+ * Two changes beyond the move: it spans the window rather than a 52ch column,
+ * because it sits under two panes now; and offload's reply carries links to the
+ * threads it actually wrote to.
+ */
+
+.composer {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-7) var(--space-6);
+  border-top: 1px solid var(--border-hairline);
+  background: var(--surface-page);
+}
+
+.composerInner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--composer-height);
+  padding: 0 var(--space-3) 0 var(--space-6);
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-pill);
+  background: var(--surface-input);
+  transition: box-shadow var(--transition-ui);
+}
+
+.composerInner:focus-within { box-shadow: 0 0 0 3px var(--surface-attention-soft); }
+
+.composerInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  outline: none;
+  font: var(--text-body-role);
+  color: var(--text-primary);
+}
+
+.composerInput::placeholder { color: var(--text-tertiary); }
+
+.send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Drawn at 40, hit at 44, per the design system's hit-area rule. */
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--ink-950);
+  color: var(--text-inverse);
+  cursor: pointer;
+}
+
+.send:disabled { background: var(--ink-200); cursor: default; }
+
+.turnYou {
+  position: relative;
+  align-self: flex-end;
+  max-width: 78%;
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid var(--blue-100);
+  border-radius: 18px 18px 5px 18px;
+  background: var(--blue-50);
+  font: var(--weight-regular) 15px/1.45 var(--font-core);
+  color: var(--text-primary);
+}
+
+.turnOffload {
+  align-self: flex-start;
+  max-width: 92%;
+  padding: var(--space-4) var(--space-5);
+  border-radius: 18px 18px 18px 5px;
+  background: var(--ink-50);
+  font: var(--text-quiet-role);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.seen {
+  position: absolute;
+  left: -15px;
+  bottom: -16px;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--border-hairline);
+  border-radius: 99px;
+  background: var(--paper);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.turnFailed {
+  margin: var(--space-3) 0 0;
+  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
+  color: var(--text-on-attention);
+}
+
+.retry {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: var(--weight-medium);
+  color: var(--text-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.writing {
+  align-self: flex-start;
+  display: flex;
+  gap: 5px;
+  padding: var(--space-4) var(--space-5);
+  border-radius: 18px 18px 18px 5px;
+  background: var(--ink-50);
+}
+
+.writing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--ink-300);
+  animation: writingPulse 1.2s var(--ease-in-out) infinite;
+}
+
+.writing span:nth-child(2) { animation-delay: 0.16s; }
+.writing span:nth-child(3) { animation-delay: 0.32s; }
+
+.composerError {
+  margin: var(--space-3) 0 0;
+  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
+  color: var(--text-on-attention);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Where offload actually filed things. Links, because a reply that names a
+   place you cannot go to is a reply that makes you go looking. */
+.wentTo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.threadLink {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+  font: var(--weight-medium) 12.5px/1 var(--font-core);
+  text-decoration: none;
+}
+
+.threadLink:hover {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+/* Undo, floated over the composer rather than over a pane, because the action
+   it takes back was taken here. The design system's Toast contract. */
+.toast {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(100% + var(--space-4));
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-3);
+  white-space: nowrap;
+  animation: toastRise var(--duration-slow) var(--ease-entrance) both;
+}
+
+.toastMessage {
+  font: var(--text-body-sm-role);
+}
+
+.toastAction {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--text-inverse);
+  font: var(--weight-medium) var(--size-body-sm)/1 var(--font-core);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+@keyframes toastRise {
+  from { transform: translate(-50%, 8px); opacity: 0; }
+  to { transform: translateX(-50%); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
+
+/* The turns sit above the field, in the same box, and the field stays where it
+   was so nothing moves under the cursor. Capped so a long conversation scrolls
+   rather than pushing the field off the screen. */
+.turns {
+  max-height: 40vh;
+  overflow-y: auto;
+}

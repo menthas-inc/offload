@@ -79,12 +79,22 @@ const dumpResponse = z.object({
   turnId: z.string(),
 });
 
+/** The threads a turn actually wrote to.
+ *
+ *  From the `content` rows it produced, not from parsing the reply. offload
+ *  naming a thread it did not write to is the failure 004 exists to prevent,
+ *  so the composer's links come from the record of what happened rather than
+ *  from the sentence describing it. If the two ever disagree, the links are
+ *  right and the sentence is the bug. */
+const touchedThreads = z.array(z.object({ id: z.string(), name: z.string() }));
+
 const messageResponse = z.object({
   id: z.string(),
   conversationId: z.string(),
   state: messageState,
   text: z.string().nullable(),
   reply: z.string().nullable(),
+  threads: touchedThreads,
 });
 
 /** One screenful. The composer is not a scrollback and the heavy case at 200
@@ -121,6 +131,36 @@ const unauthenticated = z.object({ error: z.literal("unauthenticated") });
  *  conversation: with two dumps in flight the newest is not necessarily the
  *  answer to this one, and showing somebody the wrong answer under their
  *  message is worse than showing none. */
+/** Which threads a turn's content landed in, deduplicated, in the order it
+ *  filed them. One indexed lookup on `content(derived_from_message_id)`.
+ *
+ *  From the rows, never from the reply. offload naming a thread it did not
+ *  write to is the failure 004 exists to prevent, so the composer's links come
+ *  from the record of what happened rather than from the sentence describing
+ *  it. If the two ever disagree, the links are right and the sentence is a bug.
+ */
+async function threadsFor(
+  messageId: string,
+  accountId: string,
+): Promise<{ id: string; name: string }[]> {
+  const rows = await db
+    .selectFrom("content")
+    .innerJoin("threads", "threads.id", "content.thread_id")
+    .select(["threads.id as id", "threads.name as name"])
+    .where("content.derived_from_message_id", "=", messageId)
+    .where("content.account_id", "=", accountId)
+    .where("content.deleted_at", "is", null)
+    .orderBy("content.created_at")
+    .execute();
+
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    if (seen.has(row.id)) return false;
+    seen.add(row.id);
+    return true;
+  });
+}
+
 async function replyFor(
   turnId: string,
   accountId: string,
@@ -144,8 +184,14 @@ async function replyFor(
  *  than when the behaviour does. The authorization around this is covered by
  *  its own 401 and 404 cases; this is the part with the states in it.
  */
+export interface TouchedThread {
+  id: string;
+  name: string;
+}
+
 export type StreamStep =
-  | { do: "answered"; reply: string | null }
+  | { do: "answered"; reply: string | null; threads: TouchedThread[] }
+  | { do: "partial"; reply: string | null; threads: TouchedThread[] }
   | { do: "failed" }
   | { do: "close" }
   | { do: "wait" };
@@ -174,11 +220,12 @@ export async function streamStep(
     .executeTakeFirst();
 
   if (!current) return { do: "close" };
-  if (current.state === "answered") {
-    return {
-      do: "answered",
-      reply: await replyFor(current.turn_id, accountId),
-    };
+  if (current.state === "answered" || current.state === "partial") {
+    const [reply, threads] = await Promise.all([
+      replyFor(current.turn_id, accountId),
+      threadsFor(messageId, accountId),
+    ]);
+    return { do: current.state === "answered" ? "answered" : "partial", reply, threads };
   }
   if (current.state === "failed") return { do: "failed" };
   return { do: "wait" };
@@ -408,15 +455,17 @@ export async function dumpRoutes(app: App): Promise<void> {
       if (!message)
         return reply.code(404).send({ error: "not_found" as const });
 
+      const settled = message.state === "answered" || message.state === "partial";
+
       return reply.send({
         id: message.id,
         conversationId: message.conversation_id,
         state: message.state,
         text: message.text,
-        reply:
-          message.state === "answered"
-            ? await replyFor(message.turn_id, accountId)
-            : null,
+        reply: settled ? await replyFor(message.turn_id, accountId) : null,
+        // Where it actually went. Empty until something lands, which is the
+        // honest answer while nothing is filed.
+        threads: settled ? await threadsFor(message.id, accountId) : [],
       });
     },
   );
@@ -569,8 +618,12 @@ export async function dumpRoutes(app: App): Promise<void> {
           if (stillAllowed !== accountId) return finish();
 
           const step = await streamStep(message.id, accountId);
-          if (step.do === "answered") {
-            send("done", { state: "answered", reply: step.reply });
+          if (step.do === "answered" || step.do === "partial") {
+            send("done", {
+              state: step.do,
+              reply: step.reply,
+              threads: step.threads,
+            });
             return finish();
           }
           if (step.do === "failed") {

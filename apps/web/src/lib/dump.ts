@@ -24,9 +24,18 @@ export interface Sent {
   turnId: string;
 }
 
+/** A thread a turn actually wrote to. From the content rows it produced, not
+ *  from parsing the reply, so a link can never point somewhere offload did not
+ *  file anything. */
+export interface TouchedThread {
+  id: string;
+  name: string;
+}
+
 export interface Answer {
   state: MessageState;
   reply: string | null;
+  threads?: TouchedThread[];
 }
 
 export class DumpTooLong extends Error {
@@ -62,8 +71,9 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
   const body = (await response.json()) as {
     state: MessageState;
     reply: string | null;
+    threads?: TouchedThread[];
   };
-  return { state: body.state, reply: body.reply };
+  return { state: body.state, reply: body.reply, threads: body.threads ?? [] };
 }
 
 /** Wait for the answer over the stream, and fall back to asking.
@@ -105,7 +115,11 @@ export function awaitAnswer(
     if (done) return;
     void fetchAnswer(messageId).then((answer) => {
       if (!answer) return;
-      if (answer.state === "answered" || answer.state === "failed")
+      if (
+        answer.state === "answered" ||
+        answer.state === "partial" ||
+        answer.state === "failed"
+      )
         settle(answer);
       // Still thinking: the browser reconnects the EventSource on its own.
     });

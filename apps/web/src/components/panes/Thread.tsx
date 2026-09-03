@@ -16,8 +16,8 @@
 // an archived state though every kit draws an archive control.
 
 import { useEffect, useRef, useState } from "react";
-import styles from "../../app/(app)/shell.module.css";
-import type { Open } from "../shell/Shell";
+import Link from "next/link";
+import styles from "../../app/(shell)/shell.module.css";
 import {
   deleteContent,
   editContent,
@@ -31,12 +31,11 @@ import {
 
 interface Props {
   id: string;
-  open: Open;
   onChanged: () => void;
   onUndo: (message: string, undo: () => Promise<unknown>) => void;
 }
 
-export function Thread({ id, open, onChanged, onUndo }: Props) {
+export function Thread({ id, onChanged, onUndo }: Props) {
   const [thread, setThread] = useState<ThreadBundle | null>(null);
   const [rows, setRows] = useState<ContentRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -254,14 +253,9 @@ export function Thread({ id, open, onChanged, onUndo }: Props) {
                     aria-label="Title"
                   />
                 ) : (
-                  <button
-                    type="button"
-                    className={styles.rowTitle}
-                    style={{ border: 0, background: "none", padding: 0, textAlign: "left" }}
-                    onClick={() => open({ kind: "content", id: row.id, title: row.title })}
-                  >
+                  <Link href={`/content/${row.id}`} className={styles.rowTitle}>
                     {row.title}
-                  </button>
+                  </Link>
                 )}
                 <span className={styles.rowMeta}>
                   {row.author.isYou ? "you" : row.author.displayName} ·{" "}

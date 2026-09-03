@@ -6,8 +6,8 @@
 // "older" is derived from activity, because a thread does not become old, it
 // stops being used. The server derives it so all three clients agree.
 
-import styles from "../../app/(app)/shell.module.css";
-import type { Open } from "../shell/Shell";
+import Link from "next/link";
+import styles from "../../app/(shell)/shell.module.css";
 import type { ThreadGroup } from "../../lib/threads";
 
 const HEADINGS: Record<string, string> = {
@@ -18,11 +18,10 @@ const HEADINGS: Record<string, string> = {
 
 interface Props {
   groups: ThreadGroup[];
-  open: Open;
   loading: boolean;
 }
 
-export function MyThreads({ groups, open, loading }: Props) {
+export function MyThreads({ groups, loading }: Props) {
   const total = groups.reduce((n, group) => n + group.threads.length, 0);
   const live = groups.find((group) => group.key === "now")?.threads.length ?? 0;
 
@@ -57,11 +56,10 @@ export function MyThreads({ groups, open, loading }: Props) {
                   <em className={styles.sectionCount}>{group.threads.length}</em>
                 </h2>
                 {group.threads.map((thread) => (
-                  <button
+                  <Link
                     key={thread.id}
-                    type="button"
+                    href={`/threads/${thread.id}`}
                     className={styles.row}
-                    onClick={() => open({ kind: "thread", id: thread.id, name: thread.name })}
                   >
                     <span className={styles.rowIcon} aria-hidden="true">
                       ◦
@@ -71,7 +69,7 @@ export function MyThreads({ groups, open, loading }: Props) {
                       <span className={styles.rowMeta}>{thread.meta}</span>
                     </span>
                     <span className={styles.rowCount}>{thread.count}</span>
-                  </button>
+                  </Link>
                 ))}
               </section>
             )

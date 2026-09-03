@@ -14,16 +14,11 @@
 // belongs to its members, and showing it to the destination's members would
 // leak it to people who were never there.
 
-import styles from "../../app/(app)/shell.module.css";
-import type { Open } from "../shell/Shell";
+import Link from "next/link";
+import styles from "../../app/(shell)/shell.module.css";
 import type { ContentDetail as Detail } from "../../lib/threads";
 
-interface Props {
-  detail: Detail;
-  open: Open;
-}
-
-export function ContentDetail({ detail, open }: Props) {
+export function ContentDetail({ detail }: { detail: Detail }) {
   return (
     <>
       <div className={styles.paneHead}>
@@ -42,13 +37,9 @@ export function ContentDetail({ detail, open }: Props) {
       </div>
 
       <div className={styles.paneBody}>
-        <button
-          type="button"
-          className={styles.chip}
-          onClick={() => open({ kind: "thread", id: detail.threadId, name: detail.threadName })}
-        >
+        <Link href={`/threads/${detail.threadId}`} className={styles.chip}>
           ◦ {detail.threadName}
-        </button>
+        </Link>
 
         {detail.body ? (
           <>

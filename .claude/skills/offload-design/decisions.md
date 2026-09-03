@@ -35,14 +35,23 @@ one: a section header that toggles between "Everything in here" and "Archived N"
 rows dimmed. Invented here, and the weakest of the four, because it is the only one with no
 drawn precedent. **Worth designing properly.**
 
-**Four: the composer is still on Today and the kit says it should not be.** `WMisc.jsx` states
-it plainly: "one composer, under both panes, spanning the window. It never belongs to a pane."
-That is right. It is not done, because moving it is a change to the working dump loop for no
-gain in what this feature is for, and the consequence is that you go back to Today to dump
-something. **This is a debt in the code, not a change to the design.**
+**Four: the composer was still on Today, and is not any more.** `WMisc.jsx` states it plainly:
+"one composer, under both panes, spanning the window. It never belongs to a pane." 005 shipped
+it on Today anyway and logged the difference as a debt. **The product owner reversed that within
+hours**, and the readme already held the argument: the composer is a tool rather than a chat, so
+a place you can say things cannot be one tab. It is in the shell now, on every tab, and the kit
+and the code agree again. *Left in this entry rather than deleted, because "the kit says X and
+we are doing Y for now" appearing twice in one feature is the thing worth noticing.*
 
-**Design system impact:** the first three are kit changes on the next sync, listed above in the
-order they matter. The fourth is ours to pay back and needs nothing from the design. Separately,
+**Five, new: offload's reply links to the threads it wrote to.** No kit draws this. A reply
+saying "Added to Flat admin" now carries Flat admin as a pill you can open, built from the
+content rows the turn actually produced rather than from the words in the sentence. **The kits
+should draw it**, and the honest place is beneath offload's turn in the composer. It matters
+more than it looks: it is the first time the composer does something other than talk, and the
+readme's claim that any UI task can be said rather than tapped starts here.
+
+**Design system impact:** one, two, three and five are kit changes on the next sync, listed in the
+order they matter. Four is closed. Separately,
 the design system has **no breakpoint tokens**, and the shell needs one: 1180 comes from
 `WApp.jsx`'s own preview toggle and now lives as a literal in one stylesheet, deliberately in
 one place rather than two. A `--breakpoint-*` family would be worth adding.

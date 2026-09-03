@@ -24,9 +24,12 @@
 - [x] **B1** `(app)/layout.tsx`: sidebar plus pane stack, up to five, two on screen, depth stamped on push.
   *Test:* opening a third pane pushes the first out; truncating the stack does not repaint a surviving pane.
 - [x] **B2** Narrow window: one pane, crumb becomes a back button, at 1180px *(**AC-2**)*
-- [x] **B3** Today moves into the shell without changing its behaviour.
+- [x] **B3** Today moves into the shell, and the composer moves with it, under every pane on every tab as the kit specifies.
   *Test:* the 003 and 004 composer tests still pass unchanged.
-  *Not done, deliberately:* the composer stays on Today rather than moving under both panes as the kit specifies. Logged in the design system's `decisions.md` as a debt in the code, not a change to the design.
+- [x] **B4** Every pane has a URL: `/today`, `/threads`, `/threads/:id`, `/content/:id`. The stack is derived from the route, not accumulated.
+  *Test:* opening `/threads/:id` cold renders My threads beside that thread.
+- [x] **B5** offload's reply links to the threads the turn actually wrote to, from the content rows.
+  *Test:* a reply naming three threads where two were written to links two, in filing order, deduplicated; a turn that filed nothing links nothing; content that was undone drops its link.
 
 ## C. The screens
 

@@ -869,3 +869,100 @@ describe("nothing here leaks content (AC-18)", () => {
     expect(jobs[0]!.last_error).toBeNull();
   });
 });
+
+describe("the answer says where it filed things (005 links)", () => {
+  it("names threads from the content rows, not from the reply", async () => {
+    // offload naming a thread it did not write to is the failure 004 exists to
+    // prevent. The links come from the record, so a reply that lies cannot
+    // produce a link that lies with it.
+    const me = await account("Ana Duarte");
+    const flat = await thread(me, "Flat admin");
+    const shelf = await thread(me, "Bookshelf build");
+
+    const conversation = await db
+      .insertInto("conversations").values({ account_id: me })
+      .returning("id").executeTakeFirstOrThrow();
+    const turnId = uuidv7();
+    const message = await db
+      .insertInto("messages")
+      .values({
+        conversation_id: conversation.id, account_id: me, role: "person", type: "text",
+        turn_id: turnId, text: "dentist after the 20th, and oak brackets", state: "answered",
+      })
+      .returning("id").executeTakeFirstOrThrow();
+    await db
+      .insertInto("messages")
+      .values({
+        conversation_id: conversation.id, account_id: me, role: "offload", type: "text",
+        turn_id: turnId,
+        // Deliberately names a thread it did not write to.
+        text: "Added to Flat admin, Bookshelf build and Lisbon trip.",
+        state: "answered",
+      })
+      .execute();
+
+    await content(me, flat, "Dentist after the 20th", message.id);
+    await content(me, shelf, "Oak brackets", message.id);
+    await content(me, flat, "Ring the surgery", message.id);
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/v1/messages/${message.id}`,
+      headers: { cookie: await signIn(me) },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as { threads: { id: string; name: string }[] };
+
+    // Two, in filing order, deduplicated. Not the three the sentence claims.
+    expect(body.threads.map((t) => t.name)).toEqual(["Flat admin", "Bookshelf build"]);
+    expect(body.threads.map((t) => t.id)).toEqual([flat, shelf]);
+  });
+
+  it("names nothing for a turn that filed nothing", async () => {
+    const me = await account();
+    const conversation = await db
+      .insertInto("conversations").values({ account_id: me })
+      .returning("id").executeTakeFirstOrThrow();
+    const message = await db
+      .insertInto("messages")
+      .values({
+        conversation_id: conversation.id, account_id: me, role: "person", type: "text",
+        turn_id: uuidv7(), text: "nothing much today", state: "answered",
+      })
+      .returning("id").executeTakeFirstOrThrow();
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/v1/messages/${message.id}`,
+      headers: { cookie: await signIn(me) },
+    });
+    expect((response.json() as { threads: unknown[] }).threads).toEqual([]);
+  });
+
+  it("drops a thread whose content was undone", async () => {
+    const me = await account();
+    const t = await thread(me, "Flat admin");
+    const conversation = await db
+      .insertInto("conversations").values({ account_id: me })
+      .returning("id").executeTakeFirstOrThrow();
+    const message = await db
+      .insertInto("messages")
+      .values({
+        conversation_id: conversation.id, account_id: me, role: "person", type: "text",
+        turn_id: uuidv7(), text: "boiler service", state: "answered",
+      })
+      .returning("id").executeTakeFirstOrThrow();
+    const row = await content(me, t, "Boiler service", message.id);
+
+    await deleteContent(me, row);
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/v1/messages/${message.id}`,
+      headers: { cookie: await signIn(me) },
+    });
+    // A link to a thread the content no longer sits in is a link to nothing.
+    expect((response.json() as { threads: unknown[] }).threads).toEqual([]);
+  });
+});
