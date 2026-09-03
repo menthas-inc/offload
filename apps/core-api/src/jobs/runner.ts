@@ -26,7 +26,7 @@ export class JobRunner {
   /** Run exactly one job if there is one. Returns whether it did anything,
    *  which is what makes the runner testable without timers. */
   async tick(): Promise<boolean> {
-    const job = await claim(this.workerId);
+    const job = await claim(this.workerId, Object.keys(handlers));
     if (!job) return false;
     await this.run(job);
     return true;

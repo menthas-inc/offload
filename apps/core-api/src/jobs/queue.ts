@@ -62,9 +62,22 @@ export interface ClaimedJob {
   max_attempts: number;
 }
 
-/** Claim one runnable job. SKIP LOCKED means many workers can drain the same
- *  table without blocking on each other or handing out the same row twice. */
-export async function claim(workerId: string): Promise<ClaimedJob | undefined> {
+/** Claim one runnable job of a kind this runner handles.
+ *
+ *  SKIP LOCKED means many workers can drain the same table without blocking on
+ *  each other or handing out the same row twice.
+ *
+ *  **Scoped by kind, which it did not used to be.** Two runners now drain this
+ *  table: this one for email, and the Python worker for model jobs. Unscoped,
+ *  whichever polled first would claim the other's work, and this one would then
+ *  mark it dead on the spot, because an unknown kind is treated as a deploy
+ *  problem rather than a transient one. Every dump would have been answered with
+ *  a dead job.
+ *
+ *  **The per-account cap is the other runner's concern and deliberately absent
+ *  here.** Email jobs are not interactive and nobody is waiting on one.
+ */
+export async function claim(workerId: string, kinds: string[]): Promise<ClaimedJob | undefined> {
   const result = await sql<ClaimedJob>`
     update jobs set
       state = 'running',
@@ -75,6 +88,7 @@ export async function claim(workerId: string): Promise<ClaimedJob | undefined> {
     where id = (
       select id from jobs
       where state = 'queued' and run_after <= now()
+        and kind = any(${sql.val(kinds)})
       order by priority, run_after
       for update skip locked
       limit 1

@@ -180,6 +180,57 @@ export interface WaitlistAttemptsTable {
   created_at: Generated<Timestamp>;
 }
 
+export interface ConversationsTable {
+  id: Generated<string>;
+  account_id: string;
+  /** Null in 003: naming a conversation is a model call with no reason to exist
+   *  while there is one screen and no list. */
+  title: string | null;
+  started_at: Timestamp;
+  /** Denormalised. The six-hour join reads it on every dump. */
+  last_message_at: Timestamp;
+  unread_at: Timestamp | null;
+  last_read_at: Timestamp | null;
+  created_at: Timestamp;
+  deleted_at: Timestamp | null;
+  purge_after: Timestamp | null;
+}
+
+export interface MessagesTable {
+  id: Generated<string>;
+  conversation_id: string;
+  account_id: string;
+  role: "person" | "offload";
+  type: Generated<"text" | "link" | "image" | "screenshot" | "voice" | "file">;
+  turn_id: string;
+  text: string | null;
+  /** `queued` is internal and never reaches a client. */
+  state: Generated<"queued" | "seen" | "answered" | "failed">;
+  client_key: string | null;
+  source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
+  source_ref: string | null;
+  attrs: Generated<unknown>;
+  created_at: Timestamp;
+  deleted_at: Timestamp | null;
+  purge_after: Timestamp | null;
+}
+
+export interface LlmUsageTable {
+  id: Generated<string>;
+  account_id: string;
+  /** Draws from the same open set as jobs.kind and must match it, or the Costs
+   *  page groups spend under a name no job has. */
+  job_kind: string;
+  category: "interactive" | "scheduled";
+  model: string;
+  input_tokens: Generated<number>;
+  output_tokens: Generated<number>;
+  cache_read_tokens: Generated<number>;
+  cost_micros: Generated<number>;
+  latency_ms: Generated<number>;
+  created_at: Timestamp;
+}
+
 export interface Database {
   accounts: AccountsTable;
   account_identities: AccountIdentitiesTable;
@@ -190,6 +241,9 @@ export interface Database {
   thread_members: ThreadMembersTable;
   account_keys: AccountKeysTable;
   thread_keys: ThreadKeysTable;
+  conversations: ConversationsTable;
+  messages: MessagesTable;
+  llm_usage: LlmUsageTable;
   jobs: JobsTable;
   analytics_events: AnalyticsEventsTable;
   waitlist_attempts: WaitlistAttemptsTable;

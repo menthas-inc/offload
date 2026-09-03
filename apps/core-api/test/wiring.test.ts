@@ -12,6 +12,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { createJobRunner } from "../src/jobs/runner.js";
 import { handlers } from "../src/jobs/handlers.js";
+import { MODEL_KINDS } from "../src/jobs/kinds.js";
 import { MemoryMailer } from "../src/mail/index.js";
 import { enqueue } from "../src/jobs/queue.js";
 import { promote } from "../src/admin/promote.js";
@@ -68,30 +69,32 @@ describe("the job runner the server builds", () => {
     for (const kind of kinds) expect(Object.keys(handlers)).toContain(kind);
   });
 
-  it("records an attempt against a job with no handler rather than ignoring it", async () => {
+  it("leaves a kind it does not handle for the runner that does", async () => {
     const mailer = new MemoryMailer();
     const runner = createJobRunner(undefined, () => mailer);
 
-    await enqueue({ kind: "email.nonexistent", payload: {} });
-    // The tick must actually have claimed something. Without this the test
-    // passes when nothing ran at all, which is how two milliseconds of clock
-    // skew between Node and Postgres hid behind it.
-    expect(await runner.tick()).toBe(true);
+    // dump.answer belongs to the Python worker. This runner used to claim
+    // anything, and it treats an unhandled kind as a deploy problem and fails
+    // it on the spot, so unscoped it would have killed every dump before the
+    // worker ever saw one.
+    await enqueue({ kind: "dump.answer", payload: {} });
+    expect(await runner.tick()).toBe(false);
 
     const job = await db
       .selectFrom("jobs")
-      .select(["state", "attempts", "last_error"])
-      // Scoped to the row this test enqueued. Unscoped it read whichever job
-      // happened to be first in the table, so a previous run that aborted
-      // before its cleanup left a row behind and this failed against that.
-      .where("kind", "=", "email.nonexistent")
+      .select(["state", "attempts"])
+      .where("kind", "=", "dump.answer")
       .executeTakeFirstOrThrow();
+    expect(job.state).toBe("queued");
+    expect(job.attempts).toBe(0);
+  });
 
-    // Back to queued is correct: an unknown kind is retried with backoff like
-    // any other failure, and a deploy that adds the handler drains it. What
-    // must not happen is the row sitting untouched, which is what a runner
-    // that never claimed it would look like.
-    expect(job.attempts).toBeGreaterThan(0);
-    expect(job.last_error).not.toBeNull();
+  it("has an owner for every kind anything enqueues", async () => {
+    // What the previous version of this test was really guarding, kept now that
+    // an unowned kind is skipped quietly rather than failed loudly: a kind
+    // nobody drains would sit queued forever and nothing would say so.
+    const enqueued = ["email.waitlist_joined", "email.invited", "dump.answer"];
+    const owned = new Set<string>([...Object.keys(handlers), ...MODEL_KINDS]);
+    expect(enqueued.filter((k) => !owned.has(k))).toEqual([]);
   });
 });
