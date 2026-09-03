@@ -19,6 +19,7 @@ screen that reads it. It was drafted for 006 and held back, because a tool
 shipped a version ahead of its storage is a tool that cannot work.
 """
 
+import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -32,6 +33,15 @@ TAG_CHARS = 48
 # held to a tighter shape than any other title. Enforced again server-side,
 # because the agent plane is not the enforcement point for anything.
 PLACE_NAME_CHARS = 120
+
+# A day, or a timestamp with or without a zone. Mirrors what
+# apps/core-api/src/threads/dates.ts accepts, and exists so a model writing
+# "2026-09-28" is corrected here rather than by a 400 it cannot read.
+_DATE_ISH = re.compile(
+    r"^\d{4}-\d{2}-\d{2}"
+    r"([T ]\d{2}:\d{2}(:\d{2})?(\.\d+)?)?"
+    r"(Z|[+-]\d{2}:?\d{2})?$"
+)
 
 ContentType = Literal[
     "note", "link", "image", "screenshot", "voice", "file", "task", "event", "location"
@@ -74,6 +84,23 @@ class AddContent(BaseModel):
     @field_validator("title")
     @classmethod
     def title_is_usable(cls, v: str) -> str:
+        return v.strip()
+
+    @field_validator("due_at", "occurs_at", "occurs_end_at")
+    @classmethod
+    def looks_like_a_date(cls, v: str | None) -> str | None:
+        """Caught here so it never becomes a refusal the model has to interpret.
+
+        The Core API accepts a day, a naive time and a full ISO string, and
+        refuses anything else. Checking the same shape here turns "the tool said
+        no for a reason I have to guess at" into a validation message naming the
+        field, which is the difference between the model fixing it on the next
+        call and the model telling somebody the tool is broken.
+        """
+        if v is None or v == "":
+            return None
+        if not _DATE_ISH.match(v.strip()):
+            raise ValueError("expected YYYY-MM-DD or an ISO 8601 timestamp")
         return v.strip()
 
 

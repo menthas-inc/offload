@@ -31,10 +31,32 @@ const MAX_DUMP_CHARS = 10_000;
  *  conversation and tomorrow morning is a new one. */
 const CONVERSATION_GAP = "6 hours";
 
-/** Every tick re-checks the session, so this is also the window in which a
- *  revoked session keeps receiving. Short enough to be honest, long enough not
- *  to hammer the session check. */
-const STREAM_TICK_MS = 15_000;
+/** How often the stream looks for an answer.
+ *
+ *  **This was 15 seconds and that was a real bug**, not a tuning choice. A dump
+ *  was answered, the reply sat in the database, and the composer showed a
+ *  thinking indicator for up to fifteen more seconds; somebody reloaded the
+ *  page before it arrived and reasonably concluded nothing had happened.
+ *
+ *  The mistake was folding two different questions into one number: how quickly
+ *  an answer should reach a waiting browser, and how often a session should be
+ *  re-checked. The first wants to be as fast as is affordable and the second
+ *  does not. They are separate constants now.
+ *
+ *  One primary-key lookup per second per open stream, and a stream is only open
+ *  while somebody is watching a thinking indicator, so the number of them is
+ *  bounded by people actively waiting rather than by accounts. */
+const STREAM_TICK_MS = 1_000;
+
+/** How often the stream re-checks that this person may still receive.
+ *
+ *  Kept at the old cadence deliberately. 002 enforces revocation at Better
+ *  Auth's refresh, which fires on a request, and an open stream makes none, so
+ *  this interval **is** the window in which a disabled account keeps receiving
+ *  its own conversation updates. Fifteen seconds is that window, stated rather
+ *  than discovered, and it is a session lookup rather than an indexed read
+ *  which is why it does not run every tick. */
+const STREAM_SESSION_MS = 15_000;
 
 /** Then the client reconnects. Bounds the revocation gap above and keeps a
  *  proxy from closing the stream first and making it look like a failure. */
@@ -610,12 +632,20 @@ export async function dumpRoutes(app: App): Promise<void> {
        *  account would leave its stream delivering conversation updates for as
        *  long as it stayed open. The tick interval is therefore the exposure,
        *  and it is stated rather than discovered. */
+      let sessionCheckedAt = Date.now();
+      let keptAliveAt = Date.now();
+
       const tick = async (): Promise<void> => {
         if (closed) return;
         try {
-          // The session, every tick and not only at connect.
-          const stillAllowed = await currentAccountId(request);
-          if (stillAllowed !== accountId) return finish();
+          // The session, on its own slower cadence. Re-checking it every second
+          // would be a Better Auth call per second per open stream to shorten a
+          // revocation window nobody asked to shorten.
+          if (Date.now() - sessionCheckedAt >= STREAM_SESSION_MS) {
+            sessionCheckedAt = Date.now();
+            const stillAllowed = await currentAccountId(request);
+            if (stillAllowed !== accountId) return finish();
+          }
 
           const step = await streamStep(message.id, accountId);
           if (step.do === "answered" || step.do === "partial") {
@@ -632,9 +662,15 @@ export async function dumpRoutes(app: App): Promise<void> {
           }
           if (step.do === "close") return finish();
 
-          // A comment frame. Keeps an idle proxy from dropping a stream that
-          // is legitimately waiting on a model.
-          write(": keep-alive\n\n");
+          // A comment frame, on the session cadence rather than every tick: one
+          // a second would be a needless kilobyte a minute down a connection
+          // that exists to carry one sentence. Its job is only to keep an idle
+          // proxy from dropping a stream that is legitimately waiting on a
+          // model.
+          if (Date.now() - keptAliveAt >= STREAM_SESSION_MS) {
+            keptAliveAt = Date.now();
+            write(": keep-alive\n\n");
+          }
         } catch {
           // A failed tick is not worth killing the process over. The client
           // reconnects, or falls back to asking.

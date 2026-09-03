@@ -194,3 +194,67 @@ async def test_the_partial_reply_claims_nothing_when_nothing_landed():
     reply = _partial_reply(_outcome())
     assert "Added to" not in reply
     assert "Nothing was lost" in reply
+
+
+async def test_a_refused_tool_call_is_not_retried_as_a_network_failure():
+    """The bug that told somebody the tool was down.
+
+    The endpoint refused a malformed argument with a 400. This retried it three
+    times as though the network had dropped, then reported "unavailable", and
+    the model told the person "the task tool seems to be down". It was up. It
+    had said no, clearly, and the answer was thrown away and replaced with a
+    lie.
+    """
+    attempts = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        return httpx.Response(400, json={"statusCode": 400, "message": "body/dueAt invalid"})
+
+    from offload_agent.worker import _tool_caller
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        call = _tool_caller(client, cfg(), "job-1")
+        result = await call("add_content", "toolu_1", {"thread_id": "t1", "title": "x"})
+
+    assert attempts == 1, "a considered refusal was retried as though it were a blip"
+    # Data the planner can read and act on, not a claim that the tool is down.
+    assert result == {"ok": False, "error": "invalid_arguments"}
+
+
+async def test_a_5xx_is_still_retried():
+    """The other half. A server that fell over may well be up on the next try,
+    and the model has already been paid for by this point."""
+    attempts = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        return httpx.Response(503)
+
+    from offload_agent.worker import _tool_caller
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        call = _tool_caller(client, cfg(), "job-1")
+        result = await call("add_content", "toolu_1", {"thread_id": "t1", "title": "x"})
+
+    assert attempts == 3
+    assert result == {"ok": False, "error": "unavailable"}
+
+
+async def test_a_date_a_model_would_write_is_accepted_before_it_becomes_a_400():
+    """`2026-09-28` is a date. The schema wanted `z.string().datetime()`, which
+    is ISO with a Z, and refused it."""
+    from offload_agent.harness.tools import AddContent
+
+    for value in ("2026-09-28", "2026-09-28T09:00:00Z", "2026-09-28T09:00:00+03:00"):
+        assert AddContent(thread_id="t", title="x", due_at=value).due_at == value
+
+    # And prose is still refused, here, with a message naming the field, rather
+    # than by a 400 the model cannot read.
+    import pytest
+
+    with pytest.raises(Exception) as caught:
+        AddContent(thread_id="t", title="x", due_at="next week")
+    assert "due_at" in str(caught.value)

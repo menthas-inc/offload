@@ -21,6 +21,7 @@ import { env } from "../src/env.js";
 import { uuidv7 } from "../src/uuid.js";
 import { BadTags, dimensionsIn, normaliseTags } from "../src/threads/tags.js";
 import { queryHash, resolvePlace, type Geocoder } from "../src/places/resolve.js";
+import { parseWhen, plausible } from "../src/threads/dates.js";
 import { LIST_PAGE } from "../src/routes/tools.js";
 import { completeContent, reprioritise, setPreference } from "../src/routes/threads.js";
 import { readPreference } from "../src/threads/widgets.js";
@@ -805,5 +806,89 @@ describe("ticking and reprioritising", () => {
     // A shared thread's contents belong to everybody in it, and ticking
     // destroys nothing.
     await expect(completeContent(bob, id, true)).resolves.toEqual({ done: false });
+  });
+});
+
+describe("dates a model actually writes", () => {
+  it("accepts a day, a zoned time and a naive one", () => {
+    // The production failure: `z.string().datetime()` accepts only the second
+    // of these, and a model asked to file "I should do it by next week" wrote
+    // the first.
+    expect(parseWhen("2026-09-28")?.toISOString()).toBe("2026-09-28T00:00:00.000Z");
+    expect(parseWhen("2026-09-28T09:00:00Z")?.toISOString()).toBe("2026-09-28T09:00:00.000Z");
+    expect(parseWhen("2026-09-28T09:00:00+03:00")?.toISOString()).toBe("2026-09-28T06:00:00.000Z");
+    // No zone means UTC, which is wrong for somebody dumping late at night in
+    // Lisbon and is the same gap the prompt's "today" has.
+    expect(parseWhen("2026-09-28T09:00:00")?.toISOString()).toBe("2026-09-28T09:00:00.000Z");
+  });
+
+  it("refuses prose rather than guessing at it", () => {
+    // `new Date` is generous enough to turn some prose into a real timestamp,
+    // and a wrong date on somebody's agenda is worse than no date.
+    for (const value of ["next week", "soon", "Tuesday", "when I get a chance", ""]) {
+      expect(parseWhen(value)).toBeNull();
+    }
+    expect(parseWhen(null)).toBeNull();
+  });
+
+  it("refuses a date a century out", () => {
+    // A model reading "the 3rd" with no year can land far out, and a task due
+    // in 2126 is invisible rather than wrong-looking: it sorts to the bottom of
+    // everything forever and nobody sees it to correct it.
+    const now = new Date("2026-09-03T00:00:00Z");
+    expect(plausible(new Date("2026-09-28T00:00:00Z"), now)).toBe(true);
+    expect(plausible(new Date("2025-01-01T00:00:00Z"), now)).toBe(true);
+    expect(plausible(new Date("2126-09-28T00:00:00Z"), now)).toBe(false);
+    expect(plausible(new Date("1990-01-01T00:00:00Z"), now)).toBe(false);
+  });
+
+  it("files a plain date through the tool endpoint (the turn that failed)", async () => {
+    const me = await account();
+    const t = await thread(me, "EU with fam");
+    const { jobId, messageId } = await dump(me);
+
+    const response = await tool({
+      tool: "add_content",
+      jobId,
+      toolCallId: "t1",
+      threadId: t,
+      title: "Book a stay in Istanbul, 28 Sep to 4 Oct",
+      type: "task",
+      // Exactly what the model wrote in production, and exactly what 400'd.
+      dueAt: "2026-09-10",
+      occursAt: "2026-09-28",
+      occursEndAt: "2026-10-04",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().ok).toBe(true);
+
+    const row = await db
+      .selectFrom("content")
+      .select(["due_at", "occurs_at", "occurs_end_at"])
+      .where("derived_from_message_id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(row.due_at?.toISOString()).toBe("2026-09-10T00:00:00.000Z");
+    expect(row.occurs_at?.toISOString()).toBe("2026-09-28T00:00:00.000Z");
+    expect(row.occurs_end_at?.toISOString()).toBe("2026-10-04T00:00:00.000Z");
+  });
+
+  it("refuses an unreadable date as data, never as a 400 (AC-14)", async () => {
+    const me = await account();
+    const t = await thread(me, "Flat admin");
+    const { jobId } = await dump(me);
+
+    const response = await tool({
+      tool: "add_content", jobId, toolCallId: "t1", threadId: t,
+      title: "Something", type: "task", dueAt: "next week",
+    });
+
+    // 200 with a reason the planner can act on. A 400 gets retried three times
+    // by the worker as though the network had failed and then reported as
+    // "unavailable", which is how offload came to tell somebody its own tools
+    // were down.
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ ok: false, error: "bad_date" });
+    expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(0);
   });
 });

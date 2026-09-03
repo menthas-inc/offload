@@ -28,6 +28,7 @@ import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { env } from "../env.js";
 import { BadTags, MAX_TAGS, normaliseTags, TAG_CHARS } from "../threads/tags.js";
+import { parseWhen, plausible } from "../threads/dates.js";
 import {
   NotYours,
   readableContent,
@@ -110,10 +111,13 @@ const body = z.discriminatedUnion("tool", [
       .enum(["note", "link", "image", "screenshot", "voice", "file", "task", "event", "location"])
       .default("note"),
     // Dates are only ever set when the dump states or implies one. The prompt
-    // carries that rule; this only says what shape one takes.
-    dueAt: z.string().datetime().nullish(),
-    occursAt: z.string().datetime().nullish(),
-    occursEndAt: z.string().datetime().nullish(),
+    // carries that rule; this says what shape one may take, and it is
+    // deliberately generous: see `../threads/dates.ts` for the production
+    // failure that taught us `z.string().datetime()` is not what a model
+    // writes.
+    dueAt: z.string().max(40).nullish(),
+    occursAt: z.string().max(40).nullish(),
+    occursEndAt: z.string().max(40).nullish(),
     /** A flag on a task or an event, never a type. Nothing acts on it until
      *  notifications ship. */
     isReminder: z.boolean().default(false),
@@ -219,6 +223,7 @@ const result = z.union([
       "bad_place_name",
       "unknown_content",
       "not_yours",
+      "bad_date",
     ]),
   }),
 ]);
@@ -250,7 +255,8 @@ type Outcome =
         | "bad_tags"
         | "bad_place_name"
         | "unknown_content"
-        | "not_yours";
+        | "not_yours"
+        | "bad_date";
     };
 
 interface JobContext {
@@ -569,6 +575,24 @@ export async function toolRoutes(app: App): Promise<void> {
           return { ok: false, error: "bad_place_name" };
         }
 
+        // Dates. Refused as data the model can correct, never as a 400: a
+        // malformed argument is a decision this endpoint makes, and the worker
+        // retries transport failures rather than decisions.
+        const when: Record<"dueAt" | "occursAt" | "occursEndAt", Date | null> = {
+          dueAt: null,
+          occursAt: null,
+          occursEndAt: null,
+        };
+        for (const field of ["dueAt", "occursAt", "occursEndAt"] as const) {
+          const raw = call[field];
+          if (raw == null || raw === "") continue;
+          const at = parseWhen(raw);
+          // A date a century out is invisible rather than wrong-looking: it
+          // sorts to the bottom forever and nobody sees it to fix it.
+          if (!at || !plausible(at)) return { ok: false, error: "bad_date" };
+          when[field] = at;
+        }
+
         const inserted = await trx
           .insertInto("content")
           .values({
@@ -580,9 +604,9 @@ export async function toolRoutes(app: App): Promise<void> {
             body: call.body === "" ? null : call.body,
             source: "person",
             tool_call_id: call.toolCallId,
-            due_at: call.dueAt ? new Date(call.dueAt) : null,
-            occurs_at: call.occursAt ? new Date(call.occursAt) : null,
-            occurs_end_at: call.occursEndAt ? new Date(call.occursEndAt) : null,
+            due_at: when.dueAt,
+            occurs_at: when.occursAt,
+            occurs_end_at: when.occursEndAt,
             is_reminder: call.isReminder,
             priority: call.priority,
             tags,

@@ -93,6 +93,25 @@ def _tool_caller(
                     headers={"authorization": f"Bearer {cfg.internal_token}"},
                     timeout=30.0,
                 )
+
+                # A 4xx is a decision, not a blip.
+                #
+                # **This cost a real turn.** The endpoint refused a malformed
+                # argument with a 400, this retried it three times as though the
+                # network had dropped, and then reported "unavailable" to the
+                # model, which told somebody "the task tool seems to be down".
+                # It was up. It had said no, clearly, and the answer was thrown
+                # away and replaced with a lie.
+                #
+                # A malformed request will be malformed again, so retrying is
+                # pure delay. It comes back as a refusal the planner can read
+                # and act on, which is what it should have been all along.
+                if 400 <= response.status_code < 500:
+                    log.warning(
+                        "tool call refused", job_id=job_id, status=response.status_code
+                    )
+                    return {"ok": False, "error": "invalid_arguments"}
+
                 response.raise_for_status()
                 return response.json()
             except Exception as exc:  # noqa: BLE001, PERF203
@@ -100,9 +119,9 @@ def _tool_caller(
                 if attempt < 2:
                     await asyncio.sleep(0.5 * (attempt + 1))
 
-        # Three failures is the network, not a decision. Reported to the model
-        # as a failed tool so the turn can still finish and say what landed,
-        # rather than raised, which would throw away everything already filed.
+        # Three failures is the network. Reported to the model as a failed tool
+        # so the turn can still finish and say what landed, rather than raised,
+        # which would throw away everything already filed.
         log.error("tool call undeliverable", job_id=job_id, error_type=type(last).__name__)
         return {"ok": False, "error": "unavailable"}
 

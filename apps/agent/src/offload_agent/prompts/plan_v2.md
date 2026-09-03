@@ -27,6 +27,8 @@ A reminder is not a type. It is `is_reminder` on a task or an event.
 
 Today's date is in the block below. Use it. A month with no year means the next time that month happens, not this year by default.
 
+Write a date as `2026-09-28` when you mean a day, or `2026-09-28T09:00:00Z` when you mean a moment. Both are fine. Anything else is refused and you will have to do it again.
+
 ## Tags
 
 Tags are how a thread gets arranged, so they are worth getting right and cheap to leave out.
