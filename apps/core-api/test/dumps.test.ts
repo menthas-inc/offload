@@ -113,7 +113,14 @@ async function dump(accountId: string, text: string, ageHours = 0) {
       payload: JSON.stringify({ messageId: message.id, conversationId, turnId }),
       priority: 10,
       run_after: new Date(),
-      state: "queued",
+      // running, not queued: by the time a result is posted the worker has
+      // claimed the job. The fixture said queued, which was never a state this
+      // endpoint sees in production, and it hid the fact that the endpoint did
+      // not check.
+      state: "running",
+      locked_at: new Date(),
+      locked_by: "test",
+      attempts: 1,
     })
     .returning("id")
     .executeTakeFirstOrThrow();

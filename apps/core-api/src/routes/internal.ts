@@ -77,10 +77,27 @@ export async function internalRoutes(app: App): Promise<void> {
       const result = request.body;
 
       // The job is the authority on whose conversation this is.
+      //
+      // Scoped to the kind this endpoint serves, not just the id. Nothing
+      // exploits that today, because the payload shape check below would fail
+      // closed, but the next job kind added to this table could easily carry a
+      // messageId and conversationId of its own and would then be written into
+      // silently. Cheaper to name the one kind than to rely on two unrelated
+      // payloads never rhyming.
+      //
+      // **Deliberately not scoped to state = 'running'**, which was the other
+      // half of that suggestion and is wrong. Delivery is at least once, so a
+      // retried post arrives after the first one already closed the job; with a
+      // state predicate that retry 404s, the worker treats it as undeliverable
+      // and releases the job, and an already answered message gets a second
+      // model call. Idempotency belongs where it already is, on the person's
+      // message still being `seen`, which describes the thing being protected
+      // rather than the machinery around it.
       const job = await db
         .selectFrom("jobs")
         .select(["id", "account_id", "payload", "state"])
         .where("id", "=", result.jobId)
+        .where("kind", "=", "dump.answer")
         .executeTakeFirst();
 
       if (!job || !job.account_id) return reply.code(404).send({ error: "unknown_job" as const });
