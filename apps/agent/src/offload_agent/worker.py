@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from offload_agent import context as ctx_mod
 from offload_agent.config import Config
 from offload_agent.harness.answer import InvalidOutput, answer
-from offload_agent.queue import ClaimedJob, claim
+from offload_agent.queue import ClaimedJob, claim, release_for_retry
 
 log = structlog.get_logger()
 
@@ -102,18 +102,34 @@ async def handle(
         log.info("dump answered", job_id=job.id, latency_ms=usage.latency_ms)
 
     except InvalidOutput:
-        log.warning("model output invalid", job_id=job.id)
-        await _post_result(
-            http, cfg, {"outcome": "failed", "jobId": job.id, "reason": "invalid_output"}
-        )
+        log.warning("model output invalid", job_id=job.id, attempt=job.attempts)
+        await _give_up_or_retry(job, "invalid_output", cfg=cfg, engine=engine, http=http)
     except Exception as exc:  # noqa: BLE001
         # The type, never the message. An SDK exception can embed the request
         # body, which is the person's dump, and this line would carry it into a
         # log (OFF-1).
-        log.error("dump failed", job_id=job.id, error_type=type(exc).__name__)
-        await _post_result(
-            http, cfg, {"outcome": "failed", "jobId": job.id, "reason": "model_error"}
-        )
+        log.error("dump failed", job_id=job.id, attempt=job.attempts, error_type=type(exc).__name__)
+        await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
+
+
+async def _give_up_or_retry(
+    job: ClaimedJob, reason: str, *, cfg: Config, engine, http: httpx.AsyncClient
+) -> None:
+    """One retry, then tell the person.
+
+    AC-5 asks for a retry before a failure is shown, and the first version of
+    this did not have one: any error posted `failed` immediately and the
+    composer said so on the first transient blip. The attempt count comes from
+    the claim, so the decision is made against what the database recorded rather
+    than against anything held in this process.
+    """
+    if job.attempts < job.max_attempts:
+        async with engine.begin() as conn:
+            await release_for_retry(conn, job.id, reason)
+        log.info("dump requeued", job_id=job.id, attempt=job.attempts)
+        return
+
+    await _post_result(http, cfg, {"outcome": "failed", "jobId": job.id, "reason": reason})
 
 
 async def run(cfg: Config, stop: asyncio.Event) -> None:

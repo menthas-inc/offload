@@ -11,7 +11,8 @@
     "test": "vitest run",
     "migrate": "node --import tsx --import ./src/preload-env.ts src/migrate.ts",
     "seed": "node --import tsx --import ./src/preload-env.ts src/seed.ts",
-    "seed:admins": "node --import tsx --import ./src/preload-env.ts src/seed-admins.ts"
+    "seed:admins": "node --import tsx --import ./src/preload-env.ts src/seed-admins.ts",
+    "agent:role": "node --import tsx --import ./src/preload-env.ts src/agent-role.ts"
   },
   "dependencies": {
     "@better-auth/expo": "^1.7.2",

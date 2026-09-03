@@ -86,3 +86,34 @@ async def claim(
         attempts=row.attempts,
         max_attempts=row.max_attempts,
     )
+
+
+# Backoff before a retry. Deliberately short: somebody is waiting on this, and
+# an interactive job that sulks for a minute has failed as far as they are
+# concerned even if it eventually succeeds.
+_RELEASE = text(
+    """
+    update jobs set
+      state = 'queued',
+      locked_at = null,
+      locked_by = null,
+      run_after = now() + (:delay_seconds * interval '1 second'),
+      last_error = :reason,
+      updated_at = now()
+    where id = :job_id
+    """
+)
+
+
+async def release_for_retry(
+    conn: AsyncConnection, job_id: str, reason: str, delay_seconds: int = 2
+) -> None:
+    """Put a job back for another attempt.
+
+    `reason` is an enum-shaped string, never an exception message: jobs.last_error
+    is a column a person reads while debugging and an SDK error can embed the
+    request body, which is somebody's dump (OFF-1).
+    """
+    await conn.execute(
+        _RELEASE, {"job_id": job_id, "reason": reason, "delay_seconds": delay_seconds}
+    )

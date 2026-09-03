@@ -162,6 +162,18 @@ export async function internalRoutes(app: App): Promise<void> {
             .execute();
         }
 
+        // The job is closed here, in the same transaction as the write it
+        // describes, rather than by the worker afterwards. Two reasons: the
+        // worker holds `update` on jobs only so it can claim, and a job left
+        // `running` because a second call failed would count against the
+        // per-account concurrency cap forever, locking that account out after
+        // two dumps. Found by running the loop end to end, not by a test.
+        await trx
+          .updateTable("jobs")
+          .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
+          .where("id", "=", result.jobId)
+          .execute();
+
         const subject = await trx
           .selectFrom("accounts")
           .select("analytics_subject_id")

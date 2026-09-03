@@ -10,6 +10,14 @@ import os
 from dataclasses import dataclass
 
 
+def _asyncpg(url: str) -> str:
+    """Normalise either Postgres URL spelling onto the asyncpg driver."""
+    for prefix in ("postgresql+asyncpg://", "postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            return "postgresql+asyncpg://" + url[len(prefix) :]
+    raise RuntimeError(f"AGENT_DATABASE_URL has an unexpected scheme: {url.split(':', 1)[0]}")
+
+
 def _required(name: str) -> str:
     value = os.environ.get(name)
     if not value:
@@ -39,12 +47,16 @@ class Config:
     @classmethod
     def from_env(cls) -> "Config":
         return cls(
-            # asyncpg wants postgresql+asyncpg://, the Core API's URL is plain
-            # postgresql://. Rewritten here rather than stored twice, so there is
-            # one connection string in the environment and not two that can drift.
-            database_url=_required("AGENT_DATABASE_URL").replace(
-                "postgresql://", "postgresql+asyncpg://", 1
-            ),
+            # asyncpg wants postgresql+asyncpg://. Rewritten here rather than
+            # stored twice, so there is one connection string in the
+            # environment and not two that can drift.
+            #
+            # Both spellings, because Postgres accepts postgres:// and
+            # postgresql:// interchangeably and different tools emit different
+            # ones. Handling only the long form failed on a URL that used the
+            # short one, with SQLAlchemy reporting a missing dialect plugin
+            # rather than anything resembling the actual problem.
+            database_url=_asyncpg(_required("AGENT_DATABASE_URL")),
             api_url=_required("API_URL"),
             internal_token=_required("INTERNAL_SERVICE_TOKEN"),
             anthropic_api_key=_required("ANTHROPIC_API_KEY"),

@@ -286,6 +286,39 @@ describe("AC-5 a failed answer", () => {
   });
 });
 
+describe("the job is closed by the write it describes", () => {
+  it("marks the job done in the same transaction, so an account is not locked out", async () => {
+    const id = await account();
+    const { jobId } = await dump(id, "hello");
+    await post({ outcome: "answered", jobId, replyText: "Noted.", usage: goodUsage });
+
+    const job = await db
+      .selectFrom("jobs")
+      .select(["state", "locked_by"])
+      .where("id", "=", jobId)
+      .executeTakeFirstOrThrow();
+
+    // A job left running counts against the per-account concurrency cap
+    // forever, and two of them lock that account out of dumping entirely. The
+    // end-to-end run found this; no unit test had.
+    expect(job.state).toBe("done");
+    expect(job.locked_by).toBeNull();
+  });
+
+  it("closes it on a failure too", async () => {
+    const id = await account();
+    const { jobId } = await dump(id, "hello");
+    await post({ outcome: "failed", jobId, reason: "model_error" });
+
+    const job = await db
+      .selectFrom("jobs")
+      .select("state")
+      .where("id", "=", jobId)
+      .executeTakeFirstOrThrow();
+    expect(job.state).toBe("done");
+  });
+});
+
 describe("AC-6 the usage ledger", () => {
   it("records every call", async () => {
     const id = await account();
