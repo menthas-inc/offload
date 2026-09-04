@@ -7,7 +7,20 @@
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
+/** A request with no body.
+ *
+ *  **It must not claim a JSON content-type it has no body for.** Fastify's
+ *  parser refuses an empty body when the header says JSON, so the call comes
+ *  back 400, the helper reads that as a plain failure and the screen does
+ *  nothing at all: a delete that silently does not delete.
+ *
+ *  That is not hypothetical. Four calls added in 008 used `json` below for
+ *  bodyless deletes and restores, and both deletes were dead in production
+ *  until the API log said so in as many words. `send` existed for this the
+ *  whole time. */
 const send = { credentials: "include" as const };
+
+/** A request that carries one. */
 const json = {
   credentials: "include" as const,
   headers: { "content-type": "application/json" },
@@ -296,14 +309,14 @@ export async function editMemory(
 /** Delete. The author's alone, per OFF-3, which is why the control only
  *  renders on your own. */
 export async function deleteMemory(id: string): Promise<boolean> {
-  const response = await fetch(`${API}/v1/memories/${id}`, { ...json, method: "DELETE" });
+  const response = await fetch(`${API}/v1/memories/${id}`, { ...send, method: "DELETE" });
   if (!response.ok) return false;
   return ((await response.json()) as { deleted: boolean }).deleted;
 }
 
 /** Undo the delete. */
 export async function restoreMemory(id: string): Promise<boolean> {
-  const response = await fetch(`${API}/v1/memories/${id}/restore`, { ...json, method: "POST" });
+  const response = await fetch(`${API}/v1/memories/${id}/restore`, { ...send, method: "POST" });
   return response.ok;
 }
 
@@ -326,14 +339,14 @@ export async function muteMemory(id: string, muted: boolean): Promise<boolean> {
 export async function deleteThread(
   id: string,
 ): Promise<{ left: boolean; deleted: boolean } | null> {
-  const response = await fetch(`${API}/v1/threads/${id}`, { ...json, method: "DELETE" });
+  const response = await fetch(`${API}/v1/threads/${id}`, { ...send, method: "DELETE" });
   if (!response.ok) return null;
   return (await response.json()) as { left: boolean; deleted: boolean };
 }
 
 /** Undo, inside the eight seconds. After that the purge job has taken it. */
 export async function restoreThread(id: string): Promise<boolean> {
-  const response = await fetch(`${API}/v1/threads/${id}/restore`, { ...json, method: "POST" });
+  const response = await fetch(`${API}/v1/threads/${id}/restore`, { ...send, method: "POST" });
   return response.ok;
 }
 

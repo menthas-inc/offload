@@ -1190,24 +1190,49 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Every action in the editor is the same object at the same height. They were
+   bare text next to one ink pill, which made Save look like the only thing you
+   could press.
+
+   The contract's own vocabulary decides which is which: primary is a solid ink
+   fill and everything else recedes, so Save is ink, Cancel and Mute are the
+   hairline outline, and Delete is the one that is not a preference. */
 .memoryAction {
-  border: 0;
-  background: none;
-  padding: 0;
+  height: 30px;
+  padding: 0 var(--space-5);
+  flex: 0 0 auto;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-pill);
+  background: transparent;
   color: var(--text-secondary);
   font-weight: var(--weight-medium);
   font-size: calc(13px * var(--type-scale));
   line-height: 1;
   font-family: var(--font-core);
   cursor: pointer;
+  transition: background var(--transition-ui), color var(--transition-ui);
 }
 
 .memoryAction:hover {
+  background: var(--surface-fill);
   color: var(--text-primary);
+}
+
+/* Clay, and only on hover until then: a destructive control should be findable
+   without shouting from a row of four. */
+.memoryAction[data-tone="danger"] {
+  color: var(--text-danger);
+  border-color: var(--border-hairline);
+}
+
+.memoryAction[data-tone="danger"]:hover {
+  background: var(--clay-100);
+  color: var(--text-danger);
 }
 
 .memorySave {
   height: 30px;
+  border: 1px solid transparent;
   padding: 0 var(--space-5);
   border: 0;
   border-radius: var(--radius-pill);

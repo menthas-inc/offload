@@ -182,25 +182,41 @@ export function Memories({ threadId, memories, members, arrived, onChanged, onUn
             {draft.length}/{MEMORY_CHARS}
           </span>
 
-          {/* Mute is what every member gets. Delete is the author's alone
-              unless the author is gone, so the control is not drawn for
-              anybody else rather than drawn and refused. */}
-          {memory ? (
+          {/* One control, never two. Delete and mute are the same intent at
+              different strengths, and offering both makes somebody choose
+              between them for no reason: if you can remove it, mute is a worse
+              version of that, and if you cannot, mute is the whole of what you
+              have.
+
+              Muted wins over both, whoever is asking. Mute is co-owned and
+              reversible by anyone, so a memory somebody quieted has to be
+              un-quietable by anyone, including its author. Without that a
+              muted memory of your own would offer only Delete, and the way
+              back from a reversible action would be a destructive one. */}
+          {memory?.muted ? (
             <button
               type="button"
               className={styles.memoryAction}
               onClick={() => void mute(memory)}
             >
-              {memory.muted ? "Unmute" : "Mute"}
+              Unmute
             </button>
-          ) : null}
-          {memory && canDelete(memory) ? (
+          ) : memory && canDelete(memory) ? (
             <button
               type="button"
               className={styles.memoryAction}
+              data-tone="danger"
               onClick={() => void remove(memory)}
             >
               Delete
+            </button>
+          ) : memory ? (
+            <button
+              type="button"
+              className={styles.memoryAction}
+              onClick={() => void mute(memory)}
+            >
+              Mute
             </button>
           ) : null}
 

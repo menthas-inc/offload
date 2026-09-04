@@ -19,7 +19,7 @@
 // Pure functions over rows, so these are fast and exhaustive rather than
 // database-bound. What they assert is the arithmetic the screen depends on.
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   dimensionsIn,
   groupBy,
@@ -27,7 +27,15 @@ import {
   widgetsFor,
   type Sortable,
 } from "../src/lib/widgets";
-import { MEMORY_CHIP_CHARS, chipLabel } from "../src/lib/threads";
+import {
+  MEMORY_CHIP_CHARS,
+  addMemory,
+  chipLabel,
+  deleteMemory,
+  deleteThread,
+  restoreMemory,
+  restoreThread,
+} from "../src/lib/threads";
 
 let n = 0;
 function row(over: Partial<Sortable> = {}): Sortable {
@@ -270,5 +278,57 @@ describe("a memory's chip label", () => {
   it("still truncates when there is no word boundary to find", () => {
     const label = chipLabel("x".repeat(120));
     expect(label.length).toBe(MEMORY_CHIP_CHARS + 3);
+  });
+});
+
+describe("a request with no body does not claim one", () => {
+  // The bug this locks: four bodyless calls sent `content-type:
+  // application/json` with nothing in the body, Fastify refused them with a
+  // 400, and the helpers read that as an ordinary failure. Deleting a thread
+  // and deleting a memory both did nothing at all, in production, silently.
+  const calls: { url: string; init: RequestInit }[] = [];
+
+  beforeEach(() => {
+    calls.length = 0;
+    globalThis.fetch = ((url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ deleted: true, restored: true, left: true }),
+      } as unknown as Response);
+    }) as unknown as typeof fetch;
+  });
+
+  function headers(): Record<string, string> {
+    return (calls[0]?.init.headers ?? {}) as Record<string, string>;
+  }
+
+  it("sends no content-type when deleting a thread", async () => {
+    await deleteThread("t1");
+    expect(calls[0]?.init.body).toBeUndefined();
+    expect(headers()["content-type"]).toBeUndefined();
+  });
+
+  it("sends no content-type when deleting a memory", async () => {
+    await deleteMemory("m1");
+    expect(calls[0]?.init.body).toBeUndefined();
+    expect(headers()["content-type"]).toBeUndefined();
+  });
+
+  it("sends no content-type when restoring either", async () => {
+    await restoreThread("t1");
+    await restoreMemory("m1");
+    for (const call of calls) {
+      expect(call.init.body).toBeUndefined();
+      expect((call.init.headers ?? {}) as Record<string, string>).not.toHaveProperty(
+        "content-type"
+      );
+    }
+  });
+
+  it("still sends one when there is a body", async () => {
+    await addMemory("t1", "Todo names in three words");
+    expect(calls[0]?.init.body).toBeDefined();
+    expect(headers()["content-type"]).toBe("application/json");
   });
 });

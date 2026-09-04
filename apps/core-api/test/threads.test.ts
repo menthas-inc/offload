@@ -989,3 +989,150 @@ describe("the meta line names people the way the kit does", () => {
     expect(meta).not.toContain("things");
   });
 });
+
+describe("deleting a thread through the route, not just the function", () => {
+  it("removes it and answers which thing it did", async () => {
+    // A route test rather than a call to the exported helper. The helper was
+    // green while the screen did nothing, which is exactly the gap a unit test
+    // on the function cannot see: registration, schema, serialization.
+    const ana = await account();
+    const flat = await thread(ana, "EU with fam");
+    const cookie = await signIn(ana);
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: `/v1/threads/${flat}`,
+      headers: { cookie },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ left: true, deleted: true });
+
+    const list = await app.inject({ method: "GET", url: "/v1/threads", headers: { cookie } });
+    const names = (list.json() as { groups: { threads: { name: string }[] }[] }).groups.flatMap(
+      (group) => group.threads.map((row) => row.name)
+    );
+    expect(names).not.toContain("EU with fam");
+  });
+
+  it("puts it back", async () => {
+    const ana = await account();
+    const flat = await thread(ana, "EU with fam");
+    const cookie = await signIn(ana);
+
+    await app.inject({ method: "DELETE", url: `/v1/threads/${flat}`, headers: { cookie } });
+    const back = await app.inject({
+      method: "POST",
+      url: `/v1/threads/${flat}/restore`,
+      headers: { cookie },
+    });
+
+    expect(back.statusCode).toBe(200);
+    const list = await app.inject({ method: "GET", url: "/v1/threads", headers: { cookie } });
+    const names = (list.json() as { groups: { threads: { name: string }[] }[] }).groups.flatMap(
+      (group) => group.threads.map((row) => row.name)
+    );
+    expect(names).toContain("EU with fam");
+  });
+
+  it("refuses the default thread with the one refusal", async () => {
+    const ana = await account();
+    const misc = await thread(ana, "Miscellaneous");
+    await db.updateTable("accounts").set({ default_thread_id: misc }).where("id", "=", ana).execute();
+    const cookie = await signIn(ana);
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: `/v1/threads/${misc}`,
+      headers: { cookie },
+    });
+    expect(response.statusCode).toBe(404);
+  });
+});
+
+describe("the memory routes, over HTTP", () => {
+  async function addOne(cookie: string, threadId: string, text: string) {
+    const response = await app.inject({
+      method: "POST",
+      url: `/v1/threads/${threadId}/memories`,
+      headers: { cookie },
+      payload: { text },
+    });
+    return response;
+  }
+
+  it("adds, and the thread carries it", async () => {
+    const ana = await account();
+    const flat = await thread(ana, "EU with fam");
+    const cookie = await signIn(ana);
+
+    const added = await addOne(cookie, flat, "Always use the todo list");
+    expect(added.statusCode).toBe(200);
+
+    const bundle = await app.inject({
+      method: "GET",
+      url: `/v1/threads/${flat}`,
+      headers: { cookie },
+    });
+    const memories = (bundle.json() as { memories: { text: string }[] }).memories;
+    expect(memories.map((m) => m.text)).toEqual(["Always use the todo list"]);
+  });
+
+  it("deletes, and the thread stops carrying it", async () => {
+    const ana = await account();
+    const flat = await thread(ana, "EU with fam");
+    const cookie = await signIn(ana);
+
+    const added = await addOne(cookie, flat, "Always use the todo list");
+    const { memory } = added.json() as { memory: { id: string } };
+
+    const gone = await app.inject({
+      method: "DELETE",
+      url: `/v1/memories/${memory.id}`,
+      headers: { cookie },
+    });
+    expect(gone.statusCode).toBe(200);
+    expect(gone.json()).toEqual({ deleted: true });
+
+    const bundle = await app.inject({
+      method: "GET",
+      url: `/v1/threads/${flat}`,
+      headers: { cookie },
+    });
+    expect((bundle.json() as { memories: unknown[] }).memories).toHaveLength(0);
+  });
+
+  it("mutes and unmutes", async () => {
+    const ana = await account();
+    const flat = await thread(ana, "EU with fam");
+    const cookie = await signIn(ana);
+    const added = await addOne(cookie, flat, "Always use the todo list");
+    const { memory } = added.json() as { memory: { id: string } };
+
+    const muted = await app.inject({
+      method: "POST",
+      url: `/v1/memories/${memory.id}/mute`,
+      headers: { cookie },
+      payload: { muted: true },
+    });
+    expect(muted.statusCode).toBe(200);
+    expect((muted.json() as { memory: { muted: boolean } }).memory.muted).toBe(true);
+  });
+
+  it("edits, and answers with what it was", async () => {
+    const ana = await account();
+    const flat = await thread(ana, "EU with fam");
+    const cookie = await signIn(ana);
+    const added = await addOne(cookie, flat, "Always use the todo list");
+    const { memory } = added.json() as { memory: { id: string } };
+
+    const edited = await app.inject({
+      method: "PATCH",
+      url: `/v1/memories/${memory.id}`,
+      headers: { cookie },
+      payload: { text: "Always use the todo list, not the timeline" },
+    });
+    expect(edited.statusCode).toBe(200);
+    expect((edited.json() as { previous: string }).previous).toBe("Always use the todo list");
+  });
+});
