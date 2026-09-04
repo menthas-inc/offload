@@ -10,8 +10,9 @@
 // of step with the URL.
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Icon } from "../Icon";
+import { FULL } from "./PaneHead";
 import styles from "../../app/(shell)/shell.module.css";
 
 export interface Crumb {
@@ -30,29 +31,30 @@ interface Props {
   panes: React.ReactNode[];
 }
 
-/** The query that means "just this one, full width".
+/** Where a navigation came from.
  *
- *  A query rather than a route, because full is a way of looking at a pane and
- *  not a different place: the URL still points at the same thread, so the link
- *  somebody sends still opens the thread, and the crumbs still say where it
- *  sits. */
-export const FULL = "full";
+ *  **The stack is not purely route-derived any more, and that is deliberate.**
+ *  Opening `/threads/:id` cold shows that thread alone: a link somebody sends
+ *  should open the thing it names, not the thing plus a list. Two panes are
+ *  what you get by walking from one screen into another, which is a fact about
+ *  the journey rather than about the destination, so the journey carries it.
+ *
+ *  A query rather than router state, so a reload keeps the view you were
+ *  looking at rather than collapsing it under you. */
+export const FROM = "from";
 
 export function Panes({ crumbs, panes }: Props) {
-  const pathname = usePathname();
   const search = useSearchParams();
   const full = search.get(FULL) === "1";
+  const arrived = search.get(FROM) !== null;
 
   const back = crumbs.length > 1 ? crumbs[crumbs.length - 2]! : null;
-  // Full shows the top pane alone. The trail stays: it is what says where this
-  // is, and losing it would make full a dead end.
-  const shown = full ? panes.slice(-1) : panes;
-  const offset = panes.length - shown.length;
 
-  const query = new URLSearchParams(search.toString());
-  if (full) query.delete(FULL);
-  else query.set(FULL, "1");
-  const toggle = `${pathname}${query.toString() ? `?${query.toString()}` : ""}`;
+  // One pane unless you walked here, and one pane when you asked for full.
+  // The trail stays in both cases: it is what says where this sits, and losing
+  // it would make a direct link a dead end.
+  const shown = full || !arrived ? panes.slice(-1) : panes;
+  const offset = panes.length - shown.length;
 
   return (
     <>
@@ -85,25 +87,12 @@ export function Panes({ crumbs, panes }: Props) {
           ))}
         </span>
 
-        <span className={styles.crumbTools}>
-          {panes.length > 1 || full ? (
-            <Link
-              href={toggle}
-              className={styles.tool}
-              aria-label={full ? "Show the pane beside this" : "Open full"}
-              title={full ? "Back to two panes" : "Open full"}
-            >
-              <Icon name={full ? "chevron-left" : "maximize-2"} size={15} />
-            </Link>
-          ) : null}
-
-          {back && !full ? (
-            <Link href={back.href} className={styles.closePane}>
-              <Icon name="x" size={14} />
-              Close pane
-            </Link>
-          ) : null}
-        </span>
+        {back && !full ? (
+          <Link href={back.href} className={styles.closePane}>
+            <Icon name="x" size={14} />
+            Close pane
+          </Link>
+        ) : null}
       </div>
 
       <div className={styles.paneRow}>

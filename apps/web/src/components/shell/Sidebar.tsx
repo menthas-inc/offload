@@ -10,6 +10,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "../Icon";
 import { Logo } from "../Logo";
+import { Preferences } from "./Preferences";
 import styles from "../../app/(shell)/shell.module.css";
 import type { ThreadRow } from "../../lib/threads";
 
@@ -123,16 +124,14 @@ export function Sidebar({ threads, threadCount }: Props) {
           <Icon name="bell" size={17} />
           <span className={styles.navLabel}>Activity</span>
         </button>
-        <button
-          type="button"
-          className={styles.navItem}
-          disabled
-          aria-disabled="true"
-          title="Nothing here yet"
-        >
+        <div className={styles.navItem} data-static="true">
           <Icon name="settings" size={17} />
           <span className={styles.navLabel}>Settings</span>
-        </button>
+          {/* Right of Settings, per the product owner. Neither is in the kit;
+              both are things about this device rather than about the account,
+              which is why they sit beside Settings rather than inside it. */}
+          <Preferences />
+        </div>
       </div>
     </nav>
   );

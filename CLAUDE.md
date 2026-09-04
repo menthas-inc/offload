@@ -30,6 +30,14 @@ Five surfaces: iOS, Android, web app, admin panel, marketing site. Invite only, 
 can go stale. If a kit exists, its layout and design are the design: use them. There are
 detailed mocks across mobile, web and admin, and most screens worth building already have one.
 
+**Then read the component whole**, with `.claude/scripts/kit-component.sh <Component>`. Finding
+the file is not grounding; grepping it for the line you expected is worse than not looking,
+because it returns something and you stop. `WThing` passes
+`tools={[["maximize-2","Open full"],["ellipsis","More"]]}` to `WPaneHead` on the line after the
+title, so a grep for the title finds everything except where the maximize button goes. It ended
+up in the crumb bar for exactly that reason, along with a run of other divergences that were each
+one unread line. These components are thirty lines. Read them.
+
 Read `.claude/skills/offload-design/readme.md` in full before building anything with a visual result. It is long because it is the whole system, and almost every question that comes up during the build is answered in it. `handoff/CONTRIBUTING.md` is the working agreement.
 
 Things that bite most often:

@@ -11,6 +11,42 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-04 · Open full goes on the pane, and a link opens one pane
+**Surface:** web
+**Raised by:** the product owner, on a run of divergences from the kits.
+
+**Open full was in the crumb bar and belongs on the pane.** `WThing` passes
+`tools={[["maximize-2","Open full"],["ellipsis","More"]]}` to `WPaneHead`, so it sits at the end
+of the pane's own head, after the faces and Share. It is a thing you do to this pane, so it lives
+on the pane; in the trail it read as navigation.
+
+**How it got there is the part worth recording.** I found the right file and grepped it for the
+line I expected. `WThing` puts the title and the tools on consecutive lines, so searching for the
+title returns everything except where the button goes, and a grep that returns something makes
+you stop looking. The same habit produced the badge tones the wrong way round, the missing first
+group heading, the seam on the wrong pane and a composer with no header. `.claude/scripts/
+kit-component.sh` prints a component whole for this reason, and `CLAUDE.md` now says to run it
+after `find-kit.sh`.
+
+**A link opens one pane.** Two panes are what you get by walking from one screen into another,
+which is a fact about the journey rather than about the destination, so the journey carries it
+in a `from` query. Opening `/threads/:id` cold shows that thread alone: a link somebody sends
+should open the thing it names, not the thing plus a list. *This reverses the reasoning recorded
+on 2026-09-03, which made the stack purely route-derived so a shared link would reproduce both
+panes. That was the wrong instinct about what a shared link is for.*
+
+**Two controls that are not in the kit at all**, at the foot of the nav beside Settings: light
+and dark, and larger text. The type scale was checked first and the app already matches the kit
+exactly (13, 13.5, 14, 14.5, 15.5, 18, 20, 25); the kit only looks larger because it renders in a
+fixed 1440px canvas.
+
+**Design system impact:** the kit has no theme switch and no type-size control, and it needs a
+view on both. **Larger text is currently `zoom`, which is a blunt instrument and named as one**:
+the shell's sizes are literal pixels, so there is nothing to scale. The proper mechanism is a
+type scale in the token set with every size derived from it, and when that exists this control
+becomes that rather than a browser zoom. There is also no `minimize-2` in the vendored icon set,
+so Open full uses the same glyph both ways and lets the label carry the direction.
+
 ### 2026-09-03 · The mark, in the four places it was missing
 **Surface:** web, marketing
 **Raised by:** the product owner.

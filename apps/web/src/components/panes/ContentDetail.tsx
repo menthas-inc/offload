@@ -16,6 +16,7 @@
 
 import Link from "next/link";
 import { Icon } from "../Icon";
+import { PaneHead } from "../shell/PaneHead";
 import styles from "../../app/(shell)/shell.module.css";
 import type { ContentDetail as Detail } from "../../lib/threads";
 
@@ -31,10 +32,10 @@ export function ContentDetail({ detail, onToggle }: Props) {
 
   return (
     <>
-      <div className={styles.paneHead}>
-        <div style={{ minWidth: 0 }}>
-          <h1 className={styles.paneTitle}>{detail.title}</h1>
-          <p className={styles.paneSub}>
+      <PaneHead
+        title={detail.title}
+        sub={
+          <>
             {detail.author.isYou ? "you" : detail.author.displayName} ·{" "}
             {new Date(detail.createdAt).toLocaleDateString(undefined, {
               day: "numeric",
@@ -43,11 +44,11 @@ export function ContentDetail({ detail, onToggle }: Props) {
             })}
             {detail.archivedAt ? " · archived" : ""}
             {done ? " · done" : ""}
-          </p>
-        </div>
-
-        {detail.type === "task" && onToggle ? (
-          <div className={styles.paneTools}>
+          </>
+        }
+        fullHref={`/content/${detail.id}`}
+        tools={
+          detail.type === "task" && onToggle ? (
             <button
               type="button"
               className={styles.tool}
@@ -57,9 +58,9 @@ export function ContentDetail({ detail, onToggle }: Props) {
             >
               <Icon name={done ? "rewind" : "check"} size={16} />
             </button>
-          </div>
-        ) : null}
-      </div>
+          ) : null
+        }
+      />
 
       <div className={styles.paneBody}>
         <Link href={`/threads/${detail.threadId}`} className={styles.chip}>

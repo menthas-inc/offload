@@ -87,7 +87,10 @@ export function MyThreads({ groups, loading }: Props) {
                 {group.threads.map((thread) => (
                   <Link
                     key={thread.id}
-                    href={`/threads/${thread.id}`}
+                    // Says where this came from, which is what opens it beside the
+                    // list rather than on its own. A link somebody sends carries
+                    // no `from`, so it opens the thread alone.
+                    href={`/threads/${thread.id}?from=threads`}
                     className={styles.row}
                   >
                     <span className={styles.rowIcon}>

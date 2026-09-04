@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
+import { PaneHead } from "../shell/PaneHead";
 import { Widgets } from "./Widgets";
 import { widgetsFor } from "../../lib/widgets";
 import {
@@ -182,9 +183,9 @@ export function Thread({ id, onChanged, onUndo }: Props) {
 
   return (
     <>
-      <div className={styles.paneHead}>
-        <div style={{ minWidth: 0 }}>
-          {renaming ? (
+      <PaneHead
+        title={
+          renaming ? (
             <input
               ref={input}
               className={styles.titleInput}
@@ -199,49 +200,44 @@ export function Thread({ id, onChanged, onUndo }: Props) {
               aria-label="Thread name"
             />
           ) : (
-            <h1
-              className={styles.paneTitle}
-              onDoubleClick={() => {
-                setNameDraft(thread.name);
-                setRenaming(true);
-              }}
-            >
-              {thread.name}
-            </h1>
-          )}
-          <p className={styles.paneSub}>
+            thread.name
+          )
+        }
+        sub={
+          <>
             {thread.counts.active}
             {others.length ? ` · ${others.map((m) => m.displayName).join(", ")}` : " · just you"}
             {thread.counts.archived ? ` · ${thread.counts.archived} archived` : ""}
-          </p>
-        </div>
+          </>
+        }
+        fullHref={`/threads/${id}`}
+        aside={
+          <>
+            {/* Who is already in, then the share control: the same order as
+                the phones, and the order WPaneHead's `aside` puts them in. */}
+            <div className={styles.faces}>
+              {thread.members.map((member) => (
+                <span key={member.accountId} className={styles.face} title={member.displayName}>
+                  {member.initials}
+                </span>
+              ))}
+            </div>
 
-        <div className={styles.paneTools}>
-          {/* Who is already in, then the share control: the same order as the
-              phones, and the first thing the kit puts on a thread. */}
-          <div className={styles.faces}>
-            {thread.members.map((member) => (
-              <span key={member.accountId} className={styles.face} title={member.displayName}>
-                {member.initials}
-              </span>
-            ))}
-          </div>
-
-          {/* Inert until inviting exists. Drawn because the thread page without
-              it is a different screen from the one that was designed, and
-              because a control that says "not yet" is honest where a missing
-              one is silent. */}
-          <button
-            type="button"
-            className={styles.shareButton}
-            disabled
-            aria-disabled="true"
-            title="Sharing is not built yet"
-          >
-            <Icon name="share-2" size={15} />
-            Share
-          </button>
-
+            {/* Inert until inviting exists. Drawn because the thread page
+                without it is a different screen from the one designed. */}
+            <button
+              type="button"
+              className={styles.shareButton}
+              disabled
+              aria-disabled="true"
+              title="Sharing is not built yet"
+            >
+              <Icon name="share-2" size={15} />
+              Share
+            </button>
+          </>
+        }
+        tools={
           <button
             type="button"
             className={styles.tool}
@@ -254,8 +250,8 @@ export function Thread({ id, onChanged, onUndo }: Props) {
           >
             <Icon name="pencil" size={16} />
           </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className={styles.paneBody}>
         {/* No summary, nothing drawn. `WThing.jsx` has `{st ? ... : null}` and
@@ -366,7 +362,7 @@ export function Thread({ id, onChanged, onUndo }: Props) {
                     aria-label="Title"
                   />
                 ) : (
-                  <Link href={`/content/${row.id}`} className={styles.rowTitle}>
+                  <Link href={`/content/${row.id}?from=thread`} className={styles.rowTitle}>
                     {row.title}
                   </Link>
                 )}
