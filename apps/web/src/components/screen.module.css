@@ -96,3 +96,17 @@
   }
   .main { padding-left: var(--frame-gutter); padding-right: var(--frame-gutter); }
 }
+
+/* The mark in the header goes home. A block link, so the whole lockup is the
+   target rather than the letters. */
+.home {
+  display: inline-flex;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius-sm);
+}
+
+.home:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 3px;
+}

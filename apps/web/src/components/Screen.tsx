@@ -8,6 +8,7 @@
 
 import type { ReactNode } from "react";
 import { Atmosphere } from "./Atmosphere";
+import Link from "next/link";
 import { Logo } from "./Logo";
 import styles from "./screen.module.css";
 
@@ -29,11 +30,17 @@ export function Screen({
   );
 }
 
-/** The mark, and at most one action beside it. */
+/** The mark, and at most one action beside it.
+ *
+ *  The mark goes home. It is the first thing anybody tries on a marketing site
+ *  and the only navigation the privacy page has, so without it a reader who
+ *  followed a link to /privacy has no way back to what the product is. */
 export function ScreenHeader({ action }: { action?: ReactNode }) {
   return (
     <header className={styles.header}>
-      <Logo />
+      <Link href="/" className={styles.home} aria-label="offload, home">
+        <Logo />
+      </Link>
       {action ?? null}
     </header>
   );

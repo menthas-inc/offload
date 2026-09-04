@@ -11,6 +11,32 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-03 · The mark, in the four places it was missing
+**Surface:** web, marketing
+**Raised by:** the product owner.
+
+**The sidebar's logo was the threads icon.** `lasso` is the glyph a thread carries, so the
+product's own name was wearing one of its nouns. It is `Logo tone="inverse"` now, which is the
+component that already existed and matches the contract in `components/brand/Logo.d.ts`.
+
+**The composer's conversation header used sparkles**, which the kit does. Sparkles is the glyph
+for anything **offload derived**, and that is a different claim: it belongs on a tag it inferred,
+not on the product saying something. The mark, at 15px. *Worth raising with the kit rather than
+just changing: the fixture there shows a thread name beside it, and the sparkle reads correctly
+for a summary offload wrote. It reads as a claim when the thing beside it is your own sentence.*
+
+**There was no favicon at all**, so every tab said nothing. `app/icon.svg` is the design system's
+`assets/app-icon.svg` verbatim: the ink tile with the mark in white, which is the one version
+that reads on both a light and a dark browser chrome. A bare mark would have vanished on dark.
+
+**The marketing mark went nowhere.** It is the first thing anybody tries on a marketing site, and
+on `/privacy` it is the only navigation there is, so a reader who followed a link had no way back
+to what the product is.
+
+**Design system impact:** one question for the kit. `WComposer` puts sparkles on the open
+conversation's header, and the mark is the better glyph there for the reason above. Everything
+else was the code catching up.
+
 ### 2026-09-03 · The pane slide, and printing a thread's contents once
 **Surface:** web
 **Raised by:** the product owner, watching the running app beside the kit.

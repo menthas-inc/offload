@@ -27,6 +27,7 @@ import {
   type TouchedThread,
 } from "../../lib/dump";
 import { Icon } from "../Icon";
+import { Logo } from "../Logo";
 import { FILL_COMPOSER } from "../panes/Today";
 import styles from "../../app/(shell)/composer.module.css";
 
@@ -254,8 +255,13 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
         <div className={styles.liveHead}>
           {/* The kit's header for an open conversation: what it is about, and
               two ways out of it. Without these the composer grows and there is
-              no way to put it back. */}
-          <Icon name="sparkles" size={15} className={styles.liveMark} />
+              no way to put it back.
+
+              The mark rather than the kit's sparkles. This is offload talking,
+              and sparkles is the glyph for anything offload derived, which is a
+              different claim: it belongs on a tag it inferred, not on the
+              product saying something. */}
+          <Logo variant="mark" size={15} />
           <b className={styles.liveTitle}>{conversationTitle(turns)}</b>
           <button
             type="button"

@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "../Icon";
+import { Logo } from "../Logo";
 import styles from "../../app/(shell)/shell.module.css";
 import type { ThreadRow } from "../../lib/threads";
 
@@ -44,10 +45,12 @@ export function Sidebar({ threads, threadCount }: Props) {
 
   return (
     <nav className={styles.sidebar} data-theme="dark" aria-label="Sections">
-      <div className={styles.brand}>
-        <Icon name="lasso" size={21} />
-        <span className={styles.wordmark}>offload</span>
-      </div>
+      <Link href="/today" className={styles.brand} aria-label="offload, home">
+        {/* The mark, not the threads glyph. It was `lasso`, which is the icon a
+            thread carries, so the product's own name was wearing one of its
+            nouns. `tone="inverse"` because the sidebar is always dark. */}
+        <Logo tone="inverse" size={21} />
+      </Link>
 
       <div className={styles.navGroup}>
         {tabs.map((tab) => {
