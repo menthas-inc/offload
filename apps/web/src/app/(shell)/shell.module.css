@@ -60,7 +60,10 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   text-align: left;
-  font: var(--weight-medium) 14.5px/1 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(14.5px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
   background: transparent;
   color: var(--text-secondary);
   transition: background var(--transition-ui);
@@ -95,7 +98,7 @@
 .navCount {
   margin-left: auto;
   font-style: normal;
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--type-scale));
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
@@ -105,7 +108,10 @@
   align-items: center;
   gap: 7px;
   padding: var(--space-6) var(--space-6) var(--space-3);
-  font: var(--weight-medium) 11.5px/1 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(11.5px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
   color: var(--text-tertiary);
 }
 
@@ -136,7 +142,10 @@
   height: 52px;
   flex: 0 0 auto;
   padding: 0 var(--space-6);
-  font: var(--weight-medium) 13px/1 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
   color: var(--text-tertiary);
 }
 
@@ -310,7 +319,10 @@
 
 .paneTitle {
   margin: 0;
-  font: var(--weight-semibold) 20px/1.2 var(--font-core);
+  font-weight: var(--weight-semibold);
+  font-size: calc(20px * var(--type-scale));
+  line-height: 1.2;
+  font-family: var(--font-core);
   letter-spacing: -0.016em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -319,12 +331,15 @@
 }
 
 .paneTitleBig {
-  font-size: 25px;
+  font-size: calc(25px * var(--type-scale));
 }
 
 .paneSub {
   margin: 3px 0 0;
-  font: var(--weight-regular) 13.5px/1.4 var(--font-core);
+  font-weight: var(--weight-regular);
+  font-size: calc(13.5px * var(--type-scale));
+  line-height: 1.4;
+  font-family: var(--font-core);
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
@@ -367,7 +382,10 @@
   margin: var(--space-7) 0 var(--space-2);
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--ink-950);
-  font: var(--weight-semibold) 18px/1.2 var(--font-core);
+  font-weight: var(--weight-semibold);
+  font-size: calc(18px * var(--type-scale));
+  line-height: 1.2;
+  font-family: var(--font-core);
   letter-spacing: -0.012em;
   color: var(--text-primary);
 }
@@ -408,7 +426,10 @@
   padding: 0 var(--space-3);
   height: 26px;
   border-radius: var(--radius-sm);
-  font: var(--weight-medium) 13px/1 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
   color: var(--text-secondary);
   cursor: pointer;
 }
@@ -423,7 +444,10 @@
   border: 0;
   background: none;
   padding: 0;
-  font: var(--weight-medium) 13px/1 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
   color: var(--text-link);
   cursor: pointer;
 }
@@ -483,7 +507,10 @@
 
 .rowTitle {
   display: block;
-  font: var(--weight-medium) 15.5px/1.35 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(15.5px * var(--type-scale));
+  line-height: 1.35;
+  font-family: var(--font-core);
   color: var(--text-primary);
   text-decoration: none;
   overflow-wrap: anywhere;
@@ -492,7 +519,7 @@
 .rowMeta {
   display: block;
   margin-top: 2px;
-  font-size: 13px;
+  font-size: calc(13px * var(--type-scale));
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
@@ -500,7 +527,10 @@
 .rowCount {
   flex: 0 0 auto;
   margin-top: 3px;
-  font: var(--weight-medium) 14px/1 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(14px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
@@ -561,7 +591,7 @@
   margin: var(--space-4) 0 0;
   max-width: 58ch;
   font: var(--text-quiet-role);
-  font-size: 15.5px;
+  font-size: calc(15.5px * var(--type-scale));
   line-height: 1.5;
   color: var(--text-primary);
 }
@@ -591,13 +621,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font: var(--weight-semibold) 10.5px/1 var(--font-core);
+  font-weight: var(--weight-semibold);
+  font-size: calc(10.5px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
 }
 
 .empty {
   padding: var(--space-9) 0;
   max-width: 46ch;
-  font-size: 14.5px;
+  font-size: calc(14.5px * var(--type-scale));
   line-height: 1.55;
   color: var(--text-tertiary);
 }
@@ -607,7 +640,7 @@
   padding: var(--space-5);
   border-radius: var(--radius-md);
   background: var(--surface-fill);
-  font-size: 14px;
+  font-size: calc(14px * var(--type-scale));
   line-height: 1.5;
   color: var(--text-secondary);
   overflow-wrap: anywhere;
@@ -624,7 +657,10 @@
   border-radius: var(--radius-pill);
   background: var(--surface-raised);
   color: var(--text-primary);
-  font: var(--weight-medium) 13.5px/1 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(13.5px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
   cursor: pointer;
 }
 
@@ -643,7 +679,10 @@
   border-radius: var(--radius-pill);
   background: var(--surface-fill);
   color: var(--text-secondary);
-  font: var(--weight-medium) 13px/1 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
   cursor: pointer;
 }
 
@@ -652,7 +691,10 @@
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-sm);
   padding: var(--space-3) var(--space-4);
-  font: var(--weight-medium) 14.5px/1.35 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(14.5px * var(--type-scale));
+  line-height: 1.35;
+  font-family: var(--font-core);
   color: var(--text-primary);
   background: var(--surface-raised);
 }
@@ -730,7 +772,10 @@
   gap: 6px;
   margin: var(--space-6) 0 var(--space-3);
   padding: 0;
-  font: var(--weight-medium) 12.5px/1 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(12.5px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
   color: var(--text-accent);
   text-transform: lowercase;
 }
@@ -760,11 +805,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: calc(11px * var(--type-scale));
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
 
+/* Fixed 22px circle, so the number inside it does not take --type-scale:
+ * growing the text would break the circle rather than fill it. */
 .pin {
   position: absolute;
   transform: translate(-50%, -100%);
@@ -858,7 +905,10 @@
 .confirmText {
   flex: 1;
   min-width: 0;
-  font: var(--weight-medium) 14.5px/1.35 var(--font-core);
+  font-weight: var(--weight-medium);
+  font-size: calc(14.5px * var(--type-scale));
+  line-height: 1.35;
+  font-family: var(--font-core);
   color: var(--text-danger);
   overflow: hidden;
   text-overflow: ellipsis;

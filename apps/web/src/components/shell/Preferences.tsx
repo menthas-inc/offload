@@ -11,23 +11,22 @@
 // set already reads. Nothing else changes: every colour in the app is a token,
 // so the whole thing turns over at once.
 //
-// **Type size** uses `zoom`, and that is a blunt instrument worth naming. The
-// proper mechanism is a type scale in the token set with every size derived
-// from it, and the shell's sizes are literal pixels, so there is nothing to
-// scale. `zoom` moves text and the space around it together, which is what
-// somebody asking for bigger text actually wants, and it is one property rather
-// than a rewrite of every rule. When the design system grows a scale, this
-// becomes that.
+// **Type size** sets `data-type` on the document, and the shell's stylesheet
+// derives every text size from one variable while leaving every width, gutter
+// and icon a literal pixel.
+//
+// It used `zoom` first, which was wrong in a way worth remembering: `zoom`
+// scales the layout too, so the 248px sidebar became 285px and the 520px pane
+// became 598px, and on a laptop the right-hand pane went off the edge. Bigger
+// text means text taking more of the space it already has, not the same layout
+// on a smaller screen.
 
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 
 const THEME_KEY = "offload:theme";
-const ZOOM_KEY = "offload:zoom";
-
-/** Roughly two points on body text, which is what was asked for. */
-const LARGE = 1.15;
+const SIZE_KEY = "offload:type-size";
 
 type Theme = "light" | "dark";
 
@@ -46,7 +45,7 @@ export function Preferences() {
           ? "dark"
           : "light";
     setTheme(initial);
-    setLarge(window.localStorage.getItem(ZOOM_KEY) === "large");
+    setLarge(window.localStorage.getItem(SIZE_KEY) === "large");
   }, []);
 
   useEffect(() => {
@@ -54,8 +53,9 @@ export function Preferences() {
   }, [theme]);
 
   useEffect(() => {
-    const shell = document.querySelector<HTMLElement>(`.${styles.shell}`);
-    if (shell) shell.style.zoom = large ? String(LARGE) : "";
+    const root = document.documentElement;
+    if (large) root.setAttribute("data-type", "large");
+    else root.removeAttribute("data-type");
   }, [large]);
 
   const flipTheme = useCallback(() => {
@@ -68,7 +68,7 @@ export function Preferences() {
 
   const flipSize = useCallback(() => {
     setLarge((current) => {
-      window.localStorage.setItem(ZOOM_KEY, current ? "normal" : "large");
+      window.localStorage.setItem(SIZE_KEY, current ? "normal" : "large");
       return !current;
     });
   }, []);

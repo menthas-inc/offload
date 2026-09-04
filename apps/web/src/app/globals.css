@@ -3,10 +3,15 @@
 
 *,
 *::before,
-*::after { box-sizing: border-box; }
+*::after {
+  box-sizing: border-box;
+}
 
 html,
-body { margin: 0; padding: 0; }
+body {
+  margin: 0;
+  padding: 0;
+}
 
 body {
   background: var(--surface-page);
@@ -19,8 +24,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-a { color: var(--text-accent); text-decoration: none; }
-a:hover { color: var(--moss-700); }
+a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--moss-700);
+}
 
 /* Focus is a 2px ink outline offset 2px, and it is never removed. */
 :focus-visible {
@@ -39,4 +49,39 @@ a:hover { color: var(--moss-700); }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Text scales; the layout does not.
+ *
+ * The first version of "larger text" used `zoom` on the shell, which scaled
+ * everything: the 248px sidebar became 285px, the 520px pane became 598px, and
+ * on a laptop the right-hand pane went off the edge of the screen. Bigger text
+ * should mean text taking more of the space it already has, not the same layout
+ * rendered on a smaller screen.
+ *
+ * So every text size in the shell derives from one variable and every width,
+ * gutter and icon stays a literal pixel. The token sizes are overridden
+ * alongside it, because the handful of rules that use `var(--text-*-role)`
+ * would otherwise be the only text on the screen that did not move.
+ *
+ * This is the local version of a type scale the design system should own. When
+ * it does, this block reads from it instead of redefining it.
+ */
+:root {
+  --type-scale: 1;
+}
+
+/* Roughly two points on body text, which is what was asked for.
+ *
+ * `:root[data-type=...]` rather than the bare attribute, deliberately: the
+ * token sizes below are defined on `:root` in the generated stylesheet, and
+ * overriding them needs more specificity than that rather than a bet on which
+ * file the bundler happens to emit last. */
+:root[data-type="large"] {
+  --type-scale: 1.15;
+  --size-body: 18px;
+  --size-body-sm: 16px;
+  --size-caption: 14px;
+  /* --size-display is not used anywhere in the web app, so it is not listed. */
+  --size-label: 15px;
 }

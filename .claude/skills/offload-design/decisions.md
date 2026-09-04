@@ -11,6 +11,35 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-04 · Larger text scales text, not the layout
+**Surface:** web
+**Raised by:** the product owner, the same day the control shipped.
+
+**`zoom` was the wrong mechanism and it failed in the obvious way.** Larger text was one line,
+`shell.style.zoom = 1.15`, and `zoom` scales layout with it: the 248px sidebar became 285px, the
+520px pane became 598px, and the right-hand pane went off the edge of a laptop screen. What
+somebody asking for bigger text wants is text taking more of the space it already has, not the
+same layout rendered on a smaller screen.
+
+**So the scale is real now, and it is only type.** `--type-scale` on `:root`, `1.15` under
+`:root[data-type="large"]`, and every text size in the shell reads `calc(Npx * var(--type-scale))`
+while every width, gutter, radius and icon stays a literal pixel. The four token sizes in use
+(`--size-body`, `--size-body-sm`, `--size-caption`, `--size-label`) are overridden in the same
+block, because the rules that set `font: var(--text-body-role)` would otherwise be the only text
+on the screen that did not move.
+
+Two details worth keeping. The `font:` shorthand had to be split into longhand in 21 rules: a
+calc in the size slot sits directly before the `/` that introduces the leading, and that is
+ambiguous enough that it is not worth relying on. And the map pin keeps its literal 11px, because
+it is centred in a fixed 22px circle by its own line-height, so growing the text there would break
+the circle rather than fill it.
+
+**Design system impact:** this is the type scale the previous entry said the token set should
+own, built in the app because the app needed it that day. When the design system takes it, it
+takes `--type-scale` and the size overrides and the app reads them instead of defining them. The
+rest of that entry stands: the kit still has no theme switch and no type-size control and needs a
+view on both.
+
 ### 2026-09-04 · Open full goes on the pane, and a link opens one pane
 **Surface:** web
 **Raised by:** the product owner, on a run of divergences from the kits.
@@ -41,10 +70,9 @@ exactly (13, 13.5, 14, 14.5, 15.5, 18, 20, 25); the kit only looks larger becaus
 fixed 1440px canvas.
 
 **Design system impact:** the kit has no theme switch and no type-size control, and it needs a
-view on both. **Larger text is currently `zoom`, which is a blunt instrument and named as one**:
-the shell's sizes are literal pixels, so there is nothing to scale. The proper mechanism is a
-type scale in the token set with every size derived from it, and when that exists this control
-becomes that rather than a browser zoom. There is also no `minimize-2` in the vendored icon set,
+view on both. **Larger text was `zoom` here and is not any more**: it scaled the
+layout with the text and pushed a pane off the screen, so it is a real type scale as of the entry
+above, still defined in the app rather than in the token set. There is also no `minimize-2` in the vendored icon set,
 so Open full uses the same glyph both ways and lets the label carry the direction.
 
 ### 2026-09-03 · The mark, in the four places it was missing
