@@ -61,6 +61,8 @@ Two.
 
 The one thing this feature adds that a person can be hurt by is filing something wrong. Undo is the answer, per OFF-6, and it is eight seconds during which nothing is destroyed.
 
+**It is offered for an action, never for an answer.** A turn that filed nothing has nothing to take back, so a reply like "Sorry, I did not understand that one" gets no Undo: pressing it would delete the person's own message from the conversation, which is neither what they asked for nor what the button says.
+
 **The unit is the whole turn.** One dump can become several pieces across several threads, and undoing has to reverse all of them together. It also has to reverse **offload's reply**: a reply saying "Added to Flat admin" that survives its own undo is a false statement sitting permanently in history, which is precisely the pretence this feature exists to retire, recreated by the mechanism meant to protect against it.
 
 So the unit is: the person's message, every piece of content derived from it, and offload's reply, in one transaction under one `purge_after`.
