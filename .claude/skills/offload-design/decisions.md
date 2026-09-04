@@ -40,6 +40,12 @@ heading over an empty row is a section announcing its own absence, which is what
 summary already refuses to do. The consequence is that the way into an empty Memories section has to
 come from outside it, so the pane head gained a `plus` tool beside the rename pencil.
 
+**Done means something was done.** The tick on a dump meant the turn ended, so a question that got
+an answer and a request that was refused both wore one: "delete the EU with fam thread" came back
+"threads can't be deleted" under a green Done. It is gated on the same record the Undo toast uses,
+which is what offload actually wrote rather than what it said about itself. A turn that answers
+without doing gets no marker, which is right: nothing happened that could be undone or checked.
+
 **The focus ring was being clipped in two places, and one of them was old.** `.paneTitle` carries
 `overflow: hidden` so a long thread name gets an ellipsis, and renaming puts an input inside that
 element, so the global 2px ring at 2px offset was cut down to four corner marks. The clip lifts

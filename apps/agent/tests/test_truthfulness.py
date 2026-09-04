@@ -427,3 +427,56 @@ async def test_a_thread_rule_is_applied_to_what_was_just_filed():
     reply = (outcome.reply or "").lower()
     for tell in ("rule", "memory", "preference", "shortened", "three words"):
         assert tell not in reply, f"explained itself: {outcome.reply!r}"
+
+
+@pytest.mark.skipif(not EVAL, reason="costs money; run with OFFLOAD_EVAL=1")
+@pytest.mark.parametrize(
+    "dump",
+    [
+        "delete the EU with fam thread",
+        "get rid of the Bookshelf build thread entirely",
+        "remove the Lisbon trip thread please",
+    ],
+)
+async def test_it_does_not_claim_a_thread_cannot_be_deleted(dump):
+    """It told somebody "threads can't be deleted". They can, from the row.
+
+    offload has no tool for it, which is a different sentence, and the
+    difference matters: one points at the control that does the thing and the
+    other tells them to stop asking for something the product supports.
+    """
+    from anthropic import AsyncAnthropic
+
+    threads = [
+        Thread(
+            id=f"0000000{i}-0000-0000-0000-000000000000",
+            name=n,
+            is_default=n == "Miscellaneous",
+        )
+        for i, n in enumerate(KNOWN)
+    ]
+
+    async def call_tool(tool, tool_call_id, args):
+        if tool == "list_thread_content":
+            return {"ok": True, "rows": [], "truncated": False}
+        if tool == "create_thread":
+            return {"ok": True, "threadId": "new", "threadName": args["name"], "memories": []}
+        return {"ok": True, "done": True}
+
+    ctx = DumpContext(
+        dump=dump,
+        turns=[],
+        threads=threads,
+        landed=[],
+        default_thread_id=threads[-1].id,
+        today="Thursday 3 September 2026",
+    )
+
+    outcome = await plan(AsyncAnthropic(), ctx, "claude-sonnet-5", call_tool)
+    reply = (outcome.reply or "").lower()
+
+    for untrue in ("can't be deleted", "cannot be deleted", "can not be deleted",
+                   "threads can't", "not possible", "unable to delete threads"):
+        assert untrue not in reply, f"claimed it is impossible: {outcome.reply!r}"
+    # And it points somewhere rather than just declining.
+    assert "my threads" in reply or "row" in reply, f"declined with no way forward: {outcome.reply!r}"

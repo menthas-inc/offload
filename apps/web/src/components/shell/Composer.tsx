@@ -46,6 +46,12 @@ interface Turn {
    *  sentence. This is what makes the reply's thread names clickable and what
    *  makes them true. */
   threads?: TouchedThread[];
+  /** Whether the turn actually did something, as opposed to answering.
+   *
+   *  From the same record the reply's links come from, never from the reply
+   *  text: a sentence saying it did something is exactly what this exists to
+   *  check rather than to trust. */
+  did?: boolean;
 }
 
 interface Undoable {
@@ -153,8 +159,9 @@ export function Composer({
       awaitAnswer(messageId, (answer: Answer) => {
         cancels.current.delete(messageId);
         setTurns((current) => {
+          const filed = (answer.threads?.length ?? 0) > 0;
           const next = current.map((turn) =>
-            turn.id === messageId ? { ...turn, state: answer.state } : turn,
+            turn.id === messageId ? { ...turn, state: answer.state, did: filed } : turn,
           );
           return answer.reply
             ? [
@@ -311,10 +318,17 @@ export function Composer({
                     <span aria-hidden="true">👀</span>
                   </span>
                 ) : null}
-                {turn.state === "answered" ? (
+                {turn.state === "answered" && turn.did ? (
                   // The kit's Done badge, in the same place. A different state
                   // rather than a second version of the same one: 👀 means
                   // offload has it, this means it finished.
+                  //
+                  // **Done means something was done.** It used to mean the turn
+                  // ended, so a question that got an answer and a request that
+                  // was refused both wore a tick: "delete the EU with fam
+                  // thread" came back "threads can't be deleted" under a green
+                  // Done. Gated on the same record the Undo toast uses, which
+                  // is what offload actually wrote rather than what it said.
                   <span className={styles.done}>
                     <Icon name="check" size={11} />
                     Done
