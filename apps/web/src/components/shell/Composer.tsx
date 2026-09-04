@@ -53,7 +53,15 @@ interface Undoable {
   message: string;
 }
 
-export function Composer({ onFiled }: { onFiled: () => void }) {
+export function Composer({
+  onFiled,
+}: {
+  /** Called with the threads the turn actually wrote to, from the content rows
+   *  it produced rather than from parsing the reply. The shell reloads the
+   *  sidebar and hands the ids down so a screen already showing one of those
+   *  threads updates itself instead of going stale behind a truthful reply. */
+  onFiled: (threadIds: string[]) => void;
+}) {
   const [draft, setDraft] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sending, setSending] = useState(false);
@@ -163,7 +171,8 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
         });
         // A dump can create a thread, so the sidebar is stale the moment this
         // lands.
-        if (answer.threads && answer.threads.length > 0) onFiled();
+        if (answer.threads && answer.threads.length > 0)
+          onFiled(answer.threads.map((thread) => thread.id));
         // Only a finished turn offers a way back. A partial one offers a way
         // forward, and both at once would ask somebody to choose between
         // finishing and undoing inside eight seconds.
@@ -233,7 +242,11 @@ export function Composer({ onFiled }: { onFiled: () => void }) {
     // failed call leaves the conversation as the database has it on next load.
     setTurns((current) => current.filter((turn) => turn.turnId !== turnId));
     await undoTurn(turnId);
-    onFiled();
+    // Undo touches the same threads the turn did, and the screen showing one
+    // of them has to lose the rows again. The ids are not carried on the undo
+    // itself, so this asks every open screen to refetch rather than naming
+    // them: an empty list is "something changed, work out what".
+    onFiled([]);
   }
 
   const live = turns.length > 0;

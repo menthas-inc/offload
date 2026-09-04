@@ -11,6 +11,42 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-04 · A screen catches up on its own, and the mark for it is moss
+**Surface:** web, and mobile owes the same
+**Raised by:** the product owner.
+
+**offload can file into the thread you are looking at**, because the composer floats over every
+tab. Until now the page went on showing what it held a moment ago while the reply said otherwise,
+which is the same class of untruth 004 exists to retire, arriving from the other direction. The
+thread the turn wrote to now refetches itself, and whatever was not there before is marked for
+1400ms.
+
+**The mark is moss, and the product owner asked for blue.** Worth recording because the request was
+reasonable and the answer is in this system's own colour rules: `--blue-600` means *this needs you*,
+for something waiting, unresolved or about to expire, and `--moss-600` means *offload did this, you
+didn't*, with the "what moved" surfaces already among its listed uses. A row offload filed correctly
+needs nothing from anybody. Blue would also break the rule that the two accents never appear on the
+same row, on any flashed row that is also a task waiting on you. The product owner agreed. *There is
+no signature blue: the mark itself is one colour, ink or paper, no accent.*
+
+**The memory editor opens inside the chip it belongs to.** It used to sit at the foot of the
+section, so editing the third memory looked like editing the last one. The chip now grows to hold
+its own editor, animated on `grid-template-rows` from `0fr` to `1fr`, which gets a real height
+transition with no magic number in it; a `max-height` guess has to clear the longest memory and then
+spends most of the close above the content, which reads as slow.
+
+**A section with nothing in it draws nothing at all**, Memories and the content list alike. A
+heading over an empty row is a section announcing its own absence, which is what the standing
+summary already refuses to do. The consequence is that the way into an empty Memories section has to
+come from outside it, so the pane head gained a `plus` tool beside the rename pencil.
+
+**Design system impact:** three things, none of them none. The kits have **no change mark at all**,
+and one is now needed on any surface offload can write to while somebody is looking at it: the
+thread page, Today, and the phones. The **memory chip has an open state** that no kit draws, where a
+pill becomes a container holding a field and four controls. And the **thread pane head now carries
+two tools plus Open full**, where `WThing.jsx` draws `maximize-2` and `ellipsis`; the honest reading
+is that these belong behind the `ellipsis` the kit already has, and the kit should say what is in it.
+
 ### 2026-09-04 · A memories section, and the kits are behind the contracts
 **Surface:** web
 **Raised by:** 008, and by the client review of its spec.

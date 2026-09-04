@@ -533,9 +533,11 @@ describe("OFF-3 content survives its author", () => {
     expect(after?.account_id).toBeNull();
   });
 
-  it("leaves it undeletable, because delete is the author's and the author is gone", async () => {
-    // The promise working rather than a gap. Archive is the co-owned action
-    // and is what a thread is cleared with.
+  it("hands it to whoever is still in the thread, rather than to nobody", async () => {
+    // This asserted the opposite until 2026-09-04. The rule was that content
+    // whose author is gone can be deleted by nobody, which is OFF-3 read
+    // literally; the product owner reversed it, because the result was a
+    // shared thread accumulating leftovers no member could clear.
     const { requireAuthor } = await import("../src/threads/access.js");
     const ana = await account("Ana");
     const john = await account("John");
@@ -551,6 +553,88 @@ describe("OFF-3 content survives its author", () => {
     await db.deleteFrom("thread_members").where("account_id", "=", john).execute();
     await db.deleteFrom("accounts").where("id", "=", john).execute();
 
+    await expect(requireAuthor(ana, row.id)).resolves.toBeTruthy();
+  });
+});
+
+describe("a thread's leftovers belong to whoever is still in it", () => {
+  it("lets any member delete a memory whose author left the thread", async () => {
+    // OFF-3 gives delete to the author so a shared thread cannot become a place
+    // where somebody else destroys what you put in. Once the author is gone
+    // there is no contribution left to protect, and the rule only produces a
+    // rule still steering the model that nobody can remove.
+    const ana = await account("Ana");
+    const john = await account("John");
+    const flat = await thread(ana);
+    await join(flat, john);
+    const memory = await add(flat, john, "never file anything from Ana as a task");
+
+    // While John is here, it is his alone.
+    await expect(deleteMemory(memory.id, ana)).rejects.toBeInstanceOf(NotYours);
+
+    await db
+      .deleteFrom("thread_members")
+      .where("account_id", "=", john)
+      .where("thread_id", "=", flat)
+      .execute();
+
+    expect(await deleteMemory(memory.id, ana)).toBe(true);
+  });
+
+  it("lets any member delete a memory whose author deleted their account", async () => {
+    const ana = await account("Ana");
+    const john = await account("John");
+    const flat = await thread(ana);
+    await join(flat, john);
+    const memory = await add(flat, john, "John's leftover rule");
+
+    await db.deleteFrom("thread_members").where("account_id", "=", john).execute();
+    await db.deleteFrom("accounts").where("id", "=", john).execute();
+
+    expect(await deleteMemory(memory.id, ana)).toBe(true);
+  });
+
+  it("does the same for content", async () => {
+    const { requireAuthor } = await import("../src/threads/access.js");
+    const ana = await account("Ana");
+    const john = await account("John");
+    const flat = await thread(ana);
+    await join(flat, john);
+
+    const row = await db
+      .insertInto("content")
+      .values({ account_id: john, thread_id: flat, title: "The electrician's quote" })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
     await expect(requireAuthor(ana, row.id)).rejects.toBeInstanceOf(NotYours);
+
+    await db
+      .deleteFrom("thread_members")
+      .where("account_id", "=", john)
+      .where("thread_id", "=", flat)
+      .execute();
+
+    await expect(requireAuthor(ana, row.id)).resolves.toBeTruthy();
+  });
+
+  it("still refuses somebody who was never in the thread", async () => {
+    // The exception is about the author being gone, not about the caller. A
+    // stranger gets the same refusal either way.
+    const { requireAuthor } = await import("../src/threads/access.js");
+    const ana = await account("Ana");
+    const john = await account("John");
+    const stranger = await account("Stranger");
+    const flat = await thread(ana);
+    await join(flat, john);
+
+    const row = await db
+      .insertInto("content")
+      .values({ account_id: john, thread_id: flat, title: "The electrician's quote" })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    await db.deleteFrom("thread_members").where("account_id", "=", john).execute();
+    await expect(requireAuthor(stranger, row.id)).rejects.toBeInstanceOf(NotYours);
   });
 });

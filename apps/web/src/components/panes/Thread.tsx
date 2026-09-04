@@ -19,6 +19,7 @@ import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { PaneHead } from "../shell/PaneHead";
 import { Memories } from "./Memories";
+import { useThreads } from "../shell/threads-context";
 import { Widgets } from "./Widgets";
 import { widgetsFor } from "../../lib/widgets";
 import {
@@ -52,6 +53,14 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   const [asking, setAsking] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const input = useRef<HTMLInputElement>(null);
+  // What arrived while this screen was open, so it can be marked for a moment
+  // rather than appearing silently in the middle of a list.
+  const [arrived, setArrived] = useState<Set<string>>(new Set());
+  const { filed } = useThreads();
+  // Lives here rather than in the section, because the section draws nothing
+  // when the thread has no memories and the control that starts the first one
+  // is in the pane head.
+  const [addingMemory, setAddingMemory] = useState(false);
 
   async function load(): Promise<void> {
     const [bundle, page] = await Promise.all([
@@ -62,6 +71,57 @@ export function Thread({ id, onChanged, onUndo }: Props) {
     setRows(page?.rows ?? []);
     setCursor(page?.nextCursor ?? null);
   }
+
+  /** Reload, and mark whatever was not here before.
+   *
+   *  The diff is done here rather than asked of the server: the client already
+   *  knows what it was showing, and a "what changed since" parameter would be a
+   *  second source of truth about the same question. */
+  async function catchUp(): Promise<void> {
+    const before = new Set(rows.map((row) => row.id));
+    const [bundle, page] = await Promise.all([
+      fetchThread(id),
+      fetchContent(id, { archived: showArchived }),
+    ]);
+    const next = page?.rows ?? [];
+    setThread(bundle);
+    setRows(next);
+    setCursor(page?.nextCursor ?? null);
+
+    const fresh = next.filter((row) => !before.has(row.id)).map((row) => row.id);
+    if (fresh.length === 0) return;
+    setArrived(new Set(fresh));
+  }
+
+  // offload filed into a thread while somebody was looking at it. The composer
+  // floats over every tab, so this is the ordinary case rather than an edge
+  // one, and before this the page went on showing what it held a moment ago
+  // while the reply said otherwise.
+  //
+  // `filed.at` is in the dependency list on purpose: filing into the same
+  // thread twice running produces an identical id list, and without the
+  // timestamp the second one would not re-run this.
+  const lastFiled = useRef(0);
+  useEffect(() => {
+    if (!filed || filed.at === lastFiled.current) return;
+    // Guarded by the timestamp rather than by a narrowed dependency list, so
+    // the effect can depend on the whole value and still run exactly once per
+    // turn. Filing into the same thread twice running produces an identical id
+    // list, which is why the guard is a clock and not the ids.
+    lastFiled.current = filed.at;
+    // An empty list means "something changed, work out what", which is what
+    // Undo sends because it does not carry the threads it reversed.
+    if (filed.threadIds.length > 0 && !filed.threadIds.includes(id)) return;
+    void catchUp();
+  }, [filed, id]);
+
+  // The mark is a moment, not a state. Cleared on a timer rather than on the
+  // next render, so it survives the reload that produced it.
+  useEffect(() => {
+    if (arrived.size === 0) return;
+    const timer = setTimeout(() => setArrived(new Set()), 1400);
+    return () => clearTimeout(timer);
+  }, [arrived]);
 
   useEffect(() => {
     let live = true;
@@ -239,18 +299,32 @@ export function Thread({ id, onChanged, onUndo }: Props) {
           </>
         }
         tools={
-          <button
-            type="button"
-            className={styles.tool}
-            aria-label="Rename this thread"
-            title="Rename"
-            onClick={() => {
-              setNameDraft(thread.name);
-              setRenaming(true);
-            }}
-          >
-            <Icon name="pencil" size={16} />
-          </button>
+          <>
+            {/* The way into an empty Memories section, which draws nothing
+                until it holds something. A heading over one control is a
+                section announcing its own absence. */}
+            <button
+              type="button"
+              className={styles.tool}
+              aria-label="Add a memory to this thread"
+              title="Add a memory"
+              onClick={() => setAddingMemory(true)}
+            >
+              <Icon name="plus" size={16} />
+            </button>
+            <button
+              type="button"
+              className={styles.tool}
+              aria-label="Rename this thread"
+              title="Rename"
+              onClick={() => {
+                setNameDraft(thread.name);
+                setRenaming(true);
+              }}
+            >
+              <Icon name="pencil" size={16} />
+            </button>
+          </>
         }
       />
 
@@ -291,11 +365,18 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             threadId={id}
             memories={thread.memories}
             members={thread.members}
+            adding={addingMemory}
+            onAddingChange={setAddingMemory}
+            arrived={arrived}
             onChanged={() => void load()}
             onUndo={onUndo}
           />
         )}
 
+        {/* A heading with nothing under it is a section announcing its own
+            absence. It still draws when there is an archived pile to get to,
+            because that control is the only way back to one. */}
+        {rest.length === 0 && !(thread.counts.archived > 0 || showArchived) ? null : (
         <h2 className={styles.section}>
           {showArchived ? "Archived" : restHeading}
           {/* The count is what is in this list, so it is only shown once the
@@ -316,6 +397,7 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             </button>
           ) : null}
         </h2>
+        )}
 
         {rest.length === 0 ? (
           <p className={styles.empty}>
@@ -358,6 +440,10 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             <div
               key={row.id}
               className={`${styles.row} ${row.archivedAt ? styles.archived : ""}`}
+              // Moss, because moss is "offload did this, you didn't" and that
+              // is exactly what happened. Blue is "this needs you", and a row
+              // that was simply filed needs nothing.
+              data-arrived={arrived.has(row.id) ? true : undefined}
             >
               <span className={styles.rowIcon}>
                 <Icon name={rowIcon(row.type)} size={18} />

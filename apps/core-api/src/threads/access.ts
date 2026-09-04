@@ -12,6 +12,8 @@
 //              is in it. Everything co-owned resolves through here.
 //   authorOf   you put this row there. Only you may delete it or move it
 //              somewhere else, because both of those change who can see it.
+//              One exception: once the author is gone from the thread, every
+//              member may. See `unowned`.
 //
 // OFF-3 states the first half of that in the constitution and the product says
 // it identically everywhere: they can add to it, and they can never delete what
@@ -51,10 +53,31 @@ export interface ContentRef {
   id: string;
   threadId: string;
   /** Null once the author deleted their account. Their content stays in the
-   *  threads they shared, per OFF-3, and `requireAuthor` then matches nobody:
-   *  the two actions that change who can see something belong to the author,
-   *  and the author is gone. Archive stays available to every member. */
+   *  threads they shared, per OFF-3, and the name comes off it. */
   authorId: string | null;
+  /** Whether the author is still an accepted member of this thread.
+   *
+   *  False when they deleted their account or left. Either way nobody is left
+   *  to protect, which is what `unowned` below turns into a permission. */
+  authorIsMember: boolean;
+}
+
+/** Nobody current owns this, so everybody in the thread does.
+ *
+ *  **The exception to OFF-3, and the reason it is one.** The principle gives
+ *  delete to the author so a shared thread cannot become a place where somebody
+ *  else destroys what you put in. Once the author is gone there is no
+ *  contribution left to protect and the rule protects nothing; what it produces
+ *  instead is a thread carrying somebody's leftovers that no remaining member
+ *  can clear. Archive was the answer while the author was still there to ask.
+ *
+ *  Deliberately not reachable by removing somebody: nothing in the product can
+ *  remove a member, and the privacy page promises in public that no role ever
+ *  will. **If that changes, this predicate becomes a privilege escalation**,
+ *  remove the person, then delete what they wrote, and it has to be revisited
+ *  in the same change. */
+export function unowned(ref: ContentRef): boolean {
+  return ref.authorId === null || !ref.authorIsMember;
 }
 
 /** The row, if this account can see it at all.
@@ -82,10 +105,23 @@ export async function readableContent(
   let query = trx
     .selectFrom("content")
     .innerJoin("thread_members", "thread_members.thread_id", "content.thread_id")
-    .select([
+    .select((eb) => [
       "content.id as id",
       "content.thread_id as threadId",
       "content.account_id as authorId",
+      // Resolved in the same statement, so a permission decision never costs a
+      // second round trip and can never read a membership from a moment other
+      // than this one.
+      eb
+        .exists(
+          eb
+            .selectFrom("thread_members as author_member")
+            .select("author_member.id")
+            .whereRef("author_member.thread_id", "=", "content.thread_id")
+            .whereRef("author_member.account_id", "=", "content.account_id")
+            .where("author_member.state", "=", "accepted"),
+        )
+        .as("authorIsMember"),
     ])
     .where("content.id", "=", contentId)
     .where("thread_members.account_id", "=", accountId)
@@ -94,7 +130,11 @@ export async function readableContent(
   if (!includeDeleted) query = query.where("content.deleted_at", "is", null);
 
   const row = await query.executeTakeFirst();
-  return row ?? null;
+  if (!row) return null;
+  // Kysely types `exists` as SqlBool, which is `boolean | number` because some
+  // dialects answer 0 and 1. Postgres answers a real boolean; normalised here
+  // so nothing downstream has to know that.
+  return { ...row, authorIsMember: Boolean(row.authorIsMember) };
 }
 
 /** One refusal, whatever the reason.
@@ -142,10 +182,7 @@ export async function requireAuthor(
   includeDeleted = false,
 ): Promise<ContentRef> {
   const row = await requireReadable(accountId, contentId, trx, includeDeleted);
-  // `!== accountId` already refuses a null, and the check is written out so
-  // nobody later reads it as an oversight and "fixes" it into a fallback that
-  // lets any member delete what a departed one wrote.
-  if (row.authorId === null || row.authorId !== accountId) throw new NotYours();
+  if (row.authorId !== accountId && !unowned(row)) throw new NotYours();
   return row;
 }
 

@@ -488,9 +488,17 @@ export default function Privacy() {
             <strong>So nobody owns a shared thread, including us.</strong> A thread has members and
             no owner. There is no role that can throw someone out, take it over, or empty it, and
             being the person who created it grants nothing beyond having been the first one in it.
-            Nobody, including you, can delete what they did not write themselves. That symmetry is
-            the point: the protection you give up over your own contribution is exactly the
-            protection you get over everybody else's.
+            Nobody, including you, can delete what somebody else wrote while that person is
+            still in the thread. That symmetry is the point: the protection you give up over your
+            own contribution is exactly the protection you get over everybody else's.{" "}
+            <strong>
+              When somebody leaves a thread, or deletes their account, what they left in it becomes
+              the thread's.
+            </strong>{" "}
+            Anyone still there can edit or remove it. We think that is the right way round: the
+            protection exists so a thread cannot become a place where someone else destroys your
+            work, and once you have gone there is no work of yours left to protect, only a thread
+            other people still use carrying things none of them can tidy.
           </p>
           <p>
             <strong>What you keep is the right to leave, and the thread ends with its last

@@ -24,7 +24,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "../../components/shell/Sidebar";
-import { ThreadsProvider } from "../../components/shell/threads-context";
+import { ThreadsProvider, type Filed } from "../../components/shell/threads-context";
 import { Composer } from "../../components/shell/Composer";
 import { useMe } from "../../lib/use-me";
 import { fetchThreads, type ThreadGroup } from "../../lib/threads";
@@ -35,6 +35,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [groups, setGroups] = useState<ThreadGroup[]>([]);
   const [ready, setReady] = useState(false);
+  // What the last turn wrote to, so a screen already showing one of those
+  // threads can catch up without being reloaded.
+  const [filed, setFiled] = useState<Filed | null>(null);
 
   const loadThreads = useCallback(async () => {
     setGroups(await fetchThreads());
@@ -58,12 +61,17 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const threads = groups.flatMap((group) => group.threads);
 
   return (
-    <ThreadsProvider value={{ groups, ready, reload: () => void loadThreads() }}>
+    <ThreadsProvider value={{ groups, ready, reload: () => void loadThreads(), filed }}>
       <div className={styles.shell}>
         <Sidebar threads={threads} threadCount={threads.length} />
         <div className={styles.main}>
           {children}
-          <Composer onFiled={() => void loadThreads()} />
+          <Composer
+            onFiled={(threadIds) => {
+              void loadThreads();
+              setFiled({ threadIds, at: Date.now() });
+            }}
+          />
         </div>
       </div>
     </ThreadsProvider>

@@ -17,9 +17,9 @@
 //      violation, because Postgres puts the conflicting value in the error and
 //      memory text is not allowed anywhere near a log (OFF-1).
 
-import { sql, type Selectable } from "kysely";
+import { sql, type ExpressionBuilder, type Selectable } from "kysely";
 import { db } from "../db.js";
-import type { MemoriesTable } from "../schema.js";
+import type { Database, MemoriesTable } from "../schema.js";
 import { NotYours, type Executor } from "./access.js";
 
 /** Ten, and the cap is the feature rather than a safeguard on it.
@@ -40,6 +40,10 @@ export interface Memory {
   /** Null once the author deleted their account. The memory stays; the name
    *  comes off it. */
   authorId: string | null;
+  /** Whether the author is still in the thread. False once they deleted their
+   *  account or left, at which point every member may delete it: nobody is
+   *  left for OFF-3's author rule to protect. */
+  authorIsMember: boolean;
   muted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -71,6 +75,23 @@ const COLUMNS = [
   "memories.updated_at",
 ] as const;
 
+/** Is the memory's author still an accepted member of its thread?
+ *
+ *  Selected alongside every read, in the same statement, so a permission
+ *  decision never costs a second round trip and never reads a membership from
+ *  a different moment than the row it decides about. */
+const authorIsMember = (eb: ExpressionBuilder<Database, "memories">) =>
+  eb
+    .exists(
+      eb
+        .selectFrom("thread_members as author_member")
+        .select("author_member.id")
+        .whereRef("author_member.thread_id", "=", "memories.subject_id")
+        .whereRef("author_member.account_id", "=", "memories.account_id")
+        .where("author_member.state", "=", "accepted"),
+    )
+    .as("authorIsMember");
+
 /** `Selectable` rather than a hand-written shape, because it is what unwraps
  *  `ColumnType` into the type a select actually returns. Written by hand, every
  *  timestamp comes back as something that is not a Date. */
@@ -79,12 +100,13 @@ type Row = Pick<
   "id" | "text" | "origin" | "account_id" | "muted_at" | "created_at" | "updated_at"
 >;
 
-function toMemory(row: Row): Memory {
+function toMemory(row: Row & { authorIsMember?: boolean | number }): Memory {
   return {
     id: row.id,
     text: row.text,
     origin: row.origin,
     authorId: row.account_id,
+    authorIsMember: Boolean(row.authorIsMember),
     muted: row.muted_at !== null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -105,7 +127,7 @@ export async function readableMemories(
   const rows = await trx
     .selectFrom("memories")
     .innerJoin("thread_members", "thread_members.thread_id", "memories.subject_id")
-    .select(COLUMNS)
+    .select((eb) => [...COLUMNS, authorIsMember(eb)])
     .where("memories.scope", "=", "thread")
     .where("memories.subject_id", "=", threadId)
     .where("memories.deleted_at", "is", null)
@@ -135,7 +157,7 @@ export async function readableMemory(
   let query = trx
     .selectFrom("memories")
     .innerJoin("thread_members", "thread_members.thread_id", "memories.subject_id")
-    .select([...COLUMNS, "memories.subject_id"])
+    .select((eb) => [...COLUMNS, "memories.subject_id", authorIsMember(eb)])
     .where("memories.id", "=", memoryId)
     .where("memories.scope", "=", "thread")
     .where("thread_members.account_id", "=", accountId)
@@ -162,7 +184,11 @@ export async function requireReadableMemory(
 
 /** Delete access. Membership first, then authorship, so somebody outside the
  *  thread and somebody inside it who did not write the memory get the same
- *  answer. OFF-3: a member can never delete what they did not author. */
+ *  answer. OFF-3: a member can never delete what they did not author.
+ *
+ *  With the one exception `access.ts` documents: a memory whose author is gone
+ *  from the thread belongs to whoever is still in it. A rule nobody owns,
+ *  still steering the model, that no member could remove was the alternative. */
 export async function requireMemoryAuthor(
   accountId: string,
   memoryId: string,
@@ -170,7 +196,9 @@ export async function requireMemoryAuthor(
   includeDeleted = false,
 ): Promise<Memory & { threadId: string }> {
   const row = await requireReadableMemory(accountId, memoryId, trx, includeDeleted);
-  if (row.authorId !== accountId) throw new NotYours();
+  if (row.authorId !== accountId && row.authorId !== null && row.authorIsMember) {
+    throw new NotYours();
+  }
   return row;
 }
 
@@ -223,7 +251,7 @@ export async function addMemory(
 
   const existing = await trx
     .selectFrom("memories")
-    .select(COLUMNS)
+    .select((eb) => [...COLUMNS, authorIsMember(eb)])
     .where("scope", "=", "thread")
     .where("subject_id", "=", threadId)
     .where("deleted_at", "is", null)
@@ -251,14 +279,14 @@ export async function addMemory(
       derived_from_message_id: fromMessageId,
     })
     .onConflict((oc) => oc.doNothing())
-    .returning(COLUMNS)
+    .returning((eb) => [...COLUMNS, authorIsMember(eb)])
     .executeTakeFirst();
 
   if (inserted) return toMemory(inserted);
 
   const raced = await trx
     .selectFrom("memories")
-    .select(COLUMNS)
+    .select((eb) => [...COLUMNS, authorIsMember(eb)])
     .where("scope", "=", "thread")
     .where("subject_id", "=", threadId)
     .where("deleted_at", "is", null)
@@ -320,7 +348,7 @@ export async function editMemory(
       updated_at: sql`now()`,
     })
     .where("id", "=", memoryId)
-    .returning(COLUMNS)
+    .returning((eb) => [...COLUMNS, authorIsMember(eb)])
     .executeTakeFirstOrThrow();
 
   return { memory: toMemory(row), previous };
@@ -377,7 +405,7 @@ export async function restoreMemory(
     .updateTable("memories")
     .set({ deleted_at: null, purge_after: null, updated_at: sql`now()` })
     .where("id", "=", memoryId)
-    .returning(COLUMNS)
+    .returning((eb) => [...COLUMNS, authorIsMember(eb)])
     .executeTakeFirstOrThrow();
   return toMemory(row);
 }
@@ -401,7 +429,7 @@ export async function setMuted(
     .updateTable("memories")
     .set({ muted_at: muted ? sql`now()` : null, updated_at: sql`now()` })
     .where("id", "=", memoryId)
-    .returning(COLUMNS)
+    .returning((eb) => [...COLUMNS, authorIsMember(eb)])
     .executeTakeFirstOrThrow();
   return toMemory(row);
 }

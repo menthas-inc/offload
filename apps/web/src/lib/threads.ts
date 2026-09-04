@@ -47,6 +47,10 @@ export interface Memory {
   /** Null once the author deleted their account. The memory stays in the
    *  shared thread it belongs to; the name comes off it. */
   authorId: string | null;
+  /** False once the author left the thread or deleted their account, at which
+   *  point every member may delete it. Computed server-side so the screen and
+   *  the endpoint cannot disagree about who may do what. */
+  authorIsMember: boolean;
   muted: boolean;
 }
 

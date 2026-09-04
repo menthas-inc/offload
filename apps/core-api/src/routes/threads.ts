@@ -111,6 +111,9 @@ const memorySchema = z.object({
   /** Null once the author deleted their account: the memory stays in the
    *  shared thread it belongs to and the name comes off it. */
   authorId: z.string().nullable(),
+  /** False once the author left or deleted their account, at which point every
+   *  member may delete it. */
+  authorIsMember: z.boolean(),
   muted: z.boolean(),
 });
 
@@ -230,6 +233,9 @@ interface RawRow {
    *  the threads they shared, so the row outlives them and loses the name. */
   account_id: string | null;
   authorName: string | null;
+  /** Whether the author is still in this thread. False once they deleted their
+   *  account or left, at which point the row is everyone's. */
+  authorIsMember: boolean;
   done_at: Date | null;
   due_at: Date | null;
   occurs_at: Date | null;
@@ -251,6 +257,11 @@ function toRow(row: RawRow, viewerId: string) {
   // did is gone. Archive is the co-owned action and still applies, so a thread
   // can be cleared without destroying what somebody left in it.
   const mine = row.account_id !== null && row.account_id === viewerId;
+  // Author, or nobody current. OFF-3 gives delete to the author so a shared
+  // thread cannot become a place where somebody else destroys what you put in;
+  // once the author is gone there is nothing left to protect and the rule only
+  // produces leftovers no member can clear.
+  const ownerless = row.account_id === null || !row.authorIsMember;
   return {
     id: row.id,
     type: row.type,
@@ -279,9 +290,10 @@ function toRow(row: RawRow, viewerId: string) {
       displayName: row.authorName ?? "Someone",
       isYou: mine,
     },
-    // Both actions change who can see something, so both are the author's.
-    canDelete: mine,
-    canMove: mine,
+    // Both actions change who can see something, so both are the author's,
+    // or everybody's once the author is gone.
+    canDelete: mine || ownerless,
+    canMove: mine || ownerless,
   };
 }
 
@@ -793,6 +805,18 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.tags as tags",
             "content.place_id as place_id",
             "accounts.display_name as authorName",
+      sql<boolean>`exists (
+        select 1 from thread_members am
+        where am.thread_id = content.thread_id
+          and am.account_id = content.account_id
+          and am.state = 'accepted'
+      )`.as("authorIsMember"),
+            sql<boolean>`exists (
+              select 1 from thread_members am
+              where am.thread_id = content.thread_id
+                and am.account_id = content.account_id
+                and am.state = 'accepted'
+            )`.as("authorIsMember"),
             "places.name as placeName",
             "places.formatted_address as placeAddress",
             "places.lat as placeLat",
@@ -872,6 +896,18 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.thread_id as threadId",
             "threads.name as threadName",
             "accounts.display_name as authorName",
+      sql<boolean>`exists (
+        select 1 from thread_members am
+        where am.thread_id = content.thread_id
+          and am.account_id = content.account_id
+          and am.state = 'accepted'
+      )`.as("authorIsMember"),
+            sql<boolean>`exists (
+              select 1 from thread_members am
+              where am.thread_id = content.thread_id
+                and am.account_id = content.account_id
+                and am.state = 'accepted'
+            )`.as("authorIsMember"),
             "places.name as placeName",
             "places.formatted_address as placeAddress",
             "places.lat as placeLat",
@@ -1359,6 +1395,12 @@ async function rowById(contentId: string, viewerId: string) {
       "content.tags as tags",
       "content.place_id as place_id",
       "accounts.display_name as authorName",
+      sql<boolean>`exists (
+        select 1 from thread_members am
+        where am.thread_id = content.thread_id
+          and am.account_id = content.account_id
+          and am.state = 'accepted'
+      )`.as("authorIsMember"),
       "places.name as placeName",
       "places.formatted_address as placeAddress",
       "places.lat as placeLat",

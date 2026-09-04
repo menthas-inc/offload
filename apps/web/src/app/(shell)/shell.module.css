@@ -977,6 +977,24 @@
   align-items: center;
 }
 
+/* The chip and its editor are one thing, so the editor opens inside the chip
+   it belongs to. It used to sit at the foot of the section, which read as
+   editing the last memory whichever one had been clicked. */
+.memoryItem {
+  display: inline-flex;
+  flex-direction: column;
+  max-width: 100%;
+  border-radius: var(--radius-lg);
+}
+
+/* Open, it stops being a pill in a row of pills and becomes the thing you are
+   working in. Full width so the field has somewhere to go. */
+.memoryItem[data-open] {
+  width: 100%;
+  background: var(--surface-fill);
+  padding: var(--space-3);
+}
+
 .memoryChip {
   display: inline-flex;
   align-items: center;
@@ -1024,6 +1042,53 @@
   background: transparent;
   border-color: var(--border-hairline);
   color: var(--text-secondary);
+}
+
+.memoryItem[data-open] .memoryChip {
+  background: transparent;
+  align-self: flex-start;
+}
+
+/* Rows from 0fr to 1fr animates height with no magic number in it. A
+   `max-height` guess has to clear the tallest memory, and a guess that is too
+   big makes closing look slow because the transition spends most of its time
+   above the content. */
+.memoryDrawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-base) var(--ease-out);
+}
+
+.memoryDrawer[data-open] {
+  grid-template-rows: 1fr;
+}
+
+.memoryDrawerInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Something offload just did, marked for a moment so it is not simply there.
+   Moss, because moss is "offload did this, you didn't". Blue is "this needs
+   you", and a row that was filed correctly needs nothing. */
+@keyframes arrived {
+  from { background: var(--surface-accent-soft); }
+  to { background: transparent; }
+}
+
+.row[data-arrived],
+.memoryItem[data-arrived] {
+  animation: arrived 1400ms var(--ease-out) forwards;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memoryDrawer { transition: none; }
+  .row[data-arrived],
+  .memoryItem[data-arrived] { animation-duration: 1ms; }
 }
 
 .memoryText {

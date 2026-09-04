@@ -38,6 +38,7 @@ import {
 } from "../threads/memories.js";
 import {
   NotYours,
+  unowned,
   readableContent,
   requireMember,
   touchThread,
@@ -463,7 +464,11 @@ async function existing(
   }
 
   // edit and move: this account's own rows only.
-  if (ref.authorId !== accountId) return { ok: false, error: "not_yours" };
+  // Author, or nobody current: a row whose author has gone from the thread
+  // belongs to whoever is still in it. Same predicate the routes use, imported
+  // rather than restated, because two copies of a permission rule is how one of
+  // them ends up subtly different and nobody can tell which is right.
+  if (ref.authorId !== accountId && !unowned(ref)) return { ok: false, error: "not_yours" };
 
   if (call.tool === "move_content") {
     try {

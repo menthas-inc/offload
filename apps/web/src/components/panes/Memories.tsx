@@ -44,16 +44,31 @@ interface Props {
   threadId: string;
   memories: Memory[];
   members: Member[];
+  /** True when the pane head's add control was pressed. The section draws
+   *  nothing when the thread has no memories, so the way in has to come from
+   *  outside it. */
+  adding: boolean;
+  onAddingChange: (adding: boolean) => void;
+  /** Memories that arrived while this screen was open, marked for a moment. */
+  arrived?: Set<string>;
   onChanged: () => void;
   onUndo: (message: string, undo: () => Promise<unknown>) => void;
 }
 
-export function Memories({ threadId, memories, members, onChanged, onUndo }: Props) {
+export function Memories({
+  threadId,
+  memories,
+  members,
+  adding,
+  onAddingChange,
+  arrived,
+  onChanged,
+  onUndo,
+}: Props) {
   // Who is reading, from the member list the bundle already carries. Decides
   // which chips offer delete, because deleting is the author's alone and
   // everybody else gets mute.
   const viewerId = members.find((member) => member.isYou)?.accountId ?? null;
-  const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
 
@@ -69,16 +84,30 @@ export function Memories({ threadId, memories, members, onChanged, onUndo }: Pro
     return members.find((m) => m.accountId === memory.authorId)?.displayName ?? null;
   }
 
-  function open(memory: Memory): void {
-    setAdding(false);
+  /** `open_` rather than `open`, because `open` is a global on Window and
+   *  shadowing it inside a component that also has a boolean called `open` is
+   *  how a click handler ends up calling the wrong thing. */
+  function open_(memory: Memory): void {
+    onAddingChange(false);
     setEditingId(memory.id);
     setDraft(memory.text);
   }
 
   function close(): void {
-    setAdding(false);
+    onAddingChange(false);
     setEditingId(null);
     setDraft("");
+  }
+
+  /** Deleting is the author's, per OFF-3, with one exception: **a memory
+   *  nobody owns is everybody's.** Its author deleted their account or left the
+   *  thread, so the rule that protects a contribution has nobody left to
+   *  protect, and what it produces instead is a rule still steering the model
+   *  that no remaining member can remove. `authorIsMember` is computed
+   *  server-side and the endpoint enforces the same predicate, so this cannot
+   *  draw a control the server will refuse. */
+  function canDelete(memory: Memory): boolean {
+    return memory.authorId === viewerId || !memory.authorIsMember;
   }
 
   async function save(): Promise<void> {
@@ -125,121 +154,136 @@ export function Memories({ threadId, memories, members, onChanged, onUndo }: Pro
     onChanged();
   }
 
+  // Nothing to show and nothing being written: draw nothing at all. A heading
+  // over an empty row is a section announcing its own absence, which is the
+  // same thing the standing summary already refuses to do. The way in when
+  // there are none is the add control in the pane head.
+  if (memories.length === 0 && !adding) return null;
+
+  const editor = (memory: Memory | null) => (
+    // Grid rows from 0fr to 1fr, so the height animates without a magic
+    // number. `max-height` would need a guess big enough for the longest
+    // memory, and a guess that is too big makes the close look slow.
+    <span className={styles.memoryDrawer} data-open={true}>
+      <span className={styles.memoryDrawerInner}>
+        <textarea
+          className={styles.memoryField}
+          value={draft}
+          maxLength={MEMORY_CHARS}
+          rows={2}
+          autoFocus
+          placeholder="How should this thread be handled?"
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") close();
+            // Enter saves, shift-Enter is a new line. A rule is one sentence.
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              void save();
+            }
+          }}
+        />
+        <span className={styles.memoryActions}>
+          <span className={styles.memoryCount}>
+            {draft.length}/{MEMORY_CHARS}
+          </span>
+
+          {/* Mute is what every member gets. Delete is the author's alone
+              unless the author is gone, so the control is not drawn for
+              anybody else rather than drawn and refused. */}
+          {memory ? (
+            <button
+              type="button"
+              className={styles.memoryAction}
+              onClick={() => void mute(memory)}
+            >
+              {memory.muted ? "Unmute" : "Mute"}
+            </button>
+          ) : null}
+          {memory && canDelete(memory) ? (
+            <button
+              type="button"
+              className={styles.memoryAction}
+              onClick={() => void remove(memory)}
+            >
+              Delete
+            </button>
+          ) : null}
+
+          <button type="button" className={styles.memoryAction} onClick={close}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={styles.memorySave}
+            disabled={draft.trim().length === 0}
+            onClick={() => void save()}
+          >
+            Save
+          </button>
+        </span>
+      </span>
+    </span>
+  );
+
   return (
     <>
       <h2 className={styles.section}>
         Memories
-        {memories.length > 0 ? (
-          <em className={styles.sectionCount}>{memories.length}</em>
-        ) : null}
+        <em className={styles.sectionCount}>{memories.length}</em>
       </h2>
 
       <div className={styles.memories}>
         {memories.map((memory) => {
           const name = author(memory);
+          const open = editingId === memory.id;
           return (
-            <button
+            // The editor lives inside the chip it belongs to, so the chip
+            // grows to hold it. It used to sit at the foot of the section,
+            // which read as editing the last memory whichever one you had
+            // clicked.
+            <span
               key={memory.id}
-              type="button"
-              className={styles.memoryChip}
-              // Moss for something offload worked out, which is the kits' own
-              // rule for the mark. Outline once muted, so a rule that is off
-              // does not read like one that is on.
-              data-tone={memory.muted ? "muted" : memory.origin === "learned" ? "accent" : "neutral"}
-              onClick={() => open(memory)}
+              className={styles.memoryItem}
+              data-open={open ? true : undefined}
+              data-arrived={arrived?.has(memory.id) ? true : undefined}
             >
-              {memory.origin === "learned" ? (
-                <>
-                  <Icon name="sparkles" size={13} />
-                  {/* The glyph alone is not a state. `Chip` has no aria-label,
-                      so the alternative goes in the label itself. */}
-                  <span className={styles.hidden}>offload wrote this. </span>
-                </>
-              ) : null}
-              <span className={styles.memoryText}>{chipLabel(memory.text)}</span>
-              {name ? <span className={styles.memoryBy}>{name}</span> : null}
-              {memory.muted ? <span className={styles.memoryBy}>Muted</span> : null}
-            </button>
+              <button
+                type="button"
+                className={styles.memoryChip}
+                data-tone={
+                  memory.muted ? "muted" : memory.origin === "learned" ? "accent" : "neutral"
+                }
+                data-open={open ? true : undefined}
+                onClick={() => (open ? close() : open_(memory))}
+              >
+                {memory.origin === "learned" ? (
+                  <>
+                    <Icon name="sparkles" size={13} />
+                    {/* The glyph alone is not a state. `Chip` has no
+                        aria-label, so the alternative goes in the label. */}
+                    <span className={styles.hidden}>offload wrote this. </span>
+                  </>
+                ) : null}
+                <span className={styles.memoryText}>{chipLabel(memory.text)}</span>
+                {name ? <span className={styles.memoryBy}>{name}</span> : null}
+                {memory.muted ? <span className={styles.memoryBy}>Muted</span> : null}
+              </button>
+              {open ? editor(memory) : null}
+            </span>
           );
         })}
 
-        {/* At the cap the control is gone and the sentence is in its place.
-            `Chip` has no disabled state, and inventing one for this screen
-            would be a divergence with nothing to gain: the sentence says the
-            same thing and names what to do about it. */}
-        {full ? (
+        {adding ? (
+          <span className={styles.memoryItem} data-open={true}>
+            {editor(null)}
+          </span>
+        ) : full ? (
           <p className={styles.memoryFull}>
             This thread already holds {MAX_MEMORIES}. Delete one to add another.
           </p>
-        ) : (
-          <button
-            type="button"
-            className={styles.memoryChip}
-            data-tone="add"
-            onClick={() => {
-              setEditingId(null);
-              setDraft("");
-              setAdding(true);
-            }}
-          >
-            <Icon name="plus" size={13} />
-            Add
-          </button>
-        )}
+        ) : null}
       </div>
-
-      {adding || editing ? (
-        <div className={styles.memoryEditor}>
-          <textarea
-            className={styles.memoryField}
-            value={draft}
-            maxLength={MEMORY_CHARS}
-            rows={2}
-            autoFocus
-            placeholder="How should this thread be handled?"
-            onChange={(event) => setDraft(event.target.value)}
-          />
-          <div className={styles.memoryActions}>
-            <span className={styles.memoryCount}>
-              {draft.length}/{MEMORY_CHARS}
-            </span>
-
-            {/* Mute is what every member gets. Delete is the author's alone,
-                per OFF-3, so the control is not drawn for anybody else rather
-                than drawn and refused. */}
-            {editing ? (
-              <button
-                type="button"
-                className={styles.memoryAction}
-                onClick={() => void mute(editing)}
-              >
-                {editing.muted ? "Unmute" : "Mute"}
-              </button>
-            ) : null}
-            {editing && editing.authorId === viewerId ? (
-              <button
-                type="button"
-                className={styles.memoryAction}
-                onClick={() => void remove(editing)}
-              >
-                Delete
-              </button>
-            ) : null}
-
-            <button type="button" className={styles.memoryAction} onClick={close}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className={styles.memorySave}
-              disabled={draft.trim().length === 0}
-              onClick={() => void save()}
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }
