@@ -121,24 +121,36 @@ function Row({
               <span className={styles.rowMeta}>{thread.meta}</span>
             </span>
             <span className={styles.rowTools}>
+              {/* The default thread keeps the control and cannot use it. Hiding
+                  it would leave somebody hunting for a delete that is simply
+                  absent on one row; disabled with the reason on it answers the
+                  question where they are already looking. */}
               <button
                 type="button"
                 className={styles.rowTool}
                 data-tone="danger"
-                aria-label={`Delete ${thread.name}`}
-                title="Delete"
+                disabled={thread.isDefault}
+                aria-label={
+                  thread.isDefault
+                    ? `${thread.name} is your default thread and cannot be deleted`
+                    : `Delete ${thread.name}`
+                }
+                title={
+                  thread.isDefault
+                    ? "Your default thread. Anything with no obvious home lands here."
+                    : "Delete"
+                }
                 onClick={(event) => {
                   // Inside a link, so both, or the row navigates out from
                   // under the question it just opened.
                   event.preventDefault();
                   event.stopPropagation();
-                  setAsking(true);
+                  if (!thread.isDefault) setAsking(true);
                 }}
               >
                 <Icon name="trash-2" size={15} />
               </button>
             </span>
-            <span className={styles.rowCount}>{thread.count}</span>
           </Link>
         </div>
       )}

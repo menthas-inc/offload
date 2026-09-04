@@ -19,6 +19,10 @@ export interface ThreadRow {
   icon: string | null;
   count: number;
   meta: string;
+  /** The default thread, which cannot be deleted: everything with no obvious
+   *  home lands there. The row shows the control unavailable rather than
+   *  hiding it, so the rule is visible where somebody would go looking. */
+  isDefault: boolean;
 }
 
 export type GroupKey = "now" | "always" | "older";

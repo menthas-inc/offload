@@ -519,21 +519,17 @@
   font-variant-numeric: tabular-nums;
 }
 
-.rowCount {
-  flex: 0 0 auto;
-  margin-top: 3px;
-  font-weight: var(--weight-medium);
-  font-size: calc(14px * var(--type-scale));
-  line-height: 1;
-  font-family: var(--font-core);
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
 /* Row tools appear on hover and on focus. Focus matters more: without it the
-   only way to reach them is a pointer. */
+   only way to reach them is a pointer.
+
+   Centred rather than top-aligned: the row aligns to flex-start so a two-line
+   title and its meta stack properly, and a control that is not text should sit
+   against the row rather than against the first line of it. The right gutter
+   keeps it off the edge of the highlight, which runs past the content. */
 .rowTools {
   flex: 0 0 auto;
+  align-self: center;
+  margin-right: var(--space-3);
   display: flex;
   gap: var(--space-2);
   opacity: 0;
@@ -1268,7 +1264,16 @@
   transition: background var(--transition-ui), color var(--transition-ui);
 }
 
-.rowTool[data-tone="danger"]:hover {
+.rowTool[data-tone="danger"]:hover:not(:disabled) {
   background: var(--clay-100);
   color: var(--text-danger);
+}
+
+/* Unavailable, not hidden. The documented disabled treatment is a fill and a
+   muted ink with no opacity fade, so it reads as a control that exists and is
+   not for now rather than as a control being faded out. */
+.rowTool:disabled {
+  background: var(--ink-100);
+  color: var(--ink-400);
+  cursor: default;
 }

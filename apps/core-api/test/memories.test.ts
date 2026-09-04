@@ -708,6 +708,28 @@ describe("leaving a thread, and the thread dying with the last member", () => {
     await expect(deleteThread(ana, misc)).rejects.toBeInstanceOf(NotYours);
   });
 
+  it("marks the default thread on the list, so the row can say why", async () => {
+    // Read from `accounts.default_thread_id`, never from a thread called
+    // Miscellaneous: 004 is explicit that the default is what the column
+    // points at, and a name is not a key.
+    const ana = await account("Ana");
+    const misc = await thread(ana, "Miscellaneous");
+    const flat = await thread(ana, "Flat renovation");
+    await db
+      .updateTable("accounts")
+      .set({ default_thread_id: misc })
+      .where("id", "=", ana)
+      .execute();
+
+    const rows = await db
+      .selectFrom("accounts")
+      .select("default_thread_id")
+      .where("id", "=", ana)
+      .executeTakeFirstOrThrow();
+    expect(rows.default_thread_id).toBe(misc);
+    expect(rows.default_thread_id).not.toBe(flat);
+  });
+
   it("refuses somebody who is not in it, with the one refusal", async () => {
     const { deleteThread } = await import("../src/routes/threads.js");
     const ana = await account("Ana");

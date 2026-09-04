@@ -92,6 +92,11 @@ const threadRow = z.object({
   icon: z.string().nullable(),
   count: z.number(),
   meta: z.string(),
+  /** The account's default thread, which cannot be deleted: everything with no
+   *  obvious home lands there, so an account without one has nowhere to put
+   *  anything. The list carries it so the row can say why rather than offering
+   *  a control the server will refuse. */
+  isDefault: z.boolean(),
 });
 
 const threadList = z.object({
@@ -705,6 +710,16 @@ export async function threadRoutes(app: App): Promise<void> {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
+      // Which thread is the account's default, so the list can say why one
+      // row has no delete. Read here rather than inferred from the name: the
+      // default is whatever `accounts.default_thread_id` points at, never a
+      // thread called Miscellaneous, and 004 is explicit about that.
+      const account = await db
+        .selectFrom("accounts")
+        .select("default_thread_id")
+        .where("id", "=", accountId)
+        .executeTakeFirst();
+
       const rows = await db
         .selectFrom("threads")
         .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
@@ -774,6 +789,7 @@ export async function threadRoutes(app: App): Promise<void> {
           icon: row.icon,
           count: row.count,
           meta: meta(row.count, others.get(row.id) ?? []),
+          isDefault: row.id === account?.default_thread_id,
         };
         // always_on wins over staleness: a thread that never closes has not
         // gone quiet, it is just waiting.
