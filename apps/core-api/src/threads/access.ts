@@ -50,7 +50,11 @@ export async function memberOf(
 export interface ContentRef {
   id: string;
   threadId: string;
-  authorId: string;
+  /** Null once the author deleted their account. Their content stays in the
+   *  threads they shared, per OFF-3, and `requireAuthor` then matches nobody:
+   *  the two actions that change who can see something belong to the author,
+   *  and the author is gone. Archive stays available to every member. */
+  authorId: string | null;
 }
 
 /** The row, if this account can see it at all.
@@ -138,7 +142,10 @@ export async function requireAuthor(
   includeDeleted = false,
 ): Promise<ContentRef> {
   const row = await requireReadable(accountId, contentId, trx, includeDeleted);
-  if (row.authorId !== accountId) throw new NotYours();
+  // `!== accountId` already refuses a null, and the check is written out so
+  // nobody later reads it as an oversight and "fixes" it into a fallback that
+  // lets any member delete what a departed one wrote.
+  if (row.authorId === null || row.authorId !== accountId) throw new NotYours();
   return row;
 }
 

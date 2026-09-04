@@ -116,7 +116,11 @@ export interface ContentRow {
   priorityPinned: boolean;
   tags: string[];
   place: Place | null;
-  author: { accountId: string; displayName: string; isYou: boolean };
+  /** `accountId` is null once the author deleted their account. Their content
+   *  stays in the threads they shared, per OFF-3, and the name comes off it.
+   *  `displayName` falls back to "Someone" server-side, so the screen never
+   *  has to decide what a missing author looks like. */
+  author: { accountId: string | null; displayName: string; isYou: boolean };
   /** Both computed by the server, using the same predicate it enforces. The
    *  client never decides what somebody is allowed to do. */
   canDelete: boolean;

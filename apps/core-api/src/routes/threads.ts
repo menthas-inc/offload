@@ -164,7 +164,9 @@ const contentRow = z.object({
     })
     .nullable(),
   author: z.object({
-    accountId: z.string(),
+    /** Null once they deleted their account. Their content stays in the
+     *  threads they shared; the name comes off it. */
+    accountId: z.string().nullable(),
     displayName: z.string(),
     isYou: z.boolean(),
   }),
@@ -224,7 +226,9 @@ interface RawRow {
   body: string | null;
   created_at: Date;
   archived_at: Date | null;
-  account_id: string;
+  /** Null once the author deleted their account. OFF-3 keeps their content in
+   *  the threads they shared, so the row outlives them and loses the name. */
+  account_id: string | null;
   authorName: string | null;
   done_at: Date | null;
   due_at: Date | null;
@@ -241,7 +245,12 @@ interface RawRow {
 }
 
 function toRow(row: RawRow, viewerId: string) {
-  const mine = row.account_id === viewerId;
+  // A departed author is nobody, so `mine` is false and the two controls that
+  // belong to an author are off for everyone. That is OFF-3 working rather
+  // than a gap: nobody may delete what they did not write, and the person who
+  // did is gone. Archive is the co-owned action and still applies, so a thread
+  // can be cleared without destroying what somebody left in it.
+  const mine = row.account_id !== null && row.account_id === viewerId;
   return {
     id: row.id,
     type: row.type,

@@ -224,8 +224,17 @@ export interface ContentTable {
   id: Generated<string>;
   /** The author. Never the read predicate on its own: that resolves through
    *  thread_members, or a shared thread is invisible to every member but
-   *  whoever wrote in it (OFF-3). */
-  account_id: string;
+   *  whoever wrote in it (OFF-3).
+   *
+   *  **Null only ever means the author deleted their account.** OFF-3 keeps
+   *  their content in the threads they shared, so the row outlives them and
+   *  loses the name. The write side of this type is non-null on purpose: a
+   *  select yields `string | null` and an insert or update requires a
+   *  `string`, so no application code can produce a null and the only thing
+   *  that can is `on delete set null` in 0018. That is the answer to "a bug
+   *  somewhere else emits one and it is indistinguishable", which is the real
+   *  objection to a nullable author column. */
+  account_id: ColumnType<string | null, string, string>;
   thread_id: string;
   /** The undo unit and the provenance. */
   derived_from_message_id: string | null;
@@ -324,10 +333,12 @@ export interface MemoriesTable {
   id: Generated<string>;
   /** The author. Decides delete (OFF-3) and shows in a shared thread. Never a
    *  read predicate: reads resolve through thread_members on subject_id, the
-   *  same rule content follows and for the same reason. Null when the author
-   *  deleted their account, which leaves the memory in the shared thread it
-   *  belongs to and takes the name off it. */
-  account_id: string | null;
+   *  same rule content follows and for the same reason.
+   *
+   *  Null only ever means the author deleted their account. Typed the same way
+   *  `content.account_id` is, so a write cannot produce one: see the note
+   *  there. */
+  account_id: ColumnType<string | null, string, string>;
   scope: "account" | "thread" | "person";
   /** A thread_id, for thread scope. Polymorphic, so no foreign key, so thread
    *  deletion has to remove these itself. */
