@@ -596,6 +596,102 @@ export async function renameThread(
   return { name: before.name };
 }
 
+/** Leaving a thread, which is also how a thread dies.
+ *
+ *  **There is no delete-somebody-else's-thread, because there is no owner.**
+ *  OFF-3: a thread resolves to its member set, and the privacy policy says in
+ *  public that no role can throw someone out, take it over, or empty it. So
+ *  this removes the caller and nobody else, and the thread goes when the last
+ *  member is out, which is exactly what that page already promises.
+ *
+ *  On a thread nobody else is in, those are the same action, which is why one
+ *  endpoint serves both and the screen can call it Delete.
+ *
+ *  Soft, with `purge_after`, so the eight seconds are real and the destroying
+ *  is done by the purge job like everything else (DATA-1).
+ */
+export async function deleteThread(
+  accountId: string,
+  threadId: string,
+): Promise<{ left: boolean; deleted: boolean }> {
+  return db.transaction().execute(async (trx) => {
+    await requireMember(accountId, threadId, trx);
+
+    // Every dump with no obvious home lands in the default thread, so an
+    // account without one has nowhere to put anything (004 AC-2). Refused
+    // rather than handled, because there is no good answer to "where did my
+    // dump go" afterwards.
+    const account = await trx
+      .selectFrom("accounts")
+      .select("default_thread_id")
+      .where("id", "=", accountId)
+      .executeTakeFirst();
+    if (account?.default_thread_id === threadId) throw new NotYours();
+
+    await trx
+      .deleteFrom("thread_members")
+      .where("thread_id", "=", threadId)
+      .where("account_id", "=", accountId)
+      .execute();
+
+    const remaining = await trx
+      .selectFrom("thread_members")
+      .select(({ fn }) => fn.countAll<string>().as("n"))
+      .where("thread_id", "=", threadId)
+      .where("state", "=", "accepted")
+      .executeTakeFirstOrThrow();
+
+    if (Number(remaining.n) > 0) return { left: true, deleted: false };
+
+    await trx
+      .updateTable("threads")
+      .set({
+        deleted_at: sql`now()`,
+        purge_after: sql`now() + interval '8 seconds'`,
+        updated_at: sql`now()`,
+      })
+      .where("id", "=", threadId)
+      .where("deleted_at", "is", null)
+      .execute();
+
+    return { left: true, deleted: true };
+  });
+}
+
+/** Undo. Puts the membership back and, if the thread died with it, revives it.
+ *
+ *  Reachable only inside the eight seconds: after that the purge job has taken
+ *  the row and there is nothing to put back. */
+export async function restoreThread(
+  accountId: string,
+  threadId: string,
+): Promise<boolean> {
+  return db.transaction().execute(async (trx) => {
+    const thread = await trx
+      .selectFrom("threads")
+      .select(["id", "deleted_at"])
+      .where("id", "=", threadId)
+      .executeTakeFirst();
+    if (!thread) return false;
+
+    await trx
+      .updateTable("threads")
+      .set({ deleted_at: null, purge_after: null, updated_at: sql`now()` })
+      .where("id", "=", threadId)
+      .execute();
+
+    // `on conflict do nothing`: pressing Undo twice must not raise, and the
+    // unique index on (thread_id, account_id) is what makes that free.
+    await trx
+      .insertInto("thread_members")
+      .values({ thread_id: threadId, account_id: accountId, state: "accepted" })
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+
+    return true;
+  });
+}
+
 export async function threadRoutes(app: App): Promise<void> {
   // ------------------------------------------------------------ My threads
   //
@@ -1051,6 +1147,51 @@ export async function threadRoutes(app: App): Promise<void> {
 
         const deleted = await deleteContent(accountId, request.params.id);
         return reply.send({ deleted });
+      })
+  );
+
+  // Leave a thread, which deletes it when nobody else is in it. One endpoint,
+  // because on a thread you are alone in they are the same act, and the screen
+  // is honest about which one it is doing.
+  app.delete(
+    "/v1/threads/:id",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          200: z.object({ left: z.boolean(), deleted: z.boolean() }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        return reply.send(await deleteThread(accountId, request.params.id));
+      })
+  );
+
+  app.post(
+    "/v1/threads/:id/restore",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          200: z.object({ restored: z.boolean() }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        return reply.send({ restored: await restoreThread(accountId, request.params.id) });
       })
   );
 

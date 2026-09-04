@@ -638,3 +638,130 @@ describe("a thread's leftovers belong to whoever is still in it", () => {
     await expect(requireAuthor(stranger, row.id)).rejects.toBeInstanceOf(NotYours);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Deleting a thread, which is really leaving one.
+//
+// OFF-3: a thread has members and no owner, and the privacy page says in
+// public that no role can throw somebody out or empty it. So this removes the
+// caller and nobody else, and the thread goes when the last member is out,
+// which is what that page already promises.
+
+describe("leaving a thread, and the thread dying with the last member", () => {
+  it("deletes it when you were the only one in it", async () => {
+    const { deleteThread } = await import("../src/routes/threads.js");
+    const ana = await account("Ana");
+    const flat = await thread(ana);
+
+    expect(await deleteThread(ana, flat)).toEqual({ left: true, deleted: true });
+
+    const row = await db
+      .selectFrom("threads")
+      .select(["deleted_at", "purge_after"])
+      .where("id", "=", flat)
+      .executeTakeFirstOrThrow();
+    // Soft, so the eight seconds are real and the purge job does the
+    // destroying, like every other table under the undo window.
+    expect(row.deleted_at).not.toBeNull();
+    expect(row.purge_after).not.toBeNull();
+  });
+
+  it("leaves a shared thread standing for the others", async () => {
+    const { deleteThread } = await import("../src/routes/threads.js");
+    const ana = await account("Ana");
+    const john = await account("John");
+    const flat = await thread(ana);
+    await join(flat, john);
+
+    expect(await deleteThread(john, flat)).toEqual({ left: true, deleted: false });
+
+    const row = await db
+      .selectFrom("threads")
+      .select("deleted_at")
+      .where("id", "=", flat)
+      .executeTakeFirstOrThrow();
+    expect(row.deleted_at).toBeNull();
+    expect(await readableMemories(ana, flat)).toBeDefined();
+  });
+
+  it("dies when the last member leaves", async () => {
+    const { deleteThread } = await import("../src/routes/threads.js");
+    const ana = await account("Ana");
+    const john = await account("John");
+    const flat = await thread(ana);
+    await join(flat, john);
+
+    await deleteThread(john, flat);
+    expect(await deleteThread(ana, flat)).toEqual({ left: true, deleted: true });
+  });
+
+  it("refuses the default thread, because every dump has to land somewhere", async () => {
+    const { deleteThread } = await import("../src/routes/threads.js");
+    const ana = await account("Ana");
+    const misc = await thread(ana, "Miscellaneous");
+    await db
+      .updateTable("accounts")
+      .set({ default_thread_id: misc })
+      .where("id", "=", ana)
+      .execute();
+
+    await expect(deleteThread(ana, misc)).rejects.toBeInstanceOf(NotYours);
+  });
+
+  it("refuses somebody who is not in it, with the one refusal", async () => {
+    const { deleteThread } = await import("../src/routes/threads.js");
+    const ana = await account("Ana");
+    const stranger = await account("Stranger");
+    const flat = await thread(ana);
+
+    await expect(deleteThread(stranger, flat)).rejects.toBeInstanceOf(NotYours);
+  });
+
+  it("puts it back, twice without raising", async () => {
+    const { deleteThread, restoreThread } = await import("../src/routes/threads.js");
+    const ana = await account("Ana");
+    const flat = await thread(ana);
+    await add(flat, ana, "Todo names in three words");
+
+    await deleteThread(ana, flat);
+    expect(await restoreThread(ana, flat)).toBe(true);
+    expect(await restoreThread(ana, flat)).toBe(true);
+
+    expect(await readableMemories(ana, flat)).toHaveLength(1);
+  });
+
+  it("takes its memories when the purge runs, since nothing cascades to them", async () => {
+    const { deleteThread } = await import("../src/routes/threads.js");
+    const { handlers } = await import("../src/jobs/handlers.js");
+    const ana = await account("Ana");
+    const flat = await thread(ana);
+    await add(flat, ana, "Todo names in three words");
+    await db
+      .insertInto("content")
+      .values({ account_id: ana, thread_id: flat, title: "Chase the electrician" })
+      .execute();
+
+    await deleteThread(ana, flat);
+    // Past the window, without waiting eight seconds for it.
+    await db
+      .updateTable("threads")
+      .set({ purge_after: new Date(Date.now() - 1000) })
+      .where("id", "=", flat)
+      .execute();
+
+    await handlers["content.purge"]?.({ id: "x", kind: "content.purge", payload: {} } as never);
+
+    const left = await db
+      .selectFrom("memories")
+      .select("id")
+      .where("subject_id", "=", flat)
+      .execute();
+    expect(left).toHaveLength(0);
+    const threadRow = await db
+      .selectFrom("threads")
+      .select("id")
+      .where("id", "=", flat)
+      .executeTakeFirst();
+    expect(threadRow).toBeUndefined();
+  });
+});

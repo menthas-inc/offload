@@ -5,6 +5,7 @@
 
 import { sql } from "kysely";
 import { db } from "../db.js";
+import { deleteMemoriesForThread } from "../threads/memories.js";
 import { resolvePlace } from "../places/resolve.js";
 import type { Mailer } from "../mail/index.js";
 import { env } from "../env.js";
@@ -129,9 +130,15 @@ const contentPurge: Handler = async () => {
         .select(({ fn }) => fn.countAll<string>().as("n"))
         .where(due)
         .executeTakeFirstOrThrow(),
+      trx
+        .selectFrom("threads")
+        .select(({ fn }) => fn.countAll<string>().as("n"))
+        .where(due)
+        .executeTakeFirstOrThrow(),
     ]);
 
-    const total = Number(counts[0].n) + Number(counts[1].n) + Number(counts[2].n);
+    const total =
+      Number(counts[0].n) + Number(counts[1].n) + Number(counts[2].n) + Number(counts[3].n);
     if (total === 0) return;
 
     if (total > PURGE_CEILING) {
@@ -149,6 +156,22 @@ const contentPurge: Handler = async () => {
     // orphans it from its source in the moment before it goes itself.
     await trx.deleteFrom("memories").where(due).execute();
     await trx.deleteFrom("messages").where(due).execute();
+
+    // A thread nobody is left in. Everything that points at it cascades,
+    // `content`, `thread_members` and `thread_keys`, with one exception that
+    // does not: `memories.subject_id` is polymorphic so it carries no foreign
+    // key, and nothing removes those unless it is told to. This is the caller
+    // 008 wrote `deleteMemoriesForThread` for and could not wire, because
+    // until now no path in the product deleted a thread.
+    const deadThreads = await trx
+      .selectFrom("threads")
+      .select("id")
+      .where(due)
+      .execute();
+    for (const thread of deadThreads) {
+      await deleteMemoriesForThread(thread.id, trx);
+    }
+    await trx.deleteFrom("threads").where(due).execute();
   });
 };
 

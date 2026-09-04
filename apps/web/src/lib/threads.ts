@@ -315,6 +315,24 @@ export async function muteMemory(id: string, muted: boolean): Promise<boolean> {
   return response.ok;
 }
 
+/** Leave a thread, which deletes it when nobody else is in it.
+ *
+ *  One call for both, because on a thread you are alone in they are the same
+ *  act. `deleted` says which happened, so the screen can say the true thing. */
+export async function deleteThread(
+  id: string,
+): Promise<{ left: boolean; deleted: boolean } | null> {
+  const response = await fetch(`${API}/v1/threads/${id}`, { ...json, method: "DELETE" });
+  if (!response.ok) return null;
+  return (await response.json()) as { left: boolean; deleted: boolean };
+}
+
+/** Undo, inside the eight seconds. After that the purge job has taken it. */
+export async function restoreThread(id: string): Promise<boolean> {
+  const response = await fetch(`${API}/v1/threads/${id}/restore`, { ...json, method: "POST" });
+  return response.ok;
+}
+
 export async function setPreference(
   threadId: string,
   patch: { widgets?: string[] | null; groupBy?: Record<string, string> | null },

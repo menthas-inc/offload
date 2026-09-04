@@ -1239,3 +1239,36 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* A row on its way out. `max-height` cannot transition from `auto`, so the
+   height is measured once and written inline; this holds the rest, which is
+   the same pair of durations `WRow` uses. */
+.collapsing {
+  overflow: hidden;
+  transition:
+    max-height var(--duration-base) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+/* The delete tool on a thread row. Quiet until you are on it, then clay: the
+   kit draws `trash-2` through `WTrash` rather than the plain icon button the
+   other tools use, so the one destructive control does not look like the rest
+   of them. */
+.rowTool {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background var(--transition-ui), color var(--transition-ui);
+}
+
+.rowTool[data-tone="danger"]:hover {
+  background: var(--clay-100);
+  color: var(--text-danger);
+}
