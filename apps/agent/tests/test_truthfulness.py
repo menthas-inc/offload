@@ -291,3 +291,139 @@ async def test_a_terse_dump_is_still_filed(dump):
 
     outcome = await plan(AsyncAnthropic(), ctx, "claude-sonnet-5", call_tool)
     assert outcome.landed, f"refused a real dump: {dump!r} -> {outcome.reply!r}"
+
+
+# --------------------------------------------------------- thread memories
+#
+# The distinction that decides 008 is content versus standing rule, and it is a
+# judgement no deterministic step can make. So it is an eval, in both
+# directions: a rule has to become a memory, and a task must not.
+
+MEMORY_DUMPS = [
+    # A rule, said as one.
+    ("in the bookshelf thread, from now on keep todo names to three words", True),
+    ("for the flat renovation, always assume the Lisbon flat when I say the flat", True),
+    ("stop putting receipts in miscellaneous, they go in money", True),
+    # Not rules. Each of these is a thing to file, and a model that hears an
+    # instruction in every sentence turns the cap into a queue of noise.
+    ("chase the electrician about the quote", False),
+    ("oak brackets, 30cm, matte black", False),
+    ("dentist after the 20th", False),
+    ("remind me to call mum on sunday", False),
+]
+
+
+@pytest.mark.skipif(not EVAL, reason="costs money; run with OFFLOAD_EVAL=1")
+@pytest.mark.parametrize("dump,is_rule", MEMORY_DUMPS)
+async def test_a_rule_becomes_a_memory_and_a_task_does_not(dump, is_rule):
+    """Both directions, because only one of them is the interesting failure.
+
+    A model that never writes a memory passes any test that only checks the
+    positive case, and a model that writes one for every sentence passes any
+    test that only checks the negative. This is the guard 004 wanted when it
+    said a tool the model can silently skip cannot be asserted on.
+    """
+    from anthropic import AsyncAnthropic
+
+    threads = [
+        Thread(
+            id=f"0000000{i}-0000-0000-0000-000000000000",
+            name=n,
+            is_default=n == "Miscellaneous",
+        )
+        for i, n in enumerate(KNOWN)
+    ]
+    wrote_memory: list[str] = []
+
+    async def call_tool(tool, tool_call_id, args):
+        if tool == "add_memory":
+            wrote_memory.append(args["text"])
+            return {"ok": True, "done": True}
+        if tool == "create_thread":
+            return {"ok": True, "threadId": "new", "threadName": args["name"], "memories": []}
+        if tool == "list_thread_content":
+            return {"ok": True, "rows": [], "truncated": False}
+        if tool in ("complete_content", "archive_content", "edit_content",
+                    "move_content", "rename_thread"):
+            return {"ok": True, "done": True}
+
+        name = next((t.name for t in threads if t.id == args["thread_id"]), None)
+        if name is None:
+            return {"ok": False, "error": "unknown_thread"}
+        return {
+            "ok": True,
+            "threadId": args["thread_id"],
+            "threadName": name,
+            "contentId": "c",
+            "memories": [],
+        }
+
+    ctx = DumpContext(
+        dump=dump,
+        turns=[],
+        threads=threads,
+        landed=[],
+        default_thread_id=threads[-1].id,
+        today="Thursday 3 September 2026",
+    )
+
+    await plan(AsyncAnthropic(), ctx, "claude-sonnet-5", call_tool)
+
+    if is_rule:
+        assert wrote_memory, f"no memory written for a standing rule: {dump!r}"
+    else:
+        assert not wrote_memory, f"wrote a memory for something to file: {dump!r} -> {wrote_memory}"
+
+
+@pytest.mark.skipif(not EVAL, reason="costs money; run with OFFLOAD_EVAL=1")
+async def test_a_thread_rule_is_applied_to_what_was_just_filed():
+    """The loop 008 exists for.
+
+    The model files, gets the thread's rules back in the tool result, and finds
+    the title it just wrote breaks one. It has to fix it with `edit_content`
+    rather than leaving it, and it must not mention any of that: a person did
+    not ask for a report on how their preference was applied.
+    """
+    from anthropic import AsyncAnthropic
+
+    thread = Thread(
+        id="00000000-0000-0000-0000-000000000001",
+        name="Bookshelf build",
+        is_default=False,
+    )
+    edited: list[dict] = []
+
+    async def call_tool(tool, tool_call_id, args):
+        if tool == "add_content":
+            return {
+                "ok": True,
+                "threadId": thread.id,
+                "threadName": thread.name,
+                "contentId": "c1",
+                "memories": ["Keep todo names to three words"],
+            }
+        if tool == "edit_content":
+            edited.append(args)
+            return {"ok": True, "done": True}
+        if tool == "list_thread_content":
+            return {"ok": True, "rows": [], "truncated": False}
+        return {"ok": True, "done": True}
+
+    ctx = DumpContext(
+        dump="I need to chase the electrician about the quote he promised me last week",
+        turns=[],
+        threads=[thread],
+        landed=[],
+        default_thread_id=thread.id,
+        today="Thursday 3 September 2026",
+    )
+
+    outcome = await plan(AsyncAnthropic(), ctx, "claude-sonnet-5", call_tool)
+
+    assert edited, "the thread's rule was returned and the title was left alone"
+    title = edited[-1].get("title") or ""
+    assert len(title.split()) <= 3, f"rewrote to {title!r}, which is not three words"
+
+    reply = (outcome.reply or "").lower()
+    for tell in ("rule", "memory", "preference", "shortened", "three words"):
+        assert tell not in reply, f"explained itself: {outcome.reply!r}"

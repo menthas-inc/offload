@@ -124,9 +124,14 @@ const contentPurge: Handler = async () => {
         .select(({ fn }) => fn.countAll<string>().as("n"))
         .where(due)
         .executeTakeFirstOrThrow(),
+      trx
+        .selectFrom("memories")
+        .select(({ fn }) => fn.countAll<string>().as("n"))
+        .where(due)
+        .executeTakeFirstOrThrow(),
     ]);
 
-    const total = Number(counts[0].n) + Number(counts[1].n);
+    const total = Number(counts[0].n) + Number(counts[1].n) + Number(counts[2].n);
     if (total === 0) return;
 
     if (total > PURGE_CEILING) {
@@ -139,6 +144,10 @@ const contentPurge: Handler = async () => {
     // other order would silently orphan a row from the message it came from
     // in the moment before it was deleted itself.
     await trx.deleteFrom("content").where(due).execute();
+    // Memories before messages for the same reason content is: a memory's
+    // `derived_from_message_id` is on delete set null, so the other order
+    // orphans it from its source in the moment before it goes itself.
+    await trx.deleteFrom("memories").where(due).execute();
     await trx.deleteFrom("messages").where(due).execute();
   });
 };

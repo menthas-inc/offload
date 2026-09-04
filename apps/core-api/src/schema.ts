@@ -314,6 +314,44 @@ export interface LlmUsageTable {
   created_at: Timestamp;
 }
 
+/** A short standing fact about a thread that is not content in it.
+ *
+ *  "Write todo names in three words" is a memory; "chase the electrician" is a
+ *  task. The test is whether it would appear in a widget. Ten per thread, so
+ *  what reaches a prompt is bounded by a constant rather than by how long
+ *  somebody has used offload (OFF-8). */
+export interface MemoriesTable {
+  id: Generated<string>;
+  /** The author. Decides delete (OFF-3) and shows in a shared thread. Never a
+   *  read predicate: reads resolve through thread_members on subject_id, the
+   *  same rule content follows and for the same reason. Null when the author
+   *  deleted their account, which leaves the memory in the shared thread it
+   *  belongs to and takes the name off it. */
+  account_id: string | null;
+  scope: "account" | "thread" | "person";
+  /** A thread_id, for thread scope. Polymorphic, so no foreign key, so thread
+   *  deletion has to remove these itself. */
+  subject_id: string | null;
+  kind: "going_on" | "person" | "preference" | "noticed" | "standing";
+  text: string;
+  /** Corrections beat inference: offload may never overwrite a `stated` one. */
+  origin: "stated" | "learned";
+  derived_from_untrusted: Generated<boolean>;
+  /** Any member, thread-wide, reversible. Content has `archived_at` for the
+   *  same job: let everyone quiet something without letting anyone destroy
+   *  what somebody else wrote. A muted memory does not reach the model. */
+  muted_at: Timestamp | null;
+  derived_from_message_id: string | null;
+  attrs: Generated<unknown>;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  /** Set by compaction, which does not exist yet. Filtered by every
+   *  current-memory query regardless, because forgetting is silent. */
+  superseded_at: Timestamp | null;
+  deleted_at: Timestamp | null;
+  purge_after: Timestamp | null;
+}
+
 export interface Database {
   accounts: AccountsTable;
   account_identities: AccountIdentitiesTable;
@@ -327,6 +365,7 @@ export interface Database {
   conversations: ConversationsTable;
   messages: MessagesTable;
   content: ContentTable;
+  memories: MemoriesTable;
   places: PlacesTable;
   place_lookups: PlaceLookupsTable;
   llm_usage: LlmUsageTable;

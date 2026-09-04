@@ -393,6 +393,7 @@ async def test_the_tools_are_sent_on_every_call():
             "archive_content",
             "set_thread_preference",
             "rename_thread",
+            "add_memory",
         ]
 
 

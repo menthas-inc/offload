@@ -17,6 +17,18 @@ import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
+import {
+  MAX_MEMORIES_PER_THREAD,
+  MEMORY_TEXT_CHARS,
+  MemoryLimit,
+  MemoryTooLong,
+  addMemory,
+  deleteMemory,
+  editMemory,
+  readableMemories,
+  restoreMemory,
+  setMuted,
+} from "../threads/memories.js";
 import { readPreference, type ThreadPreference } from "../threads/widgets.js";
 import {
   NotYours,
@@ -91,6 +103,17 @@ const threadList = z.object({
   ),
 });
 
+const memorySchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  /** `learned` is offload's, and the screen marks it. */
+  origin: z.enum(["stated", "learned"]),
+  /** Null once the author deleted their account: the memory stays in the
+   *  shared thread it belongs to and the name comes off it. */
+  authorId: z.string().nullable(),
+  muted: z.boolean(),
+});
+
 const threadBundle = z.object({
   id: z.string(),
   name: z.string(),
@@ -98,6 +121,9 @@ const threadBundle = z.object({
   alwaysOn: z.boolean(),
   counts: z.object({ active: z.number(), archived: z.number() }),
   members: z.array(memberSchema),
+  /** The standing facts this thread holds about itself. At most ten, so this
+   *  never grows the bundle with the thread's age. */
+  memories: z.array(memorySchema),
   /** How this thread wants to look. Absent fields mean derived from content. */
   preference: z.object({
     widgets: z.array(z.string()).optional(),
@@ -654,6 +680,11 @@ export async function threadRoutes(app: App): Promise<void> {
   // Four queries: membership, the thread, its members, its counts. It does not
   // become five because the thread holds more, and it must not become one per
   // widget when 007 draws them.
+  //
+  // 008 spends the fifth. 005 reserved it for a standing summary, which still
+  // does not exist; memories took it instead, and both specs are amended rather
+  // than left disagreeing about a number one of them enforces. It is bounded by
+  // MAX_MEMORIES_PER_THREAD, so it is a fifth query and never a sixth.
   app.get(
     "/v1/threads/:id",
     {
@@ -702,6 +733,7 @@ export async function threadRoutes(app: App): Promise<void> {
           // naming a widget that no longer exists renders as though it were
           // absent, because a thread whose contents changed under a preference
           // is the normal case rather than an edge one.
+          memories: await readableMemories(accountId, id),
           preference: readPreference(thread.attrs),
           standing: null,
         });
@@ -974,6 +1006,196 @@ export async function threadRoutes(app: App): Promise<void> {
 
         const deleted = await deleteContent(accountId, request.params.id);
         return reply.send({ deleted });
+      })
+  );
+
+  // ------------------------------------------------------------- memories
+  //
+  // A memory is a standing fact about a thread rather than something in it, so
+  // these sit on the thread and not on content. The permission split is the one
+  // OFF-3 already sets and 005 already applied to content: reading and editing
+  // are co-owned, deleting is the author's, and mute is what everybody else
+  // gets instead. Mute is to a memory what archive is to content.
+
+  app.post(
+    "/v1/threads/:id/memories",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({ text: z.string().min(1).max(MEMORY_TEXT_CHARS) }),
+        response: {
+          200: z.object({ memory: memorySchema }),
+          401: unauthenticated,
+          404: notFound,
+          // Carries the count and never the text: a refusal is not a reason to
+          // start echoing dumped text into responses somebody might log.
+          409: z.object({ error: z.literal("thread_memory_full"), limit: z.number() }),
+          413: z.object({ error: z.literal("too_long"), maxChars: z.number() }),
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        const { id } = request.params;
+        await requireMember(accountId, id);
+
+        try {
+          // Its own transaction, because the cap is enforced with a lock on the
+          // thread row and a lock is only worth taking inside the transaction
+          // that does the insert.
+          const memory = await db.transaction().execute((trx) =>
+            addMemory(
+              { threadId: id, accountId, text: request.body.text, origin: "stated" },
+              trx,
+            ),
+          );
+          await touchThread(id, db);
+          return reply.send({ memory });
+        } catch (error) {
+          if (error instanceof MemoryLimit) {
+            return reply
+              .code(409)
+              .send({ error: "thread_memory_full" as const, limit: MAX_MEMORIES_PER_THREAD });
+          }
+          if (error instanceof MemoryTooLong) {
+            return reply
+              .code(413)
+              .send({ error: "too_long" as const, maxChars: MEMORY_TEXT_CHARS });
+          }
+          throw error;
+        }
+      })
+  );
+
+  // Edit. Any member, and the full text rather than the shortened form the chip
+  // shows. Returns `previous` so Undo has something to write back.
+  app.patch(
+    "/v1/memories/:id",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({ text: z.string().min(1).max(MEMORY_TEXT_CHARS) }),
+        response: {
+          200: z.object({ memory: memorySchema, previous: z.string() }),
+          401: unauthenticated,
+          404: notFound,
+          // The thread already holds this sentence. Refused rather than merged
+          // into the existing row, which would destroy one memory to satisfy an
+          // edit of another.
+          409: z.object({ error: z.literal("duplicate") }),
+          413: z.object({ error: z.literal("too_long"), maxChars: z.number() }),
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        try {
+          const result = await db
+            .transaction()
+            .execute((trx) =>
+              editMemory({ memoryId: request.params.id, accountId, text: request.body.text }, trx),
+            );
+          if (!result) return reply.code(409).send({ error: "duplicate" as const });
+          return reply.send(result);
+        } catch (error) {
+          if (error instanceof MemoryTooLong) {
+            return reply
+              .code(413)
+              .send({ error: "too_long" as const, maxChars: MEMORY_TEXT_CHARS });
+          }
+          throw error;
+        }
+      })
+  );
+
+  // Delete. The author's alone, per OFF-3. A member who did not write it gets
+  // the same refusal a non-member gets, so the response never teaches who did.
+  app.delete(
+    "/v1/memories/:id",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          200: z.object({ deleted: z.boolean() }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        const deleted = await deleteMemory(request.params.id, accountId);
+        return reply.send({ deleted });
+      })
+  );
+
+  // Undo the delete. Re-checks the cap, which is the one door it could
+  // otherwise walk through: at ten, delete one, add another, then press Undo.
+  app.post(
+    "/v1/memories/:id/restore",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          200: z.object({ memory: memorySchema }),
+          401: unauthenticated,
+          404: notFound,
+          409: z.object({ error: z.literal("thread_memory_full"), limit: z.number() }),
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        try {
+          const memory = await db
+            .transaction()
+            .execute((trx) => restoreMemory(request.params.id, accountId, trx));
+          return reply.send({ memory });
+        } catch (error) {
+          if (error instanceof MemoryLimit) {
+            return reply
+              .code(409)
+              .send({ error: "thread_memory_full" as const, limit: MAX_MEMORIES_PER_THREAD });
+          }
+          throw error;
+        }
+      })
+  );
+
+  // Mute and unmute. Any member, thread-wide, and reversible, which is why it
+  // is on the OFF-6 allowlist rather than under an eight second toast.
+  app.post(
+    "/v1/memories/:id/mute",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({ muted: z.boolean() }),
+        response: {
+          200: z.object({ memory: memorySchema }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        const memory = await setMuted(request.params.id, accountId, request.body.muted);
+        return reply.send({ memory });
       })
   );
 

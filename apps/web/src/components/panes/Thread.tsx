@@ -18,6 +18,7 @@ import Link from "next/link";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { PaneHead } from "../shell/PaneHead";
+import { Memories } from "./Memories";
 import { Widgets } from "./Widgets";
 import { widgetsFor } from "../../lib/widgets";
 import {
@@ -278,6 +279,20 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             rows={rows}
             preference={thread.preference}
             onToggle={(row) => void toggle(row)}
+          />
+        )}
+
+        {/* Memories sit between the widgets and the list, not at the foot.
+            "Everything in here" has no cap and no pagination, so a section
+            under it becomes undiscoverable on exactly the threads with most to
+            say. Ten rules belong next to the other bounded thing on the page. */}
+        {showArchived ? null : (
+          <Memories
+            threadId={id}
+            memories={thread.memories}
+            members={thread.members}
+            onChanged={() => void load()}
+            onUndo={onUndo}
           />
         )}
 

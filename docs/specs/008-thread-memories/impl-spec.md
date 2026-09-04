@@ -195,23 +195,11 @@ Membership-checked server-side against the job's account (AC-11), text capped at
 
 Both results carry the target thread's memories as an array of strings. `create_thread` returns `[]`, always, since a thread cannot have memories before it exists; it is in the result anyway so the model sees one shape.
 
-### `edit_content`, returning from 004's cut list
+### `edit_content` already exists, and already does this
 
-```
-edit_content(content_id, title?, note?)
-```
+006 revived it from 004's cut list and `docs/tech/decisions.md:84` records the amendment. It is at `apps/core-api/src/routes/tools.ts:136`, gated on authorship at line 390, and content the model filed this turn carries `account_id` equal to the turn's account. So the self-correction loop works with no change to the tool and no new one.
 
-**Scoped to content the same turn created.** The predicate is all three of:
-
-```
-content.derived_from_message_id = <the job's message id>
-and content.account_id          = <the job's account>
-and content.deleted_at is null
-```
-
-The first is the real boundary and the other two are redundant today, deliberately. The chain that makes the first sufficient is real but long: a message has one owning account, `jobContext` resolves the account from the job row rather than the call, and `add_content` always stamps `account_id` from that. It holds now and it is the shape that breaks quietly later, when a backfill, an import or a compaction job starts writing `derived_from_message_id` for its own reasons. Every other access path in this codebase asserts membership and authorship together for that reason.
-
-*004 cut this tool because "nothing in the planner's context can produce a valid content id: it sees thread names and recent turns, not content rows, and search is out of scope". A tool result that hands back the id it just created removes that objection exactly, and none of the rest of it: still no search, still no reference to content the turn did not make. `docs/specs/004-the-planner/feature-spec.md` is amended to record why it came back.*
+*This spec's first draft claimed the tool was still cut and argued for reviving it, having read 004's feature spec and not the code. 004 is the stale document: it still lists `edit_content` as out of scope, and 006 amended `decisions.md` without amending it. That amendment is a task here.*
 
 ### The prompt bound (AC-17)
 

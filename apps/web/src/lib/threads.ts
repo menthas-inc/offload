@@ -35,6 +35,43 @@ export interface Member {
   isYou: boolean;
 }
 
+/** A standing fact a thread holds about itself.
+ *
+ *  Not content: "todo names in three words" is a memory, "chase the
+ *  electrician" is a task. Ten per thread, so this never grows the bundle. */
+export interface Memory {
+  id: string;
+  text: string;
+  /** `learned` is offload's own, and the chip marks it. */
+  origin: "stated" | "learned";
+  /** Null once the author deleted their account. The memory stays in the
+   *  shared thread it belongs to; the name comes off it. */
+  authorId: string | null;
+  muted: boolean;
+}
+
+/** Ten, matching MAX_MEMORIES_PER_THREAD in the Core API. */
+export const MAX_MEMORIES = 10;
+
+/** 200, matching MEMORY_TEXT_CHARS. */
+export const MEMORY_CHARS = 200;
+
+/** Above this the chip truncates. Below it the chip is the whole memory.
+ *
+ *  A truncation rather than a second stored field: at a 200 character cap a
+ *  model-written short label would save a line and a half and cost a job, a
+ *  failure mode, and a second thing that can go stale. */
+export const MEMORY_CHIP_CHARS = 60;
+
+/** The chip's label. Truncated on a word boundary, never mid-word, because a
+ *  rule cut in half reads as a different rule. */
+export function chipLabel(text: string): string {
+  if (text.length <= MEMORY_CHIP_CHARS) return text;
+  const cut = text.slice(0, MEMORY_CHIP_CHARS);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > 20 ? cut.slice(0, space) : cut).trimEnd()}...`;
+}
+
 export interface ThreadBundle {
   id: string;
   name: string;
@@ -44,6 +81,8 @@ export interface ThreadBundle {
   members: Member[];
   /** How this thread wants to look. Absent fields mean derived from content. */
   preference: { widgets?: string[]; groupBy?: Record<string, string> };
+  /** The thread's standing rules. At most ten. */
+  memories: Memory[];
   /** Null until something writes summaries, which nothing does. Typed as a
    *  nullable string rather than `null` so the screen that renders it is
    *  written and tested now: a branch typed unreachable is a branch nobody
@@ -207,6 +246,63 @@ export async function setPriority(id: string, priority: number): Promise<boolean
     ...json,
     method: "POST",
     body: JSON.stringify({ priority }),
+  });
+  return response.ok;
+}
+
+/** Add a memory. Any member. Refused at ten, and 409 carries the limit and
+ *  never any text. */
+export async function addMemory(
+  threadId: string,
+  text: string,
+): Promise<{ memory: Memory } | { full: true } | null> {
+  const response = await fetch(`${API}/v1/threads/${threadId}/memories`, {
+    ...json,
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+  if (response.status === 409) return { full: true };
+  if (!response.ok) return null;
+  return (await response.json()) as { memory: Memory };
+}
+
+/** Edit the full text, never the shortened form the chip shows. Any member,
+ *  and it does not change whose memory it is. */
+export async function editMemory(
+  id: string,
+  text: string,
+): Promise<{ memory: Memory; previous: string } | null> {
+  const response = await fetch(`${API}/v1/memories/${id}`, {
+    ...json,
+    method: "PATCH",
+    body: JSON.stringify({ text }),
+  });
+  if (!response.ok) return null;
+  return (await response.json()) as { memory: Memory; previous: string };
+}
+
+/** Delete. The author's alone, per OFF-3, which is why the control only
+ *  renders on your own. */
+export async function deleteMemory(id: string): Promise<boolean> {
+  const response = await fetch(`${API}/v1/memories/${id}`, { ...json, method: "DELETE" });
+  if (!response.ok) return false;
+  return ((await response.json()) as { deleted: boolean }).deleted;
+}
+
+/** Undo the delete. */
+export async function restoreMemory(id: string): Promise<boolean> {
+  const response = await fetch(`${API}/v1/memories/${id}/restore`, { ...json, method: "POST" });
+  return response.ok;
+}
+
+/** Mute or unmute. Any member, thread-wide. What everybody who is not the
+ *  author gets instead of delete: it stops the rule reaching offload without
+ *  destroying something somebody else wrote. */
+export async function muteMemory(id: string, muted: boolean): Promise<boolean> {
+  const response = await fetch(`${API}/v1/memories/${id}/mute`, {
+    ...json,
+    method: "POST",
+    body: JSON.stringify({ muted }),
   });
   return response.ok;
 }

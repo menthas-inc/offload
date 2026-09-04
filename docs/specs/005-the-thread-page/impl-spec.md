@@ -82,7 +82,7 @@ Required section, and the numbers come from 001 rather than from optimism.
 
 *The counts come from one query over `content_thread_idx`, which covers both states, rather than from two partial index scans. Postgres will not scan two partial indexes in one statement; it picks one and filters. Said precisely because "one pass over the two partial indexes" was written first and is not how the planner works.*
 
-**The bundle is four queries and does not grow with anything.** Thread, members, counts, first page. A fifth appears the day a standing summary exists. What is forbidden is a query per widget, which is how this read would grow with a thread's shape rather than with its size.
+**The bundle is five queries and does not grow with anything.** Thread, members, counts, first page, and the thread's memories. *It was four, and this line reserved the fifth for a standing summary. 008 spent it on memories instead, which are capped at ten per thread, so the count is still fixed. A standing summary, when it exists, reads from the same table and takes no sixth.* What is forbidden is a query per widget, which is how this read would grow with a thread's shape rather than with its size.
 
 *The same shape serves the agent plane when 006 gives it `list_thread_content`: the same predicate, the same index, a smaller page. It is not a read that happens on every model turn, and nothing here should be built as though it were.*
 

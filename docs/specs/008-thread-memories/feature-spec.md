@@ -102,7 +102,9 @@ A turn carries memories **only for the threads it touches**. `add_content` and `
 
 The alternative was putting every thread's memories in the prompt up front. That is the OFF-8 failure written out: ten memories times every thread an account has ever made, growing forever, in every prompt. This way the ceiling is a stated constant that does not move as an account ages.
 
-It has one cost and it is paid rather than hidden: **the model has already written the title by the time it learns the thread wants three-word titles.** So `edit_content` returns from 004's cut list, scoped to content the same turn created. 004 cut it because nothing in the planner's context could produce a valid content id; a tool result that hands one back removes exactly that objection, and it still needs no search.
+It has one cost and it is paid rather than hidden: **the model has already written the title by the time it learns the thread wants three-word titles.** The fix is `edit_content`, and **that tool already exists**: 006 revived it from 004's cut list and `decisions.md:84` records it. It is gated on authorship (`tools.ts:390`), and content the turn just created is authored by that turn's own account, so the model can already correct what it just filed. This feature needs no new tool for it and no change to that one.
+
+*An earlier draft of this spec said `edit_content` was still cut and argued at length for reviving it. That was written from 004's feature spec, which 006 never amended and which still describes the tool as out of scope. The stale document is 004, and it is amended here.*
 
 ## Acceptance criteria
 
@@ -141,7 +143,7 @@ It has one cost and it is paid rather than hidden: **the model has already writt
 
 - **AC-17** A turn carries the unmuted memories of the threads it touches, and no others. The characters memories contribute to a prompt are bounded by a stated constant and do not grow with the number of threads an account has.
 - **AC-18** `add_content` and `create_thread` return the target thread's memories.
-- **AC-19** `edit_content` exists and accepts only content ids created earlier in the same turn.
+- **AC-19** A thread's rules can be applied to content the same turn filed, without a second dump. `edit_content` already does this and is author-gated; the assertion is on the loop working end to end, not on a new tool.
 - **AC-20** Memory text reaches the model as data on the untrusted channel, like every other tool result.
 
 **Truthfulness and privacy**
@@ -151,7 +153,7 @@ It has one cost and it is paid rather than hidden: **the model has already writt
 
 ## Depends on
 
-- **004** for the tool loop, the whole-turn Undo and `MAX_TOOL_CALLS`.
+- **004** for the tool loop, the whole-turn Undo and `MAX_TOOL_CALLS`. Its feature spec is stale in two places and is amended here: `edit_content` was cut there and revived by 006, and memory writes were placed outside the model's choice set.
 - **005** for the thread page and its access helpers.
 - **007** for the thread page's section vocabulary.
 - **001** for the `memories` table, which it specified and which has never been migrated. Amended here, see `impl-spec.md`.

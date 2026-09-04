@@ -158,6 +158,15 @@ class RenameThread(BaseModel):
     name: str = Field(min_length=1, max_length=80)
 
 
+class AddMemory(BaseModel):
+    """Remember how a thread should be handled."""
+
+    thread_id: str = Field(min_length=1)
+    # 200 characters, matching MEMORY_TEXT_CHARS in the Core API. Long enough
+    # for a rule and short enough that ten of them stay readable.
+    text: str = Field(min_length=1, max_length=200)
+
+
 SCHEMAS: dict[str, type[BaseModel]] = {
     "create_thread": CreateThread,
     "add_content": AddContent,
@@ -168,6 +177,7 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "archive_content": ArchiveContent,
     "set_thread_preference": SetThreadPreference,
     "rename_thread": RenameThread,
+    "add_memory": AddMemory,
 }
 
 
@@ -218,6 +228,12 @@ _DESCRIPTIONS = {
         "on your own initiative."
     ),
     "rename_thread": "Rename a thread.",
+    "add_memory": (
+        "Remember a standing rule about a thread: how they want it handled, or "
+        "something that stays true about it. Only when they say one, and never "
+        "for something you could file instead. A rule is not a task. A thread "
+        "holds ten at most."
+    ),
 }
 
 TOOLS: list[dict[str, Any]] = [
@@ -231,6 +247,13 @@ TOOL_NAMES = frozenset(SCHEMAS)
 # Core API when the row is not this account's, and named here so the loop can
 # say something useful rather than passing an opaque refusal back.
 AUTHOR_ONLY = frozenset({"edit_content", "move_content"})
+
+# Writing a memory is not filing.
+#
+# It changes how a thread behaves rather than putting anything in it, so a turn
+# that only wrote a memory has filed nothing and the reply must not claim it
+# did. Same reasoning as reading a thread: FILING_TOOLS below is the definition
+# of "landed" and this is deliberately outside it.
 
 # The tools that actually put something somewhere.
 #

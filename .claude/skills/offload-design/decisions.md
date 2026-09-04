@@ -11,6 +11,39 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-04 · A memories section, and the kits are behind the contracts
+**Surface:** web
+**Raised by:** 008, and by the client review of its spec.
+
+**A thread now has a Memories section**, between the widgets and "Everything in here". Up to ten
+chips, each a standing rule the thread holds about itself. Clicking one edits its full text, the
+author gets Delete, every other member gets Mute, and a trailing outline chip adds one.
+
+**No kit draws it**, and the interesting part is what happened when I looked for the nearest thing
+that did. `WThing` has no memories section. `WMemories` and `WPerson` both have chip rows, and both
+pass `Chip variant="soft"`, which the governed contract does not declare, which the generated lint
+rule rejects, and which `readme.md` retired on the grounds that the soft tints sat too close to
+paper to read as colour at chip size. `WSection` is kit-local scaffolding rather than the governed
+`SectionHeader`, and it invents a toned count pill `SectionHeader` has no prop for.
+
+**So this was built from the component contracts with the kits as shape reference.** That is the
+opposite of the usual failure here, which is reading the readme instead of the kit. The kits were
+read whole, and the kits are what is stale.
+
+**Two things the `Chip` contract does not have**, both worked around rather than added to it:
+`disabled`, so at ten the add control is replaced by the sentence "This thread already holds ten.
+Delete one to add another" rather than greyed out, which also puts the way forward where the
+affordance was. And any width handling: `Chip` is `nowrap` with no `max-width` and no ellipsis,
+every label in every kit is under twenty characters, and a memory runs to sixty on the chip, so the
+ceiling and the ellipsis live in the screen.
+
+**Design system impact:** not none, four things. The kits' own chip rows still pass the retired
+`variant="soft"` and need it removed. A memories section is needed on the thread screen across web,
+mobile and android, and nothing in any kit draws one. **Authorship on a chip has no precedent
+anywhere**: `MemoryChip`'s dot marks which person a memory is *about*, not who wrote it, so a shared
+thread showing who wrote each rule needs a real pass. And `Chip` has no disabled state, which this
+screen avoided needing; the next screen may not be able to.
+
 ### 2026-09-04 · Larger text scales text, not the layout
 **Surface:** web
 **Raised by:** the product owner, the same day the control shipped.

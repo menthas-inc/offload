@@ -38,7 +38,9 @@ One model call in a loop: it may call tools, read what they return, call more, a
 
 ### What is deliberately not a tool
 
-Anything that must happen every turn is **not** in the model's choice set. Memory writes, conversation compaction and client-side actions are consequences of a turn, not decisions within it. As tools the model could skip them, silently, and no test could assert otherwise.
+Anything that must happen every turn is **not** in the model's choice set. Conversation compaction and client-side actions are consequences of a turn, not decisions within it. As tools the model could skip them, silently, and no test could assert otherwise.
+
+*Amended by 008. This sentence listed memory writes too, and the rule it states is about always-work: the things above must happen on every turn, so making them optional means they get skipped and nothing can tell. A memory write is the opposite. Most turns should write none, whether a sentence is a standing rule or a task is exactly the judgement a model is for, and no deterministic step could compute it. `add_memory` is therefore a tool, and the guard 004 wanted is an eval in both directions rather than a unit test in one.*
 
 **This is not aspirational: it is how the existing turn already works.** Marking the message answered, writing the usage row, emitting the events and closing the job are all deterministic code in the Core API today, and none of them is a tool. New always-work joins them there.
 
@@ -51,7 +53,9 @@ Two.
 | `create_thread` | Starts a thread with a name |
 | `add_content` | Puts a piece of content in a thread |
 
-**`move_content` and `edit_content` were cut**, not deferred on taste. Nothing in the planner's context can produce a valid content id: it sees thread names and recent turns, not content rows, and search is out of scope. A tool the model has no way to call correctly is scope with no path to being exercised. They return with the feature that gives the planner something to reference, which is search.
+**Both of these came back, and this paragraph is kept for the reasoning rather than the conclusion.** 006 revived `edit_content` and `move_content` once `list_thread_content` gave the planner a way to name a content row, and `docs/tech/decisions.md:84` records it. 008 relies on `edit_content` to let a thread's rules correct a title the model has already written, and found this paragraph still describing the tool as cut, two specs after it shipped.
+
+**`move_content` and `edit_content` were cut** here, not deferred on taste. Nothing in the planner's context can produce a valid content id: it sees thread names and recent turns, not content rows, and search is out of scope. A tool the model has no way to call correctly is scope with no path to being exercised. They return with the feature that gives the planner something to reference, which is search.
 
 ### Every dump lands somewhere
 

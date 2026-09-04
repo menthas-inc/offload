@@ -152,9 +152,11 @@ export default function Privacy() {
               <strong>Transcripts</strong> of your voice notes, and text read out of screenshots.
             </li>
             <li>
-              <strong>Memories</strong>, which are the short generalisations offload keeps so it
-              does not need your whole history in front of it to be useful, and the numeric
-              representations that make search work.
+              <strong>Memories</strong>, which are short standing notes about a thread: how you
+              want it handled, or something that stays true about it. You write some of them and
+              offload writes others from what you dumped, and they are what lets it be useful
+              without your whole history in front of it. Plus the numeric representations that
+              make search work.
             </li>
           </ul>
 
@@ -458,10 +460,11 @@ export default function Privacy() {
 
           <h3 className={styles.h3}>Deleting your account, and shared threads</h3>
           <p>
-            Deleting your account removes what you uploaded privately, your memories, and your
-            membership of every thread you were in. There is one deliberate exception:{" "}
+            Deleting your account removes what you kept privately, including your memories, and
+            your membership of every thread you were in. There is one deliberate exception:{" "}
             <strong>
-              what you put into a thread you shared with other people stays in that thread.
+              what you put into a thread you shared with other people stays in that thread, and
+              that includes the memories you added to it.
             </strong>{" "}
             Understand this before you share anything, so here is the reasoning behind it.
           </p>

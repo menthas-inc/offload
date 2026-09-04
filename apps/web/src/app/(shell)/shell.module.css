@@ -957,3 +957,175 @@
 .navItem[data-static="true"]:hover {
   background: transparent;
 }
+
+/* ------------------------------------------------------------- memories
+   The standing rules a thread holds about itself. No kit draws this section:
+   `WThing` has no memories, and the chip rows in `WMemories` and `WPerson` are
+   stale, passing a `variant="soft"` the governed Chip contract does not
+   declare and the readme retired. Built from the contracts instead, with the
+   kits as shape reference.
+
+   The `.chip` base above is the contract's 30px pill. These add only what a
+   memory needs and the contract does not have: a width, an ellipsis, and a
+   tone for muted. */
+
+.memories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-4) 0 var(--space-2);
+  align-items: center;
+}
+
+.memoryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  /* A memory is a sentence and a chip is built for a tag: nowrap, no
+     max-width, no ellipsis, and every label in every kit is under twenty
+     characters. At sixty the pill would run most of the width of the pane, so
+     the ceiling and the ellipsis live here rather than in the component. */
+  max-width: 100%;
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
+  cursor: pointer;
+  text-align: left;
+}
+
+.memoryChip:hover {
+  background: var(--surface-fill-strong);
+}
+
+/* Moss marks something offload inferred rather than something you typed, which
+   is the kits' own rule for the mark. Full strength, not a soft tint: the
+   readme retired those because they sat too close to paper at chip size. */
+.memoryChip[data-tone="accent"] {
+  background: var(--surface-accent-soft);
+  color: var(--text-accent);
+}
+
+/* A rule that is off must not read like one that is on. Outline, so it is
+   plainly still there and plainly not doing anything. */
+.memoryChip[data-tone="muted"] {
+  background: transparent;
+  border-color: var(--border-hairline);
+  color: var(--text-tertiary);
+}
+
+.memoryChip[data-tone="add"] {
+  background: transparent;
+  border-color: var(--border-hairline);
+  color: var(--text-secondary);
+}
+
+.memoryText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memoryBy {
+  color: var(--text-tertiary);
+  font-weight: var(--weight-regular);
+  flex: 0 0 auto;
+}
+
+.memoryFull {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-weight: var(--weight-regular);
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1.4;
+  font-family: var(--font-core);
+}
+
+.memoryEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+}
+
+.memoryField {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-weight: var(--weight-regular);
+  font-size: calc(14.5px * var(--type-scale));
+  line-height: 1.4;
+  font-family: var(--font-core);
+}
+
+.memoryActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.memoryCount {
+  margin-right: auto;
+  color: var(--text-tertiary);
+  font-weight: var(--weight-regular);
+  font-size: calc(12.5px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
+  font-variant-numeric: tabular-nums;
+}
+
+.memoryAction {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
+  cursor: pointer;
+}
+
+.memoryAction:hover {
+  color: var(--text-primary);
+}
+
+.memorySave {
+  height: 30px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font-weight: var(--weight-medium);
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
+  cursor: pointer;
+}
+
+.memorySave:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* The text alternative for the sparkles mark. A glyph alone is not a state,
+   and Chip has no aria-label to hang one on, so it goes in the label. */
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

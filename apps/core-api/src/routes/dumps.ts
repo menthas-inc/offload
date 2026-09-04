@@ -878,6 +878,25 @@ export async function undoTurn(
       .where("deleted_at", "is", null)
       .execute();
 
+    // Memories the turn wrote, on the same clock and by the same predicate.
+    //
+    // Without this, undoing a dump takes back what was filed and leaves the
+    // standing rule offload derived from it, which then goes on steering every
+    // later turn on that thread. Same argument as reversing offload's reply: a
+    // turn that half survives its own undo is the pretence this feature exists
+    // to retire, recreated by the mechanism meant to protect against it.
+    await trx
+      .updateTable("memories")
+      .set({ deleted_at: stamp, purge_after: purge, updated_at: stamp })
+      .where(
+        "derived_from_message_id",
+        "in",
+        live.map((row) => row.id),
+      )
+      .where("account_id", "=", accountId)
+      .where("deleted_at", "is", null)
+      .execute();
+
     await trx
       .updateTable("messages")
       .set({ deleted_at: stamp, purge_after: purge })

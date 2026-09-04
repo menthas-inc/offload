@@ -30,6 +30,13 @@ import { env } from "../env.js";
 import { BadTags, MAX_TAGS, normaliseTags, TAG_CHARS } from "../threads/tags.js";
 import { parseWhen, plausible } from "../threads/dates.js";
 import {
+  MEMORY_TEXT_CHARS,
+  MemoryLimit,
+  MemoryTooLong,
+  addMemory,
+  memoriesForPrompt,
+} from "../threads/memories.js";
+import {
   NotYours,
   readableContent,
   requireMember,
@@ -174,6 +181,13 @@ const body = z.discriminatedUnion("tool", [
     widgets: z.array(z.string()).nullish(),
   }),
   z.strictObject({
+    tool: z.literal("add_memory"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    threadId: z.string().uuid(),
+    text: z.string().min(1).max(MEMORY_TEXT_CHARS),
+  }),
+  z.strictObject({
     tool: z.literal("rename_thread"),
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
@@ -195,6 +209,19 @@ const result = z.union([
     threadId: z.string(),
     threadName: z.string(),
     contentId: z.string().optional(),
+    /** The thread's standing rules, handed back at the moment the model files
+     *  into it. Unmuted only, and text only.
+     *
+     *  This is how a memory reaches a prompt at all, and why the prompt does
+     *  not grow with an account's age: the alternative was every thread's
+     *  memories up front, which is ten times however many threads somebody has
+     *  ever made, forever. Bounded here by MAX_MEMORIES_PER_THREAD times
+     *  MEMORY_TEXT_CHARS times MAX_TOOL_CALLS, all three of them constants.
+     *
+     *  It re-enters the loop as a tool_result block, which is to say as data,
+     *  the same as everything else a tool returns. That the model is also being
+     *  asked to obey it is the open hole 008 names rather than closes. */
+    memories: z.array(z.string()).optional(),
   }),
   /** `list_thread_content`'s answer. Bounded by LIST_PAGE and LIST_ROW_CHARS,
    *  and it re-enters the loop as a tool_result block, which is to say as
@@ -224,6 +251,7 @@ const result = z.union([
       "unknown_content",
       "not_yours",
       "bad_date",
+      "thread_memory_full",
     ]),
   }),
 ]);
@@ -233,7 +261,13 @@ const refused = z.object({ error: z.enum(["unauthorised", "unknown_job"]) });
 type ToolName = z.infer<typeof body>["tool"];
 
 type Outcome =
-  | { ok: true; threadId: string; threadName: string; contentId?: string }
+  | {
+      ok: true;
+      threadId: string;
+      threadName: string;
+      contentId?: string;
+      memories?: string[];
+    }
   | {
       ok: true;
       rows: {
@@ -256,7 +290,8 @@ type Outcome =
         | "bad_place_name"
         | "unknown_content"
         | "not_yours"
-        | "bad_date";
+        | "bad_date"
+        | "thread_memory_full";
     };
 
 interface JobContext {
@@ -309,6 +344,10 @@ async function existing(
   call: Extract<z.infer<typeof body>, { tool: Exclude<ToolName, "create_thread" | "add_content"> }>,
   accountId: string,
   trx: Executor,
+  /** The turn's own message, for provenance on anything this writes. A memory
+   *  offload worked out should be traceable to the dump it worked it out
+   *  from, and raw content is never purged, so the source stays resolvable. */
+  messageId: string,
 ): Promise<Outcome> {
   if (call.tool === "rename_thread") {
     await requireMember(accountId, call.threadId, trx);
@@ -358,6 +397,43 @@ async function existing(
       })),
       truncated: rows.length > LIST_PAGE,
     };
+  }
+
+  // Handled before the content-id fallthrough: a memory is a fact about a
+  // thread rather than a row in it, so it has no contentId to resolve.
+  if (call.tool === "add_memory") {
+    // Membership from the job's account, re-checked here, never taken from the
+    // call. A thread id in a tool call came from a model reading untrusted
+    // dump text, so trusting it is trusting the caller for an access decision.
+    await requireMember(accountId, call.threadId, trx);
+
+    try {
+      const memory = await addMemory(
+        {
+          threadId: call.threadId,
+          accountId,
+          text: call.text,
+          // Corrections beat inference. This is offload working something out,
+          // so a person may overwrite it and offload may not overwrite theirs.
+          origin: "learned",
+          fromMessageId: messageId,
+        },
+        trx,
+      );
+      // `done`, not the memory. The model does not need the id back: it
+      // cannot edit or delete a memory, and the text it just wrote is already
+      // in its own context.
+      void memory;
+      return { ok: true, done: true };
+    } catch (error) {
+      // The cap is not negotiable and offload gets no exemption. It is the one
+      // generic failure, and the prompt forbids explaining it, because a person
+      // being told their assistant hit an internal limit is offload
+      // diagnosing itself.
+      if (error instanceof MemoryLimit) return { ok: false, error: "thread_memory_full" };
+      if (error instanceof MemoryTooLong) return { ok: false, error: "unknown_thread" };
+      throw error;
+    }
   }
 
   const ref = await readableContent(accountId, call.contentId, trx);
@@ -522,7 +598,10 @@ export async function toolRoutes(app: App): Promise<void> {
             })
             .execute();
 
-          return { ok: true, threadId: thread.id, threadName: thread.name };
+          // `[]` rather than absent: a new thread cannot have memories, and
+          // the model seeing one shape from both filing tools is worth a
+          // two-character payload.
+          return { ok: true, threadId: thread.id, threadName: thread.name, memories: [] };
         }
 
         // The six tools that touch something that already exists.
@@ -531,7 +610,7 @@ export async function toolRoutes(app: App): Promise<void> {
         // take a content id rather than a thread, and four of them delegate to
         // the functions the thread page already uses, so the rule the screen
         // enforces and the rule the model gets are the same rule.
-        if (call.tool !== "add_content") return existing(call, accountId, trx);
+        if (call.tool !== "add_content") return existing(call, accountId, trx, messageId);
 
         // add_content.
         //
@@ -640,6 +719,9 @@ export async function toolRoutes(app: App): Promise<void> {
             threadId: thread.id,
             threadName: thread.name,
             contentId: existing.id,
+            // On the retry too. A lost response must not also lose the thread's
+            // rules, or a retried filing is the one that ignores them.
+            memories: await memoriesForPrompt(thread.id, trx),
           };
         }
 
@@ -674,6 +756,11 @@ export async function toolRoutes(app: App): Promise<void> {
           threadId: thread.id,
           threadName: thread.name,
           contentId: inserted.id,
+          // The thread's standing rules, handed back at the moment the model
+          // files into it. It has already written the title by now, which is
+          // the cost of not putting every thread's memories in the prompt up
+          // front; `edit_content` is how it fixes one it got wrong.
+          memories: await memoriesForPrompt(thread.id, trx),
         };
         })
       );
