@@ -988,11 +988,26 @@
 }
 
 /* Open, it stops being a pill in a row of pills and becomes the thing you are
-   working in. Full width so the field has somewhere to go. */
+   working in. Full width so the field has somewhere to go.
+
+   The tone comes with it. A memory offload wrote is moss shut and has to stay
+   moss open: the chip is the same object either way, and having it turn grey
+   the moment you touch it says the mark was about the chip rather than about
+   where the memory came from. */
 .memoryItem[data-open] {
   width: 100%;
   background: var(--surface-fill);
   padding: var(--space-3);
+}
+
+.memoryItem[data-open][data-tone="accent"] {
+  background: var(--surface-accent-soft);
+}
+
+.memoryItem[data-open][data-tone="muted"],
+.memoryItem[data-open][data-tone="add"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
 }
 
 .memoryChip {
@@ -1071,6 +1086,15 @@
   overflow: hidden;
 }
 
+/* Room for the focus ring, which is drawn outside the field's border box and
+   was being sliced off at the top by the clipping this animation needs. Only
+   while open: padding on a collapsed row would leave a sliver behind. The
+   negative margin keeps it from moving anything. */
+.memoryDrawer[data-open] .memoryDrawerInner {
+  padding: 3px;
+  margin: -3px;
+}
+
 /* Something offload just did, marked for a moment so it is not simply there.
    Moss, because moss is "offload did this, you didn't". Blue is "this needs
    you", and a row that was filed correctly needs nothing. */
@@ -1117,6 +1141,15 @@
   flex-direction: column;
   gap: var(--space-3);
   padding-bottom: var(--space-4);
+}
+
+/* The design system's rule for a field is an ink border plus --shadow-focus,
+   and this was showing the browser's own blue ring, which is both a divergence
+   and the wrong colour: blue means "this needs you" here. */
+.memoryField:focus-visible {
+  outline: none;
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-focus);
 }
 
 .memoryField {

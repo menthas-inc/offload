@@ -245,6 +245,11 @@ export function Memories({
             <span
               key={memory.id}
               className={styles.memoryItem}
+              // On the container as well as the chip, so opening it keeps the
+              // tone rather than turning grey.
+              data-tone={
+                memory.muted ? "muted" : memory.origin === "learned" ? "accent" : "neutral"
+              }
               data-open={open ? true : undefined}
               data-arrived={arrived?.has(memory.id) ? true : undefined}
             >
@@ -275,7 +280,7 @@ export function Memories({
         })}
 
         {adding ? (
-          <span className={styles.memoryItem} data-open={true}>
+          <span className={styles.memoryItem} data-tone="add" data-open={true}>
             {editor(null)}
           </span>
         ) : full ? (

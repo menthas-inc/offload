@@ -399,15 +399,18 @@ export function Thread({ id, onChanged, onUndo }: Props) {
         </h2>
         )}
 
-        {rest.length === 0 ? (
+        {/* "Everything in this thread is above" is a line with nothing under
+            it saying so, which is the same noise an empty heading was. The
+            content is visibly above; the sentence adds a row to say so. What
+            stays is the genuinely empty thread, which has nothing else on the
+            screen and does need telling. */}
+        {rest.length === 0 && (showArchived || inWidgets.size === 0) ? (
           <p className={styles.empty}>
             {showArchived
               ? "Nothing archived here."
-              : inWidgets.size > 0
-                ? "Everything in this thread is above."
-                : "Nothing in this one yet. Dump something on Today and offload will file it."}
+              : "Nothing in this one yet. Dump something on Today and offload will file it."}
           </p>
-        ) : (
+        ) : rest.length === 0 ? null : (
           rest.map((row) => (
             asking === row.id ? (
               // The row asks in its own place. Both a confirm and an undo,
