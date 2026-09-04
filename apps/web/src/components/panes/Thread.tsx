@@ -57,10 +57,6 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   // rather than appearing silently in the middle of a list.
   const [arrived, setArrived] = useState<Set<string>>(new Set());
   const { filed } = useThreads();
-  // Lives here rather than in the section, because the section draws nothing
-  // when the thread has no memories and the control that starts the first one
-  // is in the pane head.
-  const [addingMemory, setAddingMemory] = useState(false);
 
   async function load(): Promise<void> {
     const [bundle, page] = await Promise.all([
@@ -300,18 +296,6 @@ export function Thread({ id, onChanged, onUndo }: Props) {
         }
         tools={
           <>
-            {/* The way into an empty Memories section, which draws nothing
-                until it holds something. A heading over one control is a
-                section announcing its own absence. */}
-            <button
-              type="button"
-              className={styles.tool}
-              aria-label="Add a memory to this thread"
-              title="Add a memory"
-              onClick={() => setAddingMemory(true)}
-            >
-              <Icon name="plus" size={16} />
-            </button>
             <button
               type="button"
               className={styles.tool}
@@ -384,8 +368,6 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             threadId={id}
             memories={thread.memories}
             members={thread.members}
-            adding={addingMemory}
-            onAddingChange={setAddingMemory}
             arrived={arrived}
             onChanged={() => void load()}
             onUndo={onUndo}

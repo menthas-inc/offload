@@ -40,6 +40,23 @@ heading over an empty row is a section announcing its own absence, which is what
 summary already refuses to do. The consequence is that the way into an empty Memories section has to
 come from outside it, so the pane head gained a `plus` tool beside the rename pencil.
 
+**The focus ring was being clipped in two places, and one of them was old.** `.paneTitle` carries
+`overflow: hidden` so a long thread name gets an ellipsis, and renaming puts an input inside that
+element, so the global 2px ring at 2px offset was cut down to four corner marks. The clip lifts
+while there is a field in there, since the ellipsis is only wanted for the static title. The memory
+editor had the same shape of bug from its own animation clip, and the fix there is 5px of room,
+which is the first value that clears a ring reaching 4px past the box. *The version of this file
+that shipped an hour earlier answered it by removing the ring on that one field, which `globals.css`
+forbids in the same line that defines it: "it is never removed." Reverted.*
+
+**There is no add control for the first memory on a thread, and that is deliberate.** A `plus` on
+the pane head was tried and pulled: it said nothing about what it added, and nothing else on the
+screen has an add. Combined with hiding empty sections, the consequence is that a thread with no
+memories offers no way to type one, and the first one has to come from telling offload, which is
+the product's usual way in and what `add_memory` is for. Every one after that is typed in the
+section. *Flagged rather than buried: if that trade turns out wrong, the answer is the `ellipsis`
+More menu `WThing.jsx` already draws and this app has never built.*
+
 **A control that has to exist whatever a section holds belongs on the pane, not in the section.**
 The archived pile was reached from a button inside the "Everything in here" heading, so that heading
 had to survive an empty list in order to carry it, and a thread with nothing loose and one archived

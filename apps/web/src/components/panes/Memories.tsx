@@ -44,27 +44,14 @@ interface Props {
   threadId: string;
   memories: Memory[];
   members: Member[];
-  /** True when the pane head's add control was pressed. The section draws
-   *  nothing when the thread has no memories, so the way in has to come from
-   *  outside it. */
-  adding: boolean;
-  onAddingChange: (adding: boolean) => void;
   /** Memories that arrived while this screen was open, marked for a moment. */
   arrived?: Set<string>;
   onChanged: () => void;
   onUndo: (message: string, undo: () => Promise<unknown>) => void;
 }
 
-export function Memories({
-  threadId,
-  memories,
-  members,
-  adding,
-  onAddingChange,
-  arrived,
-  onChanged,
-  onUndo,
-}: Props) {
+export function Memories({ threadId, memories, members, arrived, onChanged, onUndo }: Props) {
+  const [adding, setAdding] = useState(false);
   // Who is reading, from the member list the bundle already carries. Decides
   // which chips offer delete, because deleting is the author's alone and
   // everybody else gets mute.
@@ -88,13 +75,13 @@ export function Memories({
    *  shadowing it inside a component that also has a boolean called `open` is
    *  how a click handler ends up calling the wrong thing. */
   function open_(memory: Memory): void {
-    onAddingChange(false);
+    setAdding(false);
     setEditingId(memory.id);
     setDraft(memory.text);
   }
 
   function close(): void {
-    onAddingChange(false);
+    setAdding(false);
     setEditingId(null);
     setDraft("");
   }
@@ -156,8 +143,15 @@ export function Memories({
 
   // Nothing to show and nothing being written: draw nothing at all. A heading
   // over an empty row is a section announcing its own absence, which is the
-  // same thing the standing summary already refuses to do. The way in when
-  // there are none is the add control in the pane head.
+  // same thing the standing summary already refuses to do.
+  //
+  // **So a thread with no memories has no way to type the first one**, and
+  // that is the accepted cost of the two rules the product owner set: empty
+  // sections are hidden, and there is no add control anywhere else, because a
+  // bare plus on the pane said nothing about what it added. The first memory
+  // on a thread comes from telling offload, which is the product's usual way
+  // in and the thing `add_memory` exists for. Every one after that can be
+  // typed here.
   if (memories.length === 0 && !adding) return null;
 
   const editor = (memory: Memory | null) => (
@@ -289,10 +283,28 @@ export function Memories({
             {editor(null)}
           </span>
         ) : full ? (
+          /* At the cap the control is gone and the sentence is in its place.
+             `Chip` has no disabled state, and inventing one for this screen
+             would be a divergence with nothing to gain: the sentence says the
+             same thing and names what to do about it. */
           <p className={styles.memoryFull}>
             This thread already holds {MAX_MEMORIES}. Delete one to add another.
           </p>
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            className={styles.memoryChip}
+            data-tone="add"
+            onClick={() => {
+              setEditingId(null);
+              setDraft("");
+              setAdding(true);
+            }}
+          >
+            <Icon name="plus" size={13} />
+            Add
+          </button>
+        )}
       </div>
     </>
   );

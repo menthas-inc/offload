@@ -317,6 +317,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Renaming puts an input inside this element, and the clip that gives a long
+   thread name its ellipsis was cutting the focus ring down to four corner
+   marks. The ellipsis is only wanted for the static title, so the clip lifts
+   while there is a field in here. */
+.paneTitle:has(input) {
+  overflow: visible;
+}
+
 .paneTitleBig {
   font-size: calc(25px * var(--type-scale));
 }
@@ -1095,12 +1103,13 @@
 }
 
 /* Room for the focus ring, which is drawn outside the field's border box and
-   was being sliced off at the top by the clipping this animation needs. Only
-   while open: padding on a collapsed row would leave a sliver behind. The
-   negative margin keeps it from moving anything. */
+   was being sliced off by the clipping this animation needs. The ring is 2px
+   at 2px offset, so it reaches 4px past the box and 5px is the first value
+   that clears it. Only while open: padding on a collapsed row would leave a
+   sliver behind. The negative margin keeps it from moving anything. */
 .memoryDrawer[data-open] .memoryDrawerInner {
-  padding: 3px;
-  margin: -3px;
+  padding: 5px;
+  margin: -5px;
 }
 
 /* Something offload just did, marked for a moment so it is not simply there.
@@ -1151,15 +1160,10 @@
   padding-bottom: var(--space-4);
 }
 
-/* The design system's rule for a field is an ink border plus --shadow-focus,
-   and this was showing the browser's own blue ring, which is both a divergence
-   and the wrong colour: blue means "this needs you" here. */
-.memoryField:focus-visible {
-  outline: none;
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-focus);
-}
-
+/* No focus rule here on purpose. `globals.css` sets one for everything and
+   says in the same line that it is never removed, and the version this file
+   used to carry removed it. What was actually wrong was that the ring had
+   nowhere to draw, which the padding above fixes. */
 .memoryField {
   width: 100%;
   resize: vertical;
