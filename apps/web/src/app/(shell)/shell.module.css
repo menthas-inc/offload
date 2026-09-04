@@ -537,6 +537,14 @@
   opacity: 1;
 }
 
+/* A tool that is currently on inverts to ink, the same way a selected chip and
+   the current crumb do. Without it the archived view has no signal that it is
+   the archived view once the section heading stopped saying so. */
+.tool[data-on="true"] {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
 .tool {
   width: 32px;
   height: 32px;

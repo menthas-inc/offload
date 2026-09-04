@@ -40,6 +40,13 @@ heading over an empty row is a section announcing its own absence, which is what
 summary already refuses to do. The consequence is that the way into an empty Memories section has to
 come from outside it, so the pane head gained a `plus` tool beside the rename pencil.
 
+**A control that has to exist whatever a section holds belongs on the pane, not in the section.**
+The archived pile was reached from a button inside the "Everything in here" heading, so that heading
+had to survive an empty list in order to carry it, and a thread with nothing loose and one archived
+row drew "Everything else 0" for no other reason. It is a tool in the pane head now, beside rename
+and add memory, and inverts to ink while the archived view is on because the heading no longer says
+which view you are in. Same reasoning that moved the add-memory control there.
+
 **Design system impact:** three things, none of them none. The kits have **no change mark at all**,
 and one is now needed on any surface offload can write to while somebody is looking at it: the
 thread page, Today, and the phones. The **memory chip has an open state** that no kit draws, where a

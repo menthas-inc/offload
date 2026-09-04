@@ -324,6 +324,25 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             >
               <Icon name="pencil" size={16} />
             </button>
+            {/* The way to the archived pile. It used to sit in the section
+                heading, which meant the heading had to survive an empty list
+                in order to carry it, and an empty thread with one archived row
+                drew "Everything else 0" for no other reason. A control that
+                has to exist whatever the list holds belongs on the pane, not
+                in a section of it. */}
+            {thread.counts.archived > 0 || showArchived ? (
+              <button
+                type="button"
+                className={styles.tool}
+                data-on={showArchived ? true : undefined}
+                aria-pressed={showArchived}
+                aria-label={showArchived ? "Back to the list" : "Show archived"}
+                title={showArchived ? "Back to the list" : `Archived ${thread.counts.archived}`}
+                onClick={() => setShowArchived((current) => !current)}
+              >
+                <Icon name="archive" size={16} />
+              </button>
+            ) : null}
           </>
         }
       />
@@ -374,29 +393,22 @@ export function Thread({ id, onChanged, onUndo }: Props) {
         )}
 
         {/* A heading with nothing under it is a section announcing its own
-            absence. It still draws when there is an archived pile to get to,
-            because that control is the only way back to one. */}
-        {rest.length === 0 && !(thread.counts.archived > 0 || showArchived) ? null : (
-        <h2 className={styles.section}>
-          {showArchived ? "Archived" : restHeading}
-          {/* The count is what is in this list, so it is only shown once the
-              whole list is loaded. A number that counts one page is a number
-              that disagrees with the list under it the moment somebody scrolls. */}
-          {cursor ? null : (
-            <em className={styles.sectionCount} data-tone="accent">
-              {rest.length}
-            </em>
-          )}
-          {thread.counts.archived > 0 || showArchived ? (
-            <button
-              type="button"
-              className={styles.sectionAction}
-              onClick={() => setShowArchived((current) => !current)}
-            >
-              {showArchived ? "Back to the list" : `Archived ${thread.counts.archived}`}
-            </button>
-          ) : null}
-        </h2>
+            absence, and there is no longer an exception: the way to the
+            archived pile moved to the pane head, so the heading no longer has
+            to survive in order to carry it. */}
+        {rest.length === 0 ? null : (
+          <h2 className={styles.section}>
+            {showArchived ? "Archived" : restHeading}
+            {/* The count is what is in this list, so it is only shown once the
+                whole list is loaded. A number that counts one page is a number
+                that disagrees with the list under it the moment somebody
+                scrolls. */}
+            {cursor ? null : (
+              <em className={styles.sectionCount} data-tone="accent">
+                {rest.length}
+              </em>
+            )}
+          </h2>
         )}
 
         {/* "Everything in this thread is above" is a line with nothing under

@@ -230,7 +230,12 @@ export function Memories({
     <>
       <h2 className={styles.section}>
         Memories
-        <em className={styles.sectionCount}>{memories.length}</em>
+        {/* No zero. Writing the first one is the only way to see this section
+            with nothing in it, and a count of none beside the editor you are
+            typing into is the same noise as an empty heading. */}
+        {memories.length > 0 ? (
+          <em className={styles.sectionCount}>{memories.length}</em>
+        ) : null}
       </h2>
 
       <div className={styles.memories}>
