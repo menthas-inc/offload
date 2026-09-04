@@ -9,16 +9,32 @@
  * threads it actually wrote to.
  */
 
+/* The composer floats over the panes rather than sitting on a band below them.
+ *
+ * It used to be a row in the shell's flex column with a background of its own,
+ * so on any screen whose pane was a different paper it read as a separate
+ * surface stuck to the bottom. Absolute and transparent, it is what the kit
+ * calls it: one composer, over everything, belonging to no pane.
+ *
+ * `pointer-events` is off on the wrapper and on again on the card, so the
+ * transparent margin either side does not swallow clicks meant for the pane
+ * underneath it.
+ */
 .composer {
-  position: relative;
-  flex: 0 0 auto;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
   padding: var(--space-4) var(--space-8) var(--space-6);
+  pointer-events: none;
 }
 
 /* The kit's card: a rounded well with a blue ring and an inner glow, holding
    the conversation and the field. Not a bar with a border on top, which is
    what this was. */
 .card {
+  pointer-events: auto;
   max-width: 940px;
   margin: 0 auto;
   display: flex;

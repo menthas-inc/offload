@@ -156,16 +156,19 @@
   padding: 0 var(--space-4);
   border-radius: var(--radius-pill);
   border: 0;
-  background: transparent;
+  /* A quiet fill, so a crumb reads as a place you can go rather than as a word
+     in a sentence. Transparent made the trail disappear into the page. */
+  background: var(--surface-fill);
   font: inherit;
   color: var(--text-secondary);
   text-decoration: none;
   cursor: pointer;
-  transition: background var(--transition-ui);
+  transition: background var(--transition-ui), color var(--transition-ui);
 }
 
 .crumb:hover {
-  background: var(--surface-fill);
+  background: var(--ink-100);
+  color: var(--text-primary);
 }
 
 .crumb[data-on="true"] {
@@ -173,8 +176,14 @@
   color: var(--text-inverse);
 }
 
-.closePane {
+.crumbTools {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.closePane {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -227,33 +236,48 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* The top pane is raised and the ones behind it are the page. That contrast
-     is what makes a stack read as a stack rather than as two columns. */
+  /* `paperAt(d) = d % 2 === 0 ? "page" : "raised"`. **Depth zero is paper**,
+     not raised, so a screen with one pane is the same colour as the shell
+     around it. This was the other way round, which made Today and My threads
+     white slabs on a paper page and made the composer band beneath them look
+     like a different surface. */
+  background: var(--surface-page);
+}
+
+.pane[data-depth="1"] {
   background: var(--surface-raised);
+}
+
+/* The seam, on the pane that arrived rather than the one that was already
+   there, which is where the kit puts it (`edge={i>0}`). A shadow rather than a
+   border so neither pane changes width when it appears. */
+.pane[data-edge="true"] {
+  box-shadow: -1px 0 0 var(--border-hairline);
 }
 
 /* The pane that is not on top keeps a fixed width so the top one grows into
    the rest, which is what makes a third pane push the first out rather than
    squeezing all three. */
 /* The pane behind. Fixed width so the top one grows into the rest, which is
-   what makes a third push the first out rather than squeezing all three.
-
-   **It does not animate.** Everything animating on every navigation was the
-   glitch: the list you were already reading slid in alongside the thread you
-   just opened, so nothing looked like it was being revealed and everything
-   looked like it was being redrawn. */
+   what makes a third push the first out rather than squeezing all three. */
 .paneLeft {
   flex: 0 0 520px;
-  background: var(--surface-page);
-  /* A shadow rather than a border, so the pane's own width is unchanged and
-     two panes do not shift by a pixel when one arrives. */
-  box-shadow: -1px 0 0 var(--border-hairline);
 }
 
-/* The kit's own reveal: in from the right, 120px, over 260ms. Only ever on the
-   pane that is arriving. */
+/* The kit's own reveal: the arriving pane comes in from the right over 260ms,
+   and **the pane it lands beside moves with it**.
+
+   Animating only the arriving one was the jump. The pane behind snaps from full
+   width to 520px in a single frame while its neighbour slides, so the eye reads
+   a layout change rather than a reveal. Both moving is what the kit does
+   (`w-pane-in` on the top, `w-pane-shift` on the survivor) and it is the whole
+   difference. */
 .paneTop {
   animation: paneIn 260ms var(--ease-out) both;
+}
+
+.paneShift {
+  animation: paneShift 260ms var(--ease-out) both;
 }
 
 @keyframes paneIn {
@@ -261,8 +285,14 @@
   to { transform: none; opacity: 1; }
 }
 
+@keyframes paneShift {
+  from { transform: translateX(80px); }
+  to { transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .paneTop { animation: none; }
+  .paneTop,
+  .paneShift { animation: none; }
 }
 
 /* --------------------------------------------------------- pane content */
@@ -314,7 +344,9 @@
   max-width: 700px;
   width: 100%;
   margin: 0 auto;
-  padding: 0 var(--space-8) var(--space-7);
+  /* Clears a closed composer, which floats over this. An open one covers
+     content, which is what floating means and is why it can be closed. */
+  padding: 0 var(--space-8) 120px;
 }
 
 .section {
@@ -339,18 +371,21 @@
   display: inline-flex;
   align-items: center;
   height: 20px;
-  padding: 0 7px;
-  border-radius: var(--radius-sm);
+  padding: 0 var(--space-3);
+  /* radius-xs, which is what the Badge contract uses. radius-sm is 10px on a
+     20px box, which is a circle wearing a rectangle's name. */
+  border-radius: var(--radius-xs);
   font-style: normal;
   font-weight: var(--weight-medium);
-  font-size: 12px;
-  background: var(--blue-600);
-  color: var(--text-inverse);
+  font-size: var(--size-caption);
+  letter-spacing: 0.01em;
+  background: var(--surface-attention);
+  color: var(--text-on-solid);
   font-variant-numeric: tabular-nums;
 }
 
 .sectionCount[data-tone="accent"] {
-  background: var(--moss-100);
+  background: var(--surface-accent-soft);
   color: var(--text-accent);
 }
 
@@ -733,20 +768,42 @@
 }
 
 /* A task. The tick is a real checkbox rather than a styled div, so it is
-   reachable, announced and toggled by a keyboard without any help. */
+   reachable, announced and toggled by a keyboard without any help.
+
+   The kit builds these from `WRow`, so they carry a separator like every other
+   row. Without it a to-do list is the one list in the product with nothing
+   between its items. */
 .check {
   display: flex;
   align-items: flex-start;
   gap: var(--space-5);
-  padding: var(--space-4) 0;
+  width: calc(100% + var(--space-5) + var(--space-5));
+  margin: 0 calc(-1 * var(--space-5));
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
   cursor: pointer;
+  transition: background var(--transition-ui);
+}
+
+.check:hover {
+  background: var(--state-hover);
+}
+
+.check:last-child {
+  box-shadow: none;
 }
 
 /* Native, deliberately. The kit draws its own box and a native checkbox is
    reachable, announced and toggled by a keyboard with no help, which is worth
-   more than the two pixels of difference. Sized and coloured to match. */
+   more than the two pixels of difference.
+
+   The offset centres it on the **first line of the title**, not on the row: a
+   row with a second line is taller, and a checkbox that centres on the row sits
+   below the words on one and above them on the other. Title is 15.5px at 1.35,
+   so the line is 21px and a 17px box wants 2px. */
 .check input {
-  margin-top: 6px;
+  margin-top: 2px;
   width: 17px;
   height: 17px;
   border-radius: 5px;

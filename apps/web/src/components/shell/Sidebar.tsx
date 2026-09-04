@@ -48,8 +48,14 @@ export function Sidebar({ threads, threadCount }: Props) {
       <Link href="/today" className={styles.brand} aria-label="offload, home">
         {/* The mark, not the threads glyph. It was `lasso`, which is the icon a
             thread carries, so the product's own name was wearing one of its
-            nouns. `tone="inverse"` because the sidebar is always dark. */}
-        <Logo tone="inverse" size={21} />
+            nouns.
+
+            `tone="ink"`, not `inverse`, and the difference is the whole bug:
+            this container is stamped `data-theme="dark"`, so every token inside
+            it has already flipped. `ink` resolves to `--text-primary`, which is
+            light here. Asking for `inverse` asked for the dark theme's inverse,
+            which is dark, and painted the mark black on black. */}
+        <Logo tone="ink" size={21} />
       </Link>
 
       <div className={styles.navGroup}>
