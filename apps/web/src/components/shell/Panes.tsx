@@ -86,13 +86,6 @@ export function Panes({ crumbs, panes }: Props) {
             </span>
           ))}
         </span>
-
-        {back && !full ? (
-          <Link href={back.href} className={styles.closePane}>
-            <Icon name="x" size={14} />
-            Close pane
-          </Link>
-        ) : null}
       </div>
 
       <div className={styles.paneRow}>

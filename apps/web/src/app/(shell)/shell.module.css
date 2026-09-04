@@ -192,19 +192,6 @@
   gap: var(--space-4);
 }
 
-.closePane {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-tertiary);
-  text-decoration: none;
-  font: inherit;
-}
-
-.closePane:hover {
-  color: var(--text-primary);
-}
-
 /* The trail and the back button both render; the breakpoint below picks one.
    Kept in the stylesheet alone because the design system has no breakpoint
    token, so a JavaScript copy of this number would be a second place for it to
