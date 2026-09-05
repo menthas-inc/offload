@@ -18,12 +18,14 @@
 
 import { useEffect, useRef } from "react";
 import { Keyboard, Platform, Pressable, ScrollView, Text, View } from "react-native";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  ReduceMotion,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
-  ReduceMotion,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
 import { COLOR } from "../../lib/colors";
@@ -73,9 +75,37 @@ export function Conversation() {
     });
   }, [raised, progress]);
 
+  // How far a finger has dragged it down. Separate from `progress` so the sheet
+  // follows the hand rather than animating to a state: a drag that does not go
+  // far enough springs back from wherever it got to.
+  const drag = useSharedValue(0);
+
+  const foldNow = (): void => {
+    drag.value = 0;
+    conversation.fold();
+  };
+
+  /** Pull it down to put it away.
+   *
+   *  Past a third of the way, or thrown hard enough, it folds; short of that it
+   *  springs back. Distance alone would make a fast flick feel ignored and
+   *  velocity alone would fold on a careless brush. */
+  const pull = Gesture.Pan()
+    .activeOffsetY([-12, 12])
+    .onUpdate((event) => {
+      drag.value = Math.max(0, event.translationY);
+    })
+    .onEnd((event) => {
+      if (event.translationY > 110 || event.velocityY > 900) {
+        runOnJS(foldNow)();
+        return;
+      }
+      drag.value = withSpring(0, { damping: 22, stiffness: 240 });
+    });
+
   const sheet = useAnimatedStyle(() => ({
     opacity: progress.value,
-    transform: [{ translateY: (1 - progress.value) * 60 }],
+    transform: [{ translateY: (1 - progress.value) * 60 + drag.value }],
   }));
 
   if (!raised) return null;
@@ -89,23 +119,42 @@ export function Conversation() {
       style={[sheet, { maxHeight: "78%" }]}
       className={`${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
     >
-      <View className="flex-row items-center gap-space-4 px-gutter-screen pb-space-3 pt-space-5">
-        <Text
-          className={`flex-1 font-core font-medium ${
-            isAndroid ? "text-a-on" : "text-text-primary"
-          }`}
-          style={{ fontSize: 14 }}
-          numberOfLines={1}
+      {/* The header is the handle: tap it or pull it down to put the
+          conversation away. The chevron stays because a gesture with no visible
+          affordance is one nobody finds, and the two nested controls take their
+          own taps before this one sees them. */}
+      <GestureDetector gesture={pull}>
+        <Pressable
+          onPress={foldNow}
+          accessibilityLabel="Fold the conversation away"
+          className="flex-row items-center gap-space-4 px-gutter-screen pb-space-3 pt-space-4"
         >
-          {conversation.live?.title}
-        </Text>
-        <Pressable onPress={conversation.fold} hitSlop={10} accessibilityLabel="Fold away">
-          <Glyph name="chevron-down" size={18} color={COLOR.iconOnWell} />
+          {/* A grab handle, because "you can pull this" has to be visible
+              somewhere and the chevron alone reads as a button rather than an
+              edge you can take hold of. */}
+          <View
+            className={`absolute self-center rounded-pill ${
+              isAndroid ? "bg-a-outline" : "bg-border-strong"
+            }`}
+            style={{ top: 6, left: "50%", marginLeft: -18, width: 36, height: 4 }}
+          />
+          <Text
+            className={`flex-1 font-core font-medium ${
+              isAndroid ? "text-a-on" : "text-text-primary"
+            }`}
+            style={{ fontSize: 14 }}
+            numberOfLines={1}
+          >
+            {conversation.live?.title}
+          </Text>
+          <Pressable onPress={foldNow} hitSlop={10} accessibilityLabel="Fold away">
+            <Glyph name="chevron-down" size={18} color={COLOR.iconOnWell} />
+          </Pressable>
+          <Pressable onPress={conversation.close} hitSlop={10} accessibilityLabel="Close">
+            <Glyph name="x" size={18} color={COLOR.iconOnWell} />
+          </Pressable>
         </Pressable>
-        <Pressable onPress={conversation.close} hitSlop={10} accessibilityLabel="Close">
-          <Glyph name="x" size={18} color={COLOR.iconOnWell} />
-        </Pressable>
-      </View>
+      </GestureDetector>
 
       <Turns />
 
