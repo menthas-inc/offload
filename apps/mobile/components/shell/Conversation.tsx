@@ -124,35 +124,36 @@ export function Conversation() {
           affordance is one nobody finds, and the two nested controls take their
           own taps before this one sees them. */}
       <GestureDetector gesture={pull}>
-        <Pressable
-          onPress={foldNow}
-          accessibilityLabel="Fold the conversation away"
-          className="flex-row items-center gap-space-4 px-gutter-screen pb-space-3 pt-space-4"
-        >
+        <Pressable onPress={foldNow} accessibilityLabel="Fold the conversation away">
           {/* A grab handle, because "you can pull this" has to be visible
               somewhere and the chevron alone reads as a button rather than an
-              edge you can take hold of. */}
-          <View
-            className={`absolute self-center rounded-pill ${
-              isAndroid ? "bg-a-outline" : "bg-border-strong"
-            }`}
-            style={{ top: 6, left: "50%", marginLeft: -18, width: 36, height: 4 }}
-          />
-          <Text
-            className={`flex-1 font-core font-medium ${
-              isAndroid ? "text-a-on" : "text-text-primary"
-            }`}
-            style={{ fontSize: 14 }}
-            numberOfLines={1}
-          >
-            {conversation.live?.title}
-          </Text>
-          <Pressable onPress={foldNow} hitSlop={10} accessibilityLabel="Fold away">
-            <Glyph name="chevron-down" size={18} color={COLOR.iconOnWell} />
-          </Pressable>
-          <Pressable onPress={conversation.close} hitSlop={10} accessibilityLabel="Close">
-            <Glyph name="x" size={18} color={COLOR.iconOnWell} />
-          </Pressable>
+              edge you can take hold of. Its own centred row rather than an
+              absolute box: absolute plus `top: 6` inside the header's flex row
+              laid it over the title. */}
+          <View className="items-center pt-space-3">
+            <View
+              className={`rounded-pill ${isAndroid ? "bg-a-outline" : "bg-border-strong"}`}
+              style={{ width: 36, height: 4 }}
+            />
+          </View>
+
+          <View className="flex-row items-center gap-space-4 px-gutter-screen pb-space-3 pt-space-3">
+            <Text
+              className={`flex-1 font-core font-medium ${
+                isAndroid ? "text-a-on" : "text-text-primary"
+              }`}
+              style={{ fontSize: 14 }}
+              numberOfLines={1}
+            >
+              {conversation.live?.title}
+            </Text>
+            <Pressable onPress={foldNow} hitSlop={10} accessibilityLabel="Fold away">
+              <Glyph name="chevron-down" size={18} color={COLOR.iconOnWell} />
+            </Pressable>
+            <Pressable onPress={conversation.close} hitSlop={10} accessibilityLabel="Close">
+              <Glyph name="x" size={18} color={COLOR.iconOnWell} />
+            </Pressable>
+          </View>
         </Pressable>
       </GestureDetector>
 
