@@ -17,8 +17,10 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "expo-router";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Plate, type Tab } from "./Plate";
-import { Conversation } from "./Conversation";
+import { Conversation, ConversationScrim } from "./Conversation";
 import { useConversation } from "./conversation-context";
 import { ToastHost, useToast } from "./Toast";
 import { timeOfDay } from "../../lib/sun";
@@ -32,6 +34,12 @@ export function Shell() {
   const tod = timeOfDay();
   const conversation = useConversation();
   const toast = useToast();
+
+  // One translate, on the whole bottom column. The sheet and the plate are
+  // stacked in it, so moving them separately let the keyboard put them at
+  // different heights, and moving the column keeps them a single surface.
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
 
   // The turn's Undo lives here rather than in the sheet, so folding the
   // conversation cannot take the window away with it. An eight second window
@@ -76,8 +84,14 @@ export function Shell() {
 
   return (
     <>
-      <Conversation />
-      <Plate tabs={tabs} placeholder={inThread ? "Add to this" : undefined} />
+      <ConversationScrim />
+      {/* The sheet sits on top of the plate rather than beside it. Both were
+          anchored to the bottom of the screen and the plate paints later, so
+          the tabs covered the sheet's own composer. */}
+      <Animated.View style={lift} className="absolute inset-x-0 bottom-0">
+        <Conversation />
+        <Plate tabs={tabs} placeholder={inThread ? "Add to this" : undefined} />
+      </Animated.View>
       <ToastHost state={toast} />
     </>
   );

@@ -25,7 +25,6 @@ import Animated, {
   withTiming,
   ReduceMotion,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glyph } from "../Glyph";
 import { COLOR } from "../../lib/colors";
 import { Composer } from "./Composer";
@@ -34,10 +33,35 @@ import { useConversation, type Turn } from "./conversation-context";
 
 const isAndroid = Platform.OS === "android";
 
+/** The dim behind a raised conversation. Full screen, and its own component so
+ *  the shell can put it under the whole bottom column rather than inside it. */
+export function ConversationScrim() {
+  const conversation = useConversation();
+  const raised = conversation.live !== null && !conversation.folded;
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withTiming(raised ? 1 : 0, {
+      duration: 280,
+      reduceMotion: ReduceMotion.System,
+    });
+  }, [raised, progress]);
+
+  const scrim = useAnimatedStyle(() => ({ opacity: progress.value * 0.35 }));
+  if (!raised) return null;
+
+  return (
+    <Animated.View
+      style={[{ position: "absolute", inset: 0, backgroundColor: COLOR.scrim }, scrim]}
+    >
+      <Pressable className="flex-1" onPress={conversation.fold} accessibilityLabel="Fold" />
+    </Animated.View>
+  );
+}
+
 export function Conversation() {
   const conversation = useConversation();
   const raised = conversation.live !== null && !conversation.folded;
-  const insets = useSafeAreaInsets();
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -49,16 +73,6 @@ export function Conversation() {
     });
   }, [raised, progress]);
 
-  // 0.35 at rest, faded in with the sheet rather than snapping on.
-  const scrim = useAnimatedStyle(() => ({ opacity: progress.value * 0.35 }));
-
-  // `height` is negative while the keyboard is up, which is the offset to move
-  // by rather than a number to subtract from something.
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const keyboard = useAnimatedStyle(() => ({
-    transform: [{ translateY: keyboardHeight.value }],
-  }));
-
   const sheet = useAnimatedStyle(() => ({
     opacity: progress.value,
     transform: [{ translateY: (1 - progress.value) * 60 }],
@@ -67,60 +81,38 @@ export function Conversation() {
   if (!raised) return null;
 
   return (
-    <>
-      <Animated.View
-        style={[{ position: "absolute", inset: 0, backgroundColor: COLOR.scrim }, scrim]}
-      >
-        <Pressable className="flex-1" onPress={conversation.fold} accessibilityLabel="Fold" />
-      </Animated.View>
+    // An ordinary block in the shell's bottom column, above the plate. It was
+    // absolutely positioned at `bottom: 0` and the plate is too, so the tabs
+    // painted straight over the sheet's own composer. One column, sheet on top,
+    // which is also how the kit lays it out.
+    <Animated.View
+      style={[sheet, { maxHeight: "78%" }]}
+      className={`${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
+    >
+      <View className="flex-row items-center gap-space-4 px-gutter-screen pb-space-3 pt-space-5">
+        <Text
+          className={`flex-1 font-core font-medium ${
+            isAndroid ? "text-a-on" : "text-text-primary"
+          }`}
+          style={{ fontSize: 14 }}
+          numberOfLines={1}
+        >
+          {conversation.live?.title}
+        </Text>
+        <Pressable onPress={conversation.fold} hitSlop={10} accessibilityLabel="Fold away">
+          <Glyph name="chevron-down" size={18} color={COLOR.iconOnWell} />
+        </Pressable>
+        <Pressable onPress={conversation.close} hitSlop={10} accessibilityLabel="Close">
+          <Glyph name="x" size={18} color={COLOR.iconOnWell} />
+        </Pressable>
+      </View>
 
-      {/* The sheet rides the keyboard rather than sitting under it.
-          Pinned to `bottom: 0` it stayed where the screen ends, so the composer
-          and the newest turns went behind the keyboard and what was left
-          showing was the beginning of the conversation: exactly backwards for a
-          log you read from the end.
+      <Turns />
 
-          **Translated by the keyboard's own height, not `KeyboardAvoidingView`.**
-          Padding avoidance works on a view that owns its layout; this one is
-          absolutely positioned with a max height, so there is nothing for the
-          padding to push. The keyboard's animated height is a number this can
-          move by, it stays in step with the system animation frame for frame,
-          and it does the same thing on both platforms, which matters here
-          because the app is edge to edge and Android's resize behaviour is
-          exactly what this repo has been burned by before. */}
-      <Animated.View
-        style={[
-          sheet,
-          keyboard,
-          { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "88%" },
-        ]}
-        className={`${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
-      >
-        <View className="flex-row items-center gap-space-4 px-gutter-screen pb-space-3 pt-space-5">
-          <Text
-            className={`flex-1 font-core font-medium ${
-              isAndroid ? "text-a-on" : "text-text-primary"
-            }`}
-            style={{ fontSize: 14 }}
-            numberOfLines={1}
-          >
-            {conversation.live?.title}
-          </Text>
-          <Pressable onPress={conversation.fold} hitSlop={10} accessibilityLabel="Fold away">
-            <Glyph name="chevron-down" size={18} color={COLOR.iconOnWell} />
-          </Pressable>
-          <Pressable onPress={conversation.close} hitSlop={10} accessibilityLabel="Close">
-            <Glyph name="x" size={18} color={COLOR.iconOnWell} />
-          </Pressable>
-        </View>
-
-        <Turns />
-
-        <View style={{ paddingBottom: insets.bottom }}>
-          <Composer placeholder="Add to this" />
-        </View>
-      </Animated.View>
-    </>
+      {/* No safe-area padding here: the plate below owns the bottom inset, and
+          adding it twice left a gap the height of the gesture bar. */}
+      <Composer placeholder="Add to this" />
+    </Animated.View>
   );
 }
 

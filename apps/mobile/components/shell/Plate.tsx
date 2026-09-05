@@ -10,8 +10,6 @@
 // likeliest place to want it. Logged as a divergence.
 
 import { Platform, Pressable, Text, View } from "react-native";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glyph } from "../Glyph";
 import { COLOR } from "../../lib/colors";
@@ -30,11 +28,6 @@ export interface Tab {
 
 export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string | undefined }) {
   const insets = useSafeAreaInsets();
-  // Moved by the keyboard's own height rather than avoided with padding, for
-  // the reason the sheet gives: this app is edge to edge, and a number the
-  // system animates is the one thing that behaves the same on both platforms.
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
   const conversation = useConversation();
   const folded = conversation.live !== null && conversation.folded;
   // The raised sheet brings its own composer, so the plate's would be a second
@@ -43,8 +36,7 @@ export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string
   const raised = conversation.live !== null && !conversation.folded;
 
   return (
-    <Animated.View style={lift}>
-      <View
+    <View
         className={`${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
         style={{
           paddingBottom: insets.bottom,
@@ -86,8 +78,7 @@ export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string
             ))}
           </View>
         ) : null}
-      </View>
-    </Animated.View>
+    </View>
   );
 }
 
