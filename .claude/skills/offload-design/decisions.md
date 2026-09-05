@@ -693,6 +693,22 @@ clients, the composer on web, the nav foot and a Settings Appearance page, and t
 is settled. Two things for the codebase: **grouping comes out of the widgets** in favour of the filter,
 and **the two preference glyphs get labels**.
 
+### 2026-09-05 · A row offers one way out, not two
+**Surface:** all
+**Raised by:** the product owner, asking why a row needs both archive and delete.
+
+**Is:** every row carries edit and exactly one way out. Your own content offers **Delete**; content somebody else wrote, in a shared thread, offers **Archive**. An archived row offers **Put back**, whoever is looking. Never two of the three at once.
+
+**This reverses the row-actions rule from earlier the same day**, which said edit and archive sit on the row for any member and delete is the author's alone. That was three controls, and on a solo thread, where every row is yours, two of them answered the same question: archive and delete both mean *get this off my list*, and only one of them is honest about what it does afterwards.
+
+**The rule is still the permission split, drawn more tightly.** Archive exists because OFF-3 says you may not destroy what another person wrote, and a shared thread still has to be tidyable by the people in it. So archive is not a gentler delete, it is **what you get instead of delete**, and drawing it beside delete made it look like a preference rather than a consequence of whose row it is.
+
+**What is given up, named rather than discovered.** There is no longer a non-destructive way out for your own content: a stale link of yours is kept or deleted, with the eight second Undo as the only way back. The tick is not a substitute, because it only exists in the To do widget and a note cannot be ticked. Raised before the change and accepted.
+
+**The phones need no separate answer.** `SwipeRow` stays delete-only and already refuses to park open on a row this account may not delete, so a non-owned row reaches Archive through the long press and never opens onto a control the server would refuse. The sheet follows the same one-way-out rule.
+
+**Design system impact:** `readme.md`'s row-actions bullet is now wrong and should read: a row carries edit and one way out, delete for the author, archive for everybody else, put back for anything archived. The `RowActionSheet` contract is unaffected, it already says to omit what this account may not do. No kit draws a shared thread yet, so nothing to redraw until one does.
+
 ### 2026-09-05 · The design queue, applied
 **Surface:** all
 **Raised by:** the code, applying `handoff/APPLY-2026-09-05.md`.

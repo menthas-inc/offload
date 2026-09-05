@@ -132,9 +132,10 @@ export function ContentRowView({
       <RowTools
         title={row.title}
         archived={row.archivedAt !== null}
+        canDelete={row.canDelete}
         onEdit={() => handlers.onEdit(row)}
         onArchive={() => handlers.onArchive(row)}
-        onDelete={row.canDelete ? () => handlers.onAsk(row.id) : undefined}
+        onDelete={() => handlers.onAsk(row.id)}
       />
     </div>
   );

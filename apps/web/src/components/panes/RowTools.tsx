@@ -7,14 +7,20 @@
 // in the To do widget could be ticked and nothing else: to rename it you had to
 // find the same row again further down the page.
 //
-// **Conditional, never refused.** Edit and archive are on the row for any
-// member; delete is the author's and is simply absent otherwise, which is the
-// readme's rule and OFF-3's. Two rows side by side showing a different number
-// of controls is the honest reading of one permission rule, and a control that
-// is drawn and then refused teaches somebody a rule that is not true.
+// **Two controls, never three: edit, and one way out.** Which way out you get
+// is decided by whether the row is yours. Your own content offers Delete;
+// somebody else's, in a shared thread, offers Archive, because OFF-3 says you
+// may not destroy what another person wrote and a thread still has to be
+// tidyable by the people in it.
 //
-// Anything beyond these three goes behind the row's own `ellipsis` on web, or a
-// `RowActionSheet` on a phone. Nothing has needed a fourth yet.
+// They were both drawn for a while and that was one control too many: on a
+// solo thread, where every row is yours, Archive and Delete are two answers to
+// the same question and only one of them is honest about what it does. Offering
+// exactly one also means the row never draws a control the server would refuse,
+// which is the readme's rule: conditional, never refused.
+//
+// Anything beyond these two goes behind the row's own `ellipsis` on web, or a
+// `RowActionSheet` on a phone. Nothing has needed a third yet.
 
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
@@ -22,16 +28,18 @@ import styles from "../../app/(shell)/shell.module.css";
 export function RowTools({
   title,
   archived,
+  canDelete,
   onEdit,
   onArchive,
   onDelete,
 }: {
   title: string;
   archived: boolean;
+  /** Yours, or nobody's. Decides which of the two ways out is drawn. */
+  canDelete: boolean;
   onEdit: () => void;
   onArchive: () => void;
-  /** Omit and no delete is drawn. */
-  onDelete?: (() => void) | undefined;
+  onDelete: () => void;
 }) {
   return (
     <span className={styles.rowTools}>
@@ -44,16 +52,21 @@ export function RowTools({
       >
         <Icon name="pencil" size={15} />
       </button>
-      <button
-        type="button"
-        className={styles.tool}
-        aria-label={archived ? "Put back in the list" : "Archive"}
-        title={archived ? "Put back in the list" : "Archive"}
-        onClick={onArchive}
-      >
-        <Icon name={archived ? "rewind" : "archive"} size={15} />
-      </button>
-      {onDelete ? (
+
+      {/* An archived row always offers the way back, whoever is looking:
+          putting something back is not destructive and is not the author's
+          alone. */}
+      {archived ? (
+        <button
+          type="button"
+          className={styles.tool}
+          aria-label={`Put ${title} back in the list`}
+          title="Put back in the list"
+          onClick={onArchive}
+        >
+          <Icon name="rewind" size={15} />
+        </button>
+      ) : canDelete ? (
         <button
           type="button"
           className={styles.toolDanger}
@@ -63,7 +76,17 @@ export function RowTools({
         >
           <Icon name="trash-2" size={15} />
         </button>
-      ) : null}
+      ) : (
+        <button
+          type="button"
+          className={styles.tool}
+          aria-label={`Archive ${title}`}
+          title="Archive"
+          onClick={onArchive}
+        >
+          <Icon name="archive" size={15} />
+        </button>
+      )}
     </span>
   );
 }

@@ -176,22 +176,30 @@ export default function Thread() {
   const actions: RowAction[] = acting
     ? [
         // Edit leads, because renaming is the commonest thing to want and the
-        // one this sheet did not offer: a row could be ticked, archived and
-        // deleted, and the only way to fix its title was on the web.
+        // one this sheet did not offer: the only way to fix a title was on the
+        // web.
         { label: "Edit", icon: "pencil", run: () => setRenaming(acting) },
         {
           label: acting.doneAt ? "Mark not done" : "Mark done",
           icon: acting.doneAt ? "rewind" : "check",
           run: () => tick(acting),
         },
-        {
-          label: acting.archivedAt ? "Put back in the thread" : "Archive",
-          icon: acting.archivedAt ? "rewind" : "archive",
-          run: () => archive(acting),
-        },
-        ...(acting.canDelete
-          ? [{ label: "Delete", icon: "trash-2", danger: true, run: () => remove(acting) }]
-          : []),
+        // One way out, never two. Your own content offers Delete; somebody
+        // else's, in a shared thread, offers Archive, because OFF-3 says you
+        // may not destroy what another person wrote and a thread still has to
+        // be tidyable by the people in it. Putting something back is neither,
+        // so an archived row always offers it whoever is looking.
+        ...(acting.archivedAt
+          ? [
+              {
+                label: "Put back in the thread",
+                icon: "rewind",
+                run: () => archive(acting),
+              },
+            ]
+          : acting.canDelete
+            ? [{ label: "Delete", icon: "trash-2", danger: true, run: () => remove(acting) }]
+            : [{ label: "Archive", icon: "archive", run: () => archive(acting) }]),
       ]
     : [];
 
