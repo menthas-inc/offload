@@ -20,13 +20,36 @@ carries a failure mode no mock can express.
       which is the rule the web client got wrong.
 - [ ] **A2** Port `lib/threads.ts` and `lib/dump.ts` as the mobile API layer. Pure functions, no
       DOM, so this is the one part that genuinely is a port.
-- [ ] **A3** Extract `lib/widgets.ts` to a shared package, imported by the server, web and both
-      phones. It is deliberately duplicated between the server and web today and a third copy is
-      where that stops being defensible.
-      *Test:* the existing suites on both sides pass unchanged against the shared copy.
+- [ ] **A3** Create `packages/widgets` **as a package, not a folder**: `exports` at `dist/`, a
+      build, and a `prepare` script so `pnpm install` produces it. Modelled on `packages/tokens`,
+      because a generated artifact built by a step someone remembers is what broke every EAS
+      build once.
+- [ ] **A3a** Move `parseTag` and `dimensionsIn` into it as well as the six rendering functions.
+      `groupBy` calls `parseTag`, and leaving it out gives the package a third copy beside the
+      server's. `apps/core-api/src/threads/tags.ts` imports them back for `normaliseTags`.
+- [ ] **A3b** Both suites, with the changes named in the impl-spec: web's fixtures move from
+      `place` to `placeId`, and the server test's `dimensionsIn` import moves.
+      *Test:* both suites green, and no third `parseTag` anywhere in the repo.
+- [ ] **A3c** `GestureHandlerRootView` in `app/_layout.tsx`. `react-native-gesture-handler` is a
+      dependency with no usage and no root view, and without it Android swipes silently do not
+      register. Before any swipe ships.
+- [ ] **A3d** Add `react-native-keyboard-controller` and rebuild the dev client. Native code, so
+      a Metro reload will not pick it up, and check its peer range against RN 0.86 and
+      Reanimated 4.5.1 first.
 - [ ] **A4** The stream. `EventSource` is not in the React Native runtime. Ship on `fetchAnswer`,
-      which the stream is already an optimisation over, and add the stream behind that.
-      *Test:* an answer arrives with the stream unavailable.
+      which the stream is already an optimisation over. One second while live, backing off to
+      five after twenty misses, stopping on `answered`, `partial` or `failed` and on background,
+      and asking immediately on foreground rather than waiting a tick.
+      *Test:* under vitest, not on a device: it stops on each terminal state, it backs off, and
+      foregrounding asks at once.
+- [ ] **A4a** Session storage pins `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY` on write, and first
+      launch rewrites an existing cookie so it is not left on the old class.
+- [ ] **A4b** **Verify Android's actual backup behaviour for `expo-secure-store`** and write the
+      answer into the impl-spec. `keychainAccessible` is iOS-only, so the fix above says nothing
+      about Android and nobody has checked what is true there.
+- [ ] **A4c** A `vitest` setup for `apps/mobile`, replacing the `echo "no mobile tests yet"`
+      stub, covering the ported API layer and the poll. Everything that needs a device stays a
+      device check; everything that does not stops pretending it does.
 - [ ] **A5** Navigation: three tabs on the plate, full-screen push for everything else. iOS
       pushes at 350ms, Android uses shared-axis-X at 300ms.
 - [ ] **A6** The third tab exists and is empty, saying so, the way Today does. It is not hidden
