@@ -13,7 +13,7 @@
 //     destinations are out of scope, and a control that does nothing is worse
 //     on a phone than absent.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -22,6 +22,7 @@ import { QuietEmpty } from "./QuietEmpty";
 import { ThreadRow } from "../shell/ThreadRow";
 import { ToastHost, useToast } from "../shell/Toast";
 import { deleteThread, fetchThreads, restoreThread, type ThreadGroup } from "../../lib/threads";
+import { useConversation } from "../shell/conversation-context";
 import { failed } from "../../lib/log";
 
 const isAndroid = Platform.OS === "android";
@@ -39,6 +40,7 @@ export default function MyThreads() {
   const [groups, setGroups] = useState<ThreadGroup[] | null>(null);
   const [allOlder, setAllOlder] = useState(false);
   const toast = useToast();
+  const { filed } = useConversation();
 
   const load = useCallback(async () => {
     try {
@@ -56,6 +58,18 @@ export default function MyThreads() {
       void load();
     }, [load]),
   );
+
+  // And on the turn itself, because focus does not change when you are already
+  // standing here. The composer is on this screen, so offload creating a thread
+  // while you watch is the ordinary case: without this the list went on showing
+  // what it held a moment ago and only caught up if you navigated away and
+  // back, which is how it was found.
+  const lastFiled = useRef(0);
+  useEffect(() => {
+    if (!filed || filed.at === lastFiled.current) return;
+    lastFiled.current = filed.at;
+    void load();
+  }, [filed, load]);
 
   async function remove(id: string, name: string): Promise<void> {
     const result = await deleteThread(id);

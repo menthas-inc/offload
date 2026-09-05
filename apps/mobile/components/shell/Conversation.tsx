@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glyph } from "../Glyph";
 import { COLOR } from "../../lib/colors";
 import { Composer } from "./Composer";
+import { useRouter } from "expo-router";
 import { useConversation, type Turn } from "./conversation-context";
 
 const isAndroid = Platform.OS === "android";
@@ -186,6 +187,8 @@ function Mark({ done, children }: { done?: boolean; children: React.ReactNode })
 }
 
 function Theirs({ turn }: { turn: Turn }) {
+  const router = useRouter();
+  const { fold } = useConversation();
   return (
     <View
       className={`px-space-5 py-space-4 ${isAndroid ? "bg-a-c" : "bg-ink-50"}`}
@@ -210,8 +213,16 @@ function Theirs({ turn }: { turn: Turn }) {
       {turn.threads && turn.threads.length > 0 ? (
         <View className="mt-space-3 flex-row flex-wrap gap-space-2">
           {turn.threads.map((thread) => (
-            <View
+            // Tappable, and it folds on the way out. A reply naming where it
+            // filed something and not taking you there is a sentence about a
+            // place rather than a way to it, and the conversation should get
+            // out of the way rather than close: you may want to keep dumping.
+            <Pressable
               key={thread.id}
+              onPress={() => {
+                fold();
+                router.push({ pathname: "/threads/[id]", params: { id: thread.id } });
+              }}
               className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-4"
               style={{ height: 26 }}
             >
@@ -219,7 +230,7 @@ function Theirs({ turn }: { turn: Turn }) {
               <Text className="font-core text-text-accent" style={{ fontSize: 12.5 }}>
                 {thread.name}
               </Text>
-            </View>
+            </Pressable>
           ))}
         </View>
       ) : null}

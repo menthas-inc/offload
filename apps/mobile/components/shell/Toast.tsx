@@ -9,9 +9,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
-import Animated, { FadeInDown, FadeOut } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeInUp, FadeOut } from "react-native-reanimated";
 
 const VISIBLE_MS = 8000;
+
+// **Top, not bottom.** The kit puts a toast above the navigation bar, which on
+// a phone is where the composer lives, so an Undo covered the field it was
+// telling you about. The one place nothing else occupies is under the app bar.
 const isAndroid = Platform.OS === "android";
 
 export interface ToastAction {
@@ -56,14 +61,16 @@ export function useToast(): ToastState {
  *  it contains, because `Toast` is a governed component with a stated contract
  *  and a wrapper taking a state object is not that component. */
 export function ToastHost({ state }: { state: ToastState }) {
+  const insets = useSafeAreaInsets();
   if (!state.showing) return null;
   const { message, action } = state.showing;
 
   return (
     <Animated.View
-      entering={FadeInDown.duration(280)}
+      entering={FadeInUp.duration(280)}
       exiting={FadeOut.duration(140)}
-      className="absolute inset-x-space-4 bottom-space-4"
+      className="absolute inset-x-space-4"
+      style={{ top: insets.top + 56 }}
       pointerEvents="box-none"
     >
       <View

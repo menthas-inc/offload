@@ -8,14 +8,16 @@
 export const GATE = {
   signIn: {
     title: "One place for everything you would otherwise forget.",
-    sub: "Sign in to start. Invite only for now.",
+    sub: "Sign in to start.",
     apple: "Continue with Apple",
     google: "Continue with Google",
     // Split because the kits emphasise the second half in the accent colour
     // inside the sentence. It is emphasis, not a link: there is no public
     // waitlist page, and joining needs an identity you only have after a
     // sign-in attempt, which is what the no-invite screen is for.
-    terms: "No invite yet? ",
+    // The lead-in went with "Invite only for now": two sentences saying the
+    // same thing on one screen, and the link says what it does on its own.
+    terms: "",
     termsAccent: "Join the waitlist",
     // The kits say "Terms · Privacy". There is no terms page yet, and a line
     // naming a document that does not exist is worse than a shorter line, so
