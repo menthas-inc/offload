@@ -312,6 +312,12 @@ export async function takeDump(
       .select("id")
       .where("account_id", "=", accountId)
       .where("deleted_at", "is", null)
+      // Closing the composer ends the conversation, so the next dump starts a
+      // new one however soon it arrives. Six hours of silence was the only
+      // thing that used to end one, which meant somebody who deliberately put
+      // a conversation away and began a new subject got answers about the old
+      // one.
+      .where("ended_at", "is", null)
       .where(
         sql<boolean>`last_message_at > now() - interval '${sql.raw(CONVERSATION_GAP)}'`,
       )
@@ -549,6 +555,11 @@ export async function dumpRoutes(app: App): Promise<void> {
         .select(["id"])
         .where("account_id", "=", accountId)
         .where("deleted_at", "is", null)
+        // The same predicate as the dump's own lookup, and for the same
+        // reason: a conversation somebody closed must not come back on the
+        // next load. Its messages are still there, they are just not the
+        // current conversation any more.
+        .where("ended_at", "is", null)
         .where(sql<boolean>`last_message_at > now() - interval '${sql.raw(CONVERSATION_GAP)}'`)
         .orderBy("last_message_at", "desc")
         .limit(1)
@@ -576,6 +587,41 @@ export async function dumpRoutes(app: App): Promise<void> {
           turnId: row.turn_id,
         })),
       });
+    }
+  );
+
+  // Ending the current conversation, because somebody closed it.
+  //
+  // The composer's close is a statement, not a tidy-up: this subject is over.
+  // Before this it cleared the screen and nothing else, so the next dump joined
+  // the same conversation and offload answered it holding the previous one.
+  //
+  // **Ends whatever is current rather than an id the client names.** The client
+  // knows the conversation it was showing, but by the time the request lands
+  // that may not be the one a dump from another device just started, and ending
+  // a conversation somebody is still typing into is worse than the bug. So the
+  // server ends what its own lookup would have reused, which is exactly the
+  // thing the close was about.
+  //
+  // Idempotent, and quiet about finding nothing: closing an empty composer, or
+  // closing twice, is a normal thing to do and not a failure.
+  app.post(
+    "/v1/conversations/current/end",
+    { schema: { response: { 200: z.object({ ended: z.boolean() }), 401: unauthenticated } } },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+      const ended = await db
+        .updateTable("conversations")
+        .set({ ended_at: sql`now()` })
+        .where("account_id", "=", accountId)
+        .where("deleted_at", "is", null)
+        .where("ended_at", "is", null)
+        .where(sql<boolean>`last_message_at > now() - interval '${sql.raw(CONVERSATION_GAP)}'`)
+        .executeTakeFirst();
+
+      return reply.send({ ended: (ended.numUpdatedRows ?? 0n) > 0n });
     }
   );
 

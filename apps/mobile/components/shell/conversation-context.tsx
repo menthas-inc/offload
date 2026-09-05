@@ -13,6 +13,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { AppState, type AppStateStatus } from "react-native";
 import {
   awaitAnswer,
+  endConversation,
   fetchCurrent,
   resumeDump,
   sendDump,
@@ -219,8 +220,12 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   );
 
   const close = useCallback(() => {
+    // Closing is a statement, not a tidy-up: this subject is over, so the next
+    // dump starts a conversation rather than joining this one however soon it
+    // arrives. Folding is the opposite and says nothing to the server.
     setLive(null);
     setFolded(false);
+    void endConversation();
   }, []);
 
   return (

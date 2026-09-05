@@ -192,3 +192,22 @@ export async function resumeDump(messageId: string): Promise<Sent | null> {
   if (!response.ok) return null;
   return (await response.json()) as Sent;
 }
+
+/** End the current conversation, because somebody closed the composer.
+ *
+ *  Fire and forget on purpose. Closing the chat is instant on screen and must
+ *  stay that way; if this request never lands, the worst case is that the next
+ *  dump joins the conversation somebody put away, which is exactly what
+ *  happened before it existed. Nothing waits on it and nothing is undone if it
+ *  fails. */
+export async function endConversation(): Promise<void> {
+  try {
+    await fetch(`${API}/v1/conversations/current/end`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {
+    // Offline, or the tab is going away. Neither is worth a message: the
+    // screen has already done the thing the person asked for.
+  }
+}

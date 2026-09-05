@@ -176,6 +176,59 @@ describe("AC-2 which conversation a dump joins", () => {
     const second = await dump(id, "today");
     expect(second.conversationId).not.toBe(first.conversationId);
   });
+
+  // Closing the composer is a statement, not a tidy-up. Six hours of silence
+  // used to be the only thing that ended a conversation, so the close cleared
+  // the screen and the next dump landed in the same conversation anyway, with
+  // offload still holding the last subject.
+  // Through `takeDump` rather than the fixture above, on purpose. That helper
+  // reimplements the six-hour lookup instead of calling it, so the two tests
+  // above assert the fixture's own logic and would pass whatever the route
+  // did. Worth knowing before adding a third that way.
+  it("starts a new one when the last was closed, however soon the next arrives", async () => {
+    const id = await account();
+    const first = await takeDump(id, "dentist after the 20th");
+
+    await db
+      .updateTable("conversations")
+      .set({ ended_at: new Date() })
+      .where("id", "=", first.conversationId)
+      .execute();
+
+    const second = await takeDump(id, "and oak brackets");
+    expect(second.conversationId).not.toBe(first.conversationId);
+  });
+
+  it("still joins an open one, so the close is what changed and not the window", async () => {
+    const id = await account();
+    const first = await takeDump(id, "dentist after the 20th");
+    const second = await takeDump(id, "and oak brackets");
+    expect(second.conversationId).toBe(first.conversationId);
+  });
+
+  // Ended is not deleted, and the distinction is the whole reason this is not
+  // a `deleted_at`. Everything said in a closed conversation stays readable,
+  // stays reachable by a turn's Undo, and stays subject to the same retention.
+  it("leaves everything in a closed conversation exactly where it was", async () => {
+    const id = await account();
+    const first = await takeDump(id, "dentist after the 20th");
+
+    await db
+      .updateTable("conversations")
+      .set({ ended_at: new Date() })
+      .where("id", "=", first.conversationId)
+      .execute();
+
+    const messages = await db
+      .selectFrom("messages")
+      .select(["id", "text", "deleted_at"])
+      .where("conversation_id", "=", first.conversationId)
+      .execute();
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0]?.text).toBe("dentist after the 20th");
+    expect(messages[0]?.deleted_at).toBeNull();
+  });
 });
 
 describe("AC-16 the worker is not trusted for an access decision", () => {

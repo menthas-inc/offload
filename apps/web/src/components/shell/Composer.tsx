@@ -18,6 +18,7 @@ import Link from "next/link";
 import {
   awaitAnswer,
   DumpTooLong,
+  endConversation,
   fetchCurrent,
   resumeDump,
   sendDump,
@@ -300,7 +301,13 @@ export function Composer({
             className={styles.quiet}
             aria-label="Close this conversation"
             title="Close"
-            onClick={() => setTurns([])}
+            onClick={() => {
+              // Closing is a statement, not a tidy-up: this subject is over,
+              // so the next dump starts a conversation rather than joining
+              // this one however soon it arrives.
+              setTurns([]);
+              void endConversation();
+            }}
           >
             <Icon name="x" size={16} />
           </button>

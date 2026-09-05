@@ -11,6 +11,7 @@
 // there is no rate limiter to catch an interval set too tight.
 
 import { send } from "./api";
+import { failed } from "./log";
 
 export type MessageState = "queued" | "seen" | "answered" | "failed" | "partial";
 
@@ -172,4 +173,19 @@ export async function undoTurn(turnId: string): Promise<boolean> {
 export async function resumeDump(messageId: string): Promise<Sent | null> {
   const { data } = await send<Sent>(`/v1/dumps/${messageId}/resume`, { method: "POST" });
   return data;
+}
+
+/** End the current conversation, because somebody closed the sheet.
+ *
+ *  Fire and forget on purpose. Closing is instant on screen and must stay that
+ *  way; if this never lands, the worst case is that the next dump joins the
+ *  conversation somebody put away, which is what happened before it existed. */
+export async function endConversation(): Promise<void> {
+  try {
+    await send<{ ended: boolean }>("/v1/conversations/current/end", { method: "POST" });
+  } catch (error) {
+    // A phone that was offline when somebody tidied the screen. The close has
+    // already happened and there is nothing to say about it.
+    failed("conversation.end", error);
+  }
 }

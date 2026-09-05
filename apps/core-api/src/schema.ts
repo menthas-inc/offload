@@ -197,6 +197,12 @@ export interface ConversationsTable {
   unread_at: Timestamp | null;
   last_read_at: Timestamp | null;
   created_at: Timestamp;
+  /** Somebody closed the composer. Nothing new joins this conversation, and
+   *  every message in it is untouched: ended is not deleted. Until this
+   *  existed the only thing that ended a conversation was six hours of
+   *  silence, so closing the chat cleared the screen and the next dump landed
+   *  in the same conversation anyway. */
+  ended_at: Timestamp | null;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;
 }
