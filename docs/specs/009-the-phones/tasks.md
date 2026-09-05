@@ -46,8 +46,9 @@ carries a failure mode no mock can express.
       so. **My call unless overruled:** swiping it reveals the reason where Delete would be
       rather than revealing nothing, so the gesture answers the question instead of failing
       silently.
-- [ ] **B6** App bar: wordmark, bell with unread badge, settings. Bell and settings open nothing
-      yet and should not pretend to.
+- [ ] **B6** App bar: the wordmark only. The kit draws a bell and a settings icon; both
+      destinations are out of scope and a control that does nothing is worse on a phone than
+      absent, which is decision 2's own reasoning applied consistently. Logged as a divergence.
 
 ## C. The thread page
 
@@ -107,7 +108,10 @@ carries a failure mode no mock can express.
 - [ ] **G1** The four open design-system questions, answered once for all three clients: the
       change mark, the memory chip's open state, authorship on a chip, and `Chip` having no
       disabled state.
-- [ ] **G2** `decisions.md` in both logs.
+- [ ] **G2** `decisions.md` in both logs, **in the same commit as the code that diverges**, not
+      after. Three are already known: the composer staying on a thread screen against the kit's
+      `showComposer=false`, the bell and settings not being drawn, and whatever `SwipeRow` needs
+      if a content swipe is ever not a delete.
 - [ ] **G3** Remove `TempSignOut` and `signOutForTesting()` when they get in the way. Spec 002's
       F6, open since then.
 - [ ] **G4** The kits catch up on what web settled and the phones inherit: no placeholder for a
