@@ -261,13 +261,3 @@ export async function muteMemory(id: string, muted: boolean): Promise<boolean> {
   return status === 200;
 }
 
-/** The chip's label. Truncated on a word boundary, never mid-word, because a
- *  rule cut in half reads as a different rule. Same rule as the web's. */
-export const MEMORY_CHIP_CHARS = 60;
-
-export function chipLabel(text: string): string {
-  if (text.length <= MEMORY_CHIP_CHARS) return text;
-  const cut = text.slice(0, MEMORY_CHIP_CHARS);
-  const space = cut.lastIndexOf(" ");
-  return `${(space > 20 ? cut.slice(0, space) : cut).trimEnd()}...`;
-}

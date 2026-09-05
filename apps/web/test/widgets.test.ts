@@ -28,9 +28,7 @@ import {
   type Sortable,
 } from "../src/lib/widgets";
 import {
-  MEMORY_CHIP_CHARS,
   addMemory,
-  chipLabel,
   deleteMemory,
   deleteThread,
   restoreMemory,
@@ -256,28 +254,6 @@ describe("reading a stored preference", () => {
     expect(
       readPreference({ widgets: ["todo", "nonsense", "map"], groupBy: { todo: "City" } })
     ).toEqual({ widgets: ["todo", "map"], groupBy: { todo: "city" } });
-  });
-});
-
-describe("a memory's chip label", () => {
-  it("shows the whole memory when it fits", () => {
-    expect(chipLabel("Todo names in three words")).toBe("Todo names in three words");
-  });
-
-  it("truncates on a word boundary, because a rule cut mid-word reads as a different rule", () => {
-    const long =
-      "Anything about brackets, screws or timber belongs in here rather than in the shopping list";
-    const label = chipLabel(long);
-    expect(label.length).toBeLessThanOrEqual(MEMORY_CHIP_CHARS + 3);
-    expect(label.endsWith("...")).toBe(true);
-    // Never mid-word.
-    expect(long.startsWith(label.slice(0, -3))).toBe(true);
-    expect(label).not.toContain(" ...");
-  });
-
-  it("still truncates when there is no word boundary to find", () => {
-    const label = chipLabel("x".repeat(120));
-    expect(label.length).toBe(MEMORY_CHIP_CHARS + 3);
   });
 });
 

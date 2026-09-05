@@ -1,13 +1,20 @@
 // The standing rules a thread holds about itself, on a phone.
 //
-// **No kit draws this anywhere**, on any platform. The web grew the chip into
-// a container holding its own editor; a phone has about a third of the width
-// and a keyboard that has to go somewhere, so the design system's answer here
-// is a sheet. The chip stays a chip.
+// **Rows, from the `MemoryRow` contract**, as on web: a memory is a sentence up
+// to 200 characters and a chip is built for a tag, so the chip truncated every
+// rule to a window you had to open to read.
 //
-// Everything else matches web because it is the same feature: ten at most, one
-// control and never two, the author's name in a shared thread, and a section
-// that draws nothing when there is nothing in it.
+// **The editor is still a sheet here, and that is a divergence on purpose.** The
+// contract says the row grows to hold its own editor, which is right on web. A
+// phone has a third of the width and a keyboard that takes the bottom half of
+// the screen, and an editor opening in a row halfway down a scrolling list opens
+// underneath it. No kit can show that, which is the repo's oldest lesson about
+// this platform. The row is the thing you clicked and the sheet is where you
+// type; everything else matches the contract.
+//
+// The rest matches web because it is the same feature: ten at most, one control
+// and never two, the author's name in a shared thread, and a section that draws
+// nothing when there is nothing in it.
 
 import { useState } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
@@ -19,7 +26,6 @@ import {
   MAX_MEMORIES,
   MEMORY_CHARS,
   addMemory,
-  chipLabel,
   deleteMemory,
   editMemory,
   muteMemory,
@@ -143,8 +149,8 @@ export function MemoriesSection({ threadId, memories, members, onChanged, onToas
         ) : null}
       </View>
 
-      <View className="flex-row flex-wrap gap-space-3 px-gutter-screen">
-        {memories.map((memory) => {
+      <View className="px-gutter-screen">
+        {memories.map((memory, index) => {
           const name = author(memory);
           return (
             <Pressable
@@ -154,22 +160,23 @@ export function MemoriesSection({ threadId, memories, members, onChanged, onToas
                 setEditing(memory);
                 setDraft(memory.text);
               }}
-              className={`max-w-full flex-row items-center gap-space-2 rounded-pill px-space-5 ${
-                memory.muted
-                  ? "border border-border-hairline"
-                  : memory.origin === "learned"
-                    ? "bg-surface-accent-soft"
-                    : isAndroid
-                      ? "bg-a-c"
-                      : "bg-surface-fill"
+              className={`min-h-tap-min flex-row items-start gap-space-3 py-space-4 ${
+                index < memories.length - 1 ? "border-b border-border-hairline" : ""
               }`}
-              style={{ height: 30 }}
+              // The glyph alone is not a state, so the accessible name says it.
+              accessibilityLabel={
+                (memory.origin === "learned" ? "offload wrote this. " : "") + memory.text
+              }
             >
               {memory.origin === "learned" ? (
-                <Glyph name="sparkles" size={13} color={COLOR.accent} />
+                <View style={{ marginTop: 3 }}>
+                  <Glyph name="sparkles" size={14} color={COLOR.accent} />
+                </View>
               ) : null}
+
+              {/* Wrapped, not clipped. The whole point of the row. */}
               <Text
-                className={`font-core font-medium ${
+                className={`flex-1 font-core ${
                   memory.muted
                     ? "text-text-tertiary"
                     : memory.origin === "learned"
@@ -178,34 +185,20 @@ export function MemoriesSection({ threadId, memories, members, onChanged, onToas
                         ? "text-a-on"
                         : "text-text-primary"
                 }`}
-                style={{ fontSize: 13 }}
-                numberOfLines={1}
-                // The glyph alone is not a state, so the accessible name says it.
-                accessibilityLabel={
-                  (memory.origin === "learned" ? "offload wrote this. " : "") + memory.text
-                }
+                style={{ fontSize: 14.5, lineHeight: 21 }}
               >
-                {chipLabel(memory.text)}
+                {memory.text}
+                {name ? <Text className="text-text-tertiary"> {name}</Text> : null}
+                {memory.muted ? <Text className="text-text-tertiary"> Muted</Text> : null}
               </Text>
-              {name ? (
-                <Text className="font-core text-text-tertiary" style={{ fontSize: 13 }}>
-                  {name}
-                </Text>
-              ) : null}
-              {memory.muted ? (
-                <Text className="font-core text-text-tertiary" style={{ fontSize: 13 }}>
-                  Muted
-                </Text>
-              ) : null}
             </Pressable>
           );
         })}
+      </View>
 
+      <View className="px-gutter-screen pt-space-4">
         {full ? (
-          <Text
-            className="font-core text-text-tertiary"
-            style={{ fontSize: 13, lineHeight: 19 }}
-          >
+          <Text className="font-core text-text-tertiary" style={{ fontSize: 13, lineHeight: 19 }}>
             This thread already holds {MAX_MEMORIES}. Delete one to add another.
           </Text>
         ) : (
@@ -215,7 +208,7 @@ export function MemoriesSection({ threadId, memories, members, onChanged, onToas
               setDraft("");
               setAdding(true);
             }}
-            className="flex-row items-center gap-space-2 rounded-pill border border-border-hairline px-space-5"
+            className="flex-row items-center gap-space-2 self-start rounded-pill border border-border-hairline px-space-5"
             style={{ height: 30 }}
           >
             <Glyph name="plus" size={13} color={COLOR.iconOnWell} />

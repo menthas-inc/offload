@@ -67,14 +67,3 @@ describe("the place id the shared widget rule needs", () => {
     expect(page?.rows.map((r) => r.placeId)).toEqual(["p1", null]);
   });
 });
-
-describe("the chip label", () => {
-  it("shows a short memory whole and truncates a long one on a word", () => {
-    expect(threads.chipLabel("Todo names in three words")).toBe("Todo names in three words");
-    const long = threads.chipLabel(
-      "Anything about brackets, screws or timber belongs in here rather than the shopping list"
-    );
-    expect(long.endsWith("...")).toBe(true);
-    expect(long).not.toContain(" ...");
-  });
-});

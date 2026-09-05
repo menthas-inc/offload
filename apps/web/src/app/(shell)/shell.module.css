@@ -1043,165 +1043,86 @@
 
 .memories {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  padding: var(--space-4) 0 var(--space-2);
-  align-items: center;
-}
-
-/* The chip and its editor are one thing, so the editor opens inside the chip
-   it belongs to. It used to sit at the foot of the section, which read as
-   editing the last memory whichever one had been clicked. */
-.memoryItem {
-  display: inline-flex;
   flex-direction: column;
-  max-width: 100%;
-  border-radius: var(--radius-lg);
+  padding: var(--space-3) 0 var(--space-2);
 }
 
-/* Open, it stops being a pill in a row of pills and becomes the thing you are
-   working in. Full width so the field has somewhere to go.
-
-   The tone comes with it. A memory offload wrote is moss shut and has to stay
-   moss open: the chip is the same object either way, and having it turn grey
-   the moment you touch it says the mark was about the chip rather than about
-   where the memory came from. */
-.memoryItem[data-open] {
+/* A row, not a chip. A memory is a sentence up to 200 characters and it is set
+   as one: full text, wrapped, read without a click. The chip truncated it to a
+   window you had to open to read. */
+.memoryRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
   width: 100%;
-  background: var(--surface-fill);
-  padding: var(--space-3);
-}
-
-.memoryItem[data-open][data-tone="accent"] {
-  background: var(--surface-accent-soft);
-}
-
-.memoryItem[data-open][data-tone="muted"],
-.memoryItem[data-open][data-tone="add"] {
+  min-height: 44px;
+  padding: var(--space-4) var(--space-4);
+  margin: 0 calc(var(--space-4) * -1);
+  border: 0;
+  border-radius: var(--radius-sm);
   background: transparent;
-  box-shadow: inset 0 0 0 1px var(--border-hairline);
-}
-
-.memoryChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  /* A memory is a sentence and a chip is built for a tag: nowrap, no
-     max-width, no ellipsis, and every label in every kit is under twenty
-     characters. At sixty the pill would run most of the width of the pane, so
-     the ceiling and the ellipsis live here rather than in the component. */
-  max-width: 100%;
-  padding: 0 var(--space-5);
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  background: var(--surface-fill);
-  color: var(--text-primary);
-  font-weight: var(--weight-medium);
-  font-size: calc(13px * var(--type-scale));
-  line-height: 1;
-  font-family: var(--font-core);
-  cursor: pointer;
   text-align: left;
+  font-weight: var(--weight-regular);
+  font-size: calc(14.5px * var(--type-scale));
+  line-height: 1.45;
+  font-family: var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
 }
 
-.memoryChip:hover {
-  background: var(--surface-fill-strong);
+.memoryRow:last-of-type {
+  box-shadow: none;
 }
 
-/* Moss marks something offload inferred rather than something you typed, which
-   is the kits' own rule for the mark. Full strength, not a soft tint: the
-   readme retired those because they sat too close to paper at chip size. */
-.memoryChip[data-tone="accent"] {
-  background: var(--surface-accent-soft);
+.memoryRow:hover {
+  background: var(--surface-fill);
+}
+
+/* offload wrote it: sparkles and moss, which is what moss means everywhere
+   else here. */
+.memoryRow[data-tone="accent"] {
   color: var(--text-accent);
 }
 
-/* A rule that is off must not read like one that is on. Outline, so it is
-   plainly still there and plainly not doing anything. */
-.memoryChip[data-tone="muted"] {
-  background: transparent;
-  border-color: var(--border-hairline);
+.memoryRow[data-tone="muted"] {
   color: var(--text-tertiary);
 }
 
-.memoryChip[data-tone="add"] {
-  background: transparent;
-  border-color: var(--border-hairline);
-  color: var(--text-secondary);
+.memoryGlyph {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--text-accent);
 }
 
-.memoryItem[data-open] .memoryChip {
-  background: transparent;
-  align-self: flex-start;
-}
-
-/* Rows from 0fr to 1fr animates height with no magic number in it. A
-   `max-height` guess has to clear the tallest memory, and a guess that is too
-   big makes closing look slow because the transition spends most of its time
-   above the content. */
-.memoryDrawer {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--duration-base) var(--ease-out);
-}
-
-.memoryDrawer[data-open] {
-  grid-template-rows: 1fr;
-}
-
-.memoryDrawerInner {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* Room for the focus ring, which is drawn outside the field's border box and
-   was being sliced off by the clipping this animation needs. The ring is 2px
-   at 2px offset, so it reaches 4px past the box and 5px is the first value
-   that clears it. Only while open: padding on a collapsed row would leave a
-   sliver behind. The negative margin keeps it from moving anything. */
-.memoryDrawer[data-open] .memoryDrawerInner {
-  padding: 5px;
-  margin: -5px;
-}
-
-/* Something offload just did, marked for a moment so it is not simply there.
-   Moss, because moss is "offload did this, you didn't". Blue is "this needs
-   you", and a row that was filed correctly needs nothing. */
-@keyframes arrived {
-  from { background: var(--surface-accent-soft); }
-  to { background: transparent; }
-}
-
-.row[data-arrived],
-.memoryItem[data-arrived] {
-  animation: arrived 1400ms var(--ease-out) forwards;
-  border-radius: var(--radius-sm);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .memoryDrawer { transition: none; }
-  .row[data-arrived],
-  .memoryItem[data-arrived] { animation-duration: 1ms; }
-}
-
+/* Wrapped, not clipped. The whole point of the row. */
 .memoryText {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
+/* After the text, in a lighter weight, on a shared thread only. */
 .memoryBy {
   color: var(--text-tertiary);
   font-weight: var(--weight-regular);
-  flex: 0 0 auto;
+}
+
+/* The editor stands in for the text line rather than sitting under a copy of
+   it: the thing you clicked is visibly the thing you are editing, and there is
+   never a moment with the memory on screen twice. 5px of padding because the
+   focus ring is drawn outside the field and a tight box clips it to four
+   corner marks. */
+.memoryOpen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 5px;
+  margin: 0 -5px;
 }
 
 .memoryFull {
-  margin: 0;
+  margin: var(--space-4) 0 0;
   color: var(--text-tertiary);
   font-weight: var(--weight-regular);
   font-size: calc(13px * var(--type-scale));

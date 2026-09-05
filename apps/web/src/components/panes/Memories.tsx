@@ -2,27 +2,20 @@
 
 // The standing rules a thread holds about itself.
 //
-// **No kit draws this.** `find-kit.sh thread` finds `WThing`, which has no
-// memories section, and the nearest chip rows are `WMemories` and `WPerson`'s
-// "What offload knows". Both are stale: they pass `Chip variant="soft"`, a prop
-// the governed contract does not declare, retired in the design system's readme
-// because the soft tints sat too close to paper to read as colour at chip size.
-// So this is built against the component contracts with the kits as shape
-// reference, which is the opposite of the usual failure here: the kits were
-// read whole, and the kits are behind.
+// **Rows, from the `MemoryRow` contract.** They were chips until 5 September
+// 2026, and the chip was wrong for the reason the contract now states: a memory
+// is a sentence up to 200 characters, and a chip is built for a tag. It is
+// `nowrap` with no max-width, so this truncated every rule to a window you had
+// to click to read. A row sets the whole thing, wrapped.
 //
-// Two consequences of the real `Chip` contract worth knowing before editing
-// this file:
+// The open row holds its own editor **in place of its text line**, not under a
+// copy of it: the thing you clicked is visibly the thing you are editing, and
+// the memory is never on screen twice.
 //
-//   - **There is no disabled state.** `Chip` decides interactivity from whether
-//     it has a click handler, so an add chip with no handler looks exactly like
-//     one with a handler. At the cap the control is replaced by the sentence
-//     instead of being greyed out, which also puts the way forward next to
-//     where the affordance was.
-//   - **`Chip` holds a tag, not a sentence.** It is `nowrap` with no max-width
-//     and no ellipsis, and every label in every kit is under twenty characters.
-//     A memory runs to sixty on the chip, so the width and the ellipsis belong
-//     here rather than to the component.
+// `Chip` gained a `disabled` state in the same pass, which the contract offers
+// for the at-cap Add control. Not taken: the contract's own note says to say
+// why it is unavailable in copy nearby rather than leave a dead pill, and with
+// rows the sentence alone says it and names what to do. Logged as a divergence.
 
 import { useState } from "react";
 import { Icon } from "../Icon";
@@ -31,7 +24,6 @@ import {
   MAX_MEMORIES,
   MEMORY_CHARS,
   addMemory,
-  chipLabel,
   deleteMemory,
   editMemory,
   muteMemory,
@@ -155,83 +147,78 @@ export function Memories({ threadId, memories, members, arrived, onChanged, onUn
   if (memories.length === 0 && !adding) return null;
 
   const editor = (memory: Memory | null) => (
-    // Grid rows from 0fr to 1fr, so the height animates without a magic
-    // number. `max-height` would need a guess big enough for the longest
-    // memory, and a guess that is too big makes the close look slow.
-    <span className={styles.memoryDrawer} data-open={true}>
-      <span className={styles.memoryDrawerInner}>
-        <textarea
-          className={styles.memoryField}
-          value={draft}
-          maxLength={MEMORY_CHARS}
-          rows={2}
-          autoFocus
-          placeholder="How should this thread be handled?"
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") close();
-            // Enter saves, shift-Enter is a new line. A rule is one sentence.
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              void save();
-            }
-          }}
-        />
-        <span className={styles.memoryActions}>
-          <span className={styles.memoryCount}>
-            {draft.length}/{MEMORY_CHARS}
-          </span>
+    <span className={styles.memoryOpen}>
+      <textarea
+        className={styles.memoryField}
+        value={draft}
+        maxLength={MEMORY_CHARS}
+        rows={2}
+        autoFocus
+        placeholder="How should this thread be handled?"
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") close();
+          // Enter saves, shift-Enter is a new line. A rule is one sentence.
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            void save();
+          }
+        }}
+      />
+      <span className={styles.memoryActions}>
+        <span className={styles.memoryCount}>
+          {draft.length}/{MEMORY_CHARS}
+        </span>
 
-          {/* One control, never two. Delete and mute are the same intent at
-              different strengths, and offering both makes somebody choose
-              between them for no reason: if you can remove it, mute is a worse
-              version of that, and if you cannot, mute is the whole of what you
-              have.
+        {/* One control, never two. Delete and mute are the same intent at
+            different strengths, and offering both makes somebody choose
+            between them for no reason: if you can remove it, mute is a worse
+            version of that, and if you cannot, mute is the whole of what you
+            have.
 
-              Muted wins over both, whoever is asking. Mute is co-owned and
-              reversible by anyone, so a memory somebody quieted has to be
-              un-quietable by anyone, including its author. Without that a
-              muted memory of your own would offer only Delete, and the way
-              back from a reversible action would be a destructive one. */}
-          {memory?.muted ? (
-            <button
-              type="button"
-              className={styles.memoryAction}
-              onClick={() => void mute(memory)}
-            >
-              Unmute
-            </button>
-          ) : memory && canDelete(memory) ? (
-            <button
-              type="button"
-              className={styles.memoryAction}
-              data-tone="danger"
-              onClick={() => void remove(memory)}
-            >
-              Delete
-            </button>
-          ) : memory ? (
-            <button
-              type="button"
-              className={styles.memoryAction}
-              onClick={() => void mute(memory)}
-            >
-              Mute
-            </button>
-          ) : null}
-
-          <button type="button" className={styles.memoryAction} onClick={close}>
-            Cancel
-          </button>
+            Muted wins over both, whoever is asking. Mute is co-owned and
+            reversible by anyone, so a memory somebody quieted has to be
+            un-quietable by anyone, including its author. Without that a muted
+            memory of your own would offer only Delete, and the way back from a
+            reversible action would be a destructive one. */}
+        {memory?.muted ? (
           <button
             type="button"
-            className={styles.memorySave}
-            disabled={draft.trim().length === 0}
-            onClick={() => void save()}
+            className={styles.memoryAction}
+            onClick={() => void mute(memory)}
           >
-            Save
+            Unmute
           </button>
-        </span>
+        ) : memory && canDelete(memory) ? (
+          <button
+            type="button"
+            className={styles.memoryAction}
+            data-tone="danger"
+            onClick={() => void remove(memory)}
+          >
+            Delete
+          </button>
+        ) : memory ? (
+          <button
+            type="button"
+            className={styles.memoryAction}
+            onClick={() => void mute(memory)}
+          >
+            Mute
+          </button>
+        ) : null}
+
+        <button type="button" className={styles.memoryAction} onClick={close}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className={styles.memorySave}
+          disabled={draft.trim().length === 0}
+          onClick={() => void save()}
+        >
+          Save
+        </button>
       </span>
     </span>
   );
@@ -252,76 +239,72 @@ export function Memories({ threadId, memories, members, arrived, onChanged, onUn
         {memories.map((memory) => {
           const name = author(memory);
           const open = editingId === memory.id;
+          const tone = memory.muted ? "muted" : memory.origin === "learned" ? "accent" : "neutral";
+
+          if (open) {
+            return (
+              <div key={memory.id} className={styles.memoryRow} data-tone={tone} data-open={true}>
+                {editor(memory)}
+              </div>
+            );
+          }
+
           return (
-            // The editor lives inside the chip it belongs to, so the chip
-            // grows to hold it. It used to sit at the foot of the section,
-            // which read as editing the last memory whichever one you had
-            // clicked.
-            <span
+            <button
               key={memory.id}
-              className={styles.memoryItem}
-              // On the container as well as the chip, so opening it keeps the
-              // tone rather than turning grey.
-              data-tone={
-                memory.muted ? "muted" : memory.origin === "learned" ? "accent" : "neutral"
-              }
-              data-open={open ? true : undefined}
+              type="button"
+              className={styles.memoryRow}
+              data-tone={tone}
               data-arrived={arrived?.has(memory.id) ? true : undefined}
+              onClick={() => open_(memory)}
             >
-              <button
-                type="button"
-                className={styles.memoryChip}
-                data-tone={
-                  memory.muted ? "muted" : memory.origin === "learned" ? "accent" : "neutral"
-                }
-                data-open={open ? true : undefined}
-                onClick={() => (open ? close() : open_(memory))}
-              >
-                {memory.origin === "learned" ? (
-                  <>
-                    <Icon name="sparkles" size={13} />
-                    {/* The glyph alone is not a state. `Chip` has no
-                        aria-label, so the alternative goes in the label. */}
-                    <span className={styles.hidden}>offload wrote this. </span>
-                  </>
-                ) : null}
-                <span className={styles.memoryText}>{chipLabel(memory.text)}</span>
-                {name ? <span className={styles.memoryBy}>{name}</span> : null}
-                {memory.muted ? <span className={styles.memoryBy}>Muted</span> : null}
-              </button>
-              {open ? editor(memory) : null}
-            </span>
+              {memory.origin === "learned" ? (
+                <>
+                  <Icon name="sparkles" size={14} className={styles.memoryGlyph} />
+                  {/* The glyph alone is not a state, and the row has no other
+                      place to say it. */}
+                  <span className={styles.hidden}>offload wrote this. </span>
+                </>
+              ) : null}
+              <span className={styles.memoryText}>
+                {memory.text}
+                {name ? <span className={styles.memoryBy}> {name}</span> : null}
+                {memory.muted ? <span className={styles.memoryBy}> Muted</span> : null}
+              </span>
+            </button>
           );
         })}
 
         {adding ? (
-          <span className={styles.memoryItem} data-tone="add" data-open={true}>
+          <div className={styles.memoryRow} data-tone="neutral" data-open={true}>
             {editor(null)}
-          </span>
-        ) : full ? (
-          /* At the cap the control is gone and the sentence is in its place.
-             `Chip` has no disabled state, and inventing one for this screen
-             would be a divergence with nothing to gain: the sentence says the
-             same thing and names what to do about it. */
-          <p className={styles.memoryFull}>
-            This thread already holds {MAX_MEMORIES}. Delete one to add another.
-          </p>
-        ) : (
-          <button
-            type="button"
-            className={styles.memoryChip}
-            data-tone="add"
-            onClick={() => {
-              setEditingId(null);
-              setDraft("");
-              setAdding(true);
-            }}
-          >
-            <Icon name="plus" size={13} />
-            Add
-          </button>
-        )}
+          </div>
+        ) : null}
       </div>
+
+      {full ? (
+        /* At the cap the control is gone and the sentence is in its place. The
+           `Chip` contract now has a disabled state and its own note says to put
+           the reason in copy nearby rather than leave a dead pill, so the
+           sentence does the whole job. */
+        <p className={styles.memoryFull}>
+          This thread already holds {MAX_MEMORIES}. Delete one to add another.
+        </p>
+      ) : adding ? null : (
+        <button
+          type="button"
+          className={styles.chip}
+          onClick={() => {
+            setEditingId(null);
+            setDraft("");
+            setAdding(true);
+          }}
+          style={{ marginTop: "var(--space-4)" }}
+        >
+          <Icon name="plus" size={13} />
+          Add
+        </button>
+      )}
     </>
   );
 }

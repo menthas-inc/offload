@@ -77,21 +77,7 @@ export const MAX_MEMORIES = 10;
 /** 200, matching MEMORY_TEXT_CHARS. */
 export const MEMORY_CHARS = 200;
 
-/** Above this the chip truncates. Below it the chip is the whole memory.
- *
- *  A truncation rather than a second stored field: at a 200 character cap a
- *  model-written short label would save a line and a half and cost a job, a
- *  failure mode, and a second thing that can go stale. */
-export const MEMORY_CHIP_CHARS = 60;
 
-/** The chip's label. Truncated on a word boundary, never mid-word, because a
- *  rule cut in half reads as a different rule. */
-export function chipLabel(text: string): string {
-  if (text.length <= MEMORY_CHIP_CHARS) return text;
-  const cut = text.slice(0, MEMORY_CHIP_CHARS);
-  const space = cut.lastIndexOf(" ");
-  return `${(space > 20 ? cut.slice(0, space) : cut).trimEnd()}...`;
-}
 
 export interface ThreadBundle {
   id: string;
