@@ -987,3 +987,14 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **It slides by its own height, measured, not by 60px.** The old offset was a nudge that read as a flicker at speed. The plate paints after the sheet, so the sheet goes down *behind* the bottom bar, and there is no fade on it: a slide and a dissolve at once looks like the sheet is coming apart on the way out. A drag that crosses the fold threshold hands straight over to the exit from wherever the finger let go, rather than snapping to the top first.
 
 **Design system impact:** worth a line in `readme.md` beside the sheet. 280ms, ease, no fade, travel equal to the sheet's own height, and the same curve in both directions. No kit expresses motion, so this is the only place the number lives.
+
+### 2026-09-05 · A swipe action carries its own opacity
+**Surface:** mobile
+
+**Is:** the clay Delete panel behind a swipeable row is drawn only while a swipe has actually moved that row. Closed, it is not painted at all. `ThreadRow` and `ContentRow` both.
+
+**Every row wore a ghost Delete for the length of a tab change.** The panel sits behind the row and the row's own opaque background covers it, which holds until something fades the whole screen as one layer. Android's tab transition does exactly that: at 50% through the cross-fade the row's background is 50% transparent, so the clay behind it reads straight through, on every row at once. It looked like a rendering fault and it was ordinary group opacity.
+
+**The rule generalises past this component.** Anything hidden only by an opaque sibling in front of it is visible during any group fade: a screen transition, a modal, a list that animates in. Hiding by stacking order is not hiding. Anything that must not appear needs its own opacity or must not be mounted.
+
+**Design system impact:** worth a line on `SwipeRow` in the component contracts. The reveal is a property of the gesture, not of the row's existence, and the panel's opacity should be driven from the same value as its offset.

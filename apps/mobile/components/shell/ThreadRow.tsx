@@ -78,10 +78,20 @@ export function ThreadRow({ thread, border, onOpen, onDelete, onRefuse }: Props)
 
   const sliding = useAnimatedStyle(() => ({ transform: [{ translateX: dx.value }] }));
 
+  // Not painted at all until a swipe reveals it. It is behind an opaque row,
+  // so it should never be visible either way, but a screen that cross-fades
+  // fades the row's own background with everything else and the clay showed
+  // straight through it: every row wore a ghost Delete for the length of the
+  // tab transition. Opacity on the panel itself survives a group opacity.
+  const revealed = useAnimatedStyle(() => ({ opacity: dx.value < -1 ? 1 : 0 }));
+
   return (
     <View className="relative">
       {/* The action sits behind the row and the row paints over it. */}
-      <View className="absolute inset-y-0 right-0 items-center justify-center bg-clay-600" style={{ width: REVEAL + 24 }}>
+      <Animated.View
+        className="absolute inset-y-0 right-0 items-center justify-center bg-clay-600"
+        style={[revealed, { width: REVEAL + 24 }]}
+      >
         <Text
           className="font-core font-medium text-text-on-solid"
           style={{ fontSize: 13 }}
@@ -92,7 +102,7 @@ export function ThreadRow({ thread, border, onOpen, onDelete, onRefuse }: Props)
         >
           Delete
         </Text>
-      </View>
+      </Animated.View>
 
       <GestureDetector gesture={Gesture.Simultaneous(pan, tap)}>
         <Animated.View
