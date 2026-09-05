@@ -19,8 +19,18 @@
 //     prominent space on the screen.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { FadeIn, FadeInDown, FadeOut, useAnimatedStyle } from "react-native-reanimated";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { widgetsFor } from "@offload/widgets";
 import { Glyph } from "../Glyph";
@@ -33,6 +43,7 @@ import { Widgets } from "../shell/Widgets";
 import {
   completeContent,
   deleteContent,
+  editContent,
   fetchContent,
   fetchThread,
   setArchived,
@@ -52,6 +63,7 @@ export default function Thread() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [acting, setActing] = useState<ContentRow | null>(null);
+  const [renaming, setRenaming] = useState<ContentRow | null>(null);
   // What arrived while this screen was open, marked for a moment rather than
   // appearing silently in the middle of a list.
   const [arrived, setArrived] = useState<Set<string>>(new Set());
@@ -163,6 +175,10 @@ export default function Thread() {
 
   const actions: RowAction[] = acting
     ? [
+        // Edit leads, because renaming is the commonest thing to want and the
+        // one this sheet did not offer: a row could be ticked, archived and
+        // deleted, and the only way to fix its title was on the web.
+        { label: "Edit", icon: "pencil", run: () => setRenaming(acting) },
         {
           label: acting.doneAt ? "Mark not done" : "Mark done",
           icon: acting.doneAt ? "rewind" : "check",
@@ -321,6 +337,15 @@ export default function Thread() {
         ) : null}
       </ScrollView>
 
+      <TitleSheet
+        row={renaming}
+        onClose={() => setRenaming(null)}
+        onSaved={() => {
+          setRenaming(null);
+          void load();
+        }}
+      />
+
       <RowActionSheet
         open={acting !== null}
         actions={actions}
@@ -338,5 +363,107 @@ function Bar({ onBack }: { onBack: () => void }) {
         <Glyph name="chevron-left" size={22} color={COLOR.iconOnWell} />
       </Pressable>
     </View>
+  );
+}
+
+/** Renaming one piece of content, as a sheet.
+ *
+ *  The same shape the memory editor uses and for the same reason: a phone has a
+ *  third of the width and the keyboard takes the bottom half of the screen, so
+ *  an editor opening in a row halfway down a scrolling list opens underneath
+ *  it. The sheet solves the keyboard problem by the pattern rather than
+ *  fighting it. */
+function TitleSheet({
+  row,
+  onClose,
+  onSaved,
+}: {
+  row: ContentRow | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
+
+  useEffect(() => {
+    setDraft(row?.title ?? "");
+  }, [row]);
+
+  if (!row) return null;
+
+  async function save(): Promise<void> {
+    const title = draft.trim();
+    if (title.length === 0 || title === row?.title) return onClose();
+    if (!row || !(await editContent(row.id, { title }))) return onClose();
+    onSaved();
+  }
+
+  return (
+    <>
+      <Animated.View
+        entering={FadeIn.duration(140)}
+        exiting={FadeOut.duration(140)}
+        className="absolute inset-0"
+        style={{ backgroundColor: COLOR.scrim, opacity: 0.35 }}
+      >
+        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
+      </Animated.View>
+
+      <Animated.View
+        style={lift}
+        entering={FadeInDown.duration(220)}
+        exiting={FadeOut.duration(140)}
+        className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${
+          isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"
+        }`}
+      >
+        <TextInput
+          value={draft}
+          onChangeText={setDraft}
+          autoFocus
+          placeholder="What is it?"
+          placeholderTextColor={COLOR.iconOnWell}
+          className={`rounded-sm border border-border-hairline px-space-4 py-space-3 font-core ${
+            isAndroid ? "text-a-on" : "text-text-primary"
+          }`}
+          style={{ fontSize: 15 }}
+          onSubmitEditing={() => void save()}
+          returnKeyType="done"
+        />
+
+        <View className="mt-space-4 flex-row items-center justify-end gap-space-4">
+          <Pressable
+            onPress={onClose}
+            className="rounded-pill border border-border-hairline px-space-5"
+            style={{ height: 30, justifyContent: "center" }}
+          >
+            <Text
+              className={`font-core font-medium ${
+                isAndroid ? "text-a-on-var" : "text-text-secondary"
+              }`}
+              style={{ fontSize: 13 }}
+            >
+              Cancel
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => void save()}
+            disabled={draft.trim().length === 0}
+            className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`}
+            style={{ height: 30, justifyContent: "center", opacity: draft.trim() ? 1 : 0.55 }}
+          >
+            <Text
+              className={`font-core font-medium ${
+                isAndroid ? "text-a-surface" : "text-text-inverse"
+              }`}
+              style={{ fontSize: 13 }}
+            >
+              Save
+            </Text>
+          </Pressable>
+        </View>
+      </Animated.View>
+    </>
   );
 }

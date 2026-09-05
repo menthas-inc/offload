@@ -21,6 +21,8 @@
 
 import { useState } from "react";
 import styles from "../../app/(shell)/shell.module.css";
+import { Icon } from "../Icon";
+import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import {
   DONE_SHOWN,
   filtersFor,
@@ -41,10 +43,14 @@ const HEADINGS: Record<string, string> = {
 interface Props {
   rows: ContentRow[];
   preference: { widgets?: string[]; groupBy?: Record<string, string> };
+  /** The same object the list below uses, so a row offers the same controls
+   *  wherever it is drawn. A task in To do could be ticked and nothing else
+   *  until this was shared: renaming it meant finding it again further down. */
+  handlers: RowHandlers;
   onToggle: (row: ContentRow) => void;
 }
 
-export function Widgets({ rows, preference, onToggle }: Props) {
+export function Widgets({ rows, preference, handlers, onToggle }: Props) {
   const widgets = widgetsFor(rows, preference.widgets);
   if (widgets.length === 0) return null;
 
@@ -55,6 +61,7 @@ export function Widgets({ rows, preference, onToggle }: Props) {
           key={widget.kind}
           widget={widget}
           dimension={preference.groupBy?.[widget.kind] ?? null}
+          handlers={handlers}
           onToggle={onToggle}
         />
       ))}
@@ -65,10 +72,12 @@ export function Widgets({ rows, preference, onToggle }: Props) {
 function WidgetBlock({
   widget,
   dimension,
+  handlers,
   onToggle,
 }: {
   widget: Widget<ContentRow>;
   dimension: string | null;
+  handlers: RowHandlers;
   onToggle: (row: ContentRow) => void;
 }) {
   // Null is All, which is also where a row carrying no tag in this dimension
@@ -106,7 +115,7 @@ function WidgetBlock({
       ) : null}
 
       {left.map((row) => (
-        <Row key={row.id} row={row} widget={widget.kind} onToggle={onToggle} />
+        <Row key={row.id} row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />
       ))}
 
       {/* A finished task keeps its place and sinks below everything
@@ -114,7 +123,7 @@ function WidgetBlock({
           rest: a long-running thread stays about what is left without hiding
           that the work happened. */}
       {(allDone ? done : done.slice(0, DONE_SHOWN)).map((row) => (
-        <Row key={row.id} row={row} widget={widget.kind} onToggle={onToggle} />
+        <Row key={row.id} row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />
       ))}
 
       {done.length > DONE_SHOWN && !allDone ? (
@@ -193,36 +202,39 @@ function Pins({ rows }: { rows: ContentRow[] }) {
 function Row({
   row,
   widget,
+  handlers,
   onToggle,
 }: {
   row: ContentRow;
   widget: string;
+  handlers: RowHandlers;
   onToggle: (row: ContentRow) => void;
 }) {
   const done = row.doneAt !== null;
 
-  if (widget === "todo") {
-    return (
-      <label className={`${styles.check} ${done ? styles.checkDone : ""}`}>
-        <input type="checkbox" checked={done} onChange={() => onToggle(row)} />
-        <span className={styles.rowText}>
-          <span className={styles.rowTitle}>{row.title}</span>
-          <Meta row={row} />
-        </span>
-      </label>
-    );
-  }
-
   return (
-    <div className={styles.row}>
-      <span className={styles.rowIcon} aria-hidden="true">
-        {widget === "map" ? "◉" : widget === "timeline" ? "◷" : "▤"}
-      </span>
-      <span className={styles.rowText}>
-        <span className={styles.rowTitle}>{row.title}</span>
-        <Meta row={row} />
-      </span>
-    </div>
+    <ContentRowView
+      row={row}
+      handlers={handlers}
+      lead={
+        widget === "todo" ? (
+          // A checkbox rather than a type tile: the one row in the product you
+          // act on by touching its lead element.
+          <input
+            type="checkbox"
+            className={styles.rowCheck}
+            checked={done}
+            onChange={() => onToggle(row)}
+            aria-label={done ? `Put ${row.title} back on the list` : `Finish ${row.title}`}
+          />
+        ) : (
+          <span className={styles.rowIcon}>
+            <Icon name={widget === "map" ? "map-pin" : widget === "timeline" ? "clock" : "paperclip"} size={18} />
+          </span>
+        )
+      }
+      meta={<Meta row={row} />}
+    />
   );
 }
 

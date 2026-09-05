@@ -818,48 +818,28 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* A task. The tick is a real checkbox rather than a styled div, so it is
-   reachable, announced and toggled by a keyboard without any help.
-
-   The kit builds these from `WRow`, so they carry a separator like every other
-   row. Without it a to-do list is the one list in the product with nothing
-   between its items. */
-.check {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-5);
-  width: calc(100% + var(--space-5) + var(--space-5));
-  margin: 0 calc(-1 * var(--space-5));
-  padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-sm);
-  box-shadow: inset 0 -1px 0 var(--border-hairline);
-  cursor: pointer;
-  transition: background var(--transition-ui);
-}
-
-.check:hover {
-  background: var(--state-hover);
-}
-
-.check:last-child {
-  box-shadow: none;
-}
-
-/* Native, deliberately. The kit draws its own box and a native checkbox is
+/* A task's tick, as the row's lead element.
+   
+   Native, deliberately. The kit draws its own box and a native checkbox is
    reachable, announced and toggled by a keyboard with no help, which is worth
    more than the two pixels of difference.
 
    The offset centres it on the **first line of the title**, not on the row: a
    row with a second line is taller, and a checkbox that centres on the row sits
    below the words on one and above them on the other. Title is 15.5px at 1.35,
-   so the line is 21px and a 17px box wants 2px. */
-.check input {
+   so the line is 21px and a 17px box wants 2px.
+
+   The row around it is `.row` now, the same one every other piece of content
+   uses. It had its own `.check` wrapper, which is how the To do list ended up
+   the one place in the product where a row had no controls on it. */
+.rowCheck {
   margin-top: 2px;
   width: 17px;
   height: 17px;
   border-radius: 5px;
   accent-color: var(--surface-inverse);
   flex: 0 0 auto;
+  cursor: pointer;
 }
 
 /* A ticked row stays in the list, struck through, rather than vanishing. Undo
@@ -868,7 +848,7 @@
 /* Tertiary ink and a 1px strike, and no opacity: the tick, the sinking and the
    strike already say it, and dimming on a warm page reads as a rendering
    fault. */
-.checkDone .rowTitle {
+.row[data-done] .rowTitle {
   text-decoration: line-through;
   text-decoration-thickness: 1px;
   color: var(--text-tertiary);

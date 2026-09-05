@@ -19,6 +19,7 @@ import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { PaneHead } from "../shell/PaneHead";
 import { Memories } from "./Memories";
+import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import { useThreads } from "../shell/threads-context";
 import { Widgets } from "./Widgets";
 import { widgetsFor } from "../../lib/widgets";
@@ -237,6 +238,25 @@ export function Thread({ id, onChanged, onUndo }: Props) {
 
   // "Everything else" once something has been lifted out, "Everything in here"
   // when nothing has: else what, otherwise.
+  /** Everything a row needs from this page, in one place, so the list and the
+   *  widgets cannot end up offering different controls on the same row. */
+  const handlers: RowHandlers = {
+    editing,
+    draft,
+    asking,
+    arrived,
+    onDraft: setDraft,
+    onEdit: (row) => {
+      setDraft(row.title);
+      setEditing(row.id);
+    },
+    onSaveTitle: (row) => void saveTitle(row),
+    onStopEditing: () => setEditing(null),
+    onArchive: (row) => void archive(row),
+    onAsk: setAsking,
+    onDelete: (row) => void remove(row),
+  };
+
   const restHeading =
     inWidgets.size > 0 ? "Everything else" : "Everything in here";
 
@@ -341,6 +361,7 @@ export function Thread({ id, onChanged, onUndo }: Props) {
           <Widgets
             rows={rows}
             preference={thread.preference}
+            handlers={handlers}
             onToggle={(row) => void toggle(row)}
           />
         )}
@@ -394,68 +415,16 @@ export function Thread({ id, onChanged, onUndo }: Props) {
           </p>
         ) : rest.length === 0 ? null : (
           rest.map((row) => (
-            asking === row.id ? (
-              // The row asks in its own place. Both a confirm and an undo,
-              // which is more than OFF-6 requires, and it is the kit's call:
-              // this is the only control in the product that destroys
-              // something, and the eight seconds afterwards is a safety net
-              // rather than the whole safety story.
-              <div key={row.id} className={styles.confirmRow}>
-                <span className={styles.confirmIcon}>
-                  <Icon name="trash-2" size={15} />
-                </span>
-                <span className={styles.confirmText}>Delete {row.title}?</span>
-                <button
-                  type="button"
-                  className={styles.sectionAction}
-                  style={{ marginLeft: 0 }}
-                  onClick={() => setAsking(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className={styles.danger}
-                  onClick={() => void remove(row)}
-                >
-                  Delete
-                </button>
-              </div>
-            ) : (
-            <div
+            <ContentRowView
               key={row.id}
-              className={styles.row}
-              // Secondary ink and a hollow tile, never opacity: dimming a row
-              // on a warm page reads as a rendering fault and takes the label
-              // under the contrast floor with it.
-              data-archived={row.archivedAt ? true : undefined}
-              // Moss, because moss is "offload did this, you didn't" and that
-              // is exactly what happened. Blue is "this needs you", and a row
-              // that was simply filed needs nothing.
-              data-arrived={arrived.has(row.id) ? true : undefined}
-            >
-              <span className={styles.rowIcon}>
-                <Icon name={rowIcon(row.type)} size={18} />
-              </span>
-              <span className={styles.rowText}>
-                {editing === row.id ? (
-                  <input
-                    className={styles.titleInput}
-                    value={draft}
-                    autoFocus
-                    onChange={(event) => setDraft(event.target.value)}
-                    onBlur={() => void saveTitle(row)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") void saveTitle(row);
-                      if (event.key === "Escape") setEditing(null);
-                    }}
-                    aria-label="Title"
-                  />
-                ) : (
-                  <Link href={`/content/${row.id}?from=thread`} className={styles.rowTitle}>
-                    {row.title}
-                  </Link>
-                )}
+              row={row}
+              handlers={handlers}
+              lead={
+                <span className={styles.rowIcon}>
+                  <Icon name={rowIcon(row.type)} size={18} />
+                </span>
+              }
+              meta={
                 <span className={styles.rowMeta}>
                   {row.author.isYou ? "you" : row.author.displayName} ·{" "}
                   {/* The date says what happened to it rather than only when.
@@ -467,46 +436,8 @@ export function Thread({ id, onChanged, onUndo }: Props) {
                     month: "short",
                   })}
                 </span>
-              </span>
-
-              <span className={styles.rowTools}>
-                <button
-                  type="button"
-                  className={styles.tool}
-                  aria-label="Edit"
-                  title="Edit"
-                  onClick={() => {
-                    setDraft(row.title);
-                    setEditing(row.id);
-                  }}
-                >
-                  <Icon name="pencil" size={15} />
-                </button>
-                <button
-                  type="button"
-                  className={styles.tool}
-                  aria-label={row.archivedAt ? "Put back in the list" : "Archive"}
-                  title={row.archivedAt ? "Put back in the list" : "Archive"}
-                  onClick={() => void archive(row)}
-                >
-                  <Icon name={row.archivedAt ? "rewind" : "archive"} size={15} />
-                </button>
-                {/* Only the author. The kit draws this unconditionally; OFF-3
-                    says otherwise, and the server refuses either way. */}
-                {row.canDelete ? (
-                  <button
-                    type="button"
-                    className={styles.toolDanger}
-                    aria-label={`Delete ${row.title}`}
-                    title="Delete"
-                    onClick={() => setAsking(row.id)}
-                  >
-                    <Icon name="trash-2" size={15} />
-                  </button>
-                ) : null}
-              </span>
-            </div>
-            )
+              }
+            />
           ))
         )}
 
