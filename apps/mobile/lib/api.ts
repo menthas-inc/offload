@@ -68,6 +68,52 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T | nul
   return (await response.json()) as T;
 }
 
+/** A call whose status matters.
+ *
+ *  `request` below swallows everything into `null`, which is right for a read
+ *  where a failure and an empty answer look the same to the screen. It is wrong
+ *  for a write: the cap on memories is a 409, a memory that is too long is a
+ *  413, and a refusal is a 404, and a screen that treats all three as "nothing
+ *  happened" is the bug the web shipped last week.
+ */
+export interface Sent<T> {
+  status: number;
+  data: T | null;
+}
+
+export async function send<T>(path: string, init: RequestInit = {}): Promise<Sent<T>> {
+  const cookie = await within(
+    Promise.resolve(authClient.getCookie()).catch(() => ""),
+    3000,
+    ""
+  );
+
+  const headers: Record<string, string> = {
+    ...((init.headers as Record<string, string> | undefined) ?? {}),
+    // Only when there is a body. Fastify refuses an empty body that claims a
+    // JSON content type, and the web client shipped two dead deletes learning
+    // that. Here it is decided from the body rather than from which of two
+    // constants somebody reached for, so the mistake is not available.
+    ...(init.body ? { "content-type": "application/json" } : {}),
+    ...(cookie ? { cookie } : {}),
+  };
+
+  const response = await within(
+    fetch(`${API_URL}${path}`, { ...init, headers }),
+    15000,
+    null as unknown as Response
+  );
+  if (!response) return { status: 0, data: null };
+  if (!response.ok) return { status: response.status, data: null };
+
+  // 204 and an empty body are legitimate answers, not parse failures.
+  const text = await response.text();
+  return {
+    status: response.status,
+    data: text.length > 0 ? (JSON.parse(text) as T) : null,
+  };
+}
+
 export const getMe = (): Promise<Me | null> => request<Me>("/api/me");
 
 /** Finishing first run, with both ticks from the consent screen. The server

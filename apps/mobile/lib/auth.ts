@@ -31,16 +31,61 @@ export const API_URL =
   process.env["EXPO_PUBLIC_API_URL"] ??
   "http://localhost:4701";
 
+/** Secure storage, pinned to this device.
+ *
+ *  **`expo-secure-store` defaults to `WHEN_UNLOCKED`, which is the
+ *  accessibility class that migrates when a phone restores from an encrypted
+ *  backup**, and `@better-auth/expo` calls `setItemAsync` with no options at
+ *  all. So without this, a backup restored onto different hardware carries a
+ *  working session for the rest of its thirty days, with no sign-in.
+ *
+ *  Only writes need the option; reads take the value however it was stored.
+ *
+ *  *iOS only, and stated rather than implied: `keychainAccessible` is marked
+ *  `@platform ios` in expo-secure-store's own types. Android uses the Keystore
+ *  under a different model and this says nothing about it.*
+ */
+const deviceOnly = {
+  ...SecureStore,
+  setItemAsync: (key: string, value: string) =>
+    SecureStore.setItemAsync(key, value, {
+      keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+    }),
+  setItem: (key: string, value: string) =>
+    SecureStore.setItem(key, value, {
+      keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+    }),
+};
+
 export const authClient = createAuthClient({
   baseURL: API_URL,
   plugins: [
     expoClient({
       scheme: "offload",
       storagePrefix: "offload",
-      storage: SecureStore,
+      storage: deviceOnly,
     }),
   ],
 });
+
+/** Rewrite an already-stored session under the stricter class.
+ *
+ *  Accessibility is applied when a value is written and there is no re-encrypt
+ *  on read, so anyone who signed in before this shipped keeps the old class
+ *  until something rewrites it, which may not happen inside thirty days. Read
+ *  it and put it straight back, once, on launch. */
+export async function pinExistingSession(): Promise<void> {
+  // The names the plugin actually uses, from its own source: `storagePrefix`
+  // plus `_cookie` and `_session_data`. Read out of the package rather than
+  // guessed, and `signOutForTesting` below deletes the same two.
+  for (const key of ["offload_cookie", "offload_session_data"]) {
+    const value = await SecureStore.getItemAsync(key).catch(() => null);
+    if (value === null) continue;
+    await SecureStore.setItemAsync(key, value, {
+      keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+    }).catch(() => undefined);
+  }
+}
 
 export type Provider = "apple" | "google";
 
