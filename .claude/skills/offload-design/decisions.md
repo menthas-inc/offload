@@ -693,6 +693,36 @@ clients, the composer on web, the nav foot and a Settings Appearance page, and t
 is settled. Two things for the codebase: **grouping comes out of the widgets** in favour of the filter,
 and **the two preference glyphs get labels**.
 
+### 2026-09-05 · The design queue, applied
+**Surface:** all
+**Raised by:** the code, applying `handoff/APPLY-2026-09-05.md`.
+
+Eleven instructions, nine of them with a surface to land on. What follows is what the codebase did and where it did something else.
+
+**The two reversals both went in as written.** Widgets filter on all three clients, `All` first then each tag value in the thread's dimension, and the group heading and the bare "Everything else" heading are gone. The two preference glyphs are named rows saying what they are and what they are set to, with a Settings Appearance page beside them on `SegmentedControl`. Theme gained a third value, `system`, which is what an unset preference already did without a name for it.
+
+**`filtersFor`, `matching` and `splitDone` are in `@offload/widgets`, not in each client.** Three clients deriving the same filter from the same tags is how two of them end up disagreeing about what `city:alfama` means, which is why `parseTag` is already there.
+
+**Four divergences, each with a reason.**
+
+- **The memory editor is a sheet on the phones, not an expanding row.** `MemoryRow` says the row grows to hold its own editor, which is right on web and is what web does. A phone has a third of the width and a keyboard that takes the bottom half of the screen, so a row opening halfway down a scrolling list opens underneath it. This is the repo's oldest lesson about the platform and no kit can show it.
+- **`Chip`'s new `disabled` is not used for the at-cap Add.** The contract's own note says to say why in copy nearby rather than leave a dead pill, and with rows the sentence says it and names what to do about it.
+- **The Settings Appearance page uses `SegmentedControl`, not `WSettings.jsx`'s `SPick`.** The kit's Appearance page is a radio list and predates this answer, which names the component. The same entry lists this page among the kit screens still to be drawn, so the contract led.
+- **A pane head More menu is web only.** The phones have no pane head; the equivalent, a row's own actions, is `RowActionSheet`, which is now the governed component rather than a screen's invention.
+
+**Two things were carried by the prompt rather than by a screen.** "One thread, one mention" is the model's sentence, so `plan_v2.md` now says to name a thread only when the dump went to more than one: the pills under the reply are built from what was actually filed and are the whole answer to "where". And the phones' partial-turn copy had drifted from the readme's and from web's, "Saved what landed. The rest didn't come through." against "offload did not finish that one."; there is one voice, so both now read the readme's.
+
+**Two instructions have no surface yet and nothing was invented for them.** The share sheet's copy and the Leave/Delete wording both wait on sharing and leaving being built, which the handoff says. **Instruction 9, the row that says "filing", also has nowhere to land**: nothing in either client draws a row before its thread is known. There is no optimistic row and no pending list, so the word would have to be attached to a surface that does not exist. It is the one answer in this pass that is waiting on code rather than on design.
+
+**Two gaps found while applying it, both in the system rather than in the code.**
+
+- **There is no `--border-danger`.** The system has `--border-accent` and `--border-attention` and no clay counterpart, so the failed turn's clay border reads `--text-danger`, which is the one alias that is clay. A border alias would be the honest token.
+- **`tokens/atmosphere.css` is not in the download and has to be kept from the repository.** It is the marketing site's, which has a different designer, and it is a real generator input: the fourteen `--wash-*` and `--prism-*` variables the landing page and the gate paint with come from it. A sync that replaces the folder wholesale removes them and nothing raises, because a stylesheet missing fourteen variables is still a valid stylesheet.
+
+**A comment in `typography.css` broke the token generator, which is worth writing down.** The file explains that its large block is "scoped without `:root` on purpose, since the generator reads every `:root` block as the light theme". The scope regex found that `:root` inside the prose, ran its selector group through the rest of the comment to the next brace, and read the large sizes in as the base ones. Every size token shipped 15% bigger on every platform and nothing raised. The generator strips comments before parsing now, emits `[data-type="large"]` as its own scope, and throws if base and large ever come out equal.
+
+**Design system impact:** three things for the next sync. `--border-danger` as an alias beside `--border-accent` and `--border-attention`. `atmosphere.css` either carried in the download or explicitly recorded as the marketing site's, so neither side deletes it by accident. And the kit screens this pass named as still to be drawn are now built in code, so the sync has something to read: the thread page's archive row and More menu on web and both phones, the widget filter row on all three, the memory rows, the nav foot, and the Settings Appearance page.
+
 ### 2026-09-05 · Sync: the design system catches up on eleven days of code
 **Surface:** all
 **Raised by:** the design system, reading this log after the first real commit.
