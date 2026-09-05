@@ -976,3 +976,14 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **A percentage height against a bottom-anchored parent is a trap, and this is the second layout bug from the same stack.** The sheet capped itself at `78%`. Its parent is the shell's column, anchored `bottom: 0` with no height of its own, so Yoga sized the column from the *unclamped* sheet, the sheet then shrank to 78% of that, and the surplus column height showed as a band of nothing below the tabs. It is a pixel height off the window now. The diagnosis came from painting the column magenta rather than from reading it: the column had been reaching the screen bottom the whole time.
 
 **Design system impact:** worth a line in `readme.md` beside the plate. Two rules, both about the plate not being a fixed shape: it rounds its top only when nothing is stacked on it, and it clears itself to the composer alone whenever the keyboard is up. No kit draws either state, so the kits are what has to catch up.
+
+### 2026-09-05 · The conversation leaves the way it arrived
+**Surface:** mobile
+
+**Is:** folding or closing a raised conversation rolls the sheet down off the bottom over 280ms while the scrim fades under it, and raising one rolls it back up. It used to disappear between two frames.
+
+**Both surfaces unmounted on the flag rather than on the animation.** `if (!raised) return null` runs the moment the state changes, so the exit had nothing left to animate and only the entrance was ever seen. Each now stays mounted until the timing callback says it is off screen. It is the kind of defect that reads as "no animation was written" when in fact one was, which is worth knowing before anyone writes a second.
+
+**It slides by its own height, measured, not by 60px.** The old offset was a nudge that read as a flicker at speed. The plate paints after the sheet, so the sheet goes down *behind* the bottom bar, and there is no fade on it: a slide and a dissolve at once looks like the sheet is coming apart on the way out. A drag that crosses the fold threshold hands straight over to the exit from wherever the finger let go, rather than snapping to the top first.
+
+**Design system impact:** worth a line in `readme.md` beside the sheet. 280ms, ease, no fade, travel equal to the sheet's own height, and the same curve in both directions. No kit expresses motion, so this is the only place the number lives.

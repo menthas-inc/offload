@@ -16,7 +16,7 @@
 // reason: an eight second window that vanishes because somebody tidied the
 // screen was not eight seconds.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   Platform,
@@ -49,16 +49,28 @@ export function ConversationScrim() {
   const conversation = useConversation();
   const raised = conversation.live !== null && !conversation.folded;
   const progress = useSharedValue(0);
+  // Mounted for as long as it is on screen, which is longer than `raised` is
+  // true: unmounting on the flag is what made both this and the sheet vanish
+  // rather than leave.
+  const [shown, setShown] = useState(raised);
 
   useEffect(() => {
-    progress.value = withTiming(raised ? 1 : 0, {
-      duration: 280,
-      reduceMotion: ReduceMotion.System,
-    });
-  }, [raised, progress]);
+    if (raised) setShown(true);
+  }, [raised]);
+
+  useEffect(() => {
+    if (!shown) return;
+    progress.value = withTiming(
+      raised ? 1 : 0,
+      { duration: 280, reduceMotion: ReduceMotion.System },
+      (done) => {
+        if (done && !raised) runOnJS(setShown)(false);
+      },
+    );
+  }, [raised, shown, progress]);
 
   const scrim = useAnimatedStyle(() => ({ opacity: progress.value * 0.35 }));
-  if (!raised) return null;
+  if (!shown) return null;
 
   return (
     <Animated.View
@@ -73,20 +85,37 @@ export function Conversation() {
   const conversation = useConversation();
   const raised = conversation.live !== null && !conversation.folded;
   const progress = useSharedValue(0);
-
-  useEffect(() => {
-    // Reduced motion removes the movement rather than shortening it, handled
-    // by Reanimated's own flag rather than a second code path.
-    progress.value = withTiming(raised ? 1 : 0, {
-      duration: 280,
-      reduceMotion: ReduceMotion.System,
-    });
-  }, [raised, progress]);
+  const [shown, setShown] = useState(raised);
 
   // How far a finger has dragged it down. Separate from `progress` so the sheet
   // follows the hand rather than animating to a state: a drag that does not go
-  // far enough springs back from wherever it got to.
+  // far enough springs back from wherever it got to, and one that folds it
+  // hands over to the exit from exactly where the finger let go.
   const drag = useSharedValue(0);
+
+  // Its own height, so putting it away is a roll off the bottom rather than a
+  // 60px nudge. Measured rather than assumed: it is as tall as the
+  // conversation in it, up to the cap below.
+  const height = useSharedValue(0);
+
+  useEffect(() => {
+    if (raised) setShown(true);
+  }, [raised]);
+
+  useEffect(() => {
+    if (!shown) return;
+    // Reduced motion removes the movement rather than shortening it, handled
+    // by Reanimated's own flag rather than a second code path.
+    progress.value = withTiming(
+      raised ? 1 : 0,
+      { duration: 280, reduceMotion: ReduceMotion.System },
+      (done) => {
+        if (!done || raised) return;
+        drag.value = 0;
+        runOnJS(setShown)(false);
+      },
+    );
+  }, [raised, shown, progress, drag]);
 
   // In pixels, not `78%`. The sheet's parent is the shell's column, which is
   // anchored to the bottom with no height of its own, so a percentage resolved
@@ -96,7 +125,6 @@ export function Conversation() {
   const { height: screen } = useWindowDimensions();
 
   const foldNow = (): void => {
-    drag.value = 0;
     conversation.fold();
   };
 
@@ -118,12 +146,16 @@ export function Conversation() {
       drag.value = withSpring(0, { damping: 22, stiffness: 240 });
     });
 
+  // No fade. It goes down behind the plate, which paints after it, so the
+  // slide is the whole animation and a fade on top of it only makes the sheet
+  // look like it is dissolving on the way.
   const sheet = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ translateY: (1 - progress.value) * 60 + drag.value }],
+    transform: [
+      { translateY: (1 - progress.value) * (height.value || screen * 0.78) + drag.value },
+    ],
   }));
 
-  if (!raised) return null;
+  if (!shown) return null;
 
   return (
     // An ordinary block in the shell's bottom column, above the plate. It was
@@ -131,6 +163,9 @@ export function Conversation() {
     // painted straight over the sheet's own composer. One column, sheet on top,
     // which is also how the kit lays it out.
     <Animated.View
+      onLayout={(event) => {
+        height.value = event.nativeEvent.layout.height;
+      }}
       style={[sheet, { maxHeight: screen * 0.78 }]}
       className={`${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
     >
