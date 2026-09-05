@@ -1,66 +1,95 @@
 // The shell.
 //
-// One tab exists so far. The bar is here rather than added later because the
-// first tab is time-aware and its label changes on its own, which is easier to
-// get right from the start than to retrofit around a screen that assumed a
-// fixed title.
+// Three tabs, and the bar is not the framework's: `M3App.jsx` draws one raised
+// plate holding the folded conversation header, the composer and the tabs, and
+// they move together when the keyboard comes up. So `Tabs` supplies the routing
+// and `Plate` supplies the chrome.
+//
+// The first tab is time-aware and its label changes on its own, which is easier
+// to get right from the start than to retrofit.
 
-import { Tabs } from "expo-router";
-import { Platform } from "react-native";
-import { SunGlyph, MoonGlyph } from "../../components/Glyphs";
+import { Tabs, usePathname, useRouter } from "expo-router";
+import { View } from "react-native";
+import { Plate, type Tab } from "../../components/shell/Plate";
+import { Conversation } from "../../components/shell/Conversation";
+import {
+  ConversationProvider,
+  useConversation,
+} from "../../components/shell/conversation-context";
+import { ToastHost, useToast } from "../../components/shell/Toast";
 import { timeOfDay } from "../../lib/sun";
-import { resolved, android as androidTokens } from "@offload/tokens";
-
-const light = resolved.light;
-// Material's own bar height and surface roles, generated from the Android
-// kit's platform scope rather than typed here.
-const m3 = androidTokens.light;
-const isAndroid = Platform.OS === "android";
+import { useEffect, useRef } from "react";
 
 export default function TabsLayout() {
+  return (
+    // Above the tabs, because a conversation outlives the screen it was
+    // started from: you dump from My threads, walk into a thread while offload
+    // is still writing, and it is still yours.
+    <ConversationProvider>
+      <Shell />
+    </ConversationProvider>
+  );
+}
+
+function Shell() {
+  const router = useRouter();
+  const pathname = usePathname();
   const tod = timeOfDay();
+  const conversation = useConversation();
+  const toast = useToast();
+
+  // The turn's Undo, held here rather than in the sheet, so folding the
+  // conversation cannot take the window away with it.
+  const shownUndo = useRef<string | null>(null);
+  useEffect(() => {
+    const undoable = conversation.undoable;
+    if (!undoable || shownUndo.current === undoable.turnId) return;
+    // Guarded on the turn rather than a narrowed dependency list, so the effect
+    // can depend on the whole value and still offer each window once.
+    shownUndo.current = undoable.turnId;
+    toast.show(undoable.message, { label: "Undo", onPress: () => void conversation.undo() });
+  }, [conversation, toast]);
+
+  const tabs: Tab[] = [
+    {
+      key: "today",
+      label: tod.label,
+      icon: tod.icon === "moon" ? "moon" : "sun",
+      active: pathname === "/today" || pathname === "/",
+      onPress: () => router.replace("/today"),
+    },
+    {
+      key: "threads",
+      label: "My threads",
+      icon: "lasso",
+      active: pathname.startsWith("/threads"),
+      onPress: () => router.replace("/threads"),
+    },
+    {
+      key: "memories",
+      label: "Memories",
+      icon: "cloudy",
+      active: pathname === "/memories",
+      onPress: () => router.replace("/memories"),
+    },
+  ];
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: isAndroid ? m3["a-on"] : light["text-primary"],
-        tabBarInactiveTintColor: isAndroid
-          ? m3["a-on-quiet"]
-          : light["text-tertiary"],
-        tabBarStyle: {
-          backgroundColor: isAndroid ? m3["a-c-low"] : light["surface-raised"],
-          borderTopColor: isAndroid
-            ? m3["a-outline"]
-            : light["border-hairline"],
-          // Material's navigation bar is taller than the iOS tab bar. Both
-          // numbers come from the design system rather than a framework
-          // default.
-          height: parseInt(
-            (isAndroid ? m3["row-height-lg"] : light["tabbar-height"]) ?? "64",
-            10,
-          ),
-        },
-        // 12, which is the design system's stated mobile minimum. It was 11.
-        tabBarLabelStyle: { fontSize: 12, fontWeight: "500" },
-      }}
-    >
-      {/* Today until sunset, Tonight after, on the real curve rather than a
-          fixed hour. Read once per mount: the bar does not need to flip the
-          moment the sun sets, and a ticking timer to catch it would run all
-          day for a label. Next launch has it right. */}
-      <Tabs.Screen
-        name="today"
-        options={{
-          title: tod.label,
-          tabBarIcon: ({ color }) =>
-            tod.icon === "moon" ? (
-              <MoonGlyph size={22} color={color} />
-            ) : (
-              <SunGlyph size={22} color={color} />
-            ),
-        }}
-      />
-    </Tabs>
+    <View className="flex-1">
+      <Tabs
+        screenOptions={{ headerShown: false }}
+        // The framework's bar is replaced entirely: the composer and the tabs
+        // are one surface, and the keyboard moves both.
+        tabBar={() => null}
+      >
+        <Tabs.Screen name="today" />
+        <Tabs.Screen name="threads" />
+        <Tabs.Screen name="memories" />
+      </Tabs>
+
+      <Plate tabs={tabs} />
+      <Conversation />
+      <ToastHost state={toast} />
+    </View>
   );
 }

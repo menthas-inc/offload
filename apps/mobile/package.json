@@ -9,7 +9,8 @@
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "build": "echo \"built by EAS, not by turbo\" && exit 0"
+    "build": "echo \"built by EAS, not by turbo\" && exit 0",
+    "icons": "node scripts/icons.mjs"
   },
   "dependencies": {
     "@better-auth/expo": "^1.7.2",

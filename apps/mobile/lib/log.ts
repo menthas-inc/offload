@@ -58,7 +58,6 @@ function safe(fields: Record<string, Fact>): Record<string, Fact> {
 
 function emit(level: "info" | "warn" | "error", event: string, fields: Record<string, Fact>): void {
   if (!__DEV__) return;
-  // eslint-disable-next-line no-console
   console[level](event, safe(fields));
 }
 

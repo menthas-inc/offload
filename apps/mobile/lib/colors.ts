@@ -17,4 +17,15 @@ export const COLOR = {
   accent: base["text-accent"]!,
   // The icon well's content, which sits on a different surface per platform.
   iconOnWell: Platform.OS === "android" ? m3["a-on-var"]! : base["text-secondary"]!,
+  /** A tab that is on, and one that is not. Material and iOS disagree about
+   *  how quiet the off state should be, and both come from their own scope. */
+  tabOn: Platform.OS === "android" ? m3["a-on"]! : base["text-primary"]!,
+  tabOff: Platform.OS === "android" ? m3["a-on-quiet"]! : base["text-tertiary"]!,
+  /** Moss. "offload did this, you didn't", which is also the change mark. */
+  accentSoft: base["surface-accent-soft"]!,
+  /** What a sheet dims the screen behind it with, and what an elevated surface
+   *  casts. Both are ink at a low opacity rather than black: the palette is
+   *  warm and a true black scrim reads cold against it. Opacity is applied at
+   *  the call site so this stays a token rather than a computed literal. */
+  scrim: base["ink-950"]!,
 } as const;
