@@ -15,24 +15,18 @@ export const MAX_TAGS = 6;
 /** Dimension plus value plus the colon. */
 export const TAG_CHARS = 48;
 
+/** `parseTag`, `dimensionsIn` and `Tag` live in `@offload/widgets` now, because
+ *  `groupBy` needs them and four clients holding four copies of "what does
+ *  city:alfama mean" is the drift this repo keeps paying for. Re-exported here
+ *  so every existing import site still resolves. */
+import { parseTag } from "@offload/widgets";
+
+export { dimensionsIn, parseTag, type Tag } from "@offload/widgets";
+
 export class BadTags extends Error {
   constructor(readonly reason: "too_many" | "too_long" | "empty" | "duplicate_dimension") {
     super(reason);
   }
-}
-
-export interface Tag {
-  dimension: string;
-  value: string;
-}
-
-/** Split a tag without deciding whether it is valid. A bare tag takes the
- *  implicit dimension, so everything offload already produces is groupable
- *  without a migration. */
-export function parseTag(raw: string): Tag {
-  const at = raw.indexOf(":");
-  if (at < 0) return { dimension: "tag", value: raw };
-  return { dimension: raw.slice(0, at), value: raw.slice(at + 1) };
 }
 
 /** Normalise and validate a whole set.
@@ -70,25 +64,5 @@ export function normaliseTags(raw: readonly string[]): string[] {
     if (!out.includes(tag)) out.push(tag);
   }
 
-  return out;
-}
-
-/** Which dimensions a set of rows actually uses, in the order they first
- *  appear.
- *
- *  A scan over rows already in memory, not a query. A GIN index on `text[]`
- *  indexes whole elements and not the prefix before a colon, so an indexed
- *  answer would need a different structure, and 001's heavy case is 500 rows in
- *  one thread, which is a page the screen has already fetched. Stated because
- *  "how would you enumerate these" is the question this design has to survive.
- */
-export function dimensionsIn(rows: readonly { tags: string[] }[]): string[] {
-  const out: string[] = [];
-  for (const row of rows) {
-    for (const tag of row.tags) {
-      const { dimension } = parseTag(tag);
-      if (dimension !== "tag" && !out.includes(dimension)) out.push(dimension);
-    }
-  }
   return out;
 }

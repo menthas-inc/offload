@@ -46,7 +46,7 @@ function row(over: Partial<Sortable> = {}): Sortable {
     tags: [],
     doneAt: null,
     occursAt: null,
-    place: null,
+    placeId: null,
     ...over,
   };
 }
@@ -62,7 +62,7 @@ describe("widgets are earned", () => {
 
   it("earns each one from its own predicate (AC-1)", () => {
     const rows = [
-      row({ place: { id: "p1", lat: 1, lng: 1 } }),
+      row({ placeId: "p1" }),
       row({ type: "task" }),
       row({ occursAt: "2026-09-20T00:00:00Z" }),
       row({ type: "image" }),
@@ -95,21 +95,21 @@ describe("widgets are earned", () => {
   it("leads with whatever the thread is mostly made of", () => {
     // A trip full of places leads with the map, without anybody choosing.
     const rows = [
-      ...Array.from({ length: 5 }, () => row({ place: { id: "p", lat: 1, lng: 1 } })),
+      ...Array.from({ length: 5 }, () => row({ placeId: "p" })),
       row({ type: "task" }),
     ];
     expect(widgetsFor(rows).map((w) => w.kind)).toEqual(["map", "todo"]);
   });
 
   it("breaks a tie the same way every time", () => {
-    const rows = [row({ type: "task" }), row({ place: { id: "p", lat: 1, lng: 1 } })];
+    const rows = [row({ type: "task" }), row({ placeId: "p" })];
     expect(widgetsFor(rows).map((w) => w.kind)).toEqual(["map", "todo"]);
     expect(widgetsFor([...rows].reverse()).map((w) => w.kind)).toEqual(["map", "todo"]);
   });
 });
 
 describe("a stated order", () => {
-  const rows = [row({ type: "task" }), row({ place: { id: "p", lat: 1, lng: 1 } }), row({ type: "image" })];
+  const rows = [row({ type: "task" }), row({ placeId: "p" }), row({ type: "image" })];
 
   it("overrides the derived one (AC-3)", () => {
     expect(widgetsFor(rows, ["todo", "map"]).map((w) => w.kind)).toEqual([

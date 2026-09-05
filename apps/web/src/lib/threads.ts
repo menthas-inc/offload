@@ -137,6 +137,10 @@ export interface ContentRow {
   priorityPinned: boolean;
   tags: string[];
   place: Place | null;
+  /** The same place, as the id the shared widget rule takes. Derived in
+   *  `fetchContent` rather than sent twice, so nothing above has to know that
+   *  the server holds a key where this holds an object. */
+  placeId: string | null;
   /** `accountId` is null once the author deleted their account. Their content
    *  stays in the threads they shared, per OFF-3, and the name comes off it.
    *  `displayName` falls back to "Someone" server-side, so the screen never
@@ -173,7 +177,7 @@ export async function fetchThreads(): Promise<ThreadGroup[]> {
 export const fetchThread = (id: string): Promise<ThreadBundle | null> =>
   get<ThreadBundle>(`/v1/threads/${id}`);
 
-export function fetchContent(
+export async function fetchContent(
   threadId: string,
   options: { cursor?: string; archived?: boolean } = {},
 ): Promise<ContentPage | null> {
@@ -181,11 +185,22 @@ export function fetchContent(
   if (options.cursor) query.set("cursor", options.cursor);
   if (options.archived) query.set("archived", "true");
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  return get<ContentPage>(`/v1/threads/${threadId}/content${suffix}`);
+  const page = await get<ContentPage>(`/v1/threads/${threadId}/content${suffix}`);
+  if (!page) return null;
+  // The one place the server's shape and the shared rule's shape meet.
+  return { ...page, rows: page.rows.map(withPlaceId) };
 }
 
-export const fetchOne = (id: string): Promise<ContentDetail | null> =>
-  get<ContentDetail>(`/v1/content/${id}`);
+/** The shared widget rule asks whether a row has a place; the API sends the
+ *  place itself. One line, once, at the edge. */
+function withPlaceId(row: ContentRow): ContentRow {
+  return { ...row, placeId: row.place?.id ?? null };
+}
+
+export async function fetchOne(id: string): Promise<ContentDetail | null> {
+  const row = await get<ContentDetail>(`/v1/content/${id}`);
+  return row ? { ...row, placeId: row.place?.id ?? null } : null;
+}
 
 // ------------------------------------------------------------------ writes
 //

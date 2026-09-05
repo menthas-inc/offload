@@ -36,6 +36,9 @@ importers:
       '@offload/tokens':
         specifier: workspace:^
         version: link:../../packages/tokens
+      '@offload/widgets':
+        specifier: workspace:^
+        version: link:../../packages/widgets
       better-auth:
         specifier: ^1.7.2
         version: 1.7.2(next@15.5.25(@babel/core@7.29.7)(@types/node@22.20.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(pg@8.23.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@2.1.9(@types/node@22.20.1)(lightningcss@1.33.0)(terser@5.51.2))
@@ -97,6 +100,9 @@ importers:
       '@offload/tokens':
         specifier: workspace:^
         version: link:../../packages/tokens
+      '@offload/widgets':
+        specifier: workspace:^
+        version: link:../../packages/widgets
       better-auth:
         specifier: ^1.7.2
         version: 1.7.2(next@15.5.25(@babel/core@7.29.7)(@types/node@22.20.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.3))(react@19.2.3))(pg@8.23.0)(react-dom@19.2.8(react@19.2.3))(react@19.2.3)(vitest@2.1.9(@types/node@22.20.1)(lightningcss@1.33.0)(terser@5.51.2))
@@ -191,6 +197,9 @@ importers:
       '@offload/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
+      '@offload/widgets':
+        specifier: workspace:^
+        version: link:../../packages/widgets
       better-auth:
         specifier: ^1.7.2
         version: 1.7.2(next@15.5.25(@types/node@22.20.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(pg@8.23.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vitest@2.1.9(@types/node@22.20.1)(lightningcss@1.33.0)(terser@5.51.2))
@@ -221,6 +230,12 @@ importers:
         version: 2.1.9(@types/node@22.20.1)(lightningcss@1.33.0)(terser@5.51.2)
 
   packages/tokens:
+    devDependencies:
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+
+  packages/widgets:
     devDependencies:
       typescript:
         specifier: ~6.0.3
