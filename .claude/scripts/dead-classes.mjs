@@ -68,7 +68,13 @@ for (const file of files) {
         if (heights.has(v) || minH.has(v) || spacing.has(v) || BUILTIN_SIZE.test(v)) continue;
         findings.push({ file, line, cls, why: "no height/width named " + v });
       } else if ((mm = cls.match(/^rounded-(.+)$/))) {
-        const v = mm[1];
+        // A radius utility can name a side or a corner before the key:
+        // `rounded-t-lg` is the two top corners at the `lg` radius, not a
+        // radius called `t-lg`. Stripped here so a directional utility is
+        // checked against the key it actually uses, and so a real typo in one
+        // (`rounded-t-lgg`) is still caught rather than passing as a shape the
+        // checker did not understand.
+        const v = mm[1].replace(/^(?:t|b|l|r|s|e|tl|tr|bl|br|ss|se|es|ee)-/, "");
         if (radius.has(v) || /^(none|full|sm|md|lg|xl)$/.test(v)) continue;
         findings.push({ file, line, cls, why: "no radius named " + v });
       }
