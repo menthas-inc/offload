@@ -53,6 +53,10 @@ jobs:
       # secret is needed to prove the code works.
       BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
       EMAIL_FROM: ci@offload.club
+      # Another throwaway, and it has to be here rather than absent: the worker
+      # posts model results back through one internal endpoint and the schema
+      # requires 32 characters, so the whole run dies at db:migrate without it.
+      INTERNAL_SERVICE_TOKEN: ci-only-internal-token-not-used-anywhere-else-0123456789
       # RESEND_API_KEY is deliberately absent, which selects the in-memory
       # mailer. CI must not be one typo away from mailing a real person.
 
