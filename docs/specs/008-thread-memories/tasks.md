@@ -33,7 +33,7 @@ Every task cites the AC it serves. A track is closed when its tests pass, not wh
   *Test:* at the cap, delete one, add one, then undo the delete: the thread holds ten and the restore is refused, not eleven.
 - [x] **B5** The four routes, and memories on `GET /v1/threads/:id`.
   *Test:* `PATCH` returns the value from before the write, not after *(**AC-8**)*; the 409 at the cap carries a count and no text *(**AC-21**)*.
-- [ ] **B6** Thread deletion deletes the thread's memories in the same transaction *(**AC-16**)*. **Open, and it has no caller: nothing in the product deletes a thread yet.** `deleteMemoriesForThread` is written and exported and currently unused, so whoever builds thread deletion has to call it. `subject_id` is polymorphic and carries no foreign key, so nothing cascades and nothing will do this on its own.
+- [x] **B6** Thread deletion deletes the thread's memories in the same transaction *(**AC-16**)*. **Done.** Thread deletion landed with the purge job, and `deleteMemoriesForThread` is called from `jobs/handlers.ts` inside the same transaction as the thread's own removal. `subject_id` is polymorphic and carries no foreign key, so nothing cascades and this call is the whole of the guarantee.
   *Test:* arrives with the caller.
 - [x] **B7** Account deletion leaves memories on shared threads and nulls their author *(**AC-15**, OFF-3)*. Carried by `on delete set null` rather than by code, and tested by deleting the account row directly, because no account-deletion path exists in the product yet.
   *Test:* John deletes his account; his memory in the thread he shared with Ana is still there, still steering the model, carrying no name; his memory in his own thread goes with the thread.

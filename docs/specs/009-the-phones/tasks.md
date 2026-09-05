@@ -132,9 +132,12 @@ carries a failure mode no mock can express.
 ## G. The record
 
 - [x] **G1** All six design-system questions answered, 2026-09-05, recorded in the design log.
-- [ ] **G1a** **Blocked on a design system sync.** `Chip` gains a `disabled` prop with the readme's documented treatment, `--ink-100`
-      on `--ink-400` and explicitly no opacity fade. Contract, component and the regenerated
-      lint rule.
+- [x] **G1a** **Arrived, and deliberately not used.** The 5 September sync gave `Chip` its
+      `disabled` prop, painting `--state-disabled-surface` on `--state-disabled-text` with no
+      opacity fade. The at-cap Add control it was wanted for stayed a sentence: the contract's
+      own note says to say why something is unavailable in copy nearby rather than leave a dead
+      pill, and with memories as rows the sentence says it and names what to do. Logged as a
+      divergence in the design system's `decisions.md`.
 - [x] **G1b** The change mark described in `readme.md` beside the two accents. It is the first
       pattern in the system that is a moment rather than a state.
 - [x] **G1c** `readme.md` says `SwipeRow` is delete-only. The name reads generic and it is not:
