@@ -31,6 +31,10 @@ export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string
   const insets = useSafeAreaInsets();
   const conversation = useConversation();
   const folded = conversation.live !== null && conversation.folded;
+  // The raised sheet brings its own composer, so the plate's would be a second
+  // field behind it competing for the keyboard. `M3App.jsx` hides it for the
+  // same reason: `showComposer` is false while a conversation is up.
+  const raised = conversation.live !== null && !conversation.folded;
 
   return (
     <KeyboardAvoidingView behavior="padding">
@@ -49,7 +53,7 @@ export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string
       >
         {folded ? <FoldedHeader /> : null}
 
-        <Composer placeholder={placeholder} />
+        {raised ? null : <Composer placeholder={placeholder} />}
 
         {tabs.length > 0 ? (
           <View className="flex-row">

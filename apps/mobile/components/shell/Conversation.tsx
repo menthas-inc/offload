@@ -17,7 +17,8 @@
 // screen was not eight seconds.
 
 import { useEffect, useRef } from "react";
-import { Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Keyboard, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -66,8 +67,17 @@ export function Conversation() {
         <Pressable className="flex-1" onPress={conversation.fold} accessibilityLabel="Fold" />
       </Animated.View>
 
+      {/* The sheet rides the keyboard rather than sitting under it.
+          Pinned to `bottom: 0` it stayed where the screen ends, so the
+          composer and the newest turns went behind the keyboard and the part
+          left showing was the beginning of the conversation: exactly backwards
+          for a log you read from the end. */}
+      <KeyboardAvoidingView
+        behavior="padding"
+        style={{ position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "88%" }}
+      >
       <Animated.View
-        style={[sheet, { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "88%" }]}
+        style={[sheet, { flexShrink: 1 }]}
         className={`${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
       >
         <View className="flex-row items-center gap-space-4 px-gutter-screen pb-space-3 pt-space-5">
@@ -94,6 +104,7 @@ export function Conversation() {
           <Composer placeholder="Add to this" />
         </View>
       </Animated.View>
+      </KeyboardAvoidingView>
     </>
   );
 }
@@ -106,11 +117,23 @@ function Turns() {
     scroll.current?.scrollToEnd({ animated: true });
   }, [turns.length, writing]);
 
+  // The keyboard changes the height under the log, so the end moves. Without
+  // this the view stays where it was and shows the middle of the conversation.
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () =>
+      scroll.current?.scrollToEnd({ animated: true }),
+    );
+    return () => show.remove();
+  }, []);
+
   return (
     <ScrollView
       ref={scroll}
       contentContainerClassName="gap-space-4 px-gutter-screen pb-space-4"
-      style={{ flexGrow: 0 }}
+      // Shrink, never grow. The composer keeps its height and the log takes
+      // what is left, so a long conversation scrolls instead of pushing the
+      // field out of the sheet.
+      style={{ flexShrink: 1, flexGrow: 0 }}
     >
       {turns.map((turn) =>
         turn.from === "you" ? (
