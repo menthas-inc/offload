@@ -30,12 +30,14 @@ export function Widgets({
   onDelete,
   onActions,
   onToggle,
+  arrived,
 }: {
   widgets: Widget<ContentRow>[];
   groupBy?: Record<string, string> | undefined;
   onDelete: (row: ContentRow) => void;
   onActions: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
+  arrived?: Set<string> | undefined;
 }) {
   if (widgets.length === 0) return null;
 
@@ -94,6 +96,7 @@ export function Widgets({
                     key={row.id}
                     row={row}
                     border={i < group.rows.length - 1}
+                    arrived={arrived?.has(row.id) ?? false}
                     onDelete={() => onDelete(row)}
                     onActions={() => onActions(row)}
                     onToggle={widget.kind === "todo" ? () => onToggle(row) : undefined}

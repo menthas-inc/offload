@@ -8,7 +8,16 @@
 
 import { Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { useEffect } from "react";
+import Animated, {
+  ReduceMotion,
+  interpolateColor,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  withSpring,
+} from "react-native-reanimated";
 import { Glyph } from "../Glyph";
 import { COLOR } from "../../lib/colors";
 import type { ContentRow } from "../../lib/threads";
@@ -33,15 +42,29 @@ interface Props {
   border: boolean;
   onDelete: () => void;
   onActions: () => void;
+  /** Arrived while somebody was looking at the screen, so it is marked for a
+   *  moment rather than simply being there. */
+  arrived?: boolean | undefined;
   /** Only a to-do row gets one. The kit draws these as real checkboxes rather
    *  than list rows, and a tick is one tap rather than a long press into a
    *  sheet, because it is the thing people do most. */
   onToggle?: (() => void) | undefined;
 }
 
-export function ContentRowView({ row, border, onDelete, onActions, onToggle }: Props) {
+export function ContentRowView({ row, border, arrived, onDelete, onActions, onToggle }: Props) {
   const dx = useSharedValue(0);
   const settle = () => withSpring(0, { damping: 20, stiffness: 220 });
+
+  // The change mark: a moss ground settling to transparent over 1400ms. Moss
+  // because it already means "offload did this, you didn't", which is exactly
+  // what happened. Reduced motion drops it rather than shortening it, because
+  // a flash that is only briefer is still a flash.
+  const mark = useSharedValue(arrived ? 1 : 0);
+  useEffect(() => {
+    if (!arrived) return;
+    mark.value = 1;
+    mark.value = withTiming(0, { duration: 1400, reduceMotion: ReduceMotion.System });
+  }, [arrived, mark]);
 
   const pan = Gesture.Pan()
     .activeOffsetX([-12, 12])
@@ -65,7 +88,10 @@ export function ContentRowView({ row, border, onDelete, onActions, onToggle }: P
       runOnJS(onActions)();
     });
 
-  const sliding = useAnimatedStyle(() => ({ transform: [{ translateX: dx.value }] }));
+  const sliding = useAnimatedStyle(() => ({
+    transform: [{ translateX: dx.value }],
+    backgroundColor: interpolateColor(mark.value, [0, 1], [COLOR.page, COLOR.accentSoft]),
+  }));
 
   return (
     <View className="relative">
@@ -89,8 +115,8 @@ export function ContentRowView({ row, border, onDelete, onActions, onToggle }: P
         <Animated.View
           style={sliding}
           className={`flex-row items-start gap-space-5 px-gutter-screen py-space-4 ${
-            isAndroid ? "bg-a-surface" : "bg-surface-page"
-          } ${border ? "border-b border-border-hairline" : ""}`}
+            border ? "border-b border-border-hairline" : ""
+          }`}
         >
           {onToggle ? (
             <Pressable

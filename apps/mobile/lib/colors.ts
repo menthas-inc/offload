@@ -28,4 +28,6 @@ export const COLOR = {
    *  warm and a true black scrim reads cold against it. Opacity is applied at
    *  the call site so this stays a token rather than a computed literal. */
   scrim: base["ink-950"]!,
+  /** The ground a row sits on, which the change mark fades back to. */
+  page: Platform.OS === "android" ? m3["a-surface"]! : base["surface-page"]!,
 } as const;

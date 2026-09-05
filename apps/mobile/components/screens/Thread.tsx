@@ -18,7 +18,7 @@
 //     saying offload has not done something is an apology taking up the most
 //     prominent space on the screen.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -39,6 +39,7 @@ import {
   type ContentRow,
   type ThreadBundle,
 } from "../../lib/threads";
+import { useConversation } from "../shell/conversation-context";
 import { failed } from "../../lib/log";
 
 const isAndroid = Platform.OS === "android";
@@ -51,7 +52,11 @@ export default function Thread() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [acting, setActing] = useState<ContentRow | null>(null);
+  // What arrived while this screen was open, marked for a moment rather than
+  // appearing silently in the middle of a list.
+  const [arrived, setArrived] = useState<Set<string>>(new Set());
   const toast = useToast();
+  const { filed } = useConversation();
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -73,6 +78,46 @@ export default function Thread() {
       void load();
     }, [load]),
   );
+
+  /** Reload, and mark whatever was not here before.
+   *
+   *  The diff is done here rather than asked of the server: the screen already
+   *  knows what it was showing, and a "what changed since" parameter would be a
+   *  second source of truth about the same question. */
+  const catchUp = useCallback(async (): Promise<void> => {
+    if (!id) return;
+    const before = new Set(rows.map((row) => row.id));
+    const [bundle, page] = await Promise.all([
+      fetchThread(id),
+      fetchContent(id, { archived: showArchived }),
+    ]);
+    const next = page?.rows ?? [];
+    setThread(bundle);
+    setRows(next);
+    setCursor(page?.nextCursor ?? null);
+    const fresh = next.filter((row) => !before.has(row.id)).map((row) => row.id);
+    if (fresh.length > 0) setArrived(new Set(fresh));
+  }, [id, rows, showArchived]);
+
+  // offload filed into the thread somebody is looking at. The composer is on
+  // this screen, so this is the ordinary case rather than a race, and without
+  // it the page goes on showing what it held a moment ago while the reply says
+  // otherwise.
+  const lastFiled = useRef(0);
+  useEffect(() => {
+    if (!filed || filed.at === lastFiled.current) return;
+    lastFiled.current = filed.at;
+    if (filed.threadIds.length > 0 && !filed.threadIds.includes(id ?? "")) return;
+    void catchUp();
+  }, [filed, id, catchUp]);
+
+  // The mark is a moment, not a state, and it is cleared on a timer so it
+  // survives the reload that produced it.
+  useEffect(() => {
+    if (arrived.size === 0) return;
+    const timer = setTimeout(() => setArrived(new Set()), 1600);
+    return () => clearTimeout(timer);
+  }, [arrived]);
 
   async function tick(row: ContentRow): Promise<void> {
     await completeContent(row.id, row.doneAt === null);
@@ -192,6 +237,7 @@ export default function Thread() {
             onDelete={(row: ContentRow) => void remove(row)}
             onActions={setActing}
             onToggle={(row: ContentRow) => void tick(row)}
+            arrived={arrived}
           />
         )}
 
@@ -241,6 +287,7 @@ export default function Thread() {
             key={row.id}
             row={row}
             border={i < rest.length - 1}
+            arrived={arrived.has(row.id)}
             onDelete={() => void remove(row)}
             onActions={() => setActing(row)}
           />
