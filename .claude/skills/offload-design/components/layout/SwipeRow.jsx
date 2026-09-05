@@ -48,7 +48,15 @@ export function SwipeRow({children,onDelete,label="Delete",revealWidth=88,backgr
   };
   return (
     <div {...rest} style={{position:"relative",overflow:"hidden",...style}}>
-      <div aria-hidden={dx===0?"true":undefined} style={{position:"absolute",inset:0,display:"flex",justifyContent:"flex-end"}}>
+      {/* Opacity comes from the same value as the offset, deliberately. The panel
+         sits behind the row and the row's own opaque background covers it, which
+         holds right up until something fades the whole screen as one layer: a tab
+         change, a modal, a list animating in. At 50% through a cross-fade the clay
+         reads straight through every closed row at once. Hiding by stacking order
+         is not hiding. */}
+      <div aria-hidden={dx===0?"true":undefined}
+        style={{position:"absolute",inset:0,display:"flex",justifyContent:"flex-end",
+          opacity:Math.min(1,Math.abs(dx)/12),pointerEvents:dx===0?"none":undefined}}>
         <button data-swipe-action type="button" aria-label={label} tabIndex={dx===0?-1:0}
           onClick={()=>{close();if(onDelete)onDelete()}}
           style={{width:revealWidth,flex:"0 0 auto",border:"none",cursor:"pointer",padding:0,

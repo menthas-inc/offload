@@ -4,7 +4,10 @@ const { Icon, IconButton, Button, Checkbox, Chip } = OFFLOAD_DS;
    connections, and a last row that makes a new connection rather than sending an invite.
    It is a modal, not a pane, because sharing is not a place you navigate to. Connections
    only, so there is no public link anywhere. */
-const W_PERM="They can add to it, and they can never delete what is yours.";
+/* The line a person reads before sharing. It stated the one permission until
+   5 September 2026, when it was replaced by what happens to a shared thread
+   over time: co-owned, and it outlives any one member leaving. */
+const W_PERM="A shared thread belongs to everyone in it. If somebody leaves offload, the thread and everything they added stay with the rest of you.";
 function wConnections(){
   const people=D.people||{};
   return Object.keys(people).map(k=>people[k]);

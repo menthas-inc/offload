@@ -1,0 +1,230 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Design queue 4: sharing and the unbuilt</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="frames.css">
+<style>
+.nav{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 30px;padding:0;list-style:none;font-size:13px}
+.nav a{color:var(--text-secondary)}.nav a[aria-current]{color:var(--text-primary);font-weight:500}
+.det{width:512px;box-sizing:border-box;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:14px;padding:14px 16px}
+.r{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-hairline)}
+.r:last-child{border-bottom:none}
+.tile{width:32px;height:32px;border-radius:8px;background:var(--surface-fill);color:var(--text-secondary);flex:0 0 auto}
+.rt{flex:1;min-width:0}
+.rt b{display:block;font:var(--weight-medium) 15.5px/1.25 var(--font-core);letter-spacing:-.008em}
+.rt s{text-decoration:none;display:block;margin-top:3px;font:var(--weight-regular) 12px/1 var(--font-core);color:var(--text-tertiary)}
+.rt s.wait{color:var(--text-tertiary)}
+.rt s em{font-style:normal;color:var(--text-accent);font-weight:500}
+.dash{display:inline-block;width:64px;height:9px;border-radius:99px;background:var(--ink-100)}
+.sheetc{width:390px;box-sizing:border-box;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:24px;box-shadow:var(--shadow-sheet);overflow:hidden}
+.sheetc .grab{display:flex;justify-content:center;padding:10px 0 4px}
+.sheetc .grab s{text-decoration:none;width:36px;height:4px;border-radius:99px;background:var(--ink-200);display:block}
+.sheetc h4{margin:0;padding:8px 20px 4px;font:var(--weight-semibold) 21px/1.2 var(--font-core);letter-spacing:-.014em}
+.sheetc .perm{padding:6px 20px 14px;font:var(--weight-regular) 14px/1.5 var(--font-quiet);color:var(--text-secondary)}
+.sheetc .perm b{color:var(--text-primary);font-weight:400}
+.srow{display:flex;align-items:center;gap:12px;padding:12px 20px;border-top:1px solid var(--border-hairline)}
+.srow .av{width:34px;height:34px;border-radius:99px;background:var(--ink-200);color:var(--ink-700);font:var(--weight-medium) 12px/34px var(--font-core);text-align:center;flex:0 0 auto}
+.srow .nm{flex:1;min-width:0;font:var(--weight-medium) 15px/1.3 var(--font-core)}
+.srow .nm s{text-decoration:none;display:block;font:var(--weight-regular) 12.5px/1.3 var(--font-core);color:var(--text-tertiary);margin-top:2px}
+.srow i{width:18px;height:18px;color:var(--text-tertiary);flex:0 0 auto}
+.srow .add{color:var(--text-accent)}
+.snack2{display:flex;align-items:center;gap:14px;background:var(--surface-inverse);color:var(--text-inverse);border-radius:12px;padding:13px 16px;width:390px;box-sizing:border-box;font:var(--weight-regular) 14px/1.35 var(--font-core);box-shadow:var(--shadow-3)}
+.snack2 b{flex:1;font-weight:400}
+.snack2 u{text-decoration:none;font:var(--weight-medium) 13.5px/1 var(--font-core);color:var(--moss-200)}
+.ask{width:390px;box-sizing:border-box;background:var(--surface-raised);border-radius:20px;box-shadow:var(--shadow-2);padding:18px 20px 16px;border:1px solid var(--border-hairline)}
+.ask h5{margin:0 0 8px;font:var(--weight-semibold) 17px/1.3 var(--font-core);letter-spacing:-.012em}
+.ask p{margin:0 0 16px;font:var(--weight-regular) 14px/1.55 var(--font-quiet);color:var(--text-secondary)}
+.ask .acts{display:flex;gap:10px;justify-content:flex-end;align-items:center}
+.ask .acts .no{font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-secondary)}
+.ask .acts .go{font:var(--weight-medium) 14px/1 var(--font-core);color:var(--paper);background:var(--ink-950);height:38px;padding:0 18px;border-radius:var(--radius-pill);display:inline-flex;align-items:center}
+.ask .acts .go.dg{background:var(--clay-600)}
+.warn{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:12px;background:var(--surface-attention-soft);color:var(--text-on-attention);font:var(--weight-regular) 13px/1.5 var(--font-core);margin-bottom:14px}
+.warn i{width:15px;height:15px;flex:0 0 auto;margin-top:2px}
+.unbuilt{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;background:var(--surface-attention-soft);color:var(--text-on-attention)}
+code{font:var(--weight-regular) 12.5px/1.4 ui-monospace,monospace;background:var(--surface-fill);padding:1px 5px;border-radius:4px}
+</style></head><body><div class="wrap">
+
+<h1>Design queue 4: sharing and the unbuilt</h1>
+<p class="lede">Three questions the codebase raised in August and answered by not building anything. Sharing has a Share button that is inert, no thread can be left, and no row has ever waited for its thread. So unlike parts 1 to 3 there is nothing to show as "in the app now": what follows is the data model's behaviour, which is already decided, and the design that has to catch up with it.</p>
+
+<ul class="nav">
+<li><a href="design-queue.html">Index</a></li>
+<li><a href="design-queue-1-thread-page.html">1 Thread page</a></li>
+<li><a href="design-queue-2-phones.html">2 Phones</a></li>
+<li><a href="design-queue-3-composer.html">3 Composer and shell</a></li>
+<li><a href="design-queue-4-sharing.html" aria-current="page">4 Sharing and the unbuilt</a></li>
+</ul>
+
+<!-- ============ 13 LEAVE VS DELETE ============ -->
+<div class="sechead"><h2>13 &middot; Leaving a shared thread is not deleting it</h2><u>all &middot; raised 2026-08-27</u></div>
+<p class="snote">A thread has members and no owner. Removing a thread other people are in cannot destroy it, since that would delete things you did not author: it removes your membership and your key, and every other member's view is untouched. The thread and its contents go only when the last member leaves. <span class="unbuilt">Not built: no client can leave a thread yet</span></p>
+
+<div class="rowlabel">What the kits draw today <u>one destructive control, the same swipe and the same toast as anything else</u></div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/lasso.svg)"></span><div class="rt"><b>Lisbon trip</b><s>12 &middot; Sam, Ana</s></div><span class="tile ic" style="--ic:url(../assets/icons/trash-2.svg);background:transparent;color:var(--clay-600)"></span></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/lasso.svg)"></span><div class="rt"><b>Bookshelf build</b><s>6 &middot; just you</s></div><span class="tile ic" style="--ic:url(../assets/icons/trash-2.svg);background:transparent;color:var(--clay-600)"></span></div>
+</div>
+<div class="tag i"><b>KIT</b><span>one control, two very different consequences</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>The same gesture does two things.</b> On Bookshelf build it destroys six things that are yours, reversibly for eight seconds. On Lisbon trip it removes you from something two other people are still using, and their copy is unaffected.</li>
+<li><b>One case is genuinely irreversible.</b> If you are the last member, leaving destroys everything in it, and after the undo window there is nobody left who could read it.</li>
+<li><b>Nothing in the kits says any of this</b>, and the Ending things settings page covers deleting an account without mentioning shared threads.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+
+<div class="cell">
+<div class="ask">
+<h5>Leave Lisbon trip?</h5>
+<p>Sam and Ana keep it. Everything you added stays with them, and you lose access.</p>
+<div class="acts"><span class="no">Cancel</span><span class="go">Leave</span></div>
+</div>
+<div class="tag i"><b>A</b><span>different word, different question, no clay</span></div>
+</div>
+
+<div class="cell">
+<div class="ask">
+<div class="warn"><i class="g" style="--ic:url(../assets/icons/eye.svg)"></i><span>You are the only member. Leaving deletes the thread and everything in it.</span></div>
+<h5>Leave Lisbon trip?</h5>
+<p>Nobody else is in this one, so there is no copy to leave behind.</p>
+<div class="acts"><span class="no">Cancel</span><span class="go dg">Leave and delete</span></div>
+</div>
+<div class="tag i"><b>A, last member</b><span>the one case that keeps the clay</span></div>
+</div>
+
+<div class="cell">
+<div class="ask">
+<h5>Delete Lisbon trip?</h5>
+<p>This removes it from your account. Sam and Ana keep their copy.</p>
+<div class="acts"><span class="no">Cancel</span><span class="go dg">Delete</span></div>
+</div>
+<div class="tag i"><b>B</b><span>one word everywhere, the sentence carries the difference</span></div>
+</div>
+
+</div>
+
+<div class="row" style="margin-top:18px">
+<div class="cell"><div class="snack2"><b>You left Lisbon trip</b><u>Undo</u></div><div class="tag i"><b>A</b><span>toast for a shared thread</span></div></div>
+<div class="cell"><div class="snack2"><b>Deleted, gone in a moment</b><u>Undo</u></div><div class="tag i"><b>A</b><span>toast when it was only yours</span></div></div>
+</div>
+
+<ul class="spec">
+<li><b>A, Leave for a shared thread and Delete for a private one</b>, with the confirmation naming the other members and the toast saying which happened. The word matches the consequence, and the vocabulary table already lives in the readme so a second verb is cheap to add. The last-member case gets the warning and keeps the clay, because it is the only place leaving destroys anything. The cost is two words for one gesture, which somebody has to learn.</li>
+<li><b>B, Delete everywhere</b> with the sentence carrying the difference. One verb, one control, nothing new in the vocabulary. The cost is that "Delete" on a thread two people are using is not true, and the product's whole claim is that offload says what it did.</li>
+<li><b>The recommendation is A.</b> It follows the rule the readme already states, that offload states the outcome, and the outcome differs.</li>
+</ul>
+<span class="rec">Recommended: A, Leave and Delete are different words</span>
+
+<!-- ============ 14 BEFORE THE THREAD IS KNOWN ============ -->
+<div class="sechead"><h2>14 &middot; A row before its thread is settled</h2><u>all &middot; raised 2026-08-27</u></div>
+<p class="snote">Putting something down is instant and the filing happens afterwards, so there is a window where a thing exists and its thread is not final. The data model has no unsorted state: a dump lands in <b>Miscellaneous</b>, the account's default thread, and the sorter moves it out if it belongs somewhere better. So the row's metadata changes shortly after it appears, and the rule is that the row must not reflow when it settles.</p>
+
+<div class="rowlabel">What happens now <u>the agent files by thread id, never by name, and there is no waiting state anywhere</u></div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="rt"><b>Oak brackets, 30cm, matte black</b><s>Miscellaneous &middot; just now</s></div></div>
+<div class="r" style="background:var(--surface-accent-soft);border-radius:10px"><span class="tile ic" style="--ic:url(../assets/icons/text-quote.svg);background:var(--surface-raised)"></span><div class="rt"><b>Oak brackets, 30cm, matte black</b><s>Bookshelf build &middot; just now</s></div></div>
+</div>
+<div class="tag i"><b>NOW</b><span>Miscellaneous, then the real thread, with the change mark</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>The change mark already covers half of this.</b> A row whose thread changes while you are looking at it takes the moss fade, which is exactly "offload did this, you didn't". What is undesigned is the first second, before the sorter has run.</li>
+<li><b>Miscellaneous is an ordinary thread.</b> It opens, holds things, and can be renamed, so showing its name is not a lie. It is just often the wrong answer for a second or two.</li>
+<li><b>Nothing may reflow.</b> The metadata line has to occupy the same height before and after.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+
+<div class="cell">
+<div class="det">
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="rt"><b>Oak brackets, 30cm, matte black</b><s>Miscellaneous &middot; just now</s></div></div>
+</div>
+<div class="tag i"><b>A</b><span>show Miscellaneous, let it change</span></div>
+</div>
+
+<div class="cell">
+<div class="det">
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="rt"><b>Oak brackets, 30cm, matte black</b><s><span class="dash"></span> &middot; just now</s></div></div>
+</div>
+<div class="tag i"><b>B</b><span>the thread's slot is empty until it is known</span></div>
+</div>
+
+<div class="cell">
+<div class="det">
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="rt"><b>Oak brackets, 30cm, matte black</b><s><em>filing</em> &middot; just now</s></div></div>
+</div>
+<div class="tag i"><b>C</b><span>one moss word where the thread goes</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>A, show Miscellaneous.</b> True, requires nothing, and reflows nothing. The cost is that the commonest first answer is a thread nobody meant, and watching a row say Miscellaneous and then correct itself makes the filing look like a mistake being fixed rather than work being done.</li>
+<li><b>B, leave the slot blank.</b> Nothing untrue is ever shown, and the fixed-width placeholder guarantees no reflow. The cost is a row that looks unfinished, and a blank where a name goes reads as a bug rather than as a wait.</li>
+<li><b>C, one word.</b> "filing" in moss, in the thread's own slot, replaced by the name when it lands. It says a thing is happening, it says who is doing it through the colour, and it is the only option that reads as progress. The cost is a new pattern: the system has one spinner and no per-row progress vocabulary, so this becomes the first of them.</li>
+<li><b>The recommendation is C</b>, and it stays honest because the word is a state rather than a destination. If the sorter turns out to be fast enough that the window is invisible, A costs nothing and this question closes itself.</li>
+</ul>
+<span class="rec">Recommended: C, with A as the fallback</span>
+
+<!-- ============ 15 SHARE SHEET ============ -->
+<div class="sechead"><h2>15 &middot; The share sheet says one thing and should say two</h2><u>all &middot; raised 2026-08-26</u></div>
+<p class="snote">The share sheet states one permission, "they can add to it, they can never delete what is yours", and that is the whole of what a person is told before sharing. It says nothing about what happens to their things in that thread if they later delete their account. What the model does: a shared thread is co-owned and outlives any one member, so deleting an account removes that person's private things and their access, and leaves their things inside the shared thread in place. <span class="unbuilt">Not built: the Share control is drawn and inert</span></p>
+
+<div class="rowlabel">What the kits draw today <u>Sharing.jsx, WSharing.jsx: one permission line</u></div>
+<div class="row">
+<div class="cell">
+<div class="sheetc">
+<div class="grab"><s></s></div>
+<h4>Share Lisbon trip</h4>
+<p class="perm">They can add to it. <b>They can never delete what is yours.</b></p>
+<div class="srow"><span class="av">S</span><span class="nm">Sam Okonjo<s>already in this thread</s></span><i class="g" style="--ic:url(../assets/icons/check.svg)"></i></div>
+<div class="srow"><span class="av">A</span><span class="nm">Ana Ferreira<s>connected</s></span><i class="g" style="--ic:url(../assets/icons/plus.svg)"></i></div>
+<div class="srow"><span class="av ic" style="--ic:url(../assets/icons/users.svg);background:transparent;border:1px dashed var(--border-strong)"></span><span class="nm add">New connection<s>matched against accounts that exist</s></span></div>
+</div>
+<div class="tag i"><b>KIT</b><span>one sentence, and it is the only thing said</span></div>
+</div>
+</div>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+
+<div class="cell">
+<div class="sheetc">
+<div class="grab"><s></s></div>
+<h4>Share Lisbon trip</h4>
+<p class="perm">They can add to it. <b>They can never delete what is yours.</b><br>If they leave offload, what they added stays here.</p>
+<div class="srow"><span class="av">A</span><span class="nm">Ana Ferreira<s>connected</s></span><i class="g" style="--ic:url(../assets/icons/plus.svg)"></i></div>
+</div>
+<div class="tag i"><b>A</b><span>a second line, same voice, same place</span></div>
+</div>
+
+<div class="cell">
+<div class="sheetc">
+<div class="grab"><s></s></div>
+<h4>Share Lisbon trip</h4>
+<p class="perm">They can add to it. <b>They can never delete what is yours.</b></p>
+<div class="srow" style="border-top:none;padding-top:0"><span style="font:var(--weight-regular) 13px/1.5 var(--font-core);color:var(--text-tertiary)">A shared thread belongs to everyone in it. If somebody leaves offload, the thread and everything they added stay with the rest of you. <span style="color:var(--text-accent);font-weight:500">How sharing works</span></span></div>
+<div class="srow"><span class="av">A</span><span class="nm">Ana Ferreira<s>connected</s></span><i class="g" style="--ic:url(../assets/icons/plus.svg)"></i></div>
+</div>
+<div class="tag i"><b>B</b><span>a full explanation with a way to read more</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>A, one more sentence.</b> Nine words in offload's own voice, in the place a person is already reading, saying the consequence before they agree to it rather than after they discover it. It is the natural counterpart to the line above it: one sentence about what they can do, one about what happens if they go. The cost is that it does not explain <em>why</em>, and somebody who wants that has nowhere to go.</li>
+<li><b>B, explain it properly and link out.</b> Covers the reasoning and gives the Ending things settings page something to point at, which it needs anyway. The cost is length: the share sheet becomes a page of terms before the list of people, and the permission line loses its force by being one of four sentences instead of one of two.</li>
+<li><b>The recommendation is A in the sheet and B's paragraph in Settings</b>, on the Ending things page, which currently covers deleting an account without mentioning shared threads at all. That fixes both gaps with one piece of copy in each place.</li>
+</ul>
+<span class="rec">Decided: B, and the permission line comes out</span>
+<p class="snote" style="margin-top:14px">Applied 5 September 2026. The sheet now reads <b>"A shared thread belongs to everyone in it. If somebody leaves offload, the thread and everything they added stay with the rest of you."</b> and nothing else. The permission is unchanged and still enforced; it is no longer stated here. The Ending things settings page carries the account-deletion half. This reverses the 25 August decision that the permission appears identically everywhere, which is recorded as an amendment on that entry rather than a rewrite of it.</p>
+
+<p class="snote" style="margin-top:44px">Back to the <a href="design-queue.html">index</a>.</p>
+</div></body></html>

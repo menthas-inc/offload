@@ -54,6 +54,9 @@ offload's voice is a calm assistant that has already done the work and does not 
 | learns, learned | works out, worked out, figures out, infers |
 | sorted | classified, auto-tagged, processed |
 | Undo | Revert, Discard changes |
+| Leave (a thread other people are in) | Delete, Remove, Exit |
+| Delete (a thread only you are in) | Leave |
+| filing (while offload works out where something goes) | Sorting, Processing, Unsorted, Pending |
 
 **Examples, verbatim from the kit.**
 
@@ -62,7 +65,6 @@ offload's voice is a calm assistant that has already done the work and does not 
 - Thread standing blurb: *"Still four things to book, and the flight is in two weeks."*
 - Row and its meta: `Ana needs an answer on the 14th–17th` / `Lisbon trip · asked Tuesday`
 - Free time in the agenda: `4:30hrs free`
-- Retention note: `offload only keeps conversations from the past 60 days`
 
 **Emoji: one, deliberately.** 👀 marks a message offload has seen but not yet answered, because a glyph reads as chrome there and an emoji reads as a person. Nowhere else: not in UI labels, not in copy, not in thread names. Meaning is carried by Lucide glyphs and by type weight. Unicode characters are used only as punctuation (`·`, `–`, `, `, curly quotes).
 
@@ -79,6 +81,8 @@ offload's voice is a calm assistant that has already done the work and does not 
 
 Use the semantic aliases, not the ramps: `--text-accent` / `--surface-accent-soft` / `--border-accent` for moss, `--text-attention` / `--text-on-attention` / `--surface-attention` / `--surface-attention-soft` / `--border-attention` for blue. Neither accent is ever a page background, neither fills a primary button (that is always ink), and the two never appear on the same row, if something was sorted *and* is waiting, waiting wins. Beyond them, semantics stay muted: amber `--amber-600` for a soft warning, clay `--clay-600` for genuine failure. No gradients as decoration, no colour-coded categories.
 
+**The change mark, the one pattern that is a moment rather than a state.** offload can file into the thread you are looking at, so a screen has to be able to say what just arrived without a badge that then has to be cleared. Anything that appeared while somebody was watching takes a `--surface-accent-soft` background settling to transparent over `--duration-mark`, 1400ms, and nothing else: no border, no icon, no count. It is moss because moss means *offload did this, you didn't*, and a row offload filed correctly needs nothing from anybody. It is deliberately not blue, which was asked for and declined: blue means *this needs you*, and on a flashed row that is also a task waiting on you it would put both accents on one row, which the rule above forbids. Reduced motion drops it to nothing rather than shortening it, so the row is simply there. Needed on every surface offload can write to while it is open: the thread page, Today, and both phones.
+
 **Type.** Two faces, no third.
 - **Instrument Sans** (`--font-core`), all UI and display. Semibold for titles, medium for labels and row titles, regular for body. Tracking tightens as size grows (`-0.022em` at 34px).
 - **Literata** (`--font-quiet`), confirmed 11 August. offload's own voice, upright: the answer in Ask, empty states, occasional asides. Never a UI label, never more than two sentences. Deliberately not italic, italic is slower to read and gets tiring in a chat.
@@ -86,15 +90,9 @@ Use the semantic aliases, not the ramps: `--text-accent` / `--surface-accent-sof
 
 Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, label 13, caption 12. Title-2 carries section headers. Mobile minimum is 12px; body is 16px. Both faces are served from the Google CDN and confirmed, not placeholders.
 
-**Spacing and layout.** A 2/4/6/8/12/16/20/24/32/40/56/72 scale, it has a 2px and 6px step because 44px tap targets and 30px chips do not sit on a strict 8px grid. Every screen has a 20px gutter (`--gutter-screen`); the top bar is 52px, the bottom nav 64px, list rows 56px (72px with a meta line), and nothing tappable is under 44px. That rule is about the touch target, not the drawn one: `Button` and `IconButton` can paint a 32px control while still accepting a 44px hit, via their `hitArea` prop and a compensating negative margin. Small chrome may look small; it may never be hard to hit. Fixed elements: the AppBar sits at the top, the composer and TabBar at the bottom; content scrolls between them. On wide screens content is capped at `--content-max` 520px rather than stretched.
+**Spacing and layout.** A 2/4/6/8/12/16/20/24/32/40/56/72 scale, it has a 2px and 6px step because 44px tap targets and 30px chips do not sit on a strict 8px grid. Every screen has a 20px gutter (`--gutter-screen`); the top bar is 52px, the bottom nav 64px, list rows 56px (72px with a meta line), and nothing tappable is under 44px. That rule is about the touch target, not the drawn one: `Button` and `IconButton` can paint a 32px control while still accepting a 44px hit, via their `hitArea` prop and a compensating negative margin. Small chrome may look small; it may never be hard to hit. Fixed elements: the AppBar sits at the top, the composer and TabBar at the bottom; content scrolls between them. On wide screens content is capped at `--content-max` 520px rather than stretched. Breakpoints are tokens: `--breakpoint-sm` 600, `--breakpoint-md` 900, `--breakpoint-lg` 1180, `--breakpoint-xl` 1440. 1180 is the one that matters, it is where the web shell's second pane becomes possible.
 
-**The change mark.** When offload writes to a surface somebody is looking at, the row that
-arrived takes a moss ground that settles to transparent over 1400ms. Moss because it already
-means *offload did this, you didn't*, and a row that was filed correctly needs nothing from
-anybody, which is what blue would have claimed. It is the first pattern here that is a moment
-rather than a state: nothing is left marked afterwards. Reduced motion removes it rather than
-shortening it. Used on the thread page and in any list a turn can write into, on all three
-clients.
+**Larger text scales type and nothing else.** The Settings choice sets `data-type="large"`, which overrides the eight size tokens with whole-pixel values at 1.15 and leaves every width, gutter, radius and icon at its literal pixel. `--type-scale` is there for the rare one-off literal that has to move with the type. What it must never be is a zoom: scaling the layout with the text turns a 520px pane into 598px and pushes it off a laptop screen, which is the opposite of what somebody asking for bigger text wants.
 
 **Backgrounds.** Flat, never imagery. The page is a warm off-white, `--surface-page` (#FAF9F7 light, #1C1B19 dark), and white is reserved for the planes that sit on it: `--surface-raised`, `--surface-card` and the chrome bars. No photography, no illustration, no pattern, no texture, no full-bleed imagery, no gradient fields. `--surface-sunken` (`--ink-50`) goes a step below the page, behind the phone frame and inside `fill` cards. Imagery in the product is *user content only*, screenshots, photos they dumped in, presented as-is inside a 10px-radius thumbnail with no filter or treatment. There is no brand photography direction because there is no brand photography. Imagery in the product is *user content only*, screenshots, photos they dumped in, presented as-is inside a 10px-radius thumbnail with no filter or treatment. There is no brand photography direction because there is no brand photography.
 
@@ -109,7 +107,10 @@ clients.
 - *Press*: `scale(0.98)` plus ink at 8%. Cards scale to 0.995, barely.
 - *Selected*: inverts to ink fill (chips) or `--ink-100` (rows). Never an accent border.
 - *Focus*: 2px ink outline offset 2px, or an ink border plus `--shadow-focus` on fields.
-- *Disabled*: `--ink-100` surface with `--ink-400` text. No opacity fades. This is the one place `--ink-400` still carries type, and it is the one place contrast rules do not apply.
+- *Finished*: a ticked task stays in its list, sinks below everything outstanding, and takes tertiary ink with a 1px strike. **No opacity.** Past five finished, a list shows the five most recent and a quiet "Show all" beneath them.
+- *Archived*: secondary ink, a hollow tile with a dashed border, and the date relabelled to say what happened to it, "archived 14 Aug". The only action on an archived thing is putting it back. **No opacity here either**: dimming a row on a warm page reads as a rendering fault and takes the label under the contrast floor.
+- *Filing*: while offload is working out where something goes, the row's thread slot holds the word **filing** in moss, replaced by the thread's name when it lands. Nothing else marks it and nothing reflows: the slot is the same height either way. This is the only per-row progress word in the system; everything else that waits uses the one spinner.
+- *Disabled*: `--state-disabled-surface` with `--state-disabled-text`, the aliases for `--ink-100` and `--ink-400`. Use the aliases; components do. No opacity fades. This is the one place `--ink-400` still carries type, and it is the one place contrast rules do not apply.
 
 **Motion.** Short and outward. `--ease-out` `cubic-bezier(.22,.85,.24,1)` for interaction, `--ease-entrance` `cubic-bezier(.16,1,.3,1)` for things arriving. 140ms for hover/press/colour, 200ms for toggles, 280ms for toasts and cards, 340ms for sheets. Things translate 8–14px and settle; **nothing bounces, overshoots, springs or spins** except the 720ms hairline spinner. Sheets rise from the bottom edge; toasts rise 8px and fade. No parallax, no scroll-triggered animation.
 
@@ -149,7 +150,7 @@ Root manifest:
 | `guidelines/` | 18 specimen cards: colours, type, numerals, spacing, radii, elevation, motion, mark, icon set. |
 | `assets/` | `mark.svg`, `mark-inverse.svg`, `app-icon.svg`, and `icons/`, 80 Lucide SVGs. |
 | `explorations/` | 43 exploration logs, plus `frames.css`, the shared shell the newer ones link: the mark, the accents, the type, section headers, the calendar, the conversation overlay, dark theme, notifications and the notification templates, settings layouts, swipe-to-delete, the iOS/Android comparison, the web shell, one motion page per platform, and the four that settled the edges: sign in with first run and the landing page, the no-invite screen with the email options and refusals, sharing and invitations, and the day-one empty states. Kept as the record of what was considered and rejected, and of what was picked. |
-| `components/` | 21 primitives in six groups (below). |
+| `components/` | 23 primitives in six groups (below). |
 | `ui_kits/mobile_app/` | Interactive click-through of the iOS app; see its `README.md`. |
 | `ui_kits/android_app/` | The same product on Material 3, sharing the iOS kit's data and flows; its `README.md` lists every difference. |
 | `ui_kits/web_app/` | The same product on a desktop browser: sidebar, a stack of panes, one composer. Reads the phones' `data.js`; see its `README.md`. |
@@ -161,14 +162,11 @@ Components, each with `.jsx`, `.d.ts` props contract, `.prompt.md` usage note, a
 - **brand/**, `Logo`
 - **core/**, `Icon`, `Button`, `IconButton`, `Chip`, `Badge`, `Card`
 - **forms/**, `TextField`, `Switch`, `Checkbox`, `SegmentedControl`
-- **layout/**, `AppBar`, `TabBar`, `ListRow`, `SwipeRow`, `SectionHeader`, `Sheet`
-
-  *`SwipeRow` reveals a delete and nothing else. The name reads generic and it is not: the
-  `trash-2` glyph and the `--clay-600` ground are inside the component, and only the label is a
-  prop, so a swipe labelled "Archive" shows a trash can. Anything that is not a delete belongs in
-  a sheet until the contract grows an icon and a tone.*
+- **layout/**, `AppBar`, `TabBar`, `ListRow`, `SwipeRow`, `RowActionSheet`, `MemoryRow`, `SectionHeader`, `Sheet`
 - **feedback/**, `Toast`, `EmptyState`, `Spinner`
 - **notifications/**, `NotificationIOS`, `NotificationAndroid`
+
+**`Icon` is a DOM contract, and React Native needs its own.** It masks an SVG with `currentColor` and takes a `basePath`, which is a URL, and React Native has neither. A component named `Icon` there would be claiming a contract it cannot implement, so the name on that platform is **`Glyph`**, taking the same 80 slugs and the same sizes and resolving them from generated paths rather than from files. The contract itself is not written yet: it is owed by this system, not by a client, and until it exists a phone client should keep `Glyph` narrow and not widen the difference.
 
 That is 21 components across six groups.
 
@@ -226,12 +224,21 @@ head on web, with the faces of whoever is already in beside it. Nothing smaller 
 thread can be shared, which keeps one permission per thread and no per-item exceptions.
 
 **Two ways to send, both shipped.** The sheet is the mechanism: search, your connections,
-one permission line. The composer is the shortcut, and more generally the composer is a
+one line on how a shared thread works. The composer is the shortcut, and more generally the composer is a
 tool rather than a chat: any UI task in offload can be said instead of tapped ("share
 Lisbon trip with Sam"), answered in offload's voice with an Undo.
 
-**One permission, stated identically everywhere:** they can add to it, and they can never
-delete what is yours. No roles, no viewer and editor.
+**One permission, and no roles.** They can add to it, and they can never delete what is yours.
+No viewer and editor. It is still the only permission there is, and it is enforced everywhere,
+but **the share sheet no longer states it.** From 5 September 2026 the line a person reads
+before sharing is what a shared thread is over time: *"A shared thread belongs to everyone in
+it. If somebody leaves offload, the thread and everything they added stay with the rest of
+you."* That is the consequence somebody should agree to in advance rather than discover
+afterwards, and it is the thing no screen said. The permission is a fact about what a member
+can do, which the product enforces and which the Ending things settings page spells out;
+co-ownership is a fact about what happens after they go, which nothing enforced and nothing
+explained. *Recorded as a reversal, not a tidy-up: the 25 August decision said this sentence
+appears identically everywhere, and it now appears nowhere in the sharing flow.*
 
 **@ picks a person** in the composer and in every other field: the same connection list,
 filtered as you type, three rows at a time. It resolves to the person, not to a string, so
@@ -300,6 +307,16 @@ not answered yet".
 reach for a pointer or hear a screen reader announce it. Nothing is destroyed while the
 toast is up.
 
+The toast covers two cases and they are not worded the same. A person deleting something reads
+what they did, "Deleted, gone in a moment". An action offload took on its own, which is by far the
+commoner one, reads as the outcome and names the destination: "Sorted into Lisbon trip". Same bar,
+same eight seconds, same single action. A turn that answered without doing anything gets no toast
+and no Done mark, because there is nothing to undo or to check.
+
+**A turn that failed, and a turn that half worked.** Both are inline and persistent rather than toasts, because a toast clears itself after eight seconds and would take the only way forward with it. **The failure is carried by the turn itself:** the message you wrote takes a clay border, with one line beneath it in clay. A failed turn says "offload could not answer that one. Your dump is saved." with **Try again**, which puts the text back in the composer. A partial one says "offload did not finish that one." with **Finish it**, which asks offload to do the rest rather than re-sending anything already filed. Never both on screen: a finished turn offers Undo, a partial one offers Finish it. The failure carries `role="alert"`; the Undo toast carries `role="status"`.
+
+**offload's reply links to the threads it wrote to.** Moss pills under the turn, from the content rows the turn produced rather than from the words in the sentence, because offload naming a thread it did not write to is the failure this exists to prevent. When a turn touched exactly one thread the pill is the only mention and the sentence drops the name, so nothing is said twice.
+
 ## The admin panel
 
 Staff-only, so it optimises for reading columns rather than for calm. Same tokens, same
@@ -330,6 +347,15 @@ cheaper model, or stop and tell the person offload is resting. Dumps are always 
 - **The first tab is time-aware.** Two states, not four: "Today" with `sun` before sunset, "Tonight" with `moon` after it. The boundary is real sunset for the device's date and latitude, computed in `ui_kits/mobile_app/sun.js` (NOAA solar position, no network), not a fixed hour. Both kits load that one file, and both index pages carry a preview clock so either state can be seen without changing the device time.
 - **Insets are owned by components, not screens.** A row spans the full width and pays the gutter back inside, so its fill and hairline reach the frame edge while its text sits on the gutter. A screen that adds its own horizontal gutter around rows double-insets them; this drifted three times before being fixed at the component.
 - **Swipe to delete** is horizontal-only: pointer capture is taken only once a drag passes 6px, otherwise a tap never reaches the row underneath.
+- **A row's actions are drawn as conditional, never as refused.** Edit and archive sit on the row for any member; delete sits there for the author alone and is simply absent otherwise. Two rows side by side showing a different number of controls is the honest reading of one permission rule. Anything beyond those three goes behind a `RowActionSheet` on a phone, or the row's own `ellipsis` on web.
+- **The way to the archived pile is a row at the foot of the list**, not a tool on the pane: "3 archived" with a chevron, below everything live. The archive is a place you go rather than a mode you toggle into, and the count is readable without hunting for a highlighted icon.
+- **A pane head carries two tools and a More menu.** Open full, then `ellipsis`, which holds rename, add memory, Leave, and anything a thread gains later. The head stops growing every time the thread gains a capability.
+- **Theme and text size are named rows at the foot of the nav, and a Settings page as well.** Both read the same stored value. An accessibility control behind an unlabelled glyph is not a control anybody can find.
+- **Memories are rows, not chips.** A memory is a rule in a sentence up to 200 characters, so `MemoryRow` sets it as one and the row grows to hold its own editor. A section holding none draws nothing at all, which means the first memory on a thread comes from telling offload.
+- **Hiding by stacking order is not hiding.** Anything concealed only by an opaque sibling in front of it becomes visible during any group fade: a screen transition, a modal, a list animating in. Anything that must not appear carries its own opacity or is not mounted. `SwipeRow`'s reveal is the worked example, its opacity driven from the same value as its offset.
+- **The bottom plate is not a fixed shape.** It rounds its top only while nothing is stacked on it, and drops the corners the moment a raised conversation sits on it, because both carry the same fill and the radius otherwise cuts a notch out of the join. Folded, the plate is the top again and rounds again. When the keyboard is up it clears to the composer alone: no tabs, no safe-area inset, since three places to go are no use to somebody mid-sentence.
+- **A raised conversation leaves the way it arrived.** It rolls down by its own measured height over 280ms on the same curve both ways, while the scrim fades under it, and it goes *behind* the bottom bar rather than fading: a slide and a dissolve at once looks like the sheet coming apart. A drag past the fold threshold hands straight to the exit from wherever the finger let go.
+- **`SwipeRow` is delete-only**, despite the generic name. The trash glyph and the clay ground are inside the component and only the label is exposed, so a swipe labelled Archive would show a trash can. Anything other than deleting belongs in a long-press action sheet, which is also the answer where the available actions depend on who authored the row: on web, edit and archive for any member, delete and move for the author alone. A fixed gesture map cannot express that.
 
 ## Brand decisions, closed 25 August 2026
 

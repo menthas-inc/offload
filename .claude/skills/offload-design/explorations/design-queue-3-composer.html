@@ -1,0 +1,263 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Design queue 3: the composer and the shell</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="frames.css">
+<style>
+.nav{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 30px;padding:0;list-style:none;font-size:13px}
+.nav a{color:var(--text-secondary)}.nav a[aria-current]{color:var(--text-primary);font-weight:500}
+.comp{width:560px;box-sizing:border-box;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:20px;box-shadow:var(--shadow-2);padding:0;overflow:hidden}
+.chd{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-hairline)}
+.chd .lm{width:15px;height:15px;flex:0 0 auto}
+.chd b{flex:1;min-width:0;font:var(--weight-medium) 13.5px/1.3 var(--font-core);letter-spacing:-.008em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chd i{width:16px;height:16px;color:var(--text-tertiary);flex:0 0 auto}
+.chd i.off{color:var(--state-disabled-text)}
+.turns{display:flex;flex-direction:column;gap:14px;padding:16px}
+.you{align-self:flex-end;max-width:78%;background:var(--surface-fill);border-radius:14px;padding:10px 13px;font:var(--weight-regular) 14.5px/1.45 var(--font-core);position:relative}
+.you .seen{position:absolute;right:-4px;bottom:-14px;font-size:12px}
+.you .done{display:flex;width:fit-content;align-items:center;gap:4px;margin-top:7px;font:var(--weight-medium) 11px/1 var(--font-core);color:var(--text-accent)}
+.you .done i{width:11px;height:11px}
+.off{align-self:flex-start;max-width:88%;font:var(--weight-regular) 14.5px/1.5 var(--font-quiet);color:var(--text-primary)}
+.went{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.tlink{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:var(--radius-pill);background:var(--surface-accent-soft);color:var(--moss-700);font:var(--weight-medium) 12.5px/1 var(--font-core);text-decoration:none}
+.tlink i{width:13px;height:13px}
+.err{align-self:flex-end;max-width:78%;font:var(--weight-regular) 13px/1.5 var(--font-core);color:var(--text-secondary);text-align:right}
+.err u{text-decoration:none;font-weight:500;color:var(--text-attention)}
+.err.dgr u{color:var(--clay-700)}
+.cin{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--border-hairline)}
+.cin .f2{flex:1;font:var(--weight-regular) 15px/1 var(--font-core);color:var(--text-tertiary)}
+.cin i{width:17px;height:17px;color:var(--state-disabled-text)}
+.cin .send{width:34px;height:34px;border-radius:99px;background:var(--ink-950);color:var(--paper);flex:0 0 auto}
+.toast{display:flex;align-items:center;gap:14px;background:var(--surface-inverse);color:var(--text-inverse);border-radius:12px;padding:13px 16px;width:400px;box-sizing:border-box;font:var(--weight-regular) 14px/1.3 var(--font-core);box-shadow:var(--shadow-3)}
+.toast b{flex:1;font-weight:400}
+.toast u{text-decoration:none;font:var(--weight-medium) 13.5px/1 var(--font-core);color:var(--moss-200)}
+.det{width:512px;box-sizing:border-box;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:14px;padding:14px 16px}
+.navfoot{width:248px;box-sizing:border-box;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:14px;padding:10px}
+.nrow{display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:10px;font:var(--weight-regular) 14px/1 var(--font-core);color:var(--text-primary)}
+.nrow i{width:16px;height:16px;color:var(--text-tertiary);flex:0 0 auto}
+.nrow s{text-decoration:none;margin-left:auto;font:var(--weight-regular) 12px/1 var(--font-core);color:var(--text-tertiary)}
+.prefs{display:flex;gap:2px;padding:6px 10px;align-items:center}
+.pbtn{width:30px;height:30px;border-radius:8px;color:var(--text-tertiary);flex:0 0 auto}
+.pbtn.on{background:var(--ink-950);color:var(--paper)}
+.seg{display:inline-flex;background:var(--surface-fill);border-radius:var(--radius-pill);padding:3px;gap:2px}
+.seg span{height:28px;padding:0 13px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;font:var(--weight-medium) 12.5px/1 var(--font-core);color:var(--text-secondary)}
+.seg span.on{background:var(--surface-raised);color:var(--text-primary);box-shadow:var(--shadow-1)}
+.sizes{display:flex;align-items:baseline;gap:14px}
+.sizes b{font:var(--weight-medium) 14px/1 var(--font-core)}
+.sizes b.lg{font-size:16.1px}
+code{font:var(--weight-regular) 12.5px/1.4 ui-monospace,monospace;background:var(--surface-fill);padding:1px 5px;border-radius:4px}
+</style></head><body><div class="wrap">
+
+<h1>Design queue 3: the composer and the shell</h1>
+<p class="lede">Three things the shell grew that the kits do not have. The first two are states of a composer turn, read from <b>apps/web/src/components/shell/Composer.tsx</b>. The third is two controls at the foot of the nav that exist in no kit at all, from <b>Preferences.tsx</b>.</p>
+
+<ul class="nav">
+<li><a href="design-queue.html">Index</a></li>
+<li><a href="design-queue-1-thread-page.html">1 Thread page</a></li>
+<li><a href="design-queue-2-phones.html">2 Phones</a></li>
+<li><a href="design-queue-3-composer.html" aria-current="page">3 Composer and shell</a></li>
+<li><a href="design-queue-4-sharing.html">4 Sharing and the unbuilt</a></li>
+</ul>
+
+<!-- ============ 10 FAILED AND PARTIAL ============ -->
+<div class="sechead"><h2>10 &middot; A turn that failed, and a turn that half worked</h2><u>web, then the phones &middot; raised 2026-09-03</u></div>
+<p class="snote">A dump can fail outright, or file some of what you dumped and not the rest. No kit draws either. Both are inline and persistent rather than toasts, because a toast clears itself after eight seconds and would take the only way forward with it. The words differ because the situations are opposites: one has nothing in a thread and everything in the composer, the other has the reverse.</p>
+
+<div class="rowlabel">In the app now <u>Composer.tsx, one treatment and two sets of words</u></div>
+<div class="row">
+
+<div class="cell">
+<div class="comp">
+<div class="chd"><i class="lm"></i><b>oak brackets 30cm matte black for the bookshelf</b><i class="g off" style="--ic:url(../assets/icons/maximize-2.svg)"></i><i class="g" style="--ic:url(../assets/icons/x.svg)"></i></div>
+<div class="turns">
+<div class="you">oak brackets 30cm matte black for the bookshelf</div>
+<div class="err dgr">offload could not answer that one. Your dump is saved. <u>Try again</u></div>
+</div>
+<div class="cin"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/camera.svg)"></i><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+</div>
+<div class="tag i"><b>NOW</b><span>failed: Try again puts the text back in the field</span></div>
+</div>
+
+<div class="cell">
+<div class="comp">
+<div class="chd"><i class="lm"></i><b>book the flights, and remind me about Ana's birthday</b><i class="g off" style="--ic:url(../assets/icons/maximize-2.svg)"></i><i class="g" style="--ic:url(../assets/icons/x.svg)"></i></div>
+<div class="turns">
+<div class="you">book the flights, and remind me about Ana&rsquo;s birthday</div>
+<div class="err"><span>offload did not finish that one. <u>Finish it</u></span></div>
+<div class="off">Added the flights to Lisbon trip.<span class="went"><a class="tlink"><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Lisbon trip</a></span></div>
+</div>
+<div class="cin"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/camera.svg)"></i><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+</div>
+<div class="tag i"><b>NOW</b><span>partial: Finish it asks offload to do the rest</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>Never both at once.</b> A finished turn offers Undo, a partial one offers Finish it. Asking somebody to choose between finishing and undoing inside eight seconds is not a choice.</li>
+<li><b>Finish it is not a re-send.</b> Part of the dump is already in a thread, and sending it again would file that part twice.</li>
+<li><b>Both carry <code>role="alert"</code></b>, where the Undo toast is <code>role="status"</code>: a confirmation is announced without interrupting, a failure interrupts.</li>
+<li><b>The two share one treatment</b>, small secondary type under the turn with an inline action, and differ only in the words and the action's colour.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+
+<div class="cell">
+<div class="comp" style="width:430px">
+<div class="turns" style="padding:14px">
+<div class="you">oak brackets 30cm matte black</div>
+<div class="err dgr">offload could not answer that one. Your dump is saved. <u>Try again</u></div>
+</div>
+</div>
+<div class="tag i"><b>A</b><span>as built: a line of type under the turn</span></div>
+</div>
+
+<div class="cell">
+<div class="comp" style="width:430px">
+<div class="turns" style="padding:14px">
+<div class="you">oak brackets 30cm matte black</div>
+<div class="inline-err" style="align-self:flex-end;max-width:82%;background:var(--clay-100);color:var(--clay-700)"><i class="g" style="--ic:url(../assets/icons/cloud-off.svg);width:15px;height:15px;margin-top:2px"></i><span><b>offload could not answer that one.</b> Your dump is saved. <u style="text-decoration:none;font-weight:500">Try again</u></span></div>
+</div>
+</div>
+<div class="tag i"><b>B</b><span>the kit's inline-err card, tinted and with a glyph</span></div>
+</div>
+
+<div class="cell">
+<div class="comp" style="width:430px">
+<div class="turns" style="padding:14px">
+<div class="you" style="border:1px solid var(--clay-600)">oak brackets 30cm matte black</div>
+<div class="err dgr" style="margin-top:-6px">could not answer &middot; <u>Try again</u></div>
+</div>
+</div>
+<div class="tag i"><b>C</b><span>the turn itself carries the failure</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>A, as built.</b> Quietest of the three, and it reads as offload's own aside rather than as an error box in a conversation. The cost is that a failure looks a lot like a normal turn on a busy screen, and the only thing marking it is a coloured word.</li>
+<li><b>B, the system's own <code>inline-err</code> treatment</b>, which exists in the kits for the failed-dump case and is what a reader would expect to see reused. Unmistakable. The cost is weight: a tinted card inside a conversation is the loudest object on the screen, and the failure is usually transient.</li>
+<li><b>C, the turn carries it.</b> The failure is attached to the thing that failed, which is the tightest possible connection, and it costs one line. The cost is a clay border on a message somebody wrote, which reads as though their words were the problem.</li>
+<li><b>The recommendation is B for failed and A for partial.</b> They are genuinely different: a failure needs finding, since nothing happened and the person may have walked away; a partial turn already has a visible reply saying what did happen, so the line under it is enough. That splits one treatment into two, which is worth writing down as a rule rather than leaving to each screen.</li>
+</ul>
+<span class="rec">Recommended: B for failed, A for partial</span>
+
+<!-- ============ 11 REPLY LINKS ============ -->
+<div class="sechead"><h2>11 &middot; The reply that links to the threads it wrote to</h2><u>all &middot; raised 2026-09-03</u></div>
+<p class="snote">A reply saying "Added to Flat admin" now carries Flat admin as something you can open, built from the content rows the turn actually produced rather than from the words in the sentence. No kit draws it. It matters more than it looks: it is the first time the composer does something other than talk.</p>
+
+<div class="rowlabel">In the app now <u>Composer.tsx, moss pills under offload's turn</u></div>
+<div class="row">
+<div class="cell">
+<div class="comp">
+<div class="chd"><i class="lm"></i><b>bookshelf brackets, and Ana wants the invoice a week early</b><i class="g off" style="--ic:url(../assets/icons/maximize-2.svg)"></i><i class="g" style="--ic:url(../assets/icons/x.svg)"></i></div>
+<div class="turns">
+<div class="you">bookshelf brackets, and Ana wants the invoice a week early<span class="done"><i class="g" style="--ic:url(../assets/icons/check.svg)"></i>Done</span></div>
+<div class="off">Filed both. The brackets went with the bookshelf build, and Ana&rsquo;s invoice note is now a memory on Flat admin.<span class="went"><a class="tlink"><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Bookshelf build</a><a class="tlink"><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Flat admin</a></span></div>
+</div>
+<div class="cin"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/camera.svg)"></i><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+</div>
+<div class="tag i"><b>NOW</b><span>from the record, never from the sentence</span></div>
+</div>
+<div class="cell">
+<div class="toast"><b>Sorted into Lisbon trip</b><u>Undo</u></div>
+<div class="tag i"><b>NOW</b><span>and the toast names the same destination</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>Moss, and it has to be.</b> These are "offload did this, you didn't" made clickable, which is moss's stated job, and one of its listed uses is thread references in a reply.</li>
+<li><b>Done means something was done.</b> The tick is gated on the same record the links come from, so a question that got an answer and a request that was refused no longer wear one.</li>
+<li><b>The pills and the toast cannot disagree</b>, because both read the content rows the turn produced.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+<div class="cell">
+<div class="comp" style="width:430px"><div class="turns" style="padding:14px">
+<div class="off">Filed both. The brackets went with the bookshelf build.<span class="went"><a class="tlink"><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Bookshelf build</a><a class="tlink"><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Flat admin</a></span></div>
+</div></div>
+<div class="tag i"><b>A</b><span>pills under the sentence, as built</span></div>
+</div>
+<div class="cell">
+<div class="comp" style="width:430px"><div class="turns" style="padding:14px">
+<div class="off">Filed both. The brackets went with the <a style="color:var(--moss-700);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px">bookshelf build</a>, and Ana&rsquo;s invoice note is a memory on <a style="color:var(--moss-700);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px">Flat admin</a>.</div>
+</div></div>
+<div class="tag i"><b>B</b><span>the names in the sentence become the links</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>A, pills under the sentence.</b> The destinations are a list you can scan and tap, at a 26px height that clears a touch target on the phones, and the pills come from the record so they are true even when the sentence is loose. The cost is repetition: the reply names the threads and then the pills name them again.</li>
+<li><b>B, link the names in place.</b> No repetition, and it reads like prose rather than a receipt. The cost is real and it is the reason A was built: matching a name in a sentence to a row in the record means matching on text, and offload naming a thread it did not write to is exactly the failure this is meant to prevent. It also gives a phone a 14px tap target inside a paragraph.</li>
+<li><b>The recommendation is A</b>, with one refinement: when the reply names exactly one thread, the pill is the only mention and the sentence drops the name. That removes the repetition in the common case without ever matching on text.</li>
+</ul>
+<span class="rec">Recommended: A, with the single-thread refinement</span>
+
+<!-- ============ 12 THEME AND TYPE ============ -->
+<div class="sechead"><h2>12 &middot; A theme switch and a type-size control</h2><u>all &middot; raised 2026-09-04</u></div>
+<p class="snote">Two controls at the foot of the nav, beside Settings, and neither is in any kit. Light and dark, and larger text. The type scale is now a token here, so the app can stop defining it, but nothing in the design system says where these controls live or what they look like.</p>
+
+<div class="rowlabel">In the app now <u>Preferences.tsx, two quiet icon buttons in the sidebar foot</u></div>
+<div class="row">
+<div class="cell">
+<div class="navfoot">
+<div class="nrow"><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i>Settings</div>
+<div class="prefs"><span class="pbtn ic" style="--ic:url(../assets/icons/moon.svg)"></span><span class="pbtn ic" style="--ic:url(../assets/icons/scan-text.svg)"></span></div>
+</div>
+<div class="tag i"><b>NOW</b><span>moon flips the theme, scan-text toggles 1.15</span></div>
+</div>
+<div class="cell">
+<div class="det">
+<div class="sizes"><b>Body at 100%</b><b class="lg">Body at 115%</b></div>
+<p style="margin:12px 0 0;font-size:13px;line-height:1.6;color:var(--text-secondary)">Type scales, layout does not. The sidebar stays 248px, the pane stays 520px, radii and icons stay literal. Larger text used <code>zoom</code> first, which pushed the right-hand pane off a laptop screen.</p>
+</div>
+<div class="tag i"><b>NOW</b><span>[data-type="large"] overrides the eight size tokens</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>Both are kept on the device</b>, in <code>localStorage</code>, not on the account. Theme falls back to the system preference on a fresh browser, which is a small contradiction of the closed decision that light is the default for a new account.</li>
+<li><b>Two states each</b>, not a scale: dark or light, 100% or 115%.</li>
+<li><b>The glyphs are <code>moon</code> and <code>scan-text</code></b>, and <code>scan-text</code> is doing a job no label explains.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+
+<div class="cell">
+<div class="navfoot">
+<div class="nrow"><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i>Settings</div>
+<div class="prefs"><span class="pbtn ic" style="--ic:url(../assets/icons/moon.svg)"></span><span class="pbtn ic" style="--ic:url(../assets/icons/scan-text.svg)"></span></div>
+</div>
+<div class="tag i"><b>A</b><span>as built, two glyphs in the nav foot</span></div>
+</div>
+
+<div class="cell">
+<div class="navfoot">
+<div class="nrow"><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i>Settings</div>
+<div class="nrow"><i class="g" style="--ic:url(../assets/icons/moon.svg)"></i>Dark<s>off</s></div>
+<div class="nrow"><i class="g" style="--ic:url(../assets/icons/scan-text.svg)"></i>Larger text<s>off</s></div>
+</div>
+<div class="tag i"><b>B</b><span>named rows in the nav foot</span></div>
+</div>
+
+<div class="cell">
+<div class="det" style="width:340px">
+<div style="font:var(--weight-semibold) 17px/1 var(--font-core);margin-bottom:14px">Appearance</div>
+<div style="display:flex;align-items:center;gap:14px;padding:9px 0"><span style="flex:1;font-size:14.5px">Theme</span><span class="seg"><span class="on">Light</span><span>Dark</span></span></div>
+<div style="display:flex;align-items:center;gap:14px;padding:9px 0;border-top:1px solid var(--border-hairline)"><span style="flex:1;font-size:14.5px">Text size</span><span class="seg"><span class="on">Normal</span><span>Larger</span></span></div>
+</div>
+<div class="tag i"><b>C</b><span>a Settings page, nothing in the nav</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>A, as built.</b> One tap from anywhere, which suits a control people flip by time of day. The cost is two unlabelled glyphs, and <code>scan-text</code> does not say "bigger text" to anybody who has not been told. It also puts an accessibility control behind an icon with no name.</li>
+<li><b>B, named rows in the same place.</b> Still one tap, and the label says what it does and what state it is in. The cost is two more rows in a nav that is otherwise threads, and it makes the foot of the sidebar a small settings panel.</li>
+<li><b>C, a Settings page.</b> Where the ten Settings pages already live, with the system's own <b>SegmentedControl</b> and room to grow into a real type scale later. The cost is three taps to flip the theme, on the one preference people change most.</li>
+<li><b>The recommendation is B in the nav and C as well.</b> The pair belongs in Settings because that is where somebody looks for it, and the nav keeps a labelled shortcut because that is where somebody uses it. Both read the same stored value, so there is no second source of truth. If only one can be built, B: an unlabelled accessibility control is the defect worth fixing first.</li>
+</ul>
+<span class="rec">Recommended: B, and a Settings page too</span>
+
+<p class="snote" style="margin-top:44px">Next: <a href="design-queue-4-sharing.html">part 4, sharing and the unbuilt</a>.</p>
+</div></body></html>

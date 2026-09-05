@@ -1,0 +1,278 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Design queue 2: the phones</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="frames.css">
+<style>
+.det{width:512px;box-sizing:border-box;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:14px;padding:14px 16px}
+.sect{font:var(--weight-semibold) 21px/1.2 var(--font-core);letter-spacing:-.014em;border-bottom:1.5px solid var(--ink-950);padding-bottom:7px;margin:2px 0 8px;display:flex;align-items:baseline;gap:8px}
+.sect em{font-style:normal;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-accent);font-variant-numeric:tabular-nums}
+.nav{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 30px;padding:0;list-style:none;font-size:13px}
+.nav a{color:var(--text-secondary)}.nav a[aria-current]{color:var(--text-primary);font-weight:500}
+/* phone screen furniture, drawn at real 390 width inside the ios frame */
+.pscr{flex:1;display:flex;flex-direction:column;min-height:0}
+.pbar{flex:0 0 auto;display:flex;align-items:center;gap:12px;height:52px;padding:0 20px;background:var(--surface-raised);border-bottom:1px solid var(--border-hairline)}
+.pbar h4{margin:0;font:var(--weight-semibold) 17px/1 var(--font-core);letter-spacing:-.012em;flex:1}
+.pbar i{width:20px;height:20px;color:var(--text-secondary)}
+.psec{font:var(--weight-semibold) 21px/1.2 var(--font-core);letter-spacing:-.014em;padding:18px 20px 8px;display:flex;align-items:baseline;gap:8px}
+.psec em{font-style:normal;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-accent)}
+.prow{display:flex;align-items:flex-start;gap:12px;padding:11px 20px;border-bottom:1px solid var(--border-hairline);background:var(--surface-page)}
+.prow .t{width:36px;height:36px;border-radius:10px;background:var(--surface-fill);color:var(--text-secondary);flex:0 0 auto}
+.prow .x{flex:1;min-width:0}
+.prow .x b{display:block;font:var(--weight-medium) 15.5px/21px var(--font-core);letter-spacing:-.008em}
+.prow .x s{text-decoration:none;display:block;margin-top:2px;font:var(--weight-regular) 13px/1.35 var(--font-core);color:var(--text-secondary)}
+.prow.mk{background:var(--surface-accent-soft)}
+.prow.rev{position:relative;overflow:hidden}
+.prow .del{position:absolute;top:0;right:0;bottom:0;width:112px;background:var(--clay-600);color:var(--text-on-solid);display:flex;align-items:center;justify-content:center;font:var(--weight-medium) 13px/1 var(--font-core)}
+.slid{transform:translateX(-88px)}
+/* Option diagrams: the reveal is laid out as one flex sibling and the row content is inset by
+   its width, so the whole strip and the whole title are both legible at card scale. */
+.rev2{position:relative;overflow:hidden;border-radius:10px;background:var(--surface-page)}
+.rev2 .acts{position:absolute;top:0;right:0;bottom:0;display:flex}
+.rev2 .acts span{display:flex;align-items:center;justify-content:center;color:var(--text-on-solid);font:var(--weight-medium) 13px/1 var(--font-core)}
+.rev2 .slide{display:flex;align-items:flex-start;gap:12px;padding:11px 20px;background:var(--surface-page);border-right:1px solid var(--border-hairline)}
+.scrim{position:absolute;inset:0;background:var(--ink-950);opacity:.35}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface-raised);border-radius:24px 24px 0 0;padding:6px 0 24px}
+.sheet a{display:flex;align-items:center;height:52px;padding:0 20px;font:var(--weight-regular) 16px/1 var(--font-core);color:var(--text-primary);text-decoration:none}
+.sheet a.dg{color:var(--text-danger)}
+.sheet a i{width:18px;height:18px;margin-right:14px;color:var(--text-tertiary)}
+.sheet a.dg i{color:var(--text-danger)}
+.sheet hr{border:none;border-top:1px solid var(--border-hairline);margin:5px 0}
+.sheet .hd{padding:12px 20px 8px;font:var(--weight-regular) 13px/1.4 var(--font-core);color:var(--text-tertiary)}
+.tabb{flex:0 0 auto;height:64px;border-top:1px solid var(--border-hairline);background:var(--surface-raised);display:flex;align-items:center;justify-content:space-around;color:var(--ink-400)}
+.tabb i{width:22px;height:22px}
+.tabb i.on{color:var(--ink-950)}
+.gr{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;padding:14px 0 2px}
+.gr .cellg{display:flex;flex-direction:column;align-items:center;gap:6px;font:var(--weight-regular) 10.5px/1 var(--font-core);color:var(--text-tertiary)}
+.gr .cellg i{color:var(--ink-950)}
+.grp{display:flex;align-items:center;gap:7px;padding:14px 0 6px;font:var(--weight-medium) 12.5px/1 var(--font-core);color:var(--text-accent)}
+.grp i{width:12px;height:12px}
+.grp em{font-style:normal;color:var(--text-tertiary);font-weight:400}
+.chiprow{display:flex;gap:6px;padding:4px 0 10px}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-primary);font:var(--weight-medium) 13px/1 var(--font-core)}
+.fchip.on{background:var(--ink-950);color:var(--paper)}
+.fchip i{width:12px;height:12px}
+.r{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-hairline)}
+.r:last-child{border-bottom:none}
+.r .tile{width:32px;height:32px;border-radius:8px;background:var(--surface-fill);color:var(--text-secondary);flex:0 0 auto}
+.r .rt{flex:1;min-width:0}
+.r .rt b{display:block;font:var(--weight-medium) 15.5px/1.25 var(--font-core)}
+.r .rt s{text-decoration:none;display:block;margin-top:3px;font:var(--weight-regular) 12px/1 var(--font-core);color:var(--text-tertiary)}
+code{font:var(--weight-regular) 12.5px/1.4 ui-monospace,monospace;background:var(--surface-fill);padding:1px 5px;border-radius:4px}
+</style></head><body><div class="wrap">
+
+<h1>Design queue 2: the phones</h1>
+<p class="lede">Three things the phone clients settled on their own, read from <b>apps/mobile/components/shell/ContentRow.tsx</b>, <b>RowActions.tsx</b> and <b>components/Glyph.tsx</b>. The first two are gestures no kit draws. The third is a contract this system owes rather than a screen.</p>
+
+<ul class="nav">
+<li><a href="design-queue.html">Index</a></li>
+<li><a href="design-queue-1-thread-page.html">1 Thread page</a></li>
+<li><a href="design-queue-2-phones.html" aria-current="page">2 Phones</a></li>
+<li><a href="design-queue-3-composer.html">3 Composer and shell</a></li>
+<li><a href="design-queue-4-sharing.html">4 Sharing and the unbuilt</a></li>
+</ul>
+
+<!-- ============ 7 LONG PRESS ============ -->
+<div class="sechead"><h2>7 &middot; A swipe deletes, a long press opens the rest</h2><u>mobile, android &middot; raised 2026-09-05</u></div>
+<p class="snote">No kit draws a content row action on any platform. <b>SwipeRow</b> reveals a delete and nothing else, with the trash glyph and the clay ground written into the component. Web's action set is authorship-conditional, so a fixed gesture map is wrong for half the rows. The phones answered with two gestures.</p>
+
+<div class="rowlabel">In the app now <u>ContentRow.tsx: pan reveals Delete at 88px, long press at 320ms opens a sheet</u></div>
+<div class="row">
+
+<div class="cell">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="pbar"><i class="g" style="--ic:url(../assets/icons/chevron-left.svg)"></i><h4>Lisbon trip</h4><i class="g" style="--ic:url(../assets/icons/share-2.svg)"></i></div>
+<div class="psec">Everything in here <em>12</em></div>
+<div class="prow rev"><span class="del">Delete</span><span class="t ic slid" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x slid"><b>Time Out Market</b><s>lunch, closes 4pm on Sundays</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Sam</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Fri 12 Sep</s></div></div>
+</div>
+<div class="tabb"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i><i class="g on" style="--ic:url(../assets/icons/lasso.svg)"></i><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i></div>
+</div></div>
+<div class="tag i"><b>NOW</b><span>swipe, and only if it is yours</span></div>
+</div>
+
+<div class="cell">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="pbar"><i class="g" style="--ic:url(../assets/icons/chevron-left.svg)"></i><h4>Lisbon trip</h4><i class="g" style="--ic:url(../assets/icons/share-2.svg)"></i></div>
+<div class="psec">Everything in here <em>12</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>lunch, closes 4pm on Sundays</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Sam</s></div></div>
+</div>
+<div class="tabb"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i><i class="g on" style="--ic:url(../assets/icons/lasso.svg)"></i><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i></div>
+<div class="scrim"></div>
+<div class="sheet">
+<a><i class="g" style="--ic:url(../assets/icons/pencil.svg)"></i>Edit</a>
+<a><i class="g" style="--ic:url(../assets/icons/archive.svg)"></i>Archive</a>
+<a class="dg"><i class="g" style="--ic:url(../assets/icons/trash-2.svg)"></i>Delete</a>
+</div>
+</div></div>
+<div class="tag i"><b>NOW</b><span>long press, and it lists only what you may do</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>The sheet has no disabled state on purpose.</b> It lists what this account may actually do and omits the rest, because a control that is drawn and refused teaches a rule that is not true. Sam's row shows Edit and Archive and no Delete.</li>
+<li><b>A row that is not yours does not park open at all.</b> The pan settles back rather than revealing a control the server would refuse.</li>
+<li><b>320ms long press, 12px horizontal activation, 8px vertical failure</b>, so a scroll never opens either thing.</li>
+<li><b>The stated cost:</b> archiving is the commonest action and now takes two gestures, a press and a tap.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+
+<div class="cell">
+<div class="det">
+<div class="sect">A</div>
+<p style="margin:0 0 10px;font-size:13.5px;line-height:1.6;color:var(--text-secondary)">Keep both gestures. The kit gains a <b>RowActionSheet</b> and <b>SwipeRow</b> stays delete-only, documented as such.</p>
+<div class="prow" style="border-radius:10px;border-bottom:none;background:var(--surface-fill)"><span class="t ic" style="--ic:url(../assets/icons/link.svg);background:var(--surface-raised)"></span><div class="x"><b>Tram 28 route map</b><s>press and hold</s></div></div>
+</div>
+<div class="tag i"><b>A</b><span>as built</span></div>
+</div>
+
+<div class="cell">
+<div class="det">
+<div class="sect">B</div>
+<p style="margin:0 0 10px;font-size:13.5px;line-height:1.6;color:var(--text-secondary)">Swipe reveals <em>two</em> actions: Archive in ink, Delete in clay, and only Archive on a row that is not yours. The sheet goes.</p>
+<div class="rev2">
+<span class="acts"><span style="width:100px;background:var(--ink-950)">Archive</span><span style="width:88px;background:var(--clay-600)">Delete</span></span>
+<div class="slide" style="margin-right:188px"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Sam</s></div></div></div>
+</div>
+<div class="tag i"><b>B</b><span>two-action swipe, no sheet</span></div>
+</div>
+
+<div class="cell">
+<div class="det">
+<div class="sect">C</div>
+<p style="margin:0 0 10px;font-size:13.5px;line-height:1.6;color:var(--text-secondary)">Swipe archives, since it is the commonest, and the sheet holds Edit and Delete. A delete gesture becomes deliberate rather than fast.</p>
+<div class="rev2">
+<span class="acts"><span style="width:88px;background:var(--ink-950)">Archive</span></span>
+<div class="slide" style="margin-right:88px"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Sam</s></div></div></div>
+</div>
+<div class="tag i"><b>C</b><span>swipe archives, sheet deletes</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>A, as built.</b> One gesture per certainty: the swipe does the destructive thing it was drawn for, the sheet handles everything conditional. The cost stands: two gestures for the action people take most.</li>
+<li><b>B, two actions in the swipe.</b> Archiving becomes one gesture and the sheet disappears. The cost is that the reveal now has to be authorship-aware in its own width, and a two-button reveal on a 390px screen leaves 190px of row, so the title truncates while the row is open. It also puts a destructive control under a gesture that people learn by accident.</li>
+<li><b>C, swipe archives and the sheet deletes.</b> Matches how often each is used and makes deleting deliberate, which suits the only irreversible thing in the product. The cost is that it contradicts <b>SwipeRow</b> as designed, and every other swipe in the product still deletes, so the same gesture would mean two things depending on the list.</li>
+<li><b>The recommendation is A.</b> It is the one that keeps the gesture's meaning constant across the product, and the extra tap on archive is a real but small cost. C is the better answer if the phones later show that archiving outnumbers deleting by a wide margin.</li>
+</ul>
+<span class="rec">Recommended: A, and govern the sheet</span>
+
+<!-- ============ 8 GLYPH ============ -->
+<div class="sechead"><h2>8 &middot; Glyph, the icon contract React Native needs</h2><u>mobile, android &middot; raised 2026-09-05</u></div>
+<p class="snote">The governed <b>Icon</b> is DOM-shaped: it masks an SVG file with <code>currentColor</code> and takes a <code>basePath</code>, which is a URL. React Native has neither. The phones named theirs <b>Glyph</b>, which the adherence lint approved of, and this system owes it a contract.</p>
+
+<div class="rowlabel">In the app now <u>Glyph.tsx, react-native-svg drawing generated path data</u></div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="gr">
+<span class="cellg"><i class="g" style="--ic:url(../assets/icons/lasso.svg);width:24px;height:24px"></i>lasso</span>
+<span class="cellg"><i class="g" style="--ic:url(../assets/icons/sparkles.svg);width:24px;height:24px"></i>sparkles</span>
+<span class="cellg"><i class="g" style="--ic:url(../assets/icons/archive.svg);width:24px;height:24px"></i>archive</span>
+<span class="cellg"><i class="g" style="--ic:url(../assets/icons/map-pin.svg);width:24px;height:24px"></i>map-pin</span>
+<span class="cellg"><i class="g" style="--ic:url(../assets/icons/mic.svg);width:24px;height:24px"></i>mic</span>
+<span class="cellg"><i class="g" style="--ic:url(../assets/icons/check.svg);width:24px;height:24px"></i>check</span>
+</div>
+</div>
+<div class="tag i"><b>NOW</b><span>same 80 slugs, drawn from paths not files</span></div>
+</div>
+</div>
+
+<table class="mx">
+<tr><th style="width:150px">&nbsp;</th><th><b>Icon</b>, the web contract</th><th><b>Glyph</b>, what the phones built</th></tr>
+<tr><td><b>Colour</b></td><td>Inherits, <code>currentColor</code> through a mask</td><td>A <code>color</code> prop, because there is nothing to inherit</td></tr>
+<tr><td><b>Source</b></td><td><code>basePath</code>, a URL to the vendored SVG</td><td>Generated path data compiled into the bundle</td></tr>
+<tr><td><b>Unknown slug</b></td><td>Renders an empty box, caught by a build-time check</td><td>Renders nothing, checked at runtime</td></tr>
+<tr><td><b>Stroke</b></td><td>Whatever the file carries</td><td>2px, round caps, set on the <code>Svg</code></td></tr>
+</table>
+
+<div class="rowlabel">Options</div>
+<ul class="spec">
+<li><b>A, govern <b>Glyph</b> as a second contract</b> with the same 80 slugs and the same sizes, and say in the readme that <code>color</code> replaces inheritance on that platform. Two files, <code>Glyph.d.ts</code> beside <code>Icon.d.ts</code>, and the difference is documented rather than discovered. The cost is two contracts to keep in step, and a component that means the same thing under two names.</li>
+<li><b>B, widen <b>Icon</b></b> so <code>color</code> is optional everywhere and the source is either a path or a URL. One name across the product. The cost is a web contract carrying a prop it never needs, and <code>basePath</code> is meaningless on a phone, so the contract would describe two things loosely instead of one thing exactly.</li>
+<li><b>C, leave it as a logged divergence.</b> Costs nothing today and means every new client invents its own name for the same object, which is how a set stops being a set.</li>
+<li><b>The recommendation is A.</b> The lint already treats them as different components and it was right to. What this system owes is the contract, not a rename.</li>
+</ul>
+<span class="rec">Recommended: A, a second contract</span>
+
+<!-- ============ 9 FILTER OR GROUP ============ -->
+<div class="sechead"><h2>9 &middot; Filter or group, inside a widget</h2><u>web, phones &middot; raised 2026-09-03</u></div>
+<p class="snote"><b>M3ThreadWidgets.jsx</b> draws <b>ChipRow</b>, a single-select filter above a flat list. The product owner asked for grouping, which is headed sections. Only grouping was built, because shipping both without deciding which is primary is how a screen ends up with two ways to do one thing. The kit has to decide.</p>
+
+<div class="rowlabel">In the app now <u>Widgets.tsx, headed groups and no filter</u></div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="sect">Files <em>7</em></div>
+<div class="grp"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i>receipts <em>3</em></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="rt"><b>Airport transfer receipt</b><s>Fri 12 Sep</s></div></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="rt"><b>Hotel deposit</b><s>2 Sep</s></div></div>
+<div class="grp"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i>tickets <em>2</em></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/paperclip.svg)"></span><div class="rt"><b>Boarding passes</b><s>Sam</s></div></div>
+<div class="r" style="border-bottom:none"><div class="rt" style="padding-left:0"><b style="font:var(--weight-regular) 12.5px/1 var(--font-core);color:var(--text-tertiary)">Everything else</b></div></div>
+</div>
+<div class="tag i"><b>NOW</b><span>group heading: 12.5px, accent, lowercase, with a mark</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>The group heading is the weakest thing in the feature</b> by the codebase's own account, because it is the only part with no drawn precedent. <b>SectionHeader</b> is 21px over an ink rule, far too heavy for a sub-group inside a section that already has one, so this was built from <b>Chip</b>'s vocabulary instead: 12.5px, accent, lowercase, small mark.</li>
+<li><b>The unnamed group has no heading at all</b>, or "Everything else" when there is more than one group. Not "Other" and not "Untagged": both are labels offload would be inventing for content nobody categorised.</li>
+<li><b>A widget is a view, never a store.</b> Every row in it is a row in the list below, filtered, so nothing here costs a query.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+
+<div class="cell">
+<div class="det">
+<div class="sect">Files <em>7</em></div>
+<div class="grp"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i>receipts <em>3</em></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="rt"><b>Airport transfer receipt</b><s>Fri 12 Sep</s></div></div>
+<div class="grp"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i>tickets <em>2</em></div>
+<div class="r" style="border-bottom:none"><span class="tile ic" style="--ic:url(../assets/icons/paperclip.svg)"></span><div class="rt"><b>Boarding passes</b><s>Sam</s></div></div>
+</div>
+<div class="tag i"><b>A</b><span>groups only, as built</span></div>
+</div>
+
+<div class="cell">
+<div class="det">
+<div class="sect">Files <em>7</em></div>
+<div class="chiprow"><span class="fchip on">All</span><span class="fchip"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i>receipts</span><span class="fchip"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i>tickets</span></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="rt"><b>Airport transfer receipt</b><s>Fri 12 Sep</s></div></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="rt"><b>Hotel deposit</b><s>2 Sep</s></div></div>
+<div class="r" style="border-bottom:none"><span class="tile ic" style="--ic:url(../assets/icons/paperclip.svg)"></span><div class="rt"><b>Boarding passes</b><s>Sam</s></div></div>
+</div>
+<div class="tag i"><b>B</b><span>filter only, as the kit drew it</span></div>
+</div>
+
+<div class="cell">
+<div class="det">
+<div class="sect">Files <em>7</em></div>
+<div class="chiprow"><span class="fchip on"><i class="g" style="--ic:url(../assets/icons/group.svg)"></i>Grouped</span><span class="fchip"><i class="g" style="--ic:url(../assets/icons/list.svg)"></i>Flat</span></div>
+<div class="grp"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i>receipts <em>3</em></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="rt"><b>Airport transfer receipt</b><s>Fri 12 Sep</s></div></div>
+<div class="r" style="border-bottom:none"><span class="tile ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="rt"><b>Hotel deposit</b><s>2 Sep</s></div></div>
+</div>
+<div class="tag i"><b>C</b><span>grouped by default, flat as the escape</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>A, groups only.</b> Nothing is hidden: every row in the widget is on screen and the tags are the structure. It also needs the group heading properly designed, since it is currently improvised from chip vocabulary. The cost is height on a thread with many tags, and no way to see only one of them.</li>
+<li><b>B, filter only.</b> What the kit drew. Compact and familiar, and it answers "show me the receipts" in one tap. The cost is that a filter hides things, and on a screen whose whole promise is that nothing needs filing, a control that hides two thirds of a widget is the wrong default.</li>
+<li><b>C, both, with grouping primary.</b> The chip row becomes a view switch rather than a filter, which is two controls collapsed into one and keeps the answer to "which is primary" written on the screen. The cost is a control on every widget that most threads never need.</li>
+<li><b>The recommendation is A</b>, and the design work is the group heading rather than the choice: a real sub-heading rank between <b>SectionHeader</b> and body, which the system does not have and which several other screens would use.</li>
+</ul>
+<span class="rec">Recommended: A, plus a sub-heading rank</span>
+
+<p class="snote" style="margin-top:44px">Next: <a href="design-queue-3-composer.html">part 3, the composer and the shell</a>.</p>
+</div></body></html>

@@ -23,5 +23,9 @@
   --appbar-height:52px;
   --tabbar-height:64px;
   --composer-height:52px;
+  --breakpoint-sm:600px;      /* one pane, phone layout below this */
+  --breakpoint-md:900px;
+  --breakpoint-lg:1180px;     /* the web shell's two-pane layout */
+  --breakpoint-xl:1440px;
   --content-max:520px;        /* readable measure on tablet/web */
 }

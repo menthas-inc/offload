@@ -202,7 +202,7 @@ function WPerson({name,open}){
         <WSection>What offload knows</WSection>
         <div style={{display:"flex",flexWrap:"wrap",gap:"var(--space-3)",padding:"var(--space-3) 0"}}>
           {memoryList().filter(m=>m.person===name).map(m=>(
-            <Chip key={m.key} tone="outline" variant="soft" onClick={()=>open({kind:"memory",id:m.key})}>{m.label}</Chip>
+            <Chip key={m.key} tone="outline" onClick={()=>open({kind:"memory",id:m.key})}>{m.label}</Chip>
           ))}
         </div>
       </WBody>

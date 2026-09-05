@@ -99,8 +99,8 @@
         "message": "<Checkbox> shape must be one of 'rounded' | 'circle'."
       },
       {
-        "selector": "JSXOpeningElement[name.name='Chip'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|icon|selected|tone|onClick|hitArea|onRemove|style|key|ref|className|style|children)$/]",
-        "message": "<Chip> doesn't accept that prop. Declared props: children, icon, selected, tone, onClick, hitArea, onRemove, style."
+        "selector": "JSXOpeningElement[name.name='Chip'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|icon|selected|tone|disabled|onClick|hitArea|onRemove|style|key|ref|className|style|children)$/]",
+        "message": "<Chip> doesn't accept that prop. Declared props: children, icon, selected, tone, disabled, onClick, hitArea, onRemove, style."
       },
       {
         "selector": "JSXOpeningElement[name.name='Chip'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:neutral|accent|attention|warning|danger|outline)$/]",
@@ -151,12 +151,24 @@
         "message": "<Logo> tone must be one of 'ink' | 'inverse'."
       },
       {
+        "selector": "JSXOpeningElement[name.name='MemoryRow'] > JSXAttribute > JSXIdentifier[name!=/^(?:text|origin|author|muted|open|onOpen|onClose|onSave|onDelete|onMute|maxChars|arrived|style|key|ref|className|style|children)$/]",
+        "message": "<MemoryRow> doesn't accept that prop. Declared props: text, origin, author, muted, open, onOpen, onClose, onSave, onDelete, onMute, maxChars, arrived, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='MemoryRow'] > JSXAttribute[name.name='origin'] > Literal[value!=/^(?:learned|told)$/]",
+        "message": "<MemoryRow> origin must be one of 'learned' | 'told'."
+      },
+      {
         "selector": "JSXOpeningElement[name.name='NotificationAndroid'] > JSXAttribute > JSXIdentifier[name!=/^(?:app|time|title|body|actions|expandable|width|style|key|ref|className|style|children)$/]",
         "message": "<NotificationAndroid> doesn't accept that prop. Declared props: app, time, title, body, actions, expandable, width, style."
       },
       {
         "selector": "JSXOpeningElement[name.name='NotificationAction'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|destructive|onPress|key|ref|className|style|children)$/]",
         "message": "<NotificationAction> doesn't accept that prop. Declared props: label, destructive, onPress."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='RowAction'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|icon|danger|onSelect|key|ref|className|style|children)$/]",
+        "message": "<RowAction> doesn't accept that prop. Declared props: label, icon, danger, onSelect."
       },
       {
         "selector": "JSXOpeningElement[name.name='SectionHeader'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|count|action|alignAction|sticky|style|key|ref|className|style|children)$/]",
@@ -249,10 +261,16 @@
       "Logo": {
         "replaces": []
       },
+      "MemoryRow": {
+        "replaces": []
+      },
       "NotificationAndroid": {
         "replaces": []
       },
       "NotificationAction": {
+        "replaces": []
+      },
+      "RowAction": {
         "replaces": []
       },
       "SectionHeader": {
@@ -303,6 +321,10 @@
       "--border-hairline",
       "--border-strong",
       "--border-width",
+      "--breakpoint-lg",
+      "--breakpoint-md",
+      "--breakpoint-sm",
+      "--breakpoint-xl",
       "--clay-100",
       "--clay-600",
       "--clay-700",
@@ -311,6 +333,7 @@
       "--duration-base",
       "--duration-fast",
       "--duration-instant",
+      "--duration-mark",
       "--duration-sheet",
       "--duration-slow",
       "--ease-entrance",
@@ -430,6 +453,7 @@
       "--tracking-display",
       "--tracking-title",
       "--transition-ui",
+      "--type-scale",
       "--weight-medium",
       "--weight-regular",
       "--weight-semibold"
@@ -512,6 +536,7 @@
       "--weight-regular": "font",
       "--weight-medium": "font",
       "--weight-semibold": "font",
+      "--type-scale": "font",
       "--size-display": "spacing",
       "--size-title-1": "spacing",
       "--size-title-2": "spacing",
@@ -559,6 +584,10 @@
       "--appbar-height": "spacing",
       "--tabbar-height": "spacing",
       "--composer-height": "spacing",
+      "--breakpoint-sm": "spacing",
+      "--breakpoint-md": "spacing",
+      "--breakpoint-lg": "spacing",
+      "--breakpoint-xl": "spacing",
       "--content-max": "spacing",
       "--radius-xs": "radius",
       "--radius-sm": "radius",
@@ -579,6 +608,7 @@
       "--duration-base": "other",
       "--duration-slow": "other",
       "--duration-sheet": "other",
+      "--duration-mark": "other",
       "--ease-out": "other",
       "--ease-in-out": "other",
       "--ease-entrance": "other",

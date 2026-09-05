@@ -1,4 +1,4 @@
-<!-- @dsCard group="Components" viewport="700x398" name="Layout" subtitle="AppBar, TabBar, ListRow, SwipeRow, SectionHeader, Sheet" -->
+<!-- @dsCard group="Components" viewport="1400x480" name="Layout" subtitle="AppBar, TabBar, ListRow, SwipeRow, RowActionSheet, MemoryRow, SectionHeader, Sheet" -->
 <!doctype html><html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css?v=1786472643305"><style>body{margin:0;padding:0;font:var(--text-body-role);background:var(--surface-page)}#root{display:flex;flex-direction:column;gap:18px}.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.lbl{font:var(--text-caption-role);color:var(--text-tertiary);letter-spacing:var(--tracking-caps);text-transform:uppercase}</style>
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -7,20 +7,20 @@
 <button type="button" data-set="dark" aria-pressed="false" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:transparent;color:var(--text-secondary)">Dark</button>
 </div><div id="root"></div><script src="../../_ds_bundle.js?v=1787256974498"></script>
 <script type="text/babel">
-const {AppBar,TabBar,ListRow,SwipeRow,SectionHeader,Sheet,IconButton,Icon,Button}=window.OffloadDesignSystem_dc4a89;
+const {AppBar,TabBar,ListRow,SwipeRow,RowActionSheet,MemoryRow,SectionHeader,Sheet,IconButton,Icon,Button}=window.OffloadDesignSystem_dc4a89;
 const frame={width:320,border:"1px solid var(--border-hairline)",borderRadius:"var(--radius-md)",overflow:"hidden",position:"relative",background:"var(--paper)"};
-function Demo(){const [tab,setTab]=React.useState("in");return <div className="row" style={{alignItems:"flex-start",gap:20}}>
+function Demo(){const [tab,setTab]=React.useState("in");const [openMemory,setOpenMemory]=React.useState("a");return <div className="row" style={{alignItems:"flex-start",gap:20}}>
 <div style={frame}>
-<AppBar title="Lisbon trip" subtitle="6 notes · 2 people" left={<IconButton icon="chevron-left" label="Back"/>} right={<IconButton icon="ellipsis" label="More"/>}/>
+<AppBar title="Lisbon trip" subtitle="6 · 2 people" left={<IconButton icon="chevron-left" label="Back"/>} right={<IconButton icon="ellipsis" label="More"/>}/>
 <SectionHeader count={3}>Today</SectionHeader>
 <ListRow leading={<Icon name="map-pin" size={18}/>} title="Miradouro da Senhora" meta="saved from Safari" trailing="2m" chevron onClick={()=>{}}/>
 <ListRow leading={<Icon name="link" size={18}/>} title="Tram 28 timetable" trailing="1h" chevron onClick={()=>{}}/>
 <SwipeRow background="var(--paper)" onDelete={()=>{}}>
   <ListRow leading={<Icon name="users" size={18}/>} title="Ana joined" border={false} trailing="Tue"/>
 </SwipeRow>
-<TabBar value={tab} onChange={setTab} items={[{value:"in",label:"Inbox",icon:"inbox"},{value:"sp",label:"Spaces",icon:"folder"},{value:"se",label:"Search",icon:"search"}]}/>
+<TabBar value={tab} onChange={setTab} items={[{value:"in",label:"Today",icon:"sun"},{value:"sp",label:"My threads",icon:"lasso"},{value:"se",label:"Memories",icon:"brain"}]}/>
 </div>
-<div style={{...frame,height:300}}>
+<div style={{...frame,height:340}}>
 <SectionHeader>Swipe to delete</SectionHeader>
 <div style={{position:"relative",overflow:"hidden"}}>
   <div style={{position:"absolute",inset:0,display:"flex",justifyContent:"flex-end"}}>
@@ -32,10 +32,23 @@ function Demo(){const [tab,setTab]=React.useState("in");return <div className="r
     <ListRow leading={<Icon name="link" size={18}/>} title="Tram 28 timetable" meta="Lisbon trip" border={false}/>
   </div>
 </div>
-<Sheet title="Move to a space" footer={<><Button variant="secondary" block>Cancel</Button><Button variant="primary" block>Move</Button></>}>
-<ListRow title="Lisbon trip" meta="6 notes" onClick={()=>{}} selected/>
-<ListRow title="Bookshelf" meta="12 notes" onClick={()=>{}} border={false}/>
-</Sheet></div></div>}
+<Sheet title="Move to a thread" footer={<><Button variant="secondary" block>Cancel</Button><Button variant="primary" block>Move</Button></>}>
+<ListRow title="Lisbon trip" meta="6 in here" onClick={()=>{}} selected/>
+<ListRow title="Bookshelf" meta="12 in here" onClick={()=>{}} border={false}/>
+</Sheet></div>
+<div style={{...frame,height:340,padding:"0 16px",boxSizing:"border-box"}}>
+<SectionHeader count={2}>Memories</SectionHeader>
+<MemoryRow text="Ana pays by bank transfer, not card, and wants the invoice a week ahead" origin="learned"
+  open={openMemory==="a"} onOpen={()=>setOpenMemory("a")} onClose={()=>setOpenMemory(null)} onDelete={()=>{}}/>
+<MemoryRow text="Book the flights before hotels" author="Sam"
+  open={openMemory==="b"} onOpen={()=>setOpenMemory("b")} onClose={()=>setOpenMemory(null)} onMute={()=>{}}/>
+</div>
+<div style={{...frame,height:340}}>
+<SectionHeader>Long press a row</SectionHeader>
+<ListRow leading={<Icon name="link" size={18}/>} title="Tram 28 timetable" meta="Lisbon trip"/>
+<ListRow leading={<Icon name="map-pin" size={18}/>} title="Time Out Market" meta="Sam" border={false}/>
+<RowActionSheet subject="Tram 28 timetable" actions={[{label:"Edit",icon:"pencil"},{label:"Archive",icon:"archive"},{label:"Delete",icon:"trash-2",danger:true}]}/>
+</div></div>}
 ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
 </script></div><script>
 (function(){

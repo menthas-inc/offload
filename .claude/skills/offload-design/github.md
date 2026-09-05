@@ -4,30 +4,50 @@ path:
 
 ## Last sync
 
-date: 2026-08-27T00:22:05.147Z
+date: 2026-09-05T19:17:22Z
+tree: 2080eb536f79
 
-The repository is **empty**, no commits on `main`. Nothing was imported, and no screen in this
-project derives from repository source. The map below is the intended destination, recorded so
-the first real sync has something to diff against.
+Second pass on the same day, because the repository moved while the first one was in progress. Three
+entries had been appended to the shared log since the morning copy, so `decisions.md` was re-pulled and
+merged rather than overwritten: 56 entries now, the codebase's and the design system's both. That file
+is the only one both sides write; the rest of `.claude/skills/offload-design/` is the design system's
+alone and the repository's design-guard hook skips it by name.
+
+The design queue is answered. Fifteen open questions decided off `explorations/design-queue.html`, and
+`handoff/APPLY-2026-09-05.md` is the instruction set for applying them in the repository.
 
 ### Updated in this project
 
-- Added `handoff/README.md`, the handoff index and per-screen spec map
-- Added `handoff/CONTRIBUTING.md`, the working agreement for Claude Code
-- Added `decisions.md`, the shared decision log, seeded with the decisions closed in August 2026
-- Renamed the space screens to thread across the iOS and Android kits
-- Recorded the association with `menthas-inc/offload_app`
+- Merged the shared decision log both ways, and answered the fifteen-item design queue
+- Built `MemoryRow` and `RowActionSheet`; added `--duration-mark`, the change mark's 1400ms
+- Carried back the repository's three entries: `SwipeRow` now drives its reveal's opacity from its
+  offset, and the plate's two states and the conversation's exit are in `readme.md`
+- Share sheet copy replaced on three kits, and the 25 August permission decision amended
+- Added `explorations/design-queue.html` and its four parts, with what the app does today beside each option
 
 ## Screen map
 
-Planned, not yet built. Repository paths are proposals for the first commit.
-
 | Screen | This project | Repo files |
 | --- | --- | --- |
-| Web app, all screens | `ui_kits/web_app/` | not yet built |
-| iOS app, all screens | `ui_kits/mobile_app/` | not yet built |
-| Android app, all screens | `ui_kits/android_app/` | not yet built |
-| Admin panel | `ui_kits/admin_web/` | not yet built |
-| Landing page, invite email | `ui_kits/marketing_site/` | not yet built |
-| Design tokens | `styles.css`, `tokens/` | `design/` (checked-in copy of this project) |
-| Decision log | `decisions.md` | `design/decisions.md` |
+| Web app | `ui_kits/web_app/` | `apps/web/src/` |
+| iOS and Android | `ui_kits/mobile_app/`, `ui_kits/android_app/` | `apps/mobile/app/`, `apps/mobile/components/` |
+| Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
+| Landing page, invite email | `ui_kits/marketing_site/` | `apps/web/src/app/(marketing)/` |
+| Design tokens | `styles.css`, `tokens/` | `packages/tokens/`, generated from `.claude/skills/offload-design/tokens` |
+| Components | `components/` | `packages/widgets/`, `apps/mobile/components/` |
+| Decision log | `decisions.md` | `.claude/skills/offload-design/decisions.md` (shared, append-only both ways) |
+| Adherence lint | `_adherence.oxlintrc.json` | `eslint.config.mjs`, read at run time |
+
+## Sync history
+
+### 2026-09-05T17:47:00Z
+
+First sync against real code. Repository had gone from empty to a pnpm monorepo with the design system
+committed at `.claude/skills/offload-design/`. Pulled the shared log's eleven days of entries, added
+`Chip.disabled`, removed the retired `variant="soft"`, added `--type-scale` and `--breakpoint-*`,
+specified the change mark, documented `SwipeRow` as delete-only, and corrected the retention line.
+
+### 2026-08-27T00:22:05.147Z
+
+Repository empty, no commits on `main`. Recorded the association and the intended screen map so the
+first real sync had something to diff against.

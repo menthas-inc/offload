@@ -87,9 +87,10 @@ const PAGES={
     </Group>
     <Group label="Plan">
       <Row title="Current plan" value="Free" onClick={()=>{}}/>
-      <Row title="What you get" note="Unlimited things, 60 days of conversations, one device." last/>
+      <Row title="What you get" note="Everything you put in, kept until you delete it. One device." last/>
     </Group>
     <Group label="Ending things">
+      <Row title="Shared threads" note="A shared thread belongs to everyone in it. Deleting your account removes your private things and your access, and leaves what you added in a shared thread with the others."/>
       <Row title="Sign out" onClick={()=>{}}/>
       <Row title="Delete account" note="Everything offload knows goes with it. This cannot be undone." danger onClick={()=>{}} last/>
     </Group>

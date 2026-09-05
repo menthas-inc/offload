@@ -4,6 +4,11 @@
   --duration-base:200ms; /* @kind other */
   --duration-slow:280ms; /* @kind other */
   --duration-sheet:340ms; /* @kind other */
+  /* The change mark, and the only duration this long: a moss ground settling to
+     transparent on something that arrived while somebody was looking at the screen.
+     Not an interaction, so it does not belong on the 140/200/280 ladder. Reduced
+     motion cuts it to nothing rather than shortening it, like everything else. */
+  --duration-mark:1400ms; /* @kind other */
   --ease-out:cubic-bezier(0.22,0.85,0.24,1); /* @kind other */
   --ease-in-out:cubic-bezier(0.4,0,0.2,1); /* @kind other */
   --ease-entrance:cubic-bezier(0.16,1,0.3,1); /* @kind other */

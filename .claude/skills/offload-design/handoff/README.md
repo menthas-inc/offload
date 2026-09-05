@@ -7,9 +7,11 @@ other people. You dump things in, offload does the filing. This package covers e
 designed for it: three consumer clients, an admin panel, a landing page and one transactional
 email.
 
-The repository `menthas-inc/offload_app` is empty at the time of writing, so this is a
-greenfield build. There is no existing environment to fit into, which means the first
-decision is the framework choice per platform, and that decision is the codebase's to make.
+The repository `menthas-inc/offload_app` is live: a pnpm monorepo with the web app, the Expo
+client, the Core API and the agent, the harness in `.claude/`, and this design system committed
+at `.claude/skills/offload-design/`. Tokens are generated from it by `packages/tokens`, so a
+token change here reaches every client by rerunning `pnpm tokens` rather than by anybody
+retyping a value. Framework choices are made; `docs/tech/stack.md` holds them.
 
 ## About the design files
 
@@ -178,6 +180,34 @@ the lint step.
   shown as-is in a 10px-radius thumbnail with no treatment.
 - Instrument Sans and Literata from the Google CDN. Self-host via `tokens/fonts.css` when
   hosting matters.
+
+## Design queue, answered 5 September 2026
+
+All fifteen were decided off `explorations/design-queue.html`, which shows what the app does today
+beside the options. Full reasoning per item is the 5 September entry in `decisions.md`. Two of these
+are changes to code rather than to the kits, marked below.
+
+| Owed | Answer |
+| --- | --- |
+| The memories section | Rows, not chips. `MemoryRow` is in the system |
+| A memory, open | The row expands to hold its own editor |
+| The archived toggle | A row at the foot of the list; the pane tool goes |
+| A finished task | Tertiary ink, 1px strike, no opacity; past five, show five and "Show all" |
+| Row tools | Conditional and absent, never refused; the fourth action goes behind More |
+| The pane head | Two tools and a More menu holding rename, add memory and Leave |
+| The swipe and the long press | Both kept. `RowActionSheet` is in the system |
+| A React Native icon contract | `Glyph`, a second contract beside `Icon` |
+| Filter or group in a widget | **Filter.** Grouping comes out of `Widgets.tsx` *(code change)* |
+| A failed or half-finished turn | The turn itself carries it: clay border, one line beneath |
+| The reply's thread links | Pills, and a single-thread turn drops the name from the sentence |
+| Theme and text size | Named rows in the nav foot, plus a Settings page *(code change: label the glyphs)* |
+| Leave versus Delete | Two words, the confirmation names the members, no warning banner |
+| A row before its thread is settled | The word **filing**, in moss, in the thread's slot |
+| What the share sheet does not say | **Still open.** Dropping the permission line contradicts a closed brand decision |
+
+**What is built:** the two components, and every rule in `readme.md` under States, Vocabulary and the
+platform notes. **What is not:** the kit screens. The thread page on three clients, the composer on web,
+the nav foot and a Settings Appearance page, and the share sheet once the last item is settled.
 
 ## Known drift in the design files
 

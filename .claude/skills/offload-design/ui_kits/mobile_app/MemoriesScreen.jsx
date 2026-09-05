@@ -10,7 +10,7 @@ const MEMORY_TONE={"Going on":"attention","How you like things":"accent","Notice
 
 function MemoryChip({item,onOpen}){
   const tone=MEMORY_TONE[item.group]||"neutral";
-  return <Chip tone={tone} variant="soft" onClick={()=>onOpen(item.id)}>{item.person?<span style={{display:"inline-flex",alignItems:"center",gap:7}}>
+  return <Chip tone={tone} onClick={()=>onOpen(item.id)}>{item.person?<span style={{display:"inline-flex",alignItems:"center",gap:7}}>
     <span style={{width:5,height:5,borderRadius:"var(--radius-pill)",background:"currentColor",opacity:0.45}}/>{item.label}</span>:item.label}</Chip>;
 }
 

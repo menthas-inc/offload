@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/brand/Logo.jsx":"62c6fc604a6e","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"c9b38c8d28b9","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"6980e3a3a7bb","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"a4551768e509","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"4dd2ac2ca9ee","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"a361de470829","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"e3a723d5804e","ui_kits/android_app/M3LiveConversation.jsx":"c749e153b830","ui_kits/android_app/M3MemoriesScreen.jsx":"c352ba1d57ad","ui_kits/android_app/M3NotificationSheet.jsx":"50bc09c7916d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"a64410922f25","ui_kits/android_app/M3SettingsScreen.jsx":"10bd3bef4213","ui_kits/android_app/M3Sharing.jsx":"d87a171aeb90","ui_kits/android_app/M3ThreadScreen.jsx":"28def0e00e2a","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"74bb28c09731","ui_kits/android_app/M3TodayScreen.jsx":"5cc65d5723ad","ui_kits/mobile_app/App.jsx":"79cbfa406b05","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"56c80b74c8e3","ui_kits/mobile_app/LiveConversation.jsx":"be57df5e04f1","ui_kits/mobile_app/MemoriesScreen.jsx":"45ca6a46da9a","ui_kits/mobile_app/NotificationSheet.jsx":"53511fd714cd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"7fe9034c2cac","ui_kits/mobile_app/SettingsScreen.jsx":"2fd970d650f8","ui_kits/mobile_app/Sharing.jsx":"769138de4566","ui_kits/mobile_app/ThreadScreen.jsx":"834008241780","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"65f843b08dfa","ui_kits/mobile_app/TodayScreen.jsx":"fca5165004fc","ui_kits/mobile_app/data.js":"f4a6d9c05b02","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"40867849ebbf","ui_kits/web_app/WApp.jsx":"3a96f9ba38fb","ui_kits/web_app/WFirstRunGate.jsx":"594b094e96d6","ui_kits/web_app/WMemories.jsx":"b640fb162179","ui_kits/web_app/WMisc.jsx":"f14c0fc98b85","ui_kits/web_app/WSettings.jsx":"af3634acc40a","ui_kits/web_app/WSharing.jsx":"3e827dd5e71f","ui_kits/web_app/WThing.jsx":"7baada711622","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/brand/Logo.jsx":"62c6fc604a6e","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"26fe2e1d4cf8","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"6980e3a3a7bb","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"a4551768e509","components/layout/MemoryRow.jsx":"b2ec5ff94bc1","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"a361de470829","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"e3a723d5804e","ui_kits/android_app/M3LiveConversation.jsx":"c749e153b830","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"50bc09c7916d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"453246b5a962","ui_kits/android_app/M3SettingsScreen.jsx":"10bd3bef4213","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"28def0e00e2a","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"74bb28c09731","ui_kits/android_app/M3TodayScreen.jsx":"5cc65d5723ad","ui_kits/mobile_app/App.jsx":"79cbfa406b05","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"56c80b74c8e3","ui_kits/mobile_app/LiveConversation.jsx":"be57df5e04f1","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"53511fd714cd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"ccb039ea3920","ui_kits/mobile_app/SettingsScreen.jsx":"2fd970d650f8","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"834008241780","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"65f843b08dfa","ui_kits/mobile_app/TodayScreen.jsx":"fca5165004fc","ui_kits/mobile_app/data.js":"f4a6d9c05b02","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"40867849ebbf","ui_kits/web_app/WApp.jsx":"3a96f9ba38fb","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"752bf543fbd5","ui_kits/web_app/WSettings.jsx":"af3634acc40a","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"7baada711622","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -412,7 +412,7 @@ function Chip({
   icon,
   selected = false,
   tone = "neutral",
-  variant = "solid",
+  disabled = false,
   onClick,
   onRemove,
   hitArea = 44,
@@ -424,34 +424,26 @@ function Chip({
     p,
     bind
   } = usePress();
-  const interactive = Boolean(onClick);
+  const interactive = Boolean(onClick) && !disabled;
   /* Selection has to read on every tone, not just neutral: each one has a filled
-     counterpart it inverts to when selected. */
+     counterpart it inverts to when selected. There is no soft variant. The soft
+     tints sat too close to paper to read as colour at chip size and were retired;
+     a tone is a fill. */
   const fill = (base, deep, fg) => ({
     bg: selected || h && interactive ? deep : base,
     fg,
     bd: "transparent"
   });
-  const tint = (soft, solid, deep, fg, on) => selected ? {
-    bg: solid,
-    fg: on,
-    bd: "transparent"
-  } : {
-    bg: h && interactive ? deep : soft,
-    fg,
-    bd: "transparent"
-  };
-  const soft = variant === "soft";
   const tones = {
     neutral: {
       bg: selected ? "var(--surface-inverse)" : h && interactive ? "var(--surface-fill-strong)" : "var(--surface-fill)",
       fg: selected ? "var(--text-inverse)" : "var(--text-primary)",
       bd: "transparent"
     },
-    accent: soft ? tint("var(--surface-accent-soft)", "var(--moss-600)", "var(--moss-100)", "var(--text-accent)", "var(--text-on-solid)") : fill("var(--moss-600)", "var(--moss-700)", "var(--text-on-solid)"),
-    attention: soft ? tint("var(--blue-50)", "var(--blue-600)", "var(--blue-100)", "var(--blue-700)", "var(--text-on-solid)") : fill("var(--blue-600)", "var(--blue-700)", "var(--text-on-solid)"),
-    warning: soft ? tint("var(--amber-100)", "var(--amber-600)", "var(--amber-200)", "var(--amber-700)", "var(--amber-on)") : fill("var(--amber-600)", "var(--amber-700)", "var(--amber-on)"),
-    danger: soft ? tint("var(--clay-100)", "var(--clay-600)", "var(--clay-200)", "var(--clay-700)", "var(--text-on-solid)") : fill("var(--clay-600)", "var(--clay-700)", "var(--text-on-solid)"),
+    accent: fill("var(--moss-600)", "var(--moss-700)", "var(--text-on-solid)"),
+    attention: fill("var(--blue-600)", "var(--blue-700)", "var(--text-on-solid)"),
+    warning: fill("var(--amber-600)", "var(--amber-700)", "var(--amber-on)"),
+    danger: fill("var(--clay-600)", "var(--clay-700)", "var(--text-on-solid)"),
     outline: selected ? {
       bg: "var(--surface-inverse)",
       fg: "var(--text-inverse)",
@@ -462,13 +454,22 @@ function Chip({
       bd: "var(--border-strong)"
     }
   }[tone] || {};
+  /* Unavailable, and it has to look unavailable rather than faded: a fill and a
+     text colour, no opacity, because opacity on a chip over a warm page reads as
+     a rendering artefact and takes the label under the contrast floor with it. */
+  const paint = disabled ? {
+    bg: "var(--state-disabled-surface)",
+    fg: "var(--state-disabled-text)",
+    bd: "transparent"
+  } : tones;
   /* Drawn 30px tall, but an interactive chip accepts a 44px tap: the outer
      element carries the hit area and no paint, cancelled by a negative margin. */
   const hit = interactive ? Math.max(hitArea || 0, 30) : 30;
   const bleed = -(hit - 30) / 2;
   return /*#__PURE__*/React.createElement("span", _extends({
     role: interactive ? "button" : undefined,
-    onClick: onClick
+    "aria-disabled": disabled ? true : undefined,
+    onClick: interactive ? onClick : undefined
   }, interactive ? bind : {}, rest, {
     style: {
       display: "inline-flex",
@@ -487,20 +488,20 @@ function Chip({
       padding: "0 var(--space-5)",
       borderRadius: "var(--radius-pill)",
       boxSizing: "border-box",
-      background: tones.bg,
-      color: tones.fg,
-      border: "1px solid " + tones.bd,
+      background: paint.bg,
+      color: paint.fg,
+      border: "1px solid " + paint.bd,
       font: "var(--weight-medium) var(--size-label)/1 var(--font-core)",
       fontVariantNumeric: "tabular-nums",
       letterSpacing: "var(--tracking-body)",
       whiteSpace: "nowrap",
       transition: "background var(--transition-ui),color var(--transition-ui),transform var(--duration-instant) var(--ease-out)",
-      transform: p ? "scale(var(--press-scale))" : "none"
+      transform: p && interactive ? "scale(var(--press-scale))" : "none"
     }
   }, icon ? /*#__PURE__*/React.createElement(__ds_scope.Icon, {
     name: icon,
     size: 14
-  }) : null, children, onRemove ? /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+  }) : null, children, onRemove && !disabled ? /*#__PURE__*/React.createElement(__ds_scope.Icon, {
     name: "x",
     size: 13,
     style: {
@@ -1271,6 +1272,193 @@ function ListRow({
 Object.assign(__ds_scope, { ListRow });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/layout/ListRow.jsx", error: String((e && e.message) || e) }); }
 
+// components/layout/MemoryRow.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+function MemoryRow({
+  text,
+  origin = "told",
+  author,
+  muted = false,
+  open = false,
+  onOpen,
+  onClose,
+  onSave,
+  onDelete,
+  onMute,
+  maxChars = 200,
+  arrived = false,
+  style,
+  ...rest
+}) {
+  const [draft, setDraft] = React.useState(text);
+  React.useEffect(() => {
+    if (open) setDraft(text);
+  }, [open, text]);
+  const learned = origin === "learned" && !muted;
+  const save = () => {
+    const next = draft.trim();
+    if (next && onSave) onSave(next);
+    if (onClose) onClose();
+  };
+  return /*#__PURE__*/React.createElement("div", _extends({}, rest, {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      background: arrived ? "var(--surface-accent-soft)" : "transparent",
+      borderRadius: arrived ? "var(--radius-sm)" : 0,
+      transition: "background var(--duration-mark) var(--ease-out)",
+      ...style
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    role: open ? undefined : "button",
+    tabIndex: open ? undefined : 0,
+    onClick: open ? undefined : onOpen,
+    onKeyDown: open ? undefined : e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (onOpen) onOpen();
+      }
+    },
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "var(--space-5)",
+      padding: "var(--space-5) 0",
+      cursor: open ? "default" : "pointer"
+    }
+  }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: learned ? "sparkles" : "circle-dot",
+    size: 14,
+    style: {
+      marginTop: 3,
+      flex: "0 0 auto",
+      color: learned ? "var(--text-accent)" : "var(--ink-300)"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "column",
+      gap: "var(--space-1)"
+    }
+  }, open ? null : /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: "var(--text-body-sm-role)",
+      lineHeight: 1.45,
+      textWrap: "pretty",
+      color: muted ? "var(--text-tertiary)" : "var(--text-primary)"
+    }
+  }, text), open ?
+  /*#__PURE__*/
+  /* 5px of room inside the clip: the first value that clears a 2px ring
+     at 2px offset. The ring is never removed. */
+  React.createElement("span", {
+    style: {
+      display: "block",
+      padding: "0 0 0 5px",
+      margin: "0 0 0 -5px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "var(--space-4)",
+      border: "1px solid var(--ink-950)",
+      borderRadius: "var(--radius-md)",
+      padding: "var(--space-5) var(--space-5) var(--space-4)",
+      background: "var(--surface-raised)"
+    }
+  }, /*#__PURE__*/React.createElement("textarea", {
+    value: draft,
+    rows: 2,
+    maxLength: maxChars,
+    autoFocus: true,
+    onChange: e => setDraft(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Escape" && onClose) onClose();
+      /* Enter saves, shift-Enter is a new line. A rule is one sentence. */
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        save();
+      }
+    },
+    placeholder: "How should this thread be handled?",
+    style: {
+      width: "100%",
+      boxSizing: "border-box",
+      border: "none",
+      resize: "none",
+      background: "transparent",
+      font: "var(--text-body-sm-role)",
+      lineHeight: 1.45,
+      color: "var(--text-primary)",
+      outline: "none"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: "var(--space-6)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginRight: "auto",
+      font: "var(--text-numeric-role)",
+      color: "var(--text-tertiary)"
+    }
+  }, draft.length, "/", maxChars), muted ? /*#__PURE__*/React.createElement(Act, {
+    onClick: onMute
+  }, "Unmute") : onDelete ? /*#__PURE__*/React.createElement(Act, {
+    tone: "danger",
+    onClick: onDelete
+  }, "Delete") : onMute ? /*#__PURE__*/React.createElement(Act, {
+    onClick: onMute
+  }, "Mute") : null, /*#__PURE__*/React.createElement(Act, {
+    onClick: onClose
+  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: save,
+    disabled: draft.trim().length === 0,
+    style: {
+      height: 30,
+      padding: "0 var(--space-6)",
+      borderRadius: "var(--radius-pill)",
+      border: "none",
+      cursor: draft.trim().length === 0 ? "default" : "pointer",
+      background: draft.trim().length === 0 ? "var(--state-disabled-surface)" : "var(--surface-inverse)",
+      color: draft.trim().length === 0 ? "var(--state-disabled-text)" : "var(--text-inverse)",
+      font: "var(--weight-medium) var(--size-label)/1 var(--font-core)"
+    }
+  }, "Save")))) : null, author || muted ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: "var(--text-caption-role)",
+      color: "var(--text-tertiary)"
+    }
+  }, muted ? "Muted" : null, muted && author ? " \u00b7 " : null, author) : null)));
+}
+function Act({
+  children,
+  tone,
+  onClick
+}) {
+  return /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onClick,
+    style: {
+      border: "none",
+      background: "transparent",
+      padding: 0,
+      cursor: "pointer",
+      font: "var(--weight-medium) var(--size-label)/1 var(--font-core)",
+      color: tone === "danger" ? "var(--text-danger)" : "var(--text-secondary)"
+    }
+  }, children);
+}
+Object.assign(__ds_scope, { MemoryRow });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/layout/MemoryRow.jsx", error: String((e && e.message) || e) }); }
+
 // components/layout/SectionHeader.jsx
 try { (() => {
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
@@ -1424,6 +1612,76 @@ function Sheet({
 Object.assign(__ds_scope, { Sheet });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/layout/Sheet.jsx", error: String((e && e.message) || e) }); }
 
+// components/layout/RowActionSheet.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+function RowActionSheet({
+  open = true,
+  actions = [],
+  subject,
+  onClose,
+  style,
+  ...rest
+}) {
+  /* Sheet pays the screen gutter; the action rows pay it themselves so a press
+     lands anywhere across the sheet rather than only on the label. */
+  return /*#__PURE__*/React.createElement(__ds_scope.Sheet, _extends({
+    open: open,
+    onClose: onClose,
+    style: {
+      paddingLeft: 0,
+      paddingRight: 0,
+      paddingBottom: "var(--space-8)",
+      ...style
+    }
+  }, rest), subject ? /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "0 0 var(--space-3)",
+      padding: "0 var(--gutter-screen)",
+      font: "var(--text-body-sm-role)",
+      color: "var(--text-tertiary)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, subject) : null, /*#__PURE__*/React.createElement("div", {
+    role: "group",
+    style: {
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, actions.map(action => /*#__PURE__*/React.createElement("button", {
+    key: action.label,
+    type: "button",
+    onClick: () => {
+      if (onClose) onClose();
+      if (action.onSelect) action.onSelect();
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: "var(--space-5)",
+      minHeight: "var(--tap-min)",
+      padding: "0 var(--gutter-screen)",
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      textAlign: "left",
+      color: action.danger ? "var(--text-danger)" : "var(--text-primary)",
+      font: "var(--text-body-role)",
+      letterSpacing: "var(--tracking-body)"
+    }
+  }, action.icon ? /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: action.icon,
+    size: 18,
+    style: {
+      color: action.danger ? "var(--text-danger)" : "var(--text-tertiary)"
+    }
+  }) : null, action.label))));
+}
+Object.assign(__ds_scope, { RowActionSheet });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/layout/RowActionSheet.jsx", error: String((e && e.message) || e) }); }
+
 // components/layout/SwipeRow.jsx
 try { (() => {
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
@@ -1509,7 +1767,9 @@ function SwipeRow({
       position: "absolute",
       inset: 0,
       display: "flex",
-      justifyContent: "flex-end"
+      justifyContent: "flex-end",
+      opacity: Math.min(1, Math.abs(dx) / 12),
+      pointerEvents: dx === 0 ? "none" : undefined
     }
   }, /*#__PURE__*/React.createElement("button", {
     "data-swipe-action": true,
@@ -6567,7 +6827,6 @@ function MemoryChip({
   const tone = MEMORY_TONE[item.group] || "neutral";
   return /*#__PURE__*/React.createElement(Chip, {
     tone: tone,
-    variant: "soft",
     onClick: () => onOpen(item.id)
   }, item.person ? /*#__PURE__*/React.createElement("span", {
     style: {
@@ -7778,11 +8037,14 @@ const PAGES = {
       onClick: () => {}
     }), /*#__PURE__*/React.createElement(Row, {
       title: "What you get",
-      note: "Unlimited things, 60 days of conversations, one device.",
+      note: "Everything you put in, kept until you delete it. One device.",
       last: true
     })), /*#__PURE__*/React.createElement(Group, {
       label: "Ending things"
     }, /*#__PURE__*/React.createElement(Row, {
+      title: "Shared threads",
+      note: "A shared thread belongs to everyone in it. Deleting your account removes your private things and your access, and leaves what you added in a shared thread with the others."
+    }), /*#__PURE__*/React.createElement(Row, {
       title: "Sign out",
       onClick: () => {}
     }), /*#__PURE__*/React.createElement(Row, {
@@ -8453,7 +8715,10 @@ function connections() {
   const people = window.OFFLOAD_DATA && window.OFFLOAD_DATA.people || {};
   return Object.keys(people).map(k => people[k]);
 }
-const PERM = "They can add to it, and they can never delete what is yours.";
+/* The line a person reads before sharing. It stated the one permission until
+   5 September 2026, when it was replaced by what happens to a shared thread
+   over time: co-owned, and it outlives any one member leaving. */
+const PERM = "A shared thread belongs to everyone in it. If somebody leaves offload, the thread and everything they added stay with the rest of you.";
 function FindField({
   value,
   onChange,
@@ -12236,7 +12501,6 @@ function MemoryChip({
   const tone = MEMORY_TONE[item.group] || "neutral";
   return /*#__PURE__*/React.createElement(Chip, {
     tone: tone,
-    variant: "soft",
     onClick: () => onOpen(item.id)
   }, item.person ? /*#__PURE__*/React.createElement("span", {
     style: {
@@ -13534,11 +13798,14 @@ const PAGES = {
       onClick: () => {}
     }), /*#__PURE__*/React.createElement(Row, {
       title: "What you get",
-      note: "Unlimited things, 60 days of conversations, one device.",
+      note: "Everything you put in, kept until you delete it. One device.",
       last: true
     })), /*#__PURE__*/React.createElement(Group, {
       label: "Ending things"
     }, /*#__PURE__*/React.createElement(Row, {
+      title: "Shared threads",
+      note: "A shared thread belongs to everyone in it. Deleting your account removes your private things and your access, and leaves what you added in a shared thread with the others."
+    }), /*#__PURE__*/React.createElement(Row, {
       title: "Sign out",
       onClick: () => {}
     }), /*#__PURE__*/React.createElement(Row, {
@@ -14207,7 +14474,10 @@ function connections() {
   const people = window.OFFLOAD_DATA && window.OFFLOAD_DATA.people || {};
   return Object.keys(people).map(k => people[k]);
 }
-const PERM = "They can add to it, and they can never delete what is yours.";
+/* The line a person reads before sharing. It stated the one permission until
+   5 September 2026, when it was replaced by what happens to a shared thread
+   over time: co-owned, and it outlives any one member leaving. */
+const PERM = "A shared thread belongs to everyone in it. If somebody leaves offload, the thread and everything they added stay with the rest of you.";
 function FindField({
   value,
   onChange,
@@ -18790,7 +19060,7 @@ function WGateCard({
       width: 440,
       boxSizing: "border-box",
       padding: "44px",
-      borderRadius: "var(--radius-2xl)",
+      borderRadius: "var(--radius-xl)",
       background: "var(--surface-raised)",
       boxShadow: "var(--shadow-sheet)",
       display: "flex",
@@ -19181,7 +19451,6 @@ function WMemories({
     }, items.map(m => /*#__PURE__*/React.createElement(Chip, {
       key: m.key,
       tone: MEMORY_TONE[g] || "neutral",
-      variant: "soft",
       icon: m.inferred ? "sparkles" : null,
       onClick: () => open({
         kind: "memory",
@@ -19275,7 +19544,6 @@ function WMemory({
   }, related.map(r => /*#__PURE__*/React.createElement(Chip, {
     key: r.key,
     tone: MEMORY_TONE[r.group] || "neutral",
-    variant: "soft",
     onClick: () => open({
       kind: "memory",
       id: r.key
@@ -19873,7 +20141,6 @@ function WPerson({
   }, memoryList().filter(m => m.person === name).map(m => /*#__PURE__*/React.createElement(Chip, {
     key: m.key,
     tone: "outline",
-    variant: "soft",
     onClick: () => open({
       kind: "memory",
       id: m.key
@@ -20789,7 +21056,10 @@ const {
    connections, and a last row that makes a new connection rather than sending an invite.
    It is a modal, not a pane, because sharing is not a place you navigate to. Connections
    only, so there is no public link anywhere. */
-const W_PERM = "They can add to it, and they can never delete what is yours.";
+/* The line a person reads before sharing. It stated the one permission until
+   5 September 2026, when it was replaced by what happens to a shared thread
+   over time: co-owned, and it outlives any one member leaving. */
+const W_PERM = "A shared thread belongs to everyone in it. If somebody leaves offload, the thread and everything they added stay with the rest of you.";
 function wConnections() {
   const people = D.people || {};
   return Object.keys(people).map(k => people[k]);
@@ -21732,6 +22002,10 @@ __ds_ns.TextField = __ds_scope.TextField;
 __ds_ns.AppBar = __ds_scope.AppBar;
 
 __ds_ns.ListRow = __ds_scope.ListRow;
+
+__ds_ns.MemoryRow = __ds_scope.MemoryRow;
+
+__ds_ns.RowActionSheet = __ds_scope.RowActionSheet;
 
 __ds_ns.SectionHeader = __ds_scope.SectionHeader;
 

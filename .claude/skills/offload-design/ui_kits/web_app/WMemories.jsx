@@ -23,7 +23,7 @@ function WMemories({open}){
               <WSection count={items.length} tone={g==="How you like things"?"accent":null}>{g}</WSection>
               <div style={{display:"flex",flexWrap:"wrap",gap:"var(--space-3)",padding:"var(--space-3) 0 var(--space-2)"}}>
                 {items.map(m=>(
-                  <Chip key={m.key} tone={MEMORY_TONE[g]||"neutral"} variant="soft"
+                  <Chip key={m.key} tone={MEMORY_TONE[g]||"neutral"}
                     icon={m.inferred?"sparkles":null}
                     onClick={()=>open({kind:"memory",id:m.key})}>{m.label}</Chip>
                 ))}
@@ -67,7 +67,7 @@ function WMemory({id,open,onOpenPerson}){
         {related.length?<>
           <WSection>Related</WSection>
           <div style={{display:"flex",flexWrap:"wrap",gap:"var(--space-3)",padding:"var(--space-3) 0"}}>
-            {related.map(r=><Chip key={r.key} tone={MEMORY_TONE[r.group]||"neutral"} variant="soft"
+            {related.map(r=><Chip key={r.key} tone={MEMORY_TONE[r.group]||"neutral"}
               onClick={()=>open({kind:"memory",id:r.key})}>{r.label}</Chip>)}
           </div>
         </>:null}

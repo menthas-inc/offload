@@ -8,6 +8,11 @@
   --weight-medium:500;
   --weight-semibold:600;
 
+  /* Larger text scales type and nothing else: every width, gutter, radius and
+     icon stays a literal pixel. Read this where a one-off literal has to move
+     with the type; the eight size tokens are overridden outright below. */
+  --type-scale:1;
+
   /* Mobile-first scale. Sizes are literal px, not a ratio. */
   --size-display:34px;
   --size-title-1:26px;
@@ -43,4 +48,21 @@
   /* Numerals. No mono face, Instrument Sans with tabular figures, so
      timestamps and counts hold their column. */
   --text-numeric-role:var(--weight-regular) var(--size-caption)/var(--leading-tight) var(--font-core);
+}
+
+/* Larger text, the Settings choice. Whole pixels at 1.15 rather than calc() on
+   the base sizes: the token generator resolves values for clients that cannot
+   follow a var(), and React Native cannot parse a calc. Scoped without :root on
+   purpose, since the generator reads every :root block as the light theme and
+   would take these as the base. */
+[data-type="large"]{
+  --type-scale:1.15;
+  --size-display:39px;
+  --size-title-1:30px;
+  --size-title-2:24px;
+  --size-title-3:20px;
+  --size-body:18px;
+  --size-body-sm:16px;
+  --size-label:15px;
+  --size-caption:14px;
 }

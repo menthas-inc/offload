@@ -1,0 +1,76 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Design queue: fifteen things the code is waiting on</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="frames.css">
+<style>
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:8px 0 10px}
+.part{display:flex;flex-direction:column;gap:8px;padding:16px 18px;border:1px solid var(--border-hairline);border-radius:14px;background:var(--surface-raised);text-decoration:none;color:inherit}
+.part:hover{border-color:var(--border-strong)}
+.part b{font:var(--weight-semibold) 17px/1.25 var(--font-core);letter-spacing:-.012em;color:var(--text-primary)}
+.part s{text-decoration:none;font:var(--weight-regular) 13px/1.55 var(--font-core);color:var(--text-secondary)}
+.part u{text-decoration:none;font:var(--weight-medium) 11px/1 var(--font-core);color:var(--text-tertiary)}
+table.q{border-collapse:collapse;margin-top:10px;font-size:13.5px;width:100%;max-width:1100px}
+table.q th,table.q td{text-align:left;padding:11px 18px 11px 0;border-bottom:1px solid var(--border-hairline);vertical-align:top;line-height:1.5}
+table.q th{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);padding-bottom:9px}
+table.q td{color:var(--text-secondary)}
+table.q td b{color:var(--text-primary);font-weight:500}
+table.q td.n{font-variant-numeric:tabular-nums;color:var(--text-tertiary);width:28px;padding-right:10px}
+table.q a{color:var(--text-primary);font-weight:500}
+.rc{color:var(--moss-700);font-weight:500}
+.ub{color:var(--text-on-attention);font-weight:500}
+</style></head><body><div class="wrap">
+
+<h1>Design queue</h1>
+<p class="lede">Fifteen things the codebase asked this design system for and has not received. Each one is new surface rather than a correction: the app already has an answer for all fifteen, invented while building, and every one is logged in <b>decisions.md</b> with its reasoning. This exploration shows what the app does today, drawn at real size in the system's own tokens, and two or three ways to fold each one in. Pick per item and I will take them into the kits and the components.</p>
+
+<div class="parts">
+<a class="part" href="design-queue-1-thread-page.html"><u>PART 1 &middot; SIX ITEMS</u><b>The thread page</b><s>Memories, a memory open, the archive, a finished task, conditional row tools, and what the pane head holds.</s></a>
+<a class="part" href="design-queue-2-phones.html"><u>PART 2 &middot; THREE ITEMS</u><b>The phones</b><s>The swipe and the long press, the icon contract React Native needs, and filter versus group inside a widget.</s></a>
+<a class="part" href="design-queue-3-composer.html"><u>PART 3 &middot; THREE ITEMS</u><b>The composer and the shell</b><s>A failed turn, a half-finished turn, the reply that links to threads, and the two controls in the nav foot.</s></a>
+<a class="part" href="design-queue-4-sharing.html"><u>PART 4 &middot; THREE ITEMS</u><b>Sharing and the unbuilt</b><s>Leaving versus deleting a shared thread, a row before its thread is settled, and what the share sheet does not say.</s></a>
+</div>
+
+<div class="sechead"><h2>All fifteen, with my recommendation</h2><u>read the part for the options and the costs</u></div>
+
+<table class="q">
+<tr><th class="n">&nbsp;</th><th style="width:270px">Owed</th><th style="width:120px">Surfaces</th><th>My recommendation</th></tr>
+
+<tr><td class="n">1</td><td><a href="design-queue-1-thread-page.html">The memories section</a></td><td>web, phones</td><td><span class="rc">Rows, not chips.</span> A memory is a sentence up to 200 characters and a chip truncates it to a window you have to click to read. Chips stay only if you want the compact look, in which case <b>Chip</b> should own the ellipsis.</td></tr>
+
+<tr><td class="n">2</td><td><a href="design-queue-1-thread-page.html">A memory, open</a></td><td>web</td><td><span class="rc">As built if chips stay</span>, governed as a <b>MemoryEditor</b> with the chip as its closed state. If rows win, the editor is just the row expanding.</td></tr>
+
+<tr><td class="n">3</td><td><a href="design-queue-1-thread-page.html">The archived toggle and an archived row</a></td><td>all</td><td><span class="rc">Keep the pane tool, replace the opacity.</span> Archived rows go secondary ink with a hollow tile and a relabelled date, and lose every action except putting them back.</td></tr>
+
+<tr><td class="n">4</td><td><a href="design-queue-1-thread-page.html">A finished task, in place</a></td><td>all</td><td><span class="rc">As built, opacity removed.</span> Tertiary ink and a hairline strike. Collapsing the done pile solves a problem threads do not have yet.</td></tr>
+
+<tr><td class="n">5</td><td><a href="design-queue-1-thread-page.html">Row tools drawn as conditional</a></td><td>all</td><td><span class="rc">Absent, not disabled.</span> Two rows showing different tools is honest; a control that is drawn and refused teaches a rule that is not true.</td></tr>
+
+<tr><td class="n">6</td><td><a href="design-queue-1-thread-page.html">What the pane head holds</a></td><td>web</td><td><span class="rc">Build the More menu.</span> The kit already draws the ellipsis, the head is at its width, and rename, add memory, archived and Leave all want to live in it.</td></tr>
+
+<tr><td class="n">7</td><td><a href="design-queue-2-phones.html">The swipe and the long press</a></td><td>phones</td><td><span class="rc">Keep both gestures</span> and govern the action sheet. It is the only option where a swipe means the same thing in every list in the product.</td></tr>
+
+<tr><td class="n">8</td><td><a href="design-queue-2-phones.html">Glyph, the React Native icon contract</a></td><td>phones</td><td><span class="rc">A second contract</span>, <code>Glyph.d.ts</code> beside <code>Icon.d.ts</code>, same 80 slugs, <code>color</code> in place of inheritance. The lint already treats them as different components.</td></tr>
+
+<tr><td class="n">9</td><td><a href="design-queue-2-phones.html">Filter or group in a widget</a></td><td>web, phones</td><td><span class="rc">Groups only</span>, and the real work is a sub-heading rank between <b>SectionHeader</b> and body, which the system does not have and several screens want.</td></tr>
+
+<tr><td class="n">10</td><td><a href="design-queue-3-composer.html">A failed turn, and a half-finished one</a></td><td>web, phones</td><td><span class="rc">Two treatments, not one.</span> A failure needs finding, so it takes the system's tinted inline error; a partial turn already has a reply saying what happened, so a line under it is enough.</td></tr>
+
+<tr><td class="n">11</td><td><a href="design-queue-3-composer.html">The reply that links to its threads</a></td><td>all</td><td><span class="rc">Pills, as built</span>, with one refinement: when a turn touched exactly one thread, the pill is the only mention and the sentence drops the name.</td></tr>
+
+<tr><td class="n">12</td><td><a href="design-queue-3-composer.html">A theme switch and a type-size control</a></td><td>all</td><td><span class="rc">Named rows in the nav, and a Settings page too.</span> Both read the same stored value. An unlabelled accessibility control is the defect worth fixing first.</td></tr>
+
+<tr><td class="n">13</td><td><a href="design-queue-4-sharing.html">Leaving versus deleting a shared thread</a></td><td>all <span class="ub">unbuilt</span></td><td><span class="rc">Two words.</span> Leave for a shared thread, Delete for a private one, the confirmation names the other members, and the last member gets the warning and the clay.</td></tr>
+
+<tr><td class="n">14</td><td><a href="design-queue-4-sharing.html">A row before its thread is settled</a></td><td>all <span class="ub">unbuilt</span></td><td><span class="rc">One moss word, "filing"</span>, in the thread's own slot. The only option that reads as progress rather than as a correction or a bug. If the sorter is fast enough, showing Miscellaneous costs nothing.</td></tr>
+
+<tr><td class="n">15</td><td><a href="design-queue-4-sharing.html">What the share sheet does not say</a></td><td>all</td><td><span class="rc">The longer paragraph, and the permission line comes out.</span> Decided against my recommendation and applied: the sheet spends its one sentence on co-ownership, and the Ending things page carries the account-deletion half.</td></tr>
+</table>
+
+<div class="sechead"><h2>What this changes in the system</h2><u>if every recommendation is taken</u></div>
+<ul class="spec">
+<li><b>Three new components:</b> a <b>RowActionSheet</b> for the phones, a <b>MemoryEditor</b> or memory row for the thread page, and a <b>Glyph</b> contract for React Native.</li>
+<li><b>Two new ranks in the type and heading system:</b> a sub-heading between <b>SectionHeader</b> and body, and a governed treatment for a finished or archived row that does not use opacity.</li>
+<li><b>One vocabulary addition:</b> Leave, alongside Delete, with the rule for which applies.</li>
+<li><b>One pattern the system does not have:</b> a per-row progress word, if item 14 goes that way. Worth deciding deliberately, since today the system has one spinner and nothing else.</li>
+<li><b>Four kit screens gain surface:</b> the thread page on three clients, the composer on web and the phones, the share sheet on three clients, and the sidebar foot on web.</li>
+</ul>
+
+</div></body></html>

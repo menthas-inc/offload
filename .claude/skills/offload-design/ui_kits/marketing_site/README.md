@@ -6,7 +6,7 @@ appear at web scale.
 
 | File | What it is |
 | --- | --- |
-| `index.html` | The landing page at offload.club. Wordmark, one claim, one sentence, one email field, footer. Responsive down to 375. |
+| `index.html` | The landing page at offload.app. Wordmark, one claim, one sentence, one email field, footer. Responsive down to 375. |
 | `invite-email.html` | The one transactional email shell: the invite, and every other message offload sends. |
 
 ## Landing page

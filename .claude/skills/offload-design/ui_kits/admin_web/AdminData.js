@@ -5,16 +5,16 @@ window.ADMIN_DATA={
   today:"Tue 25 Aug",
   waitlist:{waiting:1284,invitedThisWeek:40,accepted:31,weekly:40,
     rows:[
-      {id:"w1",email:"priya.raman@gmail.com",joined:"24 Aug",source:"offload.club",status:"waiting",note:""},
-      {id:"w2",email:"j.okonkwo@hey.com",joined:"24 Aug",source:"offload.club",status:"waiting",note:""},
-      {id:"w3",email:"m.lindqvist@fastmail.com",joined:"23 Aug",source:"offload.club",status:"waiting",note:""},
+      {id:"w1",email:"priya.raman@gmail.com",joined:"24 Aug",source:"offload.app",status:"waiting",note:""},
+      {id:"w2",email:"j.okonkwo@hey.com",joined:"24 Aug",source:"offload.app",status:"waiting",note:""},
+      {id:"w3",email:"m.lindqvist@fastmail.com",joined:"23 Aug",source:"offload.app",status:"waiting",note:""},
       {id:"w4",email:"tomas@duarte.pt",joined:"23 Aug",source:"shared thread",status:"waiting",note:"Ana Duarte asked for him"},
-      {id:"w5",email:"h.mbeki@outlook.com",joined:"22 Aug",source:"offload.club",status:"waiting",note:""},
-      {id:"w6",email:"clara.ferreira@gmail.com",joined:"21 Aug",source:"offload.club",status:"invited",note:"invited 22 Aug, not accepted"},
-      {id:"w7",email:"d.whitfield@me.com",joined:"20 Aug",source:"offload.club",status:"invited",note:"invited 21 Aug, not accepted"},
-      {id:"w8",email:"s.nakamura@gmail.com",joined:"19 Aug",source:"offload.club",status:"accepted",note:"signed in 20 Aug"},
-      {id:"w9",email:"noreply@bot-farm.xyz",joined:"18 Aug",source:"offload.club",status:"waiting",note:"looks automated"},
-      {id:"w10",email:"r.oyelaran@proton.me",joined:"18 Aug",source:"offload.club",status:"waiting",note:""}
+      {id:"w5",email:"h.mbeki@outlook.com",joined:"22 Aug",source:"offload.app",status:"waiting",note:""},
+      {id:"w6",email:"clara.ferreira@gmail.com",joined:"21 Aug",source:"offload.app",status:"invited",note:"invited 22 Aug, not accepted"},
+      {id:"w7",email:"d.whitfield@me.com",joined:"20 Aug",source:"offload.app",status:"invited",note:"invited 21 Aug, not accepted"},
+      {id:"w8",email:"s.nakamura@gmail.com",joined:"19 Aug",source:"offload.app",status:"accepted",note:"signed in 20 Aug"},
+      {id:"w9",email:"noreply@bot-farm.xyz",joined:"18 Aug",source:"offload.app",status:"waiting",note:"looks automated"},
+      {id:"w10",email:"r.oyelaran@proton.me",joined:"18 Aug",source:"offload.app",status:"waiting",note:""}
     ]},
   users:[
     {id:"u1",name:"Ana Duarte",email:"ana@duarte.pt",provider:"Apple",joined:"4 Mar",threads:12,active:"2h ago",spend:4.82,status:"active"},
@@ -52,17 +52,17 @@ window.ADMIN_DATA={
     userDaily:2.50,userMonthly:25,
     atCap:"Slow down",
     alertAt:80,
-    alertWho:["ops@offload.club","hana@offload.club"],
+    alertWho:["ops@offload.app","hana@offload.app"],
     breaches:[
       {who:"Owen Pryce",when:"24 Aug",what:"hit the daily user cap at 19:10",action:"slowed for 3 hours"},
       {who:"Platform",when:"18 Aug",what:"reached 80% of the daily cap",action:"alerted ops"}
     ]
   },
   admins:[
-    {id:"a1",name:"Hana Ito",email:"hana@offload.club",role:"Owner",added:"4 Mar",active:"20m ago"},
-    {id:"a2",name:"Ruth Adeyemi",email:"ruth@offload.club",role:"Support",added:"18 Apr",active:"yesterday"},
-    {id:"a3",name:"Femi Balogun",email:"femi@offload.club",role:"Support",added:"2 Jun",active:"3d ago"},
-    {id:"a4",name:"You",email:"admin@offload.club",role:"Owner",added:"4 Mar",active:"now",you:true}
+    {id:"a1",name:"Hana Ito",email:"hana@offload.app",role:"Owner",added:"4 Mar",active:"20m ago"},
+    {id:"a2",name:"Ruth Adeyemi",email:"ruth@offload.app",role:"Support",added:"18 Apr",active:"yesterday"},
+    {id:"a3",name:"Femi Balogun",email:"femi@offload.app",role:"Support",added:"2 Jun",active:"3d ago"},
+    {id:"a4",name:"You",email:"admin@offload.app",role:"Owner",added:"4 Mar",active:"now",you:true}
   ],
   /* Two roles, and the difference is money. Support does the day job; an owner can also see
      what the platform costs and change what it is allowed to spend. */

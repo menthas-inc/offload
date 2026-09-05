@@ -611,6 +611,156 @@ mentioning shared threads. Copy is design's call, not the codebase's. Not yet do
 
 ---
 
+## 2026-09-05
+
+### 2026-09-05 · The design queue, answered
+**Surface:** all
+**Raised by:** the design system, then decided by the product owner off `explorations/design-queue.html`.
+
+Fifteen things the codebase built without a kit to build from, put back as options with what the app
+does today beside each one. Every answer below is the product owner's. Where an answer differs from
+what shipped, the code changes: this is design leading on new surface, not overruling a divergence.
+
+**1. Memories are rows, not chips.** A list is clearer, and a chip truncated a 200-character rule to a
+window you had to click to read. `MemoryRow` is in the system, and the chip rows in `WMemories`,
+`WMisc`, `MemoriesScreen` and `M3MemoriesScreen` are the shape reference rather than the answer.
+
+**2. The editor opens inside the thing you clicked.** With rows that means the row expands, which is the
+same principle the chip version had and one fewer object on the screen.
+
+**3. The archive is a row at the foot of the list, not a tool on the pane.** It becomes a place you go
+rather than a mode you toggle into, and the count reads without finding a highlighted icon. The pane
+head loses the archive tool, and `Archived` is not in the More menu either: it is in the list.
+
+**4. A finished task keeps its place, and past five the list collapses.** Tertiary ink and a 1px strike,
+no opacity. Beyond five finished, the five most recent are shown with a "Show all" beneath them, so a
+long-running thread's to-do list stays about what is left without hiding that the work happened.
+
+**5. Row actions are conditional, and the fourth one goes behind More.** Edit and archive for any
+member, delete for the author alone and absent otherwise. Anything beyond those three is in a
+`RowActionSheet` on a phone or the row's `ellipsis` on web.
+
+**6. The pane head gets a More menu.** Two tools, Open full and `ellipsis`, and the menu holds rename,
+add memory and Leave. The kit already drew the ellipsis; now it says what is in it.
+
+**7. The phones keep both gestures.** A swipe deletes, a long press opens the rest. It is the only
+option where a swipe means the same thing in every list in the product, and `RowActionSheet` is now a
+governed component rather than a screen's invention.
+
+**8. `Glyph` is a second contract, not a rename.** Same 80 slugs, same sizes, a `color` prop in place of
+inheritance, path data in place of a URL. The adherence lint was right to treat them as different
+components.
+
+**9. A widget filters, it does not group.** This one reverses what shipped: `Widgets.tsx` groups into
+headed sections and the kit's `ChipRow` filter is the answer. A screen whose promise is that nothing
+needs filing should not lead with structure somebody has to read; a filter answers "show me the
+receipts" in one tap. **The group heading goes**, and with it the sub-heading rank the design system was
+going to need. Code change, listed for the next sync.
+
+**10. The turn carries its own failure.** A clay border on the message you wrote, one line beneath it.
+Tighter than a tinted card in the middle of a conversation, and the failure is attached to the thing
+that failed. Same treatment for failed and partial, different words and different action.
+
+**11. The reply's thread pills stay**, with the single-thread refinement: when a turn touched exactly
+one thread, the pill is the only mention and the sentence drops the name.
+
+**12. Theme and text size are named rows in the nav foot, and a Settings page as well.** Both read the
+same stored value. The two unlabelled glyphs go: an accessibility control nobody can name is not one.
+
+**13. Leave and Delete are different words**, with the confirmation naming the other members. **No
+last-member warning banner**: the confirmation already says nobody else is in it, and a second
+paragraph in a tinted box over one sentence is more alarm than the situation earns. The clay stays on
+the last-member action, because that is the one case where leaving destroys something.
+
+**14. A row waiting on its thread says "filing", in moss.** The system's first per-row progress word,
+taken deliberately: it reads as work happening rather than as a correction (Miscellaneous, then the
+real thread) or as a bug (an empty slot). Nothing reflows when it settles.
+
+**15. The share sheet says what a shared thread is, and stops stating the permission.** The longer
+paragraph goes in, and the permission line comes out: "A shared thread belongs to everyone in it. If
+somebody leaves offload, the thread and everything they added stay with the rest of you." Confirmed by
+the product owner after the conflict was raised, so this is a deliberate reversal of the 25 August
+decision that the permission appears identically everywhere. The permission itself is unchanged and
+still enforced; what changed is that the sheet is one sentence long and now spends it on the thing
+nothing else said. The Ending things settings page gains the account-deletion half, which is where
+somebody goes looking for it, and that page also loses a retention line that the 27 August decision
+had already retired.
+
+**Design system impact:** `MemoryRow` and `RowActionSheet` are built, `readme.md` carries the finished,
+archived, filing and conditional-action rules, the vocabulary table carries Leave, Delete and filing,
+and the `Glyph` contract is described. **The kit screens are not done yet**: the thread page on three
+clients, the composer on web, the nav foot and a Settings Appearance page, and the share sheet once 15
+is settled. Two things for the codebase: **grouping comes out of the widgets** in favour of the filter,
+and **the two preference glyphs get labels**.
+
+### 2026-09-05 · Sync: the design system catches up on eleven days of code
+**Surface:** all
+**Raised by:** the design system, reading this log after the first real commit.
+
+The repository went from empty to 797 files and this log came back with eight entries carrying a
+**Design system impact**. What follows is what the design system changed in response. Code led on
+every one of them.
+
+**`Chip` gains `disabled`.** Asked for twice, on 2026-09-04 and again on 2026-09-05, and
+correctly not done in the app: the adherence rule is generated here, so a prop added on the client
+would have failed the gate for every other client. `--state-disabled-surface` with `--state-disabled-text`, no
+opacity fade, which is the treatment `readme.md` already specified. Not interactive while
+disabled, so it takes no hover, no press and no 44px hit area.
+
+**The retired `variant="soft"` is gone from the component, not just from the kits.** Five chip
+rows in `WMemories`, `WMisc`, `MemoriesScreen` and `M3MemoriesScreen` still passed it. The
+prop was never in the contract and the soft tints were retired for reading too close to paper at
+chip size, so the branch is removed from `Chip.jsx` as well. A kit cannot pass it again.
+
+**The change mark is in `readme.md`, beside the two accents.** A moss background settling to
+transparent over 1400ms, on anything that arrived while somebody was looking at the screen. It is
+the first pattern in this system that is a moment rather than a state, which is why it sits with
+the accents rather than in the motion rules. Reduced motion drops it to nothing, per the standing
+rule that a shortened animation is still an animation.
+
+**`SwipeRow` is delete-only and now says so.** The glyph and the clay ground are inside the
+component with only the label exposed, so a swipe labelled Archive would have shown a trash can.
+Stated in the contract and in the readme rather than generalised, because generalising it is a
+design job and the phones did not need it.
+
+**The type scale is a token now.** `[data-type="large"]` overrides the eight size tokens with
+whole-pixel values at 1.15, and `--type-scale` is there for a one-off literal that has to move
+with them. Deliberately not `calc()` on the base sizes: the token generator resolves values for
+clients that cannot follow a `var()`, and React Native cannot parse a calc. Deliberately not
+scoped `:root[data-type="large"]` either, since the generator reads every `:root` block as the
+light theme and would have taken the large sizes as the base.
+
+**Breakpoints exist.** `--breakpoint-lg` is 1180, the value the web shell already uses, with sm,
+md and xl around it.
+
+**The retention line in `readme.md` was still wrong.** It quoted the 60-day conversation clock
+that 2026-08-27 retired. Removed.
+
+**A React Native icon contract is owed and not yet written.** `Icon` masks an SVG with
+`currentColor` and takes a URL `basePath`, neither of which exists on React Native, so `Glyph`
+is the right name and the right call. Noted in the readme so no client invents a second one, but
+the contract itself is a design job for the next pass, not a rename.
+
+**Design system impact:** done, except the drawing. What is still owed is new surface rather than
+correction, and it is listed in `handoff/README.md` under Design queue: the memories section on
+three clients, the open state of a memory chip, the archived toggle, the long-press action sheet,
+the completed-task row, conditional row tools, the composer's failed and partial states, the reply
+that links to threads, the pane head's tools, the theme switch and type-size control, and the
+filter-versus-group question from 007. None of those can be answered by an edit to a token file.
+
+---
+
+## 2026-09-01
+
+### 2026-09-01 · Radius ladder ends at xl, no 2xl
+**Surface:** web
+**Was:** `WFirstRunGate.jsx` used `var(--radius-2xl)` on the gate card, a token the set never defined.
+**Is:** `var(--radius-xl)` (28px). The ladder stays xs 6, sm 10, md 14, lg 20, xl 28, pill 999.
+**Why:** One accidental use in one file, not a missing step in the scale. A 440px modal card sits at the top of the existing ladder; adding a sixth step for a single surface would invite drift.
+**Design system impact:** Done. Kit corrected, tokens unchanged. Code should use `--radius-xl` as the largest rectangular radius.
+
+---
+
 ## 2026-08-27
 
 ### 2026-08-27 · Nothing a person puts in is deleted on a clock
@@ -698,6 +848,8 @@ Full reasoning for each is in `readme.md`.
 **Is:** No public links. The share sheet's last row makes a new connection, matched against accounts that exist. One permission, stated identically everywhere: they can add to it, they can never delete what is yours.
 **Why:** Sharing never lets anyone new into offload. Someone without an account comes through the waitlist.
 **Design system impact:** Share sheet in all three kits.
+
+**Amended 2026-09-05:** the permission is unchanged and still the only one, but it is no longer stated in the share sheet. That sentence was the whole of what a person read before sharing, and it said nothing about what happens to a shared thread when somebody leaves, which is the consequence they cannot undo. The sheet now carries co-ownership instead, and the permission lives in the product's behaviour and on the Ending things settings page. *Amended rather than rewritten: "stated identically everywhere" was the decision, and it no longer holds.*
 
 ### 2026-08-25 · Two accents, no third
 **Surface:** all

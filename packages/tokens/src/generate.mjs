@@ -17,31 +17,50 @@ const here = dirname(fileURLToPath(import.meta.url));
 const TOKENS_DIR = join(here, "../../../.claude/skills/offload-design/tokens");
 const OUT_DIR = join(here, "../dist");
 
-// Custom properties live in :root for light and in a [data-theme="dark"] scope
-// for dark. Both matter: dark is a real theme, not a filter over the light one.
-const SCOPE_RE = /(:root(?![\w-])|\[data-theme="dark"\])([^{]*)\{([^}]*)\}/g;
+// Custom properties live in :root for light, in a [data-theme="dark"] scope for
+// dark, and in [data-type="large"] for the Settings type size. All three matter:
+// dark is a real theme rather than a filter over the light one, and large is a
+// real scale rather than a multiplier a client can apply.
+const SCOPE_RE =
+  /(:root(?![\w-])|\[data-theme="dark"\]|\[data-type="large"\])([^{]*)\{([^}]*)\}/g;
 const DECL_RE = /(--[a-z0-9-]+)\s*:\s*([^;]+);/gi;
+
+// Comments first, always. A comment is not a selector, and one of them said so:
+// typography.css explains that the large block is "scoped without :root on
+// purpose", the scope match found that `:root`, ran its selector group through
+// the rest of the prose to the next brace, and read the large sizes in as the
+// base ones. Every size token shipped 15% bigger on every platform and nothing
+// raised, because a generated stylesheet with the wrong numbers in it is still
+// a valid stylesheet.
+const strip = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 function parse(css) {
   const light = {};
   const dark = {};
-  for (const [, selector, , body] of css.matchAll(SCOPE_RE)) {
-    const target = selector.includes("dark") ? dark : light;
+  const large = {};
+  for (const [, selector, , body] of strip(css).matchAll(SCOPE_RE)) {
+    const target = selector.includes("dark")
+      ? dark
+      : selector.includes("large")
+        ? large
+        : light;
     for (const [, name, value] of body.matchAll(DECL_RE)) {
       target[name.slice(2)] = value.trim();
     }
   }
-  return { light, dark };
+  return { light, dark, large };
 }
 
 const light = {};
 const dark = {};
+const large = {};
 const files = readdirSync(TOKENS_DIR).filter((f) => f.endsWith(".css")).sort();
 
 for (const file of files) {
   const parsed = parse(readFileSync(join(TOKENS_DIR, file), "utf8"));
   Object.assign(light, parsed.light);
   Object.assign(dark, parsed.dark);
+  Object.assign(large, parsed.large);
 }
 
 if (Object.keys(light).length === 0) {
@@ -95,6 +114,7 @@ if (unresolved.length) {
 const tokens = {
   light,
   dark,
+  large,
   resolved: { light: resolvedLight, dark: resolvedDark },
   sources: files,
   generatedFrom: ".claude/skills/offload-design/tokens",
@@ -117,11 +137,28 @@ const cssLines = [
   ...Object.entries(dark).map(([k, v]) => `  --${k}: ${v};`),
   "}",
   "",
+  // After :root and at the same specificity, so it wins on order rather than
+  // on a client guessing which file the bundler emits last.
+  '[data-type="large"] {',
+  ...Object.entries(large).map(([k, v]) => `  --${k}: ${v};`),
+  "}",
+  "",
 ];
 writeFileSync(join(OUT_DIR, "tokens.css"), cssLines.join("\n"));
 
+if (light["size-body"] === large["size-body"]) {
+  throw new Error(
+    "The base type scale and the large one came out identical. A scope leaked: " +
+      "check that no comment in tokens/ contains a selector the parser matches."
+  );
+}
+if (Object.keys(large).length === 0) {
+  throw new Error("No [data-type=\"large\"] tokens parsed. The Settings type size would do nothing.");
+}
+
 console.log(
   `tokens: ${Object.keys(light).length} light, ${Object.keys(dark).length} dark, ` +
+    `${Object.keys(large).length} large, ` +
     `${Object.keys(resolvedLight).length} resolved, from ${files.length} files`
 );
 

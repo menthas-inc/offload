@@ -1,0 +1,432 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Design queue 1: the thread page</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="frames.css">
+<style>
+.det{width:512px;box-sizing:border-box;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:0}
+.det.pg{background:var(--surface-page)}
+.sect{font:var(--weight-semibold) 21px/1.2 var(--font-core);letter-spacing:-.014em;border-bottom:1.5px solid var(--ink-950);padding-bottom:7px;margin:2px 0 8px;display:flex;align-items:baseline;gap:8px}
+.sect em{font-style:normal;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-accent);font-variant-numeric:tabular-nums}
+.r{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-hairline)}
+.r:last-child{border-bottom:none}
+.tile{width:32px;height:32px;border-radius:8px;background:var(--surface-fill);color:var(--text-secondary);flex:0 0 auto}
+.rt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.rt b{font:var(--weight-medium) 15.5px/1.25 var(--font-core);letter-spacing:-.008em}
+.rt s{text-decoration:none;font:var(--weight-regular) 12px/1 var(--font-core);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.tools{display:flex;gap:2px;align-items:center;color:var(--text-tertiary);flex:0 0 auto}
+.tl{width:28px;height:28px;border-radius:8px;flex:0 0 auto}
+.tl.dg{color:var(--clay-600)}
+.tl.on{background:var(--ink-950);color:var(--paper)}
+.mchip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-primary);font:var(--weight-medium) 13px/1 var(--font-core);letter-spacing:var(--tracking-body);max-width:260px}
+.mchip.ac{background:var(--moss-600);color:var(--text-on-solid)}
+.mchip.ol{background:transparent;border:1px solid var(--border-strong);color:var(--text-secondary)}
+.mchip.mu{background:var(--state-disabled-surface);color:var(--state-disabled-text)}
+.mchip i{width:13px;height:13px;flex:0 0 auto}
+.mchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mchip u{text-decoration:none;font-weight:400;opacity:.7;flex:0 0 auto}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0 2px}
+.drawer{box-sizing:border-box;width:100%;border:1px solid var(--ink-950);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:9px;background:var(--surface-raised)}
+.drawer textarea,.drawer .fake{box-sizing:border-box;width:100%;border:none;resize:none;font:var(--weight-regular) 14px/1.45 var(--font-core);color:var(--text-primary);background:transparent}
+.dact{display:flex;align-items:center;gap:14px;justify-content:flex-end}
+.dact .ct{margin-right:auto;font:var(--weight-regular) 11.5px/1 var(--font-core);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.dact button,.dact .b{font:var(--weight-medium) 13px/1 var(--font-core);background:none;border:none;color:var(--text-secondary);padding:0}
+.dact .b.dg{color:var(--clay-600)}
+.dact .b.save{background:var(--ink-950);color:var(--paper);height:30px;padding:0 14px;border-radius:var(--radius-pill);display:inline-flex;align-items:center}
+.arrived{background:var(--surface-accent-soft)}
+.done b{text-decoration:line-through;color:var(--text-tertiary)}
+.box{width:21px;height:21px;border-radius:6px;border:1.5px solid var(--border-strong);flex:0 0 auto;margin-top:5px}
+.box.on{background:var(--moss-600);border-color:var(--moss-600);color:var(--text-on-solid)}
+.arch{opacity:.5}
+.head{display:flex;align-items:flex-start;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--border-hairline);margin-bottom:6px}
+.head h3{margin:0;font:var(--weight-semibold) 21px/1.2 var(--font-core);letter-spacing:-.014em}
+.head p{margin:3px 0 0;font:var(--weight-regular) 12.5px/1 var(--font-core);color:var(--text-tertiary)}
+.faces{display:flex}
+.face{width:26px;height:26px;border-radius:99px;background:var(--ink-200);color:var(--ink-700);font:var(--weight-medium) 10.5px/26px var(--font-core);text-align:center;margin-left:-6px;border:1.5px solid var(--surface-raised)}
+.menu{width:216px;box-sizing:border-box;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:12px;box-shadow:var(--shadow-2);padding:5px;display:flex;flex-direction:column}
+.menu a{display:flex;align-items:center;gap:10px;height:36px;padding:0 9px;border-radius:8px;font:var(--weight-regular) 14px/1 var(--font-core);color:var(--text-primary);text-decoration:none}
+.menu a i{width:15px;height:15px;color:var(--text-tertiary);flex:0 0 auto}
+.menu a.dg{color:var(--clay-600)}.menu a.dg i{color:var(--clay-600)}
+.menu hr{border:none;border-top:1px solid var(--border-hairline);margin:5px 7px}
+.cf{display:flex;align-items:center;gap:10px;padding:11px 0;font:var(--weight-regular) 14px/1 var(--font-core)}
+.cf .dgi{width:30px;height:30px;border-radius:8px;background:var(--clay-100);color:var(--clay-700);flex:0 0 auto}
+.cf b{flex:1;font-weight:400}
+.cf .no{font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary)}
+.cf .yes{font:var(--weight-medium) 13px/1 var(--font-core);color:var(--paper);background:var(--clay-600);height:30px;padding:0 13px;border-radius:var(--radius-pill);display:inline-flex;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:var(--radius-pill);font:var(--weight-medium) 12px/1 var(--font-core);background:var(--surface-fill);color:var(--text-secondary)}
+.pill.on{background:var(--ink-950);color:var(--paper)}
+.pill i{width:12px;height:12px}
+.nav{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 30px;padding:0;list-style:none;font-size:13px}
+.nav a{color:var(--text-secondary)}.nav a[aria-current]{color:var(--text-primary);font-weight:500}
+</style></head><body><div class="wrap">
+
+<h1>Design queue 1: the thread page</h1>
+<p class="lede">Six things the web thread page has in code that no kit draws. Each one shows what the app does today, read from <b>apps/web/src/components/panes/Thread.tsx</b> and <b>Memories.tsx</b>, then the options. Everything below is drawn at real size in the design system's own tokens, so what you pick is what gets folded into the kits.</p>
+
+<ul class="nav">
+<li><a href="design-queue.html">Index</a></li>
+<li><a href="design-queue-1-thread-page.html" aria-current="page">1 Thread page</a></li>
+<li><a href="design-queue-2-phones.html">2 Phones</a></li>
+<li><a href="design-queue-3-composer.html">3 Composer and shell</a></li>
+<li><a href="design-queue-4-sharing.html">4 Sharing and the unbuilt</a></li>
+</ul>
+
+<!-- ============ 1 MEMORIES SECTION ============ -->
+<div class="sechead"><h2>1 &middot; The memories section</h2><u>web, mobile, android &middot; raised 2026-09-04</u></div>
+<p class="snote">A thread holds up to ten standing rules about itself. The author of one gets Delete, everybody else gets Mute, and offload's own get a sparkles glyph. Nothing in any kit draws this, so it was built from the <b>Chip</b> contract with the kits as shape reference.</p>
+
+<div class="rowlabel">In the app now <u>Memories.tsx, chips in a wrapping row</u></div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="sect">Memories <em>4</em></div>
+<div class="chips">
+<span class="mchip ac"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i><span>Ana pays by bank transfer, not&hellip;</span></span>
+<span class="mchip"><span>Book the flights before hotels</span></span>
+<span class="mchip"><span>Keep receipts for everything</span><u>Sam</u></span>
+<span class="mchip mu"><span>No calls before 10am</span><u>Muted</u></span>
+<span class="mchip ol"><i class="g" style="--ic:url(../assets/icons/plus.svg)"></i>Add</span>
+</div>
+</div>
+<div class="tag i"><b>NOW</b><span>chips, truncated at the chip</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>The chip is doing a job it was not built for.</b> <b>Chip</b> is <code>nowrap</code> with no max-width and no ellipsis, every label in every kit is under twenty characters, and a memory runs to 200. The width cap and the ellipsis live in the screen, not in the component.</li>
+<li><b>Authorship is the name after the text</b>, in a lighter weight. <b>MemoryChip</b>'s small dot was the nearest precedent and it marks who a memory is <em>about</em>, so it was not borrowed.</li>
+<li><b>At ten the Add control disappears</b> and a sentence takes its place: "This thread already holds ten. Delete one to add another." <b>Chip</b> now has <code>disabled</code>, so greying it out is available for the first time.</li>
+<li><b>An empty section draws nothing</b>, which means a thread with no memories has no way to type the first one. That was deliberate and it is flagged below.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+
+<div class="cell">
+<div class="det">
+<div class="sect">Memories <em>4</em></div>
+<div class="chips">
+<span class="mchip ac"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i><span>Ana pays by bank transfer, not&hellip;</span></span>
+<span class="mchip"><span>Book the flights before hotels</span></span>
+<span class="mchip"><span>Keep receipts for everything</span><u>Sam</u></span>
+<span class="mchip mu"><span>No calls before 10am</span><u>Muted</u></span>
+<span class="mchip ol" style="opacity:.999;background:var(--state-disabled-surface);border-color:transparent;color:var(--state-disabled-text)"><i class="g" style="--ic:url(../assets/icons/plus.svg)"></i>Add</span>
+</div>
+</div>
+<div class="tag i"><b>A</b><span>keep chips, govern the truncation</span></div>
+</div>
+
+<div class="cell">
+<div class="det">
+<div class="sect">Memories <em>4</em></div>
+<div class="r" style="padding:9px 0"><i class="g" style="--ic:url(../assets/icons/sparkles.svg);width:14px;height:14px;color:var(--text-accent);margin-top:3px"></i><div class="rt"><b style="font-weight:400;font-size:14px;line-height:1.45">Ana pays by bank transfer, not card, and wants the invoice a week ahead</b></div></div>
+<div class="r" style="padding:9px 0"><i class="g" style="--ic:url(../assets/icons/circle-dot.svg);width:14px;height:14px;color:var(--ink-300);margin-top:3px"></i><div class="rt"><b style="font-weight:400;font-size:14px;line-height:1.45">Book the flights before hotels</b></div></div>
+<div class="r" style="padding:9px 0"><i class="g" style="--ic:url(../assets/icons/circle-dot.svg);width:14px;height:14px;color:var(--ink-300);margin-top:3px"></i><div class="rt"><b style="font-weight:400;font-size:14px;line-height:1.45">Keep receipts for everything</b><s>Sam</s></div></div>
+<div class="chips"><span class="mchip ol"><i class="g" style="--ic:url(../assets/icons/plus.svg)"></i>Add a memory</span></div>
+</div>
+<div class="tag i"><b>B</b><span>rows, the sentence reads whole</span></div>
+</div>
+
+<div class="cell">
+<div class="det">
+<div class="sect">Memories <em>4</em></div>
+<div class="chips">
+<span class="mchip ac"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i><span>Ana pays by bank transfer&hellip;</span></span>
+<span class="mchip"><span>Book the flights before&hellip;</span></span>
+<span class="mchip ol">2 more</span>
+<span class="mchip ol"><i class="g" style="--ic:url(../assets/icons/plus.svg)"></i>Add</span>
+</div>
+</div>
+<div class="tag i"><b>C</b><span>two shown, the rest behind a count</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>A, keep chips and put the rule in the component.</b> <b>Chip</b> gains a <code>maxWidth</code> and an ellipsis, and the disabled Add is drawn rather than replaced by a sentence. Cheapest, and it matches what shipped. The cost is that a memory is a sentence read through a 260px window, so most of them end in an ellipsis and the section becomes a set of things you have to click to read.</li>
+<li><b>B, rows.</b> A memory is a rule in a sentence, so it is set as one: full text, wrapped, the sparkles glyph for offload's own, the author's name under it. Reading the section stops requiring clicks. The cost is height, ten rules is a tall block above "Everything in here", and it loses the visual difference between a memory and a piece of content, which the chip carried for free.</li>
+<li><b>C, chips with a cap.</b> Keeps the compact look on a busy thread and admits the truncation problem instead of solving it. The cost is a second click to reach a memory that is not in the first two, and "2 more" is a control that says nothing about what it holds.</li>
+<li><b>The recommendation is B</b>, with the section hidden when empty as now. The chip was chosen when the nearest precedent was a chip row; the honest reading of the contract is that this is a list of sentences. If you want the compact look kept, A is the one to fold in, and then <b>Chip</b> should own the ellipsis so no screen re-invents it.</li>
+</ul>
+<span class="rec">Recommended: B, rows</span>
+
+<!-- ============ 2 MEMORY OPEN STATE ============ -->
+<div class="sechead"><h2>2 &middot; A memory, open</h2><u>web &middot; raised 2026-09-04</u></div>
+<p class="snote">Clicking a memory edits its full text. The editor opens <em>inside</em> the chip, which grows to hold it, animated on <code>grid-template-rows</code> from <code>0fr</code> to <code>1fr</code>. It used to sit at the foot of the section, which read as editing the last memory whichever one you clicked.</p>
+
+<div class="rowlabel">In the app now <u>Memories.tsx, the chip becomes a container</u></div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="sect">Memories <em>4</em></div>
+<div class="chips">
+<span class="mchip ac"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i><span>Ana pays by bank transfer&hellip;</span></span>
+</div>
+<div style="padding:6px 0 2px">
+<div class="drawer">
+<div class="fake">Ana pays by bank transfer, not card, and wants the invoice a week ahead</div>
+<div class="dact"><span class="ct">71/200</span><span class="b dg">Delete</span><span class="b">Cancel</span><span class="b save">Save</span></div>
+</div>
+</div>
+<div class="chips">
+<span class="mchip"><span>Book the flights before hotels</span></span>
+<span class="mchip ol"><i class="g" style="--ic:url(../assets/icons/plus.svg)"></i>Add</span>
+</div>
+</div>
+<div class="tag i"><b>NOW</b><span>opens in place, one action plus Cancel and Save</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>One destructive control, never two.</b> Delete and Mute are the same intent at different strengths: if you may delete, Mute is a worse version of it, and if you may not, Mute is the whole of what you have. Muted wins over both, so a quieted memory offers Unmute whoever is asking.</li>
+<li><b>The focus ring needed 5px of room</b> inside the animation clip, the first value that clears a 2px ring at 2px offset. Removing the ring was tried and reverted: the rule says it is never removed.</li>
+<li><b>200 characters, counted live.</b> Enter saves, shift-Enter is a new line, Escape closes.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="sect">Memories <em>4</em></div>
+<div style="padding:4px 0 2px"><div class="drawer">
+<div class="fake">Ana pays by bank transfer, not card, and wants the invoice a week ahead</div>
+<div class="dact"><span class="ct">71/200</span><span class="b dg">Delete</span><span class="b">Cancel</span><span class="b save">Save</span></div>
+</div></div>
+</div>
+<div class="tag i"><b>A</b><span>as built, governed as a component</span></div>
+</div>
+
+<div class="cell">
+<div class="det">
+<div class="sect">Memories <em>4</em></div>
+<div class="chips"><span class="mchip ac" style="outline:2px solid var(--ink-950);outline-offset:2px"><i class="g" style="--ic:url(../assets/icons/sparkles.svg)"></i><span>Ana pays by bank transfer&hellip;</span></span></div>
+<div style="padding:8px 0 2px"><div class="drawer" style="border-color:var(--border-hairline);background:var(--surface-page)">
+<div class="fake">Ana pays by bank transfer, not card, and wants the invoice a week ahead</div>
+<div class="dact"><span class="ct">71/200</span><span class="b dg">Delete</span><span class="b">Cancel</span><span class="b save">Save</span></div>
+</div></div>
+</div>
+<div class="tag i"><b>B</b><span>chip stays, editor is a panel under the row</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>A, the pill becomes the container.</b> What shipped. The thing you clicked is visibly the thing you are editing, which is the whole reason it moved off the foot of the section. It needs a real contract: a chip that can be a container is not a chip any more, so this is a <b>MemoryEditor</b> in the system with the chip as its closed state.</li>
+<li><b>B, the chip stays a chip and the editor is a panel beneath it.</b> Keeps <b>Chip</b> honest and gives the field room without a growing pill. The cost is that the chip and its editor are two objects, which is what the foot-of-section version got wrong, though anchoring it directly under the selected chip keeps the connection.</li>
+<li><b>If you pick rows in section 1, B is nearly free</b>: the editor becomes the row expanding, and there is no pill to grow.</li>
+</ul>
+<span class="rec">Recommended: A if chips stay, B if rows win</span>
+
+<!-- ============ 3 ARCHIVED ============ -->
+<div class="sechead"><h2>3 &middot; The archived toggle, and an archived thing</h2><u>all &middot; raised 2026-09-03</u></div>
+<p class="snote">Every kit draws an <code>archive</code> tool on a row. No kit draws where an archived thing goes or what it looks like when it gets there. The app invented both, and the control has already moved once.</p>
+
+<div class="rowlabel">In the app now <u>Thread.tsx, a tool on the pane head that inverts while on</u></div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="head"><div style="flex:1"><h3>Lisbon trip</h3><p>12 &middot; Sam, Ana &middot; 3 archived</p></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/pencil.svg)"></span><span class="tl ic on" style="--ic:url(../assets/icons/archive.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/maximize-2.svg)"></span></div></div>
+<div class="sect">Archived <em>3</em></div>
+<div class="r arch"><span class="tile ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="rt"><b>Time Out Market</b><s>you &middot; 14 Aug</s></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/pencil.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/rewind.svg)"></span></div></div>
+<div class="r arch"><span class="tile ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="rt"><b>Tram 28 route map</b><s>Sam &middot; 12 Aug</s></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/pencil.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/rewind.svg)"></span></div></div>
+</div>
+<div class="tag i"><b>NOW</b><span>pane tool inverts, rows at 50%, rewind puts back</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>The control is on the pane, not in the section heading.</b> It was in the heading, which meant the heading had to survive an empty list to carry it, and a thread with one archived row drew "Everything else 0" for no other reason.</li>
+<li><b>It only exists when there is something archived</b>, or while you are looking at the archive.</li>
+<li><b>An archived row is the same row at half opacity</b>, with <code>archive</code> swapped for <code>rewind</code>. Opacity is the mechanism the system forbids for disabled states, and it is doing the work here.</li>
+<li><b>The heading says "Archived"</b> where the live list says "Everything in here" or "Everything else".</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="head"><div style="flex:1"><h3>Lisbon trip</h3><p>12 &middot; Sam, Ana &middot; 3 archived</p></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/pencil.svg)"></span><span class="tl ic on" style="--ic:url(../assets/icons/archive.svg)"></span></div></div>
+<div class="sect">Archived <em>3</em></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/map-pin.svg);background:transparent;border:1px dashed var(--border-strong)"></span><div class="rt"><b style="color:var(--text-secondary)">Time Out Market</b><s>archived 14 Aug &middot; you</s></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/rewind.svg)"></span></div></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/link.svg);background:transparent;border:1px dashed var(--border-strong)"></span><div class="rt"><b style="color:var(--text-secondary)">Tram 28 route map</b><s>archived 12 Aug &middot; Sam</s></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/rewind.svg)"></span></div></div>
+</div>
+<div class="tag i"><b>A</b><span>secondary ink and a hollow tile, no opacity</span></div>
+</div>
+
+<div class="cell">
+<div class="det">
+<div class="head"><div style="flex:1"><h3>Lisbon trip</h3><p>12 &middot; Sam, Ana</p></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/pencil.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/maximize-2.svg)"></span></div></div>
+<div class="sect">Everything in here <em>12</em></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="rt"><b>Book the airport transfer</b><s>you &middot; 2 Sep</s></div></div>
+<div class="r" style="border-bottom:none;padding-bottom:2px"><span class="tile ic" style="--ic:url(../assets/icons/archive.svg);background:transparent;color:var(--text-tertiary)"></span><div class="rt"><b style="font-weight:400;color:var(--text-secondary)">3 archived</b></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/chevron-right.svg)"></span></div></div>
+</div>
+<div class="tag i"><b>B</b><span>a row at the foot of the list, not a pane tool</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>A, keep the toggle where it is and fix the row.</b> Archived rows stop using opacity, which the system reserves for nothing and reads as a rendering artefact on a warm page: secondary ink, a hollow tile, and the date relabelled "archived 14 Aug" so the row says what happened to it. Delete and Edit go, since the only sensible action on an archived thing is putting it back.</li>
+<li><b>B, a row at the foot of the list.</b> The archive stops being a mode you toggle into and becomes a place you go, which is what it is: the pane head loses a tool that only sometimes exists, and the count is visible without hunting for a highlighted icon. The cost is a row in a list that is not content, and the design system has no precedent for that.</li>
+<li><b>The recommendation is A.</b> The pane tool is right for the reason it moved there, and the real defect is the row treatment. B is worth taking if the archive later needs to hold anything other than rows.</li>
+</ul>
+<span class="rec">Recommended: A, with opacity replaced</span>
+
+<!-- ============ 4 COMPLETED ============ -->
+<div class="sechead"><h2>4 &middot; A finished task, in place</h2><u>all &middot; raised 2026-09-03</u></div>
+<p class="snote">A ticked task sinks to the bottom of its list rather than leaving it, and stays visible struck through. No kit draws a completed task at all. The reasoning is already settled: something you did this morning disappearing is how you end up wondering whether you did it, and the tick is the reward for the work.</p>
+
+<div class="rowlabel">In the app now <u>Widgets.tsx, a real checkbox and a line through</u></div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="sect">To do <em>4</em></div>
+<div class="r"><span class="box"></span><div class="rt"><b>Book the airport transfer</b><s>Fri 12 Sep</s></div></div>
+<div class="r"><span class="box"></span><div class="rt"><b>Confirm the apartment code</b><s>Sam</s></div></div>
+<div class="r done"><span class="box on ic" style="--ic:url(../assets/icons/check.svg)"></span><div class="rt"><b>Flights booked</b><s>you &middot; this morning</s></div></div>
+<div class="r done"><span class="box on ic" style="--ic:url(../assets/icons/check.svg)"></span><div class="rt"><b>Renew the passport</b><s>you &middot; 28 Aug</s></div></div>
+</div>
+<div class="tag i"><b>NOW</b><span>struck through at 55%, sunk to the bottom</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>Any member may tick or untick.</b> A thread's contents belong to everybody in it and neither direction destroys anything, so this is not authorship-gated the way delete is.</li>
+<li><b>Both directions get a toast</b>, "Ticked off" and "Back on the list", inside the same eight seconds.</li>
+<li><b>The strike-through carries 55% opacity</b> on top of the line, which is the same mechanism section 3 has a problem with.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="sect">To do <em>4</em></div>
+<div class="r"><span class="box"></span><div class="rt"><b>Book the airport transfer</b><s>Fri 12 Sep</s></div></div>
+<div class="r"><span class="box on ic" style="--ic:url(../assets/icons/check.svg)"></span><div class="rt"><b style="text-decoration:line-through;text-decoration-color:var(--ink-300);color:var(--text-tertiary)">Flights booked</b><s>you &middot; this morning</s></div></div>
+</div>
+<div class="tag i"><b>A</b><span>tertiary ink, line at 1px, no opacity</span></div>
+</div>
+<div class="cell">
+<div class="det">
+<div class="sect">To do <em>2</em> <span style="margin-left:auto;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-secondary)">2 done</span></div>
+<div class="r"><span class="box"></span><div class="rt"><b>Book the airport transfer</b><s>Fri 12 Sep</s></div></div>
+<div class="r"><span class="box"></span><div class="rt"><b>Confirm the apartment code</b><s>Sam</s></div></div>
+<div class="r" style="border-bottom:none"><div class="rt"><b style="font-weight:400;font-size:13px;color:var(--text-tertiary)">Flights booked, Renew the passport</b></div></div>
+</div>
+<div class="tag i"><b>B</b><span>done collapses to one quiet line</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>A, as built with the opacity removed.</b> Tertiary ink and a hairline strike, which reads as finished without dimming the row into the page. One rule to add to the system and it applies to any list with a checkbox in it.</li>
+<li><b>B, the finished ones collapse.</b> A long-running thread accumulates ticks, and after a fortnight the to-do widget is mostly history. Collapsing them keeps the widget about what is left while still proving the work happened. The cost is that the tick's reward is smaller: the row you just ticked leaves the list within a second.</li>
+<li><b>The recommendation is A.</b> B solves a problem threads do not have yet, and it can be added later as a cap: collapse only once more than five are done.</li>
+</ul>
+<span class="rec">Recommended: A</span>
+
+<!-- ============ 5 ROW TOOLS ============ -->
+<div class="sechead"><h2>5 &middot; Row tools, drawn as conditional</h2><u>all &middot; raised 2026-09-03</u></div>
+<p class="snote">Every kit puts <code>trash-2</code> on every row. OFF-3 says a member can never delete what is not theirs, so in the app the control is conditional and the server computes the flag. The kits should draw both cases.</p>
+
+<div class="rowlabel">In the app now <u>Thread.tsx, three tools for the author, two for everyone else</u></div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="rt"><b>Time Out Market</b><s>you &middot; 14 Aug</s></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/pencil.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/archive.svg)"></span><span class="tl ic dg" style="--ic:url(../assets/icons/trash-2.svg)"></span></div></div>
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="rt"><b>Tram 28 route map</b><s>Sam &middot; 12 Aug</s></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/pencil.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/archive.svg)"></span></div></div>
+</div>
+<div class="tag i"><b>NOW</b><span>yours has a bin, Sam's does not</span></div>
+</div>
+<div class="cell">
+<div class="det">
+<div class="cf"><span class="dgi ic" style="--ic:url(../assets/icons/trash-2.svg)"></span><b>Delete Time Out Market?</b><span class="no">Cancel</span><span class="yes">Delete</span></div>
+</div>
+<div class="tag i"><b>NOW</b><span>the row asks in its own place, then eight seconds</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>The tools are always visible</b>, not hover-revealed: two rows side by side show a different number of controls, which is the point.</li>
+<li><b>Delete asks first, in the row's own place</b>, so the question never covers the thing it is about. That is a confirm <em>and</em> an undo, which is more than OFF-6 asks for, and deliberate: this is the only control in the product that destroys something.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="rt"><b>Tram 28 route map</b><s>Sam &middot; 12 Aug</s></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/pencil.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/archive.svg)"></span></div></div>
+</div>
+<div class="tag i"><b>A</b><span>absent, as built</span></div>
+</div>
+<div class="cell">
+<div class="det">
+<div class="r"><span class="tile ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="rt"><b>Tram 28 route map</b><s>Sam &middot; 12 Aug</s></div><div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/pencil.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/archive.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/ellipsis.svg)"></span></div></div>
+</div>
+<div class="tag i"><b>B</b><span>a More menu holds whatever this row allows</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>A, absent.</b> A control that is drawn and refused teaches a rule that is not true, and this is the position the phones already took for the same reason. Two rows showing different tools is a little uneven, and that unevenness is honest.</li>
+<li><b>B, everything behind one More glyph.</b> Every row looks identical and the menu holds only what you may do. It also gives the row somewhere to put move, share and anything later. The cost is a click before any action, on the tools people use most.</li>
+<li><b>The recommendation is A for edit and archive, B as well for anything beyond them</b>, which is exactly what section 6 is about.</li>
+</ul>
+<span class="rec">Recommended: A</span>
+
+<!-- ============ 6 PANE HEAD ============ -->
+<div class="sechead"><h2>6 &middot; What the pane head holds</h2><u>web &middot; raised 2026-09-04</u></div>
+<p class="snote"><b>WThing.jsx</b> passes <code>tools={[["maximize-2","Open full"],["ellipsis","More"]]}</code>, and the app has never built the More menu. Instead the pane head has grown: rename, archive, Open full, plus the faces and Share. The kit should say what is in the ellipsis, or agree there is not one.</p>
+
+<div class="rowlabel">In the app now <u>PaneHead.tsx and Thread.tsx, three tools and no More</u></div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="head"><div style="flex:1;min-width:0"><h3>Lisbon trip</h3><p>12 &middot; Sam, Ana &middot; 3 archived</p></div>
+<div class="faces"><span class="face">YO</span><span class="face">S</span><span class="face">A</span></div>
+<span class="pill" style="height:30px"><i class="g" style="--ic:url(../assets/icons/share-2.svg)"></i>Share</span>
+<div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/pencil.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/archive.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/maximize-2.svg)"></span></div></div>
+</div>
+<div class="tag i"><b>NOW</b><span>rename, archived, Open full. Share is inert.</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>Open full is on the pane</b>, not in the crumb bar: it is a thing you do to this pane. It uses <code>maximize-2</code> both ways, since the icon set vendors no <code>minimize-2</code> and the label carries the direction.</li>
+<li><b>Rename is a pencil that turns the title into a field.</b> The title's <code>overflow: hidden</code> had to be lifted while the field is in there or the focus ring was clipped to four corner marks.</li>
+<li><b>Three tools plus Share plus the faces</b> is close to the width the head can hold on a 520px pane.</li>
+</ul>
+
+<div class="rowlabel">Options</div>
+<div class="row">
+<div class="cell">
+<div class="det">
+<div class="head"><div style="flex:1;min-width:0"><h3>Lisbon trip</h3><p>12 &middot; Sam, Ana &middot; 3 archived</p></div>
+<div class="faces"><span class="face">YO</span><span class="face">S</span><span class="face">A</span></div>
+<span class="pill" style="height:30px"><i class="g" style="--ic:url(../assets/icons/share-2.svg)"></i>Share</span>
+<div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/maximize-2.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/ellipsis.svg)"></span></div></div>
+</div>
+<div class="menu" style="margin-top:8px">
+<a><i class="g" style="--ic:url(../assets/icons/pencil.svg)"></i>Rename</a>
+<a><i class="g" style="--ic:url(../assets/icons/plus.svg)"></i>Add a memory</a>
+<a><i class="g" style="--ic:url(../assets/icons/archive.svg)"></i>Archived <span style="margin-left:auto;color:var(--text-tertiary);font-size:12.5px">3</span></a>
+<hr>
+<a class="dg"><i class="g" style="--ic:url(../assets/icons/trash-2.svg)"></i>Leave this thread</a>
+</div>
+<div class="tag i"><b>A</b><span>two tools, the rest in More</span></div>
+</div>
+
+<div class="cell">
+<div class="det">
+<div class="head"><div style="flex:1;min-width:0"><h3>Lisbon trip</h3><p>12 &middot; Sam, Ana &middot; 3 archived</p></div>
+<div class="faces"><span class="face">YO</span><span class="face">S</span><span class="face">A</span></div>
+<span class="pill" style="height:30px"><i class="g" style="--ic:url(../assets/icons/share-2.svg)"></i>Share</span>
+<div class="tools"><span class="tl ic" style="--ic:url(../assets/icons/pencil.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/archive.svg)"></span><span class="tl ic" style="--ic:url(../assets/icons/maximize-2.svg)"></span></div></div>
+</div>
+<div class="tag i"><b>B</b><span>as built, and the kit drops the ellipsis</span></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>A, two tools and a More menu.</b> The head stops growing every time the thread gains a capability, and it gives Leave and Add a memory somewhere to live, which section 1 and part 4 both need. It also matches what the kit already drew. The cost is a click on rename and archived, and a menu that is nearly empty today.</li>
+<li><b>B, keep the three tools and delete the ellipsis from the kit.</b> Everything stays one click. The cost is the next capability: the head is already at its width, and the fourth tool is what forces this decision anyway.</li>
+<li><b>The recommendation is A.</b> The ellipsis exists in the kit, the app has three things that want to be in it, and part 4's Leave has nowhere else to go.</li>
+</ul>
+<span class="rec">Recommended: A, build the More menu</span>
+
+<p class="snote" style="margin-top:44px">Next: <a href="design-queue-2-phones.html">part 2, the phones</a>.</p>
+</div></body></html>

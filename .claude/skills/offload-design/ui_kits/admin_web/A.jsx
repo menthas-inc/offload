@@ -40,7 +40,7 @@ function ASideNav({page,onPage}){
       </div>
       <div style={{marginTop:"auto",display:"flex",flexDirection:"column",gap:"var(--space-3)"}}>
         <span style={{font:"var(--text-caption-role)",color:NAV_QUIET,padding:"0 var(--space-4)",lineHeight:1.5}}>
-          Signed in as admin@offload.club</span>
+          Signed in as admin@offload.app</span>
         <a href="../web_app/index.html" style={{display:"flex",alignItems:"center",gap:9,height:34,padding:"0 var(--space-4)",
           borderRadius:"var(--radius-sm)",textDecoration:"none",font:"var(--weight-medium) 13.5px/1 var(--font-core)",
           color:NAV_QUIET}}>
