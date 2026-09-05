@@ -308,7 +308,15 @@ export function Composer({
         <div className={styles.turns} ref={turnsBox}>
           {turns.map((turn) =>
             turn.from === "you" ? (
-              <div key={turn.id} className={styles.turnYou}>
+              <div
+                key={turn.id}
+                className={styles.turnYou}
+                // The failure is carried by the turn itself, so the message you
+                // wrote takes the clay border and the line sits under it.
+                data-failed={
+                  turn.state === "failed" || turn.state === "partial" ? true : undefined
+                }
+              >
                 {turn.text}
                 {turn.state === "seen" ? (
                   // 👀, ported from the mobile kit's StatusChip. The label is

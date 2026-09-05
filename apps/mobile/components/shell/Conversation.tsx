@@ -255,10 +255,18 @@ function Turns() {
 }
 
 function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
+  const hurt = turn.state === "failed" || turn.state === "partial";
+
   return (
     <View style={{ alignSelf: "flex-end", maxWidth: "84%" }}>
+      {/* A turn that failed, or half worked, carries its own failure: the
+          message you wrote takes a clay border and one clay line beneath it.
+          Tighter than a tinted card in the middle of a conversation, and the
+          failure is attached to the thing that failed. */}
       <View
-        className="border border-blue-100 bg-blue-50 px-space-5 py-space-3"
+        className={`border px-space-5 py-space-3 ${
+          hurt ? "border-clay-600 bg-blue-50" : "border-blue-100 bg-blue-50"
+        }`}
         style={{ borderTopLeftRadius: 16, borderTopRightRadius: 16, borderBottomLeftRadius: 16, borderBottomRightRadius: 4 }}
       >
         <Text className="font-core text-ink-950" style={{ fontSize: 15, lineHeight: 22 }}>
@@ -285,14 +293,18 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
         </Mark>
       ) : null}
 
+      {/* The readme's own words, and the same ones web uses. They diverged
+          here: this said "Saved what landed. The rest didn't come through."
+          and offered Finish, which is a second way of saying the same thing in
+          a product with one voice. */}
       {turn.state === "partial" ? (
         <View className="mt-space-2 flex-row items-center gap-space-3">
-          <Text className="font-core text-text-secondary" style={{ fontSize: 13 }}>
-            Saved what landed. The rest didn't come through.
+          <Text className="font-core text-text-danger" style={{ fontSize: 13 }}>
+            offload did not finish that one.
           </Text>
           <Pressable onPress={onFinish} hitSlop={8}>
             <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13 }}>
-              Finish
+              Finish it
             </Text>
           </Pressable>
         </View>

@@ -93,12 +93,16 @@ export function ContentRowView({ row, border, arrived, onDelete, onActions, onTo
     backgroundColor: interpolateColor(mark.value, [0, 1], [COLOR.page, COLOR.accentSoft]),
   }));
 
-  // Not painted at all until a swipe reveals it. It is behind an opaque row,
-  // so it should never be visible either way, but a screen that cross-fades
-  // fades the row's own background with everything else and the clay showed
-  // straight through it: every row wore a ghost Delete for the length of the
-  // tab transition. Opacity on the panel itself survives a group opacity.
-  const revealed = useAnimatedStyle(() => ({ opacity: dx.value < -1 ? 1 : 0 }));
+  /** The reveal is a property of the gesture, not of the row's existence.
+   *
+   *  A ramp over the first 12px and `pointerEvents` off while closed, which is
+   *  what the `SwipeRow` contract now specifies. Covering it with the row's
+   *  opaque background is not enough: any group fade over the screen, a tab
+   *  change or a modal, shows it through every closed row at once. */
+  const revealed = useAnimatedStyle(() => ({
+    opacity: Math.min(1, Math.abs(dx.value) / 12),
+    pointerEvents: dx.value === 0 ? "none" : "auto",
+  }));
 
   return (
     <View className="relative">

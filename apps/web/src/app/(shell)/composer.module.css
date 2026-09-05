@@ -199,10 +199,21 @@
   font-family: var(--font-core);
 }
 
+/* A turn that failed, or half worked, is carried by the turn itself: the
+   message you wrote takes a clay border and one clay line beneath it. Tighter
+   than a tinted card in the middle of a conversation, and the failure is
+   attached to the thing that failed rather than floating under it. */
+/* --text-danger, because there is no --border-danger. The system has
+   --border-accent and --border-attention and no clay counterpart, so this is
+   the one alias that is clay. Logged for the next sync. */
+.turnYou[data-failed] {
+  border-color: var(--text-danger);
+}
+
 .turnFailed {
   margin: var(--space-3) 0 0;
   font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
-  color: var(--text-on-attention);
+  color: var(--text-danger);
 }
 
 .retry {
