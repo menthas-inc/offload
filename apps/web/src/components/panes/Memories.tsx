@@ -38,12 +38,27 @@ interface Props {
   members: Member[];
   /** Memories that arrived while this screen was open, marked for a moment. */
   arrived?: Set<string>;
+  /** Whether the new-memory editor is open. Owned by the thread rather than by
+   *  this section, because the pane head's More menu opens it too, and because
+   *  a thread with no memories draws nothing here: without a way in from
+   *  outside, the first memory on a thread could only come from telling
+   *  offload. */
+  adding: boolean;
+  onAdding: (adding: boolean) => void;
   onChanged: () => void;
   onUndo: (message: string, undo: () => Promise<unknown>) => void;
 }
 
-export function Memories({ threadId, memories, members, arrived, onChanged, onUndo }: Props) {
-  const [adding, setAdding] = useState(false);
+export function Memories({
+  threadId,
+  memories,
+  members,
+  arrived,
+  adding,
+  onAdding,
+  onChanged,
+  onUndo,
+}: Props) {
   // Who is reading, from the member list the bundle already carries. Decides
   // which chips offer delete, because deleting is the author's alone and
   // everybody else gets mute.
@@ -67,13 +82,13 @@ export function Memories({ threadId, memories, members, arrived, onChanged, onUn
    *  shadowing it inside a component that also has a boolean called `open` is
    *  how a click handler ends up calling the wrong thing. */
   function open_(memory: Memory): void {
-    setAdding(false);
+    onAdding(false);
     setEditingId(memory.id);
     setDraft(memory.text);
   }
 
   function close(): void {
-    setAdding(false);
+    onAdding(false);
     setEditingId(null);
     setDraft("");
   }
@@ -297,7 +312,7 @@ export function Memories({ threadId, memories, members, arrived, onChanged, onUn
           onClick={() => {
             setEditingId(null);
             setDraft("");
-            setAdding(true);
+            onAdding(true);
           }}
           style={{ marginTop: "var(--space-4)" }}
         >

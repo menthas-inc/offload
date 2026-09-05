@@ -12,6 +12,7 @@
 // to it. Putting it in the trail made it read as navigation.
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
@@ -31,11 +32,21 @@ interface Props {
   aside?: React.ReactNode;
   /** Extra quiet tools, before Open full. */
   tools?: React.ReactNode;
+  /** What the More menu holds. Two tools is the contract: Open full, then
+   *  `ellipsis`. Everything a pane gains after that goes in here rather than
+   *  growing the head every time a thread learns to do something else. */
+  more?: MoreAction[];
   /** Where Open full returns to. Omitted on a pane that cannot be full. */
   fullHref?: string | undefined;
 }
 
-export function PaneHead({ title, sub, big, aside, tools, fullHref }: Props) {
+export interface MoreAction {
+  label: string;
+  icon: string;
+  onSelect: () => void;
+}
+
+export function PaneHead({ title, sub, big, aside, tools, more, fullHref }: Props) {
   const search = useSearchParams();
   const full = search.get(FULL) === "1";
 
@@ -73,7 +84,71 @@ export function PaneHead({ title, sub, big, aside, tools, fullHref }: Props) {
             <Icon name="maximize-2" size={16} />
           </Link>
         ) : null}
+        {more && more.length > 0 ? <More actions={more} /> : null}
       </span>
     </div>
+  );
+}
+
+/** The second of the pane's two tools.
+ *
+ *  A menu rather than another row of glyphs, because the head stops growing
+ *  every time the thread gains a capability, which is what it had started to
+ *  do: rename was a pencil, archive was a toggle, and Leave would have been a
+ *  third. */
+function More({ actions }: { actions: MoreAction[] }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (event: MouseEvent): void => {
+      if (!box.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const escape = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open]);
+
+  return (
+    <span className={styles.moreWrap} ref={box}>
+      <button
+        type="button"
+        className={styles.tool}
+        aria-label="More"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        title="More"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <Icon name="ellipsis" size={16} />
+      </button>
+
+      {open ? (
+        <span className={styles.moreMenu} role="menu">
+          {actions.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              role="menuitem"
+              className={styles.moreItem}
+              onClick={() => {
+                setOpen(false);
+                action.onSelect();
+              }}
+            >
+              <Icon name={action.icon} size={15} />
+              {action.label}
+            </button>
+          ))}
+        </span>
+      ) : null}
+    </span>
   );
 }

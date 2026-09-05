@@ -21,7 +21,14 @@
 
 import { useState } from "react";
 import styles from "../../app/(shell)/shell.module.css";
-import { filtersFor, matching, widgetsFor, type Widget } from "../../lib/widgets";
+import {
+  DONE_SHOWN,
+  filtersFor,
+  matching,
+  splitDone,
+  widgetsFor,
+  type Widget,
+} from "../../lib/widgets";
 import type { ContentRow } from "../../lib/threads";
 
 const HEADINGS: Record<string, string> = {
@@ -68,8 +75,9 @@ function WidgetBlock({
   // lives. Local rather than stored: a filter is what you are looking at now,
   // not a preference about the thread.
   const [only, setOnly] = useState<string | null>(null);
+  const [allDone, setAllDone] = useState(false);
   const filters = filtersFor(widget.rows, dimension);
-  const shown = matching(widget.rows, dimension, only);
+  const { left, done } = splitDone(matching(widget.rows, dimension, only));
 
   return (
     <section>
@@ -78,7 +86,7 @@ function WidgetBlock({
         <em className={styles.sectionCount}>{widget.rows.length}</em>
       </h2>
 
-      {widget.kind === "map" ? <Pins rows={shown} /> : null}
+      {widget.kind === "map" ? <Pins rows={[...left, ...done]} /> : null}
 
       {/* One row of chips, single select, All first. Below two values there is
           nothing to choose between, so it does not draw. */}
@@ -97,9 +105,23 @@ function WidgetBlock({
         </div>
       ) : null}
 
-      {shown.map((row) => (
+      {left.map((row) => (
         <Row key={row.id} row={row} widget={widget.kind} onToggle={onToggle} />
       ))}
+
+      {/* A finished task keeps its place and sinks below everything
+          outstanding. Past five, the list shows the most recent and offers the
+          rest: a long-running thread stays about what is left without hiding
+          that the work happened. */}
+      {(allDone ? done : done.slice(0, DONE_SHOWN)).map((row) => (
+        <Row key={row.id} row={row} widget={widget.kind} onToggle={onToggle} />
+      ))}
+
+      {done.length > DONE_SHOWN && !allDone ? (
+        <button type="button" className={styles.showMore} onClick={() => setAllDone(true)}>
+          Show all {done.length} finished
+        </button>
+      ) : null}
     </section>
   );
 }

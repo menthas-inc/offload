@@ -223,6 +223,27 @@ export function groupBy<T extends Sortable>(
   return groups;
 }
 
+/** How many finished rows a list shows before it collapses. */
+export const DONE_SHOWN = 5;
+
+/** Split a list into what is left and what is finished, newest finish first.
+ *
+ *  A finished task keeps its place in the list and sinks below everything
+ *  outstanding; past `DONE_SHOWN` the list shows the most recent and offers the
+ *  rest. A long-running thread's to-do list stays about what is left without
+ *  hiding that the work happened.
+ */
+export function splitDone<T extends Sortable>(
+  rows: readonly T[],
+): { left: T[]; done: T[] } {
+  const left = rows.filter((row) => row.doneAt === null);
+  const done = rows
+    .filter((row) => row.doneAt !== null)
+    // Newest finish first, so "the five most recent" is the top five.
+    .sort((a, b) => (b.doneAt ?? "").localeCompare(a.doneAt ?? ""));
+  return { left, done };
+}
+
 /** One chip in a widget's filter row.
  *
  *  Shared rather than derived twice: this and `groupBy` read the same tags the

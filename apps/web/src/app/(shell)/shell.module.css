@@ -579,9 +579,6 @@
   color: var(--text-danger);
 }
 
-.archived {
-  opacity: 0.55;
-}
 
 /* The standing summary, when there is one. There is no empty state and that is
    deliberate: a line saying offload has not summarised a thread is not
@@ -868,8 +865,12 @@
 /* A ticked row stays in the list, struck through, rather than vanishing. Undo
    needs something to point at, and so does the person wondering whether they
    already did it. */
+/* Tertiary ink and a 1px strike, and no opacity: the tick, the sinking and the
+   strike already say it, and dimming on a warm page reads as a rendering
+   fault. */
 .checkDone .rowTitle {
   text-decoration: line-through;
+  text-decoration-thickness: 1px;
   color: var(--text-tertiary);
 }
 
@@ -966,6 +967,101 @@
   font-size: calc(13px * var(--type-scale));
   color: var(--text-tertiary);
   white-space: nowrap;
+}
+
+/* The pane head's More menu. Two tools is the contract, Open full then
+   ellipsis, so everything a pane gains after that lands in here rather than
+   adding a third glyph to the head. */
+.moreWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.moreMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 172px;
+  padding: var(--space-2);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+}
+
+.moreItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 38px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  white-space: nowrap;
+  font-weight: var(--weight-medium);
+  font-size: calc(13.5px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.moreItem:hover {
+  background: var(--surface-fill);
+}
+
+/* The way to the archived pile: a row at the foot of the list, below
+   everything live. It was a toggle on the pane head, which made the archive a
+   mode you switch into rather than a place you go, and put the count behind a
+   highlighted icon you had to find. */
+.archivedRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--space-5);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  font-weight: var(--weight-medium);
+  font-size: calc(14px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
+  color: var(--text-secondary);
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 var(--border-hairline);
+}
+
+.archivedRow:hover {
+  background: var(--surface-fill);
+}
+
+.archivedChevron {
+  margin-left: auto;
+  color: var(--ink-300);
+  display: inline-flex;
+}
+
+/* An archived row. Secondary ink and a hollow tile, no opacity: dimming a row
+   on a warm page reads as a rendering fault and takes the label under the
+   contrast floor with it. */
+.row[data-archived] .rowTitle,
+.row[data-archived] .rowMeta {
+  color: var(--text-secondary);
+}
+
+.row[data-archived] .rowIcon {
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-tertiary);
 }
 
 /* ------------------------------------------------------------- settings */

@@ -45,6 +45,10 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   const [rows, setRows] = useState<ContentRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  // Lifted out of `Memories` so the pane head's More menu can open the editor.
+  // It is also the answer to a cost that section had accepted: a thread with no
+  // memories drew nothing, so there was nowhere to type the first one.
+  const [addingMemory, setAddingMemory] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [renaming, setRenaming] = useState(false);
@@ -264,7 +268,6 @@ export function Thread({ id, onChanged, onUndo }: Props) {
           <>
             {thread.counts.active}
             {others.length ? ` · ${others.map((m) => m.displayName).join(", ")}` : " · just you"}
-            {thread.counts.archived ? ` · ${thread.counts.archived} archived` : ""}
           </>
         }
         fullHref={`/threads/${id}`}
@@ -294,41 +297,24 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             </button>
           </>
         }
-        tools={
-          <>
-            <button
-              type="button"
-              className={styles.tool}
-              aria-label="Rename this thread"
-              title="Rename"
-              onClick={() => {
-                setNameDraft(thread.name);
-                setRenaming(true);
-              }}
-            >
-              <Icon name="pencil" size={16} />
-            </button>
-            {/* The way to the archived pile. It used to sit in the section
-                heading, which meant the heading had to survive an empty list
-                in order to carry it, and an empty thread with one archived row
-                drew "Everything else 0" for no other reason. A control that
-                has to exist whatever the list holds belongs on the pane, not
-                in a section of it. */}
-            {thread.counts.archived > 0 || showArchived ? (
-              <button
-                type="button"
-                className={styles.tool}
-                data-on={showArchived ? true : undefined}
-                aria-pressed={showArchived}
-                aria-label={showArchived ? "Back to the list" : "Show archived"}
-                title={showArchived ? "Back to the list" : `Archived ${thread.counts.archived}`}
-                onClick={() => setShowArchived((current) => !current)}
-              >
-                <Icon name="archive" size={16} />
-              </button>
-            ) : null}
-          </>
-        }
+        more={[
+          {
+            label: "Rename thread",
+            icon: "pencil",
+            onSelect: () => {
+              setNameDraft(thread.name);
+              setRenaming(true);
+            },
+          },
+          {
+            label: "Add a memory",
+            icon: "brain",
+            onSelect: () => {
+              setShowArchived(false);
+              setAddingMemory(true);
+            },
+          },
+        ]}
       />
 
       <div className={styles.paneBody}>
@@ -369,15 +355,17 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             memories={thread.memories}
             members={thread.members}
             arrived={arrived}
+            adding={addingMemory}
+            onAdding={setAddingMemory}
             onChanged={() => void load()}
             onUndo={onUndo}
           />
         )}
 
         {/* A heading with nothing under it is a section announcing its own
-            absence, and there is no longer an exception: the way to the
-            archived pile moved to the pane head, so the heading no longer has
-            to survive in order to carry it. */}
+            absence, and there is no exception: the way to the archived pile is
+            a row below the list, so the heading never has to survive in order
+            to carry it. */}
         {rest.length === 0 ? null : (
           <h2 className={styles.section}>
             {showArchived ? "Archived" : restHeading}
@@ -436,7 +424,11 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             ) : (
             <div
               key={row.id}
-              className={`${styles.row} ${row.archivedAt ? styles.archived : ""}`}
+              className={styles.row}
+              // Secondary ink and a hollow tile, never opacity: dimming a row
+              // on a warm page reads as a rendering fault and takes the label
+              // under the contrast floor with it.
+              data-archived={row.archivedAt ? true : undefined}
               // Moss, because moss is "offload did this, you didn't" and that
               // is exactly what happened. Blue is "this needs you", and a row
               // that was simply filed needs nothing.
@@ -466,7 +458,11 @@ export function Thread({ id, onChanged, onUndo }: Props) {
                 )}
                 <span className={styles.rowMeta}>
                   {row.author.isYou ? "you" : row.author.displayName} ·{" "}
-                  {new Date(row.createdAt).toLocaleDateString(undefined, {
+                  {/* The date says what happened to it rather than only when.
+                      An archived row's created date is the least useful thing
+                      about it. */}
+                  {row.archivedAt ? "archived " : ""}
+                  {new Date(row.archivedAt ?? row.createdAt).toLocaleDateString(undefined, {
                     day: "numeric",
                     month: "short",
                   })}
@@ -517,6 +513,32 @@ export function Thread({ id, onChanged, onUndo }: Props) {
         {cursor ? (
           <button type="button" className={styles.showMore} onClick={() => void more()}>
             Show more
+          </button>
+        ) : null}
+
+        {/* The way to the archived pile, and the way back: a row under
+            everything live rather than a toggle on the pane head. The archive
+            is a place you go, and the count reads without hunting for a
+            highlighted icon. */}
+        {showArchived ? (
+          <button
+            type="button"
+            className={styles.archivedRow}
+            onClick={() => setShowArchived(false)}
+          >
+            <Icon name="chevron-left" size={15} />
+            Back to the list
+          </button>
+        ) : thread.counts.archived > 0 ? (
+          <button
+            type="button"
+            className={styles.archivedRow}
+            onClick={() => setShowArchived(true)}
+          >
+            {thread.counts.archived} archived
+            <span className={styles.archivedChevron}>
+              <Icon name="chevron-right" size={15} />
+            </span>
           </button>
         ) : null}
       </div>

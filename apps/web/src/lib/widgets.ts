@@ -14,6 +14,7 @@
 
 export {
   WIDGET_KINDS,
+  DONE_SHOWN,
   dimensionsIn,
   filtersFor,
   groupBy,
@@ -21,6 +22,7 @@ export {
   parseTag,
   readPreference,
   sinkDone,
+  splitDone,
   widgetsFor,
   type Filter,
   type Group,
