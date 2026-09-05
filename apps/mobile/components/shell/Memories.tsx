@@ -11,8 +11,8 @@
 
 import { useState } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
-import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import Animated, { FadeIn, FadeInDown, FadeOut, useAnimatedStyle } from "react-native-reanimated";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Glyph } from "../Glyph";
 import { COLOR } from "../../lib/colors";
 import {
@@ -267,6 +267,9 @@ function Editor({
   onMute: () => void;
   onDelete: () => void;
 }) {
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
+
   return (
     <>
       <Animated.View
@@ -278,14 +281,14 @@ function Editor({
         <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
       </Animated.View>
 
-      <KeyboardAvoidingView behavior="padding" className="absolute inset-x-0 bottom-0">
-        <Animated.View
-          entering={FadeInDown.duration(220)}
-          exiting={FadeOut.duration(140)}
-          className={`px-gutter-screen pb-space-8 pt-space-6 ${
-            isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"
-          }`}
-        >
+      <Animated.View
+        style={lift}
+        entering={FadeInDown.duration(220)}
+        exiting={FadeOut.duration(140)}
+        className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${
+          isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"
+        }`}
+      >
           <TextInput
             value={draft}
             onChangeText={onDraft}
@@ -333,8 +336,7 @@ function Editor({
               </Text>
             </Pressable>
           </View>
-        </Animated.View>
-      </KeyboardAvoidingView>
+      </Animated.View>
     </>
   );
 }

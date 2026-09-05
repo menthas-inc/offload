@@ -18,7 +18,7 @@
 
 import { useEffect, useRef } from "react";
 import { Keyboard, Platform, Pressable, ScrollView, Text, View } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -52,6 +52,13 @@ export function Conversation() {
   // 0.35 at rest, faded in with the sheet rather than snapping on.
   const scrim = useAnimatedStyle(() => ({ opacity: progress.value * 0.35 }));
 
+  // `height` is negative while the keyboard is up, which is the offset to move
+  // by rather than a number to subtract from something.
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const keyboard = useAnimatedStyle(() => ({
+    transform: [{ translateY: keyboardHeight.value }],
+  }));
+
   const sheet = useAnimatedStyle(() => ({
     opacity: progress.value,
     transform: [{ translateY: (1 - progress.value) * 60 }],
@@ -68,16 +75,25 @@ export function Conversation() {
       </Animated.View>
 
       {/* The sheet rides the keyboard rather than sitting under it.
-          Pinned to `bottom: 0` it stayed where the screen ends, so the
-          composer and the newest turns went behind the keyboard and the part
-          left showing was the beginning of the conversation: exactly backwards
-          for a log you read from the end. */}
-      <KeyboardAvoidingView
-        behavior="padding"
-        style={{ position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "88%" }}
-      >
+          Pinned to `bottom: 0` it stayed where the screen ends, so the composer
+          and the newest turns went behind the keyboard and what was left
+          showing was the beginning of the conversation: exactly backwards for a
+          log you read from the end.
+
+          **Translated by the keyboard's own height, not `KeyboardAvoidingView`.**
+          Padding avoidance works on a view that owns its layout; this one is
+          absolutely positioned with a max height, so there is nothing for the
+          padding to push. The keyboard's animated height is a number this can
+          move by, it stays in step with the system animation frame for frame,
+          and it does the same thing on both platforms, which matters here
+          because the app is edge to edge and Android's resize behaviour is
+          exactly what this repo has been burned by before. */}
       <Animated.View
-        style={[sheet, { flexShrink: 1 }]}
+        style={[
+          sheet,
+          keyboard,
+          { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "88%" },
+        ]}
         className={`${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
       >
         <View className="flex-row items-center gap-space-4 px-gutter-screen pb-space-3 pt-space-5">
@@ -104,7 +120,6 @@ export function Conversation() {
           <Composer placeholder="Add to this" />
         </View>
       </Animated.View>
-      </KeyboardAvoidingView>
     </>
   );
 }
