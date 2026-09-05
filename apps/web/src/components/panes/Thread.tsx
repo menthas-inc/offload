@@ -359,9 +359,11 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             both, and nothing here costs a second query. */}
         {showArchived ? null : (
           <Widgets
+            threadId={id}
             rows={rows}
             preference={thread.preference}
             handlers={handlers}
+            onAdded={() => void load()}
             onToggle={(row) => void toggle(row)}
           />
         )}

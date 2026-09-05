@@ -31,6 +31,7 @@ import {
   widgetsFor,
   type Widget,
 } from "../../lib/widgets";
+import { QUICK_ADD_CHARS, quickAdd } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 
 const HEADINGS: Record<string, string> = {
@@ -41,16 +42,20 @@ const HEADINGS: Record<string, string> = {
 };
 
 interface Props {
+  threadId: string;
   rows: ContentRow[];
   preference: { widgets?: string[]; groupBy?: Record<string, string> };
   /** The same object the list below uses, so a row offers the same controls
    *  wherever it is drawn. A task in To do could be ticked and nothing else
    *  until this was shared: renaming it meant finding it again further down. */
   handlers: RowHandlers;
+  /** Something was typed straight in. The page reloads to pick up the row,
+   *  which the server has already written. */
+  onAdded: () => void;
   onToggle: (row: ContentRow) => void;
 }
 
-export function Widgets({ rows, preference, handlers, onToggle }: Props) {
+export function Widgets({ threadId, rows, preference, handlers, onAdded, onToggle }: Props) {
   const widgets = widgetsFor(rows, preference.widgets);
   if (widgets.length === 0) return null;
 
@@ -61,7 +66,9 @@ export function Widgets({ rows, preference, handlers, onToggle }: Props) {
           key={widget.kind}
           widget={widget}
           dimension={preference.groupBy?.[widget.kind] ?? null}
+          threadId={threadId}
           handlers={handlers}
+          onAdded={onAdded}
           onToggle={onToggle}
         />
       ))}
@@ -72,12 +79,16 @@ export function Widgets({ rows, preference, handlers, onToggle }: Props) {
 function WidgetBlock({
   widget,
   dimension,
+  threadId,
   handlers,
+  onAdded,
   onToggle,
 }: {
   widget: Widget<ContentRow>;
   dimension: string | null;
+  threadId: string;
   handlers: RowHandlers;
+  onAdded: () => void;
   onToggle: (row: ContentRow) => void;
 }) {
   // Null is All, which is also where a row carrying no tag in this dimension
@@ -85,6 +96,7 @@ function WidgetBlock({
   // not a preference about the thread.
   const [only, setOnly] = useState<string | null>(null);
   const [allDone, setAllDone] = useState(false);
+  const [adding, setAdding] = useState(false);
   const filters = filtersFor(widget.rows, dimension);
   const { left, done } = splitDone(matching(widget.rows, dimension, only));
 
@@ -93,7 +105,32 @@ function WidgetBlock({
       <h2 className={styles.section}>
         {HEADINGS[widget.kind]}
         <em className={styles.sectionCount}>{widget.rows.length}</em>
+        {/* Straight into the section, without going through the composer.
+            The same model reads it, grounded in this thread, and it leaves no
+            trace in the conversation: adding a task to a list is not talking
+            to offload. */}
+        <button
+          type="button"
+          className={styles.sectionAdd}
+          aria-label={`Add to ${HEADINGS[widget.kind]}`}
+          title="Add"
+          onClick={() => setAdding(true)}
+        >
+          <Icon name="plus" size={15} />
+        </button>
       </h2>
+
+      {adding ? (
+        <QuickAdd
+          threadId={threadId}
+          section={widget.kind}
+          onDone={() => {
+            setAdding(false);
+            onAdded();
+          }}
+          onCancel={() => setAdding(false)}
+        />
+      ) : null}
 
       {widget.kind === "map" ? <Pins rows={[...left, ...done]} /> : null}
 
@@ -132,6 +169,72 @@ function WidgetBlock({
         </button>
       ) : null}
     </section>
+  );
+}
+
+/** Typing straight into a section.
+ *
+ *  One line, enter to save, escape to put it away. It closes the moment the row
+ *  is written rather than when offload has read it: the request that matters
+ *  has already succeeded, and holding the field open for four seconds would
+ *  stop somebody typing the next one.
+ *
+ *  **It never reports a failure to the model's half of this.** If the row was
+ *  written, this is done. If it was not, the field stays open with the text
+ *  still in it, which is the only state where anything is at risk. */
+function QuickAdd({
+  threadId,
+  section,
+  onDone,
+  onCancel,
+}: {
+  threadId: string;
+  section: string;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function save(): Promise<void> {
+    const trimmed = text.trim();
+    if (trimmed.length === 0) return onCancel();
+    setSaving(true);
+    const written = await quickAdd(threadId, trimmed, section);
+    setSaving(false);
+    if (!written) return;
+    setText("");
+    onDone();
+  }
+
+  return (
+    <div className={styles.quickAdd}>
+      <input
+        className={styles.quickAddField}
+        value={text}
+        autoFocus
+        disabled={saving}
+        maxLength={QUICK_ADD_CHARS}
+        placeholder="Type it, offload will sort it out"
+        onChange={(event) => setText(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") onCancel();
+          if (event.key === "Enter") void save();
+        }}
+        aria-label="Add to this section"
+      />
+      <button type="button" className={styles.sectionAction} onClick={onCancel}>
+        Cancel
+      </button>
+      <button
+        type="button"
+        className={styles.quickAddSave}
+        disabled={text.trim().length === 0 || saving}
+        onClick={() => void save()}
+      >
+        Add
+      </button>
+    </div>
   );
 }
 

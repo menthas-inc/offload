@@ -182,6 +182,10 @@ const contentRow = z.object({
    *  draw a control the server will refuse or hide one it would allow. */
   canDelete: z.boolean(),
   canMove: z.boolean(),
+  /** Typed straight into the thread and not read by offload yet. The row is
+   *  already saved and already usable; this only says a tidier version may
+   *  arrive. Null the rest of the time, which is almost always. */
+  filingAt: z.string().nullable(),
 });
 
 const contentPage = z.object({
@@ -242,6 +246,8 @@ interface RawRow {
    *  account or left, at which point the row is everyone's. */
   authorIsMember: boolean;
   done_at: Date | null;
+  /** Typed straight in and queued for offload to read. Null once it has. */
+  filing_at: Date | null;
   due_at: Date | null;
   occurs_at: Date | null;
   is_reminder: boolean;
@@ -299,6 +305,7 @@ function toRow(row: RawRow, viewerId: string) {
     // or everybody's once the author is gone.
     canDelete: mine || ownerless,
     canMove: mine || ownerless,
+    filingAt: row.filing_at ? row.filing_at.toISOString() : null,
   };
 }
 
@@ -697,6 +704,94 @@ export async function restoreThread(
   });
 }
 
+/** How long a typed row may claim to be filing before a client stops waiting.
+ *
+ *  Nothing sweeps the column. A worker that died leaves a timestamp behind, and
+ *  the row is a perfectly good row either way, so the only thing that has to
+ *  expire is the spinner. Generous against a model that takes five seconds. */
+export const FILING_PATIENCE_MS = 2 * 60 * 1000;
+
+/** The most a person can type into a section heading's +. */
+export const QUICK_ADD_CHARS = 500;
+
+/** What the + on a widget's heading starts the row as.
+ *
+ *  A guess, and a deliberately weak one: it decides which section the row
+ *  appears in for the few seconds before offload has read it, so adding from To
+ *  do puts it in To do rather than making it appear somewhere else and jump.
+ *  offload may change it, and the change mark says so when it does. Files has
+ *  no text answer, so typing into it makes a note. */
+const STARTS_AS: Record<string, "task" | "event" | "location" | "note"> = {
+  todo: "task",
+  timeline: "event",
+  map: "location",
+  files: "note",
+};
+
+/** Write what somebody typed, then ask offload what it was.
+ *
+ *  **The row exists before the model is involved and does not depend on it.**
+ *  The worst mistake this product can make is losing what somebody wrote, so
+ *  the text is a row in the thread from the moment they hit enter. If the
+ *  worker never runs, they have a row saying exactly what they typed, in the
+ *  thread they typed it into, which is a good outcome rather than a broken one.
+ *  Everything the model does afterwards is an improvement on something already
+ *  safe.
+ *
+ *  It never leaves this thread. A dump chooses a home and this one is already
+ *  chosen, which is the whole difference between the composer and a + on a
+ *  section: somebody adding to To do has said where it goes.
+ */
+export async function quickAdd(
+  accountId: string,
+  threadId: string,
+  text: string,
+  section: string,
+): Promise<{ id: string }> {
+  await requireMember(accountId, threadId);
+
+  return db.transaction().execute(async (trx) => {
+    const row = await trx
+      .insertInto("content")
+      .values({
+        account_id: accountId,
+        thread_id: threadId,
+        // Their words, untouched, as the title. offload rewrites it if it can
+        // do better, and until then the row says what they said.
+        type: STARTS_AS[section] ?? "note",
+        title: text,
+        source: "person",
+        filing_at: sql`now()`,
+        updated_at: sql`now()`,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    // In the same transaction as the row, per the queue's own reasoning: a row
+    // written without its job is a row that never gets read, and a job enqueued
+    // without its row is a job with nothing to work on.
+    await trx
+      .updateTable("threads")
+      .set({ content_count: sql`content_count + 1` })
+      .where("id", "=", threadId)
+      .execute();
+    await touchThread(threadId, trx);
+
+    await enqueue({
+      kind: "thread.quick_add",
+      payload: { contentId: row.id, threadId },
+      accountId,
+      priority: PRIORITY.interactive,
+      // Somebody is looking at the row right now. One retry, the same as a
+      // dump, rather than the five an email deserves.
+      maxAttempts: 2,
+      tx: trx,
+    });
+
+    return { id: row.id };
+  });
+}
+
 export async function threadRoutes(app: App): Promise<void> {
   // ------------------------------------------------------------ My threads
   //
@@ -909,6 +1004,7 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.archived_at as archived_at",
             "content.account_id as account_id",
             "content.done_at as done_at",
+            "content.filing_at as filing_at",
             "content.due_at as due_at",
             "content.occurs_at as occurs_at",
             "content.is_reminder as is_reminder",
@@ -997,6 +1093,7 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.archived_at as archived_at",
             "content.account_id as account_id",
             "content.done_at as done_at",
+            "content.filing_at as filing_at",
             "content.due_at as due_at",
             "content.occurs_at as occurs_at",
             "content.is_reminder as is_reminder",
@@ -1208,6 +1305,46 @@ export async function threadRoutes(app: App): Promise<void> {
         if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
         return reply.send({ restored: await restoreThread(accountId, request.params.id) });
+      })
+  );
+
+  // Typing straight into a section, without going through the composer.
+  //
+  // The + on a widget's heading. It is the same model doing the same reading,
+  // grounded in this thread rather than in the whole account, and it leaves no
+  // trace in the conversation: somebody adding a task to a list is not talking
+  // to offload, and a chat log full of "brackets" would make the composer
+  // useless as a record of anything.
+  app.post(
+    "/v1/threads/:id/quick-add",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({
+          text: z.string().min(1).max(QUICK_ADD_CHARS),
+          /** Which heading the + was on. A hint about what the row starts as,
+           *  never a constraint on what offload decides it is. */
+          section: z.string().max(32).optional(),
+        }),
+        response: {
+          200: z.object({ id: z.string() }),
+          401: unauthenticated,
+          404: notFound,
+          413: z.object({ error: z.literal("too_long"), maxChars: z.number() }),
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+        const text = request.body.text.trim();
+        if (text.length === 0) return reply.code(404).send({ error: "not_found" as const });
+
+        return reply.send(
+          await quickAdd(accountId, request.params.id, text, request.body.section ?? "")
+        );
       })
   );
 
@@ -1544,6 +1681,7 @@ async function rowById(contentId: string, viewerId: string) {
       "content.archived_at as archived_at",
       "content.account_id as account_id",
       "content.done_at as done_at",
+      "content.filing_at as filing_at",
       "content.due_at as due_at",
       "content.occurs_at as occurs_at",
       "content.is_reminder as is_reminder",

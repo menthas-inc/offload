@@ -297,30 +297,43 @@ type Outcome =
 
 interface JobContext {
   accountId: string;
-  messageId: string;
+  /** Null for a row typed straight into a thread. There is no message, because
+   *  nobody said anything to offload: they added something to a list and asked
+   *  it to be read. Provenance is the person, so anything written under this
+   *  carries no `derived_from_message_id`, which is the truth. */
+  messageId: string | null;
+  /** The one thread a `thread.quick_add` job may touch. Null for a dump, which
+   *  chooses its own home. */
+  threadId: string | null;
 }
 
 /** The job is the authority on whose conversation this is.
  *
- *  Scoped to the kind this endpoint serves, not just the id, for the same
- *  reason `turn-result` is: the next job kind added to this table could carry a
- *  messageId of its own and would then be written into silently. */
+ *  Scoped to the kinds this endpoint serves, not just the id, for the same
+ *  reason `turn-result` is: a job kind added to this table that carried a
+ *  messageId of its own would otherwise be written into silently. */
 async function jobContext(jobId: string): Promise<JobContext | null> {
   const job = await db
     .selectFrom("jobs")
-    .select(["account_id", "payload"])
+    .select(["account_id", "kind", "payload"])
     .where("id", "=", jobId)
-    .where("kind", "=", "dump.answer")
+    .where("kind", "in", ["dump.answer", "thread.quick_add"])
     .executeTakeFirst();
 
   if (!job?.account_id) return null;
 
   const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as {
     messageId?: string;
+    threadId?: string;
   };
-  if (!payload.messageId) return null;
 
-  return { accountId: job.account_id, messageId: payload.messageId };
+  if (job.kind === "thread.quick_add") {
+    if (!payload.threadId) return null;
+    return { accountId: job.account_id, messageId: null, threadId: payload.threadId };
+  }
+
+  if (!payload.messageId) return null;
+  return { accountId: job.account_id, messageId: payload.messageId, threadId: null };
 }
 
 
@@ -338,11 +351,14 @@ async function jobContext(jobId: string): Promise<JobContext | null> {
  *  second call must not downgrade the first: a move into a thread the turn also
  *  edited in stays landed. */
 async function noteThread(
-  messageId: string,
+  messageId: string | null,
   threadId: string,
   landed: boolean,
   trx: Executor,
 ): Promise<void> {
+  // Nothing to record against. A row typed straight in is not a turn, so there
+  // is no answer whose pills or Done mark this would feed.
+  if (!messageId) return;
   await trx
     .insertInto("message_threads")
     .values({ message_id: messageId, thread_id: threadId, landed })
@@ -377,8 +393,11 @@ async function existing(
   trx: Executor,
   /** The turn's own message, for provenance on anything this writes. A memory
    *  offload worked out should be traceable to the dump it worked it out
-   *  from, and raw content is never purged, so the source stays resolvable. */
-  messageId: string,
+   *  from, and raw content is never purged, so the source stays resolvable.
+   *
+   *  Null when a row was typed straight into a thread: there is no message,
+   *  because nobody said anything. Provenance is the person. */
+  messageId: string | null,
 ): Promise<Outcome> {
   if (call.tool === "rename_thread") {
     await requireMember(accountId, call.threadId, trx);
@@ -568,7 +587,26 @@ export async function toolRoutes(app: App): Promise<void> {
       const context = await jobContext(call.jobId);
       if (!context) return reply.code(404).send({ error: "unknown_job" as const });
 
-      const { accountId, messageId } = context;
+      const { accountId, messageId, threadId: pinned } = context;
+
+      // A quick-add job reads one thread and may only write to it.
+      //
+      // The person picked the thread by typing into it, so the model has no
+      // choice to make and must not be given one: without this, a row typed
+      // into To do could be moved somewhere else, or a new thread could be
+      // started, by a model reading text somebody else wrote into a shared
+      // thread. The narrow tool set is in the prompt; this is the enforcement,
+      // and the two are deliberately not the same thing.
+      if (pinned !== null) {
+        const refusedHere =
+          call.tool === "create_thread" ||
+          call.tool === "move_content" ||
+          call.tool === "rename_thread" ||
+          call.tool === "add_memory" ||
+          call.tool === "set_thread_preference" ||
+          ("threadId" in call && call.threadId !== pinned);
+        if (refusedHere) return reply.send({ ok: false, error: "unknown_thread" as const });
+      }
 
       // A refusal from the access helpers is a refusal, not a crash.
       //
@@ -595,12 +633,24 @@ export async function toolRoutes(app: App): Promise<void> {
         // person can see and delete rather than a bill. Stated rather than
         // quietly true, because the acceptance criterion says "the number of
         // tool calls in a turn is bounded" and this bounds one of the two.
-        const filed = await trx
-          .selectFrom("content")
-          .select(({ fn }) => fn.countAll<string>().as("n"))
-          .where("derived_from_message_id", "=", messageId)
-          .where("deleted_at", "is", null)
-          .executeTakeFirstOrThrow();
+        // A quick-add writes nothing derived from a message, so the same
+        // count would be zero forever and bound nothing. Its own bound is the
+        // rows already in the thread that are still filing, which is one on
+        // the way in and grows only if the model adds more.
+        const filed = messageId
+          ? await trx
+              .selectFrom("content")
+              .select(({ fn }) => fn.countAll<string>().as("n"))
+              .where("derived_from_message_id", "=", messageId)
+              .where("deleted_at", "is", null)
+              .executeTakeFirstOrThrow()
+          : await trx
+              .selectFrom("content")
+              .select(({ fn }) => fn.countAll<string>().as("n"))
+              .where("thread_id", "=", pinned)
+              .where("filing_at", "is not", null)
+              .where("deleted_at", "is", null)
+              .executeTakeFirstOrThrow();
 
         if (Number(filed.n) >= MAX_TOOL_CALLS) {
           return { ok: false, error: "limit_reached" };
@@ -722,6 +772,8 @@ export async function toolRoutes(app: App): Promise<void> {
           .values({
             account_id: accountId,
             thread_id: thread.id,
+            // Null for a quick add: nobody said anything to offload, so there
+            // is no message this came from. Provenance is the person.
             derived_from_message_id: messageId,
             type: call.type,
             title: call.title,

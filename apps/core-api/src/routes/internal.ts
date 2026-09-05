@@ -82,9 +82,103 @@ const body = z.discriminatedUnion("outcome", [
 ]);
 
 const ok = z.object({ status: z.enum(["written", "already"]) });
+
+/** What a quick-add job reports. No reply, because nobody asked a question:
+ *  somebody typed into a list and offload read it. There is nothing to say back
+ *  and nowhere to say it. */
+const quickAddBody = z.strictObject({
+  jobId: z.string().uuid(),
+  outcome: z.enum(["done", "failed"]),
+  usage: usage.optional(),
+});
 const refused = z.object({ error: z.enum(["unauthorised", "unknown_job"]) });
 
 export async function internalRoutes(app: App): Promise<void> {
+  // A row typed straight into a thread has been read.
+  //
+  // Separate from `turn-result` because the two differ in the thing that
+  // matters: a turn ends by writing offload's reply into the conversation, and
+  // this one must write nothing there at all. Somebody adding a task to a list
+  // is not talking to offload, and a chat log carrying every typed row would
+  // stop being a record of anything.
+  //
+  // **All it does is stop the spinner**, which is why it takes no reply and
+  // reports the same status whether the model succeeded or failed. Everything
+  // the model wrote it wrote through the tool endpoint, in its own transaction,
+  // already committed. A failure here means the row keeps the words somebody
+  // typed, in the thread they typed them into, which was always the floor.
+  app.post(
+    "/internal/v1/quick-add-result",
+    { schema: { body: quickAddBody, response: { 200: ok, 401: refused, 404: refused } } },
+    async (request, reply) => {
+      const header = request.headers.authorization;
+      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+      if (!tokenMatches(presented)) {
+        return reply.code(401).send({ error: "unauthorised" as const });
+      }
+
+      const result = request.body;
+      const job = await db
+        .selectFrom("jobs")
+        .select(["id", "account_id", "payload"])
+        .where("id", "=", result.jobId)
+        .where("kind", "=", "thread.quick_add")
+        .executeTakeFirst();
+
+      if (!job?.account_id) return reply.code(404).send({ error: "unknown_job" as const });
+
+      const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as {
+        contentId?: string;
+        threadId?: string;
+      };
+      if (!payload.contentId) return reply.code(404).send({ error: "unknown_job" as const });
+
+      const accountId = job.account_id;
+
+      await db.transaction().execute(async (trx) => {
+        // Every row this job left filing, not only the one it started with: the
+        // model may have split what was typed into several, and each of those
+        // was written filing so it did not appear finished before it was.
+        await trx
+          .updateTable("content")
+          .set({ filing_at: null })
+          .where("thread_id", "=", payload.threadId ?? "")
+          .where("filing_at", "is not", null)
+          .execute();
+
+        if (result.usage && result.usage.length > 0) {
+          await trx
+            .insertInto("llm_usage")
+            .values(
+              result.usage.map((entry) => ({
+                account_id: accountId,
+                job_kind: "thread.quick_add",
+                category: "interactive" as const,
+                model: entry.model,
+                input_tokens: entry.inputTokens,
+                output_tokens: entry.outputTokens,
+                cache_read_tokens: entry.cacheReadTokens,
+                cost_micros: entry.costMicros,
+                latency_ms: entry.latencyMs,
+              }))
+            )
+            .execute();
+        }
+
+        // Closed here rather than by the worker, for the reason turn-result
+        // states: a job left running counts against the account's concurrency
+        // cap forever.
+        await trx
+          .updateTable("jobs")
+          .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
+          .where("id", "=", result.jobId)
+          .execute();
+      });
+
+      return reply.send({ status: "written" as const });
+    }
+  );
+
   app.post(
     "/internal/v1/turn-result",
     { schema: { body, response: { 200: ok, 401: refused, 404: refused } } },

@@ -90,6 +90,8 @@ export interface ContentRow extends Sortable {
   author: { accountId: string | null; displayName: string; isYou: boolean };
   canDelete: boolean;
   canMove: boolean;
+  /** Typed straight in and not read by offload yet. */
+  filingAt: string | null;
 }
 
 export interface ContentPage {
@@ -219,6 +221,37 @@ export type AddedMemory =
   | { full: true }
   | { tooLong: true }
   | null;
+
+/** How long a row may claim to be filing before the spinner gives up.
+ *  Mirrors the server's constant; nothing sweeps the column, and the row is a
+ *  perfectly good row either way. */
+export const FILING_PATIENCE_MS = 2 * 60 * 1000;
+
+/** The most a section heading's + will take. */
+export const QUICK_ADD_CHARS = 500;
+
+/** Whether offload is still reading a row somebody typed in. */
+export function isFiling(filingAt: string | null): boolean {
+  if (!filingAt) return false;
+  return Date.now() - new Date(filingAt).getTime() < FILING_PATIENCE_MS;
+}
+
+/** Type something straight into a thread, without going through the composer.
+ *
+ *  Resolves as soon as the row is written, which is before offload has read it:
+ *  the words are saved first and tidied second, so waiting for the model here
+ *  would give back the one thing this was built to avoid. */
+export async function quickAdd(
+  threadId: string,
+  text: string,
+  section: string,
+): Promise<{ id: string } | null> {
+  const { data } = await send<{ id: string }>(`/v1/threads/${threadId}/quick-add`, {
+    method: "POST",
+    ...body({ text, section }),
+  });
+  return data;
+}
 
 export async function addMemory(threadId: string, text: string): Promise<AddedMemory> {
   const { status, data } = await send<{ memory: Memory }>(

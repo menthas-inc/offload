@@ -24,7 +24,7 @@ import Link from "next/link";
 import { Icon } from "../Icon";
 import { RowTools } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
-import type { ContentRow } from "../../lib/threads";
+import { isFiling, type ContentRow } from "../../lib/threads";
 
 /** Everything the row needs from whoever is holding the page's state. One
  *  object rather than nine props, because both callers pass the same nine and a
@@ -119,6 +119,15 @@ export function ContentRowView({
         )}
         {meta}
       </span>
+
+      {/* offload is still reading a row somebody typed straight in. The one
+          spinner, not a second progress word: the readme reserves "filing" for
+          the thread slot on a row that does not know where it is going, and
+          this row knows. It is already saved and already usable; the spinner
+          only says a tidier version may arrive. */}
+      {isFiling(row.filingAt) ? (
+        <span className={styles.rowFiling} role="status" aria-label="offload is reading this" />
+      ) : null}
 
       <RowTools
         title={row.title}

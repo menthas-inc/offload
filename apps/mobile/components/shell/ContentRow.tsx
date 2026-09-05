@@ -6,7 +6,7 @@
 // this account may actually do, which is how the authorship split is handled
 // without a gesture map that is wrong for half the rows.
 
-import { Platform, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useEffect } from "react";
 import Animated, {
@@ -20,7 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
 import { COLOR } from "../../lib/colors";
-import type { ContentRow } from "../../lib/threads";
+import { isFiling, type ContentRow } from "../../lib/threads";
 
 const REVEAL = 88;
 const isAndroid = Platform.OS === "android";
@@ -184,6 +184,10 @@ export function ContentRowView({ row, border, arrived, onDelete, onActions, onTo
             >
               {row.title}
             </Text>
+            {/* offload is still reading a row somebody typed straight in. The
+                one spinner, not a second progress word: the readme reserves
+                "filing" for a row that does not know where it is going, and
+                this row knows. It is saved and usable already. */}
             {row.body ? (
               <Text
                 className={`mt-space-1 font-core ${
@@ -196,6 +200,14 @@ export function ContentRowView({ row, border, arrived, onDelete, onActions, onTo
               </Text>
             ) : null}
           </View>
+
+          {isFiling(row.filingAt) ? (
+            <ActivityIndicator
+              size="small"
+              color={COLOR.accent}
+              accessibilityLabel="offload is reading this"
+            />
+          ) : null}
         </Animated.View>
       </GestureDetector>
     </View>

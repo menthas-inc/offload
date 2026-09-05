@@ -260,6 +260,14 @@ export interface ContentTable {
   /** When it was ticked off. A timestamp rather than a boolean, because when
    *  something was done is a fact the agenda wants. */
   done_at: Timestamp | null;
+  /** Typed straight into the thread and queued for offload to read, which is
+   *  what the + on a section heading does. Null once it has.
+   *
+   *  A timestamp rather than a boolean so a client can stop showing a spinner
+   *  for a job that died, without anything having to sweep the table: a row
+   *  whose filing started an hour ago is not being worked on, and it is a
+   *  perfectly good row either way. */
+  filing_at: Timestamp | null;
   due_at: Timestamp | null;
   occurs_at: Timestamp | null;
   occurs_end_at: Timestamp | null;

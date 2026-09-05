@@ -1044,6 +1044,94 @@
   color: var(--text-tertiary);
 }
 
+/* The + on a section heading. Quiet until the heading is hovered, like every
+   other control that lives on a row rather than in a bar. */
+.sectionAdd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background var(--transition-ui), color var(--transition-ui);
+}
+
+.sectionAdd:hover {
+  background: var(--surface-fill);
+  color: var(--text-primary);
+}
+
+/* One line under the heading. Not a modal and not the composer: the point of
+   this control is that it costs nothing to use twice in a row. */
+.quickAdd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 var(--space-4);
+}
+
+.quickAddField {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-weight: var(--weight-regular);
+  font-size: calc(14.5px * var(--type-scale));
+  line-height: 1.35;
+  font-family: var(--font-core);
+  color: var(--text-primary);
+  background: var(--surface-raised);
+}
+
+.quickAddSave {
+  flex: 0 0 auto;
+  height: 30px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font-weight: var(--weight-medium);
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
+  cursor: pointer;
+}
+
+.quickAddSave:disabled {
+  background: var(--state-disabled-surface);
+  color: var(--state-disabled-text);
+  cursor: default;
+}
+
+/* The one spinner, on a row offload has not read yet. Sits where the tools do,
+   so a row does not change width when it settles. */
+.rowFiling {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 99px;
+  border: 1.5px solid var(--border-hairline);
+  border-top-color: var(--text-accent);
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still says "not finished", without the movement. */
+  .rowFiling { animation: none; border-top-color: var(--text-accent); opacity: 0.7; }
+}
+
 /* ------------------------------------------------------------- settings */
 
 .settingsBlock {

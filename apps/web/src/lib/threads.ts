@@ -136,6 +136,8 @@ export interface ContentRow {
    *  client never decides what somebody is allowed to do. */
   canDelete: boolean;
   canMove: boolean;
+  /** Typed straight in and not read by offload yet. */
+  filingAt: string | null;
 }
 
 export interface ContentDetail extends ContentRow {
@@ -278,6 +280,42 @@ export async function setPriority(id: string, priority: number): Promise<boolean
 
 /** Add a memory. Any member. Refused at ten, and 409 carries the limit and
  *  never any text. */
+/** How long a row may claim to be filing before the spinner gives up.
+ *
+ *  Mirrors the server's own constant. Nothing sweeps the column, so a worker
+ *  that died leaves a timestamp behind; the row is a perfectly good row either
+ *  way and the only thing that has to expire is the spinner. */
+export const FILING_PATIENCE_MS = 2 * 60 * 1000;
+
+/** The most a section heading's + will take. */
+export const QUICK_ADD_CHARS = 500;
+
+/** Whether offload is still reading a row somebody typed in. */
+export function isFiling(filingAt: string | null): boolean {
+  if (!filingAt) return false;
+  return Date.now() - new Date(filingAt).getTime() < FILING_PATIENCE_MS;
+}
+
+/** Type something straight into a thread, without going through the composer.
+ *
+ *  Resolves as soon as the row is written, which is before offload has read it:
+ *  the point of this is that the words are saved first and tidied second, so
+ *  waiting for the model here would give back the one thing it was built to
+ *  avoid. */
+export async function quickAdd(
+  threadId: string,
+  text: string,
+  section: string,
+): Promise<{ id: string } | null> {
+  const response = await fetch(`${API}/v1/threads/${threadId}/quick-add`, {
+    ...json,
+    method: "POST",
+    body: JSON.stringify({ text, section }),
+  });
+  if (!response.ok) return null;
+  return (await response.json()) as { id: string };
+}
+
 export async function addMemory(
   threadId: string,
   text: string,

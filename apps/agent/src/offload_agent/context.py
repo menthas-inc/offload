@@ -261,3 +261,111 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         default_thread_id=ctx.default_thread_id,
         today=ctx.today,
     )
+
+
+# ---------------------------------------------------------------- quick add
+#
+# A row somebody typed straight into a thread, with the + on a section heading.
+# The thread is already chosen, so none of the account-wide context a dump needs
+# applies: no thread list, no conversation, no default thread. What replaces it
+# is the one thread's own contents and its standing rules, which is what
+# "grounded in the thread" means.
+
+
+@dataclass(frozen=True)
+class Piece:
+    """One thing already in the thread, so offload does not file a second copy
+    of something that is there and can match how the others are written."""
+
+    title: str
+    done: bool
+
+
+@dataclass(frozen=True)
+class QuickAddContext:
+    content_id: str
+    thread_id: str
+    thread_name: str
+    typed: str
+    memories: list[str]
+    pieces: list[Piece]
+    today: str | None = None
+
+
+_TYPED = text(
+    """
+    select c.id, c.title, c.thread_id, t.name as thread_name,
+           to_char(now(), 'FMDay FMDD FMMonth YYYY') as today
+      from content c
+      join threads t on t.id = c.thread_id
+     where c.id = :content_id
+       and c.account_id = :account_id
+       and c.deleted_at is null
+    """
+)
+
+# Membership, not authorship: a shared thread's contents are everybody's, and
+# the person typing is a member or the write would not have happened.
+_PIECES = text(
+    """
+    select c.title, c.done_at is not null as done
+      from content c
+     where c.thread_id = :thread_id
+       and c.id <> :content_id
+       and c.deleted_at is null
+       and c.archived_at is null
+     order by c.created_at desc
+     limit :limit
+    """
+)
+
+_THREAD_MEMORIES = text(
+    """
+    select m.text
+      from memories m
+     where m.scope = 'thread'
+       and m.subject_id = :thread_id
+       and m.deleted_at is null
+       and m.muted_at is null
+     order by m.created_at
+     limit 10
+    """
+)
+
+
+async def load_quick_add(
+    conn: AsyncConnection,
+    *,
+    account_id: str,
+    content_id: str,
+    max_pieces: int = 30,
+) -> QuickAddContext | None:
+    """The one thread, and the row that was typed into it.
+
+    Filtered by account_id like everything else here: the content id is enough
+    to find the row and not enough to prove it is this account's, and a missing
+    filter puts one person's thread into another person's model call.
+    """
+    row = (
+        await conn.execute(_TYPED, {"content_id": content_id, "account_id": account_id})
+    ).first()
+    if row is None or not row.title:
+        return None
+
+    pieces = (
+        await conn.execute(
+            _PIECES,
+            {"thread_id": row.thread_id, "content_id": content_id, "limit": max_pieces},
+        )
+    ).all()
+    memories = (await conn.execute(_THREAD_MEMORIES, {"thread_id": row.thread_id})).all()
+
+    return QuickAddContext(
+        content_id=str(row.id),
+        thread_id=str(row.thread_id),
+        thread_name=row.thread_name,
+        typed=row.title,
+        memories=[m.text for m in memories],
+        pieces=[Piece(title=p.title, done=p.done) for p in pieces],
+        today=row.today,
+    )

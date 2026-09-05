@@ -255,7 +255,9 @@ export default function Thread() {
 
         {showArchived ? null : (
           <Widgets
+            threadId={id}
             widgets={widgets}
+            onAdded={() => void load()}
             groupBy={thread.preference.groupBy}
             onDelete={(row: ContentRow) => void remove(row)}
             onActions={setActing}
