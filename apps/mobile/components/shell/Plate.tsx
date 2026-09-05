@@ -11,6 +11,7 @@
 
 import { Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardState } from "react-native-keyboard-controller";
 import { Glyph } from "../Glyph";
 import { COLOR } from "../../lib/colors";
 import { Composer } from "./Composer";
@@ -35,11 +36,17 @@ export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string
   // same reason: `showComposer` is false while a conversation is up.
   const raised = conversation.live !== null && !conversation.folded;
 
+  // A keyboard means somebody is writing, and nothing else on the plate is
+  // any use to them: the tabs are three places to go while they are mid
+  // sentence, and the safe-area inset is padding above a nav bar the keyboard
+  // is already covering. Both go, so the field sits on the keyboard.
+  const writing = useKeyboardState((state) => state.isVisible);
+
   return (
     <View
         className={`${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
         style={{
-          paddingBottom: insets.bottom,
+          paddingBottom: writing ? 0 : insets.bottom,
           // The kit's own shadow on the plate, which is what separates it from
           // the screen behind rather than a border.
           shadowColor: COLOR.scrim,
@@ -53,7 +60,7 @@ export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string
 
         {raised ? null : <Composer placeholder={placeholder} />}
 
-        {tabs.length > 0 ? (
+        {tabs.length > 0 && !writing ? (
           <View className="flex-row">
             {tabs.map((tab) => (
               <Pressable

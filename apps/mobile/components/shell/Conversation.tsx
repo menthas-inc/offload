@@ -17,7 +17,15 @@
 // screen was not eight seconds.
 
 import { useEffect, useRef } from "react";
-import { Keyboard, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  Keyboard,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   ReduceMotion,
@@ -80,6 +88,13 @@ export function Conversation() {
   // far enough springs back from wherever it got to.
   const drag = useSharedValue(0);
 
+  // In pixels, not `78%`. The sheet's parent is the shell's column, which is
+  // anchored to the bottom with no height of its own, so a percentage resolved
+  // against the *unclamped* sheet: the column sized itself to the whole
+  // conversation, the sheet then shrank to 78% of that, and the surplus column
+  // height showed as a band of nothing under the tabs.
+  const { height: screen } = useWindowDimensions();
+
   const foldNow = (): void => {
     drag.value = 0;
     conversation.fold();
@@ -116,7 +131,7 @@ export function Conversation() {
     // painted straight over the sheet's own composer. One column, sheet on top,
     // which is also how the kit lays it out.
     <Animated.View
-      style={[sheet, { maxHeight: "78%" }]}
+      style={[sheet, { maxHeight: screen * 0.78 }]}
       className={`${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
     >
       {/* The header is the handle: tap it or pull it down to put the
