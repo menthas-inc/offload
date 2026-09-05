@@ -88,6 +88,14 @@ Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, labe
 
 **Spacing and layout.** A 2/4/6/8/12/16/20/24/32/40/56/72 scale, it has a 2px and 6px step because 44px tap targets and 30px chips do not sit on a strict 8px grid. Every screen has a 20px gutter (`--gutter-screen`); the top bar is 52px, the bottom nav 64px, list rows 56px (72px with a meta line), and nothing tappable is under 44px. That rule is about the touch target, not the drawn one: `Button` and `IconButton` can paint a 32px control while still accepting a 44px hit, via their `hitArea` prop and a compensating negative margin. Small chrome may look small; it may never be hard to hit. Fixed elements: the AppBar sits at the top, the composer and TabBar at the bottom; content scrolls between them. On wide screens content is capped at `--content-max` 520px rather than stretched.
 
+**The change mark.** When offload writes to a surface somebody is looking at, the row that
+arrived takes a moss ground that settles to transparent over 1400ms. Moss because it already
+means *offload did this, you didn't*, and a row that was filed correctly needs nothing from
+anybody, which is what blue would have claimed. It is the first pattern here that is a moment
+rather than a state: nothing is left marked afterwards. Reduced motion removes it rather than
+shortening it. Used on the thread page and in any list a turn can write into, on all three
+clients.
+
 **Backgrounds.** Flat, never imagery. The page is a warm off-white, `--surface-page` (#FAF9F7 light, #1C1B19 dark), and white is reserved for the planes that sit on it: `--surface-raised`, `--surface-card` and the chrome bars. No photography, no illustration, no pattern, no texture, no full-bleed imagery, no gradient fields. `--surface-sunken` (`--ink-50`) goes a step below the page, behind the phone frame and inside `fill` cards. Imagery in the product is *user content only*, screenshots, photos they dumped in, presented as-is inside a 10px-radius thumbnail with no filter or treatment. There is no brand photography direction because there is no brand photography. Imagery in the product is *user content only*, screenshots, photos they dumped in, presented as-is inside a 10px-radius thumbnail with no filter or treatment. There is no brand photography direction because there is no brand photography.
 
 **Gradients.** One, functional: a `--surface-raised`-to-transparent fade that protects scrolling content under the bars. Bars are opaque `--surface-raised`, the same white as sheets and cards, sitting on the warm `--surface-page`, so every floating plane is one colour. Blur is *only* for chrome that overlaps content, never on cards, never decorative.
@@ -154,6 +162,11 @@ Components, each with `.jsx`, `.d.ts` props contract, `.prompt.md` usage note, a
 - **core/**, `Icon`, `Button`, `IconButton`, `Chip`, `Badge`, `Card`
 - **forms/**, `TextField`, `Switch`, `Checkbox`, `SegmentedControl`
 - **layout/**, `AppBar`, `TabBar`, `ListRow`, `SwipeRow`, `SectionHeader`, `Sheet`
+
+  *`SwipeRow` reveals a delete and nothing else. The name reads generic and it is not: the
+  `trash-2` glyph and the `--clay-600` ground are inside the component, and only the label is a
+  prop, so a swipe labelled "Archive" shows a trash can. Anything that is not a delete belongs in
+  a sheet until the contract grows an icon and a tone.*
 - **feedback/**, `Toast`, `EmptyState`, `Spinner`
 - **notifications/**, `NotificationIOS`, `NotificationAndroid`
 

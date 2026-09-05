@@ -11,6 +11,41 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-05 · The phones, and four divergences the kits do not cover
+**Surface:** mobile, android
+**Raised by:** building 009.
+
+**`Glyph`, not `Icon`, on React Native.** The governed `Icon` contract is DOM-shaped: it masks an
+SVG with `currentColor` and takes a `basePath`, which is a URL. React Native has neither, so a
+component named `Icon` there would be claiming a contract it cannot implement, and the adherence
+lint said so before anything shipped. The paths themselves are generated from the system's own 80
+vendored SVGs by `pnpm icons`, so nothing is retyped.
+
+**`ToastHost` wraps `Toast` rather than replacing it.** The first version took a state object and
+called itself `Toast`, which the lint also caught. `Toast` now matches its contract and the thing
+deciding when to draw it has its own name. That one was the lint being right rather than
+inconvenient.
+
+**A thread screen keeps the composer and loses the tabs.** `M3App.jsx:301` sets `showComposer`
+false inside a thread and this does not. Dumping from where you are is the product's core move and
+a thread is the likeliest place to want it. The tabs still go, so the thread has the screen.
+
+**The bell and the settings icon are not drawn.** Every tab screen in the kit puts both in the app
+bar and both destinations are out of scope. Drawing them would be the same thing the attachment
+controls were rejected for: a control that does nothing is worse on a phone than absent.
+
+**And Today's own composer is gone.** It was drawn and never wired, which its own comment admitted.
+The plate holds the only one now and the day-one examples fill it.
+
+**Design system impact:** four things. The system owes a **React Native icon contract**, since the
+current one cannot be implemented there. The **change mark** now exists on three clients and should
+be described in `readme.md` beside the two accents, because it is the first pattern that is a
+moment rather than a state. **`SwipeRow` is delete-only** and the readme should say so: the glyph
+and the clay ground are inside the component and the name reads generic. And **`Chip` still has no
+`disabled` prop**, which was agreed and cannot be added here: `_adherence.oxlintrc.json` is
+generated on the design system's side, so adding the prop without regenerating the rule would fail
+the gate for every client. It needs a sync.
+
 ### 2026-09-05 · Six answers the phones needed, and four of them are new surface
 **Surface:** web, mobile, android
 **Raised by:** 009, which could not start without them.
