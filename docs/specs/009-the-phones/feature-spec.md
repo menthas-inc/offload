@@ -147,30 +147,36 @@ honour a consistency nobody asked for.
   would pass a test written against the wrong one while showing content twice.
 - **AC-14a** The kit's `See all` appears past three, and the screen behind it inherits 005's
   AC-6: cursor pagination, not fetching a thread to count it.
-- **AC-15** Every action web offers on a content row is reachable on a phone. **Which gesture
-  carries which action is the fifth open design-system question below, and this AC cannot be
-  built until it is answered.** No kit draws a content row action on any platform, and web's set
+- **AC-15** Every action web offers on a content row is reachable on a phone: **the swipe
+  deletes, and a long press opens a sheet holding the rest.** The sheet lists what this account
+  can actually do to this row and omits the rest, which is how the authorship split is handled
+  without a gesture map that is wrong half the time. No kit draws a content row action on any platform, and web's set
   is authorship-conditional, edit and archive for any member but delete and move for the author
   alone, so the available actions differ row to row and a fixed gesture map would be wrong for
   half of them.
 - **AC-15a** **`SwipeRow` reveals a delete and nothing else.** Its `trash-2` glyph and its
   `--clay-600` ground are written into the component; only the label is a prop, so a swipe
   labelled "Archive" would show a trash can. Either phone swipes carry delete alone and
-  everything else goes in a sheet, or the contract grows an icon and a tone, which is a design
-  system change with an entry rather than a local workaround.
-- **AC-16** Archived content is reachable and is not deleted content. **No kit draws it on any
-  platform**, and web invented a section-header toggle for it, so this is the sixth open design
-  question rather than something to improvise twice.
+  everything else goes in a sheet. **It does**: the swipe is a delete and nothing else, and the
+  contract is left alone.
+- **AC-16** Archived content is reachable and is not deleted content, through **a toggle in the
+  section header carrying the count, as web**. The phones' `SectionHeader` already has the
+  `action` slot it needs, which currently carries "See all", so that slot holds two meanings on
+  one screen and both have to stay legible.
 - **AC-17** A section with nothing in it draws nothing, as on web.
 
 **Thread memories**
 
 - **AC-18** The section from 008, on the thread screen, holding up to ten.
 - **AC-19** A memory can be added, edited in full, and either muted or deleted, one control not
-  both, by the same rules the server enforces.
+  both, by the same rules the server enforces. **The editor is a sheet on a phone**, where web
+  expands the chip in place: a deliberate divergence, because the web answer was shaped by having
+  width to spare and a phone has a third of it plus a keyboard.
 - **AC-20** A memory offload wrote is marked as inferred, with a text alternative rather than a
   glyph alone.
-- **AC-21** In a shared thread a memory shows who wrote it.
+- **AC-21** In a shared thread a memory shows who wrote it, as the name after the text in a
+  lighter weight, as web. *`MemoryChip`'s dot was the nearest precedent and marks which person a
+  memory is about rather than who wrote it, so it is not borrowed.*
 
 **The dump**
 
@@ -224,6 +230,12 @@ honour a consistency nobody asked for.
 - **AC-31c** Undoing the delete inside its eight seconds and finishing the turn both work, in
   either order.
 
+**The change mark**
+
+- **AC-30a** Anything that arrives while somebody is looking at the screen is marked for a
+  moment: a moss ground settling to transparent over 1400ms, the same on both phones as on web.
+  Moss because it already means "offload did this, you didn't".
+
 **Motion**
 
 - **AC-31d** Reduced motion removes movement rather than shortening it, handled once rather than
@@ -266,10 +278,11 @@ honour a consistency nobody asked for.
 ## Depends on
 
 - **004** to **008** for everything the phones render. No new server work is expected.
-- **Six** open design-system questions, which both clients need answered: the change mark, the
-  memory chip's open state, authorship on a chip, `Chip` having no disabled state, **the content
-  row's action gestures** (AC-15), and **archived content on a phone** (AC-16). The last two are
-  new here and neither has a mark anywhere in any kit.
+- **All six open design-system questions, answered on 2026-09-05** and recorded in
+  `.claude/skills/offload-design/decisions.md`: the change mark is the moss fade everywhere, the
+  memory editor is a sheet on a phone, authorship is the name after the text, `Chip` gains a
+  `disabled` prop, the content row swipes to delete with a long-press sheet for the rest, and
+  archived content is a section-header toggle. **Nothing in this spec is blocked.**
 
 ## Out of scope
 

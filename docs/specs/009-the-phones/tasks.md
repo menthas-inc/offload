@@ -84,18 +84,21 @@ carries a failure mode no mock can express.
 - [ ] **C4** To do as real `Checkbox` rows with label and meta, in a padded column, not list rows.
 - [ ] **C5** "Everything in here", with `See all` past three. iOS flat `ListRow`s with chevrons;
       Android wrapped in an `ACard`.
-- [ ] **C6** Content row actions by swipe, since the kit already establishes the gesture on
-      thread rows. Archive and delete on the swipe; the rest in a sheet.
-- [ ] **C7** The archived view.
+- [ ] **C6** Content row actions: the swipe deletes, a long press opens a sheet with the rest.
+      The sheet lists only what this account may do to this row, which is how the authorship
+      split is handled without a gesture map that is wrong half the time.
+- [ ] **C7** The archived view, through a toggle in the section header carrying the count. That
+      slot also carries "See all", so both have to stay legible on one screen.
 
 ## D. Thread memories
 
 - [ ] **D1** The section on the thread page. No kit anywhere, on any platform.
-- [ ] **D2** The chip and its open state. The web opens an editor inside the chip; a phone has no
-      hover and less width.
+- [ ] **D2** The chip opens a **sheet** holding the editor. Web expands in place; the phone
+      diverges on purpose, and the entry is already written.
 - [ ] **D3** One control, mute or delete, matching web.
 - [ ] **D4** The cap of ten, and the add control.
-- [ ] **D5** Authorship on a chip in a shared thread, which has no precedent in any kit.
+- [ ] **D5** Authorship as the name after the text, lighter, as web. Not `MemoryChip`'s dot,
+      which means which person a memory is about.
 
 ## E. The composer and the conversation
 
@@ -128,9 +131,15 @@ carries a failure mode no mock can express.
 
 ## G. The record
 
-- [ ] **G1** The four open design-system questions, answered once for all three clients: the
-      change mark, the memory chip's open state, authorship on a chip, and `Chip` having no
-      disabled state.
+- [x] **G1** All six design-system questions answered, 2026-09-05, recorded in the design log.
+- [ ] **G1a** `Chip` gains a `disabled` prop with the readme's documented treatment, `--ink-100`
+      on `--ink-400` and explicitly no opacity fade. Contract, component and the regenerated
+      lint rule.
+- [ ] **G1b** The change mark described in `readme.md` beside the two accents. It is the first
+      pattern in the system that is a moment rather than a state.
+- [ ] **G1c** `readme.md` says `SwipeRow` is delete-only. The name reads generic and it is not:
+      the glyph and the ground are inside the component.
+- [ ] **G1d** The moss change mark on both phones, dropped to nothing under reduced motion.
 - [ ] **G2** `decisions.md` in both logs, **in the same commit as the code that diverges**, not
       after. Three are already known: the composer staying on a thread screen against the kit's
       `showComposer=false`, the bell and settings not being drawn, and whatever `SwipeRow` needs

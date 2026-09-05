@@ -11,6 +11,56 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-05 · Six answers the phones needed, and four of them are new surface
+**Surface:** web, mobile, android
+**Raised by:** 009, which could not start without them.
+
+Six questions had accumulated across 007 and 008 with no answer in any kit. Four blocked tasks in
+009 and two change a component contract. All six were put to the product owner together, because
+answering them once for three clients is the whole reason to do the phones now rather than later.
+
+**Content row actions on a phone: the swipe deletes, and a long press opens the rest.** No kit
+draws a content row action anywhere. `SwipeRow` reveals a delete and nothing else, its `trash-2`
+glyph and `--clay-600` ground written into the component with only the label exposed, so a swipe
+labelled Archive would show a trash can. And web's set is authorship-conditional, edit and archive
+for any member but delete and move for the author alone, so a fixed gesture map is wrong for half
+the rows. A sheet lists what you can actually do and omits the rest. *The cost, stated: archiving
+is the commonest action and now takes two gestures.*
+
+**Archived content: a toggle in the section header, as web.** The phones' `SectionHeader` already
+has an `action` slot, currently carrying "See all", so the mechanism exists and the count stays
+visible without going anywhere. *That slot now carries two meanings on one screen, which is the
+thing to watch.*
+
+**The memory chip opens into a sheet on a phone, and expands in place on web.** A deliberate
+divergence rather than an oversight: the web answer was shaped by having width to spare, and a
+phone has a third of it plus a keyboard that has to go somewhere. This is the one interaction here
+where the keyboard problem is already solved by the pattern.
+
+**Authorship on a memory chip is the name after the text, in a lighter weight.** What web already
+does. `MemoryChip`'s small dot was the nearest precedent and it marks which person a memory is
+*about*, not who wrote it, so borrowing it would have overloaded a meaning that already exists.
+
+**The change mark is the moss fade, everywhere.** A moss background settling to transparent over
+1400ms on anything that arrived while somebody was looking at the screen. It becomes the system's
+pattern for *offload did this while you were watching*, unchanged on the phones, since it is a
+background animation and Reanimated does it identically. Moss already means "offload did this, you
+didn't", so this is the existing vocabulary rather than a new one. Reduced motion drops it to
+nothing rather than shortening it.
+
+**`Chip` gains a `disabled` prop.** The contract had none and the component derived interactivity
+from whether it had a click handler, so an unavailable chip was indistinguishable from an
+available one. The readme already specifies the treatment, an `--ink-100` surface with `--ink-400`
+text and explicitly no opacity fade, so this is wiring an existing decision into the one component
+that skipped it.
+
+**Design system impact:** substantial and none of it optional. `Chip.d.ts` and `Chip.jsx` gain
+`disabled` and the generated lint rule regenerates with it. The change mark needs describing in
+`readme.md` beside the two accents, since it is the first pattern that is a moment rather than a
+state. `SwipeRow` stays delete-only and the readme should say so, because "swipe row" reads
+generic and it is not. And four things now exist in the product with no kit drawing: the memories
+section, the memory editor sheet, the archived toggle, and the long-press action sheet.
+
 ### 2026-09-04 · A screen catches up on its own, and the mark for it is moss
 **Surface:** web, and mobile owes the same
 **Raised by:** the product owner.
