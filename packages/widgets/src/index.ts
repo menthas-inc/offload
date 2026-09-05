@@ -223,6 +223,53 @@ export function groupBy<T extends Sortable>(
   return groups;
 }
 
+/** One chip in a widget's filter row.
+ *
+ *  Shared rather than derived twice: this and `groupBy` read the same tags the
+ *  same way, and two clients disagreeing about what `city:alfama` means is the
+ *  thing `parseTag` already exists to stop.
+ */
+export interface Filter {
+  /** The tag value this chip selects. */
+  value: string;
+  count: number;
+}
+
+/** The filter chips a widget offers, most-used first.
+ *
+ *  There is no chip for rows carrying no tag in this dimension. They are not
+ *  hidden: a filter is a deliberate act and everything is under All, which is
+ *  where a row nobody tagged belongs. Giving them their own chip would put
+ *  offload's word for uncategorised content back on the screen, which is what
+ *  the 5 September answer took out along with the grouping.
+ */
+export function filtersFor(
+  rows: readonly Sortable[],
+  dimension: string | null | undefined,
+): Filter[] {
+  if (!dimension) return [];
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const match = row.tags.map(parseTag).find((tag) => tag.dimension === dimension);
+    if (match) counts.set(match.value, (counts.get(match.value) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+}
+
+/** The rows one chip shows. `null` is All. */
+export function matching<T extends Sortable>(
+  rows: readonly T[],
+  dimension: string | null | undefined,
+  value: string | null,
+): T[] {
+  if (!dimension || value === null) return [...rows];
+  return rows.filter((row) =>
+    row.tags.map(parseTag).some((tag) => tag.dimension === dimension && tag.value === value),
+  );
+}
+
 /** What a stored preference is allowed to say.
  *
  *  Tolerated on read, validated on write. A preference naming a widget that no

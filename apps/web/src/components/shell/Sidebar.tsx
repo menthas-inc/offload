@@ -110,9 +110,9 @@ export function Sidebar({ threads, threadCount }: Props) {
         </>
       ) : null}
 
-      {/* The kit puts both at the bottom and both are inert: Activity needs
-          notifications and Settings needs somewhere to go. Drawn, because the
-          shape of the nav should not change under somebody as features land. */}
+      {/* The kit puts these at the bottom. Activity is still inert: it needs
+          notifications. Drawn, because the shape of the nav should not change
+          under somebody as features land. */}
       <div className={styles.sideFoot}>
         <button
           type="button"
@@ -124,14 +124,16 @@ export function Sidebar({ threads, threadCount }: Props) {
           <Icon name="bell" size={17} />
           <span className={styles.navLabel}>Activity</span>
         </button>
-        <div className={styles.navItem} data-static="true">
+        {/* Settings has somewhere to go now: the Appearance page holds the same
+            two preferences the rows below it change, laid out as choices. */}
+        <Link href="/settings/appearance" className={styles.navItem}>
           <Icon name="settings" size={17} />
           <span className={styles.navLabel}>Settings</span>
-          {/* Right of Settings, per the product owner. Neither is in the kit;
-              both are things about this device rather than about the account,
-              which is why they sit beside Settings rather than inside it. */}
-          <Preferences />
-        </div>
+        </Link>
+        {/* Named rows rather than two glyphs beside Settings. They are about
+            this device rather than about the account, which is why they are
+            here and not only inside Settings. */}
+        <Preferences />
       </div>
     </nav>
   );

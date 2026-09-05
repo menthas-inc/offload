@@ -1,6 +1,6 @@
 "use client";
 
-// The widgets a thread earns, and the groups inside them.
+// The widgets a thread earns, and the filter inside them.
 //
 // From ui_kits/android_app/M3ThreadWidgets.jsx, whose own comment is the rule
 // this implements: "widgets a thread earns from its own contents: a map when it
@@ -12,14 +12,16 @@
 // page and these are `filter` calls over it, which is what keeps the thread
 // read a fixed number of queries however many widgets a thread earns.
 //
-// **The kit filters where this groups.** `ChipRow` is a single-select filter
-// above a flat list; the product owner asked for grouping, which is headed
-// sections. Both may eventually be wanted and only one is drawn, so this is a
-// divergence logged in the design system's decisions.md rather than a
-// reinterpretation.
+// **It filters, it does not group.** This grouped into headed sections until 5
+// September 2026, when the divergence was put back to the product owner and
+// answered the other way: a screen whose promise is that nothing needs filing
+// should not lead with structure somebody has to read, and a filter answers
+// "show me the receipts" in one tap. The group heading and the bare "Everything
+// else" heading went with it.
 
+import { useState } from "react";
 import styles from "../../app/(shell)/shell.module.css";
-import { groupBy, widgetsFor, type Widget } from "../../lib/widgets";
+import { filtersFor, matching, widgetsFor, type Widget } from "../../lib/widgets";
 import type { ContentRow } from "../../lib/threads";
 
 const HEADINGS: Record<string, string> = {
@@ -62,7 +64,12 @@ function WidgetBlock({
   dimension: string | null;
   onToggle: (row: ContentRow) => void;
 }) {
-  const groups = groupBy(widget.rows, dimension);
+  // Null is All, which is also where a row carrying no tag in this dimension
+  // lives. Local rather than stored: a filter is what you are looking at now,
+  // not a preference about the thread.
+  const [only, setOnly] = useState<string | null>(null);
+  const filters = filtersFor(widget.rows, dimension);
+  const shown = matching(widget.rows, dimension, only);
 
   return (
     <section>
@@ -71,35 +78,54 @@ function WidgetBlock({
         <em className={styles.sectionCount}>{widget.rows.length}</em>
       </h2>
 
-      {widget.kind === "map" ? <Pins rows={widget.rows} /> : null}
+      {widget.kind === "map" ? <Pins rows={shown} /> : null}
 
-      {groups.map((group) => (
-        <div key={group.value ?? "__untagged"}>
-          {/* A group heading is new surface. The design system has
-              `SectionHeader`, 21px over a rule and far too heavy for a
-              sub-group, and `Chip`, which the kit already uses with
-              tone="accent" and a sparkles glyph for anything offload derived.
-              This is built from that vocabulary.
-
-              The unnamed group has no heading at all: it holds rows carrying no
-              tag in this dimension, and "Other" would be a label offload
-              invented for content nobody categorised. */}
-          {group.value ? (
-            <p className={styles.groupHeading}>
-              <span aria-hidden="true">✦</span>
-              {group.value}
-              <em className={styles.sectionCount}>{group.rows.length}</em>
-            </p>
-          ) : groups.length > 1 ? (
-            <p className={styles.groupHeadingBare}>Everything else</p>
-          ) : null}
-
-          {group.rows.map((row) => (
-            <Row key={row.id} row={row} widget={widget.kind} onToggle={onToggle} />
+      {/* One row of chips, single select, All first. Below two values there is
+          nothing to choose between, so it does not draw. */}
+      {filters.length > 1 ? (
+        <div className={styles.filterRow} role="group" aria-label={`Filter ${HEADINGS[widget.kind]}`}>
+          <FilterChip label="All" count={widget.rows.length} on={only === null} onPick={() => setOnly(null)} />
+          {filters.map((filter) => (
+            <FilterChip
+              key={filter.value}
+              label={filter.value}
+              count={filter.count}
+              on={only === filter.value}
+              onPick={() => setOnly(filter.value)}
+            />
           ))}
         </div>
+      ) : null}
+
+      {shown.map((row) => (
+        <Row key={row.id} row={row} widget={widget.kind} onToggle={onToggle} />
       ))}
     </section>
+  );
+}
+
+/** A chip from the contract: 30px pill, selection inverts to ink, and the count
+ *  rides inside the label rather than in a second element. */
+function FilterChip({
+  label,
+  count,
+  on,
+  onPick,
+}: {
+  label: string;
+  count: number;
+  on: boolean;
+  onPick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`${styles.chip} ${on ? styles.chipOn : ""}`}
+      aria-pressed={on}
+      onClick={onPick}
+    >
+      {label} {count}
+    </button>
   );
 }
 

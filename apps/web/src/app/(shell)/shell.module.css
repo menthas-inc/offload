@@ -761,29 +761,26 @@
 
 /* ------------------------------------------------------------- widgets */
 
-/* A group heading. New surface: the design system has SectionHeader, 21px over
-   a rule and far too heavy for a sub-group, and Chip, which the kit already
-   uses with tone="accent" and a sparkles glyph for anything offload derived.
-   This is built from that vocabulary. */
-.groupHeading {
+/* The filter above a widget's list. One row, single select, scrolls sideways
+   on a narrow pane rather than wrapping: a filter that reflows to two lines
+   moves the list under it every time you pick something. */
+.filterRow {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: var(--space-6) 0 var(--space-3);
-  padding: 0;
-  font-weight: var(--weight-medium);
-  font-size: calc(12.5px * var(--type-scale));
-  line-height: 1;
-  font-family: var(--font-core);
-  color: var(--text-accent);
-  text-transform: lowercase;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-/* The group holding rows with no tag in this dimension. No accent and no
-   sparkle: offload did not derive it, it is simply what was left. */
-.groupHeadingBare {
-  composes: groupHeading;
-  color: var(--text-tertiary);
+.filterRow::-webkit-scrollbar { display: none; }
+
+.filterRow > * { flex: 0 0 auto; }
+
+/* Selected inverts to ink, which is what the Chip contract does for a selected
+   neutral tone and what a selected tool in the pane head already does here. */
+.chipOn {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
 }
 
 /* Pins on a plain surface, as the kits draw it. No tiles, so nothing about
@@ -960,14 +957,77 @@
   color: var(--text-primary);
 }
 
-/* Settings is a row that holds controls rather than a control itself, so it
-   does not take the hover or the disabled look. */
-.navItem[data-static="true"] {
-  cursor: default;
+/* The state a preference row is currently in, right-aligned. Same treatment as
+   the kit's Settings rows, which put the current value where a chevron would
+   otherwise be, so the row answers its own question without being opened. */
+.navValue {
+  margin-left: auto;
+  font-weight: var(--weight-medium);
+  font-size: calc(13px * var(--type-scale));
+  color: var(--text-tertiary);
+  white-space: nowrap;
 }
 
-.navItem[data-static="true"]:hover {
+/* ------------------------------------------------------------- settings */
+
+.settingsBlock {
+  padding: var(--space-7) 0 0;
+}
+
+.settingsBlock:first-child {
+  padding-top: var(--space-2);
+}
+
+.settingsBlockTitle {
+  margin: 0;
+  font-weight: var(--weight-semibold);
+  font-size: calc(15px * var(--type-scale));
+  line-height: 1.2;
+  font-family: var(--font-core);
+  color: var(--text-primary);
+}
+
+.settingsNote {
+  margin: 3px 0 0;
+  font-size: calc(13.5px * var(--type-scale));
+  line-height: 1.45;
+  font-family: var(--font-core);
+  color: var(--text-secondary);
+}
+
+/* SegmentedControl: offload's only tab-like control. A track holding two to
+   four segments, the selected one raised out of it. */
+.segmented {
+  display: inline-flex;
+  margin-top: var(--space-5);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-fill);
+}
+
+.segment {
+  min-height: 32px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 2px);
   background: transparent;
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  font-size: calc(13.5px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
+  cursor: pointer;
+  transition: background var(--transition-ui);
+}
+
+.segment:hover {
+  color: var(--text-primary);
+}
+
+.segment[aria-pressed="true"] {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-1);
 }
 
 /* ------------------------------------------------------------- memories
