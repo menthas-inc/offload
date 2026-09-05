@@ -44,7 +44,12 @@ export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string
 
   return (
     <View
-        className={`${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
+        // Rounded on top only when it is the top. A raised conversation sits
+        // directly on the plate, so the corners cut two notches out of the
+        // join and the scrim showed through them.
+        className={`${isAndroid ? "bg-a-c-low" : "bg-surface-raised"} ${
+          raised ? "" : isAndroid ? "rounded-t-a-xl" : "rounded-t-lg"
+        }`}
         style={{
           paddingBottom: writing ? 0 : insets.bottom,
           // The kit's own shadow on the plate, which is what separates it from

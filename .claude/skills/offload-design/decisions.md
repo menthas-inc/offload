@@ -963,3 +963,16 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **Numbers, from a trace of a production build.** Main thread busy per second: the landing page 301ms to 212ms, the gate 100ms to 73ms, privacy 2ms. Idle rAF callbacks a second: the landing page 181 to 68, the gate 60 to 8.5, privacy 0. *Measured in headless Chrome on software rendering, so the absolute numbers are worse than any real machine and only the ratios should be believed. What is left on the landing page above the gate is the word dissolve actually running, which is the animation working rather than waste.*
 
 **Design system impact:** none to the tokens, the components or the look. The rule worth carrying into `readme.md` beside the atmosphere: an effect that sits behind a turbulence filter must not be animated at frame rate, and an easing loop must stop when it arrives. Both were written the expensive way here and neither was visible as a defect until a page with text on it had to share the thread.
+
+### 2026-09-05 · The plate rounds its top only when it is the top
+**Surface:** mobile
+
+**Is:** the bottom plate on Android and iOS keeps its rounded top corners while it is the topmost surface of the bottom stack, and drops them the moment a raised conversation sits on it. Under a keyboard the plate also loses its tabs and its safe-area inset, so the composer sits directly on the keyboard.
+
+**The corners were cutting two notches out of a join.** A raised conversation is its own sheet with its own composer, stacked directly above the plate in one column. Both surfaces carry the same fill, so the join should be invisible; instead the plate's radius left a wedge at each end where the scrim behind showed through. Rounding is a property of being the top of a stack, not of being the plate, and the component now reads it that way. Folded, the plate is the top again and rounds again.
+
+**A keyboard means somebody is writing, and nothing else on the plate is any use to them.** Three places to go while you are mid sentence, and a safe-area inset padding a nav bar the keyboard is already covering. Both go on `isVisible`, which reads slightly ahead of the animation, so the tabs are gone before the keyboard has finished arriving.
+
+**A percentage height against a bottom-anchored parent is a trap, and this is the second layout bug from the same stack.** The sheet capped itself at `78%`. Its parent is the shell's column, anchored `bottom: 0` with no height of its own, so Yoga sized the column from the *unclamped* sheet, the sheet then shrank to 78% of that, and the surplus column height showed as a band of nothing below the tabs. It is a pixel height off the window now. The diagnosis came from painting the column magenta rather than from reading it: the column had been reaching the screen bottom the whole time.
+
+**Design system impact:** worth a line in `readme.md` beside the plate. Two rules, both about the plate not being a fixed shape: it rounds its top only when nothing is stacked on it, and it clears itself to the composer alone whenever the keyboard is up. No kit draws either state, so the kits are what has to catch up.
