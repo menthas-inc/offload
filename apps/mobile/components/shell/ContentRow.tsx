@@ -147,22 +147,39 @@ export function ContentRowView({ row, border, arrived, onDelete, onActions, onTo
               {row.doneAt ? <Glyph name="check" size={13} color={COLOR.onSolid} /> : null}
             </Pressable>
           ) : (
+            // Archived is a hollow tile with a dashed border and secondary
+            // ink, never opacity: dimming a row on a warm page reads as a
+            // rendering fault and takes the label under the contrast floor.
             <View
               className={`items-center justify-center rounded-sm ${
-                isAndroid ? "bg-a-c-low" : "bg-surface-fill"
+                row.archivedAt
+                  ? "border border-dashed border-border-strong"
+                  : isAndroid
+                    ? "bg-a-c-low"
+                    : "bg-surface-fill"
               }`}
-              style={{ width: 36, height: 36, opacity: row.archivedAt ? 0.5 : 1 }}
+              style={{ width: 36, height: 36 }}
             >
               <Glyph name={ICON[row.type] ?? "align-left"} size={18} color={COLOR.iconOnWell} />
             </View>
           )}
-          <View className="flex-1" style={{ opacity: row.archivedAt ? 0.5 : 1 }}>
+          <View className="flex-1">
             <Text
-              className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+              className={`font-core font-medium ${
+                row.doneAt || row.archivedAt
+                  ? row.doneAt
+                    ? "text-text-tertiary"
+                    : "text-text-secondary"
+                  : isAndroid
+                    ? "text-a-on"
+                    : "text-text-primary"
+              }`}
               style={{
                 fontSize: 15.5,
                 lineHeight: 21,
-                ...(row.doneAt ? { textDecorationLine: "line-through" as const, opacity: 0.55 } : {}),
+                // A finished row keeps the tick, the sinking and a 1px strike,
+                // and loses the opacity: tertiary ink already says it.
+                ...(row.doneAt ? { textDecorationLine: "line-through" as const } : {}),
               }}
             >
               {row.title}

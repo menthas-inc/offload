@@ -30,4 +30,6 @@ export const COLOR = {
   scrim: base["ink-950"]!,
   /** The ground a row sits on, which the change mark fades back to. */
   page: Platform.OS === "android" ? m3["a-surface"]! : base["surface-page"]!,
+  /** Clay. The one destructive action in a sheet, at most. */
+  danger: base["text-danger"]!,
 } as const;

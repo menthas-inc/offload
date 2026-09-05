@@ -12,7 +12,7 @@
 //     The sheet lists what this account may actually do to the row, which is
 //     how the authorship split is handled without a gesture map that is wrong
 //     for half of them.
-//   - **The archived toggle** in the section header.
+//   - **The archived pile**, a row under everything live.
 //   - **No standing placeholder.** The kit says "offload has not summarised
 //     this one yet" when there is none; nothing writes summaries, and a line
 //     saying offload has not done something is an apology taking up the most
@@ -27,7 +27,7 @@ import { Glyph } from "../Glyph";
 import { COLOR } from "../../lib/colors";
 import { ContentRowView } from "../shell/ContentRow";
 import { MemoriesSection } from "../shell/Memories";
-import { RowActions, type RowAction } from "../shell/RowActions";
+import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
 import { ToastHost, useToast } from "../shell/Toast";
 import { Widgets } from "../shell/Widgets";
 import {
@@ -163,12 +163,19 @@ export default function Thread() {
 
   const actions: RowAction[] = acting
     ? [
-        { label: acting.doneAt ? "Mark not done" : "Mark done", run: () => tick(acting) },
+        {
+          label: acting.doneAt ? "Mark not done" : "Mark done",
+          icon: acting.doneAt ? "rewind" : "check",
+          run: () => tick(acting),
+        },
         {
           label: acting.archivedAt ? "Put back in the thread" : "Archive",
+          icon: acting.archivedAt ? "rewind" : "archive",
           run: () => archive(acting),
         },
-        ...(acting.canDelete ? [{ label: "Delete", danger: true, run: () => remove(acting) }] : []),
+        ...(acting.canDelete
+          ? [{ label: "Delete", icon: "trash-2", danger: true, run: () => remove(acting) }]
+          : []),
       ]
     : [];
 
@@ -263,13 +270,6 @@ export default function Thread() {
                 </Text>
               </View>
             )}
-            {thread.counts.archived > 0 || showArchived ? (
-              <Pressable className="ml-auto" hitSlop={10} onPress={() => setShowArchived((v) => !v)}>
-                <Text className="font-core text-text-secondary" style={{ fontSize: 13 }}>
-                  {showArchived ? "Back to the list" : `Archived ${thread.counts.archived}`}
-                </Text>
-              </Pressable>
-            ) : null}
           </View>
         ) : null}
 
@@ -292,9 +292,36 @@ export default function Thread() {
             onActions={() => setActing(row)}
           />
         ))}
+
+        {/* The way to the archived pile, and the way back: a row under
+            everything live rather than a control in the section heading. The
+            archive is a place you go, and the count reads without finding a
+            control tucked into a heading that only exists when the list is not
+            empty. */}
+        {showArchived ? (
+          <Pressable
+            onPress={() => setShowArchived(false)}
+            className="min-h-tap-min flex-row items-center gap-space-3 border-t border-border-hairline px-gutter-screen"
+          >
+            <Glyph name="chevron-left" size={15} color={COLOR.iconOnWell} />
+            <Text className="font-core font-medium text-text-secondary" style={{ fontSize: 14 }}>
+              Back to the list
+            </Text>
+          </Pressable>
+        ) : thread.counts.archived > 0 ? (
+          <Pressable
+            onPress={() => setShowArchived(true)}
+            className="min-h-tap-min flex-row items-center gap-space-3 border-t border-border-hairline px-gutter-screen"
+          >
+            <Text className="flex-1 font-core font-medium text-text-secondary" style={{ fontSize: 14 }}>
+              {thread.counts.archived} archived
+            </Text>
+            <Glyph name="chevron-right" size={15} color={COLOR.iconOnWell} />
+          </Pressable>
+        ) : null}
       </ScrollView>
 
-      <RowActions
+      <RowActionSheet
         open={acting !== null}
         actions={actions}
         onClose={() => setActing(null)}
