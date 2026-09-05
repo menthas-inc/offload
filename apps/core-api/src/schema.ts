@@ -329,6 +329,22 @@ export interface LlmUsageTable {
  *  task. The test is whether it would appear in a widget. Ten per thread, so
  *  what reaches a prompt is bounded by a constant rather than by how long
  *  somebody has used offload (OFF-8). */
+/** Which threads one turn changed.
+ *
+ *  `content.derived_from_message_id` says what a dump produced, which answers
+ *  "what changed" only for `add_content`. A turn that moves, ticks off,
+ *  archives or rewrites something produces no content, and the screen concluded
+ *  from an empty list that nothing had happened. */
+export interface MessageThreadsTable {
+  message_id: string;
+  thread_id: string;
+  /** The turn's content is in this thread now. False for the thread a move
+   *  took it out of: that thread changed and has to reload, but a pill saying
+   *  the dump went there would be untrue. */
+  landed: Generated<boolean>;
+  created_at: Timestamp;
+}
+
 export interface MemoriesTable {
   id: Generated<string>;
   /** The author. Decides delete (OFF-3) and shows in a shared thread. Never a
@@ -376,6 +392,7 @@ export interface Database {
   conversations: ConversationsTable;
   messages: MessagesTable;
   content: ContentTable;
+  message_threads: MessageThreadsTable;
   memories: MemoriesTable;
   places: PlacesTable;
   place_lookups: PlaceLookupsTable;

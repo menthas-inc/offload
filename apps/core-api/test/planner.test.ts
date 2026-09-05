@@ -24,6 +24,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
+import { streamStep } from "../src/routes/dumps.js";
 import { handlers, PURGE_CEILING } from "../src/jobs/handlers.js";
 import { undoTurn } from "../src/routes/dumps.js";
 import { MAX_TOOL_CALLS } from "../src/routes/tools.js";
@@ -706,5 +707,95 @@ describe("the purge job", () => {
     expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(
       PURGE_CEILING + 1
     );
+  });
+});
+
+
+describe("a turn that changes what is already there says so", () => {
+  // The bug: `threads` on an answer came from `content.derived_from_message_id`,
+  // which only ever matches `add_content`. A move produces no content, so the
+  // list came back empty, and the screen reads an empty list as "this turn did
+  // nothing": no Done mark on a move that worked, and no reload of either
+  // thread, so the row stayed on screen in a thread it had left.
+  it("reports both ends of a move, and only the destination as where it went", async () => {
+    const accountId = await account();
+    const from = await thread(accountId, "Flat admin");
+    const to = await thread(accountId, "Bookshelf build");
+
+    // Filed by one turn and moved by a later one, which is the case that broke.
+    // Move it inside the turn that filed it and the old query answers correctly
+    // by accident: the content is derived from that message either way, so it
+    // reports whichever thread the row ended up in.
+    const { jobId: filing } = await dump(accountId);
+    const added = await tool({
+      tool: "add_content",
+      jobId: filing,
+      toolCallId: "a1",
+      threadId: from,
+      title: "Oak brackets",
+    });
+    const contentId = (added.json() as { contentId: string }).contentId;
+    await turnResult({ outcome: "answered", jobId: filing, replyText: "Saved.", usage });
+
+    const { jobId, messageId } = await dump(accountId, "move the brackets to the bookshelf one");
+    const moved = await tool({
+      tool: "move_content",
+      jobId,
+      toolCallId: "m1",
+      contentId,
+      threadId: to,
+    });
+    expect(moved.statusCode).toBe(200);
+    await turnResult({ outcome: "answered", jobId, replyText: "Moved the brackets.", usage });
+
+    const step = await streamStep(messageId, accountId);
+    expect(step.do).toBe("answered");
+    if (step.do !== "answered") throw new Error("unreachable");
+
+    // Where it went: the destination alone. The thread it left must never be a
+    // pill, which says where things went, and saying it went somewhere it just
+    // came out of is the one thing that surface must not do.
+    expect(step.threads.map((t) => t.id)).toEqual([to]);
+
+    // What changed: both. The source has to reload or it goes on showing a row
+    // that is not in it.
+    expect([...step.changed].sort()).toEqual([from, to].sort());
+  });
+
+  it("earns the Done mark for a tick, which files nothing at all", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId: first, messageId: firstMessage } = await dump(accountId);
+
+    const added = await tool({
+      tool: "add_content",
+      jobId: first,
+      toolCallId: "a1",
+      threadId,
+      title: "Chase the deposit",
+    });
+    const contentId = (added.json() as { contentId: string }).contentId;
+    await turnResult({ outcome: "answered", jobId: first, replyText: "Saved.", usage });
+    void firstMessage;
+
+    // A second turn that only ticks it off. Nothing is filed, so before this
+    // the answer carried an empty list and the turn wore no Done mark.
+    const { jobId, messageId } = await dump(accountId, "tick the deposit off");
+    const ticked = await tool({
+      tool: "complete_content",
+      jobId,
+      toolCallId: "c1",
+      contentId,
+      done: true,
+    });
+    expect(ticked.statusCode).toBe(200);
+    await turnResult({ outcome: "answered", jobId, replyText: "Ticked it off.", usage });
+
+    const step = await streamStep(messageId, accountId);
+    if (step.do !== "answered") throw new Error("unreachable");
+    // Non-empty is the whole assertion: the client reads this as "the turn did
+    // something", which is what draws Done and what reloads the thread.
+    expect(step.threads.map((t) => t.id)).toEqual([threadId]);
+    expect(step.changed).toEqual([threadId]);
   });
 });

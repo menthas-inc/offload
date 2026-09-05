@@ -177,9 +177,11 @@ export function Composer({
             : next;
         });
         // A dump can create a thread, so the sidebar is stale the moment this
-        // lands.
-        if (answer.threads && answer.threads.length > 0)
-          onFiled(answer.threads.map((thread) => thread.id));
+        // lands. **`changed`, not `threads`**: a turn that moved a piece out of
+        // the thread you are looking at changed it without filing anything into
+        // it, and `threads` is only where things went. That gap is why a move
+        // left the page showing a row that was not in it any more.
+        if (answer.changed && answer.changed.length > 0) onFiled(answer.changed);
         // Only a finished turn offers a way back. A partial one offers a way
         // forward, and both at once would ask somebody to choose between
         // finishing and undoing inside eight seconds.

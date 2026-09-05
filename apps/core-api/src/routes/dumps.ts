@@ -106,6 +106,10 @@ const messageResponse = z.object({
   text: z.string().nullable(),
   reply: z.string().nullable(),
   threads: touchedThreads,
+  /** Thread ids whose contents this turn changed, a superset of `threads`.
+   *  A move's source is in here and not in `threads`: the screen has to reload
+   *  it, and a pill saying the dump went there would be untrue. */
+  changed: z.array(z.string()),
 });
 
 /** One screenful. The composer is not a scrollback and the heavy case at 200
@@ -150,26 +154,58 @@ const unauthenticated = z.object({ error: z.literal("unauthenticated") });
  *  from the record of what happened rather than from the sentence describing
  *  it. If the two ever disagree, the links are right and the sentence is a bug.
  */
+/** Where a turn's content is now, and every thread it changed.
+ *
+ *  Two lists because they answer different questions and one of them is a claim
+ *  surface. `landed` is what the reply's pills may name and what earns the Done
+ *  mark: the turn's content is in these threads. `changed` is every thread
+ *  whose contents moved, which the screen needs in order to reload and which
+ *  includes the thread a move took something *out of*.
+ *
+ *  The content join stays for messages written before `message_threads`
+ *  existed. Their turns filed rather than edited, because filing was the only
+ *  thing that left a record, so the older answer is still the right one for
+ *  them. */
 async function threadsFor(
   messageId: string,
   accountId: string,
-): Promise<{ id: string; name: string }[]> {
-  const rows = await db
-    .selectFrom("content")
-    .innerJoin("threads", "threads.id", "content.thread_id")
-    .select(["threads.id as id", "threads.name as name"])
-    .where("content.derived_from_message_id", "=", messageId)
-    .where("content.account_id", "=", accountId)
-    .where("content.deleted_at", "is", null)
-    .orderBy("content.created_at")
-    .execute();
+): Promise<{ landed: { id: string; name: string }[]; changed: string[] }> {
+  const [filed, noted] = await Promise.all([
+    db
+      .selectFrom("content")
+      .innerJoin("threads", "threads.id", "content.thread_id")
+      .select(["threads.id as id", "threads.name as name"])
+      .where("content.derived_from_message_id", "=", messageId)
+      .where("content.account_id", "=", accountId)
+      .where("content.deleted_at", "is", null)
+      .orderBy("content.created_at")
+      .execute(),
+    db
+      .selectFrom("message_threads")
+      .innerJoin("threads", "threads.id", "message_threads.thread_id")
+      // Membership, not authorship: a turn can act on a shared thread's
+      // contents, and the name is only shown to somebody already in it.
+      .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
+      .select(["threads.id as id", "threads.name as name", "message_threads.landed as landed"])
+      .where("message_threads.message_id", "=", messageId)
+      .where("thread_members.account_id", "=", accountId)
+      .where("threads.deleted_at", "is", null)
+      .orderBy("message_threads.created_at")
+      .execute(),
+  ]);
 
+  const landed: { id: string; name: string }[] = [];
+  const changed = new Set<string>();
   const seen = new Set<string>();
-  return rows.filter((row) => {
-    if (seen.has(row.id)) return false;
+
+  for (const row of [...filed.map((r) => ({ ...r, landed: true })), ...noted]) {
+    changed.add(row.id);
+    if (!row.landed || seen.has(row.id)) continue;
     seen.add(row.id);
-    return true;
-  });
+    landed.push({ id: row.id, name: row.name });
+  }
+
+  return { landed, changed: [...changed] };
 }
 
 async function replyFor(
@@ -201,8 +237,8 @@ export interface TouchedThread {
 }
 
 export type StreamStep =
-  | { do: "answered"; reply: string | null; threads: TouchedThread[] }
-  | { do: "partial"; reply: string | null; threads: TouchedThread[] }
+  | { do: "answered"; reply: string | null; threads: TouchedThread[]; changed: string[] }
+  | { do: "partial"; reply: string | null; threads: TouchedThread[]; changed: string[] }
   | { do: "failed" }
   | { do: "close" }
   | { do: "wait" };
@@ -232,11 +268,16 @@ export async function streamStep(
 
   if (!current) return { do: "close" };
   if (current.state === "answered" || current.state === "partial") {
-    const [reply, threads] = await Promise.all([
+    const [reply, touched] = await Promise.all([
       replyFor(current.turn_id, accountId),
       threadsFor(messageId, accountId),
     ]);
-    return { do: current.state === "answered" ? "answered" : "partial", reply, threads };
+    return {
+      do: current.state === "answered" ? "answered" : "partial",
+      reply,
+      threads: touched.landed,
+      changed: touched.changed,
+    };
   }
   if (current.state === "failed") return { do: "failed" };
   return { do: "wait" };
@@ -467,6 +508,9 @@ export async function dumpRoutes(app: App): Promise<void> {
         return reply.code(404).send({ error: "not_found" as const });
 
       const settled = message.state === "answered" || message.state === "partial";
+      const touched = settled
+        ? await threadsFor(message.id, accountId)
+        : { landed: [], changed: [] };
 
       return reply.send({
         id: message.id,
@@ -474,9 +518,10 @@ export async function dumpRoutes(app: App): Promise<void> {
         state: message.state,
         text: message.text,
         reply: settled ? await replyFor(message.turn_id, accountId) : null,
-        // Where it actually went. Empty until something lands, which is the
-        // honest answer while nothing is filed.
-        threads: settled ? await threadsFor(message.id, accountId) : [],
+        // Where it actually went, and everything it changed. Both empty until
+        // the turn settles, which is the honest answer while it is running.
+        threads: settled ? touched.landed : [],
+        changed: settled ? touched.changed : [],
       });
     },
   );
@@ -672,6 +717,7 @@ export async function dumpRoutes(app: App): Promise<void> {
               state: step.do,
               reply: step.reply,
               threads: step.threads,
+              changed: step.changed,
             });
             return finish();
           }

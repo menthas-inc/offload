@@ -324,6 +324,36 @@ async function jobContext(jobId: string): Promise<JobContext | null> {
 }
 
 
+/** Record that this turn changed a thread.
+ *
+ *  Beside `touchThread` at every site, and for a related but different reason:
+ *  `touchThread` moves the thread's own clock, this says which turn moved it.
+ *  Without it the only record a turn left was the content it created, so every
+ *  tool that changes something already there looked, from the outside, like a
+ *  turn that did nothing at all.
+ *
+ *  `landed` false is the thread a move took content *out of*. It has to reload
+ *  and it must never appear as a pill under the reply, which says where things
+ *  went. Idempotent, because a turn may touch the same thread twice and the
+ *  second call must not downgrade the first: a move into a thread the turn also
+ *  edited in stays landed. */
+async function noteThread(
+  messageId: string,
+  threadId: string,
+  landed: boolean,
+  trx: Executor,
+): Promise<void> {
+  await trx
+    .insertInto("message_threads")
+    .values({ message_id: messageId, thread_id: threadId, landed })
+    .onConflict((oc) =>
+      landed
+        ? oc.columns(["message_id", "thread_id"]).doUpdateSet({ landed: true })
+        : oc.columns(["message_id", "thread_id"]).doNothing(),
+    )
+    .execute();
+}
+
 /** Everything that acts on something already filed.
  *
  *  Two rules run through all of it:
@@ -447,6 +477,7 @@ async function existing(
       .where("id", "=", ref.id)
       .execute();
     await touchThread(ref.threadId, trx);
+    await noteThread(messageId, ref.threadId, true, trx);
     return { ok: true, done: true };
   }
 
@@ -460,6 +491,7 @@ async function existing(
       .where("id", "=", ref.id)
       .execute();
     await touchThread(ref.threadId, trx);
+    await noteThread(messageId, ref.threadId, true, trx);
     return { ok: true, done: true };
   }
 
@@ -476,6 +508,13 @@ async function existing(
     } catch (error) {
       if (error instanceof NotYours) return { ok: false, error: "unknown_thread" };
       throw error;
+    }
+    // Both ends changed and only one of them is where it went. The thread it
+    // left has to reload or it goes on showing a row that is not in it any
+    // more, which is exactly what happened before this.
+    await noteThread(messageId, call.threadId, true, trx);
+    if (ref.threadId !== call.threadId) {
+      await noteThread(messageId, ref.threadId, false, trx);
     }
     return { ok: true, done: true };
   }
@@ -510,6 +549,7 @@ async function existing(
     .execute();
 
   await touchThread(ref.threadId, trx);
+  await noteThread(messageId, ref.threadId, true, trx);
   return { ok: true, done: true };
 }
 

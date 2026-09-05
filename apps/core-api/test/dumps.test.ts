@@ -400,6 +400,7 @@ describe("AC-17 and AC-4 what an open stream does each tick", () => {
       do: "answered",
       reply: "Noted.",
       threads: [],
+      changed: [],
     });
   });
 

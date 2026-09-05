@@ -36,6 +36,10 @@ export interface Answer {
   state: MessageState;
   reply: string | null;
   threads?: TouchedThread[];
+  /** Every thread whose contents the turn changed, a superset of `threads`.
+   *  A move's source is here and not there: the screen has to reload it, and a
+   *  pill saying the dump went there would be untrue. */
+  changed?: string[];
 }
 
 export class DumpTooLong extends Error {
@@ -72,8 +76,14 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     state: MessageState;
     reply: string | null;
     threads?: TouchedThread[];
+    changed?: string[];
   };
-  return { state: body.state, reply: body.reply, threads: body.threads ?? [] };
+  return {
+    state: body.state,
+    reply: body.reply,
+    threads: body.threads ?? [],
+    changed: body.changed ?? [],
+  };
 }
 
 /** Wait for the answer over the stream, and fall back to asking.

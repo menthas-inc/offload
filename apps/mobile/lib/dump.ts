@@ -34,6 +34,10 @@ export interface Answer {
   state: MessageState;
   reply: string | null;
   threads: TouchedThread[];
+  /** Every thread whose contents the turn changed, a superset of `threads`.
+   *  A move's source is here and not there: the screen has to reload it, and a
+   *  pill saying the dump went there would be untrue. */
+  changed: string[];
 }
 
 export interface TailMessage {
@@ -80,9 +84,15 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     state: MessageState;
     reply: string | null;
     threads?: TouchedThread[];
+    changed?: string[];
   }>(`/v1/messages/${messageId}`);
   if (!data) return null;
-  return { state: data.state, reply: data.reply, threads: data.threads ?? [] };
+  return {
+    state: data.state,
+    reply: data.reply,
+    threads: data.threads ?? [],
+    changed: data.changed ?? [],
+  };
 }
 
 /** Wait for the answer by asking, and stop asking when there is one.

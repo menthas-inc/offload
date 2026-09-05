@@ -157,7 +157,11 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
           ];
         });
 
-        if (did) setFiled({ threadIds: answer.threads.map((t) => t.id), at: Date.now() });
+        // `changed`, not `threads`: a turn that moved a piece out of the thread
+        // you are looking at changed it without filing anything into it, and
+        // `threads` is only where things went. That gap left a moved row on
+        // screen in a thread it was no longer in.
+        if (answer.changed.length > 0) setFiled({ threadIds: answer.changed, at: Date.now() });
         // Only a finished turn offers a way back. A partial one offers a way
         // forward, and both at once asks somebody to choose between finishing
         // and undoing inside eight seconds.
