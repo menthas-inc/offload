@@ -33,8 +33,14 @@ thing replacing it works.
       `colorScheme.set("light")` *(**AC-6**, **AC-6a**)*.
 - [x] **C3** `useColors()` replaces the frozen `COLOR` at all 43 call sites
       *(**AC-6b**)*. Typecheck is the gate: a missed site does not compile.
-- [ ] **C4** Walk every screen in dark on a device *(**AC-6a**)*. Expect
-      findings; the light pin exists because somebody saw it break.
+- [x] **C4** **Walked on a Pixel 9, and it found two things.** The theme was
+      locked in a native resource, `expo_system_ui_user_interface_style`, so no
+      JavaScript fix could ever have worked; it is `automatic` now and the
+      light default lives in JavaScript where it belongs. And `Logo` read
+      `resolved.light["ink-950"]` once at import, so the mark and the wordmark
+      vanished on a dark surface: the same class as the 43 `COLOR` sites,
+      missed because it kept its own copy. Today, My threads and all three
+      settings pages verified legible in dark after both.
 
 ## D. The phones: settings
 
@@ -47,8 +53,8 @@ thing replacing it works.
 - [x] **D4** `app/settings/[page].tsx` with My account, Appearance and Help and
       about *(**AC-5**, **AC-6**, **AC-8**)*. Appearance is `SegmentedControl`.
       Version from `expo-constants`.
-- [ ] **D5** Back returns to the index, and the index returns to Today
-      *(**AC-11**)*.
+- [x] **D5** Verified on a device: Appearance returns to the index, and the
+      index returns to Today *(**AC-11**)*.
 
 ## E. Web
 
