@@ -16,24 +16,26 @@ import { pinExistingSession } from "../lib/auth";
 import { ConversationProvider } from "../components/shell/conversation-context";
 import { Shell } from "../components/shell/Shell";
 
+// Whatever Settings says, and light until it says anything.
+//
+// "A new account opens in light regardless of the device setting. Dark is a
+// choice in Settings" is a design decision, not a default, so an unset
+// preference is light rather than the device. app.json's userInterfaceStyle
+// only governs native chrome.
+//
+// This was pinned to "light" because on a phone in night mode the surfaces went
+// dark while the type stayed ink and the gate was black on charcoal. That was
+// never a decision about theme, it was the absence of one: the classes swapped
+// and the colours reaching React Native props did not. Both halves move now.
+//
+// **At module scope, not in the component.** `storedTheme` reads SecureStore
+// synchronously, so this runs once at import, before anything renders, and the
+// first paint is already the right theme. Calling it during render would be a
+// side effect in a render function, and in an effect it would be one frame too
+// late on every launch.
+applyTheme(storedTheme());
+
 export default function RootLayout() {
-  // Whatever Settings says, and light until it says anything.
-  //
-  // "A new account opens in light regardless of the device setting. Dark is a
-  // choice in Settings" is a design decision, not a default, so an unset
-  // preference is light rather than the device. app.json's
-  // userInterfaceStyle only governs native chrome. NativeWind follows the
-  // system unless told otherwise, and this was pinned to "light" because on a
-  // phone in night mode the surfaces went dark while the type stayed ink and
-  // the gate was black on charcoal. That was never a decision about theme, it
-  // was the absence of one: the classes swapped and the colours that reach
-  // React Native props did not.
-  //
-  // Both halves move now, so this reads the choice. **Applied synchronously
-  // rather than in an effect**: `storedTheme` reads SecureStore without
-  // awaiting, so the first paint is already the right theme and a dark device
-  // never shows a frame of light.
-  applyTheme(storedTheme());
 
   // Once, on launch. A session stored before the device-only class shipped
   // keeps the old one until something rewrites it, and nothing otherwise

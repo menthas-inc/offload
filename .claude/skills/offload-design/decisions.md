@@ -693,6 +693,28 @@ clients, the composer on web, the nav foot and a Settings Appearance page, and t
 is settled. Two things for the codebase: **grouping comes out of the widgets** in favour of the filter,
 and **the two preference glyphs get labels**.
 
+### 2026-09-07 · Settings ships, and three things differ from the kits
+**Surface:** all
+**Raised by:** the code, building 010. The kits have drawn Settings for a long time; this is the first of it to exist.
+
+**Is:** an index and three pages on all three clients, out of the kits' ten. Six of the seven not built have no feature behind them, and the seventh is named below. Three things differ from what the kits draw, each for its own reason.
+
+**Sign out is on the web index, which no kit draws.** Both phone kits put a secondary button beside the identity block; `WSettings.jsx` has one only on the account page. It is on web's index anyway, because this is one product with one behaviour and somebody on a laptop should not have to open a page to leave. New surface, small, and worth the parity.
+
+**My account drops four rows the kits draw, for three different reasons.** Phone and Password go because this product is OAuth-only: there is no password to change and no phone stored, so both would be controls that do nothing. The Plan group and the identity subtitle's "· free plan" go because there are no plans, and inventing a tier on a settings screen is a product claim nobody has made. The clay "Delete your account" panel goes because deletion is specified in 001 and not built; a panel that does nothing is worse than its absence.
+
+**Appearance is a `SegmentedControl` on the phones too, not the kits' radio list.** The 5 September entry already said this with surface *all*; the phone kits predate that answer exactly as the web one did. Named here because that entry read as a web note and was nearly followed as one.
+
+**Two pieces of the row vocabulary were built and three were not.** The kits draw a group, a row, a toggle, a danger tone and a radio choice group. Only the group and the row have a caller: every page that would use the others is out of scope, and building them anyway is a speculative abstraction. They arrive with the page that needs them.
+
+**The shapes differ per client on purpose.** The phones draw fill-backed cards with inset dividers, which is what a phone list looks like; web draws open blocks with a section label and no container, which is what `WSettings.jsx` draws and what the rest of that shell looks like. Forcing one onto the other would have been a divergence from the kit dressed as consistency.
+
+**Two things the kits are simply wrong about, and are not built.** "Conversations kept" is retired: the 27 August decision retired the retention clock and the 5 September pass removed it from `readme.md`'s Settings list. **The row on that page which is *not* retired is also not built**, and that is worth being explicit about, because retiring a page silently took it with it: the same 27 August entry says "Delete all conversations is unaffected and should stay". It needs an endpoint, a confirmation model and a home now the page around it is gone, so it belongs with account deletion. And the Privacy page's three toggles are refused rather than deferred: none has anywhere to be stored, and a switch is a stronger claim than a sentence because it implies somebody could have set it the other way.
+
+**A bug this found, in the design system's favour.** "A new account opens in light regardless of the device setting", 25 August, surface all. Web's appearance shipped on 5 September resolving an unset preference to `system`, so a new account on a dark laptop opened dark. Offering `system` as a choice and defaulting to it are different things. Both clients default to light now.
+
+**Design system impact:** three things. `WSettings.jsx` gains a sign out on its index. The kits' `SettingsDetail` account page loses Phone, Password and Plan, and the identity subtitle loses "· free plan". And the phones' Appearance page becomes a segmented control. The seven undrawn pages need no change: they are right, they are just ahead of the product. Text size is offered on web only, and the reason is in the code rather than the design: mobile type is 73 numeric `fontSize:` literals with no size variables in the generated stylesheet, so a size choice there is a generator change, not a screen.
+
 ### 2026-09-05 · A row offers one way out, not two
 **Surface:** all
 **Raised by:** the product owner, asking why a row needs both archive and delete.

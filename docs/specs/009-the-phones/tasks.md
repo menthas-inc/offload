@@ -151,8 +151,11 @@ carries a failure mode no mock can express.
       after. Three are already known: the composer staying on a thread screen against the kit's
       `showComposer=false`, the bell and settings not being drawn, and whatever `SwipeRow` needs
       if a content swipe is ever not a delete.
-- [ ] **G3** Remove `TempSignOut` and `signOutForTesting()` when they get in the way. Spec 002's
-      F6, open since then.
+- [x] **G3** **Done by 010.** `TempSignOut` and `signOutForTesting()` are
+      gone. They could not be removed until there was another way to sign out,
+      which is what a settings screen is: sign out now sits with the identity
+      on the Settings index, waits for the server to revoke the session rather
+      than assuming it, and says so when it cannot.
 - [ ] **G4** The kits catch up on what web settled and the phones inherit: no placeholder for a
       missing summary, no trailing count, "thing" still throughout, and `variant="soft"` on
       `Chip` which the contract retired.
