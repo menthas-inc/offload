@@ -181,7 +181,9 @@ export function EditableRow({
     }
   }
 
-  const divider = last && !editing ? "" : "border-b border-border-hairline";
+  // A last row has no divider whether it is editing or not. It used to keep one
+  // while open, which drew a hairline across the group's rounded bottom corner.
+  const divider = last ? "" : "border-b border-border-hairline";
 
   if (!editing) {
     return (

@@ -11,7 +11,7 @@ import { auth } from "../auth/auth.js";
 import { ATTEMPT_COOKIE, readCookie, unseal } from "../auth/attempt.js";
 import { db } from "../db.js";
 import { initialsOf } from "../accounts/initials.js";
-import { NAME_MAX } from "../accounts/name.js";
+import { cleanName } from "../accounts/name.js";
 import { emit } from "../analytics.js";
 import { env, isProduction } from "../env.js";
 
@@ -49,8 +49,13 @@ const unauthenticated = z.object({ error: z.literal("unauthenticated") });
  *  stored blank, which is AC-6. */
 const nameField = z
   .string()
-  .transform((value) => value.trim())
-  .pipe(z.string().min(1).max(NAME_MAX));
+  // `cleanName` rather than a trim and a bound written again here. They agreed
+  // only because both happened to call `.trim()` and both imported the same
+  // constant, which is the shape of every two-documents-written-days-apart
+  // defect this repository has had. One implementation, one place to change
+  // what "survives the trim" means.
+  .transform(cleanName)
+  .refine((value): value is string => value !== null);
 
 const meResponse = z.object({
   state: z.enum(["invited", "active"]),
@@ -86,7 +91,10 @@ export const CONSENT_VERSION = "2026-09-01";
  *  the keys are written by promotion's: an active account that never agreed to
  *  anything is a state we would then have to handle everywhere, and one
  *  transaction means it cannot exist. */
-export async function completeFirstRun(accountId: string, displayName: string): Promise<void> {
+export async function completeFirstRun(
+  accountId: string,
+  displayName: string | null
+): Promise<void> {
   await db.transaction().execute(async (tx) => {
     const flipped = await tx
       .updateTable("accounts")
@@ -94,10 +102,18 @@ export async function completeFirstRun(accountId: string, displayName: string): 
         state: "active",
         // Written by the same update for the same reason the consent is: an
         // active account with no name is a state every screen would then have
-        // to handle, and one transaction means it cannot come into existence.
-        // Accounts that went active before 011 are the exception and stay one
-        // (AC-8); they went through a first run that had nothing to ask.
-        display_name: displayName,
+        // to handle, and one transaction means a client that asked for one
+        // cannot produce it.
+        //
+        // **Absent is not the same as empty, and this is why the column is set
+        // conditionally.** A phone build installed before 011 has no name
+        // screen and sends no name, and it cannot be forced to update. Writing
+        // null would wipe whatever the sign-in backfill had already stored;
+        // omitting the column leaves it, so an old client completes first run
+        // and still ends up with the provider's name. Accounts that went active
+        // before 011 are the same case (AC-8): a first run that had nothing to
+        // ask.
+        ...(displayName === null ? {} : { display_name: displayName }),
         consent_version: CONSENT_VERSION,
         consented_at: new Date(),
         updated_at: new Date(),
@@ -131,8 +147,14 @@ export async function completeFirstRun(accountId: string, displayName: string): 
 const consentBody = z.object({
   readPolicy: z.literal(true),
   agreeToProcessing: z.literal(true),
-  /** 011 AC-3. First run cannot be completed without one. */
-  displayName: nameField,
+  /** 011 AC-3. Every client that has the name screen sends one.
+   *
+   *  **Optional on the wire, required on the screen.** A phone build installed
+   *  before 011 sends the two ticks and nothing else, and making this required
+   *  would answer it with a 400: first run unfinishable, on a client nobody can
+   *  force to update, with no way forward. The screen is what requires a name;
+   *  the endpoint accepts the older contract and leaves the column alone. */
+  displayName: nameField.optional(),
 });
 
 /** The identity, or null when there is nothing to render.
@@ -257,7 +279,7 @@ export async function sessionRoutes(app: App): Promise<void> {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
 
-      await completeFirstRun(accountId, request.body.displayName);
+      await completeFirstRun(accountId, request.body.displayName ?? null);
       return reply.send({ state: "active" as const });
     }
   );

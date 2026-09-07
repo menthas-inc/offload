@@ -1233,3 +1233,12 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **The kit could not have shown the keyboard, and this is the second screen to learn it.** The field sits above the button that leaves first run, and this app is edge to edge, where Android ignores `adjustResize` outright. Without `KeyboardAvoidingView behavior="padding"` the button ends up underneath the keyboard, exactly as the waitlist form did.
 
 **Design system impact:** three things for the kits to catch up on. `FirstRun.jsx`, `M3FirstRun.jsx` and `WFirstRunGate.jsx` are all a screen short and their Skip goes to the wrong place. `SettingsDetail.jsx` and `WSettings.jsx` need the Name row drawn in its editing state, which no kit currently expresses. And a text field on a phone screen wants a note that the mock cannot show its own failure mode: anything with a field above a button needs the keyboard drawn before it is called done.
+
+### 2026-09-07 · Focus borders are ink, and `--border-focus` is blue
+**Surface:** web
+
+**Is:** every focused text field on the web draws `--ink-950`. `--border-focus` exists in the tokens, resolves to `--blue-500`, and nothing uses it.
+
+**Found while adding the third caller rather than decided.** The marketing waitlist input set it, the gate copied it, and 011's name field and settings field copied it again. Each was individually consistent with the field beside it and none of them used the alias that exists for exactly this. Left as ink here, because switching one field to blue would have made the welcome screen's field focus differently from the waitlist field on the same flow, which is a worse outcome than the inconsistency being invisible.
+
+**Design system impact:** one decision needed, not four call sites. Either `--border-focus` becomes ink and the ramp references collapse onto it, or the app moves to blue focus everywhere. Until then every new field re-bakes the same value, which is how a ramp reference spreads.

@@ -117,9 +117,33 @@ function rememberName(profile: { name?: unknown }): Record<string, never> {
  *  to everyone they share a thread with. Provider names are nicknames, maiden
  *  names, or a script somebody does not use with these particular people. A
  *  name nobody has seen should not appear next to their content. */
-export async function backfillName(accountId: string, raw: string | null): Promise<void> {
+export async function backfillName(
+  accountId: string,
+  raw: string | null,
+  providerId?: string
+): Promise<void> {
   const name = cleanNameLossy(raw);
-  if (!name) return;
+  if (!name) {
+    // **The one way this feature fails silently**, and the only place it can be
+    // seen. The name crosses from `mapProfileToUser` to here through an
+    // AsyncLocalStorage store: if that context is ever broken, by a library
+    // change or by something that does not keep the promise chain, this reads
+    // null and the backfill quietly does nothing. No error, no failing test.
+    //
+    // Apple legitimately sends nothing when somebody declines to share their
+    // name, so an empty value is not on its own worth saying anything about.
+    // Google always sends one with the `profile` scope it always asks for, so
+    // an empty value from Google is the signal, and it is close to noiseless.
+    //
+    // `console.warn` rather than the Fastify logger: this runs inside a Better
+    // Auth hook, several layers below the route, with no request and no app
+    // instance to log through. Written as one JSON line so it is greppable in
+    // the platform's log view, which is the only place it will ever be read.
+    if (providerId === "google") {
+      console.warn(JSON.stringify({ at: "name.backfill", providerId, name: "absent" }));
+    }
+    return;
+  }
 
   await db
     .updateTable("accounts")
@@ -319,7 +343,7 @@ export const auth = betterAuth({
           // Before the return rather than in an `after` hook, so a name and an
           // identity arrive together: an `after` hook that failed would leave a
           // linked account with no name and nothing to retry it.
-          await backfillName(identity.userId, providerName());
+          await backfillName(identity.userId, providerName(), identity.providerId);
 
           // Strip the provider tokens before the row is written, not after.
           //

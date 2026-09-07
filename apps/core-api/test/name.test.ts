@@ -184,11 +184,13 @@ describe("AC-6 and AC-9 the endpoints", () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it("refuses first run without a name", async () => {
+  it("refuses first run with an empty name", async () => {
+    // Sent and empty is a refusal. Not sent at all is the older client's
+    // contract and is accepted, which the last describe covers.
     const response = await app.inject({
       method: "POST",
       url: "/api/onboarding/complete",
-      payload: { readPolicy: true, agreeToProcessing: true },
+      payload: { readPolicy: true, agreeToProcessing: true, displayName: "  " },
     });
     expect(response.statusCode).toBe(400);
   });
@@ -204,5 +206,29 @@ describe("AC-6 and AC-9 the endpoints", () => {
     });
     expect(response.statusCode).toBe(401);
     expect(await nameOf(id)).toBe("Ana");
+  });
+});
+
+describe("a client that predates the name screen", () => {
+  it("can still finish first run", async () => {
+    // A phone build installed before 011 sends the two ticks and no name, and
+    // cannot be forced to update. A 400 here would be an account that can never
+    // leave first run.
+    const id = await account("invited");
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/onboarding/complete",
+      payload: { readPolicy: true, agreeToProcessing: true },
+    });
+    expect(response.statusCode).not.toBe(400);
+  });
+
+  it("keeps the name the sign-in backfill stored", async () => {
+    // Absent is not empty. Writing null would wipe what the backfill found, so
+    // the column is left alone and the old client still ends up named.
+    const id = await account("invited");
+    await backfillName(id, "Ana de Sousa");
+    await completeFirstRun(id, null);
+    expect(await nameOf(id)).toBe("Ana de Sousa");
   });
 });

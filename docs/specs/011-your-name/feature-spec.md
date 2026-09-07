@@ -150,6 +150,11 @@ backfilled by signing in.
 does not let somebody through without one. An empty prefill is a normal state,
 not an error.
 
+**AC-3a** A client installed before this can still finish first run. The name is
+required by the screen, not by the endpoint: a build with no name screen sends
+none, cannot be forced to update, and a 400 would leave it unable to leave first
+run at all. A name the backfill already stored survives that completion.
+
 **AC-4** My account offers the name as an editable field on all three clients,
 showing the current one.
 

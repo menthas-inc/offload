@@ -119,11 +119,20 @@ none to get wrong.
   value: initials come from the server in one place, and one of the three
   clients guessing them is exactly what 010 moved them server-side to prevent.
 
-**`POST /api/onboarding/complete`** gains `displayName` in its body, required,
-and `completeFirstRun` writes it in the same `UPDATE` that flips state and
-records consent. One transaction, so an account that went through first run
-after this cannot be active without a name, for the same reason it cannot be
-active without consent.
+**`POST /api/onboarding/complete`** gains `displayName` in its body, **optional
+on the wire and required on the screen**, and `completeFirstRun` writes it in
+the same `UPDATE` that flips state and records consent.
+
+Required looked right and would have stranded people (`AC-3a`). A phone build
+installed before this has no name screen, sends the two ticks and nothing else,
+and cannot be forced to update: a 400 is an account that can never leave first
+run. So the endpoint accepts the older contract.
+
+**Absent is not empty, which is why the column is set conditionally.** Writing
+null for a missing field would wipe whatever the backfill had already stored;
+omitting the column leaves it, so an old client completes first run and still
+ends up with the provider's name. An empty string that *is* sent is still
+refused.
 
 A pre-existing account is the exception and stays one (`AC-8`): it went active
 before there was anything to ask.

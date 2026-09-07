@@ -149,7 +149,7 @@ export function EditableRow({
           <span className={styles.settingsTitle}>{title}</span>
         </span>
         <span className={styles.settingsValue}>{value ?? "Not set"}</span>
-        <button type="button" className={styles.settingsEditCancel} onClick={open}>
+        <button type="button" className={styles.settingsEditText} onClick={open}>
           {value ? "Change" : "Set"}
         </button>
       </div>
@@ -190,7 +190,7 @@ export function EditableRow({
           >
             Save
           </button>
-          <button type="button" className={styles.settingsEditCancel} onClick={close}>
+          <button type="button" className={styles.settingsEditText} onClick={close}>
             Cancel
           </button>
         </span>

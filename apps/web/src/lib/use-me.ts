@@ -66,7 +66,13 @@ export function useMe(expect: "first-run" | "shell"): MeState {
     // the whole identity, initials included.
     const onChanged = (event: Event) => {
       const me = (event as CustomEvent<Me>).detail;
-      if (live && me) setState({ status: "ready", me });
+      if (!live || !me) return;
+      // The same guard the fetch above applies. Only a shell-side pane changes
+      // a name today, so this cannot currently fire on the wrong side, but the
+      // redirect rule was enforced in one place and silently skipped in the
+      // other, which is how it stops being true later.
+      if (me.needsFirstRun !== (expect === "first-run")) return;
+      setState({ status: "ready", me });
     };
     window.addEventListener(CHANGED, onChanged);
 
