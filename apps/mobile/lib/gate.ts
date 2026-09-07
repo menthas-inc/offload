@@ -48,13 +48,24 @@ export const GATE = {
   },
   joined: {
     title: "You are on the list",
-    sub: (email: string) => `We will email ${email} when your account is ready to use.`,
+    sub: (email: string) =>
+      `We will email ${email} when your account is ready to use.`,
     subNoEmail: "We will email you when your account is ready to use.",
     toast: "Added to the waitlist",
   },
 } as const;
 
-/** The fourth screen of first run, which is the one that asks something.
+/** The fourth screen of first run, which asks the one thing it needs.
+ *
+ *  Here with the rest of the gate copy for the reason at the top of this file:
+ *  the screen forks by platform and the words must not. */
+export const NAME_STEP = {
+  title: "What should we call you?",
+  sub: "This is the name people you share a thread with will see.",
+  placeholder: "Your name",
+} as const;
+
+/** The fifth screen of first run, which is the one that asks for consent.
  *
  *  Two ticks and not one. A single "I agree to the privacy policy" is bundled
  *  consent, which is treated as no consent at all, and the second of these is

@@ -12,6 +12,7 @@
 import { useState } from "react";
 import { TextInput, View } from "react-native";
 import { useColors } from "../lib/colors";
+import { NAME_STEP } from "../lib/gate";
 import { NAME_MAX } from "../lib/name";
 
 export type FieldTone = "ios" | "android";
@@ -19,8 +20,18 @@ export type FieldTone = "ios" | "android";
 const TONE = {
   // Ink on iOS, Material's outline and primary on Android, the same pair the
   // consent ticks and both gates already use.
-  ios: { idle: "border-border-strong", on: "border-ink-950", radius: "rounded-md", bg: "bg-surface-raised" },
-  android: { idle: "border-a-outline", on: "border-blue-600", radius: "rounded-xs", bg: "bg-a-surface" },
+  ios: {
+    idle: "border-border-strong",
+    on: "border-ink-950",
+    radius: "rounded-md",
+    bg: "bg-surface-raised",
+  },
+  android: {
+    idle: "border-a-outline",
+    on: "border-blue-600",
+    radius: "rounded-xs",
+    bg: "bg-a-surface",
+  },
 } as const;
 
 export function NameField({
@@ -64,7 +75,7 @@ export function NameField({
         // typed and refused. The server still checks; a client is not a
         // validator.
         maxLength={NAME_MAX}
-        placeholder="Your name"
+        placeholder={NAME_STEP.placeholder}
         placeholderTextColor={COLOR.tabOff}
         accessibilityLabel={label}
         className="font-core text-body"

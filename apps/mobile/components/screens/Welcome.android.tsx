@@ -19,7 +19,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Notifications from "expo-notifications";
 import { TutorialArt, M3_TONE } from "../TutorialArt";
-import { CONSENT, TUTORIAL } from "../../lib/gate";
+import { CONSENT, NAME_STEP, TUTORIAL } from "../../lib/gate";
 import { ConsentTicks } from "../ConsentTicks";
 import { NameField } from "../NameField";
 import { completeOnboarding } from "../../lib/api";
@@ -116,7 +116,7 @@ export default function Welcome() {
             with a disabled button on the next screen. */}
           {naming || consenting ? null : (
             <Pressable
-              // Skip lands on the consent screen, it does not complete first run.
+              // Skip lands on the name screen and completes nothing.
               // Completing here wrote consent_version and consented_at for two
               // ticks nobody was shown, which is the exact thing AC-7a exists to
               // prevent. The web has always done this correctly; only the phones
@@ -142,13 +142,13 @@ export default function Welcome() {
                 className="font-core font-semibold text-a-on"
                 style={{ fontSize: 28, lineHeight: 33, letterSpacing: -0.4 }}
               >
-                What should we call you?
+                {NAME_STEP.title}
               </Text>
               <Text
                 className="mt-space-5 font-core text-body text-a-on-var"
                 style={{ fontSize: 16, lineHeight: 24, letterSpacing: 0.16 }}
               >
-                This is the name people you share a thread with will see.
+                {NAME_STEP.sub}
               </Text>
             </View>
 
