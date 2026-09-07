@@ -597,9 +597,9 @@ export default function Privacy() {
         <section className={styles.section}>
           <h2 className={styles.h2}>13. What you can change</h2>
           <p className={styles.note}>
-            offload is an invite-only beta as of {UPDATED}, and some of the controls below arrive
-            with the settings screen. Until they do, email us and we will do any of it by hand,
-            usually the same day. Nothing here is on unless the text says so.
+            offload is an invite-only beta as of {UPDATED}, and none of the controls below is
+            built yet. Email us and we will do any of it by hand, usually the same day. Nothing
+            here is on unless the text says so.
           </p>
           <ul>
             <li>

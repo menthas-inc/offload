@@ -124,9 +124,9 @@ export function Sidebar({ threads, threadCount }: Props) {
           <Icon name="bell" size={17} />
           <span className={styles.navLabel}>Activity</span>
         </button>
-        {/* Settings has somewhere to go now: the Appearance page holds the same
-            two preferences the rows below it change, laid out as choices. */}
-        <Link href="/settings/appearance" className={styles.navItem}>
+        {/* Settings has an index now. The rows below it are the shortcut to
+            the two preferences that page lays out as choices. */}
+        <Link href="/settings" className={styles.navItem}>
           <Icon name="settings" size={17} />
           <span className={styles.navLabel}>Settings</span>
         </Link>

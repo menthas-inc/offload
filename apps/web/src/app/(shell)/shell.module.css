@@ -1159,6 +1159,151 @@
   color: var(--text-secondary);
 }
 
+/* The identity at the top of Settings. Sign out sits with the name, because
+   that is what it acts on. */
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-2) 0 var(--space-5);
+}
+
+.identityAvatar {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--weight-medium);
+  font-size: calc(15px * var(--type-scale));
+  font-family: var(--font-core);
+}
+
+.identityWho {
+  flex: 1;
+  min-width: 0;
+}
+
+.identityName {
+  display: block;
+  font-weight: var(--weight-semibold);
+  font-size: calc(17px * var(--type-scale));
+  line-height: 1.25;
+  font-family: var(--font-core);
+  color: var(--text-primary);
+}
+
+.identityMail {
+  display: block;
+  font-size: calc(13.5px * var(--type-scale));
+  font-family: var(--font-core);
+  color: var(--text-secondary);
+}
+
+/* A sign out that did not go through. One clause and the way forward, in clay,
+   which is what a failure looks like everywhere else here. */
+.signOutFailed {
+  margin: 0 0 var(--space-4);
+  font-size: calc(13.5px * var(--type-scale));
+  line-height: 1.45;
+  font-family: var(--font-core);
+  color: var(--text-danger);
+}
+
+.retryQuiet {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: var(--weight-medium);
+  color: var(--text-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* A settings group: a label and rows, no container. `WSettings.jsx` draws open
+   blocks, which is what the rest of this shell looks like; the phones draw
+   fill-backed cards, which is what a phone list looks like. */
+.settingsLabel {
+  margin: 0 0 var(--space-2);
+  font-weight: var(--weight-medium);
+  font-size: calc(12px * var(--type-scale));
+  line-height: 1;
+  font-family: var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.settingsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  /* A minimum, never a height: a note or 200% type grows it. */
+  min-height: 46px;
+  padding: var(--space-3) 0;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+  text-decoration: none;
+  color: inherit;
+}
+
+.settingsRowLast {
+  box-shadow: none;
+}
+
+a.settingsRow:hover {
+  background: var(--state-hover);
+}
+
+.settingsIcon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settingsText {
+  flex: 1;
+  min-width: 0;
+}
+
+.settingsTitle {
+  display: block;
+  font-size: calc(15px * var(--type-scale));
+  line-height: 1.35;
+  font-family: var(--font-core);
+  color: var(--text-primary);
+}
+
+.settingsNote {
+  display: block;
+  margin-top: 3px;
+  font-size: calc(12.5px * var(--type-scale));
+  line-height: 1.4;
+  font-family: var(--font-core);
+  color: var(--text-secondary);
+}
+
+.settingsValue {
+  flex: 0 0 auto;
+  font-size: calc(13.5px * var(--type-scale));
+  font-family: var(--font-core);
+  color: var(--text-secondary);
+}
+
+.settingsChevron {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--ink-300);
+}
+
 /* SegmentedControl: offload's only tab-like control. A track holding two to
    four segments, the selected one raised out of it. */
 .segmented {
