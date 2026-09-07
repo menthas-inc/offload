@@ -99,7 +99,7 @@ describe("AC-10 the four funnel events", () => {
       .set({ state: "invited" })
       .where("id", "=", promoted.accountId)
       .execute();
-    await completeFirstRun(promoted.accountId);
+    await completeFirstRun(promoted.accountId, "Test Person");
     await emit({ name: "first_sign_in", subjectId: null });
     await emit({ name: "waitlist_joined", properties: { referred: false } });
 
@@ -134,7 +134,7 @@ describe("what an event may never contain", () => {
 
   it("carries no email address anywhere in its properties", async () => {
     const promoted = await promote("ana@example.test");
-    await completeFirstRun(promoted.accountId);
+    await completeFirstRun(promoted.accountId, "Test Person");
 
     for (const event of await written()) {
       expect(JSON.stringify(event.properties)).not.toMatch(/@/);
@@ -143,7 +143,7 @@ describe("what an event may never contain", () => {
 
   it("carries no field shaped like an account id", async () => {
     const promoted = await promote("ana@example.test");
-    await completeFirstRun(promoted.accountId);
+    await completeFirstRun(promoted.accountId, "Test Person");
 
     for (const event of await written()) {
       // Not "does not equal this account's id": a uuid in properties at all is

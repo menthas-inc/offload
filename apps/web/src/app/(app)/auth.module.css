@@ -456,3 +456,23 @@
 }
 
 /* Announced, not seen. */
+
+/* The name field on first run. 011.
+   Modelled on the marketing waitlist input, which is the only other text field
+   the gate side of this app has, and full width because this one sits in a
+   column rather than beside a button. */
+.nameField {
+  width: 100%;
+  /* min-height, never height: text scales to 200% and nothing holding text may
+     have a fixed one. */
+  min-height: 48px;
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  font: var(--text-body-role);
+  letter-spacing: var(--tracking-body);
+  color: var(--text-primary);
+}
+.nameField::placeholder { color: var(--text-tertiary); }
+.nameField:focus { outline: none; border-color: var(--ink-950); box-shadow: var(--shadow-focus); }

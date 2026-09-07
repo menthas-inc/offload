@@ -132,8 +132,11 @@ export default function Privacy() {
           <ul>
             <li>
               <strong>Your email address</strong>, which comes from Apple or Google when you sign
-              in, and whatever display name they pass along with it. There is no password, so we
-              never hold one.
+              in. There is no password, so we never hold one.
+            </li>
+            <li>
+              <strong>Your name.</strong> Either the one Apple or Google passes along when you
+              first sign in, or the one you type, and you can change it at any time in Settings.
             </li>
             <li>
               <strong>Everything you upload.</strong> Notes, links, screenshots, photos, voice
@@ -355,8 +358,8 @@ export default function Privacy() {
                   <td>Apple and Google</td>
                   <td>Sign you in</td>
                   <td>
-                    They tell us your verified email address. We tell them nothing about what you
-                    upload
+                    They tell us your verified email address and your name. We tell them nothing
+                    about what you upload
                   </td>
                 </tr>
               </tbody>
@@ -522,6 +525,10 @@ export default function Privacy() {
               You can share a thread with a <strong>connection</strong>, which is someone you have
               both agreed to be connected to. Everyone in a thread can read everything in it and add
               to it, and nobody can delete what they did not write themselves.
+            </li>
+            <li>
+              <strong>Everyone in a shared thread sees your name</strong> and the initials taken
+              from it, next to what you add. Changing your name in Settings changes what they see.
             </li>
             <li>
               <strong>There are no public links.</strong> Nothing in offload can be handed to

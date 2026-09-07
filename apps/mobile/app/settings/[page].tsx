@@ -10,10 +10,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import Constants from "expo-constants";
 import { Glyph } from "../../components/Glyph";
-import { Group, Row } from "../../components/settings/Rows";
+import { EditableRow, Group, Row } from "../../components/settings/Rows";
 import { Segmented } from "../../components/settings/Segmented";
 import { useColors } from "../../lib/colors";
-import { useMe } from "../../lib/me";
+import { saveName, useMe } from "../../lib/me";
 import { setTheme, storedTheme, THEMES, THEME_LABEL, type Theme } from "../../lib/appearance";
 import { useState } from "react";
 
@@ -68,14 +68,21 @@ export default function SettingsPage() {
  *  settings screen is a product claim nobody has made. Deletion is specified in
  *  001 and not built, and a panel that does nothing is worse than its absence.
  *
- *  Neither name nor email is editable here. Changing an email is an identity
- *  change with a verification flow behind it, not a text field. */
+ *  The email is not editable here. Changing one is an identity change with a
+ *  verification flow behind it, not a text field. The name is, since 011. */
 function Account() {
   const me = useMe();
 
   return (
     <Group label="Details">
-      <Row title="Name" value={me?.displayName ?? "Not set"} />
+      {/* `saveName` hands the identity it got back to every mounted `useMe`,
+          so the settings index behind this screen moves with it, initials
+          included. */}
+      <EditableRow
+        title="Name"
+        value={me?.displayName ?? null}
+        onSave={async (next) => (await saveName(next)) !== null}
+      />
       <Row title="Email" value={me?.email} last />
     </Group>
   );

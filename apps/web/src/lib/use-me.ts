@@ -25,6 +25,14 @@ export interface Me {
 
 export type MeState = { status: "loading" } | { status: "ready"; me: Me };
 
+/** Every mounted `useMe` hears a change to the identity.
+ *
+ *  The settings index and My account are two panes side by side, each with its
+ *  own `useMe` and its own fetch, so a name saved in one would leave the other
+ *  showing the old one and the old initials until something remounted it. Same
+ *  mechanism `appearance.ts` uses for the theme, and for the same reason. */
+const CHANGED = "offload:me-changed";
+
 /** Reads the current account, sending anyone without a session to the gate.
  *  `expect` says which side of first run this screen is for; landing on the
  *  wrong side is a redirect, not an error. */
@@ -54,8 +62,17 @@ export function useMe(expect: "first-run" | "shell"): MeState {
         // reload retries.
       });
 
+    // A saved name lands here without a refetch: the PATCH already returned
+    // the whole identity, initials included.
+    const onChanged = (event: Event) => {
+      const me = (event as CustomEvent<Me>).detail;
+      if (live && me) setState({ status: "ready", me });
+    };
+    window.addEventListener(CHANGED, onChanged);
+
     return () => {
       live = false;
+      window.removeEventListener(CHANGED, onChanged);
     };
   }, [expect, router]);
 
@@ -67,7 +84,7 @@ export function useMe(expect: "first-run" | "shell"): MeState {
  *  Not void: a network failure or a session that expired mid-onboarding used
  *  to throw out of here, which left the caller's "leaving" flag stuck true and
  *  every button on the screen disabled with no way back but a reload. */
-export async function completeOnboarding(): Promise<boolean> {
+export async function completeOnboarding(displayName: string): Promise<boolean> {
   try {
     const response = await fetch(`${API}/api/onboarding/complete`, {
       method: "POST",
@@ -77,10 +94,37 @@ export async function completeOnboarding(): Promise<boolean> {
       // pair rather than one "consented" flag so that adding or changing a
       // consent is a change the server can see, not a boolean that silently
       // starts meaning something else.
-      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true }),
+      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true, displayName }),
     });
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+/** Setting your name. 011.
+ *
+ *  Returns the whole identity rather than a boolean, because the server's
+ *  reply is what the caller should hold next: initials come from one rule on
+ *  the server, and a client that patched the name locally would be recomputing
+ *  its own two letters and drifting from every other surface.
+ *
+ *  Null on a refusal or a failure. The screen says what happened; it does not
+ *  guess which one it was. */
+export async function updateName(displayName: string): Promise<Me | null> {
+  try {
+    const response = await fetch(`${API}/api/me`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ displayName }),
+    });
+    if (!response.ok) return null;
+
+    const me = (await response.json()) as Me;
+    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
+    return me;
+  } catch {
+    return null;
   }
 }

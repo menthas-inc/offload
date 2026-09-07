@@ -24,15 +24,25 @@ import { env } from "../env.js";
 export const ATTEMPT_COOKIE = "offload_attempt";
 const TTL_MS = 10 * 60 * 1000;
 
+// Two things now, and they share one scope on purpose. Both are values a
+// Better Auth hook learns in the middle of a sign-in and cannot hand anywhere
+// itself, and `withAttempt` already wraps the whole handler, so a second
+// AsyncLocalStorage with a second wrapper would be this mechanism twice.
 interface AttemptStore {
   email: string | null;
+  /** The name the provider handed over, recorded by `mapProfileToUser` and read
+   *  by the account hook a few frames later. It is the only point at which
+   *  Google and Apple agree: Google's name is a claim on the ID token, Apple's
+   *  arrives once in the form post of the first authorization and is never in a
+   *  token at all. */
+  providerName: string | null;
 }
 
 const storage = new AsyncLocalStorage<AttemptStore>();
 
 /** Run a request with a slot the gate hooks can write a refused address into. */
 export function withAttempt<T>(fn: (store: AttemptStore) => Promise<T>): Promise<T> {
-  const store: AttemptStore = { email: null };
+  const store: AttemptStore = { email: null, providerName: null };
   return storage.run(store, () => fn(store));
 }
 
@@ -41,6 +51,18 @@ export function withAttempt<T>(fn: (store: AttemptStore) => Promise<T>): Promise
 export function recordAttempt(email: string | null | undefined): void {
   const store = storage.getStore();
   if (store && email) store.email = email;
+}
+
+/** Called from `mapProfileToUser` on both providers. No-op outside a request,
+ *  which is what a test calling the provider directly does. */
+export function recordProviderName(name: string | null | undefined): void {
+  const store = storage.getStore();
+  if (store && name) store.providerName = name;
+}
+
+/** What the provider called them this sign-in, if anything. */
+export function providerName(): string | null {
+  return storage.getStore()?.providerName ?? null;
 }
 
 function sign(payload: string): string {

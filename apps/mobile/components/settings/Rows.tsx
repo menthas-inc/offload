@@ -11,8 +11,10 @@
 // no border. `Row` divides with an inset hairline rather than a border, so the
 // last row's rounded corner is not cut by a line across it.
 
-import { Platform, Pressable, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 import { Glyph } from "../Glyph";
+import { NameField } from "../NameField";
 import { useColors } from "../../lib/colors";
 
 const isAndroid = Platform.OS === "android";
@@ -127,5 +129,142 @@ export function Row({ title, note, value, icon, onPress, last }: RowProps) {
     <Pressable className={shape} style={height} onPress={onPress} accessibilityRole="button">
       {body}
     </Pressable>
+  );
+}
+
+/** A row whose value you can change, in place. 011.
+ *
+ *  **In place, not a sixth route.** The kit draws a tappable Name row and does
+ *  not say what tapping it opens. A pushed screen or a modal is more screen
+ *  than one field needs, and the row already has somewhere to put it.
+ *
+ *  The empty case is caught here so the message is the specific one (AC-6)
+ *  rather than a generic failure. Anything else gets the house failure line:
+ *  one short clause and the control that retries it, never a diagnosis. */
+export function EditableRow({
+  title,
+  value,
+  onSave,
+  last,
+}: {
+  title: string;
+  value: string | null;
+  onSave: (next: string) => Promise<boolean>;
+  last?: boolean;
+}) {
+  const COLOR = useColors();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    const next = draft.trim();
+    if (next.length === 0) {
+      setError("A name cannot be empty.");
+      return;
+    }
+    if (next === value) {
+      setEditing(false);
+      setError(null);
+      return;
+    }
+
+    setSaving(true);
+    const saved = await onSave(next);
+    setSaving(false);
+    if (saved) {
+      setEditing(false);
+      setError(null);
+    } else {
+      setError("That did not go through. Try again.");
+    }
+  }
+
+  const divider = last && !editing ? "" : "border-b border-border-hairline";
+
+  if (!editing) {
+    return (
+      <Row
+        title={title}
+        value={value ?? "Not set"}
+        onPress={() => {
+          setDraft(value ?? "");
+          setError(null);
+          setEditing(true);
+        }}
+        {...(last ? { last: true } : {})}
+      />
+    );
+  }
+
+  return (
+    <View className={`py-space-4 ${divider}`}>
+      <Text
+        className={`font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+        style={{ fontSize: 15, lineHeight: 20 }}
+      >
+        {title}
+      </Text>
+
+      <View className="mt-space-3">
+        <NameField
+          tone={isAndroid ? "android" : "ios"}
+          value={draft}
+          onChange={(next) => {
+            setDraft(next);
+            setError(null);
+          }}
+          onSubmit={() => void save()}
+          autoFocus
+        />
+      </View>
+
+      {error ? (
+        <Text
+          className="mt-space-3 font-core text-text-danger"
+          style={{ fontSize: 12.5, lineHeight: 17.5 }}
+          accessibilityRole="alert"
+        >
+          {error}
+        </Text>
+      ) : null}
+
+      <View className="mt-space-4 flex-row items-center justify-end gap-space-5">
+        <Pressable
+          onPress={() => {
+            setEditing(false);
+            setError(null);
+          }}
+          disabled={saving}
+          className="min-h-tap-min justify-center"
+          accessibilityRole="button"
+        >
+          <Text
+            className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+            style={{ fontSize: 15 }}
+          >
+            Cancel
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => void save()}
+          disabled={saving}
+          className={`min-h-tap-min items-center justify-center rounded-pill px-space-6 ${
+            isAndroid ? "bg-blue-600" : "bg-ink-950"
+          }`}
+          accessibilityRole="button"
+        >
+          {saving ? (
+            <ActivityIndicator color={COLOR.onSolid} />
+          ) : (
+            <Text className="font-core font-medium text-text-inverse" style={{ fontSize: 15 }}>
+              Save
+            </Text>
+          )}
+        </Pressable>
+      </View>
+    </View>
   );
 }

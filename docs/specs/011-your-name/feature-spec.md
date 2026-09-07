@@ -1,49 +1,69 @@
 # 011 Your name, feature spec
 
-**Status:** drafted 2026-09-07
+**Status:** drafted 2026-09-07, revised after review the same day
 **Surfaces:** web, iOS, Android
 
 ## Why
 
 Nobody has a name. `accounts.display_name` has existed since 0001 and **nothing
-has ever written one**: Better Auth maps its `name` field to that column, but an
-invited account already exists from the waitlist, so signing in *links* to a row
-rather than creating one and the provider's name is thrown away.
+has ever written one**. Better Auth maps its `name` field to that column, but
+`user.create.before` always returns `false`, because an account exists only
+because an admin made one: signing in *links* an identity to a row that is
+already there, so the row the provider's name would populate is never created
+and the name is discarded.
 
 So every screen that shows who you are shows an email. The settings index draws
-`?` in the avatar. A shared thread will call you by your address. It reads like
-a bug because it is one, and it is invisible until you look at the column.
+`?` in the avatar. A shared thread calls you **"Someone"**, which is the literal
+fallback in `membersOf`. It reads like a bug because it is one, and it is
+invisible until you look at the column.
 
 ## What
 
 Three ways a name arrives, in the order somebody meets them.
 
-**Signing in fills it if it is empty.** Google and Apple both hand over a name;
-we have been discarding it. When an account has none and the provider gives one,
-it is stored. **Never an overwrite**: a name you set is yours, and a later
-sign-in must not quietly replace it with what Google thinks you are called.
+**Signing in fills it, but only before first run is finished.** Google and Apple
+both hand over a name and we have been discarding it. When an account has no
+name **and has not completed first run**, the provider's name is stored, so the
+next screen has something in the field.
+
+*Scoped that way on purpose, and the scope is the finding.* The backfill exists
+for one reason: to make first run one tap instead of a blank field. An account
+that is already past first run gets no such moment, and for that account the
+backfill would take a string from Google, never show it to the person, and
+publish it to everyone they share a thread with. Provider names are nicknames,
+maiden names, a script somebody does not use with these particular people, or
+simply wrong. **A name nobody has seen should not appear next to their content**,
+and tying the backfill to the screen that shows it is what keeps that true.
+Every account in the alpha is in exactly this state, so this is not a corner.
+
+**Never an overwrite**, on any path. A name you set is yours, and neither a
+later sign-in nor **linking a second provider** may replace it.
 
 *Not `accountLinking.updateUserInfoOnLink`, which Better Auth offers and which
-is the wrong shape: it copies the provider's name unconditionally, so linking a
-second provider later would silently replace a name somebody had set. The two
-hooks in `auth.ts` that already strip the provider tokens see the verified ID
-token, which carries the name, so the conditional version costs nothing extra
-and lands in the one place that already looks at this.*
+is the wrong shape: it copies the provider's name unconditionally, so linking
+Apple to an account that already signed in with Google would silently replace a
+name somebody set. The conditional write goes in `account.create.before`
+instead, which already runs on the one event that matters: an invited account's
+first sign-in, which is the link that creates its first identity.*
 
 **First run asks, with that name already in the field.** Usually one tap. It is
 the one moment somebody is already answering questions about their account, and
-asking later means asking in the middle of something else.
+asking later means asking in the middle of something else. When there is nothing
+to prefill, which is what Apple does when somebody declines to share their name,
+the field is empty and has to be filled in.
 
 **Settings changes it**, on the My account page, which is where the phone kits
-already draw a tappable Name row.
+already draw a tappable Name row. This is also the only route for an account
+that predates this, and it is the right one: the name is on screen before it is
+saved.
 
 ### What ships
 
 - A name on `/api/me`'s account, editable through one new endpoint.
-- The backfill, in the auth layer, on sign-in.
+- The backfill, in the auth layer, on sign-in, before first run completes.
 - A name step in first run on all three clients, prefilled.
 - An editable Name row on My account, on all three clients.
-- A reword of one sentence in the privacy policy. See below.
+- Three changes to the privacy policy. See below.
 
 ### The rules
 
@@ -51,6 +71,12 @@ already draw a tappable Name row.
 characters: people's names contain apostrophes, hyphens, accents, spaces and
 scripts this product has no business having opinions about. Sixty because it is
 past every real name and short of a paragraph.
+
+**The backfill goes through the same rule**, not a path beside it. A provider's
+value is trimmed and capped at sixty like anything else, and if nothing survives
+the trim, nothing is stored. The column is unconstrained `text` and this value
+reaches other people's screens, so it does not get to skip the check because of
+where it came from.
 
 **It cannot be cleared.** Once set, empty is refused with "A name cannot be
 empty." The product handles a nameless account and draws it correctly, but that
@@ -64,11 +90,21 @@ not an identity; the account is.
 
 It is not only yours to look at. `display_name` is what a shared thread's
 members see on each other's content, and initials come from it, so changing your
-name changes what other people see, immediately and without asking them.
+name changes what other people see, on their next read, without asking them.
 
 That is correct and worth stating: it is the same name in both places, and a
 product where the name your co-members see is a different field is a product
 with two names to keep in step.
+
+**Two consequences, both accepted, both recorded so they are not rediscovered:**
+
+- **Renaming is silent, and names are not unique**, so an account can take the
+  name of a mutual connection inside a thread they already share. Narrow, since
+  membership is invite-only and connections are mutual, and the alternative is a
+  notification about a settings change. Accepted, not overlooked.
+- **A name is untrusted text from another account.** Nothing reads it into a
+  prompt today, and nothing may: whoever first shows a member's name to a model
+  carries it as user-turn content, never concatenated into a system prompt.
 
 ### Not built
 
@@ -77,48 +113,69 @@ with two names to keep in step.
 - **A name for anybody else.** No nicknames, no per-thread names.
 - **Anything about the avatar beyond initials.** No uploads.
 
-### The privacy policy needs one line changed
+### The privacy policy needs three changes
 
-It says the email comes from Apple or Google "and whatever display name they
-pass along with it". After this, the backfill makes that sentence *more* true
-than it is today, because today we discard the name. But a name **you type**, at
-first run or in Settings, is a source that sentence does not describe.
+`AC-10`. One is the source, and two are the ones the review found.
 
-The line is widened to say the name comes from the provider or from you.
-Nothing else about it changes: the same field, the same purpose, the same
-retention. **It ships in the same change**, as 010's did.
+- **Section 3** says the email comes from Apple or Google "and whatever display
+  name they pass along with it". A name **you type** is a source that sentence
+  does not describe. Widened to say it comes from the provider or from you.
+- **Section 6's** Apple and Google row says we receive your verified email
+  address. After the backfill that is incomplete: we keep the name too, where
+  today we throw it away.
+- **Section 11, "Other people"**, says what a co-member can do and never says a
+  co-member sees a name. That silence was accidentally true while every account
+  was nameless and a shared thread said "Someone". It stops being true here, and
+  it is the change with the most claim surface behind it: it is a new fact about
+  what other people see.
+
+**All three ship in the same change**, as 010's did. The page is true before and
+after, and never in between.
 
 ## Acceptance criteria
 
-**AC-1** Signing in stores the provider's name when the account has none.
+**AC-1** Signing in stores the provider's name when the account has none **and
+has not completed first run**.
 
 **AC-2** Signing in **never** replaces a name that is already there, whatever
 the provider says.
 
+**AC-2a** Linking a second provider to an account that already has a name leaves
+that name alone.
+
+**AC-2b** An account that has completed first run and has no name is not
+backfilled by signing in.
+
 **AC-3** First run asks for a name, prefilled with whatever AC-1 stored, and
-does not let somebody through without one.
+does not let somebody through without one. An empty prefill is a normal state,
+not an error.
 
 **AC-4** My account offers the name as an editable field on all three clients,
 showing the current one.
 
 **AC-5** A name is trimmed, one to sixty characters, and any character is
-allowed.
+allowed. **The backfill obeys this too**, and stores nothing when nothing
+survives the trim.
 
 **AC-6** Clearing a name is refused, with a message that says what happened and
 nothing else.
 
 **AC-7** Changing a name changes it everywhere it is shown, including the
-avatar's initials and what other members of a shared thread see, without a
-reload.
+avatar's initials and what other members of a shared thread see on their next
+read. No client holds a stale copy of its own name after a change.
 
 **AC-8** An account that has no name and predates this keeps working: every
-screen shows the email, and Settings offers to set one.
+screen shows the email, a shared thread says "Someone", and Settings offers to
+set one.
 
 **AC-9** The name endpoint is the account's own and nobody else's: it takes no
 account id and writes only the session's.
 
-**AC-10** The privacy policy describes both sources of the name, and the change
-ships in the same commit as the field.
+**AC-10** All three privacy policy changes ship in the same commit as the field.
+
+**AC-11** No event carries a name. Anything fired here carries ids and outcomes
+only, per OFF-1, and `assertNoContent` does not catch this on its own: a name
+under sixty characters looks nothing like an email or a URL and passes it.
 
 ## Depends on
 
@@ -127,7 +184,8 @@ ships in the same commit as the field.
 
 ## Open
 
-- **What a nameless existing account sees at first run.** It has already
-  completed first run and will not be asked again, so it stays nameless until
-  Settings or a sign-in backfill. Correct, and worth watching: it is the state
-  every account in the alpha is in right now.
+- **Nothing for the existing alpha accounts but Settings.** They have all
+  completed first run, so none of them is backfilled and none is asked. That is
+  the deliberate outcome of AC-2b rather than a gap, and it is worth watching
+  only because it means the backfill has no effect on anybody until the next new
+  account signs in.

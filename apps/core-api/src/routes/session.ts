@@ -11,6 +11,7 @@ import { auth } from "../auth/auth.js";
 import { ATTEMPT_COOKIE, readCookie, unseal } from "../auth/attempt.js";
 import { db } from "../db.js";
 import { initialsOf } from "../accounts/initials.js";
+import { NAME_MAX } from "../accounts/name.js";
 import { emit } from "../analytics.js";
 import { env, isProduction } from "../env.js";
 
@@ -35,6 +36,21 @@ async function currentAccountId(request: FastifyRequest): Promise<string | null>
  *  reply.send() to the shapes the schema names and an undeclared 401 does not
  *  compile. That is the schema doing its job. */
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });
+
+/** A name as the body may carry it: trimmed first, then bounded.
+ *
+ *  **In the schema rather than the handler**, so both routes that take a name
+ *  have exactly one way to refuse it. A handler that sent its own 400 needed a
+ *  400 response schema, and that schema does not match the one Fastify's own
+ *  validation failure produces, so a missing field serialised as a 500. One
+ *  path, one shape.
+ *
+ *  Trimming before the bound is what makes "   " a refusal rather than a
+ *  stored blank, which is AC-6. */
+const nameField = z
+  .string()
+  .transform((value) => value.trim())
+  .pipe(z.string().min(1).max(NAME_MAX));
 
 const meResponse = z.object({
   state: z.enum(["invited", "active"]),
@@ -70,12 +86,18 @@ export const CONSENT_VERSION = "2026-09-01";
  *  the keys are written by promotion's: an active account that never agreed to
  *  anything is a state we would then have to handle everywhere, and one
  *  transaction means it cannot exist. */
-export async function completeFirstRun(accountId: string): Promise<void> {
+export async function completeFirstRun(accountId: string, displayName: string): Promise<void> {
   await db.transaction().execute(async (tx) => {
     const flipped = await tx
       .updateTable("accounts")
       .set({
         state: "active",
+        // Written by the same update for the same reason the consent is: an
+        // active account with no name is a state every screen would then have
+        // to handle, and one transaction means it cannot come into existence.
+        // Accounts that went active before 011 are the exception and stay one
+        // (AC-8); they went through a first run that had nothing to ask.
+        display_name: displayName,
         consent_version: CONSENT_VERSION,
         consented_at: new Date(),
         updated_at: new Date(),
@@ -109,35 +131,83 @@ export async function completeFirstRun(accountId: string): Promise<void> {
 const consentBody = z.object({
   readPolicy: z.literal(true),
   agreeToProcessing: z.literal(true),
+  /** 011 AC-3. First run cannot be completed without one. */
+  displayName: nameField,
 });
+
+/** The identity, or null when there is nothing to render.
+ *
+ *  Shared by the read and the write so a changed name comes back in exactly the
+ *  shape the client already holds. That is what makes 011 AC-7 true without a
+ *  refetch, and it keeps initials coming from one place: a client patching the
+ *  name locally and recomputing its own two letters is the disagreement 010
+ *  moved them server-side to prevent. */
+async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | null> {
+  const account = await db
+    .selectFrom("accounts")
+    .select(["state", "display_name", "email"])
+    .where("id", "=", accountId)
+    .where("deleted_at", "is", null)
+    .executeTakeFirst();
+
+  // A session outliving its account, or an account disabled since the session
+  // was issued. Both are 401 rather than 200-with-a-flag: there is nothing for
+  // the shell to render either way.
+  if (!account || (account.state !== "invited" && account.state !== "active")) return null;
+
+  return {
+    state: account.state,
+    displayName: account.display_name,
+    email: account.email,
+    initials: initialsOf(account.display_name ?? ""),
+    needsFirstRun: account.state === "invited",
+  };
+}
 
 export async function sessionRoutes(app: App): Promise<void> {
   app.get("/api/me", { schema: { response: { 200: meResponse, 401: unauthenticated } } }, async (request, reply) => {
     const accountId = await currentAccountId(request);
     if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
 
-    const account = await db
-      .selectFrom("accounts")
-      .select(["state", "display_name", "email"])
-      .where("id", "=", accountId)
-      .where("deleted_at", "is", null)
-      .executeTakeFirst();
-
-    // A session outliving its account, or an account disabled since the
-    // session was issued. Both are 401 rather than 200-with-a-flag: there is
-    // nothing for the shell to render either way.
-    if (!account || (account.state !== "invited" && account.state !== "active")) {
-      return reply.status(401).send({ error: "unauthenticated" });
-    }
-
-    return reply.send({
-      state: account.state,
-      displayName: account.display_name,
-      email: account.email,
-      initials: initialsOf(account.display_name ?? ""),
-      needsFirstRun: account.state === "invited",
-    });
+    const me = await meFor(accountId);
+    return me ? reply.send(me) : reply.status(401).send({ error: "unauthenticated" });
   });
+
+  // Setting your name. 011.
+  //
+  // **It takes no account id** (AC-9). There is none to get wrong: the row it
+  // writes is the session's, resolved server-side like every other
+  // authenticated route here.
+  //
+  // A name cannot be cleared (AC-6). The product draws a nameless account
+  // correctly, but that is the state of an account nobody has got to yet, not
+  // somewhere to return to by emptying a field.
+  app.patch(
+    "/api/me",
+    {
+      schema: {
+        body: z.object({ displayName: nameField }),
+        response: { 200: meResponse, 401: unauthenticated },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
+
+      await db
+        .updateTable("accounts")
+        .set({ display_name: request.body.displayName, updated_at: new Date() })
+        .where("id", "=", accountId)
+        .where("deleted_at", "is", null)
+        .execute();
+
+      // No event. OFF-1, and 011 AC-11: `assertNoContent` would not catch a
+      // name under sixty characters, since it looks like neither an email nor
+      // a URL, so this is a rule rather than a check that fires.
+      const me = await meFor(accountId);
+      return me ? reply.send(me) : reply.status(401).send({ error: "unauthenticated" });
+    }
+  );
 
   // The address a refused sign-in used, read once and then cleared. No session
   // is required, because by definition the person holding this cookie does not
@@ -187,7 +257,7 @@ export async function sessionRoutes(app: App): Promise<void> {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
 
-      await completeFirstRun(accountId);
+      await completeFirstRun(accountId, request.body.displayName);
       return reply.send({ state: "active" as const });
     }
   );

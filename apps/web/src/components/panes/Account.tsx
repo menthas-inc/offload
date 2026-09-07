@@ -13,11 +13,12 @@
 //
 // The kit's "Signed in on" device list needs an endpoint that does not exist.
 //
-// Neither name nor email is editable here. Changing an email is an identity
-// change with a verification flow behind it, not a text field.
+// The email is not editable here. Changing one is an identity change with a
+// verification flow behind it, not a text field. The name is, since 011.
 
-import { Group, Row } from "./SettingsRows";
-import { useMe } from "../../lib/use-me";
+import { EditableRow, Group, Row } from "./SettingsRows";
+import { NAME_MAX } from "../../lib/name";
+import { updateName, useMe } from "../../lib/use-me";
 import pane from "../../app/(shell)/shell.module.css";
 
 export function AccountPane() {
@@ -34,7 +35,16 @@ export function AccountPane() {
 
       <div className={pane.paneBody}>
         <Group label="Details">
-          <Row title="Name" value={account?.displayName ?? "Not set"} />
+          <EditableRow
+            title="Name"
+            value={account?.displayName ?? null}
+            placeholder="Your name"
+            maxLength={NAME_MAX}
+            label="Your name"
+            // `updateName` broadcasts the identity it got back, so this pane
+            // and the settings index beside it both move, initials included.
+            onSave={async (next) => (await updateName(next)) !== null}
+          />
           <Row title="Email" value={account?.email} last />
         </Group>
       </div>

@@ -1218,3 +1218,18 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **The rule generalises past this component.** Anything hidden only by an opaque sibling in front of it is visible during any group fade: a screen transition, a modal, a list that animates in. Hiding by stacking order is not hiding. Anything that must not appear needs its own opacity or must not be mounted.
 
 **Design system impact:** worth a line on `SwipeRow` in the component contracts. The reveal is a property of the gesture, not of the row's existence, and the panel's opacity should be driven from the same value as its offset.
+
+### 2026-09-07 · A name, and the two screens that ask for it
+**Surface:** mobile, web
+
+**Is:** first run gains a fourth screen, "What should we call you?", between the tutorial and the consent. Settings' My account gains a Name row that edits in place. Both use one field: `NameField` on the phones, toned per platform the way `ConsentTicks` already is, and `.nameField` on web, modelled on the marketing waitlist input.
+
+**"Three screens and nothing to fill in" is now broken twice, and both breaks are the same break.** The kit's rule is about not making somebody configure the filing before they have put anything in. Consent broke it first. A name is not filing either: it is who you are, asked once, at the only moment somebody is already answering questions about their account. Asking later means asking in the middle of something else.
+
+**Skip moved.** It has always meant "skip the tutorial", and it landed on the consent because that was the only screen behind it. It lands on the name now, because both screens that ask something sit behind it. A Skip that jumped a required field would be a dead end with a disabled button on the next screen.
+
+**The row edits in place rather than pushing anywhere.** `SettingsDetail.jsx` draws a tappable Name row and does not say what tapping it opens. A pushed screen or a modal is more screen than one field needs, and the row already has somewhere to put it. It is `EditableRow` beside `Row` rather than an editing state inside `Row`: every static row would otherwise carry a draft, an async save and an error it never uses.
+
+**The kit could not have shown the keyboard, and this is the second screen to learn it.** The field sits above the button that leaves first run, and this app is edge to edge, where Android ignores `adjustResize` outright. Without `KeyboardAvoidingView behavior="padding"` the button ends up underneath the keyboard, exactly as the waitlist form did.
+
+**Design system impact:** three things for the kits to catch up on. `FirstRun.jsx`, `M3FirstRun.jsx` and `WFirstRunGate.jsx` are all a screen short and their Skip goes to the wrong place. `SettingsDetail.jsx` and `WSettings.jsx` need the Name row drawn in its editing state, which no kit currently expresses. And a text field on a phone screen wants a note that the mock cannot show its own failure mode: anything with a field above a button needs the keyboard drawn before it is called done.

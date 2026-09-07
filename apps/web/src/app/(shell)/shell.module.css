@@ -1298,6 +1298,74 @@ a.settingsRow:hover {
   color: var(--text-secondary);
 }
 
+/* An editable row's field and its two buttons. 011.
+   The row keeps its own shape: this replaces the value, it does not open a
+   dialog or push a page, because a row that edits is still a row. */
+.settingsEdit {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.settingsInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 260px;
+  /* min-height, never height. */
+  min-height: 34px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  font: var(--text-body-sm-role);
+  color: var(--text-primary);
+}
+
+.settingsInput:focus {
+  outline: none;
+  border-color: var(--ink-950);
+  box-shadow: var(--shadow-focus);
+}
+
+.settingsEditButton {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font: var(--weight-medium) var(--size-body-sm)/1 var(--font-core);
+  cursor: pointer;
+}
+
+.settingsEditButton:disabled {
+  background: var(--surface-sunken);
+  color: var(--text-tertiary);
+  cursor: default;
+}
+
+.settingsEditCancel {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font: var(--text-body-sm-role);
+  cursor: pointer;
+}
+
+/* One short clause, next to the control that acts on it. */
+.settingsRowError {
+  padding: 0 0 var(--space-3);
+  font: var(--text-body-sm-role);
+  color: var(--text-danger);
+}
+
 .settingsChevron {
   flex: 0 0 auto;
   display: inline-flex;

@@ -36,10 +36,11 @@ import { expo } from "@better-auth/expo";
 import { db } from "../db.js";
 import { env, isProduction, webOrigins } from "../env.js";
 import { decideLink } from "./gate.js";
-import { recordAttempt } from "./attempt.js";
+import { providerName, recordAttempt, recordProviderName } from "./attempt.js";
 import { emit } from "../analytics.js";
 import { uuidv7 } from "../uuid.js";
 import { appleClientSecret, appleConfigured } from "./apple.js";
+import { cleanNameLossy } from "../accounts/name.js";
 
 /** 15 minutes. Bounds how long a disabled account keeps working, so it is a
  *  security parameter rather than a tuning knob. */
@@ -81,6 +82,52 @@ async function emitFirstSignInOnce(accountId: string): Promise<void> {
     // Analytics never breaks sign-in. Losing one event is a reporting gap;
     // throwing here would be an outage.
   }
+}
+
+/** Both providers' `mapProfileToUser`: record the name, map nothing.
+ *
+ *  **The one point at which Google and Apple agree.** Reading
+ *  `identity.idToken` in the account hook is the obvious alternative and it
+ *  works for Google and silently does nothing for Apple, whose ID token has no
+ *  name claim: Apple sends the name once, in the form post of the very first
+ *  authorization, and `@better-auth/core` folds it into the profile before
+ *  calling this. Both providers arrive here with the name already resolved.
+ *
+ *  Mapping nothing is the point. The signature has to return a field map, and
+ *  this returns an empty one, because the user row those fields would land on
+ *  is never created: `user.create.before` always refuses. */
+function rememberName(profile: { name?: unknown }): Record<string, never> {
+  recordProviderName(typeof profile.name === "string" ? profile.name : null);
+  return {};
+}
+
+/** The provider's name, on an account that has none and has not finished first
+ *  run. 011 AC-1.
+ *
+ *  **The rule is the where clause**, in the idiom `completeFirstRun` uses.
+ *  AC-2 (never overwrite), AC-2a (a second provider linked later) and AC-2b
+ *  (an account already past first run) are all this one statement rather than
+ *  three branches somebody has to keep in step, and two concurrent sign-ins are
+ *  the same case as one.
+ *
+ *  **Scoped to `invited` on purpose**, and the scope is the whole reason this
+ *  is safe. The backfill exists to make first run one tap instead of a blank
+ *  field. An account past first run gets no such screen, so backfilling it
+ *  would take a string from Google, never show it to the person, and publish it
+ *  to everyone they share a thread with. Provider names are nicknames, maiden
+ *  names, or a script somebody does not use with these particular people. A
+ *  name nobody has seen should not appear next to their content. */
+export async function backfillName(accountId: string, raw: string | null): Promise<void> {
+  const name = cleanNameLossy(raw);
+  if (!name) return;
+
+  await db
+    .updateTable("accounts")
+    .set({ display_name: name, updated_at: new Date() })
+    .where("id", "=", accountId)
+    .where("display_name", "is", null)
+    .where("state", "=", "invited")
+    .execute();
 }
 
 export const auth = betterAuth({
@@ -187,6 +234,8 @@ export const auth = betterAuth({
           google: {
             clientId: env.GOOGLE_CLIENT_ID,
             clientSecret: env.GOOGLE_CLIENT_SECRET,
+            // Records the name and maps nothing. See `rememberName` below.
+            mapProfileToUser: rememberName,
             // Always show the account chooser. Without it "Use a different
             // account" on the no-invite screen is a lie: Google would silently
             // reauthenticate the same account it just refused, and the person
@@ -200,6 +249,7 @@ export const auth = betterAuth({
           apple: {
             clientId: env.APPLE_CLIENT_ID!,
             clientSecret: appleClientSecret(),
+            mapProfileToUser: rememberName,
             ...(env.APPLE_BUNDLE_ID ? { appBundleIdentifier: env.APPLE_BUNDLE_ID } : {}),
           },
         }
@@ -262,6 +312,14 @@ export const auth = betterAuth({
             recordAttempt(verdict.email);
             return false;
           }
+
+          // The link is allowed, so this is an invited account opening up for
+          // the first time, which is the one moment the backfill is for.
+          //
+          // Before the return rather than in an `after` hook, so a name and an
+          // identity arrive together: an `after` hook that failed would leave a
+          // linked account with no name and nothing to retry it.
+          await backfillName(identity.userId, providerName());
 
           // Strip the provider tokens before the row is written, not after.
           //

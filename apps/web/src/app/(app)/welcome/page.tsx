@@ -17,11 +17,12 @@
 // Skip therefore skips the tutorial and lands here rather than completing first
 // run. Nobody has to read the three screens; everybody has to answer this.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "../../../components/Logo";
 import { RunArt } from "../../../components/RunArt";
 import { completeOnboarding, useMe } from "../../../lib/use-me";
+import { NAME_MAX } from "../../../lib/name";
 import styles from "../auth.module.css";
 
 const SCREENS = [
@@ -70,13 +71,24 @@ export default function WelcomePage() {
   const [failed, setFailed] = useState(false);
   const [readPolicy, setReadPolicy] = useState(false);
   const [agreeToProcessing, setAgreeToProcessing] = useState(false);
+  const [name, setName] = useState("");
+
+  // Seeded once, from whatever the sign-in backfill found. Once rather than on
+  // every change of `state`, because re-seeding would overwrite what somebody
+  // had typed the moment anything else refetched.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (state.status !== "ready" || seeded.current) return;
+    seeded.current = true;
+    setName(state.me.displayName ?? "");
+  }, [state]);
 
   async function finish() {
     if (leaving) return;
     setLeaving(true);
     // The write happens before the navigation, so Today is never rendered for
     // an account the server still considers mid-onboarding.
-    const recorded = await completeOnboarding();
+    const recorded = await completeOnboarding(name.trim());
     if (!recorded) {
       // Stay put and let them try again. Going on to Today would show a screen
       // the server still thinks belongs to someone mid-onboarding, and the
@@ -92,17 +104,24 @@ export default function WelcomePage() {
   // few milliseconds and a spinner that flashes reads as slower than nothing.
   if (state.status === "loading") return <main className={`${styles.page} ${styles.run}`} />;
 
-  // step 0..2 are the tutorial, step 3 is the consent. `screen` is undefined on
-  // the consent step, which is what distinguishes them.
+  // step 0..2 are the tutorial, step 3 asks for a name and step 4 is the
+  // consent. `screen` is undefined on both of the last two, which is what
+  // distinguishes them from the tutorial.
   const screen = SCREENS[step];
-  const consenting = step === SCREENS.length;
+  const naming = step === SCREENS.length;
+  const consenting = step === SCREENS.length + 1;
+  const named = name.trim().length > 0;
   const ready = readPolicy && agreeToProcessing;
 
   return (
     <main className={`${styles.page} ${styles.run}`}>
       <div className={styles.runTop}>
         <Logo size={22} />
-        {consenting ? null : (
+        {/* Skip has always meant "skip the tutorial", and it now lands on the
+            name rather than the consent, because both screens that ask
+            something sit behind it. A Skip that jumped past a required field
+            would be a dead end with a disabled button on the next screen. */}
+        {naming || consenting ? null : (
           <button type="button" className={styles.skip} onClick={() => setStep(SCREENS.length)}>
             Skip
           </button>
@@ -113,13 +132,36 @@ export default function WelcomePage() {
         {screen ? <RunArt kind={screen.art} /> : null}
 
         <div className={styles.runCopy}>
-          <h1 className={styles.runTitle}>{screen ? screen.title : "Before you start"}</h1>
+          <h1 className={styles.runTitle}>
+            {screen ? screen.title : naming ? "What should we call you?" : "Before you start"}
+          </h1>
           <p className={styles.runSub}>
             {screen
               ? screen.sub
-              : "offload holds what you put in it, so it is worth knowing what that means before you put anything in."}
+              : naming
+                ? "This is the name people you share a thread with will see."
+                : "offload holds what you put in it, so it is worth knowing what that means before you put anything in."}
           </p>
         </div>
+
+        {naming ? (
+          <div className={styles.consent}>
+            <input
+              className={styles.nameField}
+              type="text"
+              value={name}
+              autoFocus
+              autoComplete="name"
+              maxLength={NAME_MAX}
+              placeholder="Your name"
+              aria-label="Your name"
+              onChange={(event) => setName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && named) setStep(step + 1);
+              }}
+            />
+          </div>
+        ) : null}
 
         {consenting ? (
           <div className={styles.consent}>
@@ -170,12 +212,12 @@ export default function WelcomePage() {
             type="button"
             className={styles.runButton}
             onClick={() => (consenting ? void finish() : setStep(step + 1))}
-            disabled={leaving || (consenting && !ready)}
+            disabled={leaving || (consenting && !ready) || (naming && !named)}
           >
             {consenting ? "Get started" : "Next"}
           </button>
 
-          {consenting ? null : (
+          {naming || consenting ? null : (
             <span className={styles.dots} role="presentation">
               {SCREENS.map((item, index) => (
                 <span

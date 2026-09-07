@@ -36,7 +36,7 @@ async function within<T>(promise: Promise<T>, ms: number, fallback: T): Promise<
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T | null> {
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T | null> {
   // The plugin keeps the cookie in secure storage and hands it back here,
   // because React Native has no cookie jar the way a browser does. It reads
   // from storage, so it is a promise: awaited, not spread, or the header value
@@ -126,12 +126,12 @@ export const getMe = (): Promise<Me | null> => request<Me>("/api/me");
  *  network failure, landed the person on Today with the account still
  *  `invited` and no consent written. The web has always checked; this is the
  *  same contract. */
-export async function completeOnboarding(): Promise<boolean> {
+export async function completeOnboarding(displayName: string): Promise<boolean> {
   try {
     const result = await request("/api/onboarding/complete", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true }),
+      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true, displayName }),
     });
     return result !== null;
   } catch {

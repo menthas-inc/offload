@@ -60,14 +60,14 @@ const events = async (): Promise<Array<{ name: string; subject_id: string | null
 describe("AC-7 finishing first run", () => {
   it("flips invited to active", async () => {
     const id = await invited();
-    await completeFirstRun(id);
+    await completeFirstRun(id, "Test Person");
     expect(await stateOf(id)).toBe("active");
   });
 
   it("emits onboarding_completed against the pseudonym, not the account id", async () => {
     const subject = uuidv7();
     const id = await invited(subject);
-    await completeFirstRun(id);
+    await completeFirstRun(id, "Test Person");
 
     const written = await events();
     expect(written).toEqual([{ name: "onboarding_completed", subject_id: subject }]);
@@ -76,8 +76,8 @@ describe("AC-7 finishing first run", () => {
 
   it("is idempotent: a second call changes nothing and emits nothing", async () => {
     const id = await invited();
-    await completeFirstRun(id);
-    await completeFirstRun(id);
+    await completeFirstRun(id, "Test Person");
+    await completeFirstRun(id, "Test Person");
 
     expect(await stateOf(id)).toBe("active");
     expect(await events()).toHaveLength(1);
@@ -87,7 +87,7 @@ describe("AC-7 finishing first run", () => {
     const id = await invited();
     await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", id).execute();
 
-    await completeFirstRun(id);
+    await completeFirstRun(id, "Test Person");
     expect(await stateOf(id)).toBe("disabled");
     expect(await events()).toHaveLength(0);
   });
@@ -103,7 +103,7 @@ const consentOf = async (id: string) =>
 describe("AC-7a the consent that ends first run", () => {
   it("records the version and the moment, in the same write as the flip", async () => {
     const id = await invited();
-    await completeFirstRun(id);
+    await completeFirstRun(id, "Test Person");
 
     const consent = await consentOf(id);
     expect(consent.consent_version).toBe(CONSENT_VERSION);
@@ -115,7 +115,7 @@ describe("AC-7a the consent that ends first run", () => {
     const id = await invited();
     await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", id).execute();
 
-    await completeFirstRun(id);
+    await completeFirstRun(id, "Test Person");
 
     // The point of one update rather than two: there is no ordering in which an
     // account ends up consented without being active, or active without having
