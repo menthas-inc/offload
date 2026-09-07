@@ -293,6 +293,9 @@
    only lawful basis we have for the private things people dump in, and the
    moment before the first dump is the last honest place to ask. Logged in
    decisions.md, 1 September 2026. */
+/* The column the two screens that ask something share: the consent ticks and,
+   since 011, the name field. Same width and same alignment, because they are
+   the same moment in the same flow. */
 .consent {
   width: 520px;
   max-width: 100%;

@@ -145,6 +145,8 @@ export default function WelcomePage() {
         </div>
 
         {naming ? (
+          /* `.consent` is the column both asking screens share, not a consent
+             wrapper: same width, same alignment, same moment in the flow. */
           <div className={styles.consent}>
             <input
               className={styles.nameField}
