@@ -146,6 +146,25 @@ stops having an opinion.
 `userInterfaceStyle` only governs native chrome" — and it was wrong. It was
 written when nothing depended on it being right.
 
+### The ground a transition fades through is a third thing again
+
+Dark shipped and switching tabs flashed light grey. Neither the classes nor
+`useColors` was wrong: **a screen mid-fade is see-through, and what shows is the
+navigator's own background**, which nothing had ever set. It stayed React
+Navigation's `rgb(242, 242, 242)` in both themes, and the Stack's
+`contentStyle: transparent` meant there was nothing in between.
+
+A `ThemeProvider` supplies it now, built from our tokens rather than taken from
+the library: its dark background is `rgb(1, 1, 1)` and ours is a warm ink, so
+using theirs would have traded a light flash for a black one. The ground under a
+transition is the colour the screens paint, so there is nothing to see through
+to in either theme.
+
+**Three places a colour can live on this platform, and each fails differently.**
+A class, which follows the theme by itself. A React Native prop, which needs
+`useColors`. And a navigator's background, which needs the navigation theme.
+Dark found all three, in that order, and only the first was free.
+
 ### `COLOR` has to move with it
 
 `AC-6b`. `lib/colors.ts` resolves `resolved.light` and `android.light` at module

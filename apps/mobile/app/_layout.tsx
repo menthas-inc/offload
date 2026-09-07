@@ -7,8 +7,9 @@ import "../global.css";
 import { useEffect, useState } from "react";
 import { useColorScheme } from "nativewind";
 import { applyTheme, storedTheme } from "../lib/appearance";
+import { useColors } from "../lib/colors";
 import { AccessibilityInfo, Platform } from "react-native";
-import { Stack } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -50,6 +51,17 @@ export default function RootLayout() {
   // at launch there is no state yet, and changing your theme is not something
   // you do mid-thought.
   const { colorScheme } = useColorScheme();
+  const COLOR = useColors();
+
+  // Built from our tokens rather than taken from the library, because the two
+  // disagree: its dark background is `rgb(1, 1, 1)` and ours is a warm ink.
+  const navigationTheme = {
+    ...(colorScheme === "dark" ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(colorScheme === "dark" ? DarkTheme : DefaultTheme).colors,
+      background: COLOR.page,
+    },
+  };
 
   // Once, on launch. A session stored before the device-only class shipped
   // keeps the old one until something rewrites it, and nothing otherwise
@@ -89,6 +101,16 @@ export default function RootLayout() {
         <ConversationProvider>
         <SafeAreaProvider>
           <StatusBar style="auto" />
+          {/* The ground every navigator fades through.
+              
+              **Every screen in a fade is briefly see-through, and what shows is
+              this.** Nothing set it, so it stayed React Navigation's own
+              `rgb(242, 242, 242)` in both themes, and switching tabs in dark
+              flashed light grey. It is our own surface colour now rather than
+              the library's near-black `rgb(1, 1, 1)`, so the ground under a
+              transition is exactly the colour the screens paint: there is
+              nothing to see through to, in either theme. */}
+          <ThemeProvider value={navigationTheme}>
           <Stack
             key={colorScheme}
             screenOptions={{
@@ -117,6 +139,7 @@ export default function RootLayout() {
               }}
             />
           </Stack>
+          </ThemeProvider>
           {/* One plate for the whole app, deciding from the route what it
               holds. Mounted here so a thread pushing over the tabs does not
               produce a second one. */}
