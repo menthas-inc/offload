@@ -61,7 +61,10 @@ export function SettingsPane() {
             server, so a settings screen with no identity block still works. */}
         {account ? (
           <div className={pane.identity}>
-            <span className={pane.identityAvatar}>{account.initials}</span>
+            {/* `?` when the field is absent, which is the server's own answer
+                for a name with nothing to derive from. A client deployed ahead
+                of the server would otherwise draw an empty disc. */}
+            <span className={pane.identityAvatar}>{account.initials || "?"}</span>
             <span className={pane.identityWho}>
               {account.displayName ? (
                 <span className={pane.identityName}>{account.displayName}</span>

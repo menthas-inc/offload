@@ -16,26 +16,26 @@ import { pinExistingSession } from "../lib/auth";
 import { ConversationProvider } from "../components/shell/conversation-context";
 import { Shell } from "../components/shell/Shell";
 
-// Whatever Settings says, and light until it says anything.
-//
-// "A new account opens in light regardless of the device setting. Dark is a
-// choice in Settings" is a design decision, not a default, so an unset
-// preference is light rather than the device. app.json's userInterfaceStyle
-// only governs native chrome.
-//
-// This was pinned to "light" because on a phone in night mode the surfaces went
-// dark while the type stayed ink and the gate was black on charcoal. That was
-// never a decision about theme, it was the absence of one: the classes swapped
-// and the colours reaching React Native props did not. Both halves move now.
-//
-// **At module scope, not in the component.** `storedTheme` reads SecureStore
-// synchronously, so this runs once at import, before anything renders, and the
-// first paint is already the right theme. Calling it during render would be a
-// side effect in a render function, and in an effect it would be one frame too
-// late on every launch.
-applyTheme(storedTheme());
-
 export default function RootLayout() {
+
+  // Whatever Settings says, and light until it says anything.
+  //
+  // "A new account opens in light regardless of the device setting. Dark is a
+  // choice in Settings" is a design decision, not a default, so an unset
+  // preference is light rather than the device.
+  //
+  // **In an effect, and not at module scope, which was tried and is wrong.**
+  // `colorScheme.set` is a thin wrapper over `Appearance.setColorScheme`, and
+  // NativeWind only learns the new value from an Appearance change event it
+  // receives *while `AppState` is active*. Setting it during module evaluation
+  // fires that event before the app is active, so it is dropped, and every
+  // later set to the same value is a no-op that fires nothing: the app then
+  // sits in light forever with the store, the segmented control and
+  // `useColorScheme()` all saying dark. Found on a device; it costs at most
+  // one frame of light on launch, which is the correct trade.
+  useEffect(() => {
+    applyTheme(storedTheme());
+  }, []);
 
   // Once, on launch. A session stored before the device-only class shipped
   // keeps the old one until something rewrites it, and nothing otherwise

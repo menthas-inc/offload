@@ -89,7 +89,11 @@ export default function Settings() {
                 }`}
                 style={{ fontSize: 17 }}
               >
-                {me.initials}
+                {/* `?` when the field is absent, which is what the server
+                    itself returns for a name with nothing to derive from. Not
+                    a second copy of the rule: a client that shipped ahead of
+                    the server deploy would otherwise draw an empty disc. */}
+                {me.initials || "?"}
               </Text>
             </View>
 
