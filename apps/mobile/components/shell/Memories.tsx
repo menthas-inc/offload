@@ -21,7 +21,7 @@ import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeOut, useAnimatedStyle } from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Glyph } from "../Glyph";
-import { COLOR } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import {
   MAX_MEMORIES,
   MEMORY_CHARS,
@@ -45,6 +45,7 @@ interface Props {
 }
 
 export function MemoriesSection({ threadId, memories, members, onChanged, onToast }: Props) {
+  const COLOR = useColors();
   const [editing, setEditing] = useState<Memory | null>(null);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
@@ -260,6 +261,7 @@ function Editor({
   onMute: () => void;
   onDelete: () => void;
 }) {
+  const COLOR = useColors();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
 

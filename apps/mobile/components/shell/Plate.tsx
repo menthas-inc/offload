@@ -13,7 +13,7 @@ import { Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useKeyboardState } from "react-native-keyboard-controller";
 import { Glyph } from "../Glyph";
-import { COLOR } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
 import { useConversation } from "./conversation-context";
 
@@ -28,6 +28,7 @@ export interface Tab {
 }
 
 export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string | undefined }) {
+  const COLOR = useColors();
   const insets = useSafeAreaInsets();
   const conversation = useConversation();
   const folded = conversation.live !== null && conversation.folded;
@@ -99,6 +100,7 @@ export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string
  *  The whole point of the fold: you can keep dumping without losing what
  *  offload just said, and raising it brings back every turn and the draft. */
 function FoldedHeader() {
+  const COLOR = useColors();
   const conversation = useConversation();
   if (!conversation.live) return null;
 

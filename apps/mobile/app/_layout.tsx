@@ -5,7 +5,7 @@
 
 import "../global.css";
 import { useEffect, useState } from "react";
-import { colorScheme } from "nativewind";
+import { applyTheme, storedTheme } from "../lib/appearance";
 import { AccessibilityInfo, Platform } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -17,18 +17,23 @@ import { ConversationProvider } from "../components/shell/conversation-context";
 import { Shell } from "../components/shell/Shell";
 
 export default function RootLayout() {
-  // Light, whatever the device says.
+  // Whatever Settings says, and light until it says anything.
   //
   // "A new account opens in light regardless of the device setting. Dark is a
-  // choice in Settings" is a design decision, not a default, and app.json's
+  // choice in Settings" is a design decision, not a default, so an unset
+  // preference is light rather than the device. app.json's
   // userInterfaceStyle only governs native chrome. NativeWind follows the
-  // system unless told otherwise, so on a phone in night mode the surfaces
-  // went dark while the type stayed ink and the gate was black on charcoal.
+  // system unless told otherwise, and this was pinned to "light" because on a
+  // phone in night mode the surfaces went dark while the type stayed ink and
+  // the gate was black on charcoal. That was never a decision about theme, it
+  // was the absence of one: the classes swapped and the colours that reach
+  // React Native props did not.
   //
-  // When Settings gains a theme choice, this reads it instead.
-  useEffect(() => {
-    colorScheme.set("light");
-  }, []);
+  // Both halves move now, so this reads the choice. **Applied synchronously
+  // rather than in an effect**: `storedTheme` reads SecureStore without
+  // awaiting, so the first paint is already the right theme and a dark device
+  // never shows a frame of light.
+  applyTheme(storedTheme());
 
   // Once, on launch. A session stored before the device-only class shipped
   // keeps the old one until something rewrites it, and nothing otherwise

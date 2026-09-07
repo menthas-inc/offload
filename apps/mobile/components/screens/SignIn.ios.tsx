@@ -14,7 +14,7 @@ import { GateLockup } from "../GateLockup";
 import { AppleGlyph, GoogleGlyph } from "../Glyphs";
 import { GATE } from "../../lib/gate";
 import { PRIVACY_URL } from "../../lib/links";
-import { COLOR } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import {
   appleAvailable,
   providerOrder,
@@ -23,6 +23,7 @@ import {
 } from "../../lib/auth";
 
 export default function SignIn() {
+  const COLOR = useColors();
   const router = useRouter();
   const [pending, setPending] = useState<Provider | null>(null);
   const [refused, setRefused] = useState(false);

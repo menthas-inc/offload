@@ -14,8 +14,14 @@
 // `offload:appearance`.
 //
 // **Theme has three values and one of them is not a colour.** `system` means
-// follow the device, which is what an unset preference already did; making it a
-// choice you can return to is the whole reason it is named. Text size has two.
+// follow the device, and it is offered as a choice somebody can make.
+//
+// **It is not the default, and this got that wrong until 7 September.** "A new
+// account opens in light regardless of the device setting. Dark is a choice in
+// Settings" is a design decision from 25 August with surface *all*, and an
+// unset preference resolving to `system` meant a new account on a dark laptop
+// opened dark. Offering `system` and defaulting to it are different things.
+// Text size has two.
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -44,7 +50,7 @@ export const TYPE_SIZE_LABEL: Record<TypeSize, string> = {
 
 function storedTheme(): Theme {
   const raw = window.localStorage.getItem(THEME_KEY);
-  return raw === "dark" || raw === "light" || raw === "system" ? raw : "system";
+  return raw === "dark" || raw === "light" || raw === "system" ? raw : "light";
 }
 
 function storedSize(): TypeSize {
@@ -72,9 +78,9 @@ export interface Appearance {
 }
 
 export function useAppearance(): Appearance {
-  // `system` before the first read, which is what the document already shows,
-  // so nothing flips on the way in.
-  const [theme, setThemeState] = useState<Theme>("system");
+  // Light before the first read, which is both the default and what the
+  // document is already showing, so nothing flips on the way in.
+  const [theme, setThemeState] = useState<Theme>("light");
   const [size, setSizeState] = useState<TypeSize>("normal");
 
   useEffect(() => {

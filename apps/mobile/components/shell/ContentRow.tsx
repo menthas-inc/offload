@@ -19,7 +19,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
-import { COLOR } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { isFiling, type ContentRow } from "../../lib/threads";
 
 const REVEAL = 88;
@@ -52,6 +52,7 @@ interface Props {
 }
 
 export function ContentRowView({ row, border, arrived, onDelete, onActions, onToggle }: Props) {
+  const COLOR = useColors();
   const dx = useSharedValue(0);
   const settle = () => withSpring(0, { damping: 20, stiffness: 220 });
 

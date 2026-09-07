@@ -14,7 +14,7 @@ import { Linking, Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { CONSENT } from "../lib/gate";
 import { PRIVACY_URL } from "../lib/links";
-import { COLOR } from "../lib/colors";
+import { useColors } from "../lib/colors";
 
 /** The box, from components/forms/Checkbox.jsx, which draws it at this size on
  *  every surface. Not a spacing token: the component contract owns it. */
@@ -30,6 +30,7 @@ const TONE = {
 } as const;
 
 function Box({ tone, on }: { tone: ConsentTone; on: boolean }) {
+  const COLOR = useColors();
   const skin = TONE[tone];
   return (
     <View

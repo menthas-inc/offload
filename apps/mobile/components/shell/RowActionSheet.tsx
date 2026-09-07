@@ -10,7 +10,7 @@
 import { Platform, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
-import { COLOR } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 
 const isAndroid = Platform.OS === "android";
 
@@ -36,6 +36,7 @@ export function RowActionSheet({
   subject?: string | undefined;
   onClose: () => void;
 }) {
+  const COLOR = useColors();
   if (!open) return null;
 
   return (

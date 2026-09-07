@@ -11,10 +11,11 @@ import Svg, { Path } from "react-native-svg";
 import { Logo } from "../Logo";
 import { TempSignOut } from "../TempSignOut";
 import { DAY_ONE_INVITATION, EXAMPLES } from "../../lib/gate";
-import { COLOR } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { useConversation } from "../shell/conversation-context";
 
 function ArrowUp() {
+  const COLOR = useColors();
   return (
     <Svg width={14} height={14} viewBox="0 0 24 24">
       <Path

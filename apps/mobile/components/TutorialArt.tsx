@@ -11,7 +11,7 @@
 import { Text, View } from "react-native";
 import Svg, { Ellipse, Path } from "react-native-svg";
 import { DUMPS, THREADS } from "../lib/gate";
-import { COLOR } from "../lib/colors";
+import { useColors } from "../lib/colors";
 
 export interface ArtTone {
   bubble: string;
@@ -71,6 +71,7 @@ function ThingIcon({ name, color }: { name: string; color: string }) {
 }
 
 export function TutorialArt({ kind, tone }: { kind: string; tone: ArtTone }) {
+  const COLOR = useColors();
   if (kind === "bubbles") {
     return (
       <View className="w-full gap-space-5">

@@ -34,7 +34,7 @@ import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { widgetsFor } from "@offload/widgets";
 import { Glyph } from "../Glyph";
-import { COLOR } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { ContentRowView } from "../shell/ContentRow";
 import { MemoriesSection } from "../shell/Memories";
 import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
@@ -56,6 +56,7 @@ import { failed } from "../../lib/log";
 const isAndroid = Platform.OS === "android";
 
 export default function Thread() {
+  const COLOR = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [thread, setThread] = useState<ThreadBundle | null>(null);
@@ -367,6 +368,7 @@ export default function Thread() {
 }
 
 function Bar({ onBack }: { onBack: () => void }) {
+  const COLOR = useColors();
   return (
     <View className="h-appbar-height flex-row items-center px-gutter-screen">
       <Pressable onPress={onBack} hitSlop={12}>
@@ -392,6 +394,7 @@ function TitleSheet({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const COLOR = useColors();
   const [draft, setDraft] = useState("");
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));

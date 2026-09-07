@@ -36,7 +36,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
-import { COLOR } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
 import { useRouter } from "expo-router";
 import { useConversation, type Turn } from "./conversation-context";
@@ -46,6 +46,7 @@ const isAndroid = Platform.OS === "android";
 /** The dim behind a raised conversation. Full screen, and its own component so
  *  the shell can put it under the whole bottom column rather than inside it. */
 export function ConversationScrim() {
+  const COLOR = useColors();
   const conversation = useConversation();
   const raised = conversation.live !== null && !conversation.folded;
   const progress = useSharedValue(0);
@@ -82,6 +83,7 @@ export function ConversationScrim() {
 }
 
 export function Conversation() {
+  const COLOR = useColors();
   const conversation = useConversation();
   const raised = conversation.live !== null && !conversation.folded;
   const progress = useSharedValue(0);
@@ -255,6 +257,7 @@ function Turns() {
 }
 
 function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
+  const COLOR = useColors();
   const hurt = turn.state === "failed" || turn.state === "partial";
 
   return (
@@ -329,6 +332,7 @@ function Mark({ done, children }: { done?: boolean; children: React.ReactNode })
 }
 
 function Theirs({ turn }: { turn: Turn }) {
+  const COLOR = useColors();
   const router = useRouter();
   const { fold } = useConversation();
   return (

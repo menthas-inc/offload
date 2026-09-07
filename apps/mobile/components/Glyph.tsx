@@ -16,7 +16,7 @@
 
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import type { ColorValue } from "react-native";
-import { COLOR } from "../lib/colors";
+import { useColors } from "../lib/colors";
 import { ICONS, type IconName } from "./icons.generated";
 
 export type { IconName };
@@ -27,7 +27,13 @@ interface Props {
   color?: ColorValue;
 }
 
-export function Glyph({ name, size = 20, color = COLOR.iconOnWell }: Props) {
+export function Glyph({ name, size = 20, color }: Props) {
+  // The default is resolved here rather than in the parameter list, because a
+  // default parameter is evaluated before the hook that would supply it. An
+  // omitted colour means "whatever an icon on a well is in this theme", which
+  // is a different value in dark.
+  const COLOR = useColors();
+  const stroke = color ?? COLOR.iconOnWell;
   const shapes = ICONS[name as IconName];
   // An unknown slug draws nothing rather than crashing a screen. The web has a
   // dead-icon check for the same class of mistake; this is the runtime half.
@@ -39,7 +45,7 @@ export function Glyph({ name, size = 20, color = COLOR.iconOnWell }: Props) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke={color}
+      stroke={stroke}
       strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"

@@ -23,7 +23,7 @@ import {
   type Widget,
 } from "@offload/widgets";
 import { Glyph } from "../Glyph";
-import { COLOR } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { ContentRowView } from "./ContentRow";
 import { QUICK_ADD_CHARS, quickAdd } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
@@ -98,6 +98,7 @@ function WidgetBlock({
   onActions: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
 }) {
+  const COLOR = useColors();
   // Null is All, which is also where a row carrying no tag in this dimension
   // lives. Local rather than stored: a filter is what you are looking at now.
   const [only, setOnly] = useState<string | null>(null);

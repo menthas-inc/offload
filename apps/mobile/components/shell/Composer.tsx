@@ -13,7 +13,7 @@
 import { useEffect, useState } from "react";
 import { Platform, Pressable, TextInput, View } from "react-native";
 import { Glyph } from "../Glyph";
-import { COLOR } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { useConversation } from "./conversation-context";
 
 const isAndroid = Platform.OS === "android";
@@ -46,6 +46,7 @@ const PLACEHOLDERS = [
 const MAX_HEIGHT = 380;
 
 export function Composer({ placeholder }: { placeholder?: string | undefined }) {
+  const COLOR = useColors();
   const { draft, setDraft, submit } = useConversation();
   const [height, setHeight] = useState(0);
   const [which, setWhich] = useState(0);

@@ -23,7 +23,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
-import { COLOR } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import type { ThreadRow as Row } from "../../lib/threads";
 
 /** How far the row parks open, from the component contract. */
@@ -40,6 +40,7 @@ interface Props {
 }
 
 export function ThreadRow({ thread, border, onOpen, onDelete, onRefuse }: Props) {
+  const COLOR = useColors();
   const dx = useSharedValue(0);
 
   const close = (): void => {
