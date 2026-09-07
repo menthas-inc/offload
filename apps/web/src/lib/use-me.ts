@@ -16,6 +16,10 @@ export interface Me {
   state: "invited" | "active";
   displayName: string | null;
   email: string;
+  /** Two letters for the avatar, from the server's one rule rather than a
+   *  split done here. Three clients splitting a name is three chances to
+   *  disagree about "Ana de Sousa". */
+  initials: string;
   needsFirstRun: boolean;
 }
 

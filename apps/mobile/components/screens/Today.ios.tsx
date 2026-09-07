@@ -8,8 +8,9 @@
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
+import { useRouter } from "expo-router";
+import { Glyph } from "../Glyph";
 import { Logo } from "../Logo";
-import { TempSignOut } from "../TempSignOut";
 import { DAY_ONE_INVITATION, EXAMPLES } from "../../lib/gate";
 import { useColors } from "../../lib/colors";
 import { useConversation } from "../shell/conversation-context";
@@ -35,14 +36,33 @@ export default function Today() {
   // than a second field on this screen, which is what the kit means by
   // "examples that fill the composer rather than submitting".
   const { setDraft } = useConversation();
+  const router = useRouter();
+  const COLOR = useColors();
 
   return (
     <SafeAreaView className="flex-1 bg-surface-page" edges={["top"]}>
-      {/* Day one has no title: the wordmark is the bar, because there is
-          nothing yet to name. */}
+      {/* The bar the kit draws on day one: the wordmark, then notifications
+          and settings. `DayOneBar` in `FirstRun.jsx` gives that order.
+
+          **The bell is drawn and does nothing, deliberately.** It is this
+          feature's one exception to its own rule against controls that do not
+          work, and the reason is that the bar's shape should not move under
+          somebody the day notifications land. It carries no unread dot,
+          because there is nothing to be unread, and its accessible name says
+          what it is rather than promising what it does. */}
       <View className="h-appbar-height flex-row items-center px-gutter-screen">
         <Logo size={21} />
-        <TempSignOut />
+        <View className="ml-auto flex-row items-center gap-space-5">
+          <Glyph name="bell" size={21} color={COLOR.iconOnWell} />
+          <Pressable
+            onPress={() => router.push("/settings")}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+          >
+            <Glyph name="settings" size={21} color={COLOR.iconOnWell} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerClassName="px-gutter-screen pt-space-6 pb-space-8">
