@@ -109,6 +109,43 @@ size, per `AC-6c`.
 - Every `bg-*` and `text-*` class already resolves through the generated
   `.dark:root` scope, so no class changes anywhere.
 
+### The theme was locked in a native resource, and nothing in JavaScript could say so
+
+`AC-6a`. Dark did not paint. The store held `dark`, the segmented control showed
+Dark, `storedTheme()` returned `dark` during the first render, `applyTheme` ran
+before any child mounted, and the screen stayed light. **Four fixes were tried
+and all four were wrong**, which is worth recording because each looked
+plausible:
+
+- **Module scope.** Ruled out on a device: disabling it changed nothing.
+- **An effect.** No change.
+- **A `useState` initialiser**, so it runs during the root's first render
+  before children mount. No change, and a log proved the value was `dark` at
+  that moment.
+- **Keying the navigator on the scheme**, to force a remount. No change, and
+  that one was informative: `useColorScheme()` itself returned `light`, so
+  there was nothing to key on. NativeWind's scheme was never becoming dark at
+  all.
+
+**The cause is `expo_system_ui_user_interface_style` in
+`android/app/src/main/res/values/strings.xml`**, generated from `app.json`'s
+`userInterfaceStyle: "light"`. `SystemUIReactActivityLifecycleListener` reads it
+and calls `AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_NO)`, which locks
+the activity to light. `colorScheme.set` is a thin wrapper over
+`Appearance.setColorScheme`, and against that lock it can do nothing. **No
+amount of JavaScript could have fixed this**, which is why four JavaScript fixes
+in a row did nothing, and why the app went dark exactly once: when an app-state
+transition let NativeWind read the *device's* scheme, not ours.
+
+It is `automatic` now, and the light default is enforced where it belongs, in
+JavaScript: an unset preference is `light`, so a new account still opens light
+regardless of the device, which is the 25 August decision. The native layer
+stops having an opinion.
+
+**A comment in `_layout.tsx` asserted the opposite** — "app.json's
+`userInterfaceStyle` only governs native chrome" — and it was wrong. It was
+written when nothing depended on it being right.
+
 ### `COLOR` has to move with it
 
 `AC-6b`. `lib/colors.ts` resolves `resolved.light` and `android.light` at module

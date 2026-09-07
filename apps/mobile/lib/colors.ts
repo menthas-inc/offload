@@ -45,6 +45,10 @@ export interface Colors {
   page: string;
   /** Clay. The one destructive action in a sheet, at most. */
   danger: string;
+  /** The mark's one colour. Ink on a light ground and near-white on a dark one:
+   *  `ink-950` resolved from the light scope is invisible on a dark surface,
+   *  which is what the wordmark did the first time anybody looked at dark. */
+  ink: string;
 }
 
 function paletteFor(dark: boolean): Colors {
@@ -65,6 +69,7 @@ function paletteFor(dark: boolean): Colors {
     scrim: base["ink-950"] ?? light["ink-950"]!,
     page: isAndroid ? m3["a-surface"]! : base["surface-page"] ?? light["surface-page"]!,
     danger: base["text-danger"] ?? light["text-danger"]!,
+    ink: base["text-primary"] ?? light["text-primary"]!,
   };
 }
 

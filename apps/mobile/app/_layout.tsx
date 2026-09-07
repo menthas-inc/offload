@@ -5,6 +5,7 @@
 
 import "../global.css";
 import { useEffect, useState } from "react";
+import { useColorScheme } from "nativewind";
 import { applyTheme, storedTheme } from "../lib/appearance";
 import { AccessibilityInfo, Platform } from "react-native";
 import { Stack } from "expo-router";
@@ -24,18 +25,31 @@ export default function RootLayout() {
   // choice in Settings" is a design decision, not a default, so an unset
   // preference is light rather than the device.
   //
-  // **In an effect, and not at module scope, which was tried and is wrong.**
-  // `colorScheme.set` is a thin wrapper over `Appearance.setColorScheme`, and
-  // NativeWind only learns the new value from an Appearance change event it
-  // receives *while `AppState` is active*. Setting it during module evaluation
-  // fires that event before the app is active, so it is dropped, and every
-  // later set to the same value is a no-op that fires nothing: the app then
-  // sits in light forever with the store, the segmented control and
-  // `useColorScheme()` all saying dark. Found on a device; it costs at most
-  // one frame of light on launch, which is the correct trade.
-  useEffect(() => {
+  // **During the first render, not at module scope and not in an effect.**
+  // Both were tried on a device. At module scope it runs before the app is
+  // active and NativeWind never picks it up. In an effect it runs after the
+  // first screen has already mounted, so the app launches light and only turns
+  // dark once something navigates, which is worse than a frame: it looks
+  // broken. A `useState` initialiser runs once, during this component's first
+  // render, before any child mounts.
+  useState(() => {
     applyTheme(storedTheme());
-  }, []);
+    return null;
+  });
+
+  // **The tree is keyed on the scheme, and it has to be.** Applying the theme
+  // before any child mounts is not enough on its own: NativeWind does not
+  // repaint a tree that is already rendering in the same pass, so the app
+  // launched light with the store, the control and `useColorScheme()` all
+  // saying dark, and only turned dark once something navigated. Keying the
+  // navigator remounts it when the scheme changes, which is what makes both
+  // the launch and the switch take effect. Found on a device after three
+  // placements of the apply itself all failed the same way.
+  //
+  // The cost is a remount on theme change, which loses nothing worth keeping:
+  // at launch there is no state yet, and changing your theme is not something
+  // you do mid-thought.
+  const { colorScheme } = useColorScheme();
 
   // Once, on launch. A session stored before the device-only class shipped
   // keeps the old one until something rewrites it, and nothing otherwise
@@ -76,6 +90,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <StatusBar style="auto" />
           <Stack
+            key={colorScheme}
             screenOptions={{
               headerShown: false,
               // The gate fades: it is a sequence of full-bleed screens rather

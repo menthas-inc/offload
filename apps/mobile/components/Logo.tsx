@@ -7,10 +7,7 @@
 
 import Svg, { Circle, Path } from "react-native-svg";
 import { View, Text } from "react-native";
-import { resolved } from "@offload/tokens";
-
-const INK = resolved.light["ink-950"]!;
-const INVERSE = resolved.light["text-inverse"] ?? resolved.light["paper"]!;
+import { useColors } from "../lib/colors";
 
 export function Logo({
   variant = "lockup",
@@ -23,7 +20,13 @@ export function Logo({
   size?: number;
   tone?: "ink" | "inverse";
 }) {
-  const color = tone === "inverse" ? INVERSE : INK;
+  // **Not a module constant.** This read `resolved.light["ink-950"]` once at
+  // import, which is near-black, and on a dark surface the mark and the
+  // wordmark both vanished. It was the first thing dark mode showed, and it is
+  // the same mistake `lib/colors.ts` exists to stop: a colour reaching a React
+  // Native prop does not follow a class.
+  const COLOR = useColors();
+  const color = tone === "inverse" ? COLOR.onSolid : COLOR.ink;
 
   return (
     <View className="flex-row items-center gap-space-4">
