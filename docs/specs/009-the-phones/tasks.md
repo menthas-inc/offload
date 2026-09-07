@@ -44,9 +44,13 @@ carries a failure mode no mock can express.
       foregrounding asks at once.
 - [x] **A4a** Session storage pins `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY` on write, and first
       launch rewrites an existing cookie so it is not left on the old class.
-- [ ] **A4b** **Verify Android's actual backup behaviour for `expo-secure-store`** and write the
-      answer into the impl-spec. `keychainAccessible` is iOS-only, so the fix above says nothing
-      about Android and nobody has checked what is true there.
+- [x] **A4b** **Verified on a Pixel 9, 7 September 2026, and written into the impl-spec.** A
+      session cannot leave an Android device by backup, for two independent reasons: the store is
+      excluded from both cloud backup and device transfer by rules `expo-secure-store` ships and
+      its plugin writes into the merged manifest, and the Keystore key that decrypts it is not
+      exportable. Proven by a real backup, uninstall, reinstall and restore: every other prefs
+      file came back and `SecureStore.xml` did not. It is the library's guarantee rather than
+      ours, so it is a regression risk on upgrade rather than a settled fact.
 - [x] **A4c** A `vitest` setup for `apps/mobile`, replacing the `echo "no mobile tests yet"`
       stub, covering the ported API layer and the poll. Everything that needs a device stays a
       device check; everything that does not stops pretending it does.

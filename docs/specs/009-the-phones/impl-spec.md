@@ -133,11 +133,38 @@ So the storage handed to the plugin is a thin wrapper pinning
 `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY` on write. `expoClient` only ever calls `setItemAsync(key,
 value)`, so a wrapper injecting the option is straightforward and reads are untouched.
 
-**That fixes iOS and says nothing about Android.** `keychainAccessible` is marked `@platform ios`
-in `expo-secure-store`'s own types. Android uses the Keystore under a different model, and this
-page does not assert what its backup behaviour is, because nobody has checked. **Verify it the way
-the app loads it before claiming anything**, which is this repo's own rule, and write the answer
-here.
+**That fixes iOS and says nothing about Android**, so Android was checked separately on 7
+September 2026. `keychainAccessible` is marked `@platform ios` in `expo-secure-store`'s own types
+and there is no Android equivalent to pass, because on Android the protection is not an
+accessibility class at all: it is that the store is excluded from backup outright.
+
+**The answer is that a session cannot leave an Android device by backup, for two independent
+reasons.** Either alone would be enough, and they fail differently, which is why both are worth
+writing down.
+
+- **The encrypted blob is excluded from backup.** `expo-secure-store` ships its own rules and its
+  config plugin writes them into the manifest: `android:dataExtractionRules` and
+  `android:fullBackupContent`, verified in the **merged** manifest rather than the source, since
+  the merged one is what ships. Both files carry
+  `<exclude domain="sharedpref" path="SecureStore"/>`, under `<cloud-backup>` *and*
+  `<device-transfer>` on Android 12 and up, and in the `<full-backup-content>` file for Android 11
+  and lower. The exclusion matches by filename, so the thing worth checking was that the filename
+  is real: `SecureStoreModule.kt` sets `SHARED_PREFERENCES_NAME = "SecureStore"`.
+- **The key that would decrypt it is not exportable.** The Android Keystore holds the key and
+  never includes it in a backup, so a blob that did escape would restore as bytes nobody can read.
+
+**Proven on a Pixel 9, not read from documentation.** Signed in, confirmed `SecureStore.xml`
+present in `shared_prefs/`, forced a backup with `bmgr backupnow`, uninstalled, reinstalled the
+same build and ran `bmgr restore` against the set explicitly. Six other prefs files came back,
+including runtime state the app writes at first launch, and `SecureStore.xml` did not. The app
+came up on the sign-in gate. **The other files returning is the part that matters**: the rules
+`<include domain="sharedpref" path="."/>` everything else, so a run where nothing came back would
+have proved only that the backup never happened.
+
+**This is the library's guarantee and not ours, which makes it a regression risk rather than a
+settled fact.** Nothing in this repository configures it, nothing asserts it, and a
+`expo-secure-store` upgrade that changed its shipped rules or renamed its preferences file would
+turn it off silently. Worth re-running the procedure above on any major upgrade of that package.
 
 **Existing sessions keep the old class until something rewrites them.** Accessibility is applied
 at write time and there is no re-encrypt on read, so an account that signed in before this ships
