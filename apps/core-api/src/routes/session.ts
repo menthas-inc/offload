@@ -10,6 +10,7 @@ import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { ATTEMPT_COOKIE, readCookie, unseal } from "../auth/attempt.js";
 import { db } from "../db.js";
+import { initialsOf } from "../accounts/initials.js";
 import { emit } from "../analytics.js";
 import { env, isProduction } from "../env.js";
 
@@ -39,6 +40,11 @@ const meResponse = z.object({
   state: z.enum(["invited", "active"]),
   displayName: z.string().nullable(),
   email: z.string(),
+  /** Two letters for the avatar, from the same rule a thread's faces use.
+   *  Computed here rather than on three clients, because three splits of a
+   *  name is three chances to disagree about "Ana de Sousa". `?` where there
+   *  is no name, which is the case the settings index shows an email beside. */
+  initials: z.string(),
   /** invited means the account exists and has never finished first run. The
    *  client does not get to decide this; it is the account's state. */
   needsFirstRun: z.boolean(),
@@ -128,6 +134,7 @@ export async function sessionRoutes(app: App): Promise<void> {
       state: account.state,
       displayName: account.display_name,
       email: account.email,
+      initials: initialsOf(account.display_name ?? ""),
       needsFirstRun: account.state === "invited",
     });
   });

@@ -8,7 +8,7 @@
 
 import { Pressable, Text } from "react-native";
 import { useRouter } from "expo-router";
-import { signOutForTesting } from "../lib/auth";
+import { signOut } from "../lib/auth";
 
 export function TempSignOut() {
   const router = useRouter();
@@ -20,7 +20,7 @@ export function TempSignOut() {
       hitSlop={12}
       className="ml-auto rounded border border-dashed border-red-500 px-2 py-1"
       onPress={() => {
-        void signOutForTesting().then(() => router.replace("/sign-in"));
+        void signOut().then(() => router.replace("/sign-in"));
       }}
     >
       <Text className="text-xs text-red-500">sign out</Text>

@@ -9,6 +9,7 @@
 //         the account id.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { initialsOf } from "../src/accounts/initials.js";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
@@ -168,5 +169,28 @@ describe("the refused address a no-invite screen shows", () => {
 
   it("refuses malformed input rather than throwing", () => {
     for (const value of ["", "a", "a.b", "a.b.c.d"]) expect(unseal(value, now)).toBeNull();
+  });
+});
+
+describe("AC-2 the avatar's two letters come from one rule", () => {
+  // Three clients each splitting a name is three chances to disagree about
+  // "Ana de Sousa", and the disagreement is invisible until two surfaces show
+  // a different avatar for the same person. The settings index and a shared
+  // thread's faces read the same function.
+  it("takes the first and last initial of a full name", () => {
+    expect(initialsOf("Jo Martins")).toBe("JM");
+    expect(initialsOf("Ana de Sousa")).toBe("AS");
+    expect(initialsOf("  Tom   Reilly  ")).toBe("TR");
+  });
+
+  it("takes two letters from a single name", () => {
+    expect(initialsOf("Prince")).toBe("PR");
+  });
+
+  it("invents nothing where there is no name", () => {
+    // The settings index shows the email beside this and a thread member shows
+    // "Someone". Neither makes a letter up.
+    expect(initialsOf("")).toBe("?");
+    expect(initialsOf("   ")).toBe("?");
   });
 });

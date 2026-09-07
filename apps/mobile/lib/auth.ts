@@ -75,10 +75,7 @@ export const authClient = createAuthClient({
  *  until something rewrites it, which may not happen inside thirty days. Read
  *  it and put it straight back, once, on launch. */
 export async function pinExistingSession(): Promise<void> {
-  // The names the plugin actually uses, from its own source: `storagePrefix`
-  // plus `_cookie` and `_session_data`. Read out of the package rather than
-  // guessed, and `signOutForTesting` below deletes the same two.
-  for (const key of ["offload_cookie", "offload_session_data"]) {
+  for (const key of SESSION_KEYS) {
     const value = await SecureStore.getItemAsync(key).catch(() => null);
     if (value === null) continue;
     await SecureStore.setItemAsync(key, value, {
@@ -86,6 +83,15 @@ export async function pinExistingSession(): Promise<void> {
     }).catch(() => undefined);
   }
 }
+
+/** Everything on this device that stands for a session.
+ *
+ *  The names the plugin actually uses, from its own source: `storagePrefix`
+ *  plus `_cookie` and `_session_data`. Read out of the package rather than
+ *  guessed. **One list, because two places knowing what a session is made of
+ *  is how one of them ends up out of date**: `pinExistingSession` rewrites
+ *  these and `signOut` deletes them, and anything added later is added once. */
+const SESSION_KEYS = ["offload_cookie", "offload_session_data"] as const;
 
 export type Provider = "apple" | "google";
 
@@ -187,21 +193,47 @@ export async function appleAvailable(): Promise<boolean> {
   return AppleAuthentication.isAvailableAsync();
 }
 
-/** TEMPORARY, for testing the gate. Remove with components/TempSignOut.tsx.
+/** Leaving, properly.
  *
- *  Best effort, and deliberately not blocking on the server. The point is to
- *  get back to the gate; a signOut call that never settles would otherwise
- *  leave the button doing nothing at all, which is the failure mode the
- *  unbounded getCookie() already cost us an afternoon on. The local keys are
- *  cleared either way, so the next launch has no session to find.
- */
-export async function signOutForTesting(): Promise<void> {
-  await Promise.race([
-    authClient.signOut().catch(() => undefined),
-    new Promise((resolve) => setTimeout(resolve, 3000)),
+ *  **The order is the whole of it: the server first, the keys second.** The
+ *  scaffolding this replaces raced the call against three seconds and cleared
+ *  the keys either way, which is right for a debug button and wrong for the
+ *  real control. A phone that clears its keys after a failed call looks signed
+ *  out while the account's session lives for up to thirty days, and it has
+ *  forgotten who it was, so there is nothing left to retry with. On a shared
+ *  device that is somebody else's account left open.
+ *
+ *  The bound stays, because an unbounded `signOut()` is how a button ends up
+ *  doing nothing forever and this repository has already paid an afternoon for
+ *  that. What changed is what happens when it expires: nothing is cleared and
+ *  the caller is told. */
+const PATIENCE_MS = 8_000;
+
+export class SignOutFailed extends Error {
+  constructor() {
+    super("sign out did not complete");
+  }
+}
+
+/** Resolves only once the server has ended the session, and the local keys are
+ *  gone. Throws `SignOutFailed` otherwise, with the device still signed in. */
+export async function signOut(): Promise<void> {
+  const expired = Symbol("expired");
+
+  const outcome = await Promise.race([
+    authClient.signOut().then(
+      () => "done" as const,
+      () => "failed" as const,
+    ),
+    new Promise<typeof expired>((resolve) => setTimeout(() => resolve(expired), PATIENCE_MS)),
   ]);
-  await Promise.all([
-    SecureStore.deleteItemAsync("offload_cookie").catch(() => undefined),
-    SecureStore.deleteItemAsync("offload_session_data").catch(() => undefined),
-  ]);
+
+  if (outcome !== "done") throw new SignOutFailed();
+
+  // Only now. This is the one place that knows what a session is made of on
+  // this device, so anything added later is added here rather than at a call
+  // site that would not know to.
+  await Promise.all(
+    SESSION_KEYS.map((key) => SecureStore.deleteItemAsync(key).catch(() => undefined)),
+  );
 }

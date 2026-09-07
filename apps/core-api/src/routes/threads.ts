@@ -16,6 +16,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
+import { initialsOf } from "../accounts/initials.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import {
   MAX_MEMORIES_PER_THREAD,
@@ -200,13 +201,6 @@ const contentDetail = contentRow.extend({
     .object({ messageId: z.string(), text: z.string().nullable(), at: z.string() })
     .nullable(),
 });
-
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-  return (parts[0]![0]! + parts.at(-1)![0]!).toUpperCase();
-}
 
 /** Members of one thread, with the viewer marked. */
 async function membersOf(threadId: string, viewerId: string) {
