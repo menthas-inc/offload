@@ -32,15 +32,25 @@ one row per page: what it is, and its current value on the right.
 **My account** is who you are: name, email, and sign out again where somebody
 looking for it would go second.
 
-**Appearance** is theme and text size, which web already has and the phones do
-not. It is the same stored value on a device, laid out as choices.
+**Appearance** is theme and text size, on every client. Web already has both;
+the phones have neither, and the phones are pinned to light in
+`app/_layout.tsx` with a comment saying "when Settings gains a theme choice,
+this reads it instead". This is that. It is a value stored on the device, laid
+out as choices.
 
 **Help and about** is the version, and the way to the privacy policy.
 
 ### What ships
 
 - The settings index on web, iOS and Android, reachable from each client's own
-  place: the nav foot on web, the Today app bar on the phones.
+  place: the nav foot on web, and on the phones a real app bar on Today.
+- **Today's app bar on the phones**, which does not exist yet: the wordmark,
+  then notifications and settings, in `DayOneBar`'s order. **The bell is drawn
+  and does nothing**, deliberately: it is the one exception to the rule below,
+  because the bar's shape should not move under somebody the day notifications
+  land, and an icon that has never claimed to do anything is not a control that
+  was refused. It carries no unread state, because there is nothing to be
+  unread.
 - My account, Appearance, and Help and about.
 - The row vocabulary the kits are built from, as real components: a group, a
   row with an optional note, value, control and danger tone, a toggle row, and
@@ -129,9 +139,19 @@ value where it has one, in the kit's group shape.
 **AC-5** My account shows name and email and offers sign out. It does not
 offer account deletion.
 
-**AC-6** Appearance offers theme and text size as single-select choices, reads
-the value the device already holds, and changing either takes effect
-immediately and survives a restart.
+**AC-6** Appearance offers theme and text size as single-select choices on all
+three clients, reads the value the device already holds, and changing either
+takes effect immediately and survives a restart.
+
+**AC-6a** Theme on the phones actually themes. Every screen the app can reach
+is legible in dark: no ink type on a dark surface, and no colour read from a
+scope the switch does not move. `colorScheme.set("light")` in
+`app/_layout.tsx` is replaced by the stored choice.
+
+**AC-6b** Colours that reach React Native props rather than classes follow the
+theme too. `lib/colors.ts` resolves at module load from the light scope and
+feeds 43 call sites; a theme that moves the classes and not those is the exact
+half-dark screen the pin was put there to avoid.
 
 **AC-7** Appearance on web replaces the standalone `/settings/appearance` page
 rather than sitting beside it, and the nav foot's Settings row goes to the
@@ -171,10 +191,12 @@ page: a page is a list of groups and rows, and adding a page adds no layout.
 
 ## Open
 
-- **Where the phones' settings control goes when Today grows a real app bar.**
-  Day one has the wordmark and nothing else, and the kit's `DayOneBar` puts
-  notifications beside settings. There are no notifications, so today it is one
-  control on the right.
 - **Whether Appearance should offer more than two text sizes.** The kit offers
-  four, Small through Larger; the token set defines one alternate scale. Two
-  until the tokens say otherwise.
+  four, Small through Larger; the token set defines one alternate scale, so two
+  is what the tokens can express. Four would mean three new scales, which is
+  the design system's call and not this feature's.
+- **What dark looks like on the phones in practice.** The tokens are complete,
+  `.dark:root` is in the generated stylesheet and every class resolves through
+  it, but no screen has ever been looked at in dark. Expect this to find things,
+  and expect them to be real: the light pin exists because somebody saw it go
+  wrong once.
