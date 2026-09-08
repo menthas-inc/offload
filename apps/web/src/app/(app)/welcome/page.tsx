@@ -21,7 +21,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "../../../components/Logo";
 import { RunArt } from "../../../components/RunArt";
-import { completeOnboarding, useMe } from "../../../lib/use-me";
+import { completeOnboarding, updateName, useMe } from "../../../lib/use-me";
 import { NAME_MAX } from "../../../lib/name";
 import styles from "../auth.module.css";
 
@@ -80,7 +80,10 @@ export default function WelcomePage() {
   useEffect(() => {
     if (state.status !== "ready" || seeded.current) return;
     seeded.current = true;
-    setName(state.me.displayName ?? "");
+    // The suggestion, not the name. `displayName` is null for everybody who
+    // reaches this screen; `suggestedName` is what the provider said, held
+    // where only this account can see it until it is confirmed here.
+    setName(state.me.displayName ?? state.me.suggestedName ?? "");
   }, [state]);
 
   async function finish() {
@@ -88,7 +91,15 @@ export default function WelcomePage() {
     setLeaving(true);
     // The write happens before the navigation, so Today is never rendered for
     // an account the server still considers mid-onboarding.
-    const recorded = await completeOnboarding(name.trim());
+    //
+    // Two ways to be on this screen and two writes. Somebody mid first run
+    // completes it, name and consent in one transaction. Somebody who finished
+    // first run before there was a name to give has already consented, so there
+    // is nothing to complete: they are here for the field alone and it saves on
+    // its own.
+    const recorded = nameOnly
+      ? (await updateName(name.trim())) !== null
+      : await completeOnboarding(name.trim());
     if (!recorded) {
       // Stay put and let them try again. Going on to Today would show a screen
       // the server still thinks belongs to someone mid-onboarding, and the
@@ -107,9 +118,15 @@ export default function WelcomePage() {
   // step 0..2 are the tutorial, step 3 asks for a name and step 4 is the
   // consent. `screen` is undefined on both of the last two, which is what
   // distinguishes them from the tutorial.
-  const screen = SCREENS[step];
-  const naming = step === SCREENS.length;
-  const consenting = step === SCREENS.length + 1;
+  // Somebody who finished first run before 011 has consented and read the
+  // tutorial; the only thing missing is the name. They get that screen and
+  // nothing else, rather than three screens of introduction they have already
+  // seen and a consent they have already given.
+  const nameOnly = !state.me.needsFirstRun;
+
+  const screen = nameOnly ? undefined : SCREENS[step];
+  const naming = nameOnly || step === SCREENS.length;
+  const consenting = !nameOnly && step === SCREENS.length + 1;
   const named = name.trim().length > 0;
   const ready = readPolicy && agreeToProcessing;
 
@@ -159,7 +176,9 @@ export default function WelcomePage() {
               aria-label="Your name"
               onChange={(event) => setName(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && named) setStep(step + 1);
+                if (event.key !== "Enter" || !named) return;
+                if (nameOnly) void finish();
+                else setStep(step + 1);
               }}
             />
           </div>
@@ -213,10 +232,10 @@ export default function WelcomePage() {
           <button
             type="button"
             className={styles.runButton}
-            onClick={() => (consenting ? void finish() : setStep(step + 1))}
+            onClick={() => (consenting || nameOnly ? void finish() : setStep(step + 1))}
             disabled={leaving || (consenting && !ready) || (naming && !named)}
           >
-            {consenting ? "Get started" : "Next"}
+            {consenting || nameOnly ? "Get started" : "Next"}
           </button>
 
           {naming || consenting ? null : (

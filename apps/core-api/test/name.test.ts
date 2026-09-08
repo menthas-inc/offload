@@ -59,6 +59,16 @@ const nameOf = async (id: string): Promise<string | null> =>
       .executeTakeFirstOrThrow()
   ).display_name;
 
+/** What the provider called them, which is a suggestion and not a name. */
+const suggestionOf = async (id: string): Promise<string | null> =>
+  (
+    await db
+      .selectFrom("accounts")
+      .select("provider_name")
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow()
+  ).provider_name;
+
 describe("AC-5 what a name is allowed to be", () => {
   it("trims", () => {
     expect(cleanName("  Ana de Sousa  ")).toBe("Ana de Sousa");
@@ -93,50 +103,62 @@ describe("AC-5 what a name is allowed to be", () => {
 });
 
 describe("AC-1 the sign-in backfill", () => {
-  it("fills a nameless invited account", async () => {
+  it("holds the provider's name as a suggestion", async () => {
     const id = await account("invited");
     await backfillName(id, "Ana de Sousa");
-    expect(await nameOf(id)).toBe("Ana de Sousa");
+    expect(await suggestionOf(id)).toBe("Ana de Sousa");
+  });
+
+  it("AC-1a never writes the name anybody else sees", async () => {
+    // The whole design. A name that went from Google straight to display_name
+    // would appear beside somebody's work, for people who know them, without
+    // them ever having seen it. Confirming is what makes it public.
+    const id = await account("invited");
+    await backfillName(id, "Whatever Google Thinks");
+    expect(await nameOf(id)).toBeNull();
+  });
+
+  it("reaches an account that finished first run long ago", async () => {
+    // Every account that existed when 011 shipped is in this state, and the
+    // hook this used to live in never fires for them: they linked their
+    // provider months ago.
+    const id = await account("active");
+    await backfillName(id, "Ana de Sousa");
+    expect(await suggestionOf(id)).toBe("Ana de Sousa");
   });
 
   it("trims and caps what the provider sent", async () => {
     const id = await account("invited");
     await backfillName(id, `  ${"a".repeat(NAME_MAX + 5)}  `);
-    expect(await nameOf(id)).toHaveLength(NAME_MAX);
+    expect(await suggestionOf(id)).toHaveLength(NAME_MAX);
   });
 
   it("stores nothing when the provider sent nothing", async () => {
-    // Apple, when somebody declines to share their name. An empty field at
-    // first run is the normal outcome, not an error.
+    // Apple, when somebody declines to share their name. An empty field is the
+    // normal outcome, not an error.
     const id = await account("invited");
     await backfillName(id, null);
     await backfillName(id, "   ");
-    expect(await nameOf(id)).toBeNull();
+    expect(await suggestionOf(id)).toBeNull();
   });
 });
 
-describe("AC-2 the backfill never overwrites", () => {
-  it("leaves a name that is already there", async () => {
-    const id = await account("invited", "Ana");
+describe("AC-2 the backfill stops once there is a name", () => {
+  it("does not touch the suggestion after a name is set", async () => {
+    const id = await account("active", "Ana");
     await backfillName(id, "Whatever Google Thinks");
     expect(await nameOf(id)).toBe("Ana");
+    expect(await suggestionOf(id)).toBeNull();
   });
 
-  it("AC-2a leaves it alone when a second provider is linked later", async () => {
+  it("AC-2a is the same case when a second provider is linked later", async () => {
     // Linking Apple to an account that signed in with Google reaches the same
     // statement. This is the case `updateUserInfoOnLink` gets wrong.
     const id = await account("invited");
     await backfillName(id, "Google Name");
+    await completeFirstRun(id, "Ana");
     await backfillName(id, "Apple Name");
-    expect(await nameOf(id)).toBe("Google Name");
-  });
-
-  it("AC-2b does not touch an account already past first run", async () => {
-    // The whole point of the scope: an active account gets no screen showing
-    // the name before it reaches everyone they share a thread with.
-    const id = await account("active");
-    await backfillName(id, "Whatever Google Thinks");
-    expect(await nameOf(id)).toBeNull();
+    expect(await nameOf(id)).toBe("Ana");
   });
 });
 
@@ -223,12 +245,14 @@ describe("a client that predates the name screen", () => {
     expect(response.statusCode).not.toBe(400);
   });
 
-  it("keeps the name the sign-in backfill stored", async () => {
-    // Absent is not empty. Writing null would wipe what the backfill found, so
-    // the column is left alone and the old client still ends up named.
+  it("leaves them needing a name, which the shell then asks for", async () => {
+    // Absent is not empty. The account goes active with no name, so `needsName`
+    // is true and the gate asks on the next launch, with the suggestion still
+    // there to fill the field in. An old build is a screen late, not stuck.
     const id = await account("invited");
     await backfillName(id, "Ana de Sousa");
     await completeFirstRun(id, null);
-    expect(await nameOf(id)).toBe("Ana de Sousa");
+    expect(await nameOf(id)).toBeNull();
+    expect(await suggestionOf(id)).toBe("Ana de Sousa");
   });
 });

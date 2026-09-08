@@ -1232,7 +1232,9 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 
 **The kit could not have shown the keyboard, and this is the second screen to learn it.** The field sits above the button that leaves first run, and this app is edge to edge, where Android ignores `adjustResize` outright. Without `KeyboardAvoidingView behavior="padding"` the button ends up underneath the keyboard, exactly as the waitlist form did.
 
-**Design system impact:** three things for the kits to catch up on. `FirstRun.jsx`, `M3FirstRun.jsx` and `WFirstRunGate.jsx` are all a screen short and their Skip goes to the wrong place. `SettingsDetail.jsx` and `WSettings.jsx` need the Name row drawn in its editing state, which no kit currently expresses. And a text field on a phone screen wants a note that the mock cannot show its own failure mode: anything with a field above a button needs the keyboard drawn before it is called done.
+**The same screen serves two arrivals.** A new account meets the name as step four of first run. An account that already existed meets it on its own, on the next launch, with the tutorial and the consent left off: they have read one and given the other, and showing them again would be asking twice. One screen, one field, two ways in, and the second is the one every account in the alpha will take.
+
+**Design system impact:** four things for the kits to catch up on. `FirstRun.jsx`, `M3FirstRun.jsx` and `WFirstRunGate.jsx` are all a screen short and their Skip goes to the wrong place. None of them draws the name screen standing alone, which is the more common of its two uses and looks different: no dots, no Skip, one field and one button. `SettingsDetail.jsx` and `WSettings.jsx` need the Name row drawn in its editing state, which no kit currently expresses. And a text field on a phone screen wants a note that the mock cannot show its own failure mode: anything with a field above a button needs the keyboard drawn before it is called done.
 
 ### 2026-09-07 · Focus borders are ink, and `--border-focus` is blue
 **Surface:** web

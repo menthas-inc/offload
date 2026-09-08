@@ -69,6 +69,19 @@ const meResponse = z.object({
   /** invited means the account exists and has never finished first run. The
    *  client does not get to decide this; it is the account's state. */
   needsFirstRun: z.boolean(),
+  /** No name yet, so one has to be asked for before the app is any use.
+   *
+   *  Separate from `needsFirstRun` because the two came apart: every account
+   *  that existed when 011 shipped had finished first run and had no name, and
+   *  a name is not something Settings should have to be found for. */
+  needsName: z.boolean(),
+  /** What Apple or Google called them, to fill the field in.
+   *
+   *  **Only ever sent to the account it belongs to.** It is a suggestion, not a
+   *  name: nothing else reads this column, and a shared thread cannot see it.
+   *  Null when the provider sent nothing, which is what Apple does when
+   *  somebody declines to share theirs. */
+  suggestedName: z.string().nullable(),
 });
 
 /** The version of the privacy policy the consent on first run is against.
@@ -167,7 +180,7 @@ const consentBody = z.object({
 async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | null> {
   const account = await db
     .selectFrom("accounts")
-    .select(["state", "display_name", "email"])
+    .select(["state", "display_name", "provider_name", "email"])
     .where("id", "=", accountId)
     .where("deleted_at", "is", null)
     .executeTakeFirst();
@@ -183,6 +196,8 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     email: account.email,
     initials: initialsOf(account.display_name ?? ""),
     needsFirstRun: account.state === "invited",
+    needsName: account.display_name === null,
+    suggestedName: account.provider_name,
   };
 }
 

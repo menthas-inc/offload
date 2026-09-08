@@ -21,6 +21,22 @@ export interface Me {
    *  disagree about "Ana de Sousa". */
   initials: string;
   needsFirstRun: boolean;
+  /** No name yet. Asked for before the app is any use, on the same screen first
+   *  run uses, because a name is not something Settings should have to be found
+   *  for. */
+  needsName: boolean;
+  /** What Apple or Google called them, to fill the field in. Only ever sent to
+   *  the account it belongs to, and null when the provider sent nothing. */
+  suggestedName: string | null;
+}
+
+/** Whether this account still has something to answer before the shell.
+ *
+ *  Two questions, one gate. They came apart because every account that existed
+ *  when 011 shipped had finished first run and had no name, so "finished first
+ *  run" stopped being the same as "ready". */
+export function stillAsking(me: Me): boolean {
+  return me.needsFirstRun || me.needsName;
 }
 
 export type MeState = { status: "loading" } | { status: "ready"; me: Me };
@@ -52,8 +68,8 @@ export function useMe(expect: "first-run" | "shell"): MeState {
         }
         const me = (await response.json()) as Me;
         if (!live) return;
-        if (me.needsFirstRun && expect === "shell") router.replace("/welcome");
-        else if (!me.needsFirstRun && expect === "first-run") router.replace("/today");
+        if (stillAsking(me) && expect === "shell") router.replace("/welcome");
+        else if (!stillAsking(me) && expect === "first-run") router.replace("/today");
         else setState({ status: "ready", me });
       })
       .catch(() => {
@@ -71,7 +87,7 @@ export function useMe(expect: "first-run" | "shell"): MeState {
       // a name today, so this cannot currently fire on the wrong side, but the
       // redirect rule was enforced in one place and silently skipped in the
       // other, which is how it stops being true later.
-      if (me.needsFirstRun !== (expect === "first-run")) return;
+      if (stillAsking(me) !== (expect === "first-run")) return;
       setState({ status: "ready", me });
     };
     window.addEventListener(CHANGED, onChanged);

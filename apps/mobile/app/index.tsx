@@ -13,7 +13,7 @@
 import { useEffect } from "react";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
-import { getMe } from "../lib/api";
+import { getMe, stillAsking } from "../lib/api";
 
 export default function Index() {
   const router = useRouter();
@@ -25,7 +25,10 @@ export default function Index() {
       .then((me) => {
         if (!live) return;
         if (!me) router.replace("/sign-in");
-        else router.replace(me.needsFirstRun ? "/welcome" : "/today");
+        // Not `needsFirstRun` alone. An account that finished first run before
+        // there was a name to give still has one thing to answer, and it is
+        // asked on the same screen rather than left for Settings to be found.
+        else router.replace(stillAsking(me) ? "/welcome" : "/today");
       })
       .catch(() => {
         // Could not tell. Show the gate rather than nothing.

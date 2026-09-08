@@ -33,53 +33,60 @@ which is the shape this wants: null means nobody has set one.
 has no uniqueness, so there is nothing to enforce. **Pagination:** not
 applicable.
 
-## Where the provider's name comes from, and why it is not the ID token
+## Where the provider's name comes from, and where it lands
 
-`AC-1`. The first instinct is to decode `identity.idToken` in
-`account.create.before`, which already holds it. **That works for Google and
+`AC-1`. Two separate questions, and both had an obvious answer that was wrong.
+
+### It is read in `mapProfileToUser`, not from the ID token
+
+Decoding `identity.idToken` is the first instinct and it **works for Google and
 silently does nothing for Apple**, which is the worse half of the outcome:
-Apple's ID token has no name claim at all. Apple sends the name once, in the
-form post of the very first authorization, and Better Auth reads it from
-`token.user` rather than the token.
+Apple's ID token has no name claim. Apple sends the name once, in the form post
+of the very first authorization, and Better Auth reads it from `token.user`.
 
 The one place both providers agree is `mapProfileToUser`, which
 `@better-auth/core` calls from each provider's `getUserInfo` with the name
-already resolved: Google's from the ID token's `name` claim, Apple's from the
-enriched profile built out of the form post. So both providers get a
-`mapProfileToUser` that records the name and maps nothing.
+already resolved. It maps nothing, because `user.create.before` always refuses
+and the row those fields would land on is never created.
 
-**It rides the request slot that `attempt.ts` already opens.** `withAttempt`
-wraps the whole Better Auth handler in `routes/auth.ts`, so `getUserInfo` and
-`account.create.before` are the same async context, and the store gains a second
-field beside the refused address. Two hooks in one request needing to share a
-value is the same problem the slot was built for; a second `AsyncLocalStorage`
-and a second wrapper would be the same mechanism twice.
+**It rides the request slot `attempt.ts` already opens.** `withAttempt` wraps
+the whole Better Auth handler in `routes/auth.ts`, so `getUserInfo` and the
+session hook are the same async context.
 
-**The write is one statement with the rule in the where clause**, in the idiom
-`completeFirstRun` already uses:
+### It is written on session creation, not on account creation
+
+`account.create.before` was the first home and it is wrong for the population
+that matters. That hook fires only on the link that creates an identity: it
+covers a brand new account and **misses every account that already exists**,
+which linked its provider months ago. Those accounts only ever reach
+`account.update.before`, and Better Auth calls that one
+`updateAccount(linkedAccount.id, freshTokens)` with the provider id, the tokens
+and **no `userId`** at all. It does not know whose account it is holding.
+
+`session.create.after` runs on every sign-in, carries the account, and sits
+after the profile has been read. It already had a caller doing exactly this
+shape of work, `emitFirstSignInOnce`.
+
+### It lands in `provider_name`, which nobody else can see
+
+Migration 0022, one nullable column, and it is the whole reason this feature is
+safe rather than merely convenient. `display_name` is what a shared thread's
+members see; `provider_name` is read by exactly one query, `/api/me`, for the
+account it belongs to, to fill in a field.
 
 ```sql
-UPDATE accounts SET display_name = $1
- WHERE id = $2 AND display_name IS NULL AND state = 'invited'
+UPDATE accounts SET provider_name = $1
+ WHERE id = $2 AND display_name IS NULL
 ```
 
-No read-then-write, so two concurrent sign-ins are the same case as one, and
-`AC-2`, `AC-2a` and `AC-2b` are all the where clause rather than three branches
-somebody has to keep in step. A second provider linked later reaches the same
-statement and matches nothing, because by then the name is set or the account is
-active.
+`AC-2` is that second clause: once somebody has a name, offload stops having an
+opinion about what the provider calls them, so a second provider linked later
+and a hundredth sign-in are the same case. No read-then-write, so two concurrent
+sign-ins are the same case as one.
 
-**Trimmed and capped first** (`AC-5`), by the same function the endpoints use.
-Nothing survives the trim, nothing is written.
-
-**`account.update.before` is not involved, and cannot be.** A repeat sign-in
-with an already-linked provider updates the identity row through
-`updateAccount(linkedAccount.id, freshTokens)`, and `freshTokens` carries the
-provider id and the tokens **and no `userId`**. That hook does not know whose
-account it is holding, so it could not do this write even if it wanted to. It is
-also not needed: the backfill's whole window is an invited account, and an
-invited account's first sign-in is always the link that creates its first
-identity, which is the create hook.
+**Trimmed and capped first** (`AC-5`). Nothing survives the trim, nothing is
+written, and a name absent from the slot is logged, because an empty slot is
+also what a broken async context looks like.
 
 ## One validator, three callers
 
@@ -138,6 +145,27 @@ A pre-existing account is the exception and stays one (`AC-8`): it went active
 before there was anything to ask.
 
 ## The clients
+
+### One screen, two ways in
+
+`AC-3`. The gate is `stillAsking(me)`, which is `needsFirstRun || needsName`, on
+the web's `useMe` and the phones' launch route. Those two questions came apart
+the moment this shipped: every account that existed had finished first run and
+had no name.
+
+**A new account** gets the name as a step of first run. **An account that
+already exists** gets the same screen on its own, on its next launch, with the
+tutorial and the consent left off: they have read one and given the other, and
+showing them again would be asking twice. The button saves through
+`PATCH /api/me` rather than `POST /api/onboarding/complete`, because there is no
+onboarding left to complete.
+
+Both prefill from `suggestedName`, never from `displayName`, which is null for
+everybody who reaches this screen.
+
+The phones hold a blank frame until the identity lands. Which screens somebody
+needs is not known until then, and one frame of "Dump anything" for a person who
+only has to confirm a name is a screen they never asked for.
 
 ### First run gains a fourth screen, and Skip lands on it
 

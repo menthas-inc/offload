@@ -19,6 +19,11 @@ export interface AccountsTable {
   id: Generated<string>;
   state: Generated<"waitlist" | "invited" | "active" | "disabled">;
   display_name: string | null;
+  /** What Apple or Google last called this account. **Read only by the account
+   *  it belongs to**, and only to prefill the field where they confirm or
+   *  change it, so a name nobody has seen never reaches another member's
+   *  screen. See migration 0022. */
+  provider_name: string | null;
   /** Better Auth's user model declares it. Nullable and unread: offload shows
    *  no avatar anywhere. See migration 0006. */
   image: string | null;

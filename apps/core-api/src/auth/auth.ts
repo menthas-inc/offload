@@ -101,27 +101,21 @@ function rememberName(profile: { name?: unknown }): Record<string, never> {
   return {};
 }
 
-/** The provider's name, on an account that has none and has not finished first
- *  run. 011 AC-1.
+/** What the provider called them, held where only they will see it. 011 AC-1.
+ *
+ *  **It writes `provider_name`, never `display_name`.** That is the whole
+ *  design: `display_name` is what everybody in a shared thread sees, and a name
+ *  that went from Google straight there would appear beside somebody's work,
+ *  for people who know them, without them ever having seen it. `provider_name`
+ *  is read by nobody but its own account, to fill in the field where they
+ *  confirm it. Confirming is what makes it public, and confirming is a screen
+ *  they cannot get past without answering.
  *
  *  **The rule is the where clause**, in the idiom `completeFirstRun` uses.
- *  AC-2 (never overwrite), AC-2a (a second provider linked later) and AC-2b
- *  (an account already past first run) are all this one statement rather than
- *  three branches somebody has to keep in step, and two concurrent sign-ins are
- *  the same case as one.
- *
- *  **Scoped to `invited` on purpose**, and the scope is the whole reason this
- *  is safe. The backfill exists to make first run one tap instead of a blank
- *  field. An account past first run gets no such screen, so backfilling it
- *  would take a string from Google, never show it to the person, and publish it
- *  to everyone they share a thread with. Provider names are nicknames, maiden
- *  names, or a script somebody does not use with these particular people. A
- *  name nobody has seen should not appear next to their content. */
-export async function backfillName(
-  accountId: string,
-  raw: string | null,
-  providerId?: string
-): Promise<void> {
+ *  AC-2, never overwrite, is that clause: once somebody has a name of their
+ *  own, offload stops having an opinion about what the provider calls them, so
+ *  a second provider linked later and a hundredth sign-in are the same case. */
+export async function backfillName(accountId: string, raw: string | null): Promise<void> {
   const name = cleanNameLossy(raw);
   if (!name) {
     // **The one way this feature fails silently**, and the only place it can be
@@ -139,18 +133,22 @@ export async function backfillName(
     // Auth hook, several layers below the route, with no request and no app
     // instance to log through. Written as one JSON line so it is greppable in
     // the platform's log view, which is the only place it will ever be read.
-    if (providerId === "google") {
-      console.warn(JSON.stringify({ at: "name.backfill", providerId, name: "absent" }));
-    }
+    //
+    // Not conditioned on the provider any more, because this hook does not know
+    // which one signed in. Apple legitimately sends nothing, so this line is
+    // expected traffic rather than an alarm; it is here so that "the slot was
+    // empty" is a thing somebody can see at all.
+    console.warn(JSON.stringify({ at: "name.backfill", name: "absent" }));
     return;
   }
 
   await db
     .updateTable("accounts")
-    .set({ display_name: name, updated_at: new Date() })
+    .set({ provider_name: name, updated_at: new Date() })
     .where("id", "=", accountId)
+    // Only while they have no name of their own. After that this column is
+    // dead weight and the provider's opinion is not wanted.
     .where("display_name", "is", null)
-    .where("state", "=", "invited")
     .execute();
 }
 
@@ -337,14 +335,6 @@ export const auth = betterAuth({
             return false;
           }
 
-          // The link is allowed, so this is an invited account opening up for
-          // the first time, which is the one moment the backfill is for.
-          //
-          // Before the return rather than in an `after` hook, so a name and an
-          // identity arrive together: an `after` hook that failed would leave a
-          // linked account with no name and nothing to retry it.
-          await backfillName(identity.userId, providerName(), identity.providerId);
-
           // Strip the provider tokens before the row is written, not after.
           //
           // schema.ts and migration 0002 both claimed a hook blanked these
@@ -407,6 +397,19 @@ export const auth = betterAuth({
           // still valid, so it asks the durable question instead: has this
           // account ever emitted the event before.
           await emitFirstSignInOnce(session.userId);
+
+          // **Here rather than in the account hook, and the difference is who
+          // it reaches.** `account.create.before` fires only on the link that
+          // creates an identity, so it would have covered a brand new account
+          // and missed every account that already exists: they linked their
+          // provider months ago and only ever hit `account.update.before`,
+          // which Better Auth hands the tokens and no account id at all.
+          //
+          // A session is created on every sign-in and carries the account, and
+          // by this point the provider's profile has already been read, so the
+          // slot is full. Cheap to repeat: it is one statement that matches
+          // nothing once somebody has a name.
+          await backfillName(session.userId, providerName());
         },
       },
 

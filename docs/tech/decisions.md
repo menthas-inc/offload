@@ -430,18 +430,58 @@ Three defects from one real dump: *"I need to book a stay in Istanbul from Sep 2
 - ✅ **`railway ssh` is how to reach the production database.** It is on a private network with no public endpoint, `railway connect` needs a TCP proxy nobody has enabled, and `railway run` executes locally with the environment rather than inside it. `railway ssh --service core-api "node -e ..."` runs in a container that can already see Postgres and has `pg` in `node_modules`. *Used to give the worker's role its password, which is the one bootstrap step that cannot be a migration, because a password in a migration is a secret in source. Escaping through four layers of shell is the trap: base64 the script and `eval(Buffer.from(...))` it on the far side. And end with `process.exit(0)`, or the command hangs after the work is done.*
 - ✅ **All three services track the repository now, and a push deploys them.** `core-api` and `web` were CLI uploads until 2026-09-02, which was the real reason a push to `main` deployed nothing. *They track `003-composer` rather than `main` for the moment, because `core-api` was already running that branch's code and pointing it at `main` would have been a rollback that also broke the worker, which posts to an endpoint `main` does not have. All three move together at merge.* Superseded: both were CLI uploads and `agent` was the only connected service.
 
-### 2026-09-07 · Where a provider's name comes from, and why the backfill is scoped to first run
+### 2026-09-07 · A provider's name is a suggestion, not a name
 
-**Decision:** a display name arrives three ways: Apple or Google's, stored on sign-in **only while the account has not completed first run**; typed at first run, in the same transaction that goes active; and changed in Settings. It is never overwritten.
+**Decision:** what Apple or Google call an account is stored in
+`accounts.provider_name`, which nothing reads but the account it belongs to.
+`display_name`, the one every member of a shared thread sees, is only ever
+written by the person themselves. Everybody confirms a name on the way in, with
+the provider's answer already in the field.
 
-**The name is read in `mapProfileToUser`, not from the ID token.** Reading `identity.idToken` in `account.create.before` is the obvious move and it works for Google and silently does nothing for Apple, whose ID token has no name claim at all: Apple sends the name once, in the form post of the very first authorization. `@better-auth/core` calls `mapProfileToUser` from each provider's `getUserInfo` with the name already resolved from whichever source that provider uses, so it is the one point at which the two agree. It maps no fields, because `user.create.before` always refuses and the row those fields would land on is never created.
+**The first version of this was scoped instead of separated, and that was the
+wrong shape.** It wrote straight to `display_name` and refused to run for
+accounts past first run, on the grounds that they had no screen to see the name
+on. That made the backfill dead code for every account that existed, to avoid a
+problem better solved by giving them the screen. **Scoping who a risky write
+applies to is worse than making the write not risky.**
 
-**Not `accountLinking.updateUserInfoOnLink`,** which Better Auth offers for exactly this and copies the provider's name unconditionally. Linking Apple to an account that already signed in with Google would replace a name somebody set. It also fires only on a *new* link, so it does nothing on a repeat sign-in, which is the half people expect it to cover.
+**What was actually wrong with writing `display_name` from a provider:** it is
+what everybody in a shared thread sees next to your content, so a name from
+Google appears beside your work, for people who know you, before you have seen
+it. Usually harmless. For somebody whose provider account carries a legal name,
+an old name, or a name in a script they do not use with these particular people,
+it is not, and they are the people least able to shrug it off. Not a security
+issue, and it was recorded as one here at first, which overstated it: no
+attacker, no boundary crossed. It is about not publishing something on somebody's
+behalf that they have not read.
 
-**`account.update.before` cannot do this and it is worth writing down.** A repeat sign-in with an already-linked provider goes through `updateAccount(linkedAccount.id, freshTokens)`, and `freshTokens` carries the provider id and the tokens and **no `userId`**. That hook does not know whose account it is holding. It is also not needed: an invited account's first sign-in is always the link that creates its first identity, which is the create hook.
+**The name is read in `mapProfileToUser`.** Reading `identity.idToken` is the
+obvious move and works for Google and silently does nothing for Apple, whose ID
+token has no name claim: Apple sends it once, in the form post of the first
+authorization. `@better-auth/core` calls `mapProfileToUser` from each provider's
+`getUserInfo` with the name already resolved from whichever source that provider
+uses, so it is the one point at which the two agree. It maps no fields, because
+`user.create.before` always refuses and the row those fields would land on is
+never created.
 
-**The scope is the security finding, not a simplification.** The backfill exists to make first run one tap instead of a blank field. An account already past first run gets no such screen, so backfilling it would take a string from Google, never show it to the person, and publish it to everyone they share a thread with, where the thread reads `display_name` live. Provider names are nicknames, maiden names, or a script somebody does not use with these particular people. A name nobody has seen should not appear next to their content. Every account in the alpha is in that state, so this is the common case rather than a corner: none of them is backfilled, and Settings is their route.
+**Not `accountLinking.updateUserInfoOnLink`,** which Better Auth offers for
+exactly this and writes `display_name` unconditionally. Linking Apple to an
+account that already signed in with Google would replace a name somebody set.
 
-**The rule is a where clause**, in the idiom `completeFirstRun` already uses: `WHERE id = $2 AND display_name IS NULL AND state = 'invited'`. Never-overwrite, second-provider-link and past-first-run are one statement rather than three branches to keep in step, and two concurrent sign-ins are the same case as one.
+**It is written on session creation, and the reason is the population it
+reaches.** `account.create.before` fires only on the link that creates an
+identity: it covers a brand new account and misses every account that already
+exists, which linked its provider months ago. Those only reach
+`account.update.before`, which Better Auth calls with the provider id, the
+tokens and **no `userId`** at all: that hook does not know whose account it is
+holding. `session.create.after` runs on every sign-in and carries the account.
 
-**Design system impact:** none. The screens are in the design log's entry of the same date.
+**`needsFirstRun` stopped being the same question as "ready".** The gate is
+`needsFirstRun || needsName` on all three clients. An account that finished
+first run before this exists in a state the product had no name for, and the
+answer is not to leave it to Settings: it gets the name screen on its own, once,
+with the tutorial and the consent left off.
+
+**Design system impact:** none directly. The screens are in the design log's
+entry of the same date.
+

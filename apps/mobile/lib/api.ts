@@ -12,6 +12,20 @@ export interface Me {
   displayName: string | null;
   email: string;
   needsFirstRun: boolean;
+  /** No name yet, so one is asked for before the app is any use. */
+  needsName: boolean;
+  /** What Apple or Google called them, to fill the field in. Only ever sent to
+   *  the account it belongs to. */
+  suggestedName: string | null;
+}
+
+/** Whether this account still has something to answer before the shell.
+ *
+ *  Two questions, one gate. They came apart because every account that existed
+ *  when 011 shipped had finished first run and had no name, so "finished first
+ *  run" stopped being the same as "ready". */
+export function stillAsking(me: Me): boolean {
+  return me.needsFirstRun || me.needsName;
 }
 
 /** Race a promise against a deadline, resolving to a fallback instead of

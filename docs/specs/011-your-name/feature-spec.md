@@ -21,47 +21,52 @@ invisible until you look at the column.
 
 Three ways a name arrives, in the order somebody meets them.
 
-**Signing in fills it, but only before first run is finished.** Google and Apple
-both hand over a name and we have been discarding it. When an account has no
-name **and has not completed first run**, the provider's name is stored, so the
-next screen has something in the field.
+**Signing in remembers what the provider called you, and shows it to you before
+anybody else sees it.** Google and Apple both hand over a name and we have been
+discarding it. It is stored, but not as your name: it goes in `provider_name`,
+which **nothing reads but the account it belongs to**, and only to fill in the
+field where you confirm it.
 
-*Scoped that way on purpose, and the scope is the finding.* The backfill exists
-for one reason: to make first run one tap instead of a blank field. An account
-that is already past first run gets no such moment, and for that account the
-backfill would take a string from Google, never show it to the person, and
-publish it to everyone they share a thread with. Provider names are nicknames,
-maiden names, a script somebody does not use with these particular people, or
-simply wrong. **A name nobody has seen should not appear next to their content**,
-and tying the backfill to the screen that shows it is what keeps that true.
-Every account in the alpha is in exactly this state, so this is not a corner.
-
-**Never an overwrite**, on any path. A name you set is yours, and neither a
-later sign-in nor **linking a second provider** may replace it.
+*That column is the whole design, and it exists because the alternative is
+worse.* `display_name` is what everybody in a shared thread sees next to your
+content. A name that went from Google straight there would appear beside your
+work, for people who know you, without you ever having seen it. Usually
+harmless. For somebody whose provider account carries a legal name, an old name,
+or a name in a script they do not use with these particular people, it is not,
+and they are the people least able to shrug it off. **Confirming is what makes
+it public**, and confirming is a screen nobody gets past without answering.
 
 *Not `accountLinking.updateUserInfoOnLink`, which Better Auth offers and which
-is the wrong shape: it copies the provider's name unconditionally, so linking
-Apple to an account that already signed in with Google would silently replace a
-name somebody set. The conditional write goes in `account.create.before`
-instead, which already runs on the one event that matters: an invited account's
-first sign-in, which is the link that creates its first identity.*
+writes straight to the name everybody sees, unconditionally: linking Apple to an
+account that already signed in with Google would replace a name somebody set.*
 
-**First run asks, with that name already in the field.** Usually one tap. It is
-the one moment somebody is already answering questions about their account, and
-asking later means asking in the middle of something else. When there is nothing
-to prefill, which is what Apple does when somebody declines to share their name,
-the field is empty and has to be filled in.
+*And not `account.create.before`, which is where this started. That hook fires
+only on the link that creates an identity, so it would have covered a brand new
+account and missed every account that already exists: they linked their provider
+months ago and only ever reach `account.update.before`, which Better Auth hands
+the tokens and no account id at all. It lives on session creation, which happens
+on every sign-in and carries the account.*
+
+**Everybody confirms it, on the way in.** The field arrives filled with what the
+provider said and usually needs one tap. For a new account it is a screen of
+first run. For an account that finished first run before there was a name to
+give, it is the same screen on its own, on the next launch: no tutorial they
+have already seen and no consent they have already given. **The gate is
+`needsName`, not `needsFirstRun`**, because those two came apart the moment this
+shipped.
+
+When there is nothing to prefill, which is what Apple does when somebody
+declines to share their name, the field is empty and has to be filled in.
 
 **Settings changes it**, on the My account page, which is where the phone kits
-already draw a tappable Name row. This is also the only route for an account
-that predates this, and it is the right one: the name is on screen before it is
-saved.
+already draw a tappable Name row.
 
 ### What ships
 
 - A name on `/api/me`'s account, editable through one new endpoint.
-- The backfill, in the auth layer, on sign-in, before first run completes.
-- A name step in first run on all three clients, prefilled.
+- `accounts.provider_name`, and the write that fills it on every sign-in.
+- A name screen on all three clients, prefilled: inside first run for a new
+  account, on its own for an account that already exists.
 - An editable Name row on My account, on all three clients.
 - Three changes to the privacy policy. See below.
 
@@ -134,21 +139,23 @@ after, and never in between.
 
 ## Acceptance criteria
 
-**AC-1** Signing in stores the provider's name when the account has none **and
-has not completed first run**.
+**AC-1** Signing in stores the provider's name as a suggestion, on any account
+that has no name of its own, whatever state it is in.
 
-**AC-2** Signing in **never** replaces a name that is already there, whatever
-the provider says.
+**AC-1a** That suggestion is **never** what another member sees. Only the
+account it belongs to reads it, and only to fill in the field.
+
+**AC-2** Signing in stops touching it once there is a name. Neither a later
+sign-in nor **linking a second provider** replaces what somebody set.
 
 **AC-2a** Linking a second provider to an account that already has a name leaves
 that name alone.
 
-**AC-2b** An account that has completed first run and has no name is not
-backfilled by signing in.
-
-**AC-3** First run asks for a name, prefilled with whatever AC-1 stored, and
-does not let somebody through without one. An empty prefill is a normal state,
-not an error.
+**AC-3** Nobody reaches the shell without a name. A new account is asked inside
+first run; an account that finished first run before this is asked on its next
+launch, on the same screen with the tutorial and the consent left off. Both are
+prefilled with the suggestion, and an empty prefill is a normal state, not an
+error.
 
 **AC-3a** A client installed before this can still finish first run. The name is
 required by the screen, not by the endpoint: a build with no name screen sends
@@ -169,9 +176,9 @@ nothing else.
 avatar's initials and what other members of a shared thread see on their next
 read. No client holds a stale copy of its own name after a change.
 
-**AC-8** An account that has no name and predates this keeps working: every
-screen shows the email, a shared thread says "Someone", and Settings offers to
-set one.
+**AC-8** An account with no name still renders correctly everywhere, because
+that is the state every account is in between signing in and confirming: the
+email alone, `?` in the avatar, "Someone" on a shared thread.
 
 **AC-9** The name endpoint is the account's own and nobody else's: it takes no
 account id and writes only the session's.
@@ -189,8 +196,7 @@ under sixty characters looks nothing like an email or a URL and passes it.
 
 ## Open
 
-- **Nothing for the existing alpha accounts but Settings.** They have all
-  completed first run, so none of them is backfilled and none is asked. That is
-  the deliberate outcome of AC-2b rather than a gap, and it is worth watching
-  only because it means the backfill has no effect on anybody until the next new
-  account signs in.
+- **Everyone who already has an account will meet this screen on their next
+  launch**, prefilled with whatever Google or Apple calls them. That is the
+  point rather than a side effect, and it is the only way the alpha ends up with
+  names at all. It is one tap for almost everybody.

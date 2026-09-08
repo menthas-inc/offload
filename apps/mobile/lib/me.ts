@@ -17,6 +17,10 @@ export interface Me {
    *  and a shared thread's faces cannot disagree about the same person. */
   initials: string;
   needsFirstRun: boolean;
+  /** No name yet. See `stillAsking` in `api.ts`, which is the gate. */
+  needsName: boolean;
+  /** What Apple or Google called them, to fill the field in. */
+  suggestedName: string | null;
 }
 
 /** Every mounted `useMe` hears a change to the identity.

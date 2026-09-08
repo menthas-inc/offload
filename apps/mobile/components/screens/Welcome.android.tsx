@@ -23,6 +23,7 @@ import { CONSENT, NAME_STEP, TUTORIAL } from "../../lib/gate";
 import { ConsentTicks } from "../ConsentTicks";
 import { NameField } from "../NameField";
 import { completeOnboarding } from "../../lib/api";
+import { saveName } from "../../lib/me";
 import { useMe } from "../../lib/me";
 
 export default function Welcome() {
@@ -44,13 +45,31 @@ export default function Welcome() {
   useEffect(() => {
     if (!me || seeded.current) return;
     seeded.current = true;
-    setName(me.displayName ?? "");
+    // The suggestion, not the name. `displayName` is null for everybody who
+    // reaches this screen; `suggestedName` is what the provider said, held
+    // where only this account can see it until it is confirmed here.
+    setName(me.displayName ?? me.suggestedName ?? "");
   }, [me]);
 
   async function finish(ask: boolean) {
     if (leaving) return;
     setLeaving(true);
     setFailed(false);
+
+    // Two ways to be on this screen and two writes. Somebody mid first run
+    // completes it, name and consent in one transaction. Somebody who finished
+    // first run before there was a name to give has already consented, so there
+    // is nothing to complete: they are here for the field alone and it saves on
+    // its own.
+    if (nameOnly) {
+      if (!(await saveName(name.trim()))) {
+        setLeaving(false);
+        setFailed(true);
+        return;
+      }
+      router.replace("/today");
+      return;
+    }
 
     // The write first. Today is never rendered for an account the server still
     // considers mid-onboarding.
@@ -79,14 +98,26 @@ export default function Welcome() {
   // stays true, and a consent that has to be specific cannot sit under an
   // illustration about notifications. It carries no dot, because it is not one
   // of the three.
-  const screen = TUTORIAL[step];
-  const naming = step === TUTORIAL.length;
-  const consenting = step === TUTORIAL.length + 1;
+  // Somebody who finished first run before 011 has consented and read the
+  // tutorial; the only thing missing is the name. They get that screen and
+  // nothing else, rather than three screens of introduction they have already
+  // seen and a consent they have already given.
+  const nameOnly = me !== null && !me.needsFirstRun;
+
+  const screen = nameOnly ? undefined : TUTORIAL[step];
+  const naming = nameOnly || step === TUTORIAL.length;
+  const consenting = !nameOnly && step === TUTORIAL.length + 1;
   const named = name.trim().length > 0;
   const ready = readPolicy && agreeToProcessing;
   // Disabled while the write is in flight, and while the consent screen is
   // showing with either tick unanswered.
   const blocked = leaving || (consenting && !ready) || (naming && !named);
+
+  // Held blank rather than flashing the tutorial. Which screens this person
+  // needs is not known until the identity lands, and one frame of "Dump
+  // anything" for somebody who only has to confirm a name is a screen they
+  // never asked for. The launch gate just fetched this, so it is warm.
+  if (!me) return <SafeAreaView className="flex-1 bg-a-surface" />;
 
   return (
     <SafeAreaView className="flex-1 bg-a-surface">
@@ -158,7 +189,9 @@ export default function Welcome() {
                 value={name}
                 onChange={setName}
                 onSubmit={() => {
-                  if (named) setStep(step + 1);
+                  if (!named) return;
+                  if (nameOnly) void finish(false);
+                  else setStep(step + 1);
                 }}
                 autoFocus
               />
@@ -227,7 +260,11 @@ export default function Welcome() {
             </Text>
           ) : null}
           <Pressable
-            onPress={() => (consenting ? void finish(true) : setStep(step + 1))}
+            onPress={() =>
+              consenting || nameOnly
+                ? void finish(!nameOnly)
+                : setStep(step + 1)
+            }
             disabled={blocked}
             className={`min-h-a-row-height w-full items-center justify-center rounded-pill active:opacity-90 ${
               blocked ? "bg-ink-100" : "bg-blue-600"
@@ -236,7 +273,7 @@ export default function Welcome() {
             <Text
               className={`font-core text-body font-medium ${blocked ? "text-ink-400" : "text-text-inverse"}`}
             >
-              {consenting ? "Get started" : "Next"}
+              {consenting || nameOnly ? "Get started" : "Next"}
             </Text>
           </Pressable>
         </View>

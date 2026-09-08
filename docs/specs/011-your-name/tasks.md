@@ -5,17 +5,20 @@
 - [x] `accounts/name.ts`: `cleanName`, `cleanNameLossy`, `NAME_MAX`. One rule, three callers.
 - [x] `auth/attempt.ts`: the request slot gains `providerName`, beside the refused address.
 - [x] `auth/auth.ts`: `mapProfileToUser` on Google and Apple, recording the name and mapping nothing.
-- [x] `auth/auth.ts`: `backfillName`, one UPDATE whose where clause is AC-2, AC-2a and AC-2b.
+- [x] migration 0022: `accounts.provider_name`, read by nobody but its own account.
+- [x] `auth/auth.ts`: `backfillName` writes the suggestion, on `session.create.after` so it reaches accounts that already exist.
+- [x] `routes/session.ts`: `needsName` and `suggestedName` on `/api/me`.
 - [x] `routes/session.ts`: `nameField` in the schema, so there is one way to refuse a name.
 - [x] `routes/session.ts`: `PATCH /api/me`, writing the session's row and returning the whole identity.
 - [x] `routes/session.ts`: `completeFirstRun` writes the name in the transaction that goes active.
-- [x] `test/name.test.ts`: 17 tests. The backfill's three refusals, the bounds, and the endpoints.
+- [x] `test/name.test.ts`: 20 tests. That the suggestion never reaches `display_name`, that it reaches an account that finished first run long ago, the bounds, and the endpoints.
 
 ## Web
 
 - [x] `lib/name.ts`: `NAME_MAX`, so the field and the server agree.
 - [x] `lib/use-me.ts`: `updateName`, and a window event so every mounted `useMe` moves.
-- [x] `welcome/page.tsx`: the name step, prefilled and required, with Skip landing on it.
+- [x] `welcome/page.tsx`: the name step, and the name-only mode for an account that already exists.
+- [x] `lib/use-me.ts`: `stillAsking`, so the gate is `needsFirstRun || needsName`.
 - [x] `SettingsRows.tsx`: `EditableRow`.
 - [x] `panes/Account.tsx`: the Name row edits.
 
@@ -24,7 +27,8 @@
 - [x] `lib/name.ts`, `components/NameField.tsx`: one field, toned per platform.
 - [x] `lib/me.ts`: `saveName`, and a listener set so every mounted `useMe` moves.
 - [x] `lib/api.ts`: `completeOnboarding` carries the name; `request` exported.
-- [x] `Welcome.ios.tsx`, `Welcome.android.tsx`: the name step, and `KeyboardAvoidingView`.
+- [x] `Welcome.ios.tsx`, `Welcome.android.tsx`: the name step, the name-only mode, and `KeyboardAvoidingView`.
+- [x] `app/index.tsx`: the launch gate routes on `stillAsking`.
 - [x] `settings/Rows.tsx`: `EditableRow`.
 - [x] `settings/[page].tsx`: the Name row edits.
 
