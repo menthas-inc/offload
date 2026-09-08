@@ -265,3 +265,126 @@ export async function listEvents(
 
   return { events, nextSyncToken };
 }
+
+export interface EventDraft {
+  title: string;
+  startsAt: Date;
+  endsAt: Date;
+  allDay?: boolean;
+  timezone?: string | null;
+  location?: string | null;
+  attendees?: string[];
+  /** RRULE lines, as Google takes them. */
+  recurrence?: string[] | null;
+}
+
+function bodyFor(draft: EventDraft): Record<string, unknown> {
+  const when = (at: Date) =>
+    draft.allDay
+      ? { date: at.toISOString().slice(0, 10) }
+      : { dateTime: at.toISOString(), ...(draft.timezone ? { timeZone: draft.timezone } : {}) };
+
+  return {
+    summary: draft.title,
+    start: when(draft.startsAt),
+    end: when(draft.endsAt),
+    ...(draft.location ? { location: draft.location } : {}),
+    ...(draft.attendees?.length ? { attendees: draft.attendees.map((email) => ({ email })) } : {}),
+    ...(draft.recurrence?.length ? { recurrence: draft.recurrence } : {}),
+  };
+}
+
+async function call(
+  accessToken: string,
+  method: string,
+  path: string,
+  body?: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const response = await fetch(`${API}${path}`, {
+    method,
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      ...(body ? { "content-type": "application/json" } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  if (response.status === 401) throw new GrantRevoked();
+  // 404 and 410 on a delete mean it is already gone, which is the outcome the
+  // caller wanted.
+  if (method === "DELETE" && (response.status === 404 || response.status === 410)) return {};
+  if (!response.ok) throw new Error(`google calendar ${method} ${response.status}`);
+  const text = await response.text();
+  return text ? (JSON.parse(text) as Record<string, unknown>) : {};
+}
+
+export async function createEvent(
+  accessToken: string,
+  calendarId: string,
+  draft: EventDraft,
+  notify: boolean
+): Promise<string> {
+  const created = await call(
+    accessToken,
+    "POST",
+    // sendUpdates decides whether Google mails the guests. It is driven by the
+    // same fact the confirmation is: whether anybody else is going to find out.
+    `/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=${notify ? "all" : "none"}`,
+    bodyFor(draft)
+  );
+  return String(created["id"] ?? "");
+}
+
+export async function patchEvent(
+  accessToken: string,
+  calendarId: string,
+  eventId: string,
+  patch: Record<string, unknown>,
+  notify: boolean
+): Promise<void> {
+  await call(
+    accessToken,
+    "PATCH",
+    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=${notify ? "all" : "none"}`,
+    patch
+  );
+}
+
+export async function deleteEvent(
+  accessToken: string,
+  calendarId: string,
+  eventId: string,
+  notify: boolean
+): Promise<void> {
+  await call(
+    accessToken,
+    "DELETE",
+    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=${notify ? "all" : "none"}`
+  );
+}
+
+/** One occurrence, as Google holds it. Read before a write so the outward test
+ *  can see who was already invited. */
+export async function getEvent(
+  accessToken: string,
+  calendarId: string,
+  eventId: string
+): Promise<{ attendees: string[]; seriesId: string | null; startsAt: Date | null } | null> {
+  try {
+    const event = await call(
+      accessToken,
+      "GET",
+      `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`
+    );
+    const start = event["start"] as Record<string, unknown> | undefined;
+    const when = typeof start?.["dateTime"] === "string" ? String(start["dateTime"]) : null;
+    return {
+      attendees: ((event["attendees"] as Array<Record<string, unknown>>) ?? [])
+        .map((a) => String(a["email"] ?? ""))
+        .filter(Boolean),
+      seriesId: typeof event["recurringEventId"] === "string" ? event["recurringEventId"] : null,
+      startsAt: when ? new Date(when) : null,
+    };
+  } catch {
+    return null;
+  }
+}

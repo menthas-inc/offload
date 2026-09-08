@@ -958,6 +958,16 @@ export async function undoTurn(
     const stamp = sql<Date>`now()`;
     const purge = sql<Date>`now() + interval '8 seconds'`;
 
+    // **Calendar rows are excluded, and this is not a refinement.** 012 lets a
+    // tool write an event into somebody's Google Calendar, and this update
+    // filters on nothing but the message the row came from: not `type`, not
+    // `source`. Left as it was, the ordinary Undo toast would soft-delete our
+    // row and leave the event sitting in Google forever, which is exactly the
+    // disagreement between offload and a calendar that 012 AC-17 forbids.
+    //
+    // Undoing a calendar write has to reach Google first and only then touch
+    // the local row, because the effect already left. That is a different path
+    // with a different failure mode, so it is not this one's to run.
     await trx
       .updateTable("content")
       .set({ deleted_at: stamp, purge_after: purge, updated_at: stamp })
@@ -968,6 +978,7 @@ export async function undoTurn(
       )
       .where("account_id", "=", accountId)
       .where("deleted_at", "is", null)
+      .where("source", "<>", "calendar")
       .execute();
 
     // Memories the turn wrote, on the same clock and by the same predicate.
