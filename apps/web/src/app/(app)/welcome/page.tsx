@@ -30,6 +30,27 @@ import styles from "../auth.module.css";
 /** The two facts, matching the phones exactly. `gate.ts` keeps the phones from
  *  drifting apart; the web has always repeated the strings, and the three have
  *  to match. All of it is provisional per the design system. */
+/** The provider's mark, 88px as both phone kits draw it, and never redrawn.
+ *
+ *  Referenced by path so that dropping Google's own file into
+ *  `public/brands/` is the whole of turning it on. Until it is there the image
+ *  fails to load and the dashed stand-in takes its place, so a missing asset is
+ *  visible rather than silent. */
+function ProviderMark() {
+  const [ok, setOk] = useState(true);
+  if (!ok) return <span className={styles.providerMark} aria-hidden="true" />;
+  return (
+    <img
+      src="/brands/google-calendar.svg"
+      alt=""
+      width={88}
+      height={88}
+      className={styles.providerMarkImage}
+      onError={() => setOk(false)}
+    />
+  );
+}
+
 const CONNECT_FACTS = [
   ["calendar", "offload reads your days.", "Times, titles and who is on them."],
   [
@@ -189,7 +210,7 @@ export default function WelcomePage() {
             right is what people spot instantly on a logo they see every day.
             A dashed stand-in until the official file is dropped in, so a
             missing asset is visible rather than silent. */}
-        {offering ? <span className={styles.providerMark} aria-hidden="true" /> : null}
+        {offering ? <ProviderMark /> : null}
 
         <div className={styles.runCopy}>
           <h1 className={styles.runTitle}>

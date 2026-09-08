@@ -1,0 +1,14 @@
+# Third-party brand marks
+
+Drop `google-calendar.svg` here, from Google's own brand resources, and the
+connect screen picks it up with no code change: it is referenced by path and
+falls back to a dashed stand-in when the file is missing.
+
+Nothing in this folder is drawn by us and nothing in it should be edited. A
+mark's corner radius, its colours and its letterforms are the owner's
+specification, and an approximation that is ninety percent right is the one kind
+of wrong people spot instantly on a logo they see every day.
+
+Google's terms govern how their marks appear in a connect flow, including
+minimum clear space and no recolouring. The 88px rounded container may have to
+grow to satisfy the clear-space rule; check before ship.

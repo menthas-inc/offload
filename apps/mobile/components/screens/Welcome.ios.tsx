@@ -23,6 +23,7 @@ import { CONNECT_STEP, CONSENT, NAME_STEP, TUTORIAL } from "../../lib/gate";
 import { ConsentTicks } from "../ConsentTicks";
 import { NameField } from "../NameField";
 import { ConnectStepBar, ConnectStepBody } from "../ConnectStep";
+import { googleCalendarMark } from "../../lib/brands";
 import * as WebBrowser from "expo-web-browser";
 import { completeOnboarding } from "../../lib/api";
 import { saveName } from "../../lib/me";
@@ -205,7 +206,7 @@ export default function Welcome() {
         )}
 
         {offering ? (
-          <ConnectStepBody tone="ios" />
+          <ConnectStepBody tone="ios" mark={googleCalendarMark} />
         ) : naming ? (
           <>
             <View className="px-gutter-screen pt-space-9">
