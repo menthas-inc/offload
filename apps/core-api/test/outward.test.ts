@@ -82,3 +82,29 @@ describe("AC-17 the ordinary Undo leaves a calendar row alone", () => {
     expect(contentUpdate.slice(0, 600)).toContain('"source", "<>", "calendar"');
   });
 });
+
+describe("AC-9 the model cannot choose whether its write is confirmed", () => {
+  it("has no confirmation field in any calendar tool", async () => {
+    // The defence rests on this. Some of what the model read came out of a
+    // calendar somebody else can write into, so a field it could set to skip a
+    // confirmation would be that defence handed to whoever wrote the event.
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync(new URL("../src/routes/tools.ts", import.meta.url), "utf8");
+    const bodies = source.slice(source.indexOf('z.literal("list_calendars")'), source.indexOf('z.literal("rename_thread")'));
+
+    for (const banned of ["confirm", "outward", "notify", "skipConfirm", "force"]) {
+      expect(bodies.toLowerCase()).not.toContain(banned.toLowerCase());
+    }
+  });
+
+  it("refuses a calendar that is not this account's", async () => {
+    // Not "unknown to us": unknown to this account. The tool takes a calendar
+    // id and the server resolves ownership through the connection.
+    const source = (await import("node:fs")).readFileSync(
+      new URL("../src/connectors/tool-calls.ts", import.meta.url),
+      "utf8"
+    );
+    expect(source).toContain("unknown_calendar");
+    expect(source).toContain("read_only");
+  });
+});

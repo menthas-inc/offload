@@ -51,6 +51,8 @@ import {
   setArchived,
   setPreference,
 } from "./threads.js";
+import { findEvents, listCalendarsFor, writeThroughTool } from "../connectors/tool-calls.js";
+import type { WriteAction } from "../connectors/write.js";
 
 /** The only string that ever leaves for a geocoder.
  *
@@ -188,6 +190,53 @@ const body = z.discriminatedUnion("tool", [
     threadId: z.string().uuid(),
     text: z.string().min(1).max(MEMORY_TEXT_CHARS),
   }),
+  // 012, the calendar. **No field decides whether a write is confirmed.**
+  // That is read from the event and the calendar on this side, because some of
+  // what the model read came out of a calendar somebody else can write into.
+  z.strictObject({
+    tool: z.literal("list_calendars"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+  }),
+  z.strictObject({
+    tool: z.literal("find_events"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    calendarId: z.string().uuid(),
+    fromIso: z.string().min(1).max(40),
+    toIso: z.string().min(1).max(40),
+  }),
+  z.strictObject({
+    tool: z.literal("create_event"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    calendarId: z.string().uuid(),
+    title: z.string().min(1).max(200),
+    startsAt: z.string().min(1).max(40),
+    endsAt: z.string().min(1).max(40),
+    location: z.string().max(200).nullish(),
+    guests: z.array(z.string().max(320)).max(50).nullish(),
+  }),
+  z.strictObject({
+    tool: z.literal("edit_event"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    calendarId: z.string().uuid(),
+    sourceRef: z.string().min(1).max(400),
+    title: z.string().max(200).nullish(),
+    startsAt: z.string().max(40).nullish(),
+    endsAt: z.string().max(40).nullish(),
+    location: z.string().max(200).nullish(),
+    scope: z.enum(["one", "following"]).default("one"),
+  }),
+  z.strictObject({
+    tool: z.literal("delete_event"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    calendarId: z.string().uuid(),
+    sourceRef: z.string().min(1).max(400),
+    scope: z.enum(["one", "following"]).default("one"),
+  }),
   z.strictObject({
     tool: z.literal("rename_thread"),
     jobId: z.string().uuid(),
@@ -250,6 +299,27 @@ const result = z.union([
   }),
   z.object({ ok: z.literal(true), done: z.literal(true) }),
   z.object({
+    ok: z.literal(true),
+    calendars: z.array(
+      z.object({
+        calendarId: z.string(),
+        name: z.string(),
+        writable: z.boolean(),
+        shared: z.boolean(),
+      })
+    ),
+  }),
+  z.object({
+    ok: z.literal(true),
+    events: z.array(
+      z.object({ sourceRef: z.string(), title: z.string(), startsAt: z.string().nullable() })
+    ),
+  }),
+  z.object({ ok: z.literal(true), written: z.literal(true), sourceRef: z.string().nullable() }),
+  /** offload did nothing and is waiting for them. `because` names who finds
+   *  out, so the model can say it in its own words. */
+  z.object({ ok: z.literal(true), waitingForThem: z.literal(true), because: z.string() }),
+  z.object({
     ok: z.literal(false),
     error: z.enum([
       "unknown_thread",
@@ -260,6 +330,9 @@ const result = z.union([
       "not_yours",
       "bad_date",
       "thread_memory_full",
+      // 012. A calendar that is not this account's, or one it may only read.
+      "unknown_calendar",
+      "read_only",
     ]),
   }),
 ]);
@@ -292,6 +365,12 @@ type Outcome =
       truncated: boolean;
     }
   | { ok: true; done: true }
+  /** 012. What the model is told about a calendar write: that it happened, or
+   *  that a person has to agree first and why. Never a choice it makes. */
+  | { ok: true; calendars: { calendarId: string; name: string; writable: boolean; shared: boolean }[] }
+  | { ok: true; events: { sourceRef: string; title: string; startsAt: string | null }[] }
+  | { ok: true; written: true; sourceRef: string | null }
+  | { ok: true; waitingForThem: true; because: string }
   | {
       ok: false;
       error:
@@ -301,6 +380,8 @@ type Outcome =
         | "bad_place_name"
         | "unknown_content"
         | "not_yours"
+        | "unknown_calendar"
+        | "read_only"
         | "bad_date"
         | "thread_memory_full";
     };
@@ -494,6 +575,65 @@ async function existing(
       if (error instanceof MemoryTooLong) return { ok: false, error: "unknown_thread" };
       throw error;
     }
+  }
+
+  // 012, the calendar. Before the content branch below, which assumes every
+  // remaining tool names a piece of content.
+  //
+  // **Outside the transaction the rest of this function runs in**, deliberately:
+  // these call Google, and holding a database transaction open across a network
+  // round trip to somebody else's API is how a slow third party becomes a
+  // stalled database.
+  if (call.tool === "list_calendars") {
+    return { ok: true, calendars: await listCalendarsFor(accountId) };
+  }
+
+  if (call.tool === "find_events") {
+    const found = await findEvents(
+      accountId,
+      call.calendarId,
+      new Date(call.fromIso),
+      new Date(call.toIso)
+    );
+    return {
+      ok: true,
+      events: found.map((e) => ({ sourceRef: e.sourceRef, title: e.title, startsAt: e.startsAt })),
+    };
+  }
+
+  if (call.tool === "create_event" || call.tool === "edit_event" || call.tool === "delete_event") {
+    const write: WriteAction =
+      call.tool === "create_event"
+        ? {
+            action: "create",
+            draft: {
+              title: call.title,
+              startsAt: new Date(call.startsAt),
+              endsAt: new Date(call.endsAt),
+              location: call.location ?? null,
+              attendees: call.guests ?? [],
+            },
+          }
+        : call.tool === "edit_event"
+          ? {
+              action: "edit",
+              sourceRef: call.sourceRef,
+              scope: call.scope,
+              patch: {
+                ...(call.title == null ? {} : { title: call.title }),
+                ...(call.startsAt == null ? {} : { startsAt: new Date(call.startsAt) }),
+                ...(call.endsAt == null ? {} : { endsAt: new Date(call.endsAt) }),
+                ...(call.location == null ? {} : { location: call.location }),
+              },
+            }
+          : { action: "delete", sourceRef: call.sourceRef, scope: call.scope };
+
+    const outcome = await writeThroughTool(accountId, call.calendarId, write);
+    if (outcome.kind === "refused") return { ok: false, error: outcome.reason };
+    if (outcome.kind === "written") return { ok: true, written: true, sourceRef: outcome.sourceRef };
+    // Nothing has reached Google. The model says what it is waiting for; it
+    // does not get to decide that it is not waiting.
+    return { ok: true, waitingForThem: true, because: outcome.line };
   }
 
   const ref = await readableContent(accountId, call.contentId, trx);
