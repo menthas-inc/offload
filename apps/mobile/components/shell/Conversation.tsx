@@ -38,6 +38,7 @@ import Animated, {
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
+import { PrismField } from "../PrismField";
 import { useRouter } from "expo-router";
 import { useConversation, type Turn } from "./conversation-context";
 
@@ -237,7 +238,27 @@ export function Conversation() {
 
       {/* No safe-area padding here: the plate below owns the bottom inset, and
           adding it twice left a gap the height of the gesture bar. */}
-      <Composer placeholder="Add to this" />
+      {/* **The field follows the composer, because the composer is what it is
+          for.** The design keeps one field over one continuous plate whose
+          height never changes, and in that layout a raised sheet rests on the
+          plate and the plate keeps its composer. Here the sheet and the plate
+          are siblings in one column, so the sheet brings its own composer and
+          the plate hides its own: the band the eye actually sees is this
+          composer sitting directly on top of the tabs.
+        
+          So the field moves with it. One field at a time, never two, which is
+          the failure the design warns about: two boxes each mapping the whole
+          texture, squashed and broken at the seam. The tabs below keep no field
+          of their own, which is also where the veil would have been opaque
+          anyway. */}
+      <View className="overflow-hidden">
+        <PrismField
+          variant="band"
+          veil="graded"
+          pulse={conversation.filed?.at ?? 0}
+        />
+        <Composer placeholder="Add to this" />
+      </View>
     </Animated.View>
   );
 }
