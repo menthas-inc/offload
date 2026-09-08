@@ -46,6 +46,29 @@ comes from the person, not from an ACL read, so no ACL scope is requested.
 that is where every OAuth redirect already lands for the same cookie reason
 sign-in has.
 
+## The OAuth flow, which is hand rolled and therefore spelled out
+
+This flow deliberately does not go through Better Auth, which means it does not
+inherit Better Auth's state handling either. Everything it would have given us
+has to be written here, and an omission is an account-linking CSRF: an attacker
+starts a consent flow, gets a signed-in person to open the resulting callback,
+and their calendar is now feeding that person's threads. Untrusted event text
+into somebody else's account is the exact thing the rest of this spec defends
+against.
+
+- **`/start` requires a session.** The account id is read server-side, never
+  from a parameter.
+- **A signed, single-use, short-lived `state`**, carrying that account id and a
+  nonce, using the HMAC seal `auth/attempt.ts` already implements for the
+  refused-address cookie. Ten minutes. The callback re-reads it and compares the
+  account **byte for byte** against the session it arrives with; a mismatch is a
+  refusal, not a re-link.
+- **PKCE**, `S256`. The verifier rides the same sealed state.
+- **The post-callback redirect is an allowlist**, not a parameter. Where a
+  person lands after connecting is one of a fixed set of internal destinations,
+  chosen by an enum in the state. `auth.ts`'s `trustedOrigins` is deliberately
+  narrow for this reason and the same reasoning applies at the end of this flow.
+
 ## The vault
 
 `AC-2`, `AC-2a`. A table of its own, sealed with a key of its own.
@@ -53,7 +76,7 @@ sign-in has.
 ```
 connector_secrets
   connection_id (pk, fk)  ·  access_token bytea  ·  refresh_token bytea
-  access_expires_at  ·  scope text  ·  created_at, updated_at
+  access_expires_at  ·  scope text  ·  wrapped_by text  ·  created_at, updated_at
 ```
 
 **Sealed with `wrap`/`unwrap` from `crypto/keys.ts`**, the same AES-256-GCM
@@ -70,6 +93,30 @@ token in plaintext. Connecting a calendar through the social-linking flow would
 either be silently broken by those hooks or "fixed" by weakening them, which
 restores the incident. **The connector OAuth flow shares no route, no table and
 no hook with login.**
+
+**A version tag on every row, because rotation is the thing this gets wrong.**
+`connector_secrets.wrapped_by` names the key that sealed it, exactly as
+`account_keys.wrapped_by` does for the root, with a `VAULT_NAME` constant beside
+`ROOT_NAME`. Without it a rotation cannot tell which rows are already moved, and
+that is the sibling table's whole reason for having the column.
+
+**Bound to where it lives.** `wrap`/`unwrap` take no associated data, so a
+sealed value carries no proof of which connection or which field it belongs to,
+and a database writer could move a ciphertext between rows. Cheap to close for a
+long-lived third-party credential: `connection_id || field` as AAD. This is the
+first use of that primitive outside the key hierarchy it was written for.
+
+**Refreshing, which nothing else in this product has to do.** An access token
+expires hourly and a refresh happens under a sync and under a live tool call at
+the same time. One refresh at a time per connection, guarded by a row lock, and
+**the refresh token is replaced rather than assumed stable**: Google reissues it
+sometimes and a client that keeps the old one is a connection that dies quietly
+in a month. `invalid_grant` is not a retry, it is `needs_reauth`.
+
+**Disconnect revokes at Google**, not only locally. Deleting our copy leaves the
+grant live on Google's side, so "disconnected" in offload would mean nothing
+where it counts. Revoke first, then delete the row; a failed revoke still
+deletes locally and says the grant may need removing in the Google account.
 
 **Read by the Core API alone.** The worker never receives a token; it asks the
 Core API to act, per `architecture.md`. Tokens are never logged, never in an
@@ -95,7 +142,16 @@ connector_calendars
 connector_calendar_rules
   id · calendar_id · ordinal · match_kind ('title_contains'|'attendee_is'|'all')
   match_value text · thread_id · created_at
+
+connector_pending_writes
+  id · account_id · calendar_id · action ('create'|'edit'|'delete')
+  scope ('one'|'following', nullable) · payload jsonb · source_ref (nullable)
+  expires_at · created_at · confirmed_at, declined_at
 ```
+
+`connector_pending_writes` holds an outward-facing write the model proposed and
+nobody has agreed to yet. Nothing in it has reached Google. It expires in an
+hour and expiry is an ordinary ending.
 
 `is_shared` **defaults to true**, and the migration says why: the safe direction
 is a confirmation nobody needed rather than a notification nobody expected. Only
@@ -108,6 +164,22 @@ else sees it.
 connection, which hangs off the account, and a second copy is a second thing to
 keep in step. Every query joins.
 
+## Authorization, stated rather than implied
+
+`connector_calendars` carries no `account_id` and that is a schema choice, not
+an authorization one. **Every calendar-scoped route resolves ownership by
+joining** `connector_calendars.connection_id` to
+`connector_connections.account_id` and comparing it to the session's account:
+toggling `is_shared`, setting a thread, editing a rule, disconnecting, writing an
+event. This repository has already fixed this exact bug twice, both recorded in
+`decisions.md`: authorization written against a value that was joined but never
+checked.
+
+**A thread id from a client is membership-checked, every time.** A calendar's
+default thread and every rule's destination are chosen in Settings and arrive
+from a client, and an unchecked one routes a person's calendar into any thread
+id they can name. 006 shipped precisely this fix for a dump's sort destination.
+
 ## Events become content
 
 `AC-6`. One row per occurrence inside the window, `type = 'event'`,
@@ -119,11 +191,18 @@ connecting account.
 | `summary` | `title` |
 | `start.dateTime` / `start.date` | `occurs_at` |
 | `end.dateTime` / `end.date` | `occurs_end_at` |
-| `location` | a location string, resolved by the existing `location.resolve` job |
+| `location` | kept as text in `attrs.location`, **not geocoded** |
 | `attendees[]` | `attrs.attendees`, minimised, see below |
 | `organizer` | `attrs.organizer`, and it is load-bearing |
 | `recurringEventId`, `id` | `attrs.series_ref`, `source_ref` |
 | `description`, conferencing, attachments | **dropped** |
+
+**`location.resolve` is not reused, and the spec said it was.** That handler
+returns `skipped` for anything whose `type` is not `location`, and geocodes the
+row's `title`. Pointed at an event it would either skip it or send "Dentist
+appointment" to a geocoder. Making it serve events means a type allowlist and a
+per-type source field, which is a change to a shipped job for a pin nobody has
+asked for yet. The event's location is text on the row until then.
 
 **Times are stored UTC in `occurs_at` and the event's IANA zone is kept in
 `attrs.timezone`.** An all-day event has a date and no time, which is not
@@ -167,6 +246,17 @@ every content query. A thread already expresses "keep this separate".*
 `connector_calendars(connection_id)`. Content's existing `occurs_at` indexes
 serve the reads; this adds no new access pattern to that table.
 
+**Aging out is not deletion.** A row whose occurrence falls behind the sixty-day
+window is left exactly as it is: still in its thread, still searchable, still
+yours. The window bounds what offload *fetches*, not what it keeps, so this
+introduces no connector-specific retention rule and contradicts nothing in
+`decisions.md`. What ages out is Google's obligation to tell us it changed.
+
+**Attendees are kept as long as the event is**, which is indefinitely, because
+content is kept until the person deletes it. That is a defensible position and it
+is other people's names, so the privacy policy says the actual answer rather than
+implying a window that does not exist.
+
 **Reconciliation.** A sync compares what Google returns for the window against
 rows carrying that calendar's `source_ref` prefix. A row whose event Google no
 longer returns is soft-deleted, which covers a deletion made elsewhere and the
@@ -178,15 +268,51 @@ One job kind, `calendar.sync`, owned by this service, not the model worker: it
 talks to Google, not to Claude.
 
 **Incremental by `syncToken`.** Google returns one per full read; the next call
-passes it and gets only changes. A `410 Gone` means the token is too old and the
-answer is a full re-read of the window, which is the same work as connecting.
+passes it and gets only changes, including `cancelled` entries for deletions.
+A `410 Gone` means the token is too old and the answer is a full re-read.
 
-**Scheduled by re-enqueueing itself** with a `run_after`, which is the mechanism
-the jobs table already has. No cron.
+**A full window pass every night, separately**, and the delta is not trusted to
+carry every removal on its own. The case that worries this design is a series
+split: occurrences that fall outside a newly shortened `UNTIL` may or may not
+arrive as `cancelled` in a delta, and this repository's own rule is to verify a
+vendor's behaviour rather than infer it. Until somebody has watched it happen,
+the nightly pass is what makes reconciliation true, and the delta is what makes
+it fast.
+
+**Scheduling is decoupled from success**, which is the trap in a self-
+rescheduling job and the reason to say it out loud. Nothing in this codebase
+re-enqueues itself today. Two failure modes follow if it is done naively:
+
+- **A dead job ends the chain silently.** Five failed attempts on a Google
+  outage marks the job `dead`, and if the next tick is only enqueued by a
+  successful run, that connection simply stops syncing forever, looking healthy.
+  So the next tick is enqueued **before** the work runs, not after it.
+- **A stable `idempotency_key` ends the chain after exactly one run.**
+  `enqueue()` does `onConflict().doNothing()`, silently. A key like
+  `calendar.sync:<connectionId>`, which is the obvious choice for making the
+  first enqueue safe against a duplicated OAuth callback, means every later tick
+  is a no-op with nothing failed and nothing to look at. **The key carries the
+  tick**, `calendar.sync:<connectionId>:<iso hour>`, so a duplicate within a tick
+  collapses and the next tick is a different row.
+
+**A supervisor, because neither guard is proof.** A daily sweep enqueues a sync
+for any active connection with no queued or running `calendar.sync`. Cheap, and
+it is the only thing that notices a chain that broke in a way nobody predicted.
 
 **`needs_reauth` is a state, not an error.** A refresh token Google has revoked
 is a person's decision, not a fault: the connection is marked, the sync stops,
 and Settings shows a Reconnect row. Nothing retries into a wall.
+
+**`is_shared` is re-derived every pass.** If Google now says the access role is
+not `owner`, the calendar is forced back to shared, whatever it was set to. A
+calendar can be given away or shared upstream after somebody marked it private
+here, and an invariant checked only at write time goes stale silently.
+
+**The jobs table grows and nothing sweeps it.** A sync every fifteen minutes per
+connection is about thirty five thousand rows a year each, and `jobs` has no
+`purge_after` and no purge handler, unlike every other table that grows. This
+feature adds one: `done` and `dead` jobs older than thirty days are deleted, in
+the same sweep `content.purge` already runs on.
 
 ## Writing
 
@@ -204,6 +330,16 @@ outward = union(attendees before, attendees after) is non-empty
 **The union is the point.** Removing every guest from an invited event sends
 each of them a cancellation, and a test that read only the proposed state would
 see no attendees and call it reversible.
+
+**The ordinary Undo would silently break this, and that is a code change, not a
+caveat.** `undoTurn` in `routes/dumps.ts` soft-deletes every `content` row whose
+`derived_from_message_id` is in the turn, filtered by nothing else: not `type`,
+not `source`. A calendar event created by a tool inside a dump turn is
+indistinguishable to it. Pressing the ordinary Undo toast would delete the row
+here and leave the event sitting in Google forever, which is exactly the
+disagreement `AC-17` forbids. **`undoTurn` gains a `source <> 'calendar'` filter
+and hands those rows to the path below**, and a test covers a turn that created
+one.
 
 **Reversible writes get the ordinary toast and an extraordinary Undo.** Every
 other Undo in this product is a local soft delete; this one has to reach Google
@@ -228,6 +364,15 @@ the calendar. Per action, never batched.
 
 Deleting follows the same two shapes. **Past occurrences are never touched.**
 
+**A split is two calls and can fail between them**, leaving the old series
+truncated and the new one never created: occurrences quietly disappear from
+somebody's calendar. So the split is ordered **new series first, then truncate
+the old**, which fails safe in the opposite direction, toward a visible
+duplicate rather than a silent hole. A duplicate is obvious and fixable; a
+missing standup is neither. The new series carries a deterministic
+`iCalUID` derived from the original and the split point, so a retry recognises
+its own work rather than posting twice.
+
 *Knowingly unhandled: a series carrying single-instance exceptions, made in
 Google, at dates after a split point. Recorded in the feature spec.*
 
@@ -244,7 +389,35 @@ nothing for a model reading untrusted text to set.
 
 **Untrusted text and the write tools are the risk this feature adds**, and the
 mitigation is that no tool can act without the outward test, and the outward test
-cannot be influenced by the model. A confirmed write is a person's tap.
+cannot be influenced by the model.
+
+### An outward-facing write from the model has nowhere to wait, so one is built
+
+`routes/tools.ts` executes every tool synchronously inside the turn and returns a
+result. There is no pending state anywhere in this product, so "confirmed first"
+had no meaning for a tool call: the write would either go to Google immediately,
+which is the thing this whole section exists to prevent, or the model would be
+told no.
+
+**A proposal, and a person's tap.** An outward-facing write tool does not call
+Google. It writes a `connector_pending_writes` row holding the whole intended
+call, returns "waiting for them to confirm" to the model, and offload's answer
+carries the proposal. Confirming calls `POST /api/calendar/pending/:id/confirm`,
+which re-runs the outward test server-side against live state and then performs
+the write. Declining deletes the row.
+
+**Re-run, not trusted.** The test is evaluated again at confirmation time
+because minutes may have passed and a calendar may have been shared in them.
+
+**A proposal expires**, an hour, and expiry is a normal end rather than a
+failure. An unconfirmed proposal has changed nothing anywhere.
+
+**Reversible writes from the model still execute immediately**, which is most of
+them: your own calendar, no guests. Nothing about the ordinary case gets slower.
+
+*This is the one genuinely new mechanism in the feature and it is the price of
+letting a model write outside offload at all. It is also reusable: Mail will need
+the same thing and worse.*
 
 ## Untrusted event text
 
@@ -278,11 +451,26 @@ described stays open. It is in this spec because this feature is what opens it.*
 `AC-14`. Ids, counts, outcomes. `calendar_connected`, `calendar_sync_completed`
 with counts, `calendar_event_written` with a scope and an outward flag.
 
-**Typed, not filtered.** `assertNoContent` rejects an address, a URL or anything
-over sixty-four characters, and "Dr Osei biopsy" is none of those. The event
-property types admit ids, integers and enums only, so a title cannot be passed
-without failing to compile. The runtime check stays as the backstop it says it
-is.
+**The earlier draft of this section was wrong and is worth correcting rather than
+quietly fixing.** It claimed the event property types admit ids and enums only,
+so a title could not be passed without failing to compile. `analytics.ts` types
+`properties` as one `Record<string, string | number | boolean | null>` shared by
+every event, so a title compiles fine. And the runtime guard lets the spec's own
+example through: `assertNoContent` rejects an address, a URL, or anything over
+sixty-four characters, and "Dr Osei biopsy" is fifteen characters of none of
+those.
+
+**The real control already exists and is not the type system.** `schemas/events/`
+holds a JSON Schema per event with `additionalProperties: false` and a typed
+property list, and `test/events.test.ts` compiles them with Ajv and validates
+every event the code emits. A title in a calendar event's properties fails that
+test. So each new event here ships with its schema in the same change, which is
+what makes `AC-14` enforceable rather than aspirational.
+
+**Mixed provenance combines by OR.** A memory drawn from a turn that touched both
+a person's own words and a stranger's event is untrusted. Any untrusted
+contribution taints the whole memory; there is no partial. Stated because it is
+obvious to whoever writes it and invisible to whoever reads it later.
 
 ## The clients
 
