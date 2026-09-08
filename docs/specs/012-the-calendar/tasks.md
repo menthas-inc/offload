@@ -53,8 +53,8 @@ feature is inert until credentials exist.
 ## F. The clients
 
 - [x] **F1** Settings, Connected apps, on web. `AC-16a`
-- [ ] **F2** Same on iOS and Android. `AC-16a`
-- [ ] **F3** Per calendar: thread, shared, on or off. Disconnect. `AC-3`, `AC-8`, `AC-12`
+- [x] **F2** Same on iOS and Android. `AC-16a`
+- [x] **F3** Per calendar: thread, shared, on or off. Disconnect. `AC-3`, `AC-8`, `AC-12`
 - [ ] **F4** First run's last screen, skippable, after the account is active. `AC-16b`
 - [x] **F5** Everything reads `available` and says "not available yet" rather than offering a dead button. `AC-1`
 
