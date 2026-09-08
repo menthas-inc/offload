@@ -32,7 +32,13 @@ from anthropic import AsyncAnthropic
 from pydantic import ValidationError
 
 from offload_agent.context import DumpContext, QuickAddContext
-from offload_agent.harness.tools import FILING_TOOLS, SCHEMAS, TOOL_NAMES, TOOLS
+from offload_agent.harness.tools import (
+    CALENDAR_TOOL_DEFS,
+    FILING_TOOLS,
+    SCHEMAS,
+    TOOL_NAMES,
+    TOOLS,
+)
 
 _PROMPT = (Path(__file__).parent.parent / "prompts" / "plan_v2.md").read_text()
 _QUICK_ADD_PROMPT = (Path(__file__).parent.parent / "prompts" / "quick_add.md").read_text()
@@ -283,7 +289,10 @@ async def plan(
         call_tool,
         system=_PROMPT,
         blocks=build_blocks(ctx),
-        tools=TOOLS,
+        # The calendar tools only when there is a calendar. An account with
+        # none is not offered a tool that can only fail, and the definition
+        # budget stays what it was for everybody who has not connected one.
+        tools=TOOLS + CALENDAR_TOOL_DEFS if ctx.has_calendar else TOOLS,
         # A resume starts with the count the database already holds, so the
         # bound is on the turn rather than on one attempt at it.
         filed=len(ctx.landed),

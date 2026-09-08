@@ -296,7 +296,7 @@ describe("AC-9b mute", () => {
     await setMuted(memory.id, john, true);
 
     // Off the model's desk for everybody, still on the thread for everybody.
-    expect(await memoriesForPrompt(flat)).toHaveLength(0);
+    expect((await memoriesForPrompt(flat)).rules).toHaveLength(0);
     expect(await readableMemories(ana, flat)).toHaveLength(1);
     expect((await readableMemories(ana, flat))[0]?.muted).toBe(true);
     expect((await readableMemories(ana, flat))[0]?.authorId).toBe(ana);
@@ -308,7 +308,7 @@ describe("AC-9b mute", () => {
     const memory = await add(flat, ana, "Todo names in three words");
     await setMuted(memory.id, ana, true);
     await setMuted(memory.id, ana, false);
-    expect(await memoriesForPrompt(flat)).toEqual(["Todo names in three words"]);
+    expect((await memoriesForPrompt(flat)).rules).toEqual(["Todo names in three words"]);
   });
 
   it("is not a way to hold eleven", async () => {
@@ -468,7 +468,7 @@ describe("AC-15 deleting an account", () => {
     const orphan = left.find((m) => m.text === "John wrote this one");
     expect(orphan?.authorId).toBeNull();
     // Still steering the model, which is the point: the thread kept its rules.
-    expect(await memoriesForPrompt(flat)).toHaveLength(2);
+    expect((await memoriesForPrompt(flat)).rules).toHaveLength(2);
   });
 });
 
@@ -485,7 +485,7 @@ describe("AC-17 what reaches a prompt", () => {
       await add(other, ana, `rule for thread ${t}`);
     }
 
-    const forOne = await memoriesForPrompt(busy);
+    const forOne = (await memoriesForPrompt(busy)).rules;
     expect(forOne).toHaveLength(MAX_MEMORIES_PER_THREAD);
     const chars = forOne.join("").length;
     expect(chars).toBeLessThanOrEqual(MAX_MEMORIES_PER_THREAD * MEMORY_TEXT_CHARS);
@@ -494,7 +494,7 @@ describe("AC-17 what reaches a prompt", () => {
   it("hands back nothing for a thread with nothing to say", async () => {
     const ana = await account();
     const flat = await thread(ana);
-    expect(await memoriesForPrompt(flat)).toEqual([]);
+    expect((await memoriesForPrompt(flat)).rules).toEqual([]);
   });
 });
 

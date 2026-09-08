@@ -224,6 +224,20 @@ export interface AddMemory {
   text: string;
   origin: "stated" | "learned";
   fromMessageId?: string | null;
+  /** Any source of this rule was written by somebody else.
+   *
+   *  **012 is the first feature that can set this**, and until it did the
+   *  column was written `false` at every call site and read by nothing. A
+   *  memory carries it if **any** untrusted source contributed: there is no
+   *  partial taint, because a rule drawn from a stranger's event and the
+   *  person's own words is still a rule a stranger had a hand in.
+   *
+   *  What it changes is how the rule reaches a prompt. A trusted memory is a
+   *  standing instruction the model follows; this one is reference it may read
+   *  and cite and must not obey. Without that split the flag is decoration and
+   *  the two-hop path 001 wrote it for stays open: connector content,
+   *  summarised into a memory, injected later as trusted background. */
+  derivedFromUntrusted?: boolean;
 }
 
 /** Add one, under the cap.
@@ -238,7 +252,7 @@ export interface AddMemory {
  *  twice, and that is a no-op rather than an error.
  */
 export async function addMemory(
-  { threadId, accountId, text, origin, fromMessageId = null }: AddMemory,
+  { threadId, accountId, text, origin, fromMessageId = null, derivedFromUntrusted = false }: AddMemory,
   trx: Executor = db,
 ): Promise<Memory> {
   const trimmed = text.trim();
@@ -275,7 +289,7 @@ export async function addMemory(
       kind: "preference",
       text: trimmed,
       origin,
-      derived_from_untrusted: false,
+      derived_from_untrusted: derivedFromUntrusted,
       derived_from_message_id: fromMessageId,
     })
     .onConflict((oc) => oc.doNothing())
@@ -442,10 +456,10 @@ export async function setMuted(
 export async function memoriesForPrompt(
   threadId: string,
   trx: Executor = db,
-): Promise<string[]> {
+): Promise<{ rules: string[]; fromApps: string[] }> {
   const rows = await trx
     .selectFrom("memories")
-    .select("text")
+    .select(["text", "derived_from_untrusted"])
     .where("scope", "=", "thread")
     .where("subject_id", "=", threadId)
     .where("deleted_at", "is", null)
@@ -454,7 +468,22 @@ export async function memoriesForPrompt(
     .orderBy("created_at", "asc")
     .limit(MAX_MEMORIES_PER_THREAD)
     .execute();
-  return rows.map((r) => r.text);
+
+  // **Two lists, and the split is the whole point of the column.**
+  //
+  // The prompt tells the model to read a thread's rules and do what they say.
+  // That is right for a rule somebody typed and wrong for one derived from an
+  // event a stranger put on their calendar, which is text an attacker controls
+  // arriving as a standing instruction. Until 012 nothing ever set the flag, so
+  // the two lists were one list and the distinction cost nothing to ignore.
+  //
+  // The second list is still handed over: it is useful context and hiding it
+  // would make offload worse at the thing memories are for. It is handed over
+  // as something to read rather than something to obey, and the prompt says so.
+  return {
+    rules: rows.filter((r) => !r.derived_from_untrusted).map((r) => r.text),
+    fromApps: rows.filter((r) => r.derived_from_untrusted).map((r) => r.text),
+  };
 }
 
 /** Thread deletion has to take its memories with it.

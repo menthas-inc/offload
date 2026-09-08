@@ -17,14 +17,20 @@ import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GateBackdrop } from "../GateBackdrop";
 import * as Notifications from "expo-notifications";
 import { TutorialArt, IOS_TONE } from "../TutorialArt";
-import { CONSENT, NAME_STEP, TUTORIAL } from "../../lib/gate";
+import { CONNECT_STEP, CONSENT, NAME_STEP, TUTORIAL } from "../../lib/gate";
 import { ConsentTicks } from "../ConsentTicks";
 import { NameField } from "../NameField";
+import { ConnectStepBar, ConnectStepBody } from "../ConnectStep";
+import { googleCalendarMark } from "../../lib/brands";
+import * as WebBrowser from "expo-web-browser";
 import { completeOnboarding } from "../../lib/api";
 import { saveName } from "../../lib/me";
 import { useMe } from "../../lib/me";
+import { useCalendars } from "../../lib/calendars";
+import { API_URL } from "../../lib/auth";
 
 export default function Welcome() {
   const router = useRouter();
@@ -35,6 +41,12 @@ export default function Welcome() {
   const [readPolicy, setReadPolicy] = useState(false);
   const [agreeToProcessing, setAgreeToProcessing] = useState(false);
   const [name, setName] = useState("");
+  // The one optional step, and it comes last: connecting leaves for Google and
+  // comes back, and a round trip through another origin mid onboarding is
+  // somebody who can be stranded by a back button. By the time this shows, the
+  // account is already active and consented.
+  const [offering, setOffering] = useState(false);
+  const calendars = useCalendars();
 
   // Seeded once, from whatever the sign-in backfill found, and empty when it
   // found nothing, which is what Apple does when somebody declines to share
@@ -90,6 +102,18 @@ export default function Welcome() {
     if (ask)
       await Notifications.requestPermissionsAsync().catch(() => undefined);
 
+    // **Only somebody who just went through first run is offered this**, and
+    // that is the whole rule: the `nameOnly` branch above has already returned
+    // for an account that existed before, so there is no standalone version of
+    // this screen the way there is for the name. Declining is therefore
+    // remembered by construction, because first run happens once, and Settings
+    // is the only way back.
+    if (calendars.available && calendars.connections.length === 0) {
+      setLeaving(false);
+      setOffering(true);
+      return;
+    }
+
     router.replace("/today");
   }
 
@@ -103,6 +127,9 @@ export default function Welcome() {
   // nothing else, rather than three screens of introduction they have already
   // seen and a consent they have already given.
   const nameOnly = me !== null && !me.needsFirstRun;
+  // Whether a calendar screen still comes after the consent. It decides one
+  // word: the tutorial's flow does not end at consent when it does.
+  const offerAhead = calendars.available && calendars.connections.length === 0;
 
   const screen = nameOnly ? undefined : TUTORIAL[step];
   const naming = nameOnly || step === TUTORIAL.length;
@@ -121,142 +148,184 @@ export default function Welcome() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface-page">
-      {/* The name step puts a text field on this screen, and the button that
+      <GateBackdrop>
+        {/* The name step puts a text field on this screen, and the button that
           leaves it sits at the bottom. "padding" on both platforms, for the
           reason the waitlist screen writes out in full: this app is edge to
           edge, and under edge to edge Android ignores adjustResize, so the
           window does not move and the button ends up under the keyboard.
           Inert on every step that has no field. */}
-      <KeyboardAvoidingView className="flex-1" behavior="padding">
-        <View className="flex-row items-center justify-between px-gutter-screen pt-space-5">
-          <View className="flex-row items-center gap-space-3">
-            {(naming || consenting ? [] : TUTORIAL).map((item, index) => (
-              <View
-                key={item.title}
-                className={`h-space-3 rounded-pill ${index === step ? "bg-ink-950" : "bg-ink-200"}`}
-                // The active step is a bar, not a bigger dot: progress along a
-                // line rather than one of three equal choices.
-                style={{ width: index === step ? 18 : 6 }}
-              />
-            ))}
-          </View>
+        <KeyboardAvoidingView className="flex-1" behavior="padding">
+          {/* The connect step wears the tutorial's own step bar, so it reads as a
+            step rather than an epilogue: dots left, the way out top right, in
+            the place neither has moved from. **Not now, never Skip**, because
+            Skip means skip the tutorial and turning down a connection is a
+            different answer to a different question.
 
-          {/* Skip has always meant "skip the tutorial", and it lands on the name
+            Four dots, the tutorial plus this one, which is the number both kits
+            draw. The name and consent screens are outside the count: the design
+            log says nothing decides whether they join it, and the kits answer
+            by not counting them. */}
+          {offering ? (
+            <View className="pt-space-5">
+              <ConnectStepBar
+                tone="ios"
+                steps={TUTORIAL.length + 1}
+                onNotNow={() => router.replace("/today")}
+              />
+            </View>
+          ) : (
+            <View className="flex-row items-center justify-between px-gutter-screen pt-space-5">
+              <View className="flex-row items-center gap-space-3">
+                {(naming || consenting || offering ? [] : TUTORIAL).map(
+                  (item, index) => (
+                    <View
+                      key={item.title}
+                      className={`h-space-3 rounded-pill ${index === step ? "bg-ink-950" : "bg-ink-200"}`}
+                      // The active step is a bar, not a bigger dot: progress along a
+                      // line rather than one of three equal choices.
+                      style={{ width: index === step ? 18 : 6 }}
+                    />
+                  ),
+                )}
+              </View>
+
+              {/* Skip has always meant "skip the tutorial", and it lands on the name
             rather than the consent, because both screens that ask something sit
             behind it. A Skip that jumped a required field would be a dead end
             with a disabled button on the next screen. */}
-          {naming || consenting ? null : (
+              {naming || consenting ? null : (
+                <Pressable
+                  // Skip lands on the name screen and completes nothing.
+                  // Completing here wrote consent_version and consented_at for two
+                  // ticks nobody was shown, which is the exact thing AC-7a exists to
+                  // prevent. The web has always done this correctly; only the phones
+                  // regressed, and the comment at the top of this file already said
+                  // what the code was supposed to do.
+                  onPress={() => setStep(TUTORIAL.length)}
+                  className="min-h-tap-min justify-center"
+                >
+                  <Text className="font-core font-medium text-text-secondary">
+                    Skip
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+
+          {offering ? (
+            <ConnectStepBody tone="ios" mark={googleCalendarMark} />
+          ) : naming ? (
+            <>
+              <View className="px-gutter-screen pt-space-9">
+                <Text className="font-core text-title-1 font-semibold text-text-primary">
+                  {NAME_STEP.title}
+                </Text>
+                <Text className="mt-space-5 font-core text-body text-text-secondary">
+                  {NAME_STEP.sub}
+                </Text>
+              </View>
+
+              <View className="flex-1 px-gutter-screen pt-space-8">
+                <NameField
+                  tone="ios"
+                  value={name}
+                  onChange={setName}
+                  onSubmit={() => {
+                    if (!named) return;
+                    if (nameOnly) void finish(false);
+                    else setStep(step + 1);
+                  }}
+                  autoFocus
+                />
+              </View>
+            </>
+          ) : consenting ? (
+            <>
+              <View className="px-gutter-screen pt-space-9">
+                <Text className="font-core text-title-1 font-semibold text-text-primary">
+                  {CONSENT.title}
+                </Text>
+                <Text className="mt-space-5 font-core text-body text-text-secondary">
+                  {CONSENT.sub}
+                </Text>
+              </View>
+
+              <View className="flex-1 justify-center px-gutter-screen">
+                <ConsentTicks
+                  tone="ios"
+                  readPolicy={readPolicy}
+                  agreeToProcessing={agreeToProcessing}
+                  onReadPolicy={setReadPolicy}
+                  onAgreeToProcessing={setAgreeToProcessing}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <View className="flex-1 items-center justify-center px-gutter-screen">
+                <TutorialArt kind={screen!.art} tone={IOS_TONE} />
+              </View>
+
+              <View className="px-gutter-screen pb-space-8">
+                <Text className="font-core text-title-1 font-semibold text-text-primary">
+                  {screen!.title}
+                </Text>
+                <Text className="mt-space-5 font-core text-body text-text-secondary">
+                  {screen!.sub}
+                </Text>
+              </View>
+            </>
+          )}
+
+          <View className="px-gutter-screen pb-space-8">
+            {/* Announced, because the button simply stops working otherwise and
+            nothing on screen says why. Same copy as the web. */}
+            {failed ? (
+              <Text
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                className="mb-space-5 text-center font-core text-body-sm text-text-on-attention"
+              >
+                That did not go through. Check your connection and try again.
+              </Text>
+            ) : null}
             <Pressable
-              // Skip lands on the name screen and completes nothing.
-              // Completing here wrote consent_version and consented_at for two
-              // ticks nobody was shown, which is the exact thing AC-7a exists to
-              // prevent. The web has always done this correctly; only the phones
-              // regressed, and the comment at the top of this file already said
-              // what the code was supposed to do.
-              onPress={() => setStep(TUTORIAL.length)}
-              className="min-h-tap-min justify-center"
+              onPress={() =>
+                offering
+                  ? void WebBrowser.openAuthSessionAsync(
+                      `${API_URL}/api/connectors/google/start?landing=first-run`,
+                      "offload://today",
+                    ).then(() => router.replace("/today"))
+                  : consenting || nameOnly
+                    ? void finish(!nameOnly)
+                    : setStep(step + 1)
+              }
+              disabled={blocked && !offering}
+              className={`min-h-composer-height w-full items-center justify-center rounded-pill active:opacity-90 ${
+                blocked ? "bg-ink-100" : "bg-ink-950"
+              }`}
             >
-              <Text className="font-core font-medium text-text-secondary">
-                Skip
+              <Text
+                className={`font-core text-body font-medium ${blocked ? "text-ink-400" : "text-text-inverse"}`}
+              >
+                {offering
+                  ? CONNECT_STEP.connect
+                  : nameOnly
+                    ? "Get started"
+                    : consenting
+                      ? // "Get started" on a screen with another screen after it
+                        // is a promise the flow does not keep. Nothing has
+                        // started while there is still a calendar to offer.
+                        offerAhead
+                        ? "Next"
+                        : "Get started"
+                      : "Next"}
               </Text>
             </Pressable>
-          )}
-        </View>
-
-        {naming ? (
-          <>
-            <View className="px-gutter-screen pt-space-9">
-              <Text className="font-core text-title-1 font-semibold text-text-primary">
-                {NAME_STEP.title}
-              </Text>
-              <Text className="mt-space-5 font-core text-body text-text-secondary">
-                {NAME_STEP.sub}
-              </Text>
-            </View>
-
-            <View className="flex-1 px-gutter-screen pt-space-8">
-              <NameField
-                tone="ios"
-                value={name}
-                onChange={setName}
-                onSubmit={() => {
-                  if (!named) return;
-                  if (nameOnly) void finish(false);
-                  else setStep(step + 1);
-                }}
-                autoFocus
-              />
-            </View>
-          </>
-        ) : consenting ? (
-          <>
-            <View className="px-gutter-screen pt-space-9">
-              <Text className="font-core text-title-1 font-semibold text-text-primary">
-                {CONSENT.title}
-              </Text>
-              <Text className="mt-space-5 font-core text-body text-text-secondary">
-                {CONSENT.sub}
-              </Text>
-            </View>
-
-            <View className="flex-1 justify-center px-gutter-screen">
-              <ConsentTicks
-                tone="ios"
-                readPolicy={readPolicy}
-                agreeToProcessing={agreeToProcessing}
-                onReadPolicy={setReadPolicy}
-                onAgreeToProcessing={setAgreeToProcessing}
-              />
-            </View>
-          </>
-        ) : (
-          <>
-            <View className="flex-1 items-center justify-center px-gutter-screen">
-              <TutorialArt kind={screen!.art} tone={IOS_TONE} />
-            </View>
-
-            <View className="px-gutter-screen pb-space-8">
-              <Text className="font-core text-title-1 font-semibold text-text-primary">
-                {screen!.title}
-              </Text>
-              <Text className="mt-space-5 font-core text-body text-text-secondary">
-                {screen!.sub}
-              </Text>
-            </View>
-          </>
-        )}
-
-        <View className="px-gutter-screen pb-space-8">
-          {/* Announced, because the button simply stops working otherwise and
-            nothing on screen says why. Same copy as the web. */}
-          {failed ? (
-            <Text
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-              className="mb-space-5 text-center font-core text-body-sm text-text-on-attention"
-            >
-              That did not go through. Check your connection and try again.
-            </Text>
-          ) : null}
-          <Pressable
-            onPress={() =>
-              consenting || nameOnly
-                ? void finish(!nameOnly)
-                : setStep(step + 1)
-            }
-            disabled={blocked}
-            className={`min-h-composer-height w-full items-center justify-center rounded-pill active:opacity-90 ${
-              blocked ? "bg-ink-100" : "bg-ink-950"
-            }`}
-          >
-            <Text
-              className={`font-core text-body font-medium ${blocked ? "text-ink-400" : "text-text-inverse"}`}
-            >
-              {consenting || nameOnly ? "Get started" : "Next"}
-            </Text>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
+          </View>
+        </KeyboardAvoidingView>
+      </GateBackdrop>
     </SafeAreaView>
   );
 }

@@ -24,7 +24,7 @@ from offload_agent.harness.plan import (
     TOOL_DEFINITION_BUDGET,
     plan,
 )
-from offload_agent.harness.tools import TOOLS
+from offload_agent.harness.tools import CALENDAR_TOOL_DEFS, TOOLS
 
 
 # The shapes the SDK returns, reduced to what the loop actually reads.
@@ -96,7 +96,7 @@ class Recorder:
                 "contentId": f"c{len(self.calls)}"}
 
 
-def ctx(dump="dentist after the 20th", landed=0) -> DumpContext:
+def ctx(dump="dentist after the 20th", landed=0, has_calendar=False) -> DumpContext:
     return DumpContext(
         dump=dump,
         turns=[Turn(role="person", text="earlier")],
@@ -104,6 +104,7 @@ def ctx(dump="dentist after the 20th", landed=0) -> DumpContext:
         landed=[Filed(title=f"piece {i}", thread_name="Flat admin") for i in range(landed)],
         default_thread_id="t1",
         today="Thursday 3 September 2026",
+        has_calendar=has_calendar,
     )
 
 
@@ -372,6 +373,19 @@ async def test_the_tool_definitions_fit_their_own_budget():
     )
 
 
+async def test_the_calendar_tools_are_measured_on_top():
+    # 012. They are sent only to an account that has connected a calendar, so
+    # they are a second budget rather than part of the first: an account with no
+    # connector pays nothing for them. Measured anyway, because "only some
+    # people pay for it" is not the same as free, and this is the number that
+    # decides when the tool set moves behind defer_loading.
+    approx = (len(json.dumps(TOOLS + CALENDAR_TOOL_DEFS)) // 4) + 1
+    assert approx < TOOL_DEFINITION_BUDGET * 2, (
+        f"tool definitions with a calendar are ~{approx} tokens. Past twice the "
+        f"base budget the long tail moves behind defer_loading."
+    )
+
+
 async def test_the_tools_are_sent_on_every_call():
     model = StubModel([
         Response(content=[ToolUse(id="a", name="add_content",
@@ -383,6 +397,9 @@ async def test_the_tools_are_sent_on_every_call():
     await plan(model, ctx(), "claude-sonnet-5", Recorder())
 
     for request in model.requests:
+        # No calendar connected, so no calendar tools. An account with none is
+        # never offered a tool that can only fail, and never pays for its
+        # definitions.
         assert [t["name"] for t in request["tools"]] == [
             "create_thread",
             "add_content",
@@ -395,6 +412,18 @@ async def test_the_tools_are_sent_on_every_call():
             "rename_thread",
             "add_memory",
         ]
+
+
+async def test_the_calendar_tools_arrive_with_a_calendar():
+    model = StubModel([Response(content=[TextBlock("Done.")], stop_reason="end_turn")])
+
+    await plan(model, ctx(has_calendar=True), "claude-sonnet-5", Recorder())
+
+    names = [t["name"] for t in model.requests[0]["tools"]]
+    assert "create_event" in names
+    assert "list_calendars" in names
+    # And the ordinary ten are still all there, in front of them.
+    assert names[:10] == [t["name"] for t in TOOLS]
 
 
 async def test_a_reply_of_only_whitespace_is_no_reply():

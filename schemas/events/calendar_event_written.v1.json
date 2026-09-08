@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/calendar_event_written.v1.json",
+  "title": "calendar_event_written",
+  "description": "offload wrote to a calendar. What kind of write, how far it reached, and whether anybody else found out. Never what the event says.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {"action": { "enum": ["create", "edit", "delete"] }, "scope": { "enum": ["one", "following"] }, "outward": { "type": "boolean" }, "confirmed": { "type": "boolean" }}
+}

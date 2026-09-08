@@ -14,14 +14,27 @@
 //     on a phone than absent.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
+import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
+import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Logo } from "../Logo";
 import { QuietEmpty } from "./QuietEmpty";
 import { ThreadRow } from "../shell/ThreadRow";
 import { ToastHost, useToast } from "../shell/Toast";
-import { deleteThread, fetchThreads, restoreThread, type ThreadGroup } from "../../lib/threads";
+import {
+  deleteThread,
+  fetchThreads,
+  restoreThread,
+  type ThreadGroup,
+} from "../../lib/threads";
 import { useConversation } from "../shell/conversation-context";
 import { failed } from "../../lib/log";
 
@@ -36,6 +49,12 @@ const HEADINGS: Record<string, string> = {
 const OLDER_SHOWN = 3;
 
 export default function MyThreads() {
+  // The field behind the plate slides against this list. On the UI thread, so
+  // it never crosses to JS and never waits on a render.
+  const onScroll = useAnimatedScrollHandler((event) => {
+    prismShift.value = event.contentOffset.y * PRISM_SCROLL_FACTOR;
+  });
+
   const router = useRouter();
   const [groups, setGroups] = useState<ThreadGroup[] | null>(null);
   const [allOlder, setAllOlder] = useState(false);
@@ -89,7 +108,10 @@ export default function MyThreads() {
 
   if (groups === null) {
     return (
-      <SafeAreaView className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`} edges={["top"]}>
+      <SafeAreaView
+        className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`}
+        edges={["top"]}
+      >
         <View className="h-appbar-height flex-row items-center px-gutter-screen">
           <Logo size={21} />
         </View>
@@ -107,7 +129,10 @@ export default function MyThreads() {
   const total = now.length + always.length + older.length;
 
   return (
-    <SafeAreaView className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`} edges={["top"]}>
+    <SafeAreaView
+      className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`}
+      edges={["top"]}
+    >
       <View className="h-appbar-height flex-row items-center px-gutter-screen">
         <Logo size={21} />
       </View>
@@ -115,16 +140,27 @@ export default function MyThreads() {
       {total === 0 ? (
         <QuietEmpty line="Threads appear here on their own, once there is enough in one place to be one." />
       ) : (
-        <ScrollView contentContainerClassName="pt-space-5 pb-space-9">
+        <Animated.ScrollView
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          contentContainerClassName="pt-space-5 pb-space-9"
+        >
           {now.map((thread, i) => (
             <ThreadRow
               key={thread.id}
               thread={thread}
               border={i < now.length - 1}
-              onOpen={() => router.push({ pathname: "/threads/[id]", params: { id: thread.id } })}
+              onOpen={() =>
+                router.push({
+                  pathname: "/threads/[id]",
+                  params: { id: thread.id },
+                })
+              }
               onDelete={() => void remove(thread.id, thread.name)}
               onRefuse={() =>
-                toast.show("This thread can't be deleted. It's where things land by default.")
+                toast.show(
+                  "This thread can't be deleted. It's where things land by default.",
+                )
               }
             />
           ))}
@@ -137,24 +173,40 @@ export default function MyThreads() {
               key={thread.id}
               thread={thread}
               border={i < always.length - 1}
-              onOpen={() => router.push({ pathname: "/threads/[id]", params: { id: thread.id } })}
+              onOpen={() =>
+                router.push({
+                  pathname: "/threads/[id]",
+                  params: { id: thread.id },
+                })
+              }
               onDelete={() => void remove(thread.id, thread.name)}
               onRefuse={() =>
-                toast.show("This thread can't be deleted. It's where things land by default.")
+                toast.show(
+                  "This thread can't be deleted. It's where things land by default.",
+                )
               }
             />
           ))}
 
-          {older.length > 0 ? <Section label={HEADINGS["older"]!} count={older.length} /> : null}
+          {older.length > 0 ? (
+            <Section label={HEADINGS["older"]!} count={older.length} />
+          ) : null}
           {shownOlder.map((thread, i) => (
             <ThreadRow
               key={thread.id}
               thread={thread}
               border={i < shownOlder.length - 1}
-              onOpen={() => router.push({ pathname: "/threads/[id]", params: { id: thread.id } })}
+              onOpen={() =>
+                router.push({
+                  pathname: "/threads/[id]",
+                  params: { id: thread.id },
+                })
+              }
               onDelete={() => void remove(thread.id, thread.name)}
               onRefuse={() =>
-                toast.show("This thread can't be deleted. It's where things land by default.")
+                toast.show(
+                  "This thread can't be deleted. It's where things land by default.",
+                )
               }
             />
           ))}
@@ -164,12 +216,15 @@ export default function MyThreads() {
               className="min-h-tap-min flex-row items-center px-gutter-screen pt-space-6"
               onPress={() => setAllOlder(true)}
             >
-              <Text className="font-core text-text-secondary" style={{ fontSize: 14.5 }}>
+              <Text
+                className="font-core text-text-secondary"
+                style={{ fontSize: 14.5 }}
+              >
                 All {older.length} older threads
               </Text>
             </Pressable>
           ) : null}
-        </ScrollView>
+        </Animated.ScrollView>
       )}
 
       <ToastHost state={toast} />
@@ -177,10 +232,21 @@ export default function MyThreads() {
   );
 }
 
-function Section({ label, count, accent }: { label: string; count: number; accent?: boolean }) {
+function Section({
+  label,
+  count,
+  accent,
+}: {
+  label: string;
+  count: number;
+  accent?: boolean;
+}) {
   return (
     <View className="flex-row items-center gap-space-3 px-gutter-screen pb-space-3 pt-space-7">
-      <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 21 }}>
+      <Text
+        className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+        style={{ fontSize: 21 }}
+      >
         {label}
       </Text>
       <View

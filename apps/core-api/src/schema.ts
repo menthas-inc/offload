@@ -398,7 +398,98 @@ export interface MemoriesTable {
   purge_after: Timestamp | null;
 }
 
+/** One Google account somebody connected. 012. */
+export interface ConnectorConnectionsTable {
+  id: Generated<string>;
+  account_id: string;
+  provider: Generated<"google">;
+  external_account_email: string;
+  /** `needs_reauth` is a state, not an error: a token the person revoked in
+   *  Google is their decision, so the sync stops and Settings offers Reconnect
+   *  rather than retrying into a wall. */
+  state: Generated<"active" | "needs_reauth" | "revoked">;
+  connected_at: Timestamp;
+  last_sync_at: Timestamp | null;
+  last_error_at: Timestamp | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  deleted_at: Timestamp | null;
+}
+
+/** Credentials to somebody else's system, sealed under their own key.
+ *
+ *  Never Better Auth's `account`, whose hooks blank every provider token
+ *  unconditionally. See `connectors/vault.ts` for why that matters. */
+export interface ConnectorSecretsTable {
+  connection_id: string;
+  access_token: Buffer;
+  refresh_token: Buffer | null;
+  access_expires_at: Timestamp | null;
+  scope: string | null;
+  /** Which key sealed it, so a rotation knows what it has already moved. */
+  wrapped_by: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+/** One calendar on a connected account. */
+export interface ConnectorCalendarsTable {
+  id: Generated<string>;
+  connection_id: string;
+  external_id: string;
+  summary: string;
+  timezone: string | null;
+  access_role: "owner" | "writer" | "reader" | "freeBusyReader";
+  /** Does anybody but you see this. **The person's answer, not Google's**: an
+   *  access list needs another sensitive scope and still misses a calendar
+   *  that is public to anyone with the link. Defaults true, and the sync forces
+   *  it back to true whenever `access_role` stops being `owner`. */
+  is_shared: Generated<boolean>;
+  is_primary: Generated<boolean>;
+  /** Reads into offload at all, and cannot be true without a thread: an event
+   *  offload holds is a content row, and `content.thread_id` is not null. */
+  selected: Generated<boolean>;
+  default_thread_id: string | null;
+  sync_token: string | null;
+  synced_at: Timestamp | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+/** Sends some of a calendar's events somewhere other than its default thread.
+ *  In `ordinal` order, first match wins. */
+export interface ConnectorCalendarRulesTable {
+  id: Generated<string>;
+  calendar_id: string;
+  ordinal: number;
+  match_kind: "title_contains" | "attendee_is" | "all";
+  match_value: string | null;
+  thread_id: string;
+  created_at: Timestamp;
+}
+
+/** An outward-facing write the model proposed and nobody has agreed to yet.
+ *  Nothing in here has reached Google. */
+export interface ConnectorPendingWritesTable {
+  id: Generated<string>;
+  account_id: string;
+  calendar_id: string;
+  action: "create" | "edit" | "delete";
+  scope: "one" | "following" | null;
+  payload: unknown;
+  source_ref: string | null;
+  expires_at: Timestamp;
+  created_at: Timestamp;
+  confirmed_at: Timestamp | null;
+  declined_at: Timestamp | null;
+}
+
 export interface Database {
+  connector_connections: ConnectorConnectionsTable;
+  connector_secrets: ConnectorSecretsTable;
+  connector_calendars: ConnectorCalendarsTable;
+  connector_calendar_rules: ConnectorCalendarRulesTable;
+  connector_pending_writes: ConnectorPendingWritesTable;
   accounts: AccountsTable;
   account_identities: AccountIdentitiesTable;
   sessions: SessionsTable;

@@ -154,7 +154,7 @@ const PAGES={
       <Row title="Browser" note="Save a page straight into a thing" value="Connect" onClick={()=>{}} last/>
     </Group>
     <Group label="How offload uses them">
-      <Row title="Read only" note="offload never sends mail, moves events, or deletes photos." last/>
+      <Row title="What offload may do" note="It writes to your calendar when you ask. It never sends mail or deletes photos." last/>
     </Group>
   </>)},
   memory:{title:"Memory and data",render:()=>(<>

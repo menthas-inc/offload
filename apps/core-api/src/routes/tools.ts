@@ -51,6 +51,8 @@ import {
   setArchived,
   setPreference,
 } from "./threads.js";
+import { findEvents, listCalendarsFor, writeThroughTool } from "../connectors/tool-calls.js";
+import type { WriteAction } from "../connectors/write.js";
 
 /** The only string that ever leaves for a geocoder.
  *
@@ -188,6 +190,53 @@ const body = z.discriminatedUnion("tool", [
     threadId: z.string().uuid(),
     text: z.string().min(1).max(MEMORY_TEXT_CHARS),
   }),
+  // 012, the calendar. **No field decides whether a write is confirmed.**
+  // That is read from the event and the calendar on this side, because some of
+  // what the model read came out of a calendar somebody else can write into.
+  z.strictObject({
+    tool: z.literal("list_calendars"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+  }),
+  z.strictObject({
+    tool: z.literal("find_events"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    calendarId: z.string().uuid(),
+    fromIso: z.string().min(1).max(40),
+    toIso: z.string().min(1).max(40),
+  }),
+  z.strictObject({
+    tool: z.literal("create_event"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    calendarId: z.string().uuid(),
+    title: z.string().min(1).max(200),
+    startsAt: z.string().min(1).max(40),
+    endsAt: z.string().min(1).max(40),
+    location: z.string().max(200).nullish(),
+    guests: z.array(z.string().max(320)).max(50).nullish(),
+  }),
+  z.strictObject({
+    tool: z.literal("edit_event"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    calendarId: z.string().uuid(),
+    sourceRef: z.string().min(1).max(400),
+    title: z.string().max(200).nullish(),
+    startsAt: z.string().max(40).nullish(),
+    endsAt: z.string().max(40).nullish(),
+    location: z.string().max(200).nullish(),
+    scope: z.enum(["one", "following"]).default("one"),
+  }),
+  z.strictObject({
+    tool: z.literal("delete_event"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    calendarId: z.string().uuid(),
+    sourceRef: z.string().min(1).max(400),
+    scope: z.enum(["one", "following"]).default("one"),
+  }),
   z.strictObject({
     tool: z.literal("rename_thread"),
     jobId: z.string().uuid(),
@@ -223,6 +272,13 @@ const result = z.union([
      *  the same as everything else a tool returns. That the model is also being
      *  asked to obey it is the open hole 008 names rather than closes. */
     memories: z.array(z.string()).optional(),
+    /** Rules derived from a connected app rather than from the person.
+     *
+     *  Handed over separately because the prompt tells the model to obey the
+     *  list above, and text that came out of somebody else's calendar event is
+     *  not something to obey. Reference, not instruction. See
+     *  `memoriesForPrompt`. */
+    memoriesFromApps: z.array(z.string()).optional(),
   }),
   /** `list_thread_content`'s answer. Bounded by LIST_PAGE and LIST_ROW_CHARS,
    *  and it re-enters the loop as a tool_result block, which is to say as
@@ -243,6 +299,27 @@ const result = z.union([
   }),
   z.object({ ok: z.literal(true), done: z.literal(true) }),
   z.object({
+    ok: z.literal(true),
+    calendars: z.array(
+      z.object({
+        calendarId: z.string(),
+        name: z.string(),
+        writable: z.boolean(),
+        shared: z.boolean(),
+      })
+    ),
+  }),
+  z.object({
+    ok: z.literal(true),
+    events: z.array(
+      z.object({ sourceRef: z.string(), title: z.string(), startsAt: z.string().nullable() })
+    ),
+  }),
+  z.object({ ok: z.literal(true), written: z.literal(true), sourceRef: z.string().nullable() }),
+  /** offload did nothing and is waiting for them. `because` names who finds
+   *  out, so the model can say it in its own words. */
+  z.object({ ok: z.literal(true), waitingForThem: z.literal(true), because: z.string() }),
+  z.object({
     ok: z.literal(false),
     error: z.enum([
       "unknown_thread",
@@ -253,6 +330,12 @@ const result = z.union([
       "not_yours",
       "bad_date",
       "thread_memory_full",
+      // 012. A calendar that is not this account's, or one it may only read.
+      "unknown_calendar",
+      "read_only",
+      // The person took access away in their Google account. Permanent, so the
+      // model says to reconnect rather than the loop retrying into a wall.
+      "needs_reconnect",
     ]),
   }),
 ]);
@@ -268,6 +351,9 @@ type Outcome =
       threadName: string;
       contentId?: string;
       memories?: string[];
+      /** Rules that came out of a connected app rather than out of the person.
+       *  Reference the model may cite, never an instruction it follows. */
+      memoriesFromApps?: string[];
     }
   | {
       ok: true;
@@ -282,6 +368,12 @@ type Outcome =
       truncated: boolean;
     }
   | { ok: true; done: true }
+  /** 012. What the model is told about a calendar write: that it happened, or
+   *  that a person has to agree first and why. Never a choice it makes. */
+  | { ok: true; calendars: { calendarId: string; name: string; writable: boolean; shared: boolean }[] }
+  | { ok: true; events: { sourceRef: string; title: string; startsAt: string | null }[] }
+  | { ok: true; written: true; sourceRef: string | null }
+  | { ok: true; waitingForThem: true; because: string }
   | {
       ok: false;
       error:
@@ -291,6 +383,9 @@ type Outcome =
         | "bad_place_name"
         | "unknown_content"
         | "not_yours"
+        | "unknown_calendar"
+        | "read_only"
+        | "needs_reconnect"
         | "bad_date"
         | "thread_memory_full";
     };
@@ -484,6 +579,66 @@ async function existing(
       if (error instanceof MemoryTooLong) return { ok: false, error: "unknown_thread" };
       throw error;
     }
+  }
+
+  // 012, the calendar. Before the content branch below, which assumes every
+  // remaining tool names a piece of content.
+  //
+  // **Outside the transaction the rest of this function runs in**, deliberately:
+  // these call Google, and holding a database transaction open across a network
+  // round trip to somebody else's API is how a slow third party becomes a
+  // stalled database.
+  if (call.tool === "list_calendars") {
+    return { ok: true, calendars: await listCalendarsFor(accountId) };
+  }
+
+  if (call.tool === "find_events") {
+    const found = await findEvents(
+      accountId,
+      call.calendarId,
+      new Date(call.fromIso),
+      new Date(call.toIso)
+    );
+    if (found === "needs_reconnect") return { ok: false, error: "needs_reconnect" };
+    return {
+      ok: true,
+      events: found.map((e) => ({ sourceRef: e.sourceRef, title: e.title, startsAt: e.startsAt })),
+    };
+  }
+
+  if (call.tool === "create_event" || call.tool === "edit_event" || call.tool === "delete_event") {
+    const write: WriteAction =
+      call.tool === "create_event"
+        ? {
+            action: "create",
+            draft: {
+              title: call.title,
+              startsAt: new Date(call.startsAt),
+              endsAt: new Date(call.endsAt),
+              location: call.location ?? null,
+              attendees: call.guests ?? [],
+            },
+          }
+        : call.tool === "edit_event"
+          ? {
+              action: "edit",
+              sourceRef: call.sourceRef,
+              scope: call.scope,
+              patch: {
+                ...(call.title == null ? {} : { title: call.title }),
+                ...(call.startsAt == null ? {} : { startsAt: new Date(call.startsAt) }),
+                ...(call.endsAt == null ? {} : { endsAt: new Date(call.endsAt) }),
+                ...(call.location == null ? {} : { location: call.location }),
+              },
+            }
+          : { action: "delete", sourceRef: call.sourceRef, scope: call.scope };
+
+    const outcome = await writeThroughTool(accountId, call.calendarId, write);
+    if (outcome.kind === "refused") return { ok: false, error: outcome.reason };
+    if (outcome.kind === "written") return { ok: true, written: true, sourceRef: outcome.sourceRef };
+    // Nothing has reached Google. The model says what it is waiting for; it
+    // does not get to decide that it is not waiting.
+    return { ok: true, waitingForThem: true, because: outcome.line };
   }
 
   const ref = await readableContent(accountId, call.contentId, trx);
@@ -810,6 +965,7 @@ export async function toolRoutes(app: App): Promise<void> {
             .where("derived_from_message_id", "=", messageId)
             .where("tool_call_id", "=", call.toolCallId)
             .executeTakeFirstOrThrow();
+          const retryMemories = await memoriesForPrompt(thread.id, trx);
 
           return {
             ok: true,
@@ -818,7 +974,8 @@ export async function toolRoutes(app: App): Promise<void> {
             contentId: existing.id,
             // On the retry too. A lost response must not also lose the thread's
             // rules, or a retried filing is the one that ignores them.
-            memories: await memoriesForPrompt(thread.id, trx),
+            memories: retryMemories.rules,
+            memoriesFromApps: retryMemories.fromApps,
           };
         }
 
@@ -848,6 +1005,7 @@ export async function toolRoutes(app: App): Promise<void> {
           .where("id", "=", thread.id)
           .execute();
 
+        const filedMemories = await memoriesForPrompt(thread.id, trx);
         return {
           ok: true,
           threadId: thread.id,
@@ -857,7 +1015,8 @@ export async function toolRoutes(app: App): Promise<void> {
           // files into it. It has already written the title by now, which is
           // the cost of not putting every thread's memories in the prompt up
           // front; `edit_content` is how it fixes one it got wrong.
-          memories: await memoriesForPrompt(thread.id, trx),
+          memories: filedMemories.rules,
+          memoriesFromApps: filedMemories.fromApps,
         };
         })
       );

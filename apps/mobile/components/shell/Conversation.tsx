@@ -75,9 +75,16 @@ export function ConversationScrim() {
 
   return (
     <Animated.View
-      style={[{ position: "absolute", inset: 0, backgroundColor: COLOR.scrim }, scrim]}
+      style={[
+        { position: "absolute", inset: 0, backgroundColor: COLOR.scrim },
+        scrim,
+      ]}
     >
-      <Pressable className="flex-1" onPress={conversation.fold} accessibilityLabel="Fold" />
+      <Pressable
+        className="flex-1"
+        onPress={conversation.fold}
+        accessibilityLabel="Fold"
+      />
     </Animated.View>
   );
 }
@@ -153,7 +160,10 @@ export function Conversation() {
   // look like it is dissolving on the way.
   const sheet = useAnimatedStyle(() => ({
     transform: [
-      { translateY: (1 - progress.value) * (height.value || screen * 0.78) + drag.value },
+      {
+        translateY:
+          (1 - progress.value) * (height.value || screen * 0.78) + drag.value,
+      },
     ],
   }));
 
@@ -169,14 +179,20 @@ export function Conversation() {
         height.value = event.nativeEvent.layout.height;
       }}
       style={[sheet, { maxHeight: screen * 0.78 }]}
-      className={`${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
+      // `surface-plate`, the same token the plate below is painted with. A
+      // raised conversation rests on the plate rather than replacing it, so
+      // two different values here read as a seam across the join.
+      className={`bg-surface-plate ${isAndroid ? "rounded-t-a-xl" : "rounded-t-lg"}`}
     >
       {/* The header is the handle: tap it or pull it down to put the
           conversation away. The chevron stays because a gesture with no visible
           affordance is one nobody finds, and the two nested controls take their
           own taps before this one sees them. */}
       <GestureDetector gesture={pull}>
-        <Pressable onPress={foldNow} accessibilityLabel="Fold the conversation away">
+        <Pressable
+          onPress={foldNow}
+          accessibilityLabel="Fold the conversation away"
+        >
           {/* A grab handle, because "you can pull this" has to be visible
               somewhere and the chevron alone reads as a button rather than an
               edge you can take hold of. Its own centred row rather than an
@@ -199,10 +215,18 @@ export function Conversation() {
             >
               {conversation.live?.title}
             </Text>
-            <Pressable onPress={foldNow} hitSlop={10} accessibilityLabel="Fold away">
+            <Pressable
+              onPress={foldNow}
+              hitSlop={10}
+              accessibilityLabel="Fold away"
+            >
               <Glyph name="chevron-down" size={18} color={COLOR.iconOnWell} />
             </Pressable>
-            <Pressable onPress={conversation.close} hitSlop={10} accessibilityLabel="Close">
+            <Pressable
+              onPress={conversation.close}
+              hitSlop={10}
+              accessibilityLabel="Close"
+            >
               <Glyph name="x" size={18} color={COLOR.iconOnWell} />
             </Pressable>
           </View>
@@ -246,7 +270,11 @@ function Turns() {
     >
       {turns.map((turn) =>
         turn.from === "you" ? (
-          <Yours key={turn.id} turn={turn} onFinish={() => void finish(turn.id)} />
+          <Yours
+            key={turn.id}
+            turn={turn}
+            onFinish={() => void finish(turn.id)}
+          />
         ) : (
           <Theirs key={turn.id} turn={turn} />
         ),
@@ -270,9 +298,17 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
         className={`border px-space-5 py-space-3 ${
           hurt ? "border-clay-600 bg-blue-50" : "border-blue-100 bg-blue-50"
         }`}
-        style={{ borderTopLeftRadius: 16, borderTopRightRadius: 16, borderBottomLeftRadius: 16, borderBottomRightRadius: 4 }}
+        style={{
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          borderBottomLeftRadius: 16,
+          borderBottomRightRadius: 4,
+        }}
       >
-        <Text className="font-core text-ink-950" style={{ fontSize: 15, lineHeight: 22 }}>
+        <Text
+          className="font-core text-ink-950"
+          style={{ fontSize: 15, lineHeight: 22 }}
+        >
           {turn.text}
         </Text>
       </View>
@@ -282,7 +318,10 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
           request that was refused both used to wear a tick. */}
       {turn.state === "seen" ? (
         <Mark>
-          <Text accessibilityLabel="seen, not answered yet" style={{ fontSize: 15 }}>
+          <Text
+            accessibilityLabel="seen, not answered yet"
+            style={{ fontSize: 15 }}
+          >
             👀
           </Text>
         </Mark>
@@ -290,7 +329,10 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
       {turn.state === "answered" && turn.did ? (
         <Mark done>
           <Glyph name="check" size={11} color={COLOR.onSolid} />
-          <Text className="font-core font-medium text-text-on-solid" style={{ fontSize: 11 }}>
+          <Text
+            className="font-core font-medium text-text-on-solid"
+            style={{ fontSize: 11 }}
+          >
             Done
           </Text>
         </Mark>
@@ -306,7 +348,10 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
             offload did not finish that one.
           </Text>
           <Pressable onPress={onFinish} hitSlop={8}>
-            <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13 }}>
+            <Text
+              className="font-core font-medium text-text-accent"
+              style={{ fontSize: 13 }}
+            >
               Finish it
             </Text>
           </Pressable>
@@ -318,13 +363,24 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
 
 /** The mark hangs off the bubble's bottom left in its own chip, so it never
  *  crowds the text and reads the same on one line or five. */
-function Mark({ done, children }: { done?: boolean; children: React.ReactNode }) {
+function Mark({
+  done,
+  children,
+}: {
+  done?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <View
       className={`flex-row items-center gap-space-2 rounded-pill px-space-3 ${
         done ? "bg-moss-600" : "border border-border-hairline bg-paper"
       }`}
-      style={{ alignSelf: "flex-start", height: 24, marginTop: -10, marginLeft: -6 }}
+      style={{
+        alignSelf: "flex-start",
+        height: 24,
+        marginTop: -10,
+        marginLeft: -6,
+      }}
     >
       {children}
     </View>
@@ -367,13 +423,19 @@ function Theirs({ turn }: { turn: Turn }) {
               key={thread.id}
               onPress={() => {
                 fold();
-                router.push({ pathname: "/threads/[id]", params: { id: thread.id } });
+                router.push({
+                  pathname: "/threads/[id]",
+                  params: { id: thread.id },
+                });
               }}
               className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-4"
               style={{ height: 26 }}
             >
               <Glyph name="lasso" size={12} color={COLOR.accent} />
-              <Text className="font-core text-text-accent" style={{ fontSize: 12.5 }}>
+              <Text
+                className="font-core text-text-accent"
+                style={{ fontSize: 12.5 }}
+              >
                 {thread.name}
               </Text>
             </Pressable>
@@ -390,11 +452,19 @@ function Writing() {
       className={`flex-row items-center gap-space-2 px-space-5 py-space-4 ${
         isAndroid ? "bg-a-c" : "bg-ink-50"
       }`}
-      style={{ alignSelf: "flex-start", borderRadius: 16, borderBottomLeftRadius: 4 }}
+      style={{
+        alignSelf: "flex-start",
+        borderRadius: 16,
+        borderBottomLeftRadius: 4,
+      }}
       accessibilityLabel="offload is writing"
     >
       {[0, 1, 2].map((i) => (
-        <View key={i} className="rounded-pill bg-ink-300" style={{ width: 6, height: 6 }} />
+        <View
+          key={i}
+          className="rounded-pill bg-ink-300"
+          style={{ width: 6, height: 6 }}
+        />
       ))}
     </View>
   );

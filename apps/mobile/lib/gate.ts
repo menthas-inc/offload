@@ -55,7 +55,43 @@ export const GATE = {
   },
 } as const;
 
-/** The fourth screen of first run, which asks the one thing it needs.
+/** The last screen of first run, which offers rather than asks.
+ *
+ *  From `ConnectScreen` in `ui_kits/mobile_app/FirstRun.jsx` and its Material
+ *  twin, option A of `explorations/connect-apps.html`. One provider and one
+ *  screen: the mark large enough to be read before the words, two sentences,
+ *  one button and Not now.
+ *
+ *  **Not now, never Skip.** Skip belongs to the tutorial and means skip the
+ *  tutorial. Turning down a connection is a different answer to a different
+ *  question, so the word changes while the position does not.
+ *
+ *  **The design system marks all of this copy provisional**, and the two facts
+ *  most of all: they commit the product to something about another service's
+ *  data, which is the app's call rather than the design system's. What is not
+ *  provisional is the shape: what offload reads, and what it does back, both as
+ *  sentences rather than switches, per the 5 September privacy refusal, because
+ *  a switch implies somebody could have set it the other way. */
+export const CONNECT_STEP = {
+  title: "Bring in your calendar",
+  sub: "So \u201cbefore the trip\u201d and \u201cafter the dentist\u201d mean something.",
+  facts: [
+    [
+      "calendar",
+      "offload reads your days.",
+      "Times, titles and who is on them.",
+    ],
+    [
+      "plus",
+      "And it can add to them.",
+      "Anything you dump with a time on it can land back on your calendar.",
+    ],
+  ] as const,
+  connect: "Connect Google Calendar",
+  notNow: "Not now",
+} as const;
+
+/** The fifth screen of first run, which asks the one thing it needs.
  *
  *  Here with the rest of the gate copy for the reason at the top of this file:
  *  the screen forks by platform and the words must not. */

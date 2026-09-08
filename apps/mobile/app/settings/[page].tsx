@@ -14,13 +14,23 @@ import { EditableRow, Group, Row } from "../../components/settings/Rows";
 import { Segmented } from "../../components/settings/Segmented";
 import { useColors } from "../../lib/colors";
 import { saveName, useMe } from "../../lib/me";
-import { setTheme, useTheme, THEMES, THEME_LABEL, type Theme } from "../../lib/appearance";
+import { useCalendars, updateCalendar } from "../../lib/calendars";
+import { API_URL } from "../../lib/auth";
+import {
+  setTheme,
+  useTheme,
+  THEMES,
+  THEME_LABEL,
+  type Theme,
+} from "../../lib/appearance";
+import { useState } from "react";
 
 const isAndroid = Platform.OS === "android";
 
 const WEB = process.env["EXPO_PUBLIC_WEB_URL"] ?? "https://offload.club";
 
 const TITLES: Record<string, string> = {
+  apps: "Connected apps",
   account: "My account",
   appearance: "Appearance",
   help: "Help and about",
@@ -38,7 +48,11 @@ export default function SettingsPage() {
       edges={["top"]}
     >
       <View className="h-appbar-height flex-row items-center gap-space-4 px-gutter-screen">
-        <Pressable onPress={() => router.back()} hitSlop={10} accessibilityLabel="Back">
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          accessibilityLabel="Back"
+        >
           <Glyph name="chevron-left" size={22} color={COLOR.iconOnWell} />
         </Pressable>
         <Text
@@ -50,6 +64,7 @@ export default function SettingsPage() {
       </View>
 
       <ScrollView contentContainerClassName="px-gutter-screen pb-space-9 pt-space-2">
+        {page === "apps" ? <Apps /> : null}
         {page === "account" ? <Account /> : null}
         {page === "appearance" ? <Appearance /> : null}
         {page === "help" ? <Help /> : null}
@@ -115,7 +130,10 @@ function Appearance() {
         </Text>
         <Segmented
           label="Theme"
-          options={THEMES.map((value) => ({ value, label: THEME_LABEL[value] }))}
+          options={THEMES.map((value) => ({
+            value,
+            label: THEME_LABEL[value],
+          }))}
           value={theme}
           onChange={(next) => setTheme(next as Theme)}
         />
@@ -146,5 +164,121 @@ function Help() {
         last
       />
     </Group>
+  );
+}
+
+/** Connected apps.
+ *
+ *  **The kit draws four and one of them works.** The other three stay listed
+ *  and say they are not built, because knowing what is coming is worth more
+ *  than a page with one row on it.
+ *
+ *  Connecting leaves for Google's consent screen in the system browser, which
+ *  is the same round trip signing in already makes. */
+function Apps() {
+  const { loading, available, connections, reload } = useCalendars();
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function change(
+    id: string,
+    patch: Parameters<typeof updateCalendar>[1],
+  ) {
+    setBusy(id);
+    const ok = await updateCalendar(id, patch);
+    setBusy(null);
+    if (ok) reload();
+  }
+
+  return (
+    <>
+      {loading ? null : !available ? (
+        <Group label="Calendar">
+          {/* Not a failure and not a promise. What is true. */}
+          <Row title="Calendar" note="Not available yet." last />
+        </Group>
+      ) : connections.length === 0 ? (
+        <Group label="Calendar">
+          <Row
+            title="Google Calendar"
+            note="See your week in offload, and let it add things for you."
+            value="Connect"
+            onPress={() =>
+              void WebBrowser.openAuthSessionAsync(
+                `${API_URL}/api/connectors/google/start?landing=settings`,
+                `${WEB}/settings/apps`,
+              ).then(reload)
+            }
+            last
+          />
+        </Group>
+      ) : (
+        connections.map((connection) => (
+          <Group key={connection.id} label={connection.email}>
+            {connection.state === "needs_reauth" ? (
+              <Row
+                title="Sign in again"
+                note="offload lost access to this account."
+                value="Reconnect"
+                onPress={() =>
+                  void WebBrowser.openAuthSessionAsync(
+                    `${API_URL}/api/connectors/google/start?landing=settings`,
+                    `${WEB}/settings/apps`,
+                  ).then(reload)
+                }
+              />
+            ) : null}
+
+            {connection.calendars.map((calendar, index) => (
+              <Row
+                key={calendar.id}
+                title={calendar.summary}
+                note={
+                  calendar.writable
+                    ? calendar.isShared
+                      ? "Other people see this one."
+                      : "Only you see this one."
+                    : "You can only read this one."
+                }
+                value={
+                  busy === calendar.id
+                    ? "Saving"
+                    : calendar.selected
+                      ? "On"
+                      : "Off"
+                }
+                // Turning one on needs a thread, which is a choice this screen
+                // cannot make. Off is always available.
+                onPress={
+                  calendar.selected
+                    ? () => void change(calendar.id, { selected: false })
+                    : calendar.threadId
+                      ? () => void change(calendar.id, { selected: true })
+                      : undefined
+                }
+                last={index === connection.calendars.length - 1}
+              />
+            ))}
+          </Group>
+        ))
+      )}
+
+      <Group label="Not built yet">
+        <Row title="Mail" note="So a confirmation files itself." />
+        <Row title="Browser" note="Save a page straight into a thread." />
+        <Row
+          title="Photos"
+          note="Screenshots become things you can search."
+          last
+        />
+      </Group>
+
+      <Group label="What offload may do">
+        <Row
+          title="It writes to your calendar when you ask"
+          note="It never sends mail or deletes photos. When a change would reach somebody else, it asks first."
+          last
+        />
+      </Group>
+    </>
   );
 }

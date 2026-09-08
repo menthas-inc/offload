@@ -14,7 +14,14 @@
 // The kit also draws a search field. It has ten rows; three do not need one.
 
 import { useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
@@ -49,7 +56,9 @@ export default function Settings() {
       // see whether the network or the server was the problem and would be
       // wrong about it.
       toast.show(
-        error instanceof SignOutFailed ? "That didn't go through." : "That didn't go through.",
+        error instanceof SignOutFailed
+          ? "That didn't go through."
+          : "That didn't go through.",
         { label: "Try again", onPress: () => void leave() },
       );
     }
@@ -61,7 +70,11 @@ export default function Settings() {
       edges={["top"]}
     >
       <View className="h-appbar-height flex-row items-center gap-space-4 px-gutter-screen">
-        <Pressable onPress={() => router.back()} hitSlop={10} accessibilityLabel="Back">
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          accessibilityLabel="Back"
+        >
           <Glyph name="chevron-left" size={22} color={COLOR.iconOnWell} />
         </Pressable>
         <Text
@@ -150,6 +163,18 @@ export default function Settings() {
             title="My account"
             value={me?.email}
             onPress={() => router.push("/settings/account")}
+            last
+          />
+        </Group>
+
+        <Group label="Reaching you">
+          {/* The kit puts Connected apps here, beside Communication. That row
+              is not built, so this group holds one thing rather than waiting
+              for the other. */}
+          <Row
+            icon="link"
+            title="Connected apps"
+            onPress={() => router.push("/settings/apps")}
             last
           />
         </Group>

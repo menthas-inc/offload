@@ -1255,3 +1255,48 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **The web already had this and said so.** `apps/web/src/lib/appearance.ts` carries a comment about two components each holding a copy of one stored key being how a screen disagrees with itself. The phone had the identical hole and no such note, which is the two-documents-days-apart shape in a single feature.
 
 **Design system impact:** none visual. Worth one line wherever the design system talks about the appearance control: anything that *displays* a preference subscribes to the preference, and anything that just needs a colour uses the resolved scheme. Those are different reads and only one of them is `useColors`.
+
+### 2026-09-08 · offload writes to one thing, and the kits said it wrote to nothing
+**Surface:** mobile, web
+
+**Is:** the Connected apps page's standing promise changes from "Read only. offload never sends mail, moves events, or deletes photos." to "What offload may do: it writes to your calendar when you ask. It never sends mail or deletes photos."
+
+**Half a promise stopped being true and the other half got sharper.** 012 lets offload add, change and delete calendar events, which the old line ruled out in as many words. The replacement is narrower than the original rather than vaguer: it names the one thing offload writes to and keeps the two it does not. A page that says "read only" while the product writes to a calendar is the kind of defect this repository treats as a defect even when the code is correct.
+
+**The line lives in a claim surface, so it moved in both places at once.** `ui_kits/mobile_app/SettingsDetail.jsx` and `ui_kits/android_app/M3SettingsDetail.jsx` both carried it, and the privacy policy carried the same commitment in prose. All three changed in one commit.
+
+**What a person sees before a write that reaches somebody.** An event with guests, or on a calendar somebody else can see, confirms first and names who finds out: "Ana will be told", "Everyone on this calendar will see it." An event nobody else can see gets the ordinary Undo instead. That is a control this design system has no component for yet, and no kit draws it.
+
+**Design system impact:** two things. The Connected apps page in both phone kits and in `WSettings.jsx` needs Calendar drawn as a live row with its calendars under it, each with a thread, a shared toggle, and an on switch; the current mock is four static rows. And the confirmation described above wants a real component contract: it is not a destructive-action dialog, because nothing is being destroyed, and it is not a toast, because it has to be answered before anything happens. Naming who finds out is the whole content of it.
+
+### 2026-09-08 · A shaped logo does not get a rounded container
+**Surface:** mobile, web
+
+**Is:** the connect screen's provider mark is drawn at 88px with no corner radius. The dashed stand-in behind it keeps one.
+
+**Both kits round the mark**, `radius={18}` on iOS and `20` on Material, and that is right for the general case and wrong for the asset that actually arrived. Google Calendar's product icon is not a square bitmap: it carries its own silhouette, including the folded corner at the bottom right, and a container radius on top of it clips geometry its owner already specified. The rule the kits are reaching for is "a provider's bare square should not sit on the screen as a hard-edged rectangle", and an asset that is already shaped has answered that question itself.
+
+**The stand-in keeps its radius, and the difference is the point.** It genuinely is a bare square, and the radius is what makes a dashed box read as the slot an icon goes into rather than as an image that failed to load. So the two states differ on purpose rather than by oversight.
+
+**The mark is Google's own file**, from their asset CDN, committed unmodified: an SVG on web and a 512px PNG on the phones, because this app draws icons from generated path data and carries no SVG transformer, so Metro cannot turn an `.svg` into something `Image` can render.
+
+**Design system impact:** `ProviderMark` and `AProviderMark` want the radius to be a property of the asset rather than of the component. Either default it to none and let a caller pass one for a bare square, or take the shape as a prop. Also unresolved and worth a look with the real file in place: Google's terms set a minimum clear space, and whether the 88px box satisfies it is a question for their current spec rather than for either kit.
+
+### 2026-09-08 · The prism field on the phones
+**Surface:** mobile
+
+**Is:** the baked prism texture on two surfaces, frozen at rest, warped for two seconds when offload files something. `PrismField` is a `react-native-skia` runtime shader; the design system's canvas implementation is the reference and the flow field, the alpha rescale and the veil stops are ports of it rather than re-derivations, so the two stay comparable.
+
+**Applied from `handoff/APPLY-2026-09-08-prism.md`.** The five points it said were learned by getting them wrong all hold here: the composite is what has to be symmetric rather than either layer, `--prism-veil-reach` is the only fixed stop, `--surface-plate` is one token for the surface and the veil both, the composer never leaves the plate, and the field is the composer-and-tabs band only.
+
+**Three divergences.**
+
+**The gate mounts its bloom per screen rather than once.** The handoff asks for one field in a `GateShell` around sign-in, the refusal, the tutorial and connect. Those are four Expo Router routes here, and mounting one component across them means a shared navigator whose screens would all have to be transparent. What the rule protects against does not happen regardless: the tutorial, name, consent and connect steps are internal state inside one screen, so moving between them mounts nothing. What is left is a warp when the gate appears and a warp when first run appears, which is what "the screen appearing" means.
+
+**The parallax is handed in rather than listened for.** The web component attaches a capture-phase scroll listener so no screen has to know the field exists. React Native has no equivalent, and the plate lives above the router in `Shell` while the lists live in the tab screens, so the two are in different trees and cannot pass a prop at all. A single Reanimated shared value spans it, written by whatever is scrolling and read by the field, both on the UI thread.
+
+**The field's container is painted rather than transparent.** The handoff has the plate wrapper drop its background for `transparent`; here the plate is painted `--surface-plate` and the field is its first child. The result is the same ground under the same field, and it avoids a transparent plate showing the page through the veil's 86% at the edges.
+
+**And one thing that was not the design at all.** `turbo.json` declared `outputs` for `build` and no `inputs`, while `packages/tokens/src/generate.mjs` reads the design system's token CSS from outside any package. Turbo's default inputs are a package's own files, so it could not see a token change: it called the build cached and restored a stale `dist/` over freshly generated tokens. `pnpm tokens` wrote the right files and the next turbo task overwrote them, so the app compiled against tokens that no longer matched the CSS they came from. The design system is a `globalDependencies` entry now. **That was latent for every token change, not just this one**, and it is the same shape as the generator faults already in this log: a generated artifact failing by doing nothing.
+
+**Design system impact:** two things worth carrying back. `assets/brands/README.md`-style guidance would help for `assets/prism/`: the textures ship as PNG and both clients want WebP, which more than halved them here, partly because the PNGs carry C2PA metadata. And the handoff's step 1 says to replace `.claude/skills/offload-design/` wholesale, which would have deleted thirteen `--wash-*` tokens that seven files in `apps/web` read: the project's `tokens/atmosphere.css` is now the prism tokens alone, while the checked-in one is the marketing atmosphere. The two want different filenames, or the handoff wants a warning.

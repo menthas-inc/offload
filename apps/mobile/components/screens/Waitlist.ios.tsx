@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GateBackdrop } from "../GateBackdrop";
 import { GateLockup } from "../GateLockup";
 import { GATE } from "../../lib/gate";
 import { joinWaitlist, looksLikeEmail } from "../../lib/waitlist";
@@ -48,100 +49,102 @@ export default function Waitlist() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface-page">
-      <KeyboardAvoidingView
-        className="flex-1"
-        // "padding" on both, which is not the usual advice.
-        //
-        // The usual advice assumes Android resizes the window for the
-        // keyboard, so the layout adapts on its own and padding would
-        // double-count it. This app runs edge to edge
-        // (gradle.properties: edgeToEdgeEnabled=true), and under edge to
-        // edge Android ignores adjustResize outright: the manifest still
-        // says adjustResize, the window still does not move, and the form
-        // sat underneath the keyboard with the field and both buttons
-        // unreachable. Verified on a Pixel, not reasoned about.
-        behavior="padding"
-      >
-        <GateLockup />
-
-        <View
-          className="items-center justify-end px-gutter-screen pb-space-9"
-          style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
+      <GateBackdrop>
+        <KeyboardAvoidingView
+          className="flex-1"
+          // "padding" on both, which is not the usual advice.
+          //
+          // The usual advice assumes Android resizes the window for the
+          // keyboard, so the layout adapts on its own and padding would
+          // double-count it. This app runs edge to edge
+          // (gradle.properties: edgeToEdgeEnabled=true), and under edge to
+          // edge Android ignores adjustResize outright: the manifest still
+          // says adjustResize, the window still does not move, and the form
+          // sat underneath the keyboard with the field and both buttons
+          // unreachable. Verified on a Pixel, not reasoned about.
+          behavior="padding"
         >
-          <Text className="text-center font-core text-title-1 font-semibold text-text-primary">
-            {joined ? GATE.joined.title : copy.title}
-          </Text>
-          <Text className="mt-space-5 text-center font-core text-body text-text-secondary">
-            {joined ? GATE.joined.sub(email.trim().toLowerCase()) : copy.sub}
-          </Text>
-        </View>
+          <GateLockup />
 
-        <View className="px-gutter-screen pb-space-8 gap-space-4">
-          {joined ? (
-            <View
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-              className="self-center rounded-pill bg-ink-950 px-space-7 py-space-5"
-            >
-              <Text className="font-core text-body-sm font-medium text-text-inverse">
-                {GATE.joined.toast}
-              </Text>
-            </View>
-          ) : (
-            <>
-              <TextInput
-                value={email}
-                onChangeText={(next) => {
-                  setEmail(next);
-                  if (invalid) setInvalid(false);
-                }}
-                onSubmitEditing={join}
-                placeholder={copy.placeholder}
-                // The address is the whole point of the screen, so it gets the
-                // keyboard that types one and none of the corrections that
-                // mangle it.
-                inputMode="email"
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="email"
-                returnKeyType="go"
-                accessibilityLabel={copy.placeholder}
-                className={`min-h-composer-height w-full rounded-pill border px-space-7 font-core text-body text-text-primary ${
-                  invalid ? "border-border-attention" : "border-border-strong"
-                }`}
-              />
+          <View
+            className="items-center justify-end px-gutter-screen pb-space-9"
+            style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
+          >
+            <Text className="text-center font-core text-title-1 font-semibold text-text-primary">
+              {joined ? GATE.joined.title : copy.title}
+            </Text>
+            <Text className="mt-space-5 text-center font-core text-body text-text-secondary">
+              {joined ? GATE.joined.sub(email.trim().toLowerCase()) : copy.sub}
+            </Text>
+          </View>
 
-              {invalid ? (
-                <Text
-                  accessibilityRole="alert"
-                  accessibilityLiveRegion="polite"
-                  className="text-center font-core text-body-sm text-text-on-attention"
+          <View className="px-gutter-screen pb-space-8 gap-space-4">
+            {joined ? (
+              <View
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                className="self-center rounded-pill bg-ink-950 px-space-7 py-space-5"
+              >
+                <Text className="font-core text-body-sm font-medium text-text-inverse">
+                  {GATE.joined.toast}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <TextInput
+                  value={email}
+                  onChangeText={(next) => {
+                    setEmail(next);
+                    if (invalid) setInvalid(false);
+                  }}
+                  onSubmitEditing={join}
+                  placeholder={copy.placeholder}
+                  // The address is the whole point of the screen, so it gets the
+                  // keyboard that types one and none of the corrections that
+                  // mangle it.
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  returnKeyType="go"
+                  accessibilityLabel={copy.placeholder}
+                  className={`min-h-composer-height w-full rounded-pill border px-space-7 font-core text-body text-text-primary ${
+                    invalid ? "border-border-attention" : "border-border-strong"
+                  }`}
+                />
+
+                {invalid ? (
+                  <Text
+                    accessibilityRole="alert"
+                    accessibilityLiveRegion="polite"
+                    className="text-center font-core text-body-sm text-text-on-attention"
+                  >
+                    {copy.invalid}
+                  </Text>
+                ) : null}
+
+                <Pressable
+                  onPress={join}
+                  className="min-h-composer-height w-full items-center justify-center rounded-pill bg-ink-950 active:opacity-90"
                 >
-                  {copy.invalid}
-                </Text>
-              ) : null}
+                  <Text className="font-core text-body font-medium text-text-inverse">
+                    {copy.join}
+                  </Text>
+                </Pressable>
 
-              <Pressable
-                onPress={join}
-                className="min-h-composer-height w-full items-center justify-center rounded-pill bg-ink-950 active:opacity-90"
-              >
-                <Text className="font-core text-body font-medium text-text-inverse">
-                  {copy.join}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => router.replace("/sign-in")}
-                className="min-h-composer-height w-full items-center justify-center rounded-pill border border-border-strong bg-surface-raised active:opacity-90"
-              >
-                <Text className="font-core text-body font-medium text-text-primary">
-                  {copy.back}
-                </Text>
-              </Pressable>
-            </>
-          )}
-        </View>
-      </KeyboardAvoidingView>
+                <Pressable
+                  onPress={() => router.replace("/sign-in")}
+                  className="min-h-composer-height w-full items-center justify-center rounded-pill border border-border-strong bg-surface-raised active:opacity-90"
+                >
+                  <Text className="font-core text-body font-medium text-text-primary">
+                    {copy.back}
+                  </Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </GateBackdrop>
     </SafeAreaView>
   );
 }

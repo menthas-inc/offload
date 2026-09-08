@@ -3,6 +3,7 @@ import { migrate } from "./migrate.js";
 import { port } from "./env.js";
 import { closeDb } from "./db.js";
 import { createJobRunner } from "./jobs/runner.js";
+import { startDaily } from "./jobs/queue.js";
 
 // Migrate before serving. A deploy that starts answering requests against a
 // schema older than its code is the failure this avoids, and the advisory lock
@@ -26,6 +27,12 @@ app.log.info({ applied }, "migrations up to date");
 const runner = createJobRunner((level, fields, msg) => app.log[level](fields, msg));
 runner.start();
 app.log.info("job runner started");
+
+// The two chains that have to keep running on their own. Both re-enqueue
+// themselves for tomorrow before doing any work, and the key is the day, so a
+// restart or a second instance collapses into one row rather than stacking.
+await startDaily("calendar.supervise");
+await startDaily("jobs.purge");
 
 const shutdown = async (signal: string): Promise<void> => {
   app.log.info({ signal }, "shutting down");

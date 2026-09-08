@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GateBackdrop } from "../GateBackdrop";
 import { GateLockup } from "../GateLockup";
 import { GATE } from "../../lib/gate";
 import { API_URL } from "../../lib/auth";
@@ -38,61 +39,63 @@ export default function NoInvite() {
 
   return (
     <SafeAreaView className="flex-1 bg-a-surface">
-      <GateLockup />
+      <GateBackdrop>
+        <GateLockup />
 
-      <View
-        className="items-center justify-end px-gutter-screen pb-space-9"
-        style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
-      >
-        <Text className="text-center font-core text-title-1 font-semibold text-a-on">
-          {copy.title}
-        </Text>
-        <Text className="mt-space-5 text-center font-core text-body text-a-on-var">
-          {email ? copy.sub(email) : copy.subNoEmail}
-        </Text>
-      </View>
+        <View
+          className="items-center justify-end px-gutter-screen pb-space-9"
+          style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
+        >
+          <Text className="text-center font-core text-title-1 font-semibold text-a-on">
+            {copy.title}
+          </Text>
+          <Text className="mt-space-5 text-center font-core text-body text-a-on-var">
+            {email ? copy.sub(email) : copy.subNoEmail}
+          </Text>
+        </View>
 
-      <View className="px-gutter-screen pb-space-8 gap-space-4">
-        {joined ? (
-          <View
-            accessibilityRole="alert"
-            accessibilityLiveRegion="polite"
-            className="self-center rounded-pill bg-ink-950 px-space-7 py-space-5"
-          >
-            <Text className="font-core text-body-sm font-medium text-text-inverse">
-              {GATE.joined.toast}
-            </Text>
-          </View>
-        ) : (
-          <>
-            <Pressable
-              onPress={join}
-              disabled={!email}
-              className="min-h-a-row-height w-full items-center justify-center rounded-pill bg-blue-600 active:opacity-90"
+        <View className="px-gutter-screen pb-space-8 gap-space-4">
+          {joined ? (
+            <View
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+              className="self-center rounded-pill bg-ink-950 px-space-7 py-space-5"
             >
-              <Text className="font-core text-body font-medium text-text-inverse">
-                {GATE.notInvited.join}
+              <Text className="font-core text-body-sm font-medium text-text-inverse">
+                {GATE.joined.toast}
               </Text>
-            </Pressable>
+            </View>
+          ) : (
+            <>
+              <Pressable
+                onPress={join}
+                disabled={!email}
+                className="min-h-a-row-height w-full items-center justify-center rounded-pill bg-blue-600 active:opacity-90"
+              >
+                <Text className="font-core text-body font-medium text-text-inverse">
+                  {GATE.notInvited.join}
+                </Text>
+              </Pressable>
 
-            <Pressable
-              onPress={() => router.replace("/sign-in")}
-              className="min-h-a-row-height w-full items-center justify-center rounded-pill border border-a-outline bg-surface-raised active:opacity-90"
-            >
-              <Text className="font-core text-body font-medium text-a-on">
-                {GATE.notInvited.switch}
+              <Pressable
+                onPress={() => router.replace("/sign-in")}
+                className="min-h-a-row-height w-full items-center justify-center rounded-pill border border-a-outline bg-surface-raised active:opacity-90"
+              >
+                <Text className="font-core text-body font-medium text-a-on">
+                  {GATE.notInvited.switch}
+                </Text>
+              </Pressable>
+
+              <Text
+                className="text-center font-core text-a-on-var"
+                style={{ fontSize: 12.5, lineHeight: 18 }}
+              >
+                {GATE.notInvited.terms}
               </Text>
-            </Pressable>
-
-            <Text
-              className="text-center font-core text-a-on-var"
-              style={{ fontSize: 12.5, lineHeight: 18 }}
-            >
-              {GATE.notInvited.terms}
-            </Text>
-          </>
-        )}
-      </View>
+            </>
+          )}
+        </View>
+      </GateBackdrop>
     </SafeAreaView>
   );
 }

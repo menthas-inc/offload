@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GateBackdrop } from "../GateBackdrop";
 import { GateLockup } from "../GateLockup";
 import { AppleGlyph, GoogleGlyph } from "../Glyphs";
 import { GATE } from "../../lib/gate";
@@ -61,83 +62,85 @@ export default function SignIn() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface-page">
-      {/* The lockup takes the space that is left, so it centres in the upper
+      <GateBackdrop>
+        {/* The lockup takes the space that is left, so it centres in the upper
           half without a magic offset. */}
-      <GateLockup />
+        <GateLockup />
 
-      <View
-        className="items-center justify-end px-gutter-screen pb-space-9"
-        style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
-      >
-        <Text className="text-center font-core text-title-1 font-semibold text-text-primary">
-          {GATE.signIn.title}
-        </Text>
-        <Text className="mt-space-5 text-center font-core text-body text-text-secondary">
-          {GATE.signIn.sub}
-        </Text>
-      </View>
-
-      <View className="px-gutter-screen pb-space-8 gap-space-4">
-        {refused ? (
-          <View
-            accessibilityRole="alert"
-            accessibilityLiveRegion="polite"
-            className="rounded-md bg-surface-attention-soft px-space-6 py-space-5"
-          >
-            <Text className="font-core text-body-sm text-text-on-attention">
-              {GATE.refused}
-            </Text>
-          </View>
-        ) : null}
-
-        {providers.map((provider) => {
-          const dark = provider === "apple";
-          return (
-            <Pressable
-              key={provider}
-              onPress={() => void go(provider)}
-              disabled={pending !== null}
-              className={`min-h-composer-height w-full flex-row items-center justify-center gap-space-4 rounded-pill active:opacity-90 ${
-                dark
-                  ? "bg-ink-950"
-                  : "border border-border-strong bg-surface-raised"
-              }`}
-            >
-              {dark ? <AppleGlyph color={COLOR.onSolid} /> : <GoogleGlyph />}
-              <Text
-                className={`font-core text-body font-medium ${dark ? "text-text-inverse" : "text-text-primary"}`}
-              >
-                {pending === provider
-                  ? "Taking you there…"
-                  : GATE.signIn[provider]}
-              </Text>
-            </Pressable>
-          );
-        })}
-
-        <Text className="text-center font-core text-caption text-text-tertiary">
-          {GATE.signIn.terms}
-          <Text
-            className="font-medium text-text-accent"
-            accessibilityRole="link"
-            onPress={() => router.push("/waitlist")}
-          >
-            {GATE.signIn.termsAccent}
-          </Text>
-        </Text>
-        {/* 44px of touch around a 12.5px line, per the design system's hit
-            area rule: the text stays the size the kit draws it. */}
-        <Pressable
-          onPress={() => void Linking.openURL(PRIVACY_URL)}
-          className="items-center justify-center"
-          style={{ minHeight: 44 }}
-          accessibilityRole="link"
+        <View
+          className="items-center justify-end px-gutter-screen pb-space-9"
+          style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
         >
-          <Text className="text-center font-core text-caption text-text-tertiary">
-            {GATE.signIn.legal}
+          <Text className="text-center font-core text-title-1 font-semibold text-text-primary">
+            {GATE.signIn.title}
           </Text>
-        </Pressable>
-      </View>
+          <Text className="mt-space-5 text-center font-core text-body text-text-secondary">
+            {GATE.signIn.sub}
+          </Text>
+        </View>
+
+        <View className="px-gutter-screen pb-space-8 gap-space-4">
+          {refused ? (
+            <View
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+              className="rounded-md bg-surface-attention-soft px-space-6 py-space-5"
+            >
+              <Text className="font-core text-body-sm text-text-on-attention">
+                {GATE.refused}
+              </Text>
+            </View>
+          ) : null}
+
+          {providers.map((provider) => {
+            const dark = provider === "apple";
+            return (
+              <Pressable
+                key={provider}
+                onPress={() => void go(provider)}
+                disabled={pending !== null}
+                className={`min-h-composer-height w-full flex-row items-center justify-center gap-space-4 rounded-pill active:opacity-90 ${
+                  dark
+                    ? "bg-ink-950"
+                    : "border border-border-strong bg-surface-raised"
+                }`}
+              >
+                {dark ? <AppleGlyph color={COLOR.onSolid} /> : <GoogleGlyph />}
+                <Text
+                  className={`font-core text-body font-medium ${dark ? "text-text-inverse" : "text-text-primary"}`}
+                >
+                  {pending === provider
+                    ? "Taking you there…"
+                    : GATE.signIn[provider]}
+                </Text>
+              </Pressable>
+            );
+          })}
+
+          <Text className="text-center font-core text-caption text-text-tertiary">
+            {GATE.signIn.terms}
+            <Text
+              className="font-medium text-text-accent"
+              accessibilityRole="link"
+              onPress={() => router.push("/waitlist")}
+            >
+              {GATE.signIn.termsAccent}
+            </Text>
+          </Text>
+          {/* 44px of touch around a 12.5px line, per the design system's hit
+            area rule: the text stays the size the kit draws it. */}
+          <Pressable
+            onPress={() => void Linking.openURL(PRIVACY_URL)}
+            className="items-center justify-center"
+            style={{ minHeight: 44 }}
+            accessibilityRole="link"
+          >
+            <Text className="text-center font-core text-caption text-text-tertiary">
+              {GATE.signIn.legal}
+            </Text>
+          </Pressable>
+        </View>
+      </GateBackdrop>
     </SafeAreaView>
   );
 }

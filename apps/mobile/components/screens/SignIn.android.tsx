@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GateBackdrop } from "../GateBackdrop";
 import { GateLockup } from "../GateLockup";
 import { AppleGlyph, GoogleGlyph } from "../Glyphs";
 import { GATE } from "../../lib/gate";
@@ -65,103 +66,105 @@ export default function SignIn() {
 
   return (
     <SafeAreaView className="flex-1 bg-a-surface">
-      <GateLockup />
+      <GateBackdrop>
+        <GateLockup />
 
-      <View
-        className="items-center justify-end px-gutter-screen pb-space-9"
-        style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
-      >
-        <Text
-          className="text-center font-core text-title-1 font-semibold text-a-on"
-          style={{ letterSpacing: 0 }}
+        <View
+          className="items-center justify-end px-gutter-screen pb-space-9"
+          style={{ flexGrow: 1, flexShrink: 0, flexBasis: "auto" }}
         >
-          {GATE.signIn.title}
-        </Text>
-        <Text className="mt-space-6 text-center font-core text-body text-a-on-var">
-          {GATE.signIn.sub}
-        </Text>
-      </View>
+          <Text
+            className="text-center font-core text-title-1 font-semibold text-a-on"
+            style={{ letterSpacing: 0 }}
+          >
+            {GATE.signIn.title}
+          </Text>
+          <Text className="mt-space-6 text-center font-core text-body text-a-on-var">
+            {GATE.signIn.sub}
+          </Text>
+        </View>
 
-      {/* gap-space-5, because the Android kit's foot gap is 12 and space-5 is
+        {/* gap-space-5, because the Android kit's foot gap is 12 and space-5 is
           12. The 8 that was here is space-4 and belongs to nothing on this
           screen. */}
-      <View className="px-gutter-screen pb-space-8 gap-space-5">
-        {refused ? (
-          <View
-            accessibilityRole="alert"
-            accessibilityLiveRegion="polite"
-            className="rounded-a-md bg-surface-attention-soft px-space-6 py-space-5"
-          >
-            <Text className="font-core text-body-sm text-text-on-attention">
-              {GATE.refused}
-            </Text>
-          </View>
-        ) : null}
-
-        {providers.map((provider) => {
-          const filled = provider === "google";
-          const dark = provider === "apple";
-          return (
-            <Pressable
-              key={provider}
-              onPress={() => void go(provider)}
-              disabled={pending !== null}
-              // 56, not 52: Material's button height. min-h and not h, because
-              // text scales to 200% and a fixed height clips it.
-              className={`min-h-a-row-height w-full flex-row items-center justify-center gap-space-4 rounded-pill active:opacity-90 ${
-                filled
-                  ? "bg-blue-600"
-                  : dark
-                    ? "bg-ink-950"
-                    : "border border-a-outline bg-surface-raised"
-              }`}
+        <View className="px-gutter-screen pb-space-8 gap-space-5">
+          {refused ? (
+            <View
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+              className="rounded-a-md bg-surface-attention-soft px-space-6 py-space-5"
             >
-              {provider === "apple" ? (
-                <AppleGlyph color={COLOR.onSolid} />
-              ) : (
-                <GoogleGlyph />
-              )}
-              <Text
-                className={`font-core font-medium ${filled || dark ? "text-text-inverse" : "text-a-on"}`}
-                style={{ fontSize: 15, letterSpacing: 0.15 }}
-              >
-                {pending === provider
-                  ? "Taking you there…"
-                  : GATE.signIn[provider]}
+              <Text className="font-core text-body-sm text-text-on-attention">
+                {GATE.refused}
               </Text>
-            </Pressable>
-          );
-        })}
+            </View>
+          ) : null}
 
-        <Text
-          className="text-center font-core text-a-on-var"
-          style={{ fontSize: 12.5, lineHeight: 18 }}
-        >
-          {GATE.signIn.terms}
-          <Text
-            className="font-medium text-blue-700"
-            accessibilityRole="link"
-            onPress={() => router.push("/waitlist")}
-          >
-            {GATE.signIn.termsAccent}
-          </Text>
-        </Text>
-        {/* 44px of touch around a 12.5px line, per the design system's hit
-            area rule: the text stays the size the kit draws it. */}
-        <Pressable
-          onPress={() => void Linking.openURL(PRIVACY_URL)}
-          className="items-center justify-center"
-          style={{ minHeight: 44 }}
-          accessibilityRole="link"
-        >
+          {providers.map((provider) => {
+            const filled = provider === "google";
+            const dark = provider === "apple";
+            return (
+              <Pressable
+                key={provider}
+                onPress={() => void go(provider)}
+                disabled={pending !== null}
+                // 56, not 52: Material's button height. min-h and not h, because
+                // text scales to 200% and a fixed height clips it.
+                className={`min-h-a-row-height w-full flex-row items-center justify-center gap-space-4 rounded-pill active:opacity-90 ${
+                  filled
+                    ? "bg-blue-600"
+                    : dark
+                      ? "bg-ink-950"
+                      : "border border-a-outline bg-surface-raised"
+                }`}
+              >
+                {provider === "apple" ? (
+                  <AppleGlyph color={COLOR.onSolid} />
+                ) : (
+                  <GoogleGlyph />
+                )}
+                <Text
+                  className={`font-core font-medium ${filled || dark ? "text-text-inverse" : "text-a-on"}`}
+                  style={{ fontSize: 15, letterSpacing: 0.15 }}
+                >
+                  {pending === provider
+                    ? "Taking you there…"
+                    : GATE.signIn[provider]}
+                </Text>
+              </Pressable>
+            );
+          })}
+
           <Text
             className="text-center font-core text-a-on-var"
             style={{ fontSize: 12.5, lineHeight: 18 }}
           >
-            {GATE.signIn.legal}
+            {GATE.signIn.terms}
+            <Text
+              className="font-medium text-blue-700"
+              accessibilityRole="link"
+              onPress={() => router.push("/waitlist")}
+            >
+              {GATE.signIn.termsAccent}
+            </Text>
           </Text>
-        </Pressable>
-      </View>
+          {/* 44px of touch around a 12.5px line, per the design system's hit
+            area rule: the text stays the size the kit draws it. */}
+          <Pressable
+            onPress={() => void Linking.openURL(PRIVACY_URL)}
+            className="items-center justify-center"
+            style={{ minHeight: 44 }}
+            accessibilityRole="link"
+          >
+            <Text
+              className="text-center font-core text-a-on-var"
+              style={{ fontSize: 12.5, lineHeight: 18 }}
+            >
+              {GATE.signIn.legal}
+            </Text>
+          </Pressable>
+        </View>
+      </GateBackdrop>
     </SafeAreaView>
   );
 }

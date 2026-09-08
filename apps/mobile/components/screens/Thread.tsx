@@ -29,7 +29,12 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeIn, FadeInDown, FadeOut, useAnimatedStyle } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeOut,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { widgetsFor } from "@offload/widgets";
@@ -108,7 +113,9 @@ export default function Thread() {
     setThread(bundle);
     setRows(next);
     setCursor(page?.nextCursor ?? null);
-    const fresh = next.filter((row) => !before.has(row.id)).map((row) => row.id);
+    const fresh = next
+      .filter((row) => !before.has(row.id))
+      .map((row) => row.id);
     if (fresh.length > 0) setArrived(new Set(fresh));
   }, [id, rows, showArchived]);
 
@@ -120,7 +127,8 @@ export default function Thread() {
   useEffect(() => {
     if (!filed || filed.at === lastFiled.current) return;
     lastFiled.current = filed.at;
-    if (filed.threadIds.length > 0 && !filed.threadIds.includes(id ?? "")) return;
+    if (filed.threadIds.length > 0 && !filed.threadIds.includes(id ?? ""))
+      return;
     void catchUp();
   }, [filed, id, catchUp]);
 
@@ -158,7 +166,10 @@ export default function Thread() {
 
   if (!thread) {
     return (
-      <SafeAreaView className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`} edges={["top"]}>
+      <SafeAreaView
+        className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`}
+        edges={["top"]}
+      >
         <Bar onBack={() => router.back()} />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
@@ -172,7 +183,8 @@ export default function Thread() {
   const rest = rows.filter((row) => !inWidgets.has(row.id));
   // "Everything else" once a widget has lifted anything out, per 007's AC-2.
   // Not a fixed string: it is the anti-duplication contract.
-  const restHeading = inWidgets.size > 0 ? "Everything else" : "Everything in here";
+  const restHeading =
+    inWidgets.size > 0 ? "Everything else" : "Everything in here";
 
   const actions: RowAction[] = acting
     ? [
@@ -199,13 +211,29 @@ export default function Thread() {
               },
             ]
           : acting.canDelete
-            ? [{ label: "Delete", icon: "trash-2", danger: true, run: () => remove(acting) }]
-            : [{ label: "Archive", icon: "archive", run: () => archive(acting) }]),
+            ? [
+                {
+                  label: "Delete",
+                  icon: "trash-2",
+                  danger: true,
+                  run: () => remove(acting),
+                },
+              ]
+            : [
+                {
+                  label: "Archive",
+                  icon: "archive",
+                  run: () => archive(acting),
+                },
+              ]),
       ]
     : [];
 
   return (
-    <SafeAreaView className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`} edges={["top"]}>
+    <SafeAreaView
+      className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`}
+      edges={["top"]}
+    >
       <Bar onBack={() => router.back()} />
 
       <ScrollView contentContainerClassName="pb-space-9">
@@ -227,7 +255,10 @@ export default function Thread() {
                   style={{ height: 30 }}
                 >
                   <Glyph name="users" size={14} color={COLOR.iconOnWell} />
-                  <Text className="font-core text-text-primary" style={{ fontSize: 13 }}>
+                  <Text
+                    className="font-core text-text-primary"
+                    style={{ fontSize: 13 }}
+                  >
                     {member.displayName}
                   </Text>
                 </View>
@@ -237,7 +268,10 @@ export default function Thread() {
               style={{ height: 30, opacity: 0.55 }}
             >
               <Glyph name="share-2" size={14} color={COLOR.iconOnWell} />
-              <Text className="font-core text-text-secondary" style={{ fontSize: 13 }}>
+              <Text
+                className="font-core text-text-secondary"
+                style={{ fontSize: 13 }}
+              >
                 Share
               </Text>
             </View>
@@ -254,7 +288,10 @@ export default function Thread() {
               </Text>
               <View className="mt-space-5 flex-row items-center gap-space-3">
                 <Glyph name="sparkles" size={13} color={COLOR.iconOnWell} />
-                <Text className="font-core text-text-tertiary" style={{ fontSize: 12 }}>
+                <Text
+                  className="font-core text-text-tertiary"
+                  style={{ fontSize: 12 }}
+                >
                   offload wrote this
                 </Text>
               </View>
@@ -287,12 +324,18 @@ export default function Thread() {
 
         {rest.length > 0 ? (
           <View className="flex-row items-center gap-space-3 px-gutter-screen pb-space-3 pt-space-7">
-            <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 21 }}>
+            <Text
+              className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+              style={{ fontSize: 21 }}
+            >
               {showArchived ? "Archived" : restHeading}
             </Text>
             {cursor ? null : (
               <View className="rounded-pill bg-surface-fill px-space-3 py-space-1">
-                <Text className="font-core text-text-secondary" style={{ fontSize: 12 }}>
+                <Text
+                  className="font-core text-text-secondary"
+                  style={{ fontSize: 12 }}
+                >
                   {rest.length}
                 </Text>
               </View>
@@ -331,7 +374,10 @@ export default function Thread() {
             className="min-h-tap-min flex-row items-center gap-space-3 border-t border-border-hairline px-gutter-screen"
           >
             <Glyph name="chevron-left" size={15} color={COLOR.iconOnWell} />
-            <Text className="font-core font-medium text-text-secondary" style={{ fontSize: 14 }}>
+            <Text
+              className="font-core font-medium text-text-secondary"
+              style={{ fontSize: 14 }}
+            >
               Back to the list
             </Text>
           </Pressable>
@@ -340,7 +386,10 @@ export default function Thread() {
             onPress={() => setShowArchived(true)}
             className="min-h-tap-min flex-row items-center gap-space-3 border-t border-border-hairline px-gutter-screen"
           >
-            <Text className="flex-1 font-core font-medium text-text-secondary" style={{ fontSize: 14 }}>
+            <Text
+              className="flex-1 font-core font-medium text-text-secondary"
+              style={{ fontSize: 14 }}
+            >
               {thread.counts.archived} archived
             </Text>
             <Glyph name="chevron-right" size={15} color={COLOR.iconOnWell} />
@@ -397,7 +446,9 @@ function TitleSheet({
   const COLOR = useColors();
   const [draft, setDraft] = useState("");
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
+  const lift = useAnimatedStyle(() => ({
+    transform: [{ translateY: keyboardHeight.value }],
+  }));
 
   useEffect(() => {
     setDraft(row?.title ?? "");
@@ -420,7 +471,11 @@ function TitleSheet({
         className="absolute inset-0"
         style={{ backgroundColor: COLOR.scrim, opacity: 0.35 }}
       >
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
+        <Pressable
+          className="flex-1"
+          onPress={onClose}
+          accessibilityLabel="Close"
+        />
       </Animated.View>
 
       <Animated.View
@@ -428,7 +483,9 @@ function TitleSheet({
         entering={FadeInDown.duration(220)}
         exiting={FadeOut.duration(140)}
         className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${
-          isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"
+          isAndroid
+            ? "rounded-t-a-xl bg-a-c-low"
+            : "rounded-t-lg bg-surface-raised"
         }`}
       >
         <TextInput
@@ -464,7 +521,11 @@ function TitleSheet({
             onPress={() => void save()}
             disabled={draft.trim().length === 0}
             className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`}
-            style={{ height: 30, justifyContent: "center", opacity: draft.trim() ? 1 : 0.55 }}
+            style={{
+              height: 30,
+              justifyContent: "center",
+              opacity: draft.trim() ? 1 : 0.55,
+            }}
           >
             <Text
               className={`font-core font-medium ${

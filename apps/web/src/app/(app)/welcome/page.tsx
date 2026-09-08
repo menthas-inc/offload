@@ -22,8 +22,43 @@ import { useRouter } from "next/navigation";
 import { Logo } from "../../../components/Logo";
 import { RunArt } from "../../../components/RunArt";
 import { completeOnboarding, updateName, useMe } from "../../../lib/use-me";
+import { connectUrl, useCalendars } from "../../../lib/use-calendars";
+import { Icon } from "../../../components/Icon";
 import { NAME_MAX } from "../../../lib/name";
 import styles from "../auth.module.css";
+
+/** The two facts, matching the phones exactly. `gate.ts` keeps the phones from
+ *  drifting apart; the web has always repeated the strings, and the three have
+ *  to match. All of it is provisional per the design system. */
+/** The provider's mark, 88px as both phone kits draw it, and never redrawn.
+ *
+ *  Referenced by path so that dropping Google's own file into
+ *  `public/brands/` is the whole of turning it on. Until it is there the image
+ *  fails to load and the dashed stand-in takes its place, so a missing asset is
+ *  visible rather than silent. */
+function ProviderMark() {
+  const [ok, setOk] = useState(true);
+  if (!ok) return <span className={styles.providerMark} aria-hidden="true" />;
+  return (
+    <img
+      src="/brands/google-calendar.svg"
+      alt=""
+      width={88}
+      height={88}
+      className={styles.providerMarkImage}
+      onError={() => setOk(false)}
+    />
+  );
+}
+
+const CONNECT_FACTS = [
+  ["calendar", "offload reads your days.", "Times, titles and who is on them."],
+  [
+    "plus",
+    "And it can add to them.",
+    "Anything you dump with a time on it can land back on your calendar.",
+  ],
+] as const;
 
 const SCREENS = [
   {
@@ -72,6 +107,9 @@ export default function WelcomePage() {
   const [readPolicy, setReadPolicy] = useState(false);
   const [agreeToProcessing, setAgreeToProcessing] = useState(false);
   const [name, setName] = useState("");
+  // The one optional step, and it comes last. See `offering` below.
+  const [offering, setOffering] = useState(false);
+  const calendars = useCalendars();
 
   // Seeded once, from whatever the sign-in backfill found. Once rather than on
   // every change of `state`, because re-seeding would overwrite what somebody
@@ -108,6 +146,18 @@ export default function WelcomePage() {
       setFailed(true);
       return;
     }
+    // **The calendar offer comes after first run is complete, not inside it.**
+    // Connecting leaves for Google's consent screen and comes back, and a round
+    // trip through another origin in the middle of onboarding is somebody who
+    // can be stranded halfway by a back button. By here the account is already
+    // active and consented, so wandering off costs nothing: the next launch
+    // lands on Today either way.
+    if (calendars.available && calendars.connections.length === 0) {
+      setLeaving(false);
+      setOffering(true);
+      return;
+    }
+
     router.replace("/today");
   }
 
@@ -123,6 +173,7 @@ export default function WelcomePage() {
   // nothing else, rather than three screens of introduction they have already
   // seen and a consent they have already given.
   const nameOnly = !state.me.needsFirstRun;
+  const offerAhead = calendars.available && calendars.connections.length === 0;
 
   const screen = nameOnly ? undefined : SCREENS[step];
   const naming = nameOnly || step === SCREENS.length;
@@ -138,7 +189,14 @@ export default function WelcomePage() {
             name rather than the consent, because both screens that ask
             something sit behind it. A Skip that jumped past a required field
             would be a dead end with a disabled button on the next screen. */}
-        {naming || consenting ? null : (
+        {/* **Not now, never Skip.** Skip belongs to the tutorial and means skip
+            the tutorial; turning down a connection is a different answer to a
+            different question, so the word changes and the position does not. */}
+        {offering ? (
+          <button type="button" className={styles.skip} onClick={() => router.replace("/today")}>
+            Not now
+          </button>
+        ) : naming || consenting ? null : (
           <button type="button" className={styles.skip} onClick={() => setStep(SCREENS.length)}>
             Skip
           </button>
@@ -147,21 +205,51 @@ export default function WelcomePage() {
 
       <div className={styles.runMiddle}>
         {screen ? <RunArt kind={screen.art} /> : null}
+        {/* The provider's mark, and **never redrawn**: a third party's radius,
+            colours and letterforms are their specification, and ninety percent
+            right is what people spot instantly on a logo they see every day.
+            A dashed stand-in until the official file is dropped in, so a
+            missing asset is visible rather than silent. */}
+        {offering ? <ProviderMark /> : null}
 
         <div className={styles.runCopy}>
           <h1 className={styles.runTitle}>
-            {screen ? screen.title : naming ? "What should we call you?" : "Before you start"}
+            {offering
+              ? "Bring in your calendar"
+              : screen
+                ? screen.title
+                : naming
+                  ? "What should we call you?"
+                  : "Before you start"}
           </h1>
           <p className={styles.runSub}>
-            {screen
-              ? screen.sub
-              : naming
-                ? "This is the name people you share a thread with will see."
-                : "offload holds what you put in it, so it is worth knowing what that means before you put anything in."}
+            {offering
+              ? "So \u201cbefore the trip\u201d and \u201cafter the dentist\u201d mean something."
+              : screen
+                ? screen.sub
+                : naming
+                  ? "This is the name people you share a thread with will see."
+                  : "offload holds what you put in it, so it is worth knowing what that means before you put anything in."}
           </p>
         </div>
 
-        {naming ? (
+        {offering ? (
+          /* Two facts, not a feature list: what offload reads, and what it does
+             back, both as sentences rather than switches, per the 5 September
+             privacy refusal. A switch implies somebody could have set it the
+             other way. The strings match the phones exactly; the design system
+             marks all of this copy provisional. */
+          <div className={styles.consent}>
+            {CONNECT_FACTS.map(([icon, head, rest]) => (
+              <p key={head} className={styles.runFact}>
+                <Icon name={icon} size={16} />
+                <span>
+                  <b>{head}</b> {rest}
+                </span>
+              </p>
+            ))}
+          </div>
+        ) : naming ? (
           /* `.consent` is the column both asking screens share, not a consent
              wrapper: same width, same alignment, same moment in the flow. */
           <div className={styles.consent}>
@@ -229,16 +317,32 @@ export default function WelcomePage() {
               That did not go through. Check your connection and try again.
             </p>
           ) : null}
-          <button
-            type="button"
-            className={styles.runButton}
-            onClick={() => (consenting || nameOnly ? void finish() : setStep(step + 1))}
-            disabled={leaving || (consenting && !ready) || (naming && !named)}
-          >
-            {consenting || nameOnly ? "Get started" : "Next"}
-          </button>
+          {offering ? (
+            <>
+              <a className={styles.runButton} href={connectUrl("first-run")}>
+                Connect Google Calendar
+              </a>
+            </>
+          ) : (
+            <button
+              type="button"
+              className={styles.runButton}
+              onClick={() => (consenting || nameOnly ? void finish() : setStep(step + 1))}
+              disabled={leaving || (consenting && !ready) || (naming && !named)}
+            >
+              {nameOnly
+                ? "Get started"
+                : consenting
+                  ? // "Get started" on a screen with another screen after it is
+                    // a promise the flow does not keep.
+                    offerAhead
+                    ? "Next"
+                    : "Get started"
+                  : "Next"}
+            </button>
+          )}
 
-          {naming || consenting ? null : (
+          {naming || consenting || offering ? null : (
             <span className={styles.dots} role="presentation">
               {SCREENS.map((item, index) => (
                 <span

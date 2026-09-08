@@ -5,7 +5,9 @@
 // The first thing that lands in an account should be something the person
 // meant, not a sample.
 
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
+import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useRouter } from "expo-router";
@@ -32,6 +34,12 @@ function ArrowUp() {
 }
 
 export default function Today() {
+  // The field behind the plate slides against this list. On the UI thread, so
+  // it never crosses to JS and never waits on a render.
+  const onScroll = useAnimatedScrollHandler((event) => {
+    prismShift.value = event.contentOffset.y * PRISM_SCROLL_FACTOR;
+  });
+
   // The plate below holds the only composer now. An example fills it rather
   // than a second field on this screen, which is what the kit means by
   // "examples that fill the composer rather than submitting".
@@ -65,7 +73,11 @@ export default function Today() {
         </View>
       </View>
 
-      <ScrollView contentContainerClassName="px-gutter-screen pt-space-6 pb-space-8">
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerClassName="px-gutter-screen pt-space-6 pb-space-8"
+      >
         <Text
           className="font-quiet text-text-primary"
           style={{ fontSize: 17, lineHeight: 25.5 }}
@@ -90,8 +102,7 @@ export default function Today() {
             </Pressable>
           ))}
         </View>
-      </ScrollView>
-
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }

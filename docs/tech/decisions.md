@@ -485,3 +485,19 @@ with the tutorial and the consent left off.
 **Design system impact:** none directly. The screens are in the design log's
 entry of the same date.
 
+
+### 2026-09-08 · A calendar write is reversible or confirmed, and the condition is the entry
+
+**Decision:** OFF-6's reversible allowlist gains its first **conditional** entry. `create_event`, `edit_event` and `delete_event` are reversible when nobody but the account holder learns about the write, and outward facing when anybody does.
+
+**The list has held verbs until now.** Every other entry names an action that is always reversible: archive, move, tick, rename. This one cannot be, because the same action is either depending on who is looking, and splitting it into two verbs would be inventing names for a distinction that is really about the audience.
+
+**The condition, and it is asked of the write rather than of the calendar.** After this, does anybody but you know? Two facts answer it: does the event have guests, and is the calendar one the person has marked as shared. Both are read before the call, and **attendees are read across both sides of the edit**, because removing every guest from an invited event sends each of them a cancellation and a test that looked only at the result would see an empty list.
+
+**Sharing is the person's answer, not Google's.** Reading Google's access list would need another sensitive scope and would still be wrong: a calendar can be public to anyone with the link, or visible to a whole Workspace domain, and neither is an access-list entry. One member and readable by the world is a real state. Defaults to shared, and the sync forces it back to shared whenever Google says the person no longer owns the calendar.
+
+**Undo here is not the product's Undo, and that is a code change.** Every other reversible action is a local soft delete. This one has to reach Google inside the window because the effect already left, so it calls Google first and touches the local row only if that worked. `undoTurn` in `routes/dumps.ts` filtered on nothing but the message a row came from, so an event a tool wrote inside a dump turn was indistinguishable to it: the ordinary toast would have deleted our row and left the event in Google forever. It excludes `source = 'calendar'` now.
+
+**A model-initiated outward write had nowhere to wait**, so one was built. Every tool in this product executes inside the turn and returns a result; there is no pending state anywhere. An outward-facing write from the model writes a `connector_pending_writes` row and returns "waiting for them", and a person's tap performs it with the condition re-evaluated against live state. The model has no field it could set to skip that, which matters because some of what it read was written by a stranger.
+
+**Design system impact:** the confirmation is a control nothing draws yet. Recorded in the design log's entry of the same date.

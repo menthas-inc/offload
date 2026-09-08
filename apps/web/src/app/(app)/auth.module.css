@@ -479,3 +479,41 @@
 }
 .nameField::placeholder { color: var(--text-tertiary); }
 .nameField:focus { outline: none; border-color: var(--ink-950); box-shadow: var(--shadow-focus); }
+
+/* The connect step's provider mark, 88px as both phone kits draw it.
+   A dashed stand-in until the official file is dropped in, so a missing asset
+   is visible rather than silent. Never a hand-drawn approximation: a third
+   party's radius, colours and letterforms are their specification. */
+.providerMark {
+  display: block;
+  width: 88px;
+  height: 88px;
+  border-radius: 18px;
+  background: var(--surface-fill);
+  border: 1px dashed var(--border-strong);
+}
+
+/* One of the two facts under the mark. */
+.runFact {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+  margin: 0;
+  font: var(--text-body-sm-role);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.runFact b { color: var(--text-primary); font-weight: 500; }
+.runFact svg { flex: 0 0 auto; margin-top: 3px; color: var(--text-tertiary); }
+
+/* The real mark, once the file is there.
+   **No radius, unlike the stand-in above.** A provider's asset carries its own
+   silhouette, and Google Calendar's includes a folded corner, so rounding the
+   box clips geometry its owner already specified. The kits round it, which is
+   right for a bare square bitmap and wrong for a shaped icon. */
+.providerMarkImage {
+  display: block;
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+}
