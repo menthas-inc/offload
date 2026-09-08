@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   awaitAnswer,
+  answerPending,
   DumpTooLong,
   endConversation,
   fetchCurrent,
@@ -47,6 +48,10 @@ interface Turn {
    *  sentence. This is what makes the reply's thread names clickable and what
    *  makes them true. */
   threads?: TouchedThread[];
+  /** A calendar write offload proposed and nobody has answered yet. The reply
+   *  carries the control that answers it, for the same reason it carries its
+   *  own thread links and its own retry: a sentence cannot be clicked. */
+  waiting?: { id: string; because: string } | null;
   /** Whether the turn actually did something, as opposed to answering.
    *
    *  From the same record the reply's links come from, never from the reply
@@ -379,6 +384,19 @@ export function Composer({
             ) : (
               <div key={turn.id} className={styles.turnOffload}>
                 {turn.text}
+                {/* A calendar write offload has not made yet. Without this the
+                    proposal is announced and expires an hour later having done
+                    nothing, which is the dead end this closes. */}
+                {turn.waiting ? (
+                  <Waiting
+                    waiting={turn.waiting}
+                    onAnswered={() =>
+                      setTurns((current) =>
+                        current.map((t) => (t.id === turn.id ? { ...t, waiting: null } : t))
+                      )
+                    }
+                  />
+                ) : null}
                 {/* Where it actually went, from the record rather than from the
                     sentence. offload naming a thread it did not write to is the
                     failure 004 exists to prevent, so these come from the
@@ -492,4 +510,60 @@ function conversationTitle(turns: Turn[]): string {
   const first = turns.find((turn) => turn.from === "you");
   if (!first) return "This conversation";
   return first.text.length > 70 ? `${first.text.slice(0, 70)}…` : first.text;
+}
+
+/** Confirm or decline a calendar write offload proposed.
+ *
+ *  **Names who finds out and nothing else.** The two controls beside it are the
+ *  answer to "why is it asking", so a paragraph explaining would be offload
+ *  diagnosing itself, which it does not do. */
+function Waiting({
+  waiting,
+  onAnswered,
+}: {
+  waiting: { id: string; because: string };
+  onAnswered: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function answer(choice: "confirm" | "decline") {
+    if (busy) return;
+    setBusy(true);
+    const ok = await answerPending(waiting.id, choice);
+    setBusy(false);
+    if (ok) onAnswered();
+    // What happened, next to the control that retries it. Never why: this
+    // cannot tell an expired proposal from a dropped connection.
+    else setFailed(true);
+  }
+
+  return (
+    <span className={styles.waiting}>
+      <span className={styles.waitingLine}>{waiting.because}</span>
+      {failed ? (
+        <span className={styles.waitingFailed} role="alert">
+          That did not go through. Try again.
+        </span>
+      ) : null}
+      <span className={styles.waitingControls}>
+        <button
+          type="button"
+          className={styles.waitingConfirm}
+          onClick={() => void answer("confirm")}
+          disabled={busy}
+        >
+          Add it
+        </button>
+        <button
+          type="button"
+          className={styles.waitingDecline}
+          onClick={() => void answer("decline")}
+          disabled={busy}
+        >
+          Not now
+        </button>
+      </span>
+    </span>
+  );
 }

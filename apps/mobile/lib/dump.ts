@@ -31,6 +31,17 @@ export interface TouchedThread {
   name: string;
 }
 
+/** A calendar write offload proposed and nobody has answered yet.
+ *
+ *  Only ever set on a write that reaches somebody else: guests, or a calendar
+ *  the person has marked shared. A write nobody learns about just happens and
+ *  carries the ordinary Undo instead. */
+export interface WaitingOn {
+  id: string;
+  /** Who finds out, in the words the screen shows. */
+  because: string;
+}
+
 export interface Answer {
   state: MessageState;
   reply: string | null;
@@ -39,6 +50,7 @@ export interface Answer {
    *  A move's source is here and not there: the screen has to reload it, and a
    *  pill saying the dump went there would be untrue. */
   changed: string[];
+  waiting?: WaitingOn | null;
 }
 
 export interface TailMessage {
@@ -47,6 +59,7 @@ export interface TailMessage {
   text: string | null;
   state: MessageState;
   turnId: string;
+  waiting?: WaitingOn | null;
 }
 
 export class DumpTooLong extends Error {
@@ -86,6 +99,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     reply: string | null;
     threads?: TouchedThread[];
     changed?: string[];
+    waiting?: WaitingOn | null;
   }>(`/v1/messages/${messageId}`);
   if (!data) return null;
   return {
@@ -93,6 +107,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     reply: data.reply,
     threads: data.threads ?? [],
     changed: data.changed ?? [],
+    waiting: data.waiting ?? null,
   };
 }
 

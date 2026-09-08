@@ -5,7 +5,7 @@
 // find its own rows again to undo them.
 
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { reviveWrite } from "../src/connectors/tool-calls.js";
+import { reviveWrite, waitingFor } from "../src/connectors/tool-calls.js";
 import { sourceRefFor } from "../src/connectors/events.js";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
@@ -198,3 +198,95 @@ async function message(accountId: string): Promise<string> {
     .executeTakeFirstOrThrow();
   return row.id;
 }
+
+describe("a proposal is reachable from the reply that mentions it", () => {
+  it("comes back attached to its message", async () => {
+    // **The hole this closes.** The proposal shipped with no message on it, so
+    // nothing could find it from a screen: offload said it would add the event
+    // once you confirmed, and there was nothing to confirm with. It expired an
+    // hour later having done nothing.
+    const accountId = await account();
+    const calendarId = await calendar(accountId);
+    const messageId = await message(accountId);
+
+    await db
+      .insertInto("connector_pending_writes")
+      .values({
+        account_id: accountId,
+        calendar_id: calendarId,
+        action: "create",
+        scope: null,
+        payload: JSON.stringify({
+          action: "create",
+          draft: {
+            title: "Dinner",
+            startsAt: STARTS,
+            endsAt: ENDS,
+            attendees: ["ana@example.com"],
+          },
+        }),
+        message_id: messageId,
+        expires_at: new Date(Date.now() + 3600_000),
+      })
+      .execute();
+
+    const found = await waitingFor([messageId]);
+    expect(found.get(messageId)?.because).toBe("ana@example.com will be told.");
+  });
+
+  it("says the calendar when there are no guests", async () => {
+    // A shared calendar with nobody invited is still outward: your wife sees it
+    // on her phone whether or not Google emailed anyone.
+    const accountId = await account();
+    const calendarId = await calendar(accountId);
+    const messageId = await message(accountId);
+
+    await db
+      .insertInto("connector_pending_writes")
+      .values({
+        account_id: accountId,
+        calendar_id: calendarId,
+        action: "create",
+        scope: null,
+        payload: JSON.stringify({
+          action: "create",
+          draft: { title: "Dinner", startsAt: STARTS, endsAt: ENDS, attendees: [] },
+        }),
+        message_id: messageId,
+        expires_at: new Date(Date.now() + 3600_000),
+      })
+      .execute();
+
+    expect((await waitingFor([messageId])).get(messageId)?.because).toBe(
+      "Everyone on this calendar will see it."
+    );
+  });
+
+  it("does not return one that expired, was confirmed, or was declined", async () => {
+    const accountId = await account();
+    const calendarId = await calendar(accountId);
+    const base = {
+      account_id: accountId,
+      calendar_id: calendarId,
+      action: "create" as const,
+      scope: null,
+      payload: JSON.stringify({
+        action: "create",
+        draft: { title: "x", startsAt: STARTS, endsAt: ENDS },
+      }),
+    };
+
+    const expired = await message(accountId);
+    const confirmed = await message(accountId);
+    const declined = await message(accountId);
+
+    await db.insertInto("connector_pending_writes").values([
+      { ...base, message_id: expired, expires_at: new Date(Date.now() - 1000) },
+      { ...base, message_id: confirmed, expires_at: new Date(Date.now() + 3600_000), confirmed_at: new Date() },
+      { ...base, message_id: declined, expires_at: new Date(Date.now() + 3600_000), declined_at: new Date() },
+    ]).execute();
+
+    const found = await waitingFor([expired, confirmed, declined]);
+    expect(found.size).toBe(0);
+  });
+});

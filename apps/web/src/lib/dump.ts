@@ -36,6 +36,10 @@ export interface Answer {
   state: MessageState;
   reply: string | null;
   threads?: TouchedThread[];
+  /** A calendar write offload proposed and nobody has answered yet. Only ever
+   *  set on a write that reaches somebody else: guests, or a calendar marked
+   *  shared. A write nobody learns about just happens, with the ordinary Undo. */
+  waiting?: { id: string; because: string } | null;
   /** Every thread whose contents the turn changed, a superset of `threads`.
    *  A move's source is here and not there: the screen has to reload it, and a
    *  pill saying the dump went there would be untrue. */
@@ -77,12 +81,14 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     reply: string | null;
     threads?: TouchedThread[];
     changed?: string[];
+    waiting?: { id: string; because: string } | null;
   };
   return {
     state: body.state,
     reply: body.reply,
     threads: body.threads ?? [],
     changed: body.changed ?? [],
+    waiting: body.waiting ?? null,
   };
 }
 
@@ -209,5 +215,25 @@ export async function endConversation(): Promise<void> {
   } catch {
     // Offline, or the tab is going away. Neither is worth a message: the
     // screen has already done the thing the person asked for.
+  }
+}
+
+/** Answer a calendar write offload proposed but did not make.
+ *
+ *  Nothing has reached Google until this returns: the server runs the outward
+ *  test again against live state, because a calendar can be shared in the
+ *  minutes somebody takes to decide. */
+export async function answerPending(
+  id: string,
+  answer: "confirm" | "decline"
+): Promise<boolean> {
+  try {
+    const response = await fetch(`${API}/api/calendar/pending/${id}/${answer}`, {
+      method: "POST",
+      credentials: "include",
+    });
+    return response.ok;
+  } catch {
+    return false;
   }
 }

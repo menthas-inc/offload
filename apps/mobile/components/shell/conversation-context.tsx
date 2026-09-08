@@ -9,7 +9,14 @@
 // them, and a live Undo toast survives it too: an eight second window that
 // disappears because somebody tidied the screen was not eight seconds.
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { AppState, type AppStateStatus } from "react-native";
 import {
   awaitAnswer,
@@ -33,6 +40,12 @@ export interface Turn {
   /** Whether the turn actually did something, from the record rather than the
    *  reply. A tick that means "the turn ended" says Done about a refusal. */
   did?: boolean;
+  /** A calendar write this turn proposed and nobody has answered yet.
+   *
+   *  **The reply carries its own control.** offload saying it will add
+   *  something once you confirm, with nothing to confirm, is the dead end this
+   *  exists to close: the proposal expires in an hour having done nothing. */
+  waiting?: { id: string; because: string } | null;
 }
 
 interface Live {
@@ -58,6 +71,11 @@ export interface Conversation {
   close: () => void;
   undo: () => Promise<void>;
   finish: (messageId: string) => Promise<void>;
+  /** A proposed calendar write has been answered, so the control goes.
+   *
+   *  Local only: the server already knows, and re-fetching the conversation to
+   *  learn something this client just decided is a round trip for nothing. */
+  resolveWaiting: (turnId: string) => void;
   /** What the turn wrote to, so an open thread can catch up on its own. */
   filed: { threadIds: string[]; at: number } | null;
 }
@@ -72,14 +90,29 @@ export const useConversation = (): Conversation => {
   return value;
 };
 
-export function ConversationProvider({ children }: { children: React.ReactNode }) {
+export function ConversationProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [live, setLive] = useState<Live | null>(null);
   const [folded, setFolded] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
+
+  const resolveWaiting = useCallback((turnId: string) => {
+    setTurns((current) =>
+      current.map((turn) =>
+        turn.id === turnId ? { ...turn, waiting: null } : turn,
+      ),
+    );
+  }, []);
   const [writing, setWriting] = useState(false);
   const [draft, setDraft] = useState("");
   const [undoable, setUndoable] = useState<Undoable | null>(null);
-  const [filed, setFiled] = useState<{ threadIds: string[]; at: number } | null>(null);
+  const [filed, setFiled] = useState<{
+    threadIds: string[];
+    at: number;
+  } | null>(null);
 
   const polls = useRef(new Map<string, ReturnType<typeof awaitAnswer>>());
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,6 +131,10 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
             text: message.text ?? "",
             state: message.state,
             turnId: message.turnId,
+            // Survives a reload, which is the point: somebody who backgrounds
+            // the app mid-decision comes back to the same question rather than
+            // to a reply about something that never happened.
+            waiting: message.waiting ?? null,
           })),
         );
       } catch (error) {
@@ -143,7 +180,9 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         const did = answer.threads.length > 0;
         setTurns((current) => {
           const next = current.map((turn) =>
-            turn.id === messageId ? { ...turn, state: answer.state, did } : turn,
+            turn.id === messageId
+              ? { ...turn, state: answer.state, did }
+              : turn,
           );
           if (!answer.reply) return next;
           return [
@@ -154,6 +193,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
               text: answer.reply,
               turnId,
               threads: answer.threads,
+              waiting: answer.waiting ?? null,
             },
           ];
         });
@@ -162,11 +202,13 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         // you are looking at changed it without filing anything into it, and
         // `threads` is only where things went. That gap left a moved row on
         // screen in a thread it was no longer in.
-        if (answer.changed.length > 0) setFiled({ threadIds: answer.changed, at: Date.now() });
+        if (answer.changed.length > 0)
+          setFiled({ threadIds: answer.changed, at: Date.now() });
         // Only a finished turn offers a way back. A partial one offers a way
         // forward, and both at once asks somebody to choose between finishing
         // and undoing inside eight seconds.
-        if (answer.state === "answered" && answer.reply) offerUndo(turnId, answer.reply);
+        if (answer.state === "answered" && answer.reply)
+          offerUndo(turnId, answer.reply);
       });
       polls.current.set(messageId, poll);
     },
@@ -179,7 +221,8 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
 
     setDraft("");
     setWriting(true);
-    if (!live) setLive({ title: text.length > 40 ? `${text.slice(0, 40)}...` : text });
+    if (!live)
+      setLive({ title: text.length > 40 ? `${text.slice(0, 40)}...` : text });
     setFolded(false);
 
     try {
@@ -190,7 +233,13 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       }
       setTurns((current) => [
         ...current,
-        { id: sent.messageId, from: "you", text, state: sent.state, turnId: sent.turnId },
+        {
+          id: sent.messageId,
+          from: "you",
+          text,
+          state: sent.state,
+          turnId: sent.turnId,
+        },
       ]);
       watch(sent.messageId, sent.turnId);
     } catch (error) {
@@ -245,6 +294,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         undo,
         finish,
         filed,
+        resolveWaiting,
       }}
     >
       {children}

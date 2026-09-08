@@ -39,6 +39,7 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
+import { answerPending } from "../../lib/calendars";
 import { useRouter } from "expo-router";
 import { useConversation, type Turn } from "./conversation-context";
 
@@ -431,6 +432,13 @@ function Theirs({ turn }: { turn: Turn }) {
         {turn.text}
       </Text>
 
+      {/* A calendar write offload has not made yet.
+          **The reply carries the control that answers it**, which is the same
+          rule the failure line follows: a sentence cannot be clicked, so the
+          thing that acts on it sits next to it. Without this the proposal is
+          announced and then expires an hour later having done nothing. */}
+      {turn.waiting ? <Waiting turn={turn} /> : null}
+
       {/* Where it actually filed, from the content rows rather than from the
           sentence, so a chip can never point somewhere nothing landed. */}
       {turn.threads && turn.threads.length > 0 ? (
@@ -487,6 +495,92 @@ function Writing() {
           style={{ width: 6, height: 6 }}
         />
       ))}
+    </View>
+  );
+}
+
+/** Confirm or decline a calendar write offload proposed.
+ *
+ *  **Names who finds out and nothing else.** No explanation of why offload
+ *  asked: the two controls beside it are the answer, and a paragraph about
+ *  guests would be offload diagnosing itself.
+ *
+ *  Nothing has reached Google until Add lands. The server runs the outward test
+ *  again against live state, because a calendar can be shared in the minutes
+ *  somebody takes to decide. */
+function Waiting({ turn }: { turn: Turn }) {
+  const { resolveWaiting } = useConversation();
+  const [busy, setBusy] = useState(false);
+  const [gone, setGone] = useState(false);
+  const [failedToSend, setFailedToSend] = useState(false);
+
+  if (!turn.waiting || gone) return null;
+
+  const answer = async (choice: "confirm" | "decline") => {
+    if (busy) return;
+    setBusy(true);
+    const ok = await answerPending(turn.waiting!.id, choice);
+    setBusy(false);
+    if (ok) {
+      setGone(true);
+      resolveWaiting(turn.id);
+    } else {
+      // What happened and the way forward, never why. This cannot see whether
+      // the proposal expired or the network did.
+      setFailedToSend(true);
+    }
+  };
+
+  return (
+    <View className="mt-space-4 gap-space-3">
+      <Text
+        className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+        style={{ fontSize: 13, lineHeight: 18 }}
+      >
+        {turn.waiting.because}
+      </Text>
+
+      {failedToSend ? (
+        <Text
+          className="font-core text-text-danger"
+          style={{ fontSize: 13, lineHeight: 18 }}
+          accessibilityRole="alert"
+        >
+          That did not go through. Try again.
+        </Text>
+      ) : null}
+
+      <View className="flex-row items-center gap-space-4">
+        <Pressable
+          onPress={() => void answer("confirm")}
+          disabled={busy}
+          className={`min-h-tap-min items-center justify-center rounded-pill px-space-6 ${
+            isAndroid ? "bg-blue-600" : "bg-ink-950"
+          }`}
+          accessibilityRole="button"
+        >
+          <Text
+            className="font-core font-medium text-text-inverse"
+            style={{ fontSize: 15 }}
+          >
+            Add it
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => void answer("decline")}
+          disabled={busy}
+          className="min-h-tap-min justify-center"
+          accessibilityRole="button"
+        >
+          <Text
+            className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+            style={{ fontSize: 15 }}
+          >
+            Not now
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }

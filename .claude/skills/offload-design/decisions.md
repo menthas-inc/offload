@@ -1313,3 +1313,18 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **Moving the field rather than splitting it.** The warning against two fields is about two *simultaneous* boxes, each mapping the whole texture, squashed and broken at a seam. There is only ever one here. And the band the eye sees is unchanged: the sheet's composer sits directly on top of the tabs, so it is the same composer-above-tabs strip, just owned by a different component.
 
 **Design system impact:** worth a line on `PrismField`. The contract assumes the field's box is stable, and the thing that actually has to be stable is the composer band, whoever draws it. A host whose composer moves between surfaces needs the field to move with it, and the rule to state is one field on screen at a time rather than one field per surface. Also worth knowing that at a tab-row height the veil's stops stop protecting the labels, which is a failure mode nothing in the contract currently warns about.
+
+### 2026-09-08 · A proposed calendar write is answered in the reply that mentions it
+**Surface:** mobile, web
+
+**Is:** when offload proposes a calendar write it cannot make on its own, the reply carries the control that answers it: one line naming who finds out, then **Add it** and **Not now**.
+
+**It shipped without one, which made the safety mechanism a dead end.** A write that reaches somebody else, guests or a calendar marked shared, becomes a proposal rather than a write. The server side was complete: a row, an endpoint, the outward test re-run against live state on confirm. Nothing rendered it. offload announced that it was waiting, and the proposal expired an hour later having done nothing. For a calendar shared with somebody, which is the common case, that was every write.
+
+**In the reply, not a screen of its own**, and the reason is the house rule this product already follows for failures: a sentence cannot be clicked, so the thing that acts on it sits next to the thing that said it. It is also the only place it could be: the sole origin of an outward write is a model tool call inside a turn, since no screen writes to a calendar.
+
+**One line, two controls, no explanation.** "Ana will be told." or "Everyone on this calendar will see it." Nothing about why offload is asking, because the controls beside it are the answer and a paragraph would be offload diagnosing itself.
+
+**It survives a reload**, returned with the conversation as well as with the turn, so backgrounding the app mid-decision comes back to the same question rather than to a reply about something that never happened.
+
+**Design system impact:** this is the control the 8 September entry said nothing draws yet, and now something does. It is not a destructive-action dialog, because nothing is being destroyed, and not a toast, because it has to be answered before anything happens. Worth a contract: a reply-attached decision with a named consequence, a primary action and a quiet decline, on both phone kits and `WMisc.jsx`'s conversation. The wording of the consequence line is the app's, not the design system's, since it is a claim about somebody else's data.

@@ -22,6 +22,7 @@ import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { onAnswer } from "../dumps/answers.js";
 import { emit } from "../analytics.js";
 import { targetFor, undoWrite } from "../connectors/write.js";
+import { waitingFor } from "../connectors/tool-calls.js";
 
 /** Longer than anything the composer is designed for, and short enough that a
  *  paste cannot run up a bill. Refused before anything is written, and never
@@ -100,6 +101,17 @@ const dumpResponse = z.object({
  *  right and the sentence is the bug. */
 const touchedThreads = z.array(z.object({ id: z.string(), name: z.string() }));
 
+/** A calendar write this turn proposed and nobody has answered yet.
+ *
+ *  **The reply carries its own control**, which is the house rule: a sentence
+ *  cannot be clicked, so offload saying it will add something once you confirm
+ *  has to arrive next to the thing that confirms it. Null is the ordinary case;
+ *  a write nobody else learns about just happens. */
+const waitingOn = z
+  .object({ id: z.string(), because: z.string() })
+  .nullable()
+  .optional();
+
 const messageResponse = z.object({
   id: z.string(),
   conversationId: z.string(),
@@ -111,6 +123,7 @@ const messageResponse = z.object({
    *  A move's source is in here and not in `threads`: the screen has to reload
    *  it, and a pill saying the dump went there would be untrue. */
   changed: z.array(z.string()),
+  waiting: waitingOn,
 });
 
 /** One screenful. The composer is not a scrollback and the heavy case at 200
@@ -127,6 +140,7 @@ const currentConversation = z.object({
       state: messageState,
       /** What an Undo would reverse. The whole turn, not this row. */
       turnId: z.string(),
+      waiting: waitingOn,
     })
   ),
 });
@@ -529,6 +543,10 @@ export async function dumpRoutes(app: App): Promise<void> {
         // the turn settles, which is the honest answer while it is running.
         threads: settled ? touched.landed : [],
         changed: settled ? touched.changed : [],
+        // The control arrives with the reply that mentions it, rather than on
+        // the next reload. A reply saying offload is waiting, with nothing to
+        // answer it, is the dead end this whole change is about.
+        waiting: settled ? ((await waitingFor([message.id])).get(message.id) ?? null) : null,
       });
     },
   );
@@ -578,6 +596,12 @@ export async function dumpRoutes(app: App): Promise<void> {
         .limit(TAIL)
         .execute();
 
+      // A proposal survives a reload, which is the point of reading it here as
+      // well as returning it with the turn. Somebody who backgrounds the app
+      // mid-confirmation comes back to the same question rather than to a reply
+      // about a thing that never happened.
+      const waiting = await waitingFor(rows.map((row) => row.id));
+
       return reply.send({
         conversationId: conversation.id,
         messages: rows.reverse().map((row) => ({
@@ -586,6 +610,7 @@ export async function dumpRoutes(app: App): Promise<void> {
           text: row.text,
           state: row.state,
           turnId: row.turn_id,
+          waiting: waiting.get(row.id) ?? null,
         })),
       });
     }
@@ -765,6 +790,7 @@ export async function dumpRoutes(app: App): Promise<void> {
               reply: step.reply,
               threads: step.threads,
               changed: step.changed,
+              waiting: (await waitingFor([message.id])).get(message.id) ?? null,
             });
             return finish();
           }

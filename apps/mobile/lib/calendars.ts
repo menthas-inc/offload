@@ -95,3 +95,24 @@ export async function disconnect(
     return false;
   }
 }
+
+/** Answer a calendar write offload proposed but did not make.
+ *
+ *  **Nothing has reached Google until this returns.** The outward test is run
+ *  again on the server against live state, because minutes may have passed and
+ *  a calendar can be shared in them. */
+export async function answerPending(
+  id: string,
+  answer: "confirm" | "decline",
+): Promise<boolean> {
+  try {
+    return (
+      (await request(`/api/calendar/pending/${id}/${answer}`, {
+        method: "POST",
+      })) !== null
+    );
+  } catch (error) {
+    failed("calendar.pending", error);
+    return false;
+  }
+}

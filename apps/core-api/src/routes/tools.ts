@@ -633,7 +633,7 @@ async function existing(
             }
           : { action: "delete", sourceRef: call.sourceRef, scope: call.scope };
 
-    const outcome = await writeThroughTool(accountId, call.calendarId, write);
+    const outcome = await writeThroughTool(accountId, call.calendarId, write, messageId);
     if (outcome.kind === "refused") return { ok: false, error: outcome.reason };
     if (outcome.kind === "written") return { ok: true, written: true, sourceRef: outcome.sourceRef };
     // Nothing has reached Google. The model says what it is waiting for; it

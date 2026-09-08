@@ -104,7 +104,10 @@ export type ToolWriteOutcome =
 export async function writeThroughTool(
   accountId: string,
   calendarId: string,
-  write: WriteAction
+  write: WriteAction,
+  /** The message whose tool call this is. A proposal without one cannot be
+   *  reached from any screen, so it would be announced and then expire. */
+  messageId: string | null
 ): Promise<ToolWriteOutcome> {
   const target = await targetFor(calendarId, accountId);
   if (!target) return { kind: "refused", reason: "unknown_calendar" };
@@ -148,6 +151,7 @@ export async function writeThroughTool(
       // back.
       payload: JSON.stringify(write),
       source_ref: write.action === "create" ? null : write.sourceRef,
+      message_id: messageId,
       expires_at: new Date(Date.now() + PENDING_TTL_MS),
     })
     .returning("id")
@@ -296,4 +300,51 @@ export async function declinePending(accountId: string, pendingId: string): Prom
     .where("declined_at", "is", null)
     .executeTakeFirst();
   return Number(result.numUpdatedRows ?? 0) > 0;
+}
+
+/** The proposal a turn is waiting on, if it has one.
+ *
+ *  One per message at most in practice, and the newest wins if a turn somehow
+ *  proposed twice: the person answers what they were last told about. */
+export async function waitingFor(
+  messageIds: string[]
+): Promise<Map<string, { id: string; because: string }>> {
+  const found = new Map<string, { id: string; because: string }>();
+  if (messageIds.length === 0) return found;
+
+  const rows = await db
+    .selectFrom("connector_pending_writes")
+    .select(["id", "message_id", "payload", "calendar_id"])
+    .where("message_id", "in", messageIds)
+    .where("confirmed_at", "is", null)
+    .where("declined_at", "is", null)
+    .where("expires_at", ">", new Date())
+    .orderBy("created_at", "desc")
+    .execute();
+
+  for (const row of rows) {
+    if (!row.message_id || found.has(row.message_id)) continue;
+    found.set(row.message_id, { id: row.id, because: becauseOf(row.payload) });
+  }
+  return found;
+}
+
+/** Who finds out, in the words the screen shows.
+ *
+ *  Recomputed from the stored payload rather than saved as a string, so a
+ *  proposal that sat for an hour still describes itself the way the code does
+ *  now. Guests are named because the person is about to be told which of their
+ *  guests this reaches. */
+function becauseOf(payload: unknown): string {
+  const write = reviveWrite(payload);
+  const guests =
+    write?.action === "create"
+      ? (write.draft.attendees ?? [])
+      : write?.action === "edit"
+        ? (write.patch.attendees ?? [])
+        : [];
+
+  if (guests.length === 1) return `${guests[0]} will be told.`;
+  if (guests.length > 1) return `${guests.length} guests will be told.`;
+  return "Everyone on this calendar will see it.";
 }

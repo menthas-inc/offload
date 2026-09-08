@@ -478,6 +478,10 @@ export interface ConnectorPendingWritesTable {
   scope: "one" | "following" | null;
   payload: unknown;
   source_ref: string | null;
+  /** The message whose tool call proposed this, so the reply can carry the
+   *  control that answers it. Without it a proposal is unreachable from any
+   *  screen and expires having done nothing. */
+  message_id: string | null;
   expires_at: Timestamp;
   created_at: Timestamp;
   confirmed_at: Timestamp | null;

@@ -391,3 +391,55 @@
      the field, and at var(--space-3) the two read as one block. */
   padding: var(--space-3) var(--space-6) var(--space-6);
 }
+
+/* A calendar write offload proposed and nobody has answered yet. Sits inside
+   the reply, because the reply is what mentions it: a sentence cannot be
+   clicked, so the control that answers it is attached to the thing that said
+   it. */
+.waiting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.waitingLine {
+  font: var(--text-body-sm-role);
+  color: var(--text-secondary);
+}
+
+.waitingFailed {
+  font: var(--text-body-sm-role);
+  color: var(--text-danger);
+}
+
+.waitingControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.waitingConfirm {
+  /* min-height, never height, and never under the tap minimum. */
+  min-height: var(--tap-min);
+  padding: 0 var(--space-6);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font: var(--weight-medium) var(--size-body-sm)/1 var(--font-core);
+  cursor: pointer;
+}
+
+.waitingConfirm:disabled,
+.waitingDecline:disabled { opacity: 0.6; cursor: default; }
+
+.waitingDecline {
+  min-height: var(--tap-min);
+  padding: 0 var(--space-3);
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font: var(--text-body-sm-role);
+  cursor: pointer;
+}
