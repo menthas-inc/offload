@@ -1268,3 +1268,16 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **What a person sees before a write that reaches somebody.** An event with guests, or on a calendar somebody else can see, confirms first and names who finds out: "Ana will be told", "Everyone on this calendar will see it." An event nobody else can see gets the ordinary Undo instead. That is a control this design system has no component for yet, and no kit draws it.
 
 **Design system impact:** two things. The Connected apps page in both phone kits and in `WSettings.jsx` needs Calendar drawn as a live row with its calendars under it, each with a thread, a shared toggle, and an on switch; the current mock is four static rows. And the confirmation described above wants a real component contract: it is not a destructive-action dialog, because nothing is being destroyed, and it is not a toast, because it has to be answered before anything happens. Naming who finds out is the whole content of it.
+
+### 2026-09-08 · A shaped logo does not get a rounded container
+**Surface:** mobile, web
+
+**Is:** the connect screen's provider mark is drawn at 88px with no corner radius. The dashed stand-in behind it keeps one.
+
+**Both kits round the mark**, `radius={18}` on iOS and `20` on Material, and that is right for the general case and wrong for the asset that actually arrived. Google Calendar's product icon is not a square bitmap: it carries its own silhouette, including the folded corner at the bottom right, and a container radius on top of it clips geometry its owner already specified. The rule the kits are reaching for is "a provider's bare square should not sit on the screen as a hard-edged rectangle", and an asset that is already shaped has answered that question itself.
+
+**The stand-in keeps its radius, and the difference is the point.** It genuinely is a bare square, and the radius is what makes a dashed box read as the slot an icon goes into rather than as an image that failed to load. So the two states differ on purpose rather than by oversight.
+
+**The mark is Google's own file**, from their asset CDN, committed unmodified: an SVG on web and a 512px PNG on the phones, because this app draws icons from generated path data and carries no SVG transformer, so Metro cannot turn an `.svg` into something `Image` can render.
+
+**Design system impact:** `ProviderMark` and `AProviderMark` want the radius to be a property of the asset rather than of the component. Either default it to none and let a caller pass one for a bare square, or take the shape as a prop. Also unresolved and worth a look with the real file in place: Google's terms set a minimum clear space, and whether the 88px box satisfies it is a question for their current spec rather than for either kit.

@@ -506,12 +506,14 @@
 .runFact b { color: var(--text-primary); font-weight: 500; }
 .runFact svg { flex: 0 0 auto; margin-top: 3px; color: var(--text-tertiary); }
 
-/* The real mark, once the file is there. Same box as the stand-in, contained
-   rather than cropped, because the source is square-ish and neither kit crops. */
+/* The real mark, once the file is there.
+   **No radius, unlike the stand-in above.** A provider's asset carries its own
+   silhouette, and Google Calendar's includes a folded corner, so rounding the
+   box clips geometry its owner already specified. The kits round it, which is
+   right for a bare square bitmap and wrong for a shaped icon. */
 .providerMarkImage {
   display: block;
   width: 88px;
   height: 88px;
-  border-radius: 18px;
   object-fit: contain;
 }

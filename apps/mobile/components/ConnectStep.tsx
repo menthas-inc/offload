@@ -41,7 +41,17 @@ function ProviderMark({
   const COLOR = useColors();
   const [broken, setBroken] = useState(false);
   const size = 88;
-  const radius = tone === "ios" ? 18 : 20;
+  // Only the stand-in is rounded, and the two cases are genuinely different.
+  //
+  // **The real mark carries its own silhouette** and Google Calendar's includes
+  // a folded corner, so a container radius on top of it clips geometry its
+  // owner already specified. Both kits round it, which is right for a provider
+  // whose asset is a bare square bitmap and wrong for one that is a shaped
+  // icon. Code wins, and the divergence is logged.
+  //
+  // The stand-in **is** a bare square, and its radius is what makes a dashed
+  // box read as the slot an icon goes in rather than as a broken image.
+  const standInRadius = tone === "ios" ? 18 : 20;
 
   if (source && !broken) {
     return (
@@ -49,7 +59,7 @@ function ProviderMark({
         source={source}
         onError={() => setBroken(true)}
         resizeMode="contain"
-        style={{ width: size, height: size, borderRadius: radius }}
+        style={{ width: size, height: size }}
         accessibilityIgnoresInvertColors
       />
     );
@@ -62,7 +72,7 @@ function ProviderMark({
       style={{
         width: size,
         height: size,
-        borderRadius: radius,
+        borderRadius: standInRadius,
         borderWidth: 1,
         borderStyle: "dashed",
         borderColor: COLOR.iconOnWell,
