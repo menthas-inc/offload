@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/calendar_connected.v1.json",
+  "title": "calendar_connected",
+  "description": "A calendar account was connected. How many calendars it turned out to hold, and nothing about any of them.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {"calendars": { "type": "integer", "minimum": 0 }}
+}

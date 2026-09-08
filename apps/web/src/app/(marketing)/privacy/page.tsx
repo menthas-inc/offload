@@ -177,6 +177,23 @@ export default function Privacy() {
             or the raw page. What you upload is something you chose to hand us. A connected inbox is
             not, and we treat the two differently on purpose.
           </p>
+          <p>
+            <strong>A connected calendar is the one that also goes the other way.</strong> You can
+            ask offload to add, change or delete an event, and it writes to your calendar to do it.
+            It never writes anywhere else: not your mail, not your files. When a change would reach
+            somebody else, because the event has guests or the calendar is one you share, offload
+            asks you first and tells you who will find out. When it reaches nobody but you, it just
+            does it and you have a few seconds to undo.
+          </p>
+          <p>
+            <strong>An event brings other people with it.</strong> If somebody is invited to an
+            event on your calendar, offload keeps their name and whether they accepted, so it can
+            tell you who you are seeing. It keeps their email address only for an event offload
+            itself created with guests, because changing that event later means telling those guests
+            again. Everyone else&rsquo;s address is dropped before anything is stored. These details
+            are kept for as long as the event is, which is until you delete it. We keep what a
+            calendar describes and none of the event&rsquo;s own description text.
+          </p>
 
           <h3 className={styles.h3}>What we collect because software has to run</h3>
           <ul>
@@ -353,6 +370,14 @@ export default function Privacy() {
                   <td>Resend</td>
                   <td>Sends the handful of emails we send</td>
                   <td>Your email address and the email itself</td>
+                </tr>
+                <tr>
+                  <td>Google Calendar</td>
+                  <td>Only if you connect one: reads your calendars, and writes the changes you ask for</td>
+                  <td>
+                    The events in the calendars you turn on, and the events offload writes for you.
+                    A separate connection from signing in, which you can end at any time
+                  </td>
                 </tr>
                 <tr>
                   <td>Apple and Google</td>

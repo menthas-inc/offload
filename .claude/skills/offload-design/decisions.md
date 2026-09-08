@@ -1255,3 +1255,16 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **The web already had this and said so.** `apps/web/src/lib/appearance.ts` carries a comment about two components each holding a copy of one stored key being how a screen disagrees with itself. The phone had the identical hole and no such note, which is the two-documents-days-apart shape in a single feature.
 
 **Design system impact:** none visual. Worth one line wherever the design system talks about the appearance control: anything that *displays* a preference subscribes to the preference, and anything that just needs a colour uses the resolved scheme. Those are different reads and only one of them is `useColors`.
+
+### 2026-09-08 · offload writes to one thing, and the kits said it wrote to nothing
+**Surface:** mobile, web
+
+**Is:** the Connected apps page's standing promise changes from "Read only. offload never sends mail, moves events, or deletes photos." to "What offload may do: it writes to your calendar when you ask. It never sends mail or deletes photos."
+
+**Half a promise stopped being true and the other half got sharper.** 012 lets offload add, change and delete calendar events, which the old line ruled out in as many words. The replacement is narrower than the original rather than vaguer: it names the one thing offload writes to and keeps the two it does not. A page that says "read only" while the product writes to a calendar is the kind of defect this repository treats as a defect even when the code is correct.
+
+**The line lives in a claim surface, so it moved in both places at once.** `ui_kits/mobile_app/SettingsDetail.jsx` and `ui_kits/android_app/M3SettingsDetail.jsx` both carried it, and the privacy policy carried the same commitment in prose. All three changed in one commit.
+
+**What a person sees before a write that reaches somebody.** An event with guests, or on a calendar somebody else can see, confirms first and names who finds out: "Ana will be told", "Everyone on this calendar will see it." An event nobody else can see gets the ordinary Undo instead. That is a control this design system has no component for yet, and no kit draws it.
+
+**Design system impact:** two things. The Connected apps page in both phone kits and in `WSettings.jsx` needs Calendar drawn as a live row with its calendars under it, each with a thread, a shared toggle, and an on switch; the current mock is four static rows. And the confirmation described above wants a real component contract: it is not a destructive-action dialog, because nothing is being destroyed, and it is not a toast, because it has to be answered before anything happens. Naming who finds out is the whole content of it.

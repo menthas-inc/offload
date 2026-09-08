@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/calendar_sync_completed.v1.json",
+  "title": "calendar_sync_completed",
+  "description": "One pass over one connection. Counts and a duration. Never a title, a place or a person.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {"calendars": { "type": "integer", "minimum": 0 }, "written": { "type": "integer", "minimum": 0 }, "retired": { "type": "integer", "minimum": 0 }, "latency_ms": { "type": "integer", "minimum": 0 }, "resynced": { "type": "boolean" }}
+}

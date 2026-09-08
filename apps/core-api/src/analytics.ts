@@ -20,7 +20,14 @@ export type EventName =
   | "onboarding_completed"
   | "dump_sent"
   | "dump_answered"
-  | "dump_failed";
+  | "dump_failed"
+  // 012. Counts and outcomes only, and the schemas beside these names are what
+  // enforces that: `assertNoContent` below is a heuristic that would let a
+  // short event title straight through, since a title is neither an address nor
+  // a URL nor sixty-four characters long.
+  | "calendar_connected"
+  | "calendar_sync_completed"
+  | "calendar_event_written";
 
 type Source = "core-api" | "agent" | "worker" | "web" | "ios" | "android";
 

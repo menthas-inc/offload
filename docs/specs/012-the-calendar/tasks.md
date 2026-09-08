@@ -60,10 +60,10 @@ feature is inert until credentials exist.
 
 ## G. The claim surface
 
-- [ ] **G1** Privacy policy: Google Calendar as its own sub-processor, that offload writes, and that other people's names arrive with a calendar. `AC-13`
-- [ ] **G2** Both phone kits' "offload never moves events" line, and one `decisions.md` entry with a filled Design system impact. `AC-13a`, OFF-7
-- [ ] **G3** `docs/tech/decisions.md`: the conditional entry on the reversible allowlist, which is a new shape for that list. OFF-6
-- [ ] **G4** A JSON Schema per new event in `schemas/events/`, `additionalProperties: false`, which is what `events.test.ts` actually enforces. `AC-14`
+- [x] **G1** Privacy policy: Google Calendar as its own sub-processor, that offload writes, and that other people's names arrive with a calendar. `AC-13`
+- [x] **G2** Both phone kits' "offload never moves events" line, and one `decisions.md` entry with a filled Design system impact. `AC-13a`, OFF-7
+- [x] **G3** `docs/tech/decisions.md`: the conditional entry on the reversible allowlist, which is a new shape for that list. OFF-6
+- [x] **G4** A JSON Schema per new event in `schemas/events/`, `additionalProperties: false`, which is what `events.test.ts` actually enforces. `AC-14`
 
 ## What is needed from the product owner
 

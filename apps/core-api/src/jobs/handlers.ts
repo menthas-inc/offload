@@ -11,6 +11,7 @@ import type { Mailer } from "../mail/index.js";
 import { env } from "../env.js";
 import { scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
 import { scheduleDaily } from "./queue.js";
+import { emit } from "../analytics.js";
 
 export type Handler = (payload: Record<string, unknown>, deps: { mailer: Mailer }) => Promise<void>;
 
@@ -224,7 +225,14 @@ const calendarSync: Handler = async (payload) => {
   const started = Date.now();
   const outcome = await syncConnection(connectionId, payload["full"] === true);
 
-  // Counts and outcomes. Nothing from anybody's calendar (OFF-1).
+  // Counts and outcomes. Nothing from anybody's calendar (OFF-1), and the
+  // schema beside this event name is what holds that rather than the runtime
+  // heuristic, which a short title would walk straight past.
+  await emit({
+    name: "calendar_sync_completed",
+    properties: { ...outcome, latency_ms: Date.now() - started },
+  }).catch(() => undefined);
+
   console.log(
     JSON.stringify({
       level: "info",
