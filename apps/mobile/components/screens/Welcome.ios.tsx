@@ -22,9 +22,12 @@ import { TutorialArt, IOS_TONE } from "../TutorialArt";
 import { CONSENT, NAME_STEP, TUTORIAL } from "../../lib/gate";
 import { ConsentTicks } from "../ConsentTicks";
 import { NameField } from "../NameField";
+import * as WebBrowser from "expo-web-browser";
 import { completeOnboarding } from "../../lib/api";
 import { saveName } from "../../lib/me";
 import { useMe } from "../../lib/me";
+import { useCalendars } from "../../lib/calendars";
+import { API_URL } from "../../lib/auth";
 
 export default function Welcome() {
   const router = useRouter();
@@ -35,6 +38,12 @@ export default function Welcome() {
   const [readPolicy, setReadPolicy] = useState(false);
   const [agreeToProcessing, setAgreeToProcessing] = useState(false);
   const [name, setName] = useState("");
+  // The one optional step, and it comes last: connecting leaves for Google and
+  // comes back, and a round trip through another origin mid onboarding is
+  // somebody who can be stranded by a back button. By the time this shows, the
+  // account is already active and consented.
+  const [offering, setOffering] = useState(false);
+  const calendars = useCalendars();
 
   // Seeded once, from whatever the sign-in backfill found, and empty when it
   // found nothing, which is what Apple does when somebody declines to share
@@ -90,6 +99,12 @@ export default function Welcome() {
     if (ask)
       await Notifications.requestPermissionsAsync().catch(() => undefined);
 
+    if (calendars.available && calendars.connections.length === 0) {
+      setLeaving(false);
+      setOffering(true);
+      return;
+    }
+
     router.replace("/today");
   }
 
@@ -130,15 +145,17 @@ export default function Welcome() {
       <KeyboardAvoidingView className="flex-1" behavior="padding">
         <View className="flex-row items-center justify-between px-gutter-screen pt-space-5">
           <View className="flex-row items-center gap-space-3">
-            {(naming || consenting ? [] : TUTORIAL).map((item, index) => (
-              <View
-                key={item.title}
-                className={`h-space-3 rounded-pill ${index === step ? "bg-ink-950" : "bg-ink-200"}`}
-                // The active step is a bar, not a bigger dot: progress along a
-                // line rather than one of three equal choices.
-                style={{ width: index === step ? 18 : 6 }}
-              />
-            ))}
+            {(naming || consenting || offering ? [] : TUTORIAL).map(
+              (item, index) => (
+                <View
+                  key={item.title}
+                  className={`h-space-3 rounded-pill ${index === step ? "bg-ink-950" : "bg-ink-200"}`}
+                  // The active step is a bar, not a bigger dot: progress along a
+                  // line rather than one of three equal choices.
+                  style={{ width: index === step ? 18 : 6 }}
+                />
+              ),
+            )}
           </View>
 
           {/* Skip has always meant "skip the tutorial", and it lands on the name
@@ -163,7 +180,21 @@ export default function Welcome() {
           )}
         </View>
 
-        {naming ? (
+        {offering ? (
+          <>
+            <View className="px-gutter-screen pt-space-9">
+              <Text className="font-core text-title-1 font-semibold text-text-primary">
+                Bring your calendar?
+              </Text>
+              <Text className="mt-space-5 font-core text-body text-text-secondary">
+                offload can read your calendar so your week is here from the
+                start, and add things to it when you ask. It asks before
+                anything reaches somebody else.
+              </Text>
+            </View>
+            <View className="flex-1" />
+          </>
+        ) : naming ? (
           <>
             <View className="px-gutter-screen pt-space-9">
               <Text className="font-core text-title-1 font-semibold text-text-primary">
@@ -238,13 +269,30 @@ export default function Welcome() {
               That did not go through. Check your connection and try again.
             </Text>
           ) : null}
+          {offering ? (
+            // Skip is a real answer, in a sentence rather than a nudge: no
+            // calendar is a supported state everywhere in this feature.
+            <Pressable
+              onPress={() => router.replace("/today")}
+              className="mb-space-5 min-h-tap-min items-center justify-center"
+            >
+              <Text className="font-core font-medium text-text-secondary">
+                Not now
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={() =>
-              consenting || nameOnly
-                ? void finish(!nameOnly)
-                : setStep(step + 1)
+              offering
+                ? void WebBrowser.openAuthSessionAsync(
+                    `${API_URL}/api/connectors/google/start?landing=first-run`,
+                    "offload://today",
+                  ).then(() => router.replace("/today"))
+                : consenting || nameOnly
+                  ? void finish(!nameOnly)
+                  : setStep(step + 1)
             }
-            disabled={blocked}
+            disabled={blocked && !offering}
             className={`min-h-composer-height w-full items-center justify-center rounded-pill active:opacity-90 ${
               blocked ? "bg-ink-100" : "bg-ink-950"
             }`}
@@ -252,7 +300,11 @@ export default function Welcome() {
             <Text
               className={`font-core text-body font-medium ${blocked ? "text-ink-400" : "text-text-inverse"}`}
             >
-              {consenting || nameOnly ? "Get started" : "Next"}
+              {offering
+                ? "Connect a calendar"
+                : consenting || nameOnly
+                  ? "Get started"
+                  : "Next"}
             </Text>
           </Pressable>
         </View>
