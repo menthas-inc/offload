@@ -408,11 +408,11 @@ export interface ConnectorConnectionsTable {
    *  Google is their decision, so the sync stops and Settings offers Reconnect
    *  rather than retrying into a wall. */
   state: Generated<"active" | "needs_reauth" | "revoked">;
-  connected_at: Generated<Timestamp>;
+  connected_at: Timestamp;
   last_sync_at: Timestamp | null;
   last_error_at: Timestamp | null;
-  created_at: Generated<Timestamp>;
-  updated_at: Generated<Timestamp>;
+  created_at: Timestamp;
+  updated_at: Timestamp;
   deleted_at: Timestamp | null;
 }
 
@@ -428,8 +428,8 @@ export interface ConnectorSecretsTable {
   scope: string | null;
   /** Which key sealed it, so a rotation knows what it has already moved. */
   wrapped_by: string;
-  created_at: Generated<Timestamp>;
-  updated_at: Generated<Timestamp>;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 /** One calendar on a connected account. */
@@ -452,8 +452,8 @@ export interface ConnectorCalendarsTable {
   default_thread_id: string | null;
   sync_token: string | null;
   synced_at: Timestamp | null;
-  created_at: Generated<Timestamp>;
-  updated_at: Generated<Timestamp>;
+  created_at: Timestamp;
+  updated_at: Timestamp;
 }
 
 /** Sends some of a calendar's events somewhere other than its default thread.
@@ -465,7 +465,7 @@ export interface ConnectorCalendarRulesTable {
   match_kind: "title_contains" | "attendee_is" | "all";
   match_value: string | null;
   thread_id: string;
-  created_at: Generated<Timestamp>;
+  created_at: Timestamp;
 }
 
 /** An outward-facing write the model proposed and nobody has agreed to yet.
@@ -479,7 +479,7 @@ export interface ConnectorPendingWritesTable {
   payload: unknown;
   source_ref: string | null;
   expires_at: Timestamp;
-  created_at: Generated<Timestamp>;
+  created_at: Timestamp;
   confirmed_at: Timestamp | null;
   declined_at: Timestamp | null;
 }
