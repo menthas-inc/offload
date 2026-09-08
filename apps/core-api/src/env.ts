@@ -37,6 +37,17 @@ const schema = z.object({
    *  with a name and no pin, which is a state the product handles anyway
    *  because a provider can always be down. */
   GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
+
+  // Connectors, 012. **A different Google project from sign-in, on purpose.**
+  // Calendar scopes are sensitive and pull a whole Cloud project into a heavier
+  // verification review; sign-in works today on basic scopes and must not be
+  // able to lose that because a calendar submission stalled.
+  GOOGLE_CONNECTOR_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CONNECTOR_CLIENT_SECRET: z.string().min(1).optional(),
+  // Seals third-party credentials. Separate from DATA_ROOT_KEY because these
+  // are keys to somebody else's system and that one seals content: rotating or
+  // losing one should never be a decision about the other.
+  CONNECTOR_VAULT_KEY: z.string().min(1).optional(),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 

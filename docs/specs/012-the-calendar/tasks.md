@@ -5,10 +5,10 @@ feature is inert until credentials exist.
 
 ## A. Configuration and the vault
 
-- [ ] **A1** `env.ts`: `GOOGLE_CONNECTOR_CLIENT_ID`, `GOOGLE_CONNECTOR_CLIENT_SECRET`, `CONNECTOR_VAULT_KEY`, all optional, and a `connectorsAvailable()` the clients read. Refuse a missing vault key in production the way `DATA_ROOT_KEY` does. `AC-1`
-- [ ] **A2** `connectors/vault.ts`: seal and open a token under `CONNECTOR_VAULT_KEY`, reusing `crypto/keys.ts`'s primitive, never `DATA_ROOT_KEY`. `AC-2`
-- [ ] **A3** Migration: `connector_connections`, `connector_secrets`, `connector_calendars`, `connector_calendar_rules`, and the unique partial index on `content (account_id, source_ref)`. `AC-2`, `AC-6`, `AC-8`, `AC-16`
-- [ ] **A4** `schema.ts` gains all four, with the comment on `is_shared` explaining the default. `AC-5a`
+- [x] **A1** `env.ts`: `GOOGLE_CONNECTOR_CLIENT_ID`, `GOOGLE_CONNECTOR_CLIENT_SECRET`, `CONNECTOR_VAULT_KEY`, all optional, and a `connectorsAvailable()` the clients read. Refuse a missing vault key in production the way `DATA_ROOT_KEY` does. `AC-1`
+- [x] **A2** `connectors/vault.ts`: seal and open a token under `CONNECTOR_VAULT_KEY`, reusing `crypto/keys.ts`'s primitive, never `DATA_ROOT_KEY`. `AC-2`
+- [x] **A3** Migration: `connector_connections`, `connector_secrets`, `connector_calendars`, `connector_calendar_rules`, and the unique partial index on `content (account_id, source_ref)`. `AC-2`, `AC-6`, `AC-8`, `AC-16`
+- [x] **A4** `schema.ts` gains all four, with the comment on `is_shared` explaining the default. `AC-5a`
 
 ## B. Connecting
 
