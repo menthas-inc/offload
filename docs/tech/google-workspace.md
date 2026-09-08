@@ -51,6 +51,26 @@ Note the `ID`. It is a number and everything below wants it.
 
 ---
 
+## Before any of it: one browser profile per account
+
+**The Cloud Console will not load for the Workspace account while a personal
+Google account is also signed in.** It does not say so: it returns "Unable to
+load the Google Cloud Console right now" and loads perfectly for the personal
+account in the same browser, which reads as the new account being broken or the
+tenant not being ready. It is neither. The console resolves the wrong
+`authuser` and gives up.
+
+Confirmed here: the domain was verified and Workspace mail was already live on
+`smtp.google.com` when this happened, so provisioning was complete.
+
+Incognito proves it in ten seconds. For the actual work use **a separate browser
+profile** for `admin@offload.club` rather than incognito, because all of this
+is multi-step and incognito loses the session the moment the window closes.
+
+*If incognito also fails, it is the other cause: a new tenant can have Cloud
+switched off for the org unit. `admin.google.com` → Apps → Additional Google
+services → Google Cloud Platform → ON for everyone.*
+
 ## Part 2. Moving sign-in, without breaking sign-in
 
 **The client ID and secret do not change when a project moves.** A project keeps
