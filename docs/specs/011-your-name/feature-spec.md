@@ -197,6 +197,15 @@ under sixty characters looks nothing like an email or a URL and passes it.
 ## Open
 
 - **Everyone who already has an account will meet this screen on their next
-  launch**, prefilled with whatever Google or Apple calls them. That is the
-  point rather than a side effect, and it is the only way the alpha ends up with
-  names at all. It is one tap for almost everybody.
+  launch.** That is the point rather than a side effect, and it is the only way
+  the alpha ends up with names at all.
+
+- **Anybody already signed in gets an empty field, not a prefilled one**, and
+  there is no way around it. The suggestion is read from the provider's profile
+  during a sign-in, and a live session does not sign in again: sessions last
+  thirty days and refresh without ever going back to Google or Apple. We
+  discarded the name at the time and kept no token to ask with, which is OFF-2
+  working as intended. So the alpha types its names, and the prefill starts
+  working for anybody who signs in on a new device or after their session
+  expires. Typing a name once is a small cost; holding a provider token so we
+  could avoid it would not be.
