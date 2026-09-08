@@ -19,9 +19,10 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Notifications from "expo-notifications";
 import { TutorialArt, M3_TONE } from "../TutorialArt";
-import { CONSENT, NAME_STEP, TUTORIAL } from "../../lib/gate";
+import { CONNECT_STEP, CONSENT, NAME_STEP, TUTORIAL } from "../../lib/gate";
 import { ConsentTicks } from "../ConsentTicks";
 import { NameField } from "../NameField";
+import { ConnectStepBar, ConnectStepBody } from "../ConnectStep";
 import * as WebBrowser from "expo-web-browser";
 import { completeOnboarding } from "../../lib/api";
 import { saveName } from "../../lib/me";
@@ -118,6 +119,9 @@ export default function Welcome() {
   // nothing else, rather than three screens of introduction they have already
   // seen and a consent they have already given.
   const nameOnly = me !== null && !me.needsFirstRun;
+  // Whether a calendar screen still comes after the consent. It decides one
+  // word: the tutorial's flow does not end at consent when it does.
+  const offerAhead = calendars.available && calendars.connections.length === 0;
 
   const screen = nameOnly ? undefined : TUTORIAL[step];
   const naming = nameOnly || step === TUTORIAL.length;
@@ -143,66 +147,68 @@ export default function Welcome() {
           window does not move and the button ends up under the keyboard.
           Inert on every step that has no field. */}
       <KeyboardAvoidingView className="flex-1" behavior="padding">
-        <View className="flex-row items-center justify-between px-gutter-screen pt-space-6">
-          <View className="flex-row items-center gap-space-3">
-            {(naming || consenting || offering ? [] : TUTORIAL).map(
-              (item, index) => (
-                <View
-                  key={item.title}
-                  className={`h-space-3 rounded-pill ${index === step ? "bg-a-on" : "bg-a-c-high"}`}
-                  // The active step is a bar, not a bigger dot: progress along a
-                  // line rather than one of three equal choices.
-                  style={{ width: index === step ? 18 : 6 }}
-                />
-              ),
-            )}
-          </View>
+        {/* The connect step wears the tutorial's own step bar, so it reads as a
+            step rather than an epilogue: dots left, the way out top right, in
+            the place neither has moved from. **Not now, never Skip**, because
+            Skip means skip the tutorial and turning down a connection is a
+            different answer to a different question.
 
-          {/* Skip has always meant "skip the tutorial", and it lands on the name
+            Four dots, the tutorial plus this one, which is the number both kits
+            draw. The name and consent screens are outside the count: the design
+            log says nothing decides whether they join it, and the kits answer
+            by not counting them. */}
+        {offering ? (
+          <View className="pt-space-6">
+            <ConnectStepBar
+              tone="android"
+              steps={TUTORIAL.length + 1}
+              onNotNow={() => router.replace("/today")}
+            />
+          </View>
+        ) : (
+          <View className="flex-row items-center justify-between px-gutter-screen pt-space-6">
+            <View className="flex-row items-center gap-space-3">
+              {(naming || consenting || offering ? [] : TUTORIAL).map(
+                (item, index) => (
+                  <View
+                    key={item.title}
+                    className={`h-space-3 rounded-pill ${index === step ? "bg-a-on" : "bg-a-c-high"}`}
+                    // The active step is a bar, not a bigger dot: progress along a
+                    // line rather than one of three equal choices.
+                    style={{ width: index === step ? 18 : 6 }}
+                  />
+                ),
+              )}
+            </View>
+
+            {/* Skip has always meant "skip the tutorial", and it lands on the name
             rather than the consent, because both screens that ask something sit
             behind it. A Skip that jumped a required field would be a dead end
             with a disabled button on the next screen. */}
-          {naming || consenting ? null : (
-            <Pressable
-              // Skip lands on the name screen and completes nothing.
-              // Completing here wrote consent_version and consented_at for two
-              // ticks nobody was shown, which is the exact thing AC-7a exists to
-              // prevent. The web has always done this correctly; only the phones
-              // regressed, and the comment at the top of this file already said
-              // what the code was supposed to do.
-              onPress={() => setStep(TUTORIAL.length)}
-              className="min-h-tap-min justify-center"
-            >
-              <Text
-                className="font-core font-medium text-blue-700"
-                style={{ fontSize: 14, lineHeight: 20 }}
+            {naming || consenting ? null : (
+              <Pressable
+                // Skip lands on the name screen and completes nothing.
+                // Completing here wrote consent_version and consented_at for two
+                // ticks nobody was shown, which is the exact thing AC-7a exists to
+                // prevent. The web has always done this correctly; only the phones
+                // regressed, and the comment at the top of this file already said
+                // what the code was supposed to do.
+                onPress={() => setStep(TUTORIAL.length)}
+                className="min-h-tap-min justify-center"
               >
-                Skip
-              </Text>
-            </Pressable>
-          )}
-        </View>
+                <Text
+                  className="font-core font-medium text-blue-700"
+                  style={{ fontSize: 14, lineHeight: 20 }}
+                >
+                  Skip
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        )}
 
         {offering ? (
-          <>
-            <View className="px-gutter-screen pt-space-9">
-              <Text
-                className="font-core font-semibold text-a-on"
-                style={{ fontSize: 28, lineHeight: 33, letterSpacing: -0.4 }}
-              >
-                Bring your calendar?
-              </Text>
-              <Text
-                className="mt-space-5 font-core text-body text-a-on-var"
-                style={{ fontSize: 16, lineHeight: 24, letterSpacing: 0.16 }}
-              >
-                offload can read your calendar so your week is here from the
-                start, and add things to it when you ask. It asks before
-                anything reaches somebody else.
-              </Text>
-            </View>
-            <View className="flex-1" />
-          </>
+          <ConnectStepBody tone="android" />
         ) : naming ? (
           <>
             <View className="px-gutter-screen pt-space-9">
@@ -296,21 +302,6 @@ export default function Welcome() {
               That did not go through. Check your connection and try again.
             </Text>
           ) : null}
-          {offering ? (
-            // Skip is a real answer, in a sentence rather than a nudge: no
-            // calendar is a supported state everywhere in this feature.
-            <Pressable
-              onPress={() => router.replace("/today")}
-              className="mb-space-5 min-h-tap-min items-center justify-center"
-            >
-              <Text
-                className="font-core font-medium text-blue-700"
-                style={{ fontSize: 14, lineHeight: 20 }}
-              >
-                Not now
-              </Text>
-            </Pressable>
-          ) : null}
           <Pressable
             onPress={() =>
               offering
@@ -331,10 +322,17 @@ export default function Welcome() {
               className={`font-core text-body font-medium ${blocked ? "text-ink-400" : "text-text-inverse"}`}
             >
               {offering
-                ? "Connect a calendar"
-                : consenting || nameOnly
+                ? CONNECT_STEP.connect
+                : nameOnly
                   ? "Get started"
-                  : "Next"}
+                  : consenting
+                    ? // "Get started" on a screen with another screen after it
+                      // is a promise the flow does not keep. Nothing has
+                      // started while there is still a calendar to offer.
+                      offerAhead
+                      ? "Next"
+                      : "Get started"
+                    : "Next"}
             </Text>
           </Pressable>
         </View>

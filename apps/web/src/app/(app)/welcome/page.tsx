@@ -23,8 +23,21 @@ import { Logo } from "../../../components/Logo";
 import { RunArt } from "../../../components/RunArt";
 import { completeOnboarding, updateName, useMe } from "../../../lib/use-me";
 import { connectUrl, useCalendars } from "../../../lib/use-calendars";
+import { Icon } from "../../../components/Icon";
 import { NAME_MAX } from "../../../lib/name";
 import styles from "../auth.module.css";
+
+/** The two facts, matching the phones exactly. `gate.ts` keeps the phones from
+ *  drifting apart; the web has always repeated the strings, and the three have
+ *  to match. All of it is provisional per the design system. */
+const CONNECT_FACTS = [
+  ["calendar", "offload reads your days.", "Times, titles and who is on them."],
+  [
+    "plus",
+    "And it can add to them.",
+    "Anything you dump with a time on it can land back on your calendar.",
+  ],
+] as const;
 
 const SCREENS = [
   {
@@ -139,6 +152,7 @@ export default function WelcomePage() {
   // nothing else, rather than three screens of introduction they have already
   // seen and a consent they have already given.
   const nameOnly = !state.me.needsFirstRun;
+  const offerAhead = calendars.available && calendars.connections.length === 0;
 
   const screen = nameOnly ? undefined : SCREENS[step];
   const naming = nameOnly || step === SCREENS.length;
@@ -154,7 +168,14 @@ export default function WelcomePage() {
             name rather than the consent, because both screens that ask
             something sit behind it. A Skip that jumped past a required field
             would be a dead end with a disabled button on the next screen. */}
-        {naming || consenting || offering ? null : (
+        {/* **Not now, never Skip.** Skip belongs to the tutorial and means skip
+            the tutorial; turning down a connection is a different answer to a
+            different question, so the word changes and the position does not. */}
+        {offering ? (
+          <button type="button" className={styles.skip} onClick={() => router.replace("/today")}>
+            Not now
+          </button>
+        ) : naming || consenting ? null : (
           <button type="button" className={styles.skip} onClick={() => setStep(SCREENS.length)}>
             Skip
           </button>
@@ -163,11 +184,17 @@ export default function WelcomePage() {
 
       <div className={styles.runMiddle}>
         {screen ? <RunArt kind={screen.art} /> : null}
+        {/* The provider's mark, and **never redrawn**: a third party's radius,
+            colours and letterforms are their specification, and ninety percent
+            right is what people spot instantly on a logo they see every day.
+            A dashed stand-in until the official file is dropped in, so a
+            missing asset is visible rather than silent. */}
+        {offering ? <span className={styles.providerMark} aria-hidden="true" /> : null}
 
         <div className={styles.runCopy}>
           <h1 className={styles.runTitle}>
             {offering
-              ? "Bring your calendar?"
+              ? "Bring in your calendar"
               : screen
                 ? screen.title
                 : naming
@@ -176,7 +203,7 @@ export default function WelcomePage() {
           </h1>
           <p className={styles.runSub}>
             {offering
-              ? "You can do this later in Settings."
+              ? "So \u201cbefore the trip\u201d and \u201cafter the dentist\u201d mean something."
               : screen
                 ? screen.sub
                 : naming
@@ -186,11 +213,20 @@ export default function WelcomePage() {
         </div>
 
         {offering ? (
+          /* Two facts, not a feature list: what offload reads, and what it does
+             back, both as sentences rather than switches, per the 5 September
+             privacy refusal. A switch implies somebody could have set it the
+             other way. The strings match the phones exactly; the design system
+             marks all of this copy provisional. */
           <div className={styles.consent}>
-            <p className={styles.runSub} style={{ marginTop: 0 }}>
-              offload can read your calendar so your week is here from the start, and add things to
-              it when you ask. It asks before anything reaches somebody else.
-            </p>
+            {CONNECT_FACTS.map(([icon, head, rest]) => (
+              <p key={head} className={styles.runFact}>
+                <Icon name={icon} size={16} />
+                <span>
+                  <b>{head}</b> {rest}
+                </span>
+              </p>
+            ))}
           </div>
         ) : naming ? (
           /* `.consent` is the column both asking screens share, not a consent
@@ -263,18 +299,8 @@ export default function WelcomePage() {
           {offering ? (
             <>
               <a className={styles.runButton} href={connectUrl("first-run")}>
-                Connect a calendar
+                Connect Google Calendar
               </a>
-              {/* Skip is a real answer, in a sentence rather than a nudge. No
-                  calendar is a supported state everywhere in this feature. */}
-              <button
-                type="button"
-                className={styles.skip}
-                style={{ marginTop: "var(--space-5)" }}
-                onClick={() => router.replace("/today")}
-              >
-                Not now
-              </button>
             </>
           ) : (
             <button
@@ -283,7 +309,15 @@ export default function WelcomePage() {
               onClick={() => (consenting || nameOnly ? void finish() : setStep(step + 1))}
               disabled={leaving || (consenting && !ready) || (naming && !named)}
             >
-              {consenting || nameOnly ? "Get started" : "Next"}
+              {nameOnly
+                ? "Get started"
+                : consenting
+                  ? // "Get started" on a screen with another screen after it is
+                    // a promise the flow does not keep.
+                    offerAhead
+                    ? "Next"
+                    : "Get started"
+                  : "Next"}
             </button>
           )}
 
