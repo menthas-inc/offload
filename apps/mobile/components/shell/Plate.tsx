@@ -93,11 +93,33 @@ export function Plate({
             maps the whole texture into its own box, so two half-height boxes
             squash the pattern and break it at the seam. */}
       <View className="overflow-hidden">
-        <PrismField
-          variant="band"
-          veil="graded"
-          pulse={conversation.filed?.at ?? 0}
-        />
+        {/* **No field when the composer is not here**, which is a divergence
+            from the design system and the only honest one available.
+
+            The handoff is explicit that the plate is composer plus tabs in
+            every state including a raised conversation, so the field's box
+            never changes height. This app removes the composer while a
+            conversation is raised, because the raised sheet brings its own and
+            two would compete for the keyboard, which is a product decision
+            that predates the field.
+
+            The consequence is visible on a device: the band collapses to the
+            tab row, the whole texture and its veil squash into about seventy
+            points, and `--prism-veil-reach` lands mid-label rather than above
+            it, so colour sits behind the tab labels. That is the one thing the
+            veil's stops exist to prevent, because `--text-tertiary` is exactly
+            4.5:1 with nothing spare.
+
+            Drawing nothing beats drawing it at the wrong height: the field is
+            the composer band, and with no composer there is no band. */}
+        {raised ? null : (
+          <PrismField
+            variant="band"
+            veil="graded"
+            pulse={conversation.filed?.at ?? 0}
+            shift={prismShift}
+          />
+        )}
 
         {raised ? null : <Composer placeholder={placeholder} />}
 
