@@ -103,4 +103,4 @@ If a change is both, it gets an entry in both.
 
 ## Status
 
-Greenfield. There is no application code yet, only the harness, the docs and the design-adherence lint. The first specs to write are listed at the bottom of `docs/specs/README.md`, and the open decisions that block them are at the bottom of `docs/tech/decisions.md`.
+In alpha, invite only, deployed. Specs 001 to 011 are built: the data model, getting in, the dump, the planner, the thread page, extraction, widgets, memories, the phones, settings and names. Core API and the web app run on Railway, the phones build through EAS. The open decisions are at the bottom of `docs/tech/decisions.md`; `docs/specs/README.md` still lists the *first* specs to write and is a record of where this started, not of what is left.
