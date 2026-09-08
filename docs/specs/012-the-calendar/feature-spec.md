@@ -186,6 +186,30 @@ archive it, tick it off. And **the rules are editable by whoever owns the
 connection**, which is the durable fix: a calendar routing to the wrong thread is
 a rule to change once, not an event to move every week.
 
+### Where you connect one
+
+**Settings, on all three clients.** The Connected apps page the kits already
+draw, with Calendar as the only live row: connect, see your calendars, say which
+thread each feeds, mark which are shared, disconnect.
+
+**And once, at the end of first run, skippable.** Connecting is the one setup
+step this product has that is worth offering rather than hiding, because a
+calendar makes Today real on day one instead of after somebody finds Settings.
+
+**It is the last screen, after the account is already active**, and that
+ordering is the whole of its design. Connecting leaves the app for Google's
+consent screen and comes back, and a round trip through another origin in the
+middle of first run is a person who can be stranded halfway through onboarding
+by a back button. Consent completes first run; the offer comes after, when there
+is nothing left to lose by wandering off.
+
+**Skip is a real answer.** No calendar is a supported state everywhere in this
+feature, and the screen says so in a sentence rather than pressing.
+
+*The kit for this screen is being drawn. What ships first is the flow and the
+copy; the screen catches up when the design lands, and this is recorded rather
+than assumed.*
+
 ### How much of a calendar offload actually holds
 
 A calendar is not a feed with a natural end. A single weekly recurrence runs
@@ -324,6 +348,14 @@ compile.
 both carry an open warning that `messages` keeps full text forever and that a
 connector must not reuse that path without a discard story. Calendar does not
 reuse it. **The warning stays open for Mail**, which will have to answer it.
+
+**AC-16a** Settings connects, lists, routes and disconnects a calendar on all
+three clients, on the Connected apps page the kits draw.
+
+**AC-16b** First run offers to connect one, once, as its last screen, **after
+the account is already active**, and skipping is a plain answer that costs
+nothing. Nobody can be left mid-onboarding by leaving for Google and not coming
+back.
 
 **AC-16** More than one Google account can be connected. A calendar is named by
 its connection, so the same calendar name on two accounts is two calendars.
