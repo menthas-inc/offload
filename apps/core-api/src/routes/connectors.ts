@@ -20,6 +20,7 @@ import {
 import { openState, pkce, sealState, LANDINGS, type Landing } from "../connectors/state.js";
 import { connectorsAvailable, seal, VAULT_NAME } from "../connectors/vault.js";
 import { revokeAndForget } from "../connectors/tokens.js";
+import { syncNow } from "../connectors/sync.js";
 import { confirmPending, declinePending } from "../connectors/tool-calls.js";
 
 function fetchHeaders(request: FastifyRequest): Headers {
@@ -414,6 +415,11 @@ export async function connectorRoutes(app: App): Promise<void> {
         .set({ selected, is_shared: isShared, default_thread_id: threadId, updated_at: new Date() })
         .where("id", "=", calendar.id)
         .execute();
+
+      // Turning one on is the moment somebody expects to see their week. The
+      // recurring chain is fifteen minutes and only starts once a sync has run,
+      // so without this the first one waited for the daily supervisor.
+      if (selected && !calendar.selected) await syncNow(calendar.connectionId);
 
       return reply.send({ ok: true as const });
     }

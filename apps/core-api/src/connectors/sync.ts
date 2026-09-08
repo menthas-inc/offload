@@ -58,6 +58,29 @@ export async function scheduleNextSync(connectionId: string, now = new Date()): 
   });
 }
 
+/** Sync this connection now, because somebody just did something that should
+ *  show up.
+ *
+ *  **The chain reschedules itself and nothing starts it.** Turning a calendar on
+ *  and seeing nothing for up to a day is not a slow sync, it is a broken
+ *  feature, and that is what shipped: the only two enqueuers were the sync
+ *  handler rescheduling itself and the daily supervisor, so the first tick for
+ *  a new connection was whenever the supervisor next noticed.
+ *
+ *  Its own key prefix, so it collapses a burst of toggles into one run without
+ *  colliding with the quarter-hour chain, which would silently no-op one of
+ *  them under `onConflict().doNothing()`. */
+export async function syncNow(connectionId: string, now = new Date()): Promise<void> {
+  const slot = `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}-${now.getUTCHours()}-${Math.floor(now.getUTCMinutes() / 5)}`;
+  await enqueue({
+    kind: "calendar.sync",
+    payload: { connectionId },
+    priority: 10,
+    idempotencyKey: `calendar.sync:${connectionId}:now:${slot}`,
+    maxAttempts: 3,
+  });
+}
+
 export interface SyncOutcome {
   calendars: number;
   written: number;

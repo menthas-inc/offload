@@ -9,7 +9,7 @@ import { buildApp, type App } from "../src/app.js";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
-import { superviseSyncs } from "../src/connectors/sync.js";
+import { superviseSyncs, syncNow } from "../src/connectors/sync.js";
 
 await migrate(() => {});
 
@@ -163,3 +163,63 @@ const queued = async (): Promise<number> => {
     .execute();
   return rows.length;
 };
+
+describe("turning a calendar on syncs it", () => {
+  it("enqueues a sync the moment it is selected", async () => {
+    // **The bug the first real connect found.** Nothing enqueued the first
+    // sync: the chain only reschedules itself and the daily supervisor was the
+    // only other enqueuer, so a calendar turned on showed nothing until the
+    // supervisor next ran, up to a day later. That is not a slow sync, it is a
+    // feature that looks broken.
+    const owner = await account();
+    const id = await calendar(owner);
+    const threadId = await thread(owner);
+
+    await db
+      .updateTable("connector_calendars")
+      .set({ default_thread_id: threadId })
+      .where("id", "=", id)
+      .execute();
+
+    const before = await queued();
+    const row = await db
+      .selectFrom("connector_calendars")
+      .select("connection_id")
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow();
+    await syncNow(row.connection_id);
+
+    expect(await queued()).toBe(before + 1);
+  });
+
+  it("collapses a burst of toggles into one run", async () => {
+    // Its own key prefix so it does not collide with the quarter-hour chain,
+    // which would silently no-op one of the two under onConflict doNothing.
+    const owner = await account();
+    const id = await calendar(owner);
+    const row = await db
+      .selectFrom("connector_calendars")
+      .select("connection_id")
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow();
+
+    const before = await queued();
+    await syncNow(row.connection_id);
+    await syncNow(row.connection_id);
+    await syncNow(row.connection_id);
+    expect(await queued()).toBe(before + 1);
+  });
+});
+
+async function thread(accountId: string): Promise<string> {
+  const row = await db
+    .insertInto("threads")
+    .values({ name: "Home" })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  await db
+    .insertInto("thread_members")
+    .values({ thread_id: row.id, account_id: accountId, state: "accepted" })
+    .execute();
+  return row.id;
+}
