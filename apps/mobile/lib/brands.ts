@@ -7,16 +7,18 @@
 // `assets/brands/README.md` and both first-run kits draw a dashed stand-in
 // rather than a traced mark.
 //
-// **To turn it on:** put Google's own Calendar product icon at
-// `assets/brands/google-calendar.svg`, from their brand resources, and change
-// the null below to `require("../assets/brands/google-calendar.svg")`.
+// **This is Google's own file**, served by their asset CDN and committed
+// unmodified. Not a redraw from a logo site: those are usually an older version
+// of the mark, which is the failure the rule above is about.
 //
-// Null rather than a require of a file that is not there, because Metro
-// resolves requires at bundle time and a missing one is a build failure rather
-// than a fallback. Until then the screen draws its stand-in, so a missing asset
-// is visible rather than silent.
+// **A PNG here and an SVG on web**, and that is a platform fact rather than a
+// preference: this app renders icons from generated path data and carries no
+// SVG transformer, so Metro cannot turn an `.svg` into something `<Image>` can
+// draw. 512px against an 88px box covers every screen density there is.
 //
-// Google's terms govern how their marks appear in a connect flow, including
-// minimum clear space and no recolouring. The 88px rounded container the kits
-// draw may have to grow to satisfy the clear-space rule; check before ship.
-export const googleCalendarMark: number | null = null;
+// Google's terms govern how their marks appear in a connect flow: no
+// recolouring, no modification, and a minimum clear space. The 88px rounded
+// container both kits draw may have to grow to satisfy the clear-space rule,
+// which is a question for their current spec rather than one this file can
+// answer.
+export const googleCalendarMark: number | null = require("../assets/brands/google-calendar.png") as number;

@@ -101,6 +101,12 @@ export default function Welcome() {
     if (ask)
       await Notifications.requestPermissionsAsync().catch(() => undefined);
 
+    // **Only somebody who just went through first run is offered this**, and
+    // that is the whole rule: the `nameOnly` branch above has already returned
+    // for an account that existed before, so there is no standalone version of
+    // this screen the way there is for the name. Declining is therefore
+    // remembered by construction, because first run happens once, and Settings
+    // is the only way back.
     if (calendars.available && calendars.connections.length === 0) {
       setLeaving(false);
       setOffering(true);
