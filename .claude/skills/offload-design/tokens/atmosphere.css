@@ -39,3 +39,69 @@
   --prism-amber:#DE8A4E;
   --prism-blue:#4E8FC8;
 }
+
+/* ---------------------------------------------------------------------------
+   The prism field. Phones only. Added 2026-09-08.
+
+   **Appended rather than replacing this file**, which is what the handoff note
+   asked for and would have been wrong. The design project's `atmosphere.css` is
+   now the prism tokens alone, and everything above this line is the marketing
+   atmosphere: thirteen `--wash-*` and `--prism-amber/blue/violet` values that
+   seven files in `apps/web` read, including the privacy page, the gate and
+   `Atmosphere.tsx`. Replacing the file wholesale deletes them, and an unknown
+   CSS variable is the failure that shows up as nothing at all rather than as an
+   error. The two sets share a prefix and collide on no key, so they cohabit.
+
+   None of the values below are suggestions. The density and the veil pair were
+   measured together against `--text-tertiary`, which sits at exactly 4.5:1 on
+   paper with no headroom, so moving one without re-measuring the other takes a
+   tab label under the floor.
+   --------------------------------------------------------------------------- */
+:root{
+  /* The texture's own opacity, before density. */
+  --prism-alpha:0.36; /* @kind other */
+  --prism-density:1.4; /* @kind other */
+
+  /* What the fill is made of, and it is `--surface-plate` in both themes: the
+     ground the field sits on IS the colour its veil is made of. If the two hold
+     different values the difference shows as a band exactly where the field
+     should be vanishing. */
+  --prism-veil-rgb:255 255 255; /* @kind other */
+
+  /* The fill between the field and any text. Graded, not flat: a flat fill at
+     --prism-veil-full leaves the field at a sixth of its strength, and no
+     density buys that back, because the fill eats whatever density adds. */
+  --prism-veil-top:0.38; /* @kind other */
+  --prism-veil-edge:16%; /* @kind other */
+  --prism-veil-full:0.86; /* @kind other */
+  --prism-veil-hold:48%; /* @kind other */
+  /* **The one stop that is not free to move.** Full fill has to be reached
+     above the tab labels, which start at 64% of the band. That makes 0 to 64%
+     the visible window and everything else is derived from it: the thin band is
+     centred in that window with equal 16% ramps either side of the 32%
+     midpoint, and the field's own alpha is shaped to the same window. Both
+     layers symmetric about the same centre is what makes the COMPOSITE
+     symmetric; tuning either alone does not, since the eye sees the product. */
+  --prism-veil-reach:64%; /* @kind other */
+
+  /* Live shader per arrival, and the clock eases to a stop over the last of it. */
+  --prism-run:2000ms; /* @kind other */
+  --prism-settle:700ms; /* @kind other */
+  /* Displacement amplitude, in texture pixels. */
+  --prism-warp:11; /* @kind other */
+
+  /* Written by the field itself as the list scrolls, clamped inside the
+     texture's 16% horizontal overhang. Nothing else should set it. */
+  --prism-shift:0px; /* @kind spacing */
+}
+
+/* Dark. The texture's washes are light tints, so over a dark ground they read
+   hotter for the same alpha: the density comes down and the fill becomes the
+   ground itself. */
+[data-theme="dark"]{
+  --prism-alpha:0.26; /* @kind other */
+  --prism-density:1.2; /* @kind other */
+  --prism-veil-rgb:15 15 17; /* @kind other */
+  --prism-veil-top:0.42; /* @kind other */
+  --prism-veil-full:0.90; /* @kind other */
+}

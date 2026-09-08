@@ -15,6 +15,7 @@ import { useKeyboardState } from "react-native-keyboard-controller";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
+import { PrismField } from "../PrismField";
 import { useConversation } from "./conversation-context";
 
 const isAndroid = Platform.OS === "android";
@@ -27,7 +28,13 @@ export interface Tab {
   onPress: () => void;
 }
 
-export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string | undefined }) {
+export function Plate({
+  tabs,
+  placeholder,
+}: {
+  tabs: Tab[];
+  placeholder?: string | undefined;
+}) {
   const COLOR = useColors();
   const insets = useSafeAreaInsets();
   const conversation = useConversation();
@@ -45,24 +52,51 @@ export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string
 
   return (
     <View
-        // Rounded on top only when it is the top. A raised conversation sits
-        // directly on the plate, so the corners cut two notches out of the
-        // join and the scrim showed through them.
-        className={`${isAndroid ? "bg-a-c-low" : "bg-surface-raised"} ${
-          raised ? "" : isAndroid ? "rounded-t-a-xl" : "rounded-t-lg"
-        }`}
-        style={{
-          paddingBottom: writing ? 0 : insets.bottom,
-          // The kit's own shadow on the plate, which is what separates it from
-          // the screen behind rather than a border.
-          shadowColor: COLOR.scrim,
-          shadowOpacity: 0.16,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: -6 },
-          elevation: 12,
-        }}
-      >
-        {folded ? <FoldedHeader /> : null}
+      // Rounded on top only when it is the top. A raised conversation sits
+      // directly on the plate, so the corners cut two notches out of the
+      // join and the scrim showed through them.
+      //
+      // **`surface-plate` in both themes, and it is one token on purpose.**
+      // It is the ground the prism field sits on and the colour the field's
+      // veil is made of. If the two ever hold different values the difference
+      // shows as a band exactly where the field should be vanishing: on dark
+      // that read as a grey composer against a black tab strip.
+      className={`bg-surface-plate ${
+        raised ? "" : isAndroid ? "rounded-t-a-xl" : "rounded-t-lg"
+      }`}
+      style={{
+        paddingBottom: writing ? 0 : insets.bottom,
+        // The kit's own shadow on the plate, which is what separates it from
+        // the screen behind rather than a border.
+        shadowColor: COLOR.scrim,
+        shadowOpacity: 0.16,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -6 },
+        elevation: 12,
+      }}
+    >
+      {folded ? <FoldedHeader /> : null}
+
+      {/* **The band, and it is the composer and the tabs only.** The folded
+            title row sits above it and outside it: the field is one texture
+            mapped into one box, so anything that changes the box's height
+            changes the pattern, and a title row that comes and goes would
+            squash it every time a conversation folded.
+
+            `overflow: hidden` because the field may never leave this box. It
+            must never sit under a scrolling list: `--text-tertiary` is exactly
+            4.5:1 on paper with nothing spare, and every row's trailing time
+            uses it.
+
+            One field across composer and tabs rather than one each: each field
+            maps the whole texture into its own box, so two half-height boxes
+            squash the pattern and break it at the seam. */}
+      <View className="overflow-hidden">
+        <PrismField
+          variant="band"
+          veil="graded"
+          pulse={conversation.filed?.at ?? 0}
+        />
 
         {raised ? null : <Composer placeholder={placeholder} />}
 
@@ -83,7 +117,10 @@ export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string
                 />
                 <Text
                   className="font-core font-medium"
-                  style={{ fontSize: 12, color: tab.active ? COLOR.tabOn : COLOR.tabOff }}
+                  style={{
+                    fontSize: 12,
+                    color: tab.active ? COLOR.tabOn : COLOR.tabOff,
+                  }}
                 >
                   {tab.label}
                 </Text>
@@ -91,6 +128,7 @@ export function Plate({ tabs, placeholder }: { tabs: Tab[]; placeholder?: string
             ))}
           </View>
         ) : null}
+      </View>
     </View>
   );
 }
@@ -115,10 +153,18 @@ function FoldedHeader() {
           {conversation.live.title}
         </Text>
       </Pressable>
-      <Pressable onPress={conversation.raise} hitSlop={10} accessibilityLabel="Open conversation">
+      <Pressable
+        onPress={conversation.raise}
+        hitSlop={10}
+        accessibilityLabel="Open conversation"
+      >
         <Glyph name="chevron-up" size={18} color={COLOR.iconOnWell} />
       </Pressable>
-      <Pressable onPress={conversation.close} hitSlop={10} accessibilityLabel="Close conversation">
+      <Pressable
+        onPress={conversation.close}
+        hitSlop={10}
+        accessibilityLabel="Close conversation"
+      >
         <Glyph name="x" size={18} color={COLOR.iconOnWell} />
       </Pressable>
     </View>

@@ -13,7 +13,10 @@ const isAndroid = Platform.OS === "android";
 
 export default function Memories() {
   return (
-    <SafeAreaView className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`} edges={["top"]}>
+    <SafeAreaView
+      className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`}
+      edges={["top"]}
+    >
       <View className="h-appbar-height flex-row items-center px-gutter-screen">
         <Logo size={21} />
       </View>

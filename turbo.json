@@ -1,5 +1,8 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [
+    ".claude/skills/offload-design/tokens/**"
+  ],
   "globalPassThroughEnv": [
     "NODE_ENV",
     "DATABASE_URL",

@@ -1,3 +1,11 @@
+// **This script's inputs live outside this package**, in
+// `.claude/skills/offload-design/tokens/`, and turbo cannot see that on its own:
+// its default inputs are a package's own files. Without
+// `globalDependencies` in `turbo.json` naming that directory, a token change
+// leaves the build looking cached, turbo restores a stale `dist/`, and the apps
+// compile against tokens that no longer match the CSS they were generated from.
+// It cost an hour: `pnpm tokens` wrote the right files and the very next turbo
+// task overwrote them. If this script's sources ever move, move that entry too.
 // Generates design tokens as DATA from the design system's own CSS.
 //
 // Why generated and never hand-copied: OFF-7 says consume the tokens, never

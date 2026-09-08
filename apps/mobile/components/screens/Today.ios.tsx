@@ -91,7 +91,6 @@ export default function Today() {
           ))}
         </View>
       </ScrollView>
-
     </SafeAreaView>
   );
 }

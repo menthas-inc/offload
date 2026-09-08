@@ -18,6 +18,7 @@
     "@expo-google-fonts/literata": "^0.4.3",
     "@offload/tokens": "workspace:^",
     "@offload/widgets": "workspace:^",
+    "@shopify/react-native-skia": "^2.11.2",
     "better-auth": "^1.7.2",
     "expo": "^57.0.18",
     "expo-apple-authentication": "~57.0.1",

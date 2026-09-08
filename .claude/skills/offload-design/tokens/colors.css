@@ -56,6 +56,10 @@
 
   --surface-page:#FAF9F7;
   --surface-raised:var(--paper);
+  /* The phone's bottom plate and a raised conversation: the ground the prism
+     field sits on, and by definition the colour its veil is made of. Kept as
+     one token so the two can never disagree. */
+  --surface-plate:var(--paper);
   --surface-sunken:var(--ink-50);
   --surface-card:var(--paper);
   --surface-fill:var(--ink-100);
@@ -99,7 +103,7 @@
   --text-primary:var(--ink-950);--text-secondary:var(--ink-600);--text-tertiary:#6E6E6E; /* 4.5:1 on every light surface; --ink-400 was 2.55 and failed */
   --text-inverse:var(--paper);--text-accent:var(--moss-600);--text-attention:var(--blue-600);
   --text-on-attention:var(--blue-900);--text-link:var(--ink-950);--text-danger:var(--clay-600);
-  --surface-page:#FAF9F7;--surface-raised:var(--paper);--surface-sunken:var(--ink-50);
+  --surface-page:#FAF9F7;--surface-raised:var(--paper);--surface-plate:var(--paper);--surface-sunken:var(--ink-50);
   --surface-card:var(--paper);--surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);
   --surface-inverse:var(--ink-950);--surface-accent-soft:var(--moss-50);
   --surface-attention-soft:var(--blue-100);--surface-attention:var(--blue-600);
@@ -137,7 +141,9 @@
   --text-inverse:#191919;--text-accent:#82BC97;--text-attention:#95A9F7;
   --text-on-attention:#D6DEFF;--text-link:var(--ink-950);--text-danger:#F28679;
 
-  --surface-page:#1C1B19;--surface-raised:#212121;--surface-card:#212121;--surface-sunken:#101010;
+  --surface-page:#1C1B19;--surface-raised:#212121;
+  --surface-plate:#0F0F11; /* = --prism-veil-rgb; the plate is darker than a card on purpose */
+  --surface-card:#212121;--surface-sunken:#101010;
   --surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);--surface-inverse:var(--ink-950);
   --surface-accent-soft:var(--moss-50);--surface-attention-soft:var(--blue-100);
   --surface-attention:var(--blue-600);--surface-scrim:rgba(0,0,0,0.55);
