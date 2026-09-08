@@ -20,6 +20,7 @@ import {
 import { openState, pkce, sealState, LANDINGS, type Landing } from "../connectors/state.js";
 import { connectorsAvailable, seal, VAULT_NAME } from "../connectors/vault.js";
 import { revokeAndForget } from "../connectors/tokens.js";
+import { confirmPending, declinePending } from "../connectors/tool-calls.js";
 
 function fetchHeaders(request: FastifyRequest): Headers {
   const headers = new Headers();
@@ -232,6 +233,39 @@ export async function connectorRoutes(app: App): Promise<void> {
         );
         return reply.redirect(landingUrl(opened.landing, "failed"));
       }
+    }
+  );
+
+  // A person agreeing to a write offload proposed but did not make.
+  //
+  // **The outward test is run again here**, against live state, because minutes
+  // may have passed since the proposal and a calendar can be shared in them.
+  // Nothing in a pending row has reached Google; this is the only thing that
+  // sends it.
+  app.post(
+    "/api/calendar/pending/:id/:answer",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid(), answer: z.enum(["confirm", "decline"]) }),
+        response: {
+          200: z.object({ ok: z.literal(true) }),
+          401: unauthenticated,
+          404: z.object({ error: z.literal("not_found") }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
+
+      const done =
+        request.params.answer === "confirm"
+          ? await confirmPending(accountId, request.params.id)
+          : await declinePending(accountId, request.params.id);
+
+      // Expired, already answered, or somebody else's. One answer for all
+      // three: a caller who could tell them apart could probe.
+      return done ? reply.send({ ok: true as const }) : reply.status(404).send({ error: "not_found" as const });
     }
   );
 

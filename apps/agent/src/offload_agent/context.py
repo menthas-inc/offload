@@ -63,6 +63,11 @@ class DumpContext:
     # The account's own timezone is not stored yet; when it is, this is the one
     # place that changes.
     today: str | None = None
+    # Whether this account has a calendar connected at all, which decides
+    # whether the calendar tools are sent. Offering create_event to somebody
+    # with no calendar is offering a tool that can only fail, and it costs every
+    # one of them the definitions on every call.
+    has_calendar: bool = False
 
 
 # Resolved through thread_members, which is the only path there is: `threads`
@@ -200,6 +205,9 @@ async def load(
     ).all()
 
     today = (await conn.execute(_TODAY)).scalar_one()
+    has_calendar = bool(
+        (await conn.execute(_HAS_CALENDAR, {"account_id": account_id})).scalar()
+    )
 
     return DumpContext(
         dump=dump_row.text,
@@ -208,6 +216,7 @@ async def load(
         landed=[Filed(title=r.title, thread_name=r.thread_name) for r in landed_rows],
         default_thread_id=default_id,
         today=today,
+        has_calendar=has_calendar,
     )
 
 
@@ -260,6 +269,7 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         landed=ctx.landed,
         default_thread_id=ctx.default_thread_id,
         today=ctx.today,
+        has_calendar=ctx.has_calendar,
     )
 
 
@@ -316,6 +326,22 @@ _PIECES = text(
        and c.archived_at is null
      order by c.created_at desc
      limit :limit
+    """
+)
+
+# Is there a calendar to talk to at all. One row or none; the tools are sent
+# only when there is, so an account with no connector never pays for their
+# definitions and is never offered a tool that can only fail.
+_HAS_CALENDAR = text(
+    """
+    select 1
+      from connector_calendars c
+      join connector_connections n on n.id = c.connection_id
+     where n.account_id = :account_id
+       and n.deleted_at is null
+       and n.state = 'active'
+       and c.selected
+     limit 1
     """
 )
 

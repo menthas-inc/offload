@@ -223,6 +223,13 @@ const result = z.union([
      *  the same as everything else a tool returns. That the model is also being
      *  asked to obey it is the open hole 008 names rather than closes. */
     memories: z.array(z.string()).optional(),
+    /** Rules derived from a connected app rather than from the person.
+     *
+     *  Handed over separately because the prompt tells the model to obey the
+     *  list above, and text that came out of somebody else's calendar event is
+     *  not something to obey. Reference, not instruction. See
+     *  `memoriesForPrompt`. */
+    memoriesFromApps: z.array(z.string()).optional(),
   }),
   /** `list_thread_content`'s answer. Bounded by LIST_PAGE and LIST_ROW_CHARS,
    *  and it re-enters the loop as a tool_result block, which is to say as
@@ -268,6 +275,9 @@ type Outcome =
       threadName: string;
       contentId?: string;
       memories?: string[];
+      /** Rules that came out of a connected app rather than out of the person.
+       *  Reference the model may cite, never an instruction it follows. */
+      memoriesFromApps?: string[];
     }
   | {
       ok: true;
@@ -810,6 +820,7 @@ export async function toolRoutes(app: App): Promise<void> {
             .where("derived_from_message_id", "=", messageId)
             .where("tool_call_id", "=", call.toolCallId)
             .executeTakeFirstOrThrow();
+          const retryMemories = await memoriesForPrompt(thread.id, trx);
 
           return {
             ok: true,
@@ -818,7 +829,8 @@ export async function toolRoutes(app: App): Promise<void> {
             contentId: existing.id,
             // On the retry too. A lost response must not also lose the thread's
             // rules, or a retried filing is the one that ignores them.
-            memories: await memoriesForPrompt(thread.id, trx),
+            memories: retryMemories.rules,
+            memoriesFromApps: retryMemories.fromApps,
           };
         }
 
@@ -848,6 +860,7 @@ export async function toolRoutes(app: App): Promise<void> {
           .where("id", "=", thread.id)
           .execute();
 
+        const filedMemories = await memoriesForPrompt(thread.id, trx);
         return {
           ok: true,
           threadId: thread.id,
@@ -857,7 +870,8 @@ export async function toolRoutes(app: App): Promise<void> {
           // files into it. It has already written the title by now, which is
           // the cost of not putting every thread's memories in the prompt up
           // front; `edit_content` is how it fixes one it got wrong.
-          memories: await memoriesForPrompt(thread.id, trx),
+          memories: filedMemories.rules,
+          memoriesFromApps: filedMemories.fromApps,
         };
         })
       );

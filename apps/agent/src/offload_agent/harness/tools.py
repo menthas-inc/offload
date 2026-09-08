@@ -267,3 +267,122 @@ AUTHOR_ONLY = frozenset({"edit_content", "move_content"})
 # list" made the planner read three threads looking for a shopping list, and all
 # three were recorded as places it had filed things.
 FILING_TOOLS = frozenset({"add_content", "create_thread"})
+
+
+# 012: the calendar. Five tools, and the three that write do not decide whether
+# they are confirmed.
+#
+# **There is no field here for confirmation, on purpose.** Whether a write
+# reaches somebody else is decided on the server, from the event and the
+# calendar, and handed back as a result. Some of what this model reads came out
+# of a calendar somebody else can write into, so a field it could set to skip a
+# confirmation would be the whole defence handed to whoever wrote the event.
+
+
+class ListCalendars(BaseModel):
+    """Which calendars this person has connected."""
+
+
+class FindEvents(BaseModel):
+    """What is on a calendar between two moments."""
+
+    calendar_id: str = Field(min_length=1)
+    # ISO 8601. The model already reasons about dates in the prompt's timezone.
+    from_iso: str = Field(min_length=1, max_length=40)
+    to_iso: str = Field(min_length=1, max_length=40)
+
+
+class CreateEvent(BaseModel):
+    """Put something on a calendar."""
+
+    calendar_id: str = Field(min_length=1)
+    title: str = Field(min_length=1, max_length=200)
+    starts_at: str = Field(min_length=1, max_length=40)
+    ends_at: str = Field(min_length=1, max_length=40)
+    location: str | None = Field(default=None, max_length=200)
+    # Addresses, because that is what an invitation needs. Adding one is what
+    # makes a write reach somebody else, which the server notices.
+    guests: list[str] | None = None
+
+
+class EditEvent(BaseModel):
+    """Change an event that is already there."""
+
+    calendar_id: str = Field(min_length=1)
+    source_ref: str = Field(min_length=1, max_length=400)
+    title: str | None = Field(default=None, max_length=200)
+    starts_at: str | None = Field(default=None, max_length=40)
+    ends_at: str | None = Field(default=None, max_length=40)
+    location: str | None = Field(default=None, max_length=200)
+    # **Read from what they said, never asked as a question.** "Move this week's
+    # standup" is one; "standup is at 3pm from now on" is following. Default to
+    # one: its blast radius is a day, and the other rewrites a year.
+    scope: Literal["one", "following"] = "one"
+
+
+class DeleteEvent(BaseModel):
+    """Take an event off a calendar."""
+
+    calendar_id: str = Field(min_length=1)
+    source_ref: str = Field(min_length=1, max_length=400)
+    scope: Literal["one", "following"] = "one"
+
+
+SCHEMAS.update(
+    {
+        "list_calendars": ListCalendars,
+        "find_events": FindEvents,
+        "create_event": CreateEvent,
+        "edit_event": EditEvent,
+        "delete_event": DeleteEvent,
+    }
+)
+
+_DESCRIPTIONS.update(
+    {
+        "list_calendars": (
+            "The calendars they have connected, with whether you may write to "
+            "each one. Call this before writing if you do not already know the "
+            "calendar id."
+        ),
+        "find_events": (
+            "What is on a calendar between two moments. Use it before saying "
+            "anything about their week, and before moving something, so you "
+            "know what is actually there."
+        ),
+        "create_event": (
+            "Put something on their calendar. If it needs guests, add them and "
+            "say so in your reply: offload will ask them to confirm before "
+            "anybody is emailed."
+        ),
+        "edit_event": (
+            "Change an event. `scope` comes from what they said: 'move this "
+            "week's standup' is one occurrence, 'standup is at 3pm from now on' "
+            "is this one and every one after. When they have not said, it is "
+            "one."
+        ),
+        "delete_event": (
+            "Take an event off a calendar. `scope` works as it does for "
+            "edit_event. Past occurrences are never touched."
+        ),
+    }
+)
+
+# Writing to a calendar is the only thing in this product that leaves offload,
+# so these are not filing and do not belong in FILING_TOOLS.
+CALENDAR_TOOLS = frozenset(
+    {"list_calendars", "find_events", "create_event", "edit_event", "delete_event"}
+)
+
+
+# **Sent only to somebody who has connected a calendar**, which is what keeps
+# the definition budget honest and is also just correct: offering create_event
+# to an account with no calendar is offering a tool that can only fail.
+#
+# `TOOLS` stays the ten every turn carries. These are added beside them when the
+# context says there is a calendar to talk to, which is the shape the budget
+# test measures separately.
+CALENDAR_TOOL_DEFS = [
+    {"name": name, "description": _DESCRIPTIONS[name], "input_schema": _schema_for(SCHEMAS[name])}
+    for name in ("list_calendars", "find_events", "create_event", "edit_event", "delete_event")
+]

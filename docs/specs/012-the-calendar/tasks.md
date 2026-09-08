@@ -45,10 +45,10 @@ feature is inert until credentials exist.
 
 ## E. The model
 
-- [ ] **E1** Five tools, structured per OFF-5, with `scope` and no confirmation field. `AC-9`
-- [ ] **E1a** `connector_pending_writes` and `POST /api/calendar/pending/:id/confirm`, which re-runs the outward test against live state. An outward-facing tool write proposes and never calls Google. `AC-5`, `AC-9`
-- [ ] **E2** The prompt splits memories into rules to follow and untrusted references to cite. `AC-11b`
-- [ ] **E3** `memories.ts` sets `derived_from_untrusted` when a source is an untrusted event. `AC-11a`
+- [x] **E1** Five tools, structured per OFF-5, with `scope` and no confirmation field. `AC-9`
+- [x] **E1a** `connector_pending_writes` and `POST /api/calendar/pending/:id/confirm`, which re-runs the outward test against live state. An outward-facing tool write proposes and never calls Google. `AC-5`, `AC-9`
+- [x] **E2** The prompt splits memories into rules to follow and untrusted references to cite. `AC-11b`
+- [x] **E3** `memories.ts` sets `derived_from_untrusted` when a source is an untrusted event. `AC-11a`
 
 ## F. The clients
 
