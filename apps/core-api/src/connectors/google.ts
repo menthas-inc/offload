@@ -160,3 +160,108 @@ export async function listCalendars(accessToken: string): Promise<GoogleCalendar
     };
   });
 }
+
+/** One occurrence, already flattened. A recurring series arrives expanded,
+ *  exceptions included, because `singleEvents` asks Google to do that work. */
+export interface GoogleEvent {
+  externalId: string;
+  seriesId: string | null;
+  status: "confirmed" | "tentative" | "cancelled";
+  title: string;
+  location: string | null;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  allDay: boolean;
+  timezone: string | null;
+  /** **Did this account write it.** The whole trust decision rests on this:
+   *  an event somebody else organised is untrusted text wherever it sits,
+   *  including on a calendar nobody else can see, because that is what an
+   *  invitation is. Absent reads as not-yours, which fails closed. */
+  organizedByMe: boolean;
+  attendees: Array<{ name: string | null; email: string | null; response: string | null }>;
+}
+
+function whenOf(slot: Record<string, unknown> | undefined): { at: Date | null; allDay: boolean; tz: string | null } {
+  if (!slot) return { at: null, allDay: false, tz: null };
+  const dateTime = slot["dateTime"];
+  const date = slot["date"];
+  const tz = typeof slot["timeZone"] === "string" ? slot["timeZone"] : null;
+  if (typeof dateTime === "string") return { at: new Date(dateTime), allDay: false, tz };
+  // An all-day event is a date, and a date is not midnight anywhere. Parsed as
+  // UTC midnight and flagged, so nothing renders somebody's birthday a day out
+  // for half the planet.
+  if (typeof date === "string") return { at: new Date(`${date}T00:00:00Z`), allDay: true, tz };
+  return { at: null, allDay: false, tz };
+}
+
+export interface EventPage {
+  events: GoogleEvent[];
+  nextSyncToken: string | null;
+}
+
+/** Events in a window, or everything that changed since a sync token.
+ *
+ *  A `410` means the token is too old to be useful, which is not an error: the
+ *  answer is a full re-read, and the caller is told by a null token rather than
+ *  a throw it would have to interpret. */
+export async function listEvents(
+  accessToken: string,
+  calendarId: string,
+  options: { syncToken?: string | null; timeMin?: Date; timeMax?: Date }
+): Promise<EventPage | "resync"> {
+  const events: GoogleEvent[] = [];
+  let pageToken: string | undefined;
+  let nextSyncToken: string | null = null;
+
+  do {
+    const params = new URLSearchParams({ singleEvents: "true", maxResults: "250" });
+    if (options.syncToken) params.set("syncToken", options.syncToken);
+    else {
+      if (options.timeMin) params.set("timeMin", options.timeMin.toISOString());
+      if (options.timeMax) params.set("timeMax", options.timeMax.toISOString());
+    }
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const response = await fetch(
+      `${API}/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`,
+      { headers: { authorization: `Bearer ${accessToken}` } }
+    );
+    if (response.status === 410) return "resync";
+    if (response.status === 401) throw new GrantRevoked();
+    if (!response.ok) throw new Error(`google events.list ${response.status}`);
+
+    const body = (await response.json()) as {
+      items?: Array<Record<string, unknown>>;
+      nextPageToken?: string;
+      nextSyncToken?: string;
+    };
+
+    for (const item of body.items ?? []) {
+      const organizer = (item["organizer"] ?? {}) as Record<string, unknown>;
+      const start = whenOf(item["start"] as Record<string, unknown> | undefined);
+      const end = whenOf(item["end"] as Record<string, unknown> | undefined);
+      events.push({
+        externalId: String(item["id"] ?? ""),
+        seriesId: typeof item["recurringEventId"] === "string" ? item["recurringEventId"] : null,
+        status: (item["status"] as GoogleEvent["status"]) ?? "confirmed",
+        title: String(item["summary"] ?? "Untitled"),
+        location: typeof item["location"] === "string" ? item["location"] : null,
+        startsAt: start.at,
+        endsAt: end.at,
+        allDay: start.allDay,
+        timezone: start.tz,
+        organizedByMe: organizer["self"] === true,
+        attendees: ((item["attendees"] as Array<Record<string, unknown>>) ?? []).map((a) => ({
+          name: typeof a["displayName"] === "string" ? a["displayName"] : null,
+          email: typeof a["email"] === "string" ? a["email"] : null,
+          response: typeof a["responseStatus"] === "string" ? a["responseStatus"] : null,
+        })),
+      });
+    }
+
+    pageToken = body.nextPageToken;
+    nextSyncToken = body.nextSyncToken ?? nextSyncToken;
+  } while (pageToken);
+
+  return { events, nextSyncToken };
+}

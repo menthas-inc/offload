@@ -23,15 +23,15 @@ feature is inert until credentials exist.
 
 ## C. Reading
 
-- [ ] **C1** A Google Calendar client: list calendars, list events in a window with a `syncToken`, handle `410 Gone` as a full re-read.
-- [ ] **C2** The event mapping, including all-day as a date, IANA zone in `attrs`, organiser kept, attendees minimised, `description` dropped. `AC-6`, `AC-11`
-- [ ] **C3** Routing: rules in order, first match, else the calendar's thread. `AC-8`
-- [ ] **C4** `calendar.sync` job: incremental, self-rescheduling, window-bounded, reconciling deletions. `AC-10`
-- [ ] **C5** Never writes a `messages` row, and a test says so. `AC-15`
-- [ ] **C6** The next tick is enqueued before the work runs, with a per-tick idempotency key, and a daily supervisor re-enqueues any active connection with no sync pending. `AC-10`
-- [ ] **C7** A nightly full-window pass, because the delta is not trusted to carry every removal. `AC-10`
-- [ ] **C8** `is_shared` forced back to true whenever Google says the role is no longer owner. `AC-5a`
-- [ ] **C9** `jobs` gains a purge: `done` and `dead` older than thirty days, in the existing sweep.
+- [x] **C1** A Google Calendar client: list calendars, list events in a window with a `syncToken`, handle `410 Gone` as a full re-read.
+- [x] **C2** The event mapping, including all-day as a date, IANA zone in `attrs`, organiser kept, attendees minimised, `description` dropped. `AC-6`, `AC-11`
+- [x] **C3** Routing: rules in order, first match, else the calendar's thread. `AC-8`
+- [x] **C4** `calendar.sync` job: incremental, self-rescheduling, window-bounded, reconciling deletions. `AC-10`
+- [x] **C5** Never writes a `messages` row, and a test says so. `AC-15`
+- [x] **C6** The next tick is enqueued before the work runs, with a per-tick idempotency key, and a daily supervisor re-enqueues any active connection with no sync pending. `AC-10`
+- [x] **C7** A nightly full-window pass, because the delta is not trusted to carry every removal. `AC-10`
+- [x] **C8** `is_shared` forced back to true whenever Google says the role is no longer owner. `AC-5a`
+- [x] **C9** `jobs` gains a purge: `done` and `dead` older than thirty days, in the existing sweep.
 
 ## D. Writing
 

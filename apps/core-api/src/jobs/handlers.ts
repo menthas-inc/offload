@@ -9,6 +9,8 @@ import { deleteMemoriesForThread } from "../threads/memories.js";
 import { resolvePlace } from "../places/resolve.js";
 import type { Mailer } from "../mail/index.js";
 import { env } from "../env.js";
+import { scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
+import { scheduleDaily } from "./queue.js";
 
 export type Handler = (payload: Record<string, unknown>, deps: { mailer: Mailer }) => Promise<void>;
 
@@ -208,7 +210,63 @@ const locationResolve: Handler = async (payload) => {
   );
 };
 
+/** One connection's sync. 012.
+ *
+ *  The next tick is scheduled **before** the work, not after it, so a run that
+ *  fails five times and dies does not take the whole chain with it. See
+ *  `connectors/sync.ts` for the two silent ways this stops otherwise. */
+const calendarSync: Handler = async (payload) => {
+  const connectionId = String(payload["connectionId"] ?? "");
+  if (!connectionId) throw new Error("calendar.sync job has no connectionId");
+
+  await scheduleNextSync(connectionId);
+
+  const started = Date.now();
+  const outcome = await syncConnection(connectionId, payload["full"] === true);
+
+  // Counts and outcomes. Nothing from anybody's calendar (OFF-1).
+  console.log(
+    JSON.stringify({
+      level: "info",
+      msg: "calendar synced",
+      connection_id: connectionId,
+      ...outcome,
+      latency_ms: Date.now() - started,
+    })
+  );
+};
+
+/** The only thing that would notice a sync chain that broke in a way nobody
+ *  predicted. */
+const calendarSupervise: Handler = async () => {
+  await scheduleDaily("calendar.supervise");
+  const restarted = await superviseSyncs();
+  console.log(JSON.stringify({ level: "info", msg: "calendar supervise", restarted }));
+};
+
+/** `jobs` is the one growing table nothing swept.
+ *
+ *  Every other table that grows carries `purge_after` and is swept by
+ *  `content.purge`. A sync every fifteen minutes per connection is about thirty
+ *  five thousand rows a year each, and this is the first job in the product
+ *  that runs forever. */
+const jobsPurge: Handler = async () => {
+  await scheduleDaily("jobs.purge");
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const result = await db
+    .deleteFrom("jobs")
+    .where("state", "in", ["done", "dead"])
+    .where("updated_at", "<", cutoff)
+    .executeTakeFirst();
+  console.log(
+    JSON.stringify({ level: "info", msg: "jobs purged", removed: Number(result.numDeletedRows ?? 0) })
+  );
+};
+
 export const handlers: Record<string, Handler> = {
+  "calendar.sync": calendarSync,
+  "calendar.supervise": calendarSupervise,
+  "jobs.purge": jobsPurge,
   "email.waitlist_joined": waitlistJoined,
   "email.invited": invited,
   "content.purge": contentPurge,

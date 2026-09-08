@@ -23,7 +23,10 @@ export type JobKind =
   | "dump.answer"
   | "thread.quick_add"
   | "content.purge"
-  | "location.resolve";
+  | "location.resolve"
+  | "calendar.sync"
+  | "calendar.supervise"
+  | "jobs.purge";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */
@@ -166,4 +169,41 @@ function scrub(error: unknown): string {
     .replace(/[\w.+-]+@[\w.-]+/g, "[email]")
     .replace(/[a-z][a-z0-9+.-]*:\/\/\S+/gi, "[url]")
     .slice(0, 200);
+}
+
+/** A job that runs once a day, forever.
+ *
+ *  **There is no cron in this product**, and adding one would be a second thing
+ *  that has to be running. The jobs table already does this: a daily job
+ *  re-enqueues itself for tomorrow, and the key carries the day so a boot on a
+ *  second instance, or a restart, collapses into the same row rather than
+ *  stacking duplicates.
+ *
+ *  **Enqueued before the work, never after.** A handler that schedules its own
+ *  next run only on success stops forever the first time it fails, silently,
+ *  which is the trap `connectors/sync.ts` documents at length. */
+export async function scheduleDaily(kind: JobKind, at = new Date()): Promise<void> {
+  const tomorrow = new Date(at.getTime() + 24 * 60 * 60 * 1000);
+  const day = tomorrow.toISOString().slice(0, 10);
+  await enqueue({
+    kind,
+    payload: {},
+    runAfter: tomorrow,
+    priority: PRIORITY.background,
+    idempotencyKey: `${kind}:${day}`,
+    maxAttempts: 3,
+  });
+}
+
+/** Kick the daily chain off at boot, for today rather than tomorrow.
+ *
+ *  Safe to call on every instance and every restart: the key is the day. */
+export async function startDaily(kind: JobKind, at = new Date()): Promise<void> {
+  await enqueue({
+    kind,
+    payload: {},
+    priority: PRIORITY.background,
+    idempotencyKey: `${kind}:${at.toISOString().slice(0, 10)}`,
+    maxAttempts: 3,
+  });
 }
