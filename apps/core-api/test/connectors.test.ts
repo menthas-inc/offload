@@ -9,6 +9,7 @@ import { buildApp, type App } from "../src/app.js";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
+import { superviseSyncs } from "../src/connectors/sync.js";
 
 await migrate(() => {});
 
@@ -22,6 +23,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  await db.deleteFrom("jobs").execute();
   await db.deleteFrom("connector_calendars").execute();
   await db.deleteFrom("connector_connections").execute();
   await db.deleteFrom("accounts").execute();
@@ -128,3 +130,36 @@ describe("AC-8 a calendar that reads has somewhere to put things", () => {
     expect(failed).toBeNull();
   });
 });
+
+describe("the sync supervisor actually runs", () => {
+  it("does not throw against a real database", async () => {
+    // **This is a query, and a query only fails where it is run.** It shipped
+    // comparing `jobs.payload ->> 'connectionId'`, which is text, against a
+    // uuid column, and Postgres refuses that outright. Nothing caught it:
+    // the supervisor is only ever enqueued when the server boots, and a test
+    // suite never boots the server. It failed three times in production
+    // within seconds of the deploy.
+    //
+    // So this asserts the least interesting thing that would have caught it,
+    // which is that the statement is valid SQL against the real schema.
+    await expect(superviseSyncs()).resolves.toBeTypeOf("number");
+  });
+
+  it("re-enqueues a connection with nothing pending", async () => {
+    const owner = await account();
+    await calendar(owner);
+    const before = await queued();
+    await superviseSyncs();
+    expect(await queued()).toBeGreaterThan(before);
+  });
+});
+
+const queued = async (): Promise<number> => {
+  const rows = await db
+    .selectFrom("jobs")
+    .select("id")
+    .where("kind", "=", "calendar.sync")
+    .where("state", "in", ["queued", "running"])
+    .execute();
+  return rows.length;
+};

@@ -227,7 +227,13 @@ export async function superviseSyncs(): Promise<number> {
             // By the connection in the payload, not by the account. An
             // account can hold two connections, and matching on the account
             // would let one queued job vouch for both.
-            .whereRef(sql`jobs.payload ->> 'connectionId'`, "=", "n.id")
+            //
+            // **`::text` on the uuid, not `::uuid` on the payload.** `->>`
+            // yields text and `n.id` is a uuid, and Postgres refuses that
+            // comparison outright: `operator does not exist: text = uuid`.
+            // Casting the other way would throw on any payload whose value is
+            // not a valid uuid, which is a row this query does not control.
+            .where(sql<boolean>`jobs.payload ->> 'connectionId' = n.id::text`)
             .where("jobs.kind", "=", "calendar.sync")
             .where("jobs.state", "in", ["queued", "running"])
         )
