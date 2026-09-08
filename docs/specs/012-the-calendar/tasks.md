@@ -12,9 +12,9 @@ feature is inert until credentials exist.
 
 ## B. Connecting
 
-- [ ] **B1** `/api/connectors/google/start`: its own route, its own client id, its own scopes. Shares no table or hook with Better Auth. `AC-1`, `AC-2a`
-- [ ] **B1a** Signed single-use `state` carrying the session's account and a PKCE verifier, using `attempt.ts`'s seal. Callback compares the account byte for byte. Redirect destination is an enum, never a parameter. `AC-1`
-- [ ] **B2** `/api/connectors/google/callback`: exchange, seal, write the connection, list calendars, default every one to shared. `AC-2`, `AC-3`, `AC-5a`
+- [x] **B1** `/api/connectors/google/start`: its own route, its own client id, its own scopes. Shares no table or hook with Better Auth. `AC-1`, `AC-2a`
+- [x] **B1a** Signed single-use `state` carrying the session's account and a PKCE verifier, using `attempt.ts`'s seal. Callback compares the account byte for byte. Redirect destination is an enum, never a parameter. `AC-1`
+- [x] **B2** `/api/connectors/google/callback`: exchange, seal, write the connection, list calendars, default every one to shared. `AC-2`, `AC-3`, `AC-5a`
 - [ ] **B3** Disconnect, and separately, remove what was filed. Two confirmations, never one. `AC-12`
 - [ ] **B3a** Disconnect revokes at Google before deleting the vault row. `AC-12`
 - [ ] **B3b** Single-flight token refresh, replacing the refresh token rather than assuming it stable. `invalid_grant` is `needs_reauth`, not a retry. `AC-2`

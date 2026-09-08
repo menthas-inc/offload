@@ -19,6 +19,7 @@ import { adminRoutes } from "./routes/admin.js";
 import { dumpRoutes } from "./routes/dumps.js";
 import { internalRoutes } from "./routes/internal.js";
 import { toolRoutes } from "./routes/tools.js";
+import { connectorRoutes } from "./routes/connectors.js";
 import { threadRoutes } from "./routes/threads.js";
 import { wellKnownRoutes } from "./routes/well-known.js";
 
@@ -63,6 +64,7 @@ export async function buildApp(): Promise<App> {
   await app.register(internalRoutes);
   await app.register(toolRoutes);
   await app.register(threadRoutes);
+  await app.register(connectorRoutes);
   await app.register(wellKnownRoutes);
 
   return app;
