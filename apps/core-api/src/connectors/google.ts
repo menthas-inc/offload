@@ -368,7 +368,14 @@ export async function getEvent(
   accessToken: string,
   calendarId: string,
   eventId: string
-): Promise<{ attendees: string[]; seriesId: string | null; startsAt: Date | null } | null> {
+): Promise<{
+  attendees: string[];
+  seriesId: string | null;
+  startsAt: Date | null;
+  /** The series' own rule lines. Needed to end a series without inventing one:
+   *  guessing FREQ=WEEKLY would rewrite a monthly event as a weekly one. */
+  recurrence: string[];
+} | null> {
   try {
     const event = await call(
       accessToken,
@@ -383,6 +390,9 @@ export async function getEvent(
         .filter(Boolean),
       seriesId: typeof event["recurringEventId"] === "string" ? event["recurringEventId"] : null,
       startsAt: when ? new Date(when) : null,
+      recurrence: Array.isArray(event["recurrence"])
+        ? (event["recurrence"] as unknown[]).map(String)
+        : [],
     };
   } catch {
     return null;

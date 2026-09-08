@@ -36,10 +36,10 @@ feature is inert until credentials exist.
 ## D. Writing
 
 - [x] **D1** The outward test, server-side, reading the union of attendees across the edit. One function, both callers. `AC-5`, `AC-5b`
-- [ ] **D2** Create, edit, delete, with recurrence scope as an argument. `AC-7`
-- [ ] **D3** Refuse a write to a calendar you cannot write to, in one line. `AC-4`
-- [ ] **D4** Undo that calls Google first and only then touches the local row, and leaves both alone on failure. `AC-17`
-- [ ] **D5** A calendar Google says you do not own cannot be marked private. `AC-5a`
+- [x] **D2** Create, edit, delete, with recurrence scope as an argument. `AC-7`
+- [x] **D3** Refuse a write to a calendar you cannot write to, in one line. `AC-4`
+- [x] **D4** Undo that calls Google first and only then touches the local row, and leaves both alone on failure. `AC-17`
+- [x] **D5** A calendar Google says you do not own cannot be marked private. `AC-5a`
 - [x] **D6** `undoTurn` excludes `source = 'calendar'` and routes those rows through the Google-first path. A test covers a turn that created an event. `AC-17`
 - [x] **D7** A series split posts the new series before truncating the old, with a deterministic `iCalUID` so a retry recognises its own work. `AC-7`
 
