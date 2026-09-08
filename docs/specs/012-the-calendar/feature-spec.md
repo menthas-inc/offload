@@ -167,11 +167,17 @@ tested here. Recorded rather than discovered.*
 **A default thread per calendar.** "This calendar is Home's." Set in Settings
 when you connect it, changeable after.
 
-**Optional ordered rules**, each matching on an event's title, its attendees or
-its calendar, sending matches to a different thread. First match wins; anything
-unmatched goes to the calendar's default. A calendar with no default and no
-matching rule is read for Today and files nowhere, which is a legitimate state
-for a calendar you want to see but not sort.
+**Optional ordered rules**, each matching on an event's title or its attendees,
+sending matches to a different thread. First match wins; anything unmatched goes
+to the calendar's default.
+
+**A calendar you turn on must name a thread.** There is no "read it but file it
+nowhere": an event offload holds is a `content` row, `content.thread_id` has been
+`not null` since 0008, and every query in the product relies on that. Loosening
+it for one connector, or building a second live read path so an unfiled event
+could still reach Today, are both a lot of machinery to support a state that a
+thread already expresses. A calendar you want to see but not mix in is a calendar
+pointed at a thread of its own.
 
 **Correcting one event is a move, and a move is author-only.** 005 settled that
 deliberately: moving changes who can see something, which makes it a sharing
@@ -296,8 +302,9 @@ this and all following, never a question put to the person. Spoken intent decide
 it; a screen edit defaults to one occurrence and offers the other beside it. No
 past occurrence is ever touched.
 
-**AC-8** A calendar has a default thread and may have ordered rules. First match
-wins. A calendar with neither files nothing and still reaches Today.
+**AC-8** A calendar that is turned on names a thread, and may have ordered rules
+sending some of its events elsewhere. First match wins. A calendar with no thread
+is off.
 
 **AC-9** The model can list, find, create, edit and delete through validated
 tools, and cannot choose whether its own write is confirmed.
@@ -385,6 +392,8 @@ line says the event is still there.
   writes, the tool and the OFF-6 amendment behind them. One spec either way: it
   is a rollout order, not two features.
 
-- **Whether an untied calendar should reach Today at all.** Specified as yes,
-  because seeing your day is the point and filing is the extra. Worth watching:
-  it is the one place an event exists in offload with no thread behind it.
+- **Whether "see it but do not file it" is a state anybody wants.** Answered no,
+  on the grounds that it costs a second read path and a loosened `not null` to
+  express something a thread already expresses. If it turns out people want a
+  calendar visible without a home, that is the moment to reconsider, and the
+  answer would be a real design rather than a nullable column.
