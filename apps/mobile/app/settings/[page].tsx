@@ -14,8 +14,7 @@ import { EditableRow, Group, Row } from "../../components/settings/Rows";
 import { Segmented } from "../../components/settings/Segmented";
 import { useColors } from "../../lib/colors";
 import { saveName, useMe } from "../../lib/me";
-import { setTheme, storedTheme, THEMES, THEME_LABEL, type Theme } from "../../lib/appearance";
-import { useState } from "react";
+import { setTheme, useTheme, THEMES, THEME_LABEL, type Theme } from "../../lib/appearance";
 
 const isAndroid = Platform.OS === "android";
 
@@ -98,7 +97,10 @@ function Account() {
  *  **No text size here**, and that is structural rather than a preference: see
  *  `lib/appearance.ts`. */
 function Appearance() {
-  const [theme, setLocal] = useState<Theme>(() => storedTheme());
+  // The stored preference, not the resolved scheme. Switching Light to System
+  // on a light device changes this and repaints nothing, which is exactly the
+  // case a component reading the scheme would miss.
+  const theme = useTheme();
 
   return (
     <>
@@ -115,10 +117,7 @@ function Appearance() {
           label="Theme"
           options={THEMES.map((value) => ({ value, label: THEME_LABEL[value] }))}
           value={theme}
-          onChange={(next) => {
-            setLocal(next as Theme);
-            setTheme(next as Theme);
-          }}
+          onChange={(next) => setTheme(next as Theme)}
         />
         <Text
           className={`px-space-1 pt-space-3 font-core ${

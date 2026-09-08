@@ -83,10 +83,10 @@ export function useMe(expect: "first-run" | "shell"): MeState {
     const onChanged = (event: Event) => {
       const me = (event as CustomEvent<Me>).detail;
       if (!live || !me) return;
-      // The same guard the fetch above applies. Only a shell-side pane changes
-      // a name today, so this cannot currently fire on the wrong side, but the
-      // redirect rule was enforced in one place and silently skipped in the
-      // other, which is how it stops being true later.
+      // The same guard the fetch above applies. It does fire on the first-run
+      // side: the welcome screen's name-only mode calls `updateName` from this
+      // very hook. What makes that harmless is this early return plus the
+      // `replace("/today")` that follows, not the event being impossible.
       if (stillAsking(me) !== (expect === "first-run")) return;
       setState({ status: "ready", me });
     };

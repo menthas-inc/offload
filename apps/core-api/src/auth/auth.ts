@@ -409,7 +409,24 @@ export const auth = betterAuth({
           // by this point the provider's profile has already been read, so the
           // slot is full. Cheap to repeat: it is one statement that matches
           // nothing once somebody has a name.
-          await backfillName(session.userId, providerName());
+          //
+          // **Guarded for the same reason the line above it is.** Better Auth
+          // does not swallow a throw from an after-hook: it runs them after the
+          // commit and re-throws unless `onAfterCommitHookError` is configured,
+          // which it is not. So a pool timeout on this one UPDATE would take a
+          // sign-in that had already committed and hand the browser a 500, with
+          // the session row sitting in Postgres and no cookie ever reaching the
+          // client. Losing a suggestion costs somebody one line of typing on the
+          // next screen. Losing the sign-in costs them the app.
+          //
+          // Caught here rather than inside `backfillName`, so the function stays
+          // honest for its callers and its tests: a swallowed error there is a
+          // green test that proved nothing.
+          try {
+            await backfillName(session.userId, providerName());
+          } catch {
+            // Best effort. The field is empty and the screen still asks.
+          }
         },
       },
 

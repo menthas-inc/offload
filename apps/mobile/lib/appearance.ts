@@ -22,6 +22,7 @@
 // light. If a second device preference ever needs storing, that is the moment
 // to add a real one.
 
+import { useEffect, useState } from "react";
 import { colorScheme } from "nativewind";
 import * as SecureStore from "expo-secure-store";
 
@@ -69,6 +70,37 @@ export function applyTheme(theme: Theme): void {
   colorScheme.set(theme);
 }
 
+/** Everything showing the preference hears it change.
+ *
+ *  **Not the same thing as the theme repainting.** Classes move through
+ *  NativeWind and props move through `useColors`, and both follow the
+ *  *resolved* scheme. The preference is a third thing: switching Light to
+ *  System on a device that is already light resolves to the same scheme, so
+ *  nothing repaints and nothing re-renders, and the Settings index goes on
+ *  saying "Light" until something unrelated happens. Web solved this with an
+ *  event and its own comment says why; the phone had the same hole. */
+type Listener = (theme: Theme) => void;
+const listeners = new Set<Listener>();
+
+/** The stored preference, kept current. For anything that *displays* the
+ *  choice. Anything that just needs a colour wants `useColors` instead. */
+export function useTheme(): Theme {
+  const [theme, setLocal] = useState<Theme>(() => storedTheme());
+
+  useEffect(() => {
+    const listener: Listener = (next) => setLocal(next);
+    listeners.add(listener);
+    // Re-read on mount: the preference can have changed on another screen
+    // between this component's first render and its effect.
+    setLocal(storedTheme());
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
+
+  return theme;
+}
+
 /** Store it and apply it. */
 export function setTheme(theme: Theme): void {
   try {
@@ -78,4 +110,5 @@ export function setTheme(theme: Theme): void {
     // than one that does and better than one that does not take effect.
   }
   applyTheme(theme);
+  for (const listener of listeners) listener(theme);
 }

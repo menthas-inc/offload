@@ -1244,3 +1244,14 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **Found while adding the third caller rather than decided.** The marketing waitlist input set it, the gate copied it, and 011's name field and settings field copied it again. Each was individually consistent with the field beside it and none of them used the alias that exists for exactly this. Left as ink here, because switching one field to blue would have made the welcome screen's field focus differently from the waitlist field on the same flow, which is a worse outcome than the inconsistency being invisible.
 
 **Design system impact:** one decision needed, not four call sites. Either `--border-focus` becomes ink and the ramp references collapse onto it, or the app moves to blue focus everywhere. Until then every new field re-bakes the same value, which is how a ramp reference spreads.
+
+### 2026-09-07 · A preference is not the same thing as what it resolves to
+**Surface:** mobile
+
+**Is:** the stored theme has its own subscription, `useTheme`, and both settings screens read it through that rather than calling `storedTheme()` at render.
+
+**The Settings index could sit there saying "Light" after somebody chose System.** Classes repaint through NativeWind and React Native props repaint through `useColors`, and both follow the *resolved* scheme. The preference is a third thing, and the two come apart exactly when the choice does not change the outcome: Light to System on a device already in light resolves to the same scheme, so nothing repaints, nothing re-renders, and the row goes on reporting the old answer until something unrelated forces a frame.
+
+**The web already had this and said so.** `apps/web/src/lib/appearance.ts` carries a comment about two components each holding a copy of one stored key being how a screen disagrees with itself. The phone had the identical hole and no such note, which is the two-documents-days-apart shape in a single feature.
+
+**Design system impact:** none visual. Worth one line wherever the design system talks about the appearance control: anything that *displays* a preference subscribes to the preference, and anything that just needs a colour uses the resolved scheme. Those are different reads and only one of them is `useColors`.

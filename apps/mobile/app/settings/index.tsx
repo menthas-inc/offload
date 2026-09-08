@@ -23,12 +23,13 @@ import { Group, Row } from "../../components/settings/Rows";
 import { ToastHost, useToast } from "../../components/shell/Toast";
 import { useColors } from "../../lib/colors";
 import { useMe } from "../../lib/me";
-import { storedTheme, THEME_LABEL } from "../../lib/appearance";
+import { useTheme, THEME_LABEL } from "../../lib/appearance";
 import { signOut, SignOutFailed } from "../../lib/auth";
 
 const isAndroid = Platform.OS === "android";
 
 export default function Settings() {
+  const theme = useTheme();
   const router = useRouter();
   const COLOR = useColors();
   const me = useMe();
@@ -157,7 +158,7 @@ export default function Settings() {
           <Row
             icon="blend"
             title="Appearance"
-            value={THEME_LABEL[storedTheme()]}
+            value={THEME_LABEL[theme]}
             onPress={() => router.push("/settings/appearance")}
           />
           <Row
