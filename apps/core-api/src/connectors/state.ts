@@ -12,8 +12,13 @@
 // person's threads, carrying text they control. 012 spends a whole section on
 // untrusted event text; this is the door it would walk through.
 //
-// So the state is signed, single use by its nonce, short lived, and carries the
-// account it was minted for. The callback compares that against the session it
+// So the state is signed, short lived, unguessable, and carries the account it
+// was minted for. **It is not single use**, and the comment here used to claim
+// it was: nothing records a redeemed nonce, so a state can be presented twice
+// inside its ten minutes. The nonce makes two states unequal, which is what
+// stops one being replayed as another; it does not make either one-shot. What
+// actually bounds a replay is PKCE, since the verifier is needed to exchange
+// the code and Google will not exchange the same code twice. The callback compares that against the session it
 // actually arrives with and refuses a mismatch rather than linking anyway.
 //
 // It also carries the PKCE verifier, so an intercepted authorization code

@@ -333,6 +333,9 @@ const result = z.union([
       // 012. A calendar that is not this account's, or one it may only read.
       "unknown_calendar",
       "read_only",
+      // The person took access away in their Google account. Permanent, so the
+      // model says to reconnect rather than the loop retrying into a wall.
+      "needs_reconnect",
     ]),
   }),
 ]);
@@ -382,6 +385,7 @@ type Outcome =
         | "not_yours"
         | "unknown_calendar"
         | "read_only"
+        | "needs_reconnect"
         | "bad_date"
         | "thread_memory_full";
     };
@@ -595,6 +599,7 @@ async function existing(
       new Date(call.fromIso),
       new Date(call.toIso)
     );
+    if (found === "needs_reconnect") return { ok: false, error: "needs_reconnect" };
     return {
       ok: true,
       events: found.map((e) => ({ sourceRef: e.sourceRef, title: e.title, startsAt: e.startsAt })),

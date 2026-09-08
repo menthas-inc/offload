@@ -144,6 +144,12 @@ export async function upsertEvent(
           occurs_at: eb.ref("excluded.occurs_at"),
           occurs_end_at: eb.ref("excluded.occurs_end_at"),
           attrs: eb.ref("excluded.attrs"),
+          // **Brought back, not just updated.** A row retired by reconciliation
+          // or by a cancellation stays soft-deleted otherwise, so an event that
+          // Google returns again, because a series' end moved back out or the
+          // window shifted, would be updated and still invisible forever.
+          deleted_at: null,
+          purge_after: null,
           updated_at: new Date(),
         }))
     )

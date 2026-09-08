@@ -12,9 +12,9 @@
 
 import { db } from "../db.js";
 import { mapEvent, sourceRefFor } from "./events.js";
-import { listEvents, type EventDraft } from "./google.js";
+import { GrantRevoked, listEvents, type EventDraft } from "./google.js";
 import { outwardLine } from "./outward.js";
-import { accessTokenFor } from "./tokens.js";
+import { accessTokenFor, markNeedsReauth } from "./tokens.js";
 import { performWrite, targetFor, verdictFor, writable, type WriteAction } from "./write.js";
 
 /** How long a proposal is worth confirming. An unconfirmed one changed nothing
@@ -64,11 +64,21 @@ export async function findEvents(
   calendarId: string,
   from: Date,
   to: Date
-): Promise<FoundEvent[]> {
+): Promise<FoundEvent[] | "needs_reconnect"> {
   const target = await targetFor(calendarId, accountId);
   if (!target) return [];
 
-  const token = await accessTokenFor(target.connectionId);
+  let token: string;
+  try {
+    token = await accessTokenFor(target.connectionId);
+  } catch (error) {
+    if (error instanceof GrantRevoked) {
+      await markNeedsReauth(target.connectionId);
+      return "needs_reconnect";
+    }
+    throw error;
+  }
+
   const page = await listEvents(token, target.externalId, { syncToken: null, timeMin: from, timeMax: to });
   if (page === "resync") return [];
 
@@ -83,7 +93,7 @@ export async function findEvents(
 }
 
 export type ToolWriteOutcome =
-  | { kind: "refused"; reason: "unknown_calendar" | "read_only" }
+  | { kind: "refused"; reason: "unknown_calendar" | "read_only" | "needs_reconnect" }
   | { kind: "written"; sourceRef: string | null }
   | { kind: "pending"; pendingId: string; line: string };
 
@@ -100,8 +110,22 @@ export async function writeThroughTool(
   if (!target) return { kind: "refused", reason: "unknown_calendar" };
   if (!writable(target)) return { kind: "refused", reason: "read_only" };
 
-  const token = await accessTokenFor(target.connectionId);
-  const verdict = await verdictFor(target, write, token);
+  // **A revoked grant is an answer, not a crash.** Uncaught it escaped as a
+  // 500, and the planner's loop treats a non-200 as a network blip worth three
+  // retries, so a permanent refusal burned the turn's retries against a dead
+  // connection and never marked it. It is a refusal the model can relay.
+  let token: string;
+  let verdict;
+  try {
+    token = await accessTokenFor(target.connectionId);
+    verdict = await verdictFor(target, write, token);
+  } catch (error) {
+    if (error instanceof GrantRevoked) {
+      await markNeedsReauth(target.connectionId);
+      return { kind: "refused", reason: "needs_reconnect" };
+    }
+    throw error;
+  }
 
   if (!verdict.outward) {
     const done = await performWrite(target, write, verdict);
@@ -115,6 +139,13 @@ export async function writeThroughTool(
       calendar_id: calendarId,
       action: write.action,
       scope: write.action === "create" ? null : write.scope,
+      // **Stored as JSON, so the Dates in it come back as strings.** A
+      // `WriteAction` carries real `Date`s and jsonb has no such type; reading
+      // the row back and casting it returned strings where the write path
+      // calls `.toISOString()`, which threw on every confirmed write with a
+      // time on it. That is the whole point of the confirmation path, and it
+      // crashed at the moment somebody tapped. `reviveWrite` below puts them
+      // back.
       payload: JSON.stringify(write),
       source_ref: write.action === "create" ? null : write.sourceRef,
       expires_at: new Date(Date.now() + PENDING_TTL_MS),
@@ -142,7 +173,8 @@ export async function confirmPending(accountId: string, pendingId: string): Prom
   const target = await targetFor(pending.calendar_id, accountId);
   if (!target || !writable(target)) return false;
 
-  const write = pending.payload as WriteAction;
+  const write = reviveWrite(pending.payload);
+  if (!write) return false;
   const token = await accessTokenFor(target.connectionId);
   const verdict = await verdictFor(target, write, token);
 
@@ -202,6 +234,56 @@ export async function confirmPending(accountId: string, pendingId: string): Prom
   }
 
   return true;
+}
+
+/** Put the `Date`s back after a round trip through jsonb.
+ *
+ *  Checked rather than cast. The row was written by this service and should be
+ *  the right shape, but "should be" is what the cast assumed and it was wrong
+ *  about a type the database cannot store. */
+export function reviveWrite(payload: unknown): WriteAction | null {
+  if (!payload || typeof payload !== "object") return null;
+  const raw = payload as Record<string, unknown>;
+  const at = (value: unknown): Date | null => {
+    if (typeof value !== "string") return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  if (raw["action"] === "create") {
+    const draft = (raw["draft"] ?? {}) as Record<string, unknown>;
+    const startsAt = at(draft["startsAt"]);
+    const endsAt = at(draft["endsAt"]);
+    if (!startsAt || !endsAt) return null;
+    return {
+      action: "create",
+      draft: { ...(draft as unknown as EventDraft), startsAt, endsAt },
+    };
+  }
+
+  if (raw["action"] === "delete") {
+    if (typeof raw["sourceRef"] !== "string") return null;
+    return { action: "delete", sourceRef: raw["sourceRef"], scope: raw["scope"] === "following" ? "following" : "one" };
+  }
+
+  if (raw["action"] === "edit") {
+    if (typeof raw["sourceRef"] !== "string") return null;
+    const patch = { ...((raw["patch"] ?? {}) as Record<string, unknown>) };
+    for (const key of ["startsAt", "endsAt"] as const) {
+      if (patch[key] === undefined) continue;
+      const date = at(patch[key]);
+      if (!date) return null;
+      patch[key] = date;
+    }
+    return {
+      action: "edit",
+      sourceRef: raw["sourceRef"],
+      scope: raw["scope"] === "following" ? "following" : "one",
+      patch: patch as unknown as Partial<EventDraft>,
+    };
+  }
+
+  return null;
 }
 
 export async function declinePending(accountId: string, pendingId: string): Promise<boolean> {

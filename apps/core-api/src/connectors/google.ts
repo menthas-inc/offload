@@ -394,7 +394,13 @@ export async function getEvent(
         ? (event["recurrence"] as unknown[]).map(String)
         : [],
     };
-  } catch {
-    return null;
+  } catch (error) {
+    // **Absent and unreadable are not the same answer**, and collapsing them
+    // was a hole. `call` returns `{}` for a 404 on a delete and throws
+    // otherwise, so anything reaching here is a failure to read rather than an
+    // event that is not there. Returning null told the outward test there were
+    // no attendees, which made an invited event look private and skipped the
+    // confirmation. It throws now and the caller fails closed.
+    throw error;
   }
 }

@@ -149,13 +149,26 @@ export async function connectorRoutes(app: App): Promise<void> {
         const calendars = await listCalendars(tokens.accessToken);
         const primary = calendars.find((c) => c.primary);
 
+        // **No placeholder for the account's identity.** It fell back to the
+        // literal "google", and the unique key is
+        // (account, provider, external_account_email): a second connection that
+        // also had no primary would collide with the first and `onConflict`
+        // would update it in place, silently merging two different Google
+        // accounts into one connection. Refusing is the honest outcome, and it
+        // is close to unreachable, since an account always has a primary
+        // calendar.
+        if (!primary) {
+          console.warn(JSON.stringify({ at: "connectors.callback", outcome: "no_primary" }));
+          return reply.redirect(landingUrl(opened.landing, "failed"));
+        }
+
         await db.transaction().execute(async (tx) => {
           const connection = await tx
             .insertInto("connector_connections")
             .values({
               account_id: accountId,
               provider: "google",
-              external_account_email: primary?.externalId ?? "google",
+              external_account_email: primary.externalId,
               state: "active",
             })
             .onConflict((oc) =>

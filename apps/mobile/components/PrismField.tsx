@@ -41,6 +41,8 @@ import {
   Skia,
   useImage,
   vec,
+  AlphaType,
+  ColorType,
   type SkImage,
 } from "@shopify/react-native-skia";
 import { useColorScheme } from "nativewind";
@@ -129,8 +131,13 @@ function reprofile(
     // Unpremultiplied on the way in and out: scaling alpha on premultiplied
     // pixels darkens the colour with it, which would read as the texture
     // getting muddier toward both edges rather than fading.
-    colorType: 4 as number, // ColorType.RGBA_8888
-    alphaType: 2 as number, // AlphaType.Unpremul
+    //
+    // **The enums, not the numbers.** These were written as literals with the
+    // names in comments and one of them was wrong: `AlphaType.Unpremul` is 3
+    // and 2 is `Premul`, so the code asked for exactly the thing the comment
+    // above says must not happen. A named import cannot drift from its value.
+    colorType: ColorType.RGBA_8888,
+    alphaType: AlphaType.Unpremul,
   };
 
   const pixels = image.readPixels(0, 0, info as never) as Uint8Array | null;

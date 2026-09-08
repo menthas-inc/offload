@@ -79,7 +79,19 @@ export async function verdictFor(
   accessToken: string
 ): Promise<OutwardVerdict> {
   const eventId = write.action === "create" ? null : write.sourceRef.split(":").slice(1).join(":");
-  const existing = eventId ? await getEvent(accessToken, target.externalId, eventId) : null;
+
+  let existing: Awaited<ReturnType<typeof getEvent>> = null;
+  if (eventId) {
+    try {
+      existing = await getEvent(accessToken, target.externalId, eventId);
+    } catch {
+      // **Fail closed.** If the event cannot be read we do not know who is on
+      // it, and guessing "nobody" is the one guess that skips a confirmation.
+      // Treated as outward, so a person decides rather than offload deciding
+      // on their behalf from a failed request.
+      return { outward: true, notify: true, audience: [], reason: "guests" };
+    }
+  }
 
   const attendeesBefore = existing?.attendees ?? [];
   const attendeesAfter =
@@ -148,6 +160,54 @@ export async function performWrite(
       await deleteEvent(accessToken, target.externalId, eventId, verdict.notify);
     }
     return { sourceRef: write.sourceRef, verdict };
+  }
+
+  // **This and all following**: end the old series at this occurrence and
+  // start a new one carrying the change, so no past occurrence moves.
+  //
+  // New series first, then truncate the old, so a failure between the two
+  // calls leaves a visible duplicate rather than a silent hole: a missing
+  // standup is neither obvious nor fixable and a duplicate is both.
+  if (write.scope === "following") {
+    const existing = await getEvent(accessToken, target.externalId, eventId);
+    const seriesId = existing?.seriesId ?? eventId;
+    const series = seriesId === eventId ? existing : await getEvent(accessToken, target.externalId, seriesId);
+
+    if (existing?.startsAt && series?.recurrence.length) {
+      const startsAt = write.patch.startsAt ?? existing.startsAt;
+      const endsAt =
+        write.patch.endsAt ??
+        new Date(startsAt.getTime() + 60 * 60 * 1000);
+
+      await createEvent(
+        accessToken,
+        target.externalId,
+        {
+          title: write.patch.title ?? "Untitled",
+          startsAt,
+          endsAt,
+          location: write.patch.location ?? null,
+          timezone: target.timezone,
+          // The rule the old series carried, with its end removed so the new
+          // one runs on. Read rather than assumed: writing FREQ=WEEKLY because
+          // most things are weekly turns a monthly event into a weekly one.
+          recurrence: series.recurrence,
+        },
+        verdict.notify
+      );
+
+      await patchEvent(
+        accessToken,
+        target.externalId,
+        seriesId,
+        { recurrence: truncate(series.recurrence, existing.startsAt) },
+        verdict.notify
+      );
+
+      return { sourceRef: write.sourceRef, verdict };
+    }
+    // Not a series after all, so there is nothing to split and the occurrence
+    // is the whole event. Falls through to the ordinary patch below.
   }
 
   // An edit of one occurrence is a patch on that instance, and Google records

@@ -37,6 +37,7 @@ feature is inert until credentials exist.
 
 - [x] **D1** The outward test, server-side, reading the union of attendees across the edit. One function, both callers. `AC-5`, `AC-5b`
 - [x] **D2** Create, edit, delete, with recurrence scope as an argument. `AC-7`
+  - *Also checked off early.* Delete honoured `following`; edit ignored it and silently patched one occurrence, so "from now on" meant "today only". Found by review.
 - [x] **D3** Refuse a write to a calendar you cannot write to, in one line. `AC-4`
 - [x] **D4** Undo that calls Google first and only then touches the local row, and leaves both alone on failure. `AC-17`
 - [x] **D5** A calendar Google says you do not own cannot be marked private. `AC-5a`

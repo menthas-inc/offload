@@ -21,6 +21,7 @@ import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { onAnswer } from "../dumps/answers.js";
 import { emit } from "../analytics.js";
+import { targetFor, undoWrite } from "../connectors/write.js";
 
 /** Longer than anything the composer is designed for, and short enough that a
  *  paste cannot run up a bill. Refused before anything is written, and never
@@ -930,6 +931,21 @@ export async function undoTurn(
   accountId: string,
   turnId: string,
 ): Promise<{ undone: boolean } | null> {
+  // **Calendar rows are undone before the transaction, not inside it.**
+  //
+  // Every other row in a turn is undone by a local soft delete, which is why
+  // this is one transaction. A calendar event is not: it already left, so
+  // taking it back is a call to Google, and holding a transaction open across
+  // a round trip to somebody else's API is how a slow third party becomes a
+  // stalled database.
+  //
+  // Google first, and the local row only if that succeeded, so offload and the
+  // calendar never disagree. An event Google refuses to delete keeps its row
+  // and stays in both places, which is the honest outcome: the update below
+  // deliberately excludes `source = 'calendar'`, so nothing here can leave a
+  // row deleted while the event is still on somebody's calendar.
+  await undoCalendarWrites(accountId, turnId);
+
   return db.transaction().execute(async (trx) => {
     const owned = await trx
       .selectFrom("messages")
@@ -1027,6 +1043,47 @@ export async function undoTurn(
 
     return { undone: true };
   });
+}
+
+/** Take back whatever this turn put on a calendar.
+ *
+ *  Best effort, and deliberately so: a failure here leaves both the event and
+ *  its row exactly where they are, and the rest of the turn still undoes. The
+ *  alternative is refusing to undo a dump because Google is down. */
+async function undoCalendarWrites(accountId: string, turnId: string): Promise<void> {
+  const rows = await db
+    .selectFrom("content")
+    .innerJoin("messages", "messages.id", "content.derived_from_message_id")
+    .select(["content.source_ref as sourceRef", "content.attrs as attrs"])
+    .where("messages.turn_id", "=", turnId)
+    .where("content.account_id", "=", accountId)
+    .where("content.source", "=", "calendar")
+    .where("content.deleted_at", "is", null)
+    .where("content.source_ref", "is not", null)
+    .execute();
+
+  for (const row of rows) {
+    if (!row.sourceRef) continue;
+    // `source_ref` is `<calendar external id>:<event id>`, so the calendar it
+    // belongs to is the prefix.
+    const externalId = row.sourceRef.split(":")[0];
+    if (!externalId) continue;
+
+    const calendar = await db
+      .selectFrom("connector_calendars as c")
+      .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+      .select("c.id as id")
+      .where("c.external_id", "=", externalId)
+      .where("n.account_id", "=", accountId)
+      .where("n.deleted_at", "is", null)
+      .executeTakeFirst();
+    if (!calendar) continue;
+
+    const target = await targetFor(calendar.id, accountId);
+    if (!target) continue;
+
+    await undoWrite(target, row.sourceRef).catch(() => undefined);
+  }
 }
 
 export const DUMP_LIMITS = { MAX_DUMP_CHARS, CONVERSATION_GAP } as const;
