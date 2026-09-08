@@ -103,6 +103,13 @@ export function SettingsPane() {
           />
         </Group>
 
+        <Group label="Reaching you">
+          {/* The kit puts Connected apps here, beside Communication. That row
+              is not built, so this group holds one thing rather than waiting
+              for the other. */}
+          <Row icon="link" title="Connected apps" href="/settings/apps" last />
+        </Group>
+
         <Group label="The app">
           <Row
             icon="blend"
