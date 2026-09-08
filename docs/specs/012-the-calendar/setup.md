@@ -4,6 +4,14 @@ Everything in 012 ships inert. The code is there, the boundary is enforced, and
 no screen offers a control that cannot work until the three variables below are
 set. This is what setting them takes.
 
+**Do `docs/tech/google-workspace.md` first.** Everything Google sits under a
+personal Gmail account, and this project is the first thing that will ever be
+submitted for verification. Verification binds to a project, so making it inside
+the `offload.club` organisation costs nothing now and moving it afterwards is
+the expensive order. That document also covers moving sign-in, which is safe and
+changes no credentials, and it is where steps 1 to 4 below are written out in
+full with the organisation in place.
+
 **Its own Google Cloud project, not sign-in's.** Calendar scopes are *sensitive*
 and pull a whole project into a heavier verification review. Sign-in works today
 on basic scopes and must not be able to lose that because a calendar submission
