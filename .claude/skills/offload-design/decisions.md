@@ -1281,3 +1281,22 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **The mark is Google's own file**, from their asset CDN, committed unmodified: an SVG on web and a 512px PNG on the phones, because this app draws icons from generated path data and carries no SVG transformer, so Metro cannot turn an `.svg` into something `Image` can render.
 
 **Design system impact:** `ProviderMark` and `AProviderMark` want the radius to be a property of the asset rather than of the component. Either default it to none and let a caller pass one for a bare square, or take the shape as a prop. Also unresolved and worth a look with the real file in place: Google's terms set a minimum clear space, and whether the 88px box satisfies it is a question for their current spec rather than for either kit.
+
+### 2026-09-08 · The prism field on the phones
+**Surface:** mobile
+
+**Is:** the baked prism texture on two surfaces, frozen at rest, warped for two seconds when offload files something. `PrismField` is a `react-native-skia` runtime shader; the design system's canvas implementation is the reference and the flow field, the alpha rescale and the veil stops are ports of it rather than re-derivations, so the two stay comparable.
+
+**Applied from `handoff/APPLY-2026-09-08-prism.md`.** The five points it said were learned by getting them wrong all hold here: the composite is what has to be symmetric rather than either layer, `--prism-veil-reach` is the only fixed stop, `--surface-plate` is one token for the surface and the veil both, the composer never leaves the plate, and the field is the composer-and-tabs band only.
+
+**Three divergences.**
+
+**The gate mounts its bloom per screen rather than once.** The handoff asks for one field in a `GateShell` around sign-in, the refusal, the tutorial and connect. Those are four Expo Router routes here, and mounting one component across them means a shared navigator whose screens would all have to be transparent. What the rule protects against does not happen regardless: the tutorial, name, consent and connect steps are internal state inside one screen, so moving between them mounts nothing. What is left is a warp when the gate appears and a warp when first run appears, which is what "the screen appearing" means.
+
+**The parallax is handed in rather than listened for.** The web component attaches a capture-phase scroll listener so no screen has to know the field exists. React Native has no equivalent, and the plate lives above the router in `Shell` while the lists live in the tab screens, so the two are in different trees and cannot pass a prop at all. A single Reanimated shared value spans it, written by whatever is scrolling and read by the field, both on the UI thread.
+
+**The field's container is painted rather than transparent.** The handoff has the plate wrapper drop its background for `transparent`; here the plate is painted `--surface-plate` and the field is its first child. The result is the same ground under the same field, and it avoids a transparent plate showing the page through the veil's 86% at the edges.
+
+**And one thing that was not the design at all.** `turbo.json` declared `outputs` for `build` and no `inputs`, while `packages/tokens/src/generate.mjs` reads the design system's token CSS from outside any package. Turbo's default inputs are a package's own files, so it could not see a token change: it called the build cached and restored a stale `dist/` over freshly generated tokens. `pnpm tokens` wrote the right files and the next turbo task overwrote them, so the app compiled against tokens that no longer matched the CSS they came from. The design system is a `globalDependencies` entry now. **That was latent for every token change, not just this one**, and it is the same shape as the generator faults already in this log: a generated artifact failing by doing nothing.
+
+**Design system impact:** two things worth carrying back. `assets/brands/README.md`-style guidance would help for `assets/prism/`: the textures ship as PNG and both clients want WebP, which more than halved them here, partly because the PNGs carry C2PA metadata. And the handoff's step 1 says to replace `.claude/skills/offload-design/` wholesale, which would have deleted thirteen `--wash-*` tokens that seven files in `apps/web` read: the project's `tokens/atmosphere.css` is now the prism tokens alone, while the checked-in one is the marketing atmosphere. The two want different filenames, or the handoff wants a warning.

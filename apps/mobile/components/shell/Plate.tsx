@@ -16,6 +16,7 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
+import { prismShift } from "../../lib/prism-scroll";
 import { useConversation } from "./conversation-context";
 
 const isAndroid = Platform.OS === "android";

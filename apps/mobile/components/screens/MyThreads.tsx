@@ -18,10 +18,11 @@ import {
   ActivityIndicator,
   Platform,
   Pressable,
-  ScrollView,
   Text,
   View,
 } from "react-native";
+import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
+import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Logo } from "../Logo";
@@ -48,6 +49,12 @@ const HEADINGS: Record<string, string> = {
 const OLDER_SHOWN = 3;
 
 export default function MyThreads() {
+  // The field behind the plate slides against this list. On the UI thread, so
+  // it never crosses to JS and never waits on a render.
+  const onScroll = useAnimatedScrollHandler((event) => {
+    prismShift.value = event.contentOffset.y * PRISM_SCROLL_FACTOR;
+  });
+
   const router = useRouter();
   const [groups, setGroups] = useState<ThreadGroup[] | null>(null);
   const [allOlder, setAllOlder] = useState(false);
@@ -133,7 +140,11 @@ export default function MyThreads() {
       {total === 0 ? (
         <QuietEmpty line="Threads appear here on their own, once there is enough in one place to be one." />
       ) : (
-        <ScrollView contentContainerClassName="pt-space-5 pb-space-9">
+        <Animated.ScrollView
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          contentContainerClassName="pt-space-5 pb-space-9"
+        >
           {now.map((thread, i) => (
             <ThreadRow
               key={thread.id}
@@ -213,7 +224,7 @@ export default function MyThreads() {
               </Text>
             </Pressable>
           ) : null}
-        </ScrollView>
+        </Animated.ScrollView>
       )}
 
       <ToastHost state={toast} />
