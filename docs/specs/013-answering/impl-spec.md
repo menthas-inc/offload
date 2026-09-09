@@ -5,20 +5,25 @@
 Three parts, and the middle one is the bulk of the work.
 
 ```
-index      content, memories ──► chunks ──► Voyage 4 ──► halfvec(1024)
-           (write path + backfill)          + tsvector GIN
+0026       readable_content · readable_memories · readable_messages
+           one predicate each, in SQL, read by both planes
 
-read       one SQL view per table, both planes read it
-           search(viewer, query) ──► RRF over vector + text ──► shortlist
+0027       content · memories · messages ──► chunks ──► Voyage 4 ──► halfvec(1024)
+           (write path + backfill)                    + tsvector GIN
+
+read       list_content   one thread, filtered        ─┐
+           list_agenda    a date range, cross-thread   ├─► up to ANSWER_SETS
+           search         RRF over vector + text      ─┘    results
+           account_facts  a typed lookup
 
 answer     dump.answer ──► classify (text only, no retrieval)
                             ├─ note      ──► plan()          (today, unchanged)
                             └─ question  ──► plan_answer()   (read-only tools)
-                                              └─ reply + found[] ids
+                                              └─ reply + found[] results
 ```
 
-Two migrations, one new job kind, one new planner mode, one new field on the
-message payload, and a Voyage client. No new service.
+Two migrations, three embed job kinds, one new planner mode, one new field on
+the message payload, and a Voyage client. No new service.
 
 ## Volume and access
 
@@ -27,9 +32,9 @@ without bound.
 
 | Field | Value |
 | --- | --- |
-| Records per account | Content: 2,000 typical, 20,000 heavy. Memories: 10 per thread, so 400 heavy. |
+| Records per account | Content: 2,000 typical, 20,000 heavy. Memories: 10 per thread, so 400 heavy. Messages: two per dump, so roughly twice content. |
 | Fan-out | Chunks per content row: 1 for almost everything, since a title plus a short body is under 400 tokens. A long note or an article body reaches 5 to 20. Budget 1.4 chunks per row on average. |
-| Growth | 5 to 30 content rows a day for an active account. A heavy two-year account is roughly 20,000 rows and 28,000 chunks, or about 56MB of `halfvec(1024)`. |
+| Growth | 5 to 30 content rows a day for an active account, and about twice that in messages. A heavy two-year account is roughly 20,000 content rows and 40,000 messages, near 84,000 chunks all told, or about 170MB of `halfvec(1024)`. |
 | Read pattern | One search per question. A question is a minority of turns, so this is well under one read per dump today. Two index scans per search, vector and text, both bounded by `SHORTLIST`. |
 | Write pattern | One embed per content create or edit, off the turn, in a job. Bursty on backfill and never again. |
 | Sort and filter | Membership scope, then `deleted_at is null`, then rank. Nothing else orders. |
@@ -46,7 +51,78 @@ relaxed_order` set on the connection that searches, per `001`.
 which `decisions.md` settled: a model or dimension change is then a re-embed and
 not a data loss.
 
-## 0026, the index
+## 0026, the predicate
+
+`001`'s T16, closed here because this is the second reader. **First migration,
+because everything else reads through it**, and moving the existing TypeScript
+onto it while nothing else has changed is what proves the view matches what
+already shipped.
+
+```sql
+create view readable_content as
+select c.*, m.account_id as viewer_account_id
+from content c
+join thread_members m on m.thread_id = c.thread_id
+where m.state = 'accepted' and c.deleted_at is null;
+
+create view readable_memories as
+select mem.*, tm.account_id as viewer_account_id
+from memories mem
+join thread_members tm on tm.thread_id = mem.subject_id
+where mem.scope = 'thread'
+  and tm.state = 'accepted'
+  and mem.superseded_at is null
+  and mem.deleted_at is null
+  and mem.muted_at is null;
+```
+
+**The viewer is a column, not a parameter**, because a view cannot take one.
+Callers filter `where viewer_account_id = :viewer`, which the planner pushes
+down into the membership index. The alternative, a set-returning function, would
+have been opaque to the planner on exactly the query that most needs an index.
+
+```sql
+create view readable_messages as
+select m.*, m.account_id as viewer_account_id
+from messages m
+join conversations c on c.id = m.conversation_id
+where m.deleted_at is null
+  and c.deleted_at is null
+  -- 'queued' is internal and never reaches a client, so it must never reach an
+  -- answer either. A failed turn has nothing worth finding.
+  and m.state in ('seen', 'answered')
+  and m.text is not null;
+```
+
+**A conversation resolves through its owner and nothing else**, which is the
+third predicate and the only simple one. `conversations.account_id` is the whole
+rule: a conversation is never shared, not even the one that filed something into
+a thread you share, because what somebody said while dumping is not part of what
+they shared. It is written as a view anyway, beside the other two, so that
+nobody has to notice it is different in order to get it right.
+
+**Thread scope only, because it is the only scope with a writer.** The table
+allows `account` and `person` and nothing has ever inserted either: 008 built
+thread memories and left the other two for the features that need them. Covering
+them here would be guessing at a predicate for rows that do not exist, which is
+the same DEV-1 call the index section makes in the other direction. The view
+gains a branch when one of them gains a writer.
+
+**Muted memories are excluded**, matching `context.py`, which already filters
+`muted_at is null` where memories reach the model. A muted rule is one somebody
+switched off, and answering from it would contradict the switch.
+
+**This is the predicate that is easy to get wrong, and the view is why it is
+written once.** A thread memory has `account_id is null` by design, so the
+obvious `where account_id = :viewer` returns nothing at all, and the obvious fix
+for returning nothing is to drop the filter.
+
+**The existing TypeScript moves onto these.** `threads/access.ts` and
+`threads/memories.ts` keep their function names and lose their hand-written
+joins. That is the point of the change: not a new reader beside two old ones,
+one predicate with three readers.
+
+## 0027, the index
 
 **The extension first.** `create extension if not exists vector`. Railway's
 Postgres carries pgvector 0.8.6, verified 2026-08-31 and recorded in
@@ -118,74 +194,6 @@ the middle of a long note is otherwise a paragraph with no subject, and "the
 14th to the 17th" embeds near nothing useful. The prefix is not stored in
 `text`; it is added when embedding and when re-embedding, in one function, so
 the two cannot disagree.
-
-## 0027, the predicate
-
-`001`'s T16, closed here because this is the second reader.
-
-```sql
-create view readable_content as
-select c.*, m.account_id as viewer_account_id
-from content c
-join thread_members m on m.thread_id = c.thread_id
-where m.state = 'accepted' and c.deleted_at is null;
-
-create view readable_memories as
-select mem.*, tm.account_id as viewer_account_id
-from memories mem
-join thread_members tm on tm.thread_id = mem.subject_id
-where mem.scope = 'thread'
-  and tm.state = 'accepted'
-  and mem.superseded_at is null
-  and mem.deleted_at is null
-  and mem.muted_at is null;
-```
-
-**The viewer is a column, not a parameter**, because a view cannot take one.
-Callers filter `where viewer_account_id = :viewer`, which the planner pushes
-down into the membership index. The alternative, a set-returning function, would
-have been opaque to the planner on exactly the query that most needs an index.
-
-```sql
-create view readable_messages as
-select m.*, m.account_id as viewer_account_id
-from messages m
-join conversations c on c.id = m.conversation_id
-where m.deleted_at is null
-  and c.deleted_at is null
-  -- 'queued' is internal and never reaches a client, so it must never reach an
-  -- answer either. A failed turn has nothing worth finding.
-  and m.state in ('seen', 'answered')
-  and m.text is not null;
-```
-
-**A conversation resolves through its owner and nothing else**, which is the
-third predicate and the only simple one. `conversations.account_id` is the whole
-rule: a conversation is never shared, not even the one that filed something into
-a thread you share, because what somebody said while dumping is not part of what
-they shared. It is written as a view anyway, beside the other two, so that
-nobody has to notice it is different in order to get it right.
-
-**Thread scope only, because it is the only scope with a writer.** The table
-allows `account` and `person` and nothing has ever inserted either: 008 built
-thread memories and left the other two for the features that need them. Covering
-them here would be guessing at a predicate for rows that do not exist, which is
-the same DEV-1 call the index section makes in the other direction. The view
-gains a branch when one of them gains a writer.
-
-**Muted memories are excluded**, matching `context.py`, which already filters
-`muted_at is null` where memories reach the model. A muted rule is one somebody
-switched off, and answering from it would contradict the switch.
-
-**This is the predicate that is easy to get wrong, and the view is why it is
-written once.** A thread memory has `account_id is null` by design, so the
-obvious `where account_id = :viewer` returns nothing at all, and the obvious fix
-for returning nothing is to drop the filter.
-
-**The existing TypeScript moves onto these.** `threads/access.ts` and
-`threads/memories.ts` keep their function names and lose their hand-written
-joins. That is the point of the change: not a new reader beside two old ones,
-one predicate with three readers.
 
 ## Embedding
 
@@ -455,7 +463,7 @@ a row deleted elsewhere does not render at all. That is AC-5a, and it is the
 same rule `005` set for thread links.
 
 **Where the ids live: `message_content`**, a join table of
-`(message_id, content_id, ord)`, in migration `0027`. Not a jsonb column on
+`(message_id, content_id, ord)`, in `0027`. Not a jsonb column on
 `messages`: a real foreign key means a hard-deleted row cannot leave a dangling
 id behind, and `ord` keeps the order the model chose rather than whatever the
 resolving query returns.
