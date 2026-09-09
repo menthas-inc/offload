@@ -589,3 +589,17 @@ A planner test asserted `after.last_activity_at >= before.last_activity_at` and 
 *This is the `EXPO_OFFLINE=1` lesson again: an error message is worth more than a timeout.*
 
 **Design system impact:** none.
+
+### 2026-09-09 · A view over `table.*` freezes its column list
+
+0026 created `readable_content` as `select content.*, ...`. 0027 added the `search_text` generated column to `content`. The view did not gain it: the star is expanded once, when the view is created, and Postgres holds that list forever.
+
+It surfaced as `column content.search_text does not exist`, from a query reading the view, which is a confusing error precisely because the column plainly does exist on the table it is named after.
+
+**The trap is permanent rather than a one-off**, and that is what makes it worth an entry. Every future migration that adds a column to `content`, `memories` or `messages` leaves these views behind the same way, and the next failure may be quieter: a read that silently cannot see a column it should, rather than an error.
+
+0028 drops and recreates the three. `create or replace` cannot do it, because replace may only append columns and the correct list puts `search_text` before `viewer_account_id`.
+
+**The durable fix is the test, not the migration.** `predicate.test.ts` now asserts each view's column set equals its table's plus exactly `viewer_account_id`, so whoever adds the next column finds out from a red test rather than from production.
+
+**Design system impact:** none.

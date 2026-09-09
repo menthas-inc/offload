@@ -14,6 +14,7 @@
 // TypeScript test would say so.
 
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { sql } from "kysely";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
@@ -284,6 +285,35 @@ describe("AC-2d a conversation resolves through its owner", () => {
       .where("viewer_account_id", "=", bea)
       .execute();
     expect(forBea).toEqual([]);
+  });
+});
+
+describe("the views keep up with the tables they are made of", () => {
+  // A view over `table.*` freezes its column list when it is created. 0027
+  // added `search_text` to content, memories and messages, and the views made
+  // in 0026 did not gain it: reads failed with "column content.search_text does
+  // not exist", named after a table where it plainly does exist.
+  //
+  // 0028 recreates them. This is the guard, so the next migration that adds a
+  // column finds out here instead of in production, where the same mistake can
+  // also be silent rather than loud.
+  it.each([
+    ["content", "readable_content"],
+    ["memories", "readable_memories"],
+    ["messages", "readable_messages"],
+  ])("%s and %s have the same columns", async (table, view) => {
+    const columns = async (name: string) => {
+      const rows = await sql<{ column_name: string }>`
+        select column_name from information_schema.columns
+        where table_schema = current_schema() and table_name = ${name}
+        order by column_name
+      `.execute(db);
+      return rows.rows.map((r) => r.column_name);
+    };
+    const base = await columns(table);
+    const derived = await columns(view);
+    // The view is its table plus exactly the viewer column.
+    expect(derived).toEqual([...base, "viewer_account_id"].sort());
   });
 });
 

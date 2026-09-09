@@ -195,10 +195,17 @@ describe("AC-12 the corpus tables exist and keep chunks apart from vectors", () 
   });
 
   it("indexes the text half on the source rows, not the chunks", async () => {
+    // Base tables only. The readable_* views select `*` from these, so after
+    // 0028 they carry search_text too, which is correct and not what this is
+    // asserting.
     const rows = await sql<{ table_name: string }>`
-      select table_name from information_schema.columns
-      where table_schema = current_schema() and column_name = 'search_text'
-      order by table_name
+      select c.table_name from information_schema.columns c
+      join information_schema.tables t
+        on t.table_schema = c.table_schema and t.table_name = c.table_name
+      where c.table_schema = current_schema()
+        and c.column_name = 'search_text'
+        and t.table_type = 'BASE TABLE'
+      order by c.table_name
     `.execute(db);
     expect(rows.rows.map((r) => r.table_name)).toEqual(["content", "memories", "messages"]);
   });
