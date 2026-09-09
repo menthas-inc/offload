@@ -49,7 +49,8 @@ user-visible until F.
 
 ## F. The reply and the clients
 
-- [ ] **F1** `found` on `messageResponse` and on `currentConversation`, resolved from stored ids at read time through `readable_content`, in the shape `waiting` already uses. `AC-5a`, `AC-6`
+- [ ] **F1** `message_content` join table in `0027`, and `found` on `messageResponse` and on `currentConversation`, resolved from it at read time through `readable_content`. `AC-5a`, `AC-6`
+- [ ] **F1a** `foundFor(messageIds)` resolves the whole conversation tail in one query, as `waitingFor` already does at `dumps.ts:603`. Per message it is 50 queries on every open. `AC-5a`
 - [ ] **F2** Test: a row ticked elsewhere reads as ticked in an old reply; a row deleted elsewhere does not render. `AC-5a`
 - [ ] **F3** Web: `found` under the reply in `Conversation`, as `WRow` with `check` and the thread name in `meta`. `AC-5`, `AC-6`
 - [ ] **F4** Phones: the same list, in the thread page's row shape. `AC-5`, `AC-6`

@@ -290,11 +290,24 @@ found: z.array(z.object({
 }))
 ```
 
-**Stored as ids on the turn and resolved on read**, exactly as `waiting` is
-resolved by `waitingFor(messageIds)`. The row is read from `readable_content` at
-the moment the conversation is fetched, so a row ticked elsewhere reads as
-ticked here and a row deleted elsewhere does not render at all. That is AC-5a,
-and it is the same rule `005` set for thread links.
+**Stored as ids and resolved on read**, exactly as `waiting` is resolved by
+`waitingFor(messageIds)`. The row is read from `readable_content` at the moment
+the conversation is fetched, so a row ticked elsewhere reads as ticked here and
+a row deleted elsewhere does not render at all. That is AC-5a, and it is the
+same rule `005` set for thread links.
+
+**Where the ids live: `message_content`**, a join table of
+`(message_id, content_id, ord)`, in migration `0027`. Not a jsonb column on
+`messages`: a real foreign key means a hard-deleted row cannot leave a dangling
+id behind, and `ord` keeps the order the model chose rather than whatever the
+resolving query returns.
+
+**Resolved in one query for the whole tail, not per message.** `waitingFor`
+already takes `messageIds` and returns a map, and `dumps.ts:603` calls it once
+with all 50 rows of a conversation page for exactly this reason. `foundFor`
+takes the same shape. Written per message it is 50 queries on every conversation
+open, which is the kind of thing that looks fine on an account with four
+messages in it.
 
 **Ticking one is the existing endpoint**, unchanged, with its own per-row Undo.
 Not `undoTurn`: the model wrote nothing and a person tapped a checkbox.
