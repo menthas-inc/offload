@@ -320,3 +320,133 @@ describe("the reads go through the predicate rather than restating it", () => {
     expect((await search(ana, { query: "Old news" })).rows).toEqual([]);
   });
 });
+
+describe("search reads memories and conversations, and does not draw them", () => {
+  async function conversation(accountId: string) {
+    const row = await db
+      .insertInto("conversations")
+      .values({ account_id: accountId })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    return row.id;
+  }
+
+  async function message(
+    conversationId: string,
+    accountId: string,
+    role: "person" | "offload",
+    text: string,
+  ) {
+    const row = await db
+      .insertInto("messages")
+      .values({
+        conversation_id: conversationId,
+        account_id: accountId,
+        role,
+        turn_id: uuidv7(),
+        text,
+        state: "answered",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    return row.id;
+  }
+
+  it("finds a standing rule and keeps it out of the rows", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await db
+      .insertInto("memories")
+      .values({
+        scope: "thread",
+        subject_id: lisbon,
+        account_id: ana,
+        kind: "standing",
+        text: "Ana always books aisle seats",
+        origin: "stated",
+      })
+      .execute();
+
+    const found = await search(ana, { query: "aisle" });
+    // A memory has no checkbox, so it informs the sentence and is not a row.
+    expect(found.rows).toEqual([]);
+    expect(found.asides?.map((a) => a.kind)).toEqual(["memory"]);
+    expect(found.asides?.[0].text).toContain("aisle seats");
+    expect(found.asides?.[0].threadName).toBe("Lisbon trip");
+  });
+
+  it("says whether offload or the person said a message", async () => {
+    // The distinction the prompt turns on. Offload's own earlier reply is a
+    // record of what was said and evidence of nothing else about the world;
+    // without the label, one wrong answer becomes a source for the next.
+    const ana = await account();
+    const chat = await conversation(ana);
+    await message(chat, ana, "offload", "I filed the ferry booking under Istanbul");
+
+    const found = await search(ana, { query: "ferry" });
+    expect(found.asides?.map((a) => a.who)).toEqual(["offload"]);
+  });
+
+  it("prefers the content row over the message it was written from", async () => {
+    const ana = await account();
+    const istanbul = await thread(ana, "Istanbul trip");
+    const chat = await conversation(ana);
+    const dump = await message(chat, ana, "person", "airbnb in Beyoglu, 3rd to the 7th");
+    await db
+      .insertInto("content")
+      .values({
+        thread_id: istanbul,
+        account_id: ana,
+        title: "airbnb in Beyoglu",
+        type: "note",
+        derived_from_message_id: dump,
+      })
+      .execute();
+
+    const found = await search(ana, { query: "Beyoglu" });
+    // The row still exists in a thread and can be ticked; the message is only
+    // provenance, so returning both would be one answer twice.
+    expect(found.rows.map((r) => r.title)).toEqual(["airbnb in Beyoglu"]);
+    expect(found.asides ?? []).toEqual([]);
+  });
+
+  it("never reads another account's conversation", async () => {
+    const ana = await account();
+    const bea = await account();
+    const shared = await thread(ana, "Lisbon trip");
+    await db
+      .insertInto("thread_members")
+      .values({ thread_id: shared, account_id: bea, state: "accepted" })
+      .execute();
+
+    const chat = await conversation(ana);
+    await message(chat, ana, "person", "book the flat for the 14th");
+
+    // A conversation is never shared, including the one that filed into a
+    // thread they both use.
+    const forBea = await search(bea, { query: "flat" });
+    expect(forBea.asides ?? []).toEqual([]);
+  });
+
+  it("skips a muted memory, matching what the model already sees", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await db
+      .insertInto("memories")
+      .values({
+        scope: "thread",
+        subject_id: lisbon,
+        account_id: ana,
+        kind: "standing",
+        text: "Ana always books aisle seats",
+        origin: "stated",
+        muted_at: sql`now()`,
+      })
+      .execute();
+
+    // A muted rule is one somebody switched off. Answering from it contradicts
+    // the switch, and context.py already filters it where memories reach a
+    // prompt, so the two agree.
+    expect((await search(ana, { query: "aisle" })).asides ?? []).toEqual([]);
+  });
+});

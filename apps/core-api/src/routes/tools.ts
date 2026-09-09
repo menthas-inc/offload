@@ -363,6 +363,18 @@ const result = z.union([
           occursAt: z.string().nullable(),
         })
       ),
+      /** Read, and not drawn. A memory has no checkbox and half a conversation
+       *  is not an answer, so these inform the sentence and go no further. */
+      asides: z
+        .array(
+          z.object({
+            kind: z.enum(["memory", "message"]),
+            who: z.enum(["you", "offload", "a member"]),
+            threadName: z.string().nullable(),
+            text: z.string(),
+          })
+        )
+        .optional(),
     }),
   }),
   z.object({
@@ -465,6 +477,14 @@ type Outcome =
           dueAt: string | null;
           occursAt: string | null;
         }[];
+        asides?:
+          | {
+              kind: "memory" | "message";
+              who: "you" | "offload" | "a member";
+              threadName: string | null;
+              text: string;
+            }[]
+          | undefined;
       };
     }
   | {
@@ -652,6 +672,7 @@ async function existing(
         threadId: result.threadId,
         threadName: result.threadName,
         truncated: result.truncated,
+        asides: result.asides,
         rows: result.rows.map((row) => ({
           contentId: row.id,
           threadId: row.threadId,

@@ -37,7 +37,7 @@ user-visible until F.
 - [x] **D1b** `matching` narrows within the thread over the same `search_text` index, so an existence check reads the rows that mention the word rather than a truncated page of the whole thread. `AC-4b`
 - [x] **D1c** `list_agenda(from_iso, to_iso, when, type?, done?)` with `when` in `due`, `occurs`, `created`. Cross-thread, no thread id, read through `readable_content`. `AC-15`
 - [x] **D1d** Test: an agenda range over a shared thread returns what another member timed. Author scoping would silently pass every single-account test. `AC-15`, `AC-2b`
-- [ ] **D1e** Conversations join the corpus: `search` covers `readable_messages`, and a message and the content it became dedup to the content row. `AC-2d`
+- [x] **D1e** Conversations join the corpus: `search` covers `readable_messages`, and a message and the content it became dedup to the content row. `AC-2d`
 - [x] **D2** `SHORTLIST`, `ANSWER_RESULTS`, `ANSWER_ROW_CHARS`, `ANSWER_SETS`, `CHUNK_TOKENS` as named constants in one place. `AC-8`
 - [x] **D2a** Test: a filtered read matching two rows returns two, and nothing pads it. `AC-5`
 - [ ] **D3** Test: the prompt built for a 20,000 row account is the same size as the one built for a 20 row account. The OFF-8 test, and the one that fails if a cap is ever made dynamic. `AC-8`
@@ -87,8 +87,8 @@ user-visible until F.
 
 - [ ] **G1** Tick `001`'s T16, and update its query table so the search row names the chunk table it actually uses. DEV-2.
 - [ ] **G2** Design log entry covering **two** divergences, with **Design system impact** filled in: a checkbox that does something, and a done state the kits draw as opacity and both shipping components reject. The impact field says what the ticked fill and border are, since that is what the kits have to catch up on.
-- [ ] **G3** Confirm, without editing, that the privacy policy's Voyage line still covers what is now embedded, which after this includes memories **and conversations, offload's own replies among them**. It says "the text being indexed", which reads as already true; the check is the point, since a widening of what gets embedded is how a true line goes false from a distance.
-- [ ] **G4** No query text and no row text in any log, event or trace. Counts, latencies and outcomes only, and `assertNoContent` does not catch a short phrase on its own. `AC-10`
+- [ ] **G3** **Needs a decision, and it is not mine.** The Voyage row's purpose column reads "Turns what you upload into something searchable". Content and memories are things a person uploaded, so that holds. **Offload's own replies are not**, and they are now embedded, because "why did you file that in Lisbon" is answerable only from the reply. The "what we send" column, "the text being indexed", stays true either way. Either the purpose column widens, or offload's replies come out of the corpus and that question stops being answerable. It says "the text being indexed", which reads as already true; the check is the point, since a widening of what gets embedded is how a true line goes false from a distance.
+- [x] **G4** No query text and no row text in any log, event or trace. Counts, latencies and outcomes only, and `assertNoContent` does not catch a short phrase on its own. `AC-10`
 
 ## What is needed from the product owner
 

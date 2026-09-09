@@ -49,6 +49,23 @@ export interface FoundRow {
   createdAt: string;
 }
 
+/** Something read that is not a content row.
+ *
+ *  A memory is a standing rule about a thread and a message is what somebody
+ *  said while dumping. Both can answer a question and **neither is a row to
+ *  draw**: a memory has no checkbox and rendering half a conversation back at
+ *  somebody is not an answer. They reach the model and stop there.
+ *
+ *  `who` is load bearing on a message. Half of a conversation is offload's own
+ *  output, and a past reply that was wrong is otherwise indistinguishable from
+ *  something a person stated. */
+export interface Aside {
+  kind: "memory" | "message";
+  who: "you" | "offload" | "a member";
+  threadName: string | null;
+  text: string;
+}
+
 export interface Result {
   threadId: string | null;
   threadName: string | null;
@@ -56,6 +73,8 @@ export interface Result {
    *  never say "no", which is what AC-4b turns on. */
   truncated: boolean;
   rows: FoundRow[];
+  /** Empty for the two filtered reads, which look only at content. */
+  asides?: Aside[];
 }
 
 interface RawRow {
@@ -308,10 +327,16 @@ export async function search(accountId: string, options: SearchOptions): Promise
       `.execute(db)
     : { rows: [] as { id: string }[] };
 
+  // Read before the early return below. A question whose answer lives in a
+  // standing rule matches no content at all, and returning nothing there would
+  // have made "what did I tell you about this thread" unanswerable while
+  // looking like an empty corpus.
+  const asides = await asidesFor(accountId, options);
+
   const ranked = fuse([text.rows.map((r) => r.id), vector.rows.map((r) => r.id)]);
   const wanted = ranked.slice(0, ANSWER_RESULTS + 1);
   if (wanted.length === 0) {
-    return { threadId: null, threadName: null, truncated: false, rows: [] };
+    return { threadId: null, threadName: null, truncated: false, rows: [], asides };
   }
 
   const rows = await db
@@ -344,7 +369,73 @@ export async function search(accountId: string, options: SearchOptions): Promise
     threadName: null,
     truncated: paged.truncated,
     rows: paged.rows.map(toRow),
+    asides,
   };
+}
+
+/** How many memories and messages an answer may read. Small on purpose: they
+ *  inform a sentence rather than being the answer, and every one of them is
+ *  prompt that competes with the rows. */
+export const ASIDES = 5;
+
+/** Memories and conversations, searched by text and by meaning.
+ *
+ *  Separately from content rather than fused with it, because they are not
+ *  ranked against each other in any meaningful way: a standing rule and a task
+ *  answer different halves of a question, and interleaving them by score would
+ *  push rows out of a list to make room for context.
+ */
+async function asidesFor(accountId: string, options: SearchOptions): Promise<Aside[]> {
+  const memories = await sql<{ text: string; thread_name: string | null }>`
+    select m.text as text, t.name as thread_name
+    from readable_memories m
+    left join threads t on t.id = m.subject_id
+    where m.viewer_account_id = ${accountId}::uuid
+      and m.deleted_at is null and m.superseded_at is null and m.muted_at is null
+      and m.search_text @@ websearch_to_tsquery('simple', ${options.query})
+    order by ts_rank(m.search_text, websearch_to_tsquery('simple', ${options.query})) desc,
+             m.updated_at desc
+    limit ${ASIDES}
+  `.execute(db);
+
+  // A message and the content it became are near duplicates, since the row was
+  // written from the text. The content row wins: it still exists in a thread
+  // and it can be ticked, while the message is only provenance. So messages are
+  // read for what is NOT in a row, which is mostly offload's own replies and
+  // the reasoning around a filing.
+  const messages = await sql<{ text: string; role: "person" | "offload" }>`
+    select m.text as text, m.role as role
+    from readable_messages m
+    where m.viewer_account_id = ${accountId}::uuid
+      and m.deleted_at is null
+      and m.state in ('seen', 'answered')
+      and m.text is not null
+      and m.search_text @@ websearch_to_tsquery('simple', ${options.query})
+      and not exists (
+        select 1 from content c
+        where c.derived_from_message_id = m.id and c.deleted_at is null
+      )
+    order by ts_rank(m.search_text, websearch_to_tsquery('simple', ${options.query})) desc,
+             m.created_at desc
+    limit ${ASIDES}
+  `.execute(db);
+
+  return [
+    ...memories.rows.map((row) => ({
+      kind: "memory" as const,
+      who: "a member" as const,
+      threadName: row.thread_name,
+      text: row.text.slice(0, ANSWER_ROW_CHARS),
+    })),
+    ...messages.rows.map((row) => ({
+      kind: "message" as const,
+      // The distinction the prompt turns on: offload's earlier reply is a
+      // record of what was said and evidence of nothing else about the world.
+      who: row.role === "offload" ? ("offload" as const) : ("you" as const),
+      threadName: null,
+      text: row.text.slice(0, ANSWER_ROW_CHARS),
+    })),
+  ];
 }
 
 export interface AccountFacts {
