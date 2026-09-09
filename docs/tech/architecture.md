@@ -82,7 +82,7 @@ The composer is a tool surface, not a chat. The design system puts it plainly: a
 ## Boundaries and ownership
 
 - **Core API owns** the canonical schema, migrations, and the encryption boundary. It is the only writer of canonical tables.
-- **Agent plane owns** every Claude call, prompt versions, model routing, retrieval and transcription. It reads through read-models and writes derived artifacts through the Core API.
+- **Agent plane owns** every Claude call, prompt versions, model routing, retrieval and transcription. It reads through read-models and writes derived artifacts through the Core API, **with one exception, added by 013 and named here so it does not read as a violation later: the three chunk tables.** A chunk is not an artifact anybody authored, it is an index of a row, and the sweep rebuilds it from that row whenever it is missing or stale. The one-writer rule protects content from two authorities disagreeing about it; nothing here can disagree, because the row is the truth and the chunk is a cache of it. Everything a person could read or lose still goes through the Core API.
 - **Authorization is owned by neither plane, it is owned by the database.** One writer is not enough: the agent plane reads directly for retrieval and prompt assembly, so a predicate implemented in the Core API alone would be reimplemented in Python and would drift. The account-or-accepted-membership rule is defined once as a SQL view and both planes read through it. See `docs/specs/001-data-model/impl-spec.md`.
 - **Worker owns** ingestion and scheduled work, and holds no credentials of its own: connected-app tokens stay in the Core API's vault and are used through it.
 - **Clients own** the outbox, optimistic state and the undo window.
