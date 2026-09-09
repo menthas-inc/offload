@@ -191,14 +191,15 @@ because it only ever draws one thread's rows.
 
 **There is no mock for this screen.** `find-kit.sh` finds no search or answer
 kit, which makes this one of the few screens that has to be designed rather than
-matched. The nearest things in the kits are real and should be read before
-building: `WPalette` already opens with "Type a command, or ask offload
-something", so the design anticipated asking, and it already puts a quiet
-right-aligned hint on each result saying what kind it is. `WRow` carries
-a `meta` line under the title, which is where the thread name goes. Its `check`
-is a bordered span with no behaviour, so a genuinely tickable row in a reply is a
-divergence and gets a `decisions.md` entry with the Design system impact filled
-in.
+matched. `WPalette` already opens with "Type a command, or ask offload
+something", so the design anticipated asking.
+
+The rows come from the **shipping** components, `ContentRowView` on web and
+`ContentRow` on the phones, rather than from the kits: both already carry a
+contract `WRow` has never had, including a done state the kits draw as opacity
+and both of them reject outright. Two things here are genuinely new and each
+gets a design log entry, because a tickable row exists nowhere yet and neither
+does one that says which thread it came from.
 
 ### Not built
 
@@ -248,7 +249,13 @@ per-row Undo rather than the turn Undo.
 elsewhere reads as changed in the old reply, and a row deleted elsewhere does not
 render as still present.
 
-**AC-6** Every row in an answer says which thread it is in and links to it.
+**AC-6** Every row in an answer is shown under a link to the thread it is in,
+and the link is the thread chip a reply already uses rather than a line of
+text.
+
+**AC-6a** An answer offers no way to destroy anything. Ticking is the only
+write a result row can do: no delete, no archive, no rename, and no swipe or
+long press that reaches them. Answering is reading.
 
 **AC-7** A device preference is not answerable and offload says so plainly.
 Theme and text size live on the device by design and the server has never held

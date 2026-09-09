@@ -279,16 +279,18 @@ in a shared thread that may not be the asker.
 **`found`, a fourth field on the message payload**, beside `threads`, `changed`
 and `waiting`.
 
-```ts
-found: z.array(z.object({
-  contentId: z.string(),
-  threadId: z.string(),
-  threadName: z.string(),
-  title: z.string(),
-  type: contentType,
-  doneAt: z.string().nullable(),
-}))
-```
+**It carries whole `ContentRow` values, not a thin projection.** The first draft
+of this spec invented a six-field row and it was wrong: both clients already
+have a production row component with a contract, and a row missing `body`,
+`author`, `canDelete` and `filingAt` renders visibly thinner than the same row
+on the thread page. Two row shapes is two designs. So `found` is
+`Array<ContentRow & { threadId, threadName }>`, the same type
+`apps/web/src/lib/threads.ts` and `apps/mobile/lib/threads.ts` already export.
+
+*This does not widen what OFF-8 bounds.* `ANSWER_ROW_CHARS` caps what reaches
+the model. `found` is an ordinary API response to the person's own client,
+already bounded at `ANSWER_RESULTS`, and it is allowed to be as complete as any
+other row the thread page draws.
 
 **Stored as ids and resolved on read**, exactly as `waiting` is resolved by
 `waitingFor(messageIds)`. The row is read from `readable_content` at the moment
@@ -314,24 +316,122 @@ Not `undoTurn`: the model wrote nothing and a person tapped a checkbox.
 Permission is re-checked server-side at the tap, which the endpoint already
 does, so a search result that has gone stale is refused rather than trusted.
 
+**And it invalidates like a dump does.** `Composer.tsx` already hands
+`onFiled(threadIds)` down so a screen showing one of those threads updates
+itself instead of going stale. A tick that starts in a reply fires the same
+thing, or on web the thread pane open beside the conversation keeps showing the
+row unticked.
+
 ## The clients
 
-No mock exists, which `find-kit.sh` confirms and which makes this the rare screen
-designed rather than matched. Two precedents in the kits are read first:
-`WPalette` for the quiet right-aligned hint naming what a result is, and `WRow`
-for the row itself, whose `meta` line carries the thread name.
+**There is no mock.** `find-kit.sh` finds no search or answer kit, so this is
+one of the few screens designed rather than matched. That makes the decisions
+below the ones most likely to move once there is one, and they are written to be
+easy to move.
 
-**Web** renders `found` under the reply text in `Conversation`, as `WRow` with
-`check` and `meta={threadName}`. **The phones** render the same list with the
-row shape the thread page uses.
+### The real components, on both platforms
 
-**One divergence to log.** `WRow`'s `check` is a bordered span with no
-behaviour, because in the kits nothing was ever tickable. A real checkbox inside
-a reply is code leading design, so it appends one entry to the design log with
-Design system impact filled in.
+`ContentRowView` on web (`apps/web/src/components/panes/ContentRowView.tsx`) and
+`ContentRow` on the phones (`apps/mobile/components/shell/ContentRow.tsx`). Not
+`WRow`.
+
+*Worth saying why, because the first draft got it wrong in a way that reads as
+parity and is not.* It sent web to `WRow`, a kit mockup that has never been
+wired to state, and the phones to their real production component. Those are two
+different provenances, so the platforms would have converged by luck at best.
+`WRow` has no filing spinner, no author-conditional delete, no archived
+treatment and no done state at all. The kits are where this is checked against a
+design; they are not where the shipping component comes from when one already
+exists.
+
+### The thread each row lives in
+
+`AC-6` needs every row to say which thread it is in **and link to it**. Three
+things make the obvious answer wrong:
+
+- `WRow`'s `meta` is plain text. It cannot be a link.
+- `meta` is already load-bearing. `ContentRowView` documents it as carrying who
+  and when, and dates, tags and places in a widget. Overwriting it with a thread
+  name drops the author, which matters here more than anywhere else: `AC-2b`
+  means an answer row in a shared thread can be somebody else's.
+- The product already has a thread link, and it is not a meta line. It is the
+  moss chip, `.threadLink` in `composer.module.css` and the matching
+  `Pressable` on the phones, which is what a reply already uses to name the
+  threads a dump landed in.
+
+**So the rows are grouped by thread, under that existing chip.** Reply text,
+then a chip per thread, then that thread's rows beneath it. One link per thread
+rather than one per row, every row unambiguously under the thread it belongs to,
+the chip is a control the person already knows, and neither row component
+changes. `meta` keeps its job.
+
+### Below the bubble, not inside it
+
+An offload turn is a 92% width bubble with `padding: var(--space-4)
+var(--space-5)` and `border-radius: 18px 18px 18px 5px`. Everything rendered
+inside one until now has been a small fixed control: 012's confirmation, and the
+thread chips.
+
+**A list of full rows is not that, and putting one inside the bubble breaks its
+geometry.** A pane row's hover and selected fill deliberately bleeds to the
+pane's padded edge with `margin: 0 calc(-1 * var(--space-5))`, which is exactly
+the bubble's own horizontal padding, so the fill would cancel it and run under
+an 18px rounded corner. Beyond the corner it is the wrong shape anyway: a
+scrollable list of up to twenty interactive rows living inside what is
+structurally a chat message.
+
+So `found` renders in its own block **below** the reply bubble, at the
+conversation column's full width, where a row is the shape it already is
+everywhere else.
+
+**`ANSWER_ROWS_INLINE = 8`.** Past that the block ends with the count and the
+thread chip, and the rest is read in the thread. Twenty rows is a reasonable
+amount to hand a model and an unreasonable amount to end a sentence with.
+
+### Read only, so the row's other affordances come off
+
+`ContentRow` attaches its own `Gesture.Pan` for swipe to delete and a
+`Gesture.LongPress` for the actions sheet. Both are wrong here, twice over:
+
+- **Answering is reading.** Ticking is the one write. Delete, rename and archive
+  do not belong on an answer.
+- **The conversation is itself a drag.** `Conversation.tsx` is a gesture-driven
+  sheet that folds and raises on pan, and nesting a row's horizontal pan inside
+  it is a conflict this repository has no reason to trust untested.
+
+Both rows take a `readOnly` prop that omits the gestures and the tools. **This
+needs checking on a real device on both platforms**, and it is on the list
+rather than assumed, because the kits cannot show a gesture any more than they
+can show a keyboard.
+
+### The done state, and the two divergences
+
+`WRow`'s `check` is a bordered span with no behaviour, and `WThing` draws a
+completed row at `opacity: 0.5`. **Both real components already reject the
+second**, in a comment written into each: never opacity, because dimming a row
+on a warm page reads as a rendering fault and takes the label under the contrast
+floor. They use the moss fill, tertiary ink and a strikethrough instead.
+
+So the design log entry covers **two** divergences, not one: a checkbox that
+does something, and a done state the kits do not have. The Design system impact
+field says what the ticked fill and border are, since that is the part the kits
+have to catch up on.
+
+### Accessibility
+
+- **The phones' checkbox has `accessibilityRole` and `accessibilityState` and no
+  `accessibilityLabel`**, today, on the thread page. It announces "checkbox, not
+  checked" with no idea what it belongs to. That is fixed here rather than
+  reused: the label names the row, and in an answer it names the thread too.
+- **Web has to build the semantics from scratch**, since nothing shipped has a
+  tickable row: `role="checkbox"`, `aria-checked`, focusable, space to toggle.
+- **The tap target is sized independently of the box.** The phones reach 45px
+  from a 21px box with `hitSlop={12}`; web's needs padding that grows the target
+  without growing the mark.
 
 Empty `found` renders nothing at all, not an empty state: the sentence is the
 answer.
+
 
 ## Constitution check
 

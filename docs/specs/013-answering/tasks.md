@@ -52,16 +52,22 @@ user-visible until F.
 - [ ] **F1** `message_content` join table in `0027`, and `found` on `messageResponse` and on `currentConversation`, resolved from it at read time through `readable_content`. `AC-5a`, `AC-6`
 - [ ] **F1a** `foundFor(messageIds)` resolves the whole conversation tail in one query, as `waitingFor` already does at `dumps.ts:603`. Per message it is 50 queries on every open. `AC-5a`
 - [ ] **F2** Test: a row ticked elsewhere reads as ticked in an old reply; a row deleted elsewhere does not render. `AC-5a`
-- [ ] **F3** Web: `found` under the reply in `Conversation`, as `WRow` with `check` and the thread name in `meta`. `AC-5`, `AC-6`
-- [ ] **F4** Phones: the same list, in the thread page's row shape. `AC-5`, `AC-6`
+- [ ] **F3** `found` carries whole `ContentRow` values plus `threadId` and `threadName`, the type both clients already export. A six-field projection renders visibly thinner than the same row on the thread page. `AC-5`
+- [ ] **F4** Both clients render `found` in its own block **below** the reply bubble, grouped by thread under the existing thread chip. Not inside the bubble: a pane row's fill bleeds by exactly the bubble's horizontal padding and would run under its 18px corner. `AC-5`, `AC-6`
+- [ ] **F4a** Web uses `ContentRowView` and the phones use `ContentRow`, the shipping components. Not `WRow`, which has never been wired to state. `AC-5`
+- [ ] **F4b** `ANSWER_ROWS_INLINE = 8`; past that the block ends with the count and the thread chip. `AC-8`
+- [ ] **F4c** A `readOnly` row: no swipe to delete, no long press sheet, no row tools. Removes the destructive affordances **and** the pan gesture nested inside the conversation's own drag sheet. Verified on a real device on both platforms, because the kits cannot show a gesture. `AC-6a`
+- [ ] **F4d** The done state is the real one, moss fill and tertiary ink and a strikethrough, never the kits' opacity, which both components already reject in a written comment. `AC-5`
+- [ ] **F4e** Accessibility: an `accessibilityLabel` on the phones' checkbox, which is missing today on the thread page and is fixed rather than reused; `role="checkbox"`, `aria-checked` and space to toggle on web; and a tap target sized independently of the mark, 44px minimum. `AC-5`
 - [ ] **F5** Ticking from a reply calls the existing endpoint, re-checks permission server-side at the tap, and undoes by the ordinary per-row Undo. Not `undoTurn`. `AC-5`
+- [ ] **F5a** A tick from a reply fires the same invalidation a dump does, so a thread pane open beside the conversation on web does not keep showing the row unticked. `AC-5a`
 - [ ] **F6** Empty `found` renders nothing. The sentence is the answer.
 - [ ] **F7** `dead-classes.mjs` and `dead-css.mjs` run with the rest. A class that does not exist is invisible to every other gate.
 
 ## G. The record
 
 - [ ] **G1** Tick `001`'s T16, and update its query table so the search row names the chunk table it actually uses. DEV-2.
-- [ ] **G2** Design log entry for the tickable row in a reply, with **Design system impact** filled in: `WRow`'s `check` is presentational in the kits and is real here.
+- [ ] **G2** Design log entry covering **two** divergences, with **Design system impact** filled in: a checkbox that does something, and a done state the kits draw as opacity and both shipping components reject. The impact field says what the ticked fill and border are, since that is what the kits have to catch up on.
 - [ ] **G3** Confirm, without editing, that the privacy policy's Voyage line still covers what is now embedded. It says "the text being indexed", which reads as already true; the check is the point, since a widening of what gets embedded is how a true line goes false from a distance.
 - [ ] **G4** No query text and no row text in any log, event or trace. Counts, latencies and outcomes only, and `assertNoContent` does not catch a short phrase on its own. `AC-10`
 
