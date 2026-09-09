@@ -31,9 +31,11 @@ the new truth, and the design system is updated to match on the next sync.
 
 `--text-on-solid` is #FFFFFF in both themes and exists for exactly these fills. It was never exposed to the phones, so there was no way to reach it. It is `onBrand` now.
 
-Two call sites were wrong. The answer row's tick, which is new. And `Conversation.tsx`'s Done mark, which drew its glyph with `onSolid` and its label with `text-text-on-solid`, so **one control disagreed with itself in dark**, a white word beside a near-black tick. The web stylesheet had `var(--text-on-solid)` right all along, so this is a parity fix rather than a new decision.
+Three call sites were wrong. The answer row's tick, which is new. And `Conversation.tsx`'s Done mark, which drew its glyph with `onSolid` and its label with `text-text-on-solid`, so **one control disagreed with itself in dark**, a white word beside a near-black tick. The web stylesheet had `var(--text-on-solid)` right all along, so this is a parity fix rather than a new decision.
 
-**Design system impact:** none to the tokens, which were already right. Worth knowing that a phone component reaching for "white on a fill" needs `onBrand` and that `onSolid` means the inverse surface.
+And `settings/Rows.tsx`'s Save, which the answering pass named as the twin of 8a's defect and left for the next settings change. It is worse than the twin: on Android the fill is `bg-blue-600`, which does not flip, while both the label and the spinner used tokens that do, so **"Save" was near-black on blue in dark**. Two fills need two foregrounds, and it has them now. The iOS branch also moves off the ramp value to `--surface-inverse`, which is what 8a asked for.
+
+**Design system impact:** none to the tokens, which were already right. Worth knowing that a phone component reaching for "white on a fill" needs `onBrand` and that `onSolid` means the inverse surface. The rule to carry: a fill that flips takes a foreground that flips, a brand fill takes one that does not, and a control drawing one of each per platform needs both.
 
 ### 2026-09-09 · Answering, applied, and one divergence on the failure line
 **Surface:** web, iOS, Android

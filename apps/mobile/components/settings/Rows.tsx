@@ -253,15 +253,28 @@ export function EditableRow({
         <Pressable
           onPress={() => void save()}
           disabled={saving}
+          // **Two fills, and they need two foregrounds.** Android's is blue, a
+          // brand colour that is the same in both themes, so what sits on it has
+          // to be too: `--text-on-solid`. iOS draws the inverse surface, which
+          // does flip, so its foreground flips with it.
+          //
+          // Written as one pair for both, the Android control put near-black on
+          // blue in dark, label and spinner together. This is 8a's ramp-value
+          // defect, in the twin the answering pass named and left alone.
           className={`min-h-tap-min items-center justify-center rounded-pill px-space-6 ${
-            isAndroid ? "bg-blue-600" : "bg-ink-950"
+            isAndroid ? "bg-blue-600" : "bg-surface-inverse"
           }`}
           accessibilityRole="button"
         >
           {saving ? (
-            <ActivityIndicator color={COLOR.onSolid} />
+            <ActivityIndicator color={isAndroid ? COLOR.onBrand : COLOR.onSolid} />
           ) : (
-            <Text className="font-core font-medium text-text-inverse" style={{ fontSize: 15 }}>
+            <Text
+              className={`font-core font-medium ${
+                isAndroid ? "text-text-on-solid" : "text-text-inverse"
+              }`}
+              style={{ fontSize: 15 }}
+            >
               Save
             </Text>
           )}
