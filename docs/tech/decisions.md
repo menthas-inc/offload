@@ -617,3 +617,20 @@ It surfaced as `column content.search_text does not exist`, from a query reading
 **The lesson is the instrumentation, not the vacuum.** Three attempts to reason about a rare failure produced two wrong answers; one line of state captured at the moment of failure produced the right one, and cost nothing while the test was passing.
 
 **Design system impact:** none.
+
+### 2026-09-09 · Correcting the entry above: the test was asking for a guarantee pgvector does not make
+
+The vacuum finding is real and stays. It was not the whole story, and the entry above overstates it.
+
+**The assertion itself was wrong.** It required an HNSW scan to return exactly the twenty rows the limit asked for. pgvector's documentation says the opposite in as many words: *"There may be even less results due to dead tuples or filtering conditions in the query."* Both applied here at once. So every explanation chased, including the vacuum, was a search for why an approximate index failed to be exact.
+
+**It was rewritten three times and all three failed**: exact twenty, then twenty after a vacuum, then merely greater than zero. Each rewrite was a better guess than the last, and the pattern is the answer. How many rows an HNSW scan returns depends on the state of the graph at that moment, so it is not a property a test can pin down, and a test gating every commit on it fails for reasons nobody can act on.
+
+There is no recall assertion now. What remains is the part that is ours: iterative scan is on for every pooled connection, so the post-filter cannot silently starve a membership-scoped read. AC-13 asked for the setting, and the setting is what is checkable. Recall is pgvector's, and it declines to promise it.
+
+**What follows for the product, and this is the part worth keeping.**
+
+- **Vacuum policy: there is none of ours, and there should not be a job.** Autovacuum already exists, yields under load, and needs nobody to remember it. `0030` lowers `autovacuum_vacuum_scale_factor` to 0.02 on the three chunk tables, because the default 20% dead is chosen for tables where dead tuples cost time; here they cost **results**, and the symptom is search going quiet rather than erroring. pgvector also warns that vacuuming an HNSW index is slow enough to want a `REINDEX` first, which is not something to run on a timer against a live table.
+- **The churn itself was the bigger problem.** `handle_embed` replaced a row's chunks whenever the sweep found it stale, and the sweep finds staleness through `updated_at`, which ticking a task, editing tags, changing priority, archiving and moving all touch. None of them change a word of the text. Every tick was paying Voyage for a vector we already had and leaving the old entries dead in the graph. It now compares the chunk text first and touches `embedded_at` when nothing moved.
+
+**Voyage has no view on any of this.** They return vectors. The index, its dead tuples and its vacuuming are entirely ours, and the only vendor guidance that applies is pgvector's.

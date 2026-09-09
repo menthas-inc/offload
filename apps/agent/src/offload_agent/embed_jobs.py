@@ -97,6 +97,47 @@ async def handle_embed(job: ClaimedJob, *, cfg: Config, engine, http: httpx.Asyn
             await finish(conn, job.id)
             return
 
+        # **Nothing to do if the text did not change.**
+        #
+        # The sweep finds work by comparing `updated_at`, and almost everything
+        # touches that: ticking a task, editing tags, changing priority,
+        # archiving, moving. None of them change a word of the text. Replacing
+        # the chunks anyway pays Voyage for a vector we already have and leaves
+        # the old entries dead in the HNSW graph, where an iterative scan walks
+        # them and returns fewer rows, or none at all.
+        #
+        # So a tick costs one comparison rather than an embedding.
+        existing = (
+            (
+                await conn.execute(
+                    text(
+                        f"""
+                        select ord, text, model, embedded_at
+                        from {chunk_table} where {id_column} = :id order by ord
+                        """
+                    ),
+                    {"id": row_id},
+                )
+            )
+            .mappings()
+            .all()
+        )
+
+        unchanged = (
+            len(existing) == len(pieces)
+            and all(r["model"] == MODEL and r["embedded_at"] is not None for r in existing)
+            and all(r["text"] == p.text for r, p in zip(existing, pieces, strict=True))
+        )
+        if unchanged:
+            # Touched rather than rebuilt, so the sweep stops finding it.
+            await conn.execute(
+                text(f"update {chunk_table} set embedded_at = now() where {id_column} = :id"),
+                {"id": row_id},
+            )
+            await finish(conn, job.id)
+            log.info("embed unchanged", kind=job.kind, chunks=len(pieces))
+            return
+
         # Replace rather than merge. A row whose body changed has different
         # chunk boundaries, and a partial overwrite would leave orphans from the
         # old split that still match a search.
