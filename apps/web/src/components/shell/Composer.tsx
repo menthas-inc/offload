@@ -25,10 +25,14 @@ import {
   sendDump,
   undoTurn,
   type Answer,
+  type FoundResult,
+  type FoundRow,
   type MessageState,
   type TouchedThread,
 } from "../../lib/dump";
 import { Icon } from "../Icon";
+import { AnswerResults } from "./AnswerResult";
+import { completeContent } from "../../lib/threads";
 import { Logo } from "../Logo";
 import { FILL_COMPOSER } from "../panes/Today";
 import styles from "../../app/(shell)/composer.module.css";
@@ -58,6 +62,12 @@ interface Turn {
    *  text: a sentence saying it did something is exactly what this exists to
    *  check rather than to trust. */
   did?: boolean;
+  /** What an answer showed.
+   *
+   *  Only ever set on an answering turn, and empty on a dump. Resolved by the
+   *  server on every read, so a row ticked or deleted elsewhere is never stale
+   *  inside a reply from last week. */
+  found?: FoundResult[];
 }
 
 interface Undoable {
@@ -178,6 +188,7 @@ export function Composer({
                   text: answer.reply,
                   turnId,
                   threads: answer.threads,
+                  found: answer.found,
                 },
               ]
             : next;
@@ -225,6 +236,44 @@ export function Composer({
 
   /** Nothing landed, so there is nothing to resume. Put the text back where
    *  they can see it. */
+  /** Tick a row from inside an answer.
+   *
+   *  The ordinary per-row endpoint, not the turn Undo: the model wrote nothing
+   *  and a person tapped a checkbox. Permission is re-checked on the server at
+   *  the tap, so a result that has gone stale is refused rather than trusted.
+   *
+   *  Optimistic, and put back if the server refuses. A checkbox that waits for
+   *  a round trip before moving reads as broken on a slow connection, and this
+   *  is the one write an answer can do.
+   */
+  async function tick(turnId: string, row: FoundRow): Promise<void> {
+    const next = !row.done;
+    const apply = (done: boolean) =>
+      setTurns((current) =>
+        current.map((turn) =>
+          turn.id === turnId
+            ? {
+                ...turn,
+                found: turn.found?.map((result) => ({
+                  ...result,
+                  rows: result.rows.map((r) =>
+                    r.contentId === row.contentId ? { ...r, done } : r,
+                  ),
+                })),
+              }
+            : turn,
+        ),
+      );
+
+    apply(next);
+    const ok = await completeContent(row.contentId, next);
+    if (!ok) apply(row.done);
+    // The thread pane beside this one is now stale. The same invalidation a
+    // dump fires, for the same reason: a screen already showing that thread
+    // updates itself instead of quietly disagreeing with the answer.
+    else onFiled([row.threadId]);
+  }
+
   function retry(messageId: string): void {
     const failed = turns.find((turn) => turn.id === messageId);
     if (!failed) return;
@@ -382,7 +431,8 @@ export function Composer({
                 ) : null}
               </div>
             ) : (
-              <div key={turn.id} className={styles.turnOffload}>
+              <div key={turn.id} className={styles.turn}>
+              <div className={styles.turnOffload}>
                 {turn.text}
                 {/* A calendar write offload has not made yet. Without this the
                     proposal is announced and expires an hour later having done
@@ -415,6 +465,16 @@ export function Composer({
                     ))}
                   </span>
                 ) : null}
+              </div>
+              {/* **Below the bubble, not inside it.** A row's hover fill bleeds
+                  to its pane's padded edge by one space step, and a turn's own
+                  horizontal padding is that same step, so inside a bubble the
+                  two cancel and a square fill runs out under an 18px corner.
+                  012's confirmation stays inside because it is one fixed
+                  control; this is an unbounded list with a surface of its own. */}
+              {turn.found && turn.found.length > 0 ? (
+                <AnswerResults found={turn.found} onToggle={(row) => void tick(turn.id, row)} />
+              ) : null}
               </div>
             ),
           )}

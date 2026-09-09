@@ -23,6 +23,7 @@ import { onAnswer } from "../dumps/answers.js";
 import { emit } from "../analytics.js";
 import { targetFor, undoWrite } from "../connectors/write.js";
 import { waitingFor } from "../connectors/tool-calls.js";
+import { foundFor } from "../search/found.js";
 
 /** Longer than anything the composer is designed for, and short enough that a
  *  paste cannot run up a bill. Refused before anything is written, and never
@@ -112,6 +113,29 @@ const waitingOn = z
   .nullable()
   .optional();
 
+/** The rows an answer showed, grouped as it read them.
+ *
+ *  One read was one result and one result is one card, so the grouping travels
+ *  rather than being reconstructed on the client by guessing from threadId. */
+const foundResults = z.array(
+  z.object({
+    threadId: z.string(),
+    threadName: z.string(),
+    truncated: z.boolean(),
+    rows: z.array(
+      z.object({
+        contentId: z.string(),
+        threadId: z.string(),
+        threadName: z.string(),
+        type: z.string(),
+        title: z.string(),
+        body: z.string().nullable(),
+        done: z.boolean(),
+      })
+    ),
+  })
+);
+
 const messageResponse = z.object({
   id: z.string(),
   conversationId: z.string(),
@@ -124,6 +148,7 @@ const messageResponse = z.object({
    *  it, and a pill saying the dump went there would be untrue. */
   changed: z.array(z.string()),
   waiting: waitingOn,
+  found: foundResults,
 });
 
 /** One screenful. The composer is not a scrollback and the heavy case at 200
@@ -141,6 +166,7 @@ const currentConversation = z.object({
       /** What an Undo would reverse. The whole turn, not this row. */
       turnId: z.string(),
       waiting: waitingOn,
+      found: foundResults,
     })
   ),
 });
@@ -547,6 +573,9 @@ export async function dumpRoutes(app: App): Promise<void> {
         // the next reload. A reply saying offload is waiting, with nothing to
         // answer it, is the dead end this whole change is about.
         waiting: settled ? ((await waitingFor([message.id])).get(message.id) ?? null) : null,
+        // The rows an answer showed, resolved now rather than stored. Empty for
+        // a dump, which files rather than answers.
+        found: settled ? ((await foundFor([message.id], accountId)).get(message.id) ?? []) : [],
       });
     },
   );
@@ -601,6 +630,12 @@ export async function dumpRoutes(app: App): Promise<void> {
       // mid-confirmation comes back to the same question rather than to a reply
       // about a thing that never happened.
       const waiting = await waitingFor(rows.map((row) => row.id));
+      // One query for the whole page, the same shape `waitingFor` takes. Per
+      // message it is fifty queries on every open.
+      const found = await foundFor(
+        rows.map((row) => row.id),
+        accountId,
+      );
 
       return reply.send({
         conversationId: conversation.id,
@@ -611,6 +646,7 @@ export async function dumpRoutes(app: App): Promise<void> {
           state: row.state,
           turnId: row.turn_id,
           waiting: waiting.get(row.id) ?? null,
+          found: found.get(row.id) ?? [],
         })),
       });
     }
@@ -791,6 +827,9 @@ export async function dumpRoutes(app: App): Promise<void> {
               threads: step.threads,
               changed: step.changed,
               waiting: (await waitingFor([message.id])).get(message.id) ?? null,
+              // Arrives with the reply that mentions it, rather than on the
+              // next reload. Same reason the confirmation does.
+              found: (await foundFor([message.id], accountId)).get(message.id) ?? [],
             });
             return finish();
           }

@@ -11,6 +11,22 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-09 · Answering, applied, and one divergence on the failure line
+**Surface:** web, iOS, Android
+**Raised by:** applying `handoff/APPLY-2026-09-09-answering.md`.
+
+**Points 1 to 8a are built as drawn.** The card with the thread as its header, results below the bubble and controls inside it, `shown` at 8 on web and 5 on the phones, the two tails kept exclusive, the done row on tertiary ink with a strike, ticking as the only write, and the checkbox border at `--border-strong`.
+
+**8a found a real one in shipped code.** `Conversation.tsx`'s calendar control drew its filled primary as `bg-ink-950` with `text-text-inverse`. Those resolve to the same pair as `--surface-inverse` and `--text-inverse` do today, which is luck rather than design: a ramp value pairs correctly only for as long as the two happen to flip together. It is the alias now. **`components/settings/Rows.tsx:257` has the identical shape and is untouched**, because it is outside this feature; it should move with the next settings change.
+
+**The truncated tail needed a column.** `message_content` gained `truncated` in 0029. Without it a reply reopened tomorrow forgets which tail it had and offers to expand into rows nobody fetched. It sits on the join row rather than in a table of its own: one read is one thread here, so every row of a result carries the same value.
+
+**Divergence, point 7.3: the failed treatment still applies to an answering turn.** Partial genuinely cannot happen, since an answer posts answered or failed and never partial. Failed can, and offload never leaves a dead end: a question that failed needs the same sentence and the same Try again a dump gets. The copy stays as it is because the message is saved either way.
+
+**Not built: `QuickReplies`.** Points 9 to 11 are the shape 014 should land in and the brief says they do not block 013.
+
+**Design system impact:** none outstanding for this pass. The kits already carry the parts; what is left is the settings primary named above, which is code's to move.
+
 ### 2026-09-09 · Answering has no mock, and three things the kits cannot express
 **Surface:** web, iOS, Android
 **Raised by:** building 013. The server half is complete and the clients are deliberately not started.

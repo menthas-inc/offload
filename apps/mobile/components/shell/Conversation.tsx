@@ -36,6 +36,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
+import { AnswerResults } from "./AnswerResult";
 import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
@@ -412,8 +413,9 @@ function Mark({
 function Theirs({ turn }: { turn: Turn }) {
   const COLOR = useColors();
   const router = useRouter();
-  const { fold } = useConversation();
+  const { fold, tickFound } = useConversation();
   return (
+    <View className="self-stretch">
     <View
       className={`px-space-5 py-space-4 ${isAndroid ? "bg-a-c" : "bg-ink-50"}`}
       style={{
@@ -470,6 +472,24 @@ function Theirs({ turn }: { turn: Turn }) {
             </Pressable>
           ))}
         </View>
+      ) : null}
+    </View>
+
+      {/* **Below the bubble, not inside it.** A row's press fill bleeds to its
+          pane's padded edge by one space step, which is a turn's own padding,
+          so inside a bubble the two cancel and a square fill runs out under a
+          rounded corner. The calendar proposal stays inside because it is one
+          fixed control acting on the sentence; this is a list with a surface of
+          its own. */}
+      {turn.found && turn.found.length > 0 ? (
+        <AnswerResults
+          found={turn.found}
+          onToggle={(row) => void tickFound(turn.id, row)}
+          onOpenThread={(threadId) => {
+            fold();
+            router.push({ pathname: "/threads/[id]", params: { id: threadId } });
+          }}
+        />
       ) : null}
     </View>
   );
@@ -554,8 +574,12 @@ function Waiting({ turn }: { turn: Turn }) {
         <Pressable
           onPress={() => void answer("confirm")}
           disabled={busy}
+          // `bg-surface-inverse`, not `bg-ink-950`. They resolve to the same
+          // colour today, and that is luck rather than design: a filled primary
+          // written as a ramp value pairs with `text-inverse` only for as long
+          // as the two happen to flip together. The alias is the pair.
           className={`min-h-tap-min items-center justify-center rounded-pill px-space-6 ${
-            isAndroid ? "bg-blue-600" : "bg-ink-950"
+            isAndroid ? "bg-blue-600" : "bg-surface-inverse"
           }`}
           accessibilityRole="button"
         >

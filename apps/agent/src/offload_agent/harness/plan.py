@@ -100,12 +100,16 @@ class Outcome:
     #: something failed is not a finished turn even when the model wrote a
     #: confident sentence about it.
     failed: list[str] = field(default_factory=list)
-    #: Content ids an answer showed, in the order the reads returned them.
+    #: What an answer showed, one entry per read.
     #:
-    #: Ids and nothing else. The reply resolves them when it is read, so a row
-    #: ticked or deleted afterwards is never stale inside an old answer, which
-    #: is the rule 005 already set for thread links.
-    found: list[str] = field(default_factory=list)
+    #: Ids and one flag, never row content. The reply resolves the rows when it
+    #: is read, so a row ticked or deleted afterwards is never stale inside an
+    #: old answer, which is the rule 005 already set for thread links.
+    #:
+    #: `truncated` travels because the two tails are different: more in hand
+    #: expands in place, and a read that hit its page has no rest to expand
+    #: into, so the tail is the thread instead.
+    found: list[dict] = field(default_factory=list)
 
     @property
     def finished(self) -> bool:
@@ -412,10 +416,19 @@ async def _run(
             # never from the sentence, and an answer's rows are the same rule.
             result = body.get("result") if isinstance(body, dict) else None
             if isinstance(result, dict):
-                for row in result.get("rows", []):
-                    content_id = row.get("contentId")
-                    if content_id and content_id not in outcome.found:
-                        outcome.found.append(content_id)
+                ids = [
+                    row["contentId"]
+                    for row in result.get("rows", [])
+                    if isinstance(row, dict) and row.get("contentId")
+                ]
+                if ids:
+                    outcome.found.append(
+                        {
+                            "threadId": result.get("threadId"),
+                            "truncated": bool(result.get("truncated")),
+                            "contentIds": ids,
+                        }
+                    )
 
             # `landed` is what the reply is checked against, so it holds only
             # what was actually put somewhere. A successful read or tick is not

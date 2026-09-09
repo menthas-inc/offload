@@ -68,7 +68,18 @@ const body = z.discriminatedUnion("outcome", [
      *  deleted afterwards is never stale inside an old answer, which is the
      *  rule 005 already set for thread links: they come from the ids and never
      *  from parsing the sentence. */
-    found: z.array(z.string().uuid()).max(60).optional(),
+    found: z
+      .array(
+        z.object({
+          threadId: z.string().uuid().nullable(),
+          /** The read hit its page, so the tail is the thread rather than a
+           *  Show more that would expand into rows nobody fetched. */
+          truncated: z.boolean(),
+          contentIds: z.array(z.string().uuid()).max(20),
+        })
+      )
+      .max(3)
+      .optional(),
     usage,
   }),
   z.strictObject({
@@ -268,6 +279,7 @@ export async function internalRoutes(app: App): Promise<void> {
             .executeTakeFirstOrThrow();
 
           if (result.outcome === "answered" && result.found?.length) {
+            const ids = result.found.flatMap((r) => r.contentIds);
             // Membership-checked again on the way in. The ids came from a read
             // that was already scoped, and re-checking costs one query and
             // removes the need to trust that.
@@ -275,13 +287,24 @@ export async function internalRoutes(app: App): Promise<void> {
               .selectFrom("readable_content as content")
               .select("content.id as id")
               .where("content.viewer_account_id", "=", accountId)
-              .where("content.id", "in", result.found)
+              .where("content.id", "in", ids)
               .where("content.deleted_at", "is", null)
               .execute();
             const allowed = new Set(readable.map((r) => r.id));
-            const rows = result.found
-              .filter((id) => allowed.has(id))
-              .map((id, ord) => ({ message_id: reply.id, content_id: id, ord }));
+
+            // `ord` runs across the whole answer rather than restarting per
+            // result, so the order the model read things in survives a regroup.
+            let ord = 0;
+            const rows = result.found.flatMap((found) =>
+              found.contentIds
+                .filter((id) => allowed.has(id))
+                .map((id) => ({
+                  message_id: reply.id,
+                  content_id: id,
+                  ord: ord++,
+                  truncated: found.truncated,
+                })),
+            );
             if (rows.length > 0) {
               await trx.insertInto("message_content").values(rows).execute();
             }

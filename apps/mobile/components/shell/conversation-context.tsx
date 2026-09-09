@@ -25,9 +25,12 @@ import {
   resumeDump,
   sendDump,
   undoTurn,
+  type FoundResult,
+  type FoundRow,
   type MessageState,
   type TouchedThread,
 } from "../../lib/dump";
+import { completeContent } from "../../lib/threads";
 import { failed } from "../../lib/log";
 
 export interface Turn {
@@ -46,6 +49,12 @@ export interface Turn {
    *  something once you confirm, with nothing to confirm, is the dead end this
    *  exists to close: the proposal expires in an hour having done nothing. */
   waiting?: { id: string; because: string } | null;
+  /** What an answer showed.
+   *
+   *  Only ever set on an answering turn, and empty on a dump. Resolved by the
+   *  server on every read, so a row ticked or deleted elsewhere is never stale
+   *  inside a reply from last week. */
+  found?: FoundResult[];
 }
 
 interface Live {
@@ -76,6 +85,8 @@ export interface Conversation {
    *  Local only: the server already knows, and re-fetching the conversation to
    *  learn something this client just decided is a round trip for nothing. */
   resolveWaiting: (turnId: string) => void;
+  /** Tick a row from inside an answer. The only write an answer can do. */
+  tickFound: (turnId: string, row: FoundRow) => Promise<void>;
   /** What the turn wrote to, so an open thread can catch up on its own. */
   filed: { threadIds: string[]; at: number } | null;
 }
@@ -106,6 +117,50 @@ export function ConversationProvider({
       ),
     );
   }, []);
+  /** Tick a row an answer showed.
+   *
+   *  The ordinary per-row endpoint, not the turn Undo: the model wrote nothing
+   *  and a person tapped a checkbox. Permission is re-checked on the server at
+   *  the tap, so a result that has gone stale is refused rather than trusted.
+   *
+   *  Optimistic, and put back if the server refuses. A checkbox that waits for
+   *  a round trip before it moves reads as broken on a slow connection.
+   */
+  const tickFound = useCallback(async (turnId: string, row: FoundRow) => {
+    const next = !row.done;
+    const apply = (done: boolean) =>
+      setTurns((current) =>
+        current.map((turn) =>
+          turn.id === turnId
+            ? {
+                ...turn,
+                // `?? []` rather than the optional chain's undefined:
+                // `exactOptionalPropertyTypes` makes an absent prop and one set
+                // to undefined different types, and a spread produces the
+                // second.
+                found: (turn.found ?? []).map((result) => ({
+                  ...result,
+                  rows: result.rows.map((r) =>
+                    r.contentId === row.contentId ? { ...r, done } : r,
+                  ),
+                })),
+              }
+            : turn,
+        ),
+      );
+
+    apply(next);
+    const ok = await completeContent(row.contentId, next);
+    if (!ok) {
+      apply(row.done);
+      return;
+    }
+    // The thread screen behind this sheet is now stale. The same signal a dump
+    // fires, for the same reason: a screen already showing that thread updates
+    // itself rather than quietly disagreeing with the answer.
+    setFiled({ threadIds: [row.threadId], at: Date.now() });
+  }, []);
+
   const [writing, setWriting] = useState(false);
   const [draft, setDraft] = useState("");
   const [undoable, setUndoable] = useState<Undoable | null>(null);
@@ -135,6 +190,10 @@ export function ConversationProvider({
             // the app mid-decision comes back to the same question rather than
             // to a reply about something that never happened.
             waiting: message.waiting ?? null,
+            // Same reason. An answer reopened tomorrow draws the rows as they
+            // are now, because the server resolves them rather than storing a
+            // copy taken when the answer was written.
+            found: message.found ?? [],
           })),
         );
       } catch (error) {
@@ -194,6 +253,7 @@ export function ConversationProvider({
               turnId,
               threads: answer.threads,
               waiting: answer.waiting ?? null,
+              found: answer.found ?? [],
             },
           ];
         });
@@ -295,6 +355,7 @@ export function ConversationProvider({
         finish,
         filed,
         resolveWaiting,
+        tickFound,
       }}
     >
       {children}

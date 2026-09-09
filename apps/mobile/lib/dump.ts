@@ -42,6 +42,30 @@ export interface WaitingOn {
   because: string;
 }
 
+/** One read from an answer: a thread, and the rows it holds.
+ *
+ *  Grouped by the server in the order it read them. Two subjects is two
+ *  results, never one blended list, because which trip is which is most of the
+ *  answer. */
+export interface FoundResult {
+  threadId: string;
+  threadName: string;
+  /** The read hit its page. The tail becomes the thread rather than a control
+   *  that would expand into rows nobody fetched. */
+  truncated: boolean;
+  rows: FoundRow[];
+}
+
+export interface FoundRow {
+  contentId: string;
+  threadId: string;
+  threadName: string;
+  type: string;
+  title: string;
+  body: string | null;
+  done: boolean;
+}
+
 export interface Answer {
   state: MessageState;
   reply: string | null;
@@ -51,6 +75,11 @@ export interface Answer {
    *  pill saying the dump went there would be untrue. */
   changed: string[];
   waiting?: WaitingOn | null;
+  /** What an answer showed. Empty on a dump, which files rather than answers.
+   *
+   *  Resolved by the server on every read, so a row ticked or deleted elsewhere
+   *  is never stale inside a reply from last week. */
+  found?: FoundResult[];
 }
 
 export interface TailMessage {
@@ -60,6 +89,7 @@ export interface TailMessage {
   state: MessageState;
   turnId: string;
   waiting?: WaitingOn | null;
+  found?: FoundResult[];
 }
 
 export class DumpTooLong extends Error {

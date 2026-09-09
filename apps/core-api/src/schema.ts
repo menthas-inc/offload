@@ -543,6 +543,12 @@ export interface MessageContentTable {
   message_id: string;
   content_id: string;
   ord: number;
+  /** The read behind this result hit its page.
+   *
+   *  A property of the read rather than of the row, so every row of one result
+   *  carries the same value. It decides which of the two tails an answer draws,
+   *  and only one of them may ever be drawn. */
+  truncated: Generated<boolean>;
 }
 
 
