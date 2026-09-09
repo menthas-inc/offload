@@ -603,3 +603,17 @@ It surfaced as `column content.search_text does not exist`, from a query reading
 **The durable fix is the test, not the migration.** `predicate.test.ts` now asserts each view's column set equals its table's plus exactly `viewer_account_id`, so whoever adds the next column finds out from a red test rather than from production.
 
 **Design system impact:** none.
+
+### 2026-09-09 · A vector index keeps the dead until something vacuums
+
+`search-index.test.ts` failed rarely, only ever in the full suite, never alone, and resisted three explanations. The instrumentation left after the first sighting said the same thing every time: `got: 0, matching: 60, setting: relaxed_order`. Sixty live rows, the setting correct, and the scan returning none.
+
+**An HNSW graph keeps entries for deleted rows until a vacuum removes them.** Every other file in the suite empties `content` between tests, which cascades to `content_chunks`, so by the time the index file runs the graph can hold thousands of dead entries from earlier fixtures. An iterative scan spends `hnsw.max_scan_tuples` walking them and returns nothing, while a count over the same rows through a different path says sixty. Alone the file always passed, because alone there was nothing dead to walk. The fixture vacuums now.
+
+**This is a production caveat and not only a test one.** An account that churns heavily gets a worse vector search until autovacuum catches up, and the symptom is search going quiet rather than erroring. Worth knowing before somebody reports it as a bug.
+
+*Three answers, two of them wrong, and both wrong ones were reasonable.* A companion test asserting that iterative scan off under-returns was deleted for depending on the query plan, which was correct on its own terms. Then `enable_seqscan = off` was removed as the cause: it was genuinely vestigial, the test should run the query the way production runs it, and it did not fix anything. What settled it was noticing that the instrumentation had already ruled out the data, the predicate and the setting, so whatever was left had to be about the index rather than about the query.
+
+**The lesson is the instrumentation, not the vacuum.** Three attempts to reason about a rare failure produced two wrong answers; one line of state captured at the moment of failure produced the right one, and cost nothing while the test was passing.
+
+**Design system impact:** none.
