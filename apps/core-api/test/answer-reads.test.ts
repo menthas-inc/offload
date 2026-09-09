@@ -450,3 +450,42 @@ describe("search reads memories and conversations, and does not draw them", () =
     expect((await search(ana, { query: "aisle" })).asides ?? []).toEqual([]);
   });
 });
+
+describe("AC-9 retrieval shortlists and never decides", () => {
+  it("returns every candidate rather than picking the best one", async () => {
+    // **No distance threshold anywhere in the path.** `decisions.md` records
+    // why: embedders score below random on negation, so "not Lisbon" and
+    // "Lisbon" are neighbours, and anything that decides on a score alone gets
+    // that wrong silently. Retrieval hands the model candidates; the model
+    // reads them and answers.
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await add(lisbon, ana, "Airbnb in Alfama", { body: "Booked for the 14th" });
+    await add(lisbon, ana, "Airbnb cancellation policy");
+    await add(lisbon, ana, "Not the Airbnb, the hotel");
+
+    const found = await search(ana, { query: "airbnb" });
+
+    // Three matches come back, including the negated one, which is exactly the
+    // row a threshold would have been most confident about dropping.
+    expect(found.rows).toHaveLength(3);
+    expect(found.rows.map((r) => r.title)).toContain("Not the Airbnb, the hotel");
+  });
+
+  it("never returns a verdict, only rows and whether there were more", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await add(lisbon, ana, "Airbnb in Alfama");
+    const found = await search(ana, { query: "airbnb" });
+
+    // The shape is the assertion. There is no `answer`, no `best`, no score:
+    // nothing the caller could mistake for a decision already made.
+    expect(Object.keys(found).sort()).toEqual([
+      "asides",
+      "rows",
+      "threadId",
+      "threadName",
+      "truncated",
+    ]);
+  });
+});

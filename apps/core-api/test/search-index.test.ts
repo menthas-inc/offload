@@ -88,6 +88,24 @@ beforeAll(async () => {
       ) v
     `.execute(db);
   }
+
+  // **Vacuum, and it is not tidiness.**
+  //
+  // An HNSW graph keeps entries for deleted rows until a vacuum removes them.
+  // Every other file in this suite empties `content` between tests, which
+  // cascades to the chunks, so by the time this file runs the index can hold
+  // thousands of dead entries from earlier fixtures. An iterative scan then
+  // spends `hnsw.max_scan_tuples` walking them and returns nothing at all,
+  // while a count over the same rows says sixty.
+  //
+  // That is exactly the failure this file showed: `got: 0, matching: 60,
+  // setting: relaxed_order`, only ever in the full suite and never alone,
+  // because alone there was nothing dead to walk.
+  //
+  // **It is a real caveat and not only a test one.** An account that churns
+  // heavily gets a worse vector search until autovacuum catches up. Worth
+  // knowing before somebody reports search "going quiet" after a big clear-out.
+  await sql`vacuum content_chunks`.execute(db);
 });
 
 /** One fixed query vector, bound as a parameter.
@@ -107,11 +125,18 @@ function queryVector(): string {
 async function nearest(iterative: "off" | "relaxed_order", limit: number): Promise<number> {
   const probe = queryVector();
   const result = await db.connection().execute(async (conn) => {
+    // **No `enable_seqscan = off`.** It was here to force the HNSW path so the
+    // deleted companion test could demonstrate under-returning, and it outlived
+    // that test by one commit. It is why this file failed twice, unexplained,
+    // roughly one run in six: forced onto the index scan the query returned
+    // zero rows with sixty matching and the setting correct, which is a plan
+    // this query is never asked to run in production.
+    //
+    // The requirement is that a membership-scoped read returns what it asked
+    // for. Under the planner's own choice, which is what production does.
+    //
     // `set`, not `set local`: outside a transaction `set local` is a no-op with
     // a warning, so it would have measured nothing while looking like it did.
-    // A dedicated connection makes the session scope safe, and it is put back
-    // below so the pool hands out a connection with the app's own setting.
-    await sql`set enable_seqscan = off`.execute(conn);
     await sql.raw(`set hnsw.iterative_scan = ${iterative}`).execute(conn);
     return sql<{ id: string }>`
       select c.id
@@ -130,7 +155,6 @@ async function nearest(iterative: "off" | "relaxed_order", limit: number): Promi
 /** Put a borrowed connection back the way the pool handed it over. */
 async function resetConnection(): Promise<void> {
   await db.connection().execute(async (conn) => {
-    await sql`reset enable_seqscan`.execute(conn);
     await sql`set hnsw.iterative_scan = relaxed_order`.execute(conn);
   });
 }
@@ -153,12 +177,9 @@ describe("AC-13 pgvector filters after the index scan", () => {
   // actually asks for.
 
   it("returns the whole limit with relaxed_order", async () => {
-    // Seen failing once, in the suite, on 2026-09-09, and not reproduced since
-    // across three full runs and five of this file alone. Left as it is with
-    // the sighting recorded rather than loosened: an assertion weakened to stop
-    // a failure nobody has explained is how a real defect gets a green tick.
-    // If it recurs, log the count first. Zero means the index scan found no
-    // fixed point; a number under twenty means the post-filter starved.
+    // Failed twice before the cause was found, and the instrumentation is what
+    // found it: `got: 0, matching: 60, setting: relaxed_order` ruled out the
+    // data, the predicate and the setting in one line, which left the plan.
     const n = await nearest("relaxed_order", 20);
     if (n !== 20) {
       const total = await sql<{ n: number }>`
