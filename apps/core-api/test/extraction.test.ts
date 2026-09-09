@@ -14,6 +14,7 @@
 // AC-19 no place name, address or coordinate in a log, event or payload.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { sql } from "kysely";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
@@ -68,7 +69,7 @@ async function account(): Promise<string> {
 async function thread(accountId: string, name: string): Promise<string> {
   const row = await db
     .insertInto("threads")
-    .values({ created_by_account_id: accountId, name, last_activity_at: new Date(), updated_at: new Date() })
+    .values({ created_by_account_id: accountId, name, last_activity_at: sql`now()`, updated_at: sql`now()` })
     .returning("id")
     .executeTakeFirstOrThrow();
   await db

@@ -575,3 +575,17 @@ Two gaps found by working through what people would actually ask 013 and it coul
 **Two wants are recorded as not built rather than quietly missing.** Counting and totalling across threads, which needs an aggregate over more threads than a turn reads and cannot be done from a truncated page anyway. And what you are waiting on from somebody, where `waiting_on_*` has been in the schema since 0014 and 006 deliberately left it unwritten, and person-scope memories still have no writer.
 
 **Design system impact:** none. `list_agenda` returns the same rows in the same result shape.
+
+### 2026-09-09 · The flaky test was two clocks, not a race
+
+A planner test asserted `after.last_activity_at >= before.last_activity_at` and failed by exactly one millisecond, intermittently, on a change that touched only documentation.
+
+**The test helper wrote `new Date()` and the code writes `now()`.** Node runs on the host and Postgres runs in the Docker VM, so those are two independent clocks. Measured directly rather than reasoned about: five consecutive `select now()` calls came back at +20ms, 0ms, **-1ms**, +1ms and 0ms against `Date.now()`. The negative sample is the failure, reproduced on demand. Test helpers write `sql\`now()\`` now, so a timestamp that will be compared against the database's clock comes from the database's clock.
+
+*Worth knowing generally: any test fixture that seeds a timestamp Postgres will later compare is a cross-clock comparison, and drifts by a millisecond or two in either direction.*
+
+**The second flake was a number collision.** A stream test died as "Test timed out in 5000ms", which is vitest's default, and the pool's `connectionTimeoutMillis` is also 5000. Whichever fired first, the message was the generic one, so a starved pool and a slow test were indistinguishable. `testTimeout` is 20s now: above the pool's bound, so pool exhaustion surfaces as "timeout exceeded when trying to connect" rather than as a stack trace of something asleep. These tests talk to a real database and five seconds was never a meaningful budget for them.
+
+*This is the `EXPO_OFFLINE=1` lesson again: an error message is worth more than a timeout.*
+
+**Design system impact:** none.
