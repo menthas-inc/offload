@@ -32,21 +32,42 @@ them gets skipped:
 - **A list, filtered.** Rows in a thread, narrowed by what they are and whether
   they are done. This is the exact answer to most questions somebody actually
   asks about their own threads, and it involves no guessing at all.
+- **A span of time, across threads.** What is due this week, what is on
+  Thursday, what got dumped yesterday. Not a thread question and not a
+  similarity question: a range over a date, which the agenda screen has read
+  since 001 and no answer could reach until now.
 - **A corpus, searched.** Content across every thread you can see, including
   titles, bodies, tags and the thread's own name. Memories, the standing rules a
-  thread carries. Both are found by text and by meaning, and this is for the
-  questions a filter cannot express: "where am I staying in Istanbul" names no
-  thread and no type.
+  thread carries. **And your conversations**, which is what makes "why did you
+  file that in Lisbon" answerable at all, since the reason was in the reply and
+  nowhere else. All found by text and by meaning, which is for the questions a
+  filter cannot express: "where am I staying in Istanbul" names no thread and no
+  type.
 - **Facts, looked up.** Your name, the calendars you have connected and where
   each one files, your default thread, a thread's own preferences. These are
   typed columns on `accounts`, `threads` and `connector_connections`. They are
   not embeddable and must never be pushed into the corpus to make one code path:
   they are read by a lookup that knows their shape.
 
-*The first is deliberately listed first.* Building only the search would have
-answered "what is left to do from Lisbon" with a similarity query, which is a
-worse and less predictable version of a `where` clause the thread page has run
-since 005.
+*The first two are deliberately listed first.* Building only the search would
+have answered "what is left to do from Lisbon" with a similarity query, and
+"what is due this week" with a worse one, when both are `where` clauses this
+product has run since 005 and 001. A filter is not a fallback for search; search
+is the fallback for a filter.
+
+**Conversations are yours alone, and that is a third rule, not a variation.**
+Content resolves through thread membership and a thread memory through its
+subject; a conversation resolves through nothing but the account that owns it. A
+conversation is never shared, not even the one that filed something into a
+thread you share, because what you said while dumping is not part of what you
+shared.
+
+**And offload's own words are a record, not evidence.** Half of a conversation
+is what offload said, so searching conversations puts the model's own past
+output back in front of it. Every retrieved message says who said it, and the
+rule is that offload's previous reply is evidence of what was said and of
+nothing else about the world. Without that, one wrong answer becomes a source
+for the next one.
 
 **And answers in the shape the question deserves.** A single fact gets a
 sentence. A question whose answer is a set gets the set: "what is left to do
@@ -263,6 +284,13 @@ does one that says which thread it came from.
   something is a dump, and the existing tools do it.
 - **Answering across accounts.** Only what you can see.
 - **Ranking that learns.** No click feedback, no personalisation of results.
+- **Counting and totalling.** "How many are left across all my trips" and "how
+  much did Lisbon cost" need an aggregate over more threads than a turn reads,
+  and a truncated read cannot count past its page anyway. A real want, and a
+  different tool than any of these.
+- **What you are waiting on from somebody.** `waiting_on_*` has been in the
+  schema since 0014 and 006 deliberately left it unwritten, and person-scope
+  memories have no writer either. Nothing to search until something fills them.
 - **A reranker.** Voyage has one and it is the obvious next lever, deliberately
   not pulled until there is a real question that the first pass gets wrong.
 
@@ -270,10 +298,11 @@ does one that says which thread it came from.
 
 **AC-1** A question is answered from what the account can see and files nothing.
 
-**AC-2** Content and memory search resolve membership through **one predicate
-defined once in SQL**, read by both the Core API and the agent plane. `001`'s
-T16 is closed by this feature. No membership rule is written a second time in
-Python.
+**AC-2** Every read resolves authorization through **predicates defined once in
+SQL**, read by both the Core API and the agent plane. `001`'s T16 is closed by
+this feature. No rule about who may read what is written a second time in
+Python. There are three, because there are genuinely three: content by thread
+membership, a thread memory by its subject, a conversation by its owner.
 
 **AC-2a** An account with a **pending** invitation to a thread gets nothing from
 it. Accepted membership is the test, in the view, not at a call site.
@@ -284,6 +313,18 @@ member of **is** returned. Author-only filtering is a defect, not a safe default
 **AC-2c** Thread-scope memories resolve through `thread_members` on `subject_id`.
 A memory with `account_id IS NULL` is reachable by every accepted member and by
 nobody else.
+
+**AC-2d** A conversation resolves through the account that owns it and nothing
+else. It is never reachable by another member, including the conversation that
+filed something into a thread they share.
+
+**AC-2e** A retrieved message says whether the person or offload said it, and
+offload's own past reply is treated as a record of what was said rather than as
+evidence about anything else.
+
+**AC-15** A span of time is answerable across threads: what is due in a range,
+what occurs in one, what was dumped in one. Scoped by the same membership
+predicate as everything else, not by author.
 
 **AC-3** The question-or-note decision is made on the message text before any
 retrieval runs, so the same sentence always lands the same way whatever the
@@ -391,6 +432,14 @@ embedded is exactly the kind of change that makes a true line false from a
 distance.
 
 ## Open
+
+- **The agenda screen is account-scoped and this feature's agenda read is not.**
+  `001`'s index is `(account_id, occurs_at)`, so in a shared thread the screen
+  misses what another member timed, while an answer about the same week will
+  include it. One of them is wrong and it is probably the screen, but changing
+  what a shipped screen shows is not this feature's call. Raised so it is
+  decided rather than discovered, because a screen and an answer disagreeing
+  about the same week is the defect class this repository has paid for most.
 
 - **How wrong the first answers are is not knowable from here.** There is no
   evaluation set, and the honest way to build this is to ship it, ask real

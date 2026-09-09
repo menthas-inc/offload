@@ -557,3 +557,21 @@ Decided while reviewing 013's constants, and it changed the retrieval design rat
 **And the done state is not assumed.** Butter may be on the list and already ticked, where the answer is that it was bought on Tuesday rather than no.
 
 **Design system impact:** none. This changes what is said, not what is drawn.
+
+### 2026-09-09 · A span of time is a read, and a conversation is a third predicate
+
+Two gaps found by working through what people would actually ask 013 and it could not answer.
+
+**"What is due this week" was unanswerable, and the index for it has existed since 001.** `(account_id, occurs_at)` was built for the agenda screen. Nothing exposed it to an answer, and `list_content` requires a thread id, so offload could draw somebody their week and not answer a question about it. `list_agenda(from_iso, to_iso, when, type?, done?)` closes it, with `when` in `due`, `occurs` and `created`, which are the three dates a question means. "What did I dump yesterday" falls out of the third for nothing.
+
+**It reads the membership predicate, which the agenda screen does not, and that disagreement is now on the table.** `001`'s index is account-scoped, so in a shared thread the screen misses what another member timed while the answer will include it. Only two new indexes are needed, led by `thread_id` instead of `account_id`. Which behaviour is right is a real question and deliberately not settled here: changing what a shipped screen shows is not an answering feature's call. It is in 013's Open, because a screen and an answer disagreeing about the same week is exactly the two-documents defect class.
+
+**Conversations join the corpus, and they authorize on nothing but their owner.** "Why did you file that in Lisbon" was unanswerable because the reason lived in the reply and the reply was not searchable. `readable_messages` is the third view: `conversations.account_id`, both soft deletes, and `state in ('seen','answered')` because `queued` is internal and must not reach an answer any more than it reaches a client. **A conversation is never shared**, including the one that filed something into a thread somebody shares, because what you said while dumping is not part of what you shared. Written as a view beside the other two so nobody has to notice it is different in order to get it right.
+
+**And half of a conversation is offload's own output.** Searching conversations puts the model's previous replies back in front of it, where a past answer that was wrong is otherwise indistinguishable from something a person stated. Every retrieved message carries its `role`, and the prompt says offload's earlier reply is evidence of what was said and of nothing else about the world. Without that, one wrong answer becomes the source for the next one, which is the cheapest possible way to build a product that confidently repeats its own mistakes.
+
+**A message and the content it became are near duplicates**, since the row was written from the text. The content row wins: it still exists in a thread and it can be ticked, while the message is provenance.
+
+**Two wants are recorded as not built rather than quietly missing.** Counting and totalling across threads, which needs an aggregate over more threads than a turn reads and cannot be done from a truncated page anyway. And what you are waiting on from somebody, where `waiting_on_*` has been in the schema since 0014 and 006 deliberately left it unwritten, and person-scope memories still have no writer.
+
+**Design system impact:** none. `list_agenda` returns the same rows in the same result shape.

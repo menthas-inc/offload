@@ -6,14 +6,16 @@ user-visible until F.
 
 ## A. The predicate, first, because everything reads through it
 
-- [ ] **A1** Migration `0026`: `readable_content` and `readable_memories` as views, thread scope only for memories, with the comment saying why `account` and `person` are absent. `AC-2`, `AC-2c`
+- [ ] **A1** Migration `0026`: `readable_content`, `readable_memories` and `readable_messages` as views, thread scope only for memories, with the comment saying why `account` and `person` are absent. `AC-2`, `AC-2c`
+- [ ] **A1a** `readable_messages` resolves through `conversations.account_id` alone, excludes `queued` and `failed`, and both soft deletes. A conversation is never another member's, including the one that filed into a thread they share. `AC-2d`
 - [ ] **A2** Move `threads/access.ts` and `threads/memories.ts` onto the views, keeping their exported function names. No behaviour change and the existing tests stay green, which is the evidence the view matches what shipped. `AC-2`
 - [ ] **A3** Tests: an accepted member sees another member's content; a **pending** member sees nothing; author-only filtering would fail this. `AC-2a`, `AC-2b`
 - [ ] **A4** Test: a thread memory with `account_id is null` is readable by every accepted member and by nobody else. `AC-2c`
 
 ## B. The index
 
-- [ ] **B1** Migration `0027`: `create extension vector`, `content_chunks`, `memory_chunks`, the `search_text` generated columns, the HNSW and GIN indexes. `AC-12`
+- [ ] **B1** Migration `0027`: `create extension vector`, `content_chunks`, `memory_chunks`, `message_chunks`, the `search_text` generated columns, the HNSW and GIN indexes. `message_chunks` carries `role`. `AC-12`
+- [ ] **B1a** `content_thread_due_idx` and `content_thread_occurs_idx`, led by `thread_id` so the agenda read uses the membership predicate rather than `001`'s account-scoped index. `created` needs none: `content_thread_idx` already covers it. `AC-15`
 - [ ] **B2** Boot check: the extension exists, and the process refuses to start if not. A missing extension fails on deploy, not on somebody's first question.
 - [ ] **B3** `hnsw.iterative_scan` and `hnsw.max_scan_tuples` set on the searching connection. `AC-13`
 - [ ] **B4** Test: with an account holding a small share of a populated table, a membership-scoped vector query returns the number of rows the limit asked for. This is the test that fails without B3, and it is the reason B3 is not a comment. `AC-13`
@@ -32,6 +34,9 @@ user-visible until F.
 - [ ] **D1** `search(conn, viewer, query, *, kinds)`: the vector arm, the text arm, RRF fusion, dedup by source row, then `created_at` as the tiebreak. Reads the views from A. `AC-2`, `AC-9`, `AC-5d`
 - [ ] **D1a** `list_content(thread_id, type?, done?, matching?, order?)`, widening 006's `list_thread_content`. Returned whole and unranked, reporting `truncated` by the existing `LIST_PAGE + 1` idiom rather than a `COUNT(*)`. This is what makes a two-row answer two rows. `AC-5`, `AC-5d`
 - [ ] **D1b** `matching` narrows within the thread over the same `search_text` index, so an existence check reads the rows that mention the word rather than a truncated page of the whole thread. `AC-4b`
+- [ ] **D1c** `list_agenda(from_iso, to_iso, when, type?, done?)` with `when` in `due`, `occurs`, `created`. Cross-thread, no thread id, read through `readable_content`. `AC-15`
+- [ ] **D1d** Test: an agenda range over a shared thread returns what another member timed. Author scoping would silently pass every single-account test. `AC-15`, `AC-2b`
+- [ ] **D1e** Conversations join the corpus: `search` covers `readable_messages`, and a message and the content it became dedup to the content row. `AC-2d`
 - [ ] **D2** `SHORTLIST`, `ANSWER_RESULTS`, `ANSWER_ROW_CHARS`, `ANSWER_SETS`, `CHUNK_TOKENS` as named constants in one place. `AC-8`
 - [ ] **D2a** Test: a filtered read matching two rows returns two, and nothing pads it. `AC-5`
 - [ ] **D3** Test: the prompt built for a 20,000 row account is the same size as the one built for a 20 row account. The OFF-8 test, and the one that fails if a cap is ever made dynamic. `AC-8`
@@ -52,6 +57,7 @@ user-visible until F.
 - [ ] **E4** **Test the toolset, not the transcript**: assert `ANSWER_TOOLS` contains no tool that writes. `AC-11`
 - [ ] **E5** `account_facts`: a typed lookup, no query, returning name, default thread, connected calendars and where each files, and the thread's preferences. Never a device preference. `AC-7`
 - [ ] **E6** Retrieved rows reach the model as labelled user-turn content carrying their author, never in the system prompt. `AC-11a`
+- [ ] **E6a** A retrieved message carries its `role`, and the prompt says offload's own earlier reply is evidence of what was said and of nothing else. Without it one wrong answer becomes a source for the next. `AC-2e`
 - [ ] **E7** The prompt: a fact is a sentence, a set is the set, no answer is one short clause, no apology and no rephrasing suggestion, and theme is not knowable. `AC-4`, `AC-7`
 - [ ] **E8** Answering files nothing, asserted by a test that runs a question turn and checks the content table is untouched. `AC-1`
 - [ ] **E9** A turn that both asks and dumps is a dump. `AC-3a`
@@ -78,7 +84,7 @@ user-visible until F.
 
 - [ ] **G1** Tick `001`'s T16, and update its query table so the search row names the chunk table it actually uses. DEV-2.
 - [ ] **G2** Design log entry covering **two** divergences, with **Design system impact** filled in: a checkbox that does something, and a done state the kits draw as opacity and both shipping components reject. The impact field says what the ticked fill and border are, since that is what the kits have to catch up on.
-- [ ] **G3** Confirm, without editing, that the privacy policy's Voyage line still covers what is now embedded. It says "the text being indexed", which reads as already true; the check is the point, since a widening of what gets embedded is how a true line goes false from a distance.
+- [ ] **G3** Confirm, without editing, that the privacy policy's Voyage line still covers what is now embedded, which after this includes memories **and conversations, offload's own replies among them**. It says "the text being indexed", which reads as already true; the check is the point, since a widening of what gets embedded is how a true line goes false from a distance.
 - [ ] **G4** No query text and no row text in any log, event or trace. Counts, latencies and outcomes only, and `assertNoContent` does not catch a short phrase on its own. `AC-10`
 
 ## What is needed from the product owner
