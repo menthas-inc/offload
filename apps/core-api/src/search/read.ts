@@ -346,3 +346,60 @@ export async function search(accountId: string, options: SearchOptions): Promise
     rows: paged.rows.map(toRow),
   };
 }
+
+export interface AccountFacts {
+  displayName: string | null;
+  defaultThread: { id: string; name: string } | null;
+  calendars: { name: string; filesInto: string | null }[];
+  /** Device preferences are absent on purpose and the prompt says so. Theme and
+   *  text size live in SecureStore and localStorage, deliberately, so they can
+   *  be read before first paint; the server has never held them and a copy kept
+   *  here to answer a question would be a second source of truth for a value
+   *  that already has one. */
+  knowsDevicePreferences: false;
+}
+
+/** A lookup, not a search. Takes no query and returns a small typed record.
+ *
+ *  These are typed columns on accounts, threads and connector tables. They are
+ *  not embeddable and must never be pushed into the corpus to make one code
+ *  path: they are read by something that knows their shape. And unlike a search
+ *  result they are trusted, because we wrote them. */
+export async function accountFacts(accountId: string): Promise<AccountFacts> {
+  const account = await db
+    .selectFrom("accounts")
+    .leftJoin("threads", "threads.id", "accounts.default_thread_id")
+    .select([
+      "accounts.display_name as display_name",
+      "threads.id as thread_id",
+      "threads.name as thread_name",
+    ])
+    .where("accounts.id", "=", accountId)
+    .executeTakeFirst();
+
+  const calendars = await db
+    .selectFrom("connector_calendars")
+    .innerJoin(
+      "connector_connections",
+      "connector_connections.id",
+      "connector_calendars.connection_id",
+    )
+    .leftJoin("threads", "threads.id", "connector_calendars.default_thread_id")
+    .select([
+      "connector_calendars.summary as name",
+      "threads.name as files_into",
+    ])
+    .where("connector_connections.account_id", "=", accountId)
+    .where("connector_calendars.selected", "=", true)
+    .execute();
+
+  return {
+    displayName: account?.display_name ?? null,
+    defaultThread:
+      account?.thread_id && account.thread_name
+        ? { id: account.thread_id, name: account.thread_name }
+        : null,
+    calendars: calendars.map((c) => ({ name: c.name, filesInto: c.files_into ?? null })),
+    knowsDevicePreferences: false,
+  };
+}

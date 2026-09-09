@@ -48,6 +48,14 @@ class Config:
     per_account_running: int = 2
     poll_seconds: float = 1.0
     model: str = "claude-sonnet-5"
+    # The tiers stack.md routes by, named here rather than at a call site.
+    #
+    # `sort` for the question-or-note call: it is one boolean and every dump
+    # already pays for a call at this tier. `reason` for answering, which
+    # stack.md describes as being for "hard retrieval and cross-thread
+    # reasoning", written down before this feature existed.
+    sort_model: str = "claude-haiku-4-5"
+    answer_model: str = "claude-opus-5"
 
     @classmethod
     def from_env(cls) -> "Config":

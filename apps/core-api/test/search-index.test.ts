@@ -159,7 +159,17 @@ describe("AC-13 pgvector filters after the index scan", () => {
     // a failure nobody has explained is how a real defect gets a green tick.
     // If it recurs, log the count first. Zero means the index scan found no
     // fixed point; a number under twenty means the post-filter starved.
-    expect(await nearest("relaxed_order", 20)).toBe(20);
+    const n = await nearest("relaxed_order", 20);
+    if (n !== 20) {
+      const total = await sql<{ n: number }>`
+        select count(*)::int as n from content_chunks c
+        join readable_content rc on rc.id = c.content_id
+        where rc.viewer_account_id = ${mine}::uuid and c.embedding is not null
+      `.execute(db);
+      const setting = await sql<{ s: string }>`select current_setting('hnsw.iterative_scan', true) as s`.execute(db);
+      console.log("RELAXED", { got: n, matching: total.rows[0].n, setting: setting.rows[0].s });
+    }
+    expect(n).toBe(20);
   });
 
   it("is on by default for every pooled connection", async () => {

@@ -395,3 +395,64 @@ async def load_quick_add(
         pieces=[Piece(title=p.title, done=p.done) for p in pieces],
         today=row.today,
     )
+
+
+@dataclass(frozen=True)
+class AnswerContext:
+    """What a question turn is shown before it reads anything.
+
+    Deliberately thin. A dump's context carries what already landed and the
+    conversation so far; a question carries the question and the threads it
+    might name, and everything else it wants it goes and reads. That keeps the
+    prompt a constant rather than a function of account age (OFF-8), and it is
+    why there is no conversation tail here: the reads are the memory.
+    """
+
+    question: str
+    threads: list[Thread]
+    has_calendar: bool
+
+
+async def load_answer(
+    conn: AsyncConnection,
+    *,
+    account_id: str,
+    question: str,
+    max_threads: int,
+) -> AnswerContext:
+    """The thread list, and nothing else.
+
+    The same query the dump context uses, because a thread list that differed
+    between filing and answering would be two ideas of what a person has.
+    """
+    threads = [
+        Thread(id=str(row.id), name=row.name, is_default=bool(row.is_default))
+        for row in await conn.execute(
+            _THREADS, {"account_id": account_id, "limit": max_threads}
+        )
+    ]
+    calendar = await conn.execute(_HAS_CALENDAR, {"account_id": account_id})
+    return AnswerContext(
+        question=question,
+        threads=threads,
+        has_calendar=bool(calendar.scalar()),
+    )
+
+
+_QUESTION = text(
+    """
+    select text from messages
+    where id = :message_id and role = 'person' and deleted_at is null
+    """
+)
+
+
+async def question_text(conn: AsyncConnection, *, message_id: str) -> str | None:
+    """What they actually typed, for the question-or-note call.
+
+    The message alone, with no thread list and no conversation: the decision is
+    made on the text and nothing else, so that the same sentence always lands
+    the same way whatever the corpus happens to hold that day.
+    """
+    row = (await conn.execute(_QUESTION, {"message_id": message_id})).scalar()
+    return row.strip() if isinstance(row, str) and row.strip() else None

@@ -62,6 +62,13 @@ const body = z.discriminatedUnion("outcome", [
     outcome: z.literal("answered"),
     jobId: z.string().uuid(),
     replyText: z.string().min(1),
+    /** 013. Content ids an answer showed, in the order it read them.
+     *
+     *  Ids only. The reply resolves them when it is read, so a row ticked or
+     *  deleted afterwards is never stale inside an old answer, which is the
+     *  rule 005 already set for thread links: they come from the ids and never
+     *  from parsing the sentence. */
+    found: z.array(z.string().uuid()).max(60).optional(),
     usage,
   }),
   z.strictObject({
@@ -246,7 +253,7 @@ export async function internalRoutes(app: App): Promise<void> {
         if (!person || (person.state !== "seen" && person.state !== "partial")) return false;
 
         if (result.outcome === "answered" || result.outcome === "partial") {
-          await trx
+          const reply = await trx
             .insertInto("messages")
             .values({
               conversation_id: payload.conversationId!,
@@ -257,7 +264,28 @@ export async function internalRoutes(app: App): Promise<void> {
               text: result.replyText,
               state: "answered",
             })
-            .execute();
+            .returning("id")
+            .executeTakeFirstOrThrow();
+
+          if (result.outcome === "answered" && result.found?.length) {
+            // Membership-checked again on the way in. The ids came from a read
+            // that was already scoped, and re-checking costs one query and
+            // removes the need to trust that.
+            const readable = await trx
+              .selectFrom("readable_content as content")
+              .select("content.id as id")
+              .where("content.viewer_account_id", "=", accountId)
+              .where("content.id", "in", result.found)
+              .where("content.deleted_at", "is", null)
+              .execute();
+            const allowed = new Set(readable.map((r) => r.id));
+            const rows = result.found
+              .filter((id) => allowed.has(id))
+              .map((id, ord) => ({ message_id: reply.id, content_id: id, ord }));
+            if (rows.length > 0) {
+              await trx.insertInto("message_content").values(rows).execute();
+            }
+          }
 
           await trx
             .updateTable("messages")
