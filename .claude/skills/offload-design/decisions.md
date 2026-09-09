@@ -11,6 +11,22 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-09 · Answering has no mock, and three things the kits cannot express
+**Surface:** web, iOS, Android
+**Raised by:** building 013. The server half is complete and the clients are deliberately not started.
+
+**`find-kit.sh search` and `answer` find nothing**, so this is one of the few screens designed rather than matched. The full brief is `handoff/DESIGN-2026-09-09-answering.md`; this entry is the contract.
+
+**A tickable row does not exist anywhere.** `WRow`'s `check` is a bordered span with no behaviour, because nothing in the kits was ever tickable. In an answer a row is ticked for real, through the same endpoint the thread page uses.
+
+**A done row is not dimmed.** `WThing.jsx:38` draws a completed row at `opacity: 0.5`, and both shipping components reject exactly that in a written comment: never opacity, because dimming a row on a warm page reads as a rendering fault and takes the label under the contrast floor. They use the moss fill, tertiary ink and a strikethrough. **This one is a correction to the kits rather than a new state**, and it applies to `WThing` and the mobile equivalent as they stand, not only to answering.
+
+**A row has to say which thread it came from.** The thread page never needed it, because it draws one thread. `WRow`'s `meta` cannot carry it: it is plain text so it cannot be a link, and it already holds who and when, which matters more here than anywhere because a result in a shared thread can be somebody else's. Results group under the moss thread chip a reply already uses.
+
+**And results sit below the reply bubble, not inside it.** A pane row's hover fill bleeds by `calc(-1 * var(--space-5))`, which is exactly an offload turn's horizontal padding, so inside a bubble it cancels the padding and runs under the 18px corner. Everything put inside a turn until now has been one small fixed control.
+
+**Design system impact:** three things for the kits to gain and one to correct. Gain: a tickable row state, a thread chip above a group of results, and a **Show more** control on a result longer than what a reply draws. Correct: the completed-row treatment in `WThing` and its mobile twin, from opacity to the moss fill with tertiary ink and a strikethrough that both shipping components already use. `ROWS_SHOWN = 8` is a guess in the absence of a mock and is the number most likely to move.
+
 ### 2026-09-05 · The phones, and four divergences the kits do not cover
 **Surface:** mobile, android
 **Raised by:** building 009.
