@@ -103,4 +103,4 @@ If a change is both, it gets an entry in both.
 
 ## Status
 
-In alpha, invite only, deployed. Specs 001 to 011 are built: the data model, getting in, the dump, the planner, the thread page, extraction, widgets, memories, the phones, settings and names. Core API and the web app run on Railway, the phones build through EAS. The open decisions are at the bottom of `docs/tech/decisions.md`; `docs/specs/README.md` still lists the *first* specs to write and is a record of where this started, not of what is left.
+In alpha, invite only, deployed. Specs 001 to 013 are built: the data model, getting in, the dump, the planner, the thread page, extraction, widgets, memories, the phones, settings, names, the calendar and answering. Core API, the web app and the Python worker all run on Railway from `main`; the phones build through EAS. The open decisions are at the bottom of `docs/tech/decisions.md`; `docs/specs/README.md` still lists the *first* specs to write and is a record of where this started, not of what is left.
