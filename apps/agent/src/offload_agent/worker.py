@@ -191,7 +191,25 @@ async def handle(
     if job.kind in EMBED_KINDS:
         # No model call and nobody waiting, so it closes its own job rather
         # than reporting an outcome the Core API has no use for.
-        await handle_embed(job, cfg=cfg, engine=engine, http=http)
+        #
+        # **Its own guard, because it returns before the one below.** Everything
+        # past this point is wrapped; this was not, and `handle_embed` catches
+        # only `EmbeddingUnavailable`. A malformed Voyage body, a KeyError, a
+        # database error inside its own transaction: any of those reached the
+        # loop's catch-all, which logs and sleeps without releasing the job.
+        #
+        # Nothing reaps a stuck `running` row, and the sweep cannot re-enqueue
+        # it because the idempotency key is `kind:rowId:version` and the version
+        # only moves when somebody edits the row. So one bad response left a row
+        # permanently unsearchable, silently, with no way back short of an edit.
+        try:
+            await handle_embed(job, cfg=cfg, engine=engine, http=http)
+        except Exception as exc:
+            # The type, never the value: an SDK exception can echo the request
+            # body, and the request body here is content (OFF-1).
+            log.exception("embed failed", kind=job.kind, error=type(exc).__name__)
+            async with engine.begin() as conn:
+                await release_for_retry(conn, job.id, "embed_error", delay_seconds=300)
         return
 
     payload = job.payload

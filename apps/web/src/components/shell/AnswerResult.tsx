@@ -20,12 +20,18 @@ import { Icon } from "../Icon";
 import type { FoundResult, FoundRow } from "../../lib/dump";
 import styles from "../../app/(shell)/answer.module.css";
 
-/** Rows drawn before the tail.
+/** This surface's default, passed in rather than reached for.
  *
  *  Eight on web, five on the phones, and the difference is measured rather than
  *  taste: the phones cap the conversation sheet at 78% of the screen, so eight
  *  rows plus a header and a control push the sentence that answers the question
- *  off the top edge. The web pane has roughly twice the height. */
+ *  off the top edge. The web pane has roughly twice the height.
+ *
+ *  **It is a prop because the number belongs to the surface, not to the part.**
+ *  A component that reaches for a module constant is one that cannot be drawn
+ *  twice on a page, and the pane and the composer log are already two places
+ *  with different room. The contract says `shown`, so this is the default and
+ *  never the mechanism. */
 export const ROWS_SHOWN = 8;
 
 /** Which content types offer a tick.
@@ -51,16 +57,19 @@ const TYPE_ICON: Record<string, string> = {
 export function AnswerResults({
   found,
   onToggle,
+  shown = ROWS_SHOWN,
 }: {
   found: FoundResult[];
   /** Absent draws the rows untickable, which is right for a fact. */
   onToggle?: (row: FoundRow) => void;
+  /** Rows drawn before the tail. Defaults to this surface's number. */
+  shown?: number;
 }) {
   if (found.length === 0) return null;
   return (
     <div className={styles.results}>
       {found.map((result) => (
-        <Result key={result.threadId} result={result} onToggle={onToggle} />
+        <Result key={result.threadId} result={result} onToggle={onToggle} shown={shown} />
       ))}
     </div>
   );
@@ -69,12 +78,14 @@ export function AnswerResults({
 function Result({
   result,
   onToggle,
+  shown,
 }: {
   result: FoundResult;
   onToggle?: (row: FoundRow) => void;
+  shown: number;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const drawn = expanded ? result.rows : result.rows.slice(0, ROWS_SHOWN);
+  const drawn = expanded ? result.rows : result.rows.slice(0, shown);
   // The honest remainder of what actually arrived, never of what exists. A
   // truncated read did not fetch the rest, so there is nothing to expand into
   // and the tail becomes the thread instead.

@@ -634,3 +634,27 @@ There is no recall assertion now. What remains is the part that is ours: iterati
 - **The churn itself was the bigger problem.** `handle_embed` replaced a row's chunks whenever the sweep found it stale, and the sweep finds staleness through `updated_at`, which ticking a task, editing tags, changing priority, archiving and moving all touch. None of them change a word of the text. Every tick was paying Voyage for a vector we already had and leaving the old entries dead in the graph. It now compares the chunk text first and touches `embedded_at` when nothing moved.
 
 **Voyage has no view on any of this.** They return vectors. The index, its dead tuples and its vacuuming are entirely ours, and the only vendor guidance that applies is pgvector's.
+
+### 2026-09-09 · What the review panel found before 013 merged, and the two that were feature-ending
+
+Three reviewers over the whole branch. Two findings would have shipped a feature that did not work at all, and neither was catchable by the suite as it stood.
+
+**`load_answer` read a column its query does not select.** `_THREADS` selects `id` and `name`; the answer path read `row.is_default` off it. SQLAlchemy raises on a missing column rather than returning `None`, and `_handle_answer` catches everything, so **every question from any account with a thread came back "failed"**, indistinguishable from a model problem. It was invisible because every test builds `AnswerContext` directly and nothing exercised `load_answer` against a database. It computes the default by comparing ids now, exactly as the dump path always did.
+
+**The phones dropped the rows.** `fetchAnswer` in `apps/mobile/lib/dump.ts` did not carry `found` in its parsed shape, and it is the only way an open app learns its turn is finished. Every answer rendered its sentence and none of its rows; the rows appeared after a force quit, because the cold start reads a different endpoint. Web had the field and the phones did not, in two functions written to mirror each other.
+
+*Both were one missing field, both in the seam between two things that were each correct, and neither was reachable by a test that did not run the real query or the real fetch.*
+
+**A soft-deleted thread was still answerable.** `readable_content` carries authorization and deliberately not lifecycle, because `restore` depends on a deleted row still resolving, so every reader states its own. `listContent` did. `listAgenda`, both arms of `search`, the memory asides and `found` did not, so deleting a thread left its rows in "what is due this week" with a working link to it, and left a memory scoped to it still steering the answer. The window is the eight second Undo plus however long until the purge, which is not small.
+
+**An embed job that failed unexpectedly was stranded forever.** The dispatch sat outside the loop's try, and `handle_embed` catches only `EmbeddingUnavailable`. Anything else reached the outer catch-all, which logs and sleeps without releasing the job. Nothing reaps a stuck `running` row, and the sweep cannot re-enqueue it because the idempotency key carries the row's `updated_at`, so **one malformed response made a row permanently unsearchable until somebody happened to edit it**.
+
+**The sweep read every row of three tables every minute, forever.** Its comment says the hundredth sweep finds nothing, which is true of what it returns and not of what it costs: an anti-join plus an ordered limit over the whole live table, to answer "nothing". `0031` adds a partial index per query, matching each predicate and its sort. Verified by reading the plan rather than by assuming: index scan under the limit, no sort node.
+
+**Two prompt-framing fixes, both about the same wrong word.** The thread list was introduced to the model as "this is our data". The ids are ours; the names are not, because any accepted member can rename a shared thread and a name the filing model chose came from somebody's dump text. It now says the ids are ours and the names are labels people wrote, on the answering turn and on the filing turn, which is the one that carries the write tools. `accountFacts` carried the same claim in a comment, and a calendar's name comes back from Google.
+
+**Deliberate deviation from OFF-5, recorded rather than hidden.** `classify` validates through a schema but does not retry and does not raise on a validation failure; it returns "not a question", which files. Raising is the wrong failure here: this call sits in front of every dump, so an exception loses the note rather than degrading the feature, and the schema is two booleans behind a forced `tool_choice`. What OFF-5 is really protecting against is the silence, and that is now closed by a log line: without it a classifier degrading in production turns every question into a filed note and nothing says so.
+
+**Left alone on purpose.** `0027` rewrites three tables and builds three GIN indexes in one transaction, taking an `ACCESS EXCLUSIVE` lock at boot. At alpha volumes that is seconds. `CREATE INDEX CONCURRENTLY` cannot run inside the one-transaction-per-file migration runner, and a `lock_timeout` would turn a brief lock into a failed boot, which is worse. It needs revisiting before the tables are large, and the runner is what has to change first.
+
+**Design system impact:** none. The client findings are logged separately in the design system's own `decisions.md`.

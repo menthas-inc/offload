@@ -29,6 +29,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.deleteFrom("content_chunks").execute();
+  await db.deleteFrom("memories").execute();
   await db.deleteFrom("content").execute();
   await db.updateTable("accounts").set({ default_thread_id: null }).execute();
   await db.deleteFrom("thread_members").execute();
@@ -487,5 +488,76 @@ describe("AC-9 retrieval shortlists and never decides", () => {
       "threadName",
       "truncated",
     ]);
+  });
+});
+
+describe("a deleted thread is gone from every read, not only from listContent", () => {
+  // **The predicate is authorization, not lifecycle**, and 0026 says so in a
+  // comment: `restore` depends on a deleted row still resolving. So each reader
+  // has to state its own lifecycle, and three of them did not.
+  //
+  // The failure it produced: delete a thread, ask what is due this week, and the
+  // rows come back with a working link to the thread you just deleted. Undo has
+  // eight seconds and the purge is much later, so the window is not small.
+  async function deletedThreadWith(title: string, extra: Extra = {}) {
+    const ana = await account();
+    const gone = await thread(ana, "Lisbon trip");
+    const kept = await thread(ana, "Groceries");
+    await add(gone, ana, title, extra);
+    await add(kept, ana, `${title} kept`, extra);
+    await db
+      .updateTable("threads")
+      .set({ deleted_at: sql`now()` })
+      .where("id", "=", gone)
+      .execute();
+    return { ana, gone, kept };
+  }
+
+  it("is gone from listAgenda", async () => {
+    const soon = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    const { ana } = await deletedThreadWith("Book the flat", { type: "task", dueAt: soon });
+
+    const rows = await listAgenda(ana, {
+      when: "due",
+      fromIso: new Date(Date.now() - 60_000).toISOString(),
+      toIso: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    expect(rows.rows.map((r) => r.title)).toEqual(["Book the flat kept"]);
+  });
+
+  it("is gone from search", async () => {
+    const { ana } = await deletedThreadWith("Sunscreen");
+
+    const result = await search(ana, { query: "sunscreen" });
+
+    expect(result.rows.map((r) => r.title)).toEqual(["Sunscreen kept"]);
+  });
+
+  it("takes its memories out of the asides with it", async () => {
+    const ana = await account();
+    const gone = await thread(ana, "Lisbon trip");
+    await db
+      .insertInto("memories")
+      .values({
+        account_id: ana,
+        scope: "thread",
+        kind: "preference",
+        origin: "stated",
+        subject_id: gone,
+        text: "Ana always flies out of Gatwick",
+      })
+      .execute();
+    await db
+      .updateTable("threads")
+      .set({ deleted_at: sql`now()` })
+      .where("id", "=", gone)
+      .execute();
+
+    const result = await search(ana, { query: "Gatwick" });
+
+    // A standing rule about a thread that no longer exists would still be
+    // steering the answer.
+    expect(result.asides).toEqual([]);
   });
 });

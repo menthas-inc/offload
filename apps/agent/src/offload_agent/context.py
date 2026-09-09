@@ -425,12 +425,29 @@ async def load_answer(
     The same query the dump context uses, because a thread list that differed
     between filing and answering would be two ideas of what a person has.
     """
+    thread_rows = (
+        await conn.execute(_THREADS, {"account_id": account_id, "limit": max_threads})
+    ).all()
+
+    # **`_THREADS` does not select `is_default` and never did.** It selects id
+    # and name. Reading `row.is_default` off the result raises rather than
+    # returning None, and `_handle_answer` catches everything, so the whole
+    # feature came back "failed" for any account with a thread while looking
+    # like a model problem. Which thread is the default is a separate read here
+    # exactly as it is in `load`, and comparing ids is the only way to know.
+    default_row = (await conn.execute(_DEFAULT_THREAD, {"account_id": account_id})).first()
+    default_id = str(default_row.id) if default_row else None
+
     threads = [
-        Thread(id=str(row.id), name=row.name, is_default=bool(row.is_default))
-        for row in await conn.execute(
-            _THREADS, {"account_id": account_id, "limit": max_threads}
-        )
+        Thread(id=str(r.id), name=r.name, is_default=str(r.id) == default_id)
+        for r in thread_rows
     ]
+    # Always offered, even when too stale to make the cap: it is where anything
+    # with no obvious home lives, so a question about "that thing I saved" has
+    # nowhere to look without it.
+    if default_row is not None and not any(t.is_default for t in threads):
+        threads.append(Thread(id=default_id, name=default_row.name, is_default=True))
+
     calendar = await conn.execute(_HAS_CALENDAR, {"account_id": account_id})
     return AnswerContext(
         question=question,

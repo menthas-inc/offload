@@ -11,6 +11,30 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-09 · Three things the review found in answering, and what each one is now
+**Surface:** web, iOS, Android
+**Raised by:** the review panel run before 013 merged. All three are gaps between the apply doc and the code that the first log entry did not name.
+
+**`shown` is a prop now, which is what point 3 asked for.** It was two module constants read directly inside the component, so the right numbers landed by the wrong mechanism. A part that reaches for a module constant cannot be drawn twice on one page at two sizes, and the web pane and the composer log are already two places with different room. `ROWS_SHOWN` stays as each surface's default and the call sites can override it.
+
+**Point 4's `20 of 46` header is dropped, deliberately, and this is the record of it.** The header shows the count of what arrived. The count of what exists would need a `COUNT(*)` per result on the read path, and `page()` avoids one by design: it asks for one row more than it needs and reports the overflow as a boolean. The truncated tail already says the rest is in the thread, and the thread page shows the real total when somebody follows it. **Design system impact:** the brief's point 4 should drop "and the header says `20 of 46`"; `AnswerResult.d.ts` should narrow `count` from `number | string` to `number`.
+
+**The phones fold both tails into one, and that is a real divergence rather than an oversight.** Point 4 describes two behaviours: Show more expanding in place, and the thread for a cut-short read. Web does both. The phones do the thread for both, because the conversation is a sheet capped at 78% of the screen and expanding twenty rows in place pushes the sentence that answers the question off the top edge, which is the same measurement that put `shown` at 5. The thread is where somebody works through a long list on a phone anyway. **Design system impact:** the kits should draw the phone tail as the thread in both cases, or say why not.
+
+**Design system impact:** the two fields above, plus `AnswerResult` is still absent from `_ds_bundle.js`, `_ds_manifest.json` and `_adherence.oxlintrc.json`, so none of its prop contract is enforced by `pnpm lint`. Those are generated and are the design system's to write on its next sync.
+
+### 2026-09-09 · The mobile tick was drawn in the wrong white
+**Surface:** iOS, Android
+**Raised by:** the same review pass, checking 8a's ramp-value defect for others of its shape.
+
+**`useColors().onSolid` is `--text-inverse`, and it flips with the theme.** That is correct on a fill that flips with it, which is `--surface-inverse` and also `--text-accent`, since the accent lightens in dark. It is wrong on moss, blue and clay, which do not flip at all: the glyph went to #191919 in dark and sat on moss green.
+
+`--text-on-solid` is #FFFFFF in both themes and exists for exactly these fills. It was never exposed to the phones, so there was no way to reach it. It is `onBrand` now.
+
+Two call sites were wrong. The answer row's tick, which is new. And `Conversation.tsx`'s Done mark, which drew its glyph with `onSolid` and its label with `text-text-on-solid`, so **one control disagreed with itself in dark**, a white word beside a near-black tick. The web stylesheet had `var(--text-on-solid)` right all along, so this is a parity fix rather than a new decision.
+
+**Design system impact:** none to the tokens, which were already right. Worth knowing that a phone component reaching for "white on a fill" needs `onBrand` and that `onSolid` means the inverse surface.
+
 ### 2026-09-09 · Answering, applied, and one divergence on the failure line
 **Surface:** web, iOS, Android
 **Raised by:** applying `handoff/APPLY-2026-09-09-answering.md`.

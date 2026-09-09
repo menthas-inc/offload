@@ -130,6 +130,12 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     threads?: TouchedThread[];
     changed?: string[];
     waiting?: WaitingOn | null;
+    // **The rows, which this used to drop on the floor.** `awaitAnswer` is the
+    // only way an open app learns its turn is done, so leaving `found` out of
+    // the parsed shape meant every answer rendered its sentence and none of its
+    // rows. It looked like the server finding nothing, and it came back after a
+    // force quit because the cold start reads `fetchCurrent` instead.
+    found?: FoundResult[];
   }>(`/v1/messages/${messageId}`);
   if (!data) return null;
   return {
@@ -138,6 +144,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     threads: data.threads ?? [],
     changed: data.changed ?? [],
     waiting: data.waiting ?? null,
+    found: data.found ?? [],
   };
 }
 

@@ -351,7 +351,7 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
       ) : null}
       {turn.state === "answered" && turn.did ? (
         <Mark done>
-          <Glyph name="check" size={11} color={COLOR.onSolid} />
+          <Glyph name="check" size={11} color={COLOR.onBrand} />
           <Text
             className="font-core font-medium text-text-on-solid"
             style={{ fontSize: 11 }}

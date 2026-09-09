@@ -242,6 +242,12 @@ export async function listAgenda(
     .where("content.viewer_account_id", "=", accountId)
     .where("content.deleted_at", "is", null)
     .where("content.archived_at", "is", null)
+    // **The thread's own lifecycle, which the predicate deliberately does not
+    // carry.** `readable_content` answers "may they see it", never "does it
+    // still exist": `restore` depends on that. So every reader states its own
+    // lifecycle, and a reader that forgets shows rows from a thread somebody
+    // deleted eight seconds ago, with a working link to it.
+    .where("threads.deleted_at", "is", null)
     // Membership, not authorship. In a shared thread this returns what another
     // member timed, which is the whole reason it reads the predicate rather
     // than content.account_id.
@@ -306,8 +312,10 @@ export async function search(accountId: string, options: SearchOptions): Promise
   const text = await sql<{ id: string }>`
     select c.id::text as id
     from readable_content c
+    join threads t on t.id = c.thread_id
     where c.viewer_account_id = ${accountId}::uuid
       and c.deleted_at is null and c.archived_at is null
+      and t.deleted_at is null
       and c.search_text @@ websearch_to_tsquery('simple', ${options.query})
     order by ts_rank(c.search_text, websearch_to_tsquery('simple', ${options.query})) desc,
              c.created_at desc
@@ -319,8 +327,10 @@ export async function search(accountId: string, options: SearchOptions): Promise
         select c.id::text as id
         from content_chunks ch
         join readable_content c on c.id = ch.content_id
+        join threads t on t.id = c.thread_id
         where c.viewer_account_id = ${accountId}::uuid
           and c.deleted_at is null and c.archived_at is null
+          and t.deleted_at is null
           and ch.embedding is not null
         order by ch.embedding <=> ${options.queryVector}::halfvec(1024), c.created_at desc
         limit ${SHORTLIST}
@@ -355,6 +365,10 @@ export async function search(accountId: string, options: SearchOptions): Promise
       "content.created_at as created_at",
     ])
     .where("content.viewer_account_id", "=", accountId)
+    // Both arms already exclude a deleted thread, so this is the belt to their
+    // braces. It is here because the arms are two queries and a third will be
+    // written one day, and this is the one place all of them pass through.
+    .where("threads.deleted_at", "is", null)
     .where("content.id", "in", wanted)
     .execute();
 
@@ -392,6 +406,10 @@ async function asidesFor(accountId: string, options: SearchOptions): Promise<Asi
     left join threads t on t.id = m.subject_id
     where m.viewer_account_id = ${accountId}::uuid
       and m.deleted_at is null and m.superseded_at is null and m.muted_at is null
+      -- A memory scoped to a deleted thread is a standing rule about somewhere
+      -- that no longer exists, and it would still be steering the answer. The
+      -- left join means an account-scoped memory has no thread and stays.
+      and (t.id is null or t.deleted_at is null)
       and m.search_text @@ websearch_to_tsquery('simple', ${options.query})
     order by ts_rank(m.search_text, websearch_to_tsquery('simple', ${options.query})) desc,
              m.updated_at desc
@@ -454,8 +472,14 @@ export interface AccountFacts {
  *
  *  These are typed columns on accounts, threads and connector tables. They are
  *  not embeddable and must never be pushed into the corpus to make one code
- *  path: they are read by something that knows their shape. And unlike a search
- *  result they are trusted, because we wrote them. */
+ *  path: they are read by something that knows their shape.
+ *
+ *  **Trusted means the shape, not the strings.** The booleans, the counts and
+ *  the ids are ours. A thread name is person-written and a calendar's name came
+ *  back from Google, which SEC-1 calls untrusted in as many words. Both travel
+ *  in a tool result, so they reach the model as data rather than as part of a
+ *  system prompt, and that is what makes this safe rather than the provenance.
+ *  Anything added here inherits that and nothing added here may assume more. */
 export async function accountFacts(accountId: string): Promise<AccountFacts> {
   const account = await db
     .selectFrom("accounts")

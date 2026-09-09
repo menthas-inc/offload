@@ -18,6 +18,7 @@ import os
 import httpx
 import pytest
 
+from offload_agent.config import Config
 from offload_agent.embed import (
     BATCH,
     CHUNK_CHARS,
@@ -29,6 +30,7 @@ from offload_agent.embed import (
     to_pgvector,
     with_breadcrumb,
 )
+from offload_agent.queue import ClaimedJob
 
 
 def test_empty_body_has_no_chunks() -> None:
@@ -148,3 +150,66 @@ async def test_a_real_string_against_the_real_api() -> None:
     assert len(set(vectors[0])) > 1
     # And it survives the round trip into the form Postgres will parse.
     assert to_pgvector(vectors[0]).count(",") == DIMENSION - 1
+
+
+async def test_an_unexpected_embed_failure_releases_the_job_rather_than_stranding_it(
+    monkeypatch,
+) -> None:
+    """The dispatch used to sit outside the loop's try, so anything other than
+    `EmbeddingUnavailable` escaped to the catch-all in `run()`, which logs and
+    sleeps. The job stayed `running` forever.
+
+    Nothing reaps a stuck row, and the sweep cannot re-enqueue it: the
+    idempotency key carries the row's version, and the version only moves when
+    somebody edits the row. One malformed response made a row permanently
+    unsearchable with no way back.
+    """
+    from offload_agent import worker as worker_mod
+
+    released: list[tuple[str, str]] = []
+
+    async def boom(job, **kwargs):
+        raise KeyError("data")
+
+    async def fake_release(conn, job_id, reason, delay_seconds=0):
+        released.append((job_id, reason))
+
+    class _Conn:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+    class _Engine:
+        def begin(self):
+            return _Conn()
+
+    monkeypatch.setattr(worker_mod, "handle_embed", boom)
+    monkeypatch.setattr(worker_mod, "release_for_retry", fake_release)
+
+    job = ClaimedJob(
+        id="job-1",
+        kind="embed.content",
+        payload={"rowId": "r1"},
+        account_id="a1",
+        attempts=0,
+        max_attempts=5,
+    )
+
+    # Never raises: that is `handle`'s documented invariant, and the embed kinds
+    # were the one path that did not hold it.
+    await worker_mod.handle(
+        job,
+        cfg=Config(
+            database_url="postgresql+asyncpg://x/y",
+            api_url="http://api.test",
+            internal_token="t",
+            anthropic_api_key="k",
+        ),
+        engine=_Engine(),
+        anthropic=object(),
+        http=object(),
+    )
+
+    assert released == [("job-1", "embed_error")]

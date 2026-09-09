@@ -17,7 +17,9 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import type { FoundResult, FoundRow } from "../../lib/dump";
 
-/** Rows drawn before the tail. Five, not web's eight, and it is measured.
+/** This surface's default, passed in rather than reached for.
+ *
+ *  Five, not web's eight, and it is measured.
  *
  *  The conversation sheet caps at 78% of the screen, which leaves about 446pt
  *  of log on an 844pt device. Eight rows plus the header and the control
@@ -43,11 +45,14 @@ export function AnswerResults({
   found,
   onToggle,
   onOpenThread,
+  shown = ROWS_SHOWN,
 }: {
   found: FoundResult[];
   /** Absent draws the rows untickable, which is right for a fact. */
   onToggle?: ((row: FoundRow) => void) | undefined;
   onOpenThread?: ((threadId: string) => void) | undefined;
+  /** Rows drawn before the tail. Defaults to this surface's number. */
+  shown?: number;
 }) {
   if (found.length === 0) return null;
   return (
@@ -58,6 +63,7 @@ export function AnswerResults({
           result={result}
           onToggle={onToggle}
           onOpenThread={onOpenThread}
+          shown={shown}
         />
       ))}
     </View>
@@ -68,8 +74,10 @@ function Result({
   result,
   onToggle,
   onOpenThread,
+  shown,
 }: {
   result: FoundResult;
+  shown: number;
   // `| undefined` explicitly: `exactOptionalPropertyTypes` treats an omitted
   // prop and one passed as undefined as different things, and this is passed
   // through from a parent that may not have it.
@@ -80,7 +88,7 @@ function Result({
   // No expand state on the phones. Show more is a web affordance in a pane that
   // can grow; here the tail is the thread, which is where the rest lives and
   // where somebody can actually work through them.
-  const drawn = result.rows.slice(0, ROWS_SHOWN);
+  const drawn = result.rows.slice(0, shown);
   const more = result.rows.length - drawn.length;
 
   return (
@@ -141,7 +149,7 @@ function Result({
                 // classes, which the adherence lint refuses and is right to.
                 style={{ width: 21, height: 21, borderWidth: 1.5 }}
               >
-                {row.done ? <Glyph name="check" size={13} color={colors.onSolid} /> : null}
+                {row.done ? <Glyph name="check" size={13} color={colors.onBrand} /> : null}
               </View>
             </Pressable>
           ) : (

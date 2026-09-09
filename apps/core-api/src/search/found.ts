@@ -61,6 +61,7 @@ export async function foundFor(
     from message_content mc
     join readable_content c on c.id = mc.content_id
     join threads t on t.id = c.thread_id
+      and t.deleted_at is null
     -- Bound as one array parameter. An earlier version built this list by
     -- interpolating the ids into the string, and one caller passes a route
     -- param straight in, which is untrusted input reaching a query (SEC-1).

@@ -27,6 +27,7 @@ const isAndroid = Platform.OS === "android";
  *  wants a colour. */
 export interface Colors {
   onSolid: string;
+  onBrand: string;
   accent: string;
   /** The icon well's content, which sits on a different surface per platform. */
   iconOnWell: string;
@@ -60,7 +61,20 @@ function paletteFor(dark: boolean): Colors {
   const light = resolved.light;
 
   return {
+    // **Two tokens, and they are not interchangeable.**
+    //
+    // `onSolid` is `text-inverse`, which flips with the theme, and it is right
+    // on a fill that flips with it: `surface-inverse`, or `text-accent`, which
+    // lightens in dark.
+    //
+    // `onBrand` is `text-on-solid`, which is #FFFFFF in both themes because the
+    // fills it sits on are moss, blue and clay and none of them flip. Using
+    // `onSolid` there put a near-black glyph on moss green in dark, next to a
+    // label already using the right token and drawn white, so one control
+    // disagreed with itself. The web stylesheet had `--text-on-solid` correct
+    // all along; this is the parity fix.
     onSolid: base["text-inverse"] ?? light["paper"]!,
+    onBrand: base["text-on-solid"] ?? light["text-on-solid"]!,
     accent: base["text-accent"] ?? light["text-accent"]!,
     iconOnWell: isAndroid ? m3["a-on-var"]! : base["text-secondary"] ?? light["text-secondary"]!,
     tabOn: isAndroid ? m3["a-on"]! : base["text-primary"] ?? light["text-primary"]!,
