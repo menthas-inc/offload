@@ -386,3 +386,117 @@ CALENDAR_TOOL_DEFS = [
     {"name": name, "description": _DESCRIPTIONS[name], "input_schema": _schema_for(SCHEMAS[name])}
     for name in ("list_calendars", "find_events", "create_event", "edit_event", "delete_event")
 ]
+
+
+# 013: the reads an answer is built from.
+#
+# **Read-only, every one of them.** They are offered on an answering turn and on
+# no other, and the answering turn is offered nothing else. That is the whole of
+# the prompt-injection defence and it is the part that does not depend on the
+# model behaving: after 013 the model reads rows from every thread the asker is
+# in, including text somebody else wrote, and several of the writing tools sit
+# on the reversible allowlist and so run behind a toast rather than a
+# confirmation. Labelling the rows untrusted is necessary and insufficient.
+
+
+class ListContent(BaseModel):
+    """Rows in one thread, narrowed. Reach for this first."""
+
+    thread_id: str = Field(min_length=1)
+    # Mirrors the check constraint on content.type. A value outside it is a
+    # filter that can only ever match nothing.
+    type: str | None = Field(
+        default=None,
+        pattern="^(note|link|image|screenshot|voice|file|task|event)$",
+    )
+    done: bool | None = None
+    matching: str | None = Field(default=None, min_length=1, max_length=200)
+
+
+class ListAgenda(BaseModel):
+    """What falls in a span of time, across every thread."""
+
+    # ISO 8601. The model already reasons about dates in the prompt's timezone.
+    from_iso: str = Field(min_length=1, max_length=40)
+    to_iso: str = Field(min_length=1, max_length=40)
+    when: str = Field(pattern="^(due|occurs|created)$")
+    type: str | None = Field(
+        default=None,
+        pattern="^(note|link|image|screenshot|voice|file|task|event)$",
+    )
+    done: bool | None = None
+
+
+class Search(BaseModel):
+    """Find something by words or by meaning, across everything they can see."""
+
+    query: str = Field(min_length=1, max_length=400)
+
+
+class AccountFacts(BaseModel):
+    """What offload knows about them, rather than about what they filed."""
+
+
+SCHEMAS.update(
+    {
+        "list_content": ListContent,
+        "list_agenda": ListAgenda,
+        "search": Search,
+        "account_facts": AccountFacts,
+    }
+)
+
+_DESCRIPTIONS.update(
+    {
+        "list_content": (
+            "Rows in one thread, narrowed by what they are and whether they are "
+            "done. **Reach for this before search whenever they named a thread.** "
+            "'What is left to do from Lisbon' is this tool with type=task and "
+            "done=false, and the answer is however many rows come back. Use "
+            "`matching` to check whether one particular thing is already there: "
+            "it reads the rows that mention the word instead of the first page "
+            "of the whole thread. Says whether there was more than a page."
+        ),
+        "list_agenda": (
+            "What falls between two moments, across every thread. `when` is due "
+            "for deadlines, occurs for things that happen, created for what they "
+            "dumped. Use this for 'what is due this week' and 'what did I add "
+            "yesterday': neither names a thread, and neither is a search."
+        ),
+        "search": (
+            "Find something by words or by meaning when you do not know which "
+            "thread it is in or what kind of row it is. 'Where am I staying in "
+            "Istanbul' is this. If they named a thread, list_content is better: "
+            "it is exact and this is not."
+        ),
+        "account_facts": (
+            "Their name, their default thread, and the calendars they connected "
+            "with where each one files. Not what they dumped, and not their "
+            "theme or text size: those live on their device and offload has "
+            "never known them."
+        ),
+    }
+)
+
+# The turn that answers a question. Nothing here writes anything.
+ANSWER_TOOL_NAMES = frozenset({"list_content", "list_agenda", "search", "account_facts"})
+
+# The calendar reads join them, so "what is on Thursday" works. The three
+# calendar writes do not.
+ANSWER_CALENDAR_READS = frozenset({"list_calendars", "find_events"})
+
+ANSWER_TOOLS = [
+    {"name": name, "description": _DESCRIPTIONS[name], "input_schema": _schema_for(SCHEMAS[name])}
+    for name in ("list_content", "list_agenda", "search", "account_facts")
+]
+
+ANSWER_CALENDAR_TOOL_DEFS = [
+    {"name": name, "description": _DESCRIPTIONS[name], "input_schema": _schema_for(SCHEMAS[name])}
+    for name in ("list_calendars", "find_events")
+]
+
+# Recomputed, because `TOOL_NAMES = frozenset(SCHEMAS)` above ran before these
+# were added and the loop checks every tool name against it before doing
+# anything else. Without this line the four reads are rejected as unknown_tool,
+# which would have looked like the model hallucinating them.
+TOOL_NAMES = frozenset(SCHEMAS)

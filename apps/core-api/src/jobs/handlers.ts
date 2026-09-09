@@ -12,6 +12,7 @@ import { env } from "../env.js";
 import { scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
 import { scheduleDaily } from "./queue.js";
 import { emit } from "../analytics.js";
+import { sweepEmbeds } from "../search/sweep.js";
 
 export type Handler = (payload: Record<string, unknown>, deps: { mailer: Mailer }) => Promise<void>;
 
@@ -271,7 +272,20 @@ const jobsPurge: Handler = async () => {
   );
 };
 
+/** Find what still needs embedding and enqueue it, then book the next sweep.
+ *
+ *  The rows themselves are embedded by the Python worker: the client, the
+ *  chunker and the model constant all live there, and a second implementation
+ *  in TypeScript is the drift the two-plane split already pays for once. */
+const embedSweep: Handler = async () => {
+  // No event and no bespoke log line: the runner already records every job's
+  // kind and outcome, and a sweep is operational rather than something a
+  // person did. Nothing here could carry content even by accident.
+  await sweepEmbeds();
+};
+
 export const handlers: Record<string, Handler> = {
+  "embed.sweep": embedSweep,
   "calendar.sync": calendarSync,
   "calendar.supervise": calendarSupervise,
   "jobs.purge": jobsPurge,

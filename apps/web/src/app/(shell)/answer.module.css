@@ -1,0 +1,189 @@
+/* One read from an answer, drawn as one card.
+ *
+ * **Below the reply bubble, never inside it.** A row's hover fill bleeds to its
+ * pane's padded edge with a negative margin of one space step, and a turn's own
+ * horizontal padding is that same step, so inside a bubble the two cancel and a
+ * square fill runs out under an 18px rounded corner. 012's calendar proposal
+ * stays inside because it is one fixed control acting on the sentence above it;
+ * a result is an unbounded list of live rows with a surface of its own.
+ */
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  align-self: stretch;
+}
+
+.card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* The thread names the rows from a header inside the card rather than a chip
+ * above it: one link out per result, and the count has somewhere honest to sit.
+ * This is the only place in the product a thread is named by anything but Chip,
+ * and the count is the reason it is allowed. */
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-4) var(--space-5);
+  box-sizing: border-box;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  background: var(--surface-accent-soft);
+  color: var(--text-accent);
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+}
+
+.headName {
+  font: var(--weight-medium) 13.5px/1.2 var(--font-core);
+}
+
+.headCount {
+  margin-left: auto;
+  font: var(--text-numeric-role);
+  font-size: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+}
+
+.row:last-of-type {
+  box-shadow: none;
+}
+
+/* 21px drawn inside a 44px target, so the mark stays small and the thing you
+ * hit does not. The negative margin pulls the target back over the row's own
+ * padding rather than growing the row. */
+.tick {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  margin: -11px 0 -11px -11px;
+  padding: 11px 0 0 11px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.tickBox {
+  width: 21px;
+  height: 21px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* --border-strong, not --ink-300. The kit's checkbox border was 2.5:1 and
+   * anything outlining a control needs the 3:1 floor. */
+  border: 1.5px solid var(--border-strong);
+  background: transparent;
+  transition:
+    background var(--transition-ui),
+    border-color var(--transition-ui);
+}
+
+.tick[aria-checked="true"] .tickBox {
+  border-color: var(--moss-600);
+  background: var(--moss-600);
+  color: var(--text-on-solid);
+}
+
+.tile {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  display: block;
+  font: var(--weight-medium) 15.5px/1.35 var(--font-core);
+  color: var(--text-primary);
+}
+
+/* Never opacity. A finished row keeps its place, takes tertiary ink and a 1px
+ * strike, and the tick has already said it. Dimming on a warm page reads as a
+ * rendering fault and takes the meta line under the contrast floor first. */
+.done .title {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.meta {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* Whichever tail is true, never both: there is more in hand, or there was more
+ * than the read could reach and the thread is where it lives. */
+.more {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-4) var(--space-5);
+  box-sizing: border-box;
+  border: none;
+  cursor: pointer;
+  background: var(--surface-fill);
+  color: var(--text-primary);
+  font: var(--weight-medium) 13.5px/1 var(--font-core);
+}
+
+.inThread {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  box-sizing: border-box;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  background: var(--surface-accent-soft);
+  box-shadow: inset 0 1px 0 var(--border-hairline);
+}
+
+.inThreadText {
+  flex: 1;
+  font-style: normal;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.accent {
+  color: var(--text-accent);
+}

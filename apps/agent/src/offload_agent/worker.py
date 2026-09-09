@@ -12,6 +12,7 @@ import asyncio
 import contextlib
 import signal
 import uuid
+from collections.abc import Awaitable, Callable
 
 import httpx
 import structlog
@@ -20,7 +21,10 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent import context as ctx_mod
 from offload_agent.config import Config
-from offload_agent.harness.plan import Outcome, plan, plan_quick_add
+from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
+from offload_agent.embed_jobs import KINDS as EMBED_KINDS
+from offload_agent.embed_jobs import handle_embed
+from offload_agent.harness.plan import Outcome, classify, plan, plan_answer, plan_quick_add
 from offload_agent.queue import ClaimedJob, claim, release_for_retry
 
 log = structlog.get_logger()
@@ -36,7 +40,7 @@ class ReportFailed(Exception):
     failure, because the two want opposite responses: a model failure should be
     reported, and this one cannot be."""
 
-KINDS = ["dump.answer", "thread.quick_add"]
+KINDS = ["dump.answer", "thread.quick_add", *EMBED_KINDS]
 
 
 async def _post_result(
@@ -70,7 +74,10 @@ async def _post_result(
 
 
 def _tool_caller(
-    http: httpx.AsyncClient, cfg: Config, job_id: str
+    http: httpx.AsyncClient,
+    cfg: Config,
+    job_id: str,
+    embedder: "Callable[[str], Awaitable[str | None]] | None" = None,
 ):
     """The loop's only route to a write.
 
@@ -86,6 +93,18 @@ def _tool_caller(
 
     async def call(tool: str, tool_call_id: str, args: dict) -> dict:
         payload = {"tool": tool, "jobId": job_id, "toolCallId": tool_call_id, **_camel(args)}
+
+        # The query embedding is attached here, not asked of the model.
+        #
+        # The agent plane owns the Voyage client, so this is where a query can
+        # become a vector. **The model has no field it could set**, which is the
+        # same reasoning 012 gives for confirmation: some of what it read was
+        # written by somebody else, and a field it can fill is a decision handed
+        # to whoever wrote that. Absent means the text arm answers alone: search
+        # is worse, not broken, and there is nothing for the person to do about
+        # it so nothing is said.
+        if tool == "search" and embedder is not None:
+            payload["queryVector"] = await embedder(str(args.get("query", "")))
         last: Exception | None = None
         for attempt in range(3):
             try:
@@ -169,6 +188,30 @@ async def handle(
         await _handle_quick_add(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
         return
 
+    if job.kind in EMBED_KINDS:
+        # No model call and nobody waiting, so it closes its own job rather
+        # than reporting an outcome the Core API has no use for.
+        #
+        # **Its own guard, because it returns before the one below.** Everything
+        # past this point is wrapped; this was not, and `handle_embed` catches
+        # only `EmbeddingUnavailable`. A malformed Voyage body, a KeyError, a
+        # database error inside its own transaction: any of those reached the
+        # loop's catch-all, which logs and sleeps without releasing the job.
+        #
+        # Nothing reaps a stuck `running` row, and the sweep cannot re-enqueue
+        # it because the idempotency key is `kind:rowId:version` and the version
+        # only moves when somebody edits the row. So one bad response left a row
+        # permanently unsearchable, silently, with no way back short of an edit.
+        try:
+            await handle_embed(job, cfg=cfg, engine=engine, http=http)
+        except Exception as exc:
+            # The type, never the value: an SDK exception can echo the request
+            # body, and the request body here is content (OFF-1).
+            log.exception("embed failed", kind=job.kind, error=type(exc).__name__)
+            async with engine.begin() as conn:
+                await release_for_retry(conn, job.id, "embed_error", delay_seconds=300)
+        return
+
     payload = job.payload
     message_id = payload.get("messageId")
     conversation_id = payload.get("conversationId")
@@ -182,6 +225,26 @@ async def handle(
         return
 
     try:
+        # Question or note, decided on the message alone and before anything is
+        # read. Its own call, because the toolset has to be chosen before the
+        # model is invoked: a mode the model picks mid-turn is a mode it can be
+        # talked into. See `classify`.
+        async with engine.connect() as conn:
+            asked = await ctx_mod.question_text(conn, message_id=message_id)
+
+        if asked:
+            verdict = await classify(anthropic, asked, cfg.sort_model)
+            if verdict.asking and verdict.confident:
+                await _handle_answer(
+                    job,
+                    question=asked,
+                    cfg=cfg,
+                    engine=engine,
+                    anthropic=anthropic,
+                    http=http,
+                )
+                return
+
         async with engine.connect() as conn:
             loaded = await ctx_mod.load(
                 conn,
@@ -461,3 +524,93 @@ async def _handle_quick_add(
             },
             path="quick-add-result",
         )
+
+
+async def _handle_answer(
+    job: ClaimedJob,
+    *,
+    question: str,
+    cfg: Config,
+    engine,
+    anthropic: AsyncAnthropic,
+    http: httpx.AsyncClient,
+) -> None:
+    """A question. Reads, answers, files nothing.
+
+    Never raises, for the same reason `handle` does not: a turn that stops
+    without reporting leaves somebody watching a spinner.
+
+    **Failure here is cheap and that is deliberate.** Nothing was written, so
+    there is nothing to unwind. The worst case is a sentence saying it could not
+    answer, which is the honest outcome anyway.
+    """
+    assert job.account_id is not None
+
+    try:
+        async with engine.connect() as conn:
+            ctx = await ctx_mod.load_answer(
+                conn,
+                account_id=job.account_id,
+                question=question,
+                max_threads=cfg.max_threads,
+            )
+
+        caller = _tool_caller(http, cfg, job.id, embedder=_embed_query(cfg, http))
+        outcome = await plan_answer(anthropic, ctx, cfg.answer_model, caller)
+
+        reply = outcome.reply
+        if reply is None:
+            # A question with no sentence back is a failure, unlike a dump,
+            # where filing something and saying nothing is merely terse.
+            raise InvalidOutput("answered without a reply")
+
+        await _post_result(
+            http,
+            cfg,
+            {
+                "outcome": "answered",
+                "jobId": job.id,
+                "replyText": reply,
+                "usage": _usage_wire(outcome),
+                # The rows the answer showed, as ids. The reply resolves them
+                # when it is read, so a row ticked or deleted later is never
+                # stale in an old answer.
+                "found": outcome.found,
+            },
+        )
+        log.info(
+            "question answered",
+            job_id=job.id,
+            calls=len(outcome.usage),
+            rows=len(outcome.found),
+        )
+
+    except Exception as exc:  # noqa: BLE001
+        log.error("answer failed", job_id=job.id, error_type=type(exc).__name__)
+        await _post_result(
+            http, cfg, {"outcome": "failed", "jobId": job.id, "reason": "model_error"}
+        )
+
+
+def _embed_query(cfg: Config, http: httpx.AsyncClient):
+    """Turn a question into a vector, or into nothing.
+
+    `input_type="query"` rather than `document`: Voyage embeds the two
+    asymmetrically, and getting it the wrong way round is a quiet loss of
+    quality rather than an error, which is exactly the kind of mistake that
+    never gets found.
+    """
+
+    async def run(query: str) -> str | None:
+        if not cfg.voyage_api_key or not query:
+            return None
+        try:
+            vectors = await embed(
+                [query], client=http, api_key=cfg.voyage_api_key, input_type="query"
+            )
+        except EmbeddingUnavailable as error:
+            log.warning("query not embedded", reason=str(error))
+            return None
+        return to_pgvector(vectors[0])
+
+    return run

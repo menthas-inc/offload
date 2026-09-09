@@ -1,0 +1,563 @@
+// The three reads an answer is built from.
+//
+// AC-5   a set returns as many rows as there are. Two is two.
+// AC-4b  a truncated read cannot support a "no".
+// AC-5d  a filtered list is unranked; a search is relevance then recency.
+// AC-15  a date range works across threads, scoped by membership not authorship.
+// AC-2b  a shared thread returns what another member wrote and timed.
+// AC-8   what leaves is bounded by named constants.
+
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { sql } from "kysely";
+import { db, closeDb } from "../src/db.js";
+import { migrate } from "../src/migrate.js";
+import { uuidv7 } from "../src/uuid.js";
+import {
+  ANSWER_RESULTS,
+  ANSWER_ROW_CHARS,
+  ANSWER_SETS,
+  listAgenda,
+  listContent,
+  search,
+} from "../src/search/read.js";
+
+await migrate(() => {});
+
+afterAll(async () => {
+  await closeDb();
+});
+
+beforeEach(async () => {
+  await db.deleteFrom("content_chunks").execute();
+  await db.deleteFrom("memories").execute();
+  await db.deleteFrom("content").execute();
+  await db.updateTable("accounts").set({ default_thread_id: null }).execute();
+  await db.deleteFrom("thread_members").execute();
+  await db.deleteFrom("threads").execute();
+  await db.deleteFrom("accounts").execute();
+});
+
+async function account(): Promise<string> {
+  const row = await db
+    .insertInto("accounts")
+    .values({
+      email: `${uuidv7()}@example.com`,
+      state: "active",
+      email_verified: true,
+      analytics_subject_id: uuidv7(),
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  return row.id;
+}
+
+async function thread(accountId: string, name: string): Promise<string> {
+  const row = await db
+    .insertInto("threads")
+    .values({ created_by_account_id: accountId, name })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  await db
+    .insertInto("thread_members")
+    .values({ thread_id: row.id, account_id: accountId, state: "accepted" })
+    .execute();
+  return row.id;
+}
+
+interface Extra {
+  type?: "note" | "task" | "event";
+  done?: boolean;
+  body?: string;
+  dueAt?: Date;
+  occursAt?: Date;
+}
+
+async function add(threadId: string, accountId: string, title: string, extra: Extra = {}) {
+  const row = await db
+    .insertInto("content")
+    .values({
+      thread_id: threadId,
+      account_id: accountId,
+      title,
+      type: extra.type ?? "note",
+      body: extra.body ?? null,
+      done_at: extra.done ? new Date() : null,
+      due_at: extra.dueAt ?? null,
+      occurs_at: extra.occursAt ?? null,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  return row.id;
+}
+
+describe("AC-5 a filtered list answers with however many there are", () => {
+  it("returns two rows when two match, not a page padded out", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await add(lisbon, ana, "Book the flat", { type: "task" });
+    await add(lisbon, ana, "Find a restaurant", { type: "task" });
+    await add(lisbon, ana, "Buy sunscreen", { type: "task", done: true });
+    await add(lisbon, ana, "Flight number", { type: "note" });
+
+    const result = await listContent(ana, { threadId: lisbon, type: "task", done: false });
+
+    expect(result?.rows.map((r) => r.title).sort()).toEqual(["Book the flat", "Find a restaurant"]);
+    expect(result?.truncated).toBe(false);
+    expect(result?.threadName).toBe("Lisbon trip");
+  });
+
+  it("names the thread on every row, not only on the result", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await add(lisbon, ana, "Book the flat");
+    const result = await listContent(ana, { threadId: lisbon });
+    // A row is drawn by the same component wherever it came from, so a row that
+    // knows its thread in one result and not in another is two shapes.
+    expect(result?.rows[0].threadName).toBe("Lisbon trip");
+  });
+
+  it("refuses a thread you are not in the same way as one that does not exist", async () => {
+    const ana = await account();
+    const stranger = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    expect(await listContent(stranger, { threadId: lisbon })).toBeNull();
+    expect(await listContent(stranger, { threadId: uuidv7() })).toBeNull();
+  });
+});
+
+describe("AC-4b a truncated read cannot support a no", () => {
+  it("says it was truncated when there is more than a page", async () => {
+    const ana = await account();
+    const groceries = await thread(ana, "Groceries");
+    for (let i = 0; i < ANSWER_RESULTS + 5; i++) {
+      await add(groceries, ana, `item ${i}`, { type: "task" });
+    }
+    const result = await listContent(ana, { threadId: groceries, type: "task" });
+    expect(result?.rows).toHaveLength(ANSWER_RESULTS);
+    expect(result?.truncated).toBe(true);
+  });
+
+  it("finds the row outside the first page when the question narrows to it", async () => {
+    // **The wrong-no test.** A thread longer than a page, with the asked-about
+    // row deliberately outside it. Without `matching` the check reads whichever
+    // twenty rows came back, answers "no", and somebody buys butter twice.
+    const ana = await account();
+    const groceries = await thread(ana, "Groceries");
+    await add(groceries, ana, "buy butter", { type: "task" });
+    for (let i = 0; i < ANSWER_RESULTS + 10; i++) {
+      await add(groceries, ana, `item ${i}`, { type: "task" });
+    }
+
+    const blind = await listContent(ana, { threadId: groceries, type: "task" });
+    expect(blind?.truncated).toBe(true);
+    expect(blind?.rows.some((r) => r.title === "buy butter")).toBe(false);
+
+    const narrowed = await listContent(ana, { threadId: groceries, matching: "butter" });
+    expect(narrowed?.rows.map((r) => r.title)).toEqual(["buy butter"]);
+    expect(narrowed?.truncated).toBe(false);
+  });
+
+  it("finds it even when it is already ticked", async () => {
+    // Butter may be on the list and bought. "You got it on Tuesday" is the
+    // answer, not "no".
+    const ana = await account();
+    const groceries = await thread(ana, "Groceries");
+    await add(groceries, ana, "buy butter", { type: "task", done: true });
+    const found = await listContent(ana, { threadId: groceries, matching: "butter" });
+    expect(found?.rows).toHaveLength(1);
+    expect(found?.rows[0].doneAt).not.toBeNull();
+  });
+});
+
+describe("AC-15 a span of time, across threads", () => {
+  it("answers what is due in a range without being told a thread", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    const flat = await thread(ana, "Flat admin");
+    await add(lisbon, ana, "Pay the deposit", { type: "task", dueAt: new Date("2026-09-10T09:00:00Z") });
+    await add(flat, ana, "Renew insurance", { type: "task", dueAt: new Date("2026-09-11T09:00:00Z") });
+    await add(flat, ana, "Much later", { type: "task", dueAt: new Date("2026-12-01T09:00:00Z") });
+
+    const week = await listAgenda(ana, {
+      fromIso: "2026-09-08T00:00:00Z",
+      toIso: "2026-09-14T23:59:59Z",
+      when: "due",
+    });
+
+    expect(week.rows.map((r) => r.title)).toEqual(["Pay the deposit", "Renew insurance"]);
+    expect(week.threadName).toBeNull();
+    expect(week.rows.map((r) => r.threadName)).toEqual(["Lisbon trip", "Flat admin"]);
+  });
+
+  it("includes what another member timed in a shared thread", async () => {
+    // Membership, not authorship. Author scoping passes every single-account
+    // fixture and quietly omits half a shared trip.
+    const ana = await account();
+    const bea = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await db
+      .insertInto("thread_members")
+      .values({ thread_id: lisbon, account_id: bea, state: "accepted" })
+      .execute();
+
+    await add(lisbon, bea, "Bea booked dinner", { type: "event", occursAt: new Date("2026-09-12T19:00:00Z") });
+
+    const thursday = await listAgenda(ana, {
+      fromIso: "2026-09-12T00:00:00Z",
+      toIso: "2026-09-12T23:59:59Z",
+      when: "occurs",
+    });
+    expect(thursday.rows.map((r) => r.title)).toEqual(["Bea booked dinner"]);
+  });
+
+  it("answers what was dumped in a range, which falls out of the same read", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await add(lisbon, ana, "Yesterday's note");
+    const recent = await listAgenda(ana, {
+      fromIso: new Date(Date.now() - 86_400_000).toISOString(),
+      toIso: new Date(Date.now() + 86_400_000).toISOString(),
+      when: "created",
+    });
+    expect(recent.rows.map((r) => r.title)).toEqual(["Yesterday's note"]);
+  });
+});
+
+describe("AC-5d search ranks; a filter does not", () => {
+  it("finds by exact term without any embedding at all", async () => {
+    // Voyage unreachable is worse search, not broken search: the text arm
+    // answers alone and there is no failure line, because there is nothing for
+    // the person to do about it.
+    const ana = await account();
+    const istanbul = await thread(ana, "Istanbul trip");
+    await add(istanbul, ana, "Airbnb in Beyoglu", { body: "Checked in on the 3rd" });
+    await add(istanbul, ana, "Ferry times");
+
+    const found = await search(ana, { query: "Airbnb" });
+    expect(found.rows.map((r) => r.title)).toEqual(["Airbnb in Beyoglu"]);
+  });
+
+  it("returns nothing rather than everything when nothing matches", async () => {
+    const ana = await account();
+    const istanbul = await thread(ana, "Istanbul trip");
+    await add(istanbul, ana, "Ferry times");
+    const found = await search(ana, { query: "dentist" });
+    expect(found.rows).toEqual([]);
+    expect(found.truncated).toBe(false);
+  });
+
+  it("never returns another account's rows", async () => {
+    const ana = await account();
+    const stranger = await account();
+    const theirs = await thread(stranger, "Their trip");
+    await add(theirs, stranger, "Airbnb in Beyoglu");
+    expect((await search(ana, { query: "Airbnb" })).rows).toEqual([]);
+  });
+});
+
+describe("AC-8 what leaves is bounded by named constants", () => {
+  it("truncates a long body to the row cap", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await add(lisbon, ana, "Long one", { body: "x".repeat(ANSWER_ROW_CHARS * 3) });
+    const result = await listContent(ana, { threadId: lisbon });
+    expect(result?.rows[0].body).toHaveLength(ANSWER_ROW_CHARS);
+  });
+
+  it("has an OFF-8 ceiling that is a constant, not a function of account age", async () => {
+    // The whole bound: three results of twenty rows at two hundred characters.
+    // A test rather than a comment, because the number is the thing a reviewer
+    // can check and prose is not.
+    expect(ANSWER_SETS * ANSWER_RESULTS).toBe(60);
+    expect(ANSWER_ROW_CHARS).toBe(200);
+  });
+
+  it("costs the same on a large account as on a small one", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    for (let i = 0; i < 200; i++) await add(lisbon, ana, `note ${i}`);
+
+    const result = await listContent(ana, { threadId: lisbon });
+    const bytes = JSON.stringify(result?.rows).length;
+    expect(result?.rows).toHaveLength(ANSWER_RESULTS);
+
+    await db.deleteFrom("content").where("thread_id", "=", lisbon).execute();
+    for (let i = 0; i < 5; i++) await add(lisbon, ana, `note ${i}`);
+    const small = await listContent(ana, { threadId: lisbon });
+    expect(JSON.stringify(small?.rows).length).toBeLessThan(bytes);
+    // and the large one is capped rather than growing
+    expect(bytes).toBeLessThan(ANSWER_RESULTS * (ANSWER_ROW_CHARS + 400));
+  });
+});
+
+describe("the reads go through the predicate rather than restating it", () => {
+  it("uses readable_content, so a pending member gets nothing", async () => {
+    const ana = await account();
+    const invited = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await db
+      .insertInto("thread_members")
+      .values({ thread_id: lisbon, account_id: invited, state: "pending" })
+      .execute();
+    await add(lisbon, ana, "Book the flat");
+
+    expect(await listContent(invited, { threadId: lisbon })).toBeNull();
+    expect((await search(invited, { query: "flat" })).rows).toEqual([]);
+    const agenda = await listAgenda(invited, {
+      fromIso: new Date(Date.now() - 86_400_000).toISOString(),
+      toIso: new Date(Date.now() + 86_400_000).toISOString(),
+      when: "created",
+    });
+    expect(agenda.rows).toEqual([]);
+  });
+
+  it("excludes archived rows from every read", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    const id = await add(lisbon, ana, "Old news");
+    await db.updateTable("content").set({ archived_at: sql`now()` }).where("id", "=", id).execute();
+
+    expect((await listContent(ana, { threadId: lisbon }))?.rows).toEqual([]);
+    expect((await search(ana, { query: "Old news" })).rows).toEqual([]);
+  });
+});
+
+describe("search reads memories and conversations, and does not draw them", () => {
+  async function conversation(accountId: string) {
+    const row = await db
+      .insertInto("conversations")
+      .values({ account_id: accountId })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    return row.id;
+  }
+
+  async function message(
+    conversationId: string,
+    accountId: string,
+    role: "person" | "offload",
+    text: string,
+  ) {
+    const row = await db
+      .insertInto("messages")
+      .values({
+        conversation_id: conversationId,
+        account_id: accountId,
+        role,
+        turn_id: uuidv7(),
+        text,
+        state: "answered",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    return row.id;
+  }
+
+  it("finds a standing rule and keeps it out of the rows", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await db
+      .insertInto("memories")
+      .values({
+        scope: "thread",
+        subject_id: lisbon,
+        account_id: ana,
+        kind: "standing",
+        text: "Ana always books aisle seats",
+        origin: "stated",
+      })
+      .execute();
+
+    const found = await search(ana, { query: "aisle" });
+    // A memory has no checkbox, so it informs the sentence and is not a row.
+    expect(found.rows).toEqual([]);
+    expect(found.asides?.map((a) => a.kind)).toEqual(["memory"]);
+    expect(found.asides?.[0].text).toContain("aisle seats");
+    expect(found.asides?.[0].threadName).toBe("Lisbon trip");
+  });
+
+  it("says whether offload or the person said a message", async () => {
+    // The distinction the prompt turns on. Offload's own earlier reply is a
+    // record of what was said and evidence of nothing else about the world;
+    // without the label, one wrong answer becomes a source for the next.
+    const ana = await account();
+    const chat = await conversation(ana);
+    await message(chat, ana, "offload", "I filed the ferry booking under Istanbul");
+
+    const found = await search(ana, { query: "ferry" });
+    expect(found.asides?.map((a) => a.who)).toEqual(["offload"]);
+  });
+
+  it("prefers the content row over the message it was written from", async () => {
+    const ana = await account();
+    const istanbul = await thread(ana, "Istanbul trip");
+    const chat = await conversation(ana);
+    const dump = await message(chat, ana, "person", "airbnb in Beyoglu, 3rd to the 7th");
+    await db
+      .insertInto("content")
+      .values({
+        thread_id: istanbul,
+        account_id: ana,
+        title: "airbnb in Beyoglu",
+        type: "note",
+        derived_from_message_id: dump,
+      })
+      .execute();
+
+    const found = await search(ana, { query: "Beyoglu" });
+    // The row still exists in a thread and can be ticked; the message is only
+    // provenance, so returning both would be one answer twice.
+    expect(found.rows.map((r) => r.title)).toEqual(["airbnb in Beyoglu"]);
+    expect(found.asides ?? []).toEqual([]);
+  });
+
+  it("never reads another account's conversation", async () => {
+    const ana = await account();
+    const bea = await account();
+    const shared = await thread(ana, "Lisbon trip");
+    await db
+      .insertInto("thread_members")
+      .values({ thread_id: shared, account_id: bea, state: "accepted" })
+      .execute();
+
+    const chat = await conversation(ana);
+    await message(chat, ana, "person", "book the flat for the 14th");
+
+    // A conversation is never shared, including the one that filed into a
+    // thread they both use.
+    const forBea = await search(bea, { query: "flat" });
+    expect(forBea.asides ?? []).toEqual([]);
+  });
+
+  it("skips a muted memory, matching what the model already sees", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await db
+      .insertInto("memories")
+      .values({
+        scope: "thread",
+        subject_id: lisbon,
+        account_id: ana,
+        kind: "standing",
+        text: "Ana always books aisle seats",
+        origin: "stated",
+        muted_at: sql`now()`,
+      })
+      .execute();
+
+    // A muted rule is one somebody switched off. Answering from it contradicts
+    // the switch, and context.py already filters it where memories reach a
+    // prompt, so the two agree.
+    expect((await search(ana, { query: "aisle" })).asides ?? []).toEqual([]);
+  });
+});
+
+describe("AC-9 retrieval shortlists and never decides", () => {
+  it("returns every candidate rather than picking the best one", async () => {
+    // **No distance threshold anywhere in the path.** `decisions.md` records
+    // why: embedders score below random on negation, so "not Lisbon" and
+    // "Lisbon" are neighbours, and anything that decides on a score alone gets
+    // that wrong silently. Retrieval hands the model candidates; the model
+    // reads them and answers.
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await add(lisbon, ana, "Airbnb in Alfama", { body: "Booked for the 14th" });
+    await add(lisbon, ana, "Airbnb cancellation policy");
+    await add(lisbon, ana, "Not the Airbnb, the hotel");
+
+    const found = await search(ana, { query: "airbnb" });
+
+    // Three matches come back, including the negated one, which is exactly the
+    // row a threshold would have been most confident about dropping.
+    expect(found.rows).toHaveLength(3);
+    expect(found.rows.map((r) => r.title)).toContain("Not the Airbnb, the hotel");
+  });
+
+  it("never returns a verdict, only rows and whether there were more", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    await add(lisbon, ana, "Airbnb in Alfama");
+    const found = await search(ana, { query: "airbnb" });
+
+    // The shape is the assertion. There is no `answer`, no `best`, no score:
+    // nothing the caller could mistake for a decision already made.
+    expect(Object.keys(found).sort()).toEqual([
+      "asides",
+      "rows",
+      "threadId",
+      "threadName",
+      "truncated",
+    ]);
+  });
+});
+
+describe("a deleted thread is gone from every read, not only from listContent", () => {
+  // **The predicate is authorization, not lifecycle**, and 0026 says so in a
+  // comment: `restore` depends on a deleted row still resolving. So each reader
+  // has to state its own lifecycle, and three of them did not.
+  //
+  // The failure it produced: delete a thread, ask what is due this week, and the
+  // rows come back with a working link to the thread you just deleted. Undo has
+  // eight seconds and the purge is much later, so the window is not small.
+  async function deletedThreadWith(title: string, extra: Extra = {}) {
+    const ana = await account();
+    const gone = await thread(ana, "Lisbon trip");
+    const kept = await thread(ana, "Groceries");
+    await add(gone, ana, title, extra);
+    await add(kept, ana, `${title} kept`, extra);
+    await db
+      .updateTable("threads")
+      .set({ deleted_at: sql`now()` })
+      .where("id", "=", gone)
+      .execute();
+    return { ana, gone, kept };
+  }
+
+  it("is gone from listAgenda", async () => {
+    const soon = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    const { ana } = await deletedThreadWith("Book the flat", { type: "task", dueAt: soon });
+
+    const rows = await listAgenda(ana, {
+      when: "due",
+      fromIso: new Date(Date.now() - 60_000).toISOString(),
+      toIso: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    expect(rows.rows.map((r) => r.title)).toEqual(["Book the flat kept"]);
+  });
+
+  it("is gone from search", async () => {
+    const { ana } = await deletedThreadWith("Sunscreen");
+
+    const result = await search(ana, { query: "sunscreen" });
+
+    expect(result.rows.map((r) => r.title)).toEqual(["Sunscreen kept"]);
+  });
+
+  it("takes its memories out of the asides with it", async () => {
+    const ana = await account();
+    const gone = await thread(ana, "Lisbon trip");
+    await db
+      .insertInto("memories")
+      .values({
+        account_id: ana,
+        scope: "thread",
+        kind: "preference",
+        origin: "stated",
+        subject_id: gone,
+        text: "Ana always flies out of Gatwick",
+      })
+      .execute();
+    await db
+      .updateTable("threads")
+      .set({ deleted_at: sql`now()` })
+      .where("id", "=", gone)
+      .execute();
+
+    const result = await search(ana, { query: "Gatwick" });
+
+    // A standing rule about a thread that no longer exists would still be
+    // steering the answer.
+    expect(result.asides).toEqual([]);
+  });
+});

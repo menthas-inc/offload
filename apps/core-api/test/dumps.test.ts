@@ -20,6 +20,7 @@ import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
 import { streamStep, takeDump } from "../src/routes/dumps.js";
+import { foundFor } from "../src/search/found.js";
 import { uuidv7 } from "../src/uuid.js";
 
 await migrate(() => {});
@@ -565,5 +566,135 @@ describe("AC-1 the conversation survives a reload", () => {
     const first = await takeDump(id, "one", uuidv7());
     const second = await takeDump(id, "two", uuidv7());
     expect(second.conversationId).toBe(first.conversationId);
+  });
+});
+
+describe("013 an answering turn carries rows and files nothing", () => {
+  // Through `streamStep` and `foundFor` rather than the HTTP route, which is
+  // what the rest of this file does: Better Auth signs its session cookie, so
+  // driving the endpoint would mean replicating that signing and the test would
+  // then break when the library changes rather than when this behaviour does.
+
+  async function thread(accountId: string, name: string) {
+    const row = await db
+      .insertInto("threads")
+      .values({ created_by_account_id: accountId, name })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await db
+      .insertInto("thread_members")
+      .values({ thread_id: row.id, account_id: accountId, state: "accepted" })
+      .execute();
+    return row.id;
+  }
+
+  async function task(threadId: string, accountId: string, title: string) {
+    const row = await db
+      .insertInto("content")
+      .values({ thread_id: threadId, account_id: accountId, title, type: "task" })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    return row.id;
+  }
+
+  it("returns the rows it showed and no filed threads", async () => {
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    const first = await task(lisbon, ana, "Book the flat");
+    const second = await task(lisbon, ana, "Find a restaurant");
+    const { jobId, messageId } = await dump(ana, "what is left to do from Lisbon");
+
+    await post({
+      outcome: "answered",
+      jobId,
+      replyText: "Two left.",
+      usage: goodUsage,
+      found: [{ threadId: lisbon, truncated: false, contentIds: [first, second] }],
+    });
+
+    // **The thing that would be wrong by default.** `threads` drives the filed
+    // chips and the Done tick, and both answer "where did this go", which is a
+    // question about a write. An answering turn wrote nothing, so a chip beside
+    // a result would name one thread twice and a tick would claim something
+    // happened.
+    const step = await streamStep(messageId, ana);
+    expect(step.do).toBe("answered");
+    expect(step.do === "answered" ? step.threads : null).toEqual([]);
+
+    const reply = await db
+      .selectFrom("messages")
+      .select("id")
+      .where("role", "=", "offload")
+      .executeTakeFirstOrThrow();
+    const found = (await foundFor([reply.id], ana)).get(reply.id) ?? [];
+    expect(found).toHaveLength(1);
+    expect(found[0].threadName).toBe("Lisbon trip");
+    expect(found[0].truncated).toBe(false);
+    expect(found[0].rows.map((r) => r.title)).toEqual(["Book the flat", "Find a restaurant"]);
+  });
+
+  it("carries whether the read was cut short, so the tail can differ", async () => {
+    const ana = await account();
+    const groceries = await thread(ana, "Groceries");
+    const butter = await task(groceries, ana, "buy butter");
+    const { jobId } = await dump(ana, "what is on the list");
+
+    await post({
+      outcome: "answered",
+      jobId,
+      replyText: "More than twenty.",
+      usage: goodUsage,
+      found: [{ threadId: groceries, truncated: true, contentIds: [butter] }],
+    });
+
+    const reply = await db
+      .selectFrom("messages")
+      .select("id")
+      .where("role", "=", "offload")
+      .executeTakeFirstOrThrow();
+    // Without this the reply offers to expand into rows nobody fetched.
+    expect((await foundFor([reply.id], ana)).get(reply.id)?.[0].truncated).toBe(true);
+  });
+
+  it("refuses to show a row the asker cannot read", async () => {
+    // The ids came from a read that was already scoped. Re-checked on the way
+    // in anyway, because one query is cheaper than trusting that.
+    const ana = await account();
+    const stranger = await account();
+    const theirs = await thread(stranger, "Their trip");
+    const hidden = await task(theirs, stranger, "Not yours");
+    const { jobId } = await dump(ana, "what is left");
+
+    await post({
+      outcome: "answered",
+      jobId,
+      replyText: "Nothing.",
+      usage: goodUsage,
+      found: [{ threadId: theirs, truncated: false, contentIds: [hidden] }],
+    });
+
+    const reply = await db
+      .selectFrom("messages")
+      .select("id")
+      .where("role", "=", "offload")
+      .executeTakeFirstOrThrow();
+    expect((await foundFor([reply.id], ana)).get(reply.id) ?? []).toEqual([]);
+
+    // And nothing was stored either, so it cannot leak on a later read.
+    const stored = await db.selectFrom("message_content").select("content_id").execute();
+    expect(stored).toEqual([]);
+  });
+
+  it("a dump carries no rows at all", async () => {
+    const ana = await account();
+    const { jobId } = await dump(ana, "milk and bread");
+    await post({ outcome: "answered", jobId, replyText: "Filed.", usage: goodUsage });
+
+    const reply = await db
+      .selectFrom("messages")
+      .select("id")
+      .where("role", "=", "offload")
+      .executeTakeFirstOrThrow();
+    expect((await foundFor([reply.id], ana)).get(reply.id) ?? []).toEqual([]);
   });
 });

@@ -395,3 +395,81 @@ async def load_quick_add(
         pieces=[Piece(title=p.title, done=p.done) for p in pieces],
         today=row.today,
     )
+
+
+@dataclass(frozen=True)
+class AnswerContext:
+    """What a question turn is shown before it reads anything.
+
+    Deliberately thin. A dump's context carries what already landed and the
+    conversation so far; a question carries the question and the threads it
+    might name, and everything else it wants it goes and reads. That keeps the
+    prompt a constant rather than a function of account age (OFF-8), and it is
+    why there is no conversation tail here: the reads are the memory.
+    """
+
+    question: str
+    threads: list[Thread]
+    has_calendar: bool
+
+
+async def load_answer(
+    conn: AsyncConnection,
+    *,
+    account_id: str,
+    question: str,
+    max_threads: int,
+) -> AnswerContext:
+    """The thread list, and nothing else.
+
+    The same query the dump context uses, because a thread list that differed
+    between filing and answering would be two ideas of what a person has.
+    """
+    thread_rows = (
+        await conn.execute(_THREADS, {"account_id": account_id, "limit": max_threads})
+    ).all()
+
+    # **`_THREADS` does not select `is_default` and never did.** It selects id
+    # and name. Reading `row.is_default` off the result raises rather than
+    # returning None, and `_handle_answer` catches everything, so the whole
+    # feature came back "failed" for any account with a thread while looking
+    # like a model problem. Which thread is the default is a separate read here
+    # exactly as it is in `load`, and comparing ids is the only way to know.
+    default_row = (await conn.execute(_DEFAULT_THREAD, {"account_id": account_id})).first()
+    default_id = str(default_row.id) if default_row else None
+
+    threads = [
+        Thread(id=str(r.id), name=r.name, is_default=str(r.id) == default_id)
+        for r in thread_rows
+    ]
+    # Always offered, even when too stale to make the cap: it is where anything
+    # with no obvious home lives, so a question about "that thing I saved" has
+    # nowhere to look without it.
+    if default_row is not None and not any(t.is_default for t in threads):
+        threads.append(Thread(id=default_id, name=default_row.name, is_default=True))
+
+    calendar = await conn.execute(_HAS_CALENDAR, {"account_id": account_id})
+    return AnswerContext(
+        question=question,
+        threads=threads,
+        has_calendar=bool(calendar.scalar()),
+    )
+
+
+_QUESTION = text(
+    """
+    select text from messages
+    where id = :message_id and role = 'person' and deleted_at is null
+    """
+)
+
+
+async def question_text(conn: AsyncConnection, *, message_id: str) -> str | None:
+    """What they actually typed, for the question-or-note call.
+
+    The message alone, with no thread list and no conversation: the decision is
+    made on the text and nothing else, so that the same sentence always lands
+    the same way whatever the corpus happens to hold that day.
+    """
+    row = (await conn.execute(_QUESTION, {"message_id": message_id})).scalar()
+    return row.strip() if isinstance(row, str) and row.strip() else None

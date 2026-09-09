@@ -26,6 +26,7 @@ import { sql } from "kysely";
 import type { App } from "../app.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
+import { accountFacts, listAgenda, listContent, search } from "../search/read.js";
 import { env } from "../env.js";
 import { BadTags, MAX_TAGS, normaliseTags, TAG_CHARS } from "../threads/tags.js";
 import { parseWhen, plausible } from "../threads/dates.js";
@@ -103,6 +104,10 @@ function tokenMatches(presented: string | undefined): boolean {
 // something refused, and the difference matters: a worker that has started
 // asserting identity is either compromised or wrong, and both are worth
 // failing loudly rather than absorbing.
+/** Mirrors the check constraint on content.type. A value outside it is a filter
+ *  that can only match nothing, so it is refused rather than run. */
+const contentType = z.enum(["note", "link", "image", "screenshot", "voice", "file", "task", "event"]);
+
 const body = z.discriminatedUnion("tool", [
   z.strictObject({
     tool: z.literal("create_thread"),
@@ -141,6 +146,46 @@ const body = z.discriminatedUnion("tool", [
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
     threadId: z.string().uuid(),
+  }),
+  // 013's three reads. Read-only, and offered only on an answering turn.
+  z.strictObject({
+    tool: z.literal("list_content"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    threadId: z.string().uuid(),
+    type: contentType.nullish(),
+    done: z.boolean().nullish(),
+    /** Narrows within the thread. What makes an existence check on a long
+     *  thread read the rows that mention the word rather than whichever page
+     *  came back first. */
+    matching: z.string().min(1).max(200).nullish(),
+  }),
+  z.strictObject({
+    tool: z.literal("list_agenda"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    fromIso: z.string().min(1).max(40),
+    toIso: z.string().min(1).max(40),
+    when: z.enum(["due", "occurs", "created"]),
+    type: contentType.nullish(),
+    done: z.boolean().nullish(),
+  }),
+  z.strictObject({
+    tool: z.literal("search"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    query: z.string().min(1).max(400),
+    /** The query embedding, attached by the agent plane, which owns the Voyage
+     *  client. **The model has no field it can set here**, the same reason 012
+     *  gives for confirmation: some of what it read was written by somebody
+     *  else, and a field it could fill is a decision handed to whoever wrote
+     *  that. Absent means the text arm answers alone. */
+    queryVector: z.string().max(40_000).nullish(),
+  }),
+  z.strictObject({
+    tool: z.literal("account_facts"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
   }),
   z.strictObject({
     tool: z.literal("edit_content"),
@@ -297,6 +342,52 @@ const result = z.union([
     ),
     truncated: z.boolean(),
   }),
+  /** 013's reads. One read is one result, so the answer keeps its grouping
+   *  instead of the client reconstructing it by guessing from threadId. */
+  z.object({
+    ok: z.literal(true),
+    result: z.object({
+      threadId: z.string().nullable(),
+      threadName: z.string().nullable(),
+      truncated: z.boolean(),
+      rows: z.array(
+        z.object({
+          contentId: z.string(),
+          threadId: z.string(),
+          threadName: z.string(),
+          type: z.string(),
+          title: z.string(),
+          body: z.string().nullable(),
+          done: z.boolean(),
+          dueAt: z.string().nullable(),
+          occursAt: z.string().nullable(),
+        })
+      ),
+      /** Read, and not drawn. A memory has no checkbox and half a conversation
+       *  is not an answer, so these inform the sentence and go no further. */
+      asides: z
+        .array(
+          z.object({
+            kind: z.enum(["memory", "message"]),
+            who: z.enum(["you", "offload", "a member"]),
+            threadName: z.string().nullable(),
+            text: z.string(),
+          })
+        )
+        .optional(),
+    }),
+  }),
+  z.object({
+    ok: z.literal(true),
+    facts: z.object({
+      displayName: z.string().nullable(),
+      defaultThread: z.object({ id: z.string(), name: z.string() }).nullable(),
+      calendars: z.array(z.object({ name: z.string(), filesInto: z.string().nullable() })),
+      // Stated rather than omitted. The model is told there is nothing to know
+      // here, so it answers "I do not know that" instead of guessing.
+      knowsDevicePreferences: z.literal(false),
+    }),
+  }),
   z.object({ ok: z.literal(true), done: z.literal(true) }),
   z.object({
     ok: z.literal(true),
@@ -366,6 +457,44 @@ type Outcome =
         yours: boolean;
       }[];
       truncated: boolean;
+    }
+  | {
+      ok: true;
+      /** 013. One read is one result, so the grouping travels with the rows
+       *  rather than being reconstructed on the client from threadId. */
+      result: {
+        threadId: string | null;
+        threadName: string | null;
+        truncated: boolean;
+        rows: {
+          contentId: string;
+          threadId: string;
+          threadName: string;
+          type: string;
+          title: string;
+          body: string | null;
+          done: boolean;
+          dueAt: string | null;
+          occursAt: string | null;
+        }[];
+        asides?:
+          | {
+              kind: "memory" | "message";
+              who: "you" | "offload" | "a member";
+              threadName: string | null;
+              text: string;
+            }[]
+          | undefined;
+      };
+    }
+  | {
+      ok: true;
+      facts: {
+        displayName: string | null;
+        defaultThread: { id: string; name: string } | null;
+        calendars: { name: string; filesInto: string | null }[];
+        knowsDevicePreferences: false;
+      };
     }
   | { ok: true; done: true }
   /** 012. What the model is told about a calendar write: that it happened, or
@@ -511,6 +640,56 @@ async function existing(
       ...(call.groupBy === undefined ? {} : { groupBy: call.groupBy }),
     });
     return { ok: true, done: true };
+  }
+
+  // 013's reads. Each returns one result, and each goes through the predicate
+  // from 0026 rather than restating membership here.
+  if (call.tool === "list_content" || call.tool === "list_agenda" || call.tool === "search") {
+    const result =
+      call.tool === "list_content"
+        ? await listContent(accountId, {
+            threadId: call.threadId,
+            type: call.type ?? null,
+            done: call.done ?? null,
+            matching: call.matching ?? null,
+          })
+        : call.tool === "list_agenda"
+          ? await listAgenda(accountId, {
+              fromIso: call.fromIso,
+              toIso: call.toIso,
+              when: call.when,
+              type: call.type ?? null,
+              done: call.done ?? null,
+            })
+          : await search(accountId, { query: call.query, queryVector: call.queryVector ?? null });
+
+    // A thread that does not exist and one you are not in are one answer.
+    if (result === null) throw new NotYours();
+
+    return {
+      ok: true,
+      result: {
+        threadId: result.threadId,
+        threadName: result.threadName,
+        truncated: result.truncated,
+        asides: result.asides,
+        rows: result.rows.map((row) => ({
+          contentId: row.id,
+          threadId: row.threadId,
+          threadName: row.threadName,
+          type: row.type,
+          title: row.title,
+          body: row.body,
+          done: row.doneAt !== null,
+          dueAt: row.dueAt,
+          occursAt: row.occursAt,
+        })),
+      },
+    };
+  }
+
+  if (call.tool === "account_facts") {
+    return { ok: true, facts: await accountFacts(accountId) };
   }
 
   if (call.tool === "list_thread_content") {

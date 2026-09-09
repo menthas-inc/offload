@@ -149,6 +149,16 @@
   overflow-wrap: anywhere;
 }
 
+/* An offload turn that carries results is two things stacked: the bubble, and
+   the results below it at the log's own gutter. The wrapper exists so the
+   bubble keeps its 92% and its rounded corner while the cards run full width.
+   Without it the cards would inherit the bubble's max-width and inset. */
+.turn {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+
 .turnOffload {
   align-self: flex-start;
   max-width: 92%;

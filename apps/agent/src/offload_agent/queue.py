@@ -117,3 +117,26 @@ async def release_for_retry(
     await conn.execute(
         _RELEASE, {"job_id": job_id, "reason": reason, "delay_seconds": delay_seconds}
     )
+
+
+# Work that finishes here rather than at the Core API.
+#
+# A dump's job is closed by `turn-result`, because the Core API is the only
+# writer and the turn's outcome has to reach it anyway. An embed job writes
+# nothing the Core API owns and has nobody waiting on it, so a round trip to
+# close it would be a network hop bought for symmetry.
+_FINISH = text(
+    """
+    update jobs set
+      state = 'done',
+      locked_at = null,
+      locked_by = null,
+      updated_at = now()
+    where id = :job_id
+    """
+)
+
+
+async def finish(conn: AsyncConnection, job_id: str) -> None:
+    """Mark a job done. For work with no result to report anywhere else."""
+    await conn.execute(_FINISH, {"job_id": job_id})

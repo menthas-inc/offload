@@ -125,15 +125,14 @@ export async function readableMemories(
   trx: Executor = db,
 ): Promise<Memory[]> {
   const rows = await trx
-    .selectFrom("memories")
-    .innerJoin("thread_members", "thread_members.thread_id", "memories.subject_id")
+    // `readable_memories` from 0026, aliased so nothing below has to move. The
+    // scope and membership rules are the view's; lifecycle stays here.
+    .selectFrom("readable_memories as memories")
     .select((eb) => [...COLUMNS, authorIsMember(eb)])
-    .where("memories.scope", "=", "thread")
     .where("memories.subject_id", "=", threadId)
     .where("memories.deleted_at", "is", null)
     .where("memories.superseded_at", "is", null)
-    .where("thread_members.account_id", "=", accountId)
-    .where("thread_members.state", "=", "accepted")
+    .where("memories.viewer_account_id", "=", accountId)
     .orderBy("memories.created_at", "asc")
     .execute();
   return rows.map(toMemory);
@@ -155,13 +154,10 @@ export async function readableMemory(
   includeDeleted = false,
 ): Promise<(Memory & { threadId: string }) | null> {
   let query = trx
-    .selectFrom("memories")
-    .innerJoin("thread_members", "thread_members.thread_id", "memories.subject_id")
+    .selectFrom("readable_memories as memories")
     .select((eb) => [...COLUMNS, "memories.subject_id", authorIsMember(eb)])
     .where("memories.id", "=", memoryId)
-    .where("memories.scope", "=", "thread")
-    .where("thread_members.account_id", "=", accountId)
-    .where("thread_members.state", "=", "accepted");
+    .where("memories.viewer_account_id", "=", accountId);
 
   if (!includeDeleted) query = query.where("memories.deleted_at", "is", null);
 

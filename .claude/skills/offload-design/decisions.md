@@ -11,6 +11,62 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-09 · Three things the review found in answering, and what each one is now
+**Surface:** web, iOS, Android
+**Raised by:** the review panel run before 013 merged. All three are gaps between the apply doc and the code that the first log entry did not name.
+
+**`shown` is a prop now, which is what point 3 asked for.** It was two module constants read directly inside the component, so the right numbers landed by the wrong mechanism. A part that reaches for a module constant cannot be drawn twice on one page at two sizes, and the web pane and the composer log are already two places with different room. `ROWS_SHOWN` stays as each surface's default and the call sites can override it.
+
+**Point 4's `20 of 46` header is dropped, deliberately, and this is the record of it.** The header shows the count of what arrived. The count of what exists would need a `COUNT(*)` per result on the read path, and `page()` avoids one by design: it asks for one row more than it needs and reports the overflow as a boolean. The truncated tail already says the rest is in the thread, and the thread page shows the real total when somebody follows it. **Design system impact:** the brief's point 4 should drop "and the header says `20 of 46`"; `AnswerResult.d.ts` should narrow `count` from `number | string` to `number`.
+
+**The phones fold both tails into one, and that is a real divergence rather than an oversight.** Point 4 describes two behaviours: Show more expanding in place, and the thread for a cut-short read. Web does both. The phones do the thread for both, because the conversation is a sheet capped at 78% of the screen and expanding twenty rows in place pushes the sentence that answers the question off the top edge, which is the same measurement that put `shown` at 5. The thread is where somebody works through a long list on a phone anyway. **Design system impact:** the kits should draw the phone tail as the thread in both cases, or say why not.
+
+**Design system impact:** the two fields above, plus `AnswerResult` is still absent from `_ds_bundle.js`, `_ds_manifest.json` and `_adherence.oxlintrc.json`, so none of its prop contract is enforced by `pnpm lint`. Those are generated and are the design system's to write on its next sync.
+
+### 2026-09-09 · The mobile tick was drawn in the wrong white
+**Surface:** iOS, Android
+**Raised by:** the same review pass, checking 8a's ramp-value defect for others of its shape.
+
+**`useColors().onSolid` is `--text-inverse`, and it flips with the theme.** That is correct on a fill that flips with it, which is `--surface-inverse` and also `--text-accent`, since the accent lightens in dark. It is wrong on moss, blue and clay, which do not flip at all: the glyph went to #191919 in dark and sat on moss green.
+
+`--text-on-solid` is #FFFFFF in both themes and exists for exactly these fills. It was never exposed to the phones, so there was no way to reach it. It is `onBrand` now.
+
+Two call sites were wrong. The answer row's tick, which is new. And `Conversation.tsx`'s Done mark, which drew its glyph with `onSolid` and its label with `text-text-on-solid`, so **one control disagreed with itself in dark**, a white word beside a near-black tick. The web stylesheet had `var(--text-on-solid)` right all along, so this is a parity fix rather than a new decision.
+
+**Design system impact:** none to the tokens, which were already right. Worth knowing that a phone component reaching for "white on a fill" needs `onBrand` and that `onSolid` means the inverse surface.
+
+### 2026-09-09 · Answering, applied, and one divergence on the failure line
+**Surface:** web, iOS, Android
+**Raised by:** applying `handoff/APPLY-2026-09-09-answering.md`.
+
+**Points 1 to 8a are built as drawn.** The card with the thread as its header, results below the bubble and controls inside it, `shown` at 8 on web and 5 on the phones, the two tails kept exclusive, the done row on tertiary ink with a strike, ticking as the only write, and the checkbox border at `--border-strong`.
+
+**8a found a real one in shipped code.** `Conversation.tsx`'s calendar control drew its filled primary as `bg-ink-950` with `text-text-inverse`. Those resolve to the same pair as `--surface-inverse` and `--text-inverse` do today, which is luck rather than design: a ramp value pairs correctly only for as long as the two happen to flip together. It is the alias now. **`components/settings/Rows.tsx:257` has the identical shape and is untouched**, because it is outside this feature; it should move with the next settings change.
+
+**The truncated tail needed a column.** `message_content` gained `truncated` in 0029. Without it a reply reopened tomorrow forgets which tail it had and offers to expand into rows nobody fetched. It sits on the join row rather than in a table of its own: one read is one thread here, so every row of a result carries the same value.
+
+**Divergence, point 7.3: the failed treatment still applies to an answering turn.** Partial genuinely cannot happen, since an answer posts answered or failed and never partial. Failed can, and offload never leaves a dead end: a question that failed needs the same sentence and the same Try again a dump gets. The copy stays as it is because the message is saved either way.
+
+**Not built: `QuickReplies`.** Points 9 to 11 are the shape 014 should land in and the brief says they do not block 013.
+
+**Design system impact:** none outstanding for this pass. The kits already carry the parts; what is left is the settings primary named above, which is code's to move.
+
+### 2026-09-09 · Answering has no mock, and three things the kits cannot express
+**Surface:** web, iOS, Android
+**Raised by:** building 013. The server half is complete and the clients are deliberately not started.
+
+**`find-kit.sh search` and `answer` find nothing**, so this is one of the few screens designed rather than matched. The full brief is `handoff/DESIGN-2026-09-09-answering.md`; this entry is the contract.
+
+**A tickable row does not exist anywhere.** `WRow`'s `check` is a bordered span with no behaviour, because nothing in the kits was ever tickable. In an answer a row is ticked for real, through the same endpoint the thread page uses.
+
+**A done row is not dimmed.** `WThing.jsx:38` draws a completed row at `opacity: 0.5`, and both shipping components reject exactly that in a written comment: never opacity, because dimming a row on a warm page reads as a rendering fault and takes the label under the contrast floor. They use the moss fill, tertiary ink and a strikethrough. **This one is a correction to the kits rather than a new state**, and it applies to `WThing` and the mobile equivalent as they stand, not only to answering.
+
+**A row has to say which thread it came from.** The thread page never needed it, because it draws one thread. `WRow`'s `meta` cannot carry it: it is plain text so it cannot be a link, and it already holds who and when, which matters more here than anywhere because a result in a shared thread can be somebody else's. Results group under the moss thread chip a reply already uses.
+
+**And results sit below the reply bubble, not inside it.** A pane row's hover fill bleeds by `calc(-1 * var(--space-5))`, which is exactly an offload turn's horizontal padding, so inside a bubble it cancels the padding and runs under the 18px corner. Everything put inside a turn until now has been one small fixed control.
+
+**Design system impact:** three things for the kits to gain and one to correct. Gain: a tickable row state, a thread chip above a group of results, and a **Show more** control on a result longer than what a reply draws. Correct: the completed-row treatment in `WThing` and its mobile twin, from opacity to the moss fill with tertiary ink and a strikethrough that both shipping components already use. `ROWS_SHOWN = 8` is a guess in the absence of a mock and is the number most likely to move.
+
 ### 2026-09-05 · The phones, and four divergences the kits do not cover
 **Surface:** mobile, android
 **Raised by:** building 009.

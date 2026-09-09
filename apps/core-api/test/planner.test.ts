@@ -20,6 +20,7 @@
 // the thing most likely to be got wrong.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { sql } from "kysely";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
@@ -77,7 +78,16 @@ async function thread(
 ): Promise<string> {
   const row = await db
     .insertInto("threads")
-    .values({ created_by_account_id: accountId, name, last_activity_at: new Date(), updated_at: new Date() })
+    // The database's clock, not Node's. `touchThread` writes `now()`, and
+    // comparing that against `new Date()` compares two clocks: Node runs on the
+    // host and Postgres in a Docker VM, and they drift by a millisecond or two
+    // in either direction. That is what made this file flaky.
+    .values({
+      created_by_account_id: accountId,
+      name,
+      last_activity_at: sql`now()`,
+      updated_at: sql`now()`,
+    })
     .returning("id")
     .executeTakeFirstOrThrow();
   await db

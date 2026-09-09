@@ -26,7 +26,13 @@ export type JobKind =
   | "location.resolve"
   | "calendar.sync"
   | "calendar.supervise"
-  | "jobs.purge";
+  | "jobs.purge"
+  // 013. The sweep runs here and finds what needs embedding; the three embed
+  // kinds are drained by the Python worker, which is where the client lives.
+  | "embed.sweep"
+  | "embed.content"
+  | "embed.memory"
+  | "embed.message";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */

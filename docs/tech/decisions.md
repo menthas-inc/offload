@@ -501,3 +501,160 @@ entry of the same date.
 **A model-initiated outward write had nowhere to wait**, so one was built. Every tool in this product executes inside the turn and returns a result; there is no pending state anywhere. An outward-facing write from the model writes a `connector_pending_writes` row and returns "waiting for them", and a person's tap performs it with the condition re-evaluated against live state. The model has no field it could set to skip that, which matters because some of what it read was written by a stranger.
 
 **Design system impact:** the confirmation is a control nothing draws yet. Recorded in the design log's entry of the same date.
+
+### 2026-09-09 · Answering builds the index, and the membership predicate finally becomes a view
+
+Decided while specifying 013, and recorded because two of the three are corrections to what the reviews recommended.
+
+**013 builds the retrieval layer rather than handing it to a prerequisite spec.** The review argued for splitting: the embedding pipeline is different-sized, different-risk work from the answering behaviour, and asking one implementer to invent both is how the invisible half gets skipped. True, and the split still loses. An index nobody queries is unused extensibility, which DEV-1 forbids, and it is the exact state 006 and 008 each declined to leave behind when they deferred the embedding column for the correct reason that nothing read it. Answering is the reader. The risk the review named is real and is answered by named tasks and by AC-14, which makes something embed a real string against the real Voyage API, rather than by a second spec that would ship a column and a test that only proves the column exists.
+
+**The account-or-accepted-membership predicate becomes a SQL view, closing 001's T16.** 001 decided this on day one and gave this feature as the reason: the Core API reads through Kysely, the agent plane reads through SQLAlchemy, and a rule written twice is a rule fixed once. The view was never built, and that has been harmless because there has only ever been one reader. Search is the second, in the other language, so the debt comes due here rather than at some later convenient moment. The predicate for memories is a separate one and not a variation of the same: a thread-scope memory has `account_id IS NULL` by design and resolves through `thread_members` on `subject_id`, so the obvious filter returns nothing and the obvious fix for that is to loosen it.
+
+**An answering turn is offered no tool that writes.** This is the one finding that changed the shape of the feature. Until now the model read one thread it had just written to; after this it reads matching rows from every thread the asker is in, including shared ones, where another member wrote the text. Several tools sit on the reversible allowlist above and so execute behind an eight second toast rather than a confirmation, which means an imperative sentence sitting in a shared thread would be read by a model holding them. Labelling retrieved rows as untrusted is necessary and is not sufficient, because it depends on the model behaving. Withholding the tools does not. A turn that both asks and dumps is treated as a dump, which keeps that boundary a single decision rather than a per-tool judgement.
+
+**The question-or-note call is made on the text, before retrieval.** Deciding after would make the same sentence a question on a day the corpus happened to match and a note on a day it did not, which is unpredictable in the way that reads as broken. Ambiguity still files, and that rule is expected to soften once offload can ask a follow-up, which is the next feature.
+
+**Design system impact:** answering has no mock. `find-kit.sh` finds no search or answer kit, so this is one of the few screens designed rather than matched, and the client review turned up more divergence than the first draft claimed.
+
+The rows come from the shipping components, `ContentRowView` and `ContentRow`, not from the kits' `WRow`. The first draft sent web to `WRow` and the phones to their real component and called that parity; it is two provenances converging by luck, and `WRow` has never been wired to state, so it has no filing spinner, no author-conditional delete and no done state at all.
+
+**Three things the kits cannot express yet, and each is code leading design.** A tickable row, which exists nowhere. A row that says which thread it came from, which the thread page never needed because it draws one thread. And the done state, where the kits use `opacity: 0.5` on a completed row while both shipping components reject exactly that in a written comment: never opacity, because dimming a row on a warm page reads as a rendering fault and takes the label under the contrast floor. The ticked fill, border and strikethrough are what the kits have to catch up on.
+
+**The thread link is the existing chip, not a line of text.** `WRow`'s `meta` is plain text and cannot be a link, and it is already load-bearing: it carries who and when, which matters most here because a result in a shared thread can be somebody else's. So results group by thread under the moss chip a reply already uses to name where a dump landed, which is one link per thread instead of one per row and changes neither row component.
+
+**Results render below the reply bubble rather than inside it.** Everything put inside an offload turn until now has been one small fixed control, 012's confirmation and the thread chips. A pane row's hover fill deliberately bleeds by `calc(-1 * var(--space-5))`, which is exactly the bubble's own horizontal padding, so inside a bubble the fill cancels it and runs under an 18px rounded corner. Below it, at the column's width, a row is the shape it already is everywhere else.
+
+### 2026-09-09 · A question is a filter before it is a search, and one read is one result
+
+Decided while reviewing 013's constants, and it changed the retrieval design rather than a number.
+
+**`ANSWER_ROWS_INLINE` was invented and is gone.** It capped how many rows a reply drew, at 8, and it was cited against AC-8, which is the OFF-8 prompt bound: by the time rows reach a client the model call is over, so a display cap serves nothing there. It also never said whether 8 was global or per thread, which the grouping made load-bearing. The right question turned out to be why an answer was long enough to need trimming.
+
+**Because the read was fuzzy when it should have been exact.** "What is left to do from Lisbon" is not a similarity problem, it is `type = 'task' and done_at is null` in one thread, which is a `where` clause the thread page has run since 005. Answering it by cosine distance is a worse and less predictable version of a query we already know how to write. So `list_content` exists beside `search`, widening 006's `list_thread_content` with type and done, and the prompt names it as the one to reach for first. **An answer is then two rows because there are two**, not because something trimmed twenty to a pretty number.
+
+**One read is one result, and `found` carries results rather than rows.** "Lisbon and Istanbul" is two reads, so it is two results, each with its own thread. Flattened to one array the client cannot tell which trip a row belongs to and would have to reconstruct the grouping by guessing from `threadId`. It also matches how the answer is drawn: a result is already a group, under the thread chip a reply uses.
+
+**Ranking is relevance then recency, and only where there is ranking to do.** A filtered list comes back whole, in the thread's own order, because everything matching is the answer and ranking a `where` clause invents a judgement that is not there. A search is fused by RRF and then broken by `created_at`, as a tiebreak rather than a term, so recency can never outrank relevance and no half life has to be defended.
+
+**Truncation is a flag, not a count.** The existing tool already fetches `LIST_PAGE + 1` and reports `truncated`, so below a page the row count is the true count, which is where "three left" comes from, and above it the reply says more than a page rather than inventing a number. No `COUNT(*)` on the path of a sentence.
+
+**The OFF-8 ceiling is now a product**, `ANSWER_SETS × ANSWER_RESULTS`, three results of twenty rows at two hundred characters. Constant regardless of account age, which is what the principle asks, and it is the figure AC-8's test asserts.
+
+**Design system impact:** `ROWS_SHOWN = 8` per result is a client number that bounds nothing on the server. Under it a result draws whole; over it, eight draw with a **Show more** that expands what arrived, and a truncated read ends with the thread chip, because the thread is where the rest live. Show more on a result is a control the kits do not have, and it joins the tickable row and the done state in the entry above. The number is a guess in the absence of a mock and is the thing most likely to move when there is one.
+
+### 2026-09-09 · A wrong no is the expensive answer, so absence needs a complete read
+
+"Did I already add buying butter to the groceries list" broke three things in 013 as specified, and the third is the one that mattered.
+
+**"No" is an answer, and the spec only had a sentence for not having one.** AC-4 covered "a question with no answer" and used the same line for a definite no. They are different: "I could not find it" describes offload, and "no, it is not on the list" describes the groceries, which is what was asked. Both exist now.
+
+**A wrong no is quiet and expensive, and it was the default.** Narrow to the thread, the thread has forty rows, twenty come back, butter is in the other twenty, and the answer looks honest and is a lie: somebody buys butter twice. So absence may only be asserted from a complete read. `truncated` was already in the result and is now load bearing rather than cosmetic, and `list_content` gains `matching` so an existence check reads the rows that mention the word rather than a page of the whole thread. **The test is a thread long enough to truncate with the asked-about row outside the first page**, which is invisible on any smaller fixture.
+
+**It is the deduplication rule again, in the place it bites hardest.** `decisions.md` already says cosine may shortlist and may never decide, and names dedup as the case, because a row and its negation are neighbours to an embedder. An existence check is dedup asked out loud, so no near match is not evidence of absence: retrieval narrows and the model reads the candidates.
+
+**Also found: the answering context had no thread list.** A person names a thread the way a person does, "the groceries list", and every tool addresses one by id. The dump context has carried id, name and default since 004 and the answering context now does too. `context.py` already records why this cannot be resolved server-side: two threads may share a name, so a name is an ambiguous address and resolving it would be guessing on the model's behalf.
+
+**And the done state is not assumed.** Butter may be on the list and already ticked, where the answer is that it was bought on Tuesday rather than no.
+
+**Design system impact:** none. This changes what is said, not what is drawn.
+
+### 2026-09-09 · A span of time is a read, and a conversation is a third predicate
+
+Two gaps found by working through what people would actually ask 013 and it could not answer.
+
+**"What is due this week" was unanswerable, and the index for it has existed since 001.** `(account_id, occurs_at)` was built for the agenda screen. Nothing exposed it to an answer, and `list_content` requires a thread id, so offload could draw somebody their week and not answer a question about it. `list_agenda(from_iso, to_iso, when, type?, done?)` closes it, with `when` in `due`, `occurs` and `created`, which are the three dates a question means. "What did I dump yesterday" falls out of the third for nothing.
+
+**It reads the membership predicate, which the agenda screen does not, and that disagreement is now on the table.** `001`'s index is account-scoped, so in a shared thread the screen misses what another member timed while the answer will include it. Only two new indexes are needed, led by `thread_id` instead of `account_id`. Which behaviour is right is a real question and deliberately not settled here: changing what a shipped screen shows is not an answering feature's call. It is in 013's Open, because a screen and an answer disagreeing about the same week is exactly the two-documents defect class.
+
+**Conversations join the corpus, and they authorize on nothing but their owner.** "Why did you file that in Lisbon" was unanswerable because the reason lived in the reply and the reply was not searchable. `readable_messages` is the third view: `conversations.account_id`, both soft deletes, and `state in ('seen','answered')` because `queued` is internal and must not reach an answer any more than it reaches a client. **A conversation is never shared**, including the one that filed something into a thread somebody shares, because what you said while dumping is not part of what you shared. Written as a view beside the other two so nobody has to notice it is different in order to get it right.
+
+**And half of a conversation is offload's own output.** Searching conversations puts the model's previous replies back in front of it, where a past answer that was wrong is otherwise indistinguishable from something a person stated. Every retrieved message carries its `role`, and the prompt says offload's earlier reply is evidence of what was said and of nothing else about the world. Without that, one wrong answer becomes the source for the next one, which is the cheapest possible way to build a product that confidently repeats its own mistakes.
+
+**A message and the content it became are near duplicates**, since the row was written from the text. The content row wins: it still exists in a thread and it can be ticked, while the message is provenance.
+
+**Two wants are recorded as not built rather than quietly missing.** Counting and totalling across threads, which needs an aggregate over more threads than a turn reads and cannot be done from a truncated page anyway. And what you are waiting on from somebody, where `waiting_on_*` has been in the schema since 0014 and 006 deliberately left it unwritten, and person-scope memories still have no writer.
+
+**Design system impact:** none. `list_agenda` returns the same rows in the same result shape.
+
+### 2026-09-09 · The flaky test was two clocks, not a race
+
+A planner test asserted `after.last_activity_at >= before.last_activity_at` and failed by exactly one millisecond, intermittently, on a change that touched only documentation.
+
+**The test helper wrote `new Date()` and the code writes `now()`.** Node runs on the host and Postgres runs in the Docker VM, so those are two independent clocks. Measured directly rather than reasoned about: five consecutive `select now()` calls came back at +20ms, 0ms, **-1ms**, +1ms and 0ms against `Date.now()`. The negative sample is the failure, reproduced on demand. Test helpers write `sql\`now()\`` now, so a timestamp that will be compared against the database's clock comes from the database's clock.
+
+*Worth knowing generally: any test fixture that seeds a timestamp Postgres will later compare is a cross-clock comparison, and drifts by a millisecond or two in either direction.*
+
+**The second flake was a number collision.** A stream test died as "Test timed out in 5000ms", which is vitest's default, and the pool's `connectionTimeoutMillis` is also 5000. Whichever fired first, the message was the generic one, so a starved pool and a slow test were indistinguishable. `testTimeout` is 20s now: above the pool's bound, so pool exhaustion surfaces as "timeout exceeded when trying to connect" rather than as a stack trace of something asleep. These tests talk to a real database and five seconds was never a meaningful budget for them.
+
+*This is the `EXPO_OFFLINE=1` lesson again: an error message is worth more than a timeout.*
+
+**Design system impact:** none.
+
+### 2026-09-09 · A view over `table.*` freezes its column list
+
+0026 created `readable_content` as `select content.*, ...`. 0027 added the `search_text` generated column to `content`. The view did not gain it: the star is expanded once, when the view is created, and Postgres holds that list forever.
+
+It surfaced as `column content.search_text does not exist`, from a query reading the view, which is a confusing error precisely because the column plainly does exist on the table it is named after.
+
+**The trap is permanent rather than a one-off**, and that is what makes it worth an entry. Every future migration that adds a column to `content`, `memories` or `messages` leaves these views behind the same way, and the next failure may be quieter: a read that silently cannot see a column it should, rather than an error.
+
+0028 drops and recreates the three. `create or replace` cannot do it, because replace may only append columns and the correct list puts `search_text` before `viewer_account_id`.
+
+**The durable fix is the test, not the migration.** `predicate.test.ts` now asserts each view's column set equals its table's plus exactly `viewer_account_id`, so whoever adds the next column finds out from a red test rather than from production.
+
+**Design system impact:** none.
+
+### 2026-09-09 · A vector index keeps the dead until something vacuums
+
+`search-index.test.ts` failed rarely, only ever in the full suite, never alone, and resisted three explanations. The instrumentation left after the first sighting said the same thing every time: `got: 0, matching: 60, setting: relaxed_order`. Sixty live rows, the setting correct, and the scan returning none.
+
+**An HNSW graph keeps entries for deleted rows until a vacuum removes them.** Every other file in the suite empties `content` between tests, which cascades to `content_chunks`, so by the time the index file runs the graph can hold thousands of dead entries from earlier fixtures. An iterative scan spends `hnsw.max_scan_tuples` walking them and returns nothing, while a count over the same rows through a different path says sixty. Alone the file always passed, because alone there was nothing dead to walk. The fixture vacuums now.
+
+**This is a production caveat and not only a test one.** An account that churns heavily gets a worse vector search until autovacuum catches up, and the symptom is search going quiet rather than erroring. Worth knowing before somebody reports it as a bug.
+
+*Three answers, two of them wrong, and both wrong ones were reasonable.* A companion test asserting that iterative scan off under-returns was deleted for depending on the query plan, which was correct on its own terms. Then `enable_seqscan = off` was removed as the cause: it was genuinely vestigial, the test should run the query the way production runs it, and it did not fix anything. What settled it was noticing that the instrumentation had already ruled out the data, the predicate and the setting, so whatever was left had to be about the index rather than about the query.
+
+**The lesson is the instrumentation, not the vacuum.** Three attempts to reason about a rare failure produced two wrong answers; one line of state captured at the moment of failure produced the right one, and cost nothing while the test was passing.
+
+**Design system impact:** none.
+
+### 2026-09-09 · Correcting the entry above: the test was asking for a guarantee pgvector does not make
+
+The vacuum finding is real and stays. It was not the whole story, and the entry above overstates it.
+
+**The assertion itself was wrong.** It required an HNSW scan to return exactly the twenty rows the limit asked for. pgvector's documentation says the opposite in as many words: *"There may be even less results due to dead tuples or filtering conditions in the query."* Both applied here at once. So every explanation chased, including the vacuum, was a search for why an approximate index failed to be exact.
+
+**It was rewritten three times and all three failed**: exact twenty, then twenty after a vacuum, then merely greater than zero. Each rewrite was a better guess than the last, and the pattern is the answer. How many rows an HNSW scan returns depends on the state of the graph at that moment, so it is not a property a test can pin down, and a test gating every commit on it fails for reasons nobody can act on.
+
+There is no recall assertion now. What remains is the part that is ours: iterative scan is on for every pooled connection, so the post-filter cannot silently starve a membership-scoped read. AC-13 asked for the setting, and the setting is what is checkable. Recall is pgvector's, and it declines to promise it.
+
+**What follows for the product, and this is the part worth keeping.**
+
+- **Vacuum policy: there is none of ours, and there should not be a job.** Autovacuum already exists, yields under load, and needs nobody to remember it. `0030` lowers `autovacuum_vacuum_scale_factor` to 0.02 on the three chunk tables, because the default 20% dead is chosen for tables where dead tuples cost time; here they cost **results**, and the symptom is search going quiet rather than erroring. pgvector also warns that vacuuming an HNSW index is slow enough to want a `REINDEX` first, which is not something to run on a timer against a live table.
+- **The churn itself was the bigger problem.** `handle_embed` replaced a row's chunks whenever the sweep found it stale, and the sweep finds staleness through `updated_at`, which ticking a task, editing tags, changing priority, archiving and moving all touch. None of them change a word of the text. Every tick was paying Voyage for a vector we already had and leaving the old entries dead in the graph. It now compares the chunk text first and touches `embedded_at` when nothing moved.
+
+**Voyage has no view on any of this.** They return vectors. The index, its dead tuples and its vacuuming are entirely ours, and the only vendor guidance that applies is pgvector's.
+
+### 2026-09-09 · What the review panel found before 013 merged, and the two that were feature-ending
+
+Three reviewers over the whole branch. Two findings would have shipped a feature that did not work at all, and neither was catchable by the suite as it stood.
+
+**`load_answer` read a column its query does not select.** `_THREADS` selects `id` and `name`; the answer path read `row.is_default` off it. SQLAlchemy raises on a missing column rather than returning `None`, and `_handle_answer` catches everything, so **every question from any account with a thread came back "failed"**, indistinguishable from a model problem. It was invisible because every test builds `AnswerContext` directly and nothing exercised `load_answer` against a database. It computes the default by comparing ids now, exactly as the dump path always did.
+
+**The phones dropped the rows.** `fetchAnswer` in `apps/mobile/lib/dump.ts` did not carry `found` in its parsed shape, and it is the only way an open app learns its turn is finished. Every answer rendered its sentence and none of its rows; the rows appeared after a force quit, because the cold start reads a different endpoint. Web had the field and the phones did not, in two functions written to mirror each other.
+
+*Both were one missing field, both in the seam between two things that were each correct, and neither was reachable by a test that did not run the real query or the real fetch.*
+
+**A soft-deleted thread was still answerable.** `readable_content` carries authorization and deliberately not lifecycle, because `restore` depends on a deleted row still resolving, so every reader states its own. `listContent` did. `listAgenda`, both arms of `search`, the memory asides and `found` did not, so deleting a thread left its rows in "what is due this week" with a working link to it, and left a memory scoped to it still steering the answer. The window is the eight second Undo plus however long until the purge, which is not small.
+
+**An embed job that failed unexpectedly was stranded forever.** The dispatch sat outside the loop's try, and `handle_embed` catches only `EmbeddingUnavailable`. Anything else reached the outer catch-all, which logs and sleeps without releasing the job. Nothing reaps a stuck `running` row, and the sweep cannot re-enqueue it because the idempotency key carries the row's `updated_at`, so **one malformed response made a row permanently unsearchable until somebody happened to edit it**.
+
+**The sweep read every row of three tables every minute, forever.** Its comment says the hundredth sweep finds nothing, which is true of what it returns and not of what it costs: an anti-join plus an ordered limit over the whole live table, to answer "nothing". `0031` adds a partial index per query, matching each predicate and its sort. Verified by reading the plan rather than by assuming: index scan under the limit, no sort node.
+
+**Two prompt-framing fixes, both about the same wrong word.** The thread list was introduced to the model as "this is our data". The ids are ours; the names are not, because any accepted member can rename a shared thread and a name the filing model chose came from somebody's dump text. It now says the ids are ours and the names are labels people wrote, on the answering turn and on the filing turn, which is the one that carries the write tools. `accountFacts` carried the same claim in a comment, and a calendar's name comes back from Google.
+
+**Deliberate deviation from OFF-5, recorded rather than hidden.** `classify` validates through a schema but does not retry and does not raise on a validation failure; it returns "not a question", which files. Raising is the wrong failure here: this call sits in front of every dump, so an exception loses the note rather than degrading the feature, and the schema is two booleans behind a forced `tool_choice`. What OFF-5 is really protecting against is the silence, and that is now closed by a log line: without it a classifier degrading in production turns every question into a filed note and nothing says so.
+
+**Left alone on purpose.** `0027` rewrites three tables and builds three GIN indexes in one transaction, taking an `ACCESS EXCLUSIVE` lock at boot. At alpha volumes that is seconds. `CREATE INDEX CONCURRENTLY` cannot run inside the one-transaction-per-file migration runner, and a `lock_timeout` would turn a brief lock into a failed boot, which is worse. It needs revisiting before the tables are large, and the runner is what has to change first.
+
+**Design system impact:** none. The client findings are logged separately in the design system's own `decisions.md`.

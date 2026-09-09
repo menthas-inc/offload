@@ -32,6 +32,30 @@ export interface TouchedThread {
   name: string;
 }
 
+/** One read from an answer: a thread, and the rows it holds.
+ *
+ *  Grouped by the server, in the order it read them. Two subjects is two
+ *  results, never one blended list, because which trip is which is most of the
+ *  answer. */
+export interface FoundResult {
+  threadId: string;
+  threadName: string;
+  /** The read hit its page. The tail becomes the thread rather than a Show more
+   *  that would expand into rows nobody fetched. */
+  truncated: boolean;
+  rows: FoundRow[];
+}
+
+export interface FoundRow {
+  contentId: string;
+  threadId: string;
+  threadName: string;
+  type: string;
+  title: string;
+  body: string | null;
+  done: boolean;
+}
+
 export interface Answer {
   state: MessageState;
   reply: string | null;
@@ -44,6 +68,11 @@ export interface Answer {
    *  A move's source is here and not there: the screen has to reload it, and a
    *  pill saying the dump went there would be untrue. */
   changed?: string[];
+  /** What an answer showed. Empty for a dump, which files rather than answers.
+   *
+   *  Resolved by the server every time it is read, so a row ticked or deleted
+   *  elsewhere is never stale inside an old answer. */
+  found?: FoundResult[];
 }
 
 export class DumpTooLong extends Error {
@@ -82,6 +111,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     threads?: TouchedThread[];
     changed?: string[];
     waiting?: { id: string; because: string } | null;
+    found?: FoundResult[];
   };
   return {
     state: body.state,
@@ -89,6 +119,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     threads: body.threads ?? [],
     changed: body.changed ?? [],
     waiting: body.waiting ?? null,
+    found: body.found ?? [],
   };
 }
 

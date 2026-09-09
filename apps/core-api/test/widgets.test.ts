@@ -11,6 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { makeSignature } from "better-auth/crypto";
+import { sql } from "kysely";
 import { db, closeDb, pool } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
@@ -298,7 +299,7 @@ describe("the thread read does not grow with what a thread holds (AC-9)", () => 
         .insertInto("threads")
         .values({
           created_by_account_id: account.id, name,
-          last_activity_at: new Date(), updated_at: new Date(),
+          last_activity_at: sql`now()`, updated_at: sql`now()`,
         })
         .returning("id").executeTakeFirstOrThrow();
       await db
