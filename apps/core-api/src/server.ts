@@ -3,7 +3,7 @@ import { migrate } from "./migrate.js";
 import { port } from "./env.js";
 import { closeDb } from "./db.js";
 import { createJobRunner } from "./jobs/runner.js";
-import { startDaily } from "./jobs/queue.js";
+import { startDaily, enqueue, PRIORITY } from "./jobs/queue.js";
 
 // Migrate before serving. A deploy that starts answering requests against a
 // schema older than its code is the failure this avoids, and the advisory lock
@@ -33,6 +33,16 @@ app.log.info("job runner started");
 // restart or a second instance collapses into one row rather than stacking.
 await startDaily("calendar.supervise");
 await startDaily("jobs.purge");
+
+// 013's sweep books its own successor, so this only has to start the chain.
+// Enqueued rather than run inline: boot should not wait on three index scans.
+await enqueue({
+  kind: "embed.sweep",
+  payload: {},
+  priority: PRIORITY.background,
+  idempotencyKey: `embed.sweep:boot:${Math.floor(Date.now() / 60_000)}`,
+  maxAttempts: 3,
+});
 
 const shutdown = async (signal: string): Promise<void> => {
   app.log.info({ signal }, "shutting down");

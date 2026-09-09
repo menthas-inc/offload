@@ -34,6 +34,11 @@ class Config:
     api_url: str
     internal_token: str
     anthropic_api_key: str
+    # Optional on purpose. Without it the text half of search still answers and
+    # only meaning is missing, which is a worse product and not a broken one.
+    # Production refuses to start without it, in the deploy config rather than
+    # here, the way the vault key does.
+    voyage_api_key: str | None = None
 
     # The numbers from the impl-spec. Constants, not literals at a call site,
     # because three acceptance criteria are untestable without them.
@@ -60,4 +65,5 @@ class Config:
             api_url=_required("API_URL"),
             internal_token=_required("INTERNAL_SERVICE_TOKEN"),
             anthropic_api_key=_required("ANTHROPIC_API_KEY"),
+            voyage_api_key=os.environ.get("VOYAGE_API_KEY") or None,
         )

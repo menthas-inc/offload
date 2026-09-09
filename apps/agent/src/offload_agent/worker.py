@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from offload_agent import context as ctx_mod
 from offload_agent.config import Config
 from offload_agent.harness.plan import Outcome, plan, plan_quick_add
+from offload_agent.embed_jobs import KINDS as EMBED_KINDS, handle_embed
 from offload_agent.queue import ClaimedJob, claim, release_for_retry
 
 log = structlog.get_logger()
@@ -36,7 +37,7 @@ class ReportFailed(Exception):
     failure, because the two want opposite responses: a model failure should be
     reported, and this one cannot be."""
 
-KINDS = ["dump.answer", "thread.quick_add"]
+KINDS = ["dump.answer", "thread.quick_add", *EMBED_KINDS]
 
 
 async def _post_result(
@@ -167,6 +168,12 @@ async def handle(
     being thought about."""
     if job.kind == "thread.quick_add":
         await _handle_quick_add(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
+        return
+
+    if job.kind in EMBED_KINDS:
+        # No model call and nobody waiting, so it closes its own job rather
+        # than reporting an outcome the Core API has no use for.
+        await handle_embed(job, cfg=cfg, engine=engine, http=http)
         return
 
     payload = job.payload

@@ -153,6 +153,12 @@ describe("AC-13 pgvector filters after the index scan", () => {
   // actually asks for.
 
   it("returns the whole limit with relaxed_order", async () => {
+    // Seen failing once, in the suite, on 2026-09-09, and not reproduced since
+    // across three full runs and five of this file alone. Left as it is with
+    // the sighting recorded rather than loosened: an assertion weakened to stop
+    // a failure nobody has explained is how a real defect gets a green tick.
+    // If it recurs, log the count first. Zero means the index scan found no
+    // fixed point; a number under twenty means the post-filter starved.
     expect(await nearest("relaxed_order", 20)).toBe(20);
   });
 
