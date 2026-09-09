@@ -60,62 +60,53 @@ already shipped.
 
 ```sql
 create view readable_content as
-select c.*, m.account_id as viewer_account_id
-from content c
-join thread_members m on m.thread_id = c.thread_id
-where m.state = 'accepted' and c.deleted_at is null;
+select content.*, thread_members.account_id as viewer_account_id
+from content
+join thread_members on thread_members.thread_id = content.thread_id
+where thread_members.state = 'accepted';
 
 create view readable_memories as
-select mem.*, tm.account_id as viewer_account_id
-from memories mem
-join thread_members tm on tm.thread_id = mem.subject_id
-where mem.scope = 'thread'
-  and tm.state = 'accepted'
-  and mem.superseded_at is null
-  and mem.deleted_at is null
-  and mem.muted_at is null;
+select memories.*, thread_members.account_id as viewer_account_id
+from memories
+join thread_members on thread_members.thread_id = memories.subject_id
+where memories.scope = 'thread'
+  and thread_members.state = 'accepted';
+
+create view readable_messages as
+select messages.*, messages.account_id as viewer_account_id
+from messages
+join conversations on conversations.id = messages.conversation_id
+where conversations.account_id = messages.account_id;
 ```
+
+**They carry authorization and not lifecycle.** An earlier draft of this spec
+filtered `deleted_at`, `superseded_at` and `muted_at` in the views, and that is
+wrong: every one of those has a caller that deliberately wants the other answer.
+`restore` has to find the row it is undoing inside its eight second window, and
+`readableMemory` reads a superseded memory on purpose. Baking a lifecycle filter
+in would have broken both, and the failure would have looked like a missing row
+rather than a changed predicate. The views answer "may this account see this row
+at all"; the caller says which row and which lifecycle.
 
 **The viewer is a column, not a parameter**, because a view cannot take one.
 Callers filter `where viewer_account_id = :viewer`, which the planner pushes
-down into the membership index. The alternative, a set-returning function, would
-have been opaque to the planner on exactly the query that most needs an index.
-
-```sql
-create view readable_messages as
-select m.*, m.account_id as viewer_account_id
-from messages m
-join conversations c on c.id = m.conversation_id
-where m.deleted_at is null
-  and c.deleted_at is null
-  -- 'queued' is internal and never reaches a client, so it must never reach an
-  -- answer either. A failed turn has nothing worth finding.
-  and m.state in ('seen', 'answered')
-  and m.text is not null;
-```
-
-**A conversation resolves through its owner and nothing else**, which is the
-third predicate and the only simple one. `conversations.account_id` is the whole
-rule: a conversation is never shared, not even the one that filed something into
-a thread you share, because what somebody said while dumping is not part of what
-they shared. It is written as a view anyway, beside the other two, so that
-nobody has to notice it is different in order to get it right.
+down into the membership index. A set-returning function would have been opaque
+to the planner on exactly the query that most needs an index.
 
 **Thread scope only, because it is the only scope with a writer.** The table
 allows `account` and `person` and nothing has ever inserted either: 008 built
-thread memories and left the other two for the features that need them. Covering
-them here would be guessing at a predicate for rows that do not exist, which is
-the same DEV-1 call the index section makes in the other direction. The view
-gains a branch when one of them gains a writer.
+thread memories and left the other two for the features that need them. A branch
+for rows that do not exist is a guess, not a predicate. A test asserts the
+absence so whoever adds the writer finds it.
 
-**Muted memories are excluded**, matching `context.py`, which already filters
-`muted_at is null` where memories reach the model. A muted rule is one somebody
-switched off, and answering from it would contradict the switch.
+**The conversations join is an integrity guard, not a permission.**
+`messages.account_id` is denormalised from its conversation, and the join makes
+a disagreement between the two unreadable rather than readable by whichever copy
+a query happened to consult.
 
-**This is the predicate that is easy to get wrong, and the view is why it is
-written once.** A thread memory has `account_id is null` by design, so the
-obvious `where account_id = :viewer` returns nothing at all, and the obvious fix
-for returning nothing is to drop the filter.
+**This is the predicate that is easy to get wrong.** A thread memory has
+`account_id is null` by design, so `where account_id = :viewer` returns nothing
+at all, and the obvious fix for returning nothing is to drop the filter.
 
 **The existing TypeScript moves onto these.** `threads/access.ts` and
 `threads/memories.ts` keep their function names and lose their hand-written
@@ -273,26 +264,29 @@ list_agenda(from_iso, to_iso, when, type?, done?)
 means: what is due this week, what is on Thursday, what got dumped yesterday.
 Cross-thread by nature, so it takes no thread id.
 
-**Scoped by membership, not by author.** `001`'s agenda index is
-`(account_id, occurs_at)`, which is the screen's own scope and is narrower than
-`readable_content`: in a shared thread it misses what another member timed. This
-tool reads the predicate like everything else, so it needs indexes led by
-`thread_id` rather than `account_id`, one per date:
+**Scoped by membership, like everything else here.** `001`'s impl-spec table
+listed the agenda as `(account_id, occurs_at)`, and **that index was never
+built**. What shipped in `0016` is `content_thread_dated_idx`, on
+`(thread_id, occurs_at)`, with a comment saying it is for "the timeline, and
+later the agenda". It is already thread-leading, which is exactly what a read
+through `readable_content` wants, so `when = 'occurs'` needs no new index at
+all.
+
+`when = 'created'` is covered by `content_thread_idx`, `(thread_id, created_at
+desc)` from `0011`.
+
+**One index is genuinely missing**, for `due`:
 
 ```sql
-create index content_thread_due_idx    on content (thread_id, due_at)
-  where due_at    is not null and deleted_at is null;
-create index content_thread_occurs_idx on content (thread_id, occurs_at)
-  where occurs_at is not null and deleted_at is null;
+create index content_thread_due_idx on content (thread_id, due_at)
+  where due_at is not null and deleted_at is null and archived_at is null;
 ```
 
-`created` needs nothing new: `content_thread_idx` is already
-`(thread_id, created_at desc)`.
-
-*Whether the agenda screen should be membership-scoped too is a real question
-and not this feature's to answer.* It is raised in Open, because a screen and an
-answer that disagree about the same week is the defect class this repository has
-paid for most.
+*There is no agenda screen yet*, so there is nothing for this to disagree with.
+The earlier draft of this spec said there was and raised the disagreement in
+Open, which was wrong: it read a planned index out of `001`'s table as though it
+had shipped. Whenever the agenda screen is built it reads the same predicate as
+this, and the question never arises.
 
 ### `search`, for what a filter cannot express
 

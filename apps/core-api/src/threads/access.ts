@@ -103,8 +103,11 @@ export async function readableContent(
   includeDeleted = false,
 ): Promise<ContentRef | null> {
   let query = trx
-    .selectFrom("content")
-    .innerJoin("thread_members", "thread_members.thread_id", "content.thread_id")
+    // `readable_content` from 0026, aliased to `content` so the membership
+    // join disappears and nothing else moves. The rule is the view's now; what
+    // is left here is which row and which lifecycle, which are this caller's
+    // business and were never the predicate.
+    .selectFrom("readable_content as content")
     .select((eb) => [
       "content.id as id",
       "content.thread_id as threadId",
@@ -124,8 +127,7 @@ export async function readableContent(
         .as("authorIsMember"),
     ])
     .where("content.id", "=", contentId)
-    .where("thread_members.account_id", "=", accountId)
-    .where("thread_members.state", "=", "accepted");
+    .where("content.viewer_account_id", "=", accountId);
 
   if (!includeDeleted) query = query.where("content.deleted_at", "is", null);
 

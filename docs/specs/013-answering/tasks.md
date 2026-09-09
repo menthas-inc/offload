@@ -6,16 +6,17 @@ user-visible until F.
 
 ## A. The predicate, first, because everything reads through it
 
-- [ ] **A1** Migration `0026`: `readable_content`, `readable_memories` and `readable_messages` as views, thread scope only for memories, with the comment saying why `account` and `person` are absent. `AC-2`, `AC-2c`
-- [ ] **A1a** `readable_messages` resolves through `conversations.account_id` alone, excludes `queued` and `failed`, and both soft deletes. A conversation is never another member's, including the one that filed into a thread they share. `AC-2d`
-- [ ] **A2** Move `threads/access.ts` and `threads/memories.ts` onto the views, keeping their exported function names. No behaviour change and the existing tests stay green, which is the evidence the view matches what shipped. `AC-2`
-- [ ] **A3** Tests: an accepted member sees another member's content; a **pending** member sees nothing; author-only filtering would fail this. `AC-2a`, `AC-2b`
-- [ ] **A4** Test: a thread memory with `account_id is null` is readable by every accepted member and by nobody else. `AC-2c`
+- [x] **A1** Migration `0026`: `readable_content`, `readable_memories` and `readable_messages` as views, thread scope only for memories, with the comment saying why `account` and `person` are absent. `AC-2`, `AC-2c`
+- [x] **A1a** `readable_messages` resolves through `conversations.account_id` alone. A conversation is never another member's, including the one that filed into a thread they share. The join to `conversations` is an integrity guard on the denormalised `account_id`, not a permission. `AC-2d`
+- [ ] **A1b** The search read filters `state in ('seen','answered')` and both soft deletes at the call site, not in the view: `queued` is internal and must never reach an answer. Lifecycle belongs to the caller, which is what keeps `restore` working. `AC-2d`
+- [x] **A2** Move `threads/access.ts` and `threads/memories.ts` onto the views, keeping their exported function names. No behaviour change and the existing tests stay green, which is the evidence the view matches what shipped. `AC-2`
+- [x] **A3** Tests: an accepted member sees another member's content; a **pending** member sees nothing; author-only filtering would fail this. `AC-2a`, `AC-2b`
+- [x] **A4** Test: a thread memory with `account_id is null` is readable by every accepted member and by nobody else. `AC-2c`
 
 ## B. The index
 
 - [ ] **B1** Migration `0027`: `create extension vector`, `content_chunks`, `memory_chunks`, `message_chunks`, the `search_text` generated columns, the HNSW and GIN indexes. `message_chunks` carries `role`. `AC-12`
-- [ ] **B1a** `content_thread_due_idx` and `content_thread_occurs_idx`, led by `thread_id` so the agenda read uses the membership predicate rather than `001`'s account-scoped index. `created` needs none: `content_thread_idx` already covers it. `AC-15`
+- [ ] **B1a** `content_thread_due_idx` on `(thread_id, due_at)`. The only index the agenda read is missing: `occurs` already has `content_thread_dated_idx` from `0016` and `created` has `content_thread_idx` from `0011`, both thread-leading. `001`'s `(account_id, occurs_at)` was a plan and was never built. `AC-15`
 - [ ] **B2** Boot check: the extension exists, and the process refuses to start if not. A missing extension fails on deploy, not on somebody's first question.
 - [ ] **B3** `hnsw.iterative_scan` and `hnsw.max_scan_tuples` set on the searching connection. `AC-13`
 - [ ] **B4** Test: with an account holding a small share of a populated table, a membership-scoped vector query returns the number of rows the limit asked for. This is the test that fails without B3, and it is the reason B3 is not a comment. `AC-13`

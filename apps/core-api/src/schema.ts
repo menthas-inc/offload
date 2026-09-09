@@ -515,4 +515,16 @@ export interface Database {
   analytics_events: AnalyticsEventsTable;
   waitlist_attempts: WaitlistAttemptsTable;
   schema_migrations: SchemaMigrationsTable;
+
+  /** 013's views, from migration 0026. One authorization rule each, in SQL,
+   *  because the agent plane reads the same rows through SQLAlchemy and a
+   *  predicate written in TypeScript is one it does not have.
+   *
+   *  They carry authorization only. Deleted, superseded, muted and archived
+   *  stay with the caller, because several callers deliberately want the other
+   *  answer. Filter `viewer_account_id` and then whatever lifecycle the read
+   *  actually means. */
+  readable_content: ContentTable & { viewer_account_id: string };
+  readable_memories: MemoriesTable & { viewer_account_id: string };
+  readable_messages: MessagesTable & { viewer_account_id: string };
 }

@@ -433,14 +433,6 @@ distance.
 
 ## Open
 
-- **The agenda screen is account-scoped and this feature's agenda read is not.**
-  `001`'s index is `(account_id, occurs_at)`, so in a shared thread the screen
-  misses what another member timed, while an answer about the same week will
-  include it. One of them is wrong and it is probably the screen, but changing
-  what a shipped screen shows is not this feature's call. Raised so it is
-  decided rather than discovered, because a screen and an answer disagreeing
-  about the same week is the defect class this repository has paid for most.
-
 - **How wrong the first answers are is not knowable from here.** There is no
   evaluation set, and the honest way to build this is to ship it, ask real
   questions of real threads, and fix what misses. Worth saying now so the first
