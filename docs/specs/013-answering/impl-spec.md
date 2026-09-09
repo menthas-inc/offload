@@ -188,13 +188,15 @@ the two cannot disagree.
 
 ## Embedding
 
-**Voyage 4, output dimension 1024**, per `decisions.md` and `stack.md`.
-`VOYAGE_API_KEY` on the agent service.
+**`voyage-4`, output dimension 1024**, per `decisions.md` and `stack.md`.
+`VOYAGE_API_KEY` on the agent service. Read off Voyage's API reference on
+2026-09-09 rather than recalled: the family is `voyage-4`, `voyage-4-large`,
+`voyage-4-lite`, `voyage-4-nano` and `voyage-code-4`, all at 32K context and all
+supporting `output_dimension` of 256, 512, 1024 or 2048. 1024 is the default and
+is what `halfvec(1024)` was chosen for.
 
-**The exact model id is read off Voyage's API reference at implementation time
-and not guessed here.** Nothing in this repository records it, and a wrong
-string is a 400 that looks like a credential problem. It is pinned in one
-constant once, next to the dimension it implies.
+The id lives in one constant beside the dimension it implies, because a wrong
+model string is a 400 that reads like a credential fault.
 
 One module, `apps/agent/src/offload_agent/embed.py`, holding chunking, the
 breadcrumb prefix, the HTTP call and batching. The Core API does not embed; it
@@ -214,8 +216,9 @@ retryable; it is not a broken row.
 which is what makes it boring. About 2,000 rows for the alpha, one batched
 Voyage call per 100 chunks.
 
-**Batching is per call, not per row.** Voyage takes up to 128 inputs, and a long
-note produces 20 chunks, so one job embeds its own row's chunks in one request.
+**Batching is per call, not per row.** Voyage takes up to 1,000 texts per
+request, so a row's chunks always fit in one call and the backfill can pack many
+rows into each. The real bound is tokens per request rather than count.
 
 ## Retrieval
 

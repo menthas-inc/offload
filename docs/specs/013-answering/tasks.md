@@ -15,15 +15,15 @@ user-visible until F.
 
 ## B. The index
 
-- [ ] **B1** Migration `0027`: `create extension vector`, `content_chunks`, `memory_chunks`, `message_chunks`, the `search_text` generated columns, the HNSW and GIN indexes. `message_chunks` carries `role`. `AC-12`
-- [ ] **B1a** `content_thread_due_idx` on `(thread_id, due_at)`. The only index the agenda read is missing: `occurs` already has `content_thread_dated_idx` from `0016` and `created` has `content_thread_idx` from `0011`, both thread-leading. `001`'s `(account_id, occurs_at)` was a plan and was never built. `AC-15`
-- [ ] **B2** Boot check: the extension exists, and the process refuses to start if not. A missing extension fails on deploy, not on somebody's first question.
-- [ ] **B3** `hnsw.iterative_scan` and `hnsw.max_scan_tuples` set on the searching connection. `AC-13`
-- [ ] **B4** Test: with an account holding a small share of a populated table, a membership-scoped vector query returns the number of rows the limit asked for. This is the test that fails without B3, and it is the reason B3 is not a comment. `AC-13`
+- [x] **B1** Migration `0027`: `create extension vector`, `content_chunks`, `memory_chunks`, `message_chunks`, the `search_text` generated columns, the HNSW and GIN indexes. `message_chunks` carries `role`. `AC-12`
+- [x] **B1a** `content_thread_due_idx` on `(thread_id, due_at)`. The only index the agenda read is missing: `occurs` already has `content_thread_dated_idx` from `0016` and `created` has `content_thread_idx` from `0011`, both thread-leading. `001`'s `(account_id, occurs_at)` was a plan and was never built. `AC-15`
+- [x] **B2** *Satisfied by B1 rather than by new code.* `server.ts` migrates before it serves, and `create extension vector` throws if the binary is absent, so a Postgres without pgvector already fails the deploy rather than somebody's first question. A second check would assert what the migration just did.
+- [x] **B3** `hnsw.iterative_scan` and `hnsw.max_scan_tuples` set on the searching connection. `AC-13`
+- [x] **B4** Test: with an account holding a small share of a populated table, a membership-scoped vector query returns the number of rows the limit asked for, and every pooled connection has the setting. *The companion assertion that `off` under-returns was written and then removed: it depends on the planner choosing the HNSW path, which is not stable at fixture size. Recorded in the test file.* `AC-13`
 
 ## C. Embedding
 
-- [ ] **C1** `embed.py`: chunking at `CHUNK_TOKENS`, the breadcrumb prefix in one function used by both the first embed and any re-embed, batching, and the model id pinned in one constant read off Voyage's API reference. `AC-12`
+- [ ] **C1** `embed.py`: chunking at `CHUNK_TOKENS`, the breadcrumb prefix in one function used by both the first embed and any re-embed, batching, and `voyage-4` at `output_dimension` 1024 pinned in one constant. `AC-12`
 - [ ] **C2** `VOYAGE_API_KEY` in the agent config, refused when missing in production the way the vault key is.
 - [ ] **C3** `embed.content` and `embed.memory` job kinds, enqueued by the Core API on create and on edit, drained by the Python worker. Off the turn. `AC-12`
 - [ ] **C4** A failed embed leaves the row filed and findable by text. `embedded_at is null` is a backlog, not an error state. `AC-12`

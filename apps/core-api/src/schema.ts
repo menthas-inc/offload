@@ -488,6 +488,64 @@ export interface ConnectorPendingWritesTable {
   declined_at: Timestamp | null;
 }
 
+/** A chunk of something, and its vector, from 0027.
+ *
+ *  Chunks live apart from the rows they came from so a model or provider change
+ *  is a re-embed and not a data loss, which decisions.md settled. `embedded_at`
+ *  null is the backlog, and a backlog is a normal state: the row is still found
+ *  by text and is missed only by meaning. */
+export interface ContentChunksTable {
+  id: Generated<string>;
+  content_id: string;
+  /** Denormalised. pgvector filters AFTER the index scan, so this is read on
+   *  the hot path of every search and a join back to content there is what
+   *  makes an iterative scan slow. */
+  thread_id: string;
+  ord: number;
+  text: string;
+  embedding: string | null;
+  model: string | null;
+  embedded_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
+}
+
+export interface MemoryChunksTable {
+  id: Generated<string>;
+  memory_id: string;
+  subject_id: string | null;
+  ord: number;
+  text: string;
+  embedding: string | null;
+  model: string | null;
+  embedded_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
+}
+
+export interface MessageChunksTable {
+  id: Generated<string>;
+  message_id: string;
+  account_id: string;
+  /** Carried so a result can say who said it. Half of a conversation is
+   *  offload's own output, and a past reply that was wrong is otherwise
+   *  indistinguishable from something a person stated. */
+  role: "person" | "offload";
+  ord: number;
+  text: string;
+  embedding: string | null;
+  model: string | null;
+  embedded_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
+}
+
+/** Which rows an answer showed. Ids only: the reply resolves them at read time,
+ *  so a row ticked or deleted elsewhere is never stale in an old reply. */
+export interface MessageContentTable {
+  message_id: string;
+  content_id: string;
+  ord: number;
+}
+
+
 export interface Database {
   connector_connections: ConnectorConnectionsTable;
   connector_secrets: ConnectorSecretsTable;
@@ -524,6 +582,11 @@ export interface Database {
    *  stay with the caller, because several callers deliberately want the other
    *  answer. Filter `viewer_account_id` and then whatever lifecycle the read
    *  actually means. */
+  content_chunks: ContentChunksTable;
+  memory_chunks: MemoryChunksTable;
+  message_chunks: MessageChunksTable;
+  message_content: MessageContentTable;
+
   readable_content: ContentTable & { viewer_account_id: string };
   readable_memories: MemoriesTable & { viewer_account_id: string };
   readable_messages: MessagesTable & { viewer_account_id: string };
