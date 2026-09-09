@@ -353,7 +353,7 @@ export default function Privacy() {
                 </tr>
                 <tr>
                   <td>Voyage AI</td>
-                  <td>Turns what you upload into something searchable</td>
+                  <td>Makes what offload holds searchable, including its own replies to you</td>
                   <td>The text being indexed</td>
                 </tr>
                 <tr>
