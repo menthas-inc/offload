@@ -189,6 +189,31 @@ note produces 20 chunks, so one job embeds its own row's chunks in one request.
 
 ## Retrieval
 
+**Two reads, and the model picks.** Most questions about somebody's own threads
+are a filter, not a similarity problem, so the filter exists as its own tool and
+is the one to reach for first.
+
+### `list_content`, the filter
+
+`list_thread_content` already exists from 006 and takes nothing but a thread id.
+It gains the narrowing a question actually needs:
+
+```
+list_content(thread_id, type?, done?, order?)
+```
+
+"What is left to do from Lisbon" is `type='task', done=false`. Nothing is
+guessed, nothing is embedded, and the answer is however many rows match. **This
+is what stops an answer being twenty rows when it is two.**
+
+**It reports truncation rather than a count**, reusing the `LIST_PAGE + 1` idiom
+the tool already has: fetch one more than the page, return the page, say whether
+there was more. Below the page the row count is the true count, which is where
+"three left" comes from; above it the reply says more than the page rather than
+inventing a number. No `COUNT(*)` on the hot path for a sentence.
+
+### `search`, for what a filter cannot express
+
 One function in the agent plane, `search(conn, viewer, query, *, kinds)`.
 
 ```
@@ -203,6 +228,16 @@ needs no score normalisation between a cosine distance and a `ts_rank`, and no
 constant anybody has to justify later. DEV-3, and it is the well-understood
 choice.
 
+**Then recency, as the tiebreak.** Fused rank first, `created_at` second. Two
+rows that answer a question equally well are not equally good answers: the
+newer one is usually what somebody meant. It is a tiebreak rather than a term in
+the score, so it can never outrank relevance, and it needs no half life anybody
+has to defend. `AC-5d`.
+
+**A filtered list is not ranked at all.** Everything matching is the answer, in
+the thread's own order. Ranking a `where` clause would be inventing a judgement
+where there is none to make.
+
 **The constants, named and asserted**, in the shape `006` set with `LIST_PAGE`
 and `LIST_ROW_CHARS`:
 
@@ -211,7 +246,14 @@ and `LIST_ROW_CHARS`:
 | `SHORTLIST` | 60 per arm | Enough for fusion to reorder meaningfully, small enough that the post-filter stays cheap. |
 | `ANSWER_RESULTS` | 20 | What reaches the model. Same figure as `LIST_PAGE`, and for the same reason. |
 | `ANSWER_ROW_CHARS` | 200 | Per row, matching `LIST_ROW_CHARS`. |
+| `ANSWER_SETS` | 3 | Results in one turn. "Lisbon and Istanbul" is two. |
+| `ROWS_SHOWN` | 8 | Per result, what a reply draws before the control for the rest. A client number, not a prompt one. |
 | `CHUNK_TOKENS` | 400 | `decisions.md`. |
+
+**The OFF-8 ceiling is the product of the first two**, `ANSWER_SETS ×
+ANSWER_RESULTS`, so at most 60 rows of at most 200 characters reach a prompt
+however old the account is. That is the number AC-8's test asserts, and it is a
+constant rather than a function of anything.
 
 A test asserts the prompt built from a 20,000 row account is the same size as
 the one built from a 20 row account. That is the OFF-8 test and it is the one
@@ -251,9 +293,15 @@ The toolset:
 
 ```python
 ANSWER_TOOLS = [t for t in ALL_TOOLS if t["name"] in {
-    "search", "list_calendars", "find_events", "account_facts",
+    "list_content", "search", "account_facts",
+    "list_calendars", "find_events",
 }]
 ```
+
+**`list_content` is described to the model as the one to reach for first**, and
+`search` as the one for when the thread or the shape is not known. Getting that
+order wrong is the difference between "three left" and a similarity query that
+returns twenty things loosely about Lisbon.
 
 **Nothing in that set writes.** Not `add_content`, not `add_memory`, not
 `create_event`. `find_events` and `list_calendars` are reads and stay, so "what
@@ -279,13 +327,34 @@ in a shared thread that may not be the asker.
 **`found`, a fourth field on the message payload**, beside `threads`, `changed`
 and `waiting`.
 
-**It carries whole `ContentRow` values, not a thin projection.** The first draft
-of this spec invented a six-field row and it was wrong: both clients already
-have a production row component with a contract, and a row missing `body`,
-`author`, `canDelete` and `filingAt` renders visibly thinner than the same row
-on the thread page. Two row shapes is two designs. So `found` is
-`Array<ContentRow & { threadId, threadName }>`, the same type
-`apps/web/src/lib/threads.ts` and `apps/mobile/lib/threads.ts` already export.
+**It is a list of results, not a list of rows.** One read is one result, so
+"what is left to do from Lisbon and Istanbul" comes back as two, each carrying
+its own thread. Flattened into one array the client cannot tell which trip a row
+belongs to, and the grouping AC-6 needs would have to be reconstructed by
+guessing from `threadId`.
+
+```ts
+found: z.array(z.object({
+  threadId: z.string().nullable(),     // null when a search crossed threads
+  threadName: z.string().nullable(),
+  truncated: z.boolean(),              // there were more than the page
+  rows: z.array(contentRow),
+}))
+```
+
+**The rows are whole `ContentRow` values, not a thin projection.** The first
+draft of this spec invented a six-field row and it was wrong: both clients
+already have a production row component with a contract, and a row missing
+`body`, `author`, `canDelete` and `filingAt` renders visibly thinner than the
+same row on the thread page. Two row shapes is two designs. So a row is the
+`ContentRow` type `apps/web/src/lib/threads.ts` and `apps/mobile/lib/threads.ts`
+already export.
+
+**A result holds every row it found, and the client decides what to draw.**
+There is no server-side trimming to a pretty number: two matching rows is a
+result of two, fifty is a result of `ANSWER_RESULTS` with `truncated` set. What
+makes an answer short is the question being precise, not the response being
+cut.
 
 *This does not widen what OFF-8 bounds.* `ANSWER_ROW_CHARS` caps what reaches
 the model. `found` is an ordinary API response to the person's own client,
@@ -359,11 +428,15 @@ things make the obvious answer wrong:
   `Pressable` on the phones, which is what a reply already uses to name the
   threads a dump landed in.
 
-**So the rows are grouped by thread, under that existing chip.** Reply text,
-then a chip per thread, then that thread's rows beneath it. One link per thread
-rather than one per row, every row unambiguously under the thread it belongs to,
-the chip is a control the person already knows, and neither row component
-changes. `meta` keeps its job.
+**So each result draws under that existing chip.** Reply text, then a chip
+naming the result's thread, then its rows beneath. The grouping is not inferred
+on the client: a result already is a group, because it was one read. One link
+per result rather than one per row, the chip is a control the person already
+knows, and neither row component changes. `meta` keeps its job.
+
+A search that crossed threads has no single thread, so its result carries none
+and its rows name their own in `meta` alongside the author, which is the
+`WPerson` convention already in the kits: `thread · who`.
 
 ### Below the bubble, not inside it
 
@@ -384,9 +457,16 @@ So `found` renders in its own block **below** the reply bubble, at the
 conversation column's full width, where a row is the shape it already is
 everywhere else.
 
-**`ANSWER_ROWS_INLINE = 8`.** Past that the block ends with the count and the
-thread chip, and the rest is read in the thread. Twenty rows is a reasonable
-amount to hand a model and an unreasonable amount to end a sentence with.
+**`ROWS_SHOWN = 8`, per result.** Under that, a result draws whole, which is the
+common case and the whole point of filtering precisely. Over it, the first eight
+draw and a **Show more** control expands the rest of what arrived; if the read
+was `truncated` the tail is the thread chip, because the thread is where the
+rest actually live.
+
+*This is a client decision and not a bound on anything.* The server sends what
+it found. Twenty rows is a reasonable amount to hand a model and an unreasonable
+amount to end a sentence with, and which of those a result is depends on the
+screen, not on the query.
 
 ### Read only, so the row's other affordances come off
 

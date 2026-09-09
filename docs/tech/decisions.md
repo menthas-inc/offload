@@ -523,3 +523,21 @@ The rows come from the shipping components, `ContentRowView` and `ContentRow`, n
 **The thread link is the existing chip, not a line of text.** `WRow`'s `meta` is plain text and cannot be a link, and it is already load-bearing: it carries who and when, which matters most here because a result in a shared thread can be somebody else's. So results group by thread under the moss chip a reply already uses to name where a dump landed, which is one link per thread instead of one per row and changes neither row component.
 
 **Results render below the reply bubble rather than inside it.** Everything put inside an offload turn until now has been one small fixed control, 012's confirmation and the thread chips. A pane row's hover fill deliberately bleeds by `calc(-1 * var(--space-5))`, which is exactly the bubble's own horizontal padding, so inside a bubble the fill cancels it and runs under an 18px rounded corner. Below it, at the column's width, a row is the shape it already is everywhere else.
+
+### 2026-09-09 · A question is a filter before it is a search, and one read is one result
+
+Decided while reviewing 013's constants, and it changed the retrieval design rather than a number.
+
+**`ANSWER_ROWS_INLINE` was invented and is gone.** It capped how many rows a reply drew, at 8, and it was cited against AC-8, which is the OFF-8 prompt bound: by the time rows reach a client the model call is over, so a display cap serves nothing there. It also never said whether 8 was global or per thread, which the grouping made load-bearing. The right question turned out to be why an answer was long enough to need trimming.
+
+**Because the read was fuzzy when it should have been exact.** "What is left to do from Lisbon" is not a similarity problem, it is `type = 'task' and done_at is null` in one thread, which is a `where` clause the thread page has run since 005. Answering it by cosine distance is a worse and less predictable version of a query we already know how to write. So `list_content` exists beside `search`, widening 006's `list_thread_content` with type and done, and the prompt names it as the one to reach for first. **An answer is then two rows because there are two**, not because something trimmed twenty to a pretty number.
+
+**One read is one result, and `found` carries results rather than rows.** "Lisbon and Istanbul" is two reads, so it is two results, each with its own thread. Flattened to one array the client cannot tell which trip a row belongs to and would have to reconstruct the grouping by guessing from `threadId`. It also matches how the answer is drawn: a result is already a group, under the thread chip a reply uses.
+
+**Ranking is relevance then recency, and only where there is ranking to do.** A filtered list comes back whole, in the thread's own order, because everything matching is the answer and ranking a `where` clause invents a judgement that is not there. A search is fused by RRF and then broken by `created_at`, as a tiebreak rather than a term, so recency can never outrank relevance and no half life has to be defended.
+
+**Truncation is a flag, not a count.** The existing tool already fetches `LIST_PAGE + 1` and reports `truncated`, so below a page the row count is the true count, which is where "three left" comes from, and above it the reply says more than a page rather than inventing a number. No `COUNT(*)` on the path of a sentence.
+
+**The OFF-8 ceiling is now a product**, `ANSWER_SETS × ANSWER_RESULTS`, three results of twenty rows at two hundred characters. Constant regardless of account age, which is what the principle asks, and it is the figure AC-8's test asserts.
+
+**Design system impact:** `ROWS_SHOWN = 8` per result is a client number that bounds nothing on the server. Under it a result draws whole; over it, eight draw with a **Show more** that expands what arrived, and a truncated read ends with the thread chip, because the thread is where the rest live. Show more on a result is a control the kits do not have, and it joins the tickable row and the done state in the entry above. The number is a guess in the absence of a mock and is the thing most likely to move when there is one.

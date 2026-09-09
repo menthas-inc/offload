@@ -29,8 +29,10 @@ user-visible until F.
 
 ## D. Retrieval
 
-- [ ] **D1** `search(conn, viewer, query, *, kinds)`: the vector arm, the text arm, RRF fusion, dedup by source row. Reads the views from A. `AC-2`, `AC-9`
-- [ ] **D2** `SHORTLIST`, `ANSWER_RESULTS`, `ANSWER_ROW_CHARS`, `CHUNK_TOKENS` as named constants in one place. `AC-8`
+- [ ] **D1** `search(conn, viewer, query, *, kinds)`: the vector arm, the text arm, RRF fusion, dedup by source row, then `created_at` as the tiebreak. Reads the views from A. `AC-2`, `AC-9`, `AC-5d`
+- [ ] **D1a** `list_content(thread_id, type?, done?, order?)`, widening 006's `list_thread_content`. Returned whole and unranked, reporting `truncated` by the existing `LIST_PAGE + 1` idiom rather than a `COUNT(*)`. This is what makes a two-row answer two rows. `AC-5`, `AC-5d`
+- [ ] **D2** `SHORTLIST`, `ANSWER_RESULTS`, `ANSWER_ROW_CHARS`, `ANSWER_SETS`, `CHUNK_TOKENS` as named constants in one place. `AC-8`
+- [ ] **D2a** Test: a filtered read matching two rows returns two, and nothing pads it. `AC-5`
 - [ ] **D3** Test: the prompt built for a 20,000 row account is the same size as the one built for a 20 row account. The OFF-8 test, and the one that fails if a cap is ever made dynamic. `AC-8`
 - [ ] **D4** Test: retrieval returns candidates and never a verdict. Nothing in the path picks an answer by distance. `AC-9`
 - [ ] **D5** Voyage unreachable: the query cannot be embedded and the text arm answers alone. Worse, not broken, and no failure line, because there is nothing for the person to do.
@@ -39,7 +41,8 @@ user-visible until F.
 
 - [ ] **E1** The classifier: `sort` tier, structured `{asking, confident}`, on the message text before any retrieval runs. Only `asking and confident` routes to answering. `AC-3`, `AC-3a`
 - [ ] **E2** Test: the same sentence classifies the same way against an empty corpus and a full one. This is what "before retrieval" means and it is not observable any other way. `AC-3`
-- [ ] **E3** `plan_answer()` on the `reason` tier, with `search` and `account_facts` and the two calendar reads. `AC-1`
+- [ ] **E3** `plan_answer()` on the `reason` tier, with `list_content`, `search`, `account_facts` and the two calendar reads. The prompt says `list_content` first and `search` for when the thread or the shape is unknown. `AC-1`, `AC-5`
+- [ ] **E3a** A question naming two subjects runs as two reads and returns two results, bounded by `ANSWER_SETS`. Never one blended list. `AC-5b`
 - [ ] **E4** **Test the toolset, not the transcript**: assert `ANSWER_TOOLS` contains no tool that writes. `AC-11`
 - [ ] **E5** `account_facts`: a typed lookup, no query, returning name, default thread, connected calendars and where each files, and the thread's preferences. Never a device preference. `AC-7`
 - [ ] **E6** Retrieved rows reach the model as labelled user-turn content carrying their author, never in the system prompt. `AC-11a`
@@ -52,10 +55,11 @@ user-visible until F.
 - [ ] **F1** `message_content` join table in `0027`, and `found` on `messageResponse` and on `currentConversation`, resolved from it at read time through `readable_content`. `AC-5a`, `AC-6`
 - [ ] **F1a** `foundFor(messageIds)` resolves the whole conversation tail in one query, as `waitingFor` already does at `dumps.ts:603`. Per message it is 50 queries on every open. `AC-5a`
 - [ ] **F2** Test: a row ticked elsewhere reads as ticked in an old reply; a row deleted elsewhere does not render. `AC-5a`
-- [ ] **F3** `found` carries whole `ContentRow` values plus `threadId` and `threadName`, the type both clients already export. A six-field projection renders visibly thinner than the same row on the thread page. `AC-5`
+- [ ] **F3** `found` is a list of **results**, each `{threadId, threadName, truncated, rows}`. One read is one result, so grouping is carried rather than reconstructed from `threadId` on a flat array. `AC-5b`, `AC-6`
+- [ ] **F3a** Rows are whole `ContentRow` values, the type both clients already export. A six-field projection renders visibly thinner than the same row on the thread page. `AC-5`
 - [ ] **F4** Both clients render `found` in its own block **below** the reply bubble, grouped by thread under the existing thread chip. Not inside the bubble: a pane row's fill bleeds by exactly the bubble's horizontal padding and would run under its 18px corner. `AC-5`, `AC-6`
 - [ ] **F4a** Web uses `ContentRowView` and the phones use `ContentRow`, the shipping components. Not `WRow`, which has never been wired to state. `AC-5`
-- [ ] **F4b** `ANSWER_ROWS_INLINE = 8`; past that the block ends with the count and the thread chip. `AC-8`
+- [ ] **F4b** `ROWS_SHOWN = 8` per result. Under it a result draws whole; over it, eight draw with a **Show more** that expands what arrived, and a `truncated` read ends with the thread chip. A client number, bounding nothing on the server. `AC-5c`
 - [ ] **F4c** A `readOnly` row: no swipe to delete, no long press sheet, no row tools. Removes the destructive affordances **and** the pan gesture nested inside the conversation's own drag sheet. Verified on a real device on both platforms, because the kits cannot show a gesture. `AC-6a`
 - [ ] **F4d** The done state is the real one, moss fill and tertiary ink and a strikethrough, never the kits' opacity, which both components already reject in a written comment. `AC-5`
 - [ ] **F4e** Accessibility: an `accessibilityLabel` on the phones' checkbox, which is missing today on the thread page and is fixed rather than reused; `role="checkbox"`, `aria-checked` and space to toggle on web; and a tap target sized independently of the mark, 44px minimum. `AC-5`

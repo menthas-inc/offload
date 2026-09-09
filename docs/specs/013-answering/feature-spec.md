@@ -29,19 +29,40 @@ is putting rubbish in the one place somebody is meant to trust.
 because they are two different mechanisms and pretending otherwise is how one of
 them gets skipped:
 
+- **A list, filtered.** Rows in a thread, narrowed by what they are and whether
+  they are done. This is the exact answer to most questions somebody actually
+  asks about their own threads, and it involves no guessing at all.
 - **A corpus, searched.** Content across every thread you can see, including
   titles, bodies, tags and the thread's own name. Memories, the standing rules a
-  thread carries. Both are found by text and by meaning.
+  thread carries. Both are found by text and by meaning, and this is for the
+  questions a filter cannot express: "where am I staying in Istanbul" names no
+  thread and no type.
 - **Facts, looked up.** Your name, the calendars you have connected and where
   each one files, your default thread, a thread's own preferences. These are
   typed columns on `accounts`, `threads` and `connector_connections`. They are
   not embeddable and must never be pushed into the corpus to make one code path:
   they are read by a lookup that knows their shape.
 
+*The first is deliberately listed first.* Building only the search would have
+answered "what is left to do from Lisbon" with a similarity query, which is a
+worse and less predictable version of a `where` clause the thread page has run
+since 005.
+
 **And answers in the shape the question deserves.** A single fact gets a
-sentence. A question whose answer is a set gets the set: "what is left to do from
-Lisbon" returns the actual rows, in the reply, with their checkboxes, and ticking
-one there completes it for real.
+sentence. A question whose answer is a set gets the set: "what is left to do
+from Lisbon" returns the actual rows, in the reply, with their checkboxes, and
+ticking one there completes it for real.
+
+**A question becomes one or more precise reads, not one fuzzy one.** "What is
+left to do from Lisbon" is not a similarity problem, it is a filter: unticked
+tasks in one thread. So the model asks for exactly that, and the answer is
+however many there are. Two of them is two rows, not two rows padded out to
+twenty.
+
+**Each read is one result, holding many rows.** "What is left to do from Lisbon
+and Istanbul" is two reads and two results, one per thread, because that is what
+was asked and running it as a single blended list would lose which trip is
+which.
 
 ### Most of this feature is the index, and it does not exist
 
@@ -171,7 +192,13 @@ we do until it can ask.
 **A fact is a sentence.** "The Alfama flat, 14th to 17th." Not a paragraph, not
 a list of one.
 
-**A set is the set**, as real rows, behaving as rows do.
+**A set is the set**, as real rows, behaving as rows do. However many there
+are: two if there are two. Nothing is padded to a round number and nothing is
+trimmed to one either.
+
+**A long set shows its head and says so.** Fifty unticked tasks is a real
+answer, and fifty rows in a reply is not a reply. The first few are drawn with
+a control that shows the rest, and the thread is where all fifty live.
 
 **The reply stores ids and resolves them when read.** It never bakes a copy of
 the row into the message. `005` already settled the same question for thread
@@ -187,7 +214,14 @@ trusting that a search returned the row a minute ago.
 
 **Everything is a link to where it lives.** A row in an answer can come from any
 thread, so it has to say which, which the thread page never needed to show
-because it only ever draws one thread's rows.
+because it only ever draws one thread's rows. Each result carries its thread, so
+the link is one per result rather than one per row.
+
+**Ranking is relevance and recency**, in that order, and only where there is
+ranking to do. A filtered list is not ranked: everything matching is the answer.
+A search is ranked, and between two rows that match a question equally well the
+newer one is the better answer, because what somebody dumped last week is more
+often what they mean than what they dumped in March.
 
 **There is no mock for this screen.** `find-kit.sh` finds no search or answer
 kit, which makes this one of the few screens that has to be designed rather than
@@ -240,14 +274,27 @@ corpus happens to hold.
 **AC-4** A question with no answer gets one short sentence saying so, files
 nothing, and neither guesses nor apologises.
 
-**AC-5** An answer that is a set returns real content rows. Completing one from
-the reply completes it for real, through the same server-side permission check
-the thread page uses, evaluated at the tap, and is reversible by the ordinary
-per-row Undo rather than the turn Undo.
+**AC-5** An answer that is a set returns real content rows, and returns as many
+as there are. A question whose answer is two rows shows two.
 
 **AC-5a** A reply stores row ids and resolves them on read. A row changed
 elsewhere reads as changed in the old reply, and a row deleted elsewhere does not
 render as still present.
+
+**AC-5b** A question that names two subjects runs as two reads and comes back as
+two results, each carrying its own thread. It is never flattened into one
+blended list.
+
+**AC-5c** A result longer than what a reply should draw shows its first rows and
+a control for the rest. The count it reports is honest about being a floor when
+the read was truncated.
+
+**AC-5d** Ranking applies only where something is ranked. A filtered list is
+returned whole and in its own order; a search is ordered by relevance and then
+by recency. Completing one from
+the reply completes it for real, through the same server-side permission check
+the thread page uses, evaluated at the tap, and is reversible by the ordinary
+per-row Undo rather than the turn Undo.
 
 **AC-6** Every row in an answer is shown under a link to the thread it is in,
 and the link is the thread chip a reply already uses rather than a line of
