@@ -23,12 +23,12 @@ user-visible until F.
 
 ## C. Embedding
 
-- [ ] **C1** `embed.py`: chunking at `CHUNK_TOKENS`, the breadcrumb prefix in one function used by both the first embed and any re-embed, batching, and `voyage-4` at `output_dimension` 1024 pinned in one constant. `AC-12`
-- [ ] **C2** `VOYAGE_API_KEY` in the agent config, refused when missing in production the way the vault key is.
-- [ ] **C3** `embed.content` and `embed.memory` job kinds, enqueued by the Core API on create and on edit, drained by the Python worker. Off the turn. `AC-12`
-- [ ] **C4** A failed embed leaves the row filed and findable by text. `embedded_at is null` is a backlog, not an error state. `AC-12`
-- [ ] **C5** Backfill script: one job per existing row, idempotent, safe to run twice.
-- [ ] **C6** **A test that embeds a real string against the real Voyage API.** Skipped without a key so CI stays green for everyone, and run before this ships. The credential, the request shape and the response shape are the three things no local mock can prove, and this repository has shipped two production failures of exactly that kind. `AC-14`
+- [x] **C1** `embed.py`: chunking at `CHUNK_TOKENS`, the breadcrumb prefix in one function used by both the first embed and any re-embed, batching, and `voyage-4` at `output_dimension` 1024 pinned in one constant. `AC-12`
+- [x] **C2** `VOYAGE_API_KEY` in the agent config, refused when missing in production the way the vault key is.
+- [x] **C3** `embed.content`, `embed.memory` and `embed.message` job kinds, enqueued by the Core API on create and on edit, drained by the Python worker. Off the turn. `AC-12`
+- [x] **C4** A failed embed leaves the row filed and findable by text. `embedded_at is null` is a backlog, not an error state. `AC-12`
+- [x] **C5** Backfill: one job per existing row, idempotent, safe to run twice.
+- [x] **C6** **A test that embeds a real string against the real Voyage API.** Skipped without a key so CI stays green for everyone, and run before this ships. The credential, the request shape and the response shape are the three things no local mock can prove, and this repository has shipped two production failures of exactly that kind. `AC-14`
 
 ## D. Retrieval
 
@@ -82,6 +82,8 @@ user-visible until F.
 - [ ] **F7** `dead-classes.mjs` and `dead-css.mjs` run with the rest. A class that does not exist is invisible to every other gate.
 
 ## G. The record
+
+- [x] **G0** The agent plane's tests run in a gate. It has no `package.json`, so turbo never saw it and its seven test files ran in no gate at all: not CI, not the pre-commit hook. 013 puts the embedder, retrieval and the answering turn there. CI runs `uv run pytest` and `ruff` now, and ruff's first run found a pre-existing failure in `test_truthfulness.py`.
 
 - [ ] **G1** Tick `001`'s T16, and update its query table so the search row names the chunk table it actually uses. DEV-2.
 - [ ] **G2** Design log entry covering **two** divergences, with **Design system impact** filled in: a checkbox that does something, and a done state the kits draw as opacity and both shipping components reject. The impact field says what the ticked fill and border are, since that is what the kits have to catch up on.

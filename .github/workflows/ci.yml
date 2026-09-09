@@ -90,4 +90,25 @@ jobs:
 
       - run: pnpm test
 
+      # The agent plane, which `pnpm test` cannot see.
+      #
+      # It has no package.json, so turbo has never included it, and until 013
+      # its seven test files ran in no gate at all: not in CI, not in the
+      # pre-commit hook, nowhere. 013 puts the embedder, retrieval and the
+      # answering turn in this plane, and QUAL-1 does not mean much when the
+      # tests covering a criterion are never executed.
+      #
+      # `pytest -q` and nothing else: the suite loads its own environment
+      # through tests/conftest.py, and the live Voyage test skips itself here
+      # because CI has no key.
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.5.x"
+      - run: uv sync --frozen
+        working-directory: apps/agent
+      - run: uv run pytest -q
+        working-directory: apps/agent
+      - run: uv run ruff check .
+        working-directory: apps/agent
+
       - run: pnpm build

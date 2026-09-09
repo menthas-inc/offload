@@ -20,8 +20,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent import context as ctx_mod
 from offload_agent.config import Config
+from offload_agent.embed_jobs import KINDS as EMBED_KINDS
+from offload_agent.embed_jobs import handle_embed
 from offload_agent.harness.plan import Outcome, plan, plan_quick_add
-from offload_agent.embed_jobs import KINDS as EMBED_KINDS, handle_embed
 from offload_agent.queue import ClaimedJob, claim, release_for_retry
 
 log = structlog.get_logger()

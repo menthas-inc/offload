@@ -479,4 +479,6 @@ async def test_it_does_not_claim_a_thread_cannot_be_deleted(dump):
                    "threads can't", "not possible", "unable to delete threads"):
         assert untrue not in reply, f"claimed it is impossible: {outcome.reply!r}"
     # And it points somewhere rather than just declining.
-    assert "my threads" in reply or "row" in reply, f"declined with no way forward: {outcome.reply!r}"
+    assert "my threads" in reply or "row" in reply, (
+        f"declined with no way forward: {outcome.reply!r}"
+    )
