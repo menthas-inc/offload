@@ -541,3 +541,19 @@ Decided while reviewing 013's constants, and it changed the retrieval design rat
 **The OFF-8 ceiling is now a product**, `ANSWER_SETS × ANSWER_RESULTS`, three results of twenty rows at two hundred characters. Constant regardless of account age, which is what the principle asks, and it is the figure AC-8's test asserts.
 
 **Design system impact:** `ROWS_SHOWN = 8` per result is a client number that bounds nothing on the server. Under it a result draws whole; over it, eight draw with a **Show more** that expands what arrived, and a truncated read ends with the thread chip, because the thread is where the rest live. Show more on a result is a control the kits do not have, and it joins the tickable row and the done state in the entry above. The number is a guess in the absence of a mock and is the thing most likely to move when there is one.
+
+### 2026-09-09 · A wrong no is the expensive answer, so absence needs a complete read
+
+"Did I already add buying butter to the groceries list" broke three things in 013 as specified, and the third is the one that mattered.
+
+**"No" is an answer, and the spec only had a sentence for not having one.** AC-4 covered "a question with no answer" and used the same line for a definite no. They are different: "I could not find it" describes offload, and "no, it is not on the list" describes the groceries, which is what was asked. Both exist now.
+
+**A wrong no is quiet and expensive, and it was the default.** Narrow to the thread, the thread has forty rows, twenty come back, butter is in the other twenty, and the answer looks honest and is a lie: somebody buys butter twice. So absence may only be asserted from a complete read. `truncated` was already in the result and is now load bearing rather than cosmetic, and `list_content` gains `matching` so an existence check reads the rows that mention the word rather than a page of the whole thread. **The test is a thread long enough to truncate with the asked-about row outside the first page**, which is invisible on any smaller fixture.
+
+**It is the deduplication rule again, in the place it bites hardest.** `decisions.md` already says cosine may shortlist and may never decide, and names dedup as the case, because a row and its negation are neighbours to an embedder. An existence check is dedup asked out loud, so no near match is not evidence of absence: retrieval narrows and the model reads the candidates.
+
+**Also found: the answering context had no thread list.** A person names a thread the way a person does, "the groceries list", and every tool addresses one by id. The dump context has carried id, name and default since 004 and the answering context now does too. `context.py` already records why this cannot be resolved server-side: two threads may share a name, so a name is an ambiguous address and resolving it would be guessing on the model's behalf.
+
+**And the done state is not assumed.** Butter may be on the list and already ticked, where the answer is that it was bought on Tuesday rather than no.
+
+**Design system impact:** none. This changes what is said, not what is drawn.

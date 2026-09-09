@@ -64,6 +64,26 @@ and Istanbul" is two reads and two results, one per thread, because that is what
 was asked and running it as a single blended list would lose which trip is
 which.
 
+**And sometimes the answer is a yes or a no.** "Did I already add buying butter
+to the groceries list" is not asking for a list, it is asking whether one thing
+is in one. The answer is "yes" and the row, or it is "no", and both are answers.
+
+*This is the one question shape where being wrong is quiet and expensive.* A
+wrong "no" is somebody buying butter twice, and it is what happens by default:
+the read is narrowed to a thread, the thread has forty rows, twenty come back,
+butter is in the other twenty, and the honest-looking answer is a lie. So the
+rule is that **absence is only ever asserted from a complete read.** If the read
+was cut short, offload says what it did see and does not claim the rest.
+
+*And the check is a model reading candidates, never a distance.* `decisions.md`
+already settled this for deduplication, which is the same shape: a row and its
+negation look nearly identical to an embedder, so "no match above a threshold"
+is not evidence of absence. Retrieval narrows, the model decides, which is
+`AC-9` again in the one place it bites hardest.
+
+*The done state is not assumed either.* Butter may be on the list and already
+ticked, and "you bought it on Tuesday" is the right answer rather than "no".
+
 ### Most of this feature is the index, and it does not exist
 
 Worth stating plainly, because the visible half is small and the invisible half
@@ -271,8 +291,23 @@ corpus happens to hold.
 
 **AC-3a** Anything ambiguous is filed.
 
-**AC-4** A question with no answer gets one short sentence saying so, files
-nothing, and neither guesses nor apologises.
+**AC-4** A question offload cannot answer gets one short sentence saying so,
+files nothing, and neither guesses nor apologises.
+
+**AC-4a** "No" is an answer and is not the same sentence. A question about
+whether something is there, answered from a complete read, gets a definite no.
+Not "I could not find it", which describes offload rather than the groceries.
+
+**AC-4b** Absence is only asserted from a complete read. If the read was
+truncated, offload says what it saw and does not claim the rest, because a wrong
+no is somebody doing the thing twice.
+
+**AC-4c** An existence check is decided by the model reading candidates, never
+by a distance threshold, per the deduplication rule in `decisions.md`: a row and
+its negation are neighbours, so no near match is not evidence of absence.
+
+**AC-4d** An existence check does not assume the row is unticked. Something
+already done is found and reported as done.
 
 **AC-5** An answer that is a set returns real content rows, and returns as many
 as there are. A question whose answer is two rows shows two.

@@ -30,7 +30,8 @@ user-visible until F.
 ## D. Retrieval
 
 - [ ] **D1** `search(conn, viewer, query, *, kinds)`: the vector arm, the text arm, RRF fusion, dedup by source row, then `created_at` as the tiebreak. Reads the views from A. `AC-2`, `AC-9`, `AC-5d`
-- [ ] **D1a** `list_content(thread_id, type?, done?, order?)`, widening 006's `list_thread_content`. Returned whole and unranked, reporting `truncated` by the existing `LIST_PAGE + 1` idiom rather than a `COUNT(*)`. This is what makes a two-row answer two rows. `AC-5`, `AC-5d`
+- [ ] **D1a** `list_content(thread_id, type?, done?, matching?, order?)`, widening 006's `list_thread_content`. Returned whole and unranked, reporting `truncated` by the existing `LIST_PAGE + 1` idiom rather than a `COUNT(*)`. This is what makes a two-row answer two rows. `AC-5`, `AC-5d`
+- [ ] **D1b** `matching` narrows within the thread over the same `search_text` index, so an existence check reads the rows that mention the word rather than a truncated page of the whole thread. `AC-4b`
 - [ ] **D2** `SHORTLIST`, `ANSWER_RESULTS`, `ANSWER_ROW_CHARS`, `ANSWER_SETS`, `CHUNK_TOKENS` as named constants in one place. `AC-8`
 - [ ] **D2a** Test: a filtered read matching two rows returns two, and nothing pads it. `AC-5`
 - [ ] **D3** Test: the prompt built for a 20,000 row account is the same size as the one built for a 20 row account. The OFF-8 test, and the one that fails if a cap is ever made dynamic. `AC-8`
@@ -43,6 +44,11 @@ user-visible until F.
 - [ ] **E2** Test: the same sentence classifies the same way against an empty corpus and a full one. This is what "before retrieval" means and it is not observable any other way. `AC-3`
 - [ ] **E3** `plan_answer()` on the `reason` tier, with `list_content`, `search`, `account_facts` and the two calendar reads. The prompt says `list_content` first and `search` for when the thread or the shape is unknown. `AC-1`, `AC-5`
 - [ ] **E3a** A question naming two subjects runs as two reads and returns two results, bounded by `ANSWER_SETS`. Never one blended list. `AC-5b`
+- [ ] **E3b** The answering context carries the thread list, id and name and default, as the dump context does. A question names a thread the way a person does and every tool addresses one by id. `AC-1`
+- [ ] **E3c** The prompt separates the two negatives: a definite "no" when the read was complete, and what it saw with no claim about the rest when it was not. `AC-4`, `AC-4a`, `AC-4b`
+- [ ] **E3d** **Test: a wrong no.** A thread longer than a page, the asked-about row outside the first page, and the answer must not be "no". This is the failure that costs somebody something, and it is invisible without a thread big enough to truncate. `AC-4b`
+- [ ] **E3e** An existence check is decided by the model reading candidates, never by a distance threshold. `AC-4c`, `AC-9`
+- [ ] **E3f** An existence check finds a ticked row and reports it as done rather than answering no. `AC-4d`
 - [ ] **E4** **Test the toolset, not the transcript**: assert `ANSWER_TOOLS` contains no tool that writes. `AC-11`
 - [ ] **E5** `account_facts`: a typed lookup, no query, returning name, default thread, connected calendars and where each files, and the thread's preferences. Never a device preference. `AC-7`
 - [ ] **E6** Retrieved rows reach the model as labelled user-turn content carrying their author, never in the system prompt. `AC-11a`

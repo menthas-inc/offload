@@ -199,12 +199,24 @@ is the one to reach for first.
 It gains the narrowing a question actually needs:
 
 ```
-list_content(thread_id, type?, done?, order?)
+list_content(thread_id, type?, done?, matching?, order?)
 ```
 
 "What is left to do from Lisbon" is `type='task', done=false`. Nothing is
 guessed, nothing is embedded, and the answer is however many rows match. **This
 is what stops an answer being twenty rows when it is two.**
+
+**`matching` is what makes "did I already add butter" cheap and correct.** It
+narrows within the thread over the same `search_text` index the corpus uses,
+so forty rows become the two mentioning butter and the model reads those rather
+than a truncated page of the whole list. Without it, an existence check on a
+long thread is decided by which twenty rows happened to come back, which is how
+a wrong "no" gets produced.
+
+**A truncated read cannot support a "no".** `truncated` is already in the
+result, and the prompt is explicit that absence may only be asserted when it is
+false. `AC-4b`. This is the one place the flag is load bearing rather than
+cosmetic, and it is worth a test of its own.
 
 **It reports truncation rather than a count**, reusing the `LIST_PAGE + 1` idiom
 the tool already has: fetch one more than the page, return the page, say whether
@@ -288,6 +300,13 @@ this design has to move.
 Same `_run` loop, a different prompt, a different context loader, and the
 `reason` tier, which `stack.md` already describes as being for "hard retrieval
 and cross-thread reasoning". That is this feature, named before it was built.
+
+**The context carries the thread list, exactly as the dump context does**: id,
+name and which is default. A question names a thread the way a person does, "the
+groceries list", and every tool addresses one by id. `context.py` already says
+why the resolution cannot happen server-side: two threads may share a name, so a
+name is an ambiguous address and resolving it for the model would be guessing on
+its behalf. The model picks the id, or asks nothing and searches instead.
 
 The toolset:
 
@@ -545,4 +564,8 @@ answer.
 | A row deleted between search and render | Not rendered. Resolved at read. |
 | Pending invitation to a thread | Nothing from it, ever. `state = 'accepted'` is in the view. |
 | Query is one very common word | Bounded like any other: `SHORTLIST` per arm, `ANSWER_RESULTS` out. |
-| Account with nothing filed | The no-answer sentence. Not an onboarding prompt. |
+| Account with nothing filed | The cannot-answer sentence. Not an onboarding prompt. |
+| "Did I already add X" and X is there | Yes, and the row. |
+| "Did I already add X" and the read was complete | A definite no, not "I could not find it". |
+| "Did I already add X" and the read was truncated | What it saw, and no claim about the rest. Never a no. |
+| "Did I already add X" and X is there but ticked | Found, and reported as done. |
