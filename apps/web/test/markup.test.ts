@@ -142,3 +142,55 @@ describe("plainText, for anywhere that cannot draw", () => {
     );
   });
 });
+
+describe("content contains these characters, so a backslash has to mean something", () => {
+  // **Found by driving the real app.** A calendar is genuinely named `P**B`.
+  // The model escaped it correctly, as `P\*\*B`, and the parser did not
+  // understand escapes, so a reply about it printed the backslashes and the
+  // name never went bold. Every other reply on the screen looked right, which
+  // is why it read as the renderer being broken rather than one name being
+  // unusual.
+  it("renders a name that contains asterisks", () => {
+    expect(inlines("One calendar, **P\\*\\*B**, filing into EU with fam.")).toEqual([
+      { kind: "text", text: "One calendar, " },
+      { kind: "strong", text: "P**B" },
+      { kind: "text", text: ", filing into EU with fam." },
+    ]);
+  });
+
+  it("keeps an escaped marker as a character rather than a marker", () => {
+    expect(inlines("2 \\* 3 is six")).toEqual([{ kind: "text", text: "2 * 3 is six" }]);
+    expect(inlines("\\[not a link\\](/settings)")).toEqual([
+      { kind: "text", text: "[not a link](/settings)" },
+    ]);
+  });
+
+  it("does not let an escaped marker close an emphasis early", () => {
+    // The bug in the regular expression this replaced: it could not skip an
+    // escaped marker while looking for the closing one.
+    expect(inlines("**a \\* b** rest")).toEqual([
+      { kind: "strong", text: "a * b" },
+      { kind: "text", text: " rest" },
+    ]);
+  });
+
+  it("leaves a lone backslash alone", () => {
+    // Somebody writing a path should see it. Only the characters that mean
+    // something here are escapable.
+    expect(inlines("C:\\Users\\behrooz")).toEqual([
+      { kind: "text", text: "C:\\Users\\behrooz" },
+    ]);
+  });
+
+  it("leaves an unclosed marker as characters", () => {
+    expect(inlines("2 ** 3")).toEqual([{ kind: "text", text: "2 ** 3" }]);
+    expect(inlines("a [label without a target")).toEqual([
+      { kind: "text", text: "a [label without a target" },
+    ]);
+  });
+
+  it("still refuses an external link even when the label is escaped", () => {
+    const parsed = inlines("[click \\* here](https://evil.example)");
+    expect(parsed.every((p) => p.kind === "text")).toBe(true);
+  });
+});

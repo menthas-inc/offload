@@ -51,8 +51,18 @@ export const MAX_BLOCKS = 12;
 /** Items drawn in one list before the rest run on as a paragraph. */
 export const MAX_ITEMS = 10;
 
-const STRONG = /\*\*([^*\n]+)\*\*/;
-const LINK = /\[([^\]\n]+)\]\(([^)\s]+)\)/;
+/** What a backslash may hide, and why there is one at all.
+ *
+ *  **Content contains these characters.** A calendar really is named `P**B`,
+ *  and a row somebody wrote can hold an asterisk or a bracket for its own
+ *  reasons. Without an escape the model has no way to say "these two asterisks
+ *  are part of the name" and a name turns half a sentence bold, or worse,
+ *  swallows it. The model already writes `\*`, correctly, so this is the half
+ *  that was missing rather than a new idea.
+ *
+ *  Only the characters that mean something here. A backslash before anything
+ *  else is a backslash, because somebody writing a Windows path should see it. */
+const ESCAPABLE = new Set(["*", "[", "]", "(", ")", ">", "-", "\\", "`"]);
 
 /** Whether a link may point here.
  *
@@ -63,41 +73,97 @@ function addressable(href: string): boolean {
   return href.startsWith("/") && !href.startsWith("//") && !href.startsWith("/\\");
 }
 
-/** One line of text into its inline pieces.
+/** Read one line, character by character, so an escape is understood.
  *
- *  Left to right, taking whichever of the two markers comes first, so `**a**`
- *  inside a link label and a link inside emphasis both resolve the same way on
- *  every surface rather than depending on which pass ran first. */
+ *  A scanner rather than a regular expression, and the reason is exactly the
+ *  escape: a pattern that has to skip `\*` while matching `**` is unreadable
+ *  and was wrong. This is longer and says what it does.
+ */
 export function inlines(line: string): Inline[] {
   const out: Inline[] = [];
-  let rest = line;
+  let buffer = "";
+  let i = 0;
 
-  while (rest.length > 0) {
-    const strong = STRONG.exec(rest);
-    const link = LINK.exec(rest);
-    const at = Math.min(strong?.index ?? Infinity, link?.index ?? Infinity);
+  const flush = (): void => {
+    if (buffer.length > 0) out.push({ kind: "text", text: buffer });
+    buffer = "";
+  };
 
-    if (at === Infinity) break;
+  /** The next unescaped occurrence of `marker`, or -1. */
+  const find = (marker: string, from: number): number => {
+    for (let at = from; at < line.length; at += 1) {
+      if (line[at] === "\\") {
+        at += 1;
+        continue;
+      }
+      if (line.startsWith(marker, at)) return at;
+    }
+    return -1;
+  };
 
-    const first = (strong?.index ?? Infinity) <= (link?.index ?? Infinity) ? "strong" : "link";
-    const match = first === "strong" ? strong! : link!;
+  /** A run with its escapes resolved, for use as a label or a bold word. */
+  const unescaped = (raw: string): string => {
+    let text = "";
+    for (let at = 0; at < raw.length; at += 1) {
+      const here = raw[at]!;
+      const next = raw[at + 1];
+      if (here === "\\" && next !== undefined && ESCAPABLE.has(next)) {
+        text += next;
+        at += 1;
+        continue;
+      }
+      text += here;
+    }
+    return text;
+  };
 
-    if (at > 0) out.push({ kind: "text", text: rest.slice(0, at) });
+  while (i < line.length) {
+    const here = line[i]!;
+    const next = line[i + 1];
 
-    if (first === "strong") {
-      out.push({ kind: "strong", text: match[1]! });
-    } else if (addressable(match[2]!)) {
-      out.push({ kind: "link", text: match[1]!, href: match[2]! });
-    } else {
-      // Somewhere offload does not own. Kept exactly as written, which is the
-      // failure direction that cannot be used against anybody.
-      out.push({ kind: "text", text: match[0]! });
+    if (here === "\\" && next !== undefined && ESCAPABLE.has(next)) {
+      buffer += next;
+      i += 2;
+      continue;
     }
 
-    rest = rest.slice(at + match[0]!.length);
+    if (here === "*" && next === "*") {
+      const close = find("**", i + 2);
+      if (close > i + 2) {
+        flush();
+        out.push({ kind: "strong", text: unescaped(line.slice(i + 2, close)) });
+        i = close + 2;
+        continue;
+      }
+    }
+
+    if (here === "[") {
+      const closeLabel = find("]", i + 1);
+      if (closeLabel > 0 && line[closeLabel + 1] === "(") {
+        const closeHref = find(")", closeLabel + 2);
+        if (closeHref > 0) {
+          const label = unescaped(line.slice(i + 1, closeLabel));
+          const href = unescaped(line.slice(closeLabel + 2, closeHref));
+          flush();
+          if (addressable(href)) {
+            out.push({ kind: "link", text: label, href });
+          } else {
+            // Somewhere offload does not own. Kept as the characters it was,
+            // which is the failure direction that cannot be used against
+            // anybody.
+            out.push({ kind: "text", text: line.slice(i, closeHref + 1) });
+          }
+          i = closeHref + 1;
+          continue;
+        }
+      }
+    }
+
+    buffer += here;
+    i += 1;
   }
 
-  if (rest.length > 0) out.push({ kind: "text", text: rest });
+  flush();
   return out.length > 0 ? out : [{ kind: "text", text: "" }];
 }
 
