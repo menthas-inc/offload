@@ -19,17 +19,18 @@ import { db } from "../db.js";
 import { initialsOf } from "../accounts/initials.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import {
-  MAX_MEMORIES_PER_THREAD,
-  MEMORY_TEXT_CHARS,
-  MemoryLimit,
-  MemoryTooLong,
-  addMemory,
-  deleteMemory,
-  editMemory,
-  readableMemories,
-  restoreMemory,
+  NOTE_BODY_CHARS,
+  NOTE_TEXT_CHARS,
+  NoteTooLong,
+  addNote,
+  deleteNote,
+  editNote,
+  foldedNotes,
+  noteCounts,
+  readableNotes,
+  restoreNote,
   setMuted,
-} from "../threads/memories.js";
+} from "../threads/notes.js";
 import { readPreference, type ThreadPreference } from "../threads/widgets.js";
 import {
   NotYours,
@@ -109,18 +110,36 @@ const threadList = z.object({
   ),
 });
 
-const memorySchema = z.object({
+/** How many folded notes come back in one page. History is browsed, not
+ *  worked with, so this is small on purpose. */
+const FOLDED_PAGE = 20;
+
+const noteSchema = z.object({
   id: z.string(),
   text: z.string(),
-  /** `learned` is offload's, and the screen marks it. */
+  /** What was dumped when it did not fit in 200 characters. Never in a prompt,
+   *  and never shown on a row: the row shows `text` and opening it shows this. */
+  body: z.string().nullable(),
+  /** `learned` is offload's, and the screen marks it. It also means offload
+   *  wrote the text over somebody's longer words, which is the same claim: this
+   *  sentence is offload's. */
   origin: z.enum(["stated", "learned"]),
-  /** Null once the author deleted their account: the memory stays in the
-   *  shared thread it belongs to and the name comes off it. */
+  /** Null once the author deleted their account: the note stays in the shared
+   *  thread it belongs to and the name comes off it. */
   authorId: z.string().nullable(),
   /** False once the author left or deleted their account, at which point every
    *  member may delete it. */
   authorIsMember: z.boolean(),
   muted: z.boolean(),
+  occursAt: z.coerce.date().nullable(),
+  occursEndAt: z.coerce.date().nullable(),
+  dueAt: z.coerce.date().nullable(),
+  placeId: z.string().nullable(),
+  /** When it was last written. What decides which notes reach a prompt when a
+   *  thread holds more than the budget, and what the row shows. */
+  writtenAt: z.coerce.date(),
+  /** Set aside by the daily job. Only ever present on the folded list. */
+  supersededAt: z.coerce.date().nullable(),
 });
 
 const threadBundle = z.object({
@@ -130,16 +149,19 @@ const threadBundle = z.object({
   alwaysOn: z.boolean(),
   counts: z.object({ active: z.number(), archived: z.number() }),
   members: z.array(memberSchema),
-  /** The standing facts this thread holds about itself. At most ten, so this
-   *  never grows the bundle with the thread's age. */
-  memories: z.array(memorySchema),
+  /** What this thread holds about itself. Active only: what the daily job
+   *  folded is its own paginated read, because that list has no ceiling. */
+  notes: z.array(noteSchema),
+  /** Active and folded. The second is what the section's folded-history control
+   *  counts, and a thread with none of them says nothing. */
+  noteCounts: z.object({ active: z.number(), folded: z.number() }),
   /** How this thread wants to look. Absent fields mean derived from content. */
   preference: z.object({
     widgets: z.array(z.string()).optional(),
     groupBy: z.record(z.string(), z.string()).optional(),
   }),
   /** Always null. offload does not summarise a thread yet and nothing writes a
-   *  standing memory, so the field is here in the shape the client already
+   *  standing summary, so the field is here in the shape the client already
    *  renders an empty state from. When something writes one, no client changes. */
   /** Null until something writes summaries, which nothing does. Nullable
    *  string rather than `null` so the client's branch is real code that is
@@ -159,6 +181,9 @@ const contentRow = z.object({
   doneAt: z.string().nullable(),
   dueAt: z.string().nullable(),
   occursAt: z.string().nullable(),
+  /** The other end of a span, so a thing that covers three days is drawn on
+   *  three days. Written since 0011 and read by nothing until 015. */
+  occursEndAt: z.string().nullable(),
   isReminder: z.boolean(),
   priority: z.number(),
   priorityPinned: z.boolean(),
@@ -251,6 +276,11 @@ interface RawRow {
   filing_at: Date | null;
   due_at: Date | null;
   occurs_at: Date | null;
+  /** The other end of a span. **Written since 0011 and read by nothing until
+   *  015**, which is why a two day event drew as a point on the rail: the
+   *  column was on the row, off the select, and absent from every shape above
+   *  it. */
+  occurs_end_at: Date | null;
   is_reminder: boolean;
   priority: number;
   priority_pinned: boolean;
@@ -302,6 +332,7 @@ function toRow(row: RawRow, viewerId: string) {
     doneAt: row.done_at ? row.done_at.toISOString() : null,
     dueAt: row.due_at ? row.due_at.toISOString() : null,
     occursAt: row.occurs_at ? row.occurs_at.toISOString() : null,
+    occursEndAt: row.occurs_end_at ? row.occurs_end_at.toISOString() : null,
     isReminder: row.is_reminder,
     priority: row.priority,
     priorityPinned: row.priority_pinned,
@@ -742,13 +773,15 @@ export const QUICK_ADD_CHARS = 500;
  *  A guess, and a deliberately weak one: it decides which section the row
  *  appears in for the few seconds before offload has read it, so adding from To
  *  do puts it in To do rather than making it appear somewhere else and jump.
- *  offload may change it, and the change mark says so when it does. Files has
- *  no text answer, so typing into it makes a note. */
-const STARTS_AS: Record<string, "task" | "event" | "location" | "note"> = {
+ *  offload may change it, and the change mark says so when it does.
+ *
+ *  **A section with no answer here writes a note instead**, which is what 014
+ *  made of a typed sentence with nothing else to be. Files is the one that
+ *  lands there: you cannot type a file, and the words somebody typed are a
+ *  sentence about the thread. */
+const STARTS_AS: Record<string, "task" | "location"> = {
   todo: "task",
-  timeline: "event",
   map: "location",
-  files: "note",
 };
 
 /** Write what somebody typed, then ask offload what it was.
@@ -770,8 +803,20 @@ export async function quickAdd(
   threadId: string,
   text: string,
   section: string,
-): Promise<{ id: string }> {
+): Promise<{ id: string; kind: "content" | "note" }> {
   await requireMember(accountId, threadId);
+
+  const startsAs = STARTS_AS[section];
+
+  // A sentence with no widget type to start as is a note, and a note needs no
+  // job: it is already exactly what it is, in the person's own words. The
+  // reclassification below exists to turn a typed line into a task with a date,
+  // and there is nothing to turn.
+  if (!startsAs) {
+    const note = await addNote({ threadId, accountId, text, origin: "stated" });
+    await touchThread(threadId, db);
+    return { id: note.id, kind: "note" };
+  }
 
   return db.transaction().execute(async (trx) => {
     const row = await trx
@@ -781,7 +826,7 @@ export async function quickAdd(
         thread_id: threadId,
         // Their words, untouched, as the title. offload rewrites it if it can
         // do better, and until then the row says what they said.
-        type: STARTS_AS[section] ?? "note",
+        type: startsAs,
         title: text,
         source: "person",
         filing_at: sql`now()`,
@@ -811,7 +856,7 @@ export async function quickAdd(
       tx: trx,
     });
 
-    return { id: row.id };
+    return { id: row.id, kind: "content" as const };
   });
 }
 
@@ -933,9 +978,10 @@ export async function threadRoutes(app: App): Promise<void> {
   // widget when 007 draws them.
   //
   // 008 spends the fifth. 005 reserved it for a standing summary, which still
-  // does not exist; memories took it instead, and both specs are amended rather
-  // than left disagreeing about a number one of them enforces. It is bounded by
-  // MAX_MEMORIES_PER_THREAD, so it is a fifth query and never a sixth.
+  // does not exist; notes took it instead, and both specs are amended rather
+  // than left disagreeing about a number one of them enforces. 014 spends a
+  // sixth on the two counts the section needs, which is one query for both and
+  // not one per count.
   app.get(
     "/v1/threads/:id",
     {
@@ -984,7 +1030,8 @@ export async function threadRoutes(app: App): Promise<void> {
           // naming a widget that no longer exists renders as though it were
           // absent, because a thread whose contents changed under a preference
           // is the normal case rather than an edge one.
-          memories: await readableMemories(accountId, id),
+          notes: await readableNotes(accountId, id),
+          noteCounts: await noteCounts(accountId, id),
           preference: readPreference(thread.attrs),
           standing: null,
         });
@@ -1030,6 +1077,7 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.filing_at as filing_at",
             "content.due_at as due_at",
             "content.occurs_at as occurs_at",
+            "content.occurs_end_at as occurs_end_at",
             "content.is_reminder as is_reminder",
             "content.priority as priority",
             "content.priority_pinned as priority_pinned",
@@ -1120,6 +1168,7 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.filing_at as filing_at",
             "content.due_at as due_at",
             "content.occurs_at as occurs_at",
+            "content.occurs_end_at as occurs_end_at",
             "content.is_reminder as is_reminder",
             "content.priority as priority",
             "content.priority_pinned as priority_pinned",
@@ -1352,7 +1401,7 @@ export async function threadRoutes(app: App): Promise<void> {
           section: z.string().max(32).optional(),
         }),
         response: {
-          200: z.object({ id: z.string() }),
+          200: z.object({ id: z.string(), kind: z.enum(["content", "note"]) }),
           401: unauthenticated,
           404: notFound,
           413: z.object({ error: z.literal("too_long"), maxChars: z.number() }),
@@ -1373,28 +1422,90 @@ export async function threadRoutes(app: App): Promise<void> {
       })
   );
 
-  // ------------------------------------------------------------- memories
+  // ---------------------------------------------------------------- notes
   //
-  // A memory is a standing fact about a thread rather than something in it, so
-  // these sit on the thread and not on content. The permission split is the one
-  // OFF-3 already sets and 005 already applied to content: reading and editing
-  // are co-owned, deleting is the author's, and mute is what everybody else
-  // gets instead. Mute is to a memory what archive is to content.
+  // A note is a sentence about a thread: what is true about it, and sometimes
+  // how it should be handled. It sits on the thread rather than in content,
+  // because 014 merged the two concepts that were doing this job. The
+  // permission split is the one OFF-3 already sets and 005 already applied to
+  // content: reading and editing are co-owned, deleting is the author's, and
+  // mute is what everybody else gets instead.
+  //
+  // **The old `/memories` paths answer identically and are deleted one release
+  // from now.** Phone builds go out through EAS and an installed app is pinned
+  // to the names it shipped with, so renaming a route under it is the same
+  // class of break as deleting its data.
 
-  app.post(
-    "/v1/threads/:id/memories",
+  const notePaths = (suffix: string): [string, string] => [
+    `/v1/notes${suffix}`,
+    `/v1/memories${suffix}`,
+  ];
+
+  for (const path of ["/v1/threads/:id/notes", "/v1/threads/:id/memories"]) {
+    app.post(
+      path,
+      {
+        schema: {
+          params: z.object({ id: z.string().uuid() }),
+          body: z.strictObject({
+            text: z.string().min(1).max(NOTE_TEXT_CHARS),
+            body: z.string().max(NOTE_BODY_CHARS).nullish(),
+          }),
+          response: {
+            200: z.object({ note: noteSchema }),
+            401: unauthenticated,
+            404: notFound,
+            413: z.object({ error: z.literal("too_long"), maxChars: z.number() }),
+          },
+        },
+      },
+      async (request, reply) =>
+        guard(reply, async () => {
+          const accountId = await currentAccountId(request);
+          if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+          const { id } = request.params;
+          await requireMember(accountId, id);
+
+          try {
+            // **No 409 and no lock.** 008 refused the eleventh under a row lock
+            // on the thread; a hundred is a prompt budget applied at assembly,
+            // so there is nothing here to serialise and nothing to refuse.
+            const note = await addNote({
+              threadId: id,
+              accountId,
+              text: request.body.text,
+              body: request.body.body ?? null,
+              origin: "stated",
+            });
+            await touchThread(id, db);
+            return reply.send({ note });
+          } catch (error) {
+            if (error instanceof NoteTooLong) {
+              return reply
+                .code(413)
+                .send({ error: "too_long" as const, maxChars: error.maxChars });
+            }
+            throw error;
+          }
+        })
+    );
+  }
+
+  // What the daily job folded. Read, not worked with: no restore and no edit,
+  // and cursor-paginated because it is the one list here that has no ceiling.
+  app.get(
+    "/v1/threads/:id/notes/folded",
     {
       schema: {
         params: z.object({ id: z.string().uuid() }),
-        body: z.strictObject({ text: z.string().min(1).max(MEMORY_TEXT_CHARS) }),
+        // A timestamp, checked as one. Unvalidated it reaches `new Date` and
+        // becomes an Invalid Date, which is a 500 rather than a refusal.
+        querystring: z.object({ cursor: z.string().datetime().optional() }),
         response: {
-          200: z.object({ memory: memorySchema }),
+          200: z.object({ notes: z.array(noteSchema), cursor: z.string().nullable() }),
           401: unauthenticated,
           404: notFound,
-          // Carries the count and never the text: a refusal is not a reason to
-          // start echoing dumped text into responses somebody might log.
-          409: z.object({ error: z.literal("thread_memory_full"), limit: z.number() }),
-          413: z.object({ error: z.literal("too_long"), maxChars: z.number() }),
         },
       },
     },
@@ -1403,165 +1514,159 @@ export async function threadRoutes(app: App): Promise<void> {
         const accountId = await currentAccountId(request);
         if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
-        const { id } = request.params;
-        await requireMember(accountId, id);
+        await requireMember(accountId, request.params.id);
 
-        try {
-          // Its own transaction, because the cap is enforced with a lock on the
-          // thread row and a lock is only worth taking inside the transaction
-          // that does the insert.
-          const memory = await db.transaction().execute((trx) =>
-            addMemory(
-              { threadId: id, accountId, text: request.body.text, origin: "stated" },
-              trx,
-            ),
-          );
-          await touchThread(id, db);
-          return reply.send({ memory });
-        } catch (error) {
-          if (error instanceof MemoryLimit) {
-            return reply
-              .code(409)
-              .send({ error: "thread_memory_full" as const, limit: MAX_MEMORIES_PER_THREAD });
-          }
-          if (error instanceof MemoryTooLong) {
-            return reply
-              .code(413)
-              .send({ error: "too_long" as const, maxChars: MEMORY_TEXT_CHARS });
-          }
-          throw error;
-        }
+        const before = request.query.cursor ? new Date(request.query.cursor) : null;
+        // One more than the page, so "is there another page" is answered by the
+        // read rather than by a count.
+        const rows = await foldedNotes(accountId, request.params.id, before, FOLDED_PAGE + 1);
+        const page = rows.slice(0, FOLDED_PAGE);
+        const last = page[page.length - 1];
+        return reply.send({
+          notes: page,
+          cursor:
+            rows.length > FOLDED_PAGE && last?.supersededAt
+              ? last.supersededAt.toISOString()
+              : null,
+        });
       })
   );
 
-  // Edit. Any member, and the full text rather than the shortened form the chip
-  // shows. Returns `previous` so Undo has something to write back.
-  app.patch(
-    "/v1/memories/:id",
-    {
-      schema: {
-        params: z.object({ id: z.string().uuid() }),
-        body: z.strictObject({ text: z.string().min(1).max(MEMORY_TEXT_CHARS) }),
-        response: {
-          200: z.object({ memory: memorySchema, previous: z.string() }),
-          401: unauthenticated,
-          404: notFound,
-          // The thread already holds this sentence. Refused rather than merged
-          // into the existing row, which would destroy one memory to satisfy an
-          // edit of another.
-          409: z.object({ error: z.literal("duplicate") }),
-          413: z.object({ error: z.literal("too_long"), maxChars: z.number() }),
+  // Edit. Any member, and the full text rather than anything a row shortened.
+  // Returns `previous` so Undo has something to write back.
+  for (const path of notePaths("/:id")) {
+    app.patch(
+      path,
+      {
+        schema: {
+          params: z.object({ id: z.string().uuid() }),
+          body: z.strictObject({
+            text: z.string().min(1).max(NOTE_TEXT_CHARS),
+            body: z.string().max(NOTE_BODY_CHARS).nullish(),
+          }),
+          response: {
+            200: z.object({ note: noteSchema, previous: z.string() }),
+            401: unauthenticated,
+            404: notFound,
+            // Only reachable for a note offload wrote: the unique index covers
+            // nothing else. Refused rather than merged into the existing row,
+            // which would destroy one note to satisfy an edit of another.
+            409: z.object({ error: z.literal("duplicate") }),
+            413: z.object({ error: z.literal("too_long"), maxChars: z.number() }),
+          },
         },
       },
-    },
-    async (request, reply) =>
-      guard(reply, async () => {
-        const accountId = await currentAccountId(request);
-        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+      async (request, reply) =>
+        guard(reply, async () => {
+          const accountId = await currentAccountId(request);
+          if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
-        try {
-          const result = await db
-            .transaction()
-            .execute((trx) =>
-              editMemory({ memoryId: request.params.id, accountId, text: request.body.text }, trx),
+          try {
+            const result = await db.transaction().execute((trx) =>
+              editNote(
+                {
+                  noteId: request.params.id,
+                  accountId,
+                  text: request.body.text,
+                  ...(request.body.body === undefined ? {} : { body: request.body.body }),
+                },
+                trx,
+              ),
             );
-          if (!result) return reply.code(409).send({ error: "duplicate" as const });
-          return reply.send(result);
-        } catch (error) {
-          if (error instanceof MemoryTooLong) {
-            return reply
-              .code(413)
-              .send({ error: "too_long" as const, maxChars: MEMORY_TEXT_CHARS });
+            if (!result) return reply.code(409).send({ error: "duplicate" as const });
+            return reply.send(result);
+          } catch (error) {
+            if (error instanceof NoteTooLong) {
+              return reply
+                .code(413)
+                .send({ error: "too_long" as const, maxChars: error.maxChars });
+            }
+            throw error;
           }
-          throw error;
-        }
-      })
-  );
+        })
+    );
+  }
 
   // Delete. The author's alone, per OFF-3. A member who did not write it gets
   // the same refusal a non-member gets, so the response never teaches who did.
-  app.delete(
-    "/v1/memories/:id",
-    {
-      schema: {
-        params: z.object({ id: z.string().uuid() }),
-        response: {
-          200: z.object({ deleted: z.boolean() }),
-          401: unauthenticated,
-          404: notFound,
+  for (const path of notePaths("/:id")) {
+    app.delete(
+      path,
+      {
+        schema: {
+          params: z.object({ id: z.string().uuid() }),
+          response: {
+            200: z.object({ deleted: z.boolean() }),
+            401: unauthenticated,
+            404: notFound,
+          },
         },
       },
-    },
-    async (request, reply) =>
-      guard(reply, async () => {
-        const accountId = await currentAccountId(request);
-        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+      async (request, reply) =>
+        guard(reply, async () => {
+          const accountId = await currentAccountId(request);
+          if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
-        const deleted = await deleteMemory(request.params.id, accountId);
-        return reply.send({ deleted });
-      })
-  );
+          const deleted = await deleteNote(request.params.id, accountId);
+          return reply.send({ deleted });
+        })
+    );
+  }
 
-  // Undo the delete. Re-checks the cap, which is the one door it could
-  // otherwise walk through: at ten, delete one, add another, then press Undo.
-  app.post(
-    "/v1/memories/:id/restore",
-    {
-      schema: {
-        params: z.object({ id: z.string().uuid() }),
-        response: {
-          200: z.object({ memory: memorySchema }),
-          401: unauthenticated,
-          404: notFound,
-          409: z.object({ error: z.literal("thread_memory_full"), limit: z.number() }),
+  // Undo the delete. Nothing to re-check: 008 re-checked the cap here because
+  // restore was the one door the cap did not watch, and there is no cap now.
+  for (const path of notePaths("/:id/restore")) {
+    app.post(
+      path,
+      {
+        schema: {
+          params: z.object({ id: z.string().uuid() }),
+          response: {
+            200: z.object({ note: noteSchema }),
+            401: unauthenticated,
+            404: notFound,
+          },
         },
       },
-    },
-    async (request, reply) =>
-      guard(reply, async () => {
-        const accountId = await currentAccountId(request);
-        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+      async (request, reply) =>
+        guard(reply, async () => {
+          const accountId = await currentAccountId(request);
+          if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
-        try {
-          const memory = await db
+          const note = await db
             .transaction()
-            .execute((trx) => restoreMemory(request.params.id, accountId, trx));
-          return reply.send({ memory });
-        } catch (error) {
-          if (error instanceof MemoryLimit) {
-            return reply
-              .code(409)
-              .send({ error: "thread_memory_full" as const, limit: MAX_MEMORIES_PER_THREAD });
-          }
-          throw error;
-        }
-      })
-  );
+            .execute((trx) => restoreNote(request.params.id, accountId, trx));
+          return reply.send({ note });
+        })
+    );
+  }
 
   // Mute and unmute. Any member, thread-wide, and reversible, which is why it
   // is on the OFF-6 allowlist rather than under an eight second toast.
-  app.post(
-    "/v1/memories/:id/mute",
-    {
-      schema: {
-        params: z.object({ id: z.string().uuid() }),
-        body: z.strictObject({ muted: z.boolean() }),
-        response: {
-          200: z.object({ memory: memorySchema }),
-          401: unauthenticated,
-          404: notFound,
+  for (const path of notePaths("/:id/mute")) {
+    app.post(
+      path,
+      {
+        schema: {
+          params: z.object({ id: z.string().uuid() }),
+          body: z.strictObject({ muted: z.boolean() }),
+          response: {
+            200: z.object({ note: noteSchema }),
+            401: unauthenticated,
+            404: notFound,
+          },
         },
       },
-    },
-    async (request, reply) =>
-      guard(reply, async () => {
-        const accountId = await currentAccountId(request);
-        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+      async (request, reply) =>
+        guard(reply, async () => {
+          const accountId = await currentAccountId(request);
+          if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
-        const memory = await setMuted(request.params.id, accountId, request.body.muted);
-        return reply.send({ memory });
-      })
-  );
+          const note = await setMuted(request.params.id, accountId, request.body.muted);
+          return reply.send({ note });
+        })
+    );
+  }
 
   // Rename a thread. Co-owned: a shared thread's name belongs to everybody in
   // it, and renaming touches no content.
@@ -1709,6 +1814,7 @@ async function rowById(contentId: string, viewerId: string) {
       "content.filing_at as filing_at",
       "content.due_at as due_at",
       "content.occurs_at as occurs_at",
+            "content.occurs_end_at as occurs_end_at",
       "content.is_reminder as is_reminder",
       "content.priority as priority",
       "content.priority_pinned as priority_pinned",

@@ -1,9 +1,9 @@
-// Thread memories: the standing facts a thread holds about itself.
+// Thread notes: the sentences a thread holds about itself.
 //
-// AC-1   a member adds one, at most 200 characters.
-// AC-2   ten and no eleventh, for a person and for offload.
+// AC-1   a member adds one, at most 200 characters, with an optional body.
+// AC-5   nothing is refused for being one too many.
+// AC-3b  a person's repeat lands; offload's does not.
 // AC-4   offload's are marked as inferred.
-// AC-5   the same text twice is one memory.
 // AC-6   offload may not overwrite what a person stated.
 // AC-9   any member reads and edits.
 // AC-9a  only the author deletes.
@@ -12,10 +12,9 @@
 // AC-11  reads resolve through membership, never through account_id.
 // AC-12  one refusal, whatever the reason, on one code path.
 // AC-13  delete is undoable and destroys nothing first.
-// AC-14  a deleted one does not count; AC-14a a restore cannot exceed ten.
-// AC-15  account deletion leaves memories in shared threads.
-// AC-17  what reaches a prompt is a constant, not a function of account age.
-// AC-21  no memory text reaches an error, a log or a job.
+// AC-15  account deletion leaves notes in shared threads.
+// AC-6   what reaches a prompt is a constant, not a function of account age.
+// AC-21  no note text reaches an error, a log or a job.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
@@ -23,19 +22,18 @@ import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
 import { NotYours } from "../src/threads/access.js";
 import {
-  MAX_MEMORIES_PER_THREAD,
-  MEMORY_TEXT_CHARS,
-  MemoryLimit,
-  MemoryTooLong,
-  addMemory,
-  deleteMemory,
-  editMemory,
-  memoriesForPrompt,
-  readableMemories,
-  readableMemory,
-  restoreMemory,
+  NOTE_PROMPT_BUDGET,
+  NOTE_TEXT_CHARS,
+  NoteTooLong,
+  addNote,
+  deleteNote,
+  editNote,
+  notesForPrompt,
+  readableNote,
+  readableNotes,
+  restoreNote,
   setMuted,
-} from "../src/threads/memories.js";
+} from "../src/threads/notes.js";
 
 await migrate(() => {});
 
@@ -44,7 +42,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await db.deleteFrom("memories").execute();
+  await db.deleteFrom("notes").execute();
   await db.deleteFrom("content").execute();
   await db.deleteFrom("messages").execute();
   await db.deleteFrom("conversations").execute();
@@ -89,105 +87,119 @@ async function join(threadId: string, accountId: string): Promise<void> {
     .execute();
 }
 
-/** Adding through a transaction, the way every caller does, because the cap
- *  takes a row lock and a lock outside a transaction locks nothing. */
+/** Adding through a transaction, the way the routes do. There is no lock to
+ *  take any more, and the transaction is kept because every caller has one. */
 function add(threadId: string, accountId: string, text: string, origin: "stated" | "learned" = "stated") {
-  return db.transaction().execute((trx) => addMemory({ threadId, accountId, text, origin }, trx));
+  return db.transaction().execute((trx) => addNote({ threadId, accountId, text, origin }, trx));
 }
 
 describe("AC-1 adding", () => {
-  it("puts a memory on a thread you are in", async () => {
+  it("puts a note on a thread you are in", async () => {
     const ana = await account();
     const flat = await thread(ana);
 
-    const memory = await add(flat, ana, "Todo names in three words");
-    expect(memory.text).toBe("Todo names in three words");
-    expect(memory.origin).toBe("stated");
-    expect(memory.authorId).toBe(ana);
-    expect(memory.muted).toBe(false);
+    const note = await add(flat, ana, "Todo names in three words");
+    expect(note.text).toBe("Todo names in three words");
+    expect(note.origin).toBe("stated");
+    expect(note.authorId).toBe(ana);
+    expect(note.muted).toBe(false);
 
-    expect(await readableMemories(ana, flat)).toHaveLength(1);
+    expect(await readableNotes(ana, flat)).toHaveLength(1);
   });
 
   it("refuses text that is empty once trimmed, so 200 spaces is empty", async () => {
     const ana = await account();
     const flat = await thread(ana);
-    await expect(add(flat, ana, "   ".repeat(60))).rejects.toBeInstanceOf(MemoryTooLong);
+    await expect(add(flat, ana, "   ".repeat(60))).rejects.toBeInstanceOf(NoteTooLong);
   });
 
   it("refuses text past the cap rather than truncating it", async () => {
     const ana = await account();
     const flat = await thread(ana);
     // Storing something other than what somebody typed is worse than saying no.
-    await expect(add(flat, ana, "x".repeat(MEMORY_TEXT_CHARS + 1))).rejects.toBeInstanceOf(
-      MemoryTooLong
+    await expect(add(flat, ana, "x".repeat(NOTE_TEXT_CHARS + 1))).rejects.toBeInstanceOf(
+      NoteTooLong
     );
-    await expect(add(flat, ana, "x".repeat(MEMORY_TEXT_CHARS))).resolves.toBeTruthy();
+    await expect(add(flat, ana, "x".repeat(NOTE_TEXT_CHARS))).resolves.toBeTruthy();
   });
 });
 
-describe("AC-2 ten, and no eleventh", () => {
-  it("refuses the eleventh", async () => {
+describe("AC-5 nothing is refused for being one too many", () => {
+  it("lands the hundred and first, and the four hundred and first", async () => {
+    // 008 refused the eleventh under a row lock. The hundred is a prompt
+    // budget applied when the prompt is assembled, so there is nothing here to
+    // refuse and nothing to serialise.
     const ana = await account();
     const flat = await thread(ana);
-    for (let i = 0; i < MAX_MEMORIES_PER_THREAD; i += 1) {
-      await add(flat, ana, `rule number ${i}`);
+    for (let i = 0; i < NOTE_PROMPT_BUDGET; i += 1) {
+      await add(flat, ana, `note number ${i}`);
     }
-    await expect(add(flat, ana, "one too many")).rejects.toBeInstanceOf(MemoryLimit);
+    await expect(add(flat, ana, "one more")).resolves.toBeTruthy();
+    expect(await readableNotes(ana, flat)).toHaveLength(NOTE_PROMPT_BUDGET + 1);
   });
 
-  it("holds ten under two adds racing at nine", async () => {
-    // The whole reason the cap takes `select ... for update` on the thread row.
-    // A plain count is check-then-act: both read nine, both insert, eleven.
+  it("gives offload the same answer", async () => {
     const ana = await account();
     const flat = await thread(ana);
-    for (let i = 0; i < MAX_MEMORIES_PER_THREAD - 1; i += 1) {
-      await add(flat, ana, `rule number ${i}`);
+    for (let i = 0; i < NOTE_PROMPT_BUDGET; i += 1) {
+      await add(flat, ana, `note number ${i}`);
     }
+    await expect(
+      add(flat, ana, "offload noticed something", "learned")
+    ).resolves.toBeTruthy();
+  });
+
+  it("lands two racing adds rather than one", async () => {
+    // The inverse of the test this replaces. With a cap, two adds at nine had
+    // to leave ten; with a budget there is no invariant to protect and both
+    // sentences are things somebody dumped.
+    const ana = await account();
+    const flat = await thread(ana);
 
     const outcomes = await Promise.allSettled([
       add(flat, ana, "first racer"),
       add(flat, ana, "second racer"),
     ]);
 
-    expect(outcomes.filter((o) => o.status === "fulfilled")).toHaveLength(1);
-    expect(await readableMemories(ana, flat)).toHaveLength(MAX_MEMORIES_PER_THREAD);
-  });
-
-  it("gives offload no exemption", async () => {
-    const ana = await account();
-    const flat = await thread(ana);
-    for (let i = 0; i < MAX_MEMORIES_PER_THREAD; i += 1) {
-      await add(flat, ana, `rule number ${i}`);
-    }
-    await expect(add(flat, ana, "offload noticed something", "learned")).rejects.toBeInstanceOf(
-      MemoryLimit
-    );
+    expect(outcomes.filter((o) => o.status === "fulfilled")).toHaveLength(2);
+    expect(await readableNotes(ana, flat)).toHaveLength(2);
   });
 });
 
-describe("AC-5 the same sentence twice", () => {
-  it("returns the existing memory and creates nothing", async () => {
+describe("AC-3b the same sentence twice", () => {
+  it("returns the existing note when offload writes it again", async () => {
     // A model asked twice about one thread writes the same sentence twice.
     const ana = await account();
     const flat = await thread(ana);
-    const first = await add(flat, ana, "Todo names in three words");
+    const first = await add(flat, ana, "Todo names in three words", "learned");
     const second = await add(flat, ana, "todo NAMES in three WORDS", "learned");
 
     expect(second.id).toBe(first.id);
-    expect(second.origin).toBe("stated");
-    expect(await readableMemories(ana, flat)).toHaveLength(1);
+    expect(await readableNotes(ana, flat)).toHaveLength(1);
+  });
+
+  it("lands both when a person dumps the same sentence twice", async () => {
+    // They dumped it twice and they meant it. A dump that silently does not
+    // appear is the one thing this product may never do, and the rule the
+    // unique index was built for is about a model, not a person.
+    const ana = await account();
+    const flat = await thread(ana);
+    const first = await add(flat, ana, "the flat is the Lisbon one");
+    const second = await add(flat, ana, "the flat is the Lisbon one");
+
+    expect(second.id).not.toBe(first.id);
+    expect(await readableNotes(ana, flat)).toHaveLength(2);
   });
 
   it("never surfaces the text through a caught unique violation", async () => {
     // Postgres puts the conflicting value in the error's detail, so a caught
-    // 23505 carries memory text into whatever logs the exception. OFF-1.
+    // 23505 carries note text into whatever logs the exception. OFF-1.
     const ana = await account();
     const flat = await thread(ana);
-    await add(flat, ana, "the flat is the Lisbon one");
+    await add(flat, ana, "the flat is the Lisbon one", "learned");
     let raised: unknown = null;
     try {
-      await add(flat, ana, "the flat is the Lisbon one");
+      await add(flat, ana, "the flat is the Lisbon one", "learned");
     } catch (error) {
       raised = error;
     }
@@ -202,31 +214,31 @@ describe("AC-9 and AC-9a sharing", () => {
     const flat = await thread(ana);
     await join(flat, john);
 
-    const memory = await add(flat, ana, "Ana handles the electrician");
-    expect(await readableMemories(john, flat)).toHaveLength(1);
+    const note = await add(flat, ana, "Ana handles the electrician");
+    expect(await readableNotes(john, flat)).toHaveLength(1);
 
     const edited = await db
       .transaction()
       .execute((trx) =>
-        editMemory({ memoryId: memory.id, accountId: john, text: "John handles the electrician" }, trx)
+        editNote({ noteId: note.id, accountId: john, text: "John handles the electrician" }, trx)
       );
-    expect(edited?.memory.text).toBe("John handles the electrician");
+    expect(edited?.note.text).toBe("John handles the electrician");
     expect(edited?.previous).toBe("Ana handles the electrician");
   });
 
-  it("keeps the memory with whoever created it, however often it is edited", async () => {
+  it("keeps the note with whoever created it, however often it is edited", async () => {
     // AC-10. John editing Ana's rule does not make it John's.
     const ana = await account("Ana");
     const john = await account("John");
     const flat = await thread(ana);
     await join(flat, john);
 
-    const memory = await add(flat, ana, "Ana handles the electrician");
+    const note = await add(flat, ana, "Ana handles the electrician");
     await db
       .transaction()
-      .execute((trx) => editMemory({ memoryId: memory.id, accountId: john, text: "changed" }, trx));
+      .execute((trx) => editNote({ noteId: note.id, accountId: john, text: "changed" }, trx));
 
-    const after = await readableMemory(john, memory.id);
+    const after = await readableNote(john, note.id);
     expect(after?.authorId).toBe(ana);
   });
 
@@ -235,10 +247,10 @@ describe("AC-9 and AC-9a sharing", () => {
     const john = await account("John");
     const flat = await thread(ana);
     await join(flat, john);
-    const memory = await add(flat, ana, "Ana handles the electrician");
+    const note = await add(flat, ana, "Ana handles the electrician");
 
-    await expect(deleteMemory(memory.id, john)).rejects.toBeInstanceOf(NotYours);
-    await expect(deleteMemory(memory.id, ana)).resolves.toBe(true);
+    await expect(deleteNote(note.id, john)).rejects.toBeInstanceOf(NotYours);
+    await expect(deleteNote(note.id, ana)).resolves.toBe(true);
   });
 
   it("refuses a non-author and a non-member identically", async () => {
@@ -249,11 +261,11 @@ describe("AC-9 and AC-9a sharing", () => {
     const stranger = await account("Stranger");
     const flat = await thread(ana);
     await join(flat, john);
-    const memory = await add(flat, ana, "Ana handles the electrician");
+    const note = await add(flat, ana, "Ana handles the electrician");
 
-    const asMember = await deleteMemory(memory.id, john).catch((e: unknown) => e);
-    const asStranger = await deleteMemory(memory.id, stranger).catch((e: unknown) => e);
-    const asGhost = await deleteMemory(uuidv7(), stranger).catch((e: unknown) => e);
+    const asMember = await deleteNote(note.id, john).catch((e: unknown) => e);
+    const asStranger = await deleteNote(note.id, stranger).catch((e: unknown) => e);
+    const asGhost = await deleteNote(uuidv7(), stranger).catch((e: unknown) => e);
 
     expect(asMember).toBeInstanceOf(NotYours);
     expect(asStranger).toBeInstanceOf(NotYours);
@@ -262,7 +274,7 @@ describe("AC-9 and AC-9a sharing", () => {
   });
 
   it("resolves reads through membership and never through the author", async () => {
-    // AC-11. Filtering reads by account_id would hide a memory every member of
+    // AC-11. Filtering reads by account_id would hide a note every member of
     // a shared thread is meant to see, and the instinct on finding that is to
     // loosen the filter rather than narrow it.
     const ana = await account("Ana");
@@ -272,8 +284,8 @@ describe("AC-9 and AC-9a sharing", () => {
     await add(flat, ana, "Ana wrote this one");
     await add(flat, john, "John wrote this one");
 
-    expect(await readableMemories(ana, flat)).toHaveLength(2);
-    expect(await readableMemories(john, flat)).toHaveLength(2);
+    expect(await readableNotes(ana, flat)).toHaveLength(2);
+    expect(await readableNotes(john, flat)).toHaveLength(2);
   });
 
   it("shows a stranger nothing", async () => {
@@ -281,44 +293,52 @@ describe("AC-9 and AC-9a sharing", () => {
     const stranger = await account("Stranger");
     const flat = await thread(ana);
     await add(flat, ana, "Ana handles the electrician");
-    expect(await readableMemories(stranger, flat)).toHaveLength(0);
+    expect(await readableNotes(stranger, flat)).toHaveLength(0);
   });
 });
 
 describe("AC-9b mute", () => {
-  it("lets any member mute another member's memory, thread-wide", async () => {
+  it("lets any member mute another member's note, thread-wide", async () => {
     const ana = await account("Ana");
     const john = await account("John");
     const flat = await thread(ana);
     await join(flat, john);
-    const memory = await add(flat, ana, "never file anything from Ana as a task");
+    const note = await add(flat, ana, "never file anything from Ana as a task");
 
-    await setMuted(memory.id, john, true);
+    await setMuted(note.id, john, true);
 
     // Off the model's desk for everybody, still on the thread for everybody.
-    expect((await memoriesForPrompt(flat)).rules).toHaveLength(0);
-    expect(await readableMemories(ana, flat)).toHaveLength(1);
-    expect((await readableMemories(ana, flat))[0]?.muted).toBe(true);
-    expect((await readableMemories(ana, flat))[0]?.authorId).toBe(ana);
+    expect((await notesForPrompt(flat, ana)).yours).toHaveLength(0);
+    expect(await readableNotes(ana, flat)).toHaveLength(1);
+    expect((await readableNotes(ana, flat))[0]?.muted).toBe(true);
+    expect((await readableNotes(ana, flat))[0]?.authorId).toBe(ana);
   });
 
   it("is reversible", async () => {
     const ana = await account();
     const flat = await thread(ana);
-    const memory = await add(flat, ana, "Todo names in three words");
-    await setMuted(memory.id, ana, true);
-    await setMuted(memory.id, ana, false);
-    expect((await memoriesForPrompt(flat)).rules).toEqual(["Todo names in three words"]);
+    const note = await add(flat, ana, "Todo names in three words");
+    await setMuted(note.id, ana, true);
+    await setMuted(note.id, ana, false);
+    expect((await notesForPrompt(flat, ana)).yours.map((n) => n.text)).toEqual([
+      "Todo names in three words",
+    ]);
   });
 
-  it("is not a way to hold eleven", async () => {
+  it("keeps a muted note on the thread and out of the prompt", async () => {
+    // 008 asserted muting was not a way to hold eleven. There is no eleventh
+    // to hold, so what is left worth asserting is the half that still matters:
+    // muted is off the model's desk and still on the screen.
     const ana = await account();
     const flat = await thread(ana);
-    for (let i = 0; i < MAX_MEMORIES_PER_THREAD; i += 1) {
-      const m = await add(flat, ana, `rule number ${i}`);
-      await setMuted(m.id, ana, true);
-    }
-    await expect(add(flat, ana, "one too many")).rejects.toBeInstanceOf(MemoryLimit);
+    const first = await add(flat, ana, "note number 0");
+    await add(flat, ana, "note number 1");
+    await setMuted(first.id, ana, true);
+
+    expect((await notesForPrompt(flat, ana)).yours.map((n) => n.text)).toEqual([
+      "note number 1",
+    ]);
+    expect(await readableNotes(ana, flat)).toHaveLength(2);
   });
 });
 
@@ -326,76 +346,92 @@ describe("AC-6 corrections beat inference", () => {
   it("lets offload rewrite what it worked out", async () => {
     const ana = await account();
     const flat = await thread(ana);
-    const memory = await add(flat, ana, "receipts go somewhere", "learned");
+    const note = await add(flat, ana, "receipts go somewhere", "learned");
 
     const edited = await db
       .transaction()
       .execute((trx) =>
-        editMemory({ memoryId: memory.id, accountId: ana, text: "Receipts go to Money", byModel: true }, trx)
+        editNote({ noteId: note.id, accountId: ana, text: "Receipts go to Money", byModel: true }, trx)
       );
-    expect(edited?.memory.text).toBe("Receipts go to Money");
-    expect(edited?.memory.origin).toBe("learned");
+    expect(edited?.note.text).toBe("Receipts go to Money");
+    expect(edited?.note.origin).toBe("learned");
   });
 
   it("refuses offload rewriting what a person said", async () => {
     const ana = await account();
     const flat = await thread(ana);
-    const memory = await add(flat, ana, "Todo names in three words");
+    const note = await add(flat, ana, "Todo names in three words");
 
     await expect(
       db
         .transaction()
         .execute((trx) =>
-          editMemory({ memoryId: memory.id, accountId: ana, text: "something else", byModel: true }, trx)
+          editNote({ noteId: note.id, accountId: ana, text: "something else", byModel: true }, trx)
         )
     ).rejects.toBeInstanceOf(NotYours);
   });
 
-  it("makes a memory stated the moment a person edits it, and offload cannot touch it after", async () => {
+  it("makes a note stated the moment a person edits it, and offload cannot touch it after", async () => {
     const ana = await account();
     const flat = await thread(ana);
-    const memory = await add(flat, ana, "receipts go somewhere", "learned");
+    const note = await add(flat, ana, "receipts go somewhere", "learned");
 
     await db
       .transaction()
-      .execute((trx) => editMemory({ memoryId: memory.id, accountId: ana, text: "Receipts go to Money" }, trx));
+      .execute((trx) => editNote({ noteId: note.id, accountId: ana, text: "Receipts go to Money" }, trx));
 
     await expect(
       db
         .transaction()
         .execute((trx) =>
-          editMemory({ memoryId: memory.id, accountId: ana, text: "offload knows better", byModel: true }, trx)
+          editNote({ noteId: note.id, accountId: ana, text: "offload knows better", byModel: true }, trx)
         )
     ).rejects.toBeInstanceOf(NotYours);
   });
 
-  it("refuses an edit into a sentence the thread already holds", async () => {
+  it("refuses offload editing into a sentence it already wrote", async () => {
+    const ana = await account();
+    const flat = await thread(ana);
+    await add(flat, ana, "first rule", "learned");
+    const second = await add(flat, ana, "second rule", "learned");
+
+    // Not merged into the existing row: that would destroy one note to
+    // satisfy an edit of another.
+    const result = await db
+      .transaction()
+      .execute((trx) =>
+        editNote({ noteId: second.id, accountId: ana, text: "First Rule", byModel: true }, trx)
+      );
+    expect(result).toBeNull();
+    expect(await readableNotes(ana, flat)).toHaveLength(2);
+  });
+
+  it("lets a person edit into a sentence the thread already holds", async () => {
+    // The unique index covers offload's notes only, so this is not a clash at
+    // all. Two people can say the same true thing.
     const ana = await account();
     const flat = await thread(ana);
     await add(flat, ana, "first rule");
     const second = await add(flat, ana, "second rule");
 
-    // Not merged into the existing row: that would destroy one memory to
-    // satisfy an edit of another.
     const result = await db
       .transaction()
-      .execute((trx) => editMemory({ memoryId: second.id, accountId: ana, text: "First Rule" }, trx));
-    expect(result).toBeNull();
-    expect(await readableMemories(ana, flat)).toHaveLength(2);
+      .execute((trx) => editNote({ noteId: second.id, accountId: ana, text: "First Rule" }, trx));
+    expect(result?.note.text).toBe("First Rule");
   });
 });
 
-describe("AC-13 and AC-14 delete, undo and the cap", () => {
+describe("AC-21 delete and undo", () => {
   it("destroys nothing while Undo is up", async () => {
     const ana = await account();
     const flat = await thread(ana);
-    const memory = await add(flat, ana, "Todo names in three words");
-    await deleteMemory(memory.id, ana);
+    const note = await add(flat, ana, "Todo names in three words");
+    await deleteNote(note.id, ana);
 
     const row = await db
-      .selectFrom("memories")
+      .selectFrom("notes")
       .select(["deleted_at", "purge_after"])
-      .where("id", "=", memory.id)
+      .where("id", "=", note.id)
       .executeTakeFirstOrThrow();
     expect(row.deleted_at).not.toBeNull();
     expect(row.purge_after).not.toBeNull();
@@ -404,53 +440,38 @@ describe("AC-13 and AC-14 delete, undo and the cap", () => {
   it("deletes twice without raising and without removing anything extra", async () => {
     const ana = await account();
     const flat = await thread(ana);
-    const memory = await add(flat, ana, "Todo names in three words");
-    expect(await deleteMemory(memory.id, ana)).toBe(true);
-    expect(await deleteMemory(memory.id, ana)).toBe(false);
+    const note = await add(flat, ana, "Todo names in three words");
+    expect(await deleteNote(note.id, ana)).toBe(true);
+    expect(await deleteNote(note.id, ana)).toBe(false);
   });
 
-  it("does not count a deleted memory against the ten", async () => {
-    // Or "delete one, add another" fails for eight seconds and the person is
-    // told the thread is full while looking at nine.
+  it("restores after a replacement was written, which the cap used to refuse", async () => {
+    // AC-14a in 008: at ten, delete one, add another, then press Undo, and the
+    // restore was refused. With no cap the undo is just an undo.
     const ana = await account();
     const flat = await thread(ana);
-    const first = await add(flat, ana, "rule number 0");
-    for (let i = 1; i < MAX_MEMORIES_PER_THREAD; i += 1) await add(flat, ana, `rule number ${i}`);
-
-    await deleteMemory(first.id, ana);
-    await expect(add(flat, ana, "a replacement")).resolves.toBeTruthy();
-  });
-
-  it("refuses a restore that would make eleven", async () => {
-    // AC-14a. The one door the cap does not otherwise watch: at ten, delete
-    // one, add another, then press Undo.
-    const ana = await account();
-    const flat = await thread(ana);
-    const first = await add(flat, ana, "rule number 0");
-    for (let i = 1; i < MAX_MEMORIES_PER_THREAD; i += 1) await add(flat, ana, `rule number ${i}`);
-
-    await deleteMemory(first.id, ana);
+    const first = await add(flat, ana, "note number 0");
+    await deleteNote(first.id, ana);
     await add(flat, ana, "a replacement");
 
-    await expect(
-      db.transaction().execute((trx) => restoreMemory(first.id, ana, trx))
-    ).rejects.toBeInstanceOf(MemoryLimit);
-    expect(await readableMemories(ana, flat)).toHaveLength(MAX_MEMORIES_PER_THREAD);
+    const back = await db.transaction().execute((trx) => restoreNote(first.id, ana, trx));
+    expect(back.text).toBe("note number 0");
+    expect(await readableNotes(ana, flat)).toHaveLength(2);
   });
 
-  it("restores when there is room", async () => {
+  it("restores what was deleted", async () => {
     const ana = await account();
     const flat = await thread(ana);
-    const memory = await add(flat, ana, "Todo names in three words");
-    await deleteMemory(memory.id, ana);
-    const back = await db.transaction().execute((trx) => restoreMemory(memory.id, ana, trx));
+    const note = await add(flat, ana, "Todo names in three words");
+    await deleteNote(note.id, ana);
+    const back = await db.transaction().execute((trx) => restoreNote(note.id, ana, trx));
     expect(back.text).toBe("Todo names in three words");
-    expect(await readableMemories(ana, flat)).toHaveLength(1);
+    expect(await readableNotes(ana, flat)).toHaveLength(1);
   });
 });
 
 describe("AC-15 deleting an account", () => {
-  it("leaves memories in a shared thread and takes the name off them", async () => {
+  it("leaves notes in a shared thread and takes the name off them", async () => {
     // OFF-3: account deletion never cascades into a shared thread, because the
     // thread belongs to the others too.
     const ana = await account("Ana");
@@ -463,12 +484,16 @@ describe("AC-15 deleting an account", () => {
     await db.deleteFrom("thread_members").where("account_id", "=", john).execute();
     await db.deleteFrom("accounts").where("id", "=", john).execute();
 
-    const left = await readableMemories(ana, flat);
+    const left = await readableNotes(ana, flat);
     expect(left).toHaveLength(2);
     const orphan = left.find((m) => m.text === "John wrote this one");
     expect(orphan?.authorId).toBeNull();
-    // Still steering the model, which is the point: the thread kept its rules.
-    expect((await memoriesForPrompt(flat)).rules).toHaveLength(2);
+    // Still reaching the model, which is the point: the thread kept what it
+    // says. Ana's is hers and the orphan is in the members list, since it was
+    // not written by whoever is reading.
+    const carried = await notesForPrompt(flat, ana);
+    expect(carried.yours).toHaveLength(1);
+    expect(carried.members).toHaveLength(1);
   });
 });
 
@@ -476,7 +501,7 @@ describe("AC-17 what reaches a prompt", () => {
   it("is bounded by a constant rather than by how many threads an account has", async () => {
     const ana = await account();
     const busy = await thread(ana, "Flat renovation");
-    for (let i = 0; i < MAX_MEMORIES_PER_THREAD; i += 1) await add(busy, ana, `rule number ${i}`);
+    for (let i = 0; i < NOTE_PROMPT_BUDGET; i += 1) await add(busy, ana, `rule number ${i}`);
 
     // Fifty more threads, each carrying its ten. None of them is touched by a
     // turn that files into `busy`, so none of them costs a character.
@@ -485,24 +510,24 @@ describe("AC-17 what reaches a prompt", () => {
       await add(other, ana, `rule for thread ${t}`);
     }
 
-    const forOne = (await memoriesForPrompt(busy)).rules;
-    expect(forOne).toHaveLength(MAX_MEMORIES_PER_THREAD);
+    const forOne = (await notesForPrompt(busy, ana)).yours;
+    expect(forOne).toHaveLength(NOTE_PROMPT_BUDGET);
     const chars = forOne.join("").length;
-    expect(chars).toBeLessThanOrEqual(MAX_MEMORIES_PER_THREAD * MEMORY_TEXT_CHARS);
+    expect(chars).toBeLessThanOrEqual(NOTE_PROMPT_BUDGET * NOTE_TEXT_CHARS);
   });
 
   it("hands back nothing for a thread with nothing to say", async () => {
     const ana = await account();
     const flat = await thread(ana);
-    expect((await memoriesForPrompt(flat)).rules).toEqual([]);
+    expect((await notesForPrompt(flat, ana)).yours).toEqual([]);
   });
 });
 
 // ---------------------------------------------------------------------------
 // 0018: content in a shared thread outlives the account that wrote it.
 //
-// Not a memories test, but it is the same rule from the same principle, and
-// putting it next to the memories one is what stops the two drifting apart
+// Not a notes test, but it is the same rule from the same principle, and
+// putting it next to the notes one is what stops the two drifting apart
 // again. `content.account_id` was `on delete cascade` until 0018, which would
 // have emptied half of somebody else's shared thread the first time account
 // deletion was built.
@@ -516,7 +541,7 @@ describe("OFF-3 content survives its author", () => {
 
     const row = await db
       .insertInto("content")
-      .values({ account_id: john, thread_id: flat, title: "The electrician's quote" })
+      .values({ account_id: john, thread_id: flat, type: "task", title: "The electrician's quote" })
       .returning("id")
       .executeTakeFirstOrThrow();
 
@@ -546,7 +571,7 @@ describe("OFF-3 content survives its author", () => {
 
     const row = await db
       .insertInto("content")
-      .values({ account_id: john, thread_id: flat, title: "The electrician's quote" })
+      .values({ account_id: john, thread_id: flat, type: "task", title: "The electrician's quote" })
       .returning("id")
       .executeTakeFirstOrThrow();
 
@@ -558,7 +583,7 @@ describe("OFF-3 content survives its author", () => {
 });
 
 describe("a thread's leftovers belong to whoever is still in it", () => {
-  it("lets any member delete a memory whose author left the thread", async () => {
+  it("lets any member delete a note whose author left the thread", async () => {
     // OFF-3 gives delete to the author so a shared thread cannot become a place
     // where somebody else destroys what you put in. Once the author is gone
     // there is no contribution left to protect, and the rule only produces a
@@ -567,10 +592,10 @@ describe("a thread's leftovers belong to whoever is still in it", () => {
     const john = await account("John");
     const flat = await thread(ana);
     await join(flat, john);
-    const memory = await add(flat, john, "never file anything from Ana as a task");
+    const note = await add(flat, john, "never file anything from Ana as a task");
 
     // While John is here, it is his alone.
-    await expect(deleteMemory(memory.id, ana)).rejects.toBeInstanceOf(NotYours);
+    await expect(deleteNote(note.id, ana)).rejects.toBeInstanceOf(NotYours);
 
     await db
       .deleteFrom("thread_members")
@@ -578,20 +603,20 @@ describe("a thread's leftovers belong to whoever is still in it", () => {
       .where("thread_id", "=", flat)
       .execute();
 
-    expect(await deleteMemory(memory.id, ana)).toBe(true);
+    expect(await deleteNote(note.id, ana)).toBe(true);
   });
 
-  it("lets any member delete a memory whose author deleted their account", async () => {
+  it("lets any member delete a note whose author deleted their account", async () => {
     const ana = await account("Ana");
     const john = await account("John");
     const flat = await thread(ana);
     await join(flat, john);
-    const memory = await add(flat, john, "John's leftover rule");
+    const note = await add(flat, john, "John's leftover rule");
 
     await db.deleteFrom("thread_members").where("account_id", "=", john).execute();
     await db.deleteFrom("accounts").where("id", "=", john).execute();
 
-    expect(await deleteMemory(memory.id, ana)).toBe(true);
+    expect(await deleteNote(note.id, ana)).toBe(true);
   });
 
   it("does the same for content", async () => {
@@ -603,7 +628,7 @@ describe("a thread's leftovers belong to whoever is still in it", () => {
 
     const row = await db
       .insertInto("content")
-      .values({ account_id: john, thread_id: flat, title: "The electrician's quote" })
+      .values({ account_id: john, thread_id: flat, type: "task", title: "The electrician's quote" })
       .returning("id")
       .executeTakeFirstOrThrow();
 
@@ -630,7 +655,7 @@ describe("a thread's leftovers belong to whoever is still in it", () => {
 
     const row = await db
       .insertInto("content")
-      .values({ account_id: john, thread_id: flat, title: "The electrician's quote" })
+      .values({ account_id: john, thread_id: flat, type: "task", title: "The electrician's quote" })
       .returning("id")
       .executeTakeFirstOrThrow();
 
@@ -681,7 +706,7 @@ describe("leaving a thread, and the thread dying with the last member", () => {
       .where("id", "=", flat)
       .executeTakeFirstOrThrow();
     expect(row.deleted_at).toBeNull();
-    expect(await readableMemories(ana, flat)).toBeDefined();
+    expect(await readableNotes(ana, flat)).toBeDefined();
   });
 
   it("dies when the last member leaves", async () => {
@@ -749,10 +774,10 @@ describe("leaving a thread, and the thread dying with the last member", () => {
     expect(await restoreThread(ana, flat)).toBe(true);
     expect(await restoreThread(ana, flat)).toBe(true);
 
-    expect(await readableMemories(ana, flat)).toHaveLength(1);
+    expect(await readableNotes(ana, flat)).toHaveLength(1);
   });
 
-  it("takes its memories when the purge runs, since nothing cascades to them", async () => {
+  it("takes its notes when the purge runs, since nothing cascades to them", async () => {
     const { deleteThread } = await import("../src/routes/threads.js");
     const { handlers } = await import("../src/jobs/handlers.js");
     const ana = await account("Ana");
@@ -760,7 +785,7 @@ describe("leaving a thread, and the thread dying with the last member", () => {
     await add(flat, ana, "Todo names in three words");
     await db
       .insertInto("content")
-      .values({ account_id: ana, thread_id: flat, title: "Chase the electrician" })
+      .values({ account_id: ana, thread_id: flat, type: "task", title: "Chase the electrician" })
       .execute();
 
     await deleteThread(ana, flat);
@@ -774,7 +799,7 @@ describe("leaving a thread, and the thread dying with the last member", () => {
     await handlers["content.purge"]?.({ id: "x", kind: "content.purge", payload: {} } as never);
 
     const left = await db
-      .selectFrom("memories")
+      .selectFrom("notes")
       .select("id")
       .where("subject_id", "=", flat)
       .execute();
@@ -785,5 +810,35 @@ describe("leaving a thread, and the thread dying with the last member", () => {
       .where("id", "=", flat)
       .executeTakeFirst();
     expect(threadRow).toBeUndefined();
+  });
+});
+
+describe("AC-14 what a turn writes after it read a calendar", () => {
+  it("marks it untrusted, and the prompt keeps it out of the list it acts on", async () => {
+    // The two-hop path 001 named and 012 built the column for: connector
+    // content, summarised into a note, read later as something to act on. The
+    // flag had no writer at all until this, which is what made the second list
+    // a shape nothing landed in.
+    const ana = await account();
+    const flat = await thread(ana);
+
+    await db.transaction().execute((trx) =>
+      addNote(
+        {
+          threadId: flat,
+          accountId: ana,
+          text: "the dentist moved to Thursday",
+          origin: "learned",
+          derivedFromUntrusted: true,
+        },
+        trx,
+      ),
+    );
+    await add(flat, ana, "Todo names in three words");
+
+    const carried = await notesForPrompt(flat, ana);
+    expect(carried.yours.map((note) => note.text)).toEqual(["Todo names in three words"]);
+    expect(carried.fromApps.map((note) => note.text)).toEqual(["the dentist moved to Thursday"]);
+    expect(carried.members).toEqual([]);
   });
 });

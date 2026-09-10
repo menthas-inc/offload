@@ -23,15 +23,28 @@ export {
   readPreference,
   sinkDone,
   splitDone,
-  splitRepeating,
   widgetsFor,
-  cadenceLabel,
   type Filter,
   type Group,
-  type Series,
   type Sortable,
   type Tag,
   type ThreadPreference,
   type Widget,
   type WidgetKind,
+} from "@offload/widgets";
+
+// 015's rail, from the same package and for the same reason: three surfaces
+// draw it and two of them are a phone.
+export {
+  MAX_DOTS,
+  dayLabel,
+  datedFor,
+  localDay,
+  railFor,
+  thingsOn,
+  weeksIn,
+  type Dated,
+  type Day,
+  type RailRow,
+  type WeekStart,
 } from "@offload/widgets";

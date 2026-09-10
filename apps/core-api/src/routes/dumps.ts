@@ -1095,7 +1095,7 @@ export async function undoTurn(
       .where("source", "<>", "calendar")
       .execute();
 
-    // Memories the turn wrote, on the same clock and by the same predicate.
+    // Notes the turn wrote, on the same clock and by the same predicate.
     //
     // Without this, undoing a dump takes back what was filed and leaves the
     // standing rule offload derived from it, which then goes on steering every
@@ -1103,7 +1103,7 @@ export async function undoTurn(
     // turn that half survives its own undo is the pretence this feature exists
     // to retire, recreated by the mechanism meant to protect against it.
     await trx
-      .updateTable("memories")
+      .updateTable("notes")
       .set({ deleted_at: stamp, purge_after: purge, updated_at: stamp })
       .where(
         "derived_from_message_id",

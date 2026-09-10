@@ -20,6 +20,8 @@ import type { App } from "../app.js";
 import { db } from "../db.js";
 import { emit } from "../analytics.js";
 import { env } from "../env.js";
+import { NOTE_TEXT_CHARS, applyCompaction } from "../threads/notes.js";
+import { parseWhen, plausible } from "../threads/dates.js";
 
 /** Constant time, and length-checked first because timingSafeEqual throws on a
  *  length mismatch and that throw is itself a length oracle. */
@@ -111,6 +113,46 @@ const quickAddBody = z.strictObject({
 });
 const refused = z.object({ error: z.enum(["unauthorised", "unknown_job"]) });
 
+/** What the daily fold proposes, and what came back from applying it.
+ *
+ *  Bounded on every axis, because this is a model's output crossing a boundary
+ *  (OFF-5) and an unbounded list of ids is an unbounded number of writes. */
+const compactionBody = z.strictObject({
+  jobId: z.string().uuid(),
+  supersede: z.array(z.string().uuid()).max(200).default([]),
+  remove: z.array(z.string().uuid()).max(200).default([]),
+  add: z
+    .array(
+      z.strictObject({
+        text: z.string().min(1).max(NOTE_TEXT_CHARS),
+        occursAt: z.string().max(40).nullish(),
+        occursEndAt: z.string().max(40).nullish(),
+        dueAt: z.string().max(40).nullish(),
+        /** What this one replaces. It is how the new note inherits an author,
+         *  so an entry naming nothing is dropped rather than written. */
+        foldedFrom: z.array(z.string().uuid()).min(1).max(50),
+      })
+    )
+    .max(100)
+    .default([]),
+  usage: usage.optional(),
+});
+
+/** A date from the fold, or null. Shared with `add_note`'s parser rather than
+ *  a second reading of what a model writes. */
+function when(raw: string | null | undefined): Date | null {
+  if (raw == null || raw === "") return null;
+  const at = parseWhen(raw);
+  return at && plausible(at) ? at : null;
+}
+
+const compacted = z.object({
+  superseded: z.number(),
+  removed: z.number(),
+  added: z.number(),
+  ignored: z.number(),
+});
+
 export async function internalRoutes(app: App): Promise<void> {
   // A row typed straight into a thread has been read.
   //
@@ -194,6 +236,105 @@ export async function internalRoutes(app: App): Promise<void> {
       });
 
       return reply.send({ status: "written" as const });
+    }
+  );
+
+  // The daily fold, applied.
+  //
+  // The worker reads a thread's notes directly, asks a model what the set says
+  // now, and posts the answer here. **Every rule is enforced on this side**:
+  // the prompt states them too, and stating them twice is the point, because a
+  // prompt is a request and this is the enforcement.
+  //
+  // The thread comes from the job row, never from the body, which is the same
+  // rule the endpoints above follow for the account.
+  app.post(
+    "/internal/v1/notes-compacted",
+    { schema: { body: compactionBody, response: { 200: compacted, 401: refused, 404: refused } } },
+    async (request, reply) => {
+      const header = request.headers.authorization;
+      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+      if (!tokenMatches(presented)) {
+        return reply.code(401).send({ error: "unauthorised" as const });
+      }
+
+      const result = request.body;
+      const job = await db
+        .selectFrom("jobs")
+        .select(["id", "account_id", "payload"])
+        .where("id", "=", result.jobId)
+        .where("kind", "=", "notes.compact")
+        .executeTakeFirst();
+
+      if (!job?.account_id) return reply.code(404).send({ error: "unknown_job" as const });
+
+      const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as {
+        threadId?: string;
+      };
+      if (!payload.threadId) return reply.code(404).send({ error: "unknown_job" as const });
+
+      const accountId = job.account_id;
+      const threadId = payload.threadId;
+
+      const outcome = await db.transaction().execute(async (trx) => {
+        const applied = await applyCompaction(
+          threadId,
+          {
+            supersede: result.supersede,
+            remove: result.remove,
+            add: result.add.map((entry) => ({
+              text: entry.text,
+              // The same guard `add_note` puts on the same three columns. A
+              // model writes `2026-09-28` as often as an ISO string, and a date
+              // a century out sorts to the bottom forever where nobody sees it
+              // to fix it. **The date is dropped, never the entry**: a fold
+              // whose replacement is right and whose date is wrong should lose
+              // the date, not put the thread back where it was.
+              occursAt: when(entry.occursAt),
+              occursEndAt: when(entry.occursEndAt),
+              dueAt: when(entry.dueAt),
+              foldedFrom: entry.foldedFrom,
+            })),
+          },
+          trx,
+        );
+
+        if (result.usage && result.usage.length > 0) {
+          await trx
+            .insertInto("llm_usage")
+            .values(
+              result.usage.map((entry) => ({
+                account_id: accountId,
+                job_kind: "notes.compact",
+                // Scheduled, not interactive: nobody is waiting on the fold.
+                category: "scheduled" as const,
+                model: entry.model,
+                input_tokens: entry.inputTokens,
+                output_tokens: entry.outputTokens,
+                cache_read_tokens: entry.cacheReadTokens,
+                cost_micros: entry.costMicros,
+                latency_ms: entry.latencyMs,
+              }))
+            )
+            .execute();
+        }
+
+        // Closed here rather than by the worker, for the reason turn-result
+        // states: a job left running counts against the account's concurrency
+        // cap forever.
+        await trx
+          .updateTable("jobs")
+          .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
+          .where("id", "=", result.jobId)
+          .execute();
+
+        return applied;
+      });
+
+      // Counts, never text. This is the first job in the product that holds a
+      // hundred sentences of dumped text at once, and the shortest route from
+      // here to an OFF-1 breach is a helpful log line.
+      return reply.send(outcome);
     }
   );
 

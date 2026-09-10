@@ -11,6 +11,38 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-10 · The timeline stopped being a widget and became a rail
+**Surface:** web, iOS, Android
+**Was:** A Timeline widget: a flat list of dated rows in priority order, drawn only when a thread had something dated, collapsing a repeating series into one line that said "every week, 30 held".
+**Is:** A rail of weeks at the top of every thread, and the day you pick open underneath it.
+
+**It is drawn whether or not the thread has a single date on it**, which is why it left the widget set rather than becoming a widget that is always earned. Widgets split content by what it is; this is about time passing, and the empty days are most of what it says. A thread with nothing dated shows the current week.
+
+**A dot per thing, coloured by what the thing is**: task blue, event ink, note amber, anything else quiet grey. A day with three things has three dots, four at most and then a count. **A done thing keeps its colour and loses its fill**, so the legend stays about kind and weight says state. Colour is never the only read: every day card carries a generated label saying what it holds in words.
+
+**A span covers every day it touches and a repeating thing draws every occurrence.** The list collapsed thirty yoga classes into one row because a list spends a whole row saying what the row above said; a rail has a cell per day already, which is what `decisions.md` said the phone's daily view should do all along.
+
+**Runs of three or more empty weeks collapse to one line** saying how many, and open on tap. Two are drawn. A note dated a year out would otherwise draw fifty empty week rows between here and there, which is the passage of time rendered as scrolling.
+
+**The week starts on Monday, with Sunday in Settings under Appearance**, kept on the device beside theme and text size.
+
+**Design system impact:** the kits' `TimelineWidget` is the shape this started from and is now behind in four ways: one dot per day becomes several, the dot means kind rather than state, the Overall/Daily toggle is gone because picking a day is the toggle, and the gap row is new. There is no governed component for a day cell or a week rail on any surface, and no kit draws either. Web had no timeline mock at all before this and now has the primary one. Worth drawing properly, because the four states this ships with are the ones a mock would have argued about: a thread with nothing dated, a day past the dot cap, a collapsed run, and a past day that is quiet but still live.
+
+### 2026-09-10 · Memories became notes, and the row grew what a note now carries
+**Surface:** web, iOS, Android
+**Was:** A Memories section of rows, each a rule in a sentence, capped at ten, with a line at the cap saying to delete one to add another.
+**Is:** A Notes section. The same rows, and four things they did not have.
+
+**A note is what any dumped sentence becomes now**, so the row carries a date when the note has one, a `more` mark when a longer body sits behind the 200 characters, and a tertiary treatment for a note that is on the thread and past the prompt budget. A hundred is a budget rather than a cap, so **the cap line is gone** and what replaced it says the opposite thing: not that you may not add another, but that some of these are not reaching offload, beside the rows that resolve it.
+
+**The section also gained a folded history.** A daily job merges and drops what a thread no longer says, and the count of what it folded is one control away. Read, not worked with: those rows do not open and there is no restore. offload rewriting sentences somebody typed and saying nothing about it is the version of this nobody would trust.
+
+**The screens that carry the word and the screen that carries the feature were not the same screens.** `WMemories.jsx`, `MemoriesScreen.jsx` and `M3MemoriesScreen.jsx` are the account-wide browsing screens, which this did not touch beyond the label. The thread's section has never had a mock in any kit, which 008 recorded when it built the section from the component contracts instead, and it is the one that grew.
+
+**The phones' tab glyph stayed `cloudy`.** Looked at rather than inherited: it was chosen for the word Memories, and the screen is still what offload has collected about you, so the glyph was never about the noun.
+
+**Design system impact:** `MemoryRow` needs renaming and four new props: a date, a body indicator, a quiet state for a note past the budget, and the folded-history variant that does not open. `readme.md`'s vocabulary table, its moss note, its pane-head More list, its Notes row entry and its tab glyph line are updated in this change. The three Memories screens in the kits need their label changed. **The thread's Notes section still has no mock anywhere and now carries four states nobody has drawn**: at zero, over the budget, mid-fold, and reading history. That is the gap worth closing first.
+
 ### 2026-09-10 · A long press on any row threw, and the row it threw on was a red herring
 **Surface:** iOS, Android
 **Raised by:** reported as a crash when long pressing a checked todo, hoping for edit options.

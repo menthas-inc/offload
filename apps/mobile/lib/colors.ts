@@ -50,6 +50,13 @@ export interface Colors {
    *  `ink-950` resolved from the light scope is invisible on a dark surface,
    *  which is what the wordmark did the first time anybody looked at dark. */
   ink: string;
+  /** 015's rail, where a dot's colour is what the thing is. Blue already means
+   *  waiting on you, amber is what the kits use for something offload has
+   *  noticed, and the day somebody is standing on is outlined rather than
+   *  filled, which is what `borderFocus` is for. */
+  attention: string;
+  noticed: string;
+  borderFocus: string;
 }
 
 function paletteFor(dark: boolean): Colors {
@@ -84,6 +91,9 @@ function paletteFor(dark: boolean): Colors {
     page: isAndroid ? m3["a-surface"]! : base["surface-page"] ?? light["surface-page"]!,
     danger: base["text-danger"] ?? light["text-danger"]!,
     ink: base["text-primary"] ?? light["text-primary"]!,
+    attention: base["surface-attention"] ?? light["surface-attention"]!,
+    noticed: base["amber-600"] ?? light["amber-600"]!,
+    borderFocus: base["border-focus"] ?? light["border-focus"]!,
   };
 }
 

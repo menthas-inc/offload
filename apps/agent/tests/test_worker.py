@@ -261,12 +261,12 @@ async def test_a_date_a_model_would_write_is_accepted_before_it_becomes_a_400():
     from offload_agent.harness.tools import AddContent
 
     for value in ("2026-09-28", "2026-09-28T09:00:00Z", "2026-09-28T09:00:00+03:00"):
-        assert AddContent(thread_id="t", title="x", due_at=value).due_at == value
+        assert AddContent(thread_id="t", title="x", type="task", due_at=value).due_at == value
 
     # And prose is still refused, here, with a message naming the field, rather
     # than by a 400 the model cannot read.
     import pytest
 
     with pytest.raises(Exception) as caught:
-        AddContent(thread_id="t", title="x", due_at="next week")
+        AddContent(thread_id="t", title="x", type="task", due_at="next week")
     assert "due_at" in str(caught.value)

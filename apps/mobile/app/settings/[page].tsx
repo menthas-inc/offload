@@ -18,10 +18,15 @@ import { useCalendars, updateCalendar } from "../../lib/calendars";
 import { API_URL } from "../../lib/auth";
 import {
   setTheme,
+  setWeekStart,
   useTheme,
+  useWeekStart,
   THEMES,
   THEME_LABEL,
+  WEEK_STARTS,
+  WEEK_START_LABEL,
   type Theme,
+  type WeekStart,
 } from "../../lib/appearance";
 import { useState } from "react";
 
@@ -116,6 +121,7 @@ function Appearance() {
   // on a light device changes this and repaints nothing, which is exactly the
   // case a component reading the scheme would miss.
   const theme = useTheme();
+  const weekStart = useWeekStart();
 
   return (
     <>
@@ -144,6 +150,31 @@ function Appearance() {
           style={{ fontSize: 12.5, lineHeight: 17.5 }}
         >
           System follows whatever this device is set to.
+        </Text>
+      </View>
+
+      <View className="pt-space-7">
+        <Text
+          className={`px-space-1 pb-space-3 font-core font-medium ${
+            isAndroid ? "text-a-on-var" : "text-text-tertiary"
+          }`}
+          style={{ fontSize: 12 }}
+        >
+          Week starts on
+        </Text>
+        <Segmented
+          label="Week starts on"
+          options={WEEK_STARTS.map((value) => ({ value, label: WEEK_START_LABEL[value] }))}
+          value={weekStart}
+          onChange={(next) => setWeekStart(next as WeekStart)}
+        />
+        <Text
+          className={`px-space-1 pt-space-3 font-core ${
+            isAndroid ? "text-a-on-var" : "text-text-secondary"
+          }`}
+          style={{ fontSize: 12.5, lineHeight: 17.5 }}
+        >
+          Which day a thread&apos;s timeline begins its weeks on.
         </Text>
       </View>
     </>

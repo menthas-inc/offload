@@ -31,12 +31,13 @@ import { env } from "../env.js";
 import { BadTags, MAX_TAGS, normaliseTags, TAG_CHARS } from "../threads/tags.js";
 import { parseWhen, plausible } from "../threads/dates.js";
 import {
-  MEMORY_TEXT_CHARS,
-  MemoryLimit,
-  MemoryTooLong,
-  addMemory,
-  memoriesForPrompt,
-} from "../threads/memories.js";
+  NOTE_BODY_CHARS,
+  NOTE_TEXT_CHARS,
+  NoteTooLong,
+  addNote,
+  notesForTurn,
+  type PromptNote,
+} from "../threads/notes.js";
 import {
   NotYours,
   unowned,
@@ -106,7 +107,7 @@ function tokenMatches(presented: string | undefined): boolean {
 // failing loudly rather than absorbing.
 /** Mirrors the check constraint on content.type. A value outside it is a filter
  *  that can only match nothing, so it is refused rather than run. */
-const contentType = z.enum(["note", "link", "image", "screenshot", "voice", "file", "task", "event"]);
+const contentType = z.enum(["link", "image", "screenshot", "voice", "file", "task", "event"]);
 
 const body = z.discriminatedUnion("tool", [
   z.strictObject({
@@ -122,9 +123,11 @@ const body = z.discriminatedUnion("tool", [
     threadId: z.string().uuid(),
     title: z.string().min(1).max(200),
     body: z.string().max(4000).default(""),
-    type: z
-      .enum(["note", "link", "image", "screenshot", "voice", "file", "task", "event", "location"])
-      .default("note"),
+    // **No default.** It was `note` until 014, which is the type that no longer
+    // exists: a sentence with nothing else to be is a note now, and `add_note`
+    // is where it goes. A row whose type nobody stated is a bug rather than
+    // something to guess at.
+    type: z.enum(["link", "image", "screenshot", "voice", "file", "task", "event", "location"]),
     // Dates are only ever set when the dump states or implies one. The prompt
     // carries that rule; this says what shape one may take, and it is
     // deliberately generous: see `../threads/dates.ts` for the production
@@ -229,11 +232,20 @@ const body = z.discriminatedUnion("tool", [
     widgets: z.array(z.string()).nullish(),
   }),
   z.strictObject({
-    tool: z.literal("add_memory"),
+    tool: z.literal("add_note"),
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
     threadId: z.string().uuid(),
-    text: z.string().min(1).max(MEMORY_TEXT_CHARS),
+    text: z.string().min(1).max(NOTE_TEXT_CHARS),
+    /** The rest of the words, when what they dumped did not fit in `text`.
+     *  Kept whole and handed to no prompt, which is what lets a paragraph be
+     *  dumped without being truncated or refused. */
+    body: z.string().max(NOTE_BODY_CHARS).nullish(),
+    // Same generous shape `add_content` takes, and for the same reason: see
+    // `../threads/dates.ts` for what a model actually writes.
+    dueAt: z.string().max(40).nullish(),
+    occursAt: z.string().max(40).nullish(),
+    occursEndAt: z.string().max(40).nullish(),
   }),
   // 012, the calendar. **No field decides whether a write is confirmed.**
   // That is read from the event and the calendar on this side, because some of
@@ -298,32 +310,52 @@ const body = z.discriminatedUnion("tool", [
 // meant to read and recover from; an HTTP error is a transport problem the loop
 // retries. Give them the same status and a refusal gets retried three times
 // while a network blip is shown to the model as a considered "no".
+
+/** One note as the model reads it. The date is the day it was last written,
+ *  not the date inside the sentence: precedence is about what somebody said
+ *  most recently, not about what their calendar says. */
+const promptNote = z.object({ text: z.string(), writtenAt: z.string() });
+
 const result = z.union([
   z.object({
     ok: z.literal(true),
     threadId: z.string(),
     threadName: z.string(),
     contentId: z.string().optional(),
-    /** The thread's standing rules, handed back at the moment the model files
-     *  into it. Unmuted only, and text only.
+    /** What the thread holds about itself, handed back at the moment the model
+     *  files into it. Unmuted, active, each with the date it was last written.
      *
-     *  This is how a memory reaches a prompt at all, and why the prompt does
-     *  not grow with an account's age: the alternative was every thread's
-     *  memories up front, which is ten times however many threads somebody has
-     *  ever made, forever. Bounded here by MAX_MEMORIES_PER_THREAD times
-     *  MEMORY_TEXT_CHARS times MAX_TOOL_CALLS, all three of them constants.
+     *  This is how a note reaches a prompt at all, and why the prompt does not
+     *  grow with an account's age: the alternative was every thread's notes up
+     *  front, which is a hundred times however many threads somebody has ever
+     *  made, forever. Bounded by NOTE_PROMPT_BUDGET, NOTE_TEXT_CHARS and
+     *  NOTE_TURN_BUDGET, all three constants, and carried once per thread per
+     *  turn rather than once per call.
+     *
+     *  **The date is what makes the set resolvable.** Compaction is a daily
+     *  job, so a thread can hold both "staying in Alfama" and the note that
+     *  replaced it, and the prompt's rule is that the newer of two that
+     *  disagree is the one that counts.
      *
      *  It re-enters the loop as a tool_result block, which is to say as data,
      *  the same as everything else a tool returns. That the model is also being
-     *  asked to obey it is the open hole 008 names rather than closes. */
-    memories: z.array(z.string()).optional(),
-    /** Rules derived from a connected app rather than from the person.
+     *  asked to act on it is the hole 008 named, which 014 widened and
+     *  contained rather than closed. */
+    notes: z.array(promptNote).optional(),
+    /** What other members of a shared thread wrote.
      *
-     *  Handed over separately because the prompt tells the model to obey the
-     *  list above, and text that came out of somebody else's calendar event is
-     *  not something to obey. Reference, not instruction. See
-     *  `memoriesForPrompt`. */
-    memoriesFromApps: z.array(z.string()).optional(),
+     *  Separate because it is somebody else's sentence arriving in your turn.
+     *  At ten rule-phrased memories treating everybody's as equal was
+     *  defensible; at a hundred sentences of any kind it is "whoever can put a
+     *  line on your thread writes your assistant's instructions". */
+    notesFromMembers: z.array(promptNote).optional(),
+    /** Notes derived from a connected app rather than from a person.
+     *
+     *  Handed over separately because the prompt tells the model to act on the
+     *  lists above, and text that came out of somebody else's calendar event is
+     *  not something to act on. Reference, not instruction. See
+     *  `notesForPrompt`. */
+    notesFromApps: z.array(promptNote).optional(),
   }),
   /** `list_thread_content`'s answer. Bounded by LIST_PAGE and LIST_ROW_CHARS,
    *  and it re-enters the loop as a tool_result block, which is to say as
@@ -363,12 +395,12 @@ const result = z.union([
           occursAt: z.string().nullable(),
         })
       ),
-      /** Read, and not drawn. A memory has no checkbox and half a conversation
+      /** Read, and not drawn. A note has no checkbox and half a conversation
        *  is not an answer, so these inform the sentence and go no further. */
       asides: z
         .array(
           z.object({
-            kind: z.enum(["memory", "message"]),
+            kind: z.enum(["note", "message"]),
             who: z.enum(["you", "offload", "a member"]),
             threadName: z.string().nullable(),
             text: z.string(),
@@ -441,10 +473,13 @@ type Outcome =
       threadId: string;
       threadName: string;
       contentId?: string;
-      memories?: string[];
-      /** Rules that came out of a connected app rather than out of the person.
+      noteId?: string;
+      notes?: { text: string; writtenAt: string }[];
+      /** What other members of the thread wrote. Read, weighed, not obeyed. */
+      notesFromMembers?: { text: string; writtenAt: string }[];
+      /** Notes that came out of a connected app rather than out of a person.
        *  Reference the model may cite, never an instruction it follows. */
-      memoriesFromApps?: string[];
+      notesFromApps?: { text: string; writtenAt: string }[];
     }
   | {
       ok: true;
@@ -479,7 +514,7 @@ type Outcome =
         }[];
         asides?:
           | {
-              kind: "memory" | "message";
+              kind: "note" | "message";
               who: "you" | "offload" | "a member";
               threadName: string | null;
               text: string;
@@ -529,6 +564,15 @@ interface JobContext {
   /** The one thread a `thread.quick_add` job may touch. Null for a dump, which
    *  chooses its own home. */
   threadId: string | null;
+  /** Whether this turn has already read a connected app.
+   *
+   *  **The taint is per turn and there is no partial version of it.** 008's own
+   *  column note says a note drawn from a stranger's event and the person's
+   *  own words is still a note a stranger had a hand in, so once a turn has
+   *  read a calendar, every note it writes afterwards is marked. Over-marking
+   *  is the safe direction: the cost is a true sentence the model reads rather
+   *  than acts on. */
+  sawApps: boolean;
 }
 
 /** The job is the authority on whose conversation this is.
@@ -549,17 +593,92 @@ async function jobContext(jobId: string): Promise<JobContext | null> {
   const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as {
     messageId?: string;
     threadId?: string;
+    sawApps?: boolean;
   };
+
+  const sawApps = payload.sawApps === true;
 
   if (job.kind === "thread.quick_add") {
     if (!payload.threadId) return null;
-    return { accountId: job.account_id, messageId: null, threadId: payload.threadId };
+    return { accountId: job.account_id, messageId: null, threadId: payload.threadId, sawApps };
   }
 
   if (!payload.messageId) return null;
-  return { accountId: job.account_id, messageId: payload.messageId, threadId: null };
+  return { accountId: job.account_id, messageId: payload.messageId, threadId: null, sawApps };
 }
 
+/** Remember that this turn has read a connected app.
+ *
+ *  On the job row, which this service owns and which 0034 stopped the worker
+ *  being able to rewrite. It is the only per-turn state there is: tool calls
+ *  are separate requests from a worker that holds nothing between them, so
+ *  "has this turn read a calendar" has to be written down somewhere and the
+ *  job is the row that already carries what a turn is.
+ */
+async function markSawApps(jobId: string): Promise<void> {
+  await db
+    .updateTable("jobs")
+    .set({ payload: sql`payload || '{"sawApps": true}'::jsonb` })
+    .where("id", "=", jobId)
+    .execute();
+}
+
+
+/** The three date fields, parsed once, refused as data rather than as a 400.
+ *
+ *  A malformed argument is a decision this endpoint makes, and the worker
+ *  retries transport failures rather than decisions. Shared by `add_content`
+ *  and `add_note` because two copies of a date policy is how two tools end up
+ *  disagreeing about what a plausible year is.
+ *
+ *  Null means refuse. `parseWhen` is deliberately generous about shape; see
+ *  `../threads/dates.ts` for the production failure that taught us
+ *  `z.string().datetime()` is not what a model writes.
+ */
+function parseDates(call: {
+  dueAt?: string | null | undefined;
+  occursAt?: string | null | undefined;
+  occursEndAt?: string | null | undefined;
+}): Record<"dueAt" | "occursAt" | "occursEndAt", Date | null> | null {
+  const when: Record<"dueAt" | "occursAt" | "occursEndAt", Date | null> = {
+    dueAt: null,
+    occursAt: null,
+    occursEndAt: null,
+  };
+  for (const field of ["dueAt", "occursAt", "occursEndAt"] as const) {
+    const raw = call[field];
+    if (raw == null || raw === "") continue;
+    const at = parseWhen(raw);
+    // A date a century out is invisible rather than wrong-looking: it sorts to
+    // the bottom forever and nobody sees it to fix it.
+    if (!at || !plausible(at)) return null;
+    when[field] = at;
+  }
+  return when;
+}
+
+/** The three lists, in the shape the tool result carries.
+ *
+ *  Dates as ISO strings rather than Date objects, because this crosses a JSON
+ *  boundary into a Python worker and a serialised Date is whatever the
+ *  serialiser felt like. */
+function shapeNotes(carried: {
+  yours: PromptNote[];
+  members: PromptNote[];
+  fromApps: PromptNote[];
+}): {
+  notes: { text: string; writtenAt: string }[];
+  notesFromMembers: { text: string; writtenAt: string }[];
+  notesFromApps: { text: string; writtenAt: string }[];
+} {
+  const shape = (list: PromptNote[]) =>
+    list.map((note) => ({ text: note.text, writtenAt: note.writtenAt.toISOString() }));
+  return {
+    notes: shape(carried.yours),
+    notesFromMembers: shape(carried.members),
+    notesFromApps: shape(carried.fromApps),
+  };
+}
 
 /** Record that this turn changed a thread.
  *
@@ -622,6 +741,9 @@ async function existing(
    *  Null when a row was typed straight into a thread: there is no message,
    *  because nobody said anything. Provenance is the person. */
   messageId: string | null,
+  /** Whether this turn has read a connected app before now. Everything it
+   *  writes afterwards is marked untrusted: see `jobContext`. */
+  sawApps: boolean,
 ): Promise<Outcome> {
   if (call.tool === "rename_thread") {
     await requireMember(accountId, call.threadId, trx);
@@ -723,39 +845,75 @@ async function existing(
     };
   }
 
-  // Handled before the content-id fallthrough: a memory is a fact about a
+  // Handled before the content-id fallthrough: a note is a sentence about a
   // thread rather than a row in it, so it has no contentId to resolve.
-  if (call.tool === "add_memory") {
+  if (call.tool === "add_note") {
     // Membership from the job's account, re-checked here, never taken from the
     // call. A thread id in a tool call came from a model reading untrusted
     // dump text, so trusting it is trusting the caller for an access decision.
     await requireMember(accountId, call.threadId, trx);
 
+    // Before the insert, or the note this call is about to write makes it look
+    // as though an earlier call in this turn already carried the thread's set.
+    const carried = await notesForTurn(messageId, call.threadId, accountId, call.toolCallId, trx);
+
+    const when = parseDates(call);
+    if (when === null) return { ok: false, error: "bad_date" };
+
     try {
-      const memory = await addMemory(
+      const note = await addNote(
         {
           threadId: call.threadId,
           accountId,
           text: call.text,
+          body: call.body ?? null,
           // Corrections beat inference. This is offload working something out,
           // so a person may overwrite it and offload may not overwrite theirs.
           origin: "learned",
+          // **Everything this turn writes after it read a calendar is
+          // untrusted.** The model may be summarising an event somebody else
+          // wrote into this person's thread, and a note is read as what is true
+          // about the thread. Without this the flag has no writer and the
+          // second list is a shape nothing ever lands in, which is what the
+          // security review found: the two-hop path 001 named, open.
+          derivedFromUntrusted: sawApps,
+          toolCallId: call.toolCallId,
+          occursAt: when.occursAt,
+          occursEndAt: when.occursEndAt,
+          dueAt: when.dueAt,
           fromMessageId: messageId,
         },
         trx,
       );
-      // `done`, not the memory. The model does not need the id back: it
-      // cannot edit or delete a memory, and the text it just wrote is already
-      // in its own context.
-      void memory;
-      return { ok: true, done: true };
+
+      // **A note is filing now.** 008's `add_memory` left no record on the
+      // turn, correctly, because a memory changed how a thread behaved rather
+      // than putting anything in it. A note is what a dumped sentence becomes,
+      // so a turn that wrote one has landed something, and without this the
+      // reply says a sentence went somewhere and offers nothing to click.
+      await noteThread(messageId, call.threadId, true, trx);
+      await touchThread(call.threadId, trx);
+
+      // The name, for the same reason `add_content` returns it: the model has
+      // just been handed a thread id it did not choose the name of.
+      const named = await trx
+        .selectFrom("threads")
+        .select("name")
+        .where("id", "=", call.threadId)
+        .executeTakeFirstOrThrow();
+
+      return {
+        ok: true,
+        threadId: call.threadId,
+        threadName: named.name,
+        noteId: note.id,
+        ...(carried ? shapeNotes(carried) : {}),
+      };
     } catch (error) {
-      // The cap is not negotiable and offload gets no exemption. It is the one
-      // generic failure, and the prompt forbids explaining it, because a person
-      // being told their assistant hit an internal limit is offload
+      // The one generic failure. The prompt forbids explaining it, because a
+      // person being told their assistant hit an internal limit is offload
       // diagnosing itself.
-      if (error instanceof MemoryLimit) return { ok: false, error: "thread_memory_full" };
-      if (error instanceof MemoryTooLong) return { ok: false, error: "unknown_thread" };
+      if (error instanceof NoteTooLong) return { ok: false, error: "unknown_thread" };
       throw error;
     }
   }
@@ -768,10 +926,12 @@ async function existing(
   // round trip to somebody else's API is how a slow third party becomes a
   // stalled database.
   if (call.tool === "list_calendars") {
+    await markSawApps(call.jobId);
     return { ok: true, calendars: await listCalendarsFor(accountId) };
   }
 
   if (call.tool === "find_events") {
+    await markSawApps(call.jobId);
     const found = await findEvents(
       accountId,
       call.calendarId,
@@ -921,7 +1081,7 @@ export async function toolRoutes(app: App): Promise<void> {
       const context = await jobContext(call.jobId);
       if (!context) return reply.code(404).send({ error: "unknown_job" as const });
 
-      const { accountId, messageId, threadId: pinned } = context;
+      const { accountId, messageId, threadId: pinned, sawApps } = context;
 
       // A quick-add job reads one thread and may only write to it.
       //
@@ -936,7 +1096,7 @@ export async function toolRoutes(app: App): Promise<void> {
           call.tool === "create_thread" ||
           call.tool === "move_content" ||
           call.tool === "rename_thread" ||
-          call.tool === "add_memory" ||
+          call.tool === "add_note" ||
           call.tool === "set_thread_preference" ||
           ("threadId" in call && call.threadId !== pinned);
         if (refusedHere) return reply.send({ ok: false, error: "unknown_thread" as const });
@@ -1027,10 +1187,17 @@ export async function toolRoutes(app: App): Promise<void> {
             })
             .execute();
 
-          // `[]` rather than absent: a new thread cannot have memories, and
-          // the model seeing one shape from both filing tools is worth a
+          // `[]` rather than absent: a new thread cannot have notes, and the
+          // model seeing one shape from both filing tools is worth a
           // two-character payload.
-          return { ok: true, threadId: thread.id, threadName: thread.name, memories: [] };
+          return {
+            ok: true,
+            threadId: thread.id,
+            threadName: thread.name,
+            notes: [],
+            notesFromMembers: [],
+            notesFromApps: [],
+          };
         }
 
         // The six tools that touch something that already exists.
@@ -1039,7 +1206,7 @@ export async function toolRoutes(app: App): Promise<void> {
         // take a content id rather than a thread, and four of them delegate to
         // the functions the thread page already uses, so the rule the screen
         // enforces and the rule the model gets are the same rule.
-        if (call.tool !== "add_content") return existing(call, accountId, trx, messageId);
+        if (call.tool !== "add_content") return existing(call, accountId, trx, messageId, sawApps);
 
         // add_content.
         //
@@ -1057,6 +1224,12 @@ export async function toolRoutes(app: App): Promise<void> {
 
         // One reason, whether it does not exist or is somebody else's.
         if (!thread) return { ok: false, error: "unknown_thread" };
+
+        // Read before anything is written, and before the idempotency check
+        // below, so that a turn's second call into the same thread sees the
+        // first one's row and knows the notes already went out. Reading it
+        // after the insert would make every call look like a repeat of itself.
+        const carried = await notesForTurn(messageId, thread.id, accountId, call.toolCallId, trx);
 
         // Tags are normalised here, not in the prompt. A model producing
         // `City:Alfama` on Monday and `city: alfama` on Tuesday makes two
@@ -1083,23 +1256,8 @@ export async function toolRoutes(app: App): Promise<void> {
           return { ok: false, error: "bad_place_name" };
         }
 
-        // Dates. Refused as data the model can correct, never as a 400: a
-        // malformed argument is a decision this endpoint makes, and the worker
-        // retries transport failures rather than decisions.
-        const when: Record<"dueAt" | "occursAt" | "occursEndAt", Date | null> = {
-          dueAt: null,
-          occursAt: null,
-          occursEndAt: null,
-        };
-        for (const field of ["dueAt", "occursAt", "occursEndAt"] as const) {
-          const raw = call[field];
-          if (raw == null || raw === "") continue;
-          const at = parseWhen(raw);
-          // A date a century out is invisible rather than wrong-looking: it
-          // sorts to the bottom forever and nobody sees it to fix it.
-          if (!at || !plausible(at)) return { ok: false, error: "bad_date" };
-          when[field] = at;
-        }
+        const when = parseDates(call);
+        if (when === null) return { ok: false, error: "bad_date" };
 
         const inserted = await trx
           .insertInto("content")
@@ -1144,17 +1302,17 @@ export async function toolRoutes(app: App): Promise<void> {
             .where("derived_from_message_id", "=", messageId)
             .where("tool_call_id", "=", call.toolCallId)
             .executeTakeFirstOrThrow();
-          const retryMemories = await memoriesForPrompt(thread.id, trx);
-
           return {
             ok: true,
             threadId: thread.id,
             threadName: thread.name,
             contentId: existing.id,
             // On the retry too. A lost response must not also lose the thread's
-            // rules, or a retried filing is the one that ignores them.
-            memories: retryMemories.rules,
-            memoriesFromApps: retryMemories.fromApps,
+            // notes, or a retried filing is the one that ignores them.
+            //
+            // `carried` was read before this call wrote anything, so a retry of
+            // the same tool call sees exactly what the first attempt saw.
+            ...(carried ? shapeNotes(carried) : {}),
           };
         }
 
@@ -1184,18 +1342,16 @@ export async function toolRoutes(app: App): Promise<void> {
           .where("id", "=", thread.id)
           .execute();
 
-        const filedMemories = await memoriesForPrompt(thread.id, trx);
         return {
           ok: true,
           threadId: thread.id,
           threadName: thread.name,
           contentId: inserted.id,
-          // The thread's standing rules, handed back at the moment the model
-          // files into it. It has already written the title by now, which is
-          // the cost of not putting every thread's memories in the prompt up
+          // What the thread holds about itself, handed back at the moment the
+          // model files into it. It has already written the title by now, which
+          // is the cost of not putting every thread's notes in the prompt up
           // front; `edit_content` is how it fixes one it got wrong.
-          memories: filedMemories.rules,
-          memoriesFromApps: filedMemories.fromApps,
+          ...(carried ? shapeNotes(carried) : {}),
         };
         })
       );

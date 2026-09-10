@@ -103,8 +103,8 @@ async def seed(conn, name: str) -> dict:
 
     await conn.execute(
         text(
-            "insert into content (account_id, thread_id, derived_from_message_id, title) "
-            "values (:a, :t, :m, :title)"
+            "insert into content (account_id, thread_id, derived_from_message_id, type, title) "
+            "values (:a, :t, :m, 'task', :title)"
         ),
         {"a": account, "t": thread, "m": message, "title": f"{name} filed title"},
     )
@@ -234,7 +234,7 @@ async def test_the_worker_cannot_write_content(two_accounts):
     engine, alice, _ = two_accounts
     async with engine.connect() as conn:
         for statement in (
-            "insert into content (account_id, thread_id, title) values (:a, :t, 'x')",
+            "insert into content (account_id, thread_id, type, title) values (:a, :t, 'task', 'x')",
             "update content set title = 'x' where account_id = :a",
             "delete from content where account_id = :a",
         ):

@@ -22,6 +22,8 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from offload_agent import context as ctx_mod
 from offload_agent.config import Config
 from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
+from offload_agent.compact import KINDS as COMPACT_KINDS
+from offload_agent.compact import handle_compact
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
 from offload_agent.embed_jobs import handle_embed
 from offload_agent.harness.plan import Outcome, classify, plan, plan_answer, plan_quick_add
@@ -40,7 +42,7 @@ class ReportFailed(Exception):
     failure, because the two want opposite responses: a model failure should be
     reported, and this one cannot be."""
 
-KINDS = ["dump.answer", "thread.quick_add", *EMBED_KINDS]
+KINDS = ["dump.answer", "thread.quick_add", *EMBED_KINDS, *COMPACT_KINDS]
 
 
 async def _post_result(
@@ -188,6 +190,27 @@ async def handle(
         await _handle_quick_add(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
         return
 
+    if job.kind in COMPACT_KINDS:
+        # Nobody is waiting on a fold, so a failure releases the job and the
+        # thread keeps every note it has. Wrapped for the same reason the embed
+        # branch below is: it returns before the catch-all, and a stuck
+        # `running` row is nothing's job to reap.
+        try:
+            await handle_compact(
+                job, cfg=cfg, engine=engine, http=http, client=anthropic
+            )
+        except Exception as exc:
+            # **`log.error`, never `log.exception`.** The type, never the value:
+            # an SDK exception can echo the request body, and the request body
+            # here is a hundred notes (OFF-1). `log.exception` sets
+            # `exc_info=True` and structlog renders the whole traceback with
+            # `str(exc)` in it, which is the breach this comment was written to
+            # prevent and did not. Same shape as `dump failed` below.
+            log.error("compaction failed", kind=job.kind, error=type(exc).__name__)
+            async with engine.begin() as conn:
+                await release_for_retry(conn, job.id, "compact_error", delay_seconds=3600)
+        return
+
     if job.kind in EMBED_KINDS:
         # No model call and nobody waiting, so it closes its own job rather
         # than reporting an outcome the Core API has no use for.
@@ -207,7 +230,13 @@ async def handle(
         except Exception as exc:
             # The type, never the value: an SDK exception can echo the request
             # body, and the request body here is content (OFF-1).
-            log.exception("embed failed", kind=job.kind, error=type(exc).__name__)
+            #
+            # **This said `log.exception` until 2026-09-10**, which sets
+            # `exc_info=True`, and structlog renders the traceback with
+            # `str(exc)` in it however few fields are passed. The comment above
+            # was right and the call under it was not. Found by the review of
+            # 014, in the identical line it had just written.
+            log.error("embed failed", kind=job.kind, error=type(exc).__name__)
             async with engine.begin() as conn:
                 await release_for_retry(conn, job.id, "embed_error", delay_seconds=300)
         return

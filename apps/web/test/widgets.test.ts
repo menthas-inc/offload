@@ -24,16 +24,14 @@ import {
   dimensionsIn,
   groupBy,
   readPreference,
-  splitRepeating,
-  cadenceLabel,
   widgetsFor,
   type Sortable,
 } from "../src/lib/widgets";
 import {
-  addMemory,
-  deleteMemory,
+  addNote,
+  deleteNote,
   deleteThread,
-  restoreMemory,
+  restoreNote,
   restoreThread,
 } from "../src/lib/threads";
 
@@ -52,7 +50,7 @@ function row(over: Partial<Sortable> = {}): Sortable {
 }
 
 describe("widgets are earned", () => {
-  it("draws none for a thread of plain notes (AC-1)", () => {
+  it("draws none for a thread that earns nothing (AC-1)", () => {
     expect(widgetsFor([row(), row()])).toEqual([]);
   });
 
@@ -64,23 +62,30 @@ describe("widgets are earned", () => {
     const rows = [
       row({ placeId: "p1" }),
       row({ type: "task" }),
-      row({ occursAt: "2026-09-20T00:00:00Z" }),
       row({ type: "image" }),
     ];
-    expect(widgetsFor(rows).map((w) => w.kind).sort()).toEqual([
-      "files",
-      "map",
-      "timeline",
-      "todo",
-    ]);
+    expect(widgetsFor(rows).map((w) => w.kind).sort()).toEqual(["files", "map", "todo"]);
   });
 
   it("loses a widget when the content that earned it goes (AC-1)", () => {
-    // A thread that loses its last dated row loses its timeline. That is the
-    // system working, not state going missing.
+    // A thread that loses its last place loses its map. That is the system
+    // working, not state going missing.
+    //
+    // *This asserted the same thing about a dated row and the timeline until
+    // 015, which took the timeline out of the earned set: it is a rail at the
+    // top of every thread now, drawn whether or not a date exists.*
+    const placed = row({ placeId: "p1" });
+    expect(widgetsFor([placed]).map((w) => w.kind)).toEqual(["map"]);
+    expect(widgetsFor([{ ...placed, placeId: null }])).toEqual([]);
+  });
+
+  it("never earns a timeline, whatever the thread holds (AC-1)", () => {
     const dated = row({ occursAt: "2026-09-20T00:00:00Z" });
-    expect(widgetsFor([dated]).map((w) => w.kind)).toEqual(["timeline"]);
-    expect(widgetsFor([{ ...dated, occursAt: null }])).toEqual([]);
+    expect(widgetsFor([dated])).toEqual([]);
+    // And a stored preference naming it is ignored rather than breaking, which
+    // is what `widgetsFor` already does for a kind a thread does not earn.
+    expect(widgetsFor([dated, row({ type: "task" })], ["timeline", "todo"]).map((w) => w.kind))
+      .toEqual(["todo"]);
   });
 
   it("still earns a to-do list from tasks that are all done (AC-1)", () => {
@@ -287,15 +292,15 @@ describe("a request with no body does not claim one", () => {
     expect(headers()["content-type"]).toBeUndefined();
   });
 
-  it("sends no content-type when deleting a memory", async () => {
-    await deleteMemory("m1");
+  it("sends no content-type when deleting a note", async () => {
+    await deleteNote("n1");
     expect(calls[0]?.init.body).toBeUndefined();
     expect(headers()["content-type"]).toBeUndefined();
   });
 
   it("sends no content-type when restoring either", async () => {
     await restoreThread("t1");
-    await restoreMemory("m1");
+    await restoreNote("n1");
     for (const call of calls) {
       expect(call.init.body).toBeUndefined();
       expect((call.init.headers ?? {}) as Record<string, string>).not.toHaveProperty(
@@ -305,105 +310,9 @@ describe("a request with no body does not claim one", () => {
   });
 
   it("still sends one when there is a body", async () => {
-    await addMemory("t1", "Todo names in three words");
+    await addNote("t1", "Todo names in three words");
     expect(calls[0]?.init.body).toBeDefined();
     expect(headers()["content-type"]).toBe("application/json");
   });
 });
 
-describe("a repeating event is one thing in a list, not thirty", () => {
-  // The defect this fixes: a weekly yoga class filed as thirty occurrences drew
-  // thirty rows of the word Yoga, and everything that happened once was pushed
-  // off the bottom by it. A calendar can repeat for free because every day
-  // already has a cell; a list spends a whole row to repeat what the row above
-  // said.
-  function occurrence(iso: string, ref: string | null, title = "Yoga"): Sortable {
-    return { ...row({ type: "event", occursAt: iso }), seriesRef: ref, title } as Sortable;
-  }
-
-  const NOW = new Date("2026-09-10T12:00:00Z");
-
-  it("collapses a series to one entry and counts the rest", () => {
-    const rows = [
-      occurrence("2026-08-31T18:00:00Z", "yoga"),
-      occurrence("2026-09-07T18:00:00Z", "yoga"),
-      occurrence("2026-09-14T18:00:00Z", "yoga"),
-      occurrence("2026-09-04T10:00:00Z", null, "Lawyer"),
-    ];
-
-    const { once, repeating } = splitRepeating(rows, NOW);
-
-    expect(once).toHaveLength(1);
-    expect(repeating).toHaveLength(1);
-    expect(repeating[0]?.count).toBe(3);
-  });
-
-  it("stands the series on the next occurrence, not the first", () => {
-    const rows = [
-      occurrence("2026-08-31T18:00:00Z", "yoga"),
-      occurrence("2026-09-07T18:00:00Z", "yoga"),
-      occurrence("2026-09-14T18:00:00Z", "yoga"),
-    ];
-
-    const { repeating } = splitRepeating(rows, NOW);
-
-    // A repeating thing is a question about what is coming.
-    expect(repeating[0]?.row.occursAt).toBe("2026-09-14T18:00:00Z");
-  });
-
-  it("falls back to the most recent when the series has finished", () => {
-    const rows = [
-      occurrence("2026-07-06T18:00:00Z", "old"),
-      occurrence("2026-07-13T18:00:00Z", "old"),
-    ];
-
-    const { repeating } = splitRepeating(rows, NOW);
-
-    expect(repeating[0]?.row.occursAt).toBe("2026-07-13T18:00:00Z");
-  });
-
-  it("says how often when every gap agrees", () => {
-    const rows = [
-      occurrence("2026-09-07T18:00:00Z", "yoga"),
-      occurrence("2026-09-14T18:00:00Z", "yoga"),
-      occurrence("2026-09-21T18:00:00Z", "yoga"),
-    ];
-
-    const { repeating } = splitRepeating(rows, NOW);
-
-    expect(repeating[0]?.everyDays).toBe(7);
-    expect(cadenceLabel(repeating[0]?.everyDays ?? null)).toBe("every week");
-  });
-
-  it("says nothing rather than guessing when a week was moved", () => {
-    const rows = [
-      occurrence("2026-09-07T18:00:00Z", "yoga"),
-      occurrence("2026-09-15T18:00:00Z", "yoga"),
-      occurrence("2026-09-21T18:00:00Z", "yoga"),
-    ];
-
-    const { repeating } = splitRepeating(rows, NOW);
-
-    // Eight days then six. Calling that weekly would be worse than silence.
-    expect(repeating[0]?.everyDays).toBe(null);
-    expect(cadenceLabel(null)).toBe(null);
-  });
-
-  it("leaves a series holding one occurrence in the list", () => {
-    // Google calls a single event a series often enough. Collapsing it would
-    // say "every week" about one date and move it out of the list it belongs
-    // in.
-    const rows = [occurrence("2026-09-14T18:00:00Z", "lonely")];
-
-    const { once, repeating } = splitRepeating(rows, NOW);
-
-    expect(repeating).toHaveLength(0);
-    expect(once).toHaveLength(1);
-  });
-
-  it("treats a row with no series as a one off", () => {
-    const { once, repeating } = splitRepeating([occurrence("2026-09-14T18:00:00Z", null)], NOW);
-    expect(once).toHaveLength(1);
-    expect(repeating).toHaveLength(0);
-  });
-});

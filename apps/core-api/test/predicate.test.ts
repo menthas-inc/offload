@@ -3,7 +3,7 @@
 // AC-2   every read resolves through a predicate defined once, not per plane.
 // AC-2a  a pending invitation reaches nothing.
 // AC-2b  an accepted member reads what other members wrote.
-// AC-2c  a thread memory has account_id IS NULL and resolves through subject_id.
+// AC-2c  a thread note has account_id IS NULL and resolves through subject_id.
 // AC-2d  a conversation resolves through its owner and is never shared.
 //
 // **These tests go through the views directly**, rather than through the
@@ -26,7 +26,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await db.deleteFrom("memories").execute();
+  await db.deleteFrom("notes").execute();
   await db.deleteFrom("content").execute();
   await db.deleteFrom("messages").execute();
   await db.deleteFrom("conversations").execute();
@@ -74,7 +74,7 @@ async function member(
 async function content(threadId: string, accountId: string, title: string): Promise<string> {
   const row = await db
     .insertInto("content")
-    .values({ thread_id: threadId, account_id: accountId, title, type: "note" })
+    .values({ thread_id: threadId, account_id: accountId, title, type: "task" })
     .returning("id")
     .executeTakeFirstOrThrow();
   return row.id;
@@ -148,18 +148,18 @@ describe("AC-2a a pending invitation reaches nothing", () => {
     expect((await contentFor(invited)).map((r) => r.title)).toEqual(["Book the flat"]);
   });
 
-  it("shows a pending member no memories either", async () => {
+  it("shows a pending member no notes either", async () => {
     const ana = await account();
     const invited = await account();
     const trip = await thread(ana);
     await member(trip, invited, "pending");
     await db
-      .insertInto("memories")
+      .insertInto("notes")
       .values({ scope: "thread", subject_id: trip, account_id: ana, kind: "standing", text: "Book aisle seats", origin: "stated" })
       .execute();
 
     const rows = await db
-      .selectFrom("readable_memories")
+      .selectFrom("readable_notes")
       .select("id")
       .where("viewer_account_id", "=", invited)
       .execute();
@@ -167,7 +167,7 @@ describe("AC-2a a pending invitation reaches nothing", () => {
   });
 });
 
-describe("AC-2c a thread memory has no account_id and still resolves", () => {
+describe("AC-2c a thread note has no account_id and still resolves", () => {
   it("is readable by every accepted member and by nobody else", async () => {
     const ana = await account();
     const bea = await account();
@@ -179,12 +179,12 @@ describe("AC-2c a thread memory has no account_id and still resolves", () => {
     // `where account_id = :viewer` returns nothing at all, and the obvious fix
     // for returning nothing is to drop the filter.
     await db
-      .insertInto("memories")
+      .insertInto("notes")
       .values({ scope: "thread", subject_id: trip, account_id: null, kind: "going_on", text: "Three nights in Alfama", origin: "learned" })
       .execute();
 
     const readable = async (accountId: string) =>
-      db.selectFrom("readable_memories").select("text").where("viewer_account_id", "=", accountId).execute();
+      db.selectFrom("readable_notes").select("text").where("viewer_account_id", "=", accountId).execute();
 
     expect((await readable(ana)).map((r) => r.text)).toEqual(["Three nights in Alfama"]);
     expect((await readable(bea)).map((r) => r.text)).toEqual(["Three nights in Alfama"]);
@@ -195,7 +195,7 @@ describe("AC-2c a thread memory has no account_id and still resolves", () => {
     const ana = await account();
     const trip = await thread(ana);
     await db
-      .insertInto("memories")
+      .insertInto("notes")
       .values({ scope: "account", subject_id: null, account_id: ana, kind: "preference", text: "Mornings are quiet", origin: "stated" })
       .execute();
 
@@ -203,7 +203,7 @@ describe("AC-2c a thread memory has no account_id and still resolves", () => {
     // view gains a branch when something does. Asserted so that whoever adds
     // the writer finds this test rather than a silent absence.
     const rows = await db
-      .selectFrom("readable_memories")
+      .selectFrom("readable_notes")
       .select("id")
       .where("viewer_account_id", "=", ana)
       .execute();
@@ -290,7 +290,7 @@ describe("AC-2d a conversation resolves through its owner", () => {
 
 describe("the views keep up with the tables they are made of", () => {
   // A view over `table.*` freezes its column list when it is created. 0027
-  // added `search_text` to content, memories and messages, and the views made
+  // added `search_text` to content, notes and messages, and the views made
   // in 0026 did not gain it: reads failed with "column content.search_text does
   // not exist", named after a table where it plainly does exist.
   //
@@ -299,7 +299,7 @@ describe("the views keep up with the tables they are made of", () => {
   // also be silent rather than loud.
   it.each([
     ["content", "readable_content"],
-    ["memories", "readable_memories"],
+    ["notes", "readable_notes"],
     ["messages", "readable_messages"],
   ])("%s and %s have the same columns", async (table, view) => {
     const columns = async (name: string) => {

@@ -1,5 +1,11 @@
 # 008 Thread memories, implementation spec
 
+> **Superseded wholesale by 014 on 2026-09-10.** The table is `notes`, the cap
+> and its row lock are gone, the 409 is gone, the unique index is partial on
+> offload's own writes, the chip arithmetic describes a component that was
+> replaced by rows, and the toast copy says note. Read `docs/specs/014-notes/`
+> for what is true.
+
 > How. Grounded in `001-data-model`, which specified this table and never shipped it.
 
 ## Shape

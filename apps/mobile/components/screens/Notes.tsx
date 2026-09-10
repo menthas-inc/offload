@@ -1,4 +1,4 @@
-// The Memories tab, which has nothing in it yet and says so.
+// The Notes tab, which has nothing in it yet and says so.
 //
 // The account-scope feature behind it needs person scope, a people table and
 // compaction, none of which exists on any client. The tab is here rather than
@@ -11,7 +11,7 @@ import { QuietEmpty } from "./QuietEmpty";
 
 const isAndroid = Platform.OS === "android";
 
-export default function Memories() {
+export default function Notes() {
   return (
     <SafeAreaView
       className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`}

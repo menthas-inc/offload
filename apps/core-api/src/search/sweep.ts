@@ -1,7 +1,7 @@
 // What still needs embedding, found by asking rather than by remembering.
 //
 // **One place decides, and it is not the write path.** Content is inserted from
-// four places and updated from more, memories from two, messages from two, and
+// four places and updated from more, notes from two, messages from two, and
 // hooking each one means the feature is correct only while nobody adds a fifth.
 // A missed hook does not fail: it makes one row quietly unfindable by meaning,
 // which is the kind of defect that surfaces months later as "search is a bit
@@ -40,7 +40,7 @@ export const SWEEP_SECONDS = 60;
 export const EMBED_MODEL = "voyage-4";
 
 interface Pending {
-  kind: "embed.content" | "embed.memory" | "embed.message";
+  kind: "embed.content" | "embed.note" | "embed.message";
   rowId: string;
   accountId: string | null;
   /** The row's own version, so an edit is a different job.
@@ -73,14 +73,14 @@ const CONTENT = sql<{ id: string; account_id: string | null; version: string }>`
   limit ${SWEEP_BATCH}
 `;
 
-const MEMORIES = sql<{ id: string; account_id: string | null; version: string }>`
+const NOTES = sql<{ id: string; account_id: string | null; version: string }>`
   select m.id::text as id, m.account_id::text as account_id,
          extract(epoch from m.updated_at)::bigint::text as version
-  from memories m
+  from notes m
   where m.deleted_at is null and m.superseded_at is null
     and not exists (
-      select 1 from memory_chunks ch
-      where ch.memory_id = m.id
+      select 1 from note_chunks ch
+      where ch.note_id = m.id
         and ch.model is not distinct from ${EMBED_MODEL}
         and ch.embedded_at >= m.updated_at
     )
@@ -107,14 +107,14 @@ const MESSAGES = sql<{ id: string; account_id: string | null; version: string }>
 `;
 
 export async function pendingEmbeds(): Promise<Pending[]> {
-  const [content, memories, messages] = await Promise.all([
+  const [content, notes, messages] = await Promise.all([
     CONTENT.execute(db),
-    MEMORIES.execute(db),
+    NOTES.execute(db),
     MESSAGES.execute(db),
   ]);
   return [
     ...content.rows.map((r) => ({ kind: "embed.content" as const, rowId: r.id, accountId: r.account_id, version: r.version })),
-    ...memories.rows.map((r) => ({ kind: "embed.memory" as const, rowId: r.id, accountId: r.account_id, version: r.version })),
+    ...notes.rows.map((r) => ({ kind: "embed.note" as const, rowId: r.id, accountId: r.account_id, version: r.version })),
     ...messages.rows.map((r) => ({ kind: "embed.message" as const, rowId: r.id, accountId: r.account_id, version: r.version })),
   ];
 }

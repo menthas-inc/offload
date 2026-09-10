@@ -20,6 +20,8 @@ import {
   THEME_LABEL,
   TYPE_SIZES,
   TYPE_SIZE_LABEL,
+  WEEK_STARTS,
+  WEEK_START_LABEL,
   useAppearance,
   type Theme,
   type TypeSize,
@@ -27,7 +29,7 @@ import {
 import pane from "../../app/(shell)/shell.module.css";
 
 export function AppearancePane() {
-  const { theme, size, setTheme, setSize } = useAppearance();
+  const { theme, size, weekStart, setTheme, setSize, setWeekStart } = useAppearance();
 
   return (
     <>
@@ -62,6 +64,20 @@ export function AppearancePane() {
             labelFor={(value) => TYPE_SIZE_LABEL[value]}
             value={size}
             onChange={setSize}
+          />
+        </section>
+
+        <section className={pane.settingsBlock}>
+          <h2 className={pane.settingsBlockTitle}>Week starts on</h2>
+          <p className={pane.settingsNote}>
+            Which day a thread&apos;s timeline begins its weeks on.
+          </p>
+          <Segmented<"monday" | "sunday">
+            label="Week starts on"
+            options={[...WEEK_STARTS]}
+            labelFor={(value) => WEEK_START_LABEL[value] ?? value}
+            value={weekStart}
+            onChange={setWeekStart}
           />
         </section>
       </div>

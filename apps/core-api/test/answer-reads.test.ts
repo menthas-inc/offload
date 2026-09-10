@@ -29,7 +29,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.deleteFrom("content_chunks").execute();
-  await db.deleteFrom("memories").execute();
+  await db.deleteFrom("notes").execute();
   await db.deleteFrom("content").execute();
   await db.updateTable("accounts").set({ default_thread_id: null }).execute();
   await db.deleteFrom("thread_members").execute();
@@ -65,7 +65,7 @@ async function thread(accountId: string, name: string): Promise<string> {
 }
 
 interface Extra {
-  type?: "note" | "task" | "event";
+  type?: "task" | "event" | "link";
   done?: boolean;
   body?: string;
   dueAt?: Date;
@@ -79,7 +79,7 @@ async function add(threadId: string, accountId: string, title: string, extra: Ex
       thread_id: threadId,
       account_id: accountId,
       title,
-      type: extra.type ?? "note",
+      type: extra.type ?? "task",
       body: extra.body ?? null,
       done_at: extra.done ? new Date() : null,
       due_at: extra.dueAt ?? null,
@@ -97,7 +97,7 @@ describe("AC-5 a filtered list answers with however many there are", () => {
     await add(lisbon, ana, "Book the flat", { type: "task" });
     await add(lisbon, ana, "Find a restaurant", { type: "task" });
     await add(lisbon, ana, "Buy sunscreen", { type: "task", done: true });
-    await add(lisbon, ana, "Flight number", { type: "note" });
+    await add(lisbon, ana, "Flight number", { type: "link" });
 
     const result = await listContent(ana, { threadId: lisbon, type: "task", done: false });
 
@@ -322,7 +322,7 @@ describe("the reads go through the predicate rather than restating it", () => {
   });
 });
 
-describe("search reads memories and conversations, and does not draw them", () => {
+describe("search reads notes and conversations, and does not draw them", () => {
   async function conversation(accountId: string) {
     const row = await db
       .insertInto("conversations")
@@ -357,7 +357,7 @@ describe("search reads memories and conversations, and does not draw them", () =
     const ana = await account();
     const lisbon = await thread(ana, "Lisbon trip");
     await db
-      .insertInto("memories")
+      .insertInto("notes")
       .values({
         scope: "thread",
         subject_id: lisbon,
@@ -369,9 +369,9 @@ describe("search reads memories and conversations, and does not draw them", () =
       .execute();
 
     const found = await search(ana, { query: "aisle" });
-    // A memory has no checkbox, so it informs the sentence and is not a row.
+    // A note has no checkbox, so it informs the sentence and is not a row.
     expect(found.rows).toEqual([]);
-    expect(found.asides?.map((a) => a.kind)).toEqual(["memory"]);
+    expect(found.asides?.map((a) => a.kind)).toEqual(["note"]);
     expect(found.asides?.[0].text).toContain("aisle seats");
     expect(found.asides?.[0].threadName).toBe("Lisbon trip");
   });
@@ -399,7 +399,7 @@ describe("search reads memories and conversations, and does not draw them", () =
         thread_id: istanbul,
         account_id: ana,
         title: "airbnb in Beyoglu",
-        type: "note",
+        type: "task",
         derived_from_message_id: dump,
       })
       .execute();
@@ -429,11 +429,11 @@ describe("search reads memories and conversations, and does not draw them", () =
     expect(forBea.asides ?? []).toEqual([]);
   });
 
-  it("skips a muted memory, matching what the model already sees", async () => {
+  it("skips a muted note, matching what the model already sees", async () => {
     const ana = await account();
     const lisbon = await thread(ana, "Lisbon trip");
     await db
-      .insertInto("memories")
+      .insertInto("notes")
       .values({
         scope: "thread",
         subject_id: lisbon,
@@ -446,7 +446,7 @@ describe("search reads memories and conversations, and does not draw them", () =
       .execute();
 
     // A muted rule is one somebody switched off. Answering from it contradicts
-    // the switch, and context.py already filters it where memories reach a
+    // the switch, and context.py already filters it where notes reach a
     // prompt, so the two agree.
     expect((await search(ana, { query: "aisle" })).asides ?? []).toEqual([]);
   });
@@ -534,11 +534,11 @@ describe("a deleted thread is gone from every read, not only from listContent", 
     expect(result.rows.map((r) => r.title)).toEqual(["Sunscreen kept"]);
   });
 
-  it("takes its memories out of the asides with it", async () => {
+  it("takes its notes out of the asides with it", async () => {
     const ana = await account();
     const gone = await thread(ana, "Lisbon trip");
     await db
-      .insertInto("memories")
+      .insertInto("notes")
       .values({
         account_id: ana,
         scope: "thread",

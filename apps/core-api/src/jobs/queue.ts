@@ -27,11 +27,17 @@ export type JobKind =
   | "calendar.sync"
   | "calendar.supervise"
   | "jobs.purge"
+  // 014. One job per account per day, and note compaction is its first step.
+  // Today generation and thread compaction are later steps in the same job, so
+  // an idle account is woken once rather than three times.
+  | "account.daily"
+  | "account.daily.run"
+  | "notes.compact"
   // 013. The sweep runs here and finds what needs embedding; the three embed
   // kinds are drained by the Python worker, which is where the client lives.
   | "embed.sweep"
   | "embed.content"
-  | "embed.memory"
+  | "embed.note"
   | "embed.message";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
@@ -101,6 +107,10 @@ export interface ClaimedJob {
   payload: unknown;
   attempts: number;
   max_attempts: number;
+  /** Whose job it is. Read from the row this service wrote, never from a
+   *  payload: a job that carries its own account in its body is one more place
+   *  an account id can be wrong. */
+  account_id: string | null;
 }
 
 /** Claim one runnable job of a kind this runner handles.
@@ -134,7 +144,7 @@ export async function claim(workerId: string, kinds: string[]): Promise<ClaimedJ
       for update skip locked
       limit 1
     )
-    returning id, kind, payload, attempts, max_attempts
+    returning id, kind, payload, attempts, max_attempts, account_id::text as account_id
   `.execute(db);
 
   return result.rows[0];

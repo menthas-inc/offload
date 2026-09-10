@@ -1,5 +1,13 @@
 # 008 Thread memories, feature spec
 
+> **Superseded in large part by 014, on 2026-09-10.** Memories and dumped
+> sentences merged into one concept called a note. The cap of ten is a prompt
+> budget of a hundred that refuses nothing, compaction arrives here rather than
+> "with account scope", the web-only scope was overtaken by 009, and the test
+> below for telling a memory from content stops working the moment a sentence
+> has a date, which is what 015 needs. The reasoning in this document is still
+> the reasoning; the numbers and the noun are 014's.
+
 > The what and the why. No tech choices; those are in `impl-spec.md`.
 
 ## Why

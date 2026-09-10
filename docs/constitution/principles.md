@@ -27,7 +27,15 @@
 
 ## offload (OFF)
 
-- **OFF-1 (MUST): Content is durable, egress is not.** Keeping what you dumped is the product, so content is stored, not discarded. The hard line is on the way out: no content in analytics events, no content in LLM traces, no content in application logs, no content in error reports. Those carry ids, kinds, counts, tokens, latency and outcomes only.
+- **OFF-1 (MUST): What you dumped is durable, what offload worked out is not, and egress is neither.** Keeping what you dumped is the product, so a dump, the conversation it arrived in and its blobs are stored and not discarded.
+
+  **Derived state is the opposite, deliberately.** Notes, thread standing and everything offload has worked out about somebody are rewritten, folded and removed as its picture of them changes, and the product shows that picture and lets them correct it rather than letting it accumulate. An assistant whose idea of you is append-only is one that gets worse the longer you use it, which is OFF-8 read from the other end.
+
+  **The line between the two is who wrote the words.** offload may supersede anything, including a sentence a person typed, because superseding changes what offload acts on and destroys nothing. **It may delete only what it wrote itself.** A note somebody typed straight into a thread is not a derivation of a dump, it *is* the dump, and the fact that it lives in a derived table does not make it offload's to remove.
+
+  *Amended 2026-09-10 by 014, which merged memories and dumped sentences into one derived table and made this distinction load-bearing. Amended in the same change with one dated exception: 014's migration deletes the `note` content rows that exist on 2026-09-10, once, while the product is in alpha and invite only. It is an exception rather than a precedent, and it is written here rather than left in a migration comment.*
+
+  The hard line is on the way out: no content in analytics events, no content in LLM traces, no content in application logs, no content in error reports. Those carry ids, kinds, counts, tokens, latency and outcomes only.
 
   **The warehouse is never a second copy of content under weaker controls.** Analysis and machine learning that need content read the production tables, under the same per-account authorization as everything else and for a stated purpose. They do not get a parallel store where the same data sits with looser access, longer reach and no membership check. *This is the specific way an honest privacy posture usually dies: not by a decision to leak, but by an analytics pipeline that was allowed one reasonable-sounding field at a time.* Rationale: the product needs the data; nothing else does.
 - **OFF-2 (MUST): Cold storage is encrypted, database content is not, and we describe it as exactly that.** Blobs in R2, the photos, screenshots and voice-note audio, are encrypted by us before they are stored, with a key R2 never receives. Database content is not encrypted by us: titles, notes, transcripts, memories and retrieval vectors sit in Postgres in plaintext, protected by the provider's own disk encryption and by access control, like most software.

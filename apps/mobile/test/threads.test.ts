@@ -30,24 +30,23 @@ describe("a request with no body never claims one", () => {
   it("sends no body when deleting or restoring", async () => {
     await threads.deleteThread("t1");
     await threads.restoreThread("t1");
-    await threads.deleteMemory("m1");
-    await threads.restoreMemory("m1");
+    await threads.deleteNote("n1");
+    await threads.restoreNote("n1");
     for (const call of calls) expect(call.init.body).toBeUndefined();
   });
 
   it("sends one when there is something to say", async () => {
-    await threads.addMemory("t1", "Todo names in three words");
+    await threads.addNote("t1", "Todo names in three words");
     expect(calls[0]?.init.body).toBe(JSON.stringify({ text: "Todo names in three words" }));
   });
 });
 
-describe("the cap and the length limit are answers, not failures", () => {
-  it("says which one happened", async () => {
-    reply = { status: 409, data: null };
-    expect(await threads.addMemory("t1", "one too many")).toEqual({ full: true });
-
+describe("nothing is refused for being one too many", () => {
+  it("has no cap left to hit, and still says when a sentence is too long", async () => {
+    // 008 answered 409 at ten and the screen said so. 014 made the hundred a
+    // prompt budget rather than a wall, so the only refusal left is length.
     reply = { status: 413, data: null };
-    expect(await threads.addMemory("t1", "x".repeat(201))).toEqual({ tooLong: true });
+    expect(await threads.addNote("t1", "x".repeat(201))).toEqual({ tooLong: true });
   });
 });
 

@@ -22,7 +22,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="today" />
       <Tabs.Screen name="threads" />
-      <Tabs.Screen name="memories" />
+      <Tabs.Screen name="notes" />
     </Tabs>
   );
 }

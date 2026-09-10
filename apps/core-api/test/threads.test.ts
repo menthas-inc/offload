@@ -145,7 +145,7 @@ async function content(accountId: string, threadId: string, title: string, messa
       account_id: accountId,
       thread_id: threadId,
       title,
-      type: "note",
+      type: "task",
       derived_from_message_id: messageId ?? null,
       updated_at: new Date(),
     })
@@ -801,6 +801,34 @@ describe("the routes, with a real session", () => {
     expect(archived.json().content.archivedAt).not.toBeNull();
   });
 
+  it("carries the other end of a span, so the rail can draw one (015 AC-7)", async () => {
+    // `occurs_end_at` has been written since 0011 and read by nothing. 015 is
+    // the first thing that draws it, and it was on the row, off the select and
+    // absent from every shape above it, so a two day event drew as a point.
+    const me = await account();
+    const t = await thread(me, "Lisbon trip");
+    const row = await content(me, t, "Staying in Alfama");
+    await db
+      .updateTable("content")
+      .set({
+        occurs_at: new Date("2026-09-15T10:00:00Z"),
+        occurs_end_at: new Date("2026-09-17T10:00:00Z"),
+      })
+      .where("id", "=", row)
+      .execute();
+    const cookie = await signIn(me);
+
+    const page = await app.inject({
+      method: "GET",
+      url: `/v1/threads/${t}/content`,
+      headers: { cookie },
+    });
+    expect(page.json().rows[0].occursEndAt).toBe("2026-09-17T10:00:00.000Z");
+
+    const one = await app.inject({ method: "GET", url: `/v1/content/${row}`, headers: { cookie } });
+    expect(one.json().occursEndAt).toBe("2026-09-17T10:00:00.000Z");
+  });
+
   it("paginates through the route with a stable cursor (AC-6)", async () => {
     const me = await account();
     const t = await thread(me, "Read later");
@@ -1050,11 +1078,11 @@ describe("deleting a thread through the route, not just the function", () => {
   });
 });
 
-describe("the memory routes, over HTTP", () => {
+describe("the note routes, over HTTP", () => {
   async function addOne(cookie: string, threadId: string, text: string) {
     const response = await app.inject({
       method: "POST",
-      url: `/v1/threads/${threadId}/memories`,
+      url: `/v1/threads/${threadId}/notes`,
       headers: { cookie },
       payload: { text },
     });
@@ -1074,8 +1102,8 @@ describe("the memory routes, over HTTP", () => {
       url: `/v1/threads/${flat}`,
       headers: { cookie },
     });
-    const memories = (bundle.json() as { memories: { text: string }[] }).memories;
-    expect(memories.map((m) => m.text)).toEqual(["Always use the todo list"]);
+    const notes = (bundle.json() as { notes: { text: string }[] }).notes;
+    expect(notes.map((m) => m.text)).toEqual(["Always use the todo list"]);
   });
 
   it("deletes, and the thread stops carrying it", async () => {
@@ -1084,11 +1112,11 @@ describe("the memory routes, over HTTP", () => {
     const cookie = await signIn(ana);
 
     const added = await addOne(cookie, flat, "Always use the todo list");
-    const { memory } = added.json() as { memory: { id: string } };
+    const { note } = added.json() as { note: { id: string } };
 
     const gone = await app.inject({
       method: "DELETE",
-      url: `/v1/memories/${memory.id}`,
+      url: `/v1/notes/${note.id}`,
       headers: { cookie },
     });
     expect(gone.statusCode).toBe(200);
@@ -1099,7 +1127,7 @@ describe("the memory routes, over HTTP", () => {
       url: `/v1/threads/${flat}`,
       headers: { cookie },
     });
-    expect((bundle.json() as { memories: unknown[] }).memories).toHaveLength(0);
+    expect((bundle.json() as { notes: unknown[] }).notes).toHaveLength(0);
   });
 
   it("mutes and unmutes", async () => {
@@ -1107,16 +1135,16 @@ describe("the memory routes, over HTTP", () => {
     const flat = await thread(ana, "EU with fam");
     const cookie = await signIn(ana);
     const added = await addOne(cookie, flat, "Always use the todo list");
-    const { memory } = added.json() as { memory: { id: string } };
+    const { note } = added.json() as { note: { id: string } };
 
     const muted = await app.inject({
       method: "POST",
-      url: `/v1/memories/${memory.id}/mute`,
+      url: `/v1/notes/${note.id}/mute`,
       headers: { cookie },
       payload: { muted: true },
     });
     expect(muted.statusCode).toBe(200);
-    expect((muted.json() as { memory: { muted: boolean } }).memory.muted).toBe(true);
+    expect((muted.json() as { note: { muted: boolean } }).note.muted).toBe(true);
   });
 
   it("edits, and answers with what it was", async () => {
@@ -1124,11 +1152,11 @@ describe("the memory routes, over HTTP", () => {
     const flat = await thread(ana, "EU with fam");
     const cookie = await signIn(ana);
     const added = await addOne(cookie, flat, "Always use the todo list");
-    const { memory } = added.json() as { memory: { id: string } };
+    const { note } = added.json() as { note: { id: string } };
 
     const edited = await app.inject({
       method: "PATCH",
-      url: `/v1/memories/${memory.id}`,
+      url: `/v1/notes/${note.id}`,
       headers: { cookie },
       payload: { text: "Always use the todo list, not the timeline" },
     });

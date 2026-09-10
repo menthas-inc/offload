@@ -191,18 +191,37 @@ describe("what the tool endpoint accepts", () => {
     expect(row.priority_pinned).toBe(false);
   });
 
-  it("defaults to a note rather than guessing a type (AC-1)", async () => {
+  it("has no type to fall back to, and takes the rest of its defaults (AC-1)", async () => {
+    // It defaulted to `note` until 014, which is the type that stopped
+    // existing: a sentence with nothing else to be is a note now, and
+    // `add_note` is where it goes. A row whose type nobody stated is a bug.
     const me = await account();
     const t = await thread(me, "Flat admin");
     const { jobId, messageId } = await dump(me);
 
-    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId: t, title: "Something" });
+    const refused = await tool({
+      tool: "add_content",
+      jobId,
+      toolCallId: "t0",
+      threadId: t,
+      title: "Something",
+    });
+    expect(refused.statusCode).toBe(400);
+
+    await tool({
+      tool: "add_content",
+      jobId,
+      toolCallId: "t1",
+      threadId: t,
+      title: "Something",
+      type: "task",
+    });
 
     const row = await db
       .selectFrom("content").select(["type", "priority", "tags", "is_reminder"])
       .where("derived_from_message_id", "=", messageId)
       .executeTakeFirstOrThrow();
-    expect(row.type).toBe("note");
+    expect(row.type).toBe("task");
     expect(row.priority).toBe(50);
     expect(row.tags).toEqual([]);
     expect(row.is_reminder).toBe(false);
@@ -214,7 +233,7 @@ describe("what the tool endpoint accepts", () => {
     const { jobId } = await dump(me);
 
     const response = await tool({
-      tool: "add_content", jobId, toolCallId: "t1", threadId: t,
+      tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId: t,
       title: "Two cities", tags: ["city:alfama", "city:porto"],
     });
 
@@ -252,7 +271,7 @@ describe("what the tool endpoint accepts", () => {
     // The same sentence as a note is fine. The stricter rule is about what
     // leaves, not about what may be written down.
     const note = await tool({
-      tool: "add_content", jobId, toolCallId: "t3", threadId: t, title: sentence.slice(0, 200),
+      tool: "add_content", type: "task", jobId, toolCallId: "t3", threadId: t, title: sentence.slice(0, 200),
     });
     expect(note.json().ok).toBe(true);
   });
@@ -285,7 +304,7 @@ describe("what the tool endpoint accepts", () => {
     const t = await thread(me, "Flat admin");
     const { jobId } = await dump(me);
 
-    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId: t, title: "Boiler" });
+    await tool({ tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId: t, title: "Boiler" });
 
     expect(
       await db.selectFrom("jobs").selectAll().where("kind", "=", "location.resolve").execute()
@@ -444,12 +463,12 @@ describe("the tools that touch what already exists", () => {
     return { alice, bob, thread: t };
   }
 
-  async function row(accountId: string, threadId: string, title: string, type = "note") {
+  async function row(accountId: string, threadId: string, title: string, type = "task") {
     const r = await db
       .insertInto("content")
       .values({
         account_id: accountId, thread_id: threadId, title,
-        type: type as "note", updated_at: new Date(),
+        type: type as "task", updated_at: new Date(),
       })
       .returning("id").executeTakeFirstOrThrow();
     return r.id;

@@ -26,7 +26,7 @@ import { ToastHost, useToast } from "./Toast";
 import { timeOfDay } from "../../lib/sun";
 
 /** Where the composer belongs, and where it does not. */
-const TABS = ["/today", "/threads", "/memories", "/"];
+const TABS = ["/today", "/threads", "/notes", "/"];
 
 export function Shell() {
   const router = useRouter();
@@ -73,11 +73,15 @@ export function Shell() {
           onPress: () => router.replace("/threads"),
         },
         {
-          key: "memories",
-          label: "Memories",
+          // `cloudy` was chosen for the word Memories and is kept for Notes:
+          // the screen is still what offload has collected about you, and the
+          // glyph was never about the noun. Looked at rather than inherited,
+          // per 014's task list.
+          key: "notes",
+          label: "Notes",
           icon: "cloudy",
-          active: pathname === "/memories",
-          onPress: () => router.replace("/memories"),
+          active: pathname === "/notes",
+          onPress: () => router.replace("/notes"),
         },
       ]
     : [];

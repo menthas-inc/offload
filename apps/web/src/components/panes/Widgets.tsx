@@ -4,8 +4,8 @@
 //
 // From ui_kits/android_app/M3ThreadWidgets.jsx, whose own comment is the rule
 // this implements: "widgets a thread earns from its own contents: a map when it
-// has places, a timeline when it has dated steps, a file grid when it has
-// assets."
+// has places, a file grid when it has assets." *The timeline was one of these
+// and is 015's rail now, above this.*
 //
 // **A widget is a view, never a store.** Every row here is a row in "Everything
 // in here", filtered. Nothing is fetched per widget: the page has one content
@@ -25,13 +25,10 @@ import { Icon } from "../Icon";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import {
   DONE_SHOWN,
-  cadenceLabel,
   filtersFor,
   matching,
   splitDone,
-  splitRepeating,
   widgetsFor,
-  type Series,
   type Widget,
 } from "../../lib/widgets";
 import { QUICK_ADD_CHARS, quickAdd } from "../../lib/threads";
@@ -40,7 +37,6 @@ import type { ContentRow } from "../../lib/threads";
 const HEADINGS: Record<string, string> = {
   map: "Places",
   todo: "To do",
-  timeline: "Timeline",
   files: "Files",
 };
 
@@ -102,12 +98,6 @@ function WidgetBlock({
   const [adding, setAdding] = useState(false);
   const filters = filtersFor(widget.rows, dimension);
   const { left, done } = splitDone(matching(widget.rows, dimension, only));
-  // Only the timeline. A repeating event is still one task in To do and one
-  // file in Files, and collapsing it there would hide rows that are genuinely
-  // separate things.
-  const split = widget.kind === "timeline" ? splitRepeating(left) : null;
-  const onceRows = split ? split.once : left;
-  const repeating: Series<ContentRow>[] = split ? split.repeating : [];
 
   return (
     <section>
@@ -160,29 +150,9 @@ function WidgetBlock({
         </div>
       ) : null}
 
-      {/* **A repeating event is one thing in a list, not thirty.** A weekly
-          class filed as thirty occurrences drew thirty identical rows and
-          pushed everything that happened once off the bottom. A calendar can
-          repeat for free because every day already has a cell; a list spends a
-          whole row to say what the row above said. Only the timeline splits,
-          because it is the only widget whose rows are occurrences. */}
-      {onceRows.map((row) => (
+      {left.map((row) => (
         <Row key={row.id} row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />
       ))}
-
-      {repeating.length > 0 ? (
-        <>
-          <h3 className={styles.subSection}>Repeating</h3>
-          {repeating.map((series) => (
-            <RepeatingRow
-              key={series.ref}
-              series={series}
-              handlers={handlers}
-              onToggle={onToggle}
-            />
-          ))}
-        </>
-      ) : null}
 
       {/* A finished task keeps its place and sinks below everything
           outstanding. Past five, the list shows the most recent and offers the
@@ -331,36 +301,6 @@ function Pins({ rows }: { rows: ContentRow[] }) {
   );
 }
 
-/** One repeating thing, standing for all of its occurrences.
- *
- *  It draws as an ordinary row so it can be opened, renamed and archived like
- *  any other, and the meta line carries what the collapse took away: how often,
- *  and how many are held. **The occurrences are counted, never hidden**, and
- *  the calendar still draws every one of them.
- *
- *  The date shown is the next one that has not happened, because a repeating
- *  thing is a question about what is coming rather than about what it did. */
-function RepeatingRow({
-  series,
-  handlers,
-  onToggle,
-}: {
-  series: Series<ContentRow>;
-  handlers: RowHandlers;
-  onToggle: (row: ContentRow) => void;
-}) {
-  const often = cadenceLabel(series.everyDays);
-  return (
-    <Row
-      row={series.row}
-      widget="timeline"
-      handlers={handlers}
-      onToggle={onToggle}
-      note={often ? `${often} · ${series.count} held` : `${series.count} dates`}
-    />
-  );
-}
-
 function Row({
   row,
   widget,
@@ -395,7 +335,7 @@ function Row({
           />
         ) : (
           <span className={styles.rowIcon}>
-            <Icon name={widget === "map" ? "map-pin" : widget === "timeline" ? "clock" : "paperclip"} size={18} />
+            <Icon name={widget === "map" ? "map-pin" : "paperclip"} size={18} />
           </span>
         )
       }

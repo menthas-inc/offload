@@ -33,6 +33,7 @@ app.log.info("job runner started");
 // restart or a second instance collapses into one row rather than stacking.
 await startDaily("calendar.supervise");
 await startDaily("jobs.purge");
+await startDaily("account.daily");
 
 // 013's sweep books its own successor, so this only has to start the chain.
 // Enqueued rather than run inline: boot should not wait on three index scans.

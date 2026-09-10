@@ -76,7 +76,7 @@ beforeAll(async () => {
     await sql`
       with rows as (
         insert into content (thread_id, account_id, title, type)
-        select ${threads[i]}::uuid, ${accounts[i]}::uuid, 'row ' || g, 'note'
+        select ${threads[i]}::uuid, ${accounts[i]}::uuid, 'row ' || g, 'voice'
         from generate_series(1, ${count}) g
         returning id, thread_id
       )
@@ -223,13 +223,13 @@ describe("AC-12 the corpus tables exist and keep chunks apart from vectors", () 
     const rows = await sql<{ table_name: string }>`
       select table_name from information_schema.tables
       where table_schema = current_schema()
-        and table_name in ('content_chunks', 'memory_chunks', 'message_chunks')
+        and table_name in ('content_chunks', 'note_chunks', 'message_chunks')
       order by table_name
     `.execute(db);
     expect(rows.rows.map((r) => r.table_name)).toEqual([
       "content_chunks",
-      "memory_chunks",
       "message_chunks",
+      "note_chunks",
     ]);
   });
 
@@ -246,7 +246,7 @@ describe("AC-12 the corpus tables exist and keep chunks apart from vectors", () 
         and t.table_type = 'BASE TABLE'
       order by c.table_name
     `.execute(db);
-    expect(rows.rows.map((r) => r.table_name)).toEqual(["content", "memories", "messages"]);
+    expect(rows.rows.map((r) => r.table_name)).toEqual(["content", "messages", "notes"]);
   });
 
   it("finds an exact term through the generated column", async () => {
@@ -286,7 +286,7 @@ describe("the chunk tables are vacuumed sooner than the default", () => {
     // is enough to be felt.
     const rows = await sql<{ relname: string; reloptions: string[] | null }>`
       select relname, reloptions from pg_class
-      where relname in ('content_chunks', 'memory_chunks', 'message_chunks')
+      where relname in ('content_chunks', 'note_chunks', 'message_chunks')
       order by relname
     `.execute(db);
 

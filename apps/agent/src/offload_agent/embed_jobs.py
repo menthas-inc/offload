@@ -30,7 +30,7 @@ from offload_agent.queue import ClaimedJob, finish, release_for_retry
 
 log = structlog.get_logger()
 
-KINDS = ["embed.content", "embed.memory", "embed.message"]
+KINDS = ["embed.content", "embed.note", "embed.message"]
 
 
 _CONTENT = text(
@@ -44,12 +44,12 @@ _CONTENT = text(
     """
 )
 
-_MEMORY = text(
+_NOTE = text(
     """
     select threads.name as thread_name, null as title,
-           memories.text as body, memories.subject_id::text as owner_id
-    from memories left join threads on threads.id = memories.subject_id
-    where memories.id = :id and memories.deleted_at is null
+           notes.text as body, notes.subject_id::text as owner_id
+    from notes left join threads on threads.id = notes.subject_id
+    where notes.id = :id and notes.deleted_at is null
     """
 )
 
@@ -69,7 +69,7 @@ _MESSAGE = text(
 
 _SOURCES = {
     "embed.content": ("content_chunks", "content_id", "thread_id", _CONTENT),
-    "embed.memory": ("memory_chunks", "memory_id", "subject_id", _MEMORY),
+    "embed.note": ("note_chunks", "note_id", "subject_id", _NOTE),
     "embed.message": ("message_chunks", "message_id", "account_id", _MESSAGE),
 }
 

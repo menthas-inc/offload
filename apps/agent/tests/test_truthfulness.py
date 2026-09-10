@@ -336,7 +336,7 @@ async def test_a_rule_becomes_a_memory_and_a_task_does_not(dump, is_rule):
     wrote_memory: list[str] = []
 
     async def call_tool(tool, tool_call_id, args):
-        if tool == "add_memory":
+        if tool == "add_note":
             wrote_memory.append(args["text"])
             return {"ok": True, "done": True}
         if tool == "create_thread":

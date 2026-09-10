@@ -155,11 +155,10 @@ export default function Privacy() {
               <strong>Transcripts</strong> of your voice notes, and text read out of screenshots.
             </li>
             <li>
-              <strong>Memories</strong>, which are short standing notes about a thread: how you
-              want it handled, or something that stays true about it. You write some of them and
-              offload writes others from what you dumped, and they are what lets it be useful
-              without your whole history in front of it. Plus the numeric representations that
-              make search work.
+              <strong>Notes</strong>, which are short sentences about a thread: something that is
+              true about it, or how you want it handled. You write some of them and offload writes
+              others from what you dumped, and they are what lets it be useful without your whole
+              history in front of it. Plus the numeric representations that make search work.
             </li>
           </ul>
 
@@ -472,7 +471,20 @@ export default function Privacy() {
             <li>
               <strong>What you upload: for as long as your account exists.</strong> offload does not
               age your uploads out or thin them down over time. Being able to find something from
-              three years ago is the product, so nothing expires on a clock.
+              three years ago is the product, so nothing expires on a clock. This covers what you
+              put in: your dumps, the conversations they arrived in, and your photos, screenshots
+              and voice notes.
+            </li>
+            <li>
+              <strong>What offload works out about you: for as long as it is still true.</strong>{" "}
+              The short notes it keeps on a thread are its picture of that thread, not a record of
+              what you said, and it revises them. Once a day it goes over them: it merges two that
+              say the same thing, it combines ones that belong together, it drops what has stopped
+              being true, and it adds what it learned from your conversations that day. Notes it
+              wrote itself it can also remove. A note you typed it can set aside, so it stops acting
+              on it, and it cannot delete your words. All of it is on the thread, in front of you,
+              yours to correct, and yours to delete where you wrote it: in a thread you share, the
+              rule below holds here too, and nobody deletes what somebody else wrote.
             </li>
             <li>
               <strong>Anything you delete: immediately, then 30 days.</strong> It goes from the live
@@ -488,11 +500,11 @@ export default function Privacy() {
 
           <h3 className={styles.h3}>Deleting your account, and shared threads</h3>
           <p>
-            Deleting your account removes what you kept privately, including your memories, and
-            your membership of every thread you were in. There is one deliberate exception:{" "}
+            Deleting your account removes what you kept privately, including your notes, and your
+            membership of every thread you were in. There is one deliberate exception:{" "}
             <strong>
               what you put into a thread you shared with other people stays in that thread, and
-              that includes the memories you added to it.
+              that includes the notes you added to it.
             </strong>{" "}
             Understand this before you share anything, so here is the reasoning behind it.
           </p>
@@ -583,7 +595,7 @@ export default function Privacy() {
 
           <h3 className={styles.h3}>What is not, and what that means</h3>
           <p>
-            The text in offload is not encrypted by us. Titles, notes, transcripts, memories and
+            The text in offload is not encrypted by us. Titles, bodies, transcripts, notes and
             search indexes sit in our database as ordinary text, protected by our provider's own
             disk encryption and by access control, the way most software works. Three consequences
             follow from that:

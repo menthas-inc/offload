@@ -29,7 +29,7 @@ let n = 0;
 function row(over: Partial<Sortable> = {}): Sortable {
   return {
     id: `r${n++}`,
-    type: "note",
+    type: "voice",
     priority: 50,
     tags: [],
     doneAt: null,
@@ -40,7 +40,7 @@ function row(over: Partial<Sortable> = {}): Sortable {
 }
 
 describe("widgets are earned", () => {
-  it("draws none for a thread of plain notes (AC-1)", () => {
+  it("draws none for a thread that earns nothing (AC-1)", () => {
     expect(widgetsFor([row(), row()])).toEqual([]);
   });
 
@@ -52,23 +52,30 @@ describe("widgets are earned", () => {
     const rows = [
       row({ placeId: "p1" }),
       row({ type: "task" }),
-      row({ occursAt: "2026-09-20T00:00:00Z" }),
       row({ type: "image" }),
     ];
-    expect(widgetsFor(rows).map((w) => w.kind).sort()).toEqual([
-      "files",
-      "map",
-      "timeline",
-      "todo",
-    ]);
+    expect(widgetsFor(rows).map((w) => w.kind).sort()).toEqual(["files", "map", "todo"]);
   });
 
   it("loses a widget when the content that earned it goes (AC-1)", () => {
-    // A thread that loses its last dated row loses its timeline. That is the
-    // system working, not state going missing.
+    // A thread that loses its last place loses its map. That is the system
+    // working, not state going missing.
+    //
+    // *This asserted the same thing about a dated row and the timeline until
+    // 015, which took the timeline out of the earned set: it is a rail at the
+    // top of every thread now, drawn whether or not a date exists.*
+    const placed = row({ placeId: "p1" });
+    expect(widgetsFor([placed]).map((w) => w.kind)).toEqual(["map"]);
+    expect(widgetsFor([{ ...placed, placeId: null }])).toEqual([]);
+  });
+
+  it("never earns a timeline, whatever the thread holds (AC-1)", () => {
     const dated = row({ occursAt: "2026-09-20T00:00:00Z" });
-    expect(widgetsFor([dated]).map((w) => w.kind)).toEqual(["timeline"]);
-    expect(widgetsFor([{ ...dated, occursAt: null }])).toEqual([]);
+    expect(widgetsFor([dated])).toEqual([]);
+    // And a stored preference naming it is ignored rather than breaking, which
+    // is what `widgetsFor` already does for a kind a thread does not earn.
+    expect(widgetsFor([dated, row({ type: "task" })], ["timeline", "todo"]).map((w) => w.kind))
+      .toEqual(["todo"]);
   });
 
   it("still earns a to-do list from tasks that are all done (AC-1)", () => {
@@ -317,7 +324,7 @@ describe("the thread read does not grow with what a thread holds (AC-9)", () => 
         .insertInto("content")
         .values({
           account_id: account.id, thread_id: bare, title: `note ${i}`,
-          type: "note", updated_at: new Date(),
+          type: "voice", updated_at: new Date(),
         })
         .execute();
     }

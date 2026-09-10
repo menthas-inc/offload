@@ -11,7 +11,7 @@
 // less predictable version of a query we already know how to write, and it is
 // what makes an answer twenty rows long when it is two.
 //
-// Everything here reads `readable_content` and `readable_memories` from 0026.
+// Everything here reads `readable_content` and `readable_notes` from 0026 and 0033.
 // No membership rule is written in this file.
 
 import { sql } from "kysely";
@@ -51,16 +51,16 @@ export interface FoundRow {
 
 /** Something read that is not a content row.
  *
- *  A memory is a standing rule about a thread and a message is what somebody
+ *  A note is what a thread holds about itself and a message is what somebody
  *  said while dumping. Both can answer a question and **neither is a row to
- *  draw**: a memory has no checkbox and rendering half a conversation back at
+ *  draw**: a note has no checkbox and rendering half a conversation back at
  *  somebody is not an answer. They reach the model and stop there.
  *
  *  `who` is load bearing on a message. Half of a conversation is offload's own
  *  output, and a past reply that was wrong is otherwise indistinguishable from
  *  something a person stated. */
 export interface Aside {
-  kind: "memory" | "message";
+  kind: "note" | "message";
   who: "you" | "offload" | "a member";
   threadName: string | null;
   text: string;
@@ -121,7 +121,6 @@ function page<T>(rows: T[]): { rows: T[]; truncated: boolean } {
  *  `content.type`; a value outside it is a filter that can only ever match
  *  nothing, so it is refused at the schema rather than run. */
 export type ContentType =
-  | "note"
   | "link"
   | "image"
   | "screenshot"
@@ -387,28 +386,28 @@ export async function search(accountId: string, options: SearchOptions): Promise
   };
 }
 
-/** How many memories and messages an answer may read. Small on purpose: they
+/** How many notes and messages an answer may read. Small on purpose: they
  *  inform a sentence rather than being the answer, and every one of them is
  *  prompt that competes with the rows. */
 export const ASIDES = 5;
 
-/** Memories and conversations, searched by text and by meaning.
+/** Notes and conversations, searched by text and by meaning.
  *
  *  Separately from content rather than fused with it, because they are not
- *  ranked against each other in any meaningful way: a standing rule and a task
+ *  ranked against each other in any meaningful way: a note and a task
  *  answer different halves of a question, and interleaving them by score would
  *  push rows out of a list to make room for context.
  */
 async function asidesFor(accountId: string, options: SearchOptions): Promise<Aside[]> {
-  const memories = await sql<{ text: string; thread_name: string | null }>`
+  const notes = await sql<{ text: string; thread_name: string | null }>`
     select m.text as text, t.name as thread_name
-    from readable_memories m
+    from readable_notes m
     left join threads t on t.id = m.subject_id
     where m.viewer_account_id = ${accountId}::uuid
       and m.deleted_at is null and m.superseded_at is null and m.muted_at is null
-      -- A memory scoped to a deleted thread is a standing rule about somewhere
-      -- that no longer exists, and it would still be steering the answer. The
-      -- left join means an account-scoped memory has no thread and stays.
+      -- A note scoped to a deleted thread is about somewhere that no longer
+      -- exists, and it would still be steering the answer. The left join means
+      -- an account-scoped note has no thread and stays.
       and (t.id is null or t.deleted_at is null)
       and m.search_text @@ websearch_to_tsquery('simple', ${options.query})
     order by ts_rank(m.search_text, websearch_to_tsquery('simple', ${options.query})) desc,
@@ -439,8 +438,8 @@ async function asidesFor(accountId: string, options: SearchOptions): Promise<Asi
   `.execute(db);
 
   return [
-    ...memories.rows.map((row) => ({
-      kind: "memory" as const,
+    ...notes.rows.map((row) => ({
+      kind: "note" as const,
       who: "a member" as const,
       threadName: row.thread_name,
       text: row.text.slice(0, ANSWER_ROW_CHARS),

@@ -5,16 +5,22 @@
 
 import { sql } from "kysely";
 import { db } from "../db.js";
-import { deleteMemoriesForThread } from "../threads/memories.js";
+import { NOTE_PROMPT_BUDGET, deleteNotesForThread } from "../threads/notes.js";
 import { resolvePlace } from "../places/resolve.js";
 import type { Mailer } from "../mail/index.js";
 import { env } from "../env.js";
 import { scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
-import { scheduleDaily } from "./queue.js";
+import { enqueue, PRIORITY, scheduleDaily } from "./queue.js";
 import { emit } from "../analytics.js";
 import { sweepEmbeds } from "../search/sweep.js";
 
-export type Handler = (payload: Record<string, unknown>, deps: { mailer: Mailer }) => Promise<void>;
+export type Handler = (
+  payload: Record<string, unknown>,
+  deps: { mailer: Mailer },
+  /** The job row's own account, for handlers that work on one. Null for the
+   *  scheduled sweeps, which belong to nobody. */
+  accountId: string | null,
+) => Promise<void>;
 
 /** The waitlist confirmation.
  *
@@ -118,6 +124,13 @@ const contentPurge: Handler = async () => {
   await db.transaction().execute(async (trx) => {
     const due = sql<boolean>`deleted_at is not null and purge_after is not null and purge_after < now()`;
 
+    // **A folded note is the one row here that is due without being deleted.**
+    // 014's daily job sets a note aside rather than destroying it, and gives
+    // offload's own thirty days of history before it goes. A person's carries
+    // no `purge_after`, so this predicate never matches one however old it is.
+    const folded = sql<boolean>`deleted_at is null and superseded_at is not null
+      and purge_after is not null and purge_after < now()`;
+
     const counts = await Promise.all([
       trx
         .selectFrom("content")
@@ -130,7 +143,7 @@ const contentPurge: Handler = async () => {
         .where(due)
         .executeTakeFirstOrThrow(),
       trx
-        .selectFrom("memories")
+        .selectFrom("notes")
         .select(({ fn }) => fn.countAll<string>().as("n"))
         .where(due)
         .executeTakeFirstOrThrow(),
@@ -139,10 +152,14 @@ const contentPurge: Handler = async () => {
         .select(({ fn }) => fn.countAll<string>().as("n"))
         .where(due)
         .executeTakeFirstOrThrow(),
+      trx
+        .selectFrom("notes")
+        .select(({ fn }) => fn.countAll<string>().as("n"))
+        .where(folded)
+        .executeTakeFirstOrThrow(),
     ]);
 
-    const total =
-      Number(counts[0].n) + Number(counts[1].n) + Number(counts[2].n) + Number(counts[3].n);
+    const total = counts.reduce((sum, row) => sum + Number(row.n), 0);
     if (total === 0) return;
 
     if (total > PURGE_CEILING) {
@@ -155,17 +172,19 @@ const contentPurge: Handler = async () => {
     // other order would silently orphan a row from the message it came from
     // in the moment before it was deleted itself.
     await trx.deleteFrom("content").where(due).execute();
-    // Memories before messages for the same reason content is: a memory's
+    // Notes before messages for the same reason content is: a note's
     // `derived_from_message_id` is on delete set null, so the other order
     // orphans it from its source in the moment before it goes itself.
-    await trx.deleteFrom("memories").where(due).execute();
+    await trx.deleteFrom("notes").where(due).execute();
+    // And the folded history that has run out its thirty days.
+    await trx.deleteFrom("notes").where(folded).execute();
     await trx.deleteFrom("messages").where(due).execute();
 
     // A thread nobody is left in. Everything that points at it cascades,
     // `content`, `thread_members` and `thread_keys`, with one exception that
-    // does not: `memories.subject_id` is polymorphic so it carries no foreign
+    // does not: `notes.subject_id` is polymorphic so it carries no foreign
     // key, and nothing removes those unless it is told to. This is the caller
-    // 008 wrote `deleteMemoriesForThread` for and could not wire, because
+    // 008 wrote `deleteNotesForThread` for and could not wire, because
     // until now no path in the product deleted a thread.
     const deadThreads = await trx
       .selectFrom("threads")
@@ -173,7 +192,7 @@ const contentPurge: Handler = async () => {
       .where(due)
       .execute();
     for (const thread of deadThreads) {
-      await deleteMemoriesForThread(thread.id, trx);
+      await deleteNotesForThread(thread.id, trx);
     }
     await trx.deleteFrom("threads").where(due).execute();
   });
@@ -284,7 +303,150 @@ const embedSweep: Handler = async () => {
   await sweepEmbeds();
 };
 
+/** The daily job, fanned out per account.
+ *
+ *  One row per account with something to work on, rather than one job that
+ *  walks every account: a per-account job retries on its own, fails on its own,
+ *  and shows up in the queue as the account it belongs to. The idempotency key
+ *  is the account and the day, so a restart or a second instance collapses into
+ *  the row that already exists.
+ *
+ *  **Accounts with no activity are skipped.** There is nothing to compact on a
+ *  thread nobody has touched, and waking every account that ever existed is the
+ *  shape that gets expensive quietly.
+ */
+const accountDaily: Handler = async () => {
+  await scheduleDaily("account.daily");
+
+  const since = new Date(Date.now() - 25 * 60 * 60 * 1000);
+  const accounts = await db
+    .selectFrom("accounts")
+    .select("id")
+    .where("state", "=", "active")
+    .where((eb) =>
+      eb.exists(
+        eb
+          .selectFrom("thread_members")
+          .innerJoin("threads", "threads.id", "thread_members.thread_id")
+          .select("threads.id")
+          .whereRef("thread_members.account_id", "=", "accounts.id")
+          .where("thread_members.state", "=", "accepted")
+          .where("threads.deleted_at", "is", null)
+          .where((inner) =>
+            inner.or([
+              inner("threads.last_activity_at", ">=", since),
+              // **Over the budget is its own reason to run.** Activity alone
+              // was the gate until the review found what it misses: a thread
+              // goes over a hundred, the account goes quiet, and nothing ever
+              // comes back for it. AC-8 has no carve-out for a dormant
+              // account, and neither does this.
+              inner(
+                inner
+                  .selectFrom("notes")
+                  .select(({ fn }) => fn.countAll<number>().as("n"))
+                  .whereRef("notes.subject_id", "=", "threads.id")
+                  .where("notes.scope", "=", "thread")
+                  .where("notes.deleted_at", "is", null)
+                  .where("notes.superseded_at", "is", null),
+                ">",
+                NOTE_PROMPT_BUDGET
+              ),
+            ])
+          )
+      )
+    )
+    .execute();
+
+  const day = new Date().toISOString().slice(0, 10);
+  for (const account of accounts) {
+    await enqueue({
+      kind: "account.daily.run",
+      accountId: account.id,
+      payload: {},
+      priority: PRIORITY.background,
+      idempotencyKey: `account.daily.run:${account.id}:${day}`,
+      maxAttempts: 3,
+    });
+  }
+
+  console.log(
+    JSON.stringify({ level: "info", msg: "daily fanned out", accounts: accounts.length })
+  );
+};
+
+/** One account's day.
+ *
+ *  Step one of three. Today generation and thread compaction land here as they
+ *  are built, which is why this is a job of its own rather than the fan-out
+ *  enqueuing `notes.compact` directly.
+ *
+ *  A thread is worth compacting when it has more notes than the prompt carries,
+ *  or when the day left new ones on it: the first is the budget, the second is
+ *  how a contradiction written this morning gets resolved tonight rather than
+ *  in a fortnight.
+ */
+const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
+  if (!accountId) throw new Error("account.daily.run has no account");
+
+  const since = new Date(Date.now() - 25 * 60 * 60 * 1000);
+  const threads = await db
+    .selectFrom("threads")
+    .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
+    .select(["threads.id as id"])
+    .where("thread_members.account_id", "=", accountId)
+    .where("thread_members.state", "=", "accepted")
+    .where("threads.deleted_at", "is", null)
+    .where((eb) =>
+      eb.or([
+        eb.exists(
+          eb
+            .selectFrom("notes")
+            .select("notes.id")
+            .whereRef("notes.subject_id", "=", "threads.id")
+            .where("notes.scope", "=", "thread")
+            .where("notes.deleted_at", "is", null)
+            .where("notes.superseded_at", "is", null)
+            .where("notes.updated_at", ">=", since)
+        ),
+        // Counted as a number, not as text. `count` comes back as a string in
+        // the driver, and comparing it as one makes "100" smaller than "20".
+        eb(
+          eb
+            .selectFrom("notes")
+            .select(({ fn }) => fn.countAll<number>().as("n"))
+            .whereRef("notes.subject_id", "=", "threads.id")
+            .where("notes.scope", "=", "thread")
+            .where("notes.deleted_at", "is", null)
+            .where("notes.superseded_at", "is", null),
+          ">",
+          NOTE_PROMPT_BUDGET
+        ),
+      ])
+    )
+    .execute();
+
+  const day = new Date().toISOString().slice(0, 10);
+  for (const thread of threads) {
+    await enqueue({
+      kind: "notes.compact",
+      accountId,
+      payload: { threadId: thread.id },
+      priority: PRIORITY.background,
+      idempotencyKey: `notes.compact:${thread.id}:${day}`,
+      maxAttempts: 2,
+    });
+  }
+
+  // Counts, never text. This job is about a hundred sentences of dumped text
+  // and it is the first one in the product that holds that many at once.
+  console.log(
+    JSON.stringify({ level: "info", msg: "daily run", threads: threads.length })
+  );
+};
+
 export const handlers: Record<string, Handler> = {
+  "account.daily": accountDaily,
+  "account.daily.run": accountDailyRun,
   "embed.sweep": embedSweep,
   "calendar.sync": calendarSync,
   "calendar.supervise": calendarSupervise,

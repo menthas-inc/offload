@@ -250,7 +250,6 @@ export interface ContentTable {
   /** The undo unit and the provenance. */
   derived_from_message_id: string | null;
   type: Generated<
-    | "note"
     | "link"
     | "image"
     | "screenshot"
@@ -342,11 +341,15 @@ export interface LlmUsageTable {
   created_at: Timestamp;
 }
 
-/** A short standing fact about a thread that is not content in it.
+/** A sentence about a thread: what is true about it, and sometimes how it is
+ *  handled.
  *
- *  "Write todo names in three words" is a memory; "chase the electrician" is a
- *  task. The test is whether it would appear in a widget. Ten per thread, so
- *  what reaches a prompt is bounded by a constant rather than by how long
+ *  "Write todo names in three words" is a note; so is "we are staying in
+ *  Istanbul the 10th to the 12th". "Chase the electrician" is a task. **008's
+ *  test, whether it would appear in a widget, stopped working when a note
+ *  gained dates**, which is what 014 merged the two concepts to allow.
+ *  A hundred per thread reach a prompt, so what reaches one is bounded by a
+ *  constant rather than by how long
  *  somebody has used offload (OFF-8). */
 /** Which threads one turn changed.
  *
@@ -364,7 +367,7 @@ export interface MessageThreadsTable {
   created_at: Timestamp;
 }
 
-export interface MemoriesTable {
+export interface NotesTable {
   id: Generated<string>;
   /** The author. Decides delete (OFF-3) and shows in a shared thread. Never a
    *  read predicate: reads resolve through thread_members on subject_id, the
@@ -385,14 +388,30 @@ export interface MemoriesTable {
   derived_from_untrusted: Generated<boolean>;
   /** Any member, thread-wide, reversible. Content has `archived_at` for the
    *  same job: let everyone quiet something without letting anyone destroy
-   *  what somebody else wrote. A muted memory does not reach the model. */
+   *  what somebody else wrote. A muted note does not reach the model. */
   muted_at: Timestamp | null;
   derived_from_message_id: string | null;
+  /** The model's tool_use block id. Idempotent within a turn, and deliberately
+   *  not across a resume. Same column and same reasoning as `content`. */
+  tool_call_id: string | null;
+  /** What somebody dumped when it did not fit in `text`, kept whole.
+   *
+   *  **It never reaches a prompt.** `text` is the 200 characters the model
+   *  reads; this is the rest of the words, and the pair is why a paragraph can
+   *  be dumped into a thread without being truncated or refused. */
+  body: string | null;
+  /** When it happens. A note with one is on the timeline; most have none. */
+  occurs_at: Timestamp | null;
+  occurs_end_at: Timestamp | null;
+  due_at: Timestamp | null;
+  /** Null forever is a normal state, the same as it is for content. */
+  place_id: string | null;
   attrs: Generated<unknown>;
   created_at: Timestamp;
   updated_at: Timestamp;
-  /** Set by compaction, which does not exist yet. Filtered by every
-   *  current-memory query regardless, because forgetting is silent. */
+  /** Set aside by the daily job: out of the prompt, out of the section, still
+   *  on the thread. Filtered by every current-note query, because forgetting
+   *  is silent. */
   superseded_at: Timestamp | null;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;
@@ -509,9 +528,9 @@ export interface ContentChunksTable {
   created_at: Generated<Timestamp>;
 }
 
-export interface MemoryChunksTable {
+export interface NoteChunksTable {
   id: Generated<string>;
-  memory_id: string;
+  note_id: string;
   subject_id: string | null;
   ord: number;
   text: string;
@@ -571,7 +590,7 @@ export interface Database {
   messages: MessagesTable;
   content: ContentTable;
   message_threads: MessageThreadsTable;
-  memories: MemoriesTable;
+  notes: NotesTable;
   places: PlacesTable;
   place_lookups: PlaceLookupsTable;
   llm_usage: LlmUsageTable;
@@ -589,11 +608,11 @@ export interface Database {
    *  answer. Filter `viewer_account_id` and then whatever lifecycle the read
    *  actually means. */
   content_chunks: ContentChunksTable;
-  memory_chunks: MemoryChunksTable;
+  note_chunks: NoteChunksTable;
   message_chunks: MessageChunksTable;
   message_content: MessageContentTable;
 
   readable_content: ContentTable & { viewer_account_id: string };
-  readable_memories: MemoriesTable & { viewer_account_id: string };
+  readable_notes: NotesTable & { viewer_account_id: string };
   readable_messages: MessagesTable & { viewer_account_id: string };
 }

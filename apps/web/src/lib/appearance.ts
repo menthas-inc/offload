@@ -27,13 +27,16 @@ import { useCallback, useEffect, useState } from "react";
 
 const THEME_KEY = "offload:theme";
 const SIZE_KEY = "offload:type-size";
+const WEEK_KEY = "offload:week-start";
 const CHANGED = "offload:appearance";
 
 export type Theme = "light" | "dark" | "system";
 export type TypeSize = "normal" | "large";
+export type { WeekStart } from "./widgets";
 
 export const THEMES: Theme[] = ["light", "dark", "system"];
 export const TYPE_SIZES: TypeSize[] = ["normal", "large"];
+export const WEEK_STARTS = ["monday", "sunday"] as const;
 
 /** What the row and the segmented control both print. Sentence case, because
  *  everything is. */
@@ -48,6 +51,16 @@ export const TYPE_SIZE_LABEL: Record<TypeSize, string> = {
   large: "Larger",
 };
 
+/** Which day a week starts on, for 015's rail.
+ *
+ *  Device-local, like the two above it. It is arguably an account preference
+ *  and would then need a column, an endpoint and a sync, which is a lot for a
+ *  value somebody sets once and never thinks about again. */
+export const WEEK_START_LABEL: Record<string, string> = {
+  monday: "Monday",
+  sunday: "Sunday",
+};
+
 function storedTheme(): Theme {
   const raw = window.localStorage.getItem(THEME_KEY);
   return raw === "dark" || raw === "light" || raw === "system" ? raw : "light";
@@ -55,6 +68,10 @@ function storedTheme(): Theme {
 
 function storedSize(): TypeSize {
   return window.localStorage.getItem(SIZE_KEY) === "large" ? "large" : "normal";
+}
+
+function storedWeekStart(): "monday" | "sunday" {
+  return window.localStorage.getItem(WEEK_KEY) === "sunday" ? "sunday" : "monday";
 }
 
 /** What `system` resolves to right now. */
@@ -73,8 +90,10 @@ function paint(theme: Theme, size: TypeSize): void {
 export interface Appearance {
   theme: Theme;
   size: TypeSize;
+  weekStart: "monday" | "sunday";
   setTheme: (theme: Theme) => void;
   setSize: (size: TypeSize) => void;
+  setWeekStart: (start: "monday" | "sunday") => void;
 }
 
 export function useAppearance(): Appearance {
@@ -82,11 +101,13 @@ export function useAppearance(): Appearance {
   // document is already showing, so nothing flips on the way in.
   const [theme, setThemeState] = useState<Theme>("light");
   const [size, setSizeState] = useState<TypeSize>("normal");
+  const [weekStart, setWeekStartState] = useState<"monday" | "sunday">("monday");
 
   useEffect(() => {
     const read = (): void => {
       setThemeState(storedTheme());
       setSizeState(storedSize());
+      setWeekStartState(storedWeekStart());
     };
     read();
 
@@ -122,5 +143,12 @@ export function useAppearance(): Appearance {
     window.dispatchEvent(new Event(CHANGED));
   }, []);
 
-  return { theme, size, setTheme, setSize };
+  // Nothing to paint: the rail reads this and redraws from the array it already
+  // holds, which is why changing it costs no fetch.
+  const setWeekStart = useCallback((next: "monday" | "sunday") => {
+    window.localStorage.setItem(WEEK_KEY, next);
+    window.dispatchEvent(new Event(CHANGED));
+  }, []);
+
+  return { theme, size, weekStart, setTheme, setSize, setWeekStart };
 }

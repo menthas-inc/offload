@@ -1423,27 +1423,27 @@ a.settingsRow:hover {
   box-shadow: var(--shadow-1);
 }
 
-/* ------------------------------------------------------------- memories
+/* ---------------------------------------------------------------- notes
    The standing rules a thread holds about itself. No kit draws this section:
-   `WThing` has no memories, and the chip rows in `WMemories` and `WPerson` are
+   `WThing` has no notes section, and the chip rows in `WMemories` and `WPerson` are
    stale, passing a `variant="soft"` the governed Chip contract does not
    declare and the readme retired. Built from the contracts instead, with the
    kits as shape reference.
 
    The `.chip` base above is the contract's 30px pill. These add only what a
-   memory needs and the contract does not have: a width, an ellipsis, and a
+   note needs and the contract does not have: a width, an ellipsis, and a
    tone for muted. */
 
-.memories {
+.notes {
   display: flex;
   flex-direction: column;
   padding: var(--space-3) 0 var(--space-2);
 }
 
-/* A row, not a chip. A memory is a sentence up to 200 characters and it is set
+/* A row, not a chip. A note is a sentence up to 200 characters and it is set
    as one: full text, wrapped, read without a click. The chip truncated it to a
    window you had to open to read. */
-.memoryRow {
+.noteRow {
   display: flex;
   align-items: flex-start;
   gap: var(--space-4);
@@ -1464,48 +1464,60 @@ a.settingsRow:hover {
   box-shadow: inset 0 -1px 0 var(--border-hairline);
 }
 
-.memoryRow:last-of-type {
+.noteRow:last-of-type {
   box-shadow: none;
 }
 
-.memoryRow:hover {
+.noteRow:hover {
   background: var(--surface-fill);
 }
 
 /* offload wrote it: sparkles and moss, which is what moss means everywhere
    else here. */
-.memoryRow[data-tone="accent"] {
+.noteRow[data-tone="accent"] {
   color: var(--text-accent);
 }
 
-.memoryRow[data-tone="muted"] {
+.noteRow[data-tone="muted"] {
   color: var(--text-tertiary);
 }
 
-.memoryGlyph {
+/* Past the prompt budget, or read from the folded history. Same register a
+   finished task uses when it sinks: still here, still readable, visibly not
+   what offload is working from. Never hidden, because a note somebody believes
+   is steering offload and is not is worse than one they know about. */
+.noteRow[data-quiet] {
+  color: var(--text-tertiary);
+}
+
+.noteRow[data-quiet] .noteGlyph {
+  color: var(--text-tertiary);
+}
+
+.noteGlyph {
   flex: 0 0 auto;
   margin-top: 2px;
   color: var(--text-accent);
 }
 
 /* Wrapped, not clipped. The whole point of the row. */
-.memoryText {
+.noteText {
   flex: 1;
   min-width: 0;
 }
 
 /* After the text, in a lighter weight, on a shared thread only. */
-.memoryBy {
+.noteBy {
   color: var(--text-tertiary);
   font-weight: var(--weight-regular);
 }
 
 /* The editor stands in for the text line rather than sitting under a copy of
    it: the thing you clicked is visibly the thing you are editing, and there is
-   never a moment with the memory on screen twice. 5px of padding because the
+   never a moment with the note on screen twice. 5px of padding because the
    focus ring is drawn outside the field and a tight box clips it to four
    corner marks. */
-.memoryOpen {
+.noteOpen {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -1514,7 +1526,7 @@ a.settingsRow:hover {
   margin: 0 -5px;
 }
 
-.memoryFull {
+.noteFull {
   margin: var(--space-4) 0 0;
   color: var(--text-tertiary);
   font-weight: var(--weight-regular);
@@ -1523,7 +1535,7 @@ a.settingsRow:hover {
   font-family: var(--font-core);
 }
 
-.memoryEditor {
+.noteEditor {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -1534,7 +1546,7 @@ a.settingsRow:hover {
    says in the same line that it is never removed, and the version this file
    used to carry removed it. What was actually wrong was that the ring had
    nowhere to draw, which the padding above fixes. */
-.memoryField {
+.noteField {
   width: 100%;
   resize: vertical;
   border: 1px solid var(--border-hairline);
@@ -1548,13 +1560,13 @@ a.settingsRow:hover {
   font-family: var(--font-core);
 }
 
-.memoryActions {
+.noteActions {
   display: flex;
   align-items: center;
   gap: var(--space-4);
 }
 
-.memoryCount {
+.noteCount {
   margin-right: auto;
   color: var(--text-tertiary);
   font-weight: var(--weight-regular);
@@ -1571,7 +1583,7 @@ a.settingsRow:hover {
    The contract's own vocabulary decides which is which: primary is a solid ink
    fill and everything else recedes, so Save is ink, Cancel and Mute are the
    hairline outline, and Delete is the one that is not a preference. */
-.memoryAction {
+.noteAction {
   height: 30px;
   padding: 0 var(--space-5);
   flex: 0 0 auto;
@@ -1587,24 +1599,24 @@ a.settingsRow:hover {
   transition: background var(--transition-ui), color var(--transition-ui);
 }
 
-.memoryAction:hover {
+.noteAction:hover {
   background: var(--surface-fill);
   color: var(--text-primary);
 }
 
 /* Clay, and only on hover until then: a destructive control should be findable
    without shouting from a row of four. */
-.memoryAction[data-tone="danger"] {
+.noteAction[data-tone="danger"] {
   color: var(--text-danger);
   border-color: var(--border-hairline);
 }
 
-.memoryAction[data-tone="danger"]:hover {
+.noteAction[data-tone="danger"]:hover {
   background: var(--clay-100);
   color: var(--text-danger);
 }
 
-.memorySave {
+.noteSave {
   height: 30px;
   border: 1px solid transparent;
   padding: 0 var(--space-5);
@@ -1619,7 +1631,7 @@ a.settingsRow:hover {
   cursor: pointer;
 }
 
-.memorySave:disabled {
+.noteSave:disabled {
   opacity: 0.55;
   cursor: default;
 }
@@ -1675,4 +1687,138 @@ a.settingsRow:hover {
   background: var(--ink-100);
   color: var(--ink-400);
   cursor: default;
+}
+
+/* ----------------------------------------------------------------- the rail
+   015. A thread's dates as weeks, above the widgets.
+
+   No kit draws this. The phones' `TimelineWidget` is the nearest thing, a Mon
+   to Sun grid with one dot per day for "has content"; this keeps its shape and
+   gives the dot a colour per kind, lets a day have several, and drops the
+   Overall/Daily toggle because picking a day is the toggle.
+
+   Every value here is a token. The dot colour is the one thing set inline, from
+   a semantic alias, because it varies per dot and a class per kind would be
+   four classes saying one thing. */
+
+.rail {
+  padding: var(--space-4) 0 var(--space-2);
+}
+
+.railWeek {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.railDay {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-3) var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  font-family: var(--font-core);
+  cursor: pointer;
+}
+
+.railDay:hover {
+  background: var(--surface-fill);
+}
+
+/* Today is outlined; the day you are reading is filled. Two different
+   questions, so two different treatments rather than one that has to mean
+   both. */
+.railDay[data-today] {
+  border-color: var(--border-focus);
+}
+
+.railDay[data-on] {
+  background: var(--surface-fill);
+}
+
+/* Gone, not closed. It reads as past and it behaves like any other day. */
+.railDay[data-past] .railDom,
+.railDay[data-past] .railDow {
+  color: var(--text-tertiary);
+}
+
+.railDow {
+  font-size: var(--size-caption);
+  color: var(--text-tertiary);
+}
+
+.railDom {
+  font-weight: var(--weight-semibold);
+  font-size: calc(13px * var(--type-scale));
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.railDots {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 7px;
+}
+
+.railDot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+}
+
+/* Done keeps its colour and loses its fill, so the legend stays about what a
+   thing is and weight says whether it is finished. */
+.railDot[data-done] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.railMore {
+  font-size: var(--size-caption);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A run of empty weeks, stood in for. Tapping it draws them. */
+.railGap {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-core);
+  font-size: calc(12.5px * var(--type-scale));
+  color: var(--text-tertiary);
+  cursor: pointer;
+  text-align: center;
+}
+
+.railGap:hover {
+  color: var(--text-secondary);
+}
+
+.railDayHead {
+  padding-top: var(--space-5);
+}
+
+.railEmpty {
+  padding: var(--space-4) 0;
+  font-size: calc(13.5px * var(--type-scale));
+  color: var(--text-tertiary);
+}
+
+/* A note on a day, drawn as a note rather than as a row: it has no tick, no
+   tools and nothing to open. */
+.railNote {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
 }

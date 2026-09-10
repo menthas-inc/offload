@@ -72,7 +72,7 @@ export function Sidebar({ threads, threadCount }: Props) {
           );
         })}
 
-        {/* Memories is drawn and inert rather than absent. A nav that grows as
+        {/* Notes is drawn and inert rather than absent. A nav that grows as
             features land moves under people who have learned where things are,
             and saying "nothing here yet" beats a click that does nothing. */}
         <button
@@ -83,7 +83,7 @@ export function Sidebar({ threads, threadCount }: Props) {
           title="Nothing here yet"
         >
           <Icon name="cloudy" size={17} />
-          <span className={styles.navLabel}>Memories</span>
+          <span className={styles.navLabel}>Notes</span>
         </button>
       </div>
 

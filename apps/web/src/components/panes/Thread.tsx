@@ -18,7 +18,8 @@ import Link from "next/link";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { PaneHead } from "../shell/PaneHead";
-import { Memories } from "./Memories";
+import { Notes } from "./Notes";
+import { Timeline } from "./Timeline";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import { useThreads } from "../shell/threads-context";
 import { Widgets } from "./Widgets";
@@ -46,10 +47,10 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   const [rows, setRows] = useState<ContentRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
-  // Lifted out of `Memories` so the pane head's More menu can open the editor.
-  // It is also the answer to a cost that section had accepted: a thread with no
-  // memories drew nothing, so there was nowhere to type the first one.
-  const [addingMemory, setAddingMemory] = useState(false);
+  // Lifted out of `Notes` so the pane head's More menu can open the editor. It
+  // is also the answer to a cost that section had accepted: a thread with no
+  // notes drew nothing, so there was nowhere to type the first one.
+  const [addingNote, setAddingNote] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [renaming, setRenaming] = useState(false);
@@ -327,11 +328,11 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             },
           },
           {
-            label: "Add a memory",
+            label: "Add a note",
             icon: "brain",
             onSelect: () => {
               setShowArchived(false);
-              setAddingMemory(true);
+              setAddingNote(true);
             },
           },
         ]}
@@ -357,6 +358,24 @@ export function Thread({ id, onChanged, onUndo }: Props) {
         {/* Widgets first, then everything. A widget is a view over the same
             rows the list below shows, so a piece removed from one is gone from
             both, and nothing here costs a second query. */}
+        {/* The rail is above the widgets and is drawn for every thread,
+            including one with nothing dated on it. It is not earned, which is
+            why 015 took it out of the widget set rather than making it a widget
+            that is always earned. */}
+        {showArchived ? null : (
+          <Timeline
+            // Keyed by the thread, so the day you were reading and the gaps you
+            // opened do not follow you into the next one. Without it, opening a
+            // thread after picking 3 October in another one lands on 3 October
+            // rather than on today.
+            key={id}
+            rows={rows}
+            notes={thread.notes}
+            handlers={handlers}
+            onToggle={(row) => void toggle(row)}
+          />
+        )}
+
         {showArchived ? null : (
           <Widgets
             threadId={id}
@@ -368,18 +387,20 @@ export function Thread({ id, onChanged, onUndo }: Props) {
           />
         )}
 
-        {/* Memories sit between the widgets and the list, not at the foot.
+        {/* Notes sit between the widgets and the list, not at the foot.
             "Everything in here" has no cap and no pagination, so a section
             under it becomes undiscoverable on exactly the threads with most to
-            say. Ten rules belong next to the other bounded thing on the page. */}
+            say. A bounded set belongs next to the other bounded thing on the
+            page. */}
         {showArchived ? null : (
-          <Memories
+          <Notes
             threadId={id}
-            memories={thread.memories}
+            notes={thread.notes}
+            counts={thread.noteCounts}
             members={thread.members}
             arrived={arrived}
-            adding={addingMemory}
-            onAdding={setAddingMemory}
+            adding={addingNote}
+            onAdding={setAddingNote}
             onChanged={() => void load()}
             onUndo={onUndo}
           />

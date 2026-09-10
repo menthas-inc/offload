@@ -174,7 +174,7 @@ describe("the tool endpoint is not trusted with an identity", () => {
     const threadId = await thread(accountId, "Flat admin");
     const { jobId } = await dump(accountId);
 
-    const call = { tool: "add_content", jobId, toolCallId: "t1", threadId, title: "x" };
+    const call = { tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId, title: "x" };
 
     const none = await app.inject({
       method: "POST",
@@ -205,7 +205,7 @@ describe("the tool endpoint is not trusted with an identity", () => {
       .executeTakeFirstOrThrow();
 
     const response = await tool({
-      tool: "add_content",
+      tool: "add_content", type: "task",
       jobId: other.id,
       toolCallId: "t1",
       threadId,
@@ -222,7 +222,7 @@ describe("the tool endpoint is not trusted with an identity", () => {
     // There is no accountId field, and the union is strict, so naming one is a
     // schema failure rather than something quietly ignored.
     const response = await tool({
-      tool: "add_content",
+      tool: "add_content", type: "task",
       jobId,
       toolCallId: "t1",
       threadId,
@@ -240,7 +240,7 @@ describe("authority over a thread", () => {
     const { jobId, messageId } = await dump(accountId);
 
     const response = await tool({
-      tool: "add_content",
+      tool: "add_content", type: "task",
       jobId,
       toolCallId: "t1",
       threadId,
@@ -272,7 +272,7 @@ describe("authority over a thread", () => {
     const bodies: string[] = [];
     for (const [i, threadId] of [pending, other, uuidv7()].entries()) {
       const response = await tool({
-        tool: "add_content",
+        tool: "add_content", type: "task",
         jobId,
         toolCallId: `t${i}`,
         threadId,
@@ -313,7 +313,7 @@ describe("authority over a thread", () => {
 
     // The membership query add_content runs is the one that has to find it.
     const filed = await tool({
-      tool: "add_content",
+      tool: "add_content", type: "task",
       jobId,
       toolCallId: "t1",
       threadId,
@@ -330,7 +330,7 @@ describe("bounds and repeats", () => {
     const { jobId, messageId } = await dump(accountId);
 
     const call = {
-      tool: "add_content",
+      tool: "add_content", type: "task",
       jobId,
       toolCallId: "toolu_same",
       threadId,
@@ -365,7 +365,7 @@ describe("bounds and repeats", () => {
 
     for (let i = 0; i < MAX_TOOL_CALLS; i++) {
       const response = await tool({
-        tool: "add_content",
+        tool: "add_content", type: "task",
         jobId,
         toolCallId: `t${i}`,
         threadId,
@@ -375,7 +375,7 @@ describe("bounds and repeats", () => {
     }
 
     const over = await tool({
-      tool: "add_content",
+      tool: "add_content", type: "task",
       jobId,
       toolCallId: "one-too-many",
       threadId,
@@ -403,8 +403,8 @@ describe("bounds and repeats", () => {
       .where("id", "=", threadId)
       .executeTakeFirstOrThrow();
 
-    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "a" });
-    await tool({ tool: "add_content", jobId, toolCallId: "t2", threadId, title: "b" });
+    await tool({ tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId, title: "a" });
+    await tool({ tool: "add_content", type: "task", jobId, toolCallId: "t2", threadId, title: "b" });
 
     const after = await db
       .selectFrom("threads")
@@ -425,7 +425,7 @@ describe("a turn that stopped partway", () => {
     const threadId = await thread(accountId, "Flat admin");
     const { jobId, messageId, turnId } = await dump(accountId);
 
-    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+    await tool({ tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId, title: "Dentist" });
 
     const response = await turnResult({
       outcome: "partial",
@@ -552,8 +552,8 @@ describe("undo", () => {
     const threadId = await thread(accountId, "Flat admin");
     const { jobId, messageId, turnId } = await dump(accountId);
 
-    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
-    await tool({ tool: "add_content", jobId, toolCallId: "t2", threadId, title: "Brackets" });
+    await tool({ tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+    await tool({ tool: "add_content", type: "task", jobId, toolCallId: "t2", threadId, title: "Brackets" });
     await turnResult({ outcome: "answered", jobId, replyText: "Added to Flat admin.", usage: [usage] });
 
     expect(await undoTurn(accountId, turnId)).toEqual({ undone: true });
@@ -593,7 +593,7 @@ describe("undo", () => {
     const accountId = await account();
     const threadId = await thread(accountId, "Flat admin");
     const { jobId, messageId, turnId } = await dump(accountId);
-    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+    await tool({ tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId, title: "Dentist" });
     await turnResult({ outcome: "answered", jobId, replyText: "Added.", usage: [usage] });
 
     await undoTurn(accountId, turnId);
@@ -612,7 +612,7 @@ describe("undo", () => {
     const accountId = await account();
     const threadId = await thread(accountId, "Flat admin");
     const { jobId, turnId } = await dump(accountId);
-    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+    await tool({ tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId, title: "Dentist" });
 
     expect(await undoTurn(accountId, turnId)).toEqual({ undone: true });
 
@@ -655,7 +655,7 @@ describe("the purge job", () => {
     const accountId = await account();
     const threadId = await thread(accountId, "Flat admin");
     const { jobId, messageId } = await dump(accountId);
-    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+    await tool({ tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId, title: "Dentist" });
 
     // Soft-deleted, purge eight seconds out, exactly as undo writes it.
     await db
@@ -680,7 +680,7 @@ describe("the purge job", () => {
     const accountId = await account();
     const threadId = await thread(accountId, "Flat admin");
     const { jobId } = await dump(accountId);
-    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+    await tool({ tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId, title: "Dentist" });
 
     // The dangerous shape: due, and never deleted. Both predicates are stated
     // in the handler precisely so this row survives.
@@ -703,6 +703,7 @@ describe("the purge job", () => {
       account_id: accountId,
       thread_id: threadId,
       derived_from_message_id: messageId,
+      type: "task" as const,
       title: `piece ${i}`,
       updated_at: new Date(),
       deleted_at: past,
@@ -738,7 +739,7 @@ describe("a turn that changes what is already there says so", () => {
     // reports whichever thread the row ended up in.
     const { jobId: filing } = await dump(accountId);
     const added = await tool({
-      tool: "add_content",
+      tool: "add_content", type: "task",
       jobId: filing,
       toolCallId: "a1",
       threadId: from,
@@ -778,7 +779,7 @@ describe("a turn that changes what is already there says so", () => {
     const { jobId: first, messageId: firstMessage } = await dump(accountId);
 
     const added = await tool({
-      tool: "add_content",
+      tool: "add_content", type: "task",
       jobId: first,
       toolCallId: "a1",
       threadId,
@@ -873,7 +874,7 @@ describe("a row typed straight into a thread", () => {
     const { jobId } = await typed(accountId, threadId, "brackets");
 
     const intoAnother = await tool({
-      tool: "add_content",
+      tool: "add_content", type: "task",
       jobId,
       toolCallId: "a1",
       threadId: elsewhere,
@@ -904,7 +905,7 @@ describe("a row typed straight into a thread", () => {
     const { jobId } = await typed(accountId, threadId, "brackets, screws, timber");
 
     const second = await tool({
-      tool: "add_content",
+      tool: "add_content", type: "task",
       jobId,
       toolCallId: "a1",
       threadId,

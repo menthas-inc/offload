@@ -75,7 +75,7 @@ class StubModel:
             # what has to stop it.
             return Response(
                 content=[ToolUse(id=f"loop{len(self.requests)}", name="add_content",
-                                 input={"thread_id": "t1", "title": "again"})],
+                       input={"thread_id": "t1", "title": "again", "type": "task"})],
                 stop_reason="tool_use",
             )
         return self._responses.pop(0)
@@ -113,9 +113,9 @@ async def test_a_dump_becomes_two_pieces_and_a_reply():
         Response(
             content=[
                 ToolUse(id="a", name="add_content",
-                        input={"thread_id": "t1", "title": "Dentist"}),
+                       input={"thread_id": "t1", "title": "Dentist", "type": "task"}),
                 ToolUse(id="b", name="add_content",
-                        input={"thread_id": "t1", "title": "Brackets"}),
+                       input={"thread_id": "t1", "title": "Brackets", "type": "task"}),
             ],
             stop_reason="tool_use",
         ),
@@ -134,10 +134,10 @@ async def test_a_dump_becomes_two_pieces_and_a_reply():
 async def test_every_model_call_records_usage():
     model = StubModel([
         Response(content=[ToolUse(id="a", name="add_content",
-                                  input={"thread_id": "t1", "title": "x"})],
+                       input={"thread_id": "t1", "title": "x", "type": "task"})],
                  stop_reason="tool_use"),
         Response(content=[ToolUse(id="b", name="add_content",
-                                  input={"thread_id": "t1", "title": "y"})],
+                       input={"thread_id": "t1", "title": "y", "type": "task"})],
                  stop_reason="tool_use"),
         Response(content=[TextBlock("Done.")], stop_reason="end_turn"),
     ])
@@ -156,7 +156,8 @@ async def test_stop_reason_drives_the_loop_not_the_presence_of_text():
         Response(
             content=[
                 TextBlock("Let me file that."),
-                ToolUse(id="a", name="add_content", input={"thread_id": "t1", "title": "x"}),
+                ToolUse(id="a", name="add_content",
+                       input={"thread_id": "t1", "title": "x", "type": "task"}),
             ],
             stop_reason="tool_use",
         ),
@@ -227,9 +228,9 @@ async def test_invalid_arguments_are_refused_rather_than_coerced():
         Response(
             content=[
                 # No thread_id, and a title far past its limit.
-                ToolUse(id="a", name="add_content", input={"title": "x"}),
+                ToolUse(id="a", name="add_content", input={"title": "x", "type": "task"}),
                 ToolUse(id="b", name="add_content",
-                        input={"thread_id": "t1", "title": "y" * 500}),
+                       input={"thread_id": "t1", "title": "y" * 500, "type": "task"}),
             ],
             stop_reason="tool_use",
         ),
@@ -264,10 +265,10 @@ async def test_a_refusal_never_carries_the_argument_values():
 async def test_a_failed_tool_goes_back_to_the_planner_which_recovers():
     model = StubModel([
         Response(content=[ToolUse(id="a", name="add_content",
-                                  input={"thread_id": "gone", "title": "x"})],
+                       input={"thread_id": "gone", "title": "x", "type": "task"})],
                  stop_reason="tool_use"),
         Response(content=[ToolUse(id="b", name="add_content",
-                                  input={"thread_id": "t1", "title": "x"})],
+                       input={"thread_id": "t1", "title": "x", "type": "task"})],
                  stop_reason="tool_use"),
         Response(content=[TextBlock("Saved to Flat admin.")], stop_reason="end_turn"),
     ])
@@ -286,7 +287,7 @@ async def test_tool_results_re_enter_as_tool_result_blocks():
     # somewhere the model can tell is data.
     model = StubModel([
         Response(content=[ToolUse(id="a", name="add_content",
-                                  input={"thread_id": "t1", "title": "x"})],
+                       input={"thread_id": "t1", "title": "x", "type": "task"})],
                  stop_reason="tool_use"),
         Response(content=[TextBlock("Done.")], stop_reason="end_turn"),
     ])
@@ -326,7 +327,8 @@ async def test_the_loop_terminates_and_returns_partial():
 
 async def test_the_tool_call_bound_holds_within_a_turn():
     calls = [
-        ToolUse(id=f"t{i}", name="add_content", input={"thread_id": "t1", "title": f"p{i}"})
+        ToolUse(id=f"t{i}", name="add_content",
+                       input={"thread_id": "t1", "title": f"p{i}", "type": "task"})
         for i in range(MAX_TOOL_CALLS + 3)
     ]
     model = StubModel([
@@ -347,8 +349,10 @@ async def test_the_bound_counts_what_a_resume_already_filed():
     model = StubModel([
         Response(
             content=[
-                ToolUse(id="a", name="add_content", input={"thread_id": "t1", "title": "x"}),
-                ToolUse(id="b", name="add_content", input={"thread_id": "t1", "title": "y"}),
+                ToolUse(id="a", name="add_content",
+                       input={"thread_id": "t1", "title": "x", "type": "task"}),
+                ToolUse(id="b", name="add_content",
+                       input={"thread_id": "t1", "title": "y", "type": "task"}),
             ],
             stop_reason="tool_use",
         ),
@@ -389,7 +393,7 @@ async def test_the_calendar_tools_are_measured_on_top():
 async def test_the_tools_are_sent_on_every_call():
     model = StubModel([
         Response(content=[ToolUse(id="a", name="add_content",
-                                  input={"thread_id": "t1", "title": "x"})],
+                       input={"thread_id": "t1", "title": "x", "type": "task"})],
                  stop_reason="tool_use"),
         Response(content=[TextBlock("Done.")], stop_reason="end_turn"),
     ])
@@ -410,7 +414,7 @@ async def test_the_tools_are_sent_on_every_call():
             "archive_content",
             "set_thread_preference",
             "rename_thread",
-            "add_memory",
+            "add_note",
         ]
 
 
@@ -469,7 +473,7 @@ async def test_a_refused_tool_makes_the_turn_partial_even_with_a_reply():
     model = StubModel([
         Response(
             content=[ToolUse(id="a", name="add_content",
-                             input={"thread_id": "t1", "title": "Book Istanbul"})],
+                       input={"thread_id": "t1", "title": "Book Istanbul", "type": "task"})],
             stop_reason="tool_use",
         ),
         Response(
@@ -490,7 +494,7 @@ async def test_a_refused_tool_makes_the_turn_partial_even_with_a_reply():
 async def test_a_turn_with_no_failures_is_finished():
     model = StubModel([
         Response(content=[ToolUse(id="a", name="add_content",
-                                  input={"thread_id": "t1", "title": "x"})],
+                       input={"thread_id": "t1", "title": "x", "type": "task"})],
                  stop_reason="tool_use"),
         Response(content=[TextBlock("Saved to Flat admin.")], stop_reason="end_turn"),
     ])

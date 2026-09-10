@@ -112,3 +112,58 @@ export function setTheme(theme: Theme): void {
   applyTheme(theme);
   for (const listener of listeners) listener(theme);
 }
+
+// ------------------------------------------------------------- week start
+//
+// 015's rail. Device-local, like the theme above it: it is arguably an account
+// preference, and would then need a column, an endpoint and a sync for a value
+// somebody sets once and never thinks about again.
+
+const WEEK_KEY = "offload_week_start";
+
+export type WeekStart = "monday" | "sunday";
+
+export const WEEK_STARTS: WeekStart[] = ["monday", "sunday"];
+
+export const WEEK_START_LABEL: Record<WeekStart, string> = {
+  monday: "Monday",
+  sunday: "Sunday",
+};
+
+export function storedWeekStart(): WeekStart {
+  try {
+    return SecureStore.getItem(WEEK_KEY) === "sunday" ? "sunday" : "monday";
+  } catch {
+    return "monday";
+  }
+}
+
+const weekListeners = new Set<(start: WeekStart) => void>();
+
+/** The stored preference, kept current, for anything that draws a rail. */
+export function useWeekStart(): WeekStart {
+  const [start, setLocal] = useState<WeekStart>(() => storedWeekStart());
+
+  useEffect(() => {
+    const listener = (next: WeekStart): void => setLocal(next);
+    weekListeners.add(listener);
+    setLocal(storedWeekStart());
+    return () => {
+      weekListeners.delete(listener);
+    };
+  }, []);
+
+  return start;
+}
+
+/** Store it. Nothing to apply: the rail redraws from the rows it already has,
+ *  which is why changing this costs no fetch. */
+export function setWeekStart(start: WeekStart): void {
+  try {
+    SecureStore.setItem(WEEK_KEY, start);
+  } catch {
+    // Same reasoning as the theme: applied now, and it may not survive a
+    // restart, which is the better half of the two failures.
+  }
+  for (const listener of weekListeners) listener(start);
+}

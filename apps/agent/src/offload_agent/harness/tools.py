@@ -44,7 +44,7 @@ _DATE_ISH = re.compile(
 )
 
 ContentType = Literal[
-    "note", "link", "image", "screenshot", "voice", "file", "task", "event", "location"
+    "link", "image", "screenshot", "voice", "file", "task", "event", "location"
 ]
 
 
@@ -63,7 +63,9 @@ class AddContent(BaseModel):
     thread_id: str = Field(min_length=1)
     title: str = Field(min_length=1, max_length=200)
     body: str = Field(default="", max_length=4000)
-    type: ContentType = "note"
+    # No default. A sentence with nothing else to be is a note, and `add_note`
+    # is where it goes, so this tool no longer has anything to fall back to.
+    type: ContentType
 
     # ISO 8601. Only ever set when the dump states or clearly implies one:
     # "after the 20th" is a date, "soon" is not, and inventing one puts a wrong
@@ -158,13 +160,22 @@ class RenameThread(BaseModel):
     name: str = Field(min_length=1, max_length=80)
 
 
-class AddMemory(BaseModel):
-    """Remember how a thread should be handled."""
+class AddNote(BaseModel):
+    """A sentence about a thread: what is true about it, or how it is handled."""
 
     thread_id: str = Field(min_length=1)
-    # 200 characters, matching MEMORY_TEXT_CHARS in the Core API. Long enough
-    # for a rule and short enough that ten of them stay readable.
+    # 200 characters, matching NOTE_TEXT_CHARS in the Core API. Long enough for
+    # a sentence and short enough that a hundred of them stay a prompt.
     text: str = Field(min_length=1, max_length=200)
+    # The rest of their words, when what they dumped did not fit above. Kept
+    # whole, and never handed back to you: `text` is what you read.
+    body: str | None = Field(default=None, max_length=4000)
+
+    # ISO 8601, same rule as add_content: only when they state or clearly imply
+    # one. A note with a date is on the thread's timeline.
+    due_at: str | None = None
+    occurs_at: str | None = None
+    occurs_end_at: str | None = None
 
 
 SCHEMAS: dict[str, type[BaseModel]] = {
@@ -177,7 +188,7 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "archive_content": ArchiveContent,
     "set_thread_preference": SetThreadPreference,
     "rename_thread": RenameThread,
-    "add_memory": AddMemory,
+    "add_note": AddNote,
 }
 
 
@@ -228,11 +239,12 @@ _DESCRIPTIONS = {
         "on your own initiative."
     ),
     "rename_thread": "Rename a thread.",
-    "add_memory": (
-        "Remember a standing rule about a thread: how they want it handled, or "
-        "something that stays true about it. Only when they say one, and never "
-        "for something you could file instead. A rule is not a task. A thread "
-        "holds ten at most."
+    "add_note": (
+        "Write down a sentence about a thread: something true about it, or a "
+        "rule for how they want it handled. This is where a dumped sentence "
+        "goes when it is not a task, an event, a link or a file. Give it a date "
+        "when they state one, and put anything longer than a sentence in body "
+        "with the short version in text."
     ),
 }
 
@@ -248,12 +260,13 @@ TOOL_NAMES = frozenset(SCHEMAS)
 # say something useful rather than passing an opaque refusal back.
 AUTHOR_ONLY = frozenset({"edit_content", "move_content"})
 
-# Writing a memory is not filing.
+# Writing a note IS filing, and it did not used to be.
 #
-# It changes how a thread behaves rather than putting anything in it, so a turn
-# that only wrote a memory has filed nothing and the reply must not claim it
-# did. Same reasoning as reading a thread: FILING_TOOLS below is the definition
-# of "landed" and this is deliberately outside it.
+# 008's memory changed how a thread behaved rather than putting anything in it,
+# so a turn that only wrote one had filed nothing. 014 made a note what a dumped
+# sentence becomes, so a turn that writes one has landed something, and leaving
+# it out here means the reply says a sentence went somewhere and offers nothing
+# to click.
 
 # The tools that actually put something somewhere.
 #
@@ -266,7 +279,7 @@ AUTHOR_ONLY = frozenset({"edit_content", "move_content"})
 # Found by the eval: a dump saying "add tomatoes, basil and anchovies to the
 # list" made the planner read three threads looking for a shopping list, and all
 # three were recorded as places it had filed things.
-FILING_TOOLS = frozenset({"add_content", "create_thread"})
+FILING_TOOLS = frozenset({"add_content", "create_thread", "add_note"})
 
 
 # 012: the calendar. Five tools, and the three that write do not decide whether

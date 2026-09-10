@@ -49,7 +49,7 @@ export class JobRunner {
         string,
         unknown
       >;
-      await handler(payload, { mailer: this.options.mailer });
+      await handler(payload, { mailer: this.options.mailer }, job.account_id);
       await complete(job.id);
       log("info", { jobId: job.id, kind: job.kind, attempts: job.attempts }, "job done");
     } catch (error) {

@@ -135,7 +135,7 @@ async def test_answering_files_nothing():
         "move_content",
         "complete_content",
         "archive_content",
-        "add_memory",
+        "add_note",
         "rename_thread",
         "set_thread_preference",
         "create_event",

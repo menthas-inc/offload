@@ -297,7 +297,8 @@ class QuickAddContext:
     thread_id: str
     thread_name: str
     typed: str
-    memories: list[str]
+    notes: list[str]
+    notes_from_members: list[str]
     pieces: list[Piece]
     today: str | None = None
 
@@ -345,16 +346,22 @@ _HAS_CALENDAR = text(
     """
 )
 
-_THREAD_MEMORIES = text(
+# Newest first for the budget, since what is current has to survive it, and the
+# caller reverses them so the model reads them in the order they were written.
+# `superseded_at` is filtered because the daily job sets it on what a thread no
+# longer says.
+_THREAD_NOTES = text(
     """
-    select m.text
-      from memories m
-     where m.scope = 'thread'
-       and m.subject_id = :thread_id
-       and m.deleted_at is null
-       and m.muted_at is null
-     order by m.created_at
-     limit 10
+    select n.text, (n.account_id = :account_id) as theirs
+      from notes n
+     where n.scope = 'thread'
+       and n.subject_id = :thread_id
+       and n.deleted_at is null
+       and n.superseded_at is null
+       and n.muted_at is null
+       and not n.derived_from_untrusted
+     order by n.updated_at desc
+     limit 100
     """
 )
 
@@ -384,14 +391,23 @@ async def load_quick_add(
             {"thread_id": row.thread_id, "content_id": content_id, "limit": max_pieces},
         )
     ).all()
-    memories = (await conn.execute(_THREAD_MEMORIES, {"thread_id": row.thread_id})).all()
+    notes = (
+        await conn.execute(
+            _THREAD_NOTES, {"thread_id": row.thread_id, "account_id": account_id}
+        )
+    ).all()
 
     return QuickAddContext(
         content_id=str(row.id),
         thread_id=str(row.thread_id),
         thread_name=row.thread_name,
         typed=row.title,
-        memories=[m.text for m in memories],
+        # **Split the way `notesForPrompt` splits it.** A note another member
+        # of a shared thread wrote is read and weighed, not obeyed; giving it
+        # the same standing as your own here would leave the one surface where
+        # 014's containment does not apply.
+        notes=[n.text for n in reversed(notes) if n.theirs],
+        notes_from_members=[n.text for n in reversed(notes) if not n.theirs],
         pieces=[Piece(title=p.title, done=p.done) for p in pieces],
         today=row.today,
     )

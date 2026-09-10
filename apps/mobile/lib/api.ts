@@ -86,9 +86,10 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
  *
  *  `request` below swallows everything into `null`, which is right for a read
  *  where a failure and an empty answer look the same to the screen. It is wrong
- *  for a write: the cap on memories is a 409, a memory that is too long is a
- *  413, and a refusal is a 404, and a screen that treats all three as "nothing
- *  happened" is the bug the web shipped last week.
+ *  for a write: a note that is too long is a 413, a refusal is a 404, and a
+ *  screen that treats both as "nothing happened" is the bug the web shipped
+ *  last week. *The 409 that used to be here was the cap of ten, which 014
+ *  removed: nothing a person dumps is refused for being one too many.*
  */
 export interface Sent<T> {
   status: number;

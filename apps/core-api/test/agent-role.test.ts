@@ -47,8 +47,8 @@ async function asAgent(statement: string): Promise<{ allowed: boolean; error: st
 
 describe("the agent role can do its job", () => {
   // Reading a row to chunk it. `content` came with 0011 and `messages` with
-  // 0009; `memories` was missed until the sweep started embedding them.
-  for (const table of ["content", "memories", "messages", "threads", "thread_members"]) {
+  // 0009; `notes` was missed until the sweep started embedding them.
+  for (const table of ["content", "notes", "messages", "threads", "thread_members"]) {
     it(`reads ${table}`, async () => {
       const { allowed, error } = await asAgent(`select 1 from ${table} limit 1`);
       expect(allowed, error).toBe(true);
@@ -58,7 +58,7 @@ describe("the agent role can do its job", () => {
   // Writing what it embeds. A chunk is a derived index of a row, rebuilt by the
   // sweep whenever it is missing or stale, which is why the one writer rule
   // does not reach it.
-  for (const table of ["content_chunks", "memory_chunks", "message_chunks"]) {
+  for (const table of ["content_chunks", "note_chunks", "message_chunks"]) {
     it(`writes ${table}`, async () => {
       const del = await asAgent(`delete from ${table} where false`);
       expect(del.allowed, del.error).toBe(true);
@@ -85,7 +85,7 @@ describe("and no more than its job", () => {
     });
   }
 
-  for (const table of ["content", "memories", "messages", "threads"]) {
+  for (const table of ["content", "notes", "messages", "threads"]) {
     it(`cannot write ${table}`, async () => {
       const { allowed } = await asAgent(`delete from ${table} where false`);
       expect(allowed, `it could delete from ${table}`).toBe(false);

@@ -18,7 +18,7 @@
 /** What is safe to say about something that happened.
  *
  *  Ids, counts, states and durations. Never a title, a body, a dump, a thread
- *  name, a memory, a person's name or an email. If a value came from something
+ *  name, a note, a person's name or an email. If a value came from something
  *  somebody typed, it does not belong here, and the type is deliberately narrow
  *  so that passing one is awkward rather than accidental. */
 export type Fact = string | number | boolean | null | undefined;
@@ -40,7 +40,7 @@ const FORBIDDEN = new Set([
   "email",
   "reply",
   "dump",
-  "memory",
+  "note",
   "query",
   "label",
   "message",

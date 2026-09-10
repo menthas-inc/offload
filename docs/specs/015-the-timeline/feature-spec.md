@@ -1,0 +1,95 @@
+# 015 The timeline, feature spec
+
+**Status:** drafted 2026-09-10
+**Surfaces:** web, iOS, Android
+**Depends on 014**, which made a dated sentence possible.
+
+## Why
+
+A thread knows when things happen and has nowhere to show it. What it has is a **Timeline widget**: a flat list of dated rows in priority order, drawn only when the thread has something dated, collapsing a repeating series into one line. It answers "what is on this thread" and never "what is this week".
+
+Three things are wrong with that and they are the feature:
+
+- **A list is not a shape for time.** Days with nothing in them do not exist in a list, so a fortnight of quiet reads the same as two days. The gap between things is most of what somebody is looking at when they open a thread about a trip.
+- **It is earned, so it disappears.** A thread with nothing dated yet shows no timeline at all, which is exactly the thread where somebody is about to put a date on something.
+- **Only two of the four things with dates are in it.** A note now carries dates (014) and never appears; a task's due date sorts it in a list that is ordered by priority instead.
+
+## What
+
+**A rail of days, always there, at the top of the thread.** Whole weeks, one row each, starting on Monday. Every day in the span gets a card, whether or not anything is on it, because the empty ones are what make a week read as a week.
+
+**A dot per thing, coloured by what it is.** A day with three things has three dots. A thing that spans days puts a dot on every day it covers. A repeating thing puts a dot on every occurrence: a rail is a calendar shape, and a calendar draws every one of them, which is what `decisions.md` already says the phone's daily view should do.
+
+**Everything with a date is on it**, whatever kind of thing it is: events, tasks with a due date, notes with a date, and anything else somebody dumped that carries one.
+
+**Tap a day and it opens in place, under the rail.** What is on that day, each thing drawn as itself: a task with its checkbox, a note as a note, an event as an event. Everything you can do to a row anywhere else you can do here.
+
+**Today is open when you arrive.**
+
+**The past is quiet, not closed.** A day that has gone reads as gone, and tapping it works exactly like tapping any other day.
+
+### The span, and the weeks with nothing in them
+
+The rail covers whole weeks, from the week of the earliest dated thing to the week of the latest, and always includes this week. A thread with nothing dated shows this week alone.
+
+**A run of three or more empty weeks collapses to one line that says how many.** A note dated a year out would otherwise draw fifty empty week rows between here and there, which is the passage of time rendered as scrolling. Tapping the line opens the weeks it stands for. *Runs of one or two stay drawn, because two empty weeks is information and fifty is furniture.*
+
+### The week starts on Monday, and that is a setting
+
+Monday by default. Sunday for anyone who wants it, in Settings under Appearance, beside theme and text size, and kept on the device the way those are.
+
+### The colours mean what a thing is
+
+| | |
+| --- | --- |
+| A task | blue, the colour that already means waiting on you |
+| An event | ink, a fact of the day rather than a demand on it |
+| A note | amber, something known rather than something to do |
+| Anything else with a date | quiet grey |
+
+**A dot is never the only thing that says what a day holds.** The day's accessible name says the counts in words, and opening the day says it in full. Colour is the fast read, not the only read.
+
+**Done is weight, not hue.** A finished task keeps its colour and loses its fill, so the legend stays about what a thing is.
+
+### What this replaces
+
+**The Timeline widget goes.** Its rows are on the rail and in the day beneath it, and it stops being a widget: 007's rule that widgets are earned from content and never drawn empty is untouched, because the timeline is no longer one of them. It moves above the widgets and belongs to the thread page.
+
+*The series collapse goes with it. A list spends a whole row saying what the row above said, which is why the widget collapsed thirty yoga classes into one; a rail has a cell per day already, so every occurrence is drawn and nothing is hidden. `splitRepeating` and `cadenceLabel` lose their only caller and are deleted with it.*
+
+## Acceptance criteria
+
+**The rail**
+
+- **AC-1** The timeline is on every thread, including a thread with nothing dated on it, which shows the current week.
+- **AC-2** The rail draws whole weeks, one row per week, starting on the day the week-start setting names.
+- **AC-3** Every day in the span has a card, whether or not anything is on it.
+- **AC-4** The span runs from the week of the earliest dated thing to the week of the latest, and always contains today.
+- **AC-5** A run of three or more consecutive empty weeks draws as one line saying how many, and opens on tap. Runs of one or two draw as weeks.
+
+**What is on it**
+
+- **AC-6** A dated content row and a dated note both appear, and nothing on the rail depends on which store a thing came from.
+- **AC-7** A thing that spans days has a dot on every day from its start to its end, inclusive.
+- **AC-8** Every occurrence of a repeating thing has its own dot on its own day. Nothing is collapsed and nothing is hidden.
+- **AC-9** A day with several things has several dots, coloured by what each thing is.
+- **AC-10** A day's accessible name says what it holds in words, so nothing depends on telling two colours apart.
+
+**The day**
+
+- **AC-11** Tapping a day opens it under the rail. Today is open on arrival.
+- **AC-12** Each thing in the day is drawn as its own kind: a task with its checkbox, a note as a note, an event as an event.
+- **AC-13** Everything a row offers elsewhere it offers here: tick, edit, archive, delete, and Undo behind each.
+- **AC-14** A day with nothing on it opens and says so.
+- **AC-15** A day in the past is visibly past and behaves exactly like any other day.
+
+**The setting**
+
+- **AC-16** Week start is Monday or Sunday, defaults to Monday, and changing it redraws the rail without a reload.
+
+## Out of scope
+
+- **A timeline across threads.** Today is still the day-one invitation. `list_agenda` answers a span question in a reply and draws nothing, and that stays true.
+- **Anything the timeline could write.** No adding from a day, no dragging a thing to another day. Reading, and the row controls that already exist.
+- **An hour view.** The kits draw one for a single day on the phones and it belongs to a calendar screen, not to a thread.
+- **The map.** A dated note can carry a place and the map is 007's, unchanged.

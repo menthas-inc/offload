@@ -3,7 +3,7 @@
 // Today, as a pane.
 //
 // Thin on purpose. Today is a view assembled from threads, calendars and
-// memories, and two of those three do not exist, so what it has is the
+// notes, and two of those three do not exist, so what it has is the
 // invitation and the three examples. Tapping an example fills the composer
 // rather than submitting it, because the first thing that lands in an account
 // should be something the person meant, not a sample.

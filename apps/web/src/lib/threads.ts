@@ -52,30 +52,52 @@ export interface Member {
   isYou: boolean;
 }
 
-/** A standing fact a thread holds about itself.
+/** A sentence a thread holds about itself.
  *
- *  Not content: "todo names in three words" is a memory, "chase the
- *  electrician" is a task. Ten per thread, so this never grows the bundle. */
-export interface Memory {
+ *  What is true about the thread, and sometimes how it is handled. "Todo names
+ *  in three words" is a note; so is "we are staying in Istanbul the 10th to the
+ *  12th". "Chase the electrician" is a task. */
+export interface Note {
   id: string;
   text: string;
-  /** `learned` is offload's own, and the chip marks it. */
+  /** What was dumped when it did not fit in 200 characters. Never in a prompt,
+   *  and never on the row: opening the note is what shows it. */
+  body: string | null;
+  /** `learned` is offload's own, and the row marks it. It also means offload
+   *  wrote this text over somebody's longer words. */
   origin: "stated" | "learned";
-  /** Null once the author deleted their account. The memory stays in the
-   *  shared thread it belongs to; the name comes off it. */
+  /** Null once the author deleted their account. The note stays in the shared
+   *  thread it belongs to; the name comes off it. */
   authorId: string | null;
   /** False once the author left the thread or deleted their account, at which
    *  point every member may delete it. Computed server-side so the screen and
    *  the endpoint cannot disagree about who may do what. */
   authorIsMember: boolean;
   muted: boolean;
+  occursAt: string | null;
+  occursEndAt: string | null;
+  dueAt: string | null;
+  placeId: string | null;
+  /** When it was last written. What decides which notes reach offload when a
+   *  thread holds more than the budget, and what the row shows. */
+  writtenAt: string;
+  /** Set aside by the daily job. Only ever set on the folded list. */
+  supersededAt: string | null;
 }
 
-/** Ten, matching MAX_MEMORIES_PER_THREAD in the Core API. */
-export const MAX_MEMORIES = 10;
+/** A hundred, matching NOTE_PROMPT_BUDGET in the Core API.
+ *
+ *  **Not a cap.** A thread holds as many notes as somebody dumps; this is how
+ *  many of them reach offload, newest first. Past it the screen says which are
+ *  not, because a note somebody believes is steering offload and is not is
+ *  worse than one they know about. */
+export const NOTE_BUDGET = 100;
 
-/** 200, matching MEMORY_TEXT_CHARS. */
-export const MEMORY_CHARS = 200;
+/** 200, matching NOTE_TEXT_CHARS. */
+export const NOTE_CHARS = 200;
+
+/** 4000, matching NOTE_BODY_CHARS. */
+export const NOTE_BODY_CHARS = 4000;
 
 
 
@@ -88,8 +110,11 @@ export interface ThreadBundle {
   members: Member[];
   /** How this thread wants to look. Absent fields mean derived from content. */
   preference: { widgets?: string[]; groupBy?: Record<string, string> };
-  /** The thread's standing rules. At most ten. */
-  memories: Memory[];
+  /** What this thread holds about itself. Active only. */
+  notes: Note[];
+  /** Active and folded. The folded count is what the history control shows,
+   *  and a thread with none of them draws no control. */
+  noteCounts: { active: number; folded: number };
   /** Null until something writes summaries, which nothing does. Typed as a
    *  nullable string rather than `null` so the screen that renders it is
    *  written and tested now: a branch typed unreachable is a branch nobody
@@ -118,6 +143,9 @@ export interface ContentRow {
   doneAt: string | null;
   dueAt: string | null;
   occursAt: string | null;
+  /** The other end of a span, so the rail draws a thing on every day it
+   *  covers. Written since 0011 and read by nothing until 015. */
+  occursEndAt: string | null;
   isReminder: boolean;
   priority: number;
   priorityPinned: boolean;
@@ -281,8 +309,6 @@ export async function setPriority(id: string, priority: number): Promise<boolean
   return response.ok;
 }
 
-/** Add a memory. Any member. Refused at ten, and 409 carries the limit and
- *  never any text. */
 /** How long a row may claim to be filing before the spinner gives up.
  *
  *  Mirrors the server's own constant. Nothing sweeps the column, so a worker
@@ -309,69 +335,83 @@ export async function quickAdd(
   threadId: string,
   text: string,
   section: string,
-): Promise<{ id: string } | null> {
+): Promise<{ id: string; kind: "content" | "note" } | null> {
   const response = await fetch(`${API}/v1/threads/${threadId}/quick-add`, {
     ...json,
     method: "POST",
     body: JSON.stringify({ text, section }),
   });
   if (!response.ok) return null;
-  return (await response.json()) as { id: string };
+  return (await response.json()) as { id: string; kind: "content" | "note" };
 }
 
-export async function addMemory(
+/** Write one. **It always lands**: there is no cap and nothing to refuse. */
+export async function addNote(
   threadId: string,
   text: string,
-): Promise<{ memory: Memory } | { full: true } | null> {
-  const response = await fetch(`${API}/v1/threads/${threadId}/memories`, {
+): Promise<{ note: Note } | null> {
+  const response = await fetch(`${API}/v1/threads/${threadId}/notes`, {
     ...json,
     method: "POST",
     body: JSON.stringify({ text }),
   });
-  if (response.status === 409) return { full: true };
   if (!response.ok) return null;
-  return (await response.json()) as { memory: Memory };
+  return (await response.json()) as { note: Note };
 }
 
-/** Edit the full text, never the shortened form the chip shows. Any member,
- *  and it does not change whose memory it is. */
-export async function editMemory(
+/** Edit the text, and the body with it. Any member, and it does not change
+ *  whose note it is. `body` omitted leaves it alone. */
+export async function editNote(
   id: string,
   text: string,
-): Promise<{ memory: Memory; previous: string } | null> {
-  const response = await fetch(`${API}/v1/memories/${id}`, {
+  body?: string | null,
+): Promise<{ note: Note; previous: string } | null> {
+  const response = await fetch(`${API}/v1/notes/${id}`, {
     ...json,
     method: "PATCH",
-    body: JSON.stringify({ text }),
+    body: JSON.stringify(body === undefined ? { text } : { text, body }),
   });
   if (!response.ok) return null;
-  return (await response.json()) as { memory: Memory; previous: string };
+  return (await response.json()) as { note: Note; previous: string };
 }
 
 /** Delete. The author's alone, per OFF-3, which is why the control only
  *  renders on your own. */
-export async function deleteMemory(id: string): Promise<boolean> {
-  const response = await fetch(`${API}/v1/memories/${id}`, { ...send, method: "DELETE" });
+export async function deleteNote(id: string): Promise<boolean> {
+  const response = await fetch(`${API}/v1/notes/${id}`, { ...send, method: "DELETE" });
   if (!response.ok) return false;
   return ((await response.json()) as { deleted: boolean }).deleted;
 }
 
 /** Undo the delete. */
-export async function restoreMemory(id: string): Promise<boolean> {
-  const response = await fetch(`${API}/v1/memories/${id}/restore`, { ...send, method: "POST" });
+export async function restoreNote(id: string): Promise<boolean> {
+  const response = await fetch(`${API}/v1/notes/${id}/restore`, { ...send, method: "POST" });
   return response.ok;
 }
 
 /** Mute or unmute. Any member, thread-wide. What everybody who is not the
- *  author gets instead of delete: it stops the rule reaching offload without
+ *  author gets instead of delete: it stops the note reaching offload without
  *  destroying something somebody else wrote. */
-export async function muteMemory(id: string, muted: boolean): Promise<boolean> {
-  const response = await fetch(`${API}/v1/memories/${id}/mute`, {
+export async function muteNote(id: string, muted: boolean): Promise<boolean> {
+  const response = await fetch(`${API}/v1/notes/${id}/mute`, {
     ...json,
     method: "POST",
     body: JSON.stringify({ muted }),
   });
   return response.ok;
+}
+
+/** What the daily job folded. Read, not worked with: there is no restore.
+ *
+ *  Paginated because it is the one list on a thread with no ceiling. */
+export async function foldedNotes(
+  threadId: string,
+  cursor?: string | null,
+): Promise<{ notes: Note[]; cursor: string | null } | null> {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  const response = await fetch(`${API}/v1/threads/${threadId}/notes/folded${query}`, send);
+  if (!response.ok) return null;
+  return (await response.json()) as { notes: Note[]; cursor: string | null };
 }
 
 /** Leave a thread, which deletes it when nobody else is in it.

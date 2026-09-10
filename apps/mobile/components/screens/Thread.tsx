@@ -7,7 +7,7 @@
 // Four things the kit does not draw and this does, each with an entry in the
 // design system's log:
 //
-//   - **The memories section**, which no kit draws on any platform.
+//   - **The notes section**, which no kit draws on any platform.
 //   - **Content row actions**: a swipe deletes, a long press opens the rest.
 //     The sheet lists what this account may actually do to the row, which is
 //     how the authorship split is handled without a gesture map that is wrong
@@ -41,9 +41,10 @@ import { widgetsFor } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { ContentRowView } from "../shell/ContentRow";
-import { MemoriesSection } from "../shell/Memories";
+import { NotesSection } from "../shell/Notes";
 import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
 import { ToastHost, useToast } from "../shell/Toast";
+import { Timeline } from "../shell/Timeline";
 import { Widgets } from "../shell/Widgets";
 import {
   completeContent,
@@ -299,6 +300,23 @@ export default function Thread() {
           ) : null}
         </View>
 
+        {/* The rail is above the widgets and is drawn for every thread,
+            including one with nothing dated on it. It is not earned, which is
+            why 015 took it out of the widget set rather than making it a
+            widget that is always earned. */}
+        {showArchived ? null : (
+          <Timeline
+            // Keyed by the thread, so the day you were reading and the gaps you
+            // opened do not follow you into the next one.
+            key={thread.id}
+            rows={rows}
+            notes={thread.notes}
+            onDelete={(row: ContentRow) => void remove(row)}
+            onActions={setActing}
+            onToggle={(row: ContentRow) => void tick(row)}
+          />
+        )}
+
         {showArchived ? null : (
           <Widgets
             threadId={id}
@@ -313,9 +331,10 @@ export default function Thread() {
         )}
 
         {showArchived ? null : (
-          <MemoriesSection
+          <NotesSection
             threadId={thread.id}
-            memories={thread.memories}
+            notes={thread.notes}
+            counts={thread.noteCounts}
             members={thread.members}
             onChanged={() => void load()}
             onToast={toast.show}
@@ -429,7 +448,7 @@ function Bar({ onBack }: { onBack: () => void }) {
 
 /** Renaming one piece of content, as a sheet.
  *
- *  The same shape the memory editor uses and for the same reason: a phone has a
+ *  The same shape the note editor uses and for the same reason: a phone has a
  *  third of the width and the keyboard takes the bottom half of the screen, so
  *  an editor opening in a row halfway down a scrolling list opens underneath
  *  it. The sheet solves the keyboard problem by the pattern rather than
