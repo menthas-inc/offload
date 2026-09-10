@@ -275,7 +275,10 @@ async def main() -> int:
                 indent=2,
             )
         )
-        return 0
+        # The same signal the human readable path gives. A caller checking the
+        # exit code rather than parsing the body saw success on a run where
+        # every case failed.
+        return 0 if accuracy == 1.0 else 1
 
     print(f"\n{path}: {len(passed)}/{len(results)} = {accuracy:.0%}\n")
     for r in results:

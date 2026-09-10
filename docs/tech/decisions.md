@@ -680,3 +680,19 @@ Two things it taught immediately, both now steps in the skill. **Half the first 
 Brevity, the first thing put through it: tuning 69 to 92, first holdout 85 to 92, second holdout 100.
 
 **Design system impact:** none. The visual decisions from today are logged separately in the design system's own `decisions.md`.
+
+### 2026-09-10 · A URL parser rewrites a href before it reads it, so prefix matching cannot guard one
+
+The reply renderer decided a link was internal with three string checks: starts with `/`, does not start with `//`, does not start with `/\`. `/<tab>/evil.example` passes all three and every browser navigates to `https://evil.example/`, because the WHATWG algorithm strips tab, carriage return and newline from anywhere in a URL **before** interpreting what is left. Carriage return and newline could not survive the line split; tab could.
+
+**It was reachable.** A row somebody else wrote in a shared thread can contain a link, the answering prompt asks for quotes to be exact, and the reply draws the result as a real styled link inside offload's own bubble. Phishing in the product's own voice, from content the product invited somebody to write.
+
+The gate now refuses anything a parser would rewrite: any C0 control character or DEL anywhere in the href, a leading or trailing space, and any `..` segment. **String work rather than `new URL`**, deliberately, because that is a polyfill of varying completeness on React Native and the guard would then depend on which runtime drew the reply.
+
+The general rule, which is the part worth carrying: *a check that matches on the prefix of a URL is checking a string the parser has not produced yet.* Canonicalise first, or refuse anything that canonicalisation would change.
+
+**The mobile renderer's comment claimed a guarantee it did not provide.** It said `Linking` was not imported so nothing could open an external URL. `expo-router` calls `Linking.openURL` itself for anything it classifies as external, so the safety came from the parser rather than from this file. The comment is corrected and the component now checks the shape itself, so the surface a person taps does not depend on a package in another directory staying right.
+
+**And the scanner was quadratic.** A failed search for a closing marker rescanned the whole remainder from every opener, so a line of unmatched brackets cost 2.5 seconds for 48,000 characters on the thread that draws the screen, from text derived from a dump. An absent marker is remembered now: 1ms for the same input. The test asserts through the runner's timeout rather than a stopwatch, because a measured bound is a flake on a busy machine.
+
+**Design system impact:** none.

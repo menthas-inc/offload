@@ -138,12 +138,21 @@ function Line({ pieces }: { pieces: Inline[] }) {
               key={index}
               className="font-medium text-text-accent underline"
               accessibilityRole="link"
-              // The parser has already refused anything that is not a path
-              // offload owns, so this only ever navigates inside the app.
-              // **`Linking` is not imported at all**, which is the guarantee
-              // said in code rather than in a comment: there is no call here
-              // that could open an external URL even if the parser changed.
-              onPress={() => router.push(piece.href as never)}
+              // **`router.push` can leave the app, so this checks again.**
+              //
+              // Not importing `Linking` proves nothing: `expo-router` calls
+              // `Linking.openURL` itself for anything it classifies as
+              // external, which is any scheme prefix or a leading `//`. Today
+              // none of those can reach here, but that is a property of the
+              // parser rather than of this file, and the comment that used to
+              // sit here claimed otherwise.
+              //
+              // One line, so the surface a person taps does not depend on a
+              // package in another directory staying correct.
+              onPress={() => {
+                if (!/^\/[^/\\]/.test(piece.href)) return;
+                router.push(piece.href as never);
+              }}
             >
               {piece.text}
             </Text>

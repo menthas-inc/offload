@@ -67,7 +67,16 @@ export function ContentRowView({
 }: Props) {
   const COLOR = useColors();
   const dx = useSharedValue(0);
-  const settle = () => withSpring(0, { damping: 20, stiffness: 220 });
+  // Called from two UI-thread gesture worklets below (pan.onEnd, long.onStart)
+  // and its return value is read synchronously there. Without the directive
+  // it is a plain JS-thread closure, and Reanimated proxies it as a remote
+  // function: reading its result synchronously from the UI thread throws
+  // "Tried to synchronously call a Remote Function" rather than settling the
+  // row, which is the crash a long press on a row threw.
+  const settle = () => {
+    "worklet";
+    return withSpring(0, { damping: 20, stiffness: 220 });
+  };
 
   // The change mark: a moss ground settling to transparent over 1400ms. Moss
   // because it already means "offload did this, you didn't", which is exactly

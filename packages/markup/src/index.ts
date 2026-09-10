@@ -66,11 +66,43 @@ const ESCAPABLE = new Set(["*", "[", "]", "(", ")", ">", "-", "\\", "`"]);
 
 /** Whether a link may point here.
  *
- *  A path inside the product, and nothing else. Not `//host`, which a browser
- *  reads as a protocol-relative URL to somewhere else entirely, and not a
- *  backslash, which some parsers normalise into one. */
+ *  A path inside the product, and nothing else.
+ *
+ *  **Prefix matching against a URL is not safe on its own, and this is why.**
+ *  A URL parser strips tab, carriage return and newline from anywhere in a URL
+ *  before it interprets it, so `/<tab>/evil.example` is not the path it looks
+ *  like: every browser reads it as `//evil.example`, a protocol-relative
+ *  reference, and navigates to somebody else's host keeping this one's scheme.
+ *  It passed all three checks that used to be here, because it starts with one
+ *  slash and the second character is a tab.
+ *
+ *  That is reachable. A row somebody else wrote in a shared thread can contain
+ *  a link, the prompt asks for quotes to be exact, and the reply renders it as
+ *  a real styled link inside offload's own bubble. Phishing in the product's
+ *  own voice is the worst thing this file could produce.
+ *
+ *  So: nothing a parser would strip or normalise may be in the string at all,
+ *  and what is left has to look like a path from the first character to the
+ *  last. Deliberately string work rather than `new URL`, which is a polyfill of
+ *  varying completeness on React Native and would make this depend on the
+ *  runtime it happens to be drawn in. */
 function addressable(href: string): boolean {
-  return href.startsWith("/") && !href.startsWith("//") && !href.startsWith("/\\");
+  // Anything a URL parser removes rather than rejects. Tab, CR and LF are the
+  // dangerous three; the rest of C0 and DEL have no business here either.
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001F\u007F]/.test(href)) return false;
+  // Leading and trailing spaces are stripped the same way, so a href with them
+  // is not the href it appears to be.
+  if (href !== href.trim()) return false;
+  if (!href.startsWith("/")) return false;
+  // `//host` is another origin. `/\host` is the same thing after a backslash
+  // is normalised, which some parsers do.
+  if (href.startsWith("//") || href.startsWith("/\\")) return false;
+  // No climbing. It cannot leave the app, since there is no filesystem under a
+  // route, but a link that resolves somewhere other than where it reads is the
+  // same class of surprise this function exists to refuse.
+  if (href.split("/").includes("..")) return false;
+  return true;
 }
 
 /** Read one line, character by character, so an escape is understood.
@@ -117,8 +149,18 @@ export function inlines(line: string): Inline[] {
     buffer = "";
   };
 
-  /** The next unescaped occurrence of `marker`, or -1. */
+  /** The next unescaped occurrence of `marker`, or -1.
+   *
+   *  **The absence is remembered, and that is not an optimisation.** A search
+   *  that reaches the end of the line without finding its marker will do the
+   *  same from any later position, because nothing ahead has changed. Without
+   *  the note, a line of unmatched brackets makes every one of them scan the
+   *  whole remainder: 48,000 characters took two and a half seconds, on the
+   *  thread that draws the screen, from text derived from what somebody dumped.
+   *  With it each marker is looked for once. */
+  const absent = new Set<string>();
   const find = (marker: string, from: number): number => {
+    if (absent.has(marker)) return -1;
     for (let at = from; at < line.length; at += 1) {
       if (line[at] === "\\") {
         at += 1;
@@ -126,6 +168,7 @@ export function inlines(line: string): Inline[] {
       }
       if (line.startsWith(marker, at)) return at;
     }
+    absent.add(marker);
     return -1;
   };
 
