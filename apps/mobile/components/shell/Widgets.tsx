@@ -16,9 +16,12 @@ import { useState } from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import {
   DONE_SHOWN,
+  cadenceLabel,
   filtersFor,
   matching,
   splitDone,
+  splitRepeating,
+  type Series,
   type Sortable,
   type Widget,
 } from "@offload/widgets";
@@ -109,7 +112,15 @@ function WidgetBlock({
 
   const filters = filtersFor(widget.rows as readonly Sortable[], dimension);
   const { left, done } = splitDone(matching(widget.rows, dimension, only));
-  const shown = [...left, ...(allDone ? done : done.slice(0, DONE_SHOWN))];
+  // **A repeating event is one thing in a list, not thirty.** Only the timeline
+  // splits: a repeating event is still one task in To do and one file in Files,
+  // and collapsing it there would hide rows that are separate things.
+  const split = widget.kind === "timeline" ? splitRepeating(left) : null;
+  const repeating: Series<ContentRow>[] = split ? split.repeating : [];
+  const shown = [
+    ...(split ? split.once : left),
+    ...(allDone ? done : done.slice(0, DONE_SHOWN)),
+  ];
 
   return (
     <View>
@@ -225,6 +236,33 @@ function WidgetBlock({
           onToggle={widget.kind === "todo" ? () => onToggle(row) : undefined}
         />
       ))}
+
+      {repeating.length > 0 ? (
+        <>
+          <Text
+            className={`mt-space-5 px-gutter-screen font-core font-medium ${
+              isAndroid ? "text-a-on-var" : "text-text-secondary"
+            }`}
+            style={{ fontSize: 13 }}
+          >
+            Repeating
+          </Text>
+          {repeating.map((series, index) => {
+            const often = cadenceLabel(series.everyDays);
+            return (
+              <ContentRowView
+                key={series.ref}
+                row={series.row}
+                border={index < repeating.length - 1}
+                arrived={false}
+                onDelete={() => onDelete(series.row)}
+                onActions={() => onActions(series.row)}
+                note={often ? `${often} · ${series.count} held` : `${series.count} dates`}
+              />
+            );
+          })}
+        </>
+      ) : null}
 
       {/* A finished task keeps its place and sinks below everything
           outstanding. Past five, the list shows the most recent and offers the

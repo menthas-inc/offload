@@ -49,9 +49,22 @@ interface Props {
    *  than list rows, and a tick is one tap rather than a long press into a
    *  sheet, because it is the thing people do most. */
   onToggle?: (() => void) | undefined;
+  /** Stands in for the body on a row that represents more than itself.
+   *
+   *  A collapsed repeating entry uses it to say how often and how many are
+   *  held, because the one date it happens to carry is not what it is about. */
+  note?: string | undefined;
 }
 
-export function ContentRowView({ row, border, arrived, onDelete, onActions, onToggle }: Props) {
+export function ContentRowView({
+  row,
+  border,
+  arrived,
+  onDelete,
+  onActions,
+  onToggle,
+  note,
+}: Props) {
   const COLOR = useColors();
   const dx = useSharedValue(0);
   const settle = () => withSpring(0, { damping: 20, stiffness: 220 });
@@ -189,7 +202,7 @@ export function ContentRowView({ row, border, arrived, onDelete, onActions, onTo
                 one spinner, not a second progress word: the readme reserves
                 "filing" for a row that does not know where it is going, and
                 this row knows. It is saved and usable already. */}
-            {row.body ? (
+            {note ?? row.body ? (
               <Text
                 className={`mt-space-1 font-core ${
                   isAndroid ? "text-a-on-var" : "text-text-secondary"
@@ -197,7 +210,7 @@ export function ContentRowView({ row, border, arrived, onDelete, onActions, onTo
                 style={{ fontSize: 13 }}
                 numberOfLines={2}
               >
-                {row.body}
+                {note ?? row.body}
               </Text>
             ) : null}
           </View>

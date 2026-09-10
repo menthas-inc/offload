@@ -88,6 +88,29 @@ export interface Sortable {
   doneAt: string | null;
   occursAt: string | null;
   placeId: string | null;
+  /** Which repeating series this occurrence belongs to, or null for a one off.
+   *
+   *  Optional because it arrived after the rows did, and a caller that has not
+   *  been taught to send it should read as "nothing repeats" rather than fail
+   *  to compile. */
+  seriesRef?: string | null;
+}
+
+/** One repeating thing, and the occurrences behind it. */
+export interface Series<T extends Sortable> {
+  ref: string;
+  /** The occurrence that stands for the series in a list. The next one that has
+   *  not happened, or the most recent if they all have. */
+  row: T;
+  /** How many occurrences the thread actually holds. Not how many exist: a
+   *  series with no end has no number, and this is the honest one. */
+  count: number;
+  /** Earliest and latest occurrence held, so a list can say a span. */
+  from: string;
+  to: string;
+  /** Days between occurrences when every gap is the same, else null. Enough to
+   *  say "every week" without parsing an RRULE the row does not carry. */
+  everyDays: number | null;
 }
 
 /** What a thread earns a widget for.
@@ -327,4 +350,108 @@ export function readPreference(attrs: unknown): ThreadPreference {
     ...(widgets && widgets.length > 0 ? { widgets } : {}),
     ...(Object.keys(grouping).length > 0 ? { groupBy: grouping } : {}),
   };
+}
+
+/** Split dated rows into the one-off ones and the things that repeat.
+ *
+ *  **A repeating event is one thing, not thirty.** A weekly yoga class filed as
+ *  thirty occurrences turned a thread's timeline into thirty rows of the word
+ *  Yoga, and everything that only happened once was pushed off the bottom by
+ *  it. On a calendar that repetition is free, because every day already has a
+ *  cell and an empty one costs nothing to draw. A list has no such grid: each
+ *  occurrence spends a whole row to say what the row above already said.
+ *
+ *  So the list collapses a series to one entry and says how often instead. The
+ *  occurrences are not hidden, they are counted, and the calendar still draws
+ *  every one of them.
+ *
+ *  **Which occurrence stands for the series**: the next one that has not
+ *  happened yet, because a repeating thing is a question about what is coming.
+ *  Once they have all passed it is the most recent, which is the same rule read
+ *  from the other end rather than a special case.
+ */
+export function splitRepeating<T extends Sortable>(
+  rows: readonly T[],
+  now: Date = new Date(),
+): { once: T[]; repeating: Series<T>[] } {
+  const bySeries = new Map<string, T[]>();
+  const once: T[] = [];
+
+  for (const row of rows) {
+    const ref = row.seriesRef ?? null;
+    if (ref === null) {
+      once.push(row);
+      continue;
+    }
+    const held = bySeries.get(ref);
+    if (held) held.push(row);
+    else bySeries.set(ref, [row]);
+  }
+
+  const repeating: Series<T>[] = [];
+  for (const [ref, group] of bySeries) {
+    // A series holding one occurrence is not repeating yet, whatever Google
+    // called it. Collapsing it would say "every week" about a single date and
+    // move it out of the list it belongs in.
+    if (group.length < 2) {
+      once.push(...group);
+      continue;
+    }
+
+    const dated = [...group].sort((a, b) => (a.occursAt ?? "").localeCompare(b.occursAt ?? ""));
+    const iso = now.toISOString();
+    const next = dated.find((row) => (row.occursAt ?? "") >= iso);
+
+    repeating.push({
+      ref,
+      row: next ?? dated[dated.length - 1]!,
+      count: dated.length,
+      from: dated[0]!.occursAt ?? "",
+      to: dated[dated.length - 1]!.occursAt ?? "",
+      everyDays: cadenceOf(dated),
+    });
+  }
+
+  // Soonest first, so what is coming leads and what has finished sinks. Same
+  // direction the one-off list runs in.
+  repeating.sort((a, b) => (a.row.occursAt ?? "").localeCompare(b.row.occursAt ?? ""));
+  return { once, repeating };
+}
+
+/** Days between occurrences, when every gap is the same.
+ *
+ *  Null the moment two gaps disagree, which is the common case: a fortnightly
+ *  thing with one moved week is not fortnightly and saying so would be worse
+ *  than saying nothing. The row carries no RRULE, so this is inferred from the
+ *  dates it does carry and it declines rather than guesses.
+ *
+ *  Rounded to whole days before comparing, because an occurrence that crosses a
+ *  daylight saving boundary is an hour out and is still weekly. */
+function cadenceOf(dated: readonly Sortable[]): number | null {
+  const DAY = 24 * 60 * 60 * 1000;
+  let every: number | null = null;
+
+  for (let i = 1; i < dated.length; i += 1) {
+    const a = dated[i - 1]!.occursAt;
+    const b = dated[i]!.occursAt;
+    if (!a || !b) return null;
+    const gap = Math.round((Date.parse(b) - Date.parse(a)) / DAY);
+    if (gap <= 0) return null;
+    if (every === null) every = gap;
+    else if (every !== gap) return null;
+  }
+  return every;
+}
+
+/** How often, in words, or null when the dates do not agree on an answer.
+ *
+ *  Sentence case and no unit on its own: "every week", not "Every 7 Days". */
+export function cadenceLabel(everyDays: number | null): string | null {
+  if (everyDays === null) return null;
+  if (everyDays === 1) return "every day";
+  if (everyDays === 7) return "every week";
+  if (everyDays === 14) return "every two weeks";
+  if (everyDays === 28 || everyDays === 30 || everyDays === 31) return "every month";
+  if (everyDays === 365 || everyDays === 366) return "every year";
+  return `every ${everyDays} days`;
 }

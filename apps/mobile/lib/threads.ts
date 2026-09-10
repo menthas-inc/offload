@@ -87,6 +87,9 @@ export interface ContentRow extends Sortable {
   tags: string[];
   place: Place | null;
   placeId: string | null;
+  /** The repeating series this occurrence belongs to, or null for a one off.
+   *  A timeline collapses a series to one entry; a calendar draws every one. */
+  seriesRef: string | null;
   author: { accountId: string | null; displayName: string; isYou: boolean };
   canDelete: boolean;
   canMove: boolean;

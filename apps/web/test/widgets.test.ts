@@ -24,6 +24,8 @@ import {
   dimensionsIn,
   groupBy,
   readPreference,
+  splitRepeating,
+  cadenceLabel,
   widgetsFor,
   type Sortable,
 } from "../src/lib/widgets";
@@ -306,5 +308,102 @@ describe("a request with no body does not claim one", () => {
     await addMemory("t1", "Todo names in three words");
     expect(calls[0]?.init.body).toBeDefined();
     expect(headers()["content-type"]).toBe("application/json");
+  });
+});
+
+describe("a repeating event is one thing in a list, not thirty", () => {
+  // The defect this fixes: a weekly yoga class filed as thirty occurrences drew
+  // thirty rows of the word Yoga, and everything that happened once was pushed
+  // off the bottom by it. A calendar can repeat for free because every day
+  // already has a cell; a list spends a whole row to repeat what the row above
+  // said.
+  function occurrence(iso: string, ref: string | null, title = "Yoga"): Sortable {
+    return { ...row({ type: "event", occursAt: iso }), seriesRef: ref, title } as Sortable;
+  }
+
+  const NOW = new Date("2026-09-10T12:00:00Z");
+
+  it("collapses a series to one entry and counts the rest", () => {
+    const rows = [
+      occurrence("2026-08-31T18:00:00Z", "yoga"),
+      occurrence("2026-09-07T18:00:00Z", "yoga"),
+      occurrence("2026-09-14T18:00:00Z", "yoga"),
+      occurrence("2026-09-04T10:00:00Z", null, "Lawyer"),
+    ];
+
+    const { once, repeating } = splitRepeating(rows, NOW);
+
+    expect(once).toHaveLength(1);
+    expect(repeating).toHaveLength(1);
+    expect(repeating[0]?.count).toBe(3);
+  });
+
+  it("stands the series on the next occurrence, not the first", () => {
+    const rows = [
+      occurrence("2026-08-31T18:00:00Z", "yoga"),
+      occurrence("2026-09-07T18:00:00Z", "yoga"),
+      occurrence("2026-09-14T18:00:00Z", "yoga"),
+    ];
+
+    const { repeating } = splitRepeating(rows, NOW);
+
+    // A repeating thing is a question about what is coming.
+    expect(repeating[0]?.row.occursAt).toBe("2026-09-14T18:00:00Z");
+  });
+
+  it("falls back to the most recent when the series has finished", () => {
+    const rows = [
+      occurrence("2026-07-06T18:00:00Z", "old"),
+      occurrence("2026-07-13T18:00:00Z", "old"),
+    ];
+
+    const { repeating } = splitRepeating(rows, NOW);
+
+    expect(repeating[0]?.row.occursAt).toBe("2026-07-13T18:00:00Z");
+  });
+
+  it("says how often when every gap agrees", () => {
+    const rows = [
+      occurrence("2026-09-07T18:00:00Z", "yoga"),
+      occurrence("2026-09-14T18:00:00Z", "yoga"),
+      occurrence("2026-09-21T18:00:00Z", "yoga"),
+    ];
+
+    const { repeating } = splitRepeating(rows, NOW);
+
+    expect(repeating[0]?.everyDays).toBe(7);
+    expect(cadenceLabel(repeating[0]?.everyDays ?? null)).toBe("every week");
+  });
+
+  it("says nothing rather than guessing when a week was moved", () => {
+    const rows = [
+      occurrence("2026-09-07T18:00:00Z", "yoga"),
+      occurrence("2026-09-15T18:00:00Z", "yoga"),
+      occurrence("2026-09-21T18:00:00Z", "yoga"),
+    ];
+
+    const { repeating } = splitRepeating(rows, NOW);
+
+    // Eight days then six. Calling that weekly would be worse than silence.
+    expect(repeating[0]?.everyDays).toBe(null);
+    expect(cadenceLabel(null)).toBe(null);
+  });
+
+  it("leaves a series holding one occurrence in the list", () => {
+    // Google calls a single event a series often enough. Collapsing it would
+    // say "every week" about one date and move it out of the list it belongs
+    // in.
+    const rows = [occurrence("2026-09-14T18:00:00Z", "lonely")];
+
+    const { once, repeating } = splitRepeating(rows, NOW);
+
+    expect(repeating).toHaveLength(0);
+    expect(once).toHaveLength(1);
+  });
+
+  it("treats a row with no series as a one off", () => {
+    const { once, repeating } = splitRepeating([occurrence("2026-09-14T18:00:00Z", null)], NOW);
+    expect(once).toHaveLength(1);
+    expect(repeating).toHaveLength(0);
   });
 });

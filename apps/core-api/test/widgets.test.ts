@@ -377,3 +377,70 @@ describe("the thread read does not grow with what a thread holds (AC-9)", () => 
     expect(forRich).toBe(forBare);
   });
 });
+
+describe("a repeating occurrence says which series it belongs to", () => {
+  // The client collapses a repeating event to one row and counts the rest, and
+  // the only thing it can group by is this field. `attrs` is not sent whole,
+  // exactly as `place_id` is not: the client needs to know an occurrence
+  // repeats and has no business with the rest of what a calendar sync wrote.
+  it("derives seriesRef from attrs, and null when there is none", async () => {
+    const account = await db
+      .insertInto("accounts")
+      .values({
+        email: `${uuidv7()}@example.com`, state: "active", email_verified: true,
+        display_name: "Ana Duarte", analytics_subject_id: uuidv7(),
+      })
+      .returning("id").executeTakeFirstOrThrow();
+
+    const token = uuidv7();
+    await db
+      .insertInto("sessions")
+      .values({ account_id: account.id, token, expires_at: new Date(Date.now() + 3_600_000) })
+      .execute();
+    const cookie = `better-auth.session_token=${token}.${await makeSignature(token, env.BETTER_AUTH_SECRET)}`;
+
+    const thread = await db
+      .insertInto("threads")
+      .values({ created_by_account_id: account.id, name: "Week" })
+      .returning("id").executeTakeFirstOrThrow();
+    await db
+      .insertInto("thread_members")
+      .values({ thread_id: thread.id, account_id: account.id, state: "accepted" })
+      .execute();
+
+    await db
+      .insertInto("content")
+      .values([
+        {
+          account_id: account.id, thread_id: thread.id, type: "event", title: "Yoga",
+          occurs_at: new Date("2026-09-14T18:00:00Z"),
+          attrs: JSON.stringify({ series_ref: "yoga-series", calendar: "primary" }),
+        },
+        {
+          account_id: account.id, thread_id: thread.id, type: "event", title: "Lawyer",
+          occurs_at: new Date("2026-09-04T10:00:00Z"),
+          attrs: JSON.stringify({ calendar: "primary" }),
+        },
+        {
+          // An empty string is not a series. Grouping by it would collect every
+          // such row into one imaginary repeating thing.
+          account_id: account.id, thread_id: thread.id, type: "event", title: "Dentist",
+          occurs_at: new Date("2026-09-05T10:00:00Z"),
+          attrs: JSON.stringify({ series_ref: "" }),
+        },
+      ])
+      .execute();
+
+    const page = await app.inject({
+      method: "GET", url: `/v1/threads/${thread.id}/content`, headers: { cookie },
+    });
+    expect(page.statusCode).toBe(200);
+
+    const rows = (page.json() as { rows: { title: string; seriesRef: string | null }[] }).rows;
+    const byTitle = new Map(rows.map((r) => [r.title, r.seriesRef]));
+
+    expect(byTitle.get("Yoga")).toBe("yoga-series");
+    expect(byTitle.get("Lawyer")).toBe(null);
+    expect(byTitle.get("Dentist")).toBe(null);
+  });
+});

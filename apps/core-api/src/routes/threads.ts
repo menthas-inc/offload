@@ -163,6 +163,13 @@ const contentRow = z.object({
   priority: z.number(),
   priorityPinned: z.boolean(),
   tags: z.array(z.string()),
+  /** The repeating series this occurrence belongs to, or null for a one off.
+   *
+   *  Derived from `attrs`, which is never sent whole, exactly as `place` is
+   *  built rather than the raw key being handed over. A list collapses a series
+   *  to one entry and counts the rest; a calendar draws every occurrence, which
+   *  is why the field says which series rather than how to draw it. */
+  seriesRef: z.string().nullable(),
   place: z
     .object({
       id: z.string(),
@@ -249,10 +256,28 @@ interface RawRow {
   priority_pinned: boolean;
   tags: string[];
   place_id: string | null;
+  /** Whatever the source put on the row. Only `series_ref` is read here, and
+   *  only to say whether an occurrence belongs to something that repeats.
+   *
+   *  `unknown` because that is what Kysely gives a jsonb column, and narrowing
+   *  it at the boundary would be claiming a shape nothing validates. */
+  attrs: unknown;
   placeName: string | null;
   placeAddress: string | null;
   placeLat: number | null;
   placeLng: number | null;
+}
+
+/** Which repeating series an occurrence belongs to, or null.
+ *
+ *  `series_ref` is Google's id for the whole series, written by the calendar
+ *  sync onto every occurrence it produces. Empty string is treated as absent:
+ *  a row whose series is the empty string belongs to nothing, and grouping by
+ *  it would collect every such row into one imaginary series. */
+function seriesRefOf(attrs: unknown): string | null {
+  if (typeof attrs !== "object" || attrs === null) return null;
+  const ref = (attrs as Record<string, unknown>)["series_ref"];
+  return typeof ref === "string" && ref.length > 0 ? ref : null;
 }
 
 function toRow(row: RawRow, viewerId: string) {
@@ -281,6 +306,10 @@ function toRow(row: RawRow, viewerId: string) {
     priority: row.priority,
     priorityPinned: row.priority_pinned,
     tags: row.tags,
+    // Derived rather than sending `attrs` whole, exactly as `placeId` is: the
+    // client needs to know an occurrence repeats and has no business with the
+    // rest of what a calendar sync wrote.
+    seriesRef: seriesRefOf(row.attrs),
     place: row.place_id
       ? {
           id: row.place_id,
@@ -1006,6 +1035,7 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.priority_pinned as priority_pinned",
             "content.tags as tags",
             "content.place_id as place_id",
+            "content.attrs as attrs",
             "accounts.display_name as authorName",
       sql<boolean>`exists (
         select 1 from thread_members am
@@ -1095,6 +1125,7 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.priority_pinned as priority_pinned",
             "content.tags as tags",
             "content.place_id as place_id",
+            "content.attrs as attrs",
             "content.derived_from_message_id as fromMessageId",
             "content.thread_id as threadId",
             "threads.name as threadName",
@@ -1683,6 +1714,7 @@ async function rowById(contentId: string, viewerId: string) {
       "content.priority_pinned as priority_pinned",
       "content.tags as tags",
       "content.place_id as place_id",
+            "content.attrs as attrs",
       "accounts.display_name as authorName",
       sql<boolean>`exists (
         select 1 from thread_members am

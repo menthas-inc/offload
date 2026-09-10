@@ -391,6 +391,19 @@
  * group gets which is not a free choice: `WThings` gives "Always on" the accent
  * and leaves "Older threads" on the default, so the blue lands on the group
  * that is finished rather than the one that never closes. */
+/* A quieter sibling of .section, for a split inside one widget rather than a
+ * new one. **It is deliberately not a .section**: this screen's promise is that
+ * nothing needs filing, and 007 already removed headed groups from widgets once
+ * for leading with structure somebody has to read. A repeating set is not a
+ * group somebody chose, it is one fact about the rows, so it gets a label at
+ * the weight of a label and no rule above it, no count badge and no add button.
+ */
+.subSection {
+  margin: var(--space-6) 0 var(--space-2);
+  font: var(--weight-medium) var(--size-label)/1.2 var(--font-core);
+  color: var(--text-secondary);
+}
+
 .sectionCount {
   display: inline-flex;
   align-items: center;

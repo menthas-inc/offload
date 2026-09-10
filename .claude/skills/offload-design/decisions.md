@@ -11,6 +11,26 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-10 · A repeating event is one row in a list and every cell on a calendar
+**Surface:** web, iOS, Android
+**Raised by:** a thread whose Timeline was thirty rows of the word Yoga.
+
+**The list and the calendar disagree about repetition, and both are right.** A calendar can draw the same event on thirty days for free: every day already has a cell, and an empty one costs the same as a full one. A list has no grid. Each occurrence spends a whole row to say what the row above already said, and the one-off things, the lawyer, the studio call, get pushed off the bottom by a class somebody goes to every week.
+
+So the timeline collapses a series to one entry and says how often instead. **The occurrences are counted, never hidden**, and nothing changes on a calendar.
+
+**Only the timeline splits.** A repeating event is still one task in To do and one file in Files. Collapsing anywhere else would hide rows that are genuinely separate things.
+
+**The entry stands on the next occurrence that has not happened**, because a repeating thing is a question about what is coming. Once they have all passed it stands on the most recent, which is the same rule read from the other end rather than a special case.
+
+**How often is inferred from the dates, and it declines rather than guesses.** The row carries no RRULE, only the series id the calendar sync wrote, so the cadence comes from the gaps between the occurrences held. Every gap the same gives "every week". One moved week gives nothing at all, and the entry says "12 dates" instead. Saying "every week" about a series with a moved week would be worse than saying nothing.
+
+**A series holding one occurrence stays in the list**, whatever the calendar called it. Collapsing it would say "every week" about a single date.
+
+**The heading is a label, not a section.** No rule above it, no count badge, no add button. 007 already removed headed groups from widgets once for leading with structure somebody has to read, and a repeating set is not a group anybody chose, it is one fact about the rows.
+
+**Design system impact:** the kits' `TimelineWidget` draws a week rail and a granularity toggle and has nothing to say about repetition, so this is new. Web has no timeline mock at all. Worth drawing, because the phone kit's daily view is a calendar shape and should keep repeating every occurrence while its overall view should not.
+
 ### 2026-09-09 · Three things the review found in answering, and what each one is now
 **Surface:** web, iOS, Android
 **Raised by:** the review panel run before 013 merged. All three are gaps between the apply doc and the code that the first log entry did not name.

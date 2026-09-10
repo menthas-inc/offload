@@ -127,6 +127,9 @@ export interface ContentRow {
    *  `fetchContent` rather than sent twice, so nothing above has to know that
    *  the server holds a key where this holds an object. */
   placeId: string | null;
+  /** The repeating series this occurrence belongs to, or null for a one off.
+   *  A timeline collapses a series to one entry; a calendar draws every one. */
+  seriesRef: string | null;
   /** `accountId` is null once the author deleted their account. Their content
    *  stays in the threads they shared, per OFF-3, and the name comes off it.
    *  `displayName` falls back to "Someone" server-side, so the screen never
