@@ -1,0 +1,64 @@
+/* A reply with more than one sentence in it.
+ *
+ * **Nothing here sets a font.** The bubble already carries `--text-quiet-role`
+ * at 15px and 1.5, and a reply that changed typeface partway through would read
+ * as two different voices. These rules only ever set space, weight and one
+ * rule down the side of a quote.
+ *
+ * Written against the bubble it sits in: `.turnOffload` pads by one space step,
+ * so nothing below adds a margin at the top of the first block or the bottom of
+ * the last, which would show as an uneven bubble.
+ */
+
+.reply {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.paragraph {
+  margin: 0;
+}
+
+/* A single newline is a break somebody meant, and each line is its own span so
+ * a long one wraps under itself rather than under the line above. */
+.line {
+  display: block;
+}
+
+/* One step of indent, not the browser's 40px, which at this measure pushes a
+ * list halfway across the bubble. The marker sits inside the padding so the
+ * text of an item lines up with the paragraph above it. */
+.list {
+  margin: 0;
+  padding-left: var(--space-6);
+}
+
+.list li {
+  margin: 0;
+}
+
+.list li + li {
+  margin-top: var(--space-2);
+}
+
+.list li::marker {
+  /* Quieter than the words. The marker is structure, not content, and at full
+   * ink a column of bullets reads louder than the sentences beside them. */
+  color: var(--text-tertiary);
+}
+
+/* A rule down the side rather than italics: the reply is already set in the
+ * serif, and italicising a whole block of it at 15px is hard to read. */
+.quote {
+  margin: 0;
+  padding-left: var(--space-5);
+  border-left: 2px solid var(--border-hairline);
+  color: var(--text-secondary);
+}
+
+.link {
+  color: var(--text-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

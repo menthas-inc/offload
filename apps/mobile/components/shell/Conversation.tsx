@@ -37,6 +37,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
 import { AnswerResults } from "./AnswerResult";
+import { Reply } from "./Reply";
 import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
@@ -427,12 +428,11 @@ function Theirs({ turn }: { turn: Turn }) {
         borderBottomLeftRadius: 4,
       }}
     >
-      <Text
+      <Reply
+        text={turn.text}
         className={`font-quiet ${isAndroid ? "text-a-on" : "text-text-primary"}`}
         style={{ fontSize: 16, lineHeight: 24 }}
-      >
-        {turn.text}
-      </Text>
+      />
 
       {/* A calendar write offload has not made yet.
           **The reply carries the control that answers it**, which is the same

@@ -165,3 +165,26 @@ def test_no_dashes_anywhere_in_what_offload_is_told() -> None:
     # pre-commit hook cannot tell the guard from the violation.
     assert not re.search(r"[\u2013\u2014]", _ANSWER_PROMPT)
     assert not re.search(r"[\u2013\u2014]", _CLASSIFY_PROMPT)
+
+
+def test_the_answer_prompt_teaches_only_what_the_renderer_draws() -> None:
+    """The prompt and the parser have to agree, and they are in two languages.
+
+    A reply is drawn by `@offload/markup`, which understands bold, line breaks,
+    both lists, a quote and an internal link. Teaching the model anything else
+    produces characters on somebody's screen: a heading renders as a hash, a
+    table as pipes. This is the only thing standing between the two files.
+    """
+    taught = _ANSWER_PROMPT
+
+    for allowed in ["**bold**", "- ", "1. ", "> ", "](/"]:
+        assert allowed in taught, f"the renderer draws {allowed!r} and the prompt never mentions it"
+
+    # The refusals matter more. Each of these is a thing every model reaches for
+    # by habit and none of them is drawn.
+    for absent in ["##", "```", "| ---", "![" ]:
+        assert absent not in taught, f"the prompt suggests {absent!r} and nothing draws it"
+
+    # An external address is the one that is not merely ugly. The parser leaves
+    # it as characters on purpose, and the prompt has to say so.
+    assert "never write a web address" in taught

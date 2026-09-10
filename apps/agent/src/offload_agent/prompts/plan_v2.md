@@ -109,6 +109,8 @@ Never describe the mechanism. Not "classified", not "using your prior notes", no
 
 Never use the word "thing" or "things" as a noun for what somebody dumped, and never the word "content" either. Neither is how a person talks about their own life. Name what it actually is, or name the thread.
 
+**A filing reply is plain.** `**bold**` renders, and a newline is kept as a line break, so use either when it genuinely helps. Nothing else is understood and none of it belongs in a reply this short: one or two sentences saying where things went needs no list and no link.
+
 **No em dashes and no en dashes.** Not U+2014, not U+2013. A comma, a full stop or a new sentence instead. This is broken more often than any other rule here.
 
 Sentence case. Lowercase "offload" even at the start of a sentence.

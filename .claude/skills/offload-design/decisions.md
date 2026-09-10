@@ -11,6 +11,28 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-10 · A reply can be marked up, and the list of what it may contain is short enough to write down
+**Surface:** web, iOS, Android
+**Raised by:** an answer about connected apps that ran three facts into one paragraph, with no way to link the settings screen it was describing.
+
+**Replies were plain text on every surface**, so a longer one had no shape at all and nothing could point anywhere. offload stays short, but bold, a line break, a list and a quote earn their place often enough that their absence was showing.
+
+**A parser, not a markdown library.** Every package is a superset of what anybody wants: raw HTML, images, tables, autolinking. The honest question is not which library but what a reply may contain at all, and that is six things. Anything else stays as the characters it was.
+
+**No HTML on any surface.** `@offload/markup` returns a tree and each client draws it with its own components, so there is no string a browser parses, no sanitiser to keep correct and no `dangerouslySetInnerHTML` for a later change to reintroduce. On the phones `Linking` is not imported at all, so there is no call that could open an external URL even if the parser changed.
+
+**A link may address a screen offload owns and nothing else.** An external URL in a reply is a phishing surface wearing the product's voice, and the words in it can come from a row a stranger wrote. `https://`, `//host`, `javascript:` and `data:` are all left as literal characters, which is the failure direction that cannot be used against anybody.
+
+**Nothing in the renderer sets a font.** The two bubbles disagree about size and typeface already, so the call site passes what it uses and every block inherits it. A reply that changed typeface partway through would read as two voices.
+
+**The plain case pays nothing.** One sentence parses to one paragraph of one text piece and is returned as a bare string, so the markup never appears for the reply almost every reply is.
+
+**Caps, and they keep what overflows.** Twelve blocks and ten items in a list. Past that a reply is a document and belongs on a screen instead, but the overflow is still said as paragraphs rather than dropped, because dropping is offload deciding somebody did not need to know.
+
+**The prompt and the parser are in two languages**, so a test asserts they agree: everything the renderer draws is taught, and the things every model reaches for by habit and nothing draws, headings, fences, tables, images, are absent.
+
+**Design system impact:** new. A reply bubble can now hold a list, a quote and a link, and none of that is in the kits. Worth drawing: the marker takes tertiary ink because a column of bullets at full weight reads louder than the sentences beside it, the quote takes a rule rather than italics because the reply is already set in the serif, and the list indents one space step rather than the browser's default, which at this measure pushes it halfway across the bubble.
+
 ### 2026-09-10 · A repeating event is one row in a list and every cell on a calendar
 **Surface:** web, iOS, Android
 **Raised by:** a thread whose Timeline was thirty rows of the word Yoga.

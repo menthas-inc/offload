@@ -32,6 +32,7 @@ import {
 } from "../../lib/dump";
 import { Icon } from "../Icon";
 import { AnswerResults } from "./AnswerResult";
+import { Reply } from "./Reply";
 import { completeContent } from "../../lib/threads";
 import { Logo } from "../Logo";
 import { FILL_COMPOSER } from "../panes/Today";
@@ -441,7 +442,7 @@ export function Composer({
             ) : (
               <div key={turn.id} className={styles.turn}>
               <div className={styles.turnOffload}>
-                {turn.text}
+                <Reply text={turn.text} />
                 {/* A calendar write offload has not made yet. Without this the
                     proposal is announced and expires an hour later having done
                     nothing, which is the dead end this closes. */}

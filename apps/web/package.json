@@ -15,7 +15,8 @@
     "next": "^15.1.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@offload/widgets": "workspace:^"
+    "@offload/widgets": "workspace:^",
+    "@offload/markup": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
