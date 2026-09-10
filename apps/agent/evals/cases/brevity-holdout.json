@@ -1,0 +1,623 @@
+{
+ "cases": [
+  {
+   "id": "h-which-nowhere",
+   "why": "set of two out of four",
+   "question": "which of my calendars are not filing anywhere?",
+   "rubric": "Names Birthdays and ana.personal@example.com. No count in front, no lead-in sentence, and no mention of the two that do file somewhere.",
+   "facts": {
+    "displayName": "Ana",
+    "defaultThread": {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox"
+    },
+    "calendars": [
+     {
+      "name": "work@studio.co",
+      "filesInto": "Client work"
+     },
+     {
+      "name": "Family",
+      "filesInto": "House"
+     },
+     {
+      "name": "Birthdays",
+      "filesInto": null
+     },
+     {
+      "name": "ana.personal@example.com",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "two:",
+    "work@studio.co",
+    "family"
+   ],
+   "max_words": 24
+  },
+  {
+   "id": "h-which-threads",
+   "why": "asks about threads, must not descend into calendars",
+   "question": "which threads have a calendar going into them?",
+   "rubric": "Names Client work and House. Must not enumerate which calendar goes into which, since that was not asked, and must not name the calendars that file nowhere.",
+   "facts": {
+    "displayName": "Ana",
+    "defaultThread": {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox"
+    },
+    "calendars": [
+     {
+      "name": "work@studio.co",
+      "filesInto": "Client work"
+     },
+     {
+      "name": "Family",
+      "filesInto": "House"
+     },
+     {
+      "name": "Birthdays",
+      "filesInto": null
+     },
+     {
+      "name": "ana.personal@example.com",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "birthdays",
+    "ana.personal"
+   ],
+   "max_words": 20
+  },
+  {
+   "id": "h-which-one-of-three",
+   "why": "a single match inside a larger set",
+   "question": "which calendar files into House?",
+   "rubric": "Says Family. Does not name the other three calendars and does not put a count in front.",
+   "facts": {
+    "displayName": "Ana",
+    "defaultThread": {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox"
+    },
+    "calendars": [
+     {
+      "name": "work@studio.co",
+      "filesInto": "Client work"
+     },
+     {
+      "name": "Family",
+      "filesInto": "House"
+     },
+     {
+      "name": "Birthdays",
+      "filesInto": null
+     },
+     {
+      "name": "ana.personal@example.com",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "birthdays",
+    "work@studio.co"
+   ],
+   "max_words": 15
+  },
+  {
+   "id": "h-yesno-no",
+   "why": "no, without volunteering which one does",
+   "question": "does Birthdays file into a thread?",
+   "rubric": "Answers no. Does not name any other calendar or thread.",
+   "facts": {
+    "displayName": "Ana",
+    "defaultThread": {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox"
+    },
+    "calendars": [
+     {
+      "name": "work@studio.co",
+      "filesInto": "Client work"
+     },
+     {
+      "name": "Family",
+      "filesInto": "House"
+     },
+     {
+      "name": "Birthdays",
+      "filesInto": null
+     },
+     {
+      "name": "ana.personal@example.com",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "family",
+    "house",
+    "work@studio"
+   ],
+   "max_words": 14
+  },
+  {
+   "id": "h-yesno-yes",
+   "why": "yes, without listing the rest",
+   "question": "is work@studio.co connected to anything?",
+   "rubric": "Answers yes and may name Client work. Does not mention the other three calendars.",
+   "facts": {
+    "displayName": "Ana",
+    "defaultThread": {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox"
+    },
+    "calendars": [
+     {
+      "name": "work@studio.co",
+      "filesInto": "Client work"
+     },
+     {
+      "name": "Family",
+      "filesInto": "House"
+     },
+     {
+      "name": "Birthdays",
+      "filesInto": null
+     },
+     {
+      "name": "ana.personal@example.com",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "birthdays",
+    "family"
+   ],
+   "max_words": 18
+  },
+  {
+   "id": "h-yesno-done",
+   "why": "a ticked row: yes plus its state",
+   "question": "have I already sorted the boiler service?",
+   "rubric": "Says yes and that it is done. Does not list the other rows and does not offer further help.",
+   "rows": [
+    {
+     "contentId": "00000020-0000-0000-0000-000000000000",
+     "threadId": "00000008-0000-0000-0000-000000000000",
+     "threadName": "House",
+     "type": "task",
+     "title": "Boiler service",
+     "body": null,
+     "done": true,
+     "dueAt": null,
+     "occursAt": null
+    }
+   ],
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "let me know",
+    "anything else"
+   ],
+   "max_words": 20
+  },
+  {
+   "id": "h-fact-default",
+   "why": "one named fact",
+   "question": "where do things go when offload cannot tell?",
+   "rubric": "Says Inbox, the default thread. One short sentence, nothing else.",
+   "facts": {
+    "displayName": "Ana",
+    "defaultThread": {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox"
+    },
+    "calendars": [
+     {
+      "name": "work@studio.co",
+      "filesInto": "Client work"
+     },
+     {
+      "name": "Family",
+      "filesInto": "House"
+     },
+     {
+      "name": "Birthdays",
+      "filesInto": null
+     },
+     {
+      "name": "ana.personal@example.com",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "calendar"
+   ],
+   "max_words": 16
+  },
+  {
+   "id": "h-fact-count",
+   "why": "a count is the answer when a count is asked for",
+   "question": "how many calendars do I have?",
+   "rubric": "Says four. A count in front is correct here because the count IS the question. Does not then list them.",
+   "facts": {
+    "displayName": "Ana",
+    "defaultThread": {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox"
+    },
+    "calendars": [
+     {
+      "name": "work@studio.co",
+      "filesInto": "Client work"
+     },
+     {
+      "name": "Family",
+      "filesInto": "House"
+     },
+     {
+      "name": "Birthdays",
+      "filesInto": null
+     },
+     {
+      "name": "ana.personal@example.com",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "birthdays",
+    "family"
+   ],
+   "max_words": 12
+  },
+  {
+   "id": "h-rows-set",
+   "why": "rows drawn beside the reply must not be retyped",
+   "question": "what is still open in House?",
+   "rubric": "Says what they add up to, such as 'Two left', or one short sentence. Must NOT type out the row titles, because the rows are drawn beside the reply.",
+   "rows": [
+    {
+     "contentId": "00000020-0000-0000-0000-000000000000",
+     "threadId": "00000008-0000-0000-0000-000000000000",
+     "threadName": "House",
+     "type": "task",
+     "title": "Fix the tap",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    },
+    {
+     "contentId": "00000021-0000-0000-0000-000000000000",
+     "threadId": "00000008-0000-0000-0000-000000000000",
+     "threadName": "House",
+     "type": "task",
+     "title": "Order a rug",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    }
+   ],
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "fix the tap",
+    "order a rug"
+   ],
+   "max_words": 14
+  },
+  {
+   "id": "h-rows-none",
+   "why": "nothing found is one short sentence",
+   "question": "anything overdue in Client work?",
+   "rubric": "Says nothing is overdue. One short sentence, no apology, no suggestion to try other words.",
+   "rows": [],
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "sorry",
+    "rephrase"
+   ],
+   "max_words": 14
+  },
+  {
+   "id": "h-preserve-pref",
+   "why": "a refusal stays a friendly whole sentence",
+   "question": "how big is my text size set to?",
+   "rubric": "Says plainly that offload does not know, because it lives on the device. A complete sentence, not a bare word, and no guess.",
+   "facts": {
+    "displayName": "Ana",
+    "defaultThread": {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox"
+    },
+    "calendars": [
+     {
+      "name": "work@studio.co",
+      "filesInto": "Client work"
+     },
+     {
+      "name": "Family",
+      "filesInto": "House"
+     },
+     {
+      "name": "Birthdays",
+      "filesInto": null
+     },
+     {
+      "name": "ana.personal@example.com",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "large",
+    "medium",
+    "small"
+   ],
+   "max_words": 26
+  },
+  {
+   "id": "h-preserve-scope",
+   "why": "out of scope stays a sentence",
+   "question": "what time does the hardware shop close?",
+   "rubric": "Says offload has nothing about that, in one or two short sentences. No guess and no list of what it can do instead.",
+   "rows": [],
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "i can help you with"
+   ],
+   "max_words": 24
+  },
+  {
+   "id": "h-preserve-truncated",
+   "why": "a cut short read keeps its caveat",
+   "question": "is a rug already on the House list?",
+   "rubric": "Must not claim absence. The read was cut short, so it says what it saw and does not answer a flat no.",
+   "rows": [
+    {
+     "contentId": "00000020-0000-0000-0000-000000000000",
+     "threadId": "00000008-0000-0000-0000-000000000000",
+     "threadName": "House",
+     "type": "task",
+     "title": "Fix the tap",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    },
+    {
+     "contentId": "00000021-0000-0000-0000-000000000000",
+     "threadId": "00000008-0000-0000-0000-000000000000",
+     "threadName": "House",
+     "type": "task",
+     "title": "Paint the hall",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    },
+    {
+     "contentId": "00000022-0000-0000-0000-000000000000",
+     "threadId": "00000008-0000-0000-0000-000000000000",
+     "threadName": "House",
+     "type": "task",
+     "title": "Boiler service",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    }
+   ],
+   "threads": [
+    {
+     "id": "00000007-0000-0000-0000-000000000000",
+     "name": "Client work"
+    },
+    {
+     "id": "00000008-0000-0000-0000-000000000000",
+     "name": "House"
+    },
+    {
+     "id": "00000009-0000-0000-0000-000000000000",
+     "name": "Inbox",
+     "default": "yes"
+    }
+   ],
+   "truncated": true,
+   "must_not_contain": [],
+   "max_words": 30
+  }
+ ]
+}

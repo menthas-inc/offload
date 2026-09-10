@@ -1,0 +1,417 @@
+{
+ "cases": [
+  {
+   "id": "which-files-nowhere",
+   "why": "set of two, the list is the answer",
+   "question": "which calendars do not file into a thread?",
+   "rubric": "Names ana@example.com and Holidays. No count in front, no lead-in sentence, and no mention of Team which does file somewhere.",
+   "facts": {
+    "displayName": "Behrooz",
+    "defaultThread": {
+     "id": "00000003-0000-0000-0000-000000000000",
+     "name": "Miscellaneous"
+    },
+    "calendars": [
+     {
+      "name": "ana@example.com",
+      "filesInto": null
+     },
+     {
+      "name": "Team",
+      "filesInto": "Studio"
+     },
+     {
+      "name": "Holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "must_not_contain": [
+    "two:",
+    "there are two",
+    "team"
+   ],
+   "max_words": 22
+  },
+  {
+   "id": "which-files-somewhere",
+   "why": "set of one, asked as a which-ones",
+   "question": "which calendar files into a thread?",
+   "rubric": "Says Team, and may say it files into Studio because that is the substance of the answer. Does not name the other two calendars and does not put a count in front.",
+   "facts": {
+    "displayName": "Behrooz",
+    "defaultThread": {
+     "id": "00000003-0000-0000-0000-000000000000",
+     "name": "Miscellaneous"
+    },
+    "calendars": [
+     {
+      "name": "ana@example.com",
+      "filesInto": null
+     },
+     {
+      "name": "Team",
+      "filesInto": "Studio"
+     },
+     {
+      "name": "Holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "must_not_contain": [
+    "ana@example.com",
+    "holidays"
+   ],
+   "max_words": 20
+  },
+  {
+   "id": "which-threads-have-cal",
+   "why": "asks about threads, answer must not descend into calendars",
+   "question": "which of my threads has a calendar filing into it?",
+   "rubric": "Says Studio. Does not enumerate the calendars, which were not asked about.",
+   "facts": {
+    "displayName": "Behrooz",
+    "defaultThread": {
+     "id": "00000003-0000-0000-0000-000000000000",
+     "name": "Miscellaneous"
+    },
+    "calendars": [
+     {
+      "name": "ana@example.com",
+      "filesInto": null
+     },
+     {
+      "name": "Team",
+      "filesInto": "Studio"
+     },
+     {
+      "name": "Holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "must_not_contain": [
+    "ana@example.com",
+    "holidays"
+   ],
+   "max_words": 18
+  },
+  {
+   "id": "yesno-no",
+   "why": "no, and the one that does was not asked about",
+   "question": "does ana@example.com file into a thread?",
+   "rubric": "Answers no. Does not name Team or Studio.",
+   "facts": {
+    "displayName": "Behrooz",
+    "defaultThread": {
+     "id": "00000003-0000-0000-0000-000000000000",
+     "name": "Miscellaneous"
+    },
+    "calendars": [
+     {
+      "name": "ana@example.com",
+      "filesInto": null
+     },
+     {
+      "name": "Team",
+      "filesInto": "Studio"
+     },
+     {
+      "name": "Holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "must_not_contain": [
+    "team",
+    "studio"
+   ],
+   "max_words": 14
+  },
+  {
+   "id": "yesno-yes",
+   "why": "yes, without listing everything else",
+   "question": "does Team file into a thread?",
+   "rubric": "Answers yes and may name Studio, since that is what yes means here. Does not mention the other two calendars.",
+   "facts": {
+    "displayName": "Behrooz",
+    "defaultThread": {
+     "id": "00000003-0000-0000-0000-000000000000",
+     "name": "Miscellaneous"
+    },
+    "calendars": [
+     {
+      "name": "ana@example.com",
+      "filesInto": null
+     },
+     {
+      "name": "Team",
+      "filesInto": "Studio"
+     },
+     {
+      "name": "Holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "must_not_contain": [
+    "ana@example.com",
+    "holidays"
+   ],
+   "max_words": 18
+  },
+  {
+   "id": "yesno-already-done",
+   "why": "a ticked row: yes plus its state, nothing else",
+   "question": "did I already add buying butter to groceries?",
+   "rubric": "Says yes it is there and already done. Does not list other rows and does not add an offer of help.",
+   "rows": [
+    {
+     "contentId": "00000010-0000-0000-0000-000000000000",
+     "threadId": "00000002-0000-0000-0000-000000000000",
+     "threadName": "Groceries",
+     "type": "task",
+     "title": "buy butter",
+     "body": null,
+     "done": true,
+     "dueAt": null,
+     "occursAt": null
+    }
+   ],
+   "must_not_contain": [
+    "anything else",
+    "let me know"
+   ],
+   "max_words": 22
+  },
+  {
+   "id": "fact-single",
+   "why": "one fact is a sentence or less",
+   "question": "when is the flat booked from?",
+   "rubric": "Gives the dates. Naming the flat is fine. No preamble, no offer of further help, nothing about other rows.",
+   "rows": [
+    {
+     "contentId": "00000010-0000-0000-0000-000000000000",
+     "threadId": "00000001-0000-0000-0000-000000000000",
+     "threadName": "Lisbon trip",
+     "type": "task",
+     "title": "Alfama flat, 14th to the 17th",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    }
+   ],
+   "must_not_contain": [
+    "let me know",
+    "anything else"
+   ],
+   "max_words": 18
+  },
+  {
+   "id": "fact-default-thread",
+   "why": "a single named fact",
+   "question": "what is my default thread?",
+   "rubric": "Says Miscellaneous. Nothing else.",
+   "facts": {
+    "displayName": "Behrooz",
+    "defaultThread": {
+     "id": "00000003-0000-0000-0000-000000000000",
+     "name": "Miscellaneous"
+    },
+    "calendars": [
+     {
+      "name": "ana@example.com",
+      "filesInto": null
+     },
+     {
+      "name": "Team",
+      "filesInto": "Studio"
+     },
+     {
+      "name": "Holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "must_not_contain": [
+    "calendar"
+   ],
+   "max_words": 12
+  },
+  {
+   "id": "rows-set",
+   "why": "rows are drawn beside the reply and must not be typed out",
+   "question": "what is left to do from Lisbon?",
+   "rubric": "Says what the rows add up to, such as 'Three left', or one short sentence. Must NOT list the row titles, because the rows are already drawn beside the reply.",
+   "rows": [
+    {
+     "contentId": "00000010-0000-0000-0000-000000000000",
+     "threadId": "00000001-0000-0000-0000-000000000000",
+     "threadName": "Lisbon trip",
+     "type": "task",
+     "title": "Book the flat",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    },
+    {
+     "contentId": "00000011-0000-0000-0000-000000000000",
+     "threadId": "00000001-0000-0000-0000-000000000000",
+     "threadName": "Lisbon trip",
+     "type": "task",
+     "title": "Find a restaurant",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    },
+    {
+     "contentId": "00000012-0000-0000-0000-000000000000",
+     "threadId": "00000001-0000-0000-0000-000000000000",
+     "threadName": "Lisbon trip",
+     "type": "task",
+     "title": "Buy sunscreen",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    }
+   ],
+   "must_not_contain": [
+    "book the flat",
+    "find a restaurant"
+   ],
+   "max_words": 14
+  },
+  {
+   "id": "rows-empty",
+   "why": "nothing found is one short sentence",
+   "question": "what is due this week in Lisbon?",
+   "rubric": "Says there is nothing due. One sentence, no apology, no suggestion to try other words.",
+   "rows": [],
+   "must_not_contain": [
+    "sorry",
+    "rephrase"
+   ],
+   "max_words": 16
+  },
+  {
+   "id": "preserve-device-pref",
+   "why": "a refusal stays a whole friendly sentence",
+   "question": "what is my theme set to?",
+   "rubric": "Says plainly that offload does not know the device's theme or that it lives on the device. A complete sentence, not a bare word, and no guess at dark or light.",
+   "facts": {
+    "displayName": "Behrooz",
+    "defaultThread": {
+     "id": "00000003-0000-0000-0000-000000000000",
+     "name": "Miscellaneous"
+    },
+    "calendars": [
+     {
+      "name": "ana@example.com",
+      "filesInto": null
+     },
+     {
+      "name": "Team",
+      "filesInto": "Studio"
+     },
+     {
+      "name": "Holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "must_not_contain": [
+    "dark mode is",
+    "light mode is"
+   ],
+   "max_words": 26
+  },
+  {
+   "id": "preserve-out-of-scope",
+   "why": "out of scope stays a sentence, not a curt word",
+   "question": "what is the weather tomorrow?",
+   "rubric": "Says offload cannot answer that or has nothing about it. One or two short sentences is fine. No guess, and no list of what it can do instead.",
+   "facts": {
+    "displayName": "Behrooz",
+    "defaultThread": {
+     "id": "00000003-0000-0000-0000-000000000000",
+     "name": "Miscellaneous"
+    },
+    "calendars": [
+     {
+      "name": "ana@example.com",
+      "filesInto": null
+     },
+     {
+      "name": "Team",
+      "filesInto": "Studio"
+     },
+     {
+      "name": "Holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "must_not_contain": [
+    "i can help you with"
+   ],
+   "max_words": 26
+  },
+  {
+   "id": "preserve-truncated",
+   "why": "a cut short read must keep its caveat",
+   "question": "did I add anchovies to groceries?",
+   "rubric": "Says what it saw and does not claim anchovies are absent. Keeping the uncertainty is required; a flat no would be wrong.",
+   "rows": [
+    {
+     "contentId": "00000010-0000-0000-0000-000000000000",
+     "threadId": "00000002-0000-0000-0000-000000000000",
+     "threadName": "Groceries",
+     "type": "task",
+     "title": "olives",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    },
+    {
+     "contentId": "00000011-0000-0000-0000-000000000000",
+     "threadId": "00000002-0000-0000-0000-000000000000",
+     "threadName": "Groceries",
+     "type": "task",
+     "title": "bread",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    },
+    {
+     "contentId": "00000012-0000-0000-0000-000000000000",
+     "threadId": "00000002-0000-0000-0000-000000000000",
+     "threadName": "Groceries",
+     "type": "task",
+     "title": "milk",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    }
+   ],
+   "must_not_contain": [],
+   "max_words": 30,
+   "truncated": true
+  }
+ ]
+}

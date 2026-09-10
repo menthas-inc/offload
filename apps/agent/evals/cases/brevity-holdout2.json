@@ -1,0 +1,602 @@
+{
+ "cases": [
+  {
+   "id": "r2-which-nowhere",
+   "why": "one match out of three",
+   "question": "which calendars are not going into a thread?",
+   "rubric": "Says UK bank holidays. No count in front, no lead-in, and no mention of the two that do file somewhere.",
+   "facts": {
+    "displayName": "Sam",
+    "defaultThread": {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends"
+    },
+    "calendars": [
+     {
+      "name": "sam@lab.org",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "Shared - Tomas",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "UK bank holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "sam@lab.org",
+    "tomas",
+    "one:"
+   ],
+   "max_words": 16
+  },
+  {
+   "id": "r2-pair-threads",
+   "why": "one side of a pair: threads only",
+   "question": "which threads are calendars filing into?",
+   "rubric": "Names Fieldwork and nothing more. Must NOT say which calendar goes into it, because only the thread side was asked for.",
+   "facts": {
+    "displayName": "Sam",
+    "defaultThread": {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends"
+    },
+    "calendars": [
+     {
+      "name": "sam@lab.org",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "Shared - Tomas",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "UK bank holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "sam@lab.org",
+    "tomas",
+    "holidays"
+   ],
+   "max_words": 14
+  },
+  {
+   "id": "r2-pair-cals",
+   "why": "the same pair from the other side",
+   "question": "which calendars file somewhere?",
+   "rubric": "Names sam@lab.org and Shared - Tomas. Must NOT name Fieldwork, because only the calendar side was asked for.",
+   "facts": {
+    "displayName": "Sam",
+    "defaultThread": {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends"
+    },
+    "calendars": [
+     {
+      "name": "sam@lab.org",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "Shared - Tomas",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "UK bank holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "fieldwork"
+   ],
+   "max_words": 18
+  },
+  {
+   "id": "r2-yesno-no",
+   "why": "no, without naming what does",
+   "question": "does UK bank holidays go into a thread?",
+   "rubric": "Answers no. Does not name any other calendar or any thread.",
+   "facts": {
+    "displayName": "Sam",
+    "defaultThread": {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends"
+    },
+    "calendars": [
+     {
+      "name": "sam@lab.org",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "Shared - Tomas",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "UK bank holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "fieldwork",
+    "sam@lab.org",
+    "tomas"
+   ],
+   "max_words": 13
+  },
+  {
+   "id": "r2-yesno-yes",
+   "why": "yes with the substance only",
+   "question": "is sam@lab.org filing anywhere?",
+   "rubric": "Answers yes and may name Fieldwork. Does not mention the other two calendars.",
+   "facts": {
+    "displayName": "Sam",
+    "defaultThread": {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends"
+    },
+    "calendars": [
+     {
+      "name": "sam@lab.org",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "Shared - Tomas",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "UK bank holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "tomas",
+    "holidays"
+   ],
+   "max_words": 16
+  },
+  {
+   "id": "r2-yesno-done",
+   "why": "ticked row, yes plus state",
+   "question": "did I already order the stove?",
+   "rubric": "Says yes and that it is done. Does not list the other rows, no offer of more help.",
+   "rows": [
+    {
+     "contentId": "00000030-0000-0000-0000-000000000000",
+     "threadId": "00000012-0000-0000-0000-000000000000",
+     "threadName": "Cabin",
+     "type": "task",
+     "title": "Order the stove",
+     "body": null,
+     "done": true,
+     "dueAt": null,
+     "occursAt": null
+    }
+   ],
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "let me know",
+    "anything else"
+   ],
+   "max_words": 18
+  },
+  {
+   "id": "r2-fact-default",
+   "why": "single named fact",
+   "question": "what is my catch all thread called?",
+   "rubric": "Says Odds and ends. One short sentence, nothing else.",
+   "facts": {
+    "displayName": "Sam",
+    "defaultThread": {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends"
+    },
+    "calendars": [
+     {
+      "name": "sam@lab.org",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "Shared - Tomas",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "UK bank holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "calendar",
+    "fieldwork"
+   ],
+   "max_words": 14
+  },
+  {
+   "id": "r2-fact-count",
+   "why": "a count when the count is the question",
+   "question": "how many calendars are set up?",
+   "rubric": "Says three. A count is correct here because the count IS the question. Does not then list them.",
+   "facts": {
+    "displayName": "Sam",
+    "defaultThread": {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends"
+    },
+    "calendars": [
+     {
+      "name": "sam@lab.org",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "Shared - Tomas",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "UK bank holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "sam@lab.org",
+    "tomas"
+   ],
+   "max_words": 12
+  },
+  {
+   "id": "r2-rows-set",
+   "why": "rows drawn beside must not be retyped",
+   "question": "what is outstanding at the Cabin?",
+   "rubric": "Says what they add up to, such as 'Three left', or one short sentence. Must NOT type out the row titles.",
+   "rows": [
+    {
+     "contentId": "00000030-0000-0000-0000-000000000000",
+     "threadId": "00000012-0000-0000-0000-000000000000",
+     "threadName": "Cabin",
+     "type": "task",
+     "title": "Order the stove",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    },
+    {
+     "contentId": "00000031-0000-0000-0000-000000000000",
+     "threadId": "00000012-0000-0000-0000-000000000000",
+     "threadName": "Cabin",
+     "type": "task",
+     "title": "Chimney sweep",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    },
+    {
+     "contentId": "00000032-0000-0000-0000-000000000000",
+     "threadId": "00000012-0000-0000-0000-000000000000",
+     "threadName": "Cabin",
+     "type": "task",
+     "title": "Split logs",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    }
+   ],
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "chimney",
+    "split logs"
+   ],
+   "max_words": 13
+  },
+  {
+   "id": "r2-rows-none",
+   "why": "nothing found is one short sentence",
+   "question": "anything left in Fieldwork?",
+   "rubric": "Says there is nothing. One short sentence, no apology, no suggestion to try other words.",
+   "rows": [],
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "sorry",
+    "rephrase"
+   ],
+   "max_words": 13
+  },
+  {
+   "id": "r2-preserve-pref",
+   "why": "refusal stays a whole friendly sentence",
+   "question": "am I on dark mode?",
+   "rubric": "Says plainly that offload does not know, because the theme lives on the device. A complete sentence, not a bare word, and no guess.",
+   "facts": {
+    "displayName": "Sam",
+    "defaultThread": {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends"
+    },
+    "calendars": [
+     {
+      "name": "sam@lab.org",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "Shared - Tomas",
+      "filesInto": "Fieldwork"
+     },
+     {
+      "name": "UK bank holidays",
+      "filesInto": null
+     }
+    ],
+    "knowsDevicePreferences": false
+   },
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "yes, you are",
+    "no, you are on"
+   ],
+   "max_words": 26
+  },
+  {
+   "id": "r2-preserve-scope",
+   "why": "out of scope stays a sentence",
+   "question": "how far is the cabin from the station?",
+   "rubric": "Says offload has nothing about that. One or two short sentences, no guess, no list of what it can do instead.",
+   "rows": [],
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "must_not_contain": [
+    "i can help you with"
+   ],
+   "max_words": 24
+  },
+  {
+   "id": "r2-preserve-truncated",
+   "why": "cut short read keeps its caveat",
+   "question": "is a smoke alarm on the Cabin list?",
+   "rubric": "Must not claim absence. The read was cut short, so it says what it saw rather than answering a flat no.",
+   "rows": [
+    {
+     "contentId": "00000030-0000-0000-0000-000000000000",
+     "threadId": "00000012-0000-0000-0000-000000000000",
+     "threadName": "Cabin",
+     "type": "task",
+     "title": "Order the stove",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    },
+    {
+     "contentId": "00000031-0000-0000-0000-000000000000",
+     "threadId": "00000012-0000-0000-0000-000000000000",
+     "threadName": "Cabin",
+     "type": "task",
+     "title": "Chimney sweep",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    },
+    {
+     "contentId": "00000032-0000-0000-0000-000000000000",
+     "threadId": "00000012-0000-0000-0000-000000000000",
+     "threadName": "Cabin",
+     "type": "task",
+     "title": "Split logs",
+     "body": null,
+     "done": false,
+     "dueAt": null,
+     "occursAt": null
+    }
+   ],
+   "threads": [
+    {
+     "id": "00000010-0000-0000-0000-000000000000",
+     "name": "Fieldwork"
+    },
+    {
+     "id": "00000012-0000-0000-0000-000000000000",
+     "name": "Cabin"
+    },
+    {
+     "id": "00000011-0000-0000-0000-000000000000",
+     "name": "Odds and ends",
+     "default": "yes"
+    }
+   ],
+   "truncated": true,
+   "must_not_contain": [],
+   "max_words": 30
+  }
+ ]
+}
