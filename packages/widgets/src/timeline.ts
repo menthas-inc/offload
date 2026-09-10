@@ -25,7 +25,17 @@ export type DatedKind = "task" | "event" | "note" | "other";
  *  A range rather than a point, because a thing that spans days has a dot on
  *  every day it covers and the loop that draws them needs both ends. */
 export interface Dated {
+  /** The row's own id, or `<id>:due` for the day it is wanted by.
+   *
+   *  **A row with both is two entries and they are two facts**, so a caller
+   *  drawing a day has to know which one it matched: showing the occurrence's
+   *  time on the due day says the thing happens on a day it does not. */
   id: string;
+  /** The row this came from, without the `:due` suffix. */
+  rowId: string;
+  /** Whether this entry is the day it is wanted by rather than the day it
+   *  happens. */
+  due: boolean;
   kind: DatedKind;
   /** Inclusive, `YYYY-MM-DD`. `to` equals `from` for a point in time. */
   from: string;
@@ -141,6 +151,8 @@ export function datedFor(
       const end = row.occursEndAt ? localDay(new Date(row.occursEndAt)) : from;
       out.push({
         id: row.id,
+        rowId: row.id,
+        due: false,
         kind: kindOf(row.type),
         from,
         // An end before its start is somebody else's bug, and a rail is not
@@ -151,7 +163,15 @@ export function datedFor(
     }
     if (row.dueAt) {
       const day = localDay(new Date(row.dueAt));
-      out.push({ id: `${row.id}:due`, kind: kindOf(row.type), from: day, to: day, done });
+      out.push({
+        id: `${row.id}:due`,
+        rowId: row.id,
+        due: true,
+        kind: kindOf(row.type),
+        from: day,
+        to: day,
+        done,
+      });
     }
   }
 
@@ -161,6 +181,8 @@ export function datedFor(
       const end = note.occursEndAt ? localDay(new Date(note.occursEndAt)) : from;
       out.push({
         id: note.id,
+        rowId: note.id,
+        due: false,
         kind: "note",
         from,
         to: end < from ? from : end,
@@ -169,16 +191,28 @@ export function datedFor(
     }
     if (note.dueAt) {
       const day = localDay(new Date(note.dueAt));
-      out.push({ id: `${note.id}:due`, kind: "note", from: day, to: day, done: false });
+      out.push({
+        id: `${note.id}:due`,
+        rowId: note.id,
+        due: true,
+        kind: "note",
+        from: day,
+        to: day,
+        done: false,
+      });
     }
   }
 
   return out;
 }
 
-/** Which things are on a given day. Ids, since the caller holds the rows. */
-export function thingsOn(dated: readonly Dated[], iso: string): string[] {
-  return dated.filter((one) => one.from <= iso && iso <= one.to).map((one) => one.id);
+/** What is on a given day, in the order the thread holds it.
+ *
+ *  The entries rather than the ids, because a caller drawing the day needs to
+ *  know which fact put each thing there: the same row can be on two days, once
+ *  because it happens and once because it is wanted by then. */
+export function thingsOn(dated: readonly Dated[], iso: string): Dated[] {
+  return dated.filter((one) => one.from <= iso && iso <= one.to);
 }
 
 /** The rail.
@@ -270,8 +304,18 @@ export function railFor(
   return rows;
 }
 
-/** The weeks a gap row stands for, when somebody opens it. */
-export function weeksIn(gap: { from: string; to: string }, locale?: string): RailRow[] {
+/** The weeks a gap row stands for, when somebody opens it.
+ *
+ *  **They take `today` like every other day does.** This wrote `past: true` on
+ *  all of them, which is right for the gap behind you and wrong for the one in
+ *  front: a note dated two years out is the headline case for collapsing a run,
+ *  and opening it drew two years of future weeks as gone. Empty, always: a gap
+ *  row only ever stands for weeks with nothing in them. */
+export function weeksIn(
+  gap: { from: string; to: string },
+  today: string,
+  locale?: string,
+): RailRow[] {
   const short = new Intl.DateTimeFormat(locale, { weekday: "short" });
   const rows: RailRow[] = [];
   for (let start = gap.from; start <= gap.to; start = addDays(start, 7)) {
@@ -283,8 +327,8 @@ export function weeksIn(gap: { from: string; to: string }, locale?: string): Rai
         iso,
         dom: at.getDate(),
         dow: short.format(at),
-        today: false,
-        past: true,
+        today: iso === today,
+        past: iso < today,
         dots: [],
         count: 0,
       });

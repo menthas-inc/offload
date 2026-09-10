@@ -56,6 +56,10 @@ export interface Colors {
    *  filled, which is what `borderFocus` is for. */
   attention: string;
   noticed: string;
+  /** The quietest ink there is. Not `iconOnWell`, which is `text-secondary`
+   *  and a visibly different grey: the fourth dot kind was that on a phone and
+   *  `text-tertiary` on web, which is one legend drawn two ways. */
+  quiet: string;
   borderFocus: string;
 }
 
@@ -92,7 +96,8 @@ function paletteFor(dark: boolean): Colors {
     danger: base["text-danger"] ?? light["text-danger"]!,
     ink: base["text-primary"] ?? light["text-primary"]!,
     attention: base["surface-attention"] ?? light["surface-attention"]!,
-    noticed: base["amber-600"] ?? light["amber-600"]!,
+    noticed: base["surface-noticed"] ?? light["surface-noticed"]!,
+    quiet: base["text-tertiary"] ?? light["text-tertiary"]!,
     borderFocus: base["border-focus"] ?? light["border-focus"]!,
   };
 }

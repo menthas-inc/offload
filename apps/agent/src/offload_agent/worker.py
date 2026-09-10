@@ -20,10 +20,10 @@ from anthropic import AsyncAnthropic
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent import context as ctx_mod
-from offload_agent.config import Config
-from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
 from offload_agent.compact import KINDS as COMPACT_KINDS
 from offload_agent.compact import handle_compact
+from offload_agent.config import Config
+from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
 from offload_agent.embed_jobs import handle_embed
 from offload_agent.harness.plan import Outcome, classify, plan, plan_answer, plan_quick_add

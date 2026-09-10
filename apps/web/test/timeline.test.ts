@@ -17,6 +17,7 @@ import {
   localDay,
   railFor,
   thingsOn,
+  weeksIn,
   type Dated,
   type RailRow,
 } from "../src/lib/widgets";
@@ -29,7 +30,11 @@ function weeks(rows: RailRow[]): Extract<RailRow, { row: "week" }>[] {
 }
 
 function point(id: string, iso: string, kind: Dated["kind"] = "event"): Dated {
-  return { id, kind, from: iso, to: iso, done: false };
+  return { id, rowId: id, due: false, kind, from: iso, to: iso, done: false };
+}
+
+function span(id: string, from: string, to: string, kind: Dated["kind"] = "note"): Dated {
+  return { id, rowId: id, due: false, kind, from, to, done: false };
 }
 
 describe("the span", () => {
@@ -99,7 +104,7 @@ describe("the weeks with nothing in them (AC-5)", () => {
 describe("what lands on a day", () => {
   it("fills every day a span covers, inclusive (AC-7)", () => {
     const rail = railFor(
-      [{ id: "stay", kind: "note", from: "2026-09-15", to: "2026-09-17", done: false }],
+      [span("stay", "2026-09-15", "2026-09-17")],
       TODAY,
       "monday",
     );
@@ -146,12 +151,13 @@ describe("what lands on a day", () => {
   });
 
   it("answers what is on a day, for the list underneath", () => {
-    const dated = [
-      { id: "stay", kind: "note" as const, from: "2026-09-15", to: "2026-09-17", done: false },
-      point("dinner", "2026-09-17"),
-    ];
-    expect(thingsOn(dated, "2026-09-16")).toEqual(["stay"]);
-    expect(thingsOn(dated, "2026-09-17").sort()).toEqual(["dinner", "stay"]);
+    const dated = [span("stay", "2026-09-15", "2026-09-17"), point("dinner", "2026-09-17")];
+    expect(thingsOn(dated, "2026-09-16").map((one) => one.id)).toEqual(["stay"]);
+    expect(
+      thingsOn(dated, "2026-09-17")
+        .map((one) => one.id)
+        .sort(),
+    ).toEqual(["dinner", "stay"]);
   });
 });
 
@@ -211,5 +217,57 @@ describe("one shape from two stores (AC-6)", () => {
       { ...base, id: "c1", type: "event", occursAt: late.toISOString() },
     ]);
     expect(dated[0]?.from).toBe("2026-09-16");
+  });
+});
+
+describe("what the review found", () => {
+  it("does not draw a future gap as gone", () => {
+    // The headline case for collapsing a run is a note dated two years out,
+    // and opening it drew every week between here and there as past. `weeksIn`
+    // wrote `past: true` on all of them without looking at today.
+    const rail = railFor([point("a", "2026-10-21")], TODAY, "monday");
+    const gap = rail.find((row) => row.row === "gap");
+    const opened = weeksIn(gap as Extract<RailRow, { row: "gap" }>, TODAY);
+    const days = weeks(opened).flatMap((week) => week.days);
+
+    expect(days.every((day) => day.past === false)).toBe(true);
+    expect(days.every((day) => day.count === 0)).toBe(true);
+  });
+
+  it("marks a past gap as past, and today as today", () => {
+    const rail = railFor([point("a", "2026-08-10"), point("b", TODAY)], TODAY, "monday");
+    const gap = rail.find((row) => row.row === "gap");
+    const days = weeks(weeksIn(gap as Extract<RailRow, { row: "gap" }>, TODAY)).flatMap(
+      (week) => week.days,
+    );
+    expect(days.every((day) => day.past)).toBe(true);
+  });
+
+  it("says which fact put a thing on a day", () => {
+    // A task with an occurrence on one day and a due date on another is on
+    // both, and they are two different facts. Drawing the day from the row's
+    // own fields put the occurrence's time on the due day.
+    const dated = datedFor([
+      {
+        id: "c1",
+        type: "task",
+        priority: 50,
+        tags: [],
+        doneAt: null,
+        placeId: null,
+        occursEndAt: null,
+        occursAt: "2026-09-16T09:00:00Z",
+        dueAt: "2026-09-18T09:00:00Z",
+      },
+    ]);
+
+    const onOccurrence = thingsOn(dated, "2026-09-16")[0];
+    const onDue = thingsOn(dated, "2026-09-18")[0];
+
+    expect(onOccurrence?.due).toBe(false);
+    expect(onDue?.due).toBe(true);
+    // Both point back at the one row, so a day can draw it either way.
+    expect(onOccurrence?.rowId).toBe("c1");
+    expect(onDue?.rowId).toBe("c1");
   });
 });

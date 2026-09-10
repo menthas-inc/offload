@@ -25,6 +25,7 @@ import {
   railFor,
   thingsOn,
   weeksIn,
+  type Dated,
   type Day,
   type RailRow,
 } from "../../lib/widgets";
@@ -47,7 +48,7 @@ interface Props {
 const DOT: Record<string, string> = {
   task: "var(--surface-attention)",
   event: "var(--text-primary)",
-  note: "var(--amber-600)",
+  note: "var(--surface-noticed)",
   other: "var(--text-tertiary)",
 };
 
@@ -70,13 +71,21 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
     [dated, today, weekStart]
   );
 
-  // What is on the open day, in the order the thread holds them, drawn as
-  // whatever each one is.
+  // What is on the open day, drawn as whatever each one is.
+  //
+  // **Over the entries, not the rows.** A task with an occurrence on Tuesday
+  // and a due date on Thursday is on both days and they are two different
+  // facts, so drawing it from the row's own fields put Tuesday's time on
+  // Thursday and said the thing happens on a day it does not.
   const onDay = thingsOn(dated, selected);
-  const dayRows = rows.filter((row) => onDay.includes(row.id) || onDay.includes(`${row.id}:due`));
-  const dayNotes = notes.filter(
-    (note) => onDay.includes(note.id) || onDay.includes(`${note.id}:due`)
-  );
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const notesById = new Map(notes.map((note) => [note.id, note]));
+  const dayRows = onDay
+    .map((one) => ({ one, row: byId.get(one.rowId) }))
+    .filter((pair): pair is { one: Dated; row: ContentRow } => pair.row !== undefined);
+  const dayNotes = onDay
+    .map((one) => ({ one, note: notesById.get(one.rowId) }))
+    .filter((pair): pair is { one: Dated; note: Note } => pair.note !== undefined);
 
   const expand = (row: Extract<RailRow, { row: "gap" }>): void => {
     const next = new Set(opened);
@@ -127,7 +136,11 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
         if (row.row === "week") return week(row.days, row.key);
         if (opened.has(row.key)) {
           return (
-            <div key={row.key}>{weeksIn(row).map((one) => one.row === "week" ? week(one.days, one.key) : null)}</div>
+            <div key={row.key}>
+              {weeksIn(row, today).map((one) =>
+                one.row === "week" ? week(one.days, one.key) : null
+              )}
+            </div>
           );
         }
         return (
@@ -138,7 +151,7 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
       })}
 
       <div className={styles.railDayHead}>
-        <h2 className={styles.section} style={{ paddingTop: 0 }}>
+        <h2 className={styles.section} style={{ paddingTop: "var(--space-0)" }}>
           {new Date(`${selected}T12:00:00`).toLocaleDateString(undefined, {
             weekday: "long",
             day: "numeric",
@@ -152,8 +165,8 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
         <p className={styles.railEmpty}>Nothing on this day.</p>
       ) : null}
 
-      {dayNotes.map((note) => (
-        <div key={note.id} className={styles.railNote}>
+      {dayNotes.map(({ one, note }) => (
+        <div key={one.id} className={styles.railNote}>
           {note.origin === "learned" ? (
             <>
               <Icon name="sparkles" size={14} className={styles.noteGlyph} />
@@ -164,9 +177,9 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
         </div>
       ))}
 
-      {dayRows.map((row) => (
+      {dayRows.map(({ one, row }) => (
         <ContentRowView
-          key={row.id}
+          key={one.id}
           row={row}
           handlers={handlers}
           lead={
@@ -188,12 +201,12 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
           }
           meta={
             <span className={styles.rowMeta}>
-              {row.occursAt
-                ? new Date(row.occursAt).toLocaleTimeString(undefined, {
+              {one.due || !row.occursAt
+                ? "due"
+                : new Date(row.occursAt).toLocaleTimeString(undefined, {
                     hour: "numeric",
                     minute: "2-digit",
-                  })
-                : "due"}
+                  })}
             </span>
           }
         />

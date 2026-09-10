@@ -19,6 +19,7 @@ import {
   railFor,
   thingsOn,
   weeksIn,
+  type Dated,
   type Day,
   type RailRow,
 } from "@offload/widgets";
@@ -59,17 +60,25 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
     task: COLOR.attention,
     event: COLOR.ink,
     note: COLOR.noticed,
-    other: COLOR.iconOnWell,
+    other: COLOR.quiet,
   };
 
   const dated = useMemo(() => datedFor(rows, notes), [rows, notes]);
   const rail = useMemo(() => railFor(dated, today, weekStart), [dated, today, weekStart]);
 
+  // **Over the entries, not the rows.** A task with an occurrence on one day
+  // and a due date on another is on both, and they are two different facts:
+  // drawing it from the row's own fields puts the occurrence's time on the due
+  // day and says the thing happens on a day it does not.
   const onDay = thingsOn(dated, selected);
-  const dayRows = rows.filter((row) => onDay.includes(row.id) || onDay.includes(`${row.id}:due`));
-  const dayNotes = notes.filter(
-    (note) => onDay.includes(note.id) || onDay.includes(`${note.id}:due`),
-  );
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const notesById = new Map(notes.map((note) => [note.id, note]));
+  const dayRows = onDay
+    .map((one) => ({ one, row: byId.get(one.rowId) }))
+    .filter((pair): pair is { one: Dated; row: ContentRow } => pair.row !== undefined);
+  const dayNotes = onDay
+    .map((one) => ({ one, note: notesById.get(one.rowId) }))
+    .filter((pair): pair is { one: Dated; note: Note } => pair.note !== undefined);
 
   const cell = (day: Day) => (
     <Pressable
@@ -88,10 +97,7 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
           : { borderWidth: 1, borderColor: "transparent" }
       }
     >
-      <Text
-        className={`font-core ${day.past ? "text-text-tertiary" : "text-text-tertiary"}`}
-        style={{ fontSize: 11 }}
-      >
+      <Text className="font-core text-text-tertiary" style={{ fontSize: 11 }}>
         {day.dow}
       </Text>
       <Text
@@ -138,7 +144,7 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
     if (opened.includes(row.key)) {
       return (
         <View key={row.key}>
-          {weeksIn(row).map((one) => (one.row === "week" ? week(one.days, one.key) : null))}
+          {weeksIn(row, today).map((one) => (one.row === "week" ? week(one.days, one.key) : null))}
         </View>
       );
     }
@@ -194,9 +200,9 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
       ) : null}
 
       {/* A note is drawn as a note: no tick, no tools, nothing to open. */}
-      {dayNotes.map((note) => (
+      {dayNotes.map(({ one, note }) => (
         <View
-          key={note.id}
+          key={one.id}
           className="flex-row items-start gap-space-3 border-b border-border-hairline px-gutter-screen py-space-4"
         >
           {note.origin === "learned" ? (
@@ -222,15 +228,27 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
         </View>
       ))}
 
-      {dayRows.map((row, index) => (
+      {dayRows.map(({ one, row }, index) => (
         <ContentRowView
-          key={row.id}
+          key={one.id}
           row={row}
           border={index < dayRows.length - 1}
           arrived={false}
           onDelete={() => onDelete(row)}
           onActions={() => onActions(row)}
           onToggle={row.type === "task" ? () => onToggle(row) : undefined}
+          // **The time, which the phone's row has nowhere else to put.** Web
+          // draws it in the meta slot; here the row has one text line and this
+          // is the slot it has, so a day with three timed events says which
+          // order they are in rather than listing them silently.
+          note={
+            one.due || !row.occursAt
+              ? "due"
+              : new Date(row.occursAt).toLocaleTimeString(undefined, {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+          }
         />
       ))}
     </View>

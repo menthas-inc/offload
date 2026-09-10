@@ -1717,7 +1717,7 @@ a.settingsRow:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   padding: var(--space-3) var(--space-1);
   border: 1px solid transparent;
   border-radius: var(--radius-xs);
@@ -1762,10 +1762,15 @@ a.settingsRow:hover {
 .railDots {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
   min-height: 7px;
 }
 
+/* Five, and nothing in the tokens says five.
+   A dot is smaller than any size token the system has, and inventing one for a
+   mark this specific would be a token with one caller. The literal is here and
+   mirrored on the phones, and the design system entry names it so the two do
+   not drift by hand. */
 .railDot {
   width: 5px;
   height: 5px;

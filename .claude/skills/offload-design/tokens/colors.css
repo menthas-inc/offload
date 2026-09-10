@@ -68,6 +68,12 @@
   --surface-accent-soft:var(--moss-50);
   --surface-attention-soft:var(--blue-100);
   --surface-attention:var(--blue-600);
+  /* Amber has meant "offload noticed this" since the kits drew a Noticed
+     memory, and had no alias to say so: every use reached for the ramp, which
+     the rules forbid and the lint file could not catch because there was
+     nothing to point at. 015's rail is the second surface to need it, so the
+     alias is the fix rather than a third literal. */
+  --surface-noticed:var(--amber-600);
   --surface-scrim:rgba(11,11,11,0.32);
   --surface-scrim-soft:rgba(11,11,11,0.16);
   --surface-chrome:var(--surface-raised);
@@ -107,6 +113,7 @@
   --surface-card:var(--paper);--surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);
   --surface-inverse:var(--ink-950);--surface-accent-soft:var(--moss-50);
   --surface-attention-soft:var(--blue-100);--surface-attention:var(--blue-600);
+  --surface-noticed:var(--amber-600);
   --surface-scrim:rgba(11,11,11,0.32);--surface-scrim-soft:rgba(11,11,11,0.16);
   --surface-chrome:var(--surface-raised);--surface-chrome-strong:var(--surface-raised);
   --surface-input:var(--ink-100);
@@ -146,7 +153,7 @@
   --surface-card:#212121;--surface-sunken:#101010;
   --surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);--surface-inverse:var(--ink-950);
   --surface-accent-soft:var(--moss-50);--surface-attention-soft:var(--blue-100);
-  --surface-attention:var(--blue-600);--surface-scrim:rgba(0,0,0,0.55);
+  --surface-attention:var(--blue-600);--surface-noticed:var(--amber-600);--surface-scrim:rgba(0,0,0,0.55);
   --surface-scrim-soft:rgba(0,0,0,0.50);
   --surface-chrome:var(--surface-raised);--surface-chrome-strong:var(--surface-raised);
   --surface-input:#2E2E2E;
