@@ -217,3 +217,47 @@ describe("isRich, which is what a bubble asks before it draws", () => {
     expect(isRich("Rua do Século 12\nLisbon")).toBe(true);
   });
 });
+
+describe("a stray marker cannot assert emphasis nobody wrote", () => {
+  // Seen on a real phone. A calendar is named P**B, the model wrote it plainly
+  // that time, and the line ended up with three markers. The first two paired
+  // around whatever sat between them: "PB, **writable, files into** EU with
+  // fam**". The reply emphasised the wrong words and left a marker hanging.
+  it("leaves an odd number of markers as characters", () => {
+    const line = "PB**, writable, files into EU with fam";
+    expect(inlines(line)).toEqual([{ kind: "text", text: line }]);
+  });
+
+  it("does not pair markers across an unescaped name", () => {
+    const line = "P**B, writable, files into** EU with fam**";
+    const parsed = inlines(line);
+    expect(parsed.every((p) => p.kind === "text")).toBe(true);
+    expect(parsed.map((p) => p.text).join("")).toBe(line);
+  });
+
+  it("still emphasises when they balance", () => {
+    expect(inlines("**Two** left, **three** found")).toEqual([
+      { kind: "strong", text: "Two" },
+      { kind: "text", text: " left, " },
+      { kind: "strong", text: "three" },
+      { kind: "text", text: " found" },
+    ]);
+  });
+
+  it("counts an escaped marker as data, not as a marker", () => {
+    // The escaped pair is not a marker, so the two real ones still balance.
+    expect(inlines("**P\\*\\*B** files into EU with fam")).toEqual([
+      { kind: "strong", text: "P**B" },
+      { kind: "text", text: " files into EU with fam" },
+    ]);
+  });
+
+  it("leaves a link alone on a line whose emphasis does not balance", () => {
+    // Balance governs emphasis only. A link has its own delimiters and its own
+    // refusal, and one stray asterisk should not take the way out of a reply.
+    expect(inlines("PB** see [apps](/settings/apps)")).toEqual([
+      { kind: "text", text: "PB** see " },
+      { kind: "link", text: "apps", href: "/settings/apps" },
+    ]);
+  });
+});

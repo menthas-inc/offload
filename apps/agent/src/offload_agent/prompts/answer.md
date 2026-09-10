@@ -28,6 +28,8 @@ Most replies are one sentence and stay one sentence. Reach for any of this only 
 - `> ` to quote words somebody actually wrote, when the exact wording matters.
 - `[label](/path)` to link a screen. **Only a path inside offload**, like `/settings/apps` or `/threads/<id>`. Anything else is printed as characters and looks broken, so never write a web address.
 
+**Escape a marker that belongs to somebody's data.** A calendar named `P**B`, a note with an asterisk in it: write `P\*\*B`, with a backslash before each one. Unbalanced markers are left as characters rather than guessed at, so an unescaped name does not turn half a sentence bold, but it does read badly.
+
 Nothing else is understood. No headings, no tables, no code, no images. A reply is not a document.
 
 **Saying no, and saying you do not know, are different sentences.**

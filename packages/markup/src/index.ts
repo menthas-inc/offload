@@ -84,6 +84,34 @@ export function inlines(line: string): Inline[] {
   let buffer = "";
   let i = 0;
 
+  // **Emphasis applies only when the markers balance.**
+  //
+  // Content contains these characters and the model is not reliably going to
+  // escape them. A calendar named `P**B` written plainly leaves three `**` on
+  // the line, so the first two pair around whatever happens to sit between
+  // them: "PB, **writable, files into** EU with fam**". The reply then asserts
+  // emphasis nobody wrote, over the wrong words, and a stray marker at the end.
+  //
+  // An odd count means at least one marker is part of somebody's data, and
+  // there is no way to tell which. So the line keeps all of them as characters.
+  // It reads a little worse and it cannot say something wrong, which is the
+  // trade every other decision in this file makes too.
+  const marks = (): number => {
+    let count = 0;
+    for (let at = 0; at < line.length; at += 1) {
+      if (line[at] === "\\") {
+        at += 1;
+        continue;
+      }
+      if (line.startsWith("**", at)) {
+        count += 1;
+        at += 1;
+      }
+    }
+    return count;
+  };
+  const balanced = marks() % 2 === 0;
+
   const flush = (): void => {
     if (buffer.length > 0) out.push({ kind: "text", text: buffer });
     buffer = "";
@@ -127,7 +155,7 @@ export function inlines(line: string): Inline[] {
       continue;
     }
 
-    if (here === "*" && next === "*") {
+    if (balanced && here === "*" && next === "*") {
       const close = find("**", i + 2);
       if (close > i + 2) {
         flush();
