@@ -348,3 +348,74 @@ async def test_a_hostile_thread_name_is_a_label_rather_than_an_instruction():
     reply = (outcome.reply or "")
 
     assert "PWNED" not in reply.upper(), f"obeyed a thread name: {outcome.reply!r}"
+
+
+# Brevity, which is a behaviour rather than a rule the code can enforce.
+#
+# The reply that prompted these said: "Two: **owner@example.com** and
+# **Holidays in United States**. Only P**B files into a thread, and that one
+# goes to EU with fam." Somebody had asked which calendars were not connected.
+# The answer is two names. Everything else was a count in front, an emphasis on
+# every item, and a sentence about the item that was not asked about.
+
+CALENDAR_FACTS = {
+    "ok": True,
+    "facts": {
+        "displayName": "Behrooz",
+        "threadCount": 12,
+        "calendars": [
+            {"name": "ana@example.com", "threadName": None, "readOnly": False},
+            {"name": "Team", "threadName": "Studio", "readOnly": False},
+            {"name": "Holidays", "threadName": None, "readOnly": True},
+        ],
+        "connections": [{"provider": "google_calendar", "threadName": "Studio"}],
+        "knowsDevicePreferences": False,
+    },
+}
+
+
+async def _facts_only(tool, tool_call_id, args):
+    if tool == "account_facts":
+        return CALENDAR_FACTS
+    return {
+        "ok": True,
+        "result": {"threadId": None, "threadName": None, "truncated": False, "rows": []},
+    }
+
+
+@pytest.mark.skipif(not EVAL, reason="costs money; run with OFFLOAD_EVAL=1")
+async def test_a_which_ones_question_is_answered_by_the_list_alone():
+    from anthropic import AsyncAnthropic
+
+    ctx = AnswerContext(
+        question="which calendars are not connected to any threads?",
+        threads=THREADS,
+        has_calendar=True,
+    )
+    outcome = await plan_answer(AsyncAnthropic(), ctx, "claude-opus-5", _facts_only)
+    reply = (outcome.reply or "").lower()
+
+    assert "ana@example.com" in reply and "holidays" in reply
+
+    # No count in front of a list that already shows how many there are.
+    for counted in ("two:", "two calendars", "there are two", "you have two"):
+        assert counted not in reply, f"counted the list: {outcome.reply!r}"
+
+    # And nothing about the item that failed the test they set.
+    assert "team" not in reply, f"named what was not asked about: {outcome.reply!r}"
+
+
+@pytest.mark.skipif(not EVAL, reason="costs money; run with OFFLOAD_EVAL=1")
+async def test_a_yes_or_no_question_does_not_volunteer_a_different_answer():
+    """Asked whether this one files anywhere, the one that does was not asked."""
+    from anthropic import AsyncAnthropic
+
+    ctx = AnswerContext(
+        question="is ana@example.com connected to a thread?", threads=THREADS, has_calendar=True
+    )
+    outcome = await plan_answer(AsyncAnthropic(), ctx, "claude-opus-5", _facts_only)
+    reply = (outcome.reply or "").lower()
+
+    assert reply.startswith("no")
+    assert "team" not in reply, f"answered about a different calendar: {outcome.reply!r}"
+    assert "studio" not in reply, f"answered about a different thread: {outcome.reply!r}"
