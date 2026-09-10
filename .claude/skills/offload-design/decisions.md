@@ -11,6 +11,18 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-10 · A long press on any row threw, and the row it threw on was a red herring
+**Surface:** iOS, Android
+**Raised by:** reported as a crash when long pressing a checked todo, hoping for edit options.
+
+**It was not about the row being checked, and it was not about the tick.** `ContentRow.tsx` had a `settle` helper returning a spring, called from inside two Reanimated gesture worklets and read synchronously. Without a `"worklet"` directive it is a plain JS thread closure, which Reanimated proxies as a remote function, and reading a remote function's result from the UI thread throws rather than settling the row.
+
+So it fired on **every** row, done or not, from a long press or from letting a swipe go. The "checked todo" framing came from the reproduction rather than the cause: a half swiped row and a lingering error overlay were eating the taps that would have shown it elsewhere.
+
+Worth keeping because the report pointed at the wrong thing twice over, at the state of the row and at the colour change that had touched this file the same day, and both were wrong. **The stack trace named the line and the line was correct.**
+
+**Design system impact:** none. Nothing about the row's drawing changed, only which thread its animation is created on.
+
 ### 2026-09-10 · A reply can be marked up, and the list of what it may contain is short enough to write down
 **Surface:** web, iOS, Android
 **Raised by:** an answer about connected apps that ran three facts into one paragraph, with no way to link the settings screen it was describing.
