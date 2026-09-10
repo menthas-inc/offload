@@ -450,12 +450,17 @@ describe("AC-17 and AC-4 what an open stream does each tick", () => {
     // `threads` is empty rather than absent, and that is the honest answer: the
     // turn filed nothing, so there is nowhere for the composer to link to. It
     // is populated from the content rows, never from the reply.
-    expect(await streamStep(messageId, id)).toEqual({
+    const step = await streamStep(messageId, id);
+    expect(step).toEqual({
       do: "answered",
       reply: "Noted.",
+      // The reply is its own row, and the rows an answer showed hang off it
+      // rather than off the message being watched.
+      replyId: expect.any(String),
       threads: [],
       changed: [],
     });
+    expect(step.do === "answered" ? step.replyId : null).not.toBe(messageId);
   });
 
   it("reports a failure rather than waiting forever", async () => {
@@ -631,6 +636,58 @@ describe("013 an answering turn carries rows and files nothing", () => {
     expect(found[0].threadName).toBe("Lisbon trip");
     expect(found[0].truncated).toBe(false);
     expect(found[0].rows.map((r) => r.title)).toEqual(["Book the flat", "Find a restaurant"]);
+  });
+
+  it("resolves the rows against the reply, not the message being watched", async () => {
+    // **The bug this exists for.** A client watches the message it sent and
+    // holds that id. The reply is a different row, and the rows an answer
+    // showed are recorded against the reply, so resolving them for the watched
+    // id asks about the question and never about the answer.
+    //
+    // It came back empty every time on the live path, on every surface, while
+    // the sentence arrived normally, because the sentence is looked up by turn.
+    // Reloading fixed it, because the conversation tail asks for every message
+    // in the page and the reply is one of them. It read exactly like the model
+    // choosing to summarise instead of listing.
+    //
+    // The test above passed throughout, because it asks `foundFor` for the
+    // reply's id directly. This one goes through what the routes go through.
+    const ana = await account();
+    const lisbon = await thread(ana, "Lisbon trip");
+    const first = await task(lisbon, ana, "Book the flat");
+    const { jobId, messageId } = await dump(ana, "what is left to do from Lisbon");
+
+    await post({
+      outcome: "answered",
+      jobId,
+      replyText: "One left.",
+      usage: goodUsage,
+      found: [{ threadId: lisbon, truncated: false, contentIds: [first] }],
+    });
+
+    const reply = await db
+      .selectFrom("messages")
+      .select("id")
+      .where("role", "=", "offload")
+      .where("account_id", "=", ana)
+      .executeTakeFirstOrThrow();
+
+    const step = await streamStep(messageId, ana);
+    expect(step.do).toBe("answered");
+    const replyId = step.do === "answered" ? step.replyId : null;
+
+    // Not the id the caller was watching.
+    expect(replyId).toBe(reply.id);
+    expect(replyId).not.toBe(messageId);
+
+    // And resolving against it actually yields the rows, which is the part a
+    // person sees.
+    const found = (await foundFor([replyId!], ana)).get(replyId!) ?? [];
+    expect(found.flatMap((r) => r.rows.map((row) => row.title))).toEqual(["Book the flat"]);
+
+    // The watched id carries nothing, which is correct and is why asking it
+    // was silent rather than loud.
+    expect((await foundFor([messageId], ana)).get(messageId) ?? []).toEqual([]);
   });
 
   it("carries whether the read was cut short, so the tail can differ", async () => {

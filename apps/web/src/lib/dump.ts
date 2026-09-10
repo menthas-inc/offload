@@ -185,6 +185,13 @@ export interface TailMessage {
   state: MessageState;
   /** What an Undo would reverse. The whole turn, not this row. */
   turnId: string;
+  /** **The server has always sent both of these.** They were missing from this
+   *  type, so the composer's hydration was written without them and a reload
+   *  dropped an answer's rows on the floor and left a waiting reply with
+   *  nothing to answer it. The phones showed the same answer with its rows,
+   *  which is what made it a web bug rather than a server one. */
+  found: FoundResult[];
+  waiting: { id: string; because: string } | null;
 }
 
 /** The current conversation, so a reload does not look like a fresh account.

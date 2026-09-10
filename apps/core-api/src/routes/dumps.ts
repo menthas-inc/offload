@@ -252,16 +252,26 @@ async function threadsFor(
 async function replyFor(
   turnId: string,
   accountId: string,
-): Promise<string | null> {
+): Promise<{ id: string; text: string | null } | null> {
   const row = await db
     .selectFrom("messages")
-    .select("text")
+    // **The id as well as the text, and that is the whole of a real bug.**
+    // A reply is found by turn, because the caller holds the id of the message
+    // somebody sent and the reply is a different row. The rows an answer showed
+    // are recorded against that reply, so resolving them for the id the caller
+    // happens to hold asks about the question and never about the answer, and
+    // comes back empty every time.
+    //
+    // It looked like the model summarising instead of listing: the sentence
+    // arrived, the rows did not. Reloading fixed it, because the conversation
+    // tail asks for every message in the page and the reply is one of them.
+    .select(["id", "text"])
     .where("turn_id", "=", turnId)
     .where("role", "=", "offload")
     .where("account_id", "=", accountId)
     .where("deleted_at", "is", null)
     .executeTakeFirst();
-  return row?.text ?? null;
+  return row ?? null;
 }
 
 /** What an open stream should do right now.
@@ -278,8 +288,23 @@ export interface TouchedThread {
 }
 
 export type StreamStep =
-  | { do: "answered"; reply: string | null; threads: TouchedThread[]; changed: string[] }
-  | { do: "partial"; reply: string | null; threads: TouchedThread[]; changed: string[] }
+  /** `replyId` is the offload message, which is a different row from the one
+   *  the caller is watching. The rows an answer showed are recorded against it,
+   *  so anything resolving them needs this rather than the watched id. */
+  | {
+      do: "answered";
+      reply: string | null;
+      replyId: string | null;
+      threads: TouchedThread[];
+      changed: string[];
+    }
+  | {
+      do: "partial";
+      reply: string | null;
+      replyId: string | null;
+      threads: TouchedThread[];
+      changed: string[];
+    }
   | { do: "failed" }
   | { do: "close" }
   | { do: "wait" };
@@ -315,7 +340,9 @@ export async function streamStep(
     ]);
     return {
       do: current.state === "answered" ? "answered" : "partial",
-      reply,
+      reply: reply?.text ?? null,
+      // The reply's own id, so the stream can resolve the rows it showed.
+      replyId: reply?.id ?? null,
       threads: touched.landed,
       changed: touched.changed,
     };
@@ -558,13 +585,15 @@ export async function dumpRoutes(app: App): Promise<void> {
       const touched = settled
         ? await threadsFor(message.id, accountId)
         : { landed: [], changed: [] };
+      // One lookup for both the sentence and the id its rows hang off.
+      const replyRow = settled ? await replyFor(message.turn_id, accountId) : null;
 
       return reply.send({
         id: message.id,
         conversationId: message.conversation_id,
         state: message.state,
         text: message.text,
-        reply: settled ? await replyFor(message.turn_id, accountId) : null,
+        reply: replyRow?.text ?? null,
         // Where it actually went, and everything it changed. Both empty until
         // the turn settles, which is the honest answer while it is running.
         threads: settled ? touched.landed : [],
@@ -575,7 +604,9 @@ export async function dumpRoutes(app: App): Promise<void> {
         waiting: settled ? ((await waitingFor([message.id])).get(message.id) ?? null) : null,
         // The rows an answer showed, resolved now rather than stored. Empty for
         // a dump, which files rather than answers.
-        found: settled ? ((await foundFor([message.id], accountId)).get(message.id) ?? []) : [],
+        // Against the reply, never against the message being asked about. The
+        // question carries no rows; the answer does.
+        found: replyRow ? ((await foundFor([replyRow.id], accountId)).get(replyRow.id) ?? []) : [],
       });
     },
   );
@@ -829,7 +860,9 @@ export async function dumpRoutes(app: App): Promise<void> {
               waiting: (await waitingFor([message.id])).get(message.id) ?? null,
               // Arrives with the reply that mentions it, rather than on the
               // next reload. Same reason the confirmation does.
-              found: (await foundFor([message.id], accountId)).get(message.id) ?? [],
+              found: step.replyId
+                ? ((await foundFor([step.replyId], accountId)).get(step.replyId) ?? [])
+                : [],
             });
             return finish();
           }

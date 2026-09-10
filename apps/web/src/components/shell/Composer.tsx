@@ -141,6 +141,14 @@ export function Composer({
           text: message.text ?? "",
           state: message.state,
           turnId: message.turnId,
+          // **Both of these were dropped here, and the server had always sent
+          // them.** A reload turned an answer back into its sentence with no
+          // rows beside it, and left a reply saying offload is waiting with
+          // nothing to answer it, which is the dead end 012 exists to remove.
+          // The phones drew the same answer correctly, which is what made this
+          // a web bug rather than a server one.
+          found: message.found,
+          waiting: message.waiting,
         })),
       );
       // No toast on hydration. The eight seconds belongs to the moment offload
