@@ -159,6 +159,17 @@
   flex-direction: column;
 }
 
+/* A bubble holding blocks rather than a sentence.
+ *
+ * `align-self: flex-start` shrinks to fit, which is right for one line and
+ * wrong for a list: the width comes from the longest unbroken line and every
+ * item that wraps afterwards is drawn against the edge. Stretching gives it the
+ * measure `max-width` already allows, so a list bubble is the width of the
+ * ones around it instead of narrower than all of them. */
+.turnOffloadRich {
+  align-self: stretch;
+}
+
 .turnOffload {
   align-self: flex-start;
   max-width: 92%;

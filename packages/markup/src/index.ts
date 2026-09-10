@@ -258,6 +258,19 @@ export function isPlain(blocks: readonly Block[]): boolean {
   return only.lines[0]!.every((piece) => piece.kind === "text");
 }
 
+/** Whether this reply needs more than one line of plain text.
+ *
+ *  **A bubble has to know before it draws.** A bubble shrink-wraps its content,
+ *  which is right for a sentence and wrong for a list: the width comes out of
+ *  the first line and everything that wraps afterwards runs outside it. So the
+ *  container asks this and stretches instead of hugging.
+ *
+ *  Here rather than in each client, because both of them have the same bubble
+ *  and would otherwise each decide what "rich" means. */
+export function isRich(text: string): boolean {
+  return !isPlain(parse(text));
+}
+
 /** The reply with its markers removed, for anywhere that cannot draw them.
  *
  *  A notification, a widget, an accessibility label. Without this each of those

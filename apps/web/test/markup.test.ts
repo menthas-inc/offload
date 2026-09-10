@@ -11,7 +11,15 @@
 // else's screen (SEC-1).
 
 import { describe, expect, it } from "vitest";
-import { MAX_BLOCKS, MAX_ITEMS, inlines, isPlain, parse, plainText } from "@offload/markup";
+import {
+  MAX_BLOCKS,
+  MAX_ITEMS,
+  inlines,
+  isPlain,
+  isRich,
+  parse,
+  plainText,
+} from "@offload/markup";
 
 describe("plain text stays plain", () => {
   it("parses an ordinary reply to one paragraph", () => {
@@ -192,5 +200,20 @@ describe("content contains these characters, so a backslash has to mean somethin
   it("still refuses an external link even when the label is escaped", () => {
     const parsed = inlines("[click \\* here](https://evil.example)");
     expect(parsed.every((p) => p.kind === "text")).toBe(true);
+  });
+});
+
+describe("isRich, which is what a bubble asks before it draws", () => {
+  it("is false for the reply almost every reply is", () => {
+    expect(isRich("Filed to Lisbon trip.")).toBe(false);
+  });
+
+  it("is true for anything a bubble cannot hug", () => {
+    // A bubble shrink-wraps, which takes its width from the longest unbroken
+    // line. For a list that width comes from the first line and everything
+    // wrapping afterwards is drawn against the edge of it.
+    expect(isRich("Three connected:\n- one\n- two")).toBe(true);
+    expect(isRich("**Two** left.")).toBe(true);
+    expect(isRich("Rua do Século 12\nLisbon")).toBe(true);
   });
 });

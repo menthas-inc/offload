@@ -38,6 +38,7 @@ import Animated, {
 import { Glyph } from "../Glyph";
 import { AnswerResults } from "./AnswerResult";
 import { Reply } from "./Reply";
+import { isRich } from "@offload/markup";
 import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
@@ -420,7 +421,12 @@ function Theirs({ turn }: { turn: Turn }) {
     <View
       className={`px-space-5 py-space-4 ${isAndroid ? "bg-a-c" : "bg-ink-50"}`}
       style={{
-        alignSelf: "flex-start",
+        // **A bubble hugs a sentence and has to stop hugging a list.**
+        // Shrink-wrapping takes the width from the first line, so every list
+        // item that wrapped afterwards was drawn outside the bubble it belongs
+        // to, and the bubble came out narrower than the plain ones above it.
+        // A reply with blocks in it takes the full measure instead.
+        alignSelf: isRich(turn.text) ? "stretch" : "flex-start",
         maxWidth: "92%",
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,

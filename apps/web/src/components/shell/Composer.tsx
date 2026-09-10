@@ -33,6 +33,7 @@ import {
 import { Icon } from "../Icon";
 import { AnswerResults } from "./AnswerResult";
 import { Reply } from "./Reply";
+import { isRich, plainText } from "@offload/markup";
 import { completeContent } from "../../lib/threads";
 import { Logo } from "../Logo";
 import { FILL_COMPOSER } from "../panes/Today";
@@ -208,10 +209,22 @@ export function Composer({
         // it, and `threads` is only where things went. That gap is why a move
         // left the page showing a row that was not in it any more.
         if (answer.changed && answer.changed.length > 0) onFiled(answer.changed);
-        // Only a finished turn offers a way back. A partial one offers a way
-        // forward, and both at once would ask somebody to choose between
-        // finishing and undoing inside eight seconds.
-        if (answer.state === "answered" && answer.reply) offerUndo(turnId, answer.reply);
+        // **A turn offers a way back only when it changed something.**
+        // Undo reverses writes, and an answer writes nothing: offering it after
+        // "I could not find that" is a control that would do nothing, sitting
+        // under a sentence that already said nothing happened. `threads` is
+        // where things went and `changed` is everywhere a screen has to reload,
+        // so between them they are the whole of what a turn did.
+        //
+        // Only a finished turn, too. A partial one offers a way forward, and
+        // both at once asks somebody to choose between finishing and undoing
+        // inside eight seconds.
+        const did =
+          (answer.threads?.length ?? 0) > 0 || (answer.changed?.length ?? 0) > 0;
+        if (answer.state === "answered" && answer.reply && did)
+          // Markers stripped rather than drawn. A toast is one line with a
+          // control beside it, so a list has nowhere to go.
+          offerUndo(turnId, plainText(answer.reply));
       }),
     );
   }
@@ -441,7 +454,11 @@ export function Composer({
               </div>
             ) : (
               <div key={turn.id} className={styles.turn}>
-              <div className={styles.turnOffload}>
+              <div
+                className={`${styles.turnOffload} ${
+                  isRich(turn.text) ? styles.turnOffloadRich : ""
+                }`}
+              >
                 <Reply text={turn.text} />
                 {/* A calendar write offload has not made yet. Without this the
                     proposal is announced and expires an hour later having done

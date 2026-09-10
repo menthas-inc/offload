@@ -18,6 +18,7 @@ import {
   useState,
 } from "react";
 import { AppState, type AppStateStatus } from "react-native";
+import { plainText } from "@offload/markup";
 import {
   awaitAnswer,
   endConversation,
@@ -264,11 +265,22 @@ export function ConversationProvider({
         // screen in a thread it was no longer in.
         if (answer.changed.length > 0)
           setFiled({ threadIds: answer.changed, at: Date.now() });
-        // Only a finished turn offers a way back. A partial one offers a way
-        // forward, and both at once asks somebody to choose between finishing
-        // and undoing inside eight seconds.
-        if (answer.state === "answered" && answer.reply)
-          offerUndo(turnId, answer.reply);
+        // **A turn offers a way back only when it changed something.**
+        // Undo reverses writes, and an answer writes nothing: offering it after
+        // "I could not find that" is a control that would do nothing, sitting
+        // under a sentence that already said nothing happened. `threads` is
+        // where things went and `changed` is everywhere a screen has to reload,
+        // so between them they are the whole of what a turn did.
+        //
+        // Only a finished turn, too. A partial one offers a way forward, and
+        // both at once asks somebody to choose between finishing and undoing
+        // inside eight seconds.
+        const acted = did || answer.changed.length > 0;
+        if (answer.state === "answered" && answer.reply && acted)
+          // Markers stripped rather than drawn. A toast is one line with a
+          // control beside it, so a list has nowhere to go, and the raw
+          // characters were showing.
+          offerUndo(turnId, plainText(answer.reply));
       });
       polls.current.set(messageId, poll);
     },

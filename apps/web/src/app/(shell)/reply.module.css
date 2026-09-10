@@ -14,6 +14,20 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  /* **The bubble hugs a sentence and must stop hugging a list.** A shrink to
+   * fit takes its width from the longest unbroken line, so a bubble holding a
+   * list came out narrower than the plain ones around it and every wrapped item
+   * ran to the edge of it. Filling the measure the bubble already allows is the
+   * whole fix; `.turnOffload` still caps at 92%. */
+  width: 100%;
+}
+
+/* Wrapping, which is the other half. A long address in a list item has no
+ * spaces to break at, so without this it decides the bubble's width. */
+.reply li,
+.paragraph,
+.quote {
+  overflow-wrap: anywhere;
 }
 
 .paragraph {
