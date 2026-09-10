@@ -658,3 +658,25 @@ Three reviewers over the whole branch. Two findings would have shipped a feature
 **Left alone on purpose.** `0027` rewrites three tables and builds three GIN indexes in one transaction, taking an `ACCESS EXCLUSIVE` lock at boot. At alpha volumes that is seconds. `CREATE INDEX CONCURRENTLY` cannot run inside the one-transaction-per-file migration runner, and a `lock_timeout` would turn a brief lock into a failed boot, which is worse. It needs revisiting before the tables are large, and the runner is what has to change first.
 
 **Design system impact:** none. The client findings are logged separately in the design system's own `decisions.md`.
+
+### 2026-09-10 · A unit test can hold the right id while every route holds the wrong one
+
+An answer's rows never reached any client on the live path. The sentence arrived, the rows did not, and it read exactly like the model choosing to summarise instead of listing. It was reported that way twice.
+
+**A client watches the message it sent.** The reply is a different row, and `message_content` records the rows against the reply, so both live paths asked "what rows does this question have" and got nothing, forever. The reply text survived because it is looked up by turn rather than by id. Reloading fixed it, because the conversation tail asks for every message in the page and the reply is one of them.
+
+**The test passed the whole time.** It called `foundFor([reply.id])` directly, which is the one thing neither route did. That is the shape worth remembering: *a unit test that constructs the correct input cannot discover that production constructs a different one.* The new test goes through `streamStep` and asserts the id is not the message being watched.
+
+Three of today's bugs were the same class, a field present on one side of a seam and absent on the other: `found` missing from mobile's parsed answer shape, `found` and `waiting` missing from web's `TailMessage`, and `seriesRef` silently stripped by a Fastify response schema that had not been told about it. **A response schema that drops an unknown field is a silent contract break**, and the only reason the third one was caught is that a test asserted the field arrived over HTTP rather than asserting the function that produced it.
+
+### 2026-09-10 · Prompt changes are measured on cases they have never seen
+
+`/test-llm` and `apps/agent/evals/`. A prompt change is not done when three examples look right: three examples is how you learn what the rule should say, and also how you write a rule that fits three examples and nothing else.
+
+The loop is tuning set, change only where failures agree, then a fresh set never tuned against, and **the held-out number is the result**. A quarter of every set is behaviour that must not change, because a brevity rule that shortens a refusal into rudeness has failed and only a refusal case will say so.
+
+Two things it taught immediately, both now steps in the skill. **Half the first run's failures were the rubric rather than the model**, and tuning against those would have made the product worse while the number went up. And a case has to be answerable before it measures anything: several asked about a field `AccountFacts` does not carry, and one that looked like a wrong answer for two rounds was the harness not knowing about `list_calendars`.
+
+Brevity, the first thing put through it: tuning 69 to 92, first holdout 85 to 92, second holdout 100.
+
+**Design system impact:** none. The visual decisions from today are logged separately in the design system's own `decisions.md`.
