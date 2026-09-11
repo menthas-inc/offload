@@ -346,11 +346,15 @@ export async function quickAdd(
   threadId: string,
   text: string,
   section: string,
+  /** The rail's own day and its repeat box. Structured, not read from the
+   *  words: offload has no tool that can change either once the row is
+   *  written, so they have to be right from here. */
+  options?: { day?: string; repeats?: boolean },
 ): Promise<{ id: string; kind: "content" | "note" } | null> {
   const response = await fetch(`${API}/v1/threads/${threadId}/quick-add`, {
     ...json,
     method: "POST",
-    body: JSON.stringify({ text, section }),
+    body: JSON.stringify({ text, section, ...options }),
   });
   if (!response.ok) return null;
   return (await response.json()) as { id: string; kind: "content" | "note" };

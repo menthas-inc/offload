@@ -1142,6 +1142,53 @@
   cursor: default;
 }
 
+/* The rail's own quick add, under the selected day. The field on its own
+   line, the repeat box and the actions on the one below: the label "Repeats
+   weekly" next to a 500 character field left no room to sit beside it, the
+   way To do and Files fit theirs on one line. */
+.dayQuickAdd {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 var(--space-4);
+}
+
+.dayQuickAddRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.dayQuickAddActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Not the Checkbox component: that one strikes its label through once
+   ticked, which is right for a task read as done and wrong here, where
+   ticked means the row will repeat rather than that it is finished. The
+   label is the hit area, so a 17px box still answers a 44px tap. */
+.dayQuickAddRepeat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  font-family: var(--font-core);
+  font-size: calc(13px * var(--type-scale));
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.dayQuickAddRepeat input {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  accent-color: var(--surface-inverse);
+  cursor: pointer;
+}
+
 /* The one spinner, on a row offload has not read yet. Sits where the tools do,
    so a row does not change width when it settles. */
 .rowFiling {

@@ -350,3 +350,53 @@ describe("one row that repeats, drawn on every matching day", () => {
     expect(thingsOn(dated, "2026-09-08")).toHaveLength(0);
   });
 });
+
+describe("an old rule still draws today", () => {
+  // `REPEAT_LIMIT` used to be counted from the rule's own first occurrence, so
+  // a daily standup set up fourteen months ago ran out of steps before it
+  // reached this week and quietly stopped being drawn: still in the database,
+  // still repeating, on no screen, with nothing to say why.
+  function old(repeats: Dated["repeats"], from: string): Dated {
+    return {
+      id: "standup",
+      rowId: "standup",
+      due: false,
+      kind: "event",
+      from,
+      to: from,
+      done: false,
+      repeats: repeats ?? null,
+      until: null,
+    };
+  }
+
+  it("draws a daily rule from two years ago", () => {
+    const rail = railFor([old("day", "2024-09-16"), point("a", TODAY)], TODAY, "monday");
+    const marked = weeks(rail)
+      .flatMap((week) => week.days)
+      .filter((day) => day.count > 0);
+    expect(marked.length).toBe(7);
+  });
+
+  it("answers for today from a weekly rule set up years ago", () => {
+    // 16 September 2026 is a Wednesday, and so is the anchor.
+    expect(thingsOn([old("week", "2023-09-20")], TODAY)).toHaveLength(1);
+    expect(thingsOn([old("week", "2023-09-20")], "2026-09-17")).toHaveLength(0);
+  });
+
+  it("keeps the weekend out of an old weekday rule", () => {
+    const rail = railFor([old("weekday", "2024-01-01"), point("a", TODAY)], TODAY, "monday");
+    const marked = weeks(rail)
+      .flatMap((week) => week.days)
+      .filter((day) => day.count > 0)
+      .map((day) => day.iso);
+    expect(marked).toHaveLength(5);
+    expect(marked).not.toContain("2026-09-19");
+    expect(marked).not.toContain("2026-09-20");
+  });
+
+  it("answers for today from a monthly rule anchored on the 31st", () => {
+    // Clamping holds across years too: the 31st is the 30th in September.
+    expect(thingsOn([old("month", "2024-01-31")], "2026-09-30")).toHaveLength(1);
+  });
+});

@@ -127,10 +127,6 @@ export interface Series<T extends Sortable> {
   everyDays: number | null;
 }
 
-/** What a thread earns a widget for.
- *
-
-
 /** Split dated rows into the one-off ones and the things that repeat.
  *
  *  **A repeating event is one thing, not thirty.** A weekly yoga class filed as
@@ -213,7 +209,6 @@ export function splitRepeating<T extends Sortable>(
  *  dates it does carry and it declines rather than guesses.
  *
  *  Rounded to whole days before comparing, because an occurrence that crosses a
-
  *  daylight saving boundary is an hour out and is still weekly. */
 function cadenceOf(dated: readonly Sortable[]): number | null {
   const DAY = 24 * 60 * 60 * 1000;

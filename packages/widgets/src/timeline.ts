@@ -245,11 +245,10 @@ export function thingsOn(dated: readonly Dated[], iso: string): Dated[] {
     if (!one.repeats) return one.from <= iso && iso <= one.to;
     if (iso < one.from) return false;
     if (one.until && iso > addDays(one.until, spanOf(one))) return false;
-    // Walk the rule to the day in question. Bounded like every other walk of
-    // one: a rule that cannot reach the day in four hundred steps is not one
-    // this day belongs to.
+    // Straight to the day in question rather than walking there from whenever
+    // the rule began, so an old rule still answers for today.
     const length = spanOf(one);
-    let at = one.from;
+    let at = firstOnOrAfter(one.from, one.repeats, addDays(iso, -length));
     for (let step = 0; step < REPEAT_LIMIT; step += 1) {
       if (iso >= at && iso <= addDays(at, length)) return true;
       if (at > iso) return false;
@@ -293,12 +292,11 @@ function dotsByDay(
       continue;
     }
 
-    // Every occurrence the window can see. `REPEAT_LIMIT` is the guard on a
-    // rule whose first occurrence is years behind the window: it stops, and
-    // stopping draws fewer marks rather than hanging.
+    // Every occurrence the window can see, starting at the window rather than
+    // walking to it from whenever the rule began.
     const stop = window ? window.to : addDays(one.from, 366);
     const start = window ? window.from : one.from;
-    let at = one.from;
+    let at = firstOnOrAfter(one.from, one.repeats, addDays(start, -length));
     for (let step = 0; step < REPEAT_LIMIT && at <= stop; step += 1) {
       if (one.until && at > one.until) break;
       // Skip the ones behind the window rather than drawing them.
@@ -341,9 +339,47 @@ function nextOccurrence(iso: string, repeats: Repeat, anchorDom: number): string
   return localDay(new Date(year, month, Math.min(anchorDom, lastDay), 12));
 }
 
-/** How many times one rule may be walked for one window. A year of daily is
- *  365, and past that something is wrong rather than long. */
+/** How many occurrences one rule may draw **inside one window**. A year of
+ *  daily is 365, and a window wider than that is not a calendar anybody reads.
+ *
+ *  **It bounds the window, never the age of the rule.** It used to be counted
+ *  from the rule's own first occurrence, which meant a daily standup set up
+ *  fourteen months ago ran out of steps before it reached today and quietly
+ *  stopped being drawn: still in the database, still repeating, on no screen,
+ *  with nothing to say why. `firstOnOrAfter` skips to the window instead of
+ *  walking to it. */
 const REPEAT_LIMIT = 400;
+
+function isWeekend(iso: string): boolean {
+  const day = dayAt(iso).getDay();
+  return day === 0 || day === 6;
+}
+
+/** The first occurrence of a rule on or after a day, without walking there.
+ *
+ *  Arithmetic for the cadences that are a fixed number of days, and a calendar
+ *  step for the two that are not, which is at most a couple of hundred steps
+ *  for a decade-old monthly rule. */
+function firstOnOrAfter(from: string, repeats: Repeat, target: string): string {
+  if (target <= from) return from;
+  const days = Math.round((dayAt(target).getTime() - dayAt(from).getTime()) / DAY_MS);
+
+  if (repeats === "day") return addDays(from, days);
+  if (repeats === "week") return addDays(from, Math.ceil(days / 7) * 7);
+  if (repeats === "two_weeks") return addDays(from, Math.ceil(days / 14) * 14);
+  if (repeats === "weekday") {
+    // Every weekday from the first one is an occurrence, so the answer is the
+    // target itself unless it landed on a weekend.
+    let at = addDays(from, days);
+    while (isWeekend(at)) at = addDays(at, 1);
+    return at;
+  }
+
+  const anchorDom = dayAt(from).getDate();
+  let at = from;
+  while (at < target) at = nextOccurrence(at, repeats, anchorDom);
+  return at;
+}
 
 function dayAtIso(
   iso: string,

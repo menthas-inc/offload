@@ -1164,3 +1164,73 @@ describe("the note routes, over HTTP", () => {
     expect((edited.json() as { previous: string }).previous).toBe("Always use the todo list");
   });
 });
+
+describe("the rail's own quick add, over HTTP", () => {
+  async function addOnDay(cookie: string, threadId: string, text: string, day?: string, repeats?: boolean) {
+    return app.inject({
+      method: "POST",
+      url: `/v1/threads/${threadId}/quick-add`,
+      headers: { cookie },
+      payload: { text, section: "timeline", ...(day ? { day } : {}), ...(repeats ? { repeats } : {}) },
+    });
+  }
+
+  it("starts as an event on the day given, and not repeating", async () => {
+    const ana = await account();
+    const flat = await thread(ana, "EU with fam");
+    const cookie = await signIn(ana);
+
+    const added = await addOnDay(cookie, flat, "brunch at 11 with Ana", "2026-09-13");
+    expect(added.statusCode).toBe(200);
+    const { id, kind } = added.json() as { id: string; kind: string };
+    expect(kind).toBe("content");
+
+    const row = await db
+      .selectFrom("content")
+      .select(["type", "title", "occurs_at", "repeats", "attrs"])
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow();
+    expect(row.type).toBe("event");
+    expect(row.title).toBe("brunch at 11 with Ana");
+    // Noon, so the day survives being read west of Greenwich, same as
+    // everywhere else a bare day is parsed.
+    expect(row.occurs_at?.toISOString()).toBe("2026-09-13T12:00:00.000Z");
+    expect(row.repeats).toBeNull();
+    expect((row.attrs as Record<string, unknown>)["all_day"]).toBe(true);
+  });
+
+  it("repeats weekly from that day when the box is ticked", async () => {
+    const ana = await account();
+    const flat = await thread(ana, "EU with fam");
+    const cookie = await signIn(ana);
+
+    const added = await addOnDay(cookie, flat, "yoga", "2026-09-15", true);
+    const { id } = added.json() as { id: string };
+
+    const row = await db
+      .selectFrom("content")
+      .select(["repeats", "occurs_at"])
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow();
+    expect(row.repeats).toBe("week");
+    expect(row.occurs_at?.toISOString()).toBe("2026-09-15T12:00:00.000Z");
+  });
+
+  it("ignores a tick with no day to repeat from, rather than refusing the row", async () => {
+    const ana = await account();
+    const flat = await thread(ana, "EU with fam");
+    const cookie = await signIn(ana);
+
+    const added = await addOnDay(cookie, flat, "brunch", undefined, true);
+    expect(added.statusCode).toBe(200);
+    const { id } = added.json() as { id: string };
+
+    const row = await db
+      .selectFrom("content")
+      .select(["repeats", "occurs_at"])
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow();
+    expect(row.repeats).toBeNull();
+    expect(row.occurs_at).toBeNull();
+  });
+});

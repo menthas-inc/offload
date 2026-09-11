@@ -33,13 +33,18 @@ import {
   type RailRow,
 } from "../../lib/widgets";
 import { useAppearance } from "../../lib/appearance";
+import { QUICK_ADD_CHARS, quickAdd } from "../../lib/threads";
 import type { ContentRow, Note } from "../../lib/threads";
 
 interface Props {
+  threadId: string;
   rows: ContentRow[];
   notes: Note[];
   handlers: RowHandlers;
   onToggle: (row: ContentRow) => void;
+  /** Something was typed straight onto the open day. The page reloads to pick
+   *  up the row, which the server has already written. */
+  onAdded: () => void;
 }
 
 /** The hour, for a row that has one. */
@@ -60,7 +65,7 @@ const DOT: Record<string, string> = {
   other: "var(--text-tertiary)",
 };
 
-export function Timeline({ rows, notes, handlers, onToggle }: Props) {
+export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdded }: Props) {
   const { weekStart } = useAppearance();
   // Computed on render rather than held, so the first render after midnight
   // moves today. Nothing polls for it.
@@ -71,6 +76,9 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
   // already open because its key is a date with no thread in it. The caller
   // passes `key`, and the page keys `Thread` by thread id besides.
   const [selected, setSelected] = useState(today);
+  // The day's own +. Closed the moment the row is written, same as every
+  // other section's: the request that matters has already succeeded.
+  const [adding, setAdding] = useState(false);
   // The month on screen, in month mode. Null means the one today is in, so it
   // follows today over midnight rather than pinning the month this mounted in.
   const [month, setMonth] = useState<string | null>(null);
@@ -115,6 +123,14 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
     .map((one) => ({ one, note: notesById.get(one.rowId) }))
     .filter((pair): pair is { one: Dated; note: Note } => pair.note !== undefined);
 
+  // A day switch closes the open composer rather than carrying it along: it
+  // was open on the day it was open on, and offering to add to a different one
+  // through the same field would be adding to the day you left, silently.
+  const pick = (iso: string): void => {
+    setAdding(false);
+    setSelected(iso);
+  };
+
   const cell = (day: Day, outside = false) => (
     <button
       key={day.iso}
@@ -132,7 +148,7 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
       aria-pressed={day.iso === selected}
       // The dots are the fast read and never the only one.
       aria-label={dayLabel(day)}
-      onClick={() => setSelected(day.iso)}
+      onClick={() => pick(day.iso)}
     >
       <span className={styles.railDow}>{day.dow}</span>
       <span className={styles.railDom}>{day.dom}</span>
@@ -163,7 +179,7 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
     // actually true: forward if you had wandered into the past.
     if (grid) setWent(grid.key > today ? -1 : 1);
     setMonth(null);
-    setSelected(today);
+    pick(today);
   };
 
   const step = (by: 1 | -1): void => {
@@ -232,7 +248,33 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
             month: "long",
           })}
           {selected === today ? <em className={styles.sectionCount}>Today</em> : null}
+          {/* Straight onto this day, without going through the composer. The
+              same model reads it, grounded in this thread, and it leaves no
+              trace in the conversation, exactly like every other section's +. */}
+          {adding ? null : (
+            <button
+              type="button"
+              className={styles.sectionAdd}
+              aria-label="Add to this day"
+              title="Add"
+              onClick={() => setAdding(true)}
+            >
+              <Icon name="plus" size={15} />
+            </button>
+          )}
         </h2>
+
+        {adding ? (
+          <DayQuickAdd
+            threadId={threadId}
+            day={selected}
+            onDone={() => {
+              setAdding(false);
+              onAdded();
+            }}
+            onCancel={() => setAdding(false)}
+          />
+        ) : null}
       </div>
 
       {dayRows.length === 0 && dayNotes.length === 0 ? (
@@ -284,5 +326,83 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
         />
       ))}
     </section>
+  );
+}
+
+/** Typing straight onto the day that is open.
+ *
+ *  The same field as every other section's, plus one box: a tick means it
+ *  repeats weekly from this day, since the weekday is already in the date and
+ *  there is nothing else one box could mean. **The tick is final.** offload's
+ *  only tool on this row is `edit_content`, which has no date and no repeat
+ *  field, so neither the day nor the tick can be corrected from what gets
+ *  typed; both are exactly what they are here from the moment this closes. */
+function DayQuickAdd({
+  threadId,
+  day,
+  onDone,
+  onCancel,
+}: {
+  threadId: string;
+  day: string;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [text, setText] = useState("");
+  const [repeats, setRepeats] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function save(): Promise<void> {
+    const trimmed = text.trim();
+    if (trimmed.length === 0) return onCancel();
+    setSaving(true);
+    const written = await quickAdd(threadId, trimmed, "timeline", { day, repeats });
+    setSaving(false);
+    if (!written) return;
+    setText("");
+    onDone();
+  }
+
+  return (
+    <div className={styles.dayQuickAdd}>
+      <input
+        className={styles.quickAddField}
+        value={text}
+        autoFocus
+        disabled={saving}
+        maxLength={QUICK_ADD_CHARS}
+        placeholder="Type it, offload will sort it out"
+        onChange={(event) => setText(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") onCancel();
+          if (event.key === "Enter") void save();
+        }}
+        aria-label="Add to this day"
+      />
+      <div className={styles.dayQuickAddRow}>
+        <label className={styles.dayQuickAddRepeat}>
+          <input
+            type="checkbox"
+            checked={repeats}
+            disabled={saving}
+            onChange={(event) => setRepeats(event.target.checked)}
+          />
+          Repeats weekly
+        </label>
+        <div className={styles.dayQuickAddActions}>
+          <button type="button" className={styles.sectionAction} onClick={onCancel}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={styles.quickAddSave}
+            disabled={text.trim().length === 0 || saving}
+            onClick={() => void save()}
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -32,6 +32,7 @@ import {
   setMuted,
 } from "../threads/notes.js";
 import { readPreference, type ThreadPreference } from "../threads/widgets.js";
+import { isBareDate, parseWhen } from "../threads/dates.js";
 import {
   NotYours,
   requireAuthor,
@@ -804,10 +805,15 @@ export const QUICK_ADD_CHARS = 500;
  *  **A section with no answer here writes a note instead**, which is what 014
  *  made of a typed sentence with nothing else to be. Files is the one that
  *  lands there: you cannot type a file, and the words somebody typed are a
- *  sentence about the thread. */
-const STARTS_AS: Record<string, "task" | "location"> = {
+ *  sentence about the thread.
+ *
+ *  **`timeline` is the day rail's own +, not a widget.** It went with 015 when
+ *  the rail stopped being one and comes back here because the rail has a + of
+ *  its own now, on the selected day's heading. */
+const STARTS_AS: Record<string, "task" | "location" | "event"> = {
   todo: "task",
   map: "location",
+  timeline: "event",
 };
 
 /** Write what somebody typed, then ask offload what it was.
@@ -823,12 +829,21 @@ const STARTS_AS: Record<string, "task" | "location"> = {
  *  It never leaves this thread. A dump chooses a home and this one is already
  *  chosen, which is the whole difference between the composer and a + on a
  *  section: somebody adding to To do has said where it goes.
+ *
+ *  **`day` and `repeats` are structured, not read from the words.** The rail's
+ *  + already knows which day was open and whether the box was ticked, so
+ *  those two arrive as real values rather than as something offload has to
+ *  read out of the sentence. That matters because `edit_content`, the only
+ *  tool offload has on this row, carries no date and no repeat rule: it can
+ *  give the row a real title, and it cannot move the day or change whether it
+ *  repeats. Both are final the moment this function returns.
  */
 export async function quickAdd(
   accountId: string,
   threadId: string,
   text: string,
   section: string,
+  options: { day?: string | null | undefined; repeats?: boolean | undefined } = {},
 ): Promise<{ id: string; kind: "content" | "note" }> {
   await requireMember(accountId, threadId);
 
@@ -844,6 +859,12 @@ export async function quickAdd(
     return { id: note.id, kind: "note" };
   }
 
+  // A day with no time in it, noon UTC per `parseWhen`, so it reads back as
+  // the same calendar day almost everywhere. `repeats` needs a real date under
+  // it, per the 0036 constraint, so it is only ever set alongside one.
+  const occursAt = options.day ? parseWhen(options.day) : null;
+  const allDay = occursAt ? isBareDate(options.day) : false;
+
   return db.transaction().execute(async (trx) => {
     const row = await trx
       .insertInto("content")
@@ -857,6 +878,14 @@ export async function quickAdd(
         source: "person",
         filing_at: sql`now()`,
         updated_at: sql`now()`,
+        ...(occursAt ? { occurs_at: occursAt } : {}),
+        ...(allDay ? { attrs: { all_day: true } } : {}),
+        // A tick on the day's + means it repeats weekly from that day: the
+        // weekday is already in the date and there is nothing else a single
+        // box could mean. offload cannot correct this from the words, see
+        // above, so it is the one place this route trusts the client's own
+        // reading of a checkbox rather than a model's.
+        ...(occursAt && options.repeats ? { repeats: "week" as const } : {}),
       })
       .returning("id")
       .executeTakeFirstOrThrow();
@@ -1429,6 +1458,12 @@ export async function threadRoutes(app: App): Promise<void> {
           /** Which heading the + was on. A hint about what the row starts as,
            *  never a constraint on what offload decides it is. */
           section: z.string().max(32).optional(),
+          /** The day open on the rail, when the + was that one's. A day, not a
+           *  time: the rail asks which day, never which hour. */
+          day: z.string().max(40).optional(),
+          /** The rail's own checkbox: ticked means it repeats weekly from
+           *  `day`. Ignored where there is no `day` to repeat from. */
+          repeats: z.boolean().optional(),
         }),
         response: {
           200: z.object({ id: z.string(), kind: z.enum(["content", "note"]) }),
@@ -1447,7 +1482,10 @@ export async function threadRoutes(app: App): Promise<void> {
         if (text.length === 0) return reply.code(404).send({ error: "not_found" as const });
 
         return reply.send(
-          await quickAdd(accountId, request.params.id, text, request.body.section ?? "")
+          await quickAdd(accountId, request.params.id, text, request.body.section ?? "", {
+            day: request.body.day,
+            repeats: request.body.repeats,
+          })
         );
       })
   );

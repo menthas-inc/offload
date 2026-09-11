@@ -240,7 +240,14 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   // an event belongs; showing it again in the leftover list is the same row in
   // two places on one screen. Taken from what the rail actually draws rather
   // than from a type check, so the two cannot disagree about what is on it.
-  const onRail = new Set(datedFor(rows, thread.notes).map((one) => one.rowId));
+  //
+  // **Only while the rail is on screen.** The archived view hides it, and
+  // taking dated rows out of a list that is the only list there makes an
+  // archived event invisible. The two have to be decided together, which is
+  // why this reads the same flag the rail does.
+  const onRail = new Set(
+    showArchived ? [] : datedFor(rows, thread.notes).map((one) => one.rowId)
+  );
 
   // **A repeating thing is one row here, not thirty.** A weekly class filed as
   // thirty occurrences spends thirty rows saying what the row above said, and
@@ -388,10 +395,12 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             // thread after picking 3 October in another one lands on 3 October
             // rather than on today.
             key={id}
+            threadId={id}
             rows={rows}
             notes={thread.notes}
             handlers={handlers}
             onToggle={(row) => void toggle(row)}
+            onAdded={() => void load()}
           />
         )}
 

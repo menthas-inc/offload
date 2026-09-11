@@ -11,6 +11,17 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-10 · The rail's day heading gets a +, and its repeat box is not the Checkbox component
+**Surface:** web
+
+**Is:** the timeline's selected-day heading now has a + like every other section, opening one field under it, "Type it, offload will sort it out", plus a second control: a plain checkbox labelled "Repeats weekly". Ticking it makes the row repeat weekly from the open day. Neither the day nor the tick can be corrected afterwards from what gets typed, because `edit_content`, the only tool offload has on this row, carries no date and no repeat field. That is stated in `quick_add.md` now, since it used to imply the opposite for every typed row.
+
+**The checkbox is a native `<input type="checkbox">` in a label, not `components/forms/Checkbox.jsx`.** That contract strikes its label through and greys it once checked, which is right for a task read as done and wrong here: checked means the row will repeat, not that it is finished, and a struck-through "Repeats weekly" reads as withdrawn rather than as set. `apps/web/src/components/panes/Apps.tsx` already reaches for a bare checkbox for the same reason, for two calendar settings ("Read this one", "Other people see this"), so this follows that rather than inventing a third pattern.
+
+**There is no mock for any of this.** `Timeline.tsx`'s own header comment already says so for the rail; the + and the field match the shape every other section's + already has, and the checkbox has no shape to match.
+
+**Design system impact:** `Checkbox.jsx` covers a task-list tick only. A plain boolean setting tick, checked meaning "on" rather than "done", has come up twice now without a contract of its own (`Apps.tsx`'s two settings checkboxes, and this one). Worth either a `variant` on `Checkbox` that skips the strike-through and grey, or a second, lighter contract for it.
+
 ### 2026-09-11 · A month arrives from the side you came from
 **Surface:** web, iOS, Android
 **Was:** Prev, month name, next, then Today beyond the next arrow. Changing month swapped the grid in place.
