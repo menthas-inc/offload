@@ -392,6 +392,39 @@ describe("bounds and repeats", () => {
     expect(rows).toHaveLength(MAX_TOOL_CALLS);
   });
 
+  it("files an eleven-item list without refusing any of it", async () => {
+    // The bound is a bound on a runaway loop, not on a list somebody wrote.
+    // Eleven items is what "Todos each: repellent, clean litter, duggies,
+    // shave, brush, grocery, sandwiches, water plants, eye mask, trash bag,
+    // bottles" was, reported from production on 2026-09-11: eight landed, three
+    // were refused, and the retry could not file them either because this
+    // counter is per message. Written as eleven rather than as MAX_TOOL_CALLS
+    // so that lowering the constant fails here rather than quietly truncating
+    // somebody's shopping again.
+    const accountId = await account();
+    const threadId = await thread(accountId, "sustain/release");
+    const { jobId, messageId } = await dump(accountId);
+
+    for (let i = 0; i < 11; i++) {
+      const response = await tool({
+        tool: "add_content",
+        type: "task",
+        jobId,
+        toolCallId: `list${i}`,
+        threadId,
+        title: `item ${i}`,
+      });
+      expect(response.json()).toMatchObject({ ok: true });
+    }
+
+    const rows = await db
+      .selectFrom("content")
+      .select("id")
+      .where("derived_from_message_id", "=", messageId)
+      .execute();
+    expect(rows).toHaveLength(11);
+  });
+
   it("bumps the thread's count and activity in the same write (AC-1)", async () => {
     const accountId = await account();
     const threadId = await thread(accountId, "Flat admin");
