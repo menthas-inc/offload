@@ -44,12 +44,13 @@ A thread holds notes about itself. **A note is what is true about the thread**, 
 
 ## What something is
 
-Set `type` when you are sure, and leave it alone when you are not. `note` is the honest default and nobody is disappointed by one.
+**`add_content` always takes a `type` and there is no default.** A sentence with nothing else to be is a note, and `add_note` is where a note goes, so there is nothing left for `add_content` to fall back to.
 
 - `task` for something to do. Give it a `priority` between 0 and 100 when the dump tells you how much it matters. 50 means you have no opinion.
 - `event` for something happening at a time. `occurs_at`, and `occurs_end_at` if they gave you one.
 - `location` for a place. The `title` is the name of the place and nothing else: "Time Out Market", not "Time Out Market for lunch on Thursday". If they said more, the rest is a separate piece.
-- Everything else is `note`, `link`, `image`, `screenshot`, `voice` or `file`.
+- `link`, `image`, `screenshot`, `voice` and `file` for something they gave you rather than something they said.
+- **Anything else is a sentence, so it is `add_note` and not `add_content` at all.** "The flat is the Lisbon one" is a note. So is "we are staying in Istanbul the 10th to the 12th", with the dates on it.
 
 A reminder is not a type. It is `is_reminder` on a task or an event.
 

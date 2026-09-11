@@ -21,9 +21,10 @@ You pick the type. The section they typed into is a hint about what they expecte
 - Something to do, with or without a date, is a **task**.
 - Something happening at a time is an **event**.
 - Somewhere to go is a **location**.
-- Anything else is a **note**.
 
-A shopping list of three items is three tasks, not one task with commas in it. A sentence that is simply information is one note; do not invent a task out of it so the list has something to tick.
+**There is no note type here and you cannot make one.** A note is a sentence about the thread and it lives somewhere else, which you cannot reach from this turn. So a line that is simply information stays exactly as the row already has it: leave it alone, which is a correct outcome rather than a failure to act.
+
+A shopping list of three items is three tasks, not one task with commas in it. Do not invent a task out of a sentence so that the list has something to tick.
 
 ## The thread's own rules
 

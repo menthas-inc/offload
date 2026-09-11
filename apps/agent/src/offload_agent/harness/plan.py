@@ -103,6 +103,15 @@ class Outcome:
     #: something failed is not a finished turn even when the model wrote a
     #: confident sentence about it.
     failed: list[str] = field(default_factory=list)
+    #: How many tool calls actually did something. Not the same as `landed`,
+    #: which holds filings alone: moving a piece, ticking one off or renaming a
+    #: thread all change the database and file nothing.
+    #:
+    #: It exists because the sentence offload says when a turn does not finish
+    #: was built from `landed` and said "Nothing saved." after a move that had
+    #: already happened. A move is never a filing, so that sentence was false
+    #: for the one kind of turn it was most likely to be shown on.
+    worked: int = 0
     #: What an answer showed, one entry per read.
     #:
     #: Ids and one flag, never row content. The reply resolves the rows when it
@@ -460,6 +469,8 @@ async def _run(
             if not body.get("ok"):
                 # Names only. The reason is data for the model, not for a reply.
                 outcome.failed.append(block.name)
+            else:
+                outcome.worked += 1
 
             if body.get("ok") and block.name in FILING_TOOLS:
                 filed += 1

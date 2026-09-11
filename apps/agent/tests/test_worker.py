@@ -194,13 +194,37 @@ async def test_the_partial_reply_claims_nothing_when_nothing_landed():
     assert _partial_reply(_outcome()) == "Nothing saved."
 
 
+async def test_the_partial_reply_does_not_say_nothing_was_saved_after_a_move():
+    """"Nothing saved." is a claim about the database, and it was false for the
+    one kind of turn it was most likely to appear on.
+
+    `landed` holds filings. A move, a tick, an archive and a rename are none of
+    them, so a turn that moved a piece and then stopped told somebody nothing
+    had been saved about a move that had already happened. Reported from
+    production on 2026-09-11."""
+    from offload_agent.harness.plan import Outcome
+    from offload_agent.worker import _partial_reply
+
+    moved = Outcome(reply=None, worked=1)
+    assert _partial_reply(moved) == "That did not finish."
+
+    # And when genuinely nothing happened at all, the older sentence stands.
+    assert _partial_reply(Outcome(reply=None, worked=0)) == "Nothing saved."
+
+
 async def test_the_partial_reply_never_explains_itself():
     """offload once wrote "the task tool seems to be down, you may want to try
     again shortly" about a tool that was up. The screen says what did not save
     and offers the button; the reply says what did and stops."""
     from offload_agent.worker import _partial_reply
 
-    for reply in (_partial_reply(_outcome()), _partial_reply(_outcome("Flat admin"))):
+    from offload_agent.harness.plan import Outcome
+
+    for reply in (
+        _partial_reply(_outcome()),
+        _partial_reply(_outcome("Flat admin")),
+        _partial_reply(Outcome(reply=None, worked=1)),
+    ):
         lowered = reply.lower()
         for word in ("try again", "sorry", "down", "unable", "could not", "failed", "shortly"):
             assert word not in lowered, f"{word!r} in {reply!r}"

@@ -385,10 +385,19 @@ def _partial_reply(outcome: Outcome) -> str:
     # Short, and only what happened. No apology, no explanation, no mechanism,
     # and nothing about what went wrong: the screen says that, next to the way
     # to fix it, where somebody can act on it. A sentence cannot be clicked.
-    if not names:
-        return "Nothing saved."
-    placed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
-    return f"Saved to {placed}."
+    if names:
+        placed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+        return f"Saved to {placed}."
+
+    # **"Nothing saved." is a claim about the database and it can be false.**
+    # `landed` holds filings, and a move, a tick, an archive and a rename are
+    # none of them: a turn that moved a piece and then stopped told somebody
+    # nothing had been saved about a move that had already happened. If a tool
+    # did something, say the true thing instead, which is that the turn did not
+    # finish, and let the screen offer the way to finish it.
+    if outcome.worked:
+        return "That did not finish."
+    return "Nothing saved."
 
 
 async def _give_up_or_retry(
