@@ -38,8 +38,10 @@ export const NOTE_PROMPT_BUDGET = 100;
 /** And across one turn, however many threads it touches.
  *
  *  Without it the worst case is the budget times `MAX_TOOL_CALLS`, which is
- *  eight distinct threads at a hundred notes each: a number that describes no
- *  real turn and costs real money if one ever happens. */
+ *  thirty distinct threads at a hundred notes each: a number that describes no
+ *  real turn and costs real money if one ever happens. **This is the bound that
+ *  holds the prompt still when the filing bound moves**, which it did on
+ *  2026-09-11, from eight to thirty. */
 export const NOTE_TURN_BUDGET = 200;
 
 /** Long enough for a sentence, short enough that the prompt contribution stays

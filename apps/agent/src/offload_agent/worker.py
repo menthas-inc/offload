@@ -23,6 +23,7 @@ from offload_agent import context as ctx_mod
 from offload_agent.compact import KINDS as COMPACT_KINDS
 from offload_agent.compact import handle_compact
 from offload_agent.config import Config
+from offload_agent.context import DumpContext
 from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
 from offload_agent.embed_jobs import handle_embed
@@ -295,10 +296,12 @@ async def handle(
             anthropic, fitted, cfg.model, _tool_caller(http, cfg, job.id)
         )
 
+        nothing_left = _nothing_left(outcome, fitted)
+
         # Not finished means either the loop ran out of round trips or a tool
         # failed. Both are partial, and in both the reply is ours: a model that
         # could not do something is not a reliable narrator of what it did.
-        if not outcome.finished:
+        if not outcome.finished and not nothing_left:
             # The loop ran out of round trips. Everything in `landed` is
             # committed, so this is partial rather than failed, and the person
             # is offered a way to finish it rather than a way to start again.
@@ -322,6 +325,10 @@ async def handle(
                 calls=len(outcome.usage),
                 filed=len(outcome.landed),
                 failed=len(outcome.failed),
+                # See above: this is the count that was missing while three
+                # turns in production looked like they had done nothing.
+                refused=outcome.refused,
+                out_of_calls=outcome.out_of_calls,
             )
             return
 
@@ -348,6 +355,16 @@ async def handle(
             job_id=job.id,
             calls=len(outcome.usage),
             filed=len(outcome.landed),
+            # Which of the two answered turns this was: one that did something,
+            # or a resume that found the work already done. They read the same
+            # in a log otherwise, and telling them apart is what turned "the
+            # retry fails every time" into one line of code.
+            nothing_left=nothing_left,
+            # A tool call the schema refused never reaches the Core API, so it
+            # is in neither `filed` nor `failed`, and a turn that spent every
+            # round trip on rejected arguments logged as though it had done
+            # nothing at all. Field names and error types only (OFF-1).
+            refused=outcome.refused,
             latency_ms=sum(u.latency_ms for u in outcome.usage),
         )
 
@@ -369,6 +386,30 @@ async def handle(
         # log (OFF-1).
         log.error("dump failed", job_id=job.id, attempt=job.attempts, error_type=type(exc).__name__)
         await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
+
+
+def _nothing_left(outcome: Outcome, ctx: DumpContext) -> bool:
+    """A resume that found the work already done.
+
+    **Finished, not partial.** The rule everywhere else is that a turn which
+    filed nothing and said nothing did not happen, and on a first attempt that
+    is right. On a resume it is the opposite: the earlier attempt filed, this
+    one reads what already landed, finds nothing left and stops. Reported as
+    partial, that turn said "Nothing saved." about eight rows sitting in the
+    thread, and offered a Finish that would say it again, every time. The
+    product owner pressed it three times.
+
+    Narrow on purpose. The model has to have stopped of its own accord, with
+    nothing refused and nothing half done, and this message has to have filed
+    something already. Anything else is still a turn that needs finishing.
+    """
+    return (
+        not outcome.finished
+        and not outcome.out_of_calls
+        and not outcome.failed
+        and outcome.worked == 0
+        and bool(ctx.landed)
+    )
 
 
 def _partial_reply(outcome: Outcome) -> str:

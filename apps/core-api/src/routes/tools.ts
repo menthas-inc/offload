@@ -74,8 +74,21 @@ export const PLACE_NAME_CHARS = 120;
  *  Both, deliberately. The loop's counter is the one that keeps the model
  *  informed; this one is the one that still holds when the loop's counter is
  *  wrong, which is the only kind of bound worth having between a model and a
- *  bill (AC-18). */
-export const MAX_TOOL_CALLS = 8;
+ *  bill (AC-18).
+ *
+ *  **Eight until 2026-09-11, and eight was a number about the bill that turned
+ *  into a number about the product.** "Todos each: repellent, clean litter,
+ *  duggies, shave, brush, grocery, sandwiches, water plants, eye mask, trash
+ *  bag, bottles" is eleven things and an entirely ordinary dump. Eight of them
+ *  landed, three were refused, and the turn came back partial: the one shape of
+ *  dump this product exists for, silently truncated.
+ *
+ *  **Counted per message, which is what made the retry hopeless.** The eight
+ *  already filed still count on the resume, so every attempt at the last three
+ *  was refused before it reached a table, and the person could press Finish
+ *  forever. Thirty is a bound on a runaway loop rather than on a list somebody
+ *  actually wrote. */
+export const MAX_TOOL_CALLS = 30;
 
 /** What `list_thread_content` returns, ever.
  *

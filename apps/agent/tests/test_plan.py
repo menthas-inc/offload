@@ -272,7 +272,14 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
     uses = [line.strip() for line in source.splitlines() if "block.name" in line]
     assert uses == [
         "if block.name not in TOOL_NAMES:",
+        # Recorded on a list of what was refused before it could be dispatched.
+        # A string appended to a list, and the name is there precisely because
+        # the set check just rejected it.
+        'outcome.refused.append(f"{block.name}: unknown_tool")',
         "args = SCHEMAS[block.name].model_validate(block.input)",
+        # The same, for a call whose arguments would not validate. Field names
+        # and error types travel with it; the values never do (OFF-1).
+        'outcome.refused.append(f"{block.name}: {shape}")',
         # A comparison against one literal, deciding whether this call is the
         # one tool that writes nothing and never leaves the loop. It reads the
         # name and resolves nothing with it.
@@ -584,4 +591,33 @@ async def test_a_turn_with_no_failures_is_finished():
 
     outcome = await plan(model, ctx(), "claude-sonnet-5", Recorder())
     assert outcome.finished
+    assert outcome.failed == []
+
+
+async def test_a_refused_tool_call_is_recorded_rather_than_only_answered():
+    """It is in neither `landed` nor `failed`, and that made three real turns
+    unreadable.
+
+    A call the schema refuses never reaches the Core API, so nothing downstream
+    counts it. In production, turns that spent every round trip on arguments
+    that would not validate logged `filed=0 failed=0`: identical to a turn that
+    decided to do nothing, which is what they were mistaken for.
+    """
+    model = StubModel(
+        [
+            # No title, which the schema requires.
+            Response(
+                content=[ToolUse(id="a1", name="add_content", input={"thread_id": "t1"})],
+                stop_reason="tool_use",
+            ),
+            Response(content=[TextBlock("done")], stop_reason="end_turn"),
+        ]
+    )
+    caller = Recorder()
+    outcome = await plan(model, ctx(), "m", caller)
+
+    assert caller.calls == [], "a call that fails validation must not reach the writer"
+    assert outcome.refused == ["add_content: title: missing; type: missing"]
+    # Field names and error types. Never a value: the title and the body are
+    # somebody's own words and this string reaches a log (OFF-1).
     assert outcome.failed == []

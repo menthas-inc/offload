@@ -61,12 +61,23 @@ _QUICK_ADD_PROMPT = (Path(__file__).parent.parent / "prompts" / "quick_add.md").
 QUICK_ADD_TOOLS = [t for t in TOOLS if t["name"] in {"edit_content", "add_content"}]
 
 # Round trips. Two pieces of content is one call to plan and one to reply; six
-# leaves room for a failed tool and a recovery, and bounds the bill.
-MAX_MODEL_CALLS = 6
+# left room for a failed tool and a recovery, and bounded the bill.
+#
+# **Ten since 2026-09-11**, because the filing bound moved and this one is what
+# a long list actually spends. The model files two or three pieces per turn
+# rather than all of them at once, so eleven todos in one dump used five calls
+# and a longer list uses more. Six was the number that turned an eleven-item
+# list into a partial turn.
+MAX_MODEL_CALLS = 10
 
 # Filings per turn. Mirrored by the Core API, which is the copy that still holds
 # when this one is wrong.
-MAX_TOOL_CALLS = 8
+#
+# **Thirty since 2026-09-11.** Eight was chosen as a bound on the bill and was
+# read by the product as a bound on a list: eleven ordinary todos in one dump
+# filed eight and refused three. The reasoning, and why the retry could not fix
+# it either, is on the Core API's copy.
+MAX_TOOL_CALLS = 30
 
 # The tool definitions have their own budget, separate from the prompt's,
 # because this one grows with the number of features rather than with the age of
@@ -125,6 +136,15 @@ class Outcome:
     #: finished; a turn cut off mid-work says nothing either, and is not. The
     #: difference is whether the model stopped or the bound did.
     out_of_calls: bool = False
+    #: Tool calls the schema refused, as field names and error types.
+    #:
+    #: **Neither `landed` nor `failed` held these**, because both are written
+    #: after the call reaches the Core API and a refused one never gets there.
+    #: A turn that spent every round trip on arguments that would not validate
+    #: logged `filed=0 failed=0` and looked, from the outside, exactly like a
+    #: turn that had decided to do nothing. Three turns in production read that
+    #: way before this existed.
+    refused: list[str] = field(default_factory=list)
     #: How many tool calls actually did something. Not the same as `landed`,
     #: which holds filings alone: moving a piece, ticking one off or renaming a
     #: thread all change the database and file nothing.
@@ -487,6 +507,7 @@ async def _run(
             # A closed set, checked before anything else. Never a lookup keyed
             # on a name the model produced.
             if block.name not in TOOL_NAMES:
+                outcome.refused.append(f"{block.name}: unknown_tool")
                 results.append(
                     _result(block.id, {"ok": False, "error": "unknown_tool"}, error=True)
                 )
@@ -495,9 +516,9 @@ async def _run(
             try:
                 args = SCHEMAS[block.name].model_validate(block.input)
             except ValidationError as exc:
-                results.append(
-                    _result(block.id, {"ok": False, "error": _shape_only(exc)}, error=True)
-                )
+                shape = _shape_only(exc)
+                outcome.refused.append(f"{block.name}: {shape}")
+                results.append(_result(block.id, {"ok": False, "error": shape}, error=True))
                 continue
 
             if block.name == "say":

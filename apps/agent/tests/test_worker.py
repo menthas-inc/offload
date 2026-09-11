@@ -293,3 +293,72 @@ async def test_a_date_a_model_would_write_is_accepted_before_it_becomes_a_400():
     with pytest.raises(Exception) as caught:
         AddContent(thread_id="t", title="x", type="task", due_at="next week")
     assert "due_at" in str(caught.value)
+
+
+def _ctx(landed: int):
+    from offload_agent.context import DumpContext, Filed
+
+    return DumpContext(
+        dump="todos each: repellent, clean litter, bottles",
+        turns=[],
+        threads=[],
+        landed=[
+            Filed(title=f"piece {i}", thread_name="sustain/release") for i in range(landed)
+        ],
+        default_thread_id=None,
+    )
+
+
+async def test_a_resume_with_nothing_left_to_do_is_finished():
+    """Reported from production on 2026-09-11, three presses of Finish.
+
+    Eleven todos in one dump filed eight and stopped. The resume read what had
+    already landed, found nothing it could add, and stopped of its own accord.
+    That turn filed nothing and said nothing, which everywhere else means a turn
+    that did not happen, so it came back partial saying "Nothing saved." about
+    eight rows that were in the thread, with a Finish that would do it again.
+    """
+    from offload_agent.worker import _nothing_left
+
+    assert _nothing_left(_outcome(), _ctx(8)) is True
+
+
+async def test_a_first_attempt_that_does_nothing_is_still_unfinished():
+    """The narrow half, and the one worth protecting.
+
+    Nothing landed on this message before, so there is nothing this turn could
+    have found already done. A turn that filed nothing and said nothing here is
+    a turn that did not happen.
+    """
+    from offload_agent.worker import _nothing_left
+
+    assert _nothing_left(_outcome(), _ctx(0)) is False
+
+
+async def test_a_resume_cut_off_by_the_bound_is_still_unfinished():
+    from offload_agent.harness.plan import Outcome
+    from offload_agent.worker import _nothing_left
+
+    out = Outcome(reply=None)
+    out.out_of_calls = True
+    assert _nothing_left(out, _ctx(8)) is False
+
+
+async def test_a_resume_with_a_refused_tool_is_still_unfinished():
+    from offload_agent.harness.plan import Outcome
+    from offload_agent.worker import _nothing_left
+
+    out = Outcome(reply=None)
+    out.failed.append("add_content")
+    assert _nothing_left(out, _ctx(8)) is False
+
+
+async def test_a_resume_that_did_something_is_judged_the_ordinary_way():
+    """It moved or ticked something and then stopped. That is the partial this
+    `worked` counter was added for, and it must not be swallowed here."""
+    from offload_agent.harness.plan import Outcome
+    from offload_agent.worker import _nothing_left
+
+    out = Outcome(reply=None)
+    out.worked = 1
+    assert _nothing_left(out, _ctx(8)) is False
