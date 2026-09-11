@@ -240,6 +240,23 @@ def build_blocks(ctx: DumpContext) -> list[dict]:
     else:
         blocks.append({"type": "text", "text": "They have no threads yet."})
 
+    if ctx.looking_at:
+        blocks.append(
+            {
+                "type": "text",
+                # Ours, so it sits before the dump's own words and outside them.
+                # It is a default and says so: the alternative, a pin, would make
+                # "add this to Flat admin" unreachable from anywhere but the
+                # thread list, which is the filing this product exists to avoid.
+                "text": (
+                    f"They are looking at thread {ctx.looking_at.id}, "
+                    f"called {ctx.looking_at.name!r}. Anything to file belongs there "
+                    "unless what they dumped names a different thread, in which case "
+                    "that one wins. This is our data."
+                ),
+            }
+        )
+
     if ctx.landed:
         already = "\n".join(f"- {f.title}   in {f.thread_name}" for f in ctx.landed)
         blocks.append(

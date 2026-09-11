@@ -79,7 +79,13 @@ interface Undoable {
 
 export function Composer({
   onFiled,
+  inThread,
 }: {
+  /** The thread on screen, if one is. Sent with the dump as a filing default
+   *  and shown in front of the field, so somebody typing inside a thread does
+   *  not have to name it. Anything they write that names another thread wins,
+   *  which is decided in the prompt rather than here. */
+  inThread?: { id: string; name: string } | null;
   /** Called with the threads the turn actually wrote to, from the content rows
    *  it produced rather than from parsing the reply. The shell reloads the
    *  sidebar and hands the ids down so a screen already showing one of those
@@ -251,7 +257,7 @@ export function Composer({
     const clientKey = crypto.randomUUID();
 
     try {
-      const sent = await sendDump(text, clientKey);
+      const sent = await sendDump(text, clientKey, inThread?.id);
       setDraft("");
       setTurns((current) => [
         ...current,
@@ -553,6 +559,12 @@ export function Composer({
       ) : null}
 
       <div className={styles.composerInner}>
+        {/* Said, not enforced. The server passes the same thread to the model
+            as a default and the prompt lets the words override it, so this
+            reads as where things are going rather than as a lock. */}
+        {inThread ? (
+          <span className={styles.inThread}>in thread {inThread.name}</span>
+        ) : null}
         <input
           ref={input}
           className={styles.composerInput}

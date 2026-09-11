@@ -11,6 +11,36 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-11 · The composer says where a dump will land
+**Surface:** web, iOS, Android
+
+**Was:** the field said "Dump anything" wherever you were, and a dump made from inside a thread went wherever the model thought best.
+
+**Is:** with a thread open, the composer reads "in thread Sustain", and the dump carries that thread to the planner as a default. On the web it sits in front of the field inside the input pill; on a phone it is one line above the pill, at the counter's size and colour.
+
+**A default that changes where things go has to be visible, or it is a surprise.** The whole risk of filing somewhere by default is that somebody does not know it happened; one quiet line is what turns it into something they can see and override by writing "add this to Flat admin". The line is deliberately the quietest text in the composer, `--text-tertiary` at 12.5, because it is the answer to a question nobody asked out loud.
+
+**Nothing is drawn while the composer is pinned by a `+`.** That case already says what it is adding to twice, in the header and in the pill, and this entry's own predecessor drew the distinction: a pin cannot choose a thread, a default can. A third statement of the same thing is noise.
+
+**No mock for it.** `WComposer` and `Composer.jsx` are a field and three controls, with the live header as the only text slot either has, and that slot belongs to the conversation title.
+
+**Design system impact:** `web_app/WMisc.jsx`'s `WComposer` and `mobile_app/Composer.jsx` / `android_app/M3Composer.jsx` want an optional `inThread` name: a quiet prefix inside the pill on web, a quiet line above it on the phones. It is mutually exclusive with the pinned variant from 2026-09-10, and a kit showing both at once would be showing a state the product cannot reach.
+
+### 2026-09-10 · The composer is the single input for adding on a phone
+**Surface:** mobile
+
+**Is:** every `+` on a thread (a widget section's, and Notes') now raises the same shell-level composer instead of opening its own field. `Widgets.tsx` lost its inline `TextInput` and `Notes.tsx` lost its "adding" path through the sheet Editor; only editing an existing note still opens that sheet, since that needs mute, delete and a second field the composer has no room for. The `+` still keeps the write it always had, quick add or `addNote`, called on submit rather than routed through a dump.
+
+**The pin is drawn in two places, on purpose split by what each is honest about.** The header shows what kind of write this is, "Add to To do" or "Add a note", the caller's own copy carried over unchanged. The conversation area, where turns would otherwise be, shows a pill, "In thread Sustain", the same shape and tokens as the `Filed` chip that already names where a dump landed. That pill is drawn only for a `+`, because a `+` genuinely cannot choose a thread; an ordinary dump made from a thread screen may default there without being pinned to it, which is a different, weaker claim and this entry draws nothing for it.
+
+**A pin never folds.** `FoldedHeader` in `Plate.tsx` reads `live`, not `pin`, and a `+`'s add has no header row to collapse into, so pulling the sheet down, tapping its handle, or tapping the scrim all close it outright rather than folding it to the plate. The chevron-down control is not drawn while pinned for the same reason.
+
+**Two latent two-composer bugs, found while wiring this.** `Plate.tsx` and `ConversationScrim` each recomputed their own `raised` from `conversation.live`/`folded`, and neither knew about a pin. A `+` with no live conversation underneath would have raised the sheet while the plate kept drawing its own composer beneath it, the exact two-composer failure `PrismField`'s own contract warns about. Fixed by computing `raised` once in `conversation-context.tsx` and having the sheet, its scrim and the plate all read that instead of each other's business.
+
+**Composer gained three props no kit's `Composer.jsx` has**: `maxLength` and `showCounter` (so a note keeps its 200-character running count and quick add keeps its silent 500-character cap), and `submitLabel` (so the button reads "Add" while pinned rather than "Send", which described a dump).
+
+**Design system impact:** `mobile_app/Composer.jsx` and `android_app/M3Composer.jsx` want an optional cap and running-count prop, and a submit-label override. `mobile_app/LiveConversation.jsx` wants a pinned variant: header title from the caller, a threadName chip in place of turns, no fold control, and the pull/scrim/handle all closing rather than folding. `ThreadWidgets.jsx` and any note-adding mock should show their `+` opening that pinned composer rather than an inline field or their own sheet.
+
 ### 2026-09-10 · The rail's day heading gets a +, and its repeat box is not the Checkbox component
 **Surface:** web
 

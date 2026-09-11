@@ -72,6 +72,8 @@ Prompt assembly has a fixed budget per tier, and the budget is enforced at assem
 - Per-account derived context: bounded, and stable enough between turns to stay cached.
 - The turn's own material: the message, the thread in view, the content retrieved for this question.
 
+**"The thread in view" is literal, and it is one line.** `messages.looking_at_thread_id` records the thread that was on screen when somebody dumped, and the planner is told about it: "They are looking at thread <id>, called 'Sustain'. Anything to file belongs there unless what they dumped names a different thread, in which case that one wins." It is a default rather than a destination, it is never dropped to fit because it is what decides where things land, and membership is resolved again when it is read rather than trusted from the stored id.
+
 Only the third grows with the question, and it is bounded by retrieval returning a fixed number of candidates rather than everything that matches.
 
 **The test for any new feature: does it add something to a prompt that grows with account age?** If yes, it belongs in the derived tier behind compaction, not in the prompt.

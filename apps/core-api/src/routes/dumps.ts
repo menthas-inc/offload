@@ -24,6 +24,7 @@ import { emit } from "../analytics.js";
 import { targetFor, undoWrite } from "../connectors/write.js";
 import { waitingFor } from "../connectors/tool-calls.js";
 import { foundFor } from "../search/found.js";
+import { memberOf } from "../threads/access.js";
 
 /** Longer than anything the composer is designed for, and short enough that a
  *  paste cannot run up a bill. Refused before anything is written, and never
@@ -75,6 +76,20 @@ const dumpBody = z.object({
   /** The outbox idempotency key. A device that retried without hearing the
    *  response must not create the dump twice. */
   clientKey: z.string().max(200).optional(),
+  /** The thread that was on screen when this was dumped.
+   *
+   *  **A default, not a destination.** Somebody typing into the composer while
+   *  looking at a thread almost always means that thread, and saying so every
+   *  time would be filing by another name. But "add X to Flat admin" from
+   *  inside Lisbon trip means Flat admin, so this reaches the model as where
+   *  they are rather than as where it must go, and the words win.
+   *
+   *  Distinct from the hard pin a quick add carries, which genuinely cannot go
+   *  anywhere else because pressing + in a section is the choice.
+   *
+   *  **Checked for membership before it is written down.** It arrives from a
+   *  client and a thread id from a client is never an access decision. */
+  threadId: z.string().uuid().optional(),
 });
 
 type MessageState = "queued" | "seen" | "answered" | "failed" | "partial";
@@ -363,6 +378,8 @@ export async function takeDump(
   accountId: string,
   text: string,
   clientKey?: string,
+  /** The thread on screen, unchecked as it arrived. */
+  threadId?: string,
 ): Promise<{
   messageId: string;
   conversationId: string;
@@ -370,6 +387,16 @@ export async function takeDump(
   turnId: string;
 }> {
   const turnId = randomUUID();
+
+  // Membership, before the id is written into a job payload. A thread id from a
+  // client is a claim, and this one ends up naming a thread in a model prompt.
+  //
+  // A stale id is dropped rather than refused. The screen can be looking at a
+  // thread that was deleted or left a second ago, and the dump is the part that
+  // matters: losing the default is losing a convenience, losing the dump is
+  // losing what somebody wrote.
+  const lookingAt =
+    threadId && (await memberOf(accountId, threadId)) ? threadId : null;
 
   return db.transaction().execute(async (trx) => {
     // The join and the insert in one statement each, inside one
@@ -425,6 +452,7 @@ export async function takeDump(
         // reaches a client.
         state: "seen",
         client_key: clientKey ?? null,
+        looking_at_thread_id: lookingAt,
       })
       .onConflict((oc) =>
       // The index is partial, on client_key is not null, because most messages
@@ -521,7 +549,7 @@ export async function dumpRoutes(app: App): Promise<void> {
       if (!accountId)
         return reply.code(401).send({ error: "unauthenticated" as const });
 
-      const { text, clientKey } = request.body;
+      const { text, clientKey, threadId } = request.body;
 
       // Before the write, not after. AC-14.
       if (text.length > MAX_DUMP_CHARS) {
@@ -549,7 +577,7 @@ export async function dumpRoutes(app: App): Promise<void> {
         }
       }
 
-      const result = await takeDump(accountId, text, clientKey);
+      const result = await takeDump(accountId, text, clientKey, threadId);
 
       return reply.code(202).send(result);
     },

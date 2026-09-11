@@ -58,6 +58,14 @@ class DumpContext:
     threads: list[Thread]
     landed: list[Filed]
     default_thread_id: str | None
+    # The thread that was on screen when this was dumped, if any.
+    #
+    # A default, not a destination. Somebody typing into the composer from
+    # inside a thread means that thread nearly every time, and the prompt says
+    # so, but words naming another thread override it. Distinct from the hard
+    # pin a quick add carries, where the section they pressed + in is the
+    # choice and nothing may leave it.
+    looking_at: Thread | None = None
     # "Friday 3 October 2026", from the database's clock rather than the
     # worker's, so every worker in every region agrees with the rows it reads.
     # The account's own timezone is not stored yet; when it is, this is the one
@@ -134,10 +142,29 @@ _TURNS = text(
     """
 )
 
+# The dump, and the thread it was typed in front of.
+#
+# The join re-resolves membership rather than trusting the stored id. The id was
+# checked when it was written, and the person may have left the thread since; a
+# name that reaches a prompt should be one they can still see today.
 _DUMP = text(
     """
-    select text from messages
-    where id = :message_id and account_id = :account_id and deleted_at is null
+    select m.text,
+           lt.id as looking_at_id,
+           lt.name as looking_at_name
+    from messages m
+    left join threads lt
+      on lt.id = m.looking_at_thread_id
+     and lt.deleted_at is null
+     and exists (
+       select 1 from thread_members mm
+       where mm.thread_id = lt.id
+         and mm.account_id = m.account_id
+         and mm.state = 'accepted'
+     )
+    where m.id = :message_id
+      and m.account_id = :account_id
+      and m.deleted_at is null
     """
 )
 
@@ -215,6 +242,15 @@ async def load(
         threads=threads,
         landed=[Filed(title=r.title, thread_name=r.thread_name) for r in landed_rows],
         default_thread_id=default_id,
+        looking_at=(
+            Thread(
+                id=str(dump_row.looking_at_id),
+                name=dump_row.looking_at_name,
+                is_default=str(dump_row.looking_at_id) == default_id,
+            )
+            if dump_row.looking_at_id
+            else None
+        ),
         today=today,
         has_calendar=has_calendar,
     )
@@ -268,6 +304,9 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         threads=threads,
         landed=ctx.landed,
         default_thread_id=ctx.default_thread_id,
+        # Not a candidate for trimming. It is one short line, and it is the line
+        # that decides where things land.
+        looking_at=ctx.looking_at,
         today=ctx.today,
         has_calendar=ctx.has_calendar,
     )

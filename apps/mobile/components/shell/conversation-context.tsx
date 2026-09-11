@@ -31,8 +31,33 @@ import {
   type MessageState,
   type TouchedThread,
 } from "../../lib/dump";
-import { completeContent } from "../../lib/threads";
+import { addNote, completeContent, quickAdd } from "../../lib/threads";
 import { failed } from "../../lib/log";
+
+/** What a `+` pinned the composer to. Set only by a `+`, never chosen from
+ *  inside the field: a section's `+` writes to that section in that thread and
+ *  nowhere else, which is the whole difference between this and an ordinary
+ *  dump.
+ *
+ *  **The caller owns every word.** `title`, `placeholder` and `charLimit` come
+ *  from whichever `+` raised this, because a widget's quick add and a note
+ *  each already had their own copy and their own cap before this existed, and
+ *  the composer is the input now, not a second opinion about either. */
+export interface Pin {
+  threadId: string;
+  threadName: string;
+  write: "quickAdd" | "note";
+  /** The widget's own kind, e.g. `"todo"`. Required for `quickAdd`, absent
+   *  for a note, which has no section. */
+  section?: string;
+  /** The header's own line, e.g. "Add to To do" or "Add a note". */
+  title: string;
+  placeholder: string;
+  charLimit: number;
+  /** Whether the cap is tight enough to want a running count. Quick add's 500
+   *  never showed one; a note's 200 always did. */
+  showCounter?: boolean;
+}
 
 export interface Turn {
   id: string;
@@ -70,14 +95,38 @@ interface Undoable {
 export interface Conversation {
   live: Live | null;
   folded: boolean;
+  /** Whether the sheet should be up: a live conversation that is not folded,
+   *  or a pin, which never folds. Computed once here rather than at each of
+   *  the sheet, its scrim and the plate, because the three disagreeing is
+   *  exactly how a pin ended up with two composers on screen at once during
+   *  this feature's own build. */
+  raised: boolean;
   turns: Turn[];
   writing: boolean;
   draft: string;
   undoable: Undoable | null;
+  /** Set only by a `+`. While it holds, the sheet shows what it is pinned to
+   *  instead of turns, and submit writes straight there instead of dumping. */
+  pin: Pin | null;
+  /** The thread screen that is open, if one is.
+   *
+   *  A filing default, and a much weaker claim than a pin: it goes with the
+   *  dump so the model files there without anybody saying so twice, and words
+   *  naming another thread override it. Set by the thread screen on focus and
+   *  cleared when it goes, because the composer belongs to the shell and has no
+   *  other way to know where somebody is. */
+  onScreen: { id: string; name: string } | null;
   setDraft: (value: string) => void;
   submit: () => Promise<void>;
   fold: () => void;
   raise: () => void;
+  /** A `+` raising the composer pinned to its own thread and write. */
+  raiseFor: (pin: Pin) => void;
+  /** A thread screen saying it is open, or null as it leaves. */
+  setOnScreen: (thread: { id: string; name: string } | null) => void;
+  /** Put the pinned composer away without writing anything. Never touches the
+   *  server: nothing was said, so there is nothing to end. */
+  dismissPin: () => void;
   close: () => void;
   undo: () => Promise<void>;
   finish: (messageId: string) => Promise<void>;
@@ -110,6 +159,8 @@ export function ConversationProvider({
   const [live, setLive] = useState<Live | null>(null);
   const [folded, setFolded] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
+  const [pin, setPin] = useState<Pin | null>(null);
+  const [onScreen, setOnScreen] = useState<{ id: string; name: string } | null>(null);
 
   const resolveWaiting = useCallback((turnId: string) => {
     setTurns((current) =>
@@ -172,6 +223,13 @@ export function ConversationProvider({
 
   const polls = useRef(new Map<string, ReturnType<typeof awaitAnswer>>());
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const raiseFor = useCallback((next: Pin) => {
+    setDraft("");
+    setPin(next);
+  }, []);
+
+  const dismissPin = useCallback(() => setPin(null), []);
 
   // The conversation as the database has it, so reopening the app does not look
   // like a fresh account.
@@ -297,9 +355,42 @@ export function ConversationProvider({
     [offerUndo],
   );
 
+  /** A `+`'s own write. It never leaves the thread it was pinned to and it
+   *  never becomes a turn: a section's `+` writing straight in and a note
+   *  leave no trace in the conversation today, and pinning the composer to
+   *  them does not change that. */
+  const submitPin = useCallback(
+    async (target: Pin, text: string): Promise<void> => {
+      setDraft("");
+      const ok =
+        target.write === "note"
+          ? await addNote(target.threadId, text).then(
+              (result) => result !== null && !("tooLong" in result),
+            )
+          : await quickAdd(target.threadId, text, target.section ?? "").then(
+              (written) => written !== null,
+            );
+
+      if (!ok) {
+        // The words go back rather than vanishing into a failed request. The
+        // field's own cap is the only refusal a note or a quick add ever had.
+        setDraft(text);
+        return;
+      }
+      setFiled({ threadIds: [target.threadId], at: Date.now() });
+      setPin(null);
+    },
+    [],
+  );
+
   const submit = useCallback(async (): Promise<void> => {
     const text = draft.trim();
     if (text.length === 0) return;
+
+    if (pin) {
+      await submitPin(pin, text);
+      return;
+    }
 
     setDraft("");
     setWriting(true);
@@ -308,7 +399,7 @@ export function ConversationProvider({
     setFolded(false);
 
     try {
-      const sent = await sendDump(text, `${Date.now()}`);
+      const sent = await sendDump(text, `${Date.now()}`, onScreen?.id);
       if (!sent) {
         setWriting(false);
         return;
@@ -328,7 +419,7 @@ export function ConversationProvider({
       setWriting(false);
       failed("dump.send", error);
     }
-  }, [draft, live, watch]);
+  }, [draft, live, onScreen, pin, submitPin, watch]);
 
   const undo = useCallback(async (): Promise<void> => {
     if (!undoable) return;
@@ -364,14 +455,20 @@ export function ConversationProvider({
       value={{
         live,
         folded,
+        raised: pin !== null || (live !== null && !folded),
         turns,
         writing,
         draft,
         undoable,
+        pin,
+        onScreen,
+        setOnScreen,
         setDraft,
         submit,
         fold: () => setFolded(true),
         raise: () => setFolded(false),
+        raiseFor,
+        dismissPin,
         close,
         undo,
         finish,

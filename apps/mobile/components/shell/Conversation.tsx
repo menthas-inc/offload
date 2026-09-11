@@ -44,7 +44,7 @@ import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
 import { answerPending } from "../../lib/calendars";
 import { useRouter } from "expo-router";
-import { useConversation, type Turn } from "./conversation-context";
+import { useConversation, type Pin, type Turn } from "./conversation-context";
 
 const isAndroid = Platform.OS === "android";
 
@@ -53,7 +53,7 @@ const isAndroid = Platform.OS === "android";
 export function ConversationScrim() {
   const COLOR = useColors();
   const conversation = useConversation();
-  const raised = conversation.live !== null && !conversation.folded;
+  const raised = conversation.raised;
   const progress = useSharedValue(0);
   // Mounted for as long as it is on screen, which is longer than `raised` is
   // true: unmounting on the flag is what made both this and the sheet vanish
@@ -87,8 +87,8 @@ export function ConversationScrim() {
     >
       <Pressable
         className="flex-1"
-        onPress={conversation.fold}
-        accessibilityLabel="Fold"
+        onPress={conversation.pin ? conversation.dismissPin : conversation.fold}
+        accessibilityLabel={conversation.pin ? "Close" : "Fold"}
       />
     </Animated.View>
   );
@@ -97,7 +97,7 @@ export function ConversationScrim() {
 export function Conversation() {
   const COLOR = useColors();
   const conversation = useConversation();
-  const raised = conversation.live !== null && !conversation.folded;
+  const { pin, raised } = conversation;
   const progress = useSharedValue(0);
   const [shown, setShown] = useState(raised);
 
@@ -138,8 +138,12 @@ export function Conversation() {
   // height showed as a band of nothing under the tabs.
   const { height: screen } = useWindowDimensions();
 
+  // A pin folds to nothing: there is no header row for it to collapse into,
+  // since `FoldedHeader` in `Plate.tsx` reads `live`, not `pin`. Putting one
+  // away is a close in every sense, never a fold.
   const foldNow = (): void => {
-    conversation.fold();
+    if (pin) conversation.dismissPin();
+    else conversation.fold();
   };
 
   /** Pull it down to put it away.
@@ -196,7 +200,7 @@ export function Conversation() {
       <GestureDetector gesture={pull}>
         <Pressable
           onPress={foldNow}
-          accessibilityLabel="Fold the conversation away"
+          accessibilityLabel={pin ? "Close" : "Fold the conversation away"}
         >
           {/* A grab handle, because "you can pull this" has to be visible
               somewhere and the chevron alone reads as a button rather than an
@@ -218,17 +222,19 @@ export function Conversation() {
               style={{ fontSize: 14 }}
               numberOfLines={1}
             >
-              {conversation.live?.title}
+              {pin ? pin.title : conversation.live?.title}
             </Text>
+            {pin ? null : (
+              <Pressable
+                onPress={foldNow}
+                hitSlop={10}
+                accessibilityLabel="Fold away"
+              >
+                <Glyph name="chevron-down" size={18} color={COLOR.iconOnWell} />
+              </Pressable>
+            )}
             <Pressable
-              onPress={foldNow}
-              hitSlop={10}
-              accessibilityLabel="Fold away"
-            >
-              <Glyph name="chevron-down" size={18} color={COLOR.iconOnWell} />
-            </Pressable>
-            <Pressable
-              onPress={conversation.close}
+              onPress={pin ? conversation.dismissPin : conversation.close}
               hitSlop={10}
               accessibilityLabel="Close"
             >
@@ -238,7 +244,7 @@ export function Conversation() {
         </Pressable>
       </GestureDetector>
 
-      <Turns />
+      {pin ? <PinnedTarget pin={pin} /> : <Turns />}
 
       {/* No safe-area padding here: the plate below owns the bottom inset, and
           adding it twice left a gap the height of the gesture bar. */}
@@ -261,9 +267,35 @@ export function Conversation() {
           veil="graded"
           pulse={conversation.filed?.at ?? 0}
         />
-        <Composer placeholder="Add to this" />
+        <Composer
+          placeholder={pin ? pin.placeholder : "Add to this"}
+          maxLength={pin?.charLimit}
+          showCounter={pin?.showCounter}
+          submitLabel={pin ? "Add" : "Send"}
+        />
       </View>
     </Animated.View>
+  );
+}
+
+/** What a `+` is pinned to, in the conversation area rather than the field:
+ *  the one honest place for it, since a `+` genuinely cannot go anywhere
+ *  else. An ordinary dump made from a thread may still default there without
+ *  being pinned to it, which is a different claim and draws nothing here. */
+function PinnedTarget({ pin }: { pin: Pin }) {
+  const COLOR = useColors();
+  return (
+    <View className="px-gutter-screen pb-space-4">
+      <View
+        className="flex-row items-center gap-space-2 self-start rounded-pill bg-surface-accent-soft px-space-4"
+        style={{ height: 26 }}
+      >
+        <Glyph name="lasso" size={12} color={COLOR.accent} />
+        <Text className="font-core text-text-accent" style={{ fontSize: 12.5 }}>
+          In thread {pin.threadName}
+        </Text>
+      </View>
+    </View>
   );
 }
 

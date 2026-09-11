@@ -755,3 +755,69 @@ describe("013 an answering turn carries rows and files nothing", () => {
     expect((await foundFor([reply.id], ana)).get(reply.id) ?? []).toEqual([]);
   });
 });
+
+// 015: the thread on screen, as a filing default.
+//
+// The value of this is entirely in the two halves being separate: the id is
+// stored because they can see the thread, and the model is told it is a default
+// rather than a destination. This file owns the first half. The second is the
+// prompt's, and the block that carries it is asserted in the agent's tests.
+describe("the thread a dump was typed in front of", () => {
+  async function thread(accountId: string, name: string): Promise<string> {
+    const row = await db
+      .insertInto("threads")
+      .values({ created_by_account_id: accountId, name })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await db
+      .insertInto("thread_members")
+      .values({ thread_id: row.id, account_id: accountId, state: "accepted" })
+      .execute();
+    return row.id;
+  }
+
+  it("is stored on the message when they are a member", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Sustain");
+
+    const { messageId } = await takeDump(accountId, "oat milk", undefined, threadId);
+
+    const row = await db
+      .selectFrom("messages")
+      .select("looking_at_thread_id")
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(row.looking_at_thread_id).toBe(threadId);
+  });
+
+  it("is dropped when they are not, without refusing the dump", async () => {
+    const mine = await account();
+    const theirs = await account();
+    const notMine = await thread(theirs, "Their thread");
+
+    const { messageId } = await takeDump(mine, "oat milk", undefined, notMine);
+
+    const row = await db
+      .selectFrom("messages")
+      .select(["looking_at_thread_id", "text"])
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    // The dump is the part that matters. Losing the default costs a
+    // convenience, refusing the write costs what somebody wrote.
+    expect(row.text).toBe("oat milk");
+    expect(row.looking_at_thread_id).toBeNull();
+  });
+
+  it("is null when the dump came from outside a thread", async () => {
+    const accountId = await account();
+
+    const { messageId } = await takeDump(accountId, "oat milk");
+
+    const row = await db
+      .selectFrom("messages")
+      .select("looking_at_thread_id")
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(row.looking_at_thread_id).toBeNull();
+  });
+});

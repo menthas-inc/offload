@@ -13,7 +13,7 @@
 // The group heading and the bare "Everything else" heading went with it.
 
 import { useState } from "react";
-import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import {
   DONE_SHOWN,
   filtersFor,
@@ -25,7 +25,8 @@ import {
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { ContentRowView } from "./ContentRow";
-import { QUICK_ADD_CHARS, quickAdd } from "../../lib/threads";
+import { useConversation } from "./conversation-context";
+import { QUICK_ADD_CHARS } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 
 const isAndroid = Platform.OS === "android";
@@ -38,24 +39,22 @@ const HEADINGS: Record<string, string> = {
 
 export function Widgets({
   threadId,
+  threadName,
   widgets,
   groupBy: dimensions,
   onDelete,
   onActions,
   onToggle,
-  onAdded,
   arrived,
 }: {
   threadId: string;
+  threadName: string;
   widgets: Widget<ContentRow>[];
   groupBy?: Record<string, string> | undefined;
   onDelete: (row: ContentRow) => void;
   onActions: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
   arrived?: Set<string> | undefined;
-  /** Something was typed straight in. The screen reloads to pick up the row,
-   *  which the server has already written. */
-  onAdded: () => void;
 }) {
   if (widgets.length === 0) return null;
 
@@ -67,8 +66,8 @@ export function Widgets({
           widget={widget}
           dimension={dimensions?.[widget.kind] ?? null}
           threadId={threadId}
+          threadName={threadName}
           arrived={arrived}
-          onAdded={onAdded}
           onDelete={onDelete}
           onActions={onActions}
           onToggle={onToggle}
@@ -82,29 +81,27 @@ function WidgetBlock({
   widget,
   dimension,
   threadId,
+  threadName,
   arrived,
   onDelete,
   onActions,
   onToggle,
-  onAdded,
 }: {
   widget: Widget<ContentRow>;
   dimension: string | null;
   threadId: string;
+  threadName: string;
   arrived?: Set<string> | undefined;
-  onAdded: () => void;
   onDelete: (row: ContentRow) => void;
   onActions: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
 }) {
   const COLOR = useColors();
+  const { raiseFor } = useConversation();
   // Null is All, which is also where a row carrying no tag in this dimension
   // lives. Local rather than stored: a filter is what you are looking at now.
   const [only, setOnly] = useState<string | null>(null);
   const [allDone, setAllDone] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [saving, setSaving] = useState(false);
   // Only To do earns this: `doneAt` is only ever set on a task, so a map or a
   // files section has nothing to hide and never draws the control.
   const [hideDone, setHideDone] = useState(false);
@@ -172,12 +169,22 @@ function WidgetBlock({
             </>
           ) : null}
 
-          {/* Straight into the section, without going through the composer. The
-              same model reads it, grounded in this thread, and it leaves no trace
-              in the conversation: adding a task to a list is not talking to
-              offload. */}
+          {/* Raises the shell's composer, pinned to this thread and this
+              section: the write it already had, just typed in the one place
+              a phone has already solved the keyboard. It never leaves the
+              conversation, only its own field does. */}
           <Pressable
-            onPress={() => setAdding(true)}
+            onPress={() =>
+              raiseFor({
+                threadId,
+                threadName,
+                write: "quickAdd",
+                section: widget.kind,
+                title: `Add to ${HEADINGS[widget.kind]}`,
+                placeholder: "Type it, offload will sort it out",
+                charLimit: QUICK_ADD_CHARS,
+              })
+            }
             hitSlop={10}
             accessibilityLabel={`Add to ${HEADINGS[widget.kind]}`}
           >
@@ -185,45 +192,6 @@ function WidgetBlock({
           </Pressable>
         </View>
       </View>
-
-      {adding ? (
-        <View className="flex-row items-center gap-space-3 px-gutter-screen pb-space-4">
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            autoFocus
-            editable={!saving}
-            maxLength={QUICK_ADD_CHARS}
-            placeholder="Type it, offload will sort it out"
-            placeholderTextColor={COLOR.iconOnWell}
-            className={`flex-1 rounded-sm border border-border-focus px-space-4 py-space-3 font-core ${
-              isAndroid ? "text-a-on" : "text-text-primary"
-            }`}
-            style={{ fontSize: 14.5 }}
-            returnKeyType="done"
-            onSubmitEditing={() => {
-              const text = draft.trim();
-              if (text.length === 0) {
-                setAdding(false);
-                return;
-              }
-              setSaving(true);
-              void quickAdd(threadId, text, widget.kind).then((written) => {
-                setSaving(false);
-                if (!written) return;
-                setDraft("");
-                setAdding(false);
-                onAdded();
-              });
-            }}
-          />
-          <Pressable onPress={() => setAdding(false)} hitSlop={8}>
-            <Text className="font-core font-medium text-text-secondary" style={{ fontSize: 13 }}>
-              Cancel
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
 
       {/* One row of chips, single select, All first. It scrolls sideways rather
           than wrapping: a filter that reflows to two lines moves the list under

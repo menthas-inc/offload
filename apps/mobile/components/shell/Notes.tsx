@@ -25,11 +25,11 @@ import Animated, { FadeIn, FadeInDown, FadeOut, useAnimatedStyle } from "react-n
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
+import { useConversation } from "./conversation-context";
 import {
   NOTE_BUDGET,
   NOTE_BODY_CHARS,
   NOTE_CHARS,
-  addNote,
   deleteNote,
   editNote,
   foldedNotes,
@@ -43,6 +43,7 @@ const isAndroid = Platform.OS === "android";
 
 interface Props {
   threadId: string;
+  threadName: string;
   notes: Note[];
   /** Active and folded. The second draws the history control and nothing else. */
   counts: { active: number; folded: number };
@@ -63,10 +64,18 @@ function when(note: Note): string | null {
   });
 }
 
-export function NotesSection({ threadId, notes, counts, members, onChanged, onToast }: Props) {
+export function NotesSection({
+  threadId,
+  threadName,
+  notes,
+  counts,
+  members,
+  onChanged,
+  onToast,
+}: Props) {
   const COLOR = useColors();
+  const { raiseFor } = useConversation();
   const [editing, setEditing] = useState<Note | null>(null);
-  const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [bodyDraft, setBodyDraft] = useState<string | null>(null);
   const [folded, setFolded] = useState<Note[] | null>(null);
@@ -99,7 +108,6 @@ export function NotesSection({ threadId, notes, counts, members, onChanged, onTo
 
   function close(): void {
     setEditing(null);
-    setAdding(false);
     setDraft("");
     setBodyDraft(null);
   }
@@ -107,15 +115,6 @@ export function NotesSection({ threadId, notes, counts, members, onChanged, onTo
   async function save(): Promise<void> {
     const text = draft.trim();
     if (text.length === 0) return close();
-
-    if (adding) {
-      // **Nothing to refuse.** The only failure left is a sentence longer than
-      // a sentence, and the field's own limit already stops that.
-      await addNote(threadId, text);
-      close();
-      onChanged();
-      return;
-    }
     if (!editing) return close();
     const previous = editing.text;
     const previousBody = editing.body;
@@ -174,7 +173,6 @@ export function NotesSection({ threadId, notes, counts, members, onChanged, onTo
         key={note.id}
         onPress={() => {
           if (readOnly) return;
-          setAdding(false);
           setEditing(note);
           setDraft(note.text);
           setBodyDraft(note.body);
@@ -222,13 +220,13 @@ export function NotesSection({ threadId, notes, counts, members, onChanged, onTo
     );
   };
 
-  // Nothing to show and nothing being written: draw nothing at all. A heading
-  // over an empty row is a section announcing its own absence.
-  if (notes.length === 0 && !adding && counts.folded === 0) {
+  // Nothing to show: draw nothing at all. A heading over an empty row is a
+  // section announcing its own absence, and the pinned composer this + raises
+  // lives above this component regardless, so it never depends on the
+  // section being mounted.
+  if (notes.length === 0 && counts.folded === 0) {
     return null;
   }
-
-  const open = editing ?? (adding ? null : undefined);
 
   return (
     <>
@@ -256,14 +254,25 @@ export function NotesSection({ threadId, notes, counts, members, onChanged, onTo
 
         {/* The way in, once the section already draws. A thread with no notes
             and no folded history draws nothing here, per the early return
-            above: dumping something is the way in for that case. */}
+            above: dumping something is the way in for that case.
+
+            Raises the shell's composer, pinned to this thread, and writes
+            with `addNote` on submit, same as this section always did. Only
+            *adding* moved: editing an existing note still opens the sheet
+            below, since that needs mute, delete and a second field the
+            composer has no room for. */}
         <Pressable
-          onPress={() => {
-            setEditing(null);
-            setDraft("");
-            setBodyDraft(null);
-            setAdding(true);
-          }}
+          onPress={() =>
+            raiseFor({
+              threadId,
+              threadName,
+              write: "note",
+              title: "Add a note",
+              placeholder: "What is true about this thread?",
+              charLimit: NOTE_CHARS,
+              showCounter: true,
+            })
+          }
           hitSlop={10}
           className="ml-auto"
           accessibilityLabel="Add a note"
@@ -305,7 +314,7 @@ export function NotesSection({ threadId, notes, counts, members, onChanged, onTo
         </View>
       ) : null}
 
-      {open !== undefined ? (
+      {editing ? (
         <Editor
           note={editing}
           draft={draft}

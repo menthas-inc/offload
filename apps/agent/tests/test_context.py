@@ -11,7 +11,9 @@ from offload_agent.context import DumpContext, Filed, Thread, Turn, approx_token
 from offload_agent.harness.plan import build_blocks
 
 
-def ctx(dump="dentist after the 20th", turns=0, threads=0, landed=0) -> DumpContext:
+def ctx(
+    dump="dentist after the 20th", turns=0, threads=0, landed=0, looking_at=None
+) -> DumpContext:
     return DumpContext(
         dump=dump,
         turns=[Turn(role="person", text=f"turn {i} " * 20) for i in range(turns)],
@@ -21,6 +23,7 @@ def ctx(dump="dentist after the 20th", turns=0, threads=0, landed=0) -> DumpCont
         ],
         landed=[Filed(title=f"piece {i}", thread_name="Flat admin") for i in range(landed)],
         default_thread_id="00000000-0000-0000-0000-000000000000" if threads else None,
+        looking_at=looking_at,
     )
 
 
@@ -113,3 +116,36 @@ def test_no_account_content_reaches_the_system_prompt():
     # If anything ever templates an account into it, this catches it.
     assert "{" not in _PROMPT
     assert "}" not in _PROMPT
+
+
+def test_the_thread_on_screen_is_a_default_the_words_can_override():
+    """015: where they are, not where it must go.
+
+    Both halves matter and this asserts both. Without the first, somebody
+    typing inside a thread has to name it every time, which is the filing this
+    product exists to avoid. Without the second, "add the brackets to Flat
+    admin" becomes unreachable from anywhere but the thread list.
+    """
+    on_screen = Thread(id="00000000-0000-0000-0000-000000000009", name="Sustain", is_default=False)
+    blocks = build_blocks(ctx(threads=3, looking_at=on_screen))
+    said = [b["text"] for b in blocks if "Sustain" in b["text"]]
+
+    assert len(said) == 1
+    assert "00000000-0000-0000-0000-000000000009" in said[0]
+    assert "unless" in said[0]
+    # Ours, and it says so, because it decides where things land.
+    assert "This is our data." in said[0]
+    # And it is before the dump, so the dump is still the last thing in the turn.
+    assert blocks.index(next(b for b in blocks if b["text"] == said[0])) < len(blocks) - 1
+
+
+def test_nothing_is_said_about_a_thread_when_they_are_not_in_one():
+    blocks = build_blocks(ctx(threads=3))
+    assert not any("looking at" in b["text"] for b in blocks)
+
+
+def test_the_thread_on_screen_survives_a_tight_fit():
+    # One short line, and the line that decides where everything goes.
+    on_screen = Thread(id="00000000-0000-0000-0000-000000000009", name="Sustain", is_default=False)
+    fitted = fit(ctx(turns=200, threads=300, looking_at=on_screen), ceiling=50)
+    assert fitted.looking_at == on_screen

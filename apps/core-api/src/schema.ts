@@ -223,6 +223,10 @@ export interface MessagesTable {
   /** `queued` is internal and never reaches a client. */
   state: Generated<"queued" | "seen" | "answered" | "failed" | "partial">;
   client_key: string | null;
+  /** The thread on screen when this was dumped, membership checked. A filing
+   *  default the text can override, not a destination. Null on anything dumped
+   *  from outside a thread, and on a thread since deleted. */
+  looking_at_thread_id: string | null;
   source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
   source_ref: string | null;
   attrs: Generated<unknown>;

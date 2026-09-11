@@ -242,3 +242,63 @@ async def test_the_worker_cannot_write_content(two_accounts):
                 await conn.execute(text(statement), {"a": alice["account"], "t": alice["thread"]})
             assert "permission denied" in str(caught.value).lower()
             await conn.rollback()
+
+
+async def _look_at(message: str, thread: str | None) -> None:
+    """Point a message at a thread, as the API does when somebody dumps from
+    inside one. Written with the admin connection because the worker cannot
+    write, which is the same reason `seed` uses it."""
+    admin = create_async_engine(_asyncpg(ADMIN_DB))
+    async with admin.begin() as conn:
+        await conn.execute(
+            text("update messages set looking_at_thread_id = :t where id = :m"),
+            {"t": thread, "m": message},
+        )
+    await admin.dispose()
+
+
+async def test_the_thread_on_screen_comes_back_with_its_name(two_accounts):
+    engine, alice, _ = two_accounts
+    await _look_at(alice["message"], alice["thread"])
+
+    async with engine.connect() as conn:
+        ctx = await load(
+            conn,
+            account_id=alice["account"],
+            conversation_id=alice["conversation"],
+            message_id=alice["message"],
+            max_turns=20,
+            max_threads=12,
+        )
+
+    assert ctx is not None
+    assert ctx.looking_at is not None
+    assert ctx.looking_at.id == alice["thread"]
+    assert ctx.looking_at.name == "alice thread"
+    # It is their default as well here, and the flag has to say so: the prompt
+    # reads it to decide how to describe the thread.
+    assert ctx.looking_at.is_default is True
+
+
+async def test_a_thread_they_are_no_longer_in_is_not_on_screen(two_accounts):
+    """Membership is re-resolved on read, not trusted from the stored id.
+
+    The API checks it at write time. Somebody can leave a thread between the
+    dump and the answer, and a name reaching a prompt should be one they can
+    still see.
+    """
+    engine, alice, bob = two_accounts
+    await _look_at(alice["message"], bob["thread"])
+
+    async with engine.connect() as conn:
+        ctx = await load(
+            conn,
+            account_id=alice["account"],
+            conversation_id=alice["conversation"],
+            message_id=alice["message"],
+            max_turns=20,
+            max_threads=12,
+        )
+
+    assert ctx is not None
+    assert ctx.looking_at is None, "another account's thread name reached the prompt"

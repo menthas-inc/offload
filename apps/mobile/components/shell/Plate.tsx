@@ -43,7 +43,12 @@ export function Plate({
   // The raised sheet brings its own composer, so the plate's would be a second
   // field behind it competing for the keyboard. `M3App.jsx` hides it for the
   // same reason: `showComposer` is false while a conversation is up.
-  const raised = conversation.live !== null && !conversation.folded;
+  //
+  // From the context rather than recomputed here: a pin raises the sheet with
+  // no folded state of its own, and this and the sheet disagreeing about that
+  // is exactly how a pin ended up with two composers on screen at once during
+  // this feature's own build.
+  const raised = conversation.raised;
 
   // A keyboard means somebody is writing, and nothing else on the plate is
   // any use to them: the tabs are three places to go while they are mid

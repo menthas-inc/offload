@@ -63,6 +63,20 @@
 
 .composerInner:focus-within { box-shadow: 0 0 0 3px var(--surface-attention-soft); }
 
+/* Where a dump will land, said once, in front of the field.
+   Quiet on purpose: it is the answer to a question nobody asked out loud, and
+   the words in the field still override it. */
+.inThread {
+  flex: 0 1 auto;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-core);
+  font-size: calc(13px * var(--type-scale));
+  color: var(--text-tertiary);
+}
+
 .composerInput {
   flex: 1;
   min-width: 0;

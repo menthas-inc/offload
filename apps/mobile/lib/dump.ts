@@ -113,10 +113,17 @@ const isFinal = (state: MessageState): boolean =>
 
 /** Send it. The server stores it before anything else, so a resolved promise
  *  means the dump is safe even if nothing ever answers it. */
-export async function sendDump(text: string, clientKey: string): Promise<Sent | null> {
+/** @param threadId The thread on screen, if any. A filing default, not a
+ *  destination: the server checks membership and the prompt lets the words
+ *  override it. */
+export async function sendDump(
+  text: string,
+  clientKey: string,
+  threadId?: string,
+): Promise<Sent | null> {
   const { status, data } = await send<Sent>("/v1/dumps", {
     method: "POST",
-    body: JSON.stringify({ text, clientKey }),
+    body: JSON.stringify({ text, clientKey, ...(threadId ? { threadId } : {}) }),
   });
   if (status === 413) throw new DumpTooLong(0);
   return data;

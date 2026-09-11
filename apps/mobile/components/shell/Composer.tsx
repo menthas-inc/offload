@@ -11,7 +11,7 @@
 // absent, because a phone is exactly where somebody expects both to work.
 
 import { useEffect, useState } from "react";
-import { Platform, Pressable, TextInput, View } from "react-native";
+import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { useConversation } from "./conversation-context";
@@ -45,9 +45,24 @@ const PLACEHOLDERS = [
 /** Grows with the text, then scrolls. The kit's number. */
 const MAX_HEIGHT = 380;
 
-export function Composer({ placeholder }: { placeholder?: string | undefined }) {
+export function Composer({
+  placeholder,
+  maxLength,
+  showCounter,
+  submitLabel = "Send",
+}: {
+  placeholder?: string | undefined;
+  /** A `+`'s own cap, e.g. a note's 200. Absent for an ordinary dump, which
+   *  has none. */
+  maxLength?: number | undefined;
+  /** Whether the cap is tight enough to want a running count while typing. */
+  showCounter?: boolean | undefined;
+  /** What the control that submits actually does. "Send" describes a dump;
+   *  a `+`'s own write earns its own word. */
+  submitLabel?: string;
+}) {
   const COLOR = useColors();
-  const { draft, setDraft, submit } = useConversation();
+  const { draft, setDraft, submit, pin, onScreen } = useConversation();
   const [height, setHeight] = useState(0);
   const [which, setWhich] = useState(0);
 
@@ -62,6 +77,21 @@ export function Composer({ placeholder }: { placeholder?: string | undefined }) 
 
   return (
     <View className="px-gutter-screen pb-space-5 pt-space-4">
+      {/* Where an ordinary dump will land, said once, above the field.
+          Nothing while pinned: a `+` already says what it is adding to, in its
+          own header and its own pill, and a third statement of the same thing
+          is noise. Said rather than enforced, because the words in the field
+          still win, which the prompt decides and not this. */}
+      {!pin && onScreen ? (
+        <Text
+          className="mb-space-2 font-core text-text-tertiary"
+          style={{ fontSize: 12.5 }}
+          numberOfLines={1}
+        >
+          in thread {onScreen.name}
+        </Text>
+      ) : null}
+
       <View
         className={`flex-row items-center gap-space-3 border border-border-focus px-space-6 ${
           tall ? "rounded-lg" : "rounded-pill"
@@ -72,6 +102,7 @@ export function Composer({ placeholder }: { placeholder?: string | undefined }) 
           value={draft}
           onChangeText={setDraft}
           multiline
+          maxLength={maxLength}
           placeholder={placeholder ?? PLACEHOLDERS[which]}
           placeholderTextColor={COLOR.iconOnWell}
           onContentSizeChange={(event) =>
@@ -84,7 +115,7 @@ export function Composer({ placeholder }: { placeholder?: string | undefined }) 
         <Pressable
           onPress={() => void submit()}
           disabled={!has}
-          accessibilityLabel="Send"
+          accessibilityLabel={submitLabel}
           className={`items-center justify-center rounded-pill ${
             has ? (isAndroid ? "bg-a-on" : "bg-surface-inverse") : "bg-surface-fill"
           }`}
@@ -93,6 +124,15 @@ export function Composer({ placeholder }: { placeholder?: string | undefined }) 
           <Glyph name="arrow-up" size={17} color={has ? COLOR.onSolid : COLOR.iconOnWell} />
         </Pressable>
       </View>
+
+      {showCounter && maxLength ? (
+        <Text
+          className="mt-space-2 text-right font-core text-text-tertiary"
+          style={{ fontSize: 12.5 }}
+        >
+          {draft.length}/{maxLength}
+        </Text>
+      ) : null}
     </View>
   );
 }

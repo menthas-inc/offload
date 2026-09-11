@@ -83,12 +83,19 @@ export class DumpTooLong extends Error {
 
 /** Send it. The server stores it before anything else, so a resolved promise
  *  means the dump is safe even if nothing ever answers it. */
-export async function sendDump(text: string, clientKey: string): Promise<Sent> {
+/** @param threadId The thread on screen, if any. A filing default, not a
+ *  destination: the server checks membership and the model is told the words
+ *  override it. */
+export async function sendDump(
+  text: string,
+  clientKey: string,
+  threadId?: string,
+): Promise<Sent> {
   const response = await fetch(`${API}/v1/dumps`, {
     method: "POST",
     credentials: "include",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ text, clientKey }),
+    body: JSON.stringify({ text, clientKey, ...(threadId ? { threadId } : {}) }),
   });
 
   if (response.status === 413) {

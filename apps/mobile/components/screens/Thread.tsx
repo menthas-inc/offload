@@ -75,7 +75,7 @@ export default function Thread() {
   // appearing silently in the middle of a list.
   const [arrived, setArrived] = useState<Set<string>>(new Set());
   const toast = useToast();
-  const { filed } = useConversation();
+  const { filed, setOnScreen } = useConversation();
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -96,6 +96,18 @@ export default function Thread() {
     useCallback(() => {
       void load();
     }, [load]),
+  );
+
+  // Tell the composer where somebody is, so a dump typed here lands here
+  // without them saying so. Cleared on the way out: the composer lives in the
+  // shell and outlives this screen, and a stale thread would go on collecting
+  // dumps from Today.
+  const name = thread?.name;
+  useFocusEffect(
+    useCallback(() => {
+      if (id && name) setOnScreen({ id, name });
+      return () => setOnScreen(null);
+    }, [id, name, setOnScreen]),
   );
 
   /** Reload, and mark whatever was not here before.
@@ -340,8 +352,8 @@ export default function Thread() {
         {showArchived ? null : (
           <Widgets
             threadId={id}
+            threadName={thread.name}
             widgets={widgets}
-            onAdded={() => void load()}
             groupBy={thread.preference.groupBy}
             onDelete={(row: ContentRow) => void remove(row)}
             onActions={setActing}
@@ -353,6 +365,7 @@ export default function Thread() {
         {showArchived ? null : (
           <NotesSection
             threadId={thread.id}
+            threadName={thread.name}
             notes={thread.notes}
             counts={thread.noteCounts}
             members={thread.members}

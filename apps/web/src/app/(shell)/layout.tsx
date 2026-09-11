@@ -60,6 +60,15 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
 
   const threads = groups.flatMap((group) => group.threads);
 
+  // The thread on screen, for the composer to file into by default. From the
+  // path, because the route is the state here: a pane stack held in client
+  // state was the earlier draft and the reason it went is at the top of this
+  // file. Only the thread pane counts. A piece of content knows its thread on
+  // the server and not here, and guessing would mean a fetch to answer a
+  // question the composer only needs a label for.
+  const open = /^\/threads\/([0-9a-fA-F-]{36})/.exec(pathname);
+  const inThread = open ? (threads.find((one) => one.id === open[1]) ?? null) : null;
+
   return (
     <ThreadsProvider value={{ groups, ready, reload: () => void loadThreads(), filed }}>
       <div className={styles.shell}>
@@ -67,6 +76,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         <div className={styles.main}>
           {children}
           <Composer
+            inThread={inThread ? { id: inThread.id, name: inThread.name } : null}
             onFiled={(threadIds) => {
               void loadThreads();
               setFiled({ threadIds, at: Date.now() });
