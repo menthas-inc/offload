@@ -19,12 +19,15 @@ import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import {
+  WEEKS_BEFORE_MONTHS,
   dayLabel,
   datedFor,
   localDay,
+  monthFor,
   railFor,
+  stepMonth,
   thingsOn,
-  weeksIn,
+  weeksSpanned,
   type Dated,
   type Day,
   type RailRow,
@@ -68,12 +71,29 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
   // already open because its key is a date with no thread in it. The caller
   // passes `key`, and the page keys `Thread` by thread id besides.
   const [selected, setSelected] = useState(today);
-  const [opened, setOpened] = useState<Set<string>>(new Set());
+  // The month on screen, in month mode. Null means the one today is in, so it
+  // follows today over midnight rather than pinning the month this mounted in.
+  const [month, setMonth] = useState<string | null>(null);
 
   const dated = useMemo(() => datedFor(rows, notes), [rows, notes]);
-  const rail = useMemo(
-    () => railFor(dated, today, weekStart),
+
+  // **A rail past a few weeks stops being a rail.** Weeks read as time passing,
+  // which is what the empty days are for; a year of weeks is a scroll. Past the
+  // threshold it draws the shape everybody already knows instead, a month at a
+  // time with a way to step through them.
+  const weeks = useMemo(
+    () => weeksSpanned(dated, today, weekStart),
     [dated, today, weekStart]
+  );
+  const asMonth = weeks > WEEKS_BEFORE_MONTHS;
+
+  const rail = useMemo(
+    () => (asMonth ? null : railFor(dated, today, weekStart)),
+    [asMonth, dated, today, weekStart]
+  );
+  const grid = useMemo(
+    () => (asMonth ? monthFor(month ?? today, dated, today, weekStart) : null),
+    [asMonth, month, dated, today, weekStart]
   );
 
   // What is on the open day, drawn as whatever each one is.
@@ -92,13 +112,7 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
     .map((one) => ({ one, note: notesById.get(one.rowId) }))
     .filter((pair): pair is { one: Dated; note: Note } => pair.note !== undefined);
 
-  const expand = (row: Extract<RailRow, { row: "gap" }>): void => {
-    const next = new Set(opened);
-    next.add(row.key);
-    setOpened(next);
-  };
-
-  const cell = (day: Day) => (
+  const cell = (day: Day, outside = false) => (
     <button
       key={day.iso}
       type="button"
@@ -106,6 +120,12 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
       data-today={day.today ? true : undefined}
       data-past={day.past ? true : undefined}
       data-on={day.iso === selected ? true : undefined}
+      // **A day with anything on it is tinted, not only dotted.** Five pixels
+      // of colour is easy to miss across seven cells; the cell itself carrying
+      // a quiet inward edge is what makes a week readable at a glance, and the
+      // dots then say what kind and how many.
+      data-has={day.count > 0 ? true : undefined}
+      data-outside={outside ? true : undefined}
       aria-pressed={day.iso === selected}
       // The dots are the fast read and never the only one.
       aria-label={dayLabel(day)}
@@ -129,31 +149,50 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
     </button>
   );
 
-  const week = (days: Day[], key: string) => (
-    <div key={key} className={styles.railWeek}>
-      {days.map(cell)}
+  const week = (row: RailRow, outside?: (iso: string) => boolean) => (
+    <div key={row.key} className={styles.railWeek}>
+      {row.days.map((day) => cell(day, outside ? !outside(day.iso) : false))}
     </div>
   );
 
+  const goToday = (): void => {
+    setMonth(null);
+    setSelected(today);
+  };
+
   return (
     <section className={styles.rail}>
-      {rail.map((row) => {
-        if (row.row === "week") return week(row.days, row.key);
-        if (opened.has(row.key)) {
-          return (
-            <div key={row.key}>
-              {weeksIn(row, today).map((one) =>
-                one.row === "week" ? week(one.days, one.key) : null
-              )}
-            </div>
-          );
-        }
-        return (
-          <button key={row.key} type="button" className={styles.railGap} onClick={() => expand(row)}>
-            {row.weeks} weeks with nothing
+      {/* A month at a time, once the span is past a few weeks. The controls are
+          the ones a calendar always has, and Today is the way back from
+          wherever stepping through months left somebody. */}
+      {grid ? (
+        <div className={styles.railMonth}>
+          <button
+            type="button"
+            className={styles.railStep}
+            aria-label="Previous month"
+            onClick={() => setMonth(stepMonth(grid.key, -1))}
+          >
+            <Icon name="chevron-left" size={16} />
           </button>
-        );
-      })}
+          <span className={styles.railMonthName}>{grid.label}</span>
+          <button
+            type="button"
+            className={styles.railStep}
+            aria-label="Next month"
+            onClick={() => setMonth(stepMonth(grid.key, 1))}
+          >
+            <Icon name="chevron-right" size={16} />
+          </button>
+          <button type="button" className={styles.railToday} onClick={goToday}>
+            Today
+          </button>
+        </div>
+      ) : null}
+
+      {(grid ? grid.weeks : (rail ?? [])).map((row) =>
+        week(row, grid ? grid.inMonth : undefined)
+      )}
 
       <div className={styles.railDayHead}>
         <h2 className={styles.section} style={{ paddingTop: "var(--space-0)" }}>

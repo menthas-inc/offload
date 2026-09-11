@@ -37,14 +37,18 @@ export {
 // draw it and two of them are a phone.
 export {
   MAX_DOTS,
+  WEEKS_BEFORE_MONTHS,
   dayLabel,
   datedFor,
   localDay,
+  monthFor,
   railFor,
+  stepMonth,
   thingsOn,
-  weeksIn,
+  weeksSpanned,
   type Dated,
   type Day,
+  type Month,
   type RailRow,
   type WeekStart,
 } from "@offload/widgets";

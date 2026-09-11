@@ -61,9 +61,10 @@ export interface Day {
   count: number;
 }
 
-export type RailRow =
-  | { row: "week"; key: string; days: Day[] }
-  | { row: "gap"; key: string; weeks: number; from: string; to: string };
+export interface RailRow {
+  key: string;
+  days: Day[];
+}
 
 /** Four, and a fifth day's worth drawn as a count.
  *
@@ -72,8 +73,15 @@ export type RailRow =
  *  every one. */
 export const MAX_DOTS = 4;
 
-/** Three, because two empty weeks is information and fifty is furniture. */
-export const GAP_WEEKS = 3;
+/** Past this many weeks the rail stops being a rail.
+ *
+ *  A span of a few weeks reads as time passing, which is the whole point of
+ *  drawing the empty days. A span of a year does not: it is a scroll, and the
+ *  answer to it is the shape everybody already knows, a month at a time with a
+ *  way to step through them. **This replaced a collapsed run of empty weeks**,
+ *  which was a device for making a year of nothing short rather than for making
+ *  it navigable. */
+export const WEEKS_BEFORE_MONTHS = 6;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -215,15 +223,65 @@ export function thingsOn(dated: readonly Dated[], iso: string): Dated[] {
   return dated.filter((one) => one.from <= iso && iso <= one.to);
 }
 
-/** The rail.
+/** Every day that carries something, as a map from day to its dots.
+ *
+ *  A span fills every day between its ends, inclusive, which is why this is a
+ *  loop rather than a lookup.
+ */
+function dotsByDay(dated: readonly Dated[]): Map<string, Dot[]> {
+  const days = new Map<string, Dot[]>();
+  for (const one of dated) {
+    for (let day = one.from; day <= one.to; day = addDays(day, 1)) {
+      const held = days.get(day);
+      if (held) held.push({ kind: one.kind, done: one.done });
+      else days.set(day, [{ kind: one.kind, done: one.done }]);
+    }
+  }
+  return days;
+}
+
+function dayAtIso(
+  iso: string,
+  days: Map<string, Dot[]>,
+  today: string,
+  short: Intl.DateTimeFormat,
+): Day {
+  const dots = days.get(iso) ?? [];
+  const at = dayAt(iso);
+  return {
+    iso,
+    dom: at.getDate(),
+    dow: short.format(at),
+    today: iso === today,
+    past: iso < today,
+    dots: dots.slice(0, MAX_DOTS),
+    count: dots.length,
+  };
+}
+
+/** How many whole weeks the thread's dates span, today included.
+ *
+ *  What decides whether the rail draws weeks or a month. */
+export function weeksSpanned(
+  dated: readonly Dated[],
+  today: string,
+  weekStart: WeekStart = "monday",
+): number {
+  const known = [...dotsByDay(dated).keys()].sort();
+  const first = startOfWeek(known[0] && known[0] < today ? known[0] : today, weekStart);
+  const lastKnown = known[known.length - 1];
+  const last = startOfWeek(lastKnown && lastKnown > today ? lastKnown : today, weekStart);
+  return Math.round((dayAt(last).getTime() - dayAt(first).getTime()) / (7 * DAY_MS)) + 1;
+}
+
+/** The rail, as weeks.
  *
  *  Whole weeks from the earliest dated thing to the latest, always containing
  *  today, so a thread with nothing dated draws this week and a thread with one
  *  thing draws the weeks between here and it.
  *
- *  **Runs of empty weeks collapse.** A note dated a year out would otherwise
- *  draw fifty empty rows between here and there, which is the passage of time
- *  rendered as scrolling.
+ *  Used while the span is short. Past `WEEKS_BEFORE_MONTHS` the caller draws
+ *  `monthFor` instead, because a year of weeks is a scroll rather than a shape.
  */
 export function railFor(
   dated: readonly Dated[],
@@ -231,16 +289,7 @@ export function railFor(
   weekStart: WeekStart = "monday",
   locale?: string,
 ): RailRow[] {
-  const days = new Map<string, Dot[]>();
-  for (const one of dated) {
-    // Every day it covers, inclusive. A span is why this is a loop.
-    for (let day = one.from; day <= one.to; day = addDays(day, 1)) {
-      const held = days.get(day);
-      if (held) held.push({ kind: one.kind, done: one.done });
-      else days.set(day, [{ kind: one.kind, done: one.done }]);
-    }
-  }
-
+  const days = dotsByDay(dated);
   const known = [...days.keys()].sort();
   const first = startOfWeek(known[0] && known[0] < today ? known[0] : today, weekStart);
   const lastKnown = known[known.length - 1];
@@ -248,94 +297,81 @@ export function railFor(
   const last = addDays(startOfWeek(lastDay, weekStart), 6);
 
   const short = new Intl.DateTimeFormat(locale, { weekday: "short" });
-
-  const weeks: { key: string; days: Day[]; empty: boolean }[] = [];
-  for (let start = first; start <= last; start = addDays(start, 7)) {
-    const week: Day[] = [];
-    let empty = true;
-    for (let i = 0; i < 7; i += 1) {
-      const iso = addDays(start, i);
-      const dots = days.get(iso) ?? [];
-      if (dots.length > 0) empty = false;
-      const at = dayAt(iso);
-      week.push({
-        iso,
-        dom: at.getDate(),
-        dow: short.format(at),
-        today: iso === today,
-        past: iso < today,
-        dots: dots.slice(0, MAX_DOTS),
-        count: dots.length,
-      });
-    }
-    // A week holding today is never empty for this purpose: collapsing the one
-    // you are standing in is how somebody loses their place.
-    weeks.push({ key: start, days: week, empty: empty && !week.some((day) => day.today) });
-  }
-
   const rows: RailRow[] = [];
-  let run: typeof weeks = [];
-
-  const flush = (): void => {
-    if (run.length === 0) return;
-    if (run.length >= GAP_WEEKS) {
-      rows.push({
-        row: "gap",
-        key: `gap-${run[0]!.key}`,
-        weeks: run.length,
-        from: run[0]!.key,
-        to: run[run.length - 1]!.days[6]!.iso,
-      });
-    } else {
-      for (const week of run) rows.push({ row: "week", key: week.key, days: week.days });
-    }
-    run = [];
-  };
-
-  for (const week of weeks) {
-    if (week.empty) run.push(week);
-    else {
-      flush();
-      rows.push({ row: "week", key: week.key, days: week.days });
-    }
+  for (let start = first; start <= last; start = addDays(start, 7)) {
+    rows.push({
+      key: start,
+      days: Array.from({ length: 7 }, (_, i) =>
+        dayAtIso(addDays(start, i), days, today, short),
+      ),
+    });
   }
-  flush();
-
   return rows;
 }
 
-/** The weeks a gap row stands for, when somebody opens it.
+/** One month, as a calendar.
  *
- *  **They take `today` like every other day does.** This wrote `past: true` on
- *  all of them, which is right for the gap behind you and wrong for the one in
- *  front: a note dated two years out is the headline case for collapsing a run,
- *  and opening it drew two years of future weeks as gone. Empty, always: a gap
- *  row only ever stands for weeks with nothing in them. */
-export function weeksIn(
-  gap: { from: string; to: string },
+ *  Whole weeks, so the first and last rows carry days from the months either
+ *  side. Those are drawn rather than blanked: a month that starts on a Thursday
+ *  with three empty cells in front of it reads as a hole, and the days there
+ *  are real days somebody may want.
+ */
+export interface Month {
+  /** The first of the month, `YYYY-MM-DD`. What prev and next step by. */
+  key: string;
+  /** "September 2026", in the reader's language. */
+  label: string;
+  weeks: RailRow[];
+  /** Whether a day belongs to this month rather than to the weeks either side. */
+  inMonth: (iso: string) => boolean;
+}
+
+export function monthFor(
+  anchor: string,
+  dated: readonly Dated[],
   today: string,
+  weekStart: WeekStart = "monday",
   locale?: string,
-): RailRow[] {
+): Month {
+  const at = dayAt(anchor);
+  const first = `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, "0")}-01`;
+  const nextMonth = new Date(at.getFullYear(), at.getMonth() + 1, 1, 12);
+  const last = localDay(new Date(nextMonth.getTime() - DAY_MS));
+
+  const days = dotsByDay(dated);
   const short = new Intl.DateTimeFormat(locale, { weekday: "short" });
-  const rows: RailRow[] = [];
-  for (let start = gap.from; start <= gap.to; start = addDays(start, 7)) {
-    const days: Day[] = [];
-    for (let i = 0; i < 7; i += 1) {
-      const iso = addDays(start, i);
-      const at = dayAt(iso);
-      days.push({
-        iso,
-        dom: at.getDate(),
-        dow: short.format(at),
-        today: iso === today,
-        past: iso < today,
-        dots: [],
-        count: 0,
-      });
-    }
-    rows.push({ row: "week", key: start, days });
+  const weeks: RailRow[] = [];
+  for (
+    let start = startOfWeek(first, weekStart);
+    start <= startOfWeek(last, weekStart);
+    start = addDays(start, 7)
+  ) {
+    weeks.push({
+      key: start,
+      days: Array.from({ length: 7 }, (_, i) =>
+        dayAtIso(addDays(start, i), days, today, short),
+      ),
+    });
   }
-  return rows;
+
+  const month = at.getMonth();
+  const year = at.getFullYear();
+  return {
+    key: first,
+    label: new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(at),
+    weeks,
+    inMonth: (iso) => {
+      const day = dayAt(iso);
+      return day.getMonth() === month && day.getFullYear() === year;
+    },
+  };
+}
+
+/** The month before or after this one, as an anchor `monthFor` takes. */
+export function stepMonth(anchor: string, by: -1 | 1): string {
+  const at = dayAt(anchor);
+  const moved = new Date(at.getFullYear(), at.getMonth() + by, 1, 12);
+  return localDay(moved);
 }
 
 /** What a day card is called, for somebody who cannot see the dots.

@@ -1730,6 +1730,25 @@ a.settingsRow:hover {
   background: var(--surface-fill);
 }
 
+/* **A day with anything on it carries a quiet inward edge.**
+   Five pixels of colour across seven cells is easy to miss, so the cell itself
+   says there is something here and the dots say what kind and how many. An
+   inset ring rather than a border: a border would move the cell by a pixel and
+   the row would shuffle as things are added and ticked off. */
+.railDay[data-has] {
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+}
+
+/* The days either side of the month on screen. Present, because a month
+   starting on a Thursday with three empty cells in front of it reads as a hole,
+   and quiet, because they belong to another month. */
+.railDay[data-outside] .railDom,
+.railDay[data-outside] .railDow {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
 /* Today is outlined; the day you are reading is filled. Two different
    questions, so two different treatments rather than one that has to mean
    both. */
@@ -1791,21 +1810,50 @@ a.settingsRow:hover {
   font-variant-numeric: tabular-nums;
 }
 
-/* A run of empty weeks, stood in for. Tapping it draws them. */
-.railGap {
-  width: 100%;
+/* The month's own bar: where you are, a step either way, and the way back.
+   A thread whose dates span a year is a calendar, and a calendar has these. */
+.railMonth {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-1) var(--space-3);
+}
+
+.railMonthName {
+  font-weight: var(--weight-medium);
+  font-size: calc(14px * var(--type-scale));
+  color: var(--text-primary);
+}
+
+.railStep {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
   min-height: 44px;
+  margin: calc(var(--space-4) * -1) 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.railStep:hover {
+  color: var(--text-primary);
+}
+
+/* Last, and pushed to the end: it is the way back rather than a fourth step. */
+.railToday {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 var(--space-3);
   border: 0;
   background: transparent;
   font-family: var(--font-core);
+  font-weight: var(--weight-medium);
   font-size: calc(12.5px * var(--type-scale));
-  color: var(--text-tertiary);
+  color: var(--text-accent);
   cursor: pointer;
-  text-align: center;
-}
-
-.railGap:hover {
-  color: var(--text-secondary);
 }
 
 .railDayHead {

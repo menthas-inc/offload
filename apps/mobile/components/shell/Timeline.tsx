@@ -13,12 +13,15 @@
 import { useMemo, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import {
+  WEEKS_BEFORE_MONTHS,
   dayLabel,
   datedFor,
   localDay,
+  monthFor,
   railFor,
+  stepMonth,
   thingsOn,
-  weeksIn,
+  weeksSpanned,
   type Dated,
   type Day,
   type RailRow,
@@ -30,34 +33,6 @@ import { ContentRowView } from "./ContentRow";
 import type { ContentRow, Note } from "../../lib/threads";
 
 const isAndroid = Platform.OS === "android";
-
-/** Rehomes an all-day timestamp at local noon on the same UTC calendar day.
- *
- *  The API stores an all-day date as UTC midnight for the day it means. Read
- *  with local getters anywhere west of Greenwich, that instant falls the
- *  evening before, so `datedFor`'s `localDay` recovers the wrong day. Noon
- *  keeps the same calendar day no matter the reader's offset. */
-function localizeAllDay(iso: string): string {
-  const at = new Date(iso);
-  return new Date(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate(), 12).toISOString();
-}
-
-function forRail<
-  T extends {
-    allDay: boolean;
-    occursAt: string | null;
-    occursEndAt: string | null;
-    dueAt: string | null;
-  },
->(item: T): T {
-  if (!item.allDay) return item;
-  return {
-    ...item,
-    occursAt: item.occursAt ? localizeAllDay(item.occursAt) : item.occursAt,
-    occursEndAt: item.occursEndAt ? localizeAllDay(item.occursEndAt) : item.occursEndAt,
-    dueAt: item.dueAt ? localizeAllDay(item.dueAt) : item.dueAt,
-  };
-}
 
 interface Props {
   rows: ContentRow[];
@@ -79,7 +54,9 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
   // already open because its key is a date with no thread in it. The caller
   // passes `key`, and expo-router pushes a screen per thread besides.
   const [selected, setSelected] = useState(today);
-  const [opened, setOpened] = useState<string[]>([]);
+  // The month on screen, in month mode. Null means the one today is in, so it
+  // follows today over midnight rather than pinning the month this mounted in.
+  const [month, setMonth] = useState<string | null>(null);
 
   /** The colour of a dot is what the thing is: blue already means waiting on
    *  you, ink is a fact of the day rather than a demand on it, and amber is
@@ -91,17 +68,22 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
     other: COLOR.quiet,
   };
 
-  // **All-day dates come back as UTC midnight for the calendar day, and the
-  // shared rail reads them with local getters.** West of Greenwich that rolls
-  // the day back by one: a due date of the 14th drew its dot on the 13th, and
-  // a dateless dentist appointment on the 3rd of March drew on the 2nd at a
-  // fabricated 7pm. `forRail` rehomes the timestamp at local noon on the same
-  // UTC calendar day, which survives that reading intact.
-  const dated = useMemo(
-    () => datedFor(rows.map(forRail), notes.map(forRail)),
-    [rows, notes],
+  const dated = useMemo(() => datedFor(rows, notes), [rows, notes]);
+
+  // **A rail past a few weeks stops being a rail.** Weeks read as time passing,
+  // which is what the empty days are for; a year of weeks is a scroll. Past the
+  // threshold it draws the shape everybody already knows instead.
+  const weeks = useMemo(() => weeksSpanned(dated, today, weekStart), [dated, today, weekStart]);
+  const asMonth = weeks > WEEKS_BEFORE_MONTHS;
+
+  const rail = useMemo(
+    () => (asMonth ? null : railFor(dated, today, weekStart)),
+    [asMonth, dated, today, weekStart],
   );
-  const rail = useMemo(() => railFor(dated, today, weekStart), [dated, today, weekStart]);
+  const grid = useMemo(
+    () => (asMonth ? monthFor(month ?? today, dated, today, weekStart) : null),
+    [asMonth, month, dated, today, weekStart],
+  );
 
   // **Over the entries, not the rows.** A task with an occurrence on one day
   // and a due date on another is on both, and they are two different facts:
@@ -117,7 +99,7 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
     .map((one) => ({ one, note: notesById.get(one.rowId) }))
     .filter((pair): pair is { one: Dated; note: Note } => pair.note !== undefined);
 
-  const cell = (day: Day) => (
+  const cell = (day: Day, outside = false) => (
     <Pressable
       key={day.iso}
       onPress={() => setSelected(day.iso)}
@@ -128,20 +110,35 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
       className={`min-h-tap-min flex-1 items-center rounded-xs py-space-3 ${
         day.iso === selected ? (isAndroid ? "bg-a-c" : "bg-surface-fill") : ""
       }`}
-      style={
-        day.today
-          ? { borderWidth: 1, borderColor: COLOR.borderFocus }
-          : { borderWidth: 1, borderColor: "transparent" }
-      }
+      // **A day with anything on it carries a quiet inward edge.** Five pixels
+      // of colour across seven cells is easy to miss, so the cell itself says
+      // there is something here and the dots say what kind and how many. The
+      // selected day and today keep their own treatments on top.
+      style={{
+        borderWidth: 1,
+        borderColor: day.today
+          ? COLOR.borderFocus
+          : day.count > 0
+            ? COLOR.hairline
+            : "transparent",
+        ...(day.count > 0 && day.iso !== selected ? { backgroundColor: COLOR.sunken } : {}),
+      }}
     >
-      <Text className="font-core text-text-tertiary" style={{ fontSize: 11 }}>
+      <Text
+        className="font-core text-text-tertiary"
+        style={{ fontSize: 11, opacity: outside ? 0.6 : 1 }}
+      >
         {day.dow}
       </Text>
       <Text
         className={`font-core font-semibold ${
-          day.past ? "text-text-tertiary" : isAndroid ? "text-a-on" : "text-text-primary"
+          day.past || outside
+            ? "text-text-tertiary"
+            : isAndroid
+              ? "text-a-on"
+              : "text-text-primary"
         }`}
-        style={{ fontSize: 13 }}
+        style={{ fontSize: 13, opacity: outside ? 0.6 : 1 }}
       >
         {day.dom}
       </Text>
@@ -170,39 +167,61 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
     </Pressable>
   );
 
-  const week = (days: Day[], key: string) => (
-    <View key={key} className="flex-row gap-space-1 px-gutter-screen">
-      {days.map(cell)}
+  const week = (row: RailRow, outside?: (iso: string) => boolean) => (
+    <View key={row.key} className="flex-row gap-space-1 px-gutter-screen">
+      {row.days.map((day) => cell(day, outside ? !outside(day.iso) : false))}
     </View>
   );
-
-  const drawRow = (row: RailRow) => {
-    if (row.row === "week") return week(row.days, row.key);
-    if (opened.includes(row.key)) {
-      return (
-        <View key={row.key}>
-          {weeksIn(row, today).map((one) => (one.row === "week" ? week(one.days, one.key) : null))}
-        </View>
-      );
-    }
-    return (
-      <Pressable
-        key={row.key}
-        onPress={() => setOpened([...opened, row.key])}
-        className="min-h-tap-min items-center justify-center"
-      >
-        <Text className="font-core text-text-tertiary" style={{ fontSize: 12.5 }}>
-          {row.weeks} weeks with nothing
-        </Text>
-      </Pressable>
-    );
-  };
 
   const when = new Date(`${selected}T12:00:00`);
 
   return (
     <View className="pt-space-5">
-      {rail.map(drawRow)}
+      {/* A month at a time, once the span is past a few weeks. The controls are
+          the ones a calendar always has, and Today is the way back from
+          wherever stepping through months left somebody. */}
+      {grid ? (
+        <View className="flex-row items-center gap-space-2 px-gutter-screen pb-space-3">
+          <Pressable
+            onPress={() => setMonth(stepMonth(grid.key, -1))}
+            hitSlop={10}
+            accessibilityLabel="Previous month"
+            className="min-h-tap-min justify-center"
+          >
+            <Glyph name="chevron-left" size={18} color={COLOR.iconOnWell} />
+          </Pressable>
+          <Text
+            className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+            style={{ fontSize: 14 }}
+          >
+            {grid.label}
+          </Text>
+          <Pressable
+            onPress={() => setMonth(stepMonth(grid.key, 1))}
+            hitSlop={10}
+            accessibilityLabel="Next month"
+            className="min-h-tap-min justify-center"
+          >
+            <Glyph name="chevron-right" size={18} color={COLOR.iconOnWell} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setMonth(null);
+              setSelected(today);
+            }}
+            hitSlop={10}
+            className="ml-auto min-h-tap-min justify-center"
+          >
+            <Text className="font-core font-medium text-text-accent" style={{ fontSize: 12.5 }}>
+              Today
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {(grid ? grid.weeks : (rail ?? [])).map((row) =>
+        week(row, grid ? grid.inMonth : undefined),
+      )}
 
       <View className="flex-row items-center gap-space-3 px-gutter-screen pb-space-3 pt-space-6">
         <Text

@@ -15,9 +15,11 @@ import {
   datedFor,
   dayLabel,
   localDay,
+  monthFor,
   railFor,
+  stepMonth,
   thingsOn,
-  weeksIn,
+  weeksSpanned,
   type Dated,
   type RailRow,
 } from "../src/lib/widgets";
@@ -25,8 +27,8 @@ import {
 /** A Wednesday, so a week-start bug cannot hide behind a Monday. */
 const TODAY = "2026-09-16";
 
-function weeks(rows: RailRow[]): Extract<RailRow, { row: "week" }>[] {
-  return rows.filter((row): row is Extract<RailRow, { row: "week" }> => row.row === "week");
+function weeks(rows: RailRow[]): RailRow[] {
+  return rows;
 }
 
 function point(id: string, iso: string, kind: Dated["kind"] = "event"): Dated {
@@ -77,27 +79,36 @@ describe("the span", () => {
   });
 });
 
-describe("the weeks with nothing in them (AC-5)", () => {
-  it("collapses a run of three or more", () => {
-    // Today's week, then four empty weeks, then one with something on it.
-    const rail = railFor([point("a", "2026-10-21")], TODAY, "monday");
-    const gaps = rail.filter((row) => row.row === "gap");
-    expect(gaps).toHaveLength(1);
-    expect(gaps[0]).toMatchObject({ row: "gap", weeks: 4 });
+describe("past a few weeks it is a month, not a rail", () => {
+  it("counts the weeks a thread spans", () => {
+    expect(weeksSpanned([], TODAY, "monday")).toBe(1);
+    expect(weeksSpanned([point("a", "2026-09-30")], TODAY, "monday")).toBe(3);
+    expect(weeksSpanned([point("a", "2027-09-30")], TODAY, "monday")).toBeGreaterThan(50);
   });
 
-  it("draws a run of two", () => {
-    const rail = railFor([point("a", "2026-10-07")], TODAY, "monday");
-    expect(rail.filter((row) => row.row === "gap")).toHaveLength(0);
-    expect(weeks(rail)).toHaveLength(4);
+  it("draws a month as whole weeks, with the days either side of it", () => {
+    // A month starting on a Thursday with three empty cells in front of it
+    // reads as a hole, and the days there are real days somebody may want.
+    const month = monthFor("2026-09-16", [point("a", "2026-09-30")], TODAY, "monday");
+    expect(month.key).toBe("2026-09-01");
+    expect(month.label).toContain("2026");
+    for (const week of month.weeks) expect(week.days).toHaveLength(7);
+    expect(month.inMonth("2026-09-01")).toBe(true);
+    expect(month.inMonth("2026-08-31")).toBe(false);
   });
 
-  it("never collapses the week somebody is standing in", () => {
-    // Today's week is empty here, and collapsing it is how somebody loses
-    // their place.
-    const rail = railFor([point("a", "2026-10-21")], TODAY, "monday");
-    const first = rail[0];
-    expect(first?.row).toBe("week");
+  it("carries the dots into the month, and marks today", () => {
+    const month = monthFor(TODAY, [point("a", "2026-09-30")], TODAY, "monday");
+    const days = month.weeks.flatMap((week) => week.days);
+    expect(days.find((day) => day.iso === "2026-09-30")?.count).toBe(1);
+    expect(days.find((day) => day.iso === TODAY)?.today).toBe(true);
+  });
+
+  it("steps a month either way, including across a year", () => {
+    expect(stepMonth("2026-09-01", 1)).toBe("2026-10-01");
+    expect(stepMonth("2026-09-01", -1)).toBe("2026-08-01");
+    expect(stepMonth("2026-12-01", 1)).toBe("2027-01-01");
+    expect(stepMonth("2026-01-01", -1)).toBe("2025-12-01");
   });
 });
 
@@ -221,28 +232,6 @@ describe("one shape from two stores (AC-6)", () => {
 });
 
 describe("what the review found", () => {
-  it("does not draw a future gap as gone", () => {
-    // The headline case for collapsing a run is a note dated two years out,
-    // and opening it drew every week between here and there as past. `weeksIn`
-    // wrote `past: true` on all of them without looking at today.
-    const rail = railFor([point("a", "2026-10-21")], TODAY, "monday");
-    const gap = rail.find((row) => row.row === "gap");
-    const opened = weeksIn(gap as Extract<RailRow, { row: "gap" }>, TODAY);
-    const days = weeks(opened).flatMap((week) => week.days);
-
-    expect(days.every((day) => day.past === false)).toBe(true);
-    expect(days.every((day) => day.count === 0)).toBe(true);
-  });
-
-  it("marks a past gap as past, and today as today", () => {
-    const rail = railFor([point("a", "2026-08-10"), point("b", TODAY)], TODAY, "monday");
-    const gap = rail.find((row) => row.row === "gap");
-    const days = weeks(weeksIn(gap as Extract<RailRow, { row: "gap" }>, TODAY)).flatMap(
-      (week) => week.days,
-    );
-    expect(days.every((day) => day.past)).toBe(true);
-  });
-
   it("says which fact put a thing on a day", () => {
     // A task with an occurrence on one day and a due date on another is on
     // both, and they are two different facts. Drawing the day from the row's

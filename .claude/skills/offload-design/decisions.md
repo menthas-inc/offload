@@ -11,6 +11,17 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-11 · A day with something on it is a cell, and a long span is a month
+**Surface:** web, iOS, Android
+**Was:** A dot under the day number, and a run of three or more empty weeks collapsed to a line saying how many.
+**Is:** The cell itself carries a quiet inward edge and a ground, and a span past six weeks draws a month.
+
+**Five pixels of colour across seven cells is easy to miss**, which is what the rail came back as from the first real thread. The dots stay and still say what kind and how many; the cell now says there is something here at all. An inset ring rather than a border, because a border moves the cell by a pixel and the whole row shuffles as things are added and ticked off. Today stays outlined and the day being read stays filled, so three states sit on one cell without collision.
+
+**Past six weeks it is a month.** Weeks read as time passing, which is the whole reason the empty days are drawn, and a year of weeks is a scroll rather than a shape. A long span now draws one month, whole weeks including the days either side of it drawn quietly rather than blanked, with a step either way and a **Today** that returns to the current month and selects today. The collapsed run of empty weeks is deleted: it made a year of nothing short without making it navigable.
+
+**Design system impact:** three new things with no governed component and no mock anywhere: the has-something cell treatment, the month bar (step, step, month name, Today), and the outside-this-month day. `--surface-sunken` and `--border-hairline` do the tint, so no new token. The month bar is the first time this product has drawn calendar navigation; the kits' `TimelineWidget` had an Overall/Daily toggle instead and is now two shapes behind.
+
 ### 2026-09-10 · The timeline stopped being a widget and became a rail
 **Surface:** web, iOS, Android
 **Was:** A Timeline widget: a flat list of dated rows in priority order, drawn only when a thread had something dated, collapsing a repeating series into one line that said "every week, 30 held".

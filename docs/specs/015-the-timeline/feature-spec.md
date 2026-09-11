@@ -28,11 +28,13 @@ Three things are wrong with that and they are the feature:
 
 **The past is quiet, not closed.** A day that has gone reads as gone, and tapping it works exactly like tapping any other day.
 
-### The span, and the weeks with nothing in them
+### The span, and what happens when it gets long
 
 The rail covers whole weeks, from the week of the earliest dated thing to the week of the latest, and always includes this week. A thread with nothing dated shows this week alone.
 
-**A run of three or more empty weeks collapses to one line that says how many.** A note dated a year out would otherwise draw fifty empty week rows between here and there, which is the passage of time rendered as scrolling. Tapping the line opens the weeks it stands for. *Runs of one or two stay drawn, because two empty weeks is information and fifty is furniture.*
+**Past six weeks it stops being a rail and becomes a month.** Weeks read as time passing, which is the whole reason the empty days are drawn; a year of weeks is a scroll rather than a shape. So a long span draws the shape everybody already knows: one month, whole weeks including the days either side of it, a step back and forward, and **Today**, which is the way back from wherever stepping through months left somebody.
+
+*This replaced a collapsed run of empty weeks, which made a year of nothing short without making it navigable. With months there is nothing to collapse.*
 
 ### The week starts on Monday, and that is a setting
 
@@ -65,7 +67,7 @@ Monday by default. Sunday for anyone who wants it, in Settings under Appearance,
 - **AC-2** The rail draws whole weeks, one row per week, starting on the day the week-start setting names.
 - **AC-3** Every day in the span has a card, whether or not anything is on it.
 - **AC-4** The span runs from the week of the earliest dated thing to the week of the latest, and always contains today.
-- **AC-5** A run of three or more consecutive empty weeks draws as one line saying how many, and opens on tap. Runs of one or two draw as weeks.
+- **AC-5** A span of more than six weeks draws as a month rather than as weeks: one month at a time, whole weeks including the days either side, with a step either way and a Today that returns to the current month and selects today.
 
 **What is on it**
 
@@ -73,6 +75,7 @@ Monday by default. Sunday for anyone who wants it, in Settings under Appearance,
 - **AC-7** A thing that spans days has a dot on every day from its start to its end, inclusive.
 - **AC-8** Every occurrence of a repeating thing has its own dot on its own day. Nothing is collapsed and nothing is hidden.
 - **AC-9** A day with several things has several dots, coloured by what each thing is.
+- **AC-9a** A day with anything on it is marked by the cell and not only by the dots: a quiet inward edge and a ground under it, so a week reads at a glance. The mark is an inset rather than a border, or the row shuffles by a pixel as things are added and ticked off.
 - **AC-10** A day's accessible name says what it holds in words, so nothing depends on telling two colours apart.
 
 **The day**

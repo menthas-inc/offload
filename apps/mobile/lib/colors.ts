@@ -61,6 +61,10 @@ export interface Colors {
    *  `text-tertiary` on web, which is one legend drawn two ways. */
   quiet: string;
   borderFocus: string;
+  /** The quiet inward edge on a day that has something on it, and the ground
+   *  under it. A dot alone is easy to miss across seven cells. */
+  hairline: string;
+  sunken: string;
 }
 
 function paletteFor(dark: boolean): Colors {
@@ -99,6 +103,8 @@ function paletteFor(dark: boolean): Colors {
     noticed: base["surface-noticed"] ?? light["surface-noticed"]!,
     quiet: base["text-tertiary"] ?? light["text-tertiary"]!,
     borderFocus: base["border-focus"] ?? light["border-focus"]!,
+    hairline: base["border-hairline"] ?? light["border-hairline"]!,
+    sunken: base["surface-sunken"] ?? light["surface-sunken"]!,
   };
 }
 
