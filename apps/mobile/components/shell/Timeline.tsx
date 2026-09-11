@@ -110,10 +110,13 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
       className="min-h-tap-min flex-1 items-center rounded-xs py-space-3"
       // **A day with anything on it glows inward, in blue**, and the day being
       // read is white on blue. Grey said "there is something here" so quietly
-      // that it read as nothing, so the hue does the work. React Native has no
-      // inset shadow, so the ring is a border and the ground is the fill: the
-      // cell keeps its 1px border in every state, including transparent, so
-      // nothing shuffles as things are added and ticked off.
+      // that it read as nothing, and a flat fill said it so evenly that it
+      // read as one block of colour rather than a light. The ring is still a
+      // border, sized in every state so nothing shuffles as things are added
+      // and ticked off, but the fill is now a blurred inset `boxShadow`
+      // instead: RN 0.86 draws it natively, the same shape the web draws with
+      // `box-shadow`, so the colour comes in from the edge and thins toward
+      // the middle rather than filling the cell.
       style={{
         borderWidth: 1,
         borderColor:
@@ -122,12 +125,11 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
             : day.count > 0 || day.today
               ? COLOR.borderFocus
               : "transparent",
-        backgroundColor:
-          day.iso === selected
-            ? COLOR.attention
-            : day.count > 0
-              ? COLOR.attentionSoft
-              : "transparent",
+        backgroundColor: day.iso === selected ? COLOR.attention : "transparent",
+        boxShadow:
+          day.iso !== selected && day.count > 0
+            ? [{ offsetX: 0, offsetY: 0, blurRadius: 12, color: COLOR.borderAttention, inset: true }]
+            : undefined,
       }}
     >
       <Text

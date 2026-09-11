@@ -96,6 +96,9 @@ function WidgetBlock({
   const [only, setOnly] = useState<string | null>(null);
   const [allDone, setAllDone] = useState(false);
   const [adding, setAdding] = useState(false);
+  // Only To do earns this: `doneAt` is only ever set on a task, so a map or a
+  // files section has nothing to hide and never draws the control.
+  const [hideDone, setHideDone] = useState(false);
   const filters = filtersFor(widget.rows, dimension);
   const { left, done } = splitDone(matching(widget.rows, dimension, only));
 
@@ -104,19 +107,44 @@ function WidgetBlock({
       <h2 className={styles.section}>
         {HEADINGS[widget.kind]}
         <em className={styles.sectionCount}>{widget.rows.length}</em>
-        {/* Straight into the section, without going through the composer.
-            The same model reads it, grounded in this thread, and it leaves no
-            trace in the conversation: adding a task to a list is not talking
-            to offload. */}
-        <button
-          type="button"
-          className={styles.sectionAdd}
-          aria-label={`Add to ${HEADINGS[widget.kind]}`}
-          title="Add"
-          onClick={() => setAdding(true)}
-        >
-          <Icon name="plus" size={15} />
-        </button>
+        <div className={styles.sectionControls}>
+          {widget.kind === "todo" && done.length > 0 ? (
+            <>
+              {/* Only said out loud once the rows themselves are gone: while
+                  they are showing, the finished rows are the count. */}
+              {hideDone ? (
+                <span className={styles.sectionDoneCount}>{done.length} done</span>
+              ) : null}
+              <button
+                type="button"
+                className={styles.sectionAdd}
+                aria-pressed={hideDone}
+                aria-label={
+                  hideDone
+                    ? `Show ${done.length} finished, currently hidden`
+                    : "Hide finished, currently shown"
+                }
+                title={hideDone ? "Show finished" : "Hide finished"}
+                onClick={() => setHideDone((value) => !value)}
+              >
+                <Icon name={hideDone ? "chevron-right" : "chevron-down"} size={15} />
+              </button>
+            </>
+          ) : null}
+          {/* Straight into the section, without going through the composer.
+              The same model reads it, grounded in this thread, and it leaves no
+              trace in the conversation: adding a task to a list is not talking
+              to offload. */}
+          <button
+            type="button"
+            className={styles.sectionAdd}
+            aria-label={`Add to ${HEADINGS[widget.kind]}`}
+            title="Add"
+            onClick={() => setAdding(true)}
+          >
+            <Icon name="plus" size={15} />
+          </button>
+        </div>
       </h2>
 
       {adding ? (
@@ -157,15 +185,21 @@ function WidgetBlock({
       {/* A finished task keeps its place and sinks below everything
           outstanding. Past five, the list shows the most recent and offers the
           rest: a long-running thread stays about what is left without hiding
-          that the work happened. */}
-      {(allDone ? done : done.slice(0, DONE_SHOWN)).map((row) => (
-        <Row key={row.id} row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />
-      ))}
+          that the work happened. The heading toggle above hides this whole
+          block; "Show all" is the separate, narrower question of whether to
+          see all of them once they are already showing. */}
+      {!hideDone ? (
+        <>
+          {(allDone ? done : done.slice(0, DONE_SHOWN)).map((row) => (
+            <Row key={row.id} row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />
+          ))}
 
-      {done.length > DONE_SHOWN && !allDone ? (
-        <button type="button" className={styles.showMore} onClick={() => setAllDone(true)}>
-          Show all {done.length} finished
-        </button>
+          {done.length > DONE_SHOWN && !allDone ? (
+            <button type="button" className={styles.showMore} onClick={() => setAllDone(true)}>
+              Show all {done.length} finished
+            </button>
+          ) : null}
+        </>
       ) : null}
     </section>
   );

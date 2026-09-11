@@ -1079,6 +1079,25 @@
   color: var(--text-primary);
 }
 
+/* The heading's own controls, held together at the trailing edge. Wrapping
+   them means only one child needs `margin-left: auto` to push the whole
+   cluster right; a bare row of children each carrying that margin would split
+   the free space between them instead of bunching at the edge. */
+.sectionControls {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+/* "N done", said only once the finished rows themselves are hidden. */
+.sectionDoneCount {
+  font-weight: var(--weight-medium);
+  font-size: calc(13px * var(--type-scale));
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 /* One line under the heading. Not a modal and not the composer: the point of
    this control is that it costs nothing to use twice in a row. */
 .quickAdd {
@@ -1731,19 +1750,21 @@ a.settingsRow:hover {
 }
 
 /* **A day with anything on it glows inward, in blue.**
-   Grey said "there is something here" so quietly that it read as nothing, so
-   the hue does the work: a blue ground with a blue ring set inside it, which
-   reads as lit from within rather than outlined. Two inset rings rather than
-   one, the outer soft and the inner sharp, which is what gives it depth at
-   40px without a shadow that would bleed outside the cell.
+   Grey said "there is something here" so quietly that it read as nothing, and
+   a flat fill said it so evenly that it read as one block of colour rather
+   than a light. The composer's card has the same job at a bigger size: a
+   crisp ring plus a shadow set inside the surface, graded so the colour comes
+   in from the edge and thins toward the middle. This is that trick at 40px:
+   the sharp ring stays, and the fill is gone in favour of a blurred inset
+   shadow the same shape as the cell, which is what makes it read as a glow
+   rather than a wash.
 
    Inset rather than a border throughout: a border adds a pixel and the whole
    row shuffles as things are added and ticked off. */
 .railDay[data-has] {
-  background: var(--surface-attention-soft);
   box-shadow:
     inset 0 0 0 1px var(--border-focus),
-    inset 0 0 6px 0 var(--surface-attention-soft);
+    inset 0 0 12px 0 var(--border-attention);
 }
 
 /* The days either side of the month on screen. Present, because a month

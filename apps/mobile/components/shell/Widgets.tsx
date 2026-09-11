@@ -105,10 +105,13 @@ function WidgetBlock({
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  // Only To do earns this: `doneAt` is only ever set on a task, so a map or a
+  // files section has nothing to hide and never draws the control.
+  const [hideDone, setHideDone] = useState(false);
 
   const filters = filtersFor(widget.rows as readonly Sortable[], dimension);
   const { left, done } = splitDone(matching(widget.rows, dimension, only));
-  const shown = [...left, ...(allDone ? done : done.slice(0, DONE_SHOWN))];
+  const shown = [...left, ...(hideDone ? [] : allDone ? done : done.slice(0, DONE_SHOWN))];
 
   return (
     <View>
@@ -132,18 +135,55 @@ function WidgetBlock({
           </Text>
         </View>
 
-        {/* Straight into the section, without going through the composer. The
-            same model reads it, grounded in this thread, and it leaves no trace
-            in the conversation: adding a task to a list is not talking to
-            offload. */}
-        <Pressable
-          onPress={() => setAdding(true)}
-          hitSlop={10}
-          className="ml-auto"
-          accessibilityLabel={`Add to ${HEADINGS[widget.kind]}`}
-        >
-          <Glyph name="plus" size={18} color={COLOR.iconOnWell} />
-        </Pressable>
+        {/* One wrapper carrying the trailing margin, so the toggle and the +
+            bunch together at the edge instead of each pushing on its own. */}
+        <View className="ml-auto flex-row items-center gap-space-3">
+          {widget.kind === "todo" && done.length > 0 ? (
+            <>
+              {/* Only said out loud once the rows themselves are gone: while
+                  they are showing, the finished rows are the count. */}
+              {hideDone ? (
+                <Text
+                  className={`font-core font-medium ${
+                    isAndroid ? "text-a-on-var" : "text-text-secondary"
+                  }`}
+                  style={{ fontSize: 13 }}
+                >
+                  {done.length} done
+                </Text>
+              ) : null}
+              <Pressable
+                onPress={() => setHideDone((value) => !value)}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: !hideDone }}
+                accessibilityLabel={
+                  hideDone
+                    ? `Show ${done.length} finished, currently hidden`
+                    : "Hide finished, currently shown"
+                }
+              >
+                <Glyph
+                  name={hideDone ? "chevron-right" : "chevron-down"}
+                  size={18}
+                  color={COLOR.iconOnWell}
+                />
+              </Pressable>
+            </>
+          ) : null}
+
+          {/* Straight into the section, without going through the composer. The
+              same model reads it, grounded in this thread, and it leaves no trace
+              in the conversation: adding a task to a list is not talking to
+              offload. */}
+          <Pressable
+            onPress={() => setAdding(true)}
+            hitSlop={10}
+            accessibilityLabel={`Add to ${HEADINGS[widget.kind]}`}
+          >
+            <Glyph name="plus" size={18} color={COLOR.iconOnWell} />
+          </Pressable>
+        </View>
       </View>
 
       {adding ? (
@@ -228,8 +268,10 @@ function WidgetBlock({
       {/* A finished task keeps its place and sinks below everything
           outstanding. Past five, the list shows the most recent and offers the
           rest, so a long-running thread stays about what is left without hiding
-          that the work happened. */}
-      {done.length > DONE_SHOWN && !allDone ? (
+          that the work happened. The heading toggle above hides this whole
+          group; this is the separate, narrower question of whether to see all
+          of them once they are already showing. */}
+      {!hideDone && done.length > DONE_SHOWN && !allDone ? (
         <Pressable
           onPress={() => setAllDone(true)}
           className="min-h-tap-min justify-center px-gutter-screen"
