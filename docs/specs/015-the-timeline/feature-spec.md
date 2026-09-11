@@ -57,7 +57,7 @@ Monday by default. Sunday for anyone who wants it, in Settings under Appearance,
 
 **The Timeline widget goes.** Its rows are on the rail and in the day beneath it, and it stops being a widget: 007's rule that widgets are earned from content and never drawn empty is untouched, because the timeline is no longer one of them. It moves above the widgets and belongs to the thread page.
 
-*The series collapse goes with it. A list spends a whole row saying what the row above said, which is why the widget collapsed thirty yoga classes into one; a rail has a cell per day already, so every occurrence is drawn and nothing is hidden. `splitRepeating` and `cadenceLabel` lose their only caller and are deleted with it.*
+*The series collapse does not go with it, and deleting it was wrong for a day.* A list spends a whole row saying what the row above said, which is why thirty yoga classes were collapsed into one; a rail has a cell per day already, so it draws every occurrence and hides nothing. Taking the widget away took the collapse with it and left the thread's own list showing all thirty, which is how it came back from a real account. `splitRepeating` belongs to every list and to no calendar.
 
 ## Acceptance criteria
 

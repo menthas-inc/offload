@@ -23,7 +23,7 @@ import { Timeline } from "./Timeline";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import { useThreads } from "../shell/threads-context";
 import { Widgets } from "./Widgets";
-import { widgetsFor } from "../../lib/widgets";
+import { cadenceLabel, splitRepeating, widgetsFor } from "../../lib/widgets";
 import {
   completeContent,
   deleteContent,
@@ -235,7 +235,17 @@ export function Thread({ id, onChanged, onUndo }: Props) {
           widget.rows.map((row) => row.id)
         )
       );
-  const rest = rows.filter((row) => !inWidgets.has(row.id));
+  // **A repeating thing is one row here, not thirty.** A weekly class filed as
+  // thirty occurrences spends thirty rows saying what the row above said, and
+  // pushes everything that happened once off the bottom. The rail draws every
+  // occurrence, because a calendar has a cell per day already and repetition
+  // there is free; a list has no grid, so it collapses and says how often.
+  //
+  // *This was the timeline widget's job until 015 deleted the widget, and the
+  // main list kept all thirty. It is the list's job now, which is what the rule
+  // was always about.*
+  const { once, repeating } = splitRepeating(rows.filter((row) => !inWidgets.has(row.id)));
+  const rest = once;
 
   // "Everything else" once something has been lifted out, "Everything in here"
   // when nothing has: else what, otherwise.
@@ -419,7 +429,7 @@ export function Thread({ id, onChanged, onUndo }: Props) {
                 scrolls. */}
             {cursor ? null : (
               <em className={styles.sectionCount} data-tone="accent">
-                {rest.length}
+                {rest.length + repeating.length}
               </em>
             )}
           </h2>
@@ -436,8 +446,31 @@ export function Thread({ id, onChanged, onUndo }: Props) {
               ? "Nothing archived here."
               : "Nothing in this one yet. Dump something on Today and offload will file it."}
           </p>
-        ) : rest.length === 0 ? null : (
-          rest.map((row) => (
+        ) : rest.length === 0 && repeating.length === 0 ? null : (
+          [
+            // One row per series, standing for all of its occurrences, with
+            // how often and how many held where its own date would be. **The
+            // occurrences are counted, never hidden**, and the rail still draws
+            // every one of them.
+            ...repeating.map((series) => (
+              <ContentRowView
+                key={series.ref}
+                row={series.row}
+                handlers={handlers}
+                lead={
+                  <span className={styles.rowIcon}>
+                    <Icon name={rowIcon(series.row.type)} size={18} />
+                  </span>
+                }
+                meta={
+                  <span className={styles.rowMeta}>
+                    {cadenceLabel(series.everyDays) ?? `${series.count} dates`}
+                    {cadenceLabel(series.everyDays) ? ` · ${series.count} held` : ""}
+                  </span>
+                }
+              />
+            )),
+            ...rest.map((row) => (
             <ContentRowView
               key={row.id}
               row={row}
@@ -461,7 +494,8 @@ export function Thread({ id, onChanged, onUndo }: Props) {
                 </span>
               }
             />
-          ))
+            )),
+          ]
         )}
 
         {cursor ? (

@@ -37,7 +37,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { widgetsFor } from "@offload/widgets";
+import { cadenceLabel, splitRepeating, widgetsFor } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { ContentRowView } from "../shell/ContentRow";
@@ -181,7 +181,12 @@ export default function Thread() {
 
   const widgets = widgetsFor(rows, thread.preference.widgets);
   const inWidgets = new Set(widgets.flatMap((w) => w.rows.map((r) => r.id)));
-  const rest = rows.filter((row) => !inWidgets.has(row.id));
+  // **A repeating thing is one row here, not thirty.** A weekly class filed as
+  // thirty occurrences spends thirty rows saying what the row above said. The
+  // rail draws every occurrence, because a calendar has a cell per day already;
+  // a list has no grid, so it collapses and says how often.
+  const { once, repeating } = splitRepeating(rows.filter((row) => !inWidgets.has(row.id)));
+  const rest = once;
   // "Everything else" once a widget has lifted anything out, per 007's AC-2.
   // Not a fixed string: it is the anti-duplication contract.
   const restHeading =
@@ -355,7 +360,7 @@ export default function Thread() {
                   className="font-core text-text-secondary"
                   style={{ fontSize: 12 }}
                 >
-                  {rest.length}
+                  {rest.length + repeating.length}
                 </Text>
               </View>
             )}
@@ -370,6 +375,26 @@ export default function Thread() {
             Nothing in this one yet. Dump something and offload will file it.
           </Text>
         ) : null}
+
+        {/* One row per series, standing for all of its occurrences, with how
+            often and how many held where its own date would be. **The
+            occurrences are counted, never hidden**, and the rail above still
+            draws every one of them. */}
+        {repeating.map((series) => (
+          <ContentRowView
+            key={series.ref}
+            row={series.row}
+            border
+            arrived={false}
+            onDelete={() => void remove(series.row)}
+            onActions={() => setActing(series.row)}
+            note={
+              cadenceLabel(series.everyDays)
+                ? `${cadenceLabel(series.everyDays)} · ${series.count} held`
+                : `${series.count} dates`
+            }
+          />
+        ))}
 
         {rest.map((row, i) => (
           <ContentRowView

@@ -21,6 +21,8 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  cadenceLabel,
+  splitRepeating,
   dimensionsIn,
   groupBy,
   readPreference,
@@ -316,3 +318,42 @@ describe("a request with no body does not claim one", () => {
   });
 });
 
+describe("a repeating thing is one row in a list, not thirty", () => {
+  // Reported from a real account: "I see a lot of Yoga". The timeline widget
+  // collapsed a series and 015 deleted the widget, so the list somebody
+  // actually reads kept all thirty rows. The rail draws every occurrence,
+  // because a calendar has a cell per day already and repetition there is
+  // free; a list has no grid.
+  const NOW = new Date("2026-09-16T12:00:00Z");
+
+  function occurrence(day: number, ref = "yoga") {
+    return row({
+      id: `y${day}`,
+      type: "event",
+      occursAt: `2026-09-${String(day).padStart(2, "0")}T18:00:00Z`,
+      seriesRef: ref,
+    });
+  }
+
+  it("collapses a series and counts what it stands for", () => {
+    const rows = [occurrence(15), occurrence(22), occurrence(29), row({ id: "once" })];
+    const { once, repeating } = splitRepeating(rows, NOW);
+
+    expect(once.map((r) => r.id)).toEqual(["once"]);
+    expect(repeating).toHaveLength(1);
+    expect(repeating[0]?.count).toBe(3);
+    expect(cadenceLabel(repeating[0]?.everyDays ?? null)).toBe("every week");
+  });
+
+  it("stands for the series with the next occurrence that has not happened", () => {
+    const { repeating } = splitRepeating([occurrence(15), occurrence(22), occurrence(29)], NOW);
+    expect(repeating[0]?.row.id).toBe("y22");
+  });
+
+  it("leaves a series of one alone, whatever it calls itself", () => {
+    // Collapsing it would say "every week" about a single date.
+    const { once, repeating } = splitRepeating([occurrence(15)], NOW);
+    expect(once).toHaveLength(1);
+    expect(repeating).toHaveLength(0);
+  });
+});
