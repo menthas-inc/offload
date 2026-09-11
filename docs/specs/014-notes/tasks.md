@@ -5,10 +5,11 @@
 ## Claim surface, before any code
 
 - [x] **C1** Rewrite the privacy policy's account-deletion exception and its "what offload makes from your content" bullet for notes, and check the whole page for the word memory. The page already says notes about content, so this is a rewrite rather than a find and replace. (AC-4, AC-24, AC-24a)
-- [ ] **C2** *Not done, and it blocks the deploy rather than the build.* Send the section 17 email: the policy commits to telling account holders before a change that affects what happens to their content takes effect, and both the daily job and the migration are that. Alpha and invite only makes the list short, not the promise optional. (AC-24)
+- [x] **C2** ~~Send the section 17 email.~~ **Not sent, and not an oversight.** The policy promises account holders an email before a change that affects what happens to their content, and on 2026-09-10 the product owner is the only account holder, knew before it shipped because they decided it, and said so. The obligation is met by the fact rather than by the mail. *It comes back the first time somebody else has an account, which is the next invite: a script to send it was written and deleted rather than kept, because a one-off that nobody runs is a one-off that goes stale.* (AC-24)
+
 - [x] **C3** Marketing site: the word, wherever it appears. (AC-4)
 
-*C1 and C2 are done before F1 runs, per `CLAUDE.md`. The retention section and OFF-1 were already amended during planning.*
+*C1 runs before F1, per `CLAUDE.md`. The retention section and OFF-1 were already amended during planning.*
 
 ## Foundation
 

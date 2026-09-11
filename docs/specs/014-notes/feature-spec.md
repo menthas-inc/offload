@@ -196,7 +196,7 @@ Authorship, delete, mute, sharing and Undo are 008's and stay exactly as they ar
   - the word memory, in the "what offload makes from your content" bullet and in the encryption section;
   - the account-deletion exception, which must visibly cover notes;
   - **section 10's retention promise**, rewritten during planning to separate what somebody put in, which is kept, from what offload worked out, which it revises daily. The criterion is that it still describes what the code does on the day this ships;
-  - **section 17's promise to email account holders before a change that affects what happens to their content takes effect**, which both folding and the migration trigger.
+  - **section 17's promise to email account holders before a change that affects what happens to their content takes effect**, which both folding and the migration trigger. *Met on 2026-09-10 by there being one account holder, who decided the change. It binds again the moment there are two.*
 - **AC-24a** The page is rewritten rather than find-and-replaced. It already uses the word notes for content, so swapping memory to note leaves two different things called notes on one page.
 
 ## Depends on
