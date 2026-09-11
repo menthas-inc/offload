@@ -251,18 +251,26 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
         week(row, grid ? grid.inMonth : undefined),
       )}
 
-      <View className="flex-row items-center gap-space-3 px-gutter-screen pb-space-3 pt-space-6">
+      {/* **The date gives way, the pill does not.** At the larger system text
+          size "Thursday, September 10" plus the pill runs off the edge and the
+          pill is what clips, which is the half that says where you are. So the
+          date shrinks and wraps and the pill keeps its size. Found on a device
+          at 2x, which is the one thing no mock and no simulator had shown. */}
+      <View className="flex-row items-start gap-space-3 px-gutter-screen pb-space-3 pt-space-6">
         <Text
-          className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+          className={`flex-1 font-core font-semibold ${
+            isAndroid ? "text-a-on" : "text-text-primary"
+          }`}
           style={{ fontSize: 21 }}
         >
           {when.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
         </Text>
         {selected === today ? (
           <View
-            className={`rounded-pill px-space-3 py-space-1 ${
+            className={`shrink-0 rounded-pill px-space-3 py-space-1 ${
               isAndroid ? "bg-a-c" : "bg-surface-fill"
             }`}
+            style={{ marginTop: 4 }}
           >
             <Text
               className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
