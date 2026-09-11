@@ -107,38 +107,54 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
       accessibilityLabel={dayLabel(day)}
       accessibilityRole="button"
       accessibilityState={{ selected: day.iso === selected }}
-      className={`min-h-tap-min flex-1 items-center rounded-xs py-space-3 ${
-        day.iso === selected ? (isAndroid ? "bg-a-c" : "bg-surface-fill") : ""
-      }`}
-      // **A day with anything on it carries a quiet inward edge.** Five pixels
-      // of colour across seven cells is easy to miss, so the cell itself says
-      // there is something here and the dots say what kind and how many. The
-      // selected day and today keep their own treatments on top.
+      className="min-h-tap-min flex-1 items-center rounded-xs py-space-3"
+      // **A day with anything on it glows inward, in blue**, and the day being
+      // read is white on blue. Grey said "there is something here" so quietly
+      // that it read as nothing, so the hue does the work. React Native has no
+      // inset shadow, so the ring is a border and the ground is the fill: the
+      // cell keeps its 1px border in every state, including transparent, so
+      // nothing shuffles as things are added and ticked off.
       style={{
         borderWidth: 1,
-        borderColor: day.today
-          ? COLOR.borderFocus
-          : day.count > 0
-            ? COLOR.hairline
-            : "transparent",
-        ...(day.count > 0 && day.iso !== selected ? { backgroundColor: COLOR.sunken } : {}),
+        borderColor:
+          day.iso === selected
+            ? COLOR.attention
+            : day.count > 0 || day.today
+              ? COLOR.borderFocus
+              : "transparent",
+        backgroundColor:
+          day.iso === selected
+            ? COLOR.attention
+            : day.count > 0
+              ? COLOR.attentionSoft
+              : "transparent",
       }}
     >
       <Text
-        className="font-core text-text-tertiary"
-        style={{ fontSize: 11, opacity: outside ? 0.6 : 1 }}
+        className={day.iso === selected ? "font-core" : "font-core text-text-tertiary"}
+        style={{
+          fontSize: 11,
+          opacity: outside ? 0.6 : 1,
+          ...(day.iso === selected ? { color: COLOR.onAttention } : {}),
+        }}
       >
         {day.dow}
       </Text>
       <Text
         className={`font-core font-semibold ${
-          day.past || outside
-            ? "text-text-tertiary"
-            : isAndroid
-              ? "text-a-on"
-              : "text-text-primary"
+          day.iso === selected
+            ? ""
+            : day.past || outside
+              ? "text-text-tertiary"
+              : isAndroid
+                ? "text-a-on"
+                : "text-text-primary"
         }`}
-        style={{ fontSize: 13, opacity: outside ? 0.6 : 1 }}
+        style={{
+          fontSize: 13,
+          opacity: outside ? 0.6 : 1,
+          ...(day.iso === selected ? { color: COLOR.onAttention } : {}),
+        }}
       >
         {day.dom}
       </Text>
@@ -152,9 +168,16 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
               borderRadius: 3,
               // Done keeps its colour and loses its fill, so the legend stays
               // about what a thing is.
-              backgroundColor: dot.done ? "transparent" : DOT[dot.kind] ?? DOT["other"],
+              // White on the day being read: a blue task dot on a blue cell is
+              // not a dot, and that day's contents are listed directly below.
+              backgroundColor: dot.done
+                ? "transparent"
+                : day.iso === selected
+                  ? COLOR.onAttention
+                  : DOT[dot.kind] ?? DOT["other"],
               borderWidth: dot.done ? 1 : 0,
-              borderColor: DOT[dot.kind] ?? DOT["other"],
+              borderColor:
+                day.iso === selected ? COLOR.onAttention : DOT[dot.kind] ?? DOT["other"],
             }}
           />
         ))}
@@ -190,8 +213,13 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
           >
             <Glyph name="chevron-left" size={18} color={COLOR.iconOnWell} />
           </Pressable>
+          {/* **It takes the room, so the arrows never move.** Sized by the
+              month name, the right arrow walked between March and September,
+              and further in a language with longer months. */}
           <Text
-            className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+            className={`flex-1 text-center font-core font-medium ${
+              isAndroid ? "text-a-on" : "text-text-primary"
+            }`}
             style={{ fontSize: 14 }}
           >
             {grid.label}

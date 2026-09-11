@@ -1730,14 +1730,20 @@ a.settingsRow:hover {
   background: var(--surface-fill);
 }
 
-/* **A day with anything on it carries a quiet inward edge.**
-   Five pixels of colour across seven cells is easy to miss, so the cell itself
-   says there is something here and the dots say what kind and how many. An
-   inset ring rather than a border: a border would move the cell by a pixel and
-   the row would shuffle as things are added and ticked off. */
+/* **A day with anything on it glows inward, in blue.**
+   Grey said "there is something here" so quietly that it read as nothing, so
+   the hue does the work: a blue ground with a blue ring set inside it, which
+   reads as lit from within rather than outlined. Two inset rings rather than
+   one, the outer soft and the inner sharp, which is what gives it depth at
+   40px without a shadow that would bleed outside the cell.
+
+   Inset rather than a border throughout: a border adds a pixel and the whole
+   row shuffles as things are added and ticked off. */
 .railDay[data-has] {
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  background: var(--surface-attention-soft);
+  box-shadow:
+    inset 0 0 0 1px var(--border-focus),
+    inset 0 0 6px 0 var(--surface-attention-soft);
 }
 
 /* The days either side of the month on screen. Present, because a month
@@ -1756,8 +1762,33 @@ a.settingsRow:hover {
   border-color: var(--border-focus);
 }
 
+/* **The day you are reading is white on blue.** It is the one cell that has to
+   win every time, including over a lit cell next to it, so it takes the solid
+   fill and the text goes to white. `--text-on-solid` rather than
+   `--text-inverse`: the fill is blue in both themes and does not flip, and the
+   inverse token does, which is how a near-black number ends up on blue. */
 .railDay[data-on] {
-  background: var(--surface-fill);
+  background: var(--surface-attention);
+  box-shadow: none;
+}
+
+.railDay[data-on] .railDom,
+.railDay[data-on] .railDow,
+.railDay[data-on] .railMore {
+  color: var(--text-on-solid);
+}
+
+/* The dots go white with it. A blue task dot on a blue cell is not a dot, and
+   this is the one day whose contents are listed directly underneath, so the
+   dots are saying least here. */
+.railDay[data-on] .railDot {
+  background: var(--text-on-solid);
+  box-shadow: none;
+}
+
+.railDay[data-on] .railDot[data-done] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--text-on-solid);
 }
 
 /* Gone, not closed. It reads as past and it behaves like any other day. */
@@ -1819,7 +1850,13 @@ a.settingsRow:hover {
   padding: 0 var(--space-1) var(--space-3);
 }
 
+/* **It takes the room, so the arrows never move.** Sized by the month name, the
+   right arrow walked left and right between March and September, and further
+   in a language with longer months. Taking the whole middle means the name is
+   the only thing that changes width. */
 .railMonthName {
+  flex: 1;
+  text-align: center;
   font-weight: var(--weight-medium);
   font-size: calc(14px * var(--type-scale));
   color: var(--text-primary);

@@ -11,6 +11,21 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-11 · The lit day is blue, and the day you are reading is white on it
+**Surface:** web, iOS, Android
+**Was:** A day with something on it took a grey ground and a hairline ring. The day being read took the neutral fill.
+**Is:** Blue, and white on blue.
+
+**Grey said it so quietly that it read as nothing.** The first version used `--surface-sunken` and `--border-hairline`, which is the quietest pair in the system, on a cell 40px wide competing with six others. The hue does the work now: `--surface-attention-soft` as the ground with `--border-focus` set inside it, plus a second soft inset, which reads as lit from within rather than outlined.
+
+**The day being read is `--surface-attention` with `--text-on-solid`.** It is the one cell that has to win every time, including over a lit cell beside it, so it takes the solid fill and everything on it goes white: the number, the weekday and the dots. `--text-on-solid` rather than `--text-inverse`, because the fill is blue in both themes and does not flip while the inverse token does, which is exactly how a near-black number ends up on blue.
+
+**Everything stays inset.** A border adds a pixel and the whole row shuffles as things are added and ticked off. React Native has no inset shadow, so the phones keep a 1px border in every state including transparent, which holds the same geometry by a different route.
+
+**The month name takes the whole middle.** Sized to its own text, the right arrow walked left and right between March and September, and further in a language with longer month names. It is `flex: 1` and centred now, so the arrows are the only fixed things in the bar and nothing moves between months.
+
+**Design system impact:** blue now means two more things on one surface, "there is something on this day" and "this is the day you are reading", told apart by soft against solid. That is a real load on one hue and worth a look when the palette is next reviewed: the alternative was moss for the lit day, which would have collided with "offload did this". No new tokens.
+
 ### 2026-09-11 · A day with something on it is a cell, and a long span is a month
 **Surface:** web, iOS, Android
 **Was:** A dot under the day number, and a run of three or more empty weeks collapsed to a line saying how many.

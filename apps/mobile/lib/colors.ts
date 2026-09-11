@@ -61,10 +61,15 @@ export interface Colors {
    *  `text-tertiary` on web, which is one legend drawn two ways. */
   quiet: string;
   borderFocus: string;
-  /** The quiet inward edge on a day that has something on it, and the ground
-   *  under it. A dot alone is easy to miss across seven cells. */
+  /** The inward glow on a day that has something on it: a blue ground and a
+   *  blue ring set inside it. Grey said it so quietly that it read as nothing. */
   hairline: string;
   sunken: string;
+  attentionSoft: string;
+  /** White, in both themes, because the fill it sits on is blue in both and
+   *  does not flip. `onSolid` does flip, which is how a near-black number ends
+   *  up on blue. */
+  onAttention: string;
 }
 
 function paletteFor(dark: boolean): Colors {
@@ -105,6 +110,8 @@ function paletteFor(dark: boolean): Colors {
     borderFocus: base["border-focus"] ?? light["border-focus"]!,
     hairline: base["border-hairline"] ?? light["border-hairline"]!,
     sunken: base["surface-sunken"] ?? light["surface-sunken"]!,
+    attentionSoft: base["surface-attention-soft"] ?? light["surface-attention-soft"]!,
+    onAttention: base["text-on-solid"] ?? light["text-on-solid"]!,
   };
 }
 
