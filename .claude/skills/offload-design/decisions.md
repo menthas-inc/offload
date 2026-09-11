@@ -11,6 +11,23 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-11 · The day heading gets its + on the phone, and the edit sheet gets a way out
+**Surface:** iOS, Android
+
+**Was:** the rail's selected-day heading had a + on the web and nothing on the phones, so a day was the one section on the screen you could not add to. Opening a row to edit it offered Cancel and Save and no way to be rid of it.
+
+**Is:** the day heading carries the same + every other section has. It raises the pinned composer, headed "Add to Thursday, 11 September", with two things in the conversation area: the thread pill, and a "Repeats weekly" tick. Ticking it repeats weekly from the open day.
+
+**The tick is a selectable pill, not the web's checkbox.** The phones have no bare-checkbox pattern and the composer's options live in the conversation area rather than under the field, which is the product owner's rule for this composer: there is room up there, and the keyboard is not.
+
+**The tick is final, on both surfaces.** `edit_content` is offload's only tool on the row afterwards and it carries neither a date nor a repeat field, so the day and the tick are what they are from the moment the row is written.
+
+**The edit sheet carries the row's one way out**, Delete for your own, Archive for somebody else's, Put back for an archived one. Same question, same answer as the long-press sheet: having opened something to change it, the other thing you wanted is to be rid of it, and going back out to a long press for that is a menu trip for the second commonest thing there is.
+
+**The field starts out holding the title**, which it did not on a device. It was filled from an effect, so the sheet mounted empty and caught up a tick later, and a controlled `TextInput` that takes focus on mount and has its value replaced a tick later keeps the empty one. Keyed by the row now, so it mounts with the title already in it.
+
+**Design system impact:** `mobile_app/TimelineWidget.jsx` has no day heading and so no +; when it catches up with the rail it wants one, and a pinned-composer option row beside the thread chip. `RowActionSheet`'s contract and the note editor both describe the one-way-out rule; the content edit sheet now follows it too and the contract should say so rather than leaving it to two implementations to agree.
+
 ### 2026-09-11 · A + opens the keyboard, and putting one away closes it
 **Surface:** iOS, Android
 

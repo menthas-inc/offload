@@ -341,6 +341,8 @@ export default function Thread() {
             // Keyed by the thread, so the day you were reading and the gaps you
             // opened do not follow you into the next one.
             key={thread.id}
+            threadId={thread.id}
+            threadName={thread.name}
             rows={rows}
             notes={thread.notes}
             onDelete={(row: ContentRow) => void remove(row)}
@@ -470,11 +472,22 @@ export default function Thread() {
       </ScrollView>
 
       <TitleSheet
+        // **Keyed by the row, so the field starts out holding its title.**
+        // Filling it from an effect meant the sheet mounted empty and then
+        // caught up, and on a device it stayed empty: a controlled TextInput
+        // that takes focus on mount and has its value replaced a tick later is
+        // the one case where that race is visible. Mounting per row removes the
+        // tick rather than sequencing it.
+        key={renaming?.id ?? "none"}
         row={renaming}
         onClose={() => setRenaming(null)}
         onSaved={() => {
           setRenaming(null);
           void load();
+        }}
+        onRemove={(row) => {
+          setRenaming(null);
+          void (row.canDelete && row.archivedAt === null ? remove(row) : archive(row));
         }}
       />
 
@@ -510,21 +523,26 @@ function TitleSheet({
   row,
   onClose,
   onSaved,
+  onRemove,
 }: {
   row: ContentRow | null;
   onClose: () => void;
   onSaved: () => void;
+  /** The way out, in the sheet that already has the row open.
+   *
+   *  The action sheet behind this one offers it too, and this is not a second
+   *  opinion about which one you get: both ask the same question of the row and
+   *  get the same answer. Having opened something to change it, the other thing
+   *  you wanted is to be rid of it, and going back out to a long press to do
+   *  that is a trip through a menu for the second commonest thing there is. */
+  onRemove: (row: ContentRow) => void;
 }) {
   const COLOR = useColors();
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(row?.title ?? "");
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const lift = useAnimatedStyle(() => ({
     transform: [{ translateY: keyboardHeight.value }],
   }));
-
-  useEffect(() => {
-    setDraft(row?.title ?? "");
-  }, [row]);
 
   if (!row) return null;
 
@@ -574,7 +592,40 @@ function TitleSheet({
           returnKeyType="done"
         />
 
-        <View className="mt-space-4 flex-row items-center justify-end gap-space-4">
+        <View className="mt-space-4 flex-row items-center gap-space-4">
+          {/* One way out, never two, and the same rule the action sheet
+              states: your own content offers Delete, somebody else's offers
+              Archive, because OFF-3 says you may not destroy what another
+              person wrote. An archived row offers the way back instead. */}
+          <Pressable
+            onPress={() => (row ? onRemove(row) : onClose())}
+            accessibilityLabel={
+              row?.archivedAt
+                ? "Put back in the thread"
+                : row?.canDelete
+                  ? "Delete"
+                  : "Archive"
+            }
+            className="mr-auto flex-row items-center gap-space-2 rounded-pill border border-border-hairline px-space-5"
+            style={{ height: 30 }}
+          >
+            <Glyph
+              name={
+                row?.archivedAt ? "rewind" : row?.canDelete ? "trash-2" : "archive"
+              }
+              size={14}
+              color={row?.archivedAt || !row?.canDelete ? COLOR.iconOnWell : COLOR.danger}
+            />
+            <Text
+              className={`font-core font-medium ${
+                row?.archivedAt || !row?.canDelete ? "text-text-secondary" : "text-text-danger"
+              }`}
+              style={{ fontSize: 13 }}
+            >
+              {row?.archivedAt ? "Put back" : row?.canDelete ? "Delete" : "Archive"}
+            </Text>
+          </Pressable>
+
           <Pressable
             onPress={onClose}
             className="rounded-pill border border-border-hairline px-space-5"

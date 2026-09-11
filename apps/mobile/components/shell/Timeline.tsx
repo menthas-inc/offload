@@ -32,11 +32,15 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { useWeekStart } from "../../lib/appearance";
 import { ContentRowView } from "./ContentRow";
+import { useConversation } from "./conversation-context";
+import { QUICK_ADD_CHARS } from "../../lib/threads";
 import type { ContentRow, Note } from "../../lib/threads";
 
 const isAndroid = Platform.OS === "android";
 
 interface Props {
+  threadId: string;
+  threadName: string;
   rows: ContentRow[];
   notes: Note[];
   onDelete: (row: ContentRow) => void;
@@ -44,7 +48,16 @@ interface Props {
   onToggle: (row: ContentRow) => void;
 }
 
-export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) {
+export function Timeline({
+  threadId,
+  threadName,
+  rows,
+  notes,
+  onDelete,
+  onActions,
+  onToggle,
+}: Props) {
+  const { raiseFor } = useConversation();
   const COLOR = useColors();
   const weekStart = useWeekStart();
   // Computed on render, so the first render after midnight moves today and
@@ -327,6 +340,34 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
             </Text>
           </View>
         ) : null}
+
+        {/* The same + every other section has, onto the day that is open. It
+            raises the composer rather than opening a field of its own, like the
+            others, and brings the one option a day carries with it. */}
+        <Pressable
+          onPress={() =>
+            raiseFor({
+              threadId,
+              threadName,
+              write: "quickAdd",
+              section: "timeline",
+              title: `Add to ${when.toLocaleDateString(undefined, {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}`,
+              placeholder: "Type it, offload will sort it out",
+              charLimit: QUICK_ADD_CHARS,
+              day: selected,
+              offerRepeat: true,
+            })
+          }
+          hitSlop={10}
+          accessibilityLabel="Add to this day"
+          style={{ marginTop: 5 }}
+        >
+          <Glyph name="plus" size={18} color={COLOR.iconOnWell} />
+        </Pressable>
       </View>
 
       {dayRows.length === 0 && dayNotes.length === 0 ? (

@@ -284,10 +284,11 @@ export function Conversation() {
  *  being pinned to it, which is a different claim and draws nothing here. */
 function PinnedTarget({ pin }: { pin: Pin }) {
   const COLOR = useColors();
+  const { repeats, setRepeats } = useConversation();
   return (
-    <View className="px-gutter-screen pb-space-4">
+    <View className="flex-row flex-wrap items-center gap-space-3 px-gutter-screen pb-space-4">
       <View
-        className="flex-row items-center gap-space-2 self-start rounded-pill bg-surface-accent-soft px-space-4"
+        className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-4"
         style={{ height: 26 }}
       >
         <Glyph name="lasso" size={12} color={COLOR.accent} />
@@ -295,6 +296,37 @@ function PinnedTarget({ pin }: { pin: Pin }) {
           In thread {pin.threadName}
         </Text>
       </View>
+
+      {/* The one option a `+` carries, and it sits beside the thread it is
+          pinned to rather than under the field: the product owner's rule for
+          this composer is that a `+`'s options live in the conversation area,
+          where there is room for them and where the keyboard is not.
+
+          **The tick is final.** `edit_content` is offload's only tool on this
+          row afterwards and it carries no repeat field, so whatever this says
+          when the row is written is what it stays. */}
+      {pin.offerRepeat ? (
+        <Pressable
+          onPress={() => setRepeats(!repeats)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: repeats }}
+          accessibilityLabel="Repeats weekly"
+          className={`flex-row items-center gap-space-2 rounded-pill px-space-4 ${
+            repeats ? "bg-surface-inverse" : isAndroid ? "bg-a-c" : "bg-surface-fill"
+          }`}
+          style={{ height: 26 }}
+        >
+          {repeats ? <Glyph name="check" size={12} color={COLOR.onSolid} /> : null}
+          <Text
+            className={`font-core ${
+              repeats ? "text-text-inverse" : isAndroid ? "text-a-on-var" : "text-text-secondary"
+            }`}
+            style={{ fontSize: 12.5 }}
+          >
+            Repeats weekly
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
