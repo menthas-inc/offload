@@ -559,7 +559,7 @@ function TitleSheet({
   return (
     <>
       <Animated.View
-        entering={FadeIn.duration(140)}
+        entering={FadeIn.duration(220)}
         exiting={FadeOut.duration(140)}
         className="absolute inset-0"
         style={{ backgroundColor: COLOR.scrim, opacity: 0.35 }}

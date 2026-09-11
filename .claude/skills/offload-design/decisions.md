@@ -11,6 +11,21 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-11 · A row draws its own delete, and a section's two controls stop being one target
+**Surface:** iOS, Android
+
+**Was:** a content row carried a swipe and a long press and nothing you could see. A section heading carried its two controls, the finished-work toggle and the +, six pixels apart at 18px. The sheet's scrim faded in over 140ms while the sheet itself took 220.
+
+**Is:** a row you may delete draws a trash at its right edge. The two heading controls are 22px and a full gutter apart. The scrim and the sheet move together, and the plate fades out with them rather than leaving the screen in one frame.
+
+**Three ways to the same action, deliberately.** `ContentRow`'s own contract says a swipe deletes and a long press opens the rest, and this adds a third. The product owner asked for it after an evening of tidying a list, in those words: a swipe is a gesture you have to remember and a trash is a thing you can see. Drawn only where it is honest, so somebody else's row and an archived row show nothing and fall through to the long press, which offers what they can actually do.
+
+**"It fades black real quick and looks broken" was the timing.** The page went dark, and a beat later something slid up. Two movements where there is one thing happening reads as a fault rather than as a sheet. 220ms for both, and the plate, which had been disappearing in a single frame since the sheet was put above it, fades on the same beat.
+
+**Six pixels between two controls that do opposite things.** One hides finished work, the other adds more; at 18px with a 6px gap and 10px of hit slop, the two hit areas touched, and the wrong one got pressed. This is the cost of a heading with two controls instead of one, and the answer is space rather than fewer controls.
+
+**Design system impact:** `ThreadWidgets.jsx` and any section heading in the kits want the larger pair and the wider gap, and the numbers are 22px and `--space-6`. `ContentRow`'s contract should name the trash as a third affordance alongside the swipe and the long press, with the rule that it is drawn only for a row this account may actually delete. The sheet contracts should carry the scrim timing, since a scrim that beats its own sheet is a fault nobody can see in a still mock.
+
 ### 2026-09-11 · A screen's own sheet takes the plate off the screen
 **Surface:** iOS, Android
 

@@ -1,5 +1,11 @@
 // Everything a swipe cannot carry.
 //
+// **The scrim arrives with the sheet, not before it.** It faded in over 140ms
+// while the sheet took 220, so the page went dark and then, a beat later,
+// something slid up: read on a device as a flash and a fault rather than as one
+// movement. Both are 220 now, and the plate fades out on the same beat instead
+// of being taken off the screen in one frame.
+//
 // The `RowActionSheet` contract, governed from 5 September 2026. A long press
 // opens it. It lists what this account may actually do to the row and omits the
 // rest, which is why there is no disabled action in here: the server decides
@@ -46,7 +52,7 @@ export function RowActionSheet({
   return (
     <>
       <Animated.View
-        entering={FadeIn.duration(140)}
+        entering={FadeIn.duration(220)}
         exiting={FadeOut.duration(140)}
         className="absolute inset-0"
         style={{ backgroundColor: COLOR.scrim, opacity: 0.35 }}

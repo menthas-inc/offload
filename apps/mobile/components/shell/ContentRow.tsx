@@ -5,6 +5,12 @@
 // swipe does the one thing `SwipeRow` is built for, and the sheet lists what
 // this account may actually do, which is how the authorship split is handled
 // without a gesture map that is wrong for half the rows.
+//
+// **And since 2026-09-11 a row you may delete draws a trash as well.** Three
+// ways to the same action, which the rule above deliberately avoided, and the
+// product owner asked for it after an evening of tidying a list: a swipe is a
+// gesture you have to remember, and a trash is a thing you can see. The two
+// gestures are unchanged and still carry everything else.
 
 import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -230,6 +236,30 @@ export function ContentRowView({
               color={COLOR.accent}
               accessibilityLabel="offload is reading this"
             />
+          ) : null}
+
+          {/* The one action worth a tap of its own.
+           *
+           *  The swipe and the sheet both already carry it, and this is a third
+           *  way in on purpose: a list you are tidying is a row after a row
+           *  after a row, and a swipe is a gesture you have to remember while a
+           *  trash is a thing you can see. Asked for in those words on
+           *  2026-09-11, after a session of ticking things off.
+           *
+           *  **Only where it is honest.** Somebody else's row offers no delete,
+           *  because the server would refuse one (OFF-3), and an archived row
+           *  is already out of the way. Both fall through to the long press,
+           *  which offers what they can actually do. */}
+          {row.canDelete && !row.archivedAt ? (
+            <Pressable
+              onPress={onDelete}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${row.title}`}
+              style={{ marginTop: 1 }}
+            >
+              <Glyph name="trash-2" size={17} color={COLOR.iconOnWell} />
+            </Pressable>
           ) : null}
         </Animated.View>
       </GestureDetector>

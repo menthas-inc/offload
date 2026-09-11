@@ -17,7 +17,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "expo-router";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut, useAnimatedStyle } from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Plate, type Tab } from "./Plate";
 import { Conversation, ConversationScrim } from "./Conversation";
@@ -99,7 +99,16 @@ export function Shell() {
           anchored to the bottom of the screen and the plate paints later, so
           the tabs covered the sheet's own composer. */}
       {conversation.sheetOpen ? null : (
-        <Animated.View style={lift} className="absolute inset-x-0 bottom-0">
+        <Animated.View
+          style={lift}
+          className="absolute inset-x-0 bottom-0"
+          // On the same beat as the scrim that replaces it. Taken off the
+          // screen in one frame, the bottom 120px of the page changed before
+          // the sheet had started moving, which is half of what read as a
+          // flash on a device.
+          entering={FadeIn.duration(140)}
+          exiting={FadeOut.duration(140)}
+        >
           <Conversation />
           <Plate tabs={tabs} placeholder={inThread ? "Add to this" : undefined} />
         </Animated.View>

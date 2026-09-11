@@ -362,11 +362,11 @@ export function Timeline({
               offerRepeat: true,
             })
           }
-          hitSlop={10}
+          hitSlop={12}
           accessibilityLabel="Add to this day"
-          style={{ marginTop: 5 }}
+          style={{ marginTop: 3 }}
         >
-          <Glyph name="plus" size={18} color={COLOR.iconOnWell} />
+          <Glyph name="plus" size={22} color={COLOR.iconOnWell} />
         </Pressable>
       </View>
 

@@ -133,8 +133,14 @@ function WidgetBlock({
         </View>
 
         {/* One wrapper carrying the trailing margin, so the toggle and the +
-            bunch together at the edge instead of each pushing on its own. */}
-        <View className="ml-auto flex-row items-center gap-space-3">
+            bunch together at the edge instead of each pushing on its own.
+
+            **16px apart, not 6.** Two 18px glyphs six pixels apart on a phone
+            are one target as far as a thumb is concerned, and the two of them
+            do opposite things: one hides finished work, the other adds work.
+            Reported as pressing the wrong one. They are 22px now and a full
+            gutter apart, and the hit areas no longer touch. */}
+        <View className="ml-auto flex-row items-center gap-space-6">
           {widget.kind === "todo" && done.length > 0 ? (
             <>
               {/* Only said out loud once the rows themselves are gone: while
@@ -151,7 +157,7 @@ function WidgetBlock({
               ) : null}
               <Pressable
                 onPress={() => setHideDone((value) => !value)}
-                hitSlop={10}
+                hitSlop={12}
                 accessibilityRole="button"
                 accessibilityState={{ expanded: !hideDone }}
                 accessibilityLabel={
@@ -162,7 +168,7 @@ function WidgetBlock({
               >
                 <Glyph
                   name={hideDone ? "chevron-right" : "chevron-down"}
-                  size={18}
+                  size={22}
                   color={COLOR.iconOnWell}
                 />
               </Pressable>
@@ -188,7 +194,7 @@ function WidgetBlock({
             hitSlop={10}
             accessibilityLabel={`Add to ${HEADINGS[widget.kind]}`}
           >
-            <Glyph name="plus" size={18} color={COLOR.iconOnWell} />
+            <Glyph name="plus" size={22} color={COLOR.iconOnWell} />
           </Pressable>
         </View>
       </View>
