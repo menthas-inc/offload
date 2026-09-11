@@ -11,6 +11,21 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-11 · A + opens the keyboard, and putting one away closes it
+**Surface:** iOS, Android
+
+**Was:** the pinned composer arrived with the keyboard down, and stayed focused after a `+`'s write had landed.
+
+**Is:** raising a pin focuses the field, and the pin clearing, written or dismissed, blurs it.
+
+**Found on a device, which is the only place it could be.** The inline fields the pinned composer replaced all carried `autoFocus`, so pressing + used to put the cursor in the field. Routing through a composer that is always mounted lost that: two taps to type one line, on the control whose entire argument was that the keyboard already works there.
+
+**The other half is the one that writes something by accident.** After a pinned add the sheet drops and the same field becomes the ordinary dump composer. Leaving the keyboard up over it means the next thing typed is a dump nobody meant to send.
+
+**An ordinary dump still never opens the keyboard on its own.** The composer is on screen at all times, and a keyboard that raises itself takes the page away from somebody who was reading it.
+
+**Design system impact:** none. The kits have no keyboard to show, which is the third time that has cost something here.
+
 ### 2026-09-11 · The composer says where a dump will land
 **Surface:** web, iOS, Android
 

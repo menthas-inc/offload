@@ -10,7 +10,7 @@
 // none of which is built. A control that does nothing is worse on a phone than
 // absent, because a phone is exactly where somebody expects both to work.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
@@ -65,6 +65,21 @@ export function Composer({
   const { draft, setDraft, submit, pin, onScreen } = useConversation();
   const [height, setHeight] = useState(0);
   const [which, setWhich] = useState(0);
+  const field = useRef<TextInput>(null);
+
+  // A `+` raises this with the keyboard down, which is two taps to type one
+  // line. The inline fields this replaced all carried `autoFocus`, so pressing
+  // + used to put the cursor in the field, and that is the whole of what a + is
+  // for. Not on an ordinary dump: the composer is on screen at all times and a
+  // keyboard that opens itself takes the page away from somebody who was
+  // reading it.
+  useEffect(() => {
+    if (pin) field.current?.focus();
+    // And put the keyboard away when the pin goes, whether it was written or
+    // dismissed. A + is one line and then you are done; leaving the keyboard up
+    // over the ordinary composer invites a dump nobody meant to send.
+    else field.current?.blur();
+  }, [pin]);
 
   useEffect(() => {
     if (placeholder || draft.length > 0) return;
@@ -99,6 +114,7 @@ export function Composer({
         style={{ minHeight: 48, paddingRight: 6 }}
       >
         <TextInput
+          ref={field}
           value={draft}
           onChangeText={setDraft}
           multiline
