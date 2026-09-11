@@ -140,6 +140,10 @@ const noteSchema = z.object({
   writtenAt: z.coerce.date(),
   /** The date carries no time, so nothing may draw one. */
   allDay: z.boolean(),
+  /** That it comes round again, as a rule rather than as occurrences. The
+   *  calendar expands it over whatever window is on screen. */
+  repeats: z.enum(["day", "weekday", "week", "two_weeks", "month", "year"]).nullable(),
+  repeatsUntil: z.coerce.date().nullable(),
   /** Set aside by the daily job. Only ever present on the folded list. */
   supersededAt: z.coerce.date().nullable(),
 });
@@ -186,6 +190,10 @@ const contentRow = z.object({
   /** The other end of a span, so a thing that covers three days is drawn on
    *  three days. Written since 0011 and read by nothing until 015. */
   occursEndAt: z.string().nullable(),
+  /** That it comes round again, as a rule the calendar expands. Distinct from
+   *  `seriesRef`, which is occurrences a calendar already sent. */
+  repeats: z.enum(["day", "weekday", "week", "two_weeks", "month", "year"]).nullable(),
+  repeatsUntil: z.string().nullable(),
   isReminder: z.boolean(),
   priority: z.number(),
   priorityPinned: z.boolean(),
@@ -287,6 +295,8 @@ interface RawRow {
    *  column was on the row, off the select, and absent from every shape above
    *  it. */
   occurs_end_at: Date | null;
+  repeats: "day" | "weekday" | "week" | "two_weeks" | "month" | "year" | null;
+  repeats_until: Date | null;
   is_reminder: boolean;
   priority: number;
   priority_pinned: boolean;
@@ -346,6 +356,8 @@ function toRow(row: RawRow, viewerId: string) {
     dueAt: row.due_at ? row.due_at.toISOString() : null,
     occursAt: row.occurs_at ? row.occurs_at.toISOString() : null,
     occursEndAt: row.occurs_end_at ? row.occurs_end_at.toISOString() : null,
+    repeats: row.repeats,
+    repeatsUntil: row.repeats_until ? row.repeats_until.toISOString() : null,
     isReminder: row.is_reminder,
     priority: row.priority,
     priorityPinned: row.priority_pinned,
@@ -1092,6 +1104,8 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.due_at as due_at",
             "content.occurs_at as occurs_at",
             "content.occurs_end_at as occurs_end_at",
+            "content.repeats as repeats",
+            "content.repeats_until as repeats_until",
             "content.is_reminder as is_reminder",
             "content.priority as priority",
             "content.priority_pinned as priority_pinned",
@@ -1183,6 +1197,8 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.due_at as due_at",
             "content.occurs_at as occurs_at",
             "content.occurs_end_at as occurs_end_at",
+            "content.repeats as repeats",
+            "content.repeats_until as repeats_until",
             "content.is_reminder as is_reminder",
             "content.priority as priority",
             "content.priority_pinned as priority_pinned",
@@ -1829,6 +1845,8 @@ async function rowById(contentId: string, viewerId: string) {
       "content.due_at as due_at",
       "content.occurs_at as occurs_at",
             "content.occurs_end_at as occurs_end_at",
+            "content.repeats as repeats",
+            "content.repeats_until as repeats_until",
       "content.is_reminder as is_reminder",
       "content.priority as priority",
       "content.priority_pinned as priority_pinned",

@@ -260,3 +260,93 @@ describe("what the review found", () => {
     expect(onDue?.rowId).toBe("c1");
   });
 });
+
+describe("one row that repeats, drawn on every matching day", () => {
+  // "Yoga every Tuesday" is one thing somebody said, not four things that
+  // happen to share a name. The row carries the rule and the calendar expands
+  // it over whatever window is on screen, so a list draws it once.
+  function rule(from: string, repeats: Dated["repeats"], until?: string): Dated {
+    return {
+      id: "yoga",
+      rowId: "yoga",
+      due: false,
+      kind: "note",
+      from,
+      to: from,
+      done: false,
+      repeats: repeats ?? null,
+      until: until ?? null,
+    };
+  }
+
+  it("marks every occurrence inside the window", () => {
+    // Tuesdays from the 15th, with something once in three weeks' time so the
+    // window is three weeks wide.
+    const rail = railFor([rule("2026-09-15", "week"), point("a", "2026-09-30")], TODAY, "monday");
+    const marked = weeks(rail)
+      .flatMap((week) => week.days)
+      .filter((day) => day.count > 0)
+      .map((day) => day.iso);
+
+    expect(marked).toContain("2026-09-15");
+    expect(marked).toContain("2026-09-22");
+    expect(marked).toContain("2026-09-29");
+  });
+
+  it("does not stretch the span, so an endless rule is not an endless rail", () => {
+    // A rule with no end would otherwise make every thread a year long and push
+    // it into the month view forever.
+    expect(weeksSpanned([rule("2026-09-15", "week")], TODAY, "monday")).toBe(1);
+  });
+
+  it("stops when the rule stops", () => {
+    const rail = railFor(
+      [rule("2026-09-15", "week", "2026-09-22"), point("a", "2026-10-06")],
+      TODAY,
+      "monday",
+    );
+    const marked = weeks(rail)
+      .flatMap((week) => week.days)
+      .filter((day) => day.count > 0)
+      .map((day) => day.iso);
+
+    expect(marked).toContain("2026-09-22");
+    expect(marked).not.toContain("2026-09-29");
+  });
+
+  it("steps a month by the calendar rather than by thirty days", () => {
+    const month = monthFor("2026-10-16", [rule("2026-08-31", "month")], TODAY, "monday");
+    const marked = month.weeks
+      .flatMap((week) => week.days)
+      .filter((day) => day.count > 0)
+      .map((day) => day.iso);
+    // 31 August, 30 September because September has no 31st, then 31 October.
+    expect(marked).toContain("2026-10-31");
+  });
+
+  it("skips the weekend for a weekday rule", () => {
+    // "Standup every weekday at 9" said `day` before `weekday` existed, which
+    // put a standup on Sunday.
+    const rail = railFor(
+      [rule("2026-09-18", "weekday"), point("a", "2026-09-23")],
+      TODAY,
+      "monday",
+    );
+    const marked = weeks(rail)
+      .flatMap((week) => week.days)
+      .filter((day) => day.count > 0)
+      .map((day) => day.iso);
+
+    expect(marked).toContain("2026-09-18");
+    expect(marked).toContain("2026-09-21");
+    expect(marked).not.toContain("2026-09-19");
+    expect(marked).not.toContain("2026-09-20");
+  });
+
+  it("answers what is on a day from the rule", () => {
+    const dated = [rule("2026-09-15", "week")];
+    expect(thingsOn(dated, "2026-09-22")).toHaveLength(1);
+    expect(thingsOn(dated, "2026-09-23")).toHaveLength(0);
+    expect(thingsOn(dated, "2026-09-08")).toHaveLength(0);
+  });
+});

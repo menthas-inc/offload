@@ -56,6 +56,9 @@ export interface Note {
   placeId: string | null;
   /** The date carries no time, so nothing may draw one. */
   allDay: boolean;
+  /** That it comes round again. One note, a mark on every matching day. */
+  repeats: "day" | "weekday" | "week" | "two_weeks" | "month" | "year" | null;
+  repeatsUntil: string | null;
   /** When it was last written. Decides which notes reach offload when a thread
    *  holds more than the budget. */
   writtenAt: string;
@@ -103,6 +106,10 @@ export interface ContentRow extends Sortable {
   /** The other end of a span, so the rail draws a thing on every day it
    *  covers. Written since 0011 and read by nothing until 015. */
   occursEndAt: string | null;
+  /** That it comes round again, as a rule the calendar expands. One row, a
+   *  mark on every matching day. */
+  repeats: "day" | "weekday" | "week" | "two_weeks" | "month" | "year" | null;
+  repeatsUntil: string | null;
   isReminder: boolean;
   priority: number;
   priorityPinned: boolean;

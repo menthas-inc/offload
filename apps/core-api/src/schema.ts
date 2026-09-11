@@ -282,6 +282,14 @@ export interface ContentTable {
   priority: Generated<number>;
   /** A person set the priority, so the planner must not overwrite it. */
   priority_pinned: Generated<boolean>;
+  /** That it comes round again, as a rule with no occurrences behind it.
+   *
+   *  **Not the same thing as `attrs.series_ref`**, which is occurrences a
+   *  calendar already sent and offload mirrors. A rule is what somebody said in
+   *  words when there was nothing to mirror, and the two never describe one row:
+   *  the database refuses it. */
+  repeats: "day" | "weekday" | "week" | "two_weeks" | "month" | "year" | null;
+  repeats_until: Timestamp | null;
   /** `dimension:value`, or a bare value whose dimension is implicitly `tag`. */
   tags: Generated<string[]>;
   /** Null forever is a normal state: a location with a name and no pin. */
@@ -406,6 +414,17 @@ export interface NotesTable {
   due_at: Timestamp | null;
   /** Null forever is a normal state, the same as it is for content. */
   place_id: string | null;
+  /** That this note repeats, in the words `cadenceLabel` already says out loud.
+   *
+   *  **The rule rather than the occurrences.** A calendar sends occurrences and
+   *  they become `content` rows sharing a `series_ref`; somebody who types
+   *  "yoga every Tuesday" is stating a rule, and expanding it into rows would
+   *  put the thirty identical lines back that `splitRepeating` exists to
+   *  collapse. One row, and the calendar draws a dot on every matching day of
+   *  whatever window is on screen. */
+  repeats: "day" | "weekday" | "week" | "two_weeks" | "month" | "year" | null;
+  /** When it stops. Null is "no end stated", which is what people mean. */
+  repeats_until: Timestamp | null;
   attrs: Generated<unknown>;
   created_at: Timestamp;
   updated_at: Timestamp;

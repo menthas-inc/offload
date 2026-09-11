@@ -72,7 +72,21 @@ MAX_TOOL_CALLS = 8
 # because this one grows with the number of features rather than with the age of
 # an account. Two tools use roughly 300 tokens. Past this, they move behind
 # defer_loading rather than being trimmed.
-TOOL_DEFINITION_BUDGET = 1_500
+#
+# **Raised from 1,500 to 1,800 on 2026-09-11, and that is a deferral rather than
+# a decision.** The guard fired at 1,544, which is what it is for. What crossed
+# it was real: `add_note` gained a body and dates when a note became what a
+# dumped sentence is, then both filing tools gained `repeats` and
+# `repeats_until`. `add_content` and `add_note` are 343 and 300 tokens and the
+# other eight are 890 between them, so there is no padding to take out; getting
+# under 1,500 means removing capability, which is exactly what the line above
+# says not to do.
+#
+# So the number moved, visibly, with the reasoning, rather than the tools being
+# trimmed to fit. **The answer the comment prescribes is still the answer** and
+# it has not been done: the next thing that grows this set should move it behind
+# `defer_loading` rather than move this number again.
+TOOL_DEFINITION_BUDGET = 1_800
 
 
 @dataclass(frozen=True)

@@ -136,6 +136,10 @@ const body = z.discriminatedUnion("tool", [
     dueAt: z.string().max(40).nullish(),
     occursAt: z.string().max(40).nullish(),
     occursEndAt: z.string().max(40).nullish(),
+    /** That it comes round again, as the rule rather than as occurrences. One
+     *  row, and the calendar draws it on every matching day. */
+    repeats: z.enum(["day", "weekday", "week", "two_weeks", "month", "year"]).nullish(),
+    repeatsUntil: z.string().max(40).nullish(),
     /** A flag on a task or an event, never a type. Nothing acts on it until
      *  notifications ship. */
     isReminder: z.boolean().default(false),
@@ -246,6 +250,13 @@ const body = z.discriminatedUnion("tool", [
     dueAt: z.string().max(40).nullish(),
     occursAt: z.string().max(40).nullish(),
     occursEndAt: z.string().max(40).nullish(),
+    /** That it comes round again, as the rule rather than as occurrences.
+     *
+     *  "Yoga every Tuesday" is one note that repeats, not four notes. The
+     *  calendar draws a dot on every matching day of whatever window is on
+     *  screen, and a list draws the one row. */
+    repeats: z.enum(["day", "weekday", "week", "two_weeks", "month", "year"]).nullish(),
+    repeatsUntil: z.string().max(40).nullish(),
   }),
   // 012, the calendar. **No field decides whether a write is confirmed.**
   // That is read from the event and the calendar on this side, because some of
@@ -881,6 +892,8 @@ async function existing(
           // Corrections beat inference. This is offload working something out,
           // so a person may overwrite it and offload may not overwrite theirs.
           origin: "learned",
+          repeats: call.repeats ?? null,
+          repeatsUntil: call.repeatsUntil ? (parseWhen(call.repeatsUntil) ?? null) : null,
           // **Everything this turn writes after it read a calendar is
           // untrusted.** The model may be summarising an event somebody else
           // wrote into this person's thread, and a note is read as what is true
@@ -1287,6 +1300,8 @@ export async function toolRoutes(app: App): Promise<void> {
             due_at: when.dueAt,
             occurs_at: when.occursAt,
             occurs_end_at: when.occursEndAt,
+            repeats: call.repeats ?? null,
+            repeats_until: call.repeatsUntil ? (parseWhen(call.repeatsUntil) ?? null) : null,
             is_reminder: call.isReminder,
             priority: call.priority,
             tags,

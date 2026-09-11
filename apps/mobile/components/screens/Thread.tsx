@@ -37,7 +37,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { cadenceLabel, splitRepeating, widgetsFor } from "@offload/widgets";
+import { cadenceLabel, datedFor, splitRepeating, widgetsFor } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { ContentRowView } from "../shell/ContentRow";
@@ -181,11 +181,19 @@ export default function Thread() {
 
   const widgets = widgetsFor(rows, thread.preference.widgets);
   const inWidgets = new Set(widgets.flatMap((w) => w.rows.map((r) => r.id)));
+  // **Anything with a date already has a home, so this does not repeat it.**
+  // The rail above draws every dated row and its day lists them, which is where
+  // an event belongs. Taken from what the rail actually draws rather than from
+  // a type check, so the two cannot disagree.
+  const onRail = new Set(datedFor(rows, thread.notes).map((one) => one.rowId));
+
   // **A repeating thing is one row here, not thirty.** A weekly class filed as
   // thirty occurrences spends thirty rows saying what the row above said. The
   // rail draws every occurrence, because a calendar has a cell per day already;
   // a list has no grid, so it collapses and says how often.
-  const { once, repeating } = splitRepeating(rows.filter((row) => !inWidgets.has(row.id)));
+  const { once, repeating } = splitRepeating(
+    rows.filter((row) => !inWidgets.has(row.id) && !onRail.has(row.id)),
+  );
   const rest = once;
   // "Everything else" once a widget has lifted anything out, per 007's AC-2.
   // Not a fixed string: it is the anti-duplication contract.

@@ -52,6 +52,7 @@ export {
   type Dated,
   type Day,
   type Month,
+  type Repeat,
   type RailRow,
   type WeekStart,
 } from "@offload/widgets";

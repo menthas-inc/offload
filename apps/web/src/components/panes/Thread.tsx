@@ -23,7 +23,7 @@ import { Timeline } from "./Timeline";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import { useThreads } from "../shell/threads-context";
 import { Widgets } from "./Widgets";
-import { cadenceLabel, splitRepeating, widgetsFor } from "../../lib/widgets";
+import { cadenceLabel, datedFor, splitRepeating, widgetsFor } from "../../lib/widgets";
 import {
   completeContent,
   deleteContent,
@@ -235,6 +235,13 @@ export function Thread({ id, onChanged, onUndo }: Props) {
           widget.rows.map((row) => row.id)
         )
       );
+  // **Anything with a date already has a home, so this does not repeat it.**
+  // The rail above draws every dated row and its day lists them, which is where
+  // an event belongs; showing it again in the leftover list is the same row in
+  // two places on one screen. Taken from what the rail actually draws rather
+  // than from a type check, so the two cannot disagree about what is on it.
+  const onRail = new Set(datedFor(rows, thread.notes).map((one) => one.rowId));
+
   // **A repeating thing is one row here, not thirty.** A weekly class filed as
   // thirty occurrences spends thirty rows saying what the row above said, and
   // pushes everything that happened once off the bottom. The rail draws every
@@ -244,7 +251,9 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   // *This was the timeline widget's job until 015 deleted the widget, and the
   // main list kept all thirty. It is the list's job now, which is what the rule
   // was always about.*
-  const { once, repeating } = splitRepeating(rows.filter((row) => !inWidgets.has(row.id)));
+  const { once, repeating } = splitRepeating(
+    rows.filter((row) => !inWidgets.has(row.id) && !onRail.has(row.id))
+  );
   const rest = once;
 
   // "Everything else" once something has been lifted out, "Everything in here"

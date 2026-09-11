@@ -74,6 +74,12 @@ class AddContent(BaseModel):
     occurs_at: str | None = None
     occurs_end_at: str | None = None
 
+    # That it comes round again. One row carrying the rule, never one row per
+    # occurrence: the calendar draws it on every matching day and a list draws
+    # it once.
+    repeats: Literal["day", "weekday", "week", "two_weeks", "month", "year"] | None = None
+    repeats_until: str | None = None
+
     # A flag on a task or an event, never a type of its own. A task that becomes
     # a reminder must not change type.
     is_reminder: bool = False
@@ -176,6 +182,13 @@ class AddNote(BaseModel):
     due_at: str | None = None
     occurs_at: str | None = None
     occurs_end_at: str | None = None
+
+    # That it comes round again. One note that repeats, never one note per
+    # occurrence: the calendar draws a dot on every matching day and a list
+    # draws the one row. `occurs_at` is the first one and the day of the week
+    # comes from it.
+    repeats: Literal["day", "weekday", "week", "two_weeks", "month", "year"] | None = None
+    repeats_until: str | None = None
 
 
 SCHEMAS: dict[str, type[BaseModel]] = {
