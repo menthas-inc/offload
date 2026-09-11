@@ -63,7 +63,12 @@ def test_the_write_list_is_still_complete() -> None:
     reads = {"list_thread_content", "list_calendars", "find_events"} | {
         tool["name"] for tool in ANSWER_TOOLS
     }
-    unaccounted = set(SCHEMAS) - reads - WRITES
+    # `say` is the third kind and there is only one of it: it reads nothing,
+    # writes nothing and never reaches the Core API. It exists so that a filing
+    # turn's silence is the default and a sentence is a deliberate act. An
+    # answering turn does not have it, and would not need it: its reply is the
+    # answer and comes back as text.
+    unaccounted = set(SCHEMAS) - reads - WRITES - {"say"}
     assert unaccounted == set(), f"tool is neither a known read nor a known write: {unaccounted}"
 
 

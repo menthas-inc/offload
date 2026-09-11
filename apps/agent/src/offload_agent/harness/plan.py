@@ -38,6 +38,7 @@ from offload_agent.harness.tools import (
     ANSWER_TOOLS,
     CALENDAR_TOOL_DEFS,
     FILING_TOOLS,
+    SAY_TOOL,
     SCHEMAS,
     TOOL_NAMES,
     TOOLS,
@@ -103,6 +104,13 @@ class Outcome:
     #: something failed is not a finished turn even when the model wrote a
     #: confident sentence about it.
     failed: list[str] = field(default_factory=list)
+    #: The loop ran out of round trips with the model still calling tools.
+    #:
+    #: **Distinct from a quiet turn, and it stopped being obvious once silence
+    #: became an ordinary outcome.** A turn that ends by saying nothing is
+    #: finished; a turn cut off mid-work says nothing either, and is not. The
+    #: difference is whether the model stopped or the bound did.
+    out_of_calls: bool = False
     #: How many tool calls actually did something. Not the same as `landed`,
     #: which holds filings alone: moving a piece, ticking one off or renaming a
     #: thread all change the database and file nothing.
@@ -137,8 +145,25 @@ class Outcome:
         A turn with a failed tool is partial. What landed is in the database,
         the reply is written from that record rather than from the model's
         account of itself, and the screen offers the way forward.
+
+        **Silence is a finished turn when something landed**, and it was treated
+        as a failure until 2026-09-11. "Added Call the plumber to Miscellaneous"
+        tells somebody what they just typed, back at them, under a Done mark and
+        a pill naming the thread. There is nothing in that sentence they do not
+        already know, so the prompt now asks for no sentence at all, and a turn
+        that filed something and said nothing is exactly right rather than
+        broken. Nothing landing and nothing said is still unfinished: that is a
+        turn that did not happen.
         """
-        return self.reply is not None and not self.failed
+        if self.failed or self.out_of_calls:
+            return False
+        if self.reply is not None:
+            return True
+        # **A thread with nothing in it is not something filed.** `landed`
+        # counts `create_thread`, so a turn that made a thread, stopped, and
+        # said nothing would otherwise read as a finished turn that did what
+        # was asked. It made an empty place and told nobody.
+        return any(item.tool != "create_thread" for item in self.landed)
 
 
 class ToolCaller(Protocol):
@@ -337,10 +362,13 @@ async def plan(
         # The calendar tools only when there is a calendar. An account with
         # none is not offered a tool that can only fail, and the definition
         # budget stays what it was for everybody who has not connected one.
-        tools=TOOLS + CALENDAR_TOOL_DEFS if ctx.has_calendar else TOOLS,
+        tools=(TOOLS + CALENDAR_TOOL_DEFS if ctx.has_calendar else TOOLS) + [SAY_TOOL],
         # A resume starts with the count the database already holds, so the
         # bound is on the turn rather than on one attempt at it.
         filed=len(ctx.landed),
+        # **Trailing text is ignored here.** A filing turn says nothing unless
+        # it calls `say`, which is almost never: see the note on `SAY_TOOL`.
+        reply_from_say=True,
     )
 
 
@@ -376,6 +404,7 @@ async def _run(
     blocks: list[dict],
     tools: list[dict],
     filed: int,
+    reply_from_say: bool = False,
 ) -> Outcome:
     """The loop. Everything that differs between the two callers is an argument,
     so there is one place where a tool result becomes a model turn."""
@@ -410,6 +439,11 @@ async def _run(
         # paragraph and a tool call, and reading the text would end the turn
         # before the work was done.
         if response.stop_reason != "tool_use":
+            # **Ignored on a filing turn.** The reply is whatever `say` was
+            # called with, and a turn that did not call it ends with nothing,
+            # which is the ordinary outcome rather than a failure.
+            if reply_from_say:
+                return outcome
             text = "".join(b.text for b in response.content if b.type == "text").strip()
             outcome.reply = text or None
             return outcome
@@ -433,6 +467,14 @@ async def _run(
                 results.append(
                     _result(block.id, {"ok": False, "error": _shape_only(exc)}, error=True)
                 )
+                continue
+
+            if block.name == "say":
+                # It writes nothing, so it never crosses to the Core API. The
+                # loop keeps going: a turn may say something and then carry on
+                # filing, and the last thing said is what the person reads.
+                outcome.reply = str(args.model_dump()["text"]).strip() or None
+                results.append(_result(block.id, {"ok": True, "done": True}, error=False))
                 continue
 
             if filed >= MAX_TOOL_CALLS:
@@ -492,6 +534,7 @@ async def _run(
 
     # Out of round trips. Not an error: whatever is in `landed` is committed,
     # and the caller reports a partial turn the person can finish.
+    outcome.out_of_calls = True
     return outcome
 
 

@@ -363,6 +363,10 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
         </Mark>
       ) : null}
 
+      {/* Only ever set when the turn said nothing back, so this never draws
+          twice for one dump. */}
+      <Filed turn={turn} />
+
       {/* The readme's own words, and the same ones web uses. They diverged
           here: this said "Saved what landed. The rest didn't come through."
           and offered Finish, which is a second way of saying the same thing in
@@ -412,6 +416,46 @@ function Mark({
   );
 }
 
+/** Where it actually filed, from the content rows rather than from the
+ *  sentence, so a chip can never point somewhere nothing landed.
+ *
+ *  **On either turn.** It used to belong to the reply, and a dump that was
+ *  simply filed says nothing back, so the thread it went to was named nowhere
+ *  at all. Drawn under whichever turn carries the threads: the reply when there
+ *  is one, the message somebody sent when there is not. */
+function Filed({ turn }: { turn: Turn }) {
+  const COLOR = useColors();
+  const router = useRouter();
+  const { fold } = useConversation();
+
+  if (!turn.threads || turn.threads.length === 0) return null;
+
+  return (
+    <View className="mt-space-3 flex-row flex-wrap gap-space-2">
+      {turn.threads.map((thread) => (
+        // Tappable, and it folds on the way out. A reply naming where it filed
+        // something and not taking you there is a sentence about a place rather
+        // than a way to it, and the conversation should get out of the way
+        // rather than close: you may want to keep dumping.
+        <Pressable
+          key={thread.id}
+          onPress={() => {
+            fold();
+            router.push({ pathname: "/threads/[id]", params: { id: thread.id } });
+          }}
+          className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-4"
+          style={{ height: 26 }}
+        >
+          <Glyph name="lasso" size={12} color={COLOR.accent} />
+          <Text className="font-core text-text-accent" style={{ fontSize: 12.5 }}>
+            {thread.name}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 function Theirs({ turn }: { turn: Turn }) {
   const COLOR = useColors();
   const router = useRouter();
@@ -447,38 +491,7 @@ function Theirs({ turn }: { turn: Turn }) {
           announced and then expires an hour later having done nothing. */}
       {turn.waiting ? <Waiting turn={turn} /> : null}
 
-      {/* Where it actually filed, from the content rows rather than from the
-          sentence, so a chip can never point somewhere nothing landed. */}
-      {turn.threads && turn.threads.length > 0 ? (
-        <View className="mt-space-3 flex-row flex-wrap gap-space-2">
-          {turn.threads.map((thread) => (
-            // Tappable, and it folds on the way out. A reply naming where it
-            // filed something and not taking you there is a sentence about a
-            // place rather than a way to it, and the conversation should get
-            // out of the way rather than close: you may want to keep dumping.
-            <Pressable
-              key={thread.id}
-              onPress={() => {
-                fold();
-                router.push({
-                  pathname: "/threads/[id]",
-                  params: { id: thread.id },
-                });
-              }}
-              className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-4"
-              style={{ height: 26 }}
-            >
-              <Glyph name="lasso" size={12} color={COLOR.accent} />
-              <Text
-                className="font-core text-text-accent"
-                style={{ fontSize: 12.5 }}
-              >
-                {thread.name}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+      <Filed turn={turn} />
     </View>
 
       {/* **Below the bubble, not inside it.** A row's press fill bleeds to its

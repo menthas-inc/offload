@@ -253,6 +253,23 @@ export function NotesSection({ threadId, notes, counts, members, onChanged, onTo
             </Text>
           </View>
         ) : null}
+
+        {/* The way in, once the section already draws. A thread with no notes
+            and no folded history draws nothing here, per the early return
+            above: dumping something is the way in for that case. */}
+        <Pressable
+          onPress={() => {
+            setEditing(null);
+            setDraft("");
+            setBodyDraft(null);
+            setAdding(true);
+          }}
+          hitSlop={10}
+          className="ml-auto"
+          accessibilityLabel="Add a note"
+        >
+          <Glyph name="plus" size={18} color={COLOR.iconOnWell} />
+        </Pressable>
       </View>
 
       <View className="px-gutter-screen">
@@ -269,24 +286,6 @@ export function NotesSection({ threadId, notes, counts, members, onChanged, onTo
           </Text>
         </View>
       ) : null}
-
-      <View className="px-gutter-screen pt-space-4">
-        <Pressable
-          onPress={() => {
-            setEditing(null);
-            setDraft("");
-            setBodyDraft(null);
-            setAdding(true);
-          }}
-          className="flex-row items-center gap-space-2 self-start rounded-pill border border-border-hairline px-space-5"
-          style={{ height: 30 }}
-        >
-          <Glyph name="plus" size={13} color={COLOR.iconOnWell} />
-          <Text className="font-core font-medium text-text-secondary" style={{ fontSize: 13 }}>
-            Add
-          </Text>
-        </Pressable>
-      </View>
 
       {/* What the daily job folded. Counted rather than hidden: offload
           rewriting sentences somebody typed and saying nothing about it is the

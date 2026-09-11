@@ -508,6 +508,44 @@ ANSWER_CALENDAR_TOOL_DEFS = [
     for name in ("list_calendars", "find_events")
 ]
 
+class Say(BaseModel):
+    """Tell them something. Only when there is something to tell."""
+
+    text: str = Field(min_length=1, max_length=600)
+
+
+SCHEMAS["say"] = Say
+
+_DESCRIPTIONS["say"] = (
+    "Say something to them. **Almost never.** A dump that you simply filed "
+    "needs nothing said: they can see the Done mark and the thread it went to. "
+    "Call this only when they would not otherwise know something, like a part "
+    "you could not do, or a thread you started. Not calling it is the normal "
+    "end of a turn."
+)
+
+SAY_TOOL = {
+    "name": "say",
+    "description": _DESCRIPTIONS["say"],
+    "input_schema": _schema_for(Say),
+}
+
+# **Saying something is a tool, and that is the whole point.**
+#
+# The prompt asked for silence on an ordinary filing and the model wrote a
+# sentence anyway, including, once, "Done, no reply needed." A model ends its
+# turn with text because that is what ending a turn looks like; asking it not to
+# is asking it to do the unusual thing every time.
+#
+# So the default is inverted. On a filing turn the trailing text is ignored
+# entirely and the reply is whatever `say` was called with, which is usually
+# nothing at all. OFF-5's rule, applied to the one output that was still free
+# text: a model output crosses the boundary through a schema rather than by
+# being read off the end of a turn.
+#
+# **Answering is the other way round** and keeps its text: a question with no
+# sentence back is a failure, so there is nothing to invert.
+
 # Recomputed, because `TOOL_NAMES = frozenset(SCHEMAS)` above ran before these
 # were added and the loop checks every tool name against it before doing
 # anything else. Without this line the four reads are rejected as unknown_tool,

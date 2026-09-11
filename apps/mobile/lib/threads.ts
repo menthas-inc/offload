@@ -54,6 +54,8 @@ export interface Note {
   occursEndAt: string | null;
   dueAt: string | null;
   placeId: string | null;
+  /** The date carries no time, so nothing may draw one. */
+  allDay: boolean;
   /** When it was last written. Decides which notes reach offload when a thread
    *  holds more than the budget. */
   writtenAt: string;
@@ -110,6 +112,8 @@ export interface ContentRow extends Sortable {
   /** The repeating series this occurrence belongs to, or null for a one off.
    *  A timeline collapses a series to one entry; a calendar draws every one. */
   seriesRef: string | null;
+  /** The date carries no time, so nothing may draw one. */
+  allDay: boolean;
   author: { accountId: string | null; displayName: string; isYou: boolean };
   canDelete: boolean;
   canMove: boolean;

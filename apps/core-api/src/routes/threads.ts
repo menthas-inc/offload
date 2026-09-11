@@ -138,6 +138,8 @@ const noteSchema = z.object({
   /** When it was last written. What decides which notes reach a prompt when a
    *  thread holds more than the budget, and what the row shows. */
   writtenAt: z.coerce.date(),
+  /** The date carries no time, so nothing may draw one. */
+  allDay: z.boolean(),
   /** Set aside by the daily job. Only ever present on the folded list. */
   supersededAt: z.coerce.date().nullable(),
 });
@@ -195,6 +197,10 @@ const contentRow = z.object({
    *  to one entry and counts the rest; a calendar draws every occurrence, which
    *  is why the field says which series rather than how to draw it. */
   seriesRef: z.string().nullable(),
+  /** The date carries no time, so nothing may draw one. A day drawn as a time
+   *  is a day drawn wrong: "Sunday brunch" filed as a bare date read
+   *  "Saturday, 8:00 PM" to somebody in New York. */
+  allDay: z.boolean(),
   place: z
     .object({
       id: z.string(),
@@ -304,6 +310,13 @@ interface RawRow {
  *  sync onto every occurrence it produces. Empty string is treated as absent:
  *  a row whose series is the empty string belongs to nothing, and grouping by
  *  it would collect every such row into one imaginary series. */
+/** A date with no time in it. Derived from `attrs`, which is never sent whole,
+ *  exactly as `seriesRef` and `placeId` are. */
+function allDayOf(attrs: unknown): boolean {
+  if (typeof attrs !== "object" || attrs === null) return false;
+  return (attrs as Record<string, unknown>)["all_day"] === true;
+}
+
 function seriesRefOf(attrs: unknown): string | null {
   if (typeof attrs !== "object" || attrs === null) return null;
   const ref = (attrs as Record<string, unknown>)["series_ref"];
@@ -341,6 +354,7 @@ function toRow(row: RawRow, viewerId: string) {
     // client needs to know an occurrence repeats and has no business with the
     // rest of what a calendar sync wrote.
     seriesRef: seriesRefOf(row.attrs),
+    allDay: allDayOf(row.attrs),
     place: row.place_id
       ? {
           id: row.place_id,

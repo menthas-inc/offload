@@ -31,6 +31,34 @@ import type { ContentRow, Note } from "../../lib/threads";
 
 const isAndroid = Platform.OS === "android";
 
+/** Rehomes an all-day timestamp at local noon on the same UTC calendar day.
+ *
+ *  The API stores an all-day date as UTC midnight for the day it means. Read
+ *  with local getters anywhere west of Greenwich, that instant falls the
+ *  evening before, so `datedFor`'s `localDay` recovers the wrong day. Noon
+ *  keeps the same calendar day no matter the reader's offset. */
+function localizeAllDay(iso: string): string {
+  const at = new Date(iso);
+  return new Date(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate(), 12).toISOString();
+}
+
+function forRail<
+  T extends {
+    allDay: boolean;
+    occursAt: string | null;
+    occursEndAt: string | null;
+    dueAt: string | null;
+  },
+>(item: T): T {
+  if (!item.allDay) return item;
+  return {
+    ...item,
+    occursAt: item.occursAt ? localizeAllDay(item.occursAt) : item.occursAt,
+    occursEndAt: item.occursEndAt ? localizeAllDay(item.occursEndAt) : item.occursEndAt,
+    dueAt: item.dueAt ? localizeAllDay(item.dueAt) : item.dueAt,
+  };
+}
+
 interface Props {
   rows: ContentRow[];
   notes: Note[];
@@ -63,7 +91,16 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
     other: COLOR.quiet,
   };
 
-  const dated = useMemo(() => datedFor(rows, notes), [rows, notes]);
+  // **All-day dates come back as UTC midnight for the calendar day, and the
+  // shared rail reads them with local getters.** West of Greenwich that rolls
+  // the day back by one: a due date of the 14th drew its dot on the 13th, and
+  // a dateless dentist appointment on the 3rd of March drew on the 2nd at a
+  // fabricated 7pm. `forRail` rehomes the timestamp at local noon on the same
+  // UTC calendar day, which survives that reading intact.
+  const dated = useMemo(
+    () => datedFor(rows.map(forRail), notes.map(forRail)),
+    [rows, notes],
+  );
   const rail = useMemo(() => railFor(dated, today, weekStart), [dated, today, weekStart]);
 
   // **Over the entries, not the rows.** A task with an occurrence on one day
@@ -241,13 +278,18 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
           // draws it in the meta slot; here the row has one text line and this
           // is the slot it has, so a day with three timed events says which
           // order they are in rather than listing them silently.
+          // **Nothing when the date has no time in it.** A bare date is a day,
+          // and drawing an hour it does not have is how "Sunday brunch" read
+          // "8:00 PM".
           note={
-            one.due || !row.occursAt
+            one.due
               ? "due"
-              : new Date(row.occursAt).toLocaleTimeString(undefined, {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })
+              : row.allDay || !row.occursAt
+                ? undefined
+                : new Date(row.occursAt).toLocaleTimeString(undefined, {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })
           }
         />
       ))}

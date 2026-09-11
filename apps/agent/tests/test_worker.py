@@ -216,9 +216,8 @@ async def test_the_partial_reply_never_explains_itself():
     """offload once wrote "the task tool seems to be down, you may want to try
     again shortly" about a tool that was up. The screen says what did not save
     and offers the button; the reply says what did and stops."""
-    from offload_agent.worker import _partial_reply
-
     from offload_agent.harness.plan import Outcome
+    from offload_agent.worker import _partial_reply
 
     for reply in (
         _partial_reply(_outcome()),

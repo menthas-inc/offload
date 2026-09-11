@@ -332,6 +332,25 @@ export function Notes({
             with nothing in it, and a count of none beside the editor you are
             typing into is the same noise as an empty heading. */}
         {notes.length > 0 ? <em className={styles.sectionCount}>{notes.length}</em> : null}
+        {/* The way in, once the section already draws. A thread with none of
+            its own still draws nothing here, per the note above the early
+            return: the pane head's More menu is the way in for that case. */}
+        {adding ? null : (
+          <button
+            type="button"
+            className={styles.sectionAdd}
+            aria-label="Add a note"
+            title="Add"
+            onClick={() => {
+              setEditingId(null);
+              setDraft("");
+              setBodyDraft(null);
+              onAdding(true);
+            }}
+          >
+            <Icon name="plus" size={15} />
+          </button>
+        )}
       </h2>
 
       <div className={styles.notes}>
@@ -366,23 +385,6 @@ export function Notes({
           {quiet} of these are not reaching offload. Delete the ones that have stopped being true.
         </p>
       ) : null}
-
-      {adding ? null : (
-        <button
-          type="button"
-          className={styles.chip}
-          onClick={() => {
-            setEditingId(null);
-            setDraft("");
-            setBodyDraft(null);
-            onAdding(true);
-          }}
-          style={{ marginTop: "var(--space-4)" }}
-        >
-          <Icon name="plus" size={13} />
-          Add
-        </button>
-      )}
 
       {/* What the daily job folded. Counted rather than hidden: offload
           rewriting sentences somebody typed and saying nothing about it is the

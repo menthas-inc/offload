@@ -29,7 +29,7 @@ import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { accountFacts, listAgenda, listContent, search } from "../search/read.js";
 import { env } from "../env.js";
 import { BadTags, MAX_TAGS, normaliseTags, TAG_CHARS } from "../threads/tags.js";
-import { parseWhen, plausible } from "../threads/dates.js";
+import { isBareDate, parseWhen, plausible } from "../threads/dates.js";
 import {
   NOTE_BODY_CHARS,
   NOTE_TEXT_CHARS,
@@ -657,6 +657,17 @@ function parseDates(call: {
   return when;
 }
 
+/** A date with no time in it is a day, and the row says so.
+ *
+ *  `attrs.all_day`, which is the column 012 already uses for an all-day
+ *  calendar event, for the same reason and with the same meaning: a day drawn
+ *  as a time is a day drawn wrong, and a client that cannot tell invents an
+ *  hour. Only the occurrence is asked: a due date has no time anybody expects
+ *  to see. */
+function allDayAttrs(call: { occursAt?: string | null | undefined }): { all_day: true } | null {
+  return isBareDate(call.occursAt) ? { all_day: true } : null;
+}
+
 /** The three lists, in the shape the tool result carries.
  *
  *  Dates as ISO strings rather than Date objects, because this crosses a JSON
@@ -881,6 +892,7 @@ async function existing(
           occursAt: when.occursAt,
           occursEndAt: when.occursEndAt,
           dueAt: when.dueAt,
+          allDay: isBareDate(call.occursAt),
           fromMessageId: messageId,
         },
         trx,
@@ -1278,6 +1290,7 @@ export async function toolRoutes(app: App): Promise<void> {
             is_reminder: call.isReminder,
             priority: call.priority,
             tags,
+            ...(allDayAttrs(call) ? { attrs: allDayAttrs(call) } : {}),
             updated_at: sql`now()`,
           })
           // Idempotent on the tool call, so a post that succeeded and whose

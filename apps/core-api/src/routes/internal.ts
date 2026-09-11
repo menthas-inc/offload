@@ -63,7 +63,14 @@ const body = z.discriminatedUnion("outcome", [
   z.strictObject({
     outcome: z.literal("answered"),
     jobId: z.string().uuid(),
-    replyText: z.string().min(1),
+    /** Absent when there was nothing to say.
+     *
+     *  **A dump that was simply filed writes no reply at all.** The Done mark
+     *  and the pill naming the thread say what happened; a sentence repeating
+     *  what somebody just typed is noise in offload's voice. An answer is the
+     *  other way round and the worker refuses to post one without a sentence,
+     *  because a question with no answer is a failure. */
+    replyText: z.string().min(1).optional(),
     /** 013. Content ids an answer showed, in the order it read them.
      *
      *  Ids only. The reply resolves them when it is read, so a row ticked or
@@ -405,21 +412,27 @@ export async function internalRoutes(app: App): Promise<void> {
         if (!person || (person.state !== "seen" && person.state !== "partial")) return false;
 
         if (result.outcome === "answered" || result.outcome === "partial") {
-          const reply = await trx
-            .insertInto("messages")
-            .values({
-              conversation_id: payload.conversationId!,
-              account_id: accountId,
-              role: "offload",
-              type: "text",
-              turn_id: payload.turnId!,
-              text: result.replyText,
-              state: "answered",
-            })
-            .returning("id")
-            .executeTakeFirstOrThrow();
+          // **No row when there was nothing to say.** A dump that was simply
+          // filed writes no offload message at all: the Done mark and the pill
+          // naming the thread carry it, and `reply` on the wire is already
+          // nullable, so the clients have the shape for it.
+          const reply = result.replyText
+            ? await trx
+                .insertInto("messages")
+                .values({
+                  conversation_id: payload.conversationId!,
+                  account_id: accountId,
+                  role: "offload",
+                  type: "text",
+                  turn_id: payload.turnId!,
+                  text: result.replyText,
+                  state: "answered",
+                })
+                .returning("id")
+                .executeTakeFirstOrThrow()
+            : null;
 
-          if (result.outcome === "answered" && result.found?.length) {
+          if (result.outcome === "answered" && reply && result.found?.length) {
             const ids = result.found.flatMap((r) => r.contentIds);
             // Membership-checked again on the way in. The ids came from a read
             // that was already scoped, and re-checking costs one query and

@@ -108,7 +108,15 @@ def ctx(dump="dentist after the 20th", landed=0, has_calendar=False) -> DumpCont
     )
 
 
-async def test_a_dump_becomes_two_pieces_and_a_reply():
+async def test_a_dump_becomes_two_pieces_and_says_nothing():
+    """A filing turn ends with no reply, and that is the ordinary outcome.
+
+    The trailing text is ignored on this path: a model ends a turn with a
+    sentence because that is what ending a turn looks like, and asking it in a
+    prompt not to was asking for the unusual thing every time. It wrote "Done,
+    no reply needed." once. Now the only thing a person reads is what `say` was
+    called with, and an ordinary filing does not call it.
+    """
     model = StubModel([
         Response(
             content=[
@@ -126,9 +134,61 @@ async def test_a_dump_becomes_two_pieces_and_a_reply():
     outcome = await plan(model, ctx(), "claude-sonnet-5", tools)
 
     assert outcome.finished
-    assert outcome.reply == "Added to Flat admin."
+    assert outcome.reply is None
     assert len(outcome.landed) == 2
+    # `say` never reaches the Core API: it writes nothing.
     assert len(tools.calls) == 2
+
+
+async def test_a_turn_that_calls_say_is_the_one_that_speaks():
+    model = StubModel([
+        Response(
+            content=[
+                ToolUse(id="a", name="add_content",
+                       input={"thread_id": "t1", "title": "Brackets", "type": "task"}),
+                ToolUse(id="b", name="say",
+                       input={"text": "Started a thread for the bookshelf."}),
+            ],
+            stop_reason="tool_use",
+        ),
+        Response(content=[TextBlock("ignored")], stop_reason="end_turn"),
+    ])
+    tools = Recorder()
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", tools)
+
+    assert outcome.reply == "Started a thread for the bookshelf."
+    assert len(tools.calls) == 1
+    assert outcome.finished
+
+
+async def test_a_turn_that_filed_nothing_and_said_nothing_is_not_finished():
+    """Silence is a finished turn only when something landed. Nothing filed and
+    nothing said is a turn that did not happen."""
+    model = StubModel([Response(content=[TextBlock("")], stop_reason="end_turn")])
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert outcome.reply is None
+    assert not outcome.finished
+
+
+async def test_an_empty_thread_is_not_something_filed():
+    """`landed` counts `create_thread`, so a turn that made a thread, stopped
+    and said nothing would otherwise read as finished. It made an empty place
+    and told nobody."""
+    model = StubModel([
+        Response(
+            content=[ToolUse(id="a", name="create_thread", input={"name": "Bookshelf"})],
+            stop_reason="tool_use",
+        ),
+        Response(content=[TextBlock("")], stop_reason="end_turn"),
+    ])
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert outcome.landed
+    assert not outcome.finished
 
 
 async def test_every_model_call_records_usage():
@@ -168,23 +228,31 @@ async def test_stop_reason_drives_the_loop_not_the_presence_of_text():
     outcome = await plan(model, ctx(), "claude-sonnet-5", tools)
 
     assert len(tools.calls) == 1
-    assert outcome.reply == "Added to Flat admin."
+    # The trailing sentence is ignored on a filing turn: only `say` speaks.
+    assert outcome.reply is None
 
 
 async def test_an_invented_tool_name_is_refused_and_dispatches_nothing():
     model = StubModel([
         Response(content=[ToolUse(id="a", name="delete_everything", input={})],
                  stop_reason="tool_use"),
-        Response(content=[TextBlock("I could not do that.")], stop_reason="end_turn"),
+        Response(
+            content=[ToolUse(id="b", name="say", input={"text": "I could not do that."})],
+            stop_reason="tool_use",
+        ),
+        Response(content=[TextBlock("")], stop_reason="end_turn"),
     ])
     tools = Recorder()
 
     outcome = await plan(model, ctx(), "claude-sonnet-5", tools)
 
     assert tools.calls == [], "a name the model invented reached the dispatcher"
+    # It filed nothing, so it is finished only because it said why.
     assert outcome.finished
-    # And the refusal went back as a result the model could read.
-    results = model.requests[1]["messages"][-1]["content"]
+    # And the refusal went back as a result the model could read. The first
+    # request carries no results yet, so the one after the invented name is
+    # where they are.
+    results = model.requests[1]["messages"][2]["content"]
     assert json.loads(results[0]["content"])["error"] == "unknown_tool"
     assert results[0]["is_error"] is True
 
@@ -198,13 +266,17 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
 
     source = Path(plan_module.__file__).read_text()
 
-    # Every use of the model-supplied name, listed. There are three, and each
-    # one is either the membership check itself or downstream of it. A fourth
-    # appearing is the thing this test exists to notice.
+    # Every use of the model-supplied name, listed. Each one is either the
+    # membership check itself or downstream of it. A new one appearing is the
+    # thing this test exists to notice.
     uses = [line.strip() for line in source.splitlines() if "block.name" in line]
     assert uses == [
         "if block.name not in TOOL_NAMES:",
         "args = SCHEMAS[block.name].model_validate(block.input)",
+        # A comparison against one literal, deciding whether this call is the
+        # one tool that writes nothing and never leaves the loop. It reads the
+        # name and resolves nothing with it.
+        'if block.name == "say":',
         "body = await call_tool(block.name, block.id, args.model_dump())",
         # Recorded on a list of what failed. A string appended to a list.
         "outcome.failed.append(block.name)",
@@ -415,6 +487,9 @@ async def test_the_tools_are_sent_on_every_call():
             "set_thread_preference",
             "rename_thread",
             "add_note",
+            # Last, and it writes nothing: a turn speaks by calling it and
+            # almost never does.
+            "say",
         ]
 
 
@@ -428,6 +503,7 @@ async def test_the_calendar_tools_arrive_with_a_calendar():
     assert "list_calendars" in names
     # And the ordinary ten are still all there, in front of them.
     assert names[:10] == [t["name"] for t in TOOLS]
+    assert names[-1] == "say"
 
 
 async def test_a_reply_of_only_whitespace_is_no_reply():
@@ -477,9 +553,16 @@ async def test_a_refused_tool_makes_the_turn_partial_even_with_a_reply():
             stop_reason="tool_use",
         ),
         Response(
-            content=[TextBlock("The task tool seems to be down, try again shortly.")],
-            stop_reason="end_turn",
+            content=[
+                ToolUse(
+                    id="b",
+                    name="say",
+                    input={"text": "The task tool seems to be down, try again shortly."},
+                )
+            ],
+            stop_reason="tool_use",
         ),
+        Response(content=[TextBlock("")], stop_reason="end_turn"),
     ])
     tools = Recorder([{"ok": False, "error": "invalid_arguments"}])
 

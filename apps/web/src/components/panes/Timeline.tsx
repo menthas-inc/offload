@@ -39,6 +39,11 @@ interface Props {
   onToggle: (row: ContentRow) => void;
 }
 
+/** The hour, for a row that has one. */
+function time(at: string): string {
+  return new Date(at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
 /** The colour of a dot is what the thing is.
  *
  *  Semantic aliases, never a ramp: blue already means waiting on you, ink is a
@@ -201,12 +206,10 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
           }
           meta={
             <span className={styles.rowMeta}>
-              {one.due || !row.occursAt
-                ? "due"
-                : new Date(row.occursAt).toLocaleTimeString(undefined, {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+              {/* **Nothing when the date has no time in it.** A bare date is a
+                  day, and drawing an hour it does not have is how "Sunday
+                  brunch" read "8:00 PM". */}
+              {one.due ? "due" : row.allDay || !row.occursAt ? "" : time(row.occursAt)}
             </span>
           }
         />

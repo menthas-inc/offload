@@ -22,7 +22,7 @@ import { env } from "../src/env.js";
 import { uuidv7 } from "../src/uuid.js";
 import { BadTags, dimensionsIn, normaliseTags } from "../src/threads/tags.js";
 import { queryHash, resolvePlace, type Geocoder } from "../src/places/resolve.js";
-import { parseWhen, plausible } from "../src/threads/dates.js";
+import { isBareDate, parseWhen, plausible } from "../src/threads/dates.js";
 import { LIST_PAGE } from "../src/routes/tools.js";
 import { completeContent, reprioritise, setPreference } from "../src/routes/threads.js";
 import { readPreference } from "../src/threads/widgets.js";
@@ -834,12 +834,28 @@ describe("dates a model actually writes", () => {
     // The production failure: `z.string().datetime()` accepts only the second
     // of these, and a model asked to file "I should do it by next week" wrote
     // the first.
-    expect(parseWhen("2026-09-28")?.toISOString()).toBe("2026-09-28T00:00:00.000Z");
+    //
+    // **Noon, not midnight.** A bare day at midnight UTC is the previous
+    // evening everywhere west of Greenwich: "Sunday brunch" filed as
+    // `2026-09-13` was drawn under Saturday at 8pm in New York. Noon holds
+    // from UTC-11 to UTC+11 and the complete answer is the account's timezone,
+    // which is not stored yet.
+    expect(parseWhen("2026-09-28")?.toISOString()).toBe("2026-09-28T12:00:00.000Z");
     expect(parseWhen("2026-09-28T09:00:00Z")?.toISOString()).toBe("2026-09-28T09:00:00.000Z");
     expect(parseWhen("2026-09-28T09:00:00+03:00")?.toISOString()).toBe("2026-09-28T06:00:00.000Z");
     // No zone means UTC, which is wrong for somebody dumping late at night in
     // Lisbon and is the same gap the prompt's "today" has.
     expect(parseWhen("2026-09-28T09:00:00")?.toISOString()).toBe("2026-09-28T09:00:00.000Z");
+  });
+
+  it("says when a date was a day, so nothing draws an hour it does not have", () => {
+    // 012 already flags an all-day calendar event and says why: "an all-day
+    // event is a date, not midnight anywhere". A dumped date is the same fact
+    // through a different door and was drawn as a time.
+    expect(isBareDate("2026-09-28")).toBe(true);
+    expect(isBareDate("2026-09-28T09:00:00Z")).toBe(false);
+    expect(isBareDate("2026-09-28T09:00:00")).toBe(false);
+    expect(isBareDate(null)).toBe(false);
   });
 
   it("refuses prose rather than guessing at it", () => {
@@ -885,12 +901,34 @@ describe("dates a model actually writes", () => {
 
     const row = await db
       .selectFrom("content")
-      .select(["due_at", "occurs_at", "occurs_end_at"])
+      .select(["due_at", "occurs_at", "occurs_end_at", "attrs"])
       .where("derived_from_message_id", "=", messageId)
       .executeTakeFirstOrThrow();
-    expect(row.due_at?.toISOString()).toBe("2026-09-10T00:00:00.000Z");
-    expect(row.occurs_at?.toISOString()).toBe("2026-09-28T00:00:00.000Z");
-    expect(row.occurs_end_at?.toISOString()).toBe("2026-10-04T00:00:00.000Z");
+    // Noon, so the day survives being read west of Greenwich, and the row says
+    // it is a day so nothing draws an hour it does not have.
+    expect(row.due_at?.toISOString()).toBe("2026-09-10T12:00:00.000Z");
+    expect(row.occurs_at?.toISOString()).toBe("2026-09-28T12:00:00.000Z");
+    expect(row.occurs_end_at?.toISOString()).toBe("2026-10-04T12:00:00.000Z");
+    expect((row.attrs as Record<string, unknown>)["all_day"]).toBe(true);
+  });
+
+  it("does not call a real time a day", async () => {
+    const me = await account();
+    const t = await thread(me, "EU with fam");
+    const { jobId, messageId } = await dump(me);
+
+    await tool({
+      tool: "add_content", jobId, toolCallId: "t1", threadId: t,
+      title: "Dentist", type: "event", occursAt: "2026-09-28T09:00:00Z",
+    });
+
+    const row = await db
+      .selectFrom("content")
+      .select(["occurs_at", "attrs"])
+      .where("derived_from_message_id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(row.occurs_at?.toISOString()).toBe("2026-09-28T09:00:00.000Z");
+    expect((row.attrs as Record<string, unknown>)["all_day"]).toBeUndefined();
   });
 
   it("refuses an unreadable date as data, never as a 400 (AC-14)", async () => {

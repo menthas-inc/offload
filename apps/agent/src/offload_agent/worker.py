@@ -325,16 +325,18 @@ async def handle(
             )
             return
 
-        if outcome.reply is None:
-            raise InvalidOutput("model finished without a reply")
-
+        # **No reply is an outcome, not a failure.** A dump that was simply
+        # filed says everything it has to say through the Done mark and the
+        # pill naming the thread, and a sentence repeating what somebody just
+        # typed is noise wearing offload's voice. `finished` above already
+        # refused to call a silent turn finished unless something landed.
         await _post_result(
             http,
             cfg,
             {
                 "outcome": "answered",
                 "jobId": job.id,
-                "replyText": outcome.reply,
+                **({"replyText": outcome.reply} if outcome.reply else {}),
                 "usage": _usage_wire(outcome),
             },
         )

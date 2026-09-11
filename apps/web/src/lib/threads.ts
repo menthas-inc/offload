@@ -78,6 +78,8 @@ export interface Note {
   occursEndAt: string | null;
   dueAt: string | null;
   placeId: string | null;
+  /** The date carries no time, so nothing may draw one. */
+  allDay: boolean;
   /** When it was last written. What decides which notes reach offload when a
    *  thread holds more than the budget, and what the row shows. */
   writtenAt: string;
@@ -158,6 +160,8 @@ export interface ContentRow {
   /** The repeating series this occurrence belongs to, or null for a one off.
    *  A timeline collapses a series to one entry; a calendar draws every one. */
   seriesRef: string | null;
+  /** The date carries no time, so nothing may draw one. */
+  allDay: boolean;
   /** `accountId` is null once the author deleted their account. Their content
    *  stays in the threads they shared, per OFF-3, and the name comes off it.
    *  `displayName` falls back to "Someone" server-side, so the screen never

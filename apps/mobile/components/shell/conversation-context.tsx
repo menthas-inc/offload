@@ -241,7 +241,17 @@ export function ConversationProvider({
         setTurns((current) => {
           const next = current.map((turn) =>
             turn.id === messageId
-              ? { ...turn, state: answer.state, did }
+              ? {
+                  ...turn,
+                  state: answer.state,
+                  did,
+                  // **The pills go here when there is no reply to hang them
+                  // on.** A dump that was simply filed says nothing back, so
+                  // the Done mark and the thread it went to are the whole of
+                  // what the turn has to say, and without this the thread was
+                  // named nowhere at all.
+                  ...(answer.reply ? {} : { threads: answer.threads }),
+                }
               : turn,
           );
           if (!answer.reply) return next;

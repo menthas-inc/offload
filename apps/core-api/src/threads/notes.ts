@@ -67,6 +67,8 @@ export interface Note {
   occursEndAt: Date | null;
   dueAt: Date | null;
   placeId: string | null;
+  /** The date carries no time, so nothing may draw one. */
+  allDay: boolean;
   /** Set aside by the daily job. Off the prompt, off the section, still here. */
   supersededAt: Date | null;
   createdAt: Date;
@@ -98,6 +100,7 @@ const COLUMNS = [
   "notes.occurs_end_at",
   "notes.due_at",
   "notes.place_id",
+  "notes.attrs",
   "notes.superseded_at",
   "notes.created_at",
   "notes.updated_at",
@@ -135,6 +138,7 @@ type Row = Pick<
   | "occurs_end_at"
   | "due_at"
   | "place_id"
+  | "attrs"
   | "superseded_at"
   | "created_at"
   | "updated_at"
@@ -153,6 +157,10 @@ function toNote(row: Row & { authorIsMember?: boolean | number }): Note {
     occursEndAt: row.occurs_end_at,
     dueAt: row.due_at,
     placeId: row.place_id,
+    allDay:
+      typeof row.attrs === "object" &&
+      row.attrs !== null &&
+      (row.attrs as Record<string, unknown>)["all_day"] === true,
     supersededAt: row.superseded_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -311,6 +319,9 @@ export interface AddNote {
   occursEndAt?: Date | null;
   dueAt?: Date | null;
   placeId?: string | null;
+  /** The date had no time in it, so nothing may draw one. Same meaning as
+   *  012's all-day calendar event, in the same column. */
+  allDay?: boolean;
   fromMessageId?: string | null;
   /** The model's tool_use block id, when a model wrote this. */
   toolCallId?: string | null;
@@ -354,6 +365,7 @@ export async function addNote(
     occursEndAt = null,
     dueAt = null,
     placeId = null,
+    allDay = false,
     fromMessageId = null,
     toolCallId = null,
     derivedFromUntrusted = false,
@@ -402,6 +414,7 @@ export async function addNote(
       derived_from_untrusted: derivedFromUntrusted,
       derived_from_message_id: fromMessageId,
       tool_call_id: toolCallId,
+      ...(allDay ? { attrs: { all_day: true } } : {}),
     })
     .onConflict((oc) => oc.doNothing())
     .returning((eb) => [...COLUMNS, authorIsMember(eb)])

@@ -187,7 +187,18 @@ export function Composer({
         setTurns((current) => {
           const filed = (answer.threads?.length ?? 0) > 0;
           const next = current.map((turn) =>
-            turn.id === messageId ? { ...turn, state: answer.state, did: filed } : turn,
+            turn.id === messageId
+              ? {
+                  ...turn,
+                  state: answer.state,
+                  did: filed,
+                  // **The pills go here when there is no reply to hang them
+                  // on.** A dump that was simply filed says nothing back, so
+                  // the Done mark and the thread it went to are the whole of
+                  // what the turn has to say.
+                  ...(answer.reply ? {} : { threads: answer.threads }),
+                }
+              : turn,
           );
           return answer.reply
             ? [
@@ -425,6 +436,22 @@ export function Composer({
                   <span className={styles.done}>
                     <Icon name="check" size={11} />
                     Done
+                  </span>
+                ) : null}
+                {/* Only ever set when the turn said nothing back, so this
+                    never draws twice for one dump. */}
+                {turn.threads && turn.threads.length > 0 ? (
+                  <span className={styles.wentTo}>
+                    {turn.threads.map((thread) => (
+                      <Link
+                        key={thread.id}
+                        href={`/threads/${thread.id}`}
+                        className={styles.threadLink}
+                      >
+                        <Icon name="lasso" size={13} />
+                        {thread.name}
+                      </Link>
+                    ))}
                   </span>
                 ) : null}
                 {turn.state === "failed" ? (
