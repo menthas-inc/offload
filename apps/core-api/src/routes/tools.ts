@@ -1300,8 +1300,16 @@ export async function toolRoutes(app: App): Promise<void> {
             due_at: when.dueAt,
             occurs_at: when.occursAt,
             occurs_end_at: when.occursEndAt,
-            repeats: call.repeats ?? null,
-            repeats_until: call.repeatsUntil ? (parseWhen(call.repeatsUntil) ?? null) : null,
+            // **A rule needs a first occurrence and the database enforces it,
+            // so this keeps the two columns consistent rather than letting the
+            // constraint raise.** "Pay rent every month" filed as a task with
+            // only a due date is a plausible slip, and an unhandled check
+            // violation here is a 500 from an endpoint whose whole contract is
+            // that a refusal is a 200 the model can read and recover from.
+            // `notes.ts` already did this and `add_content` did not.
+            repeats: when.occursAt ? (call.repeats ?? null) : null,
+            repeats_until:
+              when.occursAt && call.repeatsUntil ? (parseWhen(call.repeatsUntil) ?? null) : null,
             is_reminder: call.isReminder,
             priority: call.priority,
             tags,

@@ -912,6 +912,51 @@ describe("dates a model actually writes", () => {
     expect((row.attrs as Record<string, unknown>)["all_day"]).toBe(true);
   });
 
+  it("drops a repeat that has no first occurrence rather than raising", async () => {
+    // "Pay rent every month" as a task with only a due date is a plausible
+    // slip, and the database refuses a rule with nothing to start from. This
+    // endpoint's contract is that a refusal is a 200 the model can read, so an
+    // unhandled check violation would be a 500 from the one route that must
+    // never produce one.
+    const me = await account();
+    const t = await thread(me, "Flat admin");
+    const { jobId, messageId } = await dump(me);
+
+    const response = await tool({
+      tool: "add_content", jobId, toolCallId: "t1", threadId: t,
+      title: "Pay rent", type: "task", dueAt: "2026-10-01", repeats: "month",
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().ok).toBe(true);
+
+    const row = await db
+      .selectFrom("content")
+      .select(["repeats", "occurs_at", "due_at"])
+      .where("derived_from_message_id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(row.repeats).toBeNull();
+    expect(row.due_at).not.toBeNull();
+  });
+
+  it("keeps a repeat that does have one", async () => {
+    const me = await account();
+    const t = await thread(me, "Flat admin");
+    const { jobId, messageId } = await dump(me);
+
+    await tool({
+      tool: "add_content", jobId, toolCallId: "t1", threadId: t,
+      title: "Standup", type: "event", occursAt: "2026-09-28T09:00:00Z",
+      repeats: "weekday",
+    });
+
+    const row = await db
+      .selectFrom("content")
+      .select(["repeats"])
+      .where("derived_from_message_id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(row.repeats).toBe("weekday");
+  });
+
   it("does not call a real time a day", async () => {
     const me = await account();
     const t = await thread(me, "EU with fam");
