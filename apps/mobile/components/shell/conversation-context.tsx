@@ -137,6 +137,17 @@ export interface Conversation {
    *  tick left standing would repeat the next thing typed. */
   repeats: boolean;
   setRepeats: (on: boolean) => void;
+  /** Whether a screen has a sheet of its own up.
+   *
+   *  **The plate is mounted above the router**, so anything a screen anchors to
+   *  the bottom of itself is painted under it. A long press opened the row
+   *  actions and all you could see was the first one, which is why deleting a
+   *  task looked impossible. Counted rather than a boolean: two sheets can
+   *  overlap for the length of one animation, and the last one to close would
+   *  otherwise bring the plate back under the first. */
+  sheetOpen: boolean;
+  openSheet: () => void;
+  closeSheet: () => void;
   /** Put the pinned composer away without writing anything. Never touches the
    *  server: nothing was said, so there is nothing to end. */
   dismissPin: () => void;
@@ -175,6 +186,9 @@ export function ConversationProvider({
   const [pin, setPin] = useState<Pin | null>(null);
   const [onScreen, setOnScreen] = useState<{ id: string; name: string } | null>(null);
   const [repeats, setRepeats] = useState(false);
+  const [sheets, setSheets] = useState(0);
+  const openSheet = useCallback(() => setSheets((open) => open + 1), []);
+  const closeSheet = useCallback(() => setSheets((open) => Math.max(0, open - 1)), []);
 
   const resolveWaiting = useCallback((turnId: string) => {
     setTurns((current) =>
@@ -485,6 +499,9 @@ export function ConversationProvider({
         setOnScreen,
         repeats,
         setRepeats,
+        sheetOpen: sheets > 0,
+        openSheet,
+        closeSheet,
         setDraft,
         submit,
         fold: () => setFolded(true),
@@ -502,4 +519,20 @@ export function ConversationProvider({
       {children}
     </ConversationContext.Provider>
   );
+}
+
+
+/** A screen sheet saying it is up, for as long as it is.
+ *
+ *  Anything a screen anchors to the bottom of itself is under the plate, which
+ *  is mounted above the router. Call this from the sheet rather than from its
+ *  caller: a sheet that closes itself would otherwise leave the plate hidden.
+ */
+export function useScreenSheet(open: boolean): void {
+  const { openSheet, closeSheet } = useConversation();
+  useEffect(() => {
+    if (!open) return;
+    openSheet();
+    return closeSheet;
+  }, [open, openSheet, closeSheet]);
 }

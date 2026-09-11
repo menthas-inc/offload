@@ -25,7 +25,7 @@ import Animated, { FadeIn, FadeInDown, FadeOut, useAnimatedStyle } from "react-n
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
-import { useConversation } from "./conversation-context";
+import { useConversation, useScreenSheet } from "./conversation-context";
 import {
   NOTE_BUDGET,
   NOTE_BODY_CHARS,
@@ -362,6 +362,9 @@ function Editor({
   onDelete: () => void;
 }) {
   const COLOR = useColors();
+  // Anchored to the bottom of a screen, and the plate is mounted above the
+  // router. Without this it opens underneath the composer and the tabs.
+  useScreenSheet(true);
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
 

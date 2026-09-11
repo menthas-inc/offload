@@ -56,6 +56,12 @@ export function Shell() {
   const inThread = pathname.startsWith("/threads/");
   if (!onTab && !inThread) return null;
 
+  // **A screen's own sheet is modal, and the plate is not part of it.** The
+  // plate is mounted above the router so a pushed screen cannot produce a
+  // second one, which also means it paints over anything a screen anchors to
+  // its own bottom: the row actions opened under it and only the first action
+  // showed. The toast stays, because an undo window is not chrome.
+
   const tabs: Tab[] = onTab
     ? [
         {
@@ -92,10 +98,12 @@ export function Shell() {
       {/* The sheet sits on top of the plate rather than beside it. Both were
           anchored to the bottom of the screen and the plate paints later, so
           the tabs covered the sheet's own composer. */}
-      <Animated.View style={lift} className="absolute inset-x-0 bottom-0">
-        <Conversation />
-        <Plate tabs={tabs} placeholder={inThread ? "Add to this" : undefined} />
-      </Animated.View>
+      {conversation.sheetOpen ? null : (
+        <Animated.View style={lift} className="absolute inset-x-0 bottom-0">
+          <Conversation />
+          <Plate tabs={tabs} placeholder={inThread ? "Add to this" : undefined} />
+        </Animated.View>
+      )}
       <ToastHost state={toast} />
     </>
   );

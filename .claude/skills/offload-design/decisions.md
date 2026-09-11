@@ -11,6 +11,21 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-11 · A screen's own sheet takes the plate off the screen
+**Surface:** iOS, Android
+
+**Was:** the row actions, the edit sheet and the note editor are anchored to the bottom of the screen they belong to. The plate is mounted above the router, so it painted over all three: a long press showed the word Edit and nothing else, and everything below it, Mark done and Delete, was under the composer and the tabs.
+
+**Is:** a screen sheet says it is up and the plate comes off the screen while it is. The scrim, which was already covering the screen, now covers everything.
+
+**"There is no way to delete a task" was this.** Reported as a missing control, and the control had been there since the sheet was written. A sheet that opens underneath another surface is indistinguishable from a feature nobody built, which is why this is worth a log entry rather than a line in a commit.
+
+**Counted, not a boolean.** Two sheets overlap for the length of one animation while one closes into another, and a boolean let the first one back bring the plate with it.
+
+**Same family as the two the pinned composer already hit.** `Plate` and `ConversationScrim` each deciding `raised` for themselves, and now this. The rule the three of them arrived at: anything mounted above the router decides what it covers in one place, and screens ask rather than assume.
+
+**Design system impact:** `RowActionSheet`, and any sheet contract that opens from inside a screen, should state that the plate is not part of it. The kits draw one screen at a time and cannot show this: the plate and the sheet are the same colour and the same shape, so a mock of either looks right on its own.
+
 ### 2026-09-11 · The day heading gets its + on the phone, and the edit sheet gets a way out
 **Surface:** iOS, Android
 

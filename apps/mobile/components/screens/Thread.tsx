@@ -56,7 +56,7 @@ import {
   type ContentRow,
   type ThreadBundle,
 } from "../../lib/threads";
-import { useConversation } from "../shell/conversation-context";
+import { useConversation, useScreenSheet } from "../shell/conversation-context";
 import { failed } from "../../lib/log";
 
 const isAndroid = Platform.OS === "android";
@@ -538,6 +538,9 @@ function TitleSheet({
   onRemove: (row: ContentRow) => void;
 }) {
   const COLOR = useColors();
+  // Same reason as the action sheet: this is anchored to the bottom of a screen
+  // and the plate is mounted above the router.
+  useScreenSheet(row !== null);
   const [draft, setDraft] = useState(row?.title ?? "");
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const lift = useAnimatedStyle(() => ({

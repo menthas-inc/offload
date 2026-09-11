@@ -11,6 +11,7 @@ import { Platform, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
+import { useScreenSheet } from "./conversation-context";
 
 const isAndroid = Platform.OS === "android";
 
@@ -37,6 +38,9 @@ export function RowActionSheet({
   onClose: () => void;
 }) {
   const COLOR = useColors();
+  // The plate is above the router and would paint over this. Before the early
+  // return, because a hook is not optional.
+  useScreenSheet(open);
   if (!open) return null;
 
   return (
