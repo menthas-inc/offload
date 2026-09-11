@@ -12,6 +12,8 @@
 
 import { useMemo, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { ReduceMotion, SlideInLeft, SlideInRight, runOnJS } from "react-native-reanimated";
 import {
   WEEKS_BEFORE_MONTHS,
   dayLabel,
@@ -57,6 +59,9 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
   // The month on screen, in month mode. Null means the one today is in, so it
   // follows today over midnight rather than pinning the month this mounted in.
   const [month, setMonth] = useState<string | null>(null);
+  // Which way the last move went, so the grid comes in from the side it came
+  // from. Movement says the direction in a way a redraw cannot.
+  const [went, setWent] = useState<1 | -1>(1);
 
   /** The colour of a dot is what the thing is: blue already means waiting on
    *  you, ink is a fact of the day rather than a demand on it, and amber is
@@ -198,6 +203,30 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
     </View>
   );
 
+  const goToday = (): void => {
+    // Back to this month from wherever you are, and in the direction that is
+    // actually true: forward if you had wandered into the past.
+    if (grid) setWent(grid.key > today ? -1 : 1);
+    setMonth(null);
+    setSelected(today);
+  };
+
+  const step = (by: 1 | -1): void => {
+    if (!grid) return;
+    setWent(by);
+    setMonth(stepMonth(grid.key, by));
+  };
+
+  // Sideways only, and only once the movement is clearly sideways, so a
+  // vertical drag still scrolls the thread under it. `runOnJS` because the
+  // callback runs on the UI thread and `step` is ordinary React state.
+  const swipe = Gesture.Pan()
+    .activeOffsetX([-20, 20])
+    .onEnd((event) => {
+      if (event.translationX < -40) runOnJS(step)(1);
+      else if (event.translationX > 40) runOnJS(step)(-1);
+    });
+
   const when = new Date(`${selected}T12:00:00`);
 
   return (
@@ -208,56 +237,72 @@ export function Timeline({ rows, notes, onDelete, onActions, onToggle }: Props) 
       {grid ? (
         <View className="flex-row items-center gap-space-2 px-gutter-screen pb-space-3">
           <Pressable
-            onPress={() => setMonth(stepMonth(grid.key, -1))}
+            onPress={() => step(-1)}
             hitSlop={10}
             accessibilityLabel="Previous month"
             className="min-h-tap-min justify-center"
           >
             <Glyph name="chevron-left" size={18} color={COLOR.iconOnWell} />
           </Pressable>
-          {/* **It takes the room, so the arrows never move.** Sized by the
-              month name, the right arrow walked between March and September,
-              and further in a language with longer months. */}
-          <Text
-            className={`flex-1 text-center font-core font-medium ${
-              isAndroid ? "text-a-on" : "text-text-primary"
-            }`}
-            style={{ fontSize: 14 }}
-          >
-            {grid.label}
-          </Text>
+
+          {/* **The arrows are the ends and everything else is between them.**
+              Today sat beyond the next arrow, which put the two ways of moving
+              through months on either side of a control that is not one. It is
+              always drawn: appearing and disappearing would shift the month
+              name beside it, and on this month it still takes the day back to
+              today. */}
+          <View className="flex-1 flex-row items-center justify-center gap-space-3">
+            <Text
+              className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+              style={{ fontSize: 14 }}
+            >
+              {grid.label}
+            </Text>
+            <Pressable onPress={goToday} hitSlop={10} className="min-h-tap-min justify-center">
+              <Text className="font-core font-medium text-text-accent" style={{ fontSize: 12.5 }}>
+                Today
+              </Text>
+            </Pressable>
+          </View>
+
           <Pressable
-            onPress={() => setMonth(stepMonth(grid.key, 1))}
+            onPress={() => step(1)}
             hitSlop={10}
             accessibilityLabel="Next month"
             className="min-h-tap-min justify-center"
           >
             <Glyph name="chevron-right" size={18} color={COLOR.iconOnWell} />
           </Pressable>
-          <Pressable
-            onPress={() => {
-              setMonth(null);
-              setSelected(today);
-            }}
-            hitSlop={10}
-            className="ml-auto min-h-tap-min justify-center"
-          >
-            <Text className="font-core font-medium text-text-accent" style={{ fontSize: 12.5 }}>
-              Today
-            </Text>
-          </Pressable>
         </View>
       ) : null}
 
-      {(grid ? grid.weeks : (rail ?? [])).map((row) =>
-        week(row, grid ? grid.inMonth : undefined),
+      {/* **A month is also a swipe.** The arrows are the discoverable way and
+          this is the one a thumb reaches for on a grid that looks like every
+          other calendar.
+
+          `activeOffsetX` is what stops it fighting the thread's own scrolling:
+          the gesture only takes over once the movement is clearly sideways, so
+          a vertical drag still scrolls the page under it. */}
+      {grid ? (
+        <GestureDetector gesture={swipe}>
+          {/* Keyed by the month so it remounts and the animation runs. Without
+              the key the same element is rewritten in place and nothing moves,
+              which is a redraw rather than a change of month. */}
+          <Animated.View
+            key={grid.key}
+            entering={(went === 1 ? SlideInRight : SlideInLeft)
+              .duration(140)
+              // Anybody who has asked for less movement gets the change and
+              // none of the travel.
+              .reduceMotion(ReduceMotion.System)}
+          >
+            {grid.weeks.map((row) => week(row, grid.inMonth))}
+          </Animated.View>
+        </GestureDetector>
+      ) : (
+        (rail ?? []).map((row) => week(row))
       )}
 
-      {/* **The date gives way, the pill does not.** At the larger system text
-          size "Thursday, September 10" plus the pill runs off the edge and the
-          pill is what clips, which is the half that says where you are. So the
-          date shrinks and wraps and the pill keeps its size. Found on a device
-          at 2x, which is the one thing no mock and no simulator had shown. */}
       <View className="flex-row items-start gap-space-3 px-gutter-screen pb-space-3 pt-space-6">
         <Text
           className={`flex-1 font-core font-semibold ${

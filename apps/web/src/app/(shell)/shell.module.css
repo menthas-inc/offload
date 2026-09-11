@@ -1862,6 +1862,39 @@ a.settingsRow:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* **A month arrives from the side you came from.** A grid that swaps in place
+   says a month changed and not which way you went, and the two arrows are a
+   pair whose whole meaning is direction.
+
+   Short and slight: 140ms and 12px, which is enough to read as movement and
+   not enough to wait for. Somebody stepping through six months in a row should
+   feel the direction rather than six animations. */
+@keyframes railFromRight {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes railFromLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.railSlide {
+  animation: railFromRight 140ms ease-out;
+}
+
+.railSlide[data-went="-1"] {
+  animation-name: railFromLeft;
+}
+
+/* Anybody who has asked for less movement gets the change and none of the
+   travel. The month still changes; it simply arrives. */
+@media (prefers-reduced-motion: reduce) {
+  .railSlide {
+    animation: none;
+  }
+}
+
 /* The month's own bar: where you are, a step either way, and the way back.
    A thread whose dates span a year is a calendar, and a calendar has these. */
 .railMonth {
@@ -1873,11 +1906,18 @@ a.settingsRow:hover {
 
 /* **It takes the room, so the arrows never move.** Sized by the month name, the
    right arrow walked left and right between March and September, and further
-   in a language with longer months. Taking the whole middle means the name is
-   the only thing that changes width. */
-.railMonthName {
+   in a language with longer months. Taking the whole middle means the name and
+   the way back are the only things that change width. */
+.railMiddle {
   flex: 1;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.railMonthName {
   font-weight: var(--weight-medium);
   font-size: calc(14px * var(--type-scale));
   color: var(--text-primary);
@@ -1900,9 +1940,9 @@ a.settingsRow:hover {
   color: var(--text-primary);
 }
 
-/* Last, and pushed to the end: it is the way back rather than a fourth step. */
+/* Between the arrows rather than beyond them: it is the way back, not a third
+   step, and the two ways of moving through months belong at the two ends. */
 .railToday {
-  margin-left: auto;
   min-height: 44px;
   padding: 0 var(--space-3);
   border: 0;

@@ -74,6 +74,9 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
   // The month on screen, in month mode. Null means the one today is in, so it
   // follows today over midnight rather than pinning the month this mounted in.
   const [month, setMonth] = useState<string | null>(null);
+  // Which way the last move went, so the grid comes in from the side it came
+  // from. Movement says which direction you went in a way a redraw cannot.
+  const [went, setWent] = useState<1 | -1>(1);
 
   const dated = useMemo(() => datedFor(rows, notes), [rows, notes]);
 
@@ -156,8 +159,17 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
   );
 
   const goToday = (): void => {
+    // Back to this month from wherever you are, and in the direction that is
+    // actually true: forward if you had wandered into the past.
+    if (grid) setWent(grid.key > today ? -1 : 1);
     setMonth(null);
     setSelected(today);
+  };
+
+  const step = (by: 1 | -1): void => {
+    if (!grid) return;
+    setWent(by);
+    setMonth(stepMonth(grid.key, by));
   };
 
   return (
@@ -171,27 +183,45 @@ export function Timeline({ rows, notes, handlers, onToggle }: Props) {
             type="button"
             className={styles.railStep}
             aria-label="Previous month"
-            onClick={() => setMonth(stepMonth(grid.key, -1))}
+            onClick={() => step(-1)}
           >
             <Icon name="chevron-left" size={16} />
           </button>
-          <span className={styles.railMonthName}>{grid.label}</span>
+
+          {/* **The arrows are the ends and everything else is between them.**
+              Today sat outside the next arrow, which put the two ways of
+              moving through months on either side of a control that is not
+              one. It is always drawn rather than only when you have wandered:
+              appearing and disappearing would shift the month name beside it,
+              and on this month it still does something, which is take the day
+              back to today. */}
+          <span className={styles.railMiddle}>
+            <span className={styles.railMonthName}>{grid.label}</span>
+            <button type="button" className={styles.railToday} onClick={goToday}>
+              Today
+            </button>
+          </span>
+
           <button
             type="button"
             className={styles.railStep}
             aria-label="Next month"
-            onClick={() => setMonth(stepMonth(grid.key, 1))}
+            onClick={() => step(1)}
           >
             <Icon name="chevron-right" size={16} />
-          </button>
-          <button type="button" className={styles.railToday} onClick={goToday}>
-            Today
           </button>
         </div>
       ) : null}
 
-      {(grid ? grid.weeks : (rail ?? [])).map((row) =>
-        week(row, grid ? grid.inMonth : undefined)
+      {/* Keyed by the month so it remounts and the animation runs. Without the
+          key the same element is rewritten in place and nothing moves, which
+          is a redraw rather than a change of month. */}
+      {grid ? (
+        <div key={grid.key} className={styles.railSlide} data-went={went}>
+          {grid.weeks.map((row) => week(row, grid.inMonth))}
+        </div>
+      ) : (
+        (rail ?? []).map((row) => week(row))
       )}
 
       <div className={styles.railDayHead}>

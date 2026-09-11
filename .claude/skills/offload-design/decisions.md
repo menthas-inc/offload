@@ -11,6 +11,21 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-11 · A month arrives from the side you came from
+**Surface:** web, iOS, Android
+**Was:** Prev, month name, next, then Today beyond the next arrow. Changing month swapped the grid in place.
+**Is:** Arrows at the two ends, the name and Today between them, and the new month slides in from the direction of travel. On a phone a sideways swipe changes it too.
+
+**The arrows are a pair whose whole meaning is direction**, so they are the two ends of the bar and everything else sits between them. Today was beyond the next arrow, which put the two ways of moving through months on either side of a control that is not one of them.
+
+**Today is always drawn, including on this month.** Appearing and disappearing would shift the month name beside it, which is the fault this bar was already fixed for once, and on this month it still does something: it takes the day selection back to today.
+
+**140ms and 12px.** A grid that swaps in place says a month changed and not which way you went. Short and slight on purpose, because somebody stepping through six months in a row should feel six directions rather than wait for six animations. Reduced motion gets the change and none of the travel, through the media query on web and `ReduceMotion.System` on the phones.
+
+**The swipe is the phone's real control and the arrows are the discoverable one.** `activeOffsetX` at 20px is what stops it fighting the thread's own scrolling: it only takes over once the movement is clearly sideways.
+
+**Design system impact:** the month bar is now three slots rather than four, and there is a movement convention in it that nothing else in the product has: a keyed remount with a directional slide. If another surface ever pages through something, that is the pattern to copy, and 140ms and 12px are the numbers. No new tokens; the durations are literals, which is worth a look when motion is next given tokens of its own.
+
 ### 2026-09-11 · The lit day is blue, and the day you are reading is white on it
 **Surface:** web, iOS, Android
 **Was:** A day with something on it took a grey ground and a hairline ring. The day being read took the neutral fill.
