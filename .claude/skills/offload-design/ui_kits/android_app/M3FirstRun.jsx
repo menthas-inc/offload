@@ -1,5 +1,5 @@
 const OFFLOAD_DS=(typeof window!=="undefined"&&window.OffloadDesignSystem_dc4a89)||{};
-const { Logo, Icon, Toast, NotificationAndroid } = OFFLOAD_DS;
+const { Logo, Icon, Toast, NotificationAndroid, PrismField } = OFFLOAD_DS;
 
 /* The same gate as iOS with the order flipped: Google leads, because that account is
    already on the device. Buttons are 56dp, the primary is filled blue, and Skip is a
@@ -16,13 +16,13 @@ const A_GOOGLE=({size=18})=>(
     <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
 );
 function AButton({tone="filled",onClick,children,glyph}){
-  const filled=tone==="filled",dark=tone==="dark";
+  const filled=tone==="filled",dark=tone==="dark",text=tone==="text";
   return (
     <button type="button" onClick={onClick} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,
       width:"100%",height:56,borderRadius:"var(--radius-pill)",cursor:"pointer",
-      background:filled?"var(--blue-600)":dark?"var(--ink-950)":"var(--surface-raised)",
-      color:filled||dark?"#FFFFFF":"var(--a-on)",
-      border:filled||dark?"1px solid transparent":"1px solid var(--a-outline)",
+      background:filled?"var(--blue-600)":dark?"var(--ink-950)":text?"transparent":"var(--surface-raised)",
+      color:filled||dark?"#FFFFFF":text?"var(--blue-700)":"var(--a-on)",
+      border:filled||dark||text?"1px solid transparent":"1px solid var(--a-outline)",
       font:"var(--weight-medium) 15px/1 var(--font-core)",letterSpacing:"0.01em"}}>
       {glyph||null}{children}
     </button>
@@ -30,7 +30,7 @@ function AButton({tone="filled",onClick,children,glyph}){
 }
 function ABigLockup(){
   return (
-    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",zIndex:1}}>
       <span style={{display:"flex",flexDirection:"column",alignItems:"center",gap:20}}>
         <Logo variant="mark" size={92}/>
         <span style={{font:"var(--weight-semibold) 30px/1 var(--font-core)",letterSpacing:"-0.03em"}}>offload</span>
@@ -46,7 +46,7 @@ function ARefusalLine({children}){
 }
 function AGateBody({title,sub}){
   return (
-    <div style={{textAlign:"center",padding:"0 24px 44px"}}>
+    <div style={{textAlign:"center",padding:"0 24px 44px",position:"relative",zIndex:1}}>
       <div style={{font:"var(--weight-semibold) 28px/1.18 var(--font-core)",letterSpacing:"-0.014em"}}>{title}</div>
       {sub?<div style={{font:"var(--weight-regular) 16px/24px var(--font-core)",letterSpacing:"0.01em",
         color:"var(--a-on-var)",marginTop:14}}>{sub}</div>:null}
@@ -54,14 +54,28 @@ function AGateBody({title,sub}){
   );
 }
 function AGateFoot({children}){
-  return <div style={{flex:"0 0 auto",padding:"0 24px 18px",display:"flex",flexDirection:"column",gap:12}}>{children}</div>;
+  return <div style={{flex:"0 0 auto",padding:"0 24px 18px",display:"flex",flexDirection:"column",gap:12,position:"relative",zIndex:1}}>{children}</div>;
 }
 function ATerms({children}){
   return <div style={{font:"var(--weight-regular) 12.5px/18px var(--font-core)",color:"var(--a-on-var)",textAlign:"center"}}>{children}</div>;
 }
 
+/* The gate's atmosphere belongs to first run, not to any one of its screens:
+   sign-in, the refusal, the tutorial and connect are one surface with changing
+   content, so the field is mounted once around all four and warps once on
+   arrival rather than restarting at every step. */
+function AGateShell({children}){
+  return (
+    <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",position:"relative"}}>
+      {PrismField?<PrismField variant="bloom" veil="none" arriveOnMount basePath="../../assets/prism"
+        style={{inset:"auto",left:"-34%",top:"-20%",width:"120%",height:"58%",zIndex:0}}/>:null}
+      <div style={{position:"relative",zIndex:1,flex:1,minHeight:0,display:"flex",flexDirection:"column"}}>{children}</div>
+    </div>
+  );
+}
 function M3SignInScreen({error,onApple,onGoogle}){
   return (
+    /* No veil on the gate's field: nothing in --text-tertiary crosses it. */
     <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column"}}>
       <ABigLockup/>
       <AGateBody title="One place for everything you would otherwise forget."
@@ -81,8 +95,8 @@ function M3NotInvitedScreen({email="jo@hey.com",joined,onJoin,onSwitch}){
     <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column"}}>
       <ABigLockup/>
       {joined
-        ?<AGateBody title="You are on the list" sub={"We will email "+email+" when your account is ready to use."}/>
-        :<AGateBody title="You are not on the list yet" sub={"We checked "+email+" and found no invite."}/>}
+        ?<AGateBody title="You're on the list" sub={"We'll email "+email+" when your account is ready to use."}/>
+        :<AGateBody title="You're not on the list yet" sub={"We checked "+email+" and found no invite."}/>}
       <AGateFoot>
         {joined
           ?<Toast message="Added to the waitlist" style={{borderRadius:"var(--radius-xs)",
@@ -130,22 +144,29 @@ function ATutorialArt({kind}){
   return <NotificationAndroid app="offload" time="now" title="Brackets go up Friday"
     body="You saved the link on Tuesday." width={312}/>;
 }
+const A_STEPS=A_TUTORIAL.length+1;
+/* Dots left, the way out top right, identical on every step. */
+function AStepBar({step,total=A_STEPS,onSkip,skipLabel="Skip"}){
+  return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px"}}>
+      <span style={{display:"flex",gap:6,alignItems:"center"}}>
+        {Array.from({length:total}).map((_,i)=>(
+          <span key={i} style={{height:6,width:i+1===step?18:6,borderRadius:"var(--radius-pill)",
+            background:i+1===step?"var(--a-on)":"var(--a-c-high)",transition:"width 200ms var(--ease-out)"}}/>
+        ))}
+      </span>
+      <button type="button" onClick={onSkip} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",
+        border:"none",background:"none",cursor:"pointer",height:48,
+        padding:"0 12px",margin:"0 -12px",
+        font:"var(--weight-medium) 14px/20px var(--font-core)",color:"var(--blue-700)"}}>{skipLabel}</button>
+    </div>
+  );
+}
 function M3TutorialScreen({step=1,onNext,onSkip}){
   const s=A_TUTORIAL[step-1];
-  const last=step===A_TUTORIAL.length;
   return (
     <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",padding:"16px 0 0"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px"}}>
-        <span style={{display:"flex",gap:6,alignItems:"center"}}>
-          {A_TUTORIAL.map((_,i)=>(
-            <span key={i} style={{height:6,width:i+1===step?18:6,borderRadius:"var(--radius-pill)",
-              background:i+1===step?"var(--a-on)":"var(--a-c-high)",
-              transition:"width 250ms cubic-bezier(.05,.7,.1,1)"}}/>
-          ))}
-        </span>
-        <button type="button" onClick={onSkip} style={{border:"none",background:"none",cursor:"pointer",padding:"10px 0",
-          font:"var(--weight-medium) 14px/20px var(--font-core)",color:"var(--blue-700)"}}>Skip</button>
-      </div>
+      <AStepBar step={step} onSkip={onSkip}/>
       <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
         <ATutorialArt kind={s.art}/>
       </div>
@@ -154,11 +175,57 @@ function M3TutorialScreen({step=1,onNext,onSkip}){
         <div style={{font:"var(--weight-regular) 16px/24px var(--font-core)",letterSpacing:"0.01em",
           color:"var(--a-on-var)",marginTop:12}}>{s.sub}</div>
       </div>
-      <AGateFoot><AButton tone="filled" onClick={onNext}>{last?"Get started":"Next"}</AButton></AGateFoot>
+      {/* Next on the last card too: the tutorial no longer ends the flow. */}
+      <AGateFoot><AButton tone="filled" onClick={onNext}>Next</AButton></AGateFoot>
     </div>
   );
 }
+/* The last screen of first run. Same decision as iOS, Material geometry: one provider,
+   the mark read before the words, two sentences, a filled button and a text button.
 
+   ALL COPY HERE IS PLACEHOLDER, and the two sentences most of all: they commit the
+   product to something about another service's data, which is the app's call. The shape
+   is ours, what offload reads and what it does back, as prose rather than switches. As of
+   8 September offload MAY write to a connected calendar, so nothing promises read-only.
+
+   The provider's mark is never redrawn; the build passes the official asset as `mark`. */
+function AProviderMark({mark,size=88,radius=20}){
+  const [broken,setBroken]=React.useState(false);
+  if(mark&&!broken) return <img src={mark} alt="" width={size} height={size} onError={()=>setBroken(true)}
+    style={{display:"block",width:size,height:size,borderRadius:radius,objectFit:"contain"}}/>;
+  return <span aria-hidden="true" title="Drop the official mark at assets/brands/google-calendar.svg"
+    style={{display:"block",width:size,height:size,borderRadius:radius,
+    background:"var(--a-c-low)",border:"1px dashed var(--a-outline)"}}/>;
+}
+function M3ConnectScreen({provider="Google Calendar",mark,step=A_STEPS,onConnect,onSkip}){
+  return (
+    <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",padding:"16px 0 0"}}>
+      {/* Not now, never Skip. Same position, different word. */}
+      <AStepBar step={step} onSkip={onSkip} skipLabel="Not now"/>
+      <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
+        <AProviderMark mark={mark}/>
+      </div>
+      <div style={{padding:"0 24px 24px"}}>
+        <div style={{font:"var(--weight-semibold) 28px/1.18 var(--font-core)",letterSpacing:"-0.014em",textWrap:"pretty"}}>Bring in your calendar</div>
+        <div style={{font:"var(--weight-regular) 16px/24px var(--font-core)",letterSpacing:"0.01em",
+          color:"var(--a-on-var)",marginTop:12,textWrap:"pretty"}}>So &ldquo;before the trip&rdquo; and &ldquo;after the dentist&rdquo; mean something.</div>
+        <div style={{display:"flex",flexDirection:"column",gap:12,marginTop:20}}>
+          {[["calendar","offload reads your days.","Times, titles and who is on them."],
+            ["plus","And it can add to them.","Anything you dump with a time on it can land back on your calendar."]].map(([ic,head,rest])=>(
+            <div key={head} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+              <Icon name={ic} size={16} style={{marginTop:4,flex:"0 0 auto",color:"var(--a-on-var)"}}/>
+              <span style={{flex:1,minWidth:0,font:"var(--weight-regular) 14px/20px var(--font-core)",
+                letterSpacing:"0.015em",color:"var(--a-on-var)"}}>
+                <b style={{color:"var(--a-on)",fontWeight:500}}>{head}</b> {rest}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <AGateFoot><AButton tone="filled" onClick={onConnect}>{`Connect ${provider}`}</AButton></AGateFoot>
+    </div>
+  );
+}
 /* Day one, after Get started. Today shows what a dump looks like, because the examples
    teach what the tutorial could not: half a sentence is a legitimate thing to type. They
    fill the composer rather than submitting, and they never come back once something real
@@ -208,4 +275,4 @@ function M3QuietEmpty({line,unread,onOpenNotifications,onOpenSettings}){
 }
 
 
-Object.assign(window,{M3EmptyToday,M3QuietEmpty,M3DayOneBar,M3SignInScreen,M3NotInvitedScreen,M3TutorialScreen,A_TUTORIAL_STEPS:A_TUTORIAL.length});
+Object.assign(window,{AGateShell,M3EmptyToday,M3QuietEmpty,M3DayOneBar,M3SignInScreen,M3NotInvitedScreen,M3TutorialScreen,M3ConnectScreen,AProviderMark,AStepBar,A_TUTORIAL_STEPS:A_TUTORIAL.length,A_FIRST_RUN_STEPS:A_STEPS});

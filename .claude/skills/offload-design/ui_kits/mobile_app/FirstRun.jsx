@@ -1,5 +1,5 @@
 const OFFLOAD_DS=(typeof window!=="undefined"&&window.OffloadDesignSystem_dc4a89)||{};
-const { Logo, Button, Icon, Toast, NotificationIOS, AppBar, IconButton } = OFFLOAD_DS;
+const { Logo, Button, Icon, Toast, NotificationIOS, AppBar, IconButton, PrismField } = OFFLOAD_DS;
 
 /* Getting in. Two providers, no email field and no password: Apple leads because the
    App Store rule says it has to be at least as prominent as Google's here. The refusal
@@ -32,7 +32,7 @@ function ProviderButton({kind,onClick}){
    wordmark hangs under it, so the first thing the app shows is the brand and nothing else. */
 function BigLockup(){
   return (
-    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",zIndex:1}}>
       <span style={{display:"flex",flexDirection:"column",alignItems:"center",gap:20}}>
         <Logo variant="mark" size={92}/>
         <span style={{font:"var(--weight-semibold) 30px/1 var(--font-core)",letterSpacing:"-0.03em"}}>offload</span>
@@ -48,11 +48,11 @@ function RefusalLine({children}){
   );
 }
 function GateFoot({children}){
-  return <div style={{flex:"0 0 auto",padding:"0 var(--gutter-screen) 22px",display:"flex",flexDirection:"column",gap:10}}>{children}</div>;
+  return <div style={{flex:"0 0 auto",padding:"0 var(--gutter-screen) 22px",display:"flex",flexDirection:"column",gap:10,position:"relative",zIndex:1}}>{children}</div>;
 }
 function GateBody({title,sub}){
   return (
-    <div style={{textAlign:"center",padding:"0 var(--gutter-screen) 44px"}}>
+    <div style={{textAlign:"center",padding:"0 var(--gutter-screen) 44px",position:"relative",zIndex:1}}>
       <div style={{font:"var(--text-title-1)",letterSpacing:"var(--tracking-title)"}}>{title}</div>
       {sub?<div style={{font:"var(--text-body-role)",color:"var(--text-secondary)",marginTop:12,lineHeight:"var(--leading-body)"}}>{sub}</div>:null}
     </div>
@@ -62,8 +62,23 @@ function Terms({children}){
   return <div style={{font:"var(--text-caption-role)",color:"var(--text-tertiary)",textAlign:"center",lineHeight:1.45}}>{children}</div>;
 }
 
+/* The gate's atmosphere belongs to first run, not to any one of its screens:
+   sign-in, the refusal, the tutorial and connect are one surface with changing
+   content, so the field is mounted once around all four and warps once on
+   arrival rather than restarting at every step. */
+function GateShell({children}){
+  return (
+    <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",position:"relative"}}>
+      {PrismField?<PrismField variant="bloom" veil="none" arriveOnMount basePath="../../assets/prism"
+        style={{inset:"auto",left:"-34%",top:"-20%",width:"120%",height:"58%",zIndex:0}}/>:null}
+      <div style={{position:"relative",zIndex:1,flex:1,minHeight:0,display:"flex",flexDirection:"column"}}>{children}</div>
+    </div>
+  );
+}
 function SignInScreen({error,onApple,onGoogle}){
   return (
+    /* No veil on the gate's field: nothing in --text-tertiary crosses it, and
+       the mark and wordmark over it are ink. */
     <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column"}}>
       <BigLockup/>
       <GateBody title="One place for everything you would otherwise forget."
@@ -86,8 +101,8 @@ function NotInvitedScreen({email="jo@hey.com",joined,onJoin,onSwitch}){
     <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column"}}>
       <BigLockup/>
       {joined
-        ?<GateBody title="You are on the list" sub={"We will email "+email+" when your account is ready to use."}/>
-        :<GateBody title="You are not on the list yet" sub={"We checked "+email+" and found no invite."}/>}
+        ?<GateBody title="You're on the list" sub={"We'll email "+email+" when your account is ready to use."}/>
+        :<GateBody title="You're not on the list yet" sub={"We checked "+email+" and found no invite."}/>}
       <GateFoot>
         {joined?<Toast message="Added to the waitlist"/>:(<>
           <Button variant="primary" size="lg" block onClick={onJoin}>Join the waitlist</Button>
@@ -133,21 +148,30 @@ function TutorialArt({kind}){
   );
   return <NotificationIOS app="offload" time="now" title="Brackets go up Friday" body="You saved the link on Tuesday." width={342}/>;
 }
+const STEPS=TUTORIAL.length+1;
+/* Dots left, the way out top right, identical on every step so neither moves
+   under the thumb between screens. */
+function StepBar({step,total=STEPS,onSkip,skipLabel="Skip"}){
+  return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 var(--gutter-screen)"}}>
+      <span style={{display:"flex",gap:6,alignItems:"center"}}>
+        {Array.from({length:total}).map((_,i)=>(
+          <span key={i} style={{height:6,width:i+1===step?18:6,borderRadius:"var(--radius-pill)",
+            background:i+1===step?"var(--ink-950)":"var(--ink-200)",transition:"width 200ms var(--ease-out)"}}/>
+        ))}
+      </span>
+      <button type="button" onClick={onSkip} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",
+        border:"none",background:"none",cursor:"pointer",height:"var(--tap-min)",
+        padding:"0 var(--space-4)",margin:"0 calc(var(--space-4) * -1)",
+        font:"var(--text-label-role)",color:"var(--text-secondary)"}}>{skipLabel}</button>
+    </div>
+  );
+}
 function TutorialScreen({step=1,onNext,onSkip}){
   const s=TUTORIAL[step-1];
-  const last=step===TUTORIAL.length;
   return (
     <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",padding:"14px 0 0"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 var(--gutter-screen)"}}>
-        <span style={{display:"flex",gap:6,alignItems:"center"}}>
-          {TUTORIAL.map((_,i)=>(
-            <span key={i} style={{height:6,width:i+1===step?18:6,borderRadius:"var(--radius-pill)",
-              background:i+1===step?"var(--ink-950)":"var(--ink-200)",transition:"width 200ms var(--ease-out)"}}/>
-          ))}
-        </span>
-        <button type="button" onClick={onSkip} style={{border:"none",background:"none",cursor:"pointer",padding:"10px 0",
-          font:"var(--text-label-role)",color:"var(--text-secondary)"}}>Skip</button>
-      </div>
+      <StepBar step={step} onSkip={onSkip}/>
       <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 var(--gutter-screen)"}}>
         <TutorialArt kind={s.art}/>
       </div>
@@ -155,11 +179,65 @@ function TutorialScreen({step=1,onNext,onSkip}){
         <div style={{font:"var(--text-title-1)",letterSpacing:"var(--tracking-title)"}}>{s.title}</div>
         <div style={{font:"var(--text-body-role)",color:"var(--text-secondary)",marginTop:10,lineHeight:"var(--leading-body)"}}>{s.sub}</div>
       </div>
-      <GateFoot><Button variant="primary" size="lg" block onClick={onNext}>{last?"Get started":"Next"}</Button></GateFoot>
+      {/* Next on the last card too: the tutorial does not end the flow any more. */}
+      <GateFoot><Button variant="primary" size="lg" block onClick={onNext}>Next</Button></GateFoot>
     </div>
   );
 }
 
+/* The last screen of first run, after the tutorial. One provider, one screen: the mark
+   large enough to be read before the words, two sentences, one button and Not now.
+   Deliberately makes no claim that a list exists, so a second provider becomes another
+   screen rather than a redesign.
+
+   ALL COPY HERE IS PLACEHOLDER. The two sentences commit the product to something about
+   another service's data, which is the app's call, not the design system's. The shape is
+   ours: what offload reads, what it does back, both as prose rather than toggles, per the
+   5 September Privacy refusal. As of 8 September offload MAY write to a connected
+   calendar, so nothing here promises read-only.
+
+   The provider's mark is never redrawn. offload's own comes from Logo.jsx because that
+   geometry is ours; a third party's radius, colours and letterforms are their
+   specification, and 90% right is what people spot instantly on a logo they see daily.
+   This kit draws a neutral stand-in; the build passes the official asset as `mark`. */
+function ProviderMark({mark,size=88,radius=18}){
+  const [broken,setBroken]=React.useState(false);
+  if(mark&&!broken) return <img src={mark} alt="" width={size} height={size} onError={()=>setBroken(true)}
+    style={{display:"block",width:size,height:size,borderRadius:radius,objectFit:"contain"}}/>;
+  return <span aria-hidden="true" title="Drop the official mark at assets/brands/google-calendar.svg"
+    style={{display:"block",width:size,height:size,borderRadius:radius,
+    background:"var(--surface-fill)",border:"1px dashed var(--border-strong)"}}/>;
+}
+function ConnectScreen({provider="Google Calendar",mark,step=STEPS,onConnect,onSkip}){
+  return (
+    <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",padding:"14px 0 0"}}>
+      {/* Not now, never Skip: Skip means skip the tutorial. Turning down a
+          connection is a different answer to a different question, so the word
+          changes while the position does not. */}
+      <StepBar step={step} onSkip={onSkip} skipLabel="Not now"/>
+      <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 var(--gutter-screen)"}}>
+        <ProviderMark mark={mark}/>
+      </div>
+      <div style={{padding:"0 var(--gutter-screen) 24px"}}>
+        <div style={{font:"var(--text-title-1)",letterSpacing:"var(--tracking-title)",textWrap:"pretty"}}>Bring in your calendar</div>
+        <div style={{font:"var(--text-body-role)",color:"var(--text-secondary)",marginTop:10,
+          lineHeight:"var(--leading-body)",textWrap:"pretty"}}>So &ldquo;before the trip&rdquo; and &ldquo;after the dentist&rdquo; mean something.</div>
+        <div style={{display:"flex",flexDirection:"column",gap:"var(--space-5)",marginTop:"var(--space-7)"}}>
+          {[["calendar","offload reads your days.","Times, titles and who is on them."],
+            ["plus","And it can add to them.","Anything you dump with a time on it can land back on your calendar."]].map(([ic,head,rest])=>(
+            <div key={head} style={{display:"flex",gap:"var(--space-5)",alignItems:"flex-start"}}>
+              <Icon name={ic} size={16} style={{marginTop:3,flex:"0 0 auto",color:"var(--text-tertiary)"}}/>
+              <span style={{flex:1,minWidth:0,fontSize:"var(--size-body-sm)",lineHeight:1.45,color:"var(--text-secondary)"}}>
+                <b style={{color:"var(--text-primary)",fontWeight:500}}>{head}</b> {rest}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <GateFoot><Button variant="primary" size="lg" block onClick={onConnect}>{`Connect ${provider}`}</Button></GateFoot>
+    </div>
+  );
+}
 /* Day one, after Get started. Today shows what a dump looks like, because the examples
    teach what the tutorial could not: half a sentence is a legitimate thing to type. They
    fill the composer rather than submitting, and they never come back once something real
@@ -210,5 +288,5 @@ function QuietEmpty({line,unread,barSolid,onOpenNotifications,onOpenSettings}){
   );
 }
 
-Object.assign(window,{EmptyToday,QuietEmpty,DayOneBar,SignInScreen,NotInvitedScreen,TutorialScreen,TUTORIAL_STEPS:TUTORIAL.length,
+Object.assign(window,{EmptyToday,QuietEmpty,DayOneBar,GateShell,SignInScreen,NotInvitedScreen,TutorialScreen,ConnectScreen,ProviderMark,StepBar,TUTORIAL_STEPS:TUTORIAL.length,FIRST_RUN_STEPS:STEPS,
   AppleGlyph,GoogleGlyph,ProviderButton,BigLockup,RefusalLine});

@@ -1,8 +1,11 @@
 const OFFLOAD_DS=(typeof window!=="undefined"&&window.OffloadDesignSystem_dc4a89)||{};
-const { Icon, IconButton, Chip } = OFFLOAD_DS;
+const { Icon, IconButton, Chip, AnswerResult, QuickReplies, TurnFooter } = OFFLOAD_DS;
 
-const LIVE_REF_TONE={thread:"accent",time:"attention",money:"warning"};
-const LIVE_REF_ICON={thread:"lasso",time:"clock",money:null};
+/* Kept for the screens that still draw a ref inline. The turn footer owns this contract
+   now, including the source kind: outline, because moss means offload did it and a citation
+   is the opposite claim. */
+const LIVE_REF_TONE={thread:"accent",time:"attention",money:"warning",source:"outline"};
+const LIVE_REF_ICON={thread:"lasso",time:"clock",money:null,source:"link"};
 
 function SentVoice({secs,bars}){
   const wave=bars&&bars.length?bars:Array.from({length:26},(_,i)=>0.25+0.6*Math.abs(Math.sin(i*1.7)));
@@ -52,35 +55,60 @@ function SentPhoto({name}){
   );
 }
 
-function Turns({turns,writing,onOpenThread}){
+function Turns({turns,writing,onOpenThread,onTick,onPick}){
   const endRef=React.useRef(null);
+  /* Ticking and picking are drawn here and reported upward: the row's own done state is
+     local to the kit, the toast and the turn it writes belong to the app. */
+  const [ticked,setTicked]=React.useState({});
+  const [answered,setAnswered]=React.useState({});
   React.useEffect(()=>{const el=endRef.current&&endRef.current.parentElement;if(el)el.scrollTop=el.scrollHeight;},[turns.length,writing]);
   return (
     <div style={{flex:1,minHeight:0,overflowY:"auto",display:"flex",flexDirection:"column",gap:"var(--space-4)",
       padding:"0 var(--gutter-screen) var(--space-4)"}}>
       {turns.map((t,i)=>t.from==="you"?(
         <React.Fragment key={i}>
-          <div style={{alignSelf:"flex-end",maxWidth:"84%",position:"relative",padding:"var(--space-3) var(--space-5)",
-            marginBottom:t.status?"var(--space-4)":0,
+          <div style={{alignSelf:"flex-end",maxWidth:"84%",padding:"var(--space-3) var(--space-5)",
             borderRadius:"var(--radius-lg) var(--radius-lg) 4px var(--radius-lg)",
             background:"var(--blue-50)",border:"1px solid var(--blue-100)",color:"var(--ink-950)",
             font:"var(--weight-regular) 15px/1.45 var(--font-core)"}}>
             {t.voice?<SentVoice secs={t.voice.secs} bars={t.voice.bars}/>:t.text}
-            {(t.photos||[]).map((f,j)=><SentPhoto key={j} name={f}/>)}
-            <StatusChip state={t.status}/></div>
+            {(t.photos||[]).map((f,j)=><SentPhoto key={j} name={f}/>)}</div>
+          {/* The mark used to hang off this bubble's corner, 10px up and 6px into it, which
+              is why it could never grow a chip: a row starting there runs back under the
+              bubble it is tucked inside. It is in the footer now, on offload's side. */}
+          {TurnFooter?<TurnFooter state={t.status} refs={t.refs} sources={t.sources} onOpenRef={(r)=>onOpenThread(r.id)}/>:null}
         </React.Fragment>
       ):(
-        <div key={i} style={{alignSelf:"flex-start",maxWidth:"92%",padding:"var(--space-4) var(--space-5)",
+        <React.Fragment key={i}>
+        <div style={{alignSelf:"flex-start",maxWidth:"92%",padding:"var(--space-4) var(--space-5)",
           borderRadius:"var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px",background:"var(--ink-50)"}}>
           <div style={{font:"var(--text-quiet-role)",fontSize:16,lineHeight:1.5}}>{t.text}</div>
-          {t.refs&&t.refs.length?(
-            <div style={{display:"flex",flexWrap:"wrap",gap:"var(--space-2)",marginTop:"var(--space-3)"}}>
-              {t.refs.map((r,j)=>{const k=r.kind||"thread";
-                return <Chip key={j} tone={LIVE_REF_TONE[k]} icon={LIVE_REF_ICON[k]}
-                  onClick={k==="thread"?()=>onOpenThread(r.id):undefined}>{r.name}</Chip>;})}
-            </div>
+          {/* A question offload asked, answered with a tap. Inside the bubble, like 012's
+              calendar control: it acts on the sentence directly above it. One open question
+              at a time, so picking closes it. */}
+          {AnswerResult&&t.options&&t.options.length&&!answered[i]?(
+            <QuickReplies options={t.options} note={t.note}
+              onPick={(o)=>{setAnswered(a=>({...a,[i]:true}));onPick&&onPick(o)}}/>
           ):null}
         </div>
+        {/* One card per read, below the bubble and never inside it: a row's fill bleeds to
+            the padded edge, and inside a turn the two cancel and it runs out under the
+            corner. Five rows before Show more on the phones. */}
+        {(AnswerResult?(t.results||[]):[]).map((r,j)=>(
+          <AnswerResult key={j} thread={r.thread} count={r.count} shown={5}
+            truncated={r.truncated} threadTotal={r.threadTotal} style={{alignSelf:"stretch"}}
+            rows={(r.rows||[]).map(x=>({...x,done:ticked[x.id]!==undefined?ticked[x.id]:x.done}))}
+            onToggle={r.tickable===false?undefined:(row)=>{const next=!(ticked[row.id]!==undefined?ticked[row.id]:row.done);
+              setTicked(v=>({...v,[row.id]:next}));onTick&&onTick(row,next)}}
+            onOpenThread={()=>onOpenThread&&onOpenThread(r.thread.id)}/>
+        ))}
+        {/* One footer per turn, under everything else it drew. An answering turn files
+            nothing and did nothing, so it passes no state and no refs and the row is
+            whatever it read. */}
+        {TurnFooter?<TurnFooter state={t.results?null:t.status}
+          refs={t.results?[]:t.refs} sources={t.sources}
+          onOpenRef={(r)=>onOpenThread(r.id)}/>:null}
+        </React.Fragment>
       ))}
       {writing?(
         <div aria-label="offload is writing" style={{alignSelf:"flex-start",display:"flex",alignItems:"center",gap:5,
@@ -120,13 +148,15 @@ function FoldedHeader({title,onRaise,onClose}){
 /* Two ways the same conversation can sit over a page.
    sheet: a layer over the page, dimmed behind, dragged from a grabber.
    grow:  the composer itself extending upward, attached to where you typed. */
-function LiveConversation({variant,live,turns,writing,onFold,onFull,onClose,onOpenThread,children}){
+function LiveConversation({variant,live,turns,writing,onFold,onFull,onClose,onOpenThread,onTick,onPick,children}){
   const isSheet=variant==="sheet";
   return (
     <>
       <style>{"@keyframes offload-pulse{0%,100%{opacity:.35}50%{opacity:1}}@keyframes offload-rise{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}"}</style>
+      {/* bottom:0 already lands on the plate's top edge: this sheet's containing
+          block is the content column above the plate, not the whole screen. */}
       <div style={{position:"absolute",left:0,right:0,bottom:0,zIndex:9,height:isSheet?"65%":"58%",
-        display:"flex",flexDirection:"column",background:"var(--surface-raised)",
+        display:"flex",flexDirection:"column",background:"var(--surface-plate)",
         borderRadius:"var(--radius-xl) var(--radius-xl) 0 0",
         boxShadow:"var(--shadow-sheet)",
         animation:"offload-rise var(--duration-slow) var(--ease-out)"}}>
@@ -147,7 +177,7 @@ function LiveConversation({variant,live,turns,writing,onFold,onFull,onClose,onOp
               border:"none",borderRadius:"var(--radius-pill)",cursor:"pointer",
               background:"var(--surface-fill)",color:"var(--text-secondary)"}}><Icon name="x" size={12}/></button>
         </div>
-        <Turns turns={turns} writing={writing} onOpenThread={onOpenThread}/>
+        <Turns turns={turns} writing={writing} onOpenThread={onOpenThread} onTick={onTick} onPick={onPick}/>
         {children}
       </div>
     </>

@@ -11,6 +11,116 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-14 · PrismField's contract is missing the prop React Native cannot do without
+**Surface:** iOS, Android
+
+**Is:** `shift`, a Reanimated shared value, belongs in `PrismField`'s declared props.
+
+The 14 September sync put `PrismField` into the enforced set for the first time, and its generated
+rule lists `variant, basePath, density, veil, pulse, arriveOnMount, style`. The phones pass one
+more, and have since 8 September: the web component attaches its own capture-phase scroll listener
+so no screen has to know the field exists, React Native has no equivalent, and the plate lives above
+the router while the lists live in the tab screens, so they are in different trees and cannot pass a
+prop at all. A single shared value spans it, written by whatever is scrolling and read by the field,
+both on the UI thread. That is the 8 September entry, "the parallax is handed in rather than
+listened for", and it was logged at the time.
+
+So the lint is enforcing a contract that predates a divergence this log already carries. Code wins
+and the contract catches up (OFF-7). Disabled at the one call site, with the reason and a pointer to
+that entry, rather than removing a working parallax to satisfy a generated file.
+
+**Design system impact:** add `shift?: SharedValue<number>` to `PrismField`'s props, native only,
+and regenerate `_adherence.oxlintrc.json`. Once that lands the disable comes out. Worth checking the
+same way for any other component entering the enforced set: a first-time rule is the moment every
+undeclared prop surfaces at once, and this one surfaced as a build failure rather than a review note.
+
+
+### 2026-09-14 · The rail stops saying "something here" in blue, and gains a second tier
+**Surface:** web, iOS, Android
+**Raised by:** the design system, off the open question in the 10 September rail entry: blue now means two more things on one surface.
+
+**Was:** a day with something on it drew a <code>--border-focus</code> ring plus a blurred <code>--border-attention</code> glow. With the waiting chip, today's ring, the day being read and the task dot, blue was carrying five meanings on one screen, two of them introduced by 015.
+
+**Is:** two tiers, neither of them blue. A day with content is a **lift**: `--surface-raised` with `--border-lift` and the shadow its theme has. A day carrying a decision adds a 1px `--border-decision` **inset ring**.
+
+**Both marks are new aliases rather than ramp references**, which is the same fix `--surface-noticed` got on 10 September and for the same reason: an un-aliased colour gets reached for from the ramp and the lint file has nothing to point at. `--border-lift` resolves to `--border-hairline` in light and `--ink-300` in dark; `--border-decision` and `--text-noticed` are both `--amber-700` in both themes, and they are two tokens rather than one because a day needing an answer and a thing offload noticed are two meanings that happen to share a value. Blue keeps today, as its border, and the day being read, as its fill.
+
+**Seven options were drawn, in both themes, and the themes decided it.** Three variations on the shipped treatment, then four replacements for the lit state: a paper lift, an ink ring, ink weight alone, and amber. Every one of them looked fine in light. The dark frame is where they separated, and three findings came out of it that no light mock could have produced.
+
+1. **`--shadow-1` is the keyword `none` in dark**, so the paper lift had no lift there at all: a 1.07:1 fill and a 1.23:1 hairline. That is why the chosen version takes a different border token in dark, which is the one state in the system where the two themes deliberately diverge.
+2. **Every tint darkens by design**, so no glow can be the load-bearing mark. The shipped blue glow measures 1.88:1 in dark and the amber tint 1.31:1.
+3. **A ring holds its value in both themes**, which is why the second tier is a ring and why `--border-decision` resolves to the ink amber rather than to `--surface-noticed`: 600 measures 2.03:1 as a 1px ring on white, the ink amber measures 7.2:1 on the lift in light and 10.27:1 in dark.
+
+**Moving the ground moved the dots.** Two of the four kinds failed on the lift, the task dot at 2.62:1 in dark and the note dot at 2.03:1 in light, both because they used fill aliases that are fixed across themes while their backdrop now moves. **A dot on a lift takes the text alias of its kind**, `--text-attention` and the newly minted `--text-noticed`, which flip with it; event and other already did and already passed. The note dot's 2.03:1 is also the figure that disqualified `--amber-600` as the ring, so the same standard now applies to the same colour on the same ground.
+
+**A wash dulls and an edge advances**, which is the finding behind the whole thing. The grey version of the lit state made a day with something on it read as *less* prominent than an empty one, because the tint darkened the ground under its number. So the lit day advances and **the empty day steps back**: `--text-tertiary` at regular weight, with today exempt, since a day with nothing on it is still today.
+
+**What the glow was and was not.** An earlier pass of this exploration claimed the shipped lit state disappears in dark. It does not: its ring measures 3.55:1 there and the glow only grades it. The reason to move off blue is the five meanings, not legibility, and the log should say so rather than the stronger thing.
+
+**Design system impact:** **three new aliases in `tokens/colors.css`, in all three scopes.** `--border-lift`, the edge of a raised cell, resolving to `--border-hairline` in light and `--ink-300` in dark, which is the only token in the system that deliberately takes a different step per theme and the reason is that dark has no drop shadow. `--border-decision`, the ring on something needing an answer. `--text-noticed`, the ink-weight counterpart to `--surface-noticed`, minted because the fill alias measures 2.03:1 as a dot on a raised surface and because borrowing the decision ring's token would have said the wrong thing. The last two share a value and are two tokens on purpose.
+
+Both palette cards are updated: `guidelines/colors-surfaces.html` gains a border-alias row, and `guidelines/colors-semantic.html`'s footer names the two meanings the amber step now carries. That is the lesson of the 10 September entry applied on the way in rather than a month later: a token nobody can see on a card is a token the next person reaches past.
+
+`readme.md` gains a Timeline rail section. `handoff/APPLY-2026-09-14-rail.md` carries the values per surface. **Still outstanding, and larger than this entry:** there is no governed component for a day cell or a week rail on any surface, and the kits' `TimelineWidget` is now three shapes behind. Two things want an answer before it is built: what counts as needing a decision, where an overdue thing is arguably louder than a due one, and whether one ink amber reading at two levels holds: the dot rule takes the note dot to `--text-noticed` and the day ring is `--border-decision`, which resolve to the same value today, so the day is a 1px edge and the thing is a 5px fill in one colour. If that is one amber too many the dot moves rather than the ring.
+
+---
+
+### 2026-09-14 · The turn footer, and the Done mark leaves the bubble
+**Surface:** web, iOS, Android
+**Raised by:** the design system, answering `handoff/DESIGN-2026-09-14-reaching-the-web.md` for 016.
+
+**Was:** two elements in two bubbles. `StatusChip` absolutely positioned into the person's own sent bubble, 10px up and 6px into its bottom left corner; the reference pills rendered inside offload's reply, gated on `t.from === "offload"`.
+
+**Is:** one row belonging to the turn, on offload's side, left aligned at the log's own gutter, holding the state mark, the thread pills and the source chips in that order. Drawn whether or not offload wrote a sentence.
+
+**Why it had to change rather than grow:** 004 settled that an ordinary filing turn says nothing, so it has no reply bubble, and 016 gives that same turn something to report. There was no container for a chip on any of the three surfaces. And the mark could not simply gain chips where it sat: it is positioned *into* the bubble's corner, so a row growing sideways from there runs back under the bubble it is tucked inside.
+
+**Three placements were drawn.** Keeping it in the sent bubble's column was rejected because the footer then inherits an 84% measure and wraps three chips onto two lines with the whole gutter free beside it, and because everything in the row is offload speaking, hung off the half of the log that is the person's own voice. Keeping the mark where it is and putting chips under the reply was rejected because it is exactly today, and today has no home for the silent turn.
+
+**Fixed order, state then threads then sources**, so a turn can be read at a glance without being read. Wraps rather than scrolls; **min-height, never height**; no fill, no hairline, no card, because the chips are the only painted things in it. An empty footer is no footer rather than a 26px gap.
+
+**An answering turn passes no state and no refs.** It wrote nothing and filed nothing, so it has no Done mark and no filed chips; the result card's own header stays the one link to the thread.
+
+**Design system impact:** new component `components/conversation/TurnFooter`, with its card. Wired into `mobile_app/LiveConversation.jsx`, `android_app/M3LiveConversation.jsx` and `web_app/WMisc.jsx`, each of which loses its in-bubble ref row and its in-bubble mark. **Still outstanding:** the older full-screen `ConversationScreen` in both phone kits and its web twin still draw `StatusChip` inside the bubble, so the kit now shows both patterns until those catch up. `readme.md` gains a Reaching the web section.
+
+---
+
+### 2026-09-14 · The source chip is outline, and it is the one external link in the conversation
+**Surface:** web, iOS, Android
+**Raised by:** 016, where the tone was already decided and the reasoning is what needed recording.
+
+**Is:** a `source` kind in `LIVE_REF_TONE` and `LIVE_REF_ICON` in all three kits, `tone="outline"` with the `link` glyph. The label is the registrable domain and nothing else: no path, no title, no scheme, no `www.`, at a 22ch max-width so only a genuinely long host truncates, from the end. Three chips, then a count.
+
+**Why not moss:** moss means "offload did this, you didn't" throughout this system. A citation is the opposite claim, evidence of where a fact came from, and `MemoryChip` already reserves outline for the external and non-inferred. Drawn both ways in the exploration: beside a moss thread pill, two moss chips make the thread and the domain the same kind of thing and the row loses its order.
+
+**The count is text, not a chip and not a control**, because there is no screen listing what a turn read and a chip would promise one. Threads are never counted this way: three sources is a footnote problem, three threads is a turn that did three things, each somewhere a person may want to go.
+
+**The rule that matters, stated as a rule about the source of the string rather than as an exception:** a reply may not carry an external link, because its words are page-authored and a link in offload's voice is a phishing surface. A source chip's label comes from the record of what was read and its target is the URL that was read, so it is a fact about where a request went. That is why this one is allowed and a link in a sentence is not.
+
+**A read that failed leaves no chip and no mention.** A chip is a record; there is nothing to record.
+
+**Design system impact:** `TurnFooter` renders sources as an anchor rather than a `Chip`, because it leaves the app and `Chip` has no `href`, using the outline tone's own values so it stays the same object. Worth knowing that `Chip` cannot be a link today, and that this is the second component to want one.
+
+---
+
+### 2026-09-14 · The sentence starts with the verb, and contractions are in
+**Surface:** all
+**Raised by:** 016's refusal line, "I don't search that.", against `readme.md`'s rule that offload never says "I".
+
+**Was:** third person, never "I", and three shipped lines that said "I" anyway: "I could not find that.", "I do not know. Theme is set on this phone...", and the briefed refusal. One line said "offload" as a subject: "offload did not finish that one."
+
+**Is:** in what offload says, **the sentence starts with the verb and names no subject.** "Can't search that.", "Couldn't find that.", "Didn't finish that one.", "Filed both.", "Stopped." Neither "I" nor "offload". Where the interface describes offload rather than speaking as it, the name is used, because a settings row has to say what it governs.
+
+**Why this rather than the amendment 016 proposed.** The brief offered first person for offload's own limits, third person otherwise. "Its own limits" licenses "I filed that", "I couldn't finish", "I'm slow today", and the voice drifts one string at a time, which is how it drifted to begin with. Dropping the subject splits nothing and is shorter, and every existing string already reads better without one. The product owner's call, made against both options.
+
+**Scope:** replies, progress lines, empty states, notification copy and onboarding. Not settings notes, where the name is the subject of the sentence by design. The admin panel is untouched: it is a staff tool in a different register and offload is not speaking in it.
+
+**Contractions are in**, as a second and wider change: every line before this wrote "did not" and "could not" in full.
+
+**Design system impact:** `readme.md`'s Person rule is rewritten. Copy changed in `mobile_app/data.js` (three replies, one notification title and body, one memory blurb), both sign-in screens, and both phone settings pages. **The one shipped line is "offload did not finish that one."**, which lives in `Conversation.tsx`, its web twin and the readme, and becomes "Didn't finish that one." That is code's to move.
+
+---
+
 ### 2026-09-14 · The phone's row draws what the web row draws, and the repeat box comes off
 **Surface:** web, iOS, Android
 
@@ -1562,6 +1672,230 @@ Both cannot hold. Following the Android kit, as the fork does, spends the "somet
 **The web already had this and said so.** `apps/web/src/lib/appearance.ts` carries a comment about two components each holding a copy of one stored key being how a screen disagrees with itself. The phone had the identical hole and no such note, which is the two-documents-days-apart shape in a single feature.
 
 **Design system impact:** none visual. Worth one line wherever the design system talks about the appearance control: anything that *displays* a preference subscribes to the preference, and anything that just needs a colour uses the resolved scheme. Those are different reads and only one of them is `useColors`.
+
+### 2026-09-09 · A result is a card, and the thread is its header
+**Surface:** mobile, android, web
+**Raised by:** the design system, answering `handoff/DESIGN-2026-09-09-answering.md` off branch `013-answering`.
+
+**Was:** nothing. No kit had ever drawn a search or an answer, which is why the brief came from code to design rather than the other way round.
+
+**Is:** one read is one card. The rows sit on a surface of their own, and the thread names them from a header row inside that card: moss, the lasso glyph, the count on the right, 44px, and it is the one link out of the result. Three framings were drawn. A chip above loose rows is the lightest and keeps the existing `Chip`, and it was rejected because the count has nowhere to live and a chip loose above a card reads as two objects where there is one result.
+
+**Why:** the card is what says these rows arrived together as one read, which is the whole difference between two results and one blended list. It also bounds the row fill, so web needs no exception to the pane row's negative margin.
+
+**The cost, stated so it is not rediscovered:** the header is a new part, not the chip. Everything else in the product names a thread with `Chip`, so this is a second way of doing it, allowed only inside a result. On a truncated read the header and the tail both point at the thread; that stands because they say different things, and it should not spread.
+
+**Design system impact:** new component `components/answering/AnswerResult`, wired into all three kits. `readme.md` gains an Answering section.
+
+---
+
+### 2026-09-09 · ROWS_SHOWN is 5 on the phones and 8 on web
+**Surface:** mobile, android, web
+**Raised by:** the brief, which called eight a guess and asked for a mock to answer it.
+
+**Was:** `ROWS_SHOWN = 8`, one number for every surface.
+
+**Is:** five on the phones, eight on web.
+
+**Why:** `Conversation.tsx` caps the sheet at 78% of the screen, which leaves about 446pt of log on a 844pt phone. Eight rows with the header and the control overrun that by roughly 165pt, so a new answer lands on rows with the sentence that answers the question already above the top edge. Five leaves the sentence, the header, all five rows and the control on screen together. Web has roughly twice the height and keeps eight.
+
+**Design system impact:** `AnswerResult` takes `shown`, defaulting to 5. The web kit passes 8. One number for both surfaces is what makes one of them wrong.
+
+---
+
+### 2026-09-09 · A finished row is never dimmed, and this is not answering's alone
+**Surface:** web, and any kit that draws a done row
+**Raised by:** the brief, quoting `WThing.jsx:38`.
+
+**Was:** `opacity: 0.5` on a ticked task in the web kit.
+
+**Is:** tertiary ink, a 1px strike and the moss tick. The row keeps its place and its contrast.
+
+**Why:** both shipping components already reject opacity in a written comment: dimming a row on a warm page reads as a rendering fault and takes the label under the contrast floor with it. The meta line fails first. Three signals already say done, so opacity adds nothing but the defect.
+
+**Design system impact:** `WThing.jsx` loses the wrapper, `WRow` gains `done` and `onToggle` and draws a real checkbox. Its box border moves from `--ink-300` (2.5:1) to `--border-strong`, which is the 3:1 floor for anything outlining a control.
+
+---
+
+### 2026-09-09 · Three things a turn already carries, and what answering does with each
+**Surface:** mobile, android, web
+**Raised by:** the design system, reading `Conversation.tsx` while drawing the answer.
+
+**Is:** three rules, all of which the code as it stands would get wrong.
+
+1. **No Done mark on an answering turn.** The mark is driven by `turn.state === "answered" && turn.did`, and an answering turn writes nothing, so `did` stays false. The reply underneath is the receipt. 👀 is unchanged and does more work here than on a dump, because retrieval takes longer than filing.
+2. **Inside the bubble is for a control, below it is for a result.** 012's calendar proposal stays inside; a result is an unbounded list of live rows with its own surface and goes below.
+3. **`turn.threads` is empty on an answering turn.** The filed chips answer "where did this go", which is a question about a write. Drawing them beside a result names one thread twice in two different components.
+
+**Design system impact:** the three kits' `Turns` now draw results below the bubble, options inside it, and suppress `refs` on any turn carrying results. Recorded in `readme.md`.
+
+---
+
+### 2026-09-09 · A filled primary is the inverse pair, never a ramp value
+**Surface:** all
+**Raised by:** the design system, drawing answering in dark.
+
+**Was:** `QuickReplies`' primary painted `--ink-950` with `--text-on-solid`, copied from the way 012's calendar control is written in `Conversation.tsx` (`bg-ink-950` with `text-text-inverse`).
+
+**Is:** `--surface-inverse` with `--text-inverse`. A light pill with dark ink in dark, the reverse on light.
+
+**Why:** the ink ramp flips between themes, so `--ink-950` is #EDEDED in dark and white on it is unreadable. The white in `--text-on-solid` is the pair for moss, blue and clay, which hold their value in both themes; ink does not, so it needs the inverse pair instead. Worth checking wherever else a fill is written as a ramp value.
+
+**The rest of dark needed nothing.** The plate is #0F0F11 and the card is `--surface-raised` at #212121, so the card is the lighter object and the plate between the bubble and the card keeps two same-value surfaces legible as two. Moss holds, so the tick, the header and the truncated tail have no dark variant.
+
+**Design system impact:** `components/answering/QuickReplies.jsx`, one line. Section 8 of `explorations/answering-options.html` draws it. `readme.md` carries the rule.
+
+---
+
+### 2026-09-09 · Follow-ups are 012's control generalised, and the best one is not asked
+**Surface:** mobile, android, web
+**Raised by:** the product owner, ahead of the multi-turn spec.
+
+**Is:** a question offload asks can be answered with a tap. Three options at most, all of them typeable, labels in the words somebody would say. A proposal has one primary and one plain way out; a choice among equals has no primary, because dark ink means offload is recommending and on a disambiguation it does not know. No option destroys anything. Picking writes your turn into the log exactly as typing would, and the chips go. One open question at a time, closed by the next turn whatever it says, because a yes arriving four turns late is a yes to something else.
+
+**The trust boundary, which is the part that does not depend on the model:** the turn that asks carries no write tools; the turn your tap creates does. A sentence in a shared thread therefore has nothing to talk offload into calling.
+
+**Three accelerators that are not a chip row.** Do it and say so, when the write is reversible, because the eight second toast is already insuring it: ask only when it is not reversible, reaches somebody else, or is a genuine coin flip. Offer to remember a disambiguation that keeps recurring, which deletes next week's question rather than this one. And answer a "which of these" on the result rows themselves, which needs no new control at all.
+
+**Design system impact:** new component `components/answering/QuickReplies`, wired into all three kits and drawn in section 7 of `explorations/answering-options.html`.
+
+---
+
+## 2026-09-08
+
+### 2026-09-08 · Connecting a calendar, and the promise that is no longer true
+**Surface:** mobile, android, web
+**Raised by:** the design system, building the connect-apps onboarding.
+
+**Is:** first run ends with an optional screen offering one connection, Google Calendar. The chosen
+shape is a single app on a single screen: the provider's mark at 88px, two sentences, one primary
+button and `Not now`. Not a list, because a list of one reads as a list that is missing something, and
+not a preview of the day, because the mark stops being the largest thing on screen. A second provider
+becomes a sixth screen or turns this into the list; nothing on the screen claims a list exists.
+
+**The mark is the provider's own asset, never redrawn.** offload's mark comes from `Logo.jsx` because
+that geometry is ours and written down. A third-party mark's radius, colours and letterforms are
+somebody else's specification, and an approximation that is 90% right is the kind of wrong a person
+spots instantly on a logo they see every day. The kits carry a drop slot; the build carries the
+official SVG.
+
+**`Not now`, never `Skip`.** Skip belongs to the name screen and means skip the tutorial. Declining a
+connection is a different answer to a different question, and it gets its own word.
+
+**Writes are allowed, and the read-only promise is retired.** Every surface that offered a connection
+said offload reads your days and never writes to them. That is no longer the product: offload may add
+to a connected calendar. The sentence is gone from the onboarding screen and from web Settings'
+Connected block. What replaced it is a placeholder and reads as one.
+
+**All copy on this screen is placeholder, and the two sentences under the mark especially.** They are
+the only strings in the product that make a commitment about what offload does with somebody else's
+data, which is the app's call rather than the design system's. The design fixes the *shape*: two
+sentences, what it reads and what it does back, as prose rather than toggles, per the 5 September
+Privacy refusal. The wording is open, and the write side needs more than wording: what appears, under
+whose name, and whether it can be undone are all unanswered, and may need their own Settings row
+rather than a line here.
+
+**Open, and not for the design system to close:** whether the screen appears for accounts that already
+exist, since every alpha account does; and whether `Not now` is remembered or asked again, because
+"every launch until you say yes" is how a prompt becomes something people dismiss without reading.
+
+**Design system impact:** `ConnectScreen` in `FirstRun.jsx` and `M3ConnectScreen` in
+`M3FirstRun.jsx`, both wired as a `connect` phase between the tutorial and day one. Not on web: web
+has no first run, and its Connected block in `WSettings` is where the same connection is managed, so
+only that block's note and Calendar card changed there.
+
+No new design system components and no token changes. The screen is `AppBar`/`ABar`, `Logo`, a
+provider mark passed in as a prop, `--text-title-1` and the gate's 52px pill buttons, which are now
+factored out of `ProviderButton` as `GateButton` so the last screen of first run and the first one
+share their geometry rather than each carrying a copy. Android gained an `AButton tone="text"`, which
+that kit needed anyway for a Material text button.
+
+**Connecting is a step, not an epilogue,** which settles the indicator: the dots span the tutorial
+plus this screen, so `STEPS` is `TUTORIAL.length + 1` and both screens draw four. The tutorial's last
+card therefore says **Next** rather than Get started, because nothing has started while another card
+is still ahead. The dots and the top-right way out are one shared `StepBar` / `AStepBar`, so the two
+screens cannot drift apart, and the connect screen has no app bar: it is the tutorial's frame with a
+provider mark where the art goes, one button where Next sits, and `Not now` where `Skip` sits.
+
+---
+
+### 2026-09-08 · The prism field: colour on the phones, and it is frozen
+**Surface:** mobile, android
+**Raised by:** the product owner. "The app currently lacks colour."
+
+**Is:** a baked prism texture on exactly two phone surfaces, inside the bottom plate and behind
+the sign-in lockup, held **frozen** until offload files something, at which point a real
+displacement shader runs for `--prism-run` and eases its clock to a stop over `--prism-settle`.
+Explored in `explorations/prism-phones.html`, `prism-motion.html` and `prism-motion-v2.html`;
+settled in `explorations/prism-design.html`; built as `components/layout/PrismField.jsx`.
+
+**It comes from the marketing atmosphere and it is not that.** The web version is a WebGL shader
+pushed through an SVG turbulence filter, and it costs ~96ms of raster a frame, which is why it has
+to freeze behind the privacy page. React Native has neither the filter nor a cheap route to the
+shader, so the same thin-film math ran once offline and the phones ship the result as a PNG. What
+survived is the picture; what went is the loop.
+
+**Density is not a taste value.** 140%, chosen by the product owner from a live control, and
+measured with the veil against `--text-tertiary`, which sits at exactly 4.5:1 on paper with no
+headroom and is used by every row's trailing time, the agenda's time column and a digest's line
+times. At the shipped pair the worst tab label is 4.86:1 with none of the strip failing.
+
+**Two mistakes worth recording, because both were the same mistake.** The field was first sized to
+a literal 210px behind the plate, which left 77px of it under the scrolling list with nothing
+muting it, and `--text-tertiary` failed 35% of that strip. Clipping it inside the plate fixed the
+contrast and made the field invisible, because a flat 86% fill eats whatever density adds. The
+answer was two things at once: a **graded** veil, light where nothing sits and full by the label
+band, and **flipping the texture**, whose alpha had been baked rising toward the bottom for a field
+that needed to fade up into the page. Unflipped, the field's density sat exactly where the veil was
+heaviest and the two gradients cancelled. Together they took it from a sixth of the gate's strength
+to three quarters.
+
+**Arrival, not weather.** Perpetual drift was built and rejected: on the plate most of the field is
+under a fill and three tab labels, so a 4px drift spends battery on pixels nobody sees. Frozen with
+a two-second warp on arrival costs nothing at rest, and it makes the field the change mark in a
+second place. A row takes a moss ground settling over `--duration-mark`; the field takes two
+seconds of flow. They fire together. The gate has no arrival, so the screen's own appearance is the
+trigger.
+
+**Skia is the dependency.** `react-native-skia` for the runtime shader, several MB of bundle. The
+shader itself is trivial per frame; the usual cost is the render loop staying awake, and here it is
+awake for two seconds after somebody puts something down.
+
+**Design system impact:** `tokens/atmosphere.css` is new, `styles.css` imports it, and
+`components/layout/PrismField.{jsx,d.ts,prompt.md}` plus `components/layout/prism.card.html` are
+new. The textures live in `assets/prism/`. Both plates and both gates are wired in the kits:
+`App.jsx`, `M3App.jsx`, `FirstRun.jsx`, `M3FirstRun.jsx`. `handoff/APPLY-2026-09-08-prism.md` is
+the instruction set, fifteen points.
+
+`readme.md` carries the rules, and five of them were learned by getting them wrong first:
+
+- The field is confined to two surfaces and may never sit under a scrolling list.
+- **What has to be symmetric is the composite, not either layer.** The eye sees the field's alpha
+  times what the veil passes. Shaping the field alone still opened in 25px at the top and smeared
+  over 61px at the bottom, because at the top the two ramps coincide and at the bottom they
+  stagger. Both layers on the same window measures 27px at each end.
+- **`--prism-veil-reach` is the only stop that is not free to move**, since full fill has to be
+  reached above the tab labels at 64% of the band. That fixes the visible window; everything else
+  is derived from it.
+- **`--surface-plate` is new**: the ground the field sits on and the colour its veil is made of,
+  one token so the two cannot disagree. `--paper` on light, `#0F0F11` on dark, deliberately darker
+  than `--surface-card`. The plate, a raised conversation and the folded title row all take it.
+- **The composer never leaves the plate**, which is now a field constraint as well as a layout one:
+  each field maps the whole texture into its own box, so splitting it in two squashes the pattern.
+- **The field is the composer-and-tabs band only**, never a folded conversation's title row.
+- **The gate's bloom covers all of first run**, mounted once in `GateShell`.
+
+Dark works by re-pointing the fill rather than re-baking. **What is owed:** a dark set of textures
+would be better than light tints veiled against a dark ground, and nobody has baked one.
+
+**One thing that is not the design and cost three rounds of review.** The kit pages carry a `?v=`
+on `_ds_bundle.js` and `styles.css` and it has to be bumped whenever either changes. With a stale
+value the page pins an old build; with no query at all it takes whatever HTTP cached. Both look
+exactly like "I refreshed and I cannot see your change".
+
+---
+
+## 2026-09-05
 
 ### 2026-09-08 · offload writes to one thing, and the kits said it wrote to nothing
 **Surface:** mobile, web

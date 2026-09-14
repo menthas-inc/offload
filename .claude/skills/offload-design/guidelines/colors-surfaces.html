@@ -1,4 +1,4 @@
-<!-- @dsCard group="Colors" viewport="700x208" name="Surfaces & states" subtitle="Page, sunken, fill, inverse, hover and press overlays" -->
+<!-- @dsCard group="Colors" viewport="700x268" name="Surfaces & states" subtitle="Page, sunken, fill, inverse, the state overlays, and the border aliases" -->
 <!doctype html><html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css?v=1786472643305"><style>body{margin:0;padding:0;background:var(--surface-page);color:var(--text-primary);font:var(--text-body-role)}.lbl{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}</style></head><body><div data-ds-theme-root data-theme="light" style="background:var(--surface-page);color:var(--text-primary);padding:20px;min-height:100%;box-sizing:border-box"><div class="ds-theme-tg" role="group" aria-label="Theme" style="display:flex;border:1px solid var(--border-hairline);border-radius:var(--radius-pill);overflow:hidden;width:max-content;margin-bottom:14px">
 <button type="button" data-set="light" aria-pressed="true" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:var(--surface-inverse);color:var(--text-inverse)">Light</button>
 <button type="button" data-set="dark" aria-pressed="false" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:transparent;color:var(--text-secondary)">Dark</button>
@@ -8,7 +8,14 @@
 <div style="display:flex;gap:10px;margin-top:14px">
 <div style="flex:1;height:36px;background:var(--state-hover);border-radius:var(--radius-xs);display:flex;align-items:center;padding:0 10px" class="lbl">state-hover · 4% ink</div>
 <div style="flex:1;height:36px;background:var(--state-press);border-radius:var(--radius-xs);display:flex;align-items:center;padding:0 10px" class="lbl">state-press · 8% ink</div>
-<div style="flex:1;height:36px;background:var(--state-selected);border-radius:var(--radius-xs);display:flex;align-items:center;padding:0 10px" class="lbl">state-selected · ink-100</div></div></div><script>
+<div style="flex:1;height:36px;background:var(--state-selected);border-radius:var(--radius-xs);display:flex;align-items:center;padding:0 10px" class="lbl">state-selected · ink-100</div></div>
+<div style="display:flex;gap:10px;margin-top:14px">
+<div style="flex:1"><div style="height:34px;border:1px solid var(--border-hairline);border-radius:var(--radius-xs)"></div><div class="lbl" style="padding-top:6px">hairline</div></div>
+<div style="flex:1"><div style="height:34px;border:1px solid var(--border-strong);border-radius:var(--radius-xs)"></div><div class="lbl" style="padding-top:6px">strong · 3:1</div></div>
+<div style="flex:1"><div style="height:34px;border:1px solid var(--border-focus);border-radius:var(--radius-xs)"></div><div class="lbl" style="padding-top:6px">focus</div></div>
+<div style="flex:1"><div style="height:34px;border:1px solid var(--border-danger);border-radius:var(--radius-xs)"></div><div class="lbl" style="padding-top:6px">danger</div></div>
+<div style="flex:1"><div style="height:34px;background:var(--surface-raised);border:1px solid var(--border-lift);border-radius:var(--radius-xs);box-shadow:var(--shadow-1)"></div><div class="lbl" style="padding-top:6px">lift · on raised</div></div>
+<div style="flex:1"><div style="height:34px;background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-decision);border-radius:var(--radius-xs)"></div><div class="lbl" style="padding-top:6px">decision · inset</div></div></div></div><script>
 (function(){
   var root=document.querySelector("[data-ds-theme-root]");
   document.querySelectorAll(".ds-theme-tg button").forEach(function(b){

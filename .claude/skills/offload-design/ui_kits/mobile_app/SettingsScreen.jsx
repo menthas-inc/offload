@@ -59,7 +59,7 @@ function SettingsScreen({onBack,onOpen}){
             font:"var(--weight-medium) 17px/1 var(--font-core)"}}>JM</span>
           <span style={{flex:1,minWidth:0}}>
             <span style={{display:"block",font:"var(--text-title-1)",fontSize:21,letterSpacing:"-0.01em"}}>Jo Martins</span>
-            <span style={{display:"block",fontSize:"var(--size-body-sm)",color:"var(--text-secondary)",marginTop:2}}>jo@hey.com &middot; free plan</span>
+            <span style={{display:"block",fontSize:"var(--size-body-sm)",color:"var(--text-secondary)",marginTop:2}}>jo@hey.com</span>
           </span>
           <Button variant="secondary" size="sm" onClick={()=>{}}>Sign out</Button>
         </div>

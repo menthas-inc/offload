@@ -1,5 +1,5 @@
 const OFFLOAD_DS=(typeof window!=="undefined"&&window.OffloadDesignSystem_dc4a89)||{};
-const { TabBar, Sheet, Toast, Button, ListRow, Icon } = OFFLOAD_DS;
+const { TabBar, Sheet, Toast, Button, ListRow, Icon, PrismField } = OFFLOAD_DS;
 /* Never borrow another thread's summary: if offload has not written one, say only
    what this thread's own fields support. */
 function neutralStanding(thread){
@@ -42,6 +42,9 @@ function App(){
   /* An exchange started from a page, before it becomes a saved conversation. */
   const [live,setLive]=React.useState(null);
   const [folded,setFolded]=React.useState(false);
+  /* Every dump ticks this, and the prism field warps when it changes. It is a
+     count rather than a boolean so consecutive arrivals each register. */
+  const [filed,setFiled]=React.useState(0);
   /* Opening the list marks everything read; the rows stay, greyed. */
   const [notifs,setNotifs]=React.useState(D.notifications||[]);
   const [notifOpen,setNotifOpen]=React.useState(false);
@@ -96,20 +99,61 @@ function App(){
      is acknowledged. A prototype should never pretend to understand. */
   function answerFor(said){
     const s=said.toLowerCase();
+    /* 013: a question is answered from what offload has, and files nothing. The call is
+       made on the text before anything is read, so the same sentence always lands the
+       same way whatever the corpus happens to hold. */
+    const A=D.answers||{};
+    /* 016: a public fact offload does not hold, answered with the domain it came from. */
+    if(/memorial day|bank holiday|what day is|public holiday/.test(s))return {text:"Monday 25 May.",refs:[{id:"lisbon",name:"Ana's bbq",kind:"thread"}],
+      sources:[{domain:"timeanddate.com",url:"https://www.timeanddate.com/holidays/us/memorial-day"}]};
+    /* Six reads are possible in one turn, so this is the three-chips-and-a-count case. */
+    if(/long weekend|what's on|whats on|going on near/.test(s))return {text:"Three things on Monday. Filed the cooler.",
+      refs:[{id:"lisbon",name:"Ana's bbq",kind:"thread"}],
+      sources:[{domain:"timeanddate.com",url:"#"},{domain:"visitlisboa.com",url:"#"},{domain:"cp.pt",url:"#"},
+        {domain:"metro.lisboa.pt",url:"#"},{domain:"fetedeslumieres.example",url:"#"}]};
+    /* A link that could not be read is filed as it always was, and offload says nothing. */
+    if(/^https?:\/\//.test(s))return {text:"Filed it.",refs:[{id:"read",name:"Read later",kind:"thread"}]};
+    if(/gun show|which candidate|polls are ahead/.test(s))return {text:"Can't search that."};
+    if(/theme|dark mode|text size/.test(s))return A.theme;
+    if(/butter|already add|did i add|is .* on the list/.test(s))return A.butter;
+    if(/left to do|still open|what is left|outstanding|to do from/.test(s))return A.open;
+    if(/staying|where am i|which flat|alfama/.test(s))return A.staying;
+    if(/knife|sharpen|did i save|read later/.test(s))return A.cutShort;
+    if(/which trip|the trip|trips/.test(s))return A.which;
     if(/owe|money|cost|pay/.test(s))return {text:"Three things. You owe Ana \u20AC214 for the flights, Sam \u00A312 for the drill bits, and the flat insurance renews at \u00A3340 on the 20th.",
       refs:[{id:"lisbon",name:"Lisbon trip"},{kind:"money",name:"\u20AC214 to Ana"},{kind:"time",name:"the 20th"}]};
     if(/ana|date|when/.test(s))return {text:"Ana can only travel the 14th to the 17th. She said so on Tuesday, and nothing has changed since.",
       refs:[{id:"lisbon",name:"Lisbon trip"},{kind:"time",name:"14th to 17th"}]};
-    if(/shelf|bookshelf|bracket/.test(s))return {text:"Oak, 210cm by 76cm, matte black brackets at 30cm. The brackets are not ordered and the sale ends Friday.",
+    if(/shelf|bookshelf|bracket/.test(s))return {text:"Oak, 210cm by 76cm, matte black brackets at 30cm. The brackets aren't ordered and the sale ends Friday.",
       refs:[{id:"shelf",name:"Bookshelf build"},{kind:"time",name:"Friday"}]};
-    return {text:"Kept. I put it with the Lisbon trip, where the rest of that lives.",refs:[{id:"lisbon",name:"Lisbon trip"}]};
+    return {text:"Kept it with the Lisbon trip, where the rest of that lives.",refs:[{id:"lisbon",name:"Lisbon trip"}]};
+  }
+
+  /* A tap on a quick reply is your turn, written into the log exactly as typing it would
+     be. The turn it creates is the one carrying the write; the turn that asked carried no
+     write tools at all. */
+  function pickReply(key,option){
+    const push=(row)=>setExtraTurns(t=>({...t,[key]:[...(t[key]||[]),row]}));
+    push({from:"you",text:option.label});
+    if(option.kind==="plain"){setTimeout(()=>push({from:"offload",text:"Left it off."}),700);return;}
+    setTimeout(()=>{
+      if(option.kind==="thread"){push({from:"offload",text:option.label+". The flights and the flat are both booked."});return;}
+      push({from:"offload",text:"Added to Groceries."});
+      setToast({message:"Butter added to Groceries.",action:"Undo"});
+    },900);
+  }
+  /* Ticking is the only write a result row can do, and it is reversible in the same
+     window and by the same control as every other one. */
+  function tickAnswerRow(row,next){
+    setToast({message:(next?"Ticked ":"Put back ")+row.title,action:"Undo"});
   }
 
   function submit(payload){
     const p=payload||{};
+    setFiled((n)=>n+1);
     if(convo){
       const said=saidFrom(p);
-      if(said)converse(convo.id,said,()=>({text:"Added to this one. I will keep it with the rest."}));
+      if(said)converse(convo.id,said,()=>({text:"Added to this one, with the rest of it."}));
       return;
     }
     if(live){
@@ -260,7 +304,7 @@ function App(){
       ))}
       <span style={{width:1,height:18,background:"var(--border-hairline)"}}/>
       <span style={{font:"var(--text-numeric-role)",fontVariantNumeric:"tabular-nums",fontSize:11,color:"var(--text-tertiary)"}}>first run</span>
-      {[["sign in","signin"],["refusal","refusal"],["not invited","notinvited"],["tutorial","tutorial"],["day one","empty"],["app","app"]].map(([l,p])=>{
+      {[["sign in","signin"],["refusal","refusal"],["not invited","notinvited"],["tutorial","tutorial"],["connect","connect"],["day one","empty"],["app","app"]].map(([l,p])=>{
         const on=p==="refusal"?(phase==="signin"&&refused):(phase===p&&!(p==="signin"&&refused));
         return <button key={l} type="button" onClick={()=>{
           if(p==="refusal"){setPhase("signin");setRefused(true);return}
@@ -278,16 +322,20 @@ function App(){
       </span>
     </div>
     <Phone theme={themeAttr}>
-      {(phase==="signin"||phase==="notinvited"||phase==="tutorial")?(
-        phase==="notinvited"
+      {(phase==="signin"||phase==="notinvited"||phase==="tutorial"||phase==="connect")?(
+        <GateShell>{
+        phase==="connect"
+          ?<ConnectScreen onConnect={()=>setPhase("empty")} onSkip={()=>setPhase("empty")}/>
+          :phase==="notinvited"
           ?<NotInvitedScreen joined={joined} onJoin={()=>setJoined(true)}
             onSwitch={()=>{setJoined(false);setPhase("signin")}}/>
           :phase==="tutorial"
             ?<TutorialScreen step={step} onSkip={()=>setPhase("app")}
-              onNext={()=>{if(step<window.TUTORIAL_STEPS)setStep(step+1);else setPhase("app")}}/>
-            :<SignInScreen error={refused?"That did not go through. Nothing was sent, try again.":null}
+              onNext={()=>{if(step<window.TUTORIAL_STEPS)setStep(step+1);else setPhase("connect")}}/>
+            :<SignInScreen error={refused?"That didn't go through. Nothing was sent, try again.":null}
               onApple={()=>{setRefused(false);setStep(1);setPhase("tutorial")}}
               onGoogle={()=>{setRefused(false);setPhase("notinvited")}}/>
+        }</GateShell>
       ):(<>
       <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",position:"relative"}}>
         <div style={{position:"relative",zIndex:1,flex:1,minHeight:0,display:"flex",flexDirection:"column",overflow:"hidden"}}>
@@ -309,11 +357,10 @@ function App(){
           <Toast message={toast.message} action={toast.action} onAction={()=>{if(toast.onAction)toast.onAction();setToast(null)}}/></div>:null}
         {live&&!folded?(
           <LiveConversation variant="sheet" live={live} turns={(extraTurns[live?live.id:""]||[])} writing={writing}
+            onTick={tickAnswerRow} onPick={(o)=>pickReply(live.id,o)}
             onFold={()=>setFolded(true)} onClose={()=>{setLive(null);setFolded(false)}}
             onFull={()=>{setConvo({id:live.id,title:live.title,when:"Just now"});setLive(null);setFolded(false)}}
-            onOpenThread={(id)=>{setLive(null);setFolded(false);setSpace(id)}}>
-            <Composer value={draft} onChange={setDraft} onSubmit={submit} placeholder="Add to this"/>
-          </LiveConversation>
+            onOpenThread={(id)=>{setLive(null);setFolded(false);setSpace(id)}}/>
         ):null}
         {share?<ShareSheet thingName={share} onClose={()=>setShare(null)}
           onShared={(names)=>say("Shared with "+names.join(" and "))}/>:null}
@@ -325,24 +372,41 @@ function App(){
         </Sheet>:null}
       </div>
       {(()=>{
-        const showComposer=!(space||person||memory||(allConvos&&!convo)||(live&&!folded)||settings);
+        /* The composer never leaves the plate. Raised or not, the plate is composer
+           plus tabs, which keeps the prism field one surface of one height. */
+        const showComposer=!(space||person||memory||(allConvos&&!convo)||settings);
         const showTabs=!(space||person||memory||convo||allConvos||settings);
         const inFolded=live&&folded;
         const underSheet=live&&!folded;
+        /* The plate gives up its own fill to the prism field: the field goes in
+           behind the composer-and-tabs band only, and the veil closes at both
+           of its edges so it arrives out of whatever is above it rather than on
+           a line. The field must never reach the list, so it lives in here
+           rather than behind the screen. */
         const plate=(
-          <div style={{position:"relative",zIndex:9,background:"var(--surface-raised)",
+          <div style={{position:"relative",zIndex:9,overflow:"hidden",background:"var(--surface-plate)",
             borderRadius:underSheet?0:"var(--radius-xl) var(--radius-xl) 0 0",
             boxShadow:underSheet?"none":"var(--shadow-sheet)",
             pointerEvents:notifOpen?"none":undefined}}>
+            {/* A folded conversation's title row sits OUTSIDE the field. The field
+                belongs to the composer-and-tabs band and nothing else: let it
+                span the title row too and it stretches over a taller box, which
+                walks the colour up the screen and puts it behind text. */}
             {inFolded?<FoldedHeader title={live.title} onRaise={()=>setFolded(false)}
               onClose={()=>{setLive(null);setFolded(false)}}/>:null}
+            <div style={{position:"relative"}}>
+            {PrismField?<PrismField variant="band" veil="graded" pulse={filed} basePath="../../assets/prism" style={{zIndex:0}}/>:null}
+            <div style={{position:"relative",zIndex:2}}>
             {showComposer?<Composer value={draft} onChange={setDraft} onSubmit={submit} bare
-              placeholder={convo?"Add to this conversation":inFolded?"Add to this":undefined}/>:null}
-            {showTabs?<TabBar style={{background:"transparent",borderTop:"1px solid transparent"}}
+              placeholder={convo?"Add to this conversation":live?"Add to this":undefined}/>:null}
+            {showTabs?<TabBar style={{background:"transparent",borderTop:"1px solid transparent",
+              backdropFilter:"none",WebkitBackdropFilter:"none"}}
               value={tab} onChange={(v)=>{setTab(v);setSpace(null);setPerson(null);setMemory(null);setConvo(null);setAllConvos(false);setLive(null);setFolded(false);setSettings(false);setSettingsPage(null);setShare(null);setInvite(false)}} items={[
               {value:"home",label:tod.label,icon:tod.icon},
               {value:"spaces",label:"My threads",icon:"lasso"},
               {value:"thoughts",label:"Memories",icon:"cloudy"}]}/>:null}
+            </div>
+            </div>
           </div>
         );
         return plate;

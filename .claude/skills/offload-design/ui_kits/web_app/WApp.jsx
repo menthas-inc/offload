@@ -145,6 +145,7 @@ function paneNode(p,ctx){
     case "memory":return <WMemory id={p.id} open={ctx.open} onOpenPerson={ctx.onOpenPerson}/>;
     case "conversations":return <WAllConversations open={ctx.open}/>;
     case "conversation":return <WConversation item={p} turns={ctx.turnsFor(p.id)} writing={ctx.writing===p.id}
+      onTick={ctx.onTickAnswer} onPick={(o)=>ctx.onPickReply(p.id,o)}
       onOpenThread={(id)=>ctx.open({kind:"thread",id})}/>;
     case "thread":return <WThing id={p.id} open={ctx.open} onOpenPerson={ctx.onOpenPerson}
       onShare={()=>ctx.onShare((D.spaces.find(s=>s.id===p.id)||{}).name||"this thing")}/>;
@@ -245,13 +246,33 @@ function App(){
   function turnsFor(id){return (D.memories.turns[id]||[]).concat(extra[id]||[]);}
   function answerFor(said){
     const s=said.toLowerCase();
+    /* 013: answered from what the account can see, and nothing is filed. Decided on the
+       text before anything is read, so the same sentence always lands the same way. */
+    const AN=D.answers||{};
+    /* 016: a public fact offload does not hold, answered with the domain it came from. */
+    if(/memorial day|bank holiday|what day is|public holiday/.test(s))return {text:"Monday 25 May.",refs:[{id:"lisbon",name:"Ana's bbq",kind:"thread"}],
+      sources:[{domain:"timeanddate.com",url:"https://www.timeanddate.com/holidays/us/memorial-day"}]};
+    /* Six reads are possible in one turn, so this is the three-chips-and-a-count case. */
+    if(/long weekend|what's on|whats on|going on near/.test(s))return {text:"Three things on Monday. Filed the cooler.",
+      refs:[{id:"lisbon",name:"Ana's bbq",kind:"thread"}],
+      sources:[{domain:"timeanddate.com",url:"#"},{domain:"visitlisboa.com",url:"#"},{domain:"cp.pt",url:"#"},
+        {domain:"metro.lisboa.pt",url:"#"},{domain:"fetedeslumieres.example",url:"#"}]};
+    /* A link that could not be read is filed as it always was, and offload says nothing. */
+    if(/^https?:\/\//.test(s))return {text:"Filed it.",refs:[{id:"read",name:"Read later",kind:"thread"}]};
+    if(/gun show|which candidate|polls are ahead/.test(s))return {text:"Can't search that."};
+    if(/theme|dark mode|text size/.test(s))return AN.theme;
+    if(/butter|already add|did i add|is .* on the list/.test(s))return AN.butter;
+    if(/left to do|still open|what is left|outstanding|to do from/.test(s))return AN.open;
+    if(/staying|where am i|which flat|alfama/.test(s))return AN.staying;
+    if(/knife|sharpen|did i save|read later/.test(s))return AN.cutShort;
+    if(/which trip|the trip|trips/.test(s))return AN.which;
     if(/owe|money|cost|pay/.test(s))return {text:"Three things. You owe Ana \u20ac214 for the flights, Sam \u00a312 for the drill bits, and the flat insurance renews at \u00a3340 on the 20th.",
       refs:[{id:"lisbon",name:"Lisbon trip"},{kind:"money",name:"\u20ac214 to Ana"},{kind:"time",name:"the 20th"}]};
     if(/ana|date|when/.test(s))return {text:"Ana can only travel the 14th to the 17th. She said so on Tuesday, and nothing has changed since.",
       refs:[{id:"lisbon",name:"Lisbon trip"},{kind:"time",name:"14th to 17th"}]};
-    if(/shelf|bookshelf|bracket/.test(s))return {text:"Oak, 210cm by 76cm, matte black brackets at 30cm. The brackets are not ordered and the sale ends Friday.",
+    if(/shelf|bookshelf|bracket/.test(s))return {text:"Oak, 210cm by 76cm, matte black brackets at 30cm. The brackets aren't ordered and the sale ends Friday.",
       refs:[{id:"shelf",name:"Bookshelf build"},{kind:"time",name:"Friday"}]};
-    return {text:"Kept. I put it with the Lisbon trip, where the rest of that lives.",refs:[{id:"lisbon",name:"Lisbon trip"}]};
+    return {text:"Kept it with the Lisbon trip, where the rest of that lives.",refs:[{id:"lisbon",name:"Lisbon trip"}]};
   }
   /* An instruction gets a mark, not a sentence. Anything else gets an answer. */
   function converse(key,said){
@@ -265,6 +286,18 @@ function App(){
     setTimeout(()=>setWriting(key),500);
     setTimeout(()=>{setWriting(null);push([{from:"offload",...answerFor(said)}]);},1700);
   }
+  /* A tap on a quick reply is your turn, written into the log as typing it would be. */
+  function pickReply(key,option){
+    const push=row=>setExtra(t=>({...t,[key]:[...(t[key]||[]),row]}));
+    push({from:"you",text:option.label});
+    if(option.kind==="plain"){setTimeout(()=>push({from:"offload",text:"Left it off."}),700);return;}
+    setTimeout(()=>{
+      if(option.kind==="thread"){push({from:"offload",text:option.label+". The flights and the flat are both booked."});return;}
+      push({from:"offload",text:"Added to Groceries."});
+      setToast({id:"answer-add",undoable:true,label:"Butter added to Groceries."});
+    },900);
+  }
+
   function submit(){
     const said=draft.trim();
     if(!said)return;
@@ -284,7 +317,10 @@ function App(){
     return ()=>window.removeEventListener("keydown",h);
   },[]);
 
+  /* Ticking is the only write a result row can do, and it is reversible the ordinary way. */
+  function onTickAnswer(row,next){setToast({id:"answer-tick",undoable:true,label:(next?"Ticked ":"Put back ")+row.title});}
   const ctx={open,now,turnsFor,writing,dead,onDelete,openSetting,dayOne,pending,
+    onTickAnswer,onPickReply:pickReply,
     onShare:(name)=>setShare(name),openInvite:()=>setInvite(true),
     onOpenPerson:(name)=>open({kind:"person",id:name}),
     onExample:(text)=>{setDraft(text);reset({kind:"today"});},
@@ -369,6 +405,7 @@ function App(){
           <WComposer value={draft} onChange={setDraft} onSubmit={submit}
             placeholder={active.kind==="conversation"||live?"Add to this":undefined}
             live={live?live.title:null} turns={live?turnsFor(live.id):[]} writing={live?writing===live.id:false}
+            onTick={onTickAnswer} onPick={(o)=>live&&pickReply(live.id,o)}
             onClose={()=>setLive(null)}
             onOpenThread={(id)=>{setLive(null);open({kind:"thread",id})}}
             onExpand={()=>{open({kind:"conversation",id:live.id,title:live.title,when:"Just now"});setLive(null)}}/>

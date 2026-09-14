@@ -23,7 +23,7 @@ A click-through recreation of the offload iOS app, composed from this design sys
 | `SettingsScreen.jsx` | Settings | Profile with sign out, search, then ten categories in grouped cards. |
 | `SettingsDetail.jsx` | Settings categories | All ten pages, built from four row types: plain, switch, radio group, person. |
 | `Sharing.jsx` | Sharing and invitations | The share sheet with search and the new-connection step, the @ picker, the pending strip on My threads, and the invitation screen. |
-| `FirstRun.jsx` | Sign in, no invite, the tutorial, day one | The gate with Apple then Google, the refusal line, the no-invite screen and its waitlist toast, the three tutorial screens, and the day-one empty states. |
+| `FirstRun.jsx` | Sign in, no invite, the tutorial, connect an app, day one | The gate with Apple then Google, the refusal line, the no-invite screen and its waitlist toast, the three tutorial screens, and the day-one empty states. `ConnectScreen` closes first run: one provider, the mark at 88px, two sentences and Not now. Its copy is placeholder and the provider mark is passed in, never drawn. |
 | `NotificationSheet.jsx` | Activity | A sheet that unrolls from under the app bar; read rows grey out on dismiss. |
 | `DayAgenda.jsx` | Agenda | Today and tomorrow as a list where free time is a first-class row. |
 | `LiveConversation.jsx` | Live conversation | The sheet a typed message opens, its folded header, and the chat turns. |

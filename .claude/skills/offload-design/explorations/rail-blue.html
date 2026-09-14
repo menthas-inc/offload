@@ -1,0 +1,339 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>The rail's blue</title>
+<link rel="stylesheet" href="../styles.css?v=20260914-rail">
+<link rel="stylesheet" href="frames.css?v=20260914-rail">
+<style>
+.crop{color:var(--text-primary);width:400px;flex:0 0 auto;box-sizing:border-box;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);padding:18px var(--gutter-screen) 20px;display:flex;flex-direction:column;gap:12px}
+.cell{width:400px;align-items:flex-start}
+.cell.wide{width:400px}
+.opt{display:flex;align-items:baseline;gap:8px;margin-top:2px}
+.opt b{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-primary)}
+.opt span{font:var(--weight-regular) 11.5px/1.3 var(--font-core);color:var(--text-tertiary)}
+.cell>*{max-width:100%}
+.rail{display:flex;gap:var(--space-1)}
+.day{flex:1 1 0;min-width:0;min-height:44px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:var(--space-1);padding:var(--space-3) var(--space-1);border:1px solid transparent;border-radius:var(--radius-xs);background:transparent;font-family:var(--font-core)}
+.dow{font-size:var(--size-caption);color:var(--text-tertiary)}
+.dom{font-weight:var(--weight-semibold);font-size:calc(13px * var(--type-scale));font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.dots{display:flex;align-items:center;gap:var(--space-1);min-height:7px}
+.dot{width:5px;height:5px;border-radius:var(--radius-pill);background:currentColor;display:block}
+.dot.done{background:transparent;box-shadow:inset 0 0 0 1px currentColor}
+.more{font-size:var(--size-caption);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.k-task{color:var(--surface-attention)}.k-event{color:var(--text-primary)}.k-note{color:var(--surface-noticed)}.k-other{color:var(--text-tertiary)}
+/* has something, as shipped: a crisp ring and a blurred inset glow, no fill */
+.day.has{box-shadow:inset 0 0 0 1px var(--border-focus),inset 0 0 12px 0 var(--border-attention)}
+/* has something, option B: the same trick with the quietest pair in the system */
+.day.hasn{box-shadow:inset 0 0 0 1px var(--border-hairline),inset 0 0 12px 0 var(--ink-150)}
+.day.today{border-color:var(--border-focus)}
+.day.past .dom,.day.past .dow{color:var(--text-tertiary)}
+/* D, paper lift: the lit day is a card on the page rather than a tint in it */
+.day.lift{background:var(--surface-raised);border-color:var(--border-hairline);box-shadow:var(--shadow-1)}
+[data-theme="dark"] .day.lift:not(.on){box-shadow:var(--shadow-2)}
+.decided .day.lift:not(.on):not(.today){border-color:var(--border-lift)}
+/* E, ink ring: an edge and no fill, so nothing dulls */
+.day.ring{border-color:var(--border-strong)}
+/* F, the number carries it: nothing on the cell at all */
+/* G, amber: the only hue left, drawn so the collision can be judged */
+.day.amber{box-shadow:inset 0 0 0 1px var(--amber-600),inset 0 0 12px 0 var(--amber-100)}
+/* An empty day steps back in all four, which is what B had upside down */
+.day.empty .dom{color:var(--text-tertiary);font-weight:var(--weight-regular)}
+/* Today is never demoted, which is what shell.module.css does: only past and outside days
+   lose their ink. An empty today still has to be today. */
+.day.today .dom{color:var(--text-primary);font-weight:var(--weight-semibold)}
+/* Tier two: a day carrying something that needs a decision. --border-decision, an alias
+   minted for this rather than a ramp step, resolving to the ink amber in each scope:
+   #7A4E02 on white and #F6C86A on #212121. Not --surface-noticed, which is a fill and
+   measures 2.03:1 as a 1px ring on white. */
+.day.attn:not(.on){box-shadow:inset 0 0 0 1px var(--border-decision)}
+.day.lift.attn:not(.on){box-shadow:inset 0 0 0 1px var(--border-decision),var(--shadow-1)}
+[data-theme="dark"] .day.lift.attn:not(.on){box-shadow:inset 0 0 0 1px var(--border-decision),var(--shadow-2)}
+/* Scoped to the crop, not to the cells, so the legend keys the same colours the rail
+   draws: a swatch sits outside .day and was still resolving the old fill aliases. */
+.decided .dot.k-task{color:var(--text-attention)}
+.decided .dot.k-note{color:var(--text-noticed)}
+.decided .day.on .dot:not(.done){background:var(--text-on-solid);color:var(--text-on-solid)}
+.decided .day.on .dot.done{background:transparent;box-shadow:inset 0 0 0 1px var(--text-on-solid)}
+/* Today is a blue border, and it has to be declared after the lift, which also sets a
+   border-colour at the same specificity: source order was handing today the hairline. */
+.day.today:not(.on){border-color:var(--border-focus)}
+/* the day being read, as shipped */
+.day.on{background:var(--surface-attention);box-shadow:none;border-color:var(--surface-attention)}
+.day.on .dom,.day.on .dow,.day.on .more{color:var(--text-on-solid)}
+.day.on .dot{background:var(--text-on-solid);box-shadow:none;color:var(--text-on-solid)}
+.day.on .dot.done{background:transparent;box-shadow:inset 0 0 0 1px var(--text-on-solid)}
+/* the day being read, option C: the system's own selected state */
+.day.oni{background:var(--surface-inverse);box-shadow:none}
+.day.oni .dom,.day.oni .more{color:var(--text-inverse)}
+.day.oni .dow{color:var(--text-inverse)}
+.day.oni .dot{background:var(--text-inverse);box-shadow:none;color:var(--text-inverse)}
+.day.oni .dot.done{background:transparent;box-shadow:inset 0 0 0 1px var(--text-inverse)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font:var(--weight-regular) 12px/1 var(--font-core);color:var(--text-secondary)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:5px;height:5px;border-radius:99px;display:block}
+.hd{display:flex;align-items:baseline;gap:8px}
+.hd b{font:var(--weight-medium) 15px/1.2 var(--font-core)}
+.hd u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.waiting{display:inline-flex;align-items:center;gap:var(--space-3);height:30px;box-sizing:border-box;padding:0 var(--space-5);border-radius:var(--radius-pill);background:var(--blue-600);color:var(--text-on-solid);font:var(--weight-medium) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body);white-space:nowrap}
+.verdict{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px}
+.verdict.no{background:var(--clay-100);color:var(--text-danger)}
+.verdict.yes{background:var(--surface-accent-soft);color:var(--moss-700)}
+.bad{border:1px dashed var(--clay-200)}
+.good{border:1px solid var(--border-accent)}
+</style></head><body><div class="wrap">
+
+<h1>The rail's blue</h1>
+<p class="lede">Seven options in two passes. The first three take the rail as shipped and try one change each: A leaves it alone, <b>B moves the lit day to a neutral</b>, C moves the day being read to inverse ink. That pass is what showed blue doing too many jobs, and B is the direction you picked out of it. <b>The second four are the live question:</b> blue keeps today and the day being read, and the lit day moves off it properly, with the prominence the right way round. <b>Decided in the last section:</b> the paper lift for a day with something on it, and amber as a second tier for a day carrying a decision, with blue keeping today and the day being read. <b>The cells here are about 49px wide</b>, within a pixel of the 48px a 390pt phone gives them. The web pane gives the same cell nearly twice that. Option A is lifted from the shipped code on both surfaces, <code>shell.module.css</code> with <code>panes/Timeline.tsx</code> on web and <code>components/shell/Timeline.tsx</code> on the phones, rather than from the log's description of it: the lit state is a crisp ring plus a blurred inset glow with no fill, today is ringed in <code>--border-focus</code>, and the cell is a 44px minimum at <code>--radius-xs</code>. The type is drawn at the web's values, a <code>--size-caption</code> weekday letter over a 13px semibold number; the phones set that letter to 11px and the <code>+N</code> count to 10px, which are the two numbers the surfaces disagree on. B and C change one line each against that. Same week in all three: Tuesday and Friday have things, Friday is over the dot cap, today is Wednesday, Thursday is the day being read.</p>
+
+<div class="sechead"><h2>What blue says now</h2><u>five things, one hue</u></div>
+<ul class="spec">
+<li><b>1. This needs you.</b> The system's own rule since August: blue is waiting, unresolved, or about to expire. A waiting chip, a needs-a-date badge, the calendar proposal.</li>
+<li><b>2. There is something on this day.</b> 015, as a <code>--border-focus</code> ring with a blurred <code>--border-attention</code> glow set inside the cell.</li>
+<li><b>3. Today is this day.</b> 015, as a <code>--border-focus</code> ring. On the phone a lit cell takes that same ring colour and is told apart from today by the glow alone.</li>
+<li><b>4. This is the day you are reading.</b> 015, as the solid <code>--surface-attention</code> fill with everything on it going white.</li>
+<li>And a fifth, quietly: <b>a task dot is <code>--surface-attention</code></b>, the same blue as the ring around it, so the commonest dot sits inside the glow it matches.</li>
+</ul>
+
+<div class="rowlabel">The three, in one frame<u>light and dark, same week</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Light</b><span>49px cells, as a phone draws them</span></div>
+<div class="crop"><div class="opt"><b>A</b><span>as shipped: ring and glow, solid blue read day</span></div>
+<div class="rail">
+<div class="day past"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past has"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on has"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day has"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="opt"><b>B</b><span>lit goes neutral</span></div>
+<div class="rail">
+<div class="day past"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past hasn"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on hasn"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day hasn"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="opt"><b>C</b><span>read day goes inverse</span></div>
+<div class="rail">
+<div class="day past"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past has"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day oni has"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day has"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="legend"><span><i class="dot k-task"></i>task</span><span><i class="dot k-event"></i>event</span><span><i class="dot k-note"></i>note</span><span><i class="dot k-other"></i>other</span><span><i class="dot k-other done"></i>done</span><span class="waiting" style="margin-left:auto">2 waiting</span></div></div>
+</div>
+<div class="cell" data-theme="dark"><div class="tag i" data-theme="light"><b>Dark</b><span>the same three</span></div>
+<div class="crop"><div class="opt"><b>A</b><span>as shipped: ring and glow, solid blue read day</span></div>
+<div class="rail">
+<div class="day past"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past has"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on has"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day has"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="opt"><b>B</b><span>lit goes neutral</span></div>
+<div class="rail">
+<div class="day past"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past hasn"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on hasn"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day hasn"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="opt"><b>C</b><span>read day goes inverse</span></div>
+<div class="rail">
+<div class="day past"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past has"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day oni has"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day has"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="legend"><span><i class="dot k-task"></i>task</span><span><i class="dot k-event"></i>event</span><span><i class="dot k-note"></i>note</span><span><i class="dot k-other"></i>other</span><span><i class="dot k-other done"></i>done</span><span class="waiting" style="margin-left:auto">2 waiting</span></div></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>A, as shipped.</b> The glow and the solid fill are far enough apart that the read day wins, and the lit cells are legible at a glance. The glow is the composer card's own trick at cell size, which is why it reads as lit from within rather than as a wash. But <b>only the read day is unchanged in dark</b>: see the next bullet.</li>
+<li><b>What A costs is the hue's meaning elsewhere.</b> The waiting chip in the legend is the real <code>Chip tone="attention"</code>, a solid <code>--blue-600</code> fill, because the soft tints were retired from that component: a tone is a fill. And <code>--surface-attention</code> is <code>--blue-600</code>, so <b>the chip and the day being read are not neighbours in a ramp, they are the same colour</b>, #3355D6 in both themes. One says "this needs you" and the other says "you are looking at this".</li>
+<li><b>What the dark frame found in A, measured as two marks rather than one.</b> The lit cell is a ring plus a glow, and they behave differently: the ring is <code>--border-focus</code> and holds at #4A68DE, <b>3.55:1 against the dark page</b>, while the glow is <code>--border-attention</code>, a tint, so it darkens by design from #C9D6FA to #334388 and measures <b>1.88:1</b>. So <b>A's lit state does not disappear in dark</b>, which is what I said last round and was wrong about: the ring carries it, exactly as the shipped CSS's own comment says. What the glow loses in dark is the graded quality, not the state. A's problem is the one you named, blue carrying too many meanings, and not legibility.</li>
+<li><b>B, lit goes neutral.</b> What 015 tried first and rejected, drawn here as the glow rather than the flat fill the entry describes, so it is the fairest version of the idea. <b>Its ring is the failure, not its glow:</b> <code>--ink-150</code> measures <b>1.23:1</b> against the dark page, three times weaker than A's ring, and the glow is the same colour so nothing else is holding it up. That is the real reason it reads as nothing, and it is what the four options below fix by using an edge the system already keeps at 3:1.</li>
+<li><b>C, the read day goes inverse.</b> The day you are reading is a selection, and this system already has one colour for selected: <code>Chip</code> draws it as <code>--surface-inverse</code> with <code>--text-inverse</code>, and so does the segmented control. Blue was the odd one out. The two states then separate by hue rather than by saturation of one hue, and blue goes back to one job on the rail.</li>
+<li><b>And this is what the dark frame is for.</b> <code>--surface-inverse</code> is <code>--ink-950</code>, which is #0B0B0B in light and <b>#EDEDED in dark</b>, so C is the heaviest mark on the rail in one theme and the lightest in the other. That is correct rather than a defect: inverse means "inverted relative to the page", which is what selected already means everywhere else in the product. But it does mean the cost is not "a black square", it is <b>the loudest square either way</b>, and the two themes have to be judged as two drawings.</li>
+<li><b>C's weekday letter is <code>--text-inverse</code>, not a dimmed ink.</b> Drawn first as <code>--ink-500</code>, which measures 4.6:1 in light and <b>2.5:1 in dark</b>, because that ramp flips with the theme while the letter's ground does not stop being the inverse surface. The two lines separate by size and weight instead, 12px regular over 13px semibold, which holds in both themes. Same defect as the filled primary logged on 9 September, found the same way: by drawing the dark one.</li>
+<li><b>One thing to fix in the rail as it stands, which moving the lit day makes go away.</b> On the shipped treatment the weekday letter and the <code>+2</code> overflow count are both <code>--text-tertiary</code> sitting over the blue tint, where they measure <b>3.5:1 in light and 3.0:1 in dark</b> against <code>tokens/colors.css</code>'s claim of 4.5:1 for that token. If A stays, the fix is <code>--text-secondary</code> inside a lit cell, one rule covering <code>.railDow</code> and <code>.railMore</code>. <b>If the lit day moves off the tint it needs no fix at all:</b> measured on this page the same letter is 4.85:1 light and 5.75:1 dark under E, and 5.1:1 and 5.38:1 under D, because there is no longer a tint under it.</li>
+</ul>
+
+<div class="sechead"><h2>Four more for the lit day</h2><u>today and the read day stay blue</u></div>
+<p class="snote">One variable: the day with something on it. Blue keeps today and the day being read, which are one family, so the hue says "where you are in time" and nothing else. <b>Empty days step back in all four</b>, which is what B had upside down: a grey wash darkens the ground under the number, so a lit cell dulled while an empty one kept its crisp ink and advanced. Moss is out, as you said. Amber is drawn because it is the only hue the palette has left, not because I would use it.</p>
+
+<div class="rowlabel">The four, in one frame<u>light and dark, same week</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Light</b><span>49px cells</span></div>
+<div class="crop"><div class="opt"><b>D</b><span>paper lift: hairline, plus the shadow each theme has</span></div>
+<div class="rail">
+<div class="day past empty"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past lift"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today empty"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on lift"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day lift"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day empty"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day empty"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="opt"><b>E</b><span>ink ring, no fill</span></div>
+<div class="rail">
+<div class="day past empty"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past ring"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today empty"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on ring"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day ring"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day empty"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day empty"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="opt"><b>F</b><span>nothing on the cell, the ink does it</span></div>
+<div class="rail">
+<div class="day past empty"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today empty"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on "><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day "><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day empty"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day empty"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="opt"><b>G</b><span>amber, the only hue left</span></div>
+<div class="rail">
+<div class="day past empty"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past amber"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today empty"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on amber"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day amber"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day empty"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day empty"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="legend"><span><i class="dot k-task"></i>task</span><span><i class="dot k-event"></i>event</span><span><i class="dot k-note"></i>note</span><span><i class="dot k-other"></i>other</span><span><i class="dot k-other done"></i>done</span><span class="waiting" style="margin-left:auto">2 waiting</span></div></div>
+</div>
+<div class="cell" data-theme="dark"><div class="tag i" data-theme="light"><b>Dark</b><span>the same four</span></div>
+<div class="crop"><div class="opt"><b>D</b><span>paper lift: hairline, plus the shadow each theme has</span></div>
+<div class="rail">
+<div class="day past empty"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past lift"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today empty"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on lift"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day lift"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day empty"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day empty"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="opt"><b>E</b><span>ink ring, no fill</span></div>
+<div class="rail">
+<div class="day past empty"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past ring"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today empty"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on ring"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day ring"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day empty"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day empty"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="opt"><b>F</b><span>nothing on the cell, the ink does it</span></div>
+<div class="rail">
+<div class="day past empty"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today empty"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on "><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day "><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day empty"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day empty"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="opt"><b>G</b><span>amber, the only hue left</span></div>
+<div class="rail">
+<div class="day past empty"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past amber"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today empty"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"></span></div>
+<div class="day on amber"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day amber"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day empty"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day empty"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"></span></div>
+</div>
+<div class="legend"><span><i class="dot k-task"></i>task</span><span><i class="dot k-event"></i>event</span><span><i class="dot k-note"></i>note</span><span><i class="dot k-other"></i>other</span><span><i class="dot k-other done"></i>done</span><span class="waiting" style="margin-left:auto">2 waiting</span></div></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><span class="rec">D, taken</span> <b>Paper lift.</b> In light it is the nicest of the four: #FFFFFF on a #FAF9F7 page with a hairline and a 4% drop shadow, the system's own card language, so a day with something on it comes forward rather than being washed.
+<br><b>As drawn in this frame it is a light-theme idea.</b> The fill is #212121 on a #1C1B19 page, <b>1.07:1</b>, the hairline is #2C2C2C at <b>1.23:1</b>, and <code>--shadow-1</code> is the keyword <b>none</b> in the dark scope so the drop shadow does not exist there; it is drawn with <code>--shadow-2</code>, a 1px white line at 4%. That is close to the "reads as nothing" outcome B was rejected for, <b>and it is the reason the decided version below changes the edge in dark rather than taking this cell as it stands</b>.</li>
+<li><b>E, ink ring.</b> An edge and no fill, so there is nothing to dull the number, and <code>--border-strong</code> is the token the system already keeps at 3:1 for exactly this: it measures <b>3.84:1 against the dark page</b> and the same class of separation in light. It holds in both themes by construction, which D turned out not to do.
+<br><b>Its edge over A is semantic, not legibility.</b> A's ring measures 3.55:1 in dark and is perfectly legible; E wins because it takes the lit day off a hue that is already carrying today, the read day, the waiting chip and the task dot.
+<br>The cost is real: today is also a ring, in blue, so the rail carries two ringed states told apart by hue at 1px. That is the thing to look at on a device, and it is a smaller risk than a state that disappears in one theme.</li>
+<li><b>F, the ink does it.</b> No cell treatment at all: a day with something keeps primary semibold ink, an empty day goes tertiary regular. The quietest possible answer and it needs no colour decision ever, and it makes today the only ringed cell on the rail. Two costs: it says "something here" only by comparison, so a week where every day has something looks like a week where none does; and <b>on a past day it comes down to weight alone</b>, since the shipped <code>.past</code> rule already takes both the lit and the empty number to tertiary, which is Monday and Tuesday in every rail here.</li>
+<li><b>G, amber.</b> It is the most visible of the four in dark and by some distance: <code>--amber-600</code> does not flip, so its ring measures <b>8.46:1</b> against the dark page, against E's 3.84:1. Its glow darkens like every tint, to #3E2E08 at 1.31:1, but the ring is doing the work. <b>The reason to reject it is meaning, not legibility:</b> amber has meant "offload noticed this" since the kits drew a Noticed memory and 015 gave it <code>--surface-noticed</code>, so this trades a blue collision for an amber one. If you would rather retire that meaning, G is the strongest thing on the page.</li>
+<li><b>What the two frames are worth here.</b> Every option looked fine in light, and the dark frame is where the four separated: <code>--shadow-1</code> is the keyword <code>none</code> in that scope so D loses its lift, every tint darkens so no glow can be the load-bearing mark, and a 1px ring at 3:1 or better is the only treatment that measures the same in both.</li>
+</ul>
+
+<div class="sechead"><h2>Decided: the lift, plus amber for a decision</h2><u>two tiers, and today carrying both</u></div>
+<p class="snote">D for a day with something on it, G's amber for a day carrying something that needs an answer: a due date, a proposal waiting, a question nobody replied to. <b>They layer rather than compete</b>, and they layer the way the shipped rail already does: the border says things about the date, the inset says things about the content. So today keeps its blue border and takes the amber ring inside it, which is the case nothing on this page drew until now. Wednesday is today, and this week it has a decision on it.</p>
+
+<div class="rowlabel">The two tiers<u>light and dark</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Light</b><span>49px cells</span></div>
+<div class="crop decided"><div class="opt"><b>The week</b><span>Tue and Sun have things, Wed and Fri need a decision, Thu is open</span></div>
+<div class="rail">
+<div class="day past empty"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past lift"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today lift attn"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i></span></div>
+<div class="day on lift"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day lift attn"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day empty"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day lift"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"><i class="dot k-event"></i></span></div>
+</div>
+<div class="legend"><span><i class="dot k-task"></i>task</span><span><i class="dot k-event"></i>event</span><span><i class="dot k-note"></i>note</span><span><i class="dot k-other"></i>other</span><span><i class="dot k-other done"></i>done</span><span class="waiting" style="margin-left:auto">2 waiting</span></div></div>
+</div>
+<div class="cell" data-theme="dark"><div class="tag i" data-theme="light"><b>Dark</b><span>the same week</span></div>
+<div class="crop decided"><div class="opt"><b>The week</b><span>Tue and Sun have things, Wed and Fri need a decision, Thu is open</span></div>
+<div class="rail">
+<div class="day past empty"><span class="dow">Mon</span><span class="dom">8</span><span class="dots"></span></div>
+<div class="day past lift"><span class="dow">Tue</span><span class="dom">9</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i><i class="dot k-note"></i></span></div>
+<div class="day today lift attn"><span class="dow">Wed</span><span class="dom">10</span><span class="dots"><i class="dot k-task"></i><i class="dot k-event"></i></span></div>
+<div class="day on lift"><span class="dow">Thu</span><span class="dom">11</span><span class="dots"><i class="dot k-task"></i><i class="dot k-other"></i></span></div>
+<div class="day lift attn"><span class="dow">Fri</span><span class="dom">12</span><span class="dots"><i class="dot k-task done"></i><i class="dot k-event"></i><i class="dot k-note"></i><i class="dot k-other"></i><span class="more">+2</span></span></div>
+<div class="day empty"><span class="dow">Sat</span><span class="dom">13</span><span class="dots"></span></div>
+<div class="day lift"><span class="dow">Sun</span><span class="dom">14</span><span class="dots"><i class="dot k-event"></i></span></div>
+</div>
+<div class="legend"><span><i class="dot k-task"></i>task</span><span><i class="dot k-event"></i>event</span><span><i class="dot k-note"></i>note</span><span><i class="dot k-other"></i>other</span><span><i class="dot k-other done"></i>done</span><span class="waiting" style="margin-left:auto">2 waiting</span></div></div>
+</div>
+</div>
+
+<ul class="spec">
+<li><b>The four states, and what each one is answering.</b> An empty day is the page with a tertiary regular number. A day with content is the paper lift. A day with a decision on it is the lift plus an amber inset ring. Today is a blue border, over any of those. The day being read is the solid blue fill, which suppresses the lift and the ring because its contents are listed directly underneath.</li>
+<li><b>Both new marks are aliases, not ramp steps.</b> <code>--border-lift</code> for the edge of a day with content and <code>--border-decision</code> for the ring, minted in all three scopes. The rule is the system's own, semantic aliases in components, and the reason is the one <code>--surface-noticed</code> was minted for on 10 September: an un-aliased amber gets reached for from the ramp and the lint file has nothing to point at.<br><code>--border-decision</code> is the ink amber in each scope, #7A4E02 on white and #F6C86A on #212121, measuring <b>7.2:1 on the lift in light and 10.27:1 in dark</b>. Not <code>--surface-noticed</code>: 600 is a fill colour and measures <b>2.03:1</b> as a 1px ring on white.</li>
+<li><b>Tier one needed a dark-specific edge, and this is the one deviation in the decided version.</b> In dark the lift has no drop shadow, <code>--shadow-1</code> being <code>none</code> there, and the fill difference is 1.07:1, so the edge has to carry it: <code>--border-hairline</code> at <b>1.23:1</b> was the weakest part of the whole design. So <code>--border-lift</code> resolves to <code>--ink-300</code> there, <b>1.94:1</b>: still quiet, but an edge rather than a suggestion, and well below today's blue and the amber ring.<br><b>And light is numerically worse, which is the interesting part.</b> Its fill is 1.05:1 and its hairline 1.14:1, against dark's 1.07 and 1.23. It needs no strengthening because <b>the mechanism differs, not the ratio</b>: light has a blurred <code>0 1px 2px</code> drop shadow that reads as depth, and dark's <code>--shadow-2</code> is a hard 1px line at 4% that reads as an edge highlight and adds no depth at all. A ratio is the wrong instrument for a shadow, which is why the edge has to answer for it in dark and does not in light.</li>
+<li><b>Moving the ground moved the dots, and two of the four failed on it.</b> Measured on the lift: the task dot was <b>2.62:1 in dark</b> and the note dot <b>2.03:1 in light</b>, the second being the exact figure that disqualified <code>--amber-600</code> as a ring two bullets up. Both had the same cause: they used the fill aliases, <code>--surface-attention</code> and <code>--surface-noticed</code>, which are fixed across themes by design, while the ground under them now moves.
+<br><b>So a dot on a lift takes the text alias of its kind:</b> <code>--text-attention</code> for a task and <code>--text-noticed</code> for a note, the second minted in this pass because there was no ink-weight counterpart to <code>--surface-noticed</code> and borrowing the decision ring's alias would have told a reader the note needs an answer. Both flip with the theme, and all four kinds now measure 5.1:1 or better in both, from 6.16 and 7.2 in light to 7.13 and 10.27 in dark. Event and other already used text aliases and already passed, which is what made the other two look like an oversight rather than a rule.</li>
+<li><b>Today and a decision on the same cell is the case worth looking at on a device.</b> Wednesday draws a blue border and an amber ring 1px apart. It reads here, and at 49px with a real body of dots under it I would want to see it on a phone before calling it.</li>
+<li><b>One thing still to decide, and it is now sharper.</b> <code>--text-noticed</code> and <code>--border-decision</code> resolve to the same ink amber today, so on a lift the note dot and the day ring are the same colour at two levels, a 5px fill against a 1px edge. <b>They are two tokens on purpose</b>, each saying what it means, which is what lets them diverge later without a hunt. Whether one amber reads as two signals is the open question, and if it does not, the note dot moves rather than the ring.</li>
+<li><b>What still needs answering:</b> what counts as needing a decision. A due date and an unanswered proposal are clear. A task with no date is not, and neither is an overdue thing, which is arguably louder than either. That is a server question as much as a design one, and it wants naming before it is built.</li>
+</ul>
+
+<div class="rowlabel">Where this lands<u>the pick, and what it does not settle</u></div>
+<ul class="spec">
+<li><b>Blue keeps today and the day being read.</b> Your call, and it holds together: those two are one family, "when now is" and "which day you are looking at", so one hue covering both is a hue with one job. C is withdrawn, so the read day stays the shipped solid <code>--surface-attention</code> and the chip-and-read-day collision is accepted as the price.</li>
+  <li><b>Decided: D for a day with content, and G's amber as a second tier for a day needing a decision.</b> Drawn in the section above, layered so today keeps its blue border over either. E and F are not taken, and the four-option frame stays as the record of why.</li>
+<li><b>The glow question turned out to be smaller than it looked.</b> Measured as two marks, A's lit state is carried by a 3.55:1 ring and the 1.88:1 tint only grades it, so nothing here rests on legibility in dark. The paper lift was the one that measured badly there, a 1.07:1 fill with a 1.23:1 hairline, <b>which is why the decided version gives it a dark-specific edge</b> rather than relying on value alone. <span class="verdict yes">the lift takes a dark edge</span></li>
+<li><b>A and B are both out.</b> A because blue cannot carry five meanings on one rail, not because it is illegible, B because a 1.23:1 ring inverted the prominence, which is the thing you spotted and the reason the four above all move the empty day instead.</li>
+<li><b>Two things want your eye on a device, both named in the Decided section:</b> today carrying a decision, where a blue border and an amber ring sit 1px apart at 49px, and the dot cluster at the larger text size.</li>
+</ul>
+
+<div class="sechead"><h2>The dot nobody has looked at</h2><u>while we are here</u></div>
+<ul class="spec">
+<li><b>The blue-on-blue dot is settled, and by taking the lift rather than by any of the dot options.</b> On the shipped rail a task dot sits inside a blue glow and is the lowest-contrast thing there. With the tint gone it sits on white at <b>6.16:1</b>. What replaced that problem is the theme one above: a fixed fill alias on a ground that moves, fixed by giving each dot the text alias of its kind. The shipped CSS already does the equivalent for the read day, turning every dot white, and says so in a comment.</li>
+<li><b>Five pixels is below every size token the system has</b>, which the CSS comment and the log both name, so it is a literal on three surfaces. Friday shows the cap: four dots and <code>+2</code>, which is the one part of the cell nobody has looked at at the larger text size.</li>
+<li><b>The log is out of date about the phones.</b> The 11 September entry says React Native has no inset shadow, so the phones hold the geometry with a 1px border in every state instead. <code>Timeline.tsx</code> now draws the same blurred inset <code>boxShadow</code> the web does, natively on RN 0.86, and says so in its own comment. So this document is one treatment on three surfaces, not two, and that entry wants a line.</li>
+</ul>
+
+</div></body></html>

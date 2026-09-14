@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/brand/Logo.jsx":"62c6fc604a6e","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"26fe2e1d4cf8","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"6980e3a3a7bb","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"a4551768e509","components/layout/MemoryRow.jsx":"b2ec5ff94bc1","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"a361de470829","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"e3a723d5804e","ui_kits/android_app/M3LiveConversation.jsx":"c749e153b830","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"50bc09c7916d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"453246b5a962","ui_kits/android_app/M3SettingsScreen.jsx":"10bd3bef4213","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"28def0e00e2a","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"74bb28c09731","ui_kits/android_app/M3TodayScreen.jsx":"5cc65d5723ad","ui_kits/mobile_app/App.jsx":"79cbfa406b05","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"56c80b74c8e3","ui_kits/mobile_app/LiveConversation.jsx":"be57df5e04f1","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"53511fd714cd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"ccb039ea3920","ui_kits/mobile_app/SettingsScreen.jsx":"2fd970d650f8","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"834008241780","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"65f843b08dfa","ui_kits/mobile_app/TodayScreen.jsx":"fca5165004fc","ui_kits/mobile_app/data.js":"f4a6d9c05b02","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"40867849ebbf","ui_kits/web_app/WApp.jsx":"3a96f9ba38fb","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"752bf543fbd5","ui_kits/web_app/WSettings.jsx":"af3634acc40a","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"7baada711622","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"02fac938e6f9","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/TurnFooter.jsx":"3ffb8edfd0ed","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"26fe2e1d4cf8","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"6980e3a3a7bb","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"a4551768e509","components/layout/MemoryRow.jsx":"b2ec5ff94bc1","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"6168aceeb5d8","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"89dc84e4bad9","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"50bc09c7916d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"ff74cfc9f291","ui_kits/android_app/M3SettingsScreen.jsx":"10bd3bef4213","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"74bb28c09731","ui_kits/android_app/M3TodayScreen.jsx":"5cc65d5723ad","ui_kits/mobile_app/App.jsx":"8b33bbed0476","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"12e4cf4ea57b","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"53511fd714cd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"3538ca7c057e","ui_kits/mobile_app/SettingsScreen.jsx":"6e07d5456b43","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"65f843b08dfa","ui_kits/mobile_app/TodayScreen.jsx":"fca5165004fc","ui_kits/mobile_app/data.js":"01d6d5ac0b68","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"fdac02706b2e","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"e2a8dedf1915","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -239,6 +239,368 @@ function Icon({
 }
 Object.assign(__ds_scope, { Icon });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/core/Icon.jsx", error: String((e && e.message) || e) }); }
+
+// components/answering/AnswerResult.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/* One read, drawn as one object. The thread names the rows from a header inside the card
+   rather than from a chip above it: one link out per result, and the count has somewhere
+   honest to sit. Ticking is the only write a row here can do. */
+
+const TYPE_ICON = {
+  task: "circle-check",
+  event: "calendar",
+  location: "map-pin",
+  link: "link",
+  image: "image",
+  file: "file",
+  voice: "mic",
+  note: "align-left"
+};
+function Tick({
+  done,
+  label,
+  onToggle
+}) {
+  const on = Boolean(done);
+  return /*#__PURE__*/React.createElement("span", {
+    role: "checkbox",
+    "aria-checked": on,
+    "aria-label": label,
+    tabIndex: 0,
+    onClick: e => {
+      e.stopPropagation();
+      onToggle && onToggle();
+    },
+    onKeyDown: e => {
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        onToggle && onToggle();
+      }
+    },
+    style: {
+      width: "var(--tap-min,44px)",
+      height: "var(--tap-min,44px)",
+      flex: "0 0 auto",
+      margin: "-11px 0 -11px -11px",
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "center",
+      padding: "11px 0 0 11px",
+      boxSizing: "border-box",
+      cursor: onToggle ? "pointer" : "default"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 21,
+      height: 21,
+      borderRadius: "var(--radius-xs)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      border: "1.5px solid " + (on ? "var(--moss-600)" : "var(--border-strong)"),
+      background: on ? "var(--moss-600)" : "transparent",
+      transition: "background var(--transition-ui),border-color var(--transition-ui)"
+    }
+  }, on ? /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: "check",
+    size: 13,
+    style: {
+      color: "var(--text-on-solid)"
+    }
+  }) : null));
+}
+function AnswerResult({
+  thread,
+  count,
+  rows = [],
+  shown = 5,
+  truncated = false,
+  threadTotal,
+  onToggle,
+  onOpenThread,
+  style,
+  ...rest
+}) {
+  const [open, setOpen] = React.useState(false);
+  const list = open ? rows : rows.slice(0, shown);
+  const rest_n = rows.length - list.length;
+  const label = count === undefined || count === null ? rows.length : count;
+  return /*#__PURE__*/React.createElement("div", _extends({}, rest, {
+    style: {
+      background: "var(--surface-raised)",
+      border: "1px solid var(--border-hairline)",
+      borderRadius: "var(--radius-md)",
+      overflow: "hidden",
+      ...style
+    }
+  }), thread ? /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onOpenThread,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: "var(--space-4)",
+      width: "100%",
+      minHeight: "var(--tap-min,44px)",
+      padding: "var(--space-4) var(--space-5)",
+      boxSizing: "border-box",
+      border: "none",
+      textAlign: "left",
+      cursor: onOpenThread ? "pointer" : "default",
+      background: "var(--surface-accent-soft)",
+      color: "var(--text-accent)",
+      boxShadow: "inset 0 -1px 0 var(--border-hairline)"
+    }
+  }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: "lasso",
+    size: 15
+  }), /*#__PURE__*/React.createElement("b", {
+    style: {
+      font: "var(--weight-medium) 13.5px/1.2 var(--font-core)"
+    }
+  }, thread.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      font: "var(--text-numeric-role)",
+      fontSize: 12
+    }
+  }, label)) : null, list.map((r, i) => {
+    const tickable = Boolean(onToggle) && (r.type === undefined || r.type === "task");
+    const done = Boolean(r.done);
+    return /*#__PURE__*/React.createElement("div", {
+      key: r.id || i,
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "var(--space-5)",
+        padding: "var(--space-4) var(--space-5)",
+        boxShadow: i === list.length - 1 ? "none" : "inset 0 -1px 0 var(--border-hairline)"
+      }
+    }, tickable ? /*#__PURE__*/React.createElement(Tick, {
+      done: done,
+      onToggle: () => onToggle(r),
+      label: r.title + (thread ? ", " + thread.name : "")
+    }) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 32,
+        height: 32,
+        flex: "0 0 auto",
+        borderRadius: "var(--radius-sm)",
+        background: "var(--surface-fill)",
+        color: "var(--text-secondary)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }
+    }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+      name: TYPE_ICON[r.type] || "align-left",
+      size: 16
+    })), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("b", {
+      style: {
+        display: "block",
+        font: "var(--weight-medium) 15.5px/1.35 var(--font-core)",
+        color: done ? "var(--text-tertiary)" : "var(--text-primary)",
+        textDecoration: done ? "line-through" : "none",
+        textDecorationThickness: "1px"
+      }
+    }, r.title), r.meta ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12.5,
+        lineHeight: 1.4,
+        color: "var(--text-secondary)",
+        marginTop: 2
+      }
+    }, r.meta) : null));
+  }), truncated ? /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onOpenThread,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: "var(--space-4)",
+      width: "100%",
+      padding: "var(--space-4) var(--space-5)",
+      boxSizing: "border-box",
+      border: "none",
+      textAlign: "left",
+      cursor: "pointer",
+      background: "var(--surface-accent-soft)",
+      boxShadow: "inset 0 1px 0 var(--border-hairline)"
+    }
+  }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: "lasso",
+    size: 15,
+    style: {
+      color: "var(--text-accent)"
+    }
+  }), /*#__PURE__*/React.createElement("em", {
+    style: {
+      flex: 1,
+      fontStyle: "normal",
+      fontSize: 12.5,
+      lineHeight: 1.4,
+      color: "var(--text-secondary)"
+    }
+  }, threadTotal ? threadTotal + " more in " + thread.name + ". " : "", "The rest of the answer is in the thread."), /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: "chevron-right",
+    size: 15,
+    style: {
+      color: "var(--text-accent)"
+    }
+  })) : rest_n > 0 ? /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => setOpen(true),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: "var(--space-3)",
+      width: "100%",
+      minHeight: "var(--tap-min,44px)",
+      padding: "var(--space-4) var(--space-5)",
+      boxSizing: "border-box",
+      border: "none",
+      cursor: "pointer",
+      background: "var(--surface-fill)",
+      color: "var(--text-primary)",
+      font: "var(--weight-medium) 13.5px/1 var(--font-core)"
+    }
+  }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: "chevron-down",
+    size: 15
+  }), "Show ", rest_n, " more") : null);
+}
+Object.assign(__ds_scope, { AnswerResult });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/answering/AnswerResult.jsx", error: String((e && e.message) || e) }); }
+
+// components/answering/QuickReplies.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/* The answers to a question offload asked, as taps. 012's calendar proposal is the same
+   control with two fixed options, so this generalises it rather than replacing it.
+
+   Three at most, all of them typeable, and none of them destroys anything. A proposal
+   has one primary and one plain way out; a choice among equals has no primary. */
+
+function usePress() {
+  const [h, setH] = React.useState(false),
+    [p, setP] = React.useState(false);
+  return {
+    h,
+    p,
+    bind: {
+      onMouseEnter: () => setH(true),
+      onMouseLeave: () => {
+        setH(false);
+        setP(false);
+      },
+      onMouseDown: () => setP(true),
+      onMouseUp: () => setP(false),
+      onTouchStart: () => setP(true),
+      onTouchEnd: () => setP(false)
+    }
+  };
+}
+function Reply({
+  option,
+  onPick
+}) {
+  const {
+    h,
+    p,
+    bind
+  } = usePress();
+  const kind = option.kind || "neutral";
+  const paint = {
+    /* --surface-inverse, not --ink-950: the ramp flips in dark, so a literal ink fill with
+       white on it is white on near-white. The inverse pair is the only one that holds. */
+    primary: {
+      bg: h ? "var(--ink-800)" : "var(--surface-inverse)",
+      fg: "var(--text-inverse)",
+      bd: "transparent"
+    },
+    neutral: {
+      bg: h ? "var(--ink-50)" : "var(--paper)",
+      fg: "var(--text-primary)",
+      bd: "var(--border-strong)"
+    },
+    thread: {
+      bg: h ? "var(--moss-100)" : "var(--surface-accent-soft)",
+      fg: "var(--text-accent)",
+      bd: "var(--border-accent)"
+    },
+    plain: {
+      bg: "transparent",
+      fg: "var(--text-secondary)",
+      bd: "transparent"
+    }
+  }[kind];
+  return /*#__PURE__*/React.createElement("button", _extends({
+    type: "button",
+    onClick: () => onPick && onPick(option)
+  }, bind, {
+    style: {
+      minHeight: "var(--tap-min,44px)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "var(--space-3)",
+      padding: kind === "plain" ? "0 var(--space-3)" : "0 var(--space-6)",
+      borderRadius: "var(--radius-pill)",
+      cursor: "pointer",
+      background: paint.bg,
+      color: paint.fg,
+      border: "1px solid " + paint.bd,
+      font: (kind === "plain" ? "var(--weight-regular)" : "var(--weight-medium)") + " 15px/1 var(--font-core)",
+      letterSpacing: "var(--tracking-body)",
+      whiteSpace: "nowrap",
+      transition: "background var(--transition-ui)",
+      transform: p ? "scale(var(--press-scale))" : "none"
+    }
+  }), option.icon ? /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: option.icon,
+    size: 14
+  }) : null, option.label);
+}
+function QuickReplies({
+  options = [],
+  onPick,
+  note,
+  style,
+  ...rest
+}) {
+  if (!options.length) return null;
+  return /*#__PURE__*/React.createElement("div", _extends({}, rest, {
+    style: {
+      marginTop: "var(--space-4)",
+      ...style
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "var(--space-4)"
+    }
+  }, options.slice(0, 3).map((o, i) => /*#__PURE__*/React.createElement(Reply, {
+    key: o.id || o.label || i,
+    option: o,
+    onPick: onPick
+  }))), note ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: "var(--space-3)",
+      fontSize: 13,
+      lineHeight: 1.4,
+      color: "var(--text-tertiary)"
+    }
+  }, note) : null);
+}
+Object.assign(__ds_scope, { QuickReplies });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/answering/QuickReplies.jsx", error: String((e && e.message) || e) }); }
 
 // components/core/Button.jsx
 try { (() => {
@@ -516,6 +878,136 @@ function Chip({
 }
 Object.assign(__ds_scope, { Chip });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/core/Chip.jsx", error: String((e && e.message) || e) }); }
+
+// components/conversation/TurnFooter.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/* Everything offload has to say about a turn that is not a sentence: what happened to it,
+   where it landed, and where any fact in it came from.
+
+   It belongs to the turn rather than to either bubble, because an ordinary filing turn says
+   nothing back and still has all three of those to report. So it is drawn on offload's side,
+   left aligned, at the log's own gutter: not inside the sent bubble's 84% and not inside the
+   reply's 92%, since it is not a bubble and nothing in it is a quotation. */
+
+const REF_TONE = {
+  thread: "accent",
+  time: "attention",
+  money: "warning"
+};
+const REF_ICON = {
+  thread: "lasso",
+  time: "clock",
+  money: null
+};
+
+/* Order is fixed: state, then threads, then sources. What happened, where it landed, where
+   it came from, so a turn can be read without being read. */
+function TurnFooter({
+  state,
+  refs = [],
+  sources = [],
+  maxSources = 3,
+  onOpenRef,
+  onOpenSource,
+  style,
+  ...rest
+}) {
+  const shown = sources.slice(0, maxSources);
+  const hidden = sources.length - shown.length;
+  /* An empty footer is no footer, never a 26px gap. */
+  if (!state && !refs.length && !sources.length) return null;
+  return /*#__PURE__*/React.createElement("div", _extends({}, rest, {
+    style: {
+      alignSelf: "stretch",
+      display: "flex",
+      flexFlow: "row wrap",
+      alignItems: "center",
+      gap: "var(--space-2)",
+      minHeight: 26,
+      ...style
+    }
+  }), state === "seen" ? /*#__PURE__*/React.createElement("span", {
+    "aria-label": "seen, not answered yet",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      height: 24,
+      padding: "0 var(--space-3)",
+      borderRadius: "var(--radius-pill)",
+      background: "var(--surface-raised)",
+      border: "1px solid var(--border-hairline)",
+      fontSize: 15,
+      lineHeight: 1
+    }
+  }, "\uD83D\uDC40") : null, state === "done" ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      height: 24,
+      padding: "0 var(--space-3)",
+      borderRadius: "var(--radius-pill)",
+      background: "var(--moss-600)",
+      color: "var(--text-on-solid)",
+      font: "var(--weight-medium) 11px/1 var(--font-core)",
+      whiteSpace: "nowrap"
+    }
+  }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: "check",
+    size: 11
+  }), "Done") : null, refs.map((r, i) => {
+    const kind = r.kind || "thread";
+    return /*#__PURE__*/React.createElement(__ds_scope.Chip, {
+      key: r.id || i,
+      tone: REF_TONE[kind],
+      icon: REF_ICON[kind],
+      onClick: kind === "thread" && onOpenRef ? () => onOpenRef(r) : undefined
+    }, r.name);
+  }), shown.map((s, i) => /*#__PURE__*/React.createElement("a", {
+    key: s.url || i,
+    href: s.url,
+    target: "_blank",
+    rel: "noreferrer noopener",
+    onClick: onOpenSource ? e => {
+      e.preventDefault();
+      onOpenSource(s);
+    } : undefined,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      height: 26,
+      padding: "0 var(--space-4)",
+      borderRadius: "var(--radius-pill)",
+      background: "transparent",
+      border: "1px solid var(--border-strong)",
+      color: "var(--text-secondary)",
+      font: "var(--weight-regular) 12.5px/1 var(--font-core)",
+      textDecoration: "none",
+      maxWidth: "22ch",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: "link",
+    size: 12
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, s.domain))), hidden > 0 ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      font: "var(--weight-regular) 12.5px/1 var(--font-core)",
+      color: "var(--text-tertiary)",
+      padding: "0 var(--space-1, 4px)",
+      whiteSpace: "nowrap"
+    }
+  }, "and ", hidden, " more") : null);
+}
+Object.assign(__ds_scope, { TurnFooter });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/conversation/TurnFooter.jsx", error: String((e && e.message) || e) }); }
 
 // components/core/IconButton.jsx
 try { (() => {
@@ -1459,6 +1951,265 @@ function Act({
 Object.assign(__ds_scope, { MemoryRow });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/layout/MemoryRow.jsx", error: String((e && e.message) || e) }); }
 
+// components/layout/PrismField.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/* The buffer is small and CSS scales it up: the field is soft enough that the
+   interpolation reads as part of the effect, and a full-resolution warp would
+   be paying for detail nothing can see. */
+const BUFFERS = {
+  band: [256, 140],
+  bloom: [200, 200]
+};
+
+/* Rescales a texture's per-row alpha to a symmetric hump inside the VISIBLE
+   window: zero at the top edge, full across the middle of the window, zero by
+   the row where the veil closes for good.
+
+   Shaping the field over its whole box is not enough, because what the eye sees
+   is field x (1 - veil) and the veil is not symmetric: its lower stop is pinned
+   so full fill is reached above the tab labels. Over the whole box the field's
+   opening ramp coincides with the veil's, so the two multiply into a squared
+   curve that opens abruptly, while at the bottom they stagger and the decay
+   smears twice as far. Shaped to the same window as the veil, both layers are
+   symmetric about the same centre and the composite is too.
+
+   The row's existing mean is divided out, which is what makes this independent
+   of whatever gradient the bake happened to carry. */
+const EDGE = 0.3;
+function reprofile(img, w, h, limit) {
+  const d = img.data;
+  const smooth = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
+  let peak = 0;
+  const mean = new Float32Array(h);
+  for (let y = 0; y < h; y++) {
+    let sum = 0;
+    for (let x = 0; x < w; x++) sum += d[(y * w + x) * 4 + 3];
+    mean[y] = sum / w;
+    if (mean[y] > peak) peak = mean[y];
+  }
+  if (!peak) return;
+  const lim = limit > 0.2 && limit <= 1 ? limit : 1;
+  for (let y = 0; y < h; y++) {
+    const f = (y + 0.5) / h;
+    /* Beyond the window the field contributes nothing at all, so the tab labels
+       are protected by the absence of colour rather than only by the fill. */
+    const g = f / lim;
+    const target = g > 1 ? 0 : peak * Math.min(smooth(g / EDGE), smooth((1 - g) / EDGE));
+    /* Guarded: a row that is nearly empty must not be multiplied up into noise. */
+    const k = mean[y] > 2 ? target / mean[y] : 0;
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4 + 3;
+      const v = d[i] * k;
+      d[i] = v > 255 ? 255 : v;
+    }
+  }
+}
+function num(name, fallback) {
+  if (typeof window === "undefined") return fallback;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const v = parseFloat(raw);
+  return Number.isFinite(v) ? v : fallback;
+}
+function PrismField({
+  variant = "band",
+  basePath,
+  density = 1,
+  veil = "graded",
+  pulse,
+  arriveOnMount = false,
+  style,
+  ...rest
+}) {
+  /* Same resolution order as Icon: the prop, then the host page's global, then a
+   root-relative guess. Pages sit at different depths, so a page-relative
+   default silently fetches nothing. */
+  const base = basePath || typeof window !== "undefined" && window.OFFLOAD_PRISM_BASE || "assets/prism";
+  const canvasRef = React.useRef(null);
+  const shiftRef = React.useRef(null);
+  const stateRef = React.useRef({
+    src: null,
+    frame: 0,
+    phase: 0,
+    until: 0,
+    last: 0
+  });
+  const [w, h] = BUFFERS[variant] || BUFFERS.band;
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d", {
+      willReadFrequently: true
+    });
+    const st = stateRef.current;
+    const out = ctx.createImageData(w, h);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const amp = num("--prism-warp", 11);
+    const runMs = num("--prism-run", 2000);
+    const settleMs = num("--prism-settle", 700);
+    const render = t => {
+      if (!st.src) return;
+      const s = st.src.data,
+        o = out.data;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const dx = amp * (Math.sin(y * 0.085 + t * 0.55) + 0.62 * Math.sin((x * 0.5 + y * 0.7) * 0.055 - t * 0.42));
+          const dy = amp * 0.55 * (Math.cos(x * 0.062 - t * 0.48) + 0.5 * Math.cos((x - y) * 0.045 + t * 0.36));
+          let sx = (x + dx | 0) % w;
+          if (sx < 0) sx += w;
+          let sy = y + dy | 0;
+          if (sy < 0) sy = 0;else if (sy >= h) sy = h - 1;
+          const si = (sy * w + sx) * 4,
+            di = (y * w + x) * 4;
+          o[di] = s[si];
+          o[di + 1] = s[si + 1];
+          o[di + 2] = s[si + 2];
+          o[di + 3] = s[si + 3];
+        }
+      }
+      ctx.putImageData(out, 0, 0);
+      st.phase = t;
+    };
+
+    /* The clock advances by real elapsed time scaled through the settle, so the
+       flow slows to a halt instead of cutting out mid-motion. */
+    const step = now => {
+      st.frame = 0;
+      if (!st.src) return;
+      const left = st.until - now;
+      if (left <= 0 || document.hidden || reduce.matches) {
+        render(st.phase);
+        return;
+      }
+      const u = left < settleMs ? left / settleMs : 1;
+      const rate = u * u * (3 - 2 * u);
+      const dt = Math.min(64, now - (st.last || now));
+      st.last = now;
+      render(st.phase + dt / 1000 * rate);
+      st.frame = requestAnimationFrame(step);
+    };
+    st.arrive = () => {
+      if (!st.src || reduce.matches) return;
+      st.until = performance.now() + runMs;
+      st.last = 0;
+      if (!st.frame) st.frame = requestAnimationFrame(step);
+    };
+    const img = new Image();
+    img.onload = () => {
+      const off = document.createElement("canvas");
+      off.width = w;
+      off.height = h;
+      const octx = off.getContext("2d");
+      octx.drawImage(img, 0, 0, w, h);
+      try {
+        st.src = octx.getImageData(0, 0, w, h);
+      } catch (e) {
+        st.src = null;
+      }
+      if (!st.src) return;
+      /* The texture is baked with a one-directional alpha ramp, densest at one
+         end. The veil, though, closes at BOTH edges, so that ramp makes the two
+         ends behave nothing alike: at the dense end full-strength colour meets
+         the veil's ramp and appears abruptly, while at the thin end the texture
+         and the veil fade together over the same distance and dissolve. The
+         field's own vertical profile is rescaled to a symmetric hump here, so
+         both edges get the same length of fade. Measured per row rather than
+         assumed, so it holds whatever the bake did. */
+      if (variant === "band") reprofile(st.src, w, h, num("--prism-veil-reach", 64) / 100);
+      /* Frozen at a fixed clock, which is also what reduced motion and a
+         backgrounded app get. */
+      render(1.2);
+      if (arriveOnMount) st.arrive();
+    };
+    img.src = base.replace(/\/$/, "") + "/p2-" + variant + "-1.png";
+    const onVisibility = () => {
+      if (!document.hidden) return;
+      if (st.frame) {
+        cancelAnimationFrame(st.frame);
+        st.frame = 0;
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    /* The texture is 16% wider than its box either side, and the shift is
+       clamped inside that overhang. Horizontal only: the field's profile closes
+       at both edges, so vertical travel would slide those closed ends inward
+       and shorten the fade at whichever edge it moved away from. */
+    let pending = false;
+    const onScroll = e => {
+      const el = e.target;
+      if (!el || typeof el.scrollTop !== "number" || reduce.matches) return;
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => {
+        pending = false;
+        const layer = shiftRef.current;
+        if (!layer) return;
+        const shift = Math.max(-26, Math.min(26, -el.scrollTop * 0.055));
+        layer.style.setProperty("--prism-shift", shift.toFixed(1) + "px");
+      });
+    };
+    document.addEventListener("scroll", onScroll, true);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("scroll", onScroll, true);
+      if (st.frame) cancelAnimationFrame(st.frame);
+      st.frame = 0;
+    };
+  }, [variant, base, arriveOnMount, w, h]);
+
+  /* Any change to pulse is an arrival. The first render is not one, or the
+     field would warp on every mount. */
+  const seen = React.useRef(pulse);
+  React.useEffect(() => {
+    if (seen.current === pulse) return;
+    seen.current = pulse;
+    if (stateRef.current.arrive) stateRef.current.arrive();
+  }, [pulse]);
+  const alpha = "calc(var(--prism-alpha) * var(--prism-density) * " + density + ")";
+  return /*#__PURE__*/React.createElement("div", _extends({
+    "aria-hidden": "true"
+  }, rest, {
+    style: {
+      position: "absolute",
+      inset: 0,
+      pointerEvents: "none",
+      ...style
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    ref: shiftRef,
+    style: {
+      position: "absolute",
+      left: "-16%",
+      right: "-16%",
+      top: 0,
+      bottom: 0,
+      overflow: "hidden",
+      transform: "translate3d(var(--prism-shift,0px),0,0)"
+    }
+  }, /*#__PURE__*/React.createElement("canvas", {
+    ref: canvasRef,
+    width: w,
+    height: h,
+    style: {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      display: "block",
+      opacity: alpha
+    }
+  })), veil === "graded" ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      background: "linear-gradient(to bottom," + "rgb(var(--prism-veil-rgb) / var(--prism-veil-full)) 0%," + "rgb(var(--prism-veil-rgb) / var(--prism-veil-top)) var(--prism-veil-edge)," + "rgb(var(--prism-veil-rgb) / var(--prism-veil-top)) var(--prism-veil-hold)," + "rgb(var(--prism-veil-rgb) / var(--prism-veil-full)) var(--prism-veil-reach)," + "rgb(var(--prism-veil-rgb) / var(--prism-veil-full)) 100%)"
+    }
+  }) : null);
+}
+Object.assign(__ds_scope, { PrismField });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/layout/PrismField.jsx", error: String((e && e.message) || e) }); }
+
 // components/layout/SectionHeader.jsx
 try { (() => {
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
@@ -2117,6 +2868,1218 @@ function NotificationIOS({
 }
 Object.assign(__ds_scope, { NotificationIOS });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/notifications/NotificationIOS.jsx", error: String((e && e.message) || e) }); }
+
+// explorations/image-slot.js
+try { (() => {
+// @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
+// Copied omelette starter. Re-running copy_starter_component with this kind overwrites this file with the latest version (page content is unaffected).
+/* BEGIN USAGE */
+/**
+ * <image-slot> — user-fillable image placeholder.
+ *
+ * Drop this into a deck, mockup, or page wherever a design needs an image.
+ * You control the slot's shape; it sizes to its container by default. When the search_stock_photos tool
+ * is available, prefill the slot by default — write the photo's URL into
+ * src (with credit/credit-href); the user can still fill or replace it
+ * by dragging an image file onto it (or clicking to browse). The dropped
+ * image persists across reloads via a .image-slots.state.json sidecar —
+ * same read-via-fetch / write-via-window.omelette pattern as
+ * design_canvas.jsx, so the filled slot shows on share links, downloaded
+ * zips, and PPTX export. Outside the omelette runtime the slot is read-only.
+ *
+ * The sidecar is a SIBLING of the HTML file that uses this component: the
+ * read is a document-relative fetch, and the host resolves the bridge's
+ * sidecar writes into the previewed file's directory to match (same
+ * contract as design_canvas.jsx). Pages in the same directory share one
+ * sidecar; keep slot ids distinct across them.
+ *
+ * Attributes:
+ *   id           Persistence key. REQUIRED for the drop to survive reload —
+ *                every slot on the page needs a distinct id.
+ *   shape        'rect' | 'rounded' | 'circle' | 'pill'   (default 'rounded')
+ *                'circle' applies 50% border-radius; on a non-square slot
+ *                that's an ellipse — set equal width and height for a true
+ *                circle.
+ *   radius       Corner radius in px for 'rounded'.       (default 12)
+ *   mask         Any CSS clip-path value. Overrides `shape` — use this for
+ *                hexagons, blobs, arbitrary polygons.
+ *   fit          Initial framing baseline: cover | contain.   (default 'cover')
+ *                cover starts the image filling the frame (overflow cropped);
+ *                contain starts it fully visible (letterboxed). Either way the
+ *                user can always pan/scale from there — double-click, or the
+ *                Edit control, enters reframe mode (drag to move, scroll or
+ *                corner-handles to scale; Escape / click-out commits). The
+ *                crop persists alongside the image in the sidecar.
+ *   placeholder  Empty-state caption.                      (default 'Drop an image')
+ *   src          Optional initial/fallback image URL. Prefill it with a real
+ *                photo via search_stock_photos when that tool is available
+ *                (set credit/credit-href from the result). A user drop
+ *                overrides it; clearing the drop reveals src again.
+ *   credit       Attribution text shown as a small overlay at the
+ *                bottom-left of the filled slot. REQUIRED whenever src
+ *                points at any Unsplash host (images.unsplash.com,
+ *                plus.unsplash.com, …): an Unsplash src with no credit
+ *                renders an error tile INSTEAD of the photo (Unsplash
+ *                terms forbid showing their photos unattributed). Use the
+ *                exact form 'Photo by {photographer name} on Unsplash' —
+ *                the overlay then links the name to credit-href and
+ *                'Unsplash' to the Unsplash homepage, and links back to
+ *                unsplash.com automatically get the required utm referral
+ *                params appended at render time. The credit belongs to
+ *                the src image, so it only shows while src is what's
+ *                displayed — a user-dropped image hides it.
+ *   credit-href  Link for the photographer's name in the credit overlay
+ *                (their Unsplash profile URL from the stock-photo search
+ *                results). http(s) URLs only — anything else renders the
+ *                name as plain text.
+ *
+ * Sizing: the slot fills its container by default (width/height 100%).
+ * Put it in a sized wrapper — absolutely positioned, a grid cell, a fixed
+ * frame — and it takes exactly that box. When the parent's height is
+ * indefinite (ordinary flow), it falls back to full width at a 3:2 aspect
+ * ratio instead of collapsing. In a shrink-to-fit parent (a float,
+ * width:max-content, an unsized absolute wrapper), percentages have
+ * nothing to resolve against — size the slot or its wrapper explicitly
+ * there. For a fixed-size slot, set
+ * width/height on the element itself (inline style), which overrides the
+ * default. When
+ * layering content above a slot (full-bleed layouts), make the overlay
+ * click-through — pointer-events: none on scrims/text plates, re-enabled
+ * on interactive children — so the slot's hover controls stay reachable.
+ * Keep the slot's bottom-left corner visually clear as well: the credit
+ * overlay renders there, and a dark fade or text plate covering it hides
+ * the attribution Unsplash's terms require — end the fade above that
+ * corner, or keep it nearly transparent where the credit sits.
+ *
+ * Usage:
+ *   <div style="position:relative;width:100%;height:100%">      <!-- full-bleed: -->
+ *     <image-slot id="bg" shape="rect"></image-slot>            <!-- fills the wrapper -->
+ *   </div>
+ *   <image-slot id="hero"   style="width:800px;height:450px" shape="rounded" radius="20"
+ *               placeholder="Drop a hero image"></image-slot>
+ *   <image-slot id="avatar" style="width:120px;height:120px" shape="circle"></image-slot>
+ *   <image-slot id="kite"   style="width:300px;height:300px"
+ *               mask="polygon(50% 0, 100% 50%, 50% 100%, 0 50%)"></image-slot>
+ */
+/* END USAGE */
+
+(() => {
+  const STATE_FILE = '.image-slots.state.json';
+
+  // Unsplash terms require visible attribution wherever their photos
+  // display, and every link back to unsplash.com must carry utm referral
+  // params. Two render-time rules enforce that here:
+  //  - an Unsplash-src slot with NO credit attribute renders an error
+  //    tile INSTEAD of the photo (an uncredited Unsplash photo on screen
+  //    is itself the terms violation, so it never renders bare);
+  //  - rendered credit links pointing at unsplash.com get the referral
+  //    params appended when absent (credit-href values live in page
+  //    content that can't be edited after the fact).
+  // Keep the utm_source value in sync with UTM_SOURCE in
+  // platform/web-agent/unsplash.ts — this file is a project-local
+  // artifact and cannot import it (equality is pinned by tests).
+  const UNSPLASH_HOMEPAGE_HREF = 'https://unsplash.com/?utm_source=claude_design&utm_medium=referral';
+  // Host rule mirrors the hotlink validator that admits Unsplash srcs into
+  // pages in the first place (cdn$ in unsplash.ts: apex or any subdomain)
+  // — Unsplash+ results serve from plus.unsplash.com, not just images.*,
+  // and an admitted-but-uncredited photo must error whatever unsplash
+  // host it rides on.
+  // Trailing-dot FQDNs (images.unsplash.com.) are the same host to the
+  // browser but would miss the regex — strip one dot so the check fails
+  // CLOSED (unrecognized-but-real Unsplash srcs must error, not render).
+  const isUnsplashHost = u => {
+    try {
+      return /(^|\.)unsplash\.com$/.test(new URL(u, document.baseURI).hostname.replace(/\.$/, ''));
+    } catch {
+      return false;
+    }
+  };
+  // Render-time referral normalization for links back to Unsplash:
+  // appends utm_source/utm_medium when absent, preserves every existing
+  // query param, never overwrites an existing utm_source, and passes
+  // non-Unsplash URLs through untouched. Input is an ABSOLUTE validated
+  // http(s) URL (the credit render funnel resolves + validates first).
+  const withReferral = href => {
+    try {
+      const u = new URL(href);
+      if (!/(^|\.)unsplash\.com$/.test(u.hostname.replace(/\.$/, ''))) {
+        return href;
+      }
+      if (!u.searchParams.has('utm_source')) {
+        u.searchParams.set('utm_source', 'claude_design');
+      }
+      if (!u.searchParams.has('utm_medium')) {
+        u.searchParams.set('utm_medium', 'referral');
+      }
+      return u.toString();
+    } catch (e) {
+      return href;
+    }
+  };
+  // 2× a ~600px slot in a 1920-wide deck — retina-sharp without making the
+  // sidecar enormous. A 1200px WebP at q=0.85 is ~150-300KB.
+  const MAX_DIM = 1200;
+  // Raster formats only. SVG is excluded (can carry script; createImageBitmap
+  // on SVG blobs is inconsistent). GIF is excluded because the canvas
+  // re-encode keeps only the first frame, so an animated GIF would silently
+  // go still — better to reject than surprise.
+  const ACCEPT = ['image/png', 'image/jpeg', 'image/webp', 'image/avif'];
+
+  // ── Shared sidecar store ────────────────────────────────────────────────
+  // One fetch + immediate write-on-change for every <image-slot> on the
+  // page. Reads via fetch() so viewing works anywhere the HTML and sidecar
+  // are served together; writes go through window.omelette.writeFile, which
+  // the host allowlists to *.state.json basenames only.
+  const subs = new Set();
+  let slots = {};
+  // ids explicitly cleared before the sidecar fetch resolved — otherwise
+  // the merge below can't tell "never set" from "just deleted" and would
+  // resurrect the sidecar's stale value.
+  const tombstones = new Set();
+  let loaded = false;
+  let loadP = null;
+  function load() {
+    if (loadP) return loadP;
+    loadP = fetch(STATE_FILE).then(r => r.ok ? r.json() : null).then(j => {
+      // Merge: sidecar loses to any in-memory change that raced ahead of
+      // the fetch (drop or clear) so neither is clobbered by hydration.
+      if (j && typeof j === 'object') {
+        const merged = Object.assign({}, j, slots);
+        // A framing-only write that raced ahead of hydration must not
+        // drop a user image that's only on disk — inherit u from the
+        // sidecar for any in-memory entry that lacks one.
+        for (const k in slots) {
+          if (merged[k] && !merged[k].u && j[k]) {
+            merged[k].u = typeof j[k] === 'string' ? j[k] : j[k].u;
+          }
+        }
+        for (const id of tombstones) delete merged[id];
+        slots = merged;
+      }
+      tombstones.clear();
+    }).catch(() => {}).then(() => {
+      loaded = true;
+      subs.forEach(fn => fn());
+    });
+    return loadP;
+  }
+
+  // Serialize writes so two near-simultaneous drops on different slots
+  // can't reorder at the backend and leave the sidecar with only the
+  // first. A save requested mid-flight just marks dirty and re-fires on
+  // completion with the then-current slots.
+  let saving = false;
+  let saveDirty = false;
+  // Unload-time flush: save()'s serialization defers a mid-RTT re-fire to a
+  // .then that never runs in an unloading document, silently dropping a
+  // pagehide commit. Post the current slots immediately instead — content
+  // is a superset snapshot of any in-flight save's, the write is a
+  // whole-file last-writer-wins replace, and postMessage FIFO delivers it
+  // to the host after the in-flight one, so a backend-side reorder at
+  // worst reproduces the dropped-commit outcome this flush improves on.
+  // Guarded on the initial sidecar read: pre-hydration slots can miss
+  // other slots' persisted entries, and flushing it would clobber them —
+  // that narrow case stays best-effort (the in-memory merge in load()
+  // cannot happen in an unloading document anyway).
+  function flushNow() {
+    if (!loaded) return;
+    const w = window.omelette && window.omelette.writeFile;
+    if (!w) return;
+    try {
+      Promise.resolve(w(STATE_FILE, JSON.stringify(slots))).catch(() => {});
+    } catch (e) {}
+  }
+  function save() {
+    if (saving) {
+      saveDirty = true;
+      return;
+    }
+    const w = window.omelette && window.omelette.writeFile;
+    if (!w) return;
+    saving = true;
+    Promise.resolve(w(STATE_FILE, JSON.stringify(slots))).catch(() => {}).then(() => {
+      saving = false;
+      if (saveDirty) {
+        saveDirty = false;
+        save();
+      }
+    });
+  }
+  const S_MAX = 5;
+  const clampS = s => Math.max(1, Math.min(S_MAX, s));
+
+  // Normalize a stored slot value. Pre-reframe sidecars stored a bare
+  // data-URL string; newer ones store {u, s, x, y}. Either shape is valid.
+  function getSlot(id) {
+    const v = slots[id];
+    if (!v) return null;
+    return typeof v === 'string' ? {
+      u: v,
+      s: 1,
+      x: 0,
+      y: 0
+    } : v;
+  }
+  function setSlot(id, val) {
+    if (!id) return;
+    if (val) {
+      slots[id] = val;
+      tombstones.delete(id);
+    } else {
+      delete slots[id];
+      if (!loaded) tombstones.add(id);
+    }
+    subs.forEach(fn => fn());
+    // A drop is rare + high-value — write immediately so nav-away can't lose
+    // it. Gate on the initial read so we don't overwrite a sidecar we haven't
+    // merged yet; the merge in load() keeps this change once the read lands.
+    if (loaded) save();else load().then(save);
+  }
+
+  // ── Image downscale ─────────────────────────────────────────────────────
+  // Encode through a canvas so the sidecar carries resized bytes, not the
+  // raw upload. Longest side is capped at 2× the slot's rendered width
+  // (retina) and at MAX_DIM. WebP keeps alpha and is ~10× smaller than PNG
+  // for photos, so there's no need for per-image format picking.
+  async function toDataUrl(file, targetW) {
+    const bitmap = await createImageBitmap(file);
+    try {
+      const cap = Math.min(MAX_DIM, Math.max(1, Math.round(targetW * 2)) || MAX_DIM);
+      const scale = Math.min(1, cap / Math.max(bitmap.width, bitmap.height));
+      const w = Math.max(1, Math.round(bitmap.width * scale));
+      const h = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+      return canvas.toDataURL('image/webp', 0.85);
+    } finally {
+      bitmap.close && bitmap.close();
+    }
+  }
+
+  // ── Custom element ──────────────────────────────────────────────────────
+  const stylesheet =
+  // Fill the container by default: slots are usually placed inside a
+  // sized wrapper (a hero frame, a grid cell, an inset:0 layer) and are
+  // expected to take that box — a fixed intrinsic size would render as
+  // a small tile in the corner of a full-bleed wrapper instead.
+  // aspect-ratio is the companion fallback that keeps a bare slot
+  // visible when the parent's height is indefinite: height:100%
+  // resolves to auto there, and the ratio then derives height from
+  // width instead of letting the slot collapse to zero height.
+  // Explicit width/height on the element override all of this.
+  // color:inherit (not a fixed near-black): the placeholder chrome —
+  // empty-state icon/caption (currentColor) and the dashed ring — must
+  // read on dark decks too, and the slide's own text color is the one
+  // color guaranteed to contrast with the slide background. The soft
+  // look comes from opacity on those parts, not from a baked-in alpha.
+  ':host{display:block;position:relative;' + '  font:13px/1.3 system-ui,-apple-system,sans-serif;' + '  width:100%;height:100%;aspect-ratio:3/2}' + '.empty .cap,.empty .sub{opacity:.75}' + '.frame{position:absolute;inset:0;overflow:hidden;background:rgba(127,127,127,.08)}' +
+  // .frame img (clipped) and .spill (unclipped ghost + handles) share the
+  // same left/top/width/height in frame-%, computed by _applyView(), so the
+  // inside-mask crop and the outside-mask spill stay pixel-aligned.
+  '.frame img{position:absolute;max-width:none;transform:translate(-50%,-50%);' + '  -webkit-user-drag:none;user-select:none;touch-action:none}' +
+  // Reframe mode (double-click): the full image spills past the mask. The
+  // spill layer is sized to the IMAGE bounds so its corners are where the
+  // resize handles belong. The ghost <img> inside is translucent; the real
+  // clipped <img> underneath shows the opaque in-mask crop.
+  // popover=manual promotes the spill to the top layer on reframe, so it is
+  // not clipped by any overflow:hidden / clip-path / scroll-container
+  // ancestor (a plain z-index can't escape overflow clipping). UA popover
+  // defaults (inset:0;margin:auto) are reset; _applyView sets viewport px.
+  '.spill{position:fixed;margin:0;inset:auto;border:0;padding:0;background:transparent;' + '  overflow:visible;transform:translate(-50%,-50%);z-index:1;cursor:grab;touch-action:none}' + ':host([data-panning]) .spill{cursor:grabbing}' + '.spill .ghost{position:absolute;inset:0;width:100%;height:100%;opacity:.35;' + '  pointer-events:none;-webkit-user-drag:none;user-select:none;' + '  box-shadow:0 0 0 1px rgba(0,0,0,.2),0 12px 32px rgba(0,0,0,.2)}' + '.spill .handle{position:absolute;width:12px;height:12px;border-radius:50%;' + '  background:#fff;box-shadow:0 0 0 1.5px #c96442,0 1px 3px rgba(0,0,0,.3);' + '  transform:translate(-50%,-50%)}' + '.spill .handle[data-c=nw]{left:0;top:0;cursor:nwse-resize}' + '.spill .handle[data-c=ne]{left:100%;top:0;cursor:nesw-resize}' + '.spill .handle[data-c=sw]{left:0;top:100%;cursor:nesw-resize}' + '.spill .handle[data-c=se]{left:100%;top:100%;cursor:nwse-resize}' + ':host([data-reframe]){z-index:10}' + ':host([data-reframe]) .frame{box-shadow:0 0 0 2px #c96442}' + '.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;' + '  justify-content:center;gap:6px;text-align:center;padding:12px;box-sizing:border-box;' + '  cursor:pointer;user-select:none}' + '.empty svg{opacity:.45}' + '.empty .cap{max-width:90%;font-weight:500;letter-spacing:.01em}' + '.empty .sub{font-size:11px}' + '.empty .sub u{text-underline-offset:2px}' + '.empty:hover .sub{opacity:1}' + ':host([data-over]) .frame{outline:2px solid #c96442;outline-offset:-2px;' + '  background:rgba(201,100,66,.10)}' + '.ring{position:absolute;inset:0;pointer-events:none;border:1.5px dashed currentColor;' + '  opacity:.35;transition:border-color .12s,opacity .12s}' + ':host([data-over]) .ring{border-color:#c96442;opacity:1}' + ':host([data-filled]) .ring{display:none}' +
+  // Controls overlay INSIDE the frame, pinned to the top-right corner, so
+  // a full-bleed slot in an overflow:hidden container still shows them
+  // (the old below-mask placement got clipped). Credit sits bottom-left,
+  // so top-right avoids collision. The blurred pill background keeps them
+  // legible over the image.
+  // The UA [popover] base rule styles the element in EVERY state (only
+  // display:none is gated on :not(:popover-open), and the display:flex
+  // below overrides that) — so the UA resets live HERE, like .spill's,
+  // or the ordinary hover-state strip renders as a bordered Canvas box
+  // centered by margin:auto. inset:auto precedes top/right (shorthand).
+  '.ctl{position:absolute;inset:auto;top:8px;right:8px;margin:0;border:0;padding:0;' + '  background:transparent;overflow:visible;' + '  display:flex;gap:6px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:2;' + '  white-space:nowrap}' +
+  // While reframing, the spill owns the top layer and would swallow every
+  // click on the in-frame controls. Promoting .ctl into the top layer
+  // ABOVE the spill (shown after it — later popovers stack higher) keeps
+  // Edit-as-toggle and Replace clickable mid-reframe. _applyView pins it
+  // to the frame's top-right in viewport px (translateX(-100%)
+  // right-aligns against the computed left edge); inset:auto clears the
+  // base rule's top/right so the inline left/top position it alone.
+  '.ctl:popover-open{position:fixed;inset:auto;transform:translateX(-100%)}' + ':host([data-filled][data-editable]:hover) .ctl,:host([data-reframe]) .ctl' + '  {opacity:1;pointer-events:auto}' + '.ctl button{appearance:none;border:0;border-radius:6px;padding:5px 10px;cursor:pointer;' + '  background:rgba(0,0,0,.65);color:#fff;font:11px/1 system-ui,-apple-system,sans-serif;' + '  backdrop-filter:blur(6px)}' + '.ctl button:hover{background:rgba(0,0,0,.8)}' + '.err{position:absolute;left:8px;bottom:8px;right:8px;color:#b3261e;font-size:11px;' + '  background:rgba(255,255,255,.85);padding:4px 6px;border-radius:5px;pointer-events:none}' +
+  // Replacement in flight: after a src swap the browser keeps painting
+  // the PREVIOUS image until the new one decodes, so a Replace would
+  // flash the old photo and then pop. Hide the stale frame (visibility,
+  // not display — _applyView geometry still applies) and spin until the
+  // new image reports in (load/error clears data-swapping).
+  ':host([data-swapping]) .frame img{visibility:hidden}' + '.loading{position:absolute;inset:0;display:none;align-items:center;' + '  justify-content:center;pointer-events:none}' + ':host([data-swapping]) .loading{display:flex}' + '.loading::after{content:"";width:22px;height:22px;border-radius:50%;' + '  border:2px solid rgba(127,127,127,.25);border-top-color:currentColor;' + '  animation:om-slot-spin .7s linear infinite}' + '@keyframes om-slot-spin{to{transform:rotate(360deg)}}' +
+  // Reduced motion: the static two-tone ring still reads as "working".
+  '@media (prefers-reduced-motion:reduce){.loading::after{animation:none}}' + '.credit{position:absolute;left:6px;bottom:6px;max-width:calc(100% - 12px);display:none;' + '  padding:3px 7px;border-radius:5px;background:rgba(0,0,0,.55);color:#fff;' + '  font:10px/1.2 system-ui,-apple-system,sans-serif;text-decoration:none;' + '  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(6px)}' +
+  // The credit is a SPAN holding one or two <a>s (Unsplash's prescribed
+  // form links the photographer AND Unsplash) — anchors style inline so
+  // the overlay reads as one line of text.
+  '.credit a{color:inherit;text-decoration:none}' + '.credit a:hover,.credit a:focus-visible{text-decoration:underline}' + ':host([data-filled][data-credit]) .credit{display:block}' +
+  // Exports must ship JUST the image — no hover controls, no credit chip
+  // (the host marks <html data-om-exporting> for the capture window; the
+  // page-level hide script can't reach shadow DOM, this rule can).
+  ':host-context([data-om-exporting]) .ctl,' + ':host-context([data-om-exporting]) .credit{display:none !important}' +
+  // Print must ship just the image too: the hover-gated controls can be
+  // mid-hover when print() fires, and the credit chip is screen chrome —
+  // the same rule the capture window gets, keyed on print media instead
+  // of the host's data-om-exporting mark (the print path sets no mark).
+  '@media print{.ctl,.credit{display:none !important}}' +
+  // No export-window mask rules here on purpose: the export capture
+  // releases the replacement mask by REMOVING data-swapping (the
+  // shadow-root pass in pages/export/shared.ts HIDE_EXPORT_CHROME_SCRIPT)
+  // — attribute removal works in every engine (:host-context is
+  // Chromium-only), is scoped by construction to slots actually
+  // mid-swap, and hides the spinner through the same gate. A masked img
+  // would otherwise be silently dropped from PPTX decks (the capture
+  // walk skips visibility:hidden imgs).
+  // Attribution error tile: REPLACES the photo when an Unsplash src has
+  // no credit attribute — rendering the photo uncredited is the terms
+  // violation, so the photo must not appear at all.
+  // Calm and neutral on purpose (review feedback): the tile informs the
+  // user; the fix instructions are machine-facing (usage docblock, tool
+  // description, and the turn-end scan's bounce copy name the attributes
+  // for the agent).
+  '.attr-error{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;' + '  justify-content:center;gap:6px;text-align:center;padding:12px;box-sizing:border-box;' + '  background:#f2f1ef;color:#6e6c66;user-select:none;' + '  font:13px/1.45 system-ui,-apple-system,sans-serif}' + '.attr-error svg{opacity:.55}' + '.attr-error .cap{max-width:92%;font-weight:500;letter-spacing:.01em}' + ':host([data-attribution-error]) .attr-error{display:flex}' + ':host([data-attribution-error]) .ring{display:none}';
+  const icon = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' + 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>' + '<path d="m21 15-5-5L5 21"/></svg>';
+  const warnIcon = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' + 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + '<path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>' + '<path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+  class ImageSlot extends HTMLElement {
+    static get observedAttributes() {
+      return ['shape', 'radius', 'mask', 'fit', 'placeholder', 'src', 'id', 'credit', 'credit-href'];
+    }
+
+    /** Duplicate-slide hook (called by deck-stage, see its
+     *  _remintDuplicateIds): copy this id's stored image, if any, under a
+     *  freshly minted key and return that key — so a duplicated slide's
+     *  slot keeps its dropped photo instead of reverting to the
+     *  placeholder. 'isFree' is the caller's uniqueness check (document
+     *  ids); candidates must ALSO be unused in the sidecar, which can
+     *  hold keys from other pages sharing the project root. (An EMPTY
+     *  slot on another page leaves no sidecar entry, so its id is not
+     *  detectable here — a minted key can collide with it and that slot
+     *  would show this photo. Same blast radius as two pages reusing an
+     *  id by hand, which the shared sidecar already permits.) Returns null
+     *  when no id could be minted (caller strips the id, today's
+     *  behavior). */
+    static cloneSlot(fromId, isFree) {
+      if (typeof fromId !== 'string' || !fromId) return null;
+      // Pre-hydration the store can't veto candidates or source the copy
+      // — degrade to the strip (today's behavior) rather than mint
+      // against keys we can't see yet. Any rendered (= droppable) slot
+      // means load() has already settled.
+      if (!loaded) return null;
+      const stem = fromId.replace(/-\d+$/, '') || fromId;
+      for (let n = 2; n < 100; n++) {
+        const toId = stem + '-' + n;
+        if (toId === fromId) continue;
+        if (slots[toId] !== undefined) {
+          // Reuse a key holding this exact value (bytes AND crop) if no
+          // live element here owns it — a duplicate op the host refused
+          // after minting leaves such a key behind, and reusing keeps
+          // refused retries from accumulating one orphaned copy per
+          // attempt. Full equality (not just bytes) so a byte-identical
+          // key another PAGE owns with its own crop is stepped past, not
+          // adopted or rewritten. (Entries without .u never match.)
+          const prev = getSlot(toId);
+          const cur = getSlot(fromId);
+          if (!(prev && cur && prev.u && prev.u === cur.u && prev.s === cur.s && prev.x === cur.x && prev.y === cur.y && (typeof isFree !== 'function' || isFree(toId)))) continue;
+          return toId;
+        }
+        if (typeof isFree === 'function' && !isFree(toId)) continue;
+        const v = getSlot(fromId);
+        if (v) setSlot(toId, Object.assign({}, v));
+        return toId;
+      }
+      return null;
+    }
+    constructor() {
+      super();
+      // clonable: rail thumbnails deep-clone slides and carry this shadow
+      // along; reuse an already-cloned root so upgrade-after-clone works.
+      // (Deliberately NOT serializable — a getHTML consumer would embed
+      // multi-MB sidecar data-URLs into serialized page HTML.)
+      const root = this.shadowRoot || this.attachShadow({
+        mode: 'open',
+        clonable: true
+      });
+      // .spill and .ctl sit OUTSIDE .frame so overflow:hidden + border-radius
+      // on the frame (circle, pill, rounded) can't clip them.
+      root.innerHTML = '<style>' + stylesheet + '</style>' + '<div class="frame" part="frame">' + '  <img part="image" alt="" draggable="false" style="display:none">' + '  <div class="empty" part="empty">' + icon + '    <div class="cap"></div>' + '    <div class="sub">or <u>browse files</u></div></div>' + '  <div class="attr-error" part="attribution-error">' + warnIcon + '    <div class="cap">This photo needs attribution</div></div>' + '  <div class="loading" part="loading"></div>' + '  <div class="ring" part="ring"></div>' + '</div>' +
+      // Outside .frame, like .spill/.ctl — the frame's overflow:hidden +
+      // border-radius/clip-path would cut the credit off on circle/pill/mask.
+      // A SPAN, not an <a>: the prescribed Unsplash credit holds two links
+      // (photographer + Unsplash), built per-render in _render().
+      '<span class="credit" part="credit"></span>' + '<div class="spill" popover="manual" data-dc-edit-transparent>' + '  <img class="ghost" alt="" draggable="false">' + '  <div class="handle" data-c="nw"></div><div class="handle" data-c="ne"></div>' + '  <div class="handle" data-c="sw"></div><div class="handle" data-c="se"></div>' + '</div>' +
+      // data-dc-edit-transparent: the DC editor's edit-mode picker lets
+      // clicks through for chrome marked with it (EDIT_TRANSPARENT_SEL)
+      // — without it, Replace/Edit clicks in Edit mode are swallowed by
+      // element selection and the controls look dead.
+      '<div class="ctl" popover="manual" data-dc-edit-transparent><button data-act="replace" title="Replace image">Replace</button>' + '  <button data-act="edit" title="Reframe image">Edit</button></div>' + '<input type="file" accept="' + ACCEPT.join(',') + '" hidden>';
+      this._frame = root.querySelector('.frame');
+      this._ring = root.querySelector('.ring');
+      this._img = root.querySelector('.frame img');
+      this._empty = root.querySelector('.empty');
+      this._cap = root.querySelector('.cap');
+      this._sub = root.querySelector('.sub');
+      this._spill = root.querySelector('.spill');
+      this._ctl = root.querySelector('.ctl');
+      this._credit = root.querySelector('.credit');
+      this._attrError = root.querySelector('.attr-error');
+      // Credit clicks open the link, not browse/reframe.
+      this._credit.addEventListener('click', e => e.stopPropagation());
+      this._credit.addEventListener('dblclick', e => e.stopPropagation());
+      this._ghost = root.querySelector('.ghost');
+      this._err = null;
+      this._input = root.querySelector('input');
+      this._depth = 0;
+      this._gen = 0;
+      // Encode-in-flight marker (the owning _ingest generation): while set,
+      // the same-src "nothing in flight" clear in _render must not fire —
+      // the stored value still points at the OLD image until the encode
+      // lands, so that clear would unmask the stale image mid-replace.
+      this._swapGen = 0;
+      // Render-owned swap in flight: set when _render assigns a new src,
+      // cleared only by the img's own load/error (or the empty branch).
+      // img.complete CANNOT stand in for this — setting src only QUEUES
+      // the current-request swap (a microtask), so synchronously after an
+      // assignment, complete still reports the OLD settled request. The
+      // pick path does exactly that: the host sets src, credit, and
+      // credit-href back-to-back in one task, and renders #2/#3 would
+      // read the stale complete === true and drop the mask one render
+      // after it was set.
+      this._loadPending = false;
+      // See _render's empty branch: a transient attribution-error wipe of a
+      // showing image must make the follow-up render a replacement (spinner),
+      // not a first fill (blank frame).
+      this._hidShowing = false;
+      this._view = {
+        s: 1,
+        x: 0,
+        y: 0
+      };
+      this._subFn = () => this._render();
+      // Shadow-DOM listeners live with the shadow DOM — bound once here so
+      // disconnect/reconnect (e.g. React remount) doesn't stack handlers.
+      this._empty.addEventListener('click', () => this._input.click());
+      root.addEventListener('click', e => {
+        const act = e.target && e.target.getAttribute && e.target.getAttribute('data-act');
+        if (!act) return;
+        // The hidden controls are opacity-0 but still tabbable — without
+        // this gate a keyboard user could drive them on a read-only share
+        // link (mirrors the dblclick handler's editable gate).
+        if (!this.hasAttribute('data-editable')) return;
+        if (act === 'replace') {
+          this._exitReframe(true);
+          // Host-owned picker (Unsplash modal; it also offers local import).
+          this.dispatchEvent(new CustomEvent('image-slot:pick', {
+            bubbles: true,
+            composed: true,
+            detail: {
+              id: this.id || null
+            }
+          }));
+        }
+        if (act === 'edit') {
+          if (!this._reframes()) return;
+          if (this.hasAttribute('data-reframe')) this._exitReframe(true);else this._enterReframe();
+        }
+      });
+      this._input.addEventListener('change', () => {
+        const f = this._input.files && this._input.files[0];
+        if (f) this._ingest(f);
+        this._input.value = '';
+      });
+      // naturalWidth/Height aren't known until load — re-apply so the cover
+      // baseline is computed from real dimensions, not the 100%×100% fallback.
+      // load/error also release the replacement-in-flight mask (via the
+      // single discipline in _releaseMask): the swap is only revealed once
+      // the new image can actually paint (on error the frame shows its
+      // background, same as a fresh slot with a broken src).
+      this._img.addEventListener('load', () => {
+        this._loadPending = false;
+        this._releaseMask(true);
+        this._applyView();
+      });
+      this._img.addEventListener('error', () => {
+        this._loadPending = false;
+        this._releaseMask(true);
+      });
+      // Gated only on editable — any filled slot can be repositioned/scaled,
+      // regardless of fit. Share links (no writeFile) stay static.
+      this.addEventListener('dblclick', e => {
+        if (!this.hasAttribute('data-editable') || !this._reframes()) return;
+        e.preventDefault();
+        if (this.hasAttribute('data-reframe')) this._exitReframe(true);else this._enterReframe();
+      });
+      // Pan + resize both originate on the spill layer. A handle pointerdown
+      // drives an aspect-locked resize anchored at the opposite corner; any
+      // other pointerdown on the spill pans. Offsets are frame-% so a
+      // reframed slot survives responsive resize / PPTX export.
+      this._spill.addEventListener('pointerdown', e => {
+        if (e.button !== 0 || !this.hasAttribute('data-reframe')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        this._spill.setPointerCapture(e.pointerId);
+        const rect = this.getBoundingClientRect();
+        const fw = rect.width || 1,
+          fh = rect.height || 1;
+        const corner = e.target.getAttribute && e.target.getAttribute('data-c');
+        let move;
+        if (corner) {
+          // Resize about the OPPOSITE corner. Viewport-px throughout (rect
+          // fw/fh, not clientWidth) so the math survives a transform:scale()
+          // ancestor — deck_stage renders slides scaled-to-fit.
+          const iw = this._img.naturalWidth || 1,
+            ih = this._img.naturalHeight || 1;
+          const contain = (this.getAttribute('fit') || 'cover').toLowerCase() === 'contain';
+          const base = contain ? Math.min(fw / iw, fh / ih) : Math.max(fw / iw, fh / ih);
+          const sx = corner.includes('e') ? 1 : -1;
+          const sy = corner.includes('s') ? 1 : -1;
+          const s0 = this._view.s;
+          const w0 = iw * base * s0,
+            h0 = ih * base * s0;
+          const cx0 = (50 + this._view.x) / 100 * fw;
+          const cy0 = (50 + this._view.y) / 100 * fh;
+          const ox = cx0 - sx * w0 / 2,
+            oy = cy0 - sy * h0 / 2;
+          const diag0 = Math.hypot(w0, h0);
+          const ux = sx * w0 / diag0,
+            uy = sy * h0 / diag0;
+          move = ev => {
+            const proj = (ev.clientX - rect.left - ox) * ux + (ev.clientY - rect.top - oy) * uy;
+            const s = clampS(s0 * proj / diag0);
+            const d = diag0 * s / s0;
+            this._view.s = s;
+            this._view.x = (ox + ux * d / 2) / fw * 100 - 50;
+            this._view.y = (oy + uy * d / 2) / fh * 100 - 50;
+            this._clampView();
+            this._applyView();
+          };
+        } else {
+          this.setAttribute('data-panning', '');
+          const start = {
+            px: e.clientX,
+            py: e.clientY,
+            x: this._view.x,
+            y: this._view.y
+          };
+          move = ev => {
+            this._view.x = start.x + (ev.clientX - start.px) / fw * 100;
+            this._view.y = start.y + (ev.clientY - start.py) / fh * 100;
+            this._clampView();
+            this._applyView();
+          };
+        }
+        const up = () => {
+          try {
+            this._spill.releasePointerCapture(e.pointerId);
+          } catch {}
+          this._spill.removeEventListener('pointermove', move);
+          this._spill.removeEventListener('pointerup', up);
+          this._spill.removeEventListener('pointercancel', up);
+          this.removeAttribute('data-panning');
+          this._dragUp = null;
+        };
+        // Stashed so _exitReframe (Escape / outside-click mid-drag) can
+        // tear the capture + listeners down synchronously.
+        this._dragUp = up;
+        this._spill.addEventListener('pointermove', move);
+        this._spill.addEventListener('pointerup', up);
+        this._spill.addEventListener('pointercancel', up);
+      });
+      // Wheel zoom stays available inside reframe mode as a trackpad nicety —
+      // zooms toward the cursor (offset' = cursor·(1-k) + offset·k).
+      this.addEventListener('wheel', e => {
+        if (!this.hasAttribute('data-reframe')) return;
+        e.preventDefault();
+        const r = this.getBoundingClientRect();
+        const cx = (e.clientX - r.left) / r.width * 100 - 50;
+        const cy = (e.clientY - r.top) / r.height * 100 - 50;
+        const prev = this._view.s;
+        const next = clampS(prev * Math.pow(1.0015, -e.deltaY));
+        if (next === prev) return;
+        const k = next / prev;
+        this._view.s = next;
+        this._view.x = cx * (1 - k) + this._view.x * k;
+        this._view.y = cy * (1 - k) + this._view.y * k;
+        this._clampView();
+        this._applyView();
+      }, {
+        passive: false
+      });
+    }
+    connectedCallback() {
+      // Warn once per page — an id-less slot works for the session but
+      // cannot persist, and two id-less slots would share nothing.
+      if (!this.id && !ImageSlot._warned) {
+        ImageSlot._warned = true;
+        console.warn('<image-slot> without an id will not persist its dropped image.');
+      }
+      this.addEventListener('dragenter', this);
+      this.addEventListener('dragover', this);
+      this.addEventListener('dragleave', this);
+      this.addEventListener('drop', this);
+      subs.add(this._subFn);
+      // The host may inject window.omelette.writeFile AFTER the first render;
+      // re-render on hover so the editable-gated controls reliably appear.
+      this.addEventListener('pointerenter', this._subFn);
+      // width%/height% in _applyView encode the frame aspect at call time —
+      // a host resize (responsive grid, pane divider) would stretch the
+      // image until the next _render. Re-render on size change: _render()
+      // re-seeds _view from stored before clamp/apply, so a shrink→grow
+      // cycle round-trips instead of ratcheting x/y toward the narrower
+      // frame's clamp range.
+      this._ro = new ResizeObserver(() => this._render());
+      this._ro.observe(this);
+      load();
+      this._render();
+    }
+    disconnectedCallback() {
+      subs.delete(this._subFn);
+      this.removeEventListener('pointerenter', this._subFn);
+      this.removeEventListener('dragenter', this);
+      this.removeEventListener('dragover', this);
+      this.removeEventListener('dragleave', this);
+      this.removeEventListener('drop', this);
+      if (this._ro) {
+        this._ro.disconnect();
+        this._ro = null;
+      }
+      // commit=false: a disconnect is not a user intent — committing here
+      // would persist whatever half-finished drag a React remount or DOM
+      // splice happened to interrupt. Deliberate exits commit on their own
+      // paths (Escape/click-out/toggle), and unloads commit via pagehide.
+      this._exitReframe(false);
+    }
+    _enterReframe() {
+      if (this.hasAttribute('data-reframe')) return;
+      this.setAttribute('data-reframe', '');
+      this._signalReframe(true);
+      // Best-effort commit when the document unloads mid-reframe (a host
+      // navigation racing the enter signal, a manual reload, tab close):
+      // the sidecar write rides the host bridge, which outlives this
+      // document, so the crop survives even though the mode dies with the
+      // DOM. Held on the instance so _exitReframe detaches exactly what
+      // was attached.
+      this._pagehide = () => {
+        this._exitReframe(true);
+        flushNow();
+      };
+      window.addEventListener('pagehide', this._pagehide);
+      // Promote spill to the top layer, then keep it pinned over the frame:
+      // scroll/resize cover the common cases, and a per-frame rect check
+      // catches layout shifts that fire neither (an image above finishing
+      // load, streamed DOM pushing the slot down, an ancestor transform
+      // change) so the overlay can't detach from the frame.
+      try {
+        this._spill.showPopover();
+      } catch {}
+      // After the spill, so the controls stack above it in the top layer.
+      try {
+        this._ctl.showPopover();
+      } catch {}
+      this._reposition = () => {
+        if (this.hasAttribute('data-reframe')) this._applyView();
+      };
+      window.addEventListener('scroll', this._reposition, true);
+      window.addEventListener('resize', this._reposition);
+      this._lastRect = '';
+      this._watch = () => {
+        if (!this.hasAttribute('data-reframe')) return;
+        const r = this.getBoundingClientRect();
+        const key = r.left + ',' + r.top + ',' + r.width + ',' + r.height;
+        if (key !== this._lastRect) {
+          this._lastRect = key;
+          this._applyView();
+        }
+        this._watchId = requestAnimationFrame(this._watch);
+      };
+      this._watchId = requestAnimationFrame(this._watch);
+      this._applyView();
+      // Close on click outside (the spill handler stopPropagation()s so
+      // in-image drags don't reach this) and on Escape. Listeners are held
+      // on the instance so _exitReframe / disconnectedCallback can detach
+      // exactly what was attached.
+      this._outside = e => {
+        if (e.composedPath && e.composedPath().includes(this)) return;
+        this._exitReframe(true);
+      };
+      this._esc = e => {
+        if (e.key === 'Escape') this._exitReframe(true);
+      };
+      document.addEventListener('pointerdown', this._outside, true);
+      document.addEventListener('keydown', this._esc, true);
+    }
+    _exitReframe(commit) {
+      if (!this.hasAttribute('data-reframe')) return;
+      if (this._dragUp) this._dragUp();
+      this.removeAttribute('data-reframe');
+      this.removeAttribute('data-panning');
+      if (this._outside) document.removeEventListener('pointerdown', this._outside, true);
+      if (this._esc) document.removeEventListener('keydown', this._esc, true);
+      this._outside = this._esc = null;
+      if (this._reposition) {
+        window.removeEventListener('scroll', this._reposition, true);
+        window.removeEventListener('resize', this._reposition);
+        this._reposition = null;
+      }
+      if (this._watchId) {
+        cancelAnimationFrame(this._watchId);
+        this._watchId = 0;
+      }
+      if (this._pagehide) {
+        window.removeEventListener('pagehide', this._pagehide);
+        this._pagehide = null;
+      }
+      try {
+        this._spill.hidePopover();
+      } catch {}
+      try {
+        this._ctl.hidePopover();
+      } catch {}
+      this._ctl.style.left = '';
+      this._ctl.style.top = '';
+      if (commit) this._commitView();
+      this._signalReframe(false);
+    }
+
+    // Reframe state lives only in this DOM until commit, invisible to the
+    // host's dirty signals — announce enter/exit so the host can hold
+    // auto-reloads for exactly the gesture (the guest bundle forwards
+    // image-slot:reframe to the host as imageSlotReframe). Dispatched on
+    // the element (composed, so it escapes shadow roots) while connected;
+    // a disconnected exit (disconnectedCallback) falls back to document so
+    // the host still hears it.
+    _signalReframe(active) {
+      const target = this.isConnected ? this : document;
+      target.dispatchEvent(new CustomEvent('image-slot:reframe', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          active: active,
+          id: this.id || null
+        }
+      }));
+    }
+
+    // Public: host's "Import from computer" calls this to run local browse.
+    openFilePicker() {
+      this._exitReframe(true);
+      this._input.click();
+    }
+
+    // A src write is a newer intent for this slot's content — the host
+    // pick path (setImageSlotImage) or an agent edit — so it must win
+    // over any encode still in flight from an earlier drop: left live,
+    // that encode lands later, passes _ingest's gen guard, and its
+    // setSlot silently overwrites the pick (the stored value shadows
+    // src in _render). Bumping _gen kills the encode before its own
+    // _swapGen clear runs, so clear the dead claim here too — otherwise
+    // _releaseMask (gated on !_swapGen) never fires and the pick's
+    // spinner is stranded. src ONLY: the pick sets credit/credit-href
+    // in the same task, and clearing _swapGen on those would let the
+    // same-src branch unmask the old image mid-encode.
+    attributeChangedCallback(name, oldVal, newVal) {
+      if (name === 'src' && oldVal !== newVal) {
+        this._gen++;
+        this._swapGen = 0;
+      }
+      if (this.shadowRoot) this._render();
+    }
+
+    // handleEvent — one listener object for all four drag events keeps the
+    // add/remove symmetric and the depth counter correct.
+    handleEvent(e) {
+      if (e.type === 'dragenter' || e.type === 'dragover') {
+        // Without preventDefault the browser never fires 'drop'.
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+        if (e.type === 'dragenter') this._depth++;
+        this.setAttribute('data-over', '');
+      } else if (e.type === 'dragleave') {
+        // dragenter/leave fire for every descendant crossing — count depth
+        // so hovering the icon inside the empty state doesn't flicker.
+        if (--this._depth <= 0) {
+          this._depth = 0;
+          this.removeAttribute('data-over');
+        }
+      } else if (e.type === 'drop') {
+        e.preventDefault();
+        e.stopPropagation();
+        this._depth = 0;
+        this.removeAttribute('data-over');
+        const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) this._ingest(f);
+      }
+    }
+    async _ingest(file) {
+      this._setError(null);
+      if (!file || ACCEPT.indexOf(file.type) < 0) {
+        this._setError('Drop a PNG, JPEG, WebP, or AVIF image.');
+        return;
+      }
+      // toDataUrl can take hundreds of ms on a large photo. A Clear or a
+      // newer drop during that window would be clobbered when this await
+      // resumes — bump + capture a generation so stale encodes bail.
+      const gen = ++this._gen;
+      // Replacing a shown image: surface the swap through the encode too,
+      // not just the decode — otherwise the old photo sits there with no
+      // feedback while the canvas re-encode runs. An empty slot keeps its
+      // placeholder (no spinner) until the encode lands, as before.
+      // _swapGen guards the mask against re-renders DURING the encode
+      // (pointerenter, ResizeObserver, another slot's store write): the
+      // stored value still resolves to the old image there, so _render's
+      // same-src clear would otherwise unmask it mid-replace.
+      if (this.hasAttribute('data-filled')) {
+        this.setAttribute('data-swapping', '');
+        this._swapGen = gen;
+      }
+      try {
+        const w = this.clientWidth || this.offsetWidth || MAX_DIM;
+        const url = await toDataUrl(file, w);
+        if (gen !== this._gen) return;
+        // Only exit reframe once the new image is in hand — a rejected type
+        // or decode failure leaves the in-progress crop untouched.
+        this._exitReframe(false);
+        // Clear BEFORE setSlot: its synchronous re-render must see no
+        // pending encode, so a byte-identical re-upload (same data URL, no
+        // load event coming) still clears the mask via the complete branch.
+        this._swapGen = 0;
+        const val = {
+          u: url,
+          s: 1,
+          x: 0,
+          y: 0
+        };
+        setSlot(this.id || '', val);
+        // Keep a session-local copy for id-less slots so the drop still
+        // shows, even though it cannot persist.
+        if (!this.id) {
+          this._local = val;
+          this._render();
+        }
+      } catch (err) {
+        if (gen !== this._gen) return;
+        this._swapGen = 0;
+        // Reveal the kept old image — unless another replacement (a
+        // remote pick's src swap) is still in flight, in which case the
+        // mask stays until THAT image settles (its load/error releases).
+        this._releaseMask();
+        this._setError('Could not read that image.');
+        console.warn('<image-slot> ingest failed:', err);
+      }
+    }
+    _setError(msg) {
+      if (this._err) {
+        this._err.remove();
+        this._err = null;
+      }
+      if (!msg) return;
+      const d = document.createElement('div');
+      d.className = 'err';
+      d.textContent = msg;
+      this.shadowRoot.appendChild(d);
+      this._err = d;
+      setTimeout(() => {
+        if (this._err === d) {
+          d.remove();
+          this._err = null;
+        }
+      }, 3000);
+    }
+
+    // Reframing (pan/resize) is available on any filled slot — the user can
+    // always reposition/scale. `fit` only sets the initial baseline (see
+    // _geom): contain starts fully-visible, cover starts frame-filling.
+    _reframes() {
+      return this.hasAttribute('data-filled');
+    }
+
+    // The single release discipline for the replacement-in-flight mask
+    // (data-swapping). The mask comes off only when BOTH hold:
+    //  - no encode is pending (_swapGen) — mid-encode the stored value
+    //    still resolves to the old image, so any reveal paints it;
+    //  - the frame img has settled on its current src — an unsettled src
+    //    means some replacement is still in flight (e.g. a remote pick),
+    //    whoever started it, and revealing would paint the previous
+    //    frame. The load/error listeners pass settled=true (the event IS
+    //    the settlement signal, per spec complete is true by then);
+    //    other callers rely on the complete flag (covers loaded AND
+    //    failed).
+    // Every release path funnels through here EXCEPT _render's empty
+    // branch (the img is being cleared — nothing will ever settle).
+    _releaseMask(settled) {
+      if (!this._swapGen && !this._loadPending && (settled || this._img.complete)) {
+        this.removeAttribute('data-swapping');
+      }
+    }
+
+    // Baseline geometry, shared by clamp/apply/resize. `base` is the scale at
+    // view-scale s=1: cover = fill the frame (overflow on the looser axis),
+    // contain = fit fully inside (letterboxed). Zooming a contain image past
+    // s where it overflows naturally becomes a crop. Null until the img has
+    // loaded (naturalWidth is 0 before that) or when the slot has no layout
+    // box — ResizeObserver fires with a 0×0 rect under display:none, and
+    // clamping against a degenerate 1×1 frame would silently pull the stored
+    // pan toward zero.
+    _geom() {
+      const iw = this._img.naturalWidth,
+        ih = this._img.naturalHeight;
+      const fw = this.clientWidth,
+        fh = this.clientHeight;
+      if (!iw || !ih || !fw || !fh) return null;
+      const contain = (this.getAttribute('fit') || 'cover').toLowerCase() === 'contain';
+      const base = contain ? Math.min(fw / iw, fh / ih) : Math.max(fw / iw, fh / ih);
+      return {
+        iw,
+        ih,
+        fw,
+        fh,
+        base
+      };
+    }
+    _clampView() {
+      // Pan range on each axis is half the overflow past the frame edge.
+      const g = this._geom();
+      if (!g) return;
+      const mx = Math.max(0, (g.iw * g.base * this._view.s / g.fw - 1) * 50);
+      const my = Math.max(0, (g.ih * g.base * this._view.s / g.fh - 1) * 50);
+      this._view.x = Math.max(-mx, Math.min(mx, this._view.x));
+      this._view.y = Math.max(-my, Math.min(my, this._view.y));
+    }
+    _applyView() {
+      const g = this._geom();
+      // Top-layer controls: pin to the frame's top-right in viewport px
+      // (the same 8px inset as the in-frame layout; unscaled — top-layer UI
+      // reads as chrome, not page content). BEFORE the geometry branch:
+      // placement needs only the frame rect, and a not-yet-loaded or broken
+      // src must not leave the promoted strip floating unpositioned. Gated
+      // on the popover actually being open: without the Popover API,
+      // showPopover() threw (swallowed in _enterReframe), .ctl stays in
+      // its in-frame absolute layout, and viewport-px coordinates would
+      // shove it off-frame — and matches(':popover-open') itself throws
+      // there (unknown pseudo-class), hence the try/catch.
+      if (this.hasAttribute('data-reframe')) {
+        let onTop = false;
+        try {
+          onTop = this._ctl.matches(':popover-open');
+        } catch {}
+        if (onTop) {
+          const r = this.getBoundingClientRect();
+          this._ctl.style.left = r.right - 8 + 'px';
+          this._ctl.style.top = r.top + 8 + 'px';
+        }
+      }
+      if (!g) {
+        // Dimensions not known yet (before img load) — centered fit so there
+        // is no flash of an unpositioned image before the geometry lands.
+        const contain = (this.getAttribute('fit') || 'cover').toLowerCase() === 'contain';
+        this._img.style.width = '100%';
+        this._img.style.height = '100%';
+        this._img.style.left = '50%';
+        this._img.style.top = '50%';
+        this._img.style.objectFit = contain ? 'contain' : 'cover';
+        return;
+      }
+      // Baseline (cover-fill or contain-fit) × view scale. Width/height and
+      // left/top are all frame-% — depends only on the frame aspect ratio, so
+      // a responsive resize keeps the same crop. The spill layer mirrors the
+      // same box so its corners = image corners.
+      const k = g.base * this._view.s;
+      const w = g.iw * k / g.fw * 100 + '%';
+      const h = g.ih * k / g.fh * 100 + '%';
+      const l = 50 + this._view.x + '%';
+      const t = 50 + this._view.y + '%';
+      this._img.style.width = w;
+      this._img.style.height = h;
+      this._img.style.left = l;
+      this._img.style.top = t;
+      this._img.style.objectFit = '';
+      if (this.hasAttribute('data-reframe')) {
+        // Top-layer spill: position in viewport px over the frame. The top
+        // layer escapes ancestor transforms entirely, so EVERY term must be
+        // in viewport units: getBoundingClientRect gives the frame's scaled
+        // origin AND size, and the rect/layout ratio rescales the ghost —
+        // sizing from layout px alone renders it 1/scale too large under a
+        // scaled deck slide. Inner ghost + handles stay box-relative.
+        const r = this.getBoundingClientRect();
+        const sx = g.fw ? r.width / g.fw : 1;
+        const sy = g.fh ? r.height / g.fh : 1;
+        this._spill.style.width = g.iw * k * sx + 'px';
+        this._spill.style.height = g.ih * k * sy + 'px';
+        this._spill.style.left = r.left + (50 + this._view.x) / 100 * r.width + 'px';
+        this._spill.style.top = r.top + (50 + this._view.y) / 100 * r.height + 'px';
+      }
+    }
+    _commitView() {
+      const v = {
+        s: this._view.s,
+        x: this._view.x,
+        y: this._view.y
+      };
+      if (this._userUrl) v.u = this._userUrl;
+      // Framing-only (no u) persists too so an author-src slot remembers its
+      // crop; clearing the sidecar still falls through to src=.
+      if (this.id) setSlot(this.id, v);else {
+        this._local = v;
+      }
+    }
+    _render() {
+      // Shape / mask. Presets use border-radius so the dashed ring can
+      // follow the rounded outline; clip-path is only applied for an
+      // explicit `mask` (the ring is hidden there since a rectangle
+      // dashed border chopped by an arbitrary polygon looks broken).
+      const mask = this.getAttribute('mask');
+      const shape = (this.getAttribute('shape') || 'rounded').toLowerCase();
+      let radius = '';
+      if (shape === 'circle') radius = '50%';else if (shape === 'pill') radius = '9999px';else if (shape === 'rounded') {
+        const n = parseFloat(this.getAttribute('radius'));
+        radius = (Number.isFinite(n) ? n : 12) + 'px';
+      }
+      this._frame.style.borderRadius = mask ? '' : radius;
+      this._frame.style.clipPath = mask || '';
+      this._ring.style.borderRadius = mask ? '' : radius;
+      this._ring.style.display = mask ? 'none' : '';
+
+      // Controls and reframe entry gate on this so share links stay read-only.
+      const editable = !!(window.omelette && window.omelette.writeFile);
+      this.toggleAttribute('data-editable', editable);
+      this._sub.style.display = editable ? '' : 'none';
+
+      // Content. The sidecar is also writable by the agent's write_file
+      // tool, so its value isn't guaranteed canvas-originated — only accept
+      // data:image/ URLs from it. The `src` attribute is author-controlled
+      // (Claude wrote it into the HTML) so it passes through unchanged.
+      let stored = this.id ? getSlot(this.id) : this._local;
+      if (stored && stored.u && !/^data:image\//i.test(stored.u)) stored = null;
+      const srcAttr = this.getAttribute('src') || '';
+      this._userUrl = stored && stored.u || null;
+      const url = this._userUrl || srcAttr;
+      // Don't clobber an in-flight reframe with a store-triggered re-render.
+      if (!this.hasAttribute('data-reframe')) {
+        this._view = {
+          s: stored && Number.isFinite(stored.s) ? clampS(stored.s) : 1,
+          x: stored && Number.isFinite(stored.x) ? stored.x : 0,
+          y: stored && Number.isFinite(stored.y) ? stored.y : 0
+        };
+      }
+      this._cap.textContent = this.getAttribute('placeholder') || 'Drop an image';
+      // Toggle via style.display — the [hidden] attribute alone loses to
+      // the display:flex / display:block rules in the stylesheet above.
+      // An Unsplash src with no credit attribute must NOT render — showing
+      // the photo uncredited is the Unsplash-terms violation itself. The
+      // error tile replaces the photo until the credit is written. A
+      // user-dropped image is the user's own content and always renders.
+      // Trimmed: credit is agent/user-editable content, and a whitespace-
+      // only value must count as missing — otherwise it would suppress the
+      // error tile AND render an empty credit box (no text, no links),
+      // exactly the unattributed state this gate exists to prevent.
+      const credit = (this.getAttribute('credit') || '').trim();
+      const attrError = !!(!credit && !this._userUrl && srcAttr && isUnsplashHost(srcAttr));
+      this.toggleAttribute('data-attribution-error', attrError);
+      if (url && !attrError) {
+        const prev = this._img.getAttribute('src');
+        if (prev !== url) {
+          // Replacing an already-shown image: mark the swap BEFORE setting
+          // src so the stale frame is never revealed (see the data-swapping
+          // stylesheet rules). First fill (prev empty) keeps the existing
+          // placeholder-until-load behavior — no spinner. _hidShowing
+          // covers the pick path's transient attribution-error wipe: prev
+          // is gone, but an image WAS showing, so this is a replacement.
+          if (prev || this._hidShowing) this.setAttribute('data-swapping', '');
+          // Mark the swap BEFORE assigning src: complete keeps reporting
+          // the old settled request until the browser's
+          // update-the-image-data microtask runs, so same-task re-renders
+          // (the pick path's credit/credit-href setAttributes) need this
+          // flag, not complete, to know a load is in flight.
+          this._loadPending = true;
+          this._img.src = url;
+          this._ghost.src = url;
+        } else {
+          // Same-src re-render — release if settled, so an ingest-set
+          // spinner can't stick after a byte-identical re-upload (same
+          // data URL, no further load event ever fires).
+          this._releaseMask();
+        }
+        this._hidShowing = false;
+        this._img.style.display = 'block';
+        this._empty.style.display = 'none';
+        this.setAttribute('data-filled', '');
+        this._clampView();
+        this._applyView();
+      } else {
+        this.removeAttribute('data-swapping');
+        // The src is being removed — no load/error will ever fire for it.
+        this._loadPending = false;
+        // A transient attribution-error wipe of a showing image happens on
+        // the pick path: the host sets src one setAttribute before credit,
+        // so render N hides the old image (attrError) and render N+1
+        // restores a URL. Remember the wipe so that restore renders as a
+        // replacement (spinner), not a first fill (blank frame).
+        this._hidShowing = attrError && !!this._img.getAttribute('src');
+        this._img.style.display = 'none';
+        this._img.removeAttribute('src');
+        this._ghost.removeAttribute('src');
+        // The error tile owns the blocked-photo state; .empty stays for
+        // the genuinely-empty slot.
+        this._empty.style.display = attrError ? 'none' : 'flex';
+        this.removeAttribute('data-filled');
+      }
+
+      // Credit belongs to the author src, so a user drop hides it.
+      // textContent + the http(s)-only funnel keep external strings inert.
+      const showCredit = !!(url && credit && !this._userUrl && !attrError);
+      this._credit.textContent = '';
+      if (showCredit) {
+        // Validate once (resolved against the document, http(s) only),
+        // then append the terms-required utm referral params to links
+        // that point back at unsplash.com.
+        let href = '';
+        const rawHref = this.getAttribute('credit-href') || '';
+        if (rawHref) {
+          try {
+            const u = new URL(rawHref, document.baseURI);
+            if (u.protocol === 'http:' || u.protocol === 'https:') {
+              href = withReferral(u.href);
+            }
+          } catch {}
+        }
+        const mkLink = (text, linkHref) => {
+          const a = document.createElement('a');
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener noreferrer');
+          a.setAttribute('href', linkHref);
+          a.textContent = text;
+          return a;
+        };
+        // Unsplash's prescribed credit is TWO links — the photographer's
+        // name to their profile (credit-href) and 'Unsplash' to the
+        // homepage. Render that split whenever the text has the canonical
+        // shape; other text keeps the legacy single-link rendering.
+        const m = /^Photo by (.+) on Unsplash$/.exec(credit);
+        if (m) {
+          this._credit.appendChild(document.createTextNode('Photo by '));
+          this._credit.appendChild(href ? mkLink(m[1], href) : document.createTextNode(m[1]));
+          this._credit.appendChild(document.createTextNode(' on '));
+          this._credit.appendChild(mkLink('Unsplash', UNSPLASH_HOMEPAGE_HREF));
+        } else if (href) {
+          this._credit.appendChild(mkLink(credit, href));
+        } else {
+          this._credit.textContent = credit;
+        }
+      }
+      this.toggleAttribute('data-credit', showCredit);
+    }
+  }
+  if (!customElements.get('image-slot')) {
+    customElements.define('image-slot', ImageSlot);
+  }
+})();
+})(); } catch (e) { __ds_ns.__errors.push({ path: "explorations/image-slot.js", error: String((e && e.message) || e) }); }
 
 // ui_kits/admin_web/A.jsx
 try { (() => {
@@ -4498,7 +6461,8 @@ const OFFLOAD_DS = typeof window !== "undefined" && window.OffloadDesignSystem_d
 const {
   Sheet,
   Toast,
-  Button
+  Button,
+  PrismField
 } = OFFLOAD_DS;
 /* Never borrow another thread's summary: if offload has not written one, say only
    what this thread's own fields support. */
@@ -4559,6 +6523,9 @@ function App() {
   /* An exchange started from a page, before it becomes a saved conversation. */
   const [live, setLive] = React.useState(null);
   const [folded, setFolded] = React.useState(false);
+  /* Every dump ticks this, and the prism field warps when it changes. It is a
+     count rather than a boolean so consecutive arrivals each register. */
+  const [filed, setFiled] = React.useState(0);
   /* Opening the list marks everything read; the rows stay, greyed. */
   const [notifs, setNotifs] = React.useState(D.notifications || []);
   const [notifOpen, setNotifOpen] = React.useState(false);
@@ -4646,6 +6613,65 @@ function App() {
      is acknowledged. A prototype should never pretend to understand. */
   function answerFor(said) {
     const s = said.toLowerCase();
+    /* 013: a question is answered from what offload has and files nothing. Decided on the
+       text, before anything is read. */
+    const A = D.answers || {};
+    /* 016: a public fact offload does not hold, answered with the domain it came from. */
+    if (/memorial day|bank holiday|what day is|public holiday/.test(s)) return {
+      text: "Monday 25 May.",
+      refs: [{
+        id: "lisbon",
+        name: "Ana's bbq",
+        kind: "thread"
+      }],
+      sources: [{
+        domain: "timeanddate.com",
+        url: "https://www.timeanddate.com/holidays/us/memorial-day"
+      }]
+    };
+    /* Six reads are possible in one turn, so this is the three-chips-and-a-count case. */
+    if (/long weekend|what's on|whats on|going on near/.test(s)) return {
+      text: "Three things on Monday. Filed the cooler.",
+      refs: [{
+        id: "lisbon",
+        name: "Ana's bbq",
+        kind: "thread"
+      }],
+      sources: [{
+        domain: "timeanddate.com",
+        url: "#"
+      }, {
+        domain: "visitlisboa.com",
+        url: "#"
+      }, {
+        domain: "cp.pt",
+        url: "#"
+      }, {
+        domain: "metro.lisboa.pt",
+        url: "#"
+      }, {
+        domain: "fetedeslumieres.example",
+        url: "#"
+      }]
+    };
+    /* A link that could not be read is filed as it always was, and offload says nothing. */
+    if (/^https?:\/\//.test(s)) return {
+      text: "Filed it.",
+      refs: [{
+        id: "read",
+        name: "Read later",
+        kind: "thread"
+      }]
+    };
+    if (/gun show|which candidate|polls are ahead/.test(s)) return {
+      text: "Can't search that."
+    };
+    if (/theme|dark mode|text size/.test(s)) return A.theme;
+    if (/butter|already add|did i add|is .* on the list/.test(s)) return A.butter;
+    if (/left to do|still open|what is left|outstanding|to do from/.test(s)) return A.open;
+    if (/staying|where am i|which flat|alfama/.test(s)) return A.staying;
+    if (/knife|sharpen|did i save|read later/.test(s)) return A.cutShort;
+    if (/which trip|the trip|trips/.test(s)) return A.which;
     if (/owe|money|cost|pay/.test(s)) return {
       text: "Three things. You owe Ana \u20AC214 for the flights, Sam \u00A312 for the drill bits, and the flat insurance renews at \u00A3340 on the 20th.",
       refs: [{
@@ -4670,7 +6696,7 @@ function App() {
       }]
     };
     if (/shelf|bookshelf|bracket/.test(s)) return {
-      text: "Oak, 210cm by 76cm, matte black brackets at 30cm. The brackets are not ordered and the sale ends Friday.",
+      text: "Oak, 210cm by 76cm, matte black brackets at 30cm. The brackets aren't ordered and the sale ends Friday.",
       refs: [{
         id: "shelf",
         name: "Bookshelf build"
@@ -4680,19 +6706,54 @@ function App() {
       }]
     };
     return {
-      text: "Kept. I put it with the Lisbon trip, where the rest of that lives.",
+      text: "Kept it with the Lisbon trip, where the rest of that lives.",
       refs: [{
         id: "lisbon",
         name: "Lisbon trip"
       }]
     };
   }
+
+  /* A tap on a quick reply is your turn, written into the log as typing it would be. The
+     turn it creates carries the write; the turn that asked carried no write tools. */
+  function pickReply(key, option) {
+    const push = row => setExtraTurns(t => ({
+      ...t,
+      [key]: [...(t[key] || []), row]
+    }));
+    push({
+      from: "you",
+      text: option.label
+    });
+    if (option.kind === "plain") {
+      setTimeout(() => push({
+        from: "offload",
+        text: "Left it off."
+      }), 700);
+      return;
+    }
+    setTimeout(() => {
+      if (option.kind === "thread") {
+        push({
+          from: "offload",
+          text: option.label + ". The flights and the flat are both booked."
+        });
+        return;
+      }
+      push({
+        from: "offload",
+        text: "Added to Groceries."
+      });
+      say("Butter added to Groceries.", "Undo", () => {});
+    }, 900);
+  }
   function submit(payload) {
     const p = payload || {};
+    setFiled(n => n + 1);
     if (convo) {
       const said = saidFrom(p);
       if (said) converse(convo.id, said, () => ({
-        text: "Added to this one. I will keep it with the rest."
+        text: "Added to this one, with the rest of it."
       }));
       return;
     }
@@ -5000,7 +7061,7 @@ function App() {
       fontSize: 11,
       color: "var(--text-tertiary)"
     }
-  }, "first run"), [["sign in", "signin"], ["refusal", "refusal"], ["not invited", "notinvited"], ["tutorial", "tutorial"], ["day one", "empty"], ["app", "app"]].map(([l, p]) => {
+  }, "first run"), [["sign in", "signin"], ["refusal", "refusal"], ["not invited", "notinvited"], ["tutorial", "tutorial"], ["connect", "connect"], ["day one", "empty"], ["app", "app"]].map(([l, p]) => {
     const on = p === "refusal" ? phase === "signin" && refused : phase === p && !(p === "signin" && refused);
     return /*#__PURE__*/React.createElement("button", {
       key: l,
@@ -5049,7 +7110,10 @@ function App() {
     }
   }, "sunset ", window.OffloadSun && window.OffloadSun.sunsetTime(now) ? window.OffloadSun.sunsetTime(now).toTimeString().slice(0, 5) : ", ")), /*#__PURE__*/React.createElement(Phone, {
     theme: themeAttr
-  }, phase === "signin" || phase === "notinvited" || phase === "tutorial" ? phase === "notinvited" ? /*#__PURE__*/React.createElement(M3NotInvitedScreen, {
+  }, phase === "signin" || phase === "notinvited" || phase === "tutorial" || phase === "connect" ? /*#__PURE__*/React.createElement(AGateShell, null, phase === "connect" ? /*#__PURE__*/React.createElement(M3ConnectScreen, {
+    onConnect: () => setPhase("empty"),
+    onSkip: () => setPhase("empty")
+  }) : phase === "notinvited" ? /*#__PURE__*/React.createElement(M3NotInvitedScreen, {
     joined: joined,
     onJoin: () => setJoined(true),
     onSwitch: () => {
@@ -5060,10 +7124,10 @@ function App() {
     step: step,
     onSkip: () => setPhase("app"),
     onNext: () => {
-      if (step < window.A_TUTORIAL_STEPS) setStep(step + 1);else setPhase("app");
+      if (step < window.A_TUTORIAL_STEPS) setStep(step + 1);else setPhase("connect");
     }
   }) : /*#__PURE__*/React.createElement(M3SignInScreen, {
-    error: refused ? "That did not go through. Nothing was sent, try again." : null,
+    error: refused ? "That didn't go through. Nothing was sent, try again." : null,
     onApple: () => {
       setRefused(false);
       setStep(1);
@@ -5073,7 +7137,7 @@ function App() {
       setRefused(false);
       setPhase("notinvited");
     }
-  }) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  })) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minHeight: 0,
@@ -5128,6 +7192,8 @@ function App() {
     live: live,
     turns: extraTurns[live ? live.id : ""] || [],
     writing: writing,
+    onTick: (row, next) => say((next ? "Ticked " : "Put back ") + row.title, "Undo", () => {}),
+    onPick: o => pickReply(live.id, o),
     onFold: () => setFolded(true),
     onClose: () => {
       setLive(null);
@@ -5147,12 +7213,7 @@ function App() {
       setFolded(false);
       setSpace(id);
     }
-  }, /*#__PURE__*/React.createElement(Composer, {
-    value: draft,
-    onChange: setDraft,
-    onSubmit: submit,
-    placeholder: "Add to this"
-  })) : null, share ? /*#__PURE__*/React.createElement(ShareSheet, {
+  }) : null, share ? /*#__PURE__*/React.createElement(ShareSheet, {
     thingName: share,
     onClose: () => setShare(null),
     onShared: names => say("Shared with " + names.join(" and "))
@@ -5177,15 +7238,21 @@ function App() {
     title: s.name,
     meta: s.meta
   }))) : null), (() => {
-    const showComposer = !(space || person || memory || allConvos && !convo || live && !folded || settings);
+    /* The composer never leaves the plate. Raised or not, the plate is composer
+       plus tabs, which keeps the prism field one surface of one height. */
+    const showComposer = !(space || person || memory || allConvos && !convo || settings);
     const showTabs = !(space || person || memory || convo || allConvos || settings);
     const inFolded = live && folded;
     const underSheet = live && !folded;
+    /* Same as iOS: the field sits behind the composer-and-tabs band, the
+       veil closes at both of its edges, and a folded title row stays out
+       of it. */
     const plate = /*#__PURE__*/React.createElement("div", {
       style: {
         position: "relative",
         zIndex: 9,
-        background: "var(--surface-raised)",
+        overflow: "hidden",
+        background: "var(--surface-plate)",
         borderRadius: underSheet ? 0 : "var(--radius-xl) var(--radius-xl) 0 0",
         boxShadow: underSheet ? "none" : "0 -6px 12px -6px rgba(0,0,0,0.22)",
         pointerEvents: notifOpen ? "none" : undefined
@@ -5197,12 +7264,29 @@ function App() {
         setLive(null);
         setFolded(false);
       }
-    }) : null, showComposer ? /*#__PURE__*/React.createElement(Composer, {
+    }) : null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, PrismField ? /*#__PURE__*/React.createElement(PrismField, {
+      variant: "band",
+      veil: "graded",
+      pulse: filed,
+      basePath: "../../assets/prism",
+      style: {
+        zIndex: 0
+      }
+    }) : null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative",
+        zIndex: 2
+      }
+    }, showComposer ? /*#__PURE__*/React.createElement(Composer, {
       value: draft,
       onChange: setDraft,
       onSubmit: submit,
       bare: true,
-      placeholder: convo ? "Add to this conversation" : inFolded ? "Add to this" : undefined
+      placeholder: convo ? "Add to this conversation" : live ? "Add to this" : undefined
     }) : null, showTabs ? /*#__PURE__*/React.createElement(ANav, {
       value: tab,
       onChange: v => {
@@ -5232,7 +7316,7 @@ function App() {
         label: "Memories",
         icon: "cloudy"
       }]
-    }) : null);
+    }) : null)));
     return plate;
   })(), notifOpen ? /*#__PURE__*/React.createElement(NotificationSheet, {
     items: notifs,
@@ -5846,7 +7930,8 @@ const {
   Logo,
   Icon,
   Toast,
-  NotificationAndroid
+  NotificationAndroid,
+  PrismField
 } = OFFLOAD_DS;
 
 /* The same gate as iOS with the order flipped: Google leads, because that account is
@@ -5896,7 +7981,8 @@ function AButton({
   glyph
 }) {
   const filled = tone === "filled",
-    dark = tone === "dark";
+    dark = tone === "dark",
+    text = tone === "text";
   return /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: onClick,
@@ -5909,9 +7995,9 @@ function AButton({
       height: 56,
       borderRadius: "var(--radius-pill)",
       cursor: "pointer",
-      background: filled ? "var(--blue-600)" : dark ? "var(--ink-950)" : "var(--surface-raised)",
-      color: filled || dark ? "#FFFFFF" : "var(--a-on)",
-      border: filled || dark ? "1px solid transparent" : "1px solid var(--a-outline)",
+      background: filled ? "var(--blue-600)" : dark ? "var(--ink-950)" : text ? "transparent" : "var(--surface-raised)",
+      color: filled || dark ? "#FFFFFF" : text ? "var(--blue-700)" : "var(--a-on)",
+      border: filled || dark || text ? "1px solid transparent" : "1px solid var(--a-outline)",
       font: "var(--weight-medium) 15px/1 var(--font-core)",
       letterSpacing: "0.01em"
     }
@@ -5923,7 +8009,9 @@ function ABigLockup() {
       flex: 1,
       display: "flex",
       alignItems: "center",
-      justifyContent: "center"
+      justifyContent: "center",
+      position: "relative",
+      zIndex: 1
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -5963,7 +8051,9 @@ function AGateBody({
   return /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
-      padding: "0 24px 44px"
+      padding: "0 24px 44px",
+      position: "relative",
+      zIndex: 1
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5988,7 +8078,9 @@ function AGateFoot({
       padding: "0 24px 18px",
       display: "flex",
       flexDirection: "column",
-      gap: 12
+      gap: 12,
+      position: "relative",
+      zIndex: 1
     }
   }, children);
 }
@@ -6003,12 +8095,52 @@ function ATerms({
     }
   }, children);
 }
+
+/* The gate's atmosphere belongs to first run, not to any one of its screens:
+   sign-in, the refusal, the tutorial and connect are one surface with changing
+   content, so the field is mounted once around all four and warps once on
+   arrival rather than restarting at every step. */
+function AGateShell({
+  children
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column",
+      position: "relative"
+    }
+  }, PrismField ? /*#__PURE__*/React.createElement(PrismField, {
+    variant: "bloom",
+    veil: "none",
+    arriveOnMount: true,
+    basePath: "../../assets/prism",
+    style: {
+      inset: "auto",
+      left: "-34%",
+      top: "-20%",
+      width: "120%",
+      height: "58%",
+      zIndex: 0
+    }
+  }) : null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      zIndex: 1,
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, children));
+}
 function M3SignInScreen({
   error,
   onApple,
   onGoogle
 }) {
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/ /* No veil on the gate's field: nothing in --text-tertiary crosses it. */React.createElement("div", {
     style: {
       flex: 1,
       minHeight: 0,
@@ -6047,10 +8179,10 @@ function M3NotInvitedScreen({
       flexDirection: "column"
     }
   }, /*#__PURE__*/React.createElement(ABigLockup, null), joined ? /*#__PURE__*/React.createElement(AGateBody, {
-    title: "You are on the list",
-    sub: "We will email " + email + " when your account is ready to use."
+    title: "You're on the list",
+    sub: "We'll email " + email + " when your account is ready to use."
   }) : /*#__PURE__*/React.createElement(AGateBody, {
-    title: "You are not on the list yet",
+    title: "You're not on the list yet",
     sub: "We checked " + email + " and found no invite."
   }), /*#__PURE__*/React.createElement(AGateFoot, null, joined ? /*#__PURE__*/React.createElement(Toast, {
     message: "Added to the waitlist",
@@ -6153,22 +8285,15 @@ function ATutorialArt({
     width: 312
   });
 }
-function M3TutorialScreen({
-  step = 1,
-  onNext,
-  onSkip
+const A_STEPS = A_TUTORIAL.length + 1;
+/* Dots left, the way out top right, identical on every step. */
+function AStepBar({
+  step,
+  total = A_STEPS,
+  onSkip,
+  skipLabel = "Skip"
 }) {
-  const s = A_TUTORIAL[step - 1];
-  const last = step === A_TUTORIAL.length;
   return /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minHeight: 0,
-      display: "flex",
-      flexDirection: "column",
-      padding: "16px 0 0"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -6181,27 +8306,53 @@ function M3TutorialScreen({
       gap: 6,
       alignItems: "center"
     }
-  }, A_TUTORIAL.map((_, i) => /*#__PURE__*/React.createElement("span", {
+  }, Array.from({
+    length: total
+  }).map((_, i) => /*#__PURE__*/React.createElement("span", {
     key: i,
     style: {
       height: 6,
       width: i + 1 === step ? 18 : 6,
       borderRadius: "var(--radius-pill)",
       background: i + 1 === step ? "var(--a-on)" : "var(--a-c-high)",
-      transition: "width 250ms cubic-bezier(.05,.7,.1,1)"
+      transition: "width 200ms var(--ease-out)"
     }
   }))), /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: onSkip,
     style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
       border: "none",
       background: "none",
       cursor: "pointer",
-      padding: "10px 0",
+      height: 48,
+      padding: "0 12px",
+      margin: "0 -12px",
       font: "var(--weight-medium) 14px/20px var(--font-core)",
       color: "var(--blue-700)"
     }
-  }, "Skip")), /*#__PURE__*/React.createElement("div", {
+  }, skipLabel));
+}
+function M3TutorialScreen({
+  step = 1,
+  onNext,
+  onSkip
+}) {
+  const s = A_TUTORIAL[step - 1];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column",
+      padding: "16px 0 0"
+    }
+  }, /*#__PURE__*/React.createElement(AStepBar, {
+    step: step,
+    onSkip: onSkip
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minHeight: 0,
@@ -6231,9 +8382,138 @@ function M3TutorialScreen({
   }, s.sub)), /*#__PURE__*/React.createElement(AGateFoot, null, /*#__PURE__*/React.createElement(AButton, {
     tone: "filled",
     onClick: onNext
-  }, last ? "Get started" : "Next")));
+  }, "Next")));
 }
+/* The last screen of first run. Same decision as iOS, Material geometry: one provider,
+   the mark read before the words, two sentences, a filled button and a text button.
 
+   ALL COPY HERE IS PLACEHOLDER, and the two sentences most of all: they commit the
+   product to something about another service's data, which is the app's call. The shape
+   is ours, what offload reads and what it does back, as prose rather than switches. As of
+   8 September offload MAY write to a connected calendar, so nothing promises read-only.
+
+   The provider's mark is never redrawn; the build passes the official asset as `mark`. */
+function AProviderMark({
+  mark,
+  size = 88,
+  radius = 20
+}) {
+  const [broken, setBroken] = React.useState(false);
+  if (mark && !broken) return /*#__PURE__*/React.createElement("img", {
+    src: mark,
+    alt: "",
+    width: size,
+    height: size,
+    onError: () => setBroken(true),
+    style: {
+      display: "block",
+      width: size,
+      height: size,
+      borderRadius: radius,
+      objectFit: "contain"
+    }
+  });
+  return /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true",
+    title: "Drop the official mark at assets/brands/google-calendar.svg",
+    style: {
+      display: "block",
+      width: size,
+      height: size,
+      borderRadius: radius,
+      background: "var(--a-c-low)",
+      border: "1px dashed var(--a-outline)"
+    }
+  });
+}
+function M3ConnectScreen({
+  provider = "Google Calendar",
+  mark,
+  step = A_STEPS,
+  onConnect,
+  onSkip
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column",
+      padding: "16px 0 0"
+    }
+  }, /*#__PURE__*/React.createElement(AStepBar, {
+    step: step,
+    onSkip: onSkip,
+    skipLabel: "Not now"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "0 24px"
+    }
+  }, /*#__PURE__*/React.createElement(AProviderMark, {
+    mark: mark
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 24px 24px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-semibold) 28px/1.18 var(--font-core)",
+      letterSpacing: "-0.014em",
+      textWrap: "pretty"
+    }
+  }, "Bring in your calendar"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-regular) 16px/24px var(--font-core)",
+      letterSpacing: "0.01em",
+      color: "var(--a-on-var)",
+      marginTop: 12,
+      textWrap: "pretty"
+    }
+  }, "So \u201Cbefore the trip\u201D and \u201Cafter the dentist\u201D mean something."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      marginTop: 20
+    }
+  }, [["calendar", "offload reads your days.", "Times, titles and who is on them."], ["plus", "And it can add to them.", "Anything you dump with a time on it can land back on your calendar."]].map(([ic, head, rest]) => /*#__PURE__*/React.createElement("div", {
+    key: head,
+    style: {
+      display: "flex",
+      gap: 12,
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: ic,
+    size: 16,
+    style: {
+      marginTop: 4,
+      flex: "0 0 auto",
+      color: "var(--a-on-var)"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      font: "var(--weight-regular) 14px/20px var(--font-core)",
+      letterSpacing: "0.015em",
+      color: "var(--a-on-var)"
+    }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--a-on)",
+      fontWeight: 500
+    }
+  }, head), " ", rest))))), /*#__PURE__*/React.createElement(AGateFoot, null, /*#__PURE__*/React.createElement(AButton, {
+    tone: "filled",
+    onClick: onConnect
+  }, `Connect ${provider}`)));
+}
 /* Day one, after Get started. Today shows what a dump looks like, because the examples
    teach what the tutorial could not: half a sentence is a legitimate thing to type. They
    fill the composer rather than submitting, and they never come back once something real
@@ -6353,13 +8633,18 @@ function M3QuietEmpty({
   }, line)));
 }
 Object.assign(window, {
+  AGateShell,
   M3EmptyToday,
   M3QuietEmpty,
   M3DayOneBar,
   M3SignInScreen,
   M3NotInvitedScreen,
   M3TutorialScreen,
-  A_TUTORIAL_STEPS: A_TUTORIAL.length
+  M3ConnectScreen,
+  AProviderMark,
+  AStepBar,
+  A_TUTORIAL_STEPS: A_TUTORIAL.length,
+  A_FIRST_RUN_STEPS: A_STEPS
 });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/android_app/M3FirstRun.jsx", error: String((e && e.message) || e) }); }
 
@@ -6368,17 +8653,22 @@ try { (() => {
 const OFFLOAD_DS = typeof window !== "undefined" && window.OffloadDesignSystem_dc4a89 || {};
 const {
   Icon,
-  Chip
+  Chip,
+  AnswerResult,
+  QuickReplies,
+  TurnFooter
 } = OFFLOAD_DS;
 const LIVE_REF_TONE = {
   thread: "accent",
   time: "attention",
-  money: "warning"
+  money: "warning",
+  source: "outline"
 };
 const LIVE_REF_ICON = {
   thread: "lasso",
   time: "clock",
-  money: null
+  money: null,
+  source: "link"
 };
 function SentVoice({
   secs,
@@ -6518,9 +8808,13 @@ function SentPhoto({
 function Turns({
   turns,
   writing,
-  onOpenThread
+  onOpenThread,
+  onTick,
+  onPick
 }) {
   const endRef = React.useRef(null);
+  const [ticked, setTicked] = React.useState({});
+  const [answered, setAnswered] = React.useState({});
   React.useEffect(() => {
     const el = endRef.current && endRef.current.parentElement;
     if (el) el.scrollTop = el.scrollHeight;
@@ -6541,9 +8835,7 @@ function Turns({
     style: {
       alignSelf: "flex-end",
       maxWidth: "84%",
-      position: "relative",
       padding: "var(--space-3) var(--space-5)",
-      marginBottom: t.status ? "var(--space-4)" : 0,
       borderRadius: "var(--radius-lg) var(--radius-lg) 4px var(--radius-lg)",
       background: "var(--blue-50)",
       border: "1px solid var(--blue-100)",
@@ -6556,10 +8848,14 @@ function Turns({
   }) : t.text, (t.photos || []).map((f, j) => /*#__PURE__*/React.createElement(SentPhoto, {
     key: j,
     name: f
-  })), /*#__PURE__*/React.createElement(StatusChip, {
-    state: t.status
-  }))) : /*#__PURE__*/React.createElement("div", {
-    key: i,
+  }))), TurnFooter ? /*#__PURE__*/React.createElement(TurnFooter, {
+    state: t.status,
+    refs: t.refs,
+    sources: t.sources,
+    onOpenRef: r => onOpenThread(r.id)
+  }) : null) : /*#__PURE__*/React.createElement(React.Fragment, {
+    key: i
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       alignSelf: "flex-start",
       maxWidth: "92%",
@@ -6573,22 +8869,48 @@ function Turns({
       fontSize: 16,
       lineHeight: 1.5
     }
-  }, t.text), t.refs && t.refs.length ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "var(--space-2)",
-      marginTop: "var(--space-3)"
+  }, t.text), AnswerResult && t.options && t.options.length && !answered[i] ? /*#__PURE__*/React.createElement(QuickReplies, {
+    options: t.options,
+    note: t.note,
+    onPick: o => {
+      setAnswered(a => ({
+        ...a,
+        [i]: true
+      }));
+      onPick && onPick(o);
     }
-  }, t.refs.map((r, j) => {
-    const k = r.kind || "thread";
-    return /*#__PURE__*/React.createElement(Chip, {
-      key: j,
-      tone: LIVE_REF_TONE[k],
-      icon: LIVE_REF_ICON[k],
-      onClick: k === "thread" ? () => onOpenThread(r.id) : undefined
-    }, r.name);
-  })) : null)), writing ? /*#__PURE__*/React.createElement("div", {
+  }) : null), (AnswerResult ? t.results || [] : []).map((r, j) => /*#__PURE__*/React.createElement(AnswerResult, {
+    key: j,
+    thread: r.thread,
+    count: r.count,
+    shown: 5,
+    truncated: r.truncated,
+    threadTotal: r.threadTotal,
+    style: {
+      alignSelf: "stretch",
+      background: "var(--a-c-low)",
+      border: "1px solid transparent",
+      borderRadius: "var(--radius-a-lg,16px)"
+    },
+    rows: (r.rows || []).map(x => ({
+      ...x,
+      done: ticked[x.id] !== undefined ? ticked[x.id] : x.done
+    })),
+    onToggle: r.tickable === false ? undefined : row => {
+      const next = !(ticked[row.id] !== undefined ? ticked[row.id] : row.done);
+      setTicked(v => ({
+        ...v,
+        [row.id]: next
+      }));
+      onTick && onTick(row, next);
+    },
+    onOpenThread: () => onOpenThread && onOpenThread(r.thread.id)
+  })), TurnFooter ? /*#__PURE__*/React.createElement(TurnFooter, {
+    state: t.results ? null : t.status,
+    refs: t.results ? [] : t.refs,
+    sources: t.sources,
+    onOpenRef: r => onOpenThread(r.id)
+  }) : null)), writing ? /*#__PURE__*/React.createElement("div", {
     "aria-label": "offload is writing",
     style: {
       alignSelf: "flex-start",
@@ -6702,6 +9024,8 @@ function LiveConversation({
   onFull,
   onClose,
   onOpenThread,
+  onTick,
+  onPick,
   children
 }) {
   const isSheet = variant === "sheet";
@@ -6715,7 +9039,7 @@ function LiveConversation({
       height: isSheet ? "65%" : "58%",
       display: "flex",
       flexDirection: "column",
-      background: "var(--surface-raised)",
+      background: "var(--surface-plate)",
       borderRadius: "var(--radius-xl) var(--radius-xl) 0 0",
       boxShadow: "0 -6px 12px -6px rgba(0,0,0,0.22)",
       animation: "offload-rise var(--duration-slow) var(--ease-out)"
@@ -6784,7 +9108,9 @@ function LiveConversation({
   }))), /*#__PURE__*/React.createElement(Turns, {
     turns: turns,
     writing: writing,
-    onOpenThread: onOpenThread
+    onOpenThread: onOpenThread,
+    onTick: onTick,
+    onPick: onPick
   }), children));
 }
 Object.assign(window, {
@@ -8049,7 +10375,7 @@ const PAGES = {
       onClick: () => {}
     }), /*#__PURE__*/React.createElement(Row, {
       title: "Delete account",
-      note: "Everything offload knows goes with it. This cannot be undone.",
+      note: "Everything offload knows goes with it. This can't be undone.",
       danger: true,
       onClick: () => {},
       last: true
@@ -8280,7 +10606,7 @@ const PAGES = {
       value: "14 Jun"
     }), /*#__PURE__*/React.createElement(Row, {
       title: "Delete all conversations",
-      note: "Memories are not affected.",
+      note: "Memories aren't affected.",
       danger: true,
       onClick: () => {},
       last: true
@@ -9145,7 +11471,7 @@ function Standing({
     style: {
       fontSize: "var(--size-caption)"
     }
-  }, standing.updated === "no summary yet" ? "offload has not summarised this one yet" : "offload wrote this, " + standing.updated)));
+  }, standing.updated === "no summary yet" ? "Not summarised yet" : "offload wrote this, " + standing.updated)));
 }
 function ThreadScreen({
   space,
@@ -10061,7 +12387,8 @@ const {
   Toast,
   Button,
   ListRow,
-  Icon
+  Icon,
+  PrismField
 } = OFFLOAD_DS;
 /* Never borrow another thread's summary: if offload has not written one, say only
    what this thread's own fields support. */
@@ -10122,6 +12449,9 @@ function App() {
   /* An exchange started from a page, before it becomes a saved conversation. */
   const [live, setLive] = React.useState(null);
   const [folded, setFolded] = React.useState(false);
+  /* Every dump ticks this, and the prism field warps when it changes. It is a
+     count rather than a boolean so consecutive arrivals each register. */
+  const [filed, setFiled] = React.useState(0);
   /* Opening the list marks everything read; the rows stay, greyed. */
   const [notifs, setNotifs] = React.useState(D.notifications || []);
   const [notifOpen, setNotifOpen] = React.useState(false);
@@ -10210,6 +12540,66 @@ function App() {
      is acknowledged. A prototype should never pretend to understand. */
   function answerFor(said) {
     const s = said.toLowerCase();
+    /* 013: a question is answered from what offload has, and files nothing. The call is
+       made on the text before anything is read, so the same sentence always lands the
+       same way whatever the corpus happens to hold. */
+    const A = D.answers || {};
+    /* 016: a public fact offload does not hold, answered with the domain it came from. */
+    if (/memorial day|bank holiday|what day is|public holiday/.test(s)) return {
+      text: "Monday 25 May.",
+      refs: [{
+        id: "lisbon",
+        name: "Ana's bbq",
+        kind: "thread"
+      }],
+      sources: [{
+        domain: "timeanddate.com",
+        url: "https://www.timeanddate.com/holidays/us/memorial-day"
+      }]
+    };
+    /* Six reads are possible in one turn, so this is the three-chips-and-a-count case. */
+    if (/long weekend|what's on|whats on|going on near/.test(s)) return {
+      text: "Three things on Monday. Filed the cooler.",
+      refs: [{
+        id: "lisbon",
+        name: "Ana's bbq",
+        kind: "thread"
+      }],
+      sources: [{
+        domain: "timeanddate.com",
+        url: "#"
+      }, {
+        domain: "visitlisboa.com",
+        url: "#"
+      }, {
+        domain: "cp.pt",
+        url: "#"
+      }, {
+        domain: "metro.lisboa.pt",
+        url: "#"
+      }, {
+        domain: "fetedeslumieres.example",
+        url: "#"
+      }]
+    };
+    /* A link that could not be read is filed as it always was, and offload says nothing. */
+    if (/^https?:\/\//.test(s)) return {
+      text: "Filed it.",
+      refs: [{
+        id: "read",
+        name: "Read later",
+        kind: "thread"
+      }]
+    };
+    if (/gun show|which candidate|polls are ahead/.test(s)) return {
+      text: "Can't search that."
+    };
+    if (/theme|dark mode|text size/.test(s)) return A.theme;
+    if (/butter|already add|did i add|is .* on the list/.test(s)) return A.butter;
+    if (/left to do|still open|what is left|outstanding|to do from/.test(s)) return A.open;
+    if (/staying|where am i|which flat|alfama/.test(s)) return A.staying;
+    if (/knife|sharpen|did i save|read later/.test(s)) return A.cutShort;
+    if (/which trip|the trip|trips/.test(s)) return A.which;
     if (/owe|money|cost|pay/.test(s)) return {
       text: "Three things. You owe Ana \u20AC214 for the flights, Sam \u00A312 for the drill bits, and the flat insurance renews at \u00A3340 on the 20th.",
       refs: [{
@@ -10234,7 +12624,7 @@ function App() {
       }]
     };
     if (/shelf|bookshelf|bracket/.test(s)) return {
-      text: "Oak, 210cm by 76cm, matte black brackets at 30cm. The brackets are not ordered and the sale ends Friday.",
+      text: "Oak, 210cm by 76cm, matte black brackets at 30cm. The brackets aren't ordered and the sale ends Friday.",
       refs: [{
         id: "shelf",
         name: "Bookshelf build"
@@ -10244,19 +12634,66 @@ function App() {
       }]
     };
     return {
-      text: "Kept. I put it with the Lisbon trip, where the rest of that lives.",
+      text: "Kept it with the Lisbon trip, where the rest of that lives.",
       refs: [{
         id: "lisbon",
         name: "Lisbon trip"
       }]
     };
   }
+
+  /* A tap on a quick reply is your turn, written into the log exactly as typing it would
+     be. The turn it creates is the one carrying the write; the turn that asked carried no
+     write tools at all. */
+  function pickReply(key, option) {
+    const push = row => setExtraTurns(t => ({
+      ...t,
+      [key]: [...(t[key] || []), row]
+    }));
+    push({
+      from: "you",
+      text: option.label
+    });
+    if (option.kind === "plain") {
+      setTimeout(() => push({
+        from: "offload",
+        text: "Left it off."
+      }), 700);
+      return;
+    }
+    setTimeout(() => {
+      if (option.kind === "thread") {
+        push({
+          from: "offload",
+          text: option.label + ". The flights and the flat are both booked."
+        });
+        return;
+      }
+      push({
+        from: "offload",
+        text: "Added to Groceries."
+      });
+      setToast({
+        message: "Butter added to Groceries.",
+        action: "Undo"
+      });
+    }, 900);
+  }
+  /* Ticking is the only write a result row can do, and it is reversible in the same
+     window and by the same control as every other one. */
+  function tickAnswerRow(row, next) {
+    setToast({
+      message: (next ? "Ticked " : "Put back ") + row.title,
+      action: "Undo"
+    });
+  }
   function submit(payload) {
     const p = payload || {};
+    setFiled(n => n + 1);
     if (convo) {
       const said = saidFrom(p);
       if (said) converse(convo.id, said, () => ({
-        text: "Added to this one. I will keep it with the rest."
+        text: "Added to this one, with the rest of it."
       }));
       return;
     }
@@ -10598,7 +13035,7 @@ function App() {
       fontSize: 11,
       color: "var(--text-tertiary)"
     }
-  }, "first run"), [["sign in", "signin"], ["refusal", "refusal"], ["not invited", "notinvited"], ["tutorial", "tutorial"], ["day one", "empty"], ["app", "app"]].map(([l, p]) => {
+  }, "first run"), [["sign in", "signin"], ["refusal", "refusal"], ["not invited", "notinvited"], ["tutorial", "tutorial"], ["connect", "connect"], ["day one", "empty"], ["app", "app"]].map(([l, p]) => {
     const on = p === "refusal" ? phase === "signin" && refused : phase === p && !(p === "signin" && refused);
     return /*#__PURE__*/React.createElement("button", {
       key: l,
@@ -10647,7 +13084,10 @@ function App() {
     }
   }, "sunset ", window.OffloadSun && window.OffloadSun.sunsetTime(now) ? window.OffloadSun.sunsetTime(now).toTimeString().slice(0, 5) : ", ")), /*#__PURE__*/React.createElement(Phone, {
     theme: themeAttr
-  }, phase === "signin" || phase === "notinvited" || phase === "tutorial" ? phase === "notinvited" ? /*#__PURE__*/React.createElement(NotInvitedScreen, {
+  }, phase === "signin" || phase === "notinvited" || phase === "tutorial" || phase === "connect" ? /*#__PURE__*/React.createElement(GateShell, null, phase === "connect" ? /*#__PURE__*/React.createElement(ConnectScreen, {
+    onConnect: () => setPhase("empty"),
+    onSkip: () => setPhase("empty")
+  }) : phase === "notinvited" ? /*#__PURE__*/React.createElement(NotInvitedScreen, {
     joined: joined,
     onJoin: () => setJoined(true),
     onSwitch: () => {
@@ -10658,10 +13098,10 @@ function App() {
     step: step,
     onSkip: () => setPhase("app"),
     onNext: () => {
-      if (step < window.TUTORIAL_STEPS) setStep(step + 1);else setPhase("app");
+      if (step < window.TUTORIAL_STEPS) setStep(step + 1);else setPhase("connect");
     }
   }) : /*#__PURE__*/React.createElement(SignInScreen, {
-    error: refused ? "That did not go through. Nothing was sent, try again." : null,
+    error: refused ? "That didn't go through. Nothing was sent, try again." : null,
     onApple: () => {
       setRefused(false);
       setStep(1);
@@ -10671,7 +13111,7 @@ function App() {
       setRefused(false);
       setPhase("notinvited");
     }
-  }) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  })) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minHeight: 0,
@@ -10747,6 +13187,8 @@ function App() {
     live: live,
     turns: extraTurns[live ? live.id : ""] || [],
     writing: writing,
+    onTick: tickAnswerRow,
+    onPick: o => pickReply(live.id, o),
     onFold: () => setFolded(true),
     onClose: () => {
       setLive(null);
@@ -10766,12 +13208,7 @@ function App() {
       setFolded(false);
       setSpace(id);
     }
-  }, /*#__PURE__*/React.createElement(Composer, {
-    value: draft,
-    onChange: setDraft,
-    onSubmit: submit,
-    placeholder: "Add to this"
-  })) : null, share ? /*#__PURE__*/React.createElement(ShareSheet, {
+  }) : null, share ? /*#__PURE__*/React.createElement(ShareSheet, {
     thingName: share,
     onClose: () => setShare(null),
     onShared: names => say("Shared with " + names.join(" and "))
@@ -10804,15 +13241,23 @@ function App() {
     title: s.name,
     meta: s.meta
   }))) : null), (() => {
-    const showComposer = !(space || person || memory || allConvos && !convo || live && !folded || settings);
+    /* The composer never leaves the plate. Raised or not, the plate is composer
+       plus tabs, which keeps the prism field one surface of one height. */
+    const showComposer = !(space || person || memory || allConvos && !convo || settings);
     const showTabs = !(space || person || memory || convo || allConvos || settings);
     const inFolded = live && folded;
     const underSheet = live && !folded;
+    /* The plate gives up its own fill to the prism field: the field goes in
+       behind the composer-and-tabs band only, and the veil closes at both
+       of its edges so it arrives out of whatever is above it rather than on
+       a line. The field must never reach the list, so it lives in here
+       rather than behind the screen. */
     const plate = /*#__PURE__*/React.createElement("div", {
       style: {
         position: "relative",
         zIndex: 9,
-        background: "var(--surface-raised)",
+        overflow: "hidden",
+        background: "var(--surface-plate)",
         borderRadius: underSheet ? 0 : "var(--radius-xl) var(--radius-xl) 0 0",
         boxShadow: underSheet ? "none" : "var(--shadow-sheet)",
         pointerEvents: notifOpen ? "none" : undefined
@@ -10824,16 +13269,35 @@ function App() {
         setLive(null);
         setFolded(false);
       }
-    }) : null, showComposer ? /*#__PURE__*/React.createElement(Composer, {
+    }) : null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, PrismField ? /*#__PURE__*/React.createElement(PrismField, {
+      variant: "band",
+      veil: "graded",
+      pulse: filed,
+      basePath: "../../assets/prism",
+      style: {
+        zIndex: 0
+      }
+    }) : null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative",
+        zIndex: 2
+      }
+    }, showComposer ? /*#__PURE__*/React.createElement(Composer, {
       value: draft,
       onChange: setDraft,
       onSubmit: submit,
       bare: true,
-      placeholder: convo ? "Add to this conversation" : inFolded ? "Add to this" : undefined
+      placeholder: convo ? "Add to this conversation" : live ? "Add to this" : undefined
     }) : null, showTabs ? /*#__PURE__*/React.createElement(TabBar, {
       style: {
         background: "transparent",
-        borderTop: "1px solid transparent"
+        borderTop: "1px solid transparent",
+        backdropFilter: "none",
+        WebkitBackdropFilter: "none"
       },
       value: tab,
       onChange: v => {
@@ -10863,7 +13327,7 @@ function App() {
         label: "Memories",
         icon: "cloudy"
       }]
-    }) : null);
+    }) : null)));
     return plate;
   })(), notifOpen ? /*#__PURE__*/React.createElement(NotificationSheet, {
     items: notifs,
@@ -11483,7 +13947,8 @@ const {
   Toast,
   NotificationIOS,
   AppBar,
-  IconButton
+  IconButton,
+  PrismField
 } = OFFLOAD_DS;
 
 /* Getting in. Two providers, no email field and no password: Apple leads because the
@@ -11559,7 +14024,9 @@ function BigLockup() {
       flex: 1,
       display: "flex",
       alignItems: "center",
-      justifyContent: "center"
+      justifyContent: "center",
+      position: "relative",
+      zIndex: 1
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -11603,7 +14070,9 @@ function GateFoot({
       padding: "0 var(--gutter-screen) 22px",
       display: "flex",
       flexDirection: "column",
-      gap: 10
+      gap: 10,
+      position: "relative",
+      zIndex: 1
     }
   }, children);
 }
@@ -11614,7 +14083,9 @@ function GateBody({
   return /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
-      padding: "0 var(--gutter-screen) 44px"
+      padding: "0 var(--gutter-screen) 44px",
+      position: "relative",
+      zIndex: 1
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -11642,33 +14113,78 @@ function Terms({
     }
   }, children);
 }
-function SignInScreen({
-  error,
-  onApple,
-  onGoogle
+
+/* The gate's atmosphere belongs to first run, not to any one of its screens:
+   sign-in, the refusal, the tutorial and connect are one surface with changing
+   content, so the field is mounted once around all four and warps once on
+   arrival rather than restarting at every step. */
+function GateShell({
+  children
 }) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minHeight: 0,
       display: "flex",
+      flexDirection: "column",
+      position: "relative"
+    }
+  }, PrismField ? /*#__PURE__*/React.createElement(PrismField, {
+    variant: "bloom",
+    veil: "none",
+    arriveOnMount: true,
+    basePath: "../../assets/prism",
+    style: {
+      inset: "auto",
+      left: "-34%",
+      top: "-20%",
+      width: "120%",
+      height: "58%",
+      zIndex: 0
+    }
+  }) : null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      zIndex: 1,
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
       flexDirection: "column"
     }
-  }, /*#__PURE__*/React.createElement(BigLockup, null), /*#__PURE__*/React.createElement(GateBody, {
-    title: "One place for everything you would otherwise forget.",
-    sub: "Sign in to start. Invite only for now."
-  }), /*#__PURE__*/React.createElement(GateFoot, null, error ? /*#__PURE__*/React.createElement(RefusalLine, null, error) : null, /*#__PURE__*/React.createElement(ProviderButton, {
-    kind: "apple",
-    onClick: onApple
-  }), /*#__PURE__*/React.createElement(ProviderButton, {
-    kind: "google",
-    onClick: onGoogle
-  }), /*#__PURE__*/React.createElement(Terms, null, "No invite yet? ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: "var(--text-accent)",
-      fontWeight: 500
-    }
-  }, "Join the waitlist"), /*#__PURE__*/React.createElement("br", null), "Terms \xB7 Privacy")));
+  }, children));
+}
+function SignInScreen({
+  error,
+  onApple,
+  onGoogle
+}) {
+  return (
+    /*#__PURE__*/
+    /* No veil on the gate's field: nothing in --text-tertiary crosses it, and
+       the mark and wordmark over it are ink. */
+    React.createElement("div", {
+      style: {
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column"
+      }
+    }, /*#__PURE__*/React.createElement(BigLockup, null), /*#__PURE__*/React.createElement(GateBody, {
+      title: "One place for everything you would otherwise forget.",
+      sub: "Sign in to start. Invite only for now."
+    }), /*#__PURE__*/React.createElement(GateFoot, null, error ? /*#__PURE__*/React.createElement(RefusalLine, null, error) : null, /*#__PURE__*/React.createElement(ProviderButton, {
+      kind: "apple",
+      onClick: onApple
+    }), /*#__PURE__*/React.createElement(ProviderButton, {
+      kind: "google",
+      onClick: onGoogle
+    }), /*#__PURE__*/React.createElement(Terms, null, "No invite yet? ", /*#__PURE__*/React.createElement("b", {
+      style: {
+        color: "var(--text-accent)",
+        fontWeight: 500
+      }
+    }, "Join the waitlist"), /*#__PURE__*/React.createElement("br", null), "Terms \xB7 Privacy")))
+  );
 }
 
 /* Signed in with a real account that has no invite. The address is named, because the
@@ -11688,10 +14204,10 @@ function NotInvitedScreen({
       flexDirection: "column"
     }
   }, /*#__PURE__*/React.createElement(BigLockup, null), joined ? /*#__PURE__*/React.createElement(GateBody, {
-    title: "You are on the list",
-    sub: "We will email " + email + " when your account is ready to use."
+    title: "You're on the list",
+    sub: "We'll email " + email + " when your account is ready to use."
   }) : /*#__PURE__*/React.createElement(GateBody, {
-    title: "You are not on the list yet",
+    title: "You're not on the list yet",
     sub: "We checked " + email + " and found no invite."
   }), /*#__PURE__*/React.createElement(GateFoot, null, joined ? /*#__PURE__*/React.createElement(Toast, {
     message: "Added to the waitlist"
@@ -11798,22 +14314,16 @@ function TutorialArt({
     width: 342
   });
 }
-function TutorialScreen({
-  step = 1,
-  onNext,
-  onSkip
+const STEPS = TUTORIAL.length + 1;
+/* Dots left, the way out top right, identical on every step so neither moves
+   under the thumb between screens. */
+function StepBar({
+  step,
+  total = STEPS,
+  onSkip,
+  skipLabel = "Skip"
 }) {
-  const s = TUTORIAL[step - 1];
-  const last = step === TUTORIAL.length;
   return /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minHeight: 0,
-      display: "flex",
-      flexDirection: "column",
-      padding: "14px 0 0"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -11826,7 +14336,9 @@ function TutorialScreen({
       gap: 6,
       alignItems: "center"
     }
-  }, TUTORIAL.map((_, i) => /*#__PURE__*/React.createElement("span", {
+  }, Array.from({
+    length: total
+  }).map((_, i) => /*#__PURE__*/React.createElement("span", {
     key: i,
     style: {
       height: 6,
@@ -11839,14 +14351,38 @@ function TutorialScreen({
     type: "button",
     onClick: onSkip,
     style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
       border: "none",
       background: "none",
       cursor: "pointer",
-      padding: "10px 0",
+      height: "var(--tap-min)",
+      padding: "0 var(--space-4)",
+      margin: "0 calc(var(--space-4) * -1)",
       font: "var(--text-label-role)",
       color: "var(--text-secondary)"
     }
-  }, "Skip")), /*#__PURE__*/React.createElement("div", {
+  }, skipLabel));
+}
+function TutorialScreen({
+  step = 1,
+  onNext,
+  onSkip
+}) {
+  const s = TUTORIAL[step - 1];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column",
+      padding: "14px 0 0"
+    }
+  }, /*#__PURE__*/React.createElement(StepBar, {
+    step: step,
+    onSkip: onSkip
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minHeight: 0,
@@ -11878,9 +14414,147 @@ function TutorialScreen({
     size: "lg",
     block: true,
     onClick: onNext
-  }, last ? "Get started" : "Next")));
+  }, "Next")));
 }
 
+/* The last screen of first run, after the tutorial. One provider, one screen: the mark
+   large enough to be read before the words, two sentences, one button and Not now.
+   Deliberately makes no claim that a list exists, so a second provider becomes another
+   screen rather than a redesign.
+
+   ALL COPY HERE IS PLACEHOLDER. The two sentences commit the product to something about
+   another service's data, which is the app's call, not the design system's. The shape is
+   ours: what offload reads, what it does back, both as prose rather than toggles, per the
+   5 September Privacy refusal. As of 8 September offload MAY write to a connected
+   calendar, so nothing here promises read-only.
+
+   The provider's mark is never redrawn. offload's own comes from Logo.jsx because that
+   geometry is ours; a third party's radius, colours and letterforms are their
+   specification, and 90% right is what people spot instantly on a logo they see daily.
+   This kit draws a neutral stand-in; the build passes the official asset as `mark`. */
+function ProviderMark({
+  mark,
+  size = 88,
+  radius = 18
+}) {
+  const [broken, setBroken] = React.useState(false);
+  if (mark && !broken) return /*#__PURE__*/React.createElement("img", {
+    src: mark,
+    alt: "",
+    width: size,
+    height: size,
+    onError: () => setBroken(true),
+    style: {
+      display: "block",
+      width: size,
+      height: size,
+      borderRadius: radius,
+      objectFit: "contain"
+    }
+  });
+  return /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true",
+    title: "Drop the official mark at assets/brands/google-calendar.svg",
+    style: {
+      display: "block",
+      width: size,
+      height: size,
+      borderRadius: radius,
+      background: "var(--surface-fill)",
+      border: "1px dashed var(--border-strong)"
+    }
+  });
+}
+function ConnectScreen({
+  provider = "Google Calendar",
+  mark,
+  step = STEPS,
+  onConnect,
+  onSkip
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column",
+      padding: "14px 0 0"
+    }
+  }, /*#__PURE__*/React.createElement(StepBar, {
+    step: step,
+    onSkip: onSkip,
+    skipLabel: "Not now"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "0 var(--gutter-screen)"
+    }
+  }, /*#__PURE__*/React.createElement(ProviderMark, {
+    mark: mark
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 var(--gutter-screen) 24px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--text-title-1)",
+      letterSpacing: "var(--tracking-title)",
+      textWrap: "pretty"
+    }
+  }, "Bring in your calendar"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--text-body-role)",
+      color: "var(--text-secondary)",
+      marginTop: 10,
+      lineHeight: "var(--leading-body)",
+      textWrap: "pretty"
+    }
+  }, "So \u201Cbefore the trip\u201D and \u201Cafter the dentist\u201D mean something."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "var(--space-5)",
+      marginTop: "var(--space-7)"
+    }
+  }, [["calendar", "offload reads your days.", "Times, titles and who is on them."], ["plus", "And it can add to them.", "Anything you dump with a time on it can land back on your calendar."]].map(([ic, head, rest]) => /*#__PURE__*/React.createElement("div", {
+    key: head,
+    style: {
+      display: "flex",
+      gap: "var(--space-5)",
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: ic,
+    size: 16,
+    style: {
+      marginTop: 3,
+      flex: "0 0 auto",
+      color: "var(--text-tertiary)"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: "var(--size-body-sm)",
+      lineHeight: 1.45,
+      color: "var(--text-secondary)"
+    }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: "var(--text-primary)",
+      fontWeight: 500
+    }
+  }, head), " ", rest))))), /*#__PURE__*/React.createElement(GateFoot, null, /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    size: "lg",
+    block: true,
+    onClick: onConnect
+  }, `Connect ${provider}`)));
+}
 /* Day one, after Get started. Today shows what a dump looks like, because the examples
    teach what the tutorial could not: half a sentence is a legitimate thing to type. They
    fill the composer rather than submitting, and they never come back once something real
@@ -12019,10 +14693,15 @@ Object.assign(window, {
   EmptyToday,
   QuietEmpty,
   DayOneBar,
+  GateShell,
   SignInScreen,
   NotInvitedScreen,
   TutorialScreen,
+  ConnectScreen,
+  ProviderMark,
+  StepBar,
   TUTORIAL_STEPS: TUTORIAL.length,
+  FIRST_RUN_STEPS: STEPS,
   AppleGlyph,
   GoogleGlyph,
   ProviderButton,
@@ -12037,17 +14716,26 @@ const OFFLOAD_DS = typeof window !== "undefined" && window.OffloadDesignSystem_d
 const {
   Icon,
   IconButton,
-  Chip
+  Chip,
+  AnswerResult,
+  QuickReplies,
+  TurnFooter
 } = OFFLOAD_DS;
+
+/* Kept for the screens that still draw a ref inline. The turn footer owns this contract
+   now, including the source kind: outline, because moss means offload did it and a citation
+   is the opposite claim. */
 const LIVE_REF_TONE = {
   thread: "accent",
   time: "attention",
-  money: "warning"
+  money: "warning",
+  source: "outline"
 };
 const LIVE_REF_ICON = {
   thread: "lasso",
   time: "clock",
-  money: null
+  money: null,
+  source: "link"
 };
 function SentVoice({
   secs,
@@ -12187,9 +14875,15 @@ function SentPhoto({
 function Turns({
   turns,
   writing,
-  onOpenThread
+  onOpenThread,
+  onTick,
+  onPick
 }) {
   const endRef = React.useRef(null);
+  /* Ticking and picking are drawn here and reported upward: the row's own done state is
+     local to the kit, the toast and the turn it writes belong to the app. */
+  const [ticked, setTicked] = React.useState({});
+  const [answered, setAnswered] = React.useState({});
   React.useEffect(() => {
     const el = endRef.current && endRef.current.parentElement;
     if (el) el.scrollTop = el.scrollHeight;
@@ -12210,9 +14904,7 @@ function Turns({
     style: {
       alignSelf: "flex-end",
       maxWidth: "84%",
-      position: "relative",
       padding: "var(--space-3) var(--space-5)",
-      marginBottom: t.status ? "var(--space-4)" : 0,
       borderRadius: "var(--radius-lg) var(--radius-lg) 4px var(--radius-lg)",
       background: "var(--blue-50)",
       border: "1px solid var(--blue-100)",
@@ -12225,10 +14917,14 @@ function Turns({
   }) : t.text, (t.photos || []).map((f, j) => /*#__PURE__*/React.createElement(SentPhoto, {
     key: j,
     name: f
-  })), /*#__PURE__*/React.createElement(StatusChip, {
-    state: t.status
-  }))) : /*#__PURE__*/React.createElement("div", {
-    key: i,
+  }))), TurnFooter ? /*#__PURE__*/React.createElement(TurnFooter, {
+    state: t.status,
+    refs: t.refs,
+    sources: t.sources,
+    onOpenRef: r => onOpenThread(r.id)
+  }) : null) : /*#__PURE__*/React.createElement(React.Fragment, {
+    key: i
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       alignSelf: "flex-start",
       maxWidth: "92%",
@@ -12242,22 +14938,45 @@ function Turns({
       fontSize: 16,
       lineHeight: 1.5
     }
-  }, t.text), t.refs && t.refs.length ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "var(--space-2)",
-      marginTop: "var(--space-3)"
+  }, t.text), AnswerResult && t.options && t.options.length && !answered[i] ? /*#__PURE__*/React.createElement(QuickReplies, {
+    options: t.options,
+    note: t.note,
+    onPick: o => {
+      setAnswered(a => ({
+        ...a,
+        [i]: true
+      }));
+      onPick && onPick(o);
     }
-  }, t.refs.map((r, j) => {
-    const k = r.kind || "thread";
-    return /*#__PURE__*/React.createElement(Chip, {
-      key: j,
-      tone: LIVE_REF_TONE[k],
-      icon: LIVE_REF_ICON[k],
-      onClick: k === "thread" ? () => onOpenThread(r.id) : undefined
-    }, r.name);
-  })) : null)), writing ? /*#__PURE__*/React.createElement("div", {
+  }) : null), (AnswerResult ? t.results || [] : []).map((r, j) => /*#__PURE__*/React.createElement(AnswerResult, {
+    key: j,
+    thread: r.thread,
+    count: r.count,
+    shown: 5,
+    truncated: r.truncated,
+    threadTotal: r.threadTotal,
+    style: {
+      alignSelf: "stretch"
+    },
+    rows: (r.rows || []).map(x => ({
+      ...x,
+      done: ticked[x.id] !== undefined ? ticked[x.id] : x.done
+    })),
+    onToggle: r.tickable === false ? undefined : row => {
+      const next = !(ticked[row.id] !== undefined ? ticked[row.id] : row.done);
+      setTicked(v => ({
+        ...v,
+        [row.id]: next
+      }));
+      onTick && onTick(row, next);
+    },
+    onOpenThread: () => onOpenThread && onOpenThread(r.thread.id)
+  })), TurnFooter ? /*#__PURE__*/React.createElement(TurnFooter, {
+    state: t.results ? null : t.status,
+    refs: t.results ? [] : t.refs,
+    sources: t.sources,
+    onOpenRef: r => onOpenThread(r.id)
+  }) : null)), writing ? /*#__PURE__*/React.createElement("div", {
     "aria-label": "offload is writing",
     style: {
       alignSelf: "flex-start",
@@ -12371,6 +15090,8 @@ function LiveConversation({
   onFull,
   onClose,
   onOpenThread,
+  onTick,
+  onPick,
   children
 }) {
   const isSheet = variant === "sheet";
@@ -12384,7 +15105,7 @@ function LiveConversation({
       height: isSheet ? "65%" : "58%",
       display: "flex",
       flexDirection: "column",
-      background: "var(--surface-raised)",
+      background: "var(--surface-plate)",
       borderRadius: "var(--radius-xl) var(--radius-xl) 0 0",
       boxShadow: "var(--shadow-sheet)",
       animation: "offload-rise var(--duration-slow) var(--ease-out)"
@@ -12453,7 +15174,9 @@ function LiveConversation({
   }))), /*#__PURE__*/React.createElement(Turns, {
     turns: turns,
     writing: writing,
-    onOpenThread: onOpenThread
+    onOpenThread: onOpenThread,
+    onTick: onTick,
+    onPick: onPick
   }), children));
 }
 Object.assign(window, {
@@ -13574,7 +16297,8 @@ const {
   Icon,
   Button,
   Switch,
-  Badge
+  Badge,
+  SegmentedControl
 } = OFFLOAD_DS;
 
 /* Every category page is built from the same four row types, so ten screens cost
@@ -13713,6 +16437,41 @@ function Radio({
     }
   });
 }
+
+/* A labelled row holding a SegmentedControl. ChoiceGroup, the radio list under
+   it, still serves Language and region; it is Theme specifically that the
+   5 September answer moved, on all surfaces. */
+function ChoiceRow({
+  label,
+  options,
+  value,
+  onChange
+}) {
+  const [own, setOwn] = React.useState(value || options[0]);
+  const v = onChange ? value : own;
+  const setV = onChange || setOwn;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "var(--space-8) 0 var(--space-4)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--text-label-role)",
+      color: "var(--text-secondary)",
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      padding: "0 var(--space-2) var(--space-4)"
+    }
+  }, label), /*#__PURE__*/React.createElement(SegmentedControl, {
+    options: options,
+    value: v,
+    onChange: setV,
+    style: {
+      display: "flex",
+      width: "100%"
+    }
+  }));
+}
 function ChoiceGroup({
   label,
   options,
@@ -13737,6 +16496,79 @@ function ChoiceGroup({
       on: v === o.label
     })
   })));
+}
+
+/* Beside Row rather than an editing state inside it: every static row would
+   otherwise carry a draft, an async save and an error it never uses. The field
+   is the same one first run asks the name with. */
+function EditableRow({
+  title,
+  value,
+  first,
+  last
+}) {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(value);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    if (editing && ref.current) ref.current.focus();
+  }, [editing]);
+  if (!editing) return /*#__PURE__*/React.createElement(Row, {
+    first: first,
+    last: last,
+    title: title,
+    value: value,
+    onClick: () => {
+      setDraft(value);
+      setEditing(true);
+    }
+  });
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: "var(--space-4)",
+      minHeight: "var(--row-height)",
+      padding: "var(--space-4) var(--space-6)",
+      background: "var(--surface-card)",
+      borderTopLeftRadius: first ? "var(--radius-card)" : 0,
+      borderTopRightRadius: first ? "var(--radius-card)" : 0,
+      borderBottomLeftRadius: last ? "var(--radius-card)" : 0,
+      borderBottomRightRadius: last ? "var(--radius-card)" : 0
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    ref: ref,
+    value: draft,
+    onChange: e => setDraft(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Enter") setEditing(false);
+      if (e.key === "Escape") {
+        setDraft(value);
+        setEditing(false);
+      }
+    },
+    "aria-label": title,
+    style: {
+      flex: 1,
+      minWidth: 0,
+      height: 40,
+      padding: "0 var(--space-5)",
+      boxSizing: "border-box",
+      borderRadius: "var(--radius-sm)",
+      background: "var(--surface-input)",
+      /* Ink, not --border-focus: every field in the product focuses ink and
+         one blue field would be the odd one out. The token decision is open. */
+      border: "1px solid var(--ink-950)",
+      boxShadow: "var(--shadow-focus)",
+      font: "var(--text-body-role)",
+      color: "var(--text-primary)",
+      outline: "none"
+    }
+  }), /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    size: "sm",
+    onClick: () => setEditing(false)
+  }, "Save"));
 }
 function PersonRow({
   name,
@@ -13773,32 +16605,12 @@ const PAGES = {
     title: "My account",
     render: () => /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Group, {
       label: "Details"
-    }, /*#__PURE__*/React.createElement(Row, {
+    }, /*#__PURE__*/React.createElement(EditableRow, {
       title: "Name",
-      value: "Jo Martins",
-      onClick: () => {}
+      value: "Jo Martins"
     }), /*#__PURE__*/React.createElement(Row, {
       title: "Email",
       value: "jo@hey.com",
-      onClick: () => {}
-    }), /*#__PURE__*/React.createElement(Row, {
-      title: "Phone",
-      value: "Not set",
-      onClick: () => {}
-    }), /*#__PURE__*/React.createElement(Row, {
-      title: "Password",
-      value: "Changed in May",
-      onClick: () => {},
-      last: true
-    })), /*#__PURE__*/React.createElement(Group, {
-      label: "Plan"
-    }, /*#__PURE__*/React.createElement(Row, {
-      title: "Current plan",
-      value: "Free",
-      onClick: () => {}
-    }), /*#__PURE__*/React.createElement(Row, {
-      title: "What you get",
-      note: "Everything you put in, kept until you delete it. One device.",
       last: true
     })), /*#__PURE__*/React.createElement(Group, {
       label: "Ending things"
@@ -13810,7 +16622,7 @@ const PAGES = {
       onClick: () => {}
     }), /*#__PURE__*/React.createElement(Row, {
       title: "Delete account",
-      note: "Everything offload knows goes with it. This cannot be undone.",
+      note: "Everything offload knows goes with it. This can't be undone.",
       danger: true,
       onClick: () => {},
       last: true
@@ -14041,7 +16853,7 @@ const PAGES = {
       value: "14 Jun"
     }), /*#__PURE__*/React.createElement(Row, {
       title: "Delete all conversations",
-      note: "Memories are not affected.",
+      note: "Memories aren't affected.",
       danger: true,
       onClick: () => {},
       last: true
@@ -14052,15 +16864,11 @@ const PAGES = {
     render: ctx => {
       const sun = window.OffloadSun && window.OffloadSun.sunsetTime(new Date());
       const sunsetNote = sun ? "Sunset today is " + sun.toTimeString().slice(0, 5) + "." : null;
-      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(ChoiceGroup, {
+      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(ChoiceRow, {
         label: "Theme",
-        options: ["Light", "Dark"],
+        options: ["Light", "Dark", "System"],
         value: ctx.theme,
         onChange: ctx.setTheme
-      }), /*#__PURE__*/React.createElement(ChoiceGroup, {
-        label: "Text size",
-        options: ["Small", "Default", "Large", "Larger"],
-        value: "Default"
       }), /*#__PURE__*/React.createElement(Group, {
         label: "Today"
       }, /*#__PURE__*/React.createElement(Toggle, {
@@ -14365,7 +17173,7 @@ function SettingsScreen({
       color: "var(--text-secondary)",
       marginTop: 2
     }
-  }, "jo@hey.com \xB7 free plan")), /*#__PURE__*/React.createElement(Button, {
+  }, "jo@hey.com")), /*#__PURE__*/React.createElement(Button, {
     variant: "secondary",
     size: "sm",
     onClick: () => {}
@@ -14909,7 +17717,7 @@ function Standing({
     style: {
       fontSize: "var(--size-caption)"
     }
-  }, standing.updated === "no summary yet" ? "offload has not summarised this one yet" : "offload wrote this, " + standing.updated)));
+  }, standing.updated === "no summary yet" ? "Not summarised yet" : "offload wrote this, " + standing.updated)));
 }
 function ThreadScreen({
   space,
@@ -16157,7 +18965,7 @@ try { (() => {
         meta: "Shares 1 thread with you",
         pending: [{
           id: "pt1",
-          title: "Tom has not answered about the flat",
+          title: "Tom hasn't answered about the flat",
           thread: "Lisbon trip",
           who: "waiting on Tom",
           due: "asked twice"
@@ -16693,7 +19501,7 @@ try { (() => {
           label: "the bookshelf",
           group: "Going on",
           updated: "Tue",
-          blurb: "An alcove shelf in the front room, 210cm by 76cm, in oak. You picked matte black brackets at 30cm and have not ordered them; the sale ends Friday. Sam's drill is still at yours.",
+          blurb: "An alcove shelf in the front room, 210cm by 76cm, in oak. You picked matte black brackets at 30cm and haven't ordered them; the sale ends Friday. Sam's drill is still at yours.",
           sources: [{
             icon: "image",
             title: "shelf-brackets.png",
@@ -16731,7 +19539,7 @@ try { (() => {
           label: "dentist",
           group: "Going on",
           updated: "Jul",
-          blurb: "You have not booked the check up you meant to book in June. The surgery only takes calls, and only before 5pm, which is the reason it keeps slipping.",
+          blurb: "You haven't booked the check up you meant to book in June. The surgery only takes calls, and only before 5pm, which is the reason it keeps slipping.",
           sources: [{
             icon: "mic",
             title: "Voice note, 0:06",
@@ -16771,7 +19579,7 @@ try { (() => {
           group: "People",
           person: "Tom",
           updated: "Fri",
-          blurb: "Tom Reilly. Asked twice about Lisbon and has not answered either time. You have started planning as though he is not coming.",
+          blurb: "Tom Reilly. Asked twice about Lisbon and hasn't answered either time. You have started planning as though he isn't coming.",
           sources: [{
             icon: "message-circle",
             title: "You asked Tom about the flat",
@@ -16806,7 +19614,7 @@ try { (() => {
           label: "quiet after 22:00",
           group: "How you like things",
           updated: "Jun",
-          blurb: "Nothing reaches you after ten at night. You set this yourself in June and have not changed it since.",
+          blurb: "Nothing reaches you after ten at night. You set this yourself in June and haven't changed it since.",
           sources: [{
             icon: "settings",
             title: "You set this",
@@ -16859,7 +19667,7 @@ try { (() => {
           group: "Noticed",
           inferred: true,
           updated: "1w ago",
-          blurb: "Things you plan for a Friday move to the following week more often than not. Eleven of the last seventeen. offload noticed this, you did not tell it.",
+          blurb: "Things you plan for a Friday move to the following week more often than not. Eleven of the last seventeen. offload noticed this, you didn't tell it.",
           sources: [{
             icon: "sparkles",
             title: "Noticed across 17 tasks",
@@ -17011,7 +19819,7 @@ try { (() => {
           text: "Turn off the weekly email"
         }, {
           from: "offload",
-          text: "Done. No more weekly digests, and I will not ask again."
+          text: "Done. No more weekly digests, and won't ask again."
         }],
         c6: [{
           from: "you",
@@ -17102,7 +19910,7 @@ try { (() => {
       icon: "clock",
       unread: true,
       title: "The bracket sale ends Friday",
-      body: "You saved these on the 6th and have not ordered them.",
+      body: "You saved these on the 6th and haven't ordered them.",
       thread: "Bookshelf build",
       when: "1h"
     }, {
@@ -17110,8 +19918,8 @@ try { (() => {
       kind: "offload",
       icon: "sparkles",
       unread: true,
-      title: "I filed four things from yesterday",
-      body: "Two into Lisbon trip, one into Flat admin, one I could not place.",
+      title: "Filed four things from yesterday",
+      body: "Two into Lisbon trip, one into Flat admin, one that couldn't be placed.",
       thread: null,
       when: "3h"
     }, {
@@ -17139,7 +19947,7 @@ try { (() => {
       kind: "offload",
       icon: "cloudy",
       unread: false,
-      title: "I noticed you put things off on Fridays",
+      title: "Noticed you put things off on Fridays",
       body: "Eleven of the last seventeen moved to the following week.",
       thread: null,
       when: "Sun"
@@ -17150,7 +19958,7 @@ try { (() => {
       initials: "TR",
       icon: "message-circle",
       unread: false,
-      title: "Tom still has not answered",
+      title: "Tom still hasn't answered",
       body: "You asked twice about Lisbon.",
       thread: "Lisbon trip",
       when: "Sun"
@@ -17345,6 +20153,142 @@ try { (() => {
     }
   };
 })();
+
+/* 013 answering. One reply, plus results: a result is one read, so two subjects is two
+   results. Rows are whole content rows, the same ones a thread page draws. Nothing here
+   is filed: asking files nothing. */
+window.OFFLOAD_DATA.answers = {
+  open: {
+    text: "Seven left.",
+    results: [{
+      thread: {
+        id: "lisbon",
+        name: "Lisbon trip"
+      },
+      count: 7,
+      rows: [{
+        id: "an1",
+        title: "Book the airport transfer",
+        meta: "you, added 6 Aug"
+      }, {
+        id: "an2",
+        title: "Pay Ana \u20AC214 for the flights",
+        meta: "Ana, due Thursday"
+      }, {
+        id: "an3",
+        title: "Print the boarding passes",
+        meta: "you, added yesterday"
+      }, {
+        id: "an4",
+        title: "Confirm the Alfama key handover",
+        meta: "Ana, added 7 Aug"
+      }, {
+        id: "an5",
+        title: "Renew the travel insurance",
+        meta: "you, added 8 Aug"
+      }, {
+        id: "an6",
+        title: "Download the offline map",
+        meta: "you, added 9 Aug"
+      }, {
+        id: "an7",
+        title: "Ask Tom about the tram pass",
+        meta: "Tom, added 9 Aug"
+      }]
+    }]
+  },
+  staying: {
+    text: "The Alfama flat, 14th to the 17th.",
+    results: [{
+      thread: {
+        id: "lisbon",
+        name: "Lisbon trip"
+      },
+      count: 1,
+      tickable: false,
+      rows: [{
+        id: "anf",
+        type: "location",
+        title: "Alfama flat, Rua dos Rem\u00E9dios 14",
+        meta: "Ana booked it, 4 Aug"
+      }]
+    }]
+  },
+  /* A read that was cut short says what it saw and claims nothing about the rest: a wrong
+     no is somebody doing the thing twice. The tail is the thread, not a Show more. */
+  cutShort: {
+    text: "Looked at the first twenty of twenty three things, and nothing about knife sharpening is among them.",
+    results: [{
+      thread: {
+        id: "read",
+        name: "Read later"
+      },
+      count: "20 of 23",
+      truncated: true,
+      threadTotal: 3,
+      tickable: false,
+      rows: [{
+        id: "anr1",
+        type: "link",
+        title: "The case for a single good knife",
+        meta: "saved 2 Sep"
+      }, {
+        id: "anr2",
+        type: "link",
+        title: "Cast iron, and how not to ruin it",
+        meta: "saved 30 Aug"
+      }]
+    }]
+  },
+  /* A proposal: one primary, one plain way out. Exactly 012's shape. */
+  butter: {
+    text: "No, butter isn't on the list. Add it?",
+    options: [{
+      id: "yes",
+      label: "Add it",
+      kind: "primary"
+    }, {
+      id: "no",
+      label: "No",
+      kind: "plain"
+    }]
+  },
+  /* A choice among equals has no primary, because offload does not know which. */
+  which: {
+    text: "Three threads have a trip in them. Which one?",
+    note: "Or name another one.",
+    options: [{
+      id: "lisbon",
+      label: "Lisbon trip",
+      kind: "thread",
+      icon: "lasso"
+    }, {
+      id: "berlin",
+      label: "Berlin, March",
+      kind: "thread",
+      icon: "lasso"
+    }, {
+      id: "wedding",
+      label: "Sam's wedding",
+      kind: "thread",
+      icon: "lasso"
+    }]
+  },
+  /* Not answerable, and saying so is the honest answer rather than a gap. */
+  theme: {
+    text: "Theme is set on this phone and was never held on the server."
+  },
+  nothing: {
+    text: "Couldn't find that."
+  }
+};
+
+/* 016 reaching the web. A turn carries sources:[{domain,url}] and nothing else, so the
+   footer draws a domain from the record of what was read rather than a word a page chose.
+   The cases live in each kit's answerFor, where typing can reach them: "when is memorial
+   day" for one source, "what's on over the long weekend" for five and a count, a pasted URL
+   for a read that failed and says nothing, "what day is the gun show" for a refusal with
+   nothing to file. */
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/mobile_app/data.js", error: String((e && e.message) || e) }); }
 
 // ui_kits/mobile_app/sun.js
@@ -17446,7 +20390,9 @@ const {
   Badge,
   Button,
   Chip,
-  Logo
+  Logo,
+  AnswerResult,
+  QuickReplies
 } = OFFLOAD_DS;
 const D = window.OFFLOAD_DATA;
 
@@ -17498,6 +20444,8 @@ function WRow({
   selected,
   onClick,
   check,
+  done,
+  onToggle,
   noTile,
   last,
   gone,
@@ -17599,15 +20547,33 @@ function WRow({
       transition: "background var(--transition-ui)"
     }
   }, check ? /*#__PURE__*/React.createElement("span", {
+    role: onToggle ? "checkbox" : undefined,
+    "aria-checked": onToggle ? Boolean(done) : undefined,
+    "aria-label": onToggle ? title : undefined,
+    tabIndex: onToggle ? 0 : undefined,
+    onClick: onToggle ? e => {
+      e.stopPropagation();
+      onToggle();
+    } : undefined,
     style: {
       width: 17,
       height: 17,
       flex: "0 0 auto",
       marginTop: 6,
       borderRadius: 5,
-      border: "1.5px solid var(--ink-300)"
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: onToggle ? "pointer" : undefined,
+      color: "var(--text-on-solid)",
+      border: "1.5px solid " + (done ? "var(--moss-600)" : "var(--border-strong)"),
+      background: done ? "var(--moss-600)" : "transparent",
+      transition: "background var(--transition-ui),border-color var(--transition-ui)"
     }
-  }) : null, noTile ? null : /*#__PURE__*/React.createElement(WTile, {
+  }, done ? /*#__PURE__*/React.createElement(Icon, {
+    name: "check",
+    size: 11
+  }) : null) : null, noTile ? null : /*#__PURE__*/React.createElement(WTile, {
     icon: icon,
     tone: tone
   }), /*#__PURE__*/React.createElement("span", {
@@ -17618,7 +20584,10 @@ function WRow({
   }, /*#__PURE__*/React.createElement("b", {
     style: {
       display: "block",
-      font: "var(--weight-medium) 15.5px/1.35 var(--font-core)"
+      font: "var(--weight-medium) 15.5px/1.35 var(--font-core)",
+      color: done ? "var(--text-tertiary)" : undefined,
+      textDecoration: done ? "line-through" : "none",
+      textDecorationThickness: "1px"
     }
   }, title), meta ? /*#__PURE__*/React.createElement("span", {
     style: {
@@ -18353,6 +21322,8 @@ function paneNode(p, ctx) {
         item: p,
         turns: ctx.turnsFor(p.id),
         writing: ctx.writing === p.id,
+        onTick: ctx.onTickAnswer,
+        onPick: o => ctx.onPickReply(p.id, o),
         onOpenThread: id => ctx.open({
           kind: "thread",
           id
@@ -18538,6 +21509,65 @@ function App() {
   }
   function answerFor(said) {
     const s = said.toLowerCase();
+    /* 013: answered from what the account can see, and nothing is filed. Decided on the
+       text before anything is read, so the same sentence always lands the same way. */
+    const AN = D.answers || {};
+    /* 016: a public fact offload does not hold, answered with the domain it came from. */
+    if (/memorial day|bank holiday|what day is|public holiday/.test(s)) return {
+      text: "Monday 25 May.",
+      refs: [{
+        id: "lisbon",
+        name: "Ana's bbq",
+        kind: "thread"
+      }],
+      sources: [{
+        domain: "timeanddate.com",
+        url: "https://www.timeanddate.com/holidays/us/memorial-day"
+      }]
+    };
+    /* Six reads are possible in one turn, so this is the three-chips-and-a-count case. */
+    if (/long weekend|what's on|whats on|going on near/.test(s)) return {
+      text: "Three things on Monday. Filed the cooler.",
+      refs: [{
+        id: "lisbon",
+        name: "Ana's bbq",
+        kind: "thread"
+      }],
+      sources: [{
+        domain: "timeanddate.com",
+        url: "#"
+      }, {
+        domain: "visitlisboa.com",
+        url: "#"
+      }, {
+        domain: "cp.pt",
+        url: "#"
+      }, {
+        domain: "metro.lisboa.pt",
+        url: "#"
+      }, {
+        domain: "fetedeslumieres.example",
+        url: "#"
+      }]
+    };
+    /* A link that could not be read is filed as it always was, and offload says nothing. */
+    if (/^https?:\/\//.test(s)) return {
+      text: "Filed it.",
+      refs: [{
+        id: "read",
+        name: "Read later",
+        kind: "thread"
+      }]
+    };
+    if (/gun show|which candidate|polls are ahead/.test(s)) return {
+      text: "Can't search that."
+    };
+    if (/theme|dark mode|text size/.test(s)) return AN.theme;
+    if (/butter|already add|did i add|is .* on the list/.test(s)) return AN.butter;
+    if (/left to do|still open|what is left|outstanding|to do from/.test(s)) return AN.open;
+    if (/staying|where am i|which flat|alfama/.test(s)) return AN.staying;
+    if (/knife|sharpen|did i save|read later/.test(s)) return AN.cutShort;
+    if (/which trip|the trip|trips/.test(s)) return AN.which;
     if (/owe|money|cost|pay/.test(s)) return {
       text: "Three things. You owe Ana \u20ac214 for the flights, Sam \u00a312 for the drill bits, and the flat insurance renews at \u00a3340 on the 20th.",
       refs: [{
@@ -18562,7 +21592,7 @@ function App() {
       }]
     };
     if (/shelf|bookshelf|bracket/.test(s)) return {
-      text: "Oak, 210cm by 76cm, matte black brackets at 30cm. The brackets are not ordered and the sale ends Friday.",
+      text: "Oak, 210cm by 76cm, matte black brackets at 30cm. The brackets aren't ordered and the sale ends Friday.",
       refs: [{
         id: "shelf",
         name: "Bookshelf build"
@@ -18572,7 +21602,7 @@ function App() {
       }]
     };
     return {
-      text: "Kept. I put it with the Lisbon trip, where the rest of that lives.",
+      text: "Kept it with the Lisbon trip, where the rest of that lives.",
       refs: [{
         id: "lisbon",
         name: "Lisbon trip"
@@ -18618,6 +21648,42 @@ function App() {
       }]);
     }, 1700);
   }
+  /* A tap on a quick reply is your turn, written into the log as typing it would be. */
+  function pickReply(key, option) {
+    const push = row => setExtra(t => ({
+      ...t,
+      [key]: [...(t[key] || []), row]
+    }));
+    push({
+      from: "you",
+      text: option.label
+    });
+    if (option.kind === "plain") {
+      setTimeout(() => push({
+        from: "offload",
+        text: "Left it off."
+      }), 700);
+      return;
+    }
+    setTimeout(() => {
+      if (option.kind === "thread") {
+        push({
+          from: "offload",
+          text: option.label + ". The flights and the flat are both booked."
+        });
+        return;
+      }
+      push({
+        from: "offload",
+        text: "Added to Groceries."
+      });
+      setToast({
+        id: "answer-add",
+        undoable: true,
+        label: "Butter added to Groceries."
+      });
+    }, 900);
+  }
   function submit() {
     const said = draft.trim();
     if (!said) return;
@@ -18651,6 +21717,15 @@ function App() {
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, []);
+
+  /* Ticking is the only write a result row can do, and it is reversible the ordinary way. */
+  function onTickAnswer(row, next) {
+    setToast({
+      id: "answer-tick",
+      undoable: true,
+      label: (next ? "Ticked " : "Put back ") + row.title
+    });
+  }
   const ctx = {
     open,
     now,
@@ -18661,6 +21736,8 @@ function App() {
     openSetting,
     dayOne,
     pending,
+    onTickAnswer,
+    onPickReply: pickReply,
     onShare: name => setShare(name),
     openInvite: () => setInvite(true),
     onOpenPerson: name => open({
@@ -18884,6 +21961,8 @@ function App() {
     live: live ? live.title : null,
     turns: live ? turnsFor(live.id) : [],
     writing: live ? writing === live.id : false,
+    onTick: onTickAnswer,
+    onPick: o => live && pickReply(live.id, o),
     onClose: () => setLive(null),
     onOpenThread: id => {
       setLive(null);
@@ -19595,17 +22674,22 @@ const {
   Button,
   Chip,
   Logo,
-  EmptyState
+  EmptyState,
+  AnswerResult,
+  QuickReplies,
+  TurnFooter
 } = OFFLOAD_DS;
 const REF_TONE = {
   thread: "accent",
   time: "attention",
-  money: "warning"
+  money: "warning",
+  source: "outline"
 };
 const REF_ICON = {
   thread: "lasso",
   time: "clock",
-  money: null
+  money: null,
+  source: "link"
 };
 
 /* Note 3: the sidebar marks whatever the rightmost pane is showing, and when that pane
@@ -19829,7 +22913,9 @@ function WComposer({
   writing,
   onClose,
   onExpand,
-  onOpenThread
+  onOpenThread,
+  onTick,
+  onPick
 }) {
   const ref = React.useRef(null);
   /* "@" opens the connection picker, here and in any other field. */
@@ -19901,7 +22987,9 @@ function WComposer({
   })), /*#__PURE__*/React.createElement(WTurns, {
     turns: turns,
     writing: writing,
-    onOpenThread: onOpenThread
+    onOpenThread: onOpenThread,
+    onTick: onTick,
+    onPick: onPick
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: "0 0 auto",
@@ -19968,9 +23056,13 @@ function WComposer({
 function WTurns({
   turns,
   writing,
-  onOpenThread
+  onOpenThread,
+  onTick,
+  onPick
 }) {
   const end = React.useRef(null);
+  const [ticked, setTicked] = React.useState({});
+  const [answered, setAnswered] = React.useState({});
   React.useEffect(() => {
     const el = end.current && end.current.parentElement;
     if (el) el.scrollTop = el.scrollHeight;
@@ -19985,40 +23077,26 @@ function WTurns({
       gap: "var(--space-6)",
       padding: "var(--space-3) var(--space-6)"
     }
-  }, turns.map((t, i) => t.from === "you" ? /*#__PURE__*/React.createElement("div", {
-    key: i,
+  }, turns.map((t, i) => t.from === "you" ? /*#__PURE__*/React.createElement(React.Fragment, {
+    key: i
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       alignSelf: "flex-end",
       maxWidth: "78%",
-      position: "relative",
       padding: "var(--space-3) var(--space-5)",
       borderRadius: "18px 18px 5px 18px",
       background: "var(--blue-50)",
       border: "1px solid var(--blue-100)",
       font: "var(--weight-regular) 15px/1.45 var(--font-core)"
     }
-  }, t.text, t.status === "done" ? /*#__PURE__*/React.createElement("span", {
-    "aria-label": "Done",
-    style: {
-      position: "absolute",
-      left: -15,
-      bottom: -16,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 4,
-      height: 22,
-      padding: "0 8px 0 6px",
-      borderRadius: 99,
-      background: "var(--moss-600)",
-      color: "var(--paper)",
-      border: "1px solid var(--moss-600)",
-      font: "var(--weight-medium) 11px/1 var(--font-core)"
-    }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "check",
-    size: 11
-  }), "Done") : null) : /*#__PURE__*/React.createElement("div", {
-    key: i,
+  }, t.text), TurnFooter ? /*#__PURE__*/React.createElement(TurnFooter, {
+    state: t.status,
+    refs: t.refs,
+    sources: t.sources,
+    onOpenRef: r => onOpenThread && onOpenThread(r.id)
+  }) : null) : /*#__PURE__*/React.createElement(React.Fragment, {
+    key: i
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       alignSelf: "flex-start",
       maxWidth: "92%",
@@ -20032,22 +23110,46 @@ function WTurns({
       fontSize: 15,
       lineHeight: 1.5
     }
-  }, t.text), t.refs && t.refs.length ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "var(--space-2)",
-      marginTop: "var(--space-3)"
+  }, t.text), AnswerResult && t.options && t.options.length && !answered[i] ? /*#__PURE__*/React.createElement(QuickReplies, {
+    options: t.options,
+    note: t.note,
+    onPick: o => {
+      setAnswered(a => ({
+        ...a,
+        [i]: true
+      }));
+      onPick && onPick(o);
     }
-  }, t.refs.map((r, j) => {
-    const k = r.kind || "thread";
-    return /*#__PURE__*/React.createElement(Chip, {
-      key: j,
-      tone: REF_TONE[k],
-      icon: REF_ICON[k],
-      onClick: k === "thread" ? () => onOpenThread(r.id) : undefined
-    }, r.name);
-  })) : null)), writing ? /*#__PURE__*/React.createElement("div", {
+  }) : null), (AnswerResult ? t.results || [] : []).map((r, j) => /*#__PURE__*/React.createElement(AnswerResult, {
+    key: j,
+    thread: r.thread,
+    count: r.count,
+    shown: 8,
+    truncated: r.truncated,
+    threadTotal: r.threadTotal,
+    style: {
+      alignSelf: "stretch",
+      maxWidth: "92%"
+    },
+    rows: (r.rows || []).map(x => ({
+      ...x,
+      done: ticked[x.id] !== undefined ? ticked[x.id] : x.done
+    })),
+    onToggle: r.tickable === false ? undefined : row => {
+      const next = !(ticked[row.id] !== undefined ? ticked[row.id] : row.done);
+      setTicked(v => ({
+        ...v,
+        [row.id]: next
+      }));
+      onTick && onTick(row, next);
+    },
+    onOpenThread: () => onOpenThread && onOpenThread(r.thread.id)
+  })), TurnFooter ? /*#__PURE__*/React.createElement(TurnFooter, {
+    state: t.results ? null : t.status,
+    refs: t.results ? [] : t.refs,
+    sources: t.sources,
+    onOpenRef: r => onOpenThread && onOpenThread(r.id)
+  }) : null)), writing ? /*#__PURE__*/React.createElement("div", {
     "aria-label": "offload is writing",
     style: {
       alignSelf: "flex-start",
@@ -20077,7 +23179,9 @@ function WConversation({
   item,
   turns,
   writing,
-  onOpenThread
+  onOpenThread,
+  onTick,
+  onPick
 }) {
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(WPaneHead, {
     title: item.title,
@@ -20086,7 +23190,9 @@ function WConversation({
   }), /*#__PURE__*/React.createElement(WTurns, {
     turns: turns,
     writing: writing,
-    onOpenThread: onOpenThread
+    onOpenThread: onOpenThread,
+    onTick: onTick,
+    onPick: onPick
   }));
 }
 function WPerson({
@@ -20750,11 +23856,11 @@ function WSetting({
     })));
     if (id === "apps") return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SBlock, {
       title: "Connected",
-      note: "offload reads these to keep your things current. It never writes.",
+      note: "offload reads these to keep your things current, and can add to them.",
       cols: true
     }, /*#__PURE__*/React.createElement(SCard, {
       title: "Calendar",
-      meta: "Reading your week",
+      meta: "Reading your week, and writing back",
       on: apps.Calendar,
       onToggle: v => setApps(a => ({
         ...a,
@@ -21665,14 +24771,19 @@ function WThing({
     count: openTasks.length
   }, "To do"), tasks.map((x, i) => {
     const isDone = done[x.id] !== undefined ? done[x.id] : x.done;
+    /* A finished task keeps its place and its contrast: the tick, tertiary ink and
+       a 1px strike say it. Dimming a row on a warm page reads as a rendering fault
+       and takes the label under the contrast floor with it. */
     return /*#__PURE__*/React.createElement("div", {
-      key: x.id,
-      style: {
-        opacity: isDone ? 0.5 : 1
-      }
+      key: x.id
     }, /*#__PURE__*/React.createElement(WRow, {
       noTile: true,
       check: true,
+      done: isDone,
+      onToggle: () => setDone(d => ({
+        ...d,
+        [x.id]: !isDone
+      })),
       title: x.label,
       meta: x.meta,
       tools: ["pencil", "trash-2"],
@@ -21971,7 +25082,13 @@ Object.assign(window, {
 });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "ui_kits/web_app/WToday.jsx", error: String((e && e.message) || e) }); }
 
+__ds_ns.AnswerResult = __ds_scope.AnswerResult;
+
+__ds_ns.QuickReplies = __ds_scope.QuickReplies;
+
 __ds_ns.Logo = __ds_scope.Logo;
+
+__ds_ns.TurnFooter = __ds_scope.TurnFooter;
 
 __ds_ns.Badge = __ds_scope.Badge;
 
@@ -22004,6 +25121,8 @@ __ds_ns.AppBar = __ds_scope.AppBar;
 __ds_ns.ListRow = __ds_scope.ListRow;
 
 __ds_ns.MemoryRow = __ds_scope.MemoryRow;
+
+__ds_ns.PrismField = __ds_scope.PrismField;
 
 __ds_ns.RowActionSheet = __ds_scope.RowActionSheet;
 

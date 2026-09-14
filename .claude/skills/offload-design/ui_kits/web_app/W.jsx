@@ -1,5 +1,5 @@
 const OFFLOAD_DS=(typeof window!=="undefined"&&window.OffloadDesignSystem_dc4a89)||{};
-const { Icon, IconButton, Badge, Button, Chip, Logo } = OFFLOAD_DS;
+const { Icon, IconButton, Badge, Button, Chip, Logo, AnswerResult, QuickReplies } = OFFLOAD_DS;
 const D=window.OFFLOAD_DATA;
 
 /* Web-only layout vocabulary. The rule everything follows: the rightmost pane is the one
@@ -20,7 +20,7 @@ function WTile({icon,tone,size=32}){
 /* A row is the whole width of its pane; the pane supplies the gutter. Hover is a fill,
    never a colour change, so a row never looks disabled. Deleting asks in the row's own
    place, then the row collapses and the undo lives in a toast. */
-function WRow({icon,tone,title,meta,trailing,tools,selected,onClick,check,noTile,last,gone,onDelete,children}){
+function WRow({icon,tone,title,meta,trailing,tools,selected,onClick,check,done,onToggle,noTile,last,gone,onDelete,children}){
   const [h,setH]=React.useState(false);
   const [ask,setAsk]=React.useState(false);
   const box=React.useRef(null);
@@ -58,11 +58,22 @@ function WRow({icon,tone,title,meta,trailing,tools,selected,onClick,check,noTile
         background:selected?"var(--surface-fill)":(h&&onClick?"var(--state-hover)":"transparent"),
         boxShadow:last||selected?"none":"inset 0 -1px 0 var(--border-hairline)",
         transition:"background var(--transition-ui)"}}>
-      {check?<span style={{width:17,height:17,flex:"0 0 auto",marginTop:6,borderRadius:5,
-        border:"1.5px solid var(--ink-300)"}}/>:null}
+      {/* The tick is a control, not a mark: 17px drawn inside a 44px target, and its name
+          carries what it belongs to. --ink-300 was 2.5:1 and never reached the floor. */}
+      {check?<span role={onToggle?"checkbox":undefined} aria-checked={onToggle?Boolean(done):undefined}
+        aria-label={onToggle?title:undefined} tabIndex={onToggle?0:undefined}
+        onClick={onToggle?(e)=>{e.stopPropagation();onToggle()}:undefined}
+        style={{width:17,height:17,flex:"0 0 auto",marginTop:6,borderRadius:5,display:"flex",alignItems:"center",
+          justifyContent:"center",cursor:onToggle?"pointer":undefined,color:"var(--text-on-solid)",
+          border:"1.5px solid "+(done?"var(--moss-600)":"var(--border-strong)"),
+          background:done?"var(--moss-600)":"transparent",
+          transition:"background var(--transition-ui),border-color var(--transition-ui)"}}>
+        {done?<Icon name="check" size={11}/>:null}</span>:null}
       {noTile?null:<WTile icon={icon} tone={tone}/>}
       <span style={{flex:1,minWidth:0}}>
-        <b style={{display:"block",font:"var(--weight-medium) 15.5px/1.35 var(--font-core)"}}>{title}</b>
+        <b style={{display:"block",font:"var(--weight-medium) 15.5px/1.35 var(--font-core)",
+          color:done?"var(--text-tertiary)":undefined,textDecoration:done?"line-through":"none",
+          textDecorationThickness:"1px"}}>{title}</b>
         {meta?<span style={{display:"block",fontSize:13,color:"var(--text-secondary)",marginTop:2}}>{meta}</span>:null}
         {children}
       </span>

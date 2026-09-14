@@ -34,8 +34,12 @@ function WThing({id,open,onOpenPerson,onShare}){
           <WSection count={openTasks.length}>To do</WSection>
           {tasks.map((x,i)=>{
             const isDone=done[x.id]!==undefined?done[x.id]:x.done;
-            return <div key={x.id} style={{opacity:isDone?0.5:1}}>
-              <WRow noTile check title={x.label} meta={x.meta} tools={["pencil","trash-2"]}
+            /* A finished task keeps its place and its contrast: the tick, tertiary ink and
+               a 1px strike say it. Dimming a row on a warm page reads as a rendering fault
+               and takes the label under the contrast floor with it. */
+            return <div key={x.id}>
+              <WRow noTile check done={isDone} onToggle={()=>setDone(d=>({...d,[x.id]:!isDone}))}
+                title={x.label} meta={x.meta} tools={["pencil","trash-2"]}
                 last={i===tasks.length-1}
                 onClick={()=>open({kind:"task",id:x.id,thread:t.name,threadId:t.id,label:x.label,meta:x.meta})}/>
             </div>;

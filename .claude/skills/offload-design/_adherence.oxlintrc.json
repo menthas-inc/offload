@@ -16,12 +16,15 @@
         "patterns": [
           {
             "group": [
+              "components/answering/**",
               "components/brand/**",
+              "components/conversation/**",
               "components/core/**",
               "components/feedback/**",
               "components/forms/**",
               "components/layout/**",
               "components/notifications/**",
+              "explorations/**",
               "ui_kits/admin_web/**",
               "ui_kits/android_app/**",
               "ui_kits/mobile_app/**",
@@ -45,6 +48,14 @@
       {
         "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Instrument Sans|Literata))/i]",
         "message": "Font not provided by the design system. Available: Instrument Sans, Literata."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='AnswerRow'] > JSXAttribute > JSXIdentifier[name!=/^(?:id|title|meta|type|done|key|ref|className|style|children)$/]",
+        "message": "<AnswerRow> doesn't accept that prop. Declared props: id, title, meta, type, done."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='AnswerRow'] > JSXAttribute[name.name='type'] > Literal[value!=/^(?:task|event|location|link|image|file|voice|note)$/]",
+        "message": "<AnswerRow> type must be one of 'task' | 'event' | 'location' | 'link' | 'image' | 'file' | 'voice' | 'note'."
       },
       {
         "selector": "JSXOpeningElement[name.name='AppBar'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|subtitle|left|right|border|align|style|key|ref|className|style|children)$/]",
@@ -167,6 +178,26 @@
         "message": "<NotificationAction> doesn't accept that prop. Declared props: label, destructive, onPress."
       },
       {
+        "selector": "JSXOpeningElement[name.name='PrismField'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|basePath|density|veil|pulse|arriveOnMount|style|key|ref|className|style|children)$/]",
+        "message": "<PrismField> doesn't accept that prop. Declared props: variant, basePath, density, veil, pulse, arriveOnMount, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='PrismField'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:band|bloom)$/]",
+        "message": "<PrismField> variant must be one of 'band' | 'bloom'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='PrismField'] > JSXAttribute[name.name='veil'] > Literal[value!=/^(?:graded|none)$/]",
+        "message": "<PrismField> veil must be one of 'graded' | 'none'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='QuickReplyOption'] > JSXAttribute > JSXIdentifier[name!=/^(?:id|label|kind|icon|key|ref|className|style|children)$/]",
+        "message": "<QuickReplyOption> doesn't accept that prop. Declared props: id, label, kind, icon."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='QuickReplyOption'] > JSXAttribute[name.name='kind'] > Literal[value!=/^(?:primary|plain|thread|neutral)$/]",
+        "message": "<QuickReplyOption> kind must be one of 'primary' | 'plain' | 'thread' | 'neutral'."
+      },
+      {
         "selector": "JSXOpeningElement[name.name='RowAction'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|icon|danger|onSelect|key|ref|className|style|children)$/]",
         "message": "<RowAction> doesn't accept that prop. Declared props: label, icon, danger, onSelect."
       },
@@ -213,6 +244,14 @@
       {
         "selector": "JSXOpeningElement[name.name='Toast'] > JSXAttribute > JSXIdentifier[name!=/^(?:message|action|onAction|icon|style|key|ref|className|style|children)$/]",
         "message": "<Toast> doesn't accept that prop. Declared props: message, action, onAction, icon, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TurnRef'] > JSXAttribute > JSXIdentifier[name!=/^(?:id|name|kind|key|ref|className|style|children)$/]",
+        "message": "<TurnRef> doesn't accept that prop. Declared props: id, name, kind."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TurnRef'] > JSXAttribute[name.name='kind'] > Literal[value!=/^(?:thread|time|money)$/]",
+        "message": "<TurnRef> kind must be one of 'thread' | 'time' | 'money'."
       }
     ]
   },
@@ -228,6 +267,9 @@
   ],
   "x-omelette": {
     "components": {
+      "AnswerRow": {
+        "replaces": []
+      },
       "AppBar": {
         "replaces": []
       },
@@ -270,6 +312,12 @@
       "NotificationAction": {
         "replaces": []
       },
+      "PrismField": {
+        "replaces": []
+      },
+      "QuickReplyOption": {
+        "replaces": []
+      },
       "RowAction": {
         "replaces": []
       },
@@ -299,6 +347,9 @@
       },
       "Toast": {
         "replaces": []
+      },
+      "TurnRef": {
+        "replaces": []
       }
     },
     "tokens": [
@@ -317,8 +368,11 @@
       "--blur-chrome",
       "--border-accent",
       "--border-attention",
+      "--border-danger",
+      "--border-decision",
       "--border-focus",
       "--border-hairline",
+      "--border-lift",
       "--border-strong",
       "--border-width",
       "--breakpoint-lg",
@@ -326,6 +380,7 @@
       "--breakpoint-sm",
       "--breakpoint-xl",
       "--clay-100",
+      "--clay-200",
       "--clay-600",
       "--clay-700",
       "--composer-height",
@@ -367,6 +422,18 @@
       "--moss-700",
       "--paper",
       "--press-scale",
+      "--prism-alpha",
+      "--prism-density",
+      "--prism-run",
+      "--prism-settle",
+      "--prism-shift",
+      "--prism-veil-edge",
+      "--prism-veil-full",
+      "--prism-veil-hold",
+      "--prism-veil-reach",
+      "--prism-veil-rgb",
+      "--prism-veil-top",
+      "--prism-warp",
       "--radius-card",
       "--radius-field",
       "--radius-lg",
@@ -421,7 +488,9 @@
       "--surface-fill-strong",
       "--surface-input",
       "--surface-inverse",
+      "--surface-noticed",
       "--surface-page",
+      "--surface-plate",
       "--surface-raised",
       "--surface-scrim",
       "--surface-scrim-soft",
@@ -438,6 +507,7 @@
       "--text-inverse",
       "--text-label-role",
       "--text-link",
+      "--text-noticed",
       "--text-numeric-role",
       "--text-on-attention",
       "--text-on-solid",
@@ -491,6 +561,7 @@
       "--amber-on": "color",
       "--text-on-solid": "font",
       "--clay-100": "color",
+      "--clay-200": "color",
       "--clay-600": "color",
       "--clay-700": "color",
       "--text-primary": "font",
@@ -504,6 +575,7 @@
       "--text-danger": "font",
       "--surface-page": "color",
       "--surface-raised": "color",
+      "--surface-plate": "color",
       "--surface-sunken": "color",
       "--surface-card": "color",
       "--surface-fill": "color",
@@ -512,6 +584,7 @@
       "--surface-accent-soft": "color",
       "--surface-attention-soft": "color",
       "--surface-attention": "color",
+      "--surface-noticed": "color",
       "--surface-scrim": "color",
       "--surface-scrim-soft": "color",
       "--surface-chrome": "color",
@@ -522,6 +595,10 @@
       "--border-focus": "color",
       "--border-accent": "color",
       "--border-attention": "color",
+      "--border-danger": "color",
+      "--border-lift": "color",
+      "--border-decision": "color",
+      "--text-noticed": "font",
       "--state-hover": "color",
       "--state-press": "color",
       "--state-selected": "color",
@@ -613,7 +690,19 @@
       "--ease-in-out": "other",
       "--ease-entrance": "other",
       "--transition-ui": "other",
-      "--press-scale": "other"
+      "--press-scale": "other",
+      "--prism-alpha": "other",
+      "--prism-density": "other",
+      "--prism-veil-rgb": "other",
+      "--prism-veil-top": "other",
+      "--prism-veil-edge": "other",
+      "--prism-veil-full": "other",
+      "--prism-veil-hold": "other",
+      "--prism-veil-reach": "other",
+      "--prism-run": "other",
+      "--prism-settle": "other",
+      "--prism-warp": "other",
+      "--prism-shift": "spacing"
     },
     "fontFamilies": [
       "Instrument Sans",

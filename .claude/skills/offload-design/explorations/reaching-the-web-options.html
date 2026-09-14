@@ -1,0 +1,361 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Reaching the web, and saying what it is doing</title>
+<link rel="stylesheet" href="../styles.css?v=20260914-web">
+<link rel="stylesheet" href="frames.css?v=20260914-web">
+<style>
+.crop{color:var(--text-primary);width:390px;flex:0 0 auto;box-sizing:border-box;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-plate);padding:16px var(--gutter-screen) 18px;display:flex;flex-direction:column;gap:10px}
+.crop.wide{width:520px}
+.cell{width:390px;align-items:flex-start}
+.cell.wide{width:520px}
+.cell>*{max-width:100%}
+.you{align-self:flex-end;max-width:84%;padding:8px 14px;border-radius:var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);background:var(--blue-50);border:1px solid var(--blue-100);color:var(--ink-950);font:var(--weight-regular) 15px/1.45 var(--font-core)}
+.ol{color:var(--text-primary);align-self:flex-start;max-width:92%;padding:10px 14px;border-radius:var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;background:var(--ink-50);font:var(--text-quiet-role);font-size:16px;line-height:1.5}
+.turn{display:flex;flex-direction:column;gap:10px}
+/* The sent bubble's own column, which is what Conversation.tsx draws: flex-end, 84%, and
+   the mark hanging off its bottom left inside it. Anything in here inherits that measure. */
+.yw{align-self:flex-end;max-width:84%;display:flex;flex-direction:column;gap:10px}
+.yw .you{align-self:stretch;max-width:none}
+.tfoot{align-self:stretch;display:flex;flex-flow:row wrap;justify-content:flex-start;align-items:center;gap:6px;min-height:26px;margin-top:-2px}
+.tfoot.r{justify-content:flex-end}
+.dmark{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:var(--radius-pill);background:var(--moss-600);color:var(--text-on-solid);font:var(--weight-medium) 11px/1 var(--font-core);white-space:nowrap}
+.dmark.seen{background:var(--paper);border:1px solid var(--border-hairline);font-size:15px;padding:0 8px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:var(--radius-pill);background:var(--surface-accent-soft);color:var(--text-accent);font:var(--weight-regular) 12.5px/1 var(--font-core);white-space:nowrap}
+.src{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:var(--radius-pill);background:transparent;border:1px solid var(--border-strong);color:var(--text-secondary);font:var(--weight-regular) 12.5px/1 var(--font-core);text-decoration:none;max-width:22ch;overflow:hidden}
+.src b{font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.more{font:var(--weight-regular) 12.5px/1 var(--font-core);color:var(--text-tertiary);padding:0 4px;white-space:nowrap}
+.hang{align-self:flex-start;margin:-10px 0 0 -6px}
+.big .ol,.big .you{font-size:30px;line-height:1.35}
+.big .dmark{height:auto;min-height:44px;font-size:22px;padding:0 16px}
+.big .pill,.big .src{height:auto;min-height:44px;font-size:25px;padding:0 16px;max-width:100%}
+.big .more{font-size:25px}
+.dots{display:flex;gap:5px;align-items:center;flex:0 0 auto}
+.dots i{width:6px;height:6px;border-radius:99px;background:var(--ink-300);display:block}
+.step{display:flex;align-items:center;gap:10px;align-self:stretch;min-height:44px}
+.step p{margin:0;flex:1;min-width:0;font:var(--weight-regular) 13.5px/1.4 var(--font-core);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stop{flex:0 0 auto;min-height:44px;display:inline-flex;align-items:center;padding:0 4px;color:var(--text-danger);font:var(--weight-medium) 13.5px/1 var(--font-core);text-decoration:none}
+/* Group and Row, copied off SettingsDetail.jsx rather than approximated. */
+.sgroup{background:var(--surface-fill);border-radius:var(--radius-lg);padding:0 var(--space-4)}
+.srow{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-4) 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.srow:last-child{box-shadow:none}
+.srow .txt{flex:1;min-width:140px}
+.srow .t{display:block;font:var(--weight-regular) 15px/1.35 var(--font-core);color:var(--text-primary)}
+.srow .n{display:block;font-size:var(--size-caption);line-height:1.4;color:var(--text-secondary);margin-top:3px}
+/* Switch.jsx: 44x26 track, padding 3, 20px knob, and the on state is the inverse
+   surface. Not moss, which in this system means offload did something. */
+.sw{flex:0 0 auto;box-sizing:border-box;width:44px;height:26px;border-radius:var(--radius-pill);padding:3px;display:flex;justify-content:flex-end;background:var(--surface-inverse)}
+.sw i{display:block;width:20px;height:20px;border-radius:var(--radius-pill);background:var(--paper);box-shadow:var(--shadow-1)}
+.sw.off{justify-content:flex-start;background:var(--surface-fill-strong)}
+.ghdr{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);margin:0 0 var(--space-3) 2px}
+.verdict{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px}
+.verdict.no{background:var(--clay-100);color:var(--text-danger)}
+.verdict.yes{background:var(--surface-accent-soft);color:var(--moss-700)}
+.bad{border:1px dashed var(--clay-200)}
+.good{border:1px solid var(--border-accent)}
+.voice{display:flex;flex-direction:column;gap:9px}
+.voice span{font:var(--text-quiet-role);font-size:16px;line-height:1.45;color:var(--text-primary)}
+.voice u{text-decoration:none;display:block;font:var(--weight-regular) 11.5px/1.3 var(--font-core);color:var(--text-tertiary);margin-top:3px}
+.g.xs{width:12px;height:12px}.g.sm{width:14px;height:14px}.g.md{width:16px;height:16px}
+.i-lasso{--ic:url(../assets/icons/lasso.svg)}.i-check{--ic:url(../assets/icons/check.svg)}
+.i-link{--ic:url(../assets/icons/link.svg)}.i-x{--ic:url(../assets/icons/x.svg)}
+.i-up{--ic:url(../assets/icons/arrow-up.svg)}
+</style></head><body><div class="wrap">
+
+<h1>Reaching the web, and saying what it is doing</h1>
+<p class="lede">Designs for 016 and 017, from the brief in the handoff folder and the two feature specs. The footer is first because everything else is a chip, a row or a line and all three need somewhere to live. What is settled in the brief is drawn rather than reopened: the chip's two fields, the three chip cap, the outline tone, and both switches defaulting on. Three things here need your word and they are marked; the rest I have taken.</p>
+
+<div class="sechead"><h2>What this decides</h2><u>read this first</u></div>
+<ul class="spec">
+<li><b>The footer belongs to offload's side of the turn, left aligned, at the log's full gutter.</b> The Done mark moves off the person's sent bubble to get there, which is the divergence the brief expects. Section 1.</li>
+<li><b>Done, then threads, then sources.</b> What happened, where it landed, where it came from. One order on all three surfaces, wrapping rather than scrolling, <b>min-height</b>.</li>
+<li><b>The source chip is the one sanctioned external link in the product</b>, and it is safe for a reason worth writing down: its label is a domain from the read record, not a word the page chose. Section 2.</li>
+<li><b>The switch notes name the recipient.</b> The default no longer carries the weight, so the sentence has to. Section 3.</li>
+<li><b>The voice amendment is right but not as worded.</b> "Its own limits" is too wide; the line that holds is first person for what offload will not or cannot do, third person for what it did. Section 4.</li>
+<li><b>The progress line keeps the dots and sits beside them.</b> One row: dots, line, and at ten seconds a clay Stop at the end of it. Section 5.</li>
+</ul>
+
+<div class="sechead"><h2>1. The turn footer</h2><u>iOS, 390pt, the log's own gutter</u></div>
+<p class="snote">Today the Done mark hangs off the bottom left of the person's sent bubble and the reference pills sit inside offload's reply. Two elements, two bubbles, and an ordinary filing turn has neither because it says nothing. All three options below are the same turn: a dump that was filed, read something, and was done.</p>
+
+<div class="rowlabel">Where it sits<u>the question the brief asks first</u></div>
+<div class="row">
+
+<div class="cell"><div class="tag i"><b>A. Under the sent bubble</b><span>today's mark, generalised</span></div>
+<div class="crop bad">
+<div class="turn">
+<div class="yw">
+<div class="you">memorial day bbq at ana's, bring the big cooler</div>
+<div class="tfoot r"><span class="dmark"><i class="g xs i-check"></i>Done</span><span class="pill"><i class="g xs i-lasso"></i>Ana's bbq</span><a class="src" href="#"><i class="g xs i-link"></i><b>timeanddate.com</b></a></div>
+</div>
+</div>
+</div>
+<span class="verdict no">inside the bubble's 84%</span>
+<ul class="spec"><li>It is where the mark already is, so it costs nothing to build. The footer stays in the sent bubble's column, which is what makes it the cheap option and also what breaks it.</li><li><b>It inherits the bubble's measure.</b> 84% of the screen, so three chips already wrap onto a second line and five wrap onto three, in a row that has the whole gutter available two pixels to its left.</li><li>Everything in it is offload speaking: what it did, where it put it, what it read. Hanging that off the right puts it inside the half of the log that is the person's own voice.</li><li>Right aligned it reads backwards too. Wrapped onto two lines the Done mark ends up above and left of chips that came after it, so the order is neither reading order nor the row's own.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>B. offload's side, left aligned</b><span>recommended</span></div>
+<div class="crop good">
+<div class="turn">
+<div class="yw">
+<div class="you">memorial day bbq at ana's, bring the big cooler</div>
+</div>
+<div class="tfoot"><span class="dmark"><i class="g xs i-check"></i>Done</span><span class="pill"><i class="g xs i-lasso"></i>Ana's bbq</span><a class="src" href="#"><i class="g xs i-link"></i><b>timeanddate.com</b></a></div>
+</div>
+</div>
+<span class="verdict yes">the log's gutter, not a bubble's measure</span>
+<ul class="spec"><li>The footer leaves the sent bubble's column entirely and becomes a sibling of both bubbles, so it takes the log's full width. The same three chips fit on one line here and need two lines in A.</li><li>It is offload's side of the turn whether or not offload wrote a sentence, which is the whole requirement. On a filing turn it is the only thing there; with a reply it sits under it.</li><li>Left aligned, so it reads in its own order: done, where, from.</li><li><b>The cost:</b> the Done mark moves off the bubble it has hung from since 004. It is a visible change to a shipped element on two platforms, and it is the reason this owes a log entry.</li></ul>
+<span class="rec">Take this one</span>
+</div>
+
+<div class="cell"><div class="tag i"><b>C. Mark stays, chips under the reply</b><span>what the kits draw now</span></div>
+<div class="crop bad">
+<div class="turn">
+<div class="yw">
+<div class="you">memorial day bbq at ana's, bring the big cooler</div>
+<span class="dmark hang"><i class="g xs i-check"></i>Done</span>
+</div>
+<div class="ol" style="margin-top:-2px">Monday 25 May. Filed the cooler as a task.
+<div class="tfoot" style="margin-top:10px"><span class="pill"><i class="g xs i-lasso"></i>Ana's bbq</span><a class="src" href="#"><i class="g xs i-link"></i><b>timeanddate.com</b></a></div>
+</div>
+</div>
+</div>
+<span class="verdict no">two elements, two bubbles</span>
+<ul class="spec"><li>Drawn as the code actually draws it: the mark overlaps the sent bubble's bottom left corner, 10px up and 6px into it, and the chips sit inside offload's reply on the other side of the log.</li><li>It is the smallest change and it works on exactly the turns that already worked.</li><li>It fails on the turn this feature is mostly about: a dump that was filed, said nothing, and read a page. No reply bubble, so no container and no chip.</li><li>The overlap is also why the mark cannot simply gain chips where it is. It is positioned into the bubble's corner, and a row that grows sideways from there runs back under the bubble it is tucked into.</li></ul>
+</div>
+
+</div>
+
+<div class="rowlabel">What it has to survive<u>one chip, five chips, and 200%</u></div>
+<div class="row">
+
+<div class="cell"><div class="tag i"><b>A silent filing turn</b><span>the footer is the whole reply</span></div>
+<div class="crop">
+<div class="turn">
+<div class="you">bin day moved to thursday</div>
+<div class="tfoot"><span class="dmark"><i class="g xs i-check"></i>Done</span><span class="pill"><i class="g xs i-lasso"></i>Flat admin</span></div>
+</div>
+<div class="turn" style="margin-top:6px">
+<div class="you">tram 28 runs every 11 minutes</div>
+<div class="tfoot"><span class="dmark seen">👀</span></div>
+</div>
+</div>
+<ul class="spec"><li>No sentence, no bubble, and the row still says what happened. This is the turn that has nowhere to put a chip today.</li><li>👀 lives in the footer too, in the same slot the Done mark takes. One place for the turn's state means it never appears in two.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>Five things at once</b><span>three sources, then a count</span></div>
+<div class="crop">
+<div class="turn">
+<div class="you">what's on over the long weekend near ana's, and add the cooler</div>
+<div class="ol">Three things on Monday. Filed the cooler.</div>
+<div class="tfoot"><span class="dmark"><i class="g xs i-check"></i>Done</span><span class="pill"><i class="g xs i-lasso"></i>Ana's bbq</span><a class="src" href="#"><i class="g xs i-link"></i><b>timeanddate.com</b></a><a class="src" href="#"><i class="g xs i-link"></i><b>visitlisboa.com</b></a><a class="src" href="#"><i class="g xs i-link"></i><b>cp.pt</b></a><span class="more">and 2 more</span></div>
+</div>
+</div>
+<ul class="spec"><li>Wraps, never scrolls. A sideways scroller hides the thing it is a record of.</li><li><b>The count is text, not a chip and not a control</b>, because there is nowhere for it to go: the product has no list of what a turn read, and drawing it as a chip promises one.</li><li>Threads are never counted this way. Three sources is a footnote problem; three threads is a turn that did three things, and each one is a place somebody may want to go.</li></ul>
+</div>
+
+<div class="cell wide"><div class="tag i"><b>At 200%</b><span>a long domain, a long thread, the mark</span></div>
+<div class="crop wide big">
+<div class="turn">
+<div class="you">bbq at ana's</div>
+<div class="tfoot"><span class="dmark"><i class="g xs i-check"></i>Done</span><span class="pill"><i class="g sm i-lasso"></i>Ana's bank holiday bbq</span><a class="src" href="#"><i class="g sm i-link"></i><b>timeanddate.com</b></a></div>
+</div>
+</div>
+<ul class="spec"><li><b>min-height, never height.</b> Every chip in the row grows to its text and the row becomes three lines. Nothing in it is centred against a fixed 26px.</li><li>The domain is the piece that overruns first, so it is the only one that truncates, from the end, at a <b>max-width of 22ch</b>. A truncated domain still says which company; a truncated thread name says nothing.</li><li>The tap targets are already 44px at this size, so nothing needs a second rule for it.</li></ul>
+</div>
+
+</div>
+<ul class="spec">
+<li><b>Order is fixed: state, threads, sources.</b> Not sorted, not by count, and the same on all three surfaces, so a turn can be read at a glance without reading it.</li>
+<li><b>The footer is drawn only when it holds something.</b> An ordinary turn mid-flight has an empty one, and an empty footer is no footer at all rather than a 26px gap.</li>
+<li><b>It is never a surface.</b> No fill, no hairline, no card. The chips are the only painted things in it, which is what keeps a turn that did three things from looking like a panel.</li>
+<li><b>Web keeps the same row</b> at the pane's gutter. The pane is wider, so five chips fit on one line; nothing else changes.</li>
+</ul>
+
+<div class="sechead"><h2>2. The source chip</h2><u>a kind in a contract that exists</u></div>
+<p class="snote">A new <b>source</b> kind joins <code>LIVE_REF_TONE</code> and <code>LIVE_REF_ICON</code> in all three kits, with the <b>link</b> glyph and <b>tone="outline"</b>. The tone was decided in the brief; what is drawn here is what it costs and the one rule the chip needs that the other kinds do not.</p>
+<div class="row">
+
+<div class="cell"><div class="tag m"><b>outline</b><span>chosen, and it reads as evidence</span></div>
+<div class="crop good">
+<div class="ol">Monday 25 May.</div>
+<div class="tfoot"><span class="dmark"><i class="g xs i-check"></i>Done</span><span class="pill"><i class="g xs i-lasso"></i>Ana's bbq</span><a class="src" href="#"><i class="g xs i-link"></i><b>timeanddate.com</b></a></div>
+</div>
+<span class="verdict yes">moss is offload's, outline is somebody else's</span>
+<ul class="spec"><li>Beside a moss pill the difference is immediate and needs no legend: the filled one is what offload did, the outlined one is where a fact came from.</li><li><code>--border-strong</code> at 3:1 and <code>--text-secondary</code> at 4.5:1, so an outline chip is not a quiet chip. It is a chip with no fill.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>accent</b><span>drawn once, so it is not tried again</span></div>
+<div class="crop bad">
+<div class="ol">Monday 25 May.</div>
+<div class="tfoot"><span class="dmark"><i class="g xs i-check"></i>Done</span><span class="pill"><i class="g xs i-lasso"></i>Ana's bbq</span><span class="pill"><i class="g xs i-link"></i>timeanddate.com</span></div>
+</div>
+<span class="verdict no">two moss chips, two meanings</span>
+<ul class="spec"><li>The thread and the domain become the same kind of thing, and the row stops having an order: it is four moss objects and a tick.</li><li>It also claims the page as offload's work, which is the one thing a citation exists to deny.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>The rule it needs</b><span>and the other kinds do not</span></div>
+<div class="crop">
+<div class="ol">Monday 25 May.</div>
+<div class="tfoot"><a class="src" href="#"><i class="g xs i-link"></i><b>timeanddate.com</b></a><a class="src" href="#"><i class="g xs i-link"></i><b>an-extremely-long-host.example.com</b></a></div>
+</div>
+<ul class="spec"><li><b>The label is the registrable domain and nothing else.</b> No path, no title, no scheme, no <code>www.</code>, and a <b>22ch max-width</b> so only a genuinely long host truncates, from the end. A path is page-chosen text arriving in the row that is supposed to be a fact about where a request went.</li><li><b>This is the one external link in the product, and it is allowed for a reason.</b> The markup rule bans external links in a reply because the words are page-authored; here the label comes from the read record and the target is the URL that was read. The distinction is the source of the string, so it should be written that way in the readme rather than as an exception.</li><li>It leaves the app. No confirmation sheet: a link that announces itself as a domain, tapped deliberately, is the least surprising thing in the row.</li></ul>
+</div>
+
+</div>
+
+<div class="sechead"><h2>3. The two switches</h2><u>Settings, Privacy</u></div>
+<p class="snote">Titles are given and carry no full stop. What design owes is the note, and the specific question is whether it can carry weight the default no longer does. Both rows sit beside "Let offload notice patterns", in the same group, drawn with <code>SettingsDetail.jsx</code>'s own Group and Row and the real <code>Switch</code>: a 44 by 26 track whose on state is <code>--surface-inverse</code>, never moss.</p>
+<div class="row">
+
+<div class="cell"><div class="tag i"><b>The note as mechanism</b><span>true, and says nothing</span></div>
+<div class="crop bad">
+<div class="ghdr">What offload does with it</div>
+<div class="sgroup">
+<div class="srow"><span class="txt"><b class="t">Search the web</b><span class="n">Look things up when offload can't answer from your threads</span></span><span class="sw"><i></i></span></div>
+<div class="srow"><span class="txt"><b class="t">Read links I paste</b><span class="n">Open links you dump to see what they are</span></span><span class="sw"><i></i></span></div>
+</div>
+</div>
+<span class="verdict no">describes the feature, not the cost</span>
+<ul class="spec"><li>Both sentences describe what somebody gets. Neither says anything leaves, so the switch is a convenience toggle and there is nothing to decide.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>The note names the recipient</b><span>recommended</span></div>
+<div class="crop good">
+<div class="ghdr">What offload does with it</div>
+<div class="sgroup">
+<div class="srow"><span class="txt"><b class="t">Search the web</b><span class="n">Sends the words you dumped to a search company when offload can't answer from your threads. Your threads and notes are never sent.</span></span><span class="sw"><i></i></span></div>
+<div class="srow"><span class="txt"><b class="t">Read links I paste</b><span class="n">Opens a link you dumped and reads the page. Nothing of yours is sent.</span></span><span class="sw"><i></i></span></div>
+</div>
+</div>
+<span class="verdict yes">what leaves, and what does not</span>
+<ul class="spec"><li>First clause is what leaves, second is the bound. The second clause is the one that makes the first readable rather than alarming, and both are true because of the query rule: a search carries the words of the dump and nothing from any thread.</li><li>It also makes the pair worth having as two: reading a link sends nothing of yours, searching sends a sentence. Anybody who wants the quieter one can see which it is.</li><li><b>No "On by default" label.</b> The existing one labels the off switch, because the label's job is explaining why something is off. A label saying a switch is on reads as an apology for it, and the note already does the honest work.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>Where the weight went</b><span>your call, not mine</span></div>
+<div class="crop">
+<div class="ghdr">What offload does with it</div>
+<div class="sgroup">
+<div class="srow"><span class="txt"><b class="t">Let offload notice patterns</b><span class="n">Like Fridays slipping, or a bill that arrives every March.</span></span><span class="sw"><i></i></span></div>
+<div class="srow"><span class="txt"><b class="t">Improve offload with my data</b><span class="n">Off by default. Nothing you dump is used to train anything.</span></span><span class="sw off"><i></i></span></div>
+<div class="srow"><span class="txt"><b class="t">Search the web</b><span class="n">Sends the words you dumped to a search company when offload can't answer from your threads.</span></span><span class="sw"><i></i></span></div>
+</div>
+</div>
+<ul class="spec"><li>The three read as a ladder now: stays inside, goes out and is on, goes out and is off. That is legible, but it does mean <b>"goes further" is no longer what decides the default</b>, and the group no longer teaches the rule it used to.</li><li>Design's answer is the note. Whether that is enough is a product call: the alternative is search off by default and a first lookup that asks, which costs the feature its "just works".</li></ul>
+<span class="rec">Flagged for you</span>
+</div>
+
+</div>
+
+<div class="sechead"><h2>4. The voice</h2><u>decided: no subject at all</u></div>
+<p class="snote">Not the amendment the brief proposed and not the rewrite either. The refusal is <b>"Can't search that."</b>, and the rule behind it is that offload's replies drop the subject and start with the verb, so neither "I" nor "offload" appears. That turns out to be what most of the product already does; the three "I" lines and the one "offload" line are the exceptions. <b>Contractions are in as of this pass</b>, which is a second change: every shipped line writes "did not" and "could not" in full, so the clipped forms below are new on both counts.</p>
+<div class="row">
+
+<div class="cell"><div class="tag i"><b>What it was</b><span>a subject either way</span></div>
+<div class="crop bad">
+<div class="voice">
+<span>I don't search that.<u>016, the line as briefed</u></span>
+<span>I could not find that.<u>013, shipped in the kits</u></span>
+<span>I do not know. Theme is set on this phone and the server has never held it.<u>013, shipped in the kits</u></span>
+<span>offload did not finish that one.<u>004, the readme's own words, shipped on three surfaces</u></span>
+</div>
+</div>
+<span class="verdict no">both halves of the old argument</span>
+<ul class="spec"><li>The debate was which subject offload uses about itself. The answer is that the sentences read better with none, and every one of these has a subjectless form that says the same thing in fewer words.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>What it becomes</b><span>the verb goes first</span></div>
+<div class="crop good">
+<div class="voice">
+<span>Can't search that.<u>016, the refusal</u></span>
+<span>Couldn't find that.<u>013</u></span>
+<span>Theme is set on this phone and was never held on the server.<u>013, and it drops "I do not know" entirely</u></span>
+<span>Didn't finish that one.<u>004, and this one is shipped copy on three surfaces</u></span>
+</div>
+</div>
+<span class="verdict yes">shorter, and no self-reference</span>
+<ul class="spec"><li>The device-preference line loses its "I do not know" and just states the fact, which was the stronger half of it anyway.</li><li><b>The fourth one is a change to shipped copy</b> in <code>Conversation.tsx</code>, the web's twin, and the readme, so it is the one that needs your word before it moves.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>What still names offload</b><span>and should</span></div>
+<div class="crop">
+<div class="voice">
+<span style="font-size:15px">Let offload notice patterns<u>a settings row: the switch names what it governs</u></span>
+<span style="font-size:15px">offload keeps conversations for 60 days<u>a settings row stating a policy</u></span>
+<span>Filed both. The transfer is a task.<u>already subjectless, unchanged</u></span>
+<span>Stopped.<u>017, unchanged</u></span>
+</div>
+</div>
+<ul class="spec"><li><b>The rule is about what offload says, not about every string in the product.</b> A settings row is the interface talking about offload in the third person, and it has to name the thing it governs.</li><li>So the readme's line becomes: <b>in a reply, the sentence starts with the verb and names no subject</b>; anywhere the interface describes the product, it is "offload", never "I".</li></ul>
+</div>
+
+</div>
+
+<div class="sechead"><h2>5. Saying what it is doing</h2><u>017, and it has no mock anywhere</u></div>
+<p class="snote">Three dots today, on both phones and on web. The line arrives after about a second and a half, replaces itself as the work moves, and is not kept. At ten seconds a way out appears beside it.</p>
+<div class="row">
+
+<div class="cell"><div class="tag i"><b>Under the threshold</b><span>unchanged, deliberately</span></div>
+<div class="crop">
+<div class="you">bin day moved to thursday</div>
+<div class="ol" style="display:flex;gap:5px;align-items:center;padding:14px"><span class="dots"><i></i><i></i><i></i></span></div>
+</div>
+<ul class="spec"><li>An ordinary two second filing turn looks exactly as it looks now. A line that appears and goes inside a second is noise, and most turns are this one.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>Past it</b><span>the dots stay and gain a sentence</span></div>
+<div class="crop good">
+<div class="you">memorial day bbq at ana's, bring the big cooler</div>
+<div class="step"><span class="dots"><i></i><i></i><i></i></span><p>Looking up when Memorial Day is</p></div>
+</div>
+<span class="verdict yes">no bubble, no new motion</span>
+<ul class="spec"><li><b>The dots are kept and the line sits beside them</b>, on the row the dots already occupy. The dots are the product's existing "still alive"; the line says what. Replacing them with a static line leaves a sentence that arrived and stopped, which reads as the answer rather than as work in progress.</li><li><b>No bubble.</b> It is not a turn, it is not kept, and a bubble that is overwritten three times leaves the log looking like offload said three things.</li><li>Quiet: core font at 13.5, <code>--text-secondary</code>, one line, truncated rather than wrapped, so a long step never moves the composer.</li><li>It may name a domain, because that is a fact about where a request went. It may never carry anything from inside a page.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>At ten seconds</b><span>the way out</span></div>
+<div class="crop good">
+<div class="you">what's on over the long weekend near ana's</div>
+<div class="step"><span class="dots"><i></i><i></i><i></i></span><p>Reading visitlisboa.com</p><a class="stop" href="#">Stop</a></div>
+</div>
+<span class="verdict yes">text control, 44px, at the end of the row</span>
+<ul class="spec"><li><b>Clay, and still plain text.</b> A filled pill beside a progress line reads as the main action of the screen, and stopping is an escape hatch, so it stays a text control: <code>--text-danger</code>, medium weight, 44px target, at the row's end so the sentence keeps its position when it appears.</li>
+<li>It is the second red control in the product, after the web kit's trash. Worth knowing that clay here means "this interrupts" rather than "this destroys": stopping keeps everything that landed, and the sentence it settles to says so.</li><li>The line truncates to make room rather than wrapping, which is why the Stop is at the end and not under it.</li><li>At 200% the row becomes two lines with the Stop on the second, still 44px. Nothing about it is centred against a fixed height.</li></ul>
+</div>
+
+</div>
+<div class="row" style="margin-top:14px">
+
+<div class="cell"><div class="tag m"><b>Stopped</b><span>the settled turn</span></div>
+<div class="crop good">
+<div class="turn">
+<div class="you">what's on over the long weekend near ana's</div>
+<div class="ol">Stopped.</div>
+<div class="tfoot"><span class="pill"><i class="g xs i-lasso"></i>Ana's bbq</span><a class="src" href="#"><i class="g xs i-link"></i><b>timeanddate.com</b></a></div>
+</div>
+</div>
+<span class="verdict yes">no Done mark, no Finish it</span>
+<ul class="spec"><li>A sentence in the reply bubble, and the footer for whatever landed. This is the footer earning itself a second time: the chips have a home on a turn that was cut off mid-way.</li><li><b>No Done mark</b>, because the turn did not finish, and <b>no way to finish</b>, because stopped means stopped. It is not the partial turn, which offers <b>Finish it</b> and takes a clay border: that is offload failing, and this is somebody stopping it.</li><li>The dump is still in the conversation if they want to send it again, which is why nothing here offers to.</li></ul>
+</div>
+
+<div class="cell wide"><div class="tag i"><b>Where the row lives</b><span>the sheet, above the composer</span></div>
+<div class="crop wide">
+<div class="you">memorial day bbq at ana's, bring the big cooler</div>
+<div class="step"><span class="dots"><i></i><i></i><i></i></span><p>Looking up when Memorial Day is</p><a class="stop" href="#">Stop</a></div>
+<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><span style="flex:1;height:44px;border-radius:var(--radius-lg);background:var(--surface-input);display:flex;align-items:center;padding:0 14px;font:var(--weight-regular) 15px/1 var(--font-core);color:var(--text-tertiary)">Ask, or just dump</span><span style="width:44px;height:44px;border-radius:99px;background:var(--surface-inverse);color:var(--text-inverse);display:flex;align-items:center;justify-content:center"><i class="g md i-up"></i></span></div>
+</div>
+<ul class="spec"><li>In the log, in the last turn's place, not a banner and not over the composer. The composer stays available the whole time: a turn in flight has never blocked the next dump and this does not change that.</li><li>The line sits where the dots sat, so nothing jumps when one becomes the other.</li></ul>
+</div>
+
+</div>
+
+<div class="sechead"><h2>Needs your call</h2><u>from the log, merged today</u></div>
+<p class="snote">Twelve entries landed in <code>decisions.md</code> from the code side since 9 September, carrying design impacts nothing in the kits has drawn. Ranked by what I think matters; the first three I would draw next.</p>
+<ul class="spec">
+<li><b>The thread's Notes section has four states nobody has drawn:</b> at zero, over the prompt budget, mid-fold, and reading folded history. The code side calls this the gap worth closing first and I agree, because "some of these are not reaching offload" is a sentence with no drawn treatment at all.</li>
+<li><b>The timeline rail has no governed component on any surface.</b> Day cell, week rail, month bar, and the dot cluster at the larger text size, which the entry says nobody has looked at on a device. <code>--surface-noticed</code> is new and wants a place on the palette page.</li>
+<li><b>A reply can now hold a list, a quote and a link</b>, and no kit draws any of them. The three rules are already decided, so this is drawing rather than deciding.</li>
+<li><b>Blue now means three things on the rail</b>: waiting on you, something on this day, and the day you are reading. The entry flags it for the next palette review. My read is that it holds because soft and solid separate the last two, but it is one hue doing a lot and worth your eye.</li>
+<li><b>Checkbox needs a boolean variant</b>, checked meaning on rather than done, with no strike-through. Asked for twice now, once by the calendar settings and once by the rail's repeat box, and answered locally both times.</li>
+<li><b>MemoryRow wants renaming to NoteRow</b> plus a date, a body indicator, a quiet over-budget state and a folded-history variant.</li>
+<li><b>Small, settled, mechanical:</b> the phone rows want the <code>RowTools</code> pair at 17px with <code>--space-6</code> between them, drawn only where the row may be deleted; section headings want 22px controls a full gutter apart; the composer wants its <code>inThread</code> line, cap, counter and submit label. I can land all of these in the kits without a decision from you.</li>
+<li><b>One latent divergence worth naming:</b> the web draws its pencil unconditionally while the phones draw it only where the account may edit. On a shared thread those are different products. Code's to fix, but it is a design rule that is being stated twice.</li>
+</ul>
+
+</div></body></html>

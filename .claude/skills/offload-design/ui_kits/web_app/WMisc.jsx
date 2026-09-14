@@ -1,7 +1,7 @@
-const { Icon, IconButton, Badge, Button, Chip, Logo, EmptyState } = OFFLOAD_DS;
+const { Icon, IconButton, Badge, Button, Chip, Logo, EmptyState, AnswerResult, QuickReplies, TurnFooter } = OFFLOAD_DS;
 
-const REF_TONE={thread:"accent",time:"attention",money:"warning"};
-const REF_ICON={thread:"lasso",time:"clock",money:null};
+const REF_TONE={thread:"accent",time:"attention",money:"warning",source:"outline"};
+const REF_ICON={thread:"lasso",time:"clock",money:null,source:"link"};
 
 /* Note 3: the sidebar marks whatever the rightmost pane is showing, and when that pane
    has no entry of its own it marks the thread it belongs to.
@@ -81,7 +81,7 @@ function SideLabel({children,add}){
    something does not open a window: the composer itself grows upward and the answer
    arrives inside it, above the same input you typed in. The card is only as wide as the
    input, and a blue top edge with a little bleed lifts it off a white pane. */
-function WComposer({value,onChange,onSubmit,placeholder,live,turns,writing,onClose,onExpand,onOpenThread}){
+function WComposer({value,onChange,onSubmit,placeholder,live,turns,writing,onClose,onExpand,onOpenThread,onTick,onPick}){
   const ref=React.useRef(null);
   /* "@" opens the connection picker, here and in any other field. */
   const at=/(?:^|\s)@([\w]*)$/.exec(value||"");
@@ -103,7 +103,7 @@ function WComposer({value,onChange,onSubmit,placeholder,live,turns,writing,onClo
               <IconButton icon="maximize-2" label="Open full" size="sm" variant="quiet" onClick={onExpand}/>
               <IconButton icon="x" label="Close" size="sm" variant="quiet" onClick={onClose}/>
             </div>
-            <WTurns turns={turns} writing={writing} onOpenThread={onOpenThread}/>
+            <WTurns turns={turns} writing={writing} onOpenThread={onOpenThread} onTick={onTick} onPick={onPick}/>
             <span style={{flex:"0 0 auto",height:1,background:"var(--border-hairline)",
               margin:"var(--space-4) var(--space-4) var(--space-3)"}}/>
           </div>
@@ -127,35 +127,53 @@ function WComposer({value,onChange,onSubmit,placeholder,live,turns,writing,onClo
 }
 
 /* The turns themselves, the same rows in the composer and in a full pane. */
-function WTurns({turns,writing,onOpenThread}){
+function WTurns({turns,writing,onOpenThread,onTick,onPick}){
   const end=React.useRef(null);
+  const [ticked,setTicked]=React.useState({});
+  const [answered,setAnswered]=React.useState({});
   React.useEffect(()=>{const el=end.current&&end.current.parentElement;if(el)el.scrollTop=el.scrollHeight;},[turns.length,writing]);
   return (
     <div style={{flex:1,minHeight:0,overflowY:"auto",display:"flex",flexDirection:"column",gap:"var(--space-6)",
       padding:"var(--space-3) var(--space-6)"}}>
       {turns.map((t,i)=>t.from==="you"?(
-        <div key={i} style={{alignSelf:"flex-end",maxWidth:"78%",position:"relative",
+        <React.Fragment key={i}>
+        <div style={{alignSelf:"flex-end",maxWidth:"78%",
           padding:"var(--space-3) var(--space-5)",borderRadius:"18px 18px 5px 18px",
           background:"var(--blue-50)",border:"1px solid var(--blue-100)",
           font:"var(--weight-regular) 15px/1.45 var(--font-core)"}}>
           {t.text}
-          {t.status==="done"?<span aria-label="Done" style={{position:"absolute",left:-15,bottom:-16,display:"inline-flex",
-            alignItems:"center",gap:4,height:22,padding:"0 8px 0 6px",borderRadius:99,background:"var(--moss-600)",
-            color:"var(--paper)",border:"1px solid var(--moss-600)",font:"var(--weight-medium) 11px/1 var(--font-core)"}}>
-            <Icon name="check" size={11}/>Done</span>:null}
         </div>
+        {/* The mark was absolutely positioned into this bubble's corner and is now a row
+            of its own on offload's side, which is the only place it can hold a chip. */}
+        {TurnFooter?<TurnFooter state={t.status} refs={t.refs} sources={t.sources}
+          onOpenRef={(r)=>onOpenThread&&onOpenThread(r.id)}/>:null}
+        </React.Fragment>
       ):(
-        <div key={i} style={{alignSelf:"flex-start",maxWidth:"92%",padding:"var(--space-4) var(--space-5)",
+        <React.Fragment key={i}>
+        <div style={{alignSelf:"flex-start",maxWidth:"92%",padding:"var(--space-4) var(--space-5)",
           borderRadius:"18px 18px 18px 5px",background:"var(--ink-50)"}}>
           <div style={{font:"var(--text-quiet-role)",fontSize:15,lineHeight:1.5}}>{t.text}</div>
-          {t.refs&&t.refs.length?(
-            <div style={{display:"flex",flexWrap:"wrap",gap:"var(--space-2)",marginTop:"var(--space-3)"}}>
-              {t.refs.map((r,j)=>{const k=r.kind||"thread";
-                return <Chip key={j} tone={REF_TONE[k]} icon={REF_ICON[k]}
-                  onClick={k==="thread"?()=>onOpenThread(r.id):undefined}>{r.name}</Chip>;})}
-            </div>
+          {/* The question offload asked, answerable with a tap. Inside the bubble, where
+              012's control sits, because it acts on the sentence above it. */}
+          {AnswerResult&&t.options&&t.options.length&&!answered[i]?(
+            <QuickReplies options={t.options} note={t.note}
+              onPick={(o)=>{setAnswered(a=>({...a,[i]:true}));onPick&&onPick(o)}}/>
           ):null}
         </div>
+        {/* Below the bubble, never inside it. Eight rows before Show more here: the pane
+            has roughly twice the height a phone sheet does. */}
+        {(AnswerResult?(t.results||[]):[]).map((r,j)=>(
+          <AnswerResult key={j} thread={r.thread} count={r.count} shown={8}
+            truncated={r.truncated} threadTotal={r.threadTotal} style={{alignSelf:"stretch",maxWidth:"92%"}}
+            rows={(r.rows||[]).map(x=>({...x,done:ticked[x.id]!==undefined?ticked[x.id]:x.done}))}
+            onToggle={r.tickable===false?undefined:(row)=>{const next=!(ticked[row.id]!==undefined?ticked[row.id]:row.done);
+              setTicked(v=>({...v,[row.id]:next}));onTick&&onTick(row,next)}}
+            onOpenThread={()=>onOpenThread&&onOpenThread(r.thread.id)}/>
+        ))}
+        {TurnFooter?<TurnFooter state={t.results?null:t.status}
+          refs={t.results?[]:t.refs} sources={t.sources}
+          onOpenRef={(r)=>onOpenThread&&onOpenThread(r.id)}/>:null}
+        </React.Fragment>
       ))}
       {writing?(
         <div aria-label="offload is writing" style={{alignSelf:"flex-start",display:"flex",gap:5,
@@ -170,12 +188,12 @@ function WTurns({turns,writing,onOpenThread}){
 }
 
 /* A conversation as a full pane, the same turns with room to read them. */
-function WConversation({item,turns,writing,onOpenThread}){
+function WConversation({item,turns,writing,onOpenThread,onTick,onPick}){
   return (
     <>
       <WPaneHead title={item.title} sub={item.when}
         tools={[["users","Share"],["ellipsis","More"]]}/>
-      <WTurns turns={turns} writing={writing} onOpenThread={onOpenThread}/>
+      <WTurns turns={turns} writing={writing} onOpenThread={onOpenThread} onTick={onTick} onPick={onPick}/>
     </>
   );
 }

@@ -32,7 +32,13 @@ If a Figma file, repo or design doc does exist, attach it and this system should
 
 offload's voice is a calm assistant that has already done the work and does not need credit for it. Short sentences, plain words, no exclamation marks.
 
-**Person.** Talk to the user as **you**. offload refers to itself in the third person, and only when it has to explain what it did: "Saved to Lisbon trip", "offload sorted 4 notes". Never "I". Never "we".
+**Person.** Talk to the user as **you**. Amended 14 September 2026, because the old rule said third person and never "I", and three shipped lines said "I" anyway.
+
+**In what offload says, the sentence starts with the verb and names no subject**: "Filed both", "Couldn't find that", "Can't search that", "Didn't finish that one", "Stopped". Neither "I" nor "offload". This covers replies, progress lines, empty states, notification copy and onboarding, and it is shorter than either version it replaces, which is most of the argument for it.
+
+**Where the interface describes offload rather than speaking as it, the name is used**: a settings row has to say what it governs, so "Let offload notice patterns" and "offload keeps conversations for 60 days" stay as they are. Never "I". Never "we".
+
+**Contractions are in**, as of the same pass: "can't", "couldn't", "didn't", "won't", "isn't". Every line before it wrote the full form, so this moves copy on every surface.
 
 **Casing.** Sentence case everywhere, with no exceptions: buttons, titles, section headers, sheet headers, toasts. Nothing in the interface is set in uppercase. The brand name is always lowercase, including at the start of a sentence: "offload keeps it in one place."
 
@@ -150,7 +156,7 @@ Root manifest:
 | `guidelines/` | 18 specimen cards: colours, type, numerals, spacing, radii, elevation, motion, mark, icon set. |
 | `assets/` | `mark.svg`, `mark-inverse.svg`, `app-icon.svg`, and `icons/`, 80 Lucide SVGs. |
 | `explorations/` | 43 exploration logs, plus `frames.css`, the shared shell the newer ones link: the mark, the accents, the type, section headers, the calendar, the conversation overlay, dark theme, notifications and the notification templates, settings layouts, swipe-to-delete, the iOS/Android comparison, the web shell, one motion page per platform, and the four that settled the edges: sign in with first run and the landing page, the no-invite screen with the email options and refusals, sharing and invitations, and the day-one empty states. Kept as the record of what was considered and rejected, and of what was picked. |
-| `components/` | 23 primitives in six groups (below). |
+| `components/` | 28 primitives in eight groups (below). |
 | `ui_kits/mobile_app/` | Interactive click-through of the iOS app; see its `README.md`. |
 | `ui_kits/android_app/` | The same product on Material 3, sharing the iOS kit's data and flows; its `README.md` lists every difference. |
 | `ui_kits/web_app/` | The same product on a desktop browser: sidebar, a stack of panes, one composer. Reads the phones' `data.js`; see its `README.md`. |
@@ -162,13 +168,15 @@ Components, each with `.jsx`, `.d.ts` props contract, `.prompt.md` usage note, a
 - **brand/**, `Logo`
 - **core/**, `Icon`, `Button`, `IconButton`, `Chip`, `Badge`, `Card`
 - **forms/**, `TextField`, `Switch`, `Checkbox`, `SegmentedControl`
-- **layout/**, `AppBar`, `TabBar`, `ListRow`, `SwipeRow`, `RowActionSheet`, `MemoryRow`, `SectionHeader`, `Sheet`
+- **layout/**, `AppBar`, `TabBar`, `ListRow`, `SwipeRow`, `RowActionSheet`, `MemoryRow`, `SectionHeader`, `Sheet`, `PrismField`
 - **feedback/**, `Toast`, `EmptyState`, `Spinner`
 - **notifications/**, `NotificationIOS`, `NotificationAndroid`
+- **answering/**, `AnswerResult`, `QuickReplies`
+- **conversation/**, `TurnFooter`
 
 **`Icon` is a DOM contract, and React Native needs its own.** It masks an SVG with `currentColor` and takes a `basePath`, which is a URL, and React Native has neither. A component named `Icon` there would be claiming a contract it cannot implement, so the name on that platform is **`Glyph`**, taking the same 80 slugs and the same sizes and resolving them from generated paths rather than from files. The contract itself is not written yet: it is owed by this system, not by a client, and until it exists a phone client should keep `Glyph` narrow and not widen the difference.
 
-That is 21 components across six groups.
+That is 28 components across eight groups.
 
 Import them from the compiled bundle: `const { Button, ListRow } = window.OffloadDesignSystem_dc4a89`.
 
@@ -316,6 +324,156 @@ and no Done mark, because there is nothing to undo or to check.
 **A turn that failed, and a turn that half worked.** Both are inline and persistent rather than toasts, because a toast clears itself after eight seconds and would take the only way forward with it. **The failure is carried by the turn itself:** the message you wrote takes a clay border, with one line beneath it in clay. A failed turn says "offload could not answer that one. Your dump is saved." with **Try again**, which puts the text back in the composer. A partial one says "offload did not finish that one." with **Finish it**, which asks offload to do the rest rather than re-sending anything already filed. Never both on screen: a finished turn offers Undo, a partial one offers Finish it. The failure carries `role="alert"`; the Undo toast carries `role="status"`.
 
 **offload's reply links to the threads it wrote to.** Moss pills under the turn, from the content rows the turn produced rather than from the words in the sentence, because offload naming a thread it did not write to is the failure this exists to prevent. When a turn touched exactly one thread the pill is the only mention and the sentence drops the name, so nothing is said twice.
+
+## Answering a question
+
+Decided 9 September 2026 off `explorations/answering-options.html`, against a server that was
+already built. You type a question into the same composer you dump into. Nothing about the
+interface changes and nothing asks you to declare which you meant.
+
+**A result is a card, and the thread is its header.** One read is one result, so a question
+naming two subjects comes back as two cards rather than one blended list. The header carries the
+thread's name in its own moss, is the one link out of the result, and holds the count. Do not
+draw a `Chip` for the same thread beside it: an answering turn files nothing, so it has no filed
+chips at all.
+
+**Results sit below the reply bubble, never inside it.** A row's hover and press fill bleeds to
+its pane's padded edge by design, and a turn's own padding is the same step, so inside a bubble
+the two cancel and the fill runs out square under a rounded corner. 012's calendar control stays
+inside the bubble, because it acts on the sentence above it and is one fixed control. **Inside is
+for a control, below is for a result.**
+
+**Five rows on the phones, eight on web.** The phone's log is about 446pt on a 844pt screen, and
+eight rows with the header and the control overrun it, so somebody lands on rows with the sentence
+that answers them already off the top. The Show more count is the honest remainder of what
+arrived, and a read that was cut short gets the thread as its tail rather than a Show more,
+because what was not read was not sent.
+
+**A finished row is never dimmed.** Tertiary ink, a 1px strike and the moss tick. Dimming a row on
+a warm page reads as a rendering fault and takes the label under the contrast floor with it. This
+is the rule everywhere a done row is drawn, not only in an answer.
+
+**An answer destroys nothing.** Ticking is the only write a result row offers: no delete, no
+archive, no rename, and on the phones the row's own pan and long press both come off, because the
+conversation is itself a drag-driven sheet. The tick is 21px drawn inside a 44px target and its
+name carries the thread, "Book the airport transfer, Lisbon trip".
+
+**A refusal is a sentence, not an error state.** No warning colour and no suggestion to try other
+words. "I could not find that" describes offload; "No, butter is not on the list" describes the
+list; a truncated read says what it saw and claims nothing about the rest. A device preference is
+not answerable and offload says so plainly, because theme and text size live on the device.
+
+**Dark needs one thing, and it is not the card.** The plate is #0F0F11 and `--surface-raised` is
+#212121, so in dark the card is the lighter object and the plate between the bubble and the card is
+what keeps two same-value surfaces legible as two. Moss holds its value in both themes, so the tick,
+the header and the tail have no dark variant. The one real defect was a primary drawn as
+`--ink-950` with `--text-on-solid`: the ink ramp flips, so that is white on #EDEDED. **A filled
+primary takes `--surface-inverse` with `--text-inverse`**, never a ramp value with white on it.
+
+**Follow-ups are 012's control generalised.** Three options at most, all of them typeable, and the
+labels are words somebody would say. A proposal has one primary and one plain way out; a choice
+among equals has no primary, because dark ink means offload is recommending. Nothing that deletes,
+archives or empties gets a chip. Picking writes your turn into the log exactly as typing would,
+and the turn it creates is the one that carries the write: the turn that asked carries no write
+tools, which is what stops a sentence in a shared thread talking offload into one. One open
+question at a time, closed by the next turn whatever it says. **And ask only what Undo cannot
+cover:** a reversible write already sits behind eight seconds, so do it and report it instead.
+
+## Reaching the web
+
+Decided 14 September 2026 off `explorations/reaching-the-web-options.html`, for 016. offload can
+now answer from a public fact or from a link somebody dumped, and the two things that shows on
+screen are a row under the turn and a chip in it.
+
+**The turn footer belongs to the turn, not to either bubble.** One row on offload's side, left
+aligned at the log's own gutter, holding the state mark, the thread pills and the source chips, in
+that order: what happened, where it landed, where it came from. It is drawn whether or not offload
+wrote a sentence, which is the whole reason it exists: **an ordinary filing turn says nothing**, and
+that turn may now have read something it has to be able to report.
+
+**So the Done mark moves.** It used to hang off the sent bubble's bottom left corner, 10px up and
+6px into it, which is exactly why it could never grow a chip: a row that starts there runs back
+under the bubble it is tucked inside. 👀 moves with it, into the same slot.
+
+**Never a surface.** No fill, no hairline, no card: the chips are the only painted things in the
+row, which is what keeps a turn that did three things from looking like a panel. It wraps rather
+than scrolls, uses **min-height and never height**, and an empty footer is no footer rather than a
+26px gap.
+
+**The source chip is `tone="outline"`**, a new `source` kind in the reference maps with the
+`link` glyph. Moss means "offload did this, you didn't" everywhere in this system and a citation is
+the opposite claim, so it takes the outline the system already reserves for the external and
+non-inferred. **The label is the registrable domain and nothing else:** no path, no title, no
+scheme, no `www.`, at a 22ch max-width so only a genuinely long host truncates. Three chips, then
+a count in tertiary text rather than a fourth chip, because there is no screen listing what a turn
+read and a chip would promise one.
+
+**It is the one external link in the conversation, and the reason is the source of the string.** A
+reply may not carry an external link, because the words in it are page-authored and a link wearing
+offload's voice is a phishing surface. A source chip's label comes from the record of what was read
+and its target is the URL that was read, so it is a fact about where a request went. Written this
+way rather than as an exception.
+
+**A read that failed leaves no chip and no mention.** A link that could not be read files the row
+exactly as it would have before the feature existed, and offload says nothing about it: the honest
+answer to the failure of the thing the feature fixes is the old behaviour rather than an apology.
+
+**Both web switches default on**, in the Privacy group beside "Let offload notice patterns", and
+that inverts the rule the group used to teach, where anything leaving offload defaulted off. The
+note carries the weight instead: **first clause is what leaves, second is the bound.** "Sends the
+words you dumped to a search company when offload can't answer from your threads. Your threads and
+notes are never sent." No "On by default" label, because that label's job is explaining why
+something is off.
+
+## The timeline rail
+
+Decided 14 September 2026 off `explorations/rail-blue.html`, against 015's shipped rail on all three
+surfaces. The rail was drawing a day with something on it in blue, which left blue meaning five
+things at once: waiting on you, something on this day, today, the day you are reading, and a task
+dot. **Blue keeps the two that are about time.** Today is its ring and the day being read is its
+fill; everything about content moved off the hue.
+
+**A day with something on it is a lift, not a tint.** `--surface-raised` with a hairline and
+`--shadow-1` in light, so the cell is a small card sitting on the page. A tint darkens the ground
+under the number, which is why the grey version of this read as less prominent than an empty day:
+**a wash dulls, an edge and a lift advance.**
+
+**The edge is `--border-lift`, and it resolves to a different step per theme.** `--shadow-1` is the
+keyword `none` in the dark scope, so there the edge is the whole of the lift: the alias takes the
+hairline in light, where a blurred `0 1px 2px` drop shadow reads as depth, and `--ink-300` in dark,
+1.94:1 against the page where the hairline measures 1.23:1. The light ratios are lower still, a
+1.05:1 fill and a 1.14:1 hairline, and they are fine, because **a contrast ratio is the wrong
+instrument for a shadow**: light has depth and dark has a 1px highlight. One alias so the two themes
+cannot drift apart by hand.
+
+**An empty day steps back, and today never does.** An empty cell's number goes `--text-tertiary` at
+regular weight so the lift reads as forward rather than as different. Today is exempt: a day with
+nothing on it is still today. Only past and outside days were demoted before this.
+
+**A dot on a lift takes the text alias of its kind**, `--text-attention` for a task and
+`--text-noticed` for a note, rather than the fill aliases `--surface-attention` and
+`--surface-noticed`. `--text-noticed` is the ink-weight counterpart to `--surface-noticed`, minted
+alongside it rather than borrowed from `--border-decision`, which means something else. A fill alias is deliberately fixed across themes, which is right for a chip and
+wrong for a 5px mark whose backdrop moves: on the lift the task dot measured 2.62:1 in dark and the
+note dot 2.03:1 in light. Event and other already used text aliases and already passed. **Every dot
+still goes `--text-on-solid` on the day being read.**
+
+**A day carrying a decision takes `--border-decision`**, a 1px inset inside the lift: a due date, a
+proposal waiting, a question nobody answered. It is the ink amber in each scope, #7A4E02 on white and
+#F6C86A on #212121, measuring 7.2:1 and 10.27:1 on the lift. **Never `--surface-noticed`**, which is
+a fill and measures 2.03:1 as a 1px ring on white.
+
+**Both marks are aliases rather than ramp steps**, for the reason `--surface-noticed` was minted:
+an un-aliased colour gets reached for from the ramp and the lint file has nothing to point at.
+
+**The two tiers layer, they do not compete**, and they layer the way the rail already did: **the
+border says things about the date, the inset says things about the content.** So today is a blue
+border with an amber ring inside it when today has a decision on it, and the day being read is the
+solid fill with both suppressed, because its contents are listed directly underneath.
+
+**One ordering trap, found by measuring.** The lift also sets a border colour, so a rule for today
+declared before it loses at equal specificity and today comes out wearing the hairline. Today's
+border is declared last.
 
 ## The admin panel
 

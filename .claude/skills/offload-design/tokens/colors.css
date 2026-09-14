@@ -40,6 +40,7 @@
   --amber-on:#0B0B0B; /* text colour on --amber-600, ink, never white */
   --text-on-solid:#FFFFFF; /* text on moss/blue/clay fills, identical in both themes */
   --clay-100:#FBE6E1;
+  --clay-200:#F3C6BC;
   --clay-600:#C0392B;
   --clay-700:#93261A;
 
@@ -85,6 +86,18 @@
   --border-focus:var(--blue-500);
   --border-accent:var(--moss-200);
   --border-attention:var(--blue-200);
+  --border-danger:var(--clay-200);
+  /* The edge of a raised cell that has to read at 49px. Light leans on the drop shadow and
+     takes the hairline; dark has no drop shadow, so the edge carries the card alone and
+     needs a step more. One alias so the two themes cannot drift apart by hand. */
+  --border-lift:var(--border-hairline);
+  /* A day, or a thing, carrying something that needs an answer. The ink amber in each
+     scope rather than the fill: --amber-600 as a 1px ring on paper measures 2.03:1. */
+  --border-decision:var(--amber-700);
+  /* The ink-weight counterpart to --surface-noticed, for a mark offload noticed drawn on a
+     raised surface rather than as a fill: --surface-noticed measures 2.03:1 on paper. Sits
+     beside its surface token the way --text-accent sits beside --surface-accent-soft. */
+  --text-noticed:var(--amber-700);
 
   --state-hover:rgba(11,11,11,0.04);
   --state-press:rgba(11,11,11,0.08);
@@ -105,7 +118,7 @@
   --blue-50:#F4F7FF;--blue-100:#E8EEFF;--blue-200:#C9D6FA;--blue-500:#4A68DE;--blue-600:#3355D6;
   --blue-700:#2440A8;--blue-900:#1B2E7A;
   --amber-100:#FFF1CC;--amber-600:#F0A81E;--amber-700:#7A4E02;--amber-on:#0B0B0B;--text-on-solid:#FFFFFF;
-  --clay-100:#FBE6E1;--clay-600:#C0392B;--clay-700:#93261A;
+  --clay-100:#FBE6E1;--clay-200:#F3C6BC;--clay-600:#C0392B;--clay-700:#93261A;
   --text-primary:var(--ink-950);--text-secondary:var(--ink-600);--text-tertiary:#6E6E6E; /* 4.5:1 on every light surface; --ink-400 was 2.55 and failed */
   --text-inverse:var(--paper);--text-accent:var(--moss-600);--text-attention:var(--blue-600);
   --text-on-attention:var(--blue-900);--text-link:var(--ink-950);--text-danger:var(--clay-600);
@@ -118,7 +131,8 @@
   --surface-chrome:var(--surface-raised);--surface-chrome-strong:var(--surface-raised);
   --surface-input:var(--ink-100);
   --border-hairline:var(--ink-150);--border-strong:#8C8C8C; /* 3:1 on every light surface: fields, checkboxes, outlined buttons */--border-focus:var(--blue-500);
-  --border-accent:var(--moss-200);--border-attention:var(--blue-200);
+  --border-accent:var(--moss-200);--border-attention:var(--blue-200);--border-danger:var(--clay-200);
+  --border-lift:var(--border-hairline);--border-decision:var(--amber-700);--text-noticed:var(--amber-700);
   --state-hover:rgba(11,11,11,0.04);--state-press:rgba(11,11,11,0.08);
   --state-selected:var(--ink-100);--state-disabled-text:var(--ink-400);--state-disabled-surface:var(--ink-100);
   --shadow-1:0 1px 2px rgba(11,11,11,0.04);--shadow-2:0 4px 16px -4px rgba(11,11,11,0.08);
@@ -142,7 +156,7 @@
   --blue-50:#161F42;--blue-100:#1E2A57;--blue-200:#334388;--blue-500:#4A68DE;--blue-600:#3355D6;
   --blue-700:#5273E8;--blue-900:#D6DEFF;
   --amber-100:#3E2E08;--amber-600:#F0A81E;--amber-700:#F6C86A;--amber-on:#0B0B0B;--text-on-solid:#FFFFFF;
-  --clay-100:#3E1915;--clay-600:#C0392B;--clay-700:#F9A99E;
+  --clay-100:#3E1915;--clay-200:#6B2A22;--clay-600:#C0392B;--clay-700:#F9A99E;
 
   --text-primary:var(--ink-950);--text-secondary:var(--ink-600);--text-tertiary:#959595; /* 4.5:1 on every dark surface, including the input */
   --text-inverse:#191919;--text-accent:#82BC97;--text-attention:#95A9F7;
@@ -159,7 +173,10 @@
   --surface-input:#2E2E2E;
 
   --border-hairline:var(--ink-150);--border-strong:#777777;--border-focus:var(--blue-500);
-  --border-accent:var(--moss-200);--border-attention:var(--blue-200);
+  --border-accent:var(--moss-200);--border-attention:var(--blue-200);--border-danger:var(--clay-200);
+  /* A step up from the hairline, because dark has no drop shadow: --shadow-1 is none here,
+     so the edge is the whole of the lift. 1.94:1 against the page against the hairline's 1.23. */
+  --border-lift:var(--ink-300);--border-decision:var(--amber-700);--text-noticed:var(--amber-700);
 
   --state-hover:rgba(255,255,255,0.06);--state-press:rgba(255,255,255,0.10);
   --state-selected:var(--ink-100);--state-disabled-text:var(--ink-400);--state-disabled-surface:var(--ink-100);

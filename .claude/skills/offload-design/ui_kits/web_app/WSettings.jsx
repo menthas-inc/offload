@@ -146,8 +146,8 @@ function WSetting({id,onOpenPerson}){
     );
     if(id==="apps")return (
       <>
-        <SBlock title="Connected" note="offload reads these to keep your things current. It never writes." cols>
-          <SCard title="Calendar" meta="Reading your week" on={apps.Calendar} onToggle={(v)=>setApps(a=>({...a,Calendar:v}))}/>
+        <SBlock title="Connected" note="offload reads these to keep your things current, and can add to them." cols>
+          <SCard title="Calendar" meta="Reading your week, and writing back" on={apps.Calendar} onToggle={(v)=>setApps(a=>({...a,Calendar:v}))}/>
           <SCard title="Mail" meta="Watching for things you dump" on={apps.Mail} onToggle={(v)=>setApps(a=>({...a,Mail:v}))}/>
           <SCard title="Photos" meta="Not connected" on={apps.Photos} onToggle={(v)=>setApps(a=>({...a,Photos:v}))}/>
           <SCard title="Files" meta="Not connected" on={apps.Files} onToggle={(v)=>setApps(a=>({...a,Files:v}))}/>

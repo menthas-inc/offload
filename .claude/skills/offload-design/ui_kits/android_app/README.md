@@ -22,6 +22,7 @@ Open `index.html`.
 | Sign-in order | Apple first, Google under it | Google first, Apple under it |
 | First-run buttons | 52px pill, ink primary | 56dp pill, filled blue primary |
 | Skip on the tutorial | grey label | Material text button, blue |
+| Not now on connect | ghost button, ink | `AButton tone="text"`, blue |
 | Share sheet rows | 44px, square avatar tiles | 56dp, circular avatars, 52dp search field |
 | @ picker card | 14px radius, iOS shadow | 12px radius, Material level-2 shadow |
 | Undo | 10px floating toast | 4dp snackbar |
@@ -54,7 +55,7 @@ otherwise collide on every screen name. A feature added on one side is the same 
 other.
 
 Two files have no iOS-named twin: `M3FirstRun.jsx` (the gate, the refusal line, the no-invite
-screen, the tutorial and the day-one empties) and `M3Sharing.jsx` (the share sheet, the @
+screen, the tutorial, the connect-an-app screen and the day-one empties) and `M3Sharing.jsx` (the share sheet, the @
 picker, the pending strip and the invitation). Both mirror `FirstRun.jsx` and `Sharing.jsx`
 on the iOS side with Material geometry.
 

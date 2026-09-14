@@ -52,7 +52,7 @@ window.OFFLOAD_DATA={
       ],
       shared:[{id:"lisbon",name:"Lisbon trip",meta:"14 things · active"},{id:"berlin",name:"Berlin, March",meta:"31 things · finished"},{id:"wedding",name:"Sam's wedding",meta:"44 things · finished"}]},
     Tom:{id:"Tom",name:"Tom Reilly",initials:"TR",meta:"Shares 1 thread with you",
-      pending:[{id:"pt1",title:"Tom has not answered about the flat",thread:"Lisbon trip",who:"waiting on Tom",due:"asked twice"}],
+      pending:[{id:"pt1",title:"Tom hasn't answered about the flat",thread:"Lisbon trip",who:"waiting on Tom",due:"asked twice"}],
       shared:[{id:"lisbon",name:"Lisbon trip",meta:"14 things · active"}]},
     Sam:{id:"Sam",name:"Sam Ibekwe",initials:"SO",meta:"Shares 2 threads with you",
       pending:[{id:"ps1",title:"Return Sam's drill",thread:"Bookshelf build",who:"waiting on you",due:""}],
@@ -188,7 +188,7 @@ window.OFFLOAD_DATA={
         ],
         related:["ana","tom","metric"],threads:[{id:"lisbon",name:"Lisbon trip",meta:"14 things \u00B7 active"}]},
       "bookshelf":{label:"the bookshelf",group:"Going on",updated:"Tue",
-        blurb:"An alcove shelf in the front room, 210cm by 76cm, in oak. You picked matte black brackets at 30cm and have not ordered them; the sale ends Friday. Sam's drill is still at yours.",
+        blurb:"An alcove shelf in the front room, 210cm by 76cm, in oak. You picked matte black brackets at 30cm and haven't ordered them; the sale ends Friday. Sam's drill is still at yours.",
         sources:[
           {icon:"image",title:"shelf-brackets.png",meta:"you saved this, 6 Aug"},
           {icon:"scan-text",title:"Measurements, written down",meta:"you typed this, 3 Aug"}
@@ -199,7 +199,7 @@ window.OFFLOAD_DATA={
         sources:[{icon:"inbox",title:"Renewal notice",meta:"email you dumped, 4 Aug"}],
         related:["sam"],threads:[{id:"home",name:"Flat admin",meta:"6 things \u00B7 active"}]},
       "dentist":{label:"dentist",group:"Going on",updated:"Jul",
-        blurb:"You have not booked the check up you meant to book in June. The surgery only takes calls, and only before 5pm, which is the reason it keeps slipping.",
+        blurb:"You haven't booked the check up you meant to book in June. The surgery only takes calls, and only before 5pm, which is the reason it keeps slipping.",
         sources:[{icon:"mic",title:"Voice note, 0:06",meta:"\u201Ccall the dentist back\u201D"}],
         related:["fridays"],threads:[{id:"home",name:"Flat admin",meta:"6 things \u00B7 active"}]},
       "ana":{label:"Ana",group:"People",person:"Ana",updated:"2m ago",
@@ -207,7 +207,7 @@ window.OFFLOAD_DATA={
         sources:[{icon:"message-circle",title:"Ana: \u201CI can only do the 14th to the 17th\u201D",meta:"Tuesday"},{icon:"users",title:"Berlin, March",meta:"31 things, finished"}],
         related:["lisbon-aug"],threads:[{id:"lisbon",name:"Lisbon trip",meta:"14 things \u00B7 active"}]},
       "tom":{label:"Tom",group:"People",person:"Tom",updated:"Fri",
-        blurb:"Tom Reilly. Asked twice about Lisbon and has not answered either time. You have started planning as though he is not coming.",
+        blurb:"Tom Reilly. Asked twice about Lisbon and hasn't answered either time. You have started planning as though he isn't coming.",
         sources:[{icon:"message-circle",title:"You asked Tom about the flat",meta:"twice, 1 Aug and 7 Aug"}],
         related:["lisbon-aug"],threads:[{id:"lisbon",name:"Lisbon trip",meta:"14 things \u00B7 active"}]},
       "sam":{label:"Sam",group:"People",person:"Sam",updated:"Jun",
@@ -215,7 +215,7 @@ window.OFFLOAD_DATA={
         sources:[{icon:"users",title:"Sam's wedding",meta:"44 things, finished"}],
         related:["bookshelf"],threads:[{id:"home",name:"Flat admin",meta:"6 things \u00B7 active"}]},
       "quiet-hours":{label:"quiet after 22:00",group:"How you like things",updated:"Jun",
-        blurb:"Nothing reaches you after ten at night. You set this yourself in June and have not changed it since.",
+        blurb:"Nothing reaches you after ten at night. You set this yourself in June and haven't changed it since.",
         sources:[{icon:"settings",title:"You set this",meta:"14 Jun"}],related:["no-digest"],threads:[]},
       "metric":{label:"metric",group:"How you like things",updated:"May",
         blurb:"Distances in kilometres, temperature in celsius, dates day first.",
@@ -228,7 +228,7 @@ window.OFFLOAD_DATA={
         blurb:"Calendars, rails and week counts all start on Monday.",
         sources:[{icon:"settings",title:"You set this",meta:"2 May"}],related:["metric"],threads:[]},
       "fridays":{label:"you put things off on Fridays",group:"Noticed",inferred:true,updated:"1w ago",
-        blurb:"Things you plan for a Friday move to the following week more often than not. Eleven of the last seventeen. offload noticed this, you did not tell it.",
+        blurb:"Things you plan for a Friday move to the following week more often than not. Eleven of the last seventeen. offload noticed this, you didn't tell it.",
         sources:[{icon:"sparkles",title:"Noticed across 17 tasks",meta:"since March"}],
         related:["dentist"],threads:[]},
       "reading-later":{label:"you never open reading later",group:"Noticed",inferred:true,updated:"3w ago",
@@ -275,7 +275,7 @@ window.OFFLOAD_DATA={
       ],
       c4:[
         {from:"you",text:"Turn off the weekly email"},
-        {from:"offload",text:"Done. No more weekly digests, and I will not ask again."}
+        {from:"offload",text:"Done. No more weekly digests, and won't ask again."}
       ],
       c6:[{from:"you",text:"When did Sam lend me the drill?"},
         {from:"offload",text:"The weekend before last, the 1st. It is still at yours.",refs:[{id:"shelf",name:"Bookshelf build"}]}],
@@ -302,17 +302,17 @@ window.OFFLOAD_DATA={
     {id:"n1",kind:"person",who:"Ana",initials:"AD",icon:"message-circle",unread:true,
       title:"Ana answered about the dates",body:"\u201CThe 14th to the 17th works, book it\u201D",thread:"Lisbon trip",when:"2m"},
     {id:"n2",kind:"due",icon:"clock",unread:true,
-      title:"The bracket sale ends Friday",body:"You saved these on the 6th and have not ordered them.",thread:"Bookshelf build",when:"1h"},
+      title:"The bracket sale ends Friday",body:"You saved these on the 6th and haven't ordered them.",thread:"Bookshelf build",when:"1h"},
     {id:"n3",kind:"offload",icon:"sparkles",unread:true,
-      title:"I filed four things from yesterday",body:"Two into Lisbon trip, one into Flat admin, one I could not place.",thread:null,when:"3h"},
+      title:"Filed four things from yesterday",body:"Two into Lisbon trip, one into Flat admin, one that couldn't be placed.",thread:null,when:"3h"},
     {id:"n4",kind:"person",who:"Sam",initials:"SO",icon:"users",unread:true,
       title:"Sam added three photos",body:"Survey shots of the back wall.",thread:"Flat admin",when:"Yesterday"},
     {id:"n5",kind:"due",icon:"clock",unread:false,
       title:"Flat insurance renews on the 20th",body:"\u00A3340, up \u00A340 from last year.",thread:"Flat admin",when:"Mon"},
     {id:"n6",kind:"offload",icon:"cloudy",unread:false,
-      title:"I noticed you put things off on Fridays",body:"Eleven of the last seventeen moved to the following week.",thread:null,when:"Sun"},
+      title:"Noticed you put things off on Fridays",body:"Eleven of the last seventeen moved to the following week.",thread:null,when:"Sun"},
     {id:"n7",kind:"person",who:"Tom",initials:"TR",icon:"message-circle",unread:false,
-      title:"Tom still has not answered",body:"You asked twice about Lisbon.",thread:"Lisbon trip",when:"Sun"}
+      title:"Tom still hasn't answered",body:"You asked twice about Lisbon.",thread:"Lisbon trip",when:"Sun"}
   ],
   today_view:{
     nudges:[
@@ -362,3 +362,45 @@ window.OFFLOAD_DATA={
   }
 };
 })();
+
+
+/* 013 answering. One reply, plus results: a result is one read, so two subjects is two
+   results. Rows are whole content rows, the same ones a thread page draws. Nothing here
+   is filed: asking files nothing. */
+window.OFFLOAD_DATA.answers={
+  open:{text:"Seven left.",results:[{thread:{id:"lisbon",name:"Lisbon trip"},count:7,rows:[
+    {id:"an1",title:"Book the airport transfer",meta:"you, added 6 Aug"},
+    {id:"an2",title:"Pay Ana \u20AC214 for the flights",meta:"Ana, due Thursday"},
+    {id:"an3",title:"Print the boarding passes",meta:"you, added yesterday"},
+    {id:"an4",title:"Confirm the Alfama key handover",meta:"Ana, added 7 Aug"},
+    {id:"an5",title:"Renew the travel insurance",meta:"you, added 8 Aug"},
+    {id:"an6",title:"Download the offline map",meta:"you, added 9 Aug"},
+    {id:"an7",title:"Ask Tom about the tram pass",meta:"Tom, added 9 Aug"}]}]},
+  staying:{text:"The Alfama flat, 14th to the 17th.",results:[{thread:{id:"lisbon",name:"Lisbon trip"},count:1,tickable:false,rows:[
+    {id:"anf",type:"location",title:"Alfama flat, Rua dos Rem\u00E9dios 14",meta:"Ana booked it, 4 Aug"}]}]},
+  /* A read that was cut short says what it saw and claims nothing about the rest: a wrong
+     no is somebody doing the thing twice. The tail is the thread, not a Show more. */
+  cutShort:{text:"Looked at the first twenty of twenty three things, and nothing about knife sharpening is among them.",
+    results:[{thread:{id:"read",name:"Read later"},count:"20 of 23",truncated:true,threadTotal:3,tickable:false,rows:[
+      {id:"anr1",type:"link",title:"The case for a single good knife",meta:"saved 2 Sep"},
+      {id:"anr2",type:"link",title:"Cast iron, and how not to ruin it",meta:"saved 30 Aug"}]}]},
+  /* A proposal: one primary, one plain way out. Exactly 012's shape. */
+  butter:{text:"No, butter isn't on the list. Add it?",
+    options:[{id:"yes",label:"Add it",kind:"primary"},{id:"no",label:"No",kind:"plain"}]},
+  /* A choice among equals has no primary, because offload does not know which. */
+  which:{text:"Three threads have a trip in them. Which one?",note:"Or name another one.",
+    options:[{id:"lisbon",label:"Lisbon trip",kind:"thread",icon:"lasso"},
+      {id:"berlin",label:"Berlin, March",kind:"thread",icon:"lasso"},
+      {id:"wedding",label:"Sam's wedding",kind:"thread",icon:"lasso"}]},
+  /* Not answerable, and saying so is the honest answer rather than a gap. */
+  theme:{text:"Theme is set on this phone and was never held on the server."},
+  nothing:{text:"Couldn't find that."}
+};
+
+/* 016 reaching the web. A turn carries sources:[{domain,url}] and nothing else, so the
+   footer draws a domain from the record of what was read rather than a word a page chose.
+   The cases live in each kit's answerFor, where typing can reach them: "when is memorial
+   day" for one source, "what's on over the long weekend" for five and a count, a pasted URL
+   for a read that failed and says nothing, "what day is the gun show" for a refusal with
+   nothing to file. */
+

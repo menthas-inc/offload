@@ -1,0 +1,52 @@
+<!-- @dsCard group="Components" viewport="1400x620" name="Turn footer" subtitle="Everything offload has to say about a turn that is not a sentence" -->
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css?v=20260914-web"><style>body{margin:0;font:var(--text-body-role);background:var(--surface-plate)}.you{align-self:flex-end;max-width:84%;padding:8px 14px;border-radius:var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);background:var(--blue-50);border:1px solid var(--blue-100);color:var(--ink-950);font:var(--weight-regular) 15px/1.45 var(--font-core)}.ol{align-self:flex-start;max-width:92%;padding:10px 14px;border-radius:var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;background:var(--ink-50);font:var(--text-quiet-role);font-size:16px;line-height:1.5;color:var(--text-primary)}.lbl{font:var(--text-caption-role);color:var(--text-tertiary);letter-spacing:var(--tracking-caps);text-transform:uppercase;margin-bottom:10px}.col{width:390px;display:flex;flex-direction:column;gap:10px}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script></head><body><div data-ds-theme-root data-theme="light" style="background:var(--surface-plate);color:var(--text-primary);padding:20px;min-height:100%;box-sizing:border-box"><div class="ds-theme-tg" role="group" aria-label="Theme" style="display:flex;border:1px solid var(--border-hairline);border-radius:var(--radius-pill);overflow:hidden;width:max-content;margin-bottom:14px">
+<button type="button" data-set="light" aria-pressed="true" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:var(--surface-inverse);color:var(--text-inverse)">Light</button>
+<button type="button" data-set="dark" aria-pressed="false" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:transparent;color:var(--text-secondary)">Dark</button>
+</div><div id="root"></div><script src="../../_ds_bundle.js?v=20260914-web"></script>
+<script type="text/babel">
+const {TurnFooter}=window.OffloadDesignSystem_dc4a89;
+const SRC=[{domain:"timeanddate.com",url:"#"},{domain:"visitlisboa.com",url:"#"},{domain:"cp.pt",url:"#"},{domain:"an-extremely-long-host.example.com",url:"#"},{domain:"metro.lisboa.pt",url:"#"}];
+function Demo(){
+  return <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
+    <div className="col"><div className="lbl">Filed, read something, done</div>
+      <div className="you">memorial day bbq at ana's, bring the big cooler</div>
+      <TurnFooter state="done" refs={[{id:"bbq",name:"Ana's bbq",kind:"thread"}]} sources={[SRC[0]]} onOpenRef={()=>{}}/>
+    </div>
+    <div className="col"><div className="lbl">Silent filing turn, and one only seen</div>
+      <div className="you">bin day moved to thursday</div>
+      <TurnFooter state="done" refs={[{id:"flat",name:"Flat admin",kind:"thread"}]} onOpenRef={()=>{}}/>
+      <div className="you" style={{marginTop:6}}>tram 28 runs every 11 minutes</div>
+      <TurnFooter state="seen"/>
+    </div>
+    <div className="col"><div className="lbl">Five sources, three drawn</div>
+      <div className="ol">Three things on Monday. Filed the cooler.</div>
+      <TurnFooter state="done" refs={[{id:"bbq",name:"Ana's bbq",kind:"thread"}]} sources={SRC} onOpenRef={()=>{}}/>
+    </div>
+    <div className="col"><div className="lbl">A long host truncates, and nothing else does</div>
+      <div className="ol">Monday 25 May.</div>
+      <TurnFooter refs={[{name:"Thursday 7am",kind:"time"},{name:"€214",kind:"money"}]} sources={[SRC[3]]}/>
+    </div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script></div><script>
+(function(){
+  var root=document.querySelector("[data-ds-theme-root]");
+  document.querySelectorAll(".ds-theme-tg button").forEach(function(b){
+    b.addEventListener("click",function(){
+      var t=b.dataset.set;
+      root.setAttribute("data-theme",t);
+      document.documentElement.setAttribute("data-theme",t);
+      document.querySelectorAll(".ds-theme-tg button").forEach(function(x){
+        var on=x.dataset.set===t;
+        x.setAttribute("aria-pressed",String(on));
+        x.style.background=on?"var(--surface-inverse)":"transparent";
+        x.style.color=on?"var(--text-inverse)":"var(--text-secondary)";
+      });
+    });
+  });
+})();
+</script></body></html>

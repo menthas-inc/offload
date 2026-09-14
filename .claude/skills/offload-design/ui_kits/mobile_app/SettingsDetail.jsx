@@ -1,5 +1,5 @@
 const OFFLOAD_DS=(typeof window!=="undefined"&&window.OffloadDesignSystem_dc4a89)||{};
-const { AppBar, IconButton, Icon, Button, Switch, Badge } = OFFLOAD_DS;
+const { AppBar, IconButton, Icon, Button, Switch, Badge, SegmentedControl } = OFFLOAD_DS;
 
 /* Every category page is built from the same four row types, so ten screens cost
    one vocabulary rather than ten layouts. */
@@ -52,6 +52,21 @@ function Radio({on}){
     transition:"border var(--transition-ui)"}}/>;
 }
 
+/* A labelled row holding a SegmentedControl. ChoiceGroup, the radio list under
+   it, still serves Language and region; it is Theme specifically that the
+   5 September answer moved, on all surfaces. */
+function ChoiceRow({label,options,value,onChange}){
+  const [own,setOwn]=React.useState(value||options[0]);
+  const v=onChange?value:own;
+  const setV=onChange||setOwn;
+  return (
+    <div style={{padding:"var(--space-8) 0 var(--space-4)"}}>
+      <div style={{font:"var(--text-label-role)",color:"var(--text-secondary)",textTransform:"uppercase",
+        letterSpacing:"0.06em",padding:"0 var(--space-2) var(--space-4)"}}>{label}</div>
+      <SegmentedControl options={options} value={v} onChange={setV} style={{display:"flex",width:"100%"}}/>
+    </div>
+  );
+}
 function ChoiceGroup({label,options,value,onChange}){
   const opts=options.map(o=>typeof o==="string"?{label:o}:o);
   const [own,setOwn]=React.useState(value||opts[0].label);
@@ -67,6 +82,33 @@ function ChoiceGroup({label,options,value,onChange}){
   );
 }
 
+/* Beside Row rather than an editing state inside it: every static row would
+   otherwise carry a draft, an async save and an error it never uses. The field
+   is the same one first run asks the name with. */
+function EditableRow({title,value,first,last}){
+  const [editing,setEditing]=React.useState(false);
+  const [draft,setDraft]=React.useState(value);
+  const ref=React.useRef(null);
+  React.useEffect(()=>{if(editing&&ref.current)ref.current.focus();},[editing]);
+  if(!editing) return <Row first={first} last={last} title={title} value={value} onClick={()=>{setDraft(value);setEditing(true);}}/>;
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:"var(--space-4)",minHeight:"var(--row-height)",
+      padding:"var(--space-4) var(--space-6)",background:"var(--surface-card)",
+      borderTopLeftRadius:first?"var(--radius-card)":0,borderTopRightRadius:first?"var(--radius-card)":0,
+      borderBottomLeftRadius:last?"var(--radius-card)":0,borderBottomRightRadius:last?"var(--radius-card)":0}}>
+      <input ref={ref} value={draft} onChange={(e)=>setDraft(e.target.value)}
+        onKeyDown={(e)=>{if(e.key==="Enter")setEditing(false);if(e.key==="Escape"){setDraft(value);setEditing(false);}}}
+        aria-label={title}
+        style={{flex:1,minWidth:0,height:40,padding:"0 var(--space-5)",boxSizing:"border-box",
+          borderRadius:"var(--radius-sm)",background:"var(--surface-input)",
+          /* Ink, not --border-focus: every field in the product focuses ink and
+             one blue field would be the odd one out. The token decision is open. */
+          border:"1px solid var(--ink-950)",boxShadow:"var(--shadow-focus)",
+          font:"var(--text-body-role)",color:"var(--text-primary)",outline:"none"}}/>
+      <Button variant="primary" size="sm" onClick={()=>setEditing(false)}>Save</Button>
+    </div>
+  );
+}
 function PersonRow({name,detail,badge,first,last}){
   const initials=name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
   return (
@@ -79,20 +121,18 @@ function PersonRow({name,detail,badge,first,last}){
 
 const PAGES={
   account:{title:"My account",render:()=>(<>
+    {/* No Phone and no Password: this product is OAuth-only, so both would be
+        controls that do nothing. No Plan group either, because there are no
+        plans and inventing a tier on a settings screen is a product claim
+        nobody has made. Name edits in place rather than pushing a screen. */}
     <Group label="Details">
-      <Row title="Name" value="Jo Martins" onClick={()=>{}}/>
-      <Row title="Email" value="jo@hey.com" onClick={()=>{}}/>
-      <Row title="Phone" value="Not set" onClick={()=>{}}/>
-      <Row title="Password" value="Changed in May" onClick={()=>{}} last/>
-    </Group>
-    <Group label="Plan">
-      <Row title="Current plan" value="Free" onClick={()=>{}}/>
-      <Row title="What you get" note="Everything you put in, kept until you delete it. One device." last/>
+      <EditableRow title="Name" value="Jo Martins"/>
+      <Row title="Email" value="jo@hey.com" last/>
     </Group>
     <Group label="Ending things">
       <Row title="Shared threads" note="A shared thread belongs to everyone in it. Deleting your account removes your private things and your access, and leaves what you added in a shared thread with the others."/>
       <Row title="Sign out" onClick={()=>{}}/>
-      <Row title="Delete account" note="Everything offload knows goes with it. This cannot be undone." danger onClick={()=>{}} last/>
+      <Row title="Delete account" note="Everything offload knows goes with it. This can't be undone." danger onClick={()=>{}} last/>
     </Group>
   </>)},
   people:{title:"My people",render:()=>(<>
@@ -154,7 +194,7 @@ const PAGES={
       <Row title="Browser" note="Save a page straight into a thing" value="Connect" onClick={()=>{}} last/>
     </Group>
     <Group label="How offload uses them">
-      <Row title="What offload may do" note="It writes to your calendar when you ask. It never sends mail or deletes photos." last/>
+      <Row title="Read only" note="offload never sends mail, moves events, or deletes photos." last/>
     </Group>
   </>)},
   memory:{title:"Memory and data",render:()=>(<>
@@ -180,15 +220,21 @@ const PAGES={
     <Group label="Now">
       <Row title="Conversations kept" value="31"/>
       <Row title="Oldest" value="14 Jun"/>
-      <Row title="Delete all conversations" note="Memories are not affected." danger onClick={()=>{}} last/>
+      <Row title="Delete all conversations" note="Memories aren't affected." danger onClick={()=>{}} last/>
     </Group>
   </>)},
   appearance:{title:"Appearance",render:(ctx)=>{
     const sun=window.OffloadSun&&window.OffloadSun.sunsetTime(new Date());
     const sunsetNote=sun?"Sunset today is "+sun.toTimeString().slice(0,5)+".":null;
     return (<>
-    <ChoiceGroup label="Theme" options={["Light","Dark"]} value={ctx.theme} onChange={ctx.setTheme}/>
-    <ChoiceGroup label="Text size" options={["Small","Default","Large","Larger"]} value="Default"/>
+    {/* SegmentedControl, not the radio list this kit used to draw, and three
+        values: system is what an unset preference already did without a name.
+        A new account still opens in light, because offering system as a choice
+        and defaulting to it are different things. */}
+    <ChoiceRow label="Theme" options={["Light","Dark","System"]} value={ctx.theme} onChange={ctx.setTheme}/>
+    {/* No text size on the phones. Mobile type is numeric fontSize literals
+        with no size variables in the generated stylesheet, so offering the
+        choice here is a generator change rather than a screen. Web has it. */}
     <Group label="Today">
       <Toggle title="Switch to Tonight after sunset" note={sunsetNote} on/>
       <Toggle title="Show the forecast line" on/>

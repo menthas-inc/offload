@@ -32,8 +32,8 @@ from typing import Any
 
 from anthropic import AsyncAnthropic
 
-from offload_agent.context import AnswerContext, Thread
-from offload_agent.harness.plan import plan_answer
+from offload_agent.context import AnswerContext, DumpContext, Thread
+from offload_agent.harness.plan import plan, plan_answer
 
 ANSWER_MODEL = "claude-opus-5"
 # The judge is a different tier on purpose. It reads a short reply against a
@@ -53,8 +53,20 @@ class Case:
     question: str
     why: str
     """What this case is testing, in one line, for the report."""
-    rubric: str
+    rubric: str = ""
     """What a good reply does, written for the judge to mark against."""
+    #: What kind of turn this is.
+    #:
+    #: **"answer" is a question judged on its reply; "file" is a dump judged on
+    #: what it reached for.** 016 added rules about when the web is touched at
+    #: all, and no rubric about a sentence can measure a tool that was or was
+    #: not called. So a filing case states `look_up` and `refuses` instead of a
+    #: rubric, and the judge never runs on it: there is nothing to mark.
+    kind: str = "answer"
+    #: For a filing case: whether this dump should reach the web at all.
+    look_up: bool | None = None
+    #: And whether it should produce the refusal line.
+    refuses: bool = False
     facts: dict[str, Any] | None = None
     rows: list[dict[str, Any]] = field(default_factory=list)
     threads: list[dict[str, str]] = field(default_factory=list)
@@ -211,7 +223,72 @@ def _mechanical(case: Case, reply: str) -> list[str]:
     return failures
 
 
+async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
+    """A dump, judged on what it reached for rather than on what it said.
+
+    The stub caller answers every filing tool and records every `look_up`, so a
+    case asserts the thing 016's rules are actually about: whether the web was
+    touched, and whether the refusal line came out. No judge, because there is
+    no sentence to mark.
+    """
+    looked: list[dict] = []
+
+    async def call_tool(tool: str, tool_call_id: str, args: dict) -> dict:
+        if tool == "look_up":
+            looked.append(args)
+            return {"ok": True, "found": False}
+        if tool == "create_thread":
+            return {"ok": True, "threadId": "new", "threadName": args.get("name"), "notes": []}
+        if tool == "list_thread_content":
+            return {"ok": True, "result": {"rows": [], "truncated": False}}
+        return {
+            "ok": True,
+            "threadId": args.get("thread_id"),
+            "threadName": "Miscellaneous",
+            "contentId": "c1",
+            "notes": [],
+        }
+
+    threads = _threads(case)
+    ctx = DumpContext(
+        dump=case.question,
+        turns=[],
+        threads=threads,
+        landed=[],
+        default_thread_id=threads[-1].id,
+        today="Friday 11 September 2026",
+        has_calendar=False,
+        may_search=True,
+        may_read_links=True,
+    )
+
+    try:
+        outcome = await plan(client, ctx, ANSWER_MODEL, call_tool)
+    except Exception as exc:  # noqa: BLE001
+        return Result(case, "", [f"raised {type(exc).__name__}"], False, "")
+
+    reply = outcome.reply or ""
+    failures: list[str] = []
+
+    if case.look_up is True and not looked:
+        failures.append("should have looked something up and did not")
+    if case.look_up is False and looked:
+        failures.append(f"looked something up and should not have: {looked}")
+
+    refused = reply.strip() == "I don't search that."
+    if case.refuses and not refused:
+        failures.append(f"should have refused, said {reply!r}")
+    if not case.refuses and refused:
+        failures.append("refused something that is not on the list")
+
+    return Result(case, reply, failures, True, "")
+
+
 async def _run_one(client: AsyncAnthropic, case: Case, gate: asyncio.Semaphore) -> Result:
+    if case.kind == "file":
+        async with gate:
+            return await _run_filing(client, case)
+
     async with gate:
         ctx = AnswerContext(
             question=case.question,

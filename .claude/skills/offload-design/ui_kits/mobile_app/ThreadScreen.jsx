@@ -17,7 +17,7 @@ function Standing({space,standing,onOpenPerson,onInvite}){
         color:"var(--text-tertiary)"}}>
         {standing.updated==="no summary yet"?null:<Icon name="sparkles" size={13}/>}
         <span style={{fontSize:"var(--size-caption)"}}>
-          {standing.updated==="no summary yet"?"offload has not summarised this one yet":"offload wrote this, "+standing.updated}
+          {standing.updated==="no summary yet"?"Not summarised yet":"offload wrote this, "+standing.updated}
         </span>
       </div>
     </div>

@@ -122,6 +122,18 @@ export function Plate({
             variant="band"
             veil="graded"
             pulse={conversation.filed?.at ?? 0}
+            // The design system's contract does not declare `shift`, and the
+            // rule enforcing that arrived with the 14 September sync, which is
+            // the first time `PrismField` was in the enforced set at all.
+            //
+            // The prop is real and logged: the web component attaches its own
+            // scroll listener, React Native has no equivalent, and the plate
+            // lives above the router while the lists live in the tab screens,
+            // so a shared value is the only thing that can span them. See the
+            // 2026-09-08 entry, "the parallax is handed in rather than listened
+            // for". Code wins and the contract catches up (OFF-7), so this is
+            // disabled here rather than the feature being removed.
+            // eslint-disable-next-line no-restricted-syntax
             shift={prismShift}
           />
         )}

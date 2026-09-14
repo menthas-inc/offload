@@ -92,7 +92,7 @@ const PAGES={
     <Group label="Ending things">
       <Row title="Shared threads" note="A shared thread belongs to everyone in it. Deleting your account removes your private things and your access, and leaves what you added in a shared thread with the others."/>
       <Row title="Sign out" onClick={()=>{}}/>
-      <Row title="Delete account" note="Everything offload knows goes with it. This cannot be undone." danger onClick={()=>{}} last/>
+      <Row title="Delete account" note="Everything offload knows goes with it. This can't be undone." danger onClick={()=>{}} last/>
     </Group>
   </>)},
   people:{title:"My people",render:()=>(<>
@@ -154,7 +154,7 @@ const PAGES={
       <Row title="Browser" note="Save a page straight into a thing" value="Connect" onClick={()=>{}} last/>
     </Group>
     <Group label="How offload uses them">
-      <Row title="What offload may do" note="It writes to your calendar when you ask. It never sends mail or deletes photos." last/>
+      <Row title="Read only" note="offload never sends mail, moves events, or deletes photos." last/>
     </Group>
   </>)},
   memory:{title:"Memory and data",render:()=>(<>
@@ -180,7 +180,7 @@ const PAGES={
     <Group label="Now">
       <Row title="Conversations kept" value="31"/>
       <Row title="Oldest" value="14 Jun"/>
-      <Row title="Delete all conversations" note="Memories are not affected." danger onClick={()=>{}} last/>
+      <Row title="Delete all conversations" note="Memories aren't affected." danger onClick={()=>{}} last/>
     </Group>
   </>)},
   appearance:{title:"Appearance",render:(ctx)=>{
