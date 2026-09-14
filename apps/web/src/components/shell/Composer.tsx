@@ -13,7 +13,7 @@
 // exactly as 003 and 004 built them; what changed is where they live and that
 // the reply now links to the threads offload actually wrote to.
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   awaitAnswer,
@@ -31,6 +31,7 @@ import {
   type TouchedThread,
 } from "../../lib/dump";
 import { Icon } from "../Icon";
+import { TurnFooter, type TurnSource } from "./TurnFooter";
 import { AnswerResults } from "./AnswerResult";
 import { Reply } from "./Reply";
 import { isRich, plainText } from "@offload/markup";
@@ -54,6 +55,9 @@ interface Turn {
    *  sentence. This is what makes the reply's thread names clickable and what
    *  makes them true. */
   threads?: TouchedThread[];
+  /** 016. Where a fact in this turn came from, for the chips in its footer.
+   *  Empty on every turn that read nothing, which is nearly all of them. */
+  sources?: TurnSource[];
   /** A calendar write offload proposed and nobody has answered yet. The reply
    *  carries the control that answers it, for the same reason it carries its
    *  own thread links and its own retry: a sentence cannot be clicked. */
@@ -198,11 +202,12 @@ export function Composer({
                   ...turn,
                   state: answer.state,
                   did: filed,
-                  // **The pills go here when there is no reply to hang them
-                  // on.** A dump that was simply filed says nothing back, so
-                  // the Done mark and the thread it went to are the whole of
-                  // what the turn has to say.
-                  ...(answer.reply ? {} : { threads: answer.threads }),
+                  // **Always, not only when there is no reply.** The footer
+                  // belongs to the turn rather than to either bubble, so the
+                  // pills and the sources land here whether or not offload
+                  // said anything, and the reply no longer draws them.
+                  threads: answer.threads,
+                  sources: answer.sources,
                 }
               : turn,
           );
@@ -214,7 +219,6 @@ export function Composer({
                   from: "offload" as const,
                   text: answer.reply,
                   turnId,
-                  threads: answer.threads,
                   found: answer.found,
                 },
               ]
@@ -410,8 +414,11 @@ export function Composer({
         <div className={styles.turns} ref={turnsBox}>
           {turns.map((turn) =>
             turn.from === "you" ? (
+              // The bubble, then the turn's own footer beneath it. Two siblings
+              // rather than one nested pair, because the footer is not part of
+              // what they wrote and is not inside their bubble's width.
+              <Fragment key={turn.id}>
               <div
-                key={turn.id}
                 className={styles.turnYou}
                 // The failure is carried by the turn itself, so the message you
                 // wrote takes the clay border and the line sits under it.
@@ -420,46 +427,6 @@ export function Composer({
                 }
               >
                 {turn.text}
-                {turn.state === "seen" ? (
-                  // 👀, ported from the mobile kit's StatusChip. The label is
-                  // the readme's fuller string, because the marker has to say
-                  // what it means to somebody who cannot see it.
-                  <span className={styles.seen} aria-label="seen, not answered yet">
-                    <span aria-hidden="true">👀</span>
-                  </span>
-                ) : null}
-                {turn.state === "answered" && turn.did ? (
-                  // The kit's Done badge, in the same place. A different state
-                  // rather than a second version of the same one: 👀 means
-                  // offload has it, this means it finished.
-                  //
-                  // **Done means something was done.** It used to mean the turn
-                  // ended, so a question that got an answer and a request that
-                  // was refused both wore a tick: "delete the EU with fam
-                  // thread" came back "threads can't be deleted" under a green
-                  // Done. Gated on the same record the Undo toast uses, which
-                  // is what offload actually wrote rather than what it said.
-                  <span className={styles.done}>
-                    <Icon name="check" size={11} />
-                    Done
-                  </span>
-                ) : null}
-                {/* Only ever set when the turn said nothing back, so this
-                    never draws twice for one dump. */}
-                {turn.threads && turn.threads.length > 0 ? (
-                  <span className={styles.wentTo}>
-                    {turn.threads.map((thread) => (
-                      <Link
-                        key={thread.id}
-                        href={`/threads/${thread.id}`}
-                        className={styles.threadLink}
-                      >
-                        <Icon name="lasso" size={13} />
-                        {thread.name}
-                      </Link>
-                    ))}
-                  </span>
-                ) : null}
                 {turn.state === "failed" ? (
                   <p className={styles.turnFailed} role="alert">
                     offload could not answer that one. Your dump is saved.{" "}
@@ -485,6 +452,12 @@ export function Composer({
                   </p>
                 ) : null}
               </div>
+              <TurnFooter
+                state={turn.state === "seen" ? "seen" : turn.did ? "done" : null}
+                refs={turn.threads ?? []}
+                sources={turn.sources ?? []}
+              />
+              </Fragment>
             ) : (
               <div key={turn.id} className={styles.turn}>
               <div
@@ -506,24 +479,11 @@ export function Composer({
                     }
                   />
                 ) : null}
-                {/* Where it actually went, from the record rather than from the
-                    sentence. offload naming a thread it did not write to is the
-                    failure 004 exists to prevent, so these come from the
-                    content rows and not from parsing the reply. */}
-                {turn.threads && turn.threads.length > 0 ? (
-                  <span className={styles.wentTo}>
-                    {turn.threads.map((thread) => (
-                      <Link
-                        key={thread.id}
-                        href={`/threads/${thread.id}`}
-                        className={styles.threadLink}
-                      >
-                        <Icon name="lasso" size={13} />
-                        {thread.name}
-                      </Link>
-                    ))}
-                  </span>
-                ) : null}
+                {/* The pills used to be here, inside the reply. They are in
+                    the turn's footer now, with the Done mark and the sources,
+                    because a filing turn has all three to report and no reply
+                    to put them in. Where they came from has not changed: the
+                    record of what was written, never the sentence. */}
               </div>
               {/* **Below the bubble, not inside it.** A row's hover fill bleeds
                   to its pane's padded edge by one space step, and a turn's own

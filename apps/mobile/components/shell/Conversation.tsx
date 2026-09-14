@@ -19,6 +19,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -370,34 +371,13 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
         </Text>
       </View>
 
-      {/* 👀 means offload has it. Done means offload *did* something, from the
-          record rather than from the reply: a question that got an answer and a
-          request that was refused both used to wear a tick. */}
-      {turn.state === "seen" ? (
-        <Mark>
-          <Text
-            accessibilityLabel="seen, not answered yet"
-            style={{ fontSize: 15 }}
-          >
-            👀
-          </Text>
-        </Mark>
-      ) : null}
-      {turn.state === "answered" && turn.did ? (
-        <Mark done>
-          <Glyph name="check" size={11} color={COLOR.onBrand} />
-          <Text
-            className="font-core font-medium text-text-on-solid"
-            style={{ fontSize: 11 }}
-          >
-            Done
-          </Text>
-        </Mark>
-      ) : null}
-
-      {/* Only ever set when the turn said nothing back, so this never draws
-          twice for one dump. */}
-      <Filed turn={turn} />
+      {/* Everything about this turn that is not a sentence, in one row that
+          belongs to the turn rather than to either bubble. The marks used to be
+          positioned into this bubble's bottom corner and the pills drawn under
+          whichever turn happened to carry them; a turn with a source as well
+          has three things to report and, on an ordinary filing, no reply to
+          report them in. */}
+      <TurnFooter turn={turn} />
 
       {/* The readme's own words, and the same ones web uses. They diverged
           here: this said "Saved what landed. The rest didn't come through."
@@ -422,31 +402,6 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
   );
 }
 
-/** The mark hangs off the bubble's bottom left in its own chip, so it never
- *  crowds the text and reads the same on one line or five. */
-function Mark({
-  done,
-  children,
-}: {
-  done?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <View
-      className={`flex-row items-center gap-space-2 rounded-pill px-space-3 ${
-        done ? "bg-moss-600" : "border border-border-hairline bg-paper"
-      }`}
-      style={{
-        alignSelf: "flex-start",
-        height: 24,
-        marginTop: -10,
-        marginLeft: -6,
-      }}
-    >
-      {children}
-    </View>
-  );
-}
 
 /** Where it actually filed, from the content rows rather than from the
  *  sentence, so a chip can never point somewhere nothing landed.
@@ -455,16 +410,52 @@ function Mark({
  *  simply filed says nothing back, so the thread it went to was named nowhere
  *  at all. Drawn under whichever turn carries the threads: the reply when there
  *  is one, the message somebody sent when there is not. */
-function Filed({ turn }: { turn: Turn }) {
+function TurnFooter({ turn }: { turn: Turn }) {
   const COLOR = useColors();
   const router = useRouter();
   const { fold } = useConversation();
 
-  if (!turn.threads || turn.threads.length === 0) return null;
+  const sources = turn.sources ?? [];
+  // Three, then a count. Six reads are possible in one turn and six chips under
+  // a one sentence reply is a footnote section.
+  const shown = sources.slice(0, 3);
+  const hidden = sources.length - shown.length;
+  const state = turn.state === "seen" ? "seen" : turn.did ? "done" : null;
+  const refs = turn.threads ?? [];
+
+  // An empty footer is no footer, never a 26px gap.
+  if (!state && refs.length === 0 && sources.length === 0) return null;
 
   return (
-    <View className="mt-space-3 flex-row flex-wrap gap-space-2">
-      {turn.threads.map((thread) => (
+    <View className="mt-space-3 flex-row flex-wrap items-center gap-space-2">
+      {/* Order is fixed: what happened, where it landed, where it came from. */}
+      {state === "seen" ? (
+        <View
+          className="flex-row items-center rounded-pill border border-border-hairline bg-surface-raised px-space-3"
+          style={{ height: 24 }}
+        >
+          <Text accessibilityLabel="seen, not answered yet" style={{ fontSize: 15 }}>
+            👀
+          </Text>
+        </View>
+      ) : null}
+
+      {state === "done" ? (
+        <View
+          className="flex-row items-center gap-space-2 rounded-pill bg-moss-600 px-space-3"
+          style={{ height: 24 }}
+        >
+          <Glyph name="check" size={11} color={COLOR.onBrand} />
+          <Text
+            className="font-core font-medium text-text-on-solid"
+            style={{ fontSize: 11 }}
+          >
+            Done
+          </Text>
+        </View>
+      ) : null}
+
+      {refs.map((thread) => (
         // Tappable, and it folds on the way out. A reply naming where it filed
         // something and not taking you there is a sentence about a place rather
         // than a way to it, and the conversation should get out of the way
@@ -484,6 +475,40 @@ function Filed({ turn }: { turn: Turn }) {
           </Text>
         </Pressable>
       ))}
+
+      {/* **Outline, never moss.** Moss means "offload did this, you didn't"
+          everywhere in this system, and a citation is the opposite: evidence of
+          where a fact came from rather than something offload worked out.
+          It is also the only thing in a conversation that leaves the app, and
+          what makes that allowable is the source of the string: a domain from
+          the record of what was read, not a word the page chose. */}
+      {shown.map((source) => (
+        <Pressable
+          key={source.url}
+          onPress={() => void Linking.openURL(source.url)}
+          accessibilityRole="link"
+          accessibilityLabel={`Open ${source.domain}`}
+          className="flex-row items-center gap-space-2 rounded-pill border border-border-strong px-space-4"
+          style={{ height: 26, maxWidth: 220 }}
+        >
+          <Glyph name="link" size={12} color={COLOR.iconOnWell} />
+          <Text
+            className="font-core text-text-secondary"
+            style={{ fontSize: 12.5 }}
+            numberOfLines={1}
+          >
+            {source.domain}
+          </Text>
+        </Pressable>
+      ))}
+
+      {/* Text, not a chip and not a control: there is no screen listing what a
+          turn read, and a chip would promise one. */}
+      {hidden > 0 ? (
+        <Text className="font-core text-text-tertiary" style={{ fontSize: 12.5 }}>
+          and {hidden} more
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -523,7 +548,8 @@ function Theirs({ turn }: { turn: Turn }) {
           announced and then expires an hour later having done nothing. */}
       {turn.waiting ? <Waiting turn={turn} /> : null}
 
-      <Filed turn={turn} />
+      {/* The pills moved into the turn's footer, under the message they
+          answer, so they are drawn once whether or not offload said anything. */}
     </View>
 
       {/* **Below the bubble, not inside it.** A row's press fill bleeds to its

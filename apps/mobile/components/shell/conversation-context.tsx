@@ -29,6 +29,7 @@ import {
   type FoundResult,
   type FoundRow,
   type MessageState,
+  type Source,
   type TouchedThread,
 } from "../../lib/dump";
 import { addNote, completeContent, quickAdd } from "../../lib/threads";
@@ -72,6 +73,9 @@ export interface Turn {
   state?: MessageState;
   turnId?: string;
   threads?: TouchedThread[];
+  /** 016. Where a fact in this turn came from, for the chips in its footer.
+   *  Empty on every turn that read nothing, which is nearly all of them. */
+  sources?: Source[];
   /** Whether the turn actually did something, from the record rather than the
    *  reply. A tick that means "the turn ended" says Done about a refusal. */
   did?: boolean;
@@ -328,7 +332,12 @@ export function ConversationProvider({
                   // the Done mark and the thread it went to are the whole of
                   // what the turn has to say, and without this the thread was
                   // named nowhere at all.
-                  ...(answer.reply ? {} : { threads: answer.threads }),
+                  // **Always, not only when there is no reply.** The footer
+                  // belongs to the turn rather than to either bubble, so the
+                  // pills and the sources land here whether or not offload said
+                  // anything, and the reply no longer draws them.
+    
+                  sources: answer.sources,
                 }
               : turn,
           );

@@ -56,10 +56,19 @@ export interface FoundRow {
   done: boolean;
 }
 
+/** 016. Where a fact in a turn came from. Two fields, and the omissions are the
+ *  point: a provider's citation also carries the page's title and a quoted
+ *  excerpt, and both are written by whoever owns the page. */
+export interface Source {
+  domain: string;
+  url: string;
+}
+
 export interface Answer {
   state: MessageState;
   reply: string | null;
   threads?: TouchedThread[];
+  sources?: Source[];
   /** A calendar write offload proposed and nobody has answered yet. Only ever
    *  set on a write that reaches somebody else: guests, or a calendar marked
    *  shared. A write nobody learns about just happens, with the ordinary Undo. */
@@ -116,6 +125,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     state: MessageState;
     reply: string | null;
     threads?: TouchedThread[];
+    sources?: Source[];
     changed?: string[];
     waiting?: { id: string; because: string } | null;
     found?: FoundResult[];
@@ -124,6 +134,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     state: body.state,
     reply: body.reply,
     threads: body.threads ?? [],
+    sources: body.sources ?? [],
     changed: body.changed ?? [],
     waiting: body.waiting ?? null,
     found: body.found ?? [],

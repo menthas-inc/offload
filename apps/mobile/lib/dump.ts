@@ -66,10 +66,19 @@ export interface FoundRow {
   done: boolean;
 }
 
+/** 016. Where a fact in a turn came from. Two fields, and the omissions are the
+ *  point: a provider's citation also carries the page's title and a quoted
+ *  excerpt, and both are written by whoever owns the page. */
+export interface Source {
+  domain: string;
+  url: string;
+}
+
 export interface Answer {
   state: MessageState;
   reply: string | null;
   threads: TouchedThread[];
+  sources: Source[];
   /** Every thread whose contents the turn changed, a superset of `threads`.
    *  A move's source is here and not there: the screen has to reload it, and a
    *  pill saying the dump went there would be untrue. */
@@ -135,6 +144,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     state: MessageState;
     reply: string | null;
     threads?: TouchedThread[];
+    sources?: Source[];
     changed?: string[];
     waiting?: WaitingOn | null;
     // **The rows, which this used to drop on the floor.** `awaitAnswer` is the
@@ -149,6 +159,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     state: data.state,
     reply: data.reply,
     threads: data.threads ?? [],
+    sources: data.sources ?? [],
     changed: data.changed ?? [],
     waiting: data.waiting ?? null,
     found: data.found ?? [],

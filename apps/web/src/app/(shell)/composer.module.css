@@ -200,11 +200,26 @@
 /* Two markers on your own bubble, bottom left, and they are different states
    rather than two versions of one. 👀 is the readme's: offload has it and has
    not answered. Done is the kit's: the turn finished. */
+/* The turn's own row, on offload's side, at the log's gutter.
+   Not inside the sent bubble's 78% and not inside the reply's: it is not a
+   bubble and nothing in it is a quotation. Wraps rather than scrolls, and
+   `min-height` rather than `height` so a long domain at 200% text does not clip. */
+.turnFooter {
+  align-self: stretch;
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 26px;
+}
+
+/* Both marks used to be absolutely positioned into the sent bubble's bottom
+   left corner. In a row that grows sideways that put them under the bubble they
+   were tucked into, which is why the footer exists rather than the bubble
+   simply gaining chips. */
 .seen {
-  position: absolute;
-  left: -15px;
-  bottom: -16px;
   display: inline-flex;
+  align-items: center;
   align-items: center;
   height: 22px;
   padding: 0 6px;
@@ -216,9 +231,6 @@
 }
 
 .done {
-  position: absolute;
-  left: -15px;
-  bottom: -16px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -302,6 +314,37 @@
 
 /* Where offload actually filed things. Links, because a reply that names a
    place you cannot go to is a reply that makes you go looking. */
+/* Outline, never moss. Moss means "offload did this, you didn't" everywhere in
+   this system, and a citation is the opposite: evidence of where a fact came
+   from rather than something offload worked out. */
+.sourceChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font: var(--weight-regular) calc(12.5px * var(--type-scale)) / 1 var(--font-core);
+  text-decoration: none;
+  max-width: 22ch;
+  overflow: hidden;
+}
+
+.sourceDomain {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sourceMore {
+  font: var(--weight-regular) calc(12.5px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
 .wentTo {
   display: flex;
   flex-wrap: wrap;
