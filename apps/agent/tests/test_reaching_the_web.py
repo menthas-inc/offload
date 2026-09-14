@@ -11,7 +11,6 @@ from types import SimpleNamespace
 from offload_agent import reader
 from offload_agent.worker import Lookups, _from_the_dump, _in_the_dump, _look_up, _web_wire
 
-
 CFG = SimpleNamespace(sort_model="a-model")
 
 DUMP = "book the alfama flat for the 14th, https://airbnb.com/rooms/123 and check the weather"
