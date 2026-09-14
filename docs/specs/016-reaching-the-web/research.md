@@ -21,8 +21,32 @@ light rather than as open questions.
   recommendation in section 1 and it is the better call. Section 7 is the revised strategy and the
   telemetry that has to exist for it to be a strategy rather than a hope.
 
-Open, and in section 10: the bounds, the cancel semantics that are genuinely ambiguous, citations,
-and what offload says when the web disagrees with a note.
+Answered in a second pass the same day:
+
+- **Anthropic's server tools**, not our own provider.
+- **Search and the pasted-link reader both ship in the first pass.** A question goes to search, a URL
+  they dumped goes to the reader.
+- **The reader is quarantined**, which is the answer that reshapes the architecture. Section 11.
+- **offload decides when to look something up**, with a switch in settings, defaulting on.
+- **A reply cites with a source chip under it**, the shape the thread pills already use.
+- **The lookup log is domain, intent and cost.** The intent for a link is derived rather than
+  written: domain plus recognised type, so a Spotify track logs as `link:spotify:track` and reads as
+  "spotify song link". A search has no domain to derive from and takes a label from the closed list
+  in section 7.
+
+And in a third pass:
+
+- **A lookup happens in a shared thread like anywhere else.** One rule everywhere. The quarantined
+  reader is what makes that survivable, and it is the reason this answer is defensible rather than
+  brave.
+- **Three searches and three fetches per turn.** Page text is capped at 10,000 tokens per fetch,
+  which is mine to pick and is stated in section 12 with what it is worth.
+- **A cancelled turn does not offer Finish.** Stopped means stopped, and the dump is still in the
+  conversation if they want to send it again.
+- **When a note and the web disagree, the note wins and offload says both.** Copy in section 12.
+
+Nothing is open. The next artifacts are `016/feature-spec.md` and a spec of its own for progress and
+cancel.
 
 ## 1. The finding that reframes the request
 
@@ -478,3 +502,65 @@ it.
 - **Q21. Can a cancelled turn be resumed?** `partial` already offers Finish, and I think it should
   keep offering it. The alternative reading is that cancel means stop, and offering to continue is
   arguing with them.
+
+
+## 11. What the quarantined reader does to section 8
+
+Choosing a quarantined reader **and** Anthropic's server tools is not a compromise between the two.
+It is better than either, and it is worth writing down why, because the reasoning is not obvious.
+
+**The server tools move out of the planner's loop entirely.** The planner gets one ordinary client
+tool, `look_up`, which takes a question or a URL. The worker answers it with a **separate, short
+model call** that has `web_search` and `web_fetch` enabled, no thread contents, no notes, and no
+ability to file anything. That call returns a typed object: an answer, the fields that were asked
+for, and the sources. The planner never sees page text or a search snippet, only the object.
+
+Every problem in section 8 belongs to the sub-call now, and most of them stop being problems:
+
+- **`pause_turn`** happens inside a conversation we hold in memory for two seconds and then throw
+  away. No stored history, no encrypted blocks to round-trip, no schema change to `messages`.
+- **Mixing server and client tools in one turn** cannot happen, because the sub-call has no client
+  tools at all. That was the sharpest edge in the whole integration and it is now unreachable.
+- **`encrypted_content` and `encrypted_index`** never have to survive a database round trip, because
+  the conversation that contains them never leaves the function that made it.
+- **The prior-context URL rule becomes ours to enforce, in the strongest possible way.** Web fetch
+  can only fetch URLs that appeared earlier in *that* conversation, and we build that conversation.
+  Put exactly one URL in it, the one the person dumped, and there is no second URL the tool is
+  permitted to reach. The rule stops being a promise and becomes an argument we pass.
+- **Citations arrive as fields** rather than as prose to be parsed, which is what the source chip
+  needs and what 005 already settled for thread links: the link comes from the record, never from the
+  sentence.
+
+What it costs: one extra model call per lookup, its latency, and the fact that the planner's answer
+is only as good as the object the reader returned. The second one is the real trade. A reader that
+returns the wrong three fields has lost information the planner might have used, and unlike the
+inline version there is no way for the planner to go back and look.
+
+**So the reader's output shape is the design.** Not a summary string. A small typed object per kind
+of lookup, with the sources attached, and an `unsure` path that says so rather than guessing.
+
+
+## 12. The three calls I made rather than asked about
+
+**The page-text cap: 10,000 tokens per fetch.** Three fetches makes 30,000 tokens of attacker
+controlled text in the worst case, which sounds alarming until you notice where it lands. **It lands
+in the reader's throwaway conversation, not in the planner's prompt.** The planner receives the
+typed object, which is a few hundred tokens whatever the page was. So OFF-8's rule, that nothing in a
+prompt grows with the account, is protected by the architecture rather than by the cap, and the cap
+is doing a different job: bounding the bill and bounding how much text one poisoned page can spend
+arguing with the reader. Ten thousand tokens is roughly a 40 kB page, which reads a long article and
+truncates a documentation site, and Anthropic's own sizing is the source for that arithmetic.
+
+**Naming both sides of a disagreement, in offload's voice.** The instruction was "you said 14th but
+internet says memorial is ...", and the intent is clearly that both numbers appear. Proposed copy:
+
+> Your note says the 14th. Memorial Day is the 25th.
+
+Two short sentences, both facts, no mechanism. It deliberately does not say "the internet says",
+because the source chip under the reply is already saying exactly that, with a link, and saying it
+twice in two registers is how a reply starts explaining itself. If the preference is for the word to
+appear in the sentence, that is a copy change and not a design one.
+
+**Cancel does not retry, alarm, or count as a failure.** It is a fourth outcome alongside answered,
+partial and failed, and the only one a person asked for. It reuses `partial`'s record of what landed
+and suppresses `partial`'s offer to finish, which is a flag rather than a state.
