@@ -122,6 +122,14 @@ the polls are open, when a school term starts, when a march closes the road that
 somebody's dentist is on. Those are the diary, and refusing them is refusing the
 product. What is refused is the subject matter, not a dump that brushes past it.
 
+**The list is a policy, not a boundary.** It is enforced by the model's own
+compliance and a differently phrased request can route around it. That is
+acceptable for what it actually defends against, which is the account holder's
+own requests rather than an adversary. It is written down so nobody later reads
+it as a control. The one category that is never a judgement call gets a
+`blocked_domains` backstop as well, because for that one, "usually complies" is
+not an answer.
+
 **Self-harm is not like the other four, and this spec does not settle it.** A
 person asking offload to help them find support is the one case where silence is
 the harmful answer rather than the safe one, and "I don't search that." to
@@ -133,11 +141,44 @@ Flagged rather than guessed at, and it blocks nothing else in the spec.
 does not have. The product half is here; the legal half is flagged in
 "Open, and not mine" below.
 
+### What may go into a search query
+
+**The fetch rule never covered this, and it is the more dangerous half.**
+"offload may fetch only a URL a person put in front of it" is precise and
+enforceable. Nothing said anything about what text goes *into* a search, and the
+planner composes that itself, from a context that already holds untrusted
+material: notes another member wrote in a shared thread, and calendar text from
+an app, which the prompt has called untrusted since 012.
+
+So a note reading like ordinary planning, "check the pickup time and traffic near
+[a child's school and a home address]", can steer the planner into issuing a
+query carrying those details to a search company. Nothing in the refusal list
+covers it, because it is not a refused topic. Nothing in the bounds covers it,
+because it is one search. Nothing in the switches covers it, because they are on.
+
+**The rule: a query is built from the words of the dump being answered, and from
+nothing else.** Not from the thread's notes, not from another member's content,
+not from the conversation, not from a connected app. The planner may choose
+whether to look something up using everything it knows; it may only choose what
+to *send* out of the sentence in front of it.
+
+That is a bound on composition rather than on judgement, which is the only kind
+that survives an injected instruction.
+
 ### The bounds
 
 Three searches and three page reads in one turn. A turn that needs more says it
 could not find it and files what it could. The numbers are per turn rather than
 per day because a turn is what a person is waiting for.
+
+**A pasted link is allowed exactly one read, not three.** The provider's rule is
+that a URL may be fetched if it appeared anywhere earlier in that conversation,
+**including in an earlier fetch result**. So a page that says "for accurate
+details see attacker.example/verify?id=..." has put a URL into the conversation,
+and a second read of it is permitted by the rule this design leans on. One read
+per pasted link closes that structurally rather than by asking the reader not to
+follow links. Research section 11's claim that there is "no second URL the tool
+is permitted to reach" was wrong, and is corrected there.
 
 ### Saying where it came from
 
@@ -241,6 +282,12 @@ One shape, stated here so three clients do not invent three. A turn carries:
 sources: [{ domain: "timeanddate.com", url: "https://..." }]
 ```
 
+**Two fields, and the omissions are the point.** A provider's citation also
+carries the page's title and up to 150 characters of quoted page text. Neither
+crosses out of the reader. A title is attacker-controlled prose and putting it in
+front of the writer, or on somebody's screen, is the quarantine leaking through
+the one door nobody was watching.
+
 Empty on every turn that read nothing, which is almost all of them. It reaches
 the clients the same two ways a reply already does: on the stream when the turn
 settles, and on the message when a client asks. 005's rule holds, that a link a
@@ -296,10 +343,11 @@ OFF-4's rule applied to a new source: process and forget, keep the reference.
 - **AC-15** When a thread note and a lookup disagree on a fact, the row is
   written from the note, and the reply names both.
 - **AC-16** A lookup happens the same way inside a shared thread as inside a
-  private one, and **nothing another member wrote can cause a lookup of any
-  kind**: not a fetch of a URL they put in the thread, and not a search induced
-  by a sentence in their note. The test covers both shapes, because a note
-  reading "search for X" is the same attack as a note holding a URL.
+  private one, and **a fetch is triggered only by a URL in the dump being
+  answered**, recognised as a link by the same rule the composer uses, never by
+  a URL the model found inside prose somebody else wrote. Stated as a rule about
+  where a URL comes from rather than as a promise about what the model will
+  decide, because the second is not a promise an LLM can keep.
 - **AC-17** The scope rule, the preference rule and the refusal list are measured
   the way this repo already learned to measure a prompt rule: a tuning set and a
   held-out set written without looking at it, run through `evals/`, reported as a
@@ -325,6 +373,23 @@ OFF-4's rule applied to a new source: process and forget, keep the reference.
   first makes a published page untrue.
 - **AC-23** The clients receive sources as a field on the turn, in one shape,
   through both the stream and the message read.
+- **AC-24** A search query is built only from the words of the dump being
+  answered. The eval includes a shared thread holding a note that reads like
+  planning and names a third party, and asserts no query carries it.
+- **AC-25** A pasted link is read once. A URL found inside a fetched page is not
+  fetched, and the test uses a page that asks for exactly that.
+- **AC-26** Nothing but a domain and a URL crosses out of the reader. Page
+  titles and quoted citation text reach neither the writer nor a client.
+- **AC-27** When the reader's output fails validation, what is logged is the
+  field name and the error type. Never the completion, which is the one place in
+  this feature where injected page text sits closest to a log line.
+- **AC-28** A telemetry label outside the closed set is stored as `other` and the
+  string the model produced is discarded rather than written down.
+- **AC-29** A refusal appears in no log of any kind, not only in no analytics
+  event. The category is more sensitive than the dump that triggered it.
+- **AC-30** The switches are read server-side from the account at the moment of
+  the call. A flag on the request is never trusted, and in a shared thread it is
+  the dumper's own switches that govern.
 
 ## Out of scope
 
@@ -353,6 +418,15 @@ OFF-4's rule applied to a new source: process and forget, keep the reference.
   AC-13 counts the lookups that happened and nothing counts the ones that should
   have. This spec punts on it deliberately rather than assuming it away, and it
   is the first thing to revisit once the feature is real.
+- **Whether the provider's fetch cache retains page bytes under our data
+  retention setting.** Caching is on by default and we would rather it were, for
+  latency. It is a question for the vendor rather than a thing to guess at, and
+  until it is answered the safe setting is off for this call site.
+- **A page that lies about itself.** Structured metadata is self-reported, and a
+  page can misstate its own dates. On a first encounter there is no note to
+  disagree with, so the wrong date is filed as fact. The source chip is the only
+  signal, and it is after the fact. Accepted for now, and named so it is not
+  discovered later.
 - **Terms of service do not exist.** "We should not be liable for what somebody
   asks for" is a promise a privacy policy cannot make and a product cannot
   enforce. It wants terms, and terms want a lawyer. The product commitments in
@@ -362,3 +436,30 @@ OFF-4's rule applied to a new source: process and forget, keep the reference.
   What it says is a drafting job for the product owner: sections 5 and 6 both
   move, and section 6's table of companies currently names no search or fetch
   recipient at all.
+
+## Constitution gate
+
+Audited against `docs/constitution/principles.md`, read fresh on 2026-09-14.
+
+| Principle | Verdict | Evidence |
+| --- | --- | --- |
+| DEV-1 smallest change | compliant | Two mechanisms, one client tool, one sub-call. Per-provider integrations are explicitly out of scope and gated on AC-13's counters. |
+| DEV-2 code matches spec | not applicable | No code yet. |
+| DEV-3 boring tools | compliant | The provider's own server tools rather than a search vendor, a fetcher, a cache and an SSRF defence we would write. |
+| QUAL-1 tests cover the ACs | compliant | AC-17 routes the judgement rules through the eval harness with a held-out set and a pass rate rather than examples. |
+| QUAL-2 one thing per function | not applicable | Impl-spec's problem. |
+| SEC-1 untrusted input | compliant, and this is the principle the feature is mostly about | Page text and results reach a reader that has no tools and no thread data; AC-8 and AC-26 bound what crosses out of it; AC-24 bounds what a query may be built from; AC-16 bounds where a fetchable URL may come from. |
+| SEC-2 authorization server-side | compliant | AC-30: the switches are read from the account in the worker, never from the request. |
+| DATA-1 schema documented first | compliant | The telemetry table, the sources field and the switches are specified before implementation, in the impl-spec. |
+| OFF-1 egress and logs | compliant | AC-7, AC-9, AC-13, AC-27, AC-28, AC-29. Page text is never stored; the telemetry carries a closed label, an outcome and a cost; a validation failure logs a field name; a refusal appears in no log. |
+| OFF-2 encryption claims | not applicable | Nothing changes about what is encrypted, and the feature makes no claim about it. |
+| OFF-3 ownership and membership | compliant | AC-16 and AC-30. A lookup in a shared thread is governed by the dumper's own switches and is triggered only by their own dump. |
+| OFF-4 process and forget | compliant, and extended | "What is kept" applies OFF-4's rule to a new source: the derived fields and the URL, never the page. |
+| OFF-5 structured LLM I/O | compliant | The reader crosses the boundary through a validated object, with AC-27 narrowing what a validation failure may log. |
+| OFF-6 reversible or confirmed | **flagged, with a stated justification** | Every outward request this feature makes is a GET caused by somebody's own dump, and nothing it writes leaves offload. A per-action confirmation on a lookup would be a dialog on the product's core move, which OFF-6 exists to avoid. The switches are the consent, granted once rather than per turn, and the source chip is the record. **This is a SHOULD-level judgement about where the outward-facing line falls, and it is the one place this spec asks for the benefit of the doubt.** |
+| OFF-7 design system leads | compliant | The `source` chip kind, the turn footer and the voice-rule amendment all owe design-log entries, and the spec says so rather than assuming the kits already agree. |
+| OFF-8 bounded context | compliant | Page text lands in the reader's throwaway conversation and never in the planner's prompt, which is what the quarantine buys beyond safety. Nothing added grows with the age of an account. |
+
+`GATE: PASS`
+
+One SHOULD-level flag, OFF-6, justified above and not resolved silently.

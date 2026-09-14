@@ -347,6 +347,13 @@ So the counter cannot be the query. It has to be something the model produces al
 4. **Cost per label**, from the ledger that already exists, so "add a weather tool" is argued in
    money as well as in counts.
 
+**Two things that keep the closed set closed.** The label is model output, which means it is a free
+string until something checks it: anything outside the set is stored as `other` and the string is
+discarded, or the field quietly becomes the open text box this whole design exists to avoid. And the
+domain tally needs a floor, because a count of one on a rare personal domain in an invite-only alpha
+is re-identifying to anybody who knows who was awake that day. Suppress below a small threshold, or
+bucket rare hosts.
+
 **The `other` bucket is the one that decides whether this worked.** If it is small, the taxonomy is
 describing what people actually ask. If it is most of them, the taxonomy is wrong, and the answer is
 to revise the list against real conversations by hand, not to start logging free text because the
@@ -523,10 +530,16 @@ Every problem in section 8 belongs to the sub-call now, and most of them stop be
   tools at all. That was the sharpest edge in the whole integration and it is now unreachable.
 - **`encrypted_content` and `encrypted_index`** never have to survive a database round trip, because
   the conversation that contains them never leaves the function that made it.
-- **The prior-context URL rule becomes ours to enforce, in the strongest possible way.** Web fetch
-  can only fetch URLs that appeared earlier in *that* conversation, and we build that conversation.
-  Put exactly one URL in it, the one the person dumped, and there is no second URL the tool is
-  permitted to reach. The rule stops being a promise and becomes an argument we pass.
+- **The prior-context URL rule becomes ours to enforce, and it is nearly as strong as it looks.**
+  Web fetch can only fetch URLs that appeared earlier in *that* conversation, and we build that
+  conversation, so we decide which URL is in it.
+
+  **The first draft of this said there is then "no second URL the tool is permitted to reach", and
+  that was wrong.** The provider's own rule counts an earlier *fetch result* as prior context, so a
+  page that prints `attacker.example/verify?id=...` has put a URL into the conversation and a second
+  read of it is allowed. Found by the security review on 2026-09-14. The fix is a number rather than
+  a sentence: one fetch per pasted link, which makes the second read impossible rather than
+  discouraged. 016's bounds section carries it.
 - **Citations arrive as fields** rather than as prose to be parsed, which is what the source chip
   needs and what 005 already settled for thread links: the link comes from the record, never from the
   sentence.
@@ -538,6 +551,15 @@ inline version there is no way for the planner to go back and look.
 
 **So the reader's output shape is the design.** Not a summary string. A small typed object per kind
 of lookup, with the sources attached, and an `unsure` path that says so rather than guessing.
+
+**And the sources are two fields, `domain` and `url`, deliberately.** A provider's citation also
+carries the page's title and a quoted excerpt, and forwarding either would walk attacker-controlled
+prose straight past the quarantine and onto somebody's screen. The one door nobody was watching.
+
+**The reader is a model call like any other and goes through the same masked harness.** It is a new
+call site, built outside `plan` and `compact`, and it is the largest new source of untrusted text
+the system has ever had. "No content in Langfuse" is enforced by the wrapper every other call uses,
+so a bespoke client here would bypass the control that makes hosted tracing acceptable at all.
 
 
 ## 12. The three calls I made rather than asked about

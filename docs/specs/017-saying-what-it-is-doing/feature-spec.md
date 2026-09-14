@@ -43,6 +43,13 @@ name, no "retrying", no "the model is slow". If something went wrong, the turn's
 own result says so when it settles, next to the control that acts on it. That is
 CLAUDE.md's rule and this is the surface most likely to break it.
 
+**It never echoes anything it read.** A page's title is written by whoever owns
+the page, and a line saying "Payment failed, verify your card" in offload's own
+voice, in offload's own progress line, is a phishing message the product drew
+itself. The brief may name what offload is doing and the domain it is doing it
+to, because a domain is a fact about where a request went. It may not contain
+anything from inside a page or a search result.
+
 **It does not appear immediately.** Under a threshold, around a second and a
 half, nothing is drawn and the existing writing indicator is the whole of it. An
 ordinary two-second filing turn should look exactly as it looks today, and a
@@ -113,6 +120,9 @@ streaming, sees the step that is current right now. Not the ones before it.
   result stands and the turn settles normally.
 - **AC-14** The line never contains a vendor name, a tool name, a mechanism or an
   explanation of a failure. The eval covers this alongside the reply rules.
+- **AC-15** No text from a fetched page or a search result reaches the line. A
+  page whose title is written to look like a system message produces a brief that
+  does not contain it, and the test uses exactly such a page.
 
 ## Out of scope
 
