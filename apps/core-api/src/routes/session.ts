@@ -69,6 +69,11 @@ const meResponse = z.object({
   /** invited means the account exists and has never finished first run. The
    *  client does not get to decide this; it is the account's state. */
   needsFirstRun: z.boolean(),
+  /** 016. Whether offload may search the web, and whether it may open a link
+   *  they pasted. Drawn as two rows in settings, and read here so the switch
+   *  state comes from the account rather than from anything a client kept. */
+  webSearch: z.boolean(),
+  webLinks: z.boolean(),
   /** No name yet, so one has to be asked for before the app is any use.
    *
    *  Separate from `needsFirstRun` because the two came apart: every account
@@ -180,7 +185,14 @@ const consentBody = z.object({
 async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | null> {
   const account = await db
     .selectFrom("accounts")
-    .select(["state", "display_name", "provider_name", "email"])
+    .select([
+      "state",
+      "display_name",
+      "provider_name",
+      "email",
+      "web_search_enabled",
+      "web_links_enabled",
+    ])
     .where("id", "=", accountId)
     .where("deleted_at", "is", null)
     .executeTakeFirst();
@@ -198,6 +210,11 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     needsFirstRun: account.state === "invited",
     needsName: account.display_name === null,
     suggestedName: account.provider_name,
+    // 016. Two switches rather than one, because they are two different
+    // promises: a search sends their own words to a third party, and reading a
+    // link they pasted opens something they already chose.
+    webSearch: account.web_search_enabled,
+    webLinks: account.web_links_enabled,
   };
 }
 
@@ -223,7 +240,11 @@ export async function sessionRoutes(app: App): Promise<void> {
     "/api/me",
     {
       schema: {
-        body: z.object({ displayName: nameField }),
+        body: z.object({
+          displayName: nameField.optional(),
+          webSearch: z.boolean().optional(),
+          webLinks: z.boolean().optional(),
+        }),
         response: { 200: meResponse, 401: unauthenticated },
       },
     },
@@ -231,9 +252,19 @@ export async function sessionRoutes(app: App): Promise<void> {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
 
+      // Only what was sent. A patch that names one field must not clear the
+      // others, and a name still cannot be cleared: the product draws a
+      // nameless account correctly, but that is the state of an account nobody
+      // has got to yet rather than somewhere to return to by emptying a field.
+      const { displayName, webSearch, webLinks } = request.body;
       await db
         .updateTable("accounts")
-        .set({ display_name: request.body.displayName, updated_at: new Date() })
+        .set({
+          ...(displayName !== undefined ? { display_name: displayName } : {}),
+          ...(webSearch !== undefined ? { web_search_enabled: webSearch } : {}),
+          ...(webLinks !== undefined ? { web_links_enabled: webLinks } : {}),
+          updated_at: new Date(),
+        })
         .where("id", "=", accountId)
         .where("deleted_at", "is", null)
         .execute();

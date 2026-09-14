@@ -194,3 +194,42 @@ describe("AC-2 the avatar's two letters come from one rule", () => {
     expect(initialsOf("   ")).toBe("?");
   });
 });
+
+describe("016 the two switches", () => {
+  it("default on", async () => {
+    const id = await invited();
+    const row = await db
+      .selectFrom("accounts")
+      .select(["web_search_enabled", "web_links_enabled"])
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow();
+
+    // On rather than off, which inverts the line this product draws elsewhere
+    // for content leaving offload. A deliberate departure, recorded in 016's
+    // feature spec rather than discovered here.
+    expect(row.web_search_enabled).toBe(true);
+    expect(row.web_links_enabled).toBe(true);
+  });
+
+  it("a patch may name one switch and nothing else", async () => {
+    // 401 rather than 400: the body validated and the session did not. Which
+    // is the whole assertion, because a schema demanding `displayName` would
+    // make a settings toggle send a name it has no business sending.
+    const response = await app.inject({
+      method: "PATCH",
+      url: "/api/me",
+      payload: { webSearch: false },
+    });
+    expect(response.statusCode).toBe(401);
+  });
+
+  it("still refuses a name that is only whitespace", async () => {
+    // The optional field must not have loosened the rule that was there.
+    const response = await app.inject({
+      method: "PATCH",
+      url: "/api/me",
+      payload: { displayName: "   " },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+});
