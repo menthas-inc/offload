@@ -10,6 +10,7 @@ API's internal endpoint, which is what keeps one writer.
 
 import asyncio
 import contextlib
+import re
 import signal
 import uuid
 from collections.abc import Awaitable, Callable
@@ -20,6 +21,7 @@ from anthropic import AsyncAnthropic
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent import context as ctx_mod
+from offload_agent import reader
 from offload_agent.compact import KINDS as COMPACT_KINDS
 from offload_agent.compact import handle_compact
 from offload_agent.config import Config
@@ -76,11 +78,149 @@ async def _post_result(
     raise ReportFailed(str(type(last).__name__)) from last
 
 
+class Lookups:
+    """The turn's own web budget, and the record of what it spent it on.
+
+    **The bounds belong to the turn rather than to a call.** A dump can ask for
+    three things and each `look_up` would otherwise get its own three searches,
+    which is how a bound stated per turn becomes nine.
+    """
+
+    #: Per turn, both of them.
+    SEARCHES = 3
+    READS = 3
+
+    def __init__(self, dump: str, *, may_search: bool, may_read_links: bool) -> None:
+        self.dump = dump
+        self.may_search = may_search
+        self.may_read_links = may_read_links
+        self.searches = 0
+        self.reads = 0
+        self.sources: list[dict] = []
+        self.rows: list[dict] = []
+        self.usage: list[dict] = []
+
+    def left(self) -> int:
+        return max(0, self.SEARCHES - self.searches)
+
+    def record(self, *, label: str, kind: str, outcome: str, cost_micros: int = 0) -> None:
+        """One row per lookup: a closed label, what became of it, what it cost.
+
+        Never the question and never the URL. A query is somebody's own sentence
+        and anonymising it does not make it not content (OFF-1).
+        """
+        self.rows.append(
+            {"label": label, "kind": kind, "outcome": outcome, "costMicros": cost_micros}
+        )
+
+
+def _from_the_dump(text: str, dump: str) -> bool:
+    """Every word of it appears in the dump.
+
+    **A bound on composition rather than on judgement**, which is the only kind
+    that survives an injected instruction. The planner may use everything it
+    knows to decide whether to look something up; it may only send out of the
+    sentence in front of it. Without this, a note another member wrote in a
+    shared thread can steer a query carrying their details to a search company,
+    and nothing in the refusal list or the bounds would notice.
+
+    Coarse on purpose. The failure mode is a refused lookup that was fine, which
+    costs a lookup; the other direction costs somebody their address.
+    """
+    haystack = set(re.findall(r"[a-z0-9]+", dump.lower()))
+    return all(w in haystack for w in re.findall(r"[a-z0-9]+", text.lower()))
+
+
+def _in_the_dump(url: str, dump: str) -> bool:
+    """The URL was dumped by this person, as a link, in this message.
+
+    Matched against the dump rather than against the thread, so a URL somebody
+    else wrote into a shared thread is not fetchable however it got into the
+    model's context, and a URL the model composed is not fetchable at all.
+    """
+    return url in re.findall(r"https?://[^\s<>\"\')]+", dump)
+
+
+async def _look_up(
+    client: "AsyncAnthropic",
+    cfg: Config,
+    budget: Lookups,
+    args: dict,
+) -> dict:
+    """Answer a `look_up` without leaving the worker.
+
+    Nothing here writes, so nothing crosses to the Core API: the sources and the
+    counters ride home on the turn result the worker already posts.
+    """
+    question = (args.get("question") or "").strip() or None
+    url = (args.get("url") or "").strip() or None
+
+    if (question is None) == (url is None):
+        return {"ok": False, "error": "give exactly one of question and url"}
+
+    if url:
+        if not budget.may_read_links:
+            return {"ok": False, "error": "reading links is switched off"}
+        if not _in_the_dump(url, budget.dump):
+            budget.record(label="link_metadata", kind="read", outcome="refused_bound")
+            return {"ok": False, "error": "that url is not in what they dumped"}
+        if budget.reads >= budget.READS:
+            budget.record(label="link_metadata", kind="read", outcome="refused_bound")
+            return {"ok": False, "error": "limit_reached"}
+    else:
+        if not budget.may_search:
+            return {"ok": False, "error": "searching is switched off"}
+        if not _from_the_dump(question or "", budget.dump):
+            budget.record(label="other", kind="search", outcome="refused_bound")
+            return {"ok": False, "error": "ask using only words from what they dumped"}
+        if budget.left() == 0:
+            budget.record(label="other", kind="search", outcome="refused_bound")
+            return {"ok": False, "error": "limit_reached"}
+
+    reading = await reader.read(
+        client,
+        cfg.sort_model,
+        question=question,
+        url=url,
+        want=list(args.get("want") or []),
+        searches=budget.left() if question else 0,
+    )
+
+    budget.searches += reading.searches
+    budget.reads += reading.fetches
+    budget.usage.extend(reading.usage)
+    for source in reading.found.sources:
+        entry = {"domain": source.domain, "url": source.url}
+        if entry not in budget.sources:
+            budget.sources.append(entry)
+
+    outcome = "failed" if reading.failed else ("empty" if reading.found.unsure else "used")
+    budget.record(
+        label=reading.found.label,
+        kind="read" if url else "search",
+        outcome=outcome,
+        cost_micros=sum(u.get("webSearches", 0) for u in reading.usage) * 10_000,
+    )
+
+    if reading.failed or reading.found.unsure:
+        return {"ok": True, "found": False}
+
+    # Fields and sources. **Not the title and not a quoted excerpt**, which are
+    # written by whoever owns the page.
+    return {
+        "ok": True,
+        "found": True,
+        "fields": reading.found.fields,
+        "sources": [s["domain"] for s in budget.sources],
+    }
+
+
 def _tool_caller(
     http: httpx.AsyncClient,
     cfg: Config,
     job_id: str,
     embedder: "Callable[[str], Awaitable[str | None]] | None" = None,
+    lookups: "tuple[AsyncAnthropic, Config, Lookups] | None" = None,
 ):
     """The loop's only route to a write.
 
@@ -95,6 +235,14 @@ def _tool_caller(
     """
 
     async def call(tool: str, tool_call_id: str, args: dict) -> dict:
+        # The one tool that never reaches the Core API, because it writes
+        # nothing. It reads the web in a call that holds none of this person's
+        # data, and what comes back is fields.
+        if tool == "look_up":
+            if lookups is None:
+                return {"ok": False, "error": "not available on this turn"}
+            return await _look_up(lookups[0], lookups[1], lookups[2], args)
+
         payload = {"tool": tool, "jobId": job_id, "toolCallId": tool_call_id, **_camel(args)}
 
         # The query embedding is attached here, not asked of the model.
@@ -292,8 +440,18 @@ async def handle(
             return
 
         fitted = ctx_mod.fit(loaded, cfg.max_prompt_tokens)
+        budget = Lookups(
+            fitted.dump,
+            may_search=fitted.may_search,
+            may_read_links=fitted.may_read_links,
+        )
         outcome = await plan(
-            anthropic, fitted, cfg.model, _tool_caller(http, cfg, job.id)
+            anthropic,
+            fitted,
+            cfg.model,
+            _tool_caller(
+                http, cfg, job.id, lookups=(anthropic, cfg, budget)
+            ),
         )
 
         nothing_left = _nothing_left(outcome, fitted)
@@ -317,6 +475,9 @@ async def handle(
                     "jobId": job.id,
                     "replyText": _partial_reply(outcome),
                     "usage": _usage_wire(outcome),
+                    # A turn cut off partway still read what it read, and the
+                    # chip is a record of that rather than of the turn finishing.
+                    **_web_wire(budget),
                 },
             )
             log.warning(
@@ -344,6 +505,11 @@ async def handle(
                 "outcome": "answered",
                 "jobId": job.id,
                 **({"replyText": outcome.reply} if outcome.reply else {}),
+                # What the turn read, and what kind of lookup it was. They ride
+                # home here rather than through an endpoint of their own,
+                # because the reader writes nothing and one fewer route is one
+                # fewer thing to authenticate.
+                **_web_wire(budget),
                 "usage": _usage_wire(outcome),
             },
         )
@@ -386,6 +552,17 @@ async def handle(
         # log (OFF-1).
         log.error("dump failed", job_id=job.id, attempt=job.attempts, error_type=type(exc).__name__)
         await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
+
+
+def _web_wire(budget: "Lookups | None") -> dict:
+    """The web half of a turn result: sources for the chips, rows for the counts.
+
+    Omitted entirely on a turn that reached nothing, which is almost all of
+    them, so an ordinary filing result is the shape it has always been.
+    """
+    if budget is None or (not budget.sources and not budget.rows):
+        return {}
+    return {"sources": budget.sources, "lookups": budget.rows}
 
 
 def _nothing_left(outcome: Outcome, ctx: DumpContext) -> bool:
@@ -636,7 +813,16 @@ async def _handle_answer(
                 max_threads=cfg.max_threads,
             )
 
-        caller = _tool_caller(http, cfg, job.id, embedder=_embed_query(cfg, http))
+        budget = Lookups(
+            question, may_search=ctx.may_search, may_read_links=ctx.may_read_links
+        )
+        caller = _tool_caller(
+            http,
+            cfg,
+            job.id,
+            embedder=_embed_query(cfg, http),
+            lookups=(anthropic, cfg, budget),
+        )
         outcome = await plan_answer(anthropic, ctx, cfg.answer_model, caller)
 
         reply = outcome.reply
@@ -653,6 +839,7 @@ async def _handle_answer(
                 "jobId": job.id,
                 "replyText": reply,
                 "usage": _usage_wire(outcome),
+                **_web_wire(budget),
                 # The rows the answer showed, as ids. The reply resolves them
                 # when it is read, so a row ticked or deleted later is never
                 # stale in an old answer.
