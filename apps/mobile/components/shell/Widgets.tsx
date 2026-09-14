@@ -44,6 +44,8 @@ export function Widgets({
   groupBy: dimensions,
   onDelete,
   onActions,
+  onEdit,
+  onArchive,
   onToggle,
   arrived,
 }: {
@@ -53,6 +55,8 @@ export function Widgets({
   groupBy?: Record<string, string> | undefined;
   onDelete: (row: ContentRow) => void;
   onActions: (row: ContentRow) => void;
+  onEdit: (row: ContentRow) => void;
+  onArchive: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
   arrived?: Set<string> | undefined;
 }) {
@@ -68,6 +72,8 @@ export function Widgets({
           threadId={threadId}
           threadName={threadName}
           arrived={arrived}
+          onEdit={onEdit}
+          onArchive={onArchive}
           onDelete={onDelete}
           onActions={onActions}
           onToggle={onToggle}
@@ -85,6 +91,8 @@ function WidgetBlock({
   arrived,
   onDelete,
   onActions,
+  onEdit,
+  onArchive,
   onToggle,
 }: {
   widget: Widget<ContentRow>;
@@ -94,6 +102,8 @@ function WidgetBlock({
   arrived?: Set<string> | undefined;
   onDelete: (row: ContentRow) => void;
   onActions: (row: ContentRow) => void;
+  onEdit: (row: ContentRow) => void;
+  onArchive: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
 }) {
   const COLOR = useColors();
@@ -235,6 +245,8 @@ function WidgetBlock({
           arrived={arrived?.has(row.id) ?? false}
           onDelete={() => onDelete(row)}
           onActions={() => onActions(row)}
+          onEdit={() => onEdit(row)}
+          onArchive={() => onArchive(row)}
           onToggle={widget.kind === "todo" ? () => onToggle(row) : undefined}
         />
       ))}

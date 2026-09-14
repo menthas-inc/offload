@@ -272,10 +272,11 @@ export async function quickAdd(
   threadId: string,
   text: string,
   section: string,
-  /** The rail's own day and its repeat tick. Structured, not read from the
-   *  words: offload has no tool that can change either once the row is
-   *  written, so they have to be right from here. */
-  options?: { day?: string; repeats?: boolean },
+  /** The rail's own day. Structured, because a day heading's + is a choice
+   *  about where the row goes rather than something said in the words. How
+   *  often it comes round is not: "weekly on Monday at 2pm" says that, and the
+   *  model reads it at the moment it writes the row. */
+  options?: { day?: string },
 ): Promise<{ id: string; kind: "content" | "note" } | null> {
   const { data } = await send<{ id: string; kind: "content" | "note" }>(
     `/v1/threads/${threadId}/quick-add`,

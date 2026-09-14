@@ -331,12 +331,18 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdded }:
 
 /** Typing straight onto the day that is open.
  *
- *  The same field as every other section's, plus one box: a tick means it
- *  repeats weekly from this day, since the weekday is already in the date and
- *  there is nothing else one box could mean. **The tick is final.** offload's
- *  only tool on this row is `edit_content`, which has no date and no repeat
- *  field, so neither the day nor the tick can be corrected from what gets
- *  typed; both are exactly what they are here from the moment this closes. */
+ *  The same field as every other section's, and nothing else on it.
+ *
+ *  **It had a "Repeats weekly" box for three days.** The reasoning was that
+ *  `edit_content` carries no repeat field, so a repeat had to be structural or
+ *  it could never be set. It can: the model reads the words at the moment it
+ *  writes the row, and "weekly on Monday at 2pm" says more than one box ever
+ *  could, in the way this product is supposed to be talked to. The box asked
+ *  somebody to choose a format before they could put something down, which is
+ *  the thing the composer exists not to do.
+ *
+ *  **The day stays structural**, because it is not something they said. It is
+ *  the heading they pressed +  on. */
 function DayQuickAdd({
   threadId,
   day,
@@ -349,14 +355,13 @@ function DayQuickAdd({
   onCancel: () => void;
 }) {
   const [text, setText] = useState("");
-  const [repeats, setRepeats] = useState(false);
   const [saving, setSaving] = useState(false);
 
   async function save(): Promise<void> {
     const trimmed = text.trim();
     if (trimmed.length === 0) return onCancel();
     setSaving(true);
-    const written = await quickAdd(threadId, trimmed, "timeline", { day, repeats });
+    const written = await quickAdd(threadId, trimmed, "timeline", { day });
     setSaving(false);
     if (!written) return;
     setText("");
@@ -380,15 +385,6 @@ function DayQuickAdd({
         aria-label="Add to this day"
       />
       <div className={styles.dayQuickAddRow}>
-        <label className={styles.dayQuickAddRepeat}>
-          <input
-            type="checkbox"
-            checked={repeats}
-            disabled={saving}
-            onChange={(event) => setRepeats(event.target.checked)}
-          />
-          Repeats weekly
-        </label>
         <div className={styles.dayQuickAddActions}>
           <button type="button" className={styles.sectionAction} onClick={onCancel}>
             Cancel

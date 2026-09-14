@@ -11,6 +11,21 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-14 · The phone's row draws what the web row draws, and the repeat box comes off
+**Surface:** web, iOS, Android
+
+**Was:** the phone's row drew a trash and nothing else, so renaming still meant a long press. The rail's day + carried a "Repeats weekly" tick on the web and a chip of the same name on the phones.
+
+**Is:** every row draws the pair `RowTools` has drawn on the web since 007, edit and one way out, and the repeat control is gone from both surfaces.
+
+**"Two controls, never three" is now one rule on two surfaces**, and which way out you get is still decided by the row: Delete for your own, Archive for somebody else's, Put back for an archived one. The phone adds one thing the web version does not have: the pencil and the way out are drawn only where `canDelete` is true, because `edit_content` and the delete need the same authorship the server checks, and the readme's rule is conditional, never refused. The web's pencil is still drawn unconditionally, which is a latent divergence on a shared thread and is worth closing when threads are actually shared.
+
+**The repeat box was a structural answer to a question that turned out to be conversational.** The argument for it was real: `edit_content` carries no repeat field, so a repeat set later can never be corrected, and the day beneath the + is already structural. What that missed is that nothing has to be set later. Typed into the day's + on a device: "weekly bin collection monday 7am" came back as **Bin collection, Weekly, Monday 7am**, a real weekly rule with a real time, because the model reads the words at the moment it writes the row. A box, meanwhile, asks somebody to choose a format before they can put something down, which is the one thing this product does not do.
+
+**The day stays structural.** It is not something anybody said; it is the heading they pressed +  on.
+
+**Design system impact:** `ThreadWidgets.jsx` and any row in the mobile kits want the `RowTools` pair rather than a single control, at 17px with `--space-6` between them, and the conditional rule stated: a row that cannot be edited draws no pencil. Any mock of the rail's day add should lose its repeat control; the field and the day heading are the whole of it.
+
 ### 2026-09-11 · A row draws its own delete, and a section's two controls stop being one target
 **Surface:** iOS, Android
 

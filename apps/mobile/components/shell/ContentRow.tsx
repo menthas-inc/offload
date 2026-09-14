@@ -6,11 +6,11 @@
 // this account may actually do, which is how the authorship split is handled
 // without a gesture map that is wrong for half the rows.
 //
-// **And since 2026-09-11 a row you may delete draws a trash as well.** Three
-// ways to the same action, which the rule above deliberately avoided, and the
-// product owner asked for it after an evening of tidying a list: a swipe is a
-// gesture you have to remember, and a trash is a thing you can see. The two
-// gestures are unchanged and still carry everything else.
+// **And since 2026-09-11 the row draws what the web row draws**: edit, and one
+// way out. Three ways to the same action, which the rule above deliberately
+// avoided, and the product owner asked for it after an evening of tidying a
+// list: a gesture is something you have to remember, and an icon is something
+// you can see. The two gestures are unchanged and still carry everything else.
 
 import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -48,6 +48,12 @@ interface Props {
   border: boolean;
   onDelete: () => void;
   onActions: () => void;
+  /** Rename it. The same control the web row has drawn since 007, and the same
+   *  sheet the long press already opened. */
+  onEdit: () => void;
+  /** Out of the list, or back into it. Which one it means is decided by the
+   *  row, not by the caller. */
+  onArchive: () => void;
   /** Arrived while somebody was looking at the screen, so it is marked for a
    *  moment rather than simply being there. */
   arrived?: boolean | undefined;
@@ -68,6 +74,8 @@ export function ContentRowView({
   arrived,
   onDelete,
   onActions,
+  onEdit,
+  onArchive,
   onToggle,
   note,
 }: Props) {
@@ -238,29 +246,64 @@ export function ContentRowView({
             />
           ) : null}
 
-          {/* The one action worth a tap of its own.
+          {/* **Two controls, never three: edit, and one way out.** The web
+           *  row's own rule, written on `RowTools` and now the phone's as well,
+           *  and the same reason: on a solo thread Archive and Delete are two
+           *  answers to one question and only one of them is honest about what
+           *  it does. Which way out is drawn is decided by the row.
            *
-           *  The swipe and the sheet both already carry it, and this is a third
-           *  way in on purpose: a list you are tidying is a row after a row
-           *  after a row, and a swipe is a gesture you have to remember while a
-           *  trash is a thing you can see. Asked for in those words on
-           *  2026-09-11, after a session of ticking things off.
+           *  The swipe and the long press both already carried all of this. A
+           *  list you are tidying is a row after a row after a row, and a
+           *  gesture is something you have to remember where an icon is
+           *  something you can see.
            *
-           *  **Only where it is honest.** Somebody else's row offers no delete,
-           *  because the server would refuse one (OFF-3), and an archived row
-           *  is already out of the way. Both fall through to the long press,
-           *  which offers what they can actually do. */}
-          {row.canDelete && !row.archivedAt ? (
-            <Pressable
-              onPress={onDelete}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel={`Delete ${row.title}`}
-              style={{ marginTop: 1 }}
-            >
-              <Glyph name="trash-2" size={17} color={COLOR.iconOnWell} />
-            </Pressable>
-          ) : null}
+           *  **Conditional, never refused.** `edit_content` and the delete both
+           *  need the row to be this account's, which is exactly what
+           *  `canDelete` reports, so somebody else's row draws neither and
+           *  offers Archive instead. An archived row offers the way back,
+           *  whoever is looking: putting something back is not destructive and
+           *  is not the author's alone. */}
+          <View className="flex-row items-center gap-space-6" style={{ marginTop: 1 }}>
+            {row.canDelete ? (
+              <Pressable
+                onPress={onEdit}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`Edit ${row.title}`}
+              >
+                <Glyph name="pencil" size={17} color={COLOR.iconOnWell} />
+              </Pressable>
+            ) : null}
+
+            {row.archivedAt ? (
+              <Pressable
+                onPress={onArchive}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`Put ${row.title} back in the thread`}
+              >
+                <Glyph name="rewind" size={17} color={COLOR.iconOnWell} />
+              </Pressable>
+            ) : row.canDelete ? (
+              <Pressable
+                onPress={onDelete}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${row.title}`}
+              >
+                <Glyph name="trash-2" size={17} color={COLOR.iconOnWell} />
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={onArchive}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`Archive ${row.title}`}
+              >
+                <Glyph name="archive" size={17} color={COLOR.iconOnWell} />
+              </Pressable>
+            )}
+          </View>
         </Animated.View>
       </GestureDetector>
     </View>

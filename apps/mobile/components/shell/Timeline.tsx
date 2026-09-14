@@ -45,6 +45,8 @@ interface Props {
   notes: Note[];
   onDelete: (row: ContentRow) => void;
   onActions: (row: ContentRow) => void;
+  onEdit: (row: ContentRow) => void;
+  onArchive: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
 }
 
@@ -55,6 +57,8 @@ export function Timeline({
   notes,
   onDelete,
   onActions,
+  onEdit,
+  onArchive,
   onToggle,
 }: Props) {
   const { raiseFor } = useConversation();
@@ -343,7 +347,8 @@ export function Timeline({
 
         {/* The same + every other section has, onto the day that is open. It
             raises the composer rather than opening a field of its own, like the
-            others, and brings the one option a day carries with it. */}
+            others. The day travels with it; everything else about the thing is
+            in the words, including how often it comes round. */}
         <Pressable
           onPress={() =>
             raiseFor({
@@ -359,7 +364,6 @@ export function Timeline({
               placeholder: "Type it, offload will sort it out",
               charLimit: QUICK_ADD_CHARS,
               day: selected,
-              offerRepeat: true,
             })
           }
           hitSlop={12}
@@ -416,6 +420,8 @@ export function Timeline({
           arrived={false}
           onDelete={() => onDelete(row)}
           onActions={() => onActions(row)}
+          onEdit={() => onEdit(row)}
+          onArchive={() => onArchive(row)}
           onToggle={row.type === "task" ? () => onToggle(row) : undefined}
           // **The time, which the phone's row has nowhere else to put.** Web
           // draws it in the meta slot; here the row has one text line and this

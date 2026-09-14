@@ -63,9 +63,6 @@ export interface Pin {
    *  afterwards is `edit_content`, which carries no date, so the day has to be
    *  right from here. */
   day?: string;
-  /** Whether to offer the repeat tick. Only the rail's + does: a weekly repeat
-   *  needs a weekday, and the day is what supplies it. */
-  offerRepeat?: boolean;
 }
 
 export interface Turn {
@@ -133,10 +130,6 @@ export interface Conversation {
   raiseFor: (pin: Pin) => void;
   /** A thread screen saying it is open, or null as it leaves. */
   setOnScreen: (thread: { id: string; name: string } | null) => void;
-  /** The repeat tick, while a pin offers one. Cleared with the pin, because a
-   *  tick left standing would repeat the next thing typed. */
-  repeats: boolean;
-  setRepeats: (on: boolean) => void;
   /** Whether a screen has a sheet of its own up.
    *
    *  **The plate is mounted above the router**, so anything a screen anchors to
@@ -185,7 +178,6 @@ export function ConversationProvider({
   const [turns, setTurns] = useState<Turn[]>([]);
   const [pin, setPin] = useState<Pin | null>(null);
   const [onScreen, setOnScreen] = useState<{ id: string; name: string } | null>(null);
-  const [repeats, setRepeats] = useState(false);
   const [sheets, setSheets] = useState(0);
   const openSheet = useCallback(() => setSheets((open) => open + 1), []);
   const closeSheet = useCallback(() => setSheets((open) => Math.max(0, open - 1)), []);
@@ -254,14 +246,10 @@ export function ConversationProvider({
 
   const raiseFor = useCallback((next: Pin) => {
     setDraft("");
-    setRepeats(false);
     setPin(next);
   }, []);
 
-  const dismissPin = useCallback(() => {
-    setRepeats(false);
-    setPin(null);
-  }, []);
+  const dismissPin = useCallback(() => setPin(null), []);
 
   // The conversation as the database has it, so reopening the app does not look
   // like a fresh account.
@@ -401,7 +389,6 @@ export function ConversationProvider({
             )
           : await quickAdd(target.threadId, text, target.section ?? "", {
               ...(target.day ? { day: target.day } : {}),
-              ...(target.offerRepeat ? { repeats } : {}),
             }).then((written) => written !== null);
 
       if (!ok) {
@@ -411,10 +398,9 @@ export function ConversationProvider({
         return;
       }
       setFiled({ threadIds: [target.threadId], at: Date.now() });
-      setRepeats(false);
       setPin(null);
     },
-    [repeats],
+    [],
   );
 
   const submit = useCallback(async (): Promise<void> => {
@@ -497,8 +483,6 @@ export function ConversationProvider({
         pin,
         onScreen,
         setOnScreen,
-        repeats,
-        setRepeats,
         sheetOpen: sheets > 0,
         openSheet,
         closeSheet,

@@ -1156,7 +1156,9 @@
 .dayQuickAddRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* Cancel and Add at the end. It held a repeat box at the other end until
+     2026-09-14; with the box gone there is nothing to space apart. */
+  justify-content: flex-end;
   gap: var(--space-4);
 }
 
@@ -1164,29 +1166,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-}
-
-/* Not the Checkbox component: that one strikes its label through once
-   ticked, which is right for a task read as done and wrong here, where
-   ticked means the row will repeat rather than that it is finished. The
-   label is the hit area, so a 17px box still answers a 44px tap. */
-.dayQuickAddRepeat {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 44px;
-  font-family: var(--font-core);
-  font-size: calc(13px * var(--type-scale));
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.dayQuickAddRepeat input {
-  width: 17px;
-  height: 17px;
-  border-radius: 5px;
-  accent-color: var(--surface-inverse);
-  cursor: pointer;
 }
 
 /* The one spinner, on a row offload has not read yet. Sits where the tools do,

@@ -347,6 +347,8 @@ export default function Thread() {
             notes={thread.notes}
             onDelete={(row: ContentRow) => void remove(row)}
             onActions={setActing}
+            onEdit={setRenaming}
+            onArchive={(row: ContentRow) => void archive(row)}
             onToggle={(row: ContentRow) => void tick(row)}
           />
         )}
@@ -359,6 +361,8 @@ export default function Thread() {
             groupBy={thread.preference.groupBy}
             onDelete={(row: ContentRow) => void remove(row)}
             onActions={setActing}
+            onEdit={setRenaming}
+            onArchive={(row: ContentRow) => void archive(row)}
             onToggle={(row: ContentRow) => void tick(row)}
             arrived={arrived}
           />
@@ -418,6 +422,8 @@ export default function Thread() {
             arrived={false}
             onDelete={() => void remove(series.row)}
             onActions={() => setActing(series.row)}
+            onEdit={() => setRenaming(series.row)}
+            onArchive={() => void archive(series.row)}
             note={
               cadenceLabel(series.everyDays)
                 ? `${cadenceLabel(series.everyDays)} · ${series.count} held`
@@ -434,6 +440,8 @@ export default function Thread() {
             arrived={arrived.has(row.id)}
             onDelete={() => void remove(row)}
             onActions={() => setActing(row)}
+            onEdit={() => setRenaming(row)}
+            onArchive={() => void archive(row)}
           />
         ))}
 

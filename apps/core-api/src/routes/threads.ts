@@ -830,20 +830,26 @@ const STARTS_AS: Record<string, "task" | "location" | "event"> = {
  *  chosen, which is the whole difference between the composer and a + on a
  *  section: somebody adding to To do has said where it goes.
  *
- *  **`day` and `repeats` are structured, not read from the words.** The rail's
- *  + already knows which day was open and whether the box was ticked, so
- *  those two arrive as real values rather than as something offload has to
- *  read out of the sentence. That matters because `edit_content`, the only
- *  tool offload has on this row, carries no date and no repeat rule: it can
- *  give the row a real title, and it cannot move the day or change whether it
- *  repeats. Both are final the moment this function returns.
+ *  **`day` is structured, and it is the only thing that is.** The rail's + knows
+ *  which day heading it sits under, which is not something anybody said; it is
+ *  where they pressed. It arrives as a real value rather than as something
+ *  offload has to read out of a sentence, and it is final the moment this
+ *  function returns, because `edit_content` carries no date.
+ *
+ *  **`repeats` used to arrive the same way, from a tick, and does not any
+ *  more (2026-09-14).** The reasoning for the tick was that `edit_content`
+ *  cannot set a repeat either, so a repeat had to be structural or it could
+ *  never be set at all. It can: the model reads the words at the moment it
+ *  writes the row, and "weekly on Monday at 2pm" says more than a box ever
+ *  could. A box also asks somebody to choose a format before they can put
+ *  something down, which is the one thing this product does not do.
  */
 export async function quickAdd(
   accountId: string,
   threadId: string,
   text: string,
   section: string,
-  options: { day?: string | null | undefined; repeats?: boolean | undefined } = {},
+  options: { day?: string | null | undefined } = {},
 ): Promise<{ id: string; kind: "content" | "note" }> {
   await requireMember(accountId, threadId);
 
@@ -860,8 +866,7 @@ export async function quickAdd(
   }
 
   // A day with no time in it, noon UTC per `parseWhen`, so it reads back as
-  // the same calendar day almost everywhere. `repeats` needs a real date under
-  // it, per the 0036 constraint, so it is only ever set alongside one.
+  // the same calendar day almost everywhere.
   const occursAt = options.day ? parseWhen(options.day) : null;
   const allDay = occursAt ? isBareDate(options.day) : false;
 
@@ -880,12 +885,6 @@ export async function quickAdd(
         updated_at: sql`now()`,
         ...(occursAt ? { occurs_at: occursAt } : {}),
         ...(allDay ? { attrs: { all_day: true } } : {}),
-        // A tick on the day's + means it repeats weekly from that day: the
-        // weekday is already in the date and there is nothing else a single
-        // box could mean. offload cannot correct this from the words, see
-        // above, so it is the one place this route trusts the client's own
-        // reading of a checkbox rather than a model's.
-        ...(occursAt && options.repeats ? { repeats: "week" as const } : {}),
       })
       .returning("id")
       .executeTakeFirstOrThrow();
@@ -1461,9 +1460,6 @@ export async function threadRoutes(app: App): Promise<void> {
           /** The day open on the rail, when the + was that one's. A day, not a
            *  time: the rail asks which day, never which hour. */
           day: z.string().max(40).optional(),
-          /** The rail's own checkbox: ticked means it repeats weekly from
-           *  `day`. Ignored where there is no `day` to repeat from. */
-          repeats: z.boolean().optional(),
         }),
         response: {
           200: z.object({ id: z.string(), kind: z.enum(["content", "note"]) }),
@@ -1484,7 +1480,6 @@ export async function threadRoutes(app: App): Promise<void> {
         return reply.send(
           await quickAdd(accountId, request.params.id, text, request.body.section ?? "", {
             day: request.body.day,
-            repeats: request.body.repeats,
           })
         );
       })

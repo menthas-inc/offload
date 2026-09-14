@@ -346,10 +346,11 @@ export async function quickAdd(
   threadId: string,
   text: string,
   section: string,
-  /** The rail's own day and its repeat box. Structured, not read from the
-   *  words: offload has no tool that can change either once the row is
-   *  written, so they have to be right from here. */
-  options?: { day?: string; repeats?: boolean },
+  /** The rail's own day, and only that. Structured because it is the heading
+   *  they pressed + on rather than something they said; how often a thing comes
+   *  round is something they say, and the model reads it as it writes the
+   *  row. */
+  options?: { day?: string },
 ): Promise<{ id: string; kind: "content" | "note" } | null> {
   const response = await fetch(`${API}/v1/threads/${threadId}/quick-add`, {
     ...json,
