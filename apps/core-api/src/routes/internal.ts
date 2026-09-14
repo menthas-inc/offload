@@ -89,6 +89,34 @@ const body = z.discriminatedUnion("outcome", [
       )
       .max(3)
       .optional(),
+    /** 016. Where the turn got something from, for the chips under it.
+     *
+     *  **Two fields, and the omissions are the point.** A provider's citation
+     *  also carries the page's title and a quoted excerpt, and both are written
+     *  by whoever owns the page: forwarding either walks attacker-controlled
+     *  prose onto somebody's screen in offload's own voice. */
+    sources: z
+      .array(z.object({ domain: z.string().max(253), url: z.string().url().max(2000) }))
+      .max(6)
+      .optional(),
+    /** And what kind of lookup it was, which is how the next narrow tool gets
+     *  argued from counts rather than from whichever example came to mind.
+     *
+     *  **No query and no URL.** A query is somebody's own sentence, and
+     *  anonymising it does not make it not content (OFF-1). The label is
+     *  validated against a closed set here as well as in the worker, because a
+     *  set enforced in one place is a set until somebody adds a second writer. */
+    lookups: z
+      .array(
+        z.object({
+          label: z.string().max(40),
+          kind: z.enum(["search", "read"]),
+          outcome: z.enum(["used", "unused", "empty", "failed", "refused_bound"]),
+          costMicros: z.number().int().min(0).max(10_000_000),
+        })
+      )
+      .max(12)
+      .optional(),
     usage,
   }),
   z.strictObject({
@@ -96,6 +124,23 @@ const body = z.discriminatedUnion("outcome", [
     jobId: z.string().uuid(),
     /** Describes what actually landed, and only that (AC-15). */
     replyText: z.string().min(1),
+    /** A turn cut off partway still read what it read, and a chip is a record
+     *  of that rather than of the turn finishing. Same shape as above. */
+    sources: z
+      .array(z.object({ domain: z.string().max(253), url: z.string().url().max(2000) }))
+      .max(6)
+      .optional(),
+    lookups: z
+      .array(
+        z.object({
+          label: z.string().max(40),
+          kind: z.enum(["search", "read"]),
+          outcome: z.enum(["used", "unused", "empty", "failed", "refused_bound"]),
+          costMicros: z.number().int().min(0).max(10_000_000),
+        })
+      )
+      .max(12)
+      .optional(),
     usage,
   }),
   z.strictObject({
@@ -106,6 +151,22 @@ const body = z.discriminatedUnion("outcome", [
     reason: z.enum(["model_error", "invalid_output", "timeout"]),
     usage: usage.optional(),
   }),
+]);
+
+/** The closed set the `lookups.label` column may hold, mirrored from the
+ *  worker's own list. Anything else becomes `other` and the string the model
+ *  produced is discarded rather than stored, which is the difference between a
+ *  counter and a free-text field nobody meant to build. */
+const LOOKUP_LABELS = new Set([
+  "weather",
+  "when_is",
+  "place",
+  "opening_hours",
+  "price_or_availability",
+  "link_metadata",
+  "person_or_org",
+  "how_to",
+  "other",
 ]);
 
 const ok = z.object({ status: z.enum(["written", "already"]) });
@@ -462,6 +523,56 @@ export async function internalRoutes(app: App): Promise<void> {
             if (rows.length > 0) {
               await trx.insertInto("message_content").values(rows).execute();
             }
+          }
+
+          // 016. What the turn read, and what kind of lookup it was.
+          //
+          // **Against the turn rather than the reply**, because an ordinary
+          // filing turn writes no reply at all and may still have read
+          // something. Same reason the Done mark and the thread pills belong to
+          // the turn: the sentence is optional and the record is not.
+          if (result.sources?.length) {
+            await trx
+              .insertInto("turn_sources")
+              .values(
+                result.sources.map((source) => ({
+                  account_id: accountId,
+                  turn_id: payload.turnId!,
+                  domain: source.domain,
+                  url: source.url,
+                })),
+              )
+              .execute();
+
+            // And the tally with nobody attached. One statement, no account id
+            // in it at all, which is what makes this aggregate by construction
+            // rather than aggregate by policy.
+            for (const domain of new Set(result.sources.map((s) => s.domain))) {
+              await sql`
+                insert into domain_reads (domain, day, count)
+                values (${domain}, current_date, 1)
+                on conflict (domain, day) do update set count = domain_reads.count + 1
+              `.execute(trx);
+            }
+          }
+
+          if (result.lookups?.length) {
+            await trx
+              .insertInto("lookups")
+              .values(
+                result.lookups.map((lookup) => ({
+                  account_id: accountId,
+                  // Validated against the closed set here as well as in the
+                  // worker. A set enforced in one place is a set until there
+                  // is a second writer, and the whole design of this table is
+                  // that the column can never become free text.
+                  label: LOOKUP_LABELS.has(lookup.label) ? lookup.label : "other",
+                  kind: lookup.kind,
+                  outcome: lookup.outcome,
+                  cost_micros: lookup.costMicros,
+                })),
+              )
+              .execute();
           }
 
           await trx

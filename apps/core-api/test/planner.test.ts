@@ -948,3 +948,99 @@ describe("a row typed straight into a thread", () => {
     expect((second.json() as { ok: boolean }).ok).toBe(true);
   });
 });
+
+describe("016 what a turn read", () => {
+  it("records the sources against the turn, and the tally against nobody", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "EU with fam");
+    const { jobId, turnId } = await dump(accountId);
+
+    const existing = await db
+      .selectFrom("domain_reads")
+      .select("count")
+      .where("domain", "=", "timeanddate.com")
+      .executeTakeFirst();
+    const before = existing?.count ?? 0;
+
+    await tool({
+      tool: "add_content",
+      type: "task",
+      jobId,
+      toolCallId: "web1",
+      threadId,
+      title: "Book the flat",
+    });
+
+    const posted = await turnResult({
+      outcome: "answered",
+      jobId,
+      usage: [usage],
+      sources: [{ domain: "timeanddate.com", url: "https://timeanddate.com/holidays" }],
+      lookups: [
+        { label: "when_is", kind: "search", outcome: "used", costMicros: 10000 },
+        // A label nobody defined. It becomes `other` rather than becoming a
+        // free text column, which is the whole design of this table.
+        {
+          label: "whatever the model felt like",
+          kind: "search",
+          outcome: "unused",
+          costMicros: 0,
+        },
+      ],
+    });
+    expect(posted.statusCode).toBe(200);
+
+    const sources = await db
+      .selectFrom("turn_sources")
+      .selectAll()
+      .where("turn_id", "=", turnId)
+      .execute();
+    expect(sources).toHaveLength(1);
+    expect(sources[0]!.domain).toBe("timeanddate.com");
+    expect(sources[0]!.account_id).toBe(accountId);
+
+    const labels = await db
+      .selectFrom("lookups")
+      .select(["label", "outcome"])
+      .where("account_id", "=", accountId)
+      .orderBy("created_at")
+      .execute();
+    expect(labels.map((l) => l.label)).toEqual(["when_is", "other"]);
+
+    // The tally has no account id at all. Not "we do not query it by account":
+    // there is no column to query it by, which is the difference between
+    // aggregate by construction and aggregate by policy.
+    //
+    // **Asserted as an increment rather than as a count**, because the tally
+    // has no account to cascade from and therefore survives `beforeEach`
+    // deleting every account. That is the design working: a tally that
+    // disappeared when an account did would be a tally joined to one.
+    const tally = await db
+      .selectFrom("domain_reads")
+      .selectAll()
+      .where("domain", "=", "timeanddate.com")
+      .executeTakeFirstOrThrow();
+    expect(tally.count).toBe(before + 1);
+    expect(Object.keys(tally)).toEqual(["domain", "day", "count"]);
+  });
+
+  it("holds no query and no page text anywhere", async () => {
+    // The one that would hurt. Nothing about what was asked, or what came
+    // back, may be reconstructible from any of the three tables (OFF-1).
+    const accountId = await account();
+    const { jobId } = await dump(accountId, "when is memorial day and will it rain in lisbon");
+
+    await turnResult({
+      outcome: "answered",
+      jobId,
+      usage: [usage],
+      sources: [{ domain: "timeanddate.com", url: "https://timeanddate.com/holidays" }],
+      lookups: [{ label: "when_is", kind: "search", outcome: "used", costMicros: 10000 }],
+    });
+
+    const rows = await db.selectFrom("lookups").selectAll().where("account_id", "=", accountId).execute();
+    const written = JSON.stringify(rows);
+    expect(written).not.toContain("memorial");
+    expect(written).not.toContain("lisbon");
+  });
+});

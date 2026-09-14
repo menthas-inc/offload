@@ -162,6 +162,9 @@ const messageResponse = z.object({
    *  A move's source is in here and not in `threads`: the screen has to reload
    *  it, and a pill saying the dump went there would be untrue. */
   changed: z.array(z.string()),
+  /** 016. Where this turn got something from, for the chips under it. Empty on
+   *  every turn that read nothing, which is nearly all of them. */
+  sources: z.array(z.object({ domain: z.string(), url: z.string() })),
   waiting: waitingOn,
   found: foundResults,
 });
@@ -222,6 +225,26 @@ const unauthenticated = z.object({ error: z.literal("unauthenticated") });
  *  existed. Their turns filed rather than edited, because filing was the only
  *  thing that left a record, so the older answer is still the right one for
  *  them. */
+/** What a turn read from the web, for the chip under it.
+ *
+ *  Scoped by account like everything else, and read at the turn rather than at
+ *  the reply: an ordinary filing turn writes no reply and may still have read
+ *  something. Ordered by when it was read, and capped, because six chips under
+ *  a one-sentence reply is a footnote section. */
+export async function sourcesFor(
+  turnId: string,
+  accountId: string,
+): Promise<{ domain: string; url: string }[]> {
+  return db
+    .selectFrom("turn_sources")
+    .select(["domain", "url"])
+    .where("turn_id", "=", turnId)
+    .where("account_id", "=", accountId)
+    .orderBy("created_at")
+    .limit(6)
+    .execute();
+}
+
 async function threadsFor(
   messageId: string,
   accountId: string,
@@ -312,6 +335,7 @@ export type StreamStep =
       replyId: string | null;
       threads: TouchedThread[];
       changed: string[];
+      sources: { domain: string; url: string }[];
     }
   | {
       do: "partial";
@@ -319,6 +343,7 @@ export type StreamStep =
       replyId: string | null;
       threads: TouchedThread[];
       changed: string[];
+      sources: { domain: string; url: string }[];
     }
   | { do: "failed" }
   | { do: "close" }
@@ -349,9 +374,10 @@ export async function streamStep(
 
   if (!current) return { do: "close" };
   if (current.state === "answered" || current.state === "partial") {
-    const [reply, touched] = await Promise.all([
+    const [reply, touched, sources] = await Promise.all([
       replyFor(current.turn_id, accountId),
       threadsFor(messageId, accountId),
+      sourcesFor(current.turn_id, accountId),
     ]);
     return {
       do: current.state === "answered" ? "answered" : "partial",
@@ -360,6 +386,7 @@ export async function streamStep(
       replyId: reply?.id ?? null,
       threads: touched.landed,
       changed: touched.changed,
+      sources,
     };
   }
   if (current.state === "failed") return { do: "failed" };
@@ -626,6 +653,9 @@ export async function dumpRoutes(app: App): Promise<void> {
         // the turn settles, which is the honest answer while it is running.
         threads: settled ? touched.landed : [],
         changed: settled ? touched.changed : [],
+        // Read at the turn rather than at the reply: a filing turn writes no
+        // reply and may still have read something.
+        sources: settled ? await sourcesFor(message.turn_id, accountId) : [],
         // The control arrives with the reply that mentions it, rather than on
         // the next reload. A reply saying offload is waiting, with nothing to
         // answer it, is the dead end this whole change is about.
@@ -885,6 +915,7 @@ export async function dumpRoutes(app: App): Promise<void> {
               reply: step.reply,
               threads: step.threads,
               changed: step.changed,
+              sources: step.sources,
               waiting: (await waitingFor([message.id])).get(message.id) ?? null,
               // Arrives with the reply that mentions it, rather than on the
               // next reload. Same reason the confirmation does.
