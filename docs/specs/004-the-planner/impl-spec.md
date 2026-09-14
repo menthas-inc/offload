@@ -335,7 +335,7 @@ Scheduling: the runner ticks every second already. `content.purge` is enqueued w
 
 - **Undo is a `Toast`**, the existing component contract, "float it above the composer with 16px of side gutter", message `Sorted into Lisbon trip` and action `Undo`. Eight seconds, then it goes. Nothing new is designed.
 - The toast's message names the threads, from the reply's own turn, so what the toast says and what the reply says come from one source.
-- **`partial` renders the reply plus one inline line**, reusing the treatment 003 invented for `failed`: inline and persistent rather than a toast, because a toast that clears itself takes the only route back with it. Copy: `offload did not finish that one.` with `Finish it` beside it.
+- **`partial` renders the reply plus one inline line**, reusing the treatment 003 invented for `failed`: inline and persistent rather than a toast, because a toast that clears itself takes the only route back with it. Copy: `Didn't finish that one.` (reworded 2026-09-14 by the voice change in 016) with `Finish it` beside it.
 - `Finish it` POSTs to `/v1/dumps/:messageId/resume`, which enqueues a fresh `dump.answer` job for the same message and returns the same envelope `POST /v1/dumps` does, so the composer's existing wait path is reused unchanged.
 - `Try again` on `failed` keeps 003's behaviour: it puts the text back in the composer, because nothing landed and there is nothing to resume.
 

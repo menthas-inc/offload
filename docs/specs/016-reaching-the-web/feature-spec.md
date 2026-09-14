@@ -92,7 +92,7 @@ defect is the preference rule, not the refusal list.
 - **There is nothing to file**, because the dump was only the question: offload
   says one line and nothing else.
 
-  > I don't search that.
+  > Can't search that.
 
 No category is named, no reason is given, no alternative is offered. Naming the
 category is an argument about the category, and offload does not have those.
@@ -102,20 +102,22 @@ category is an argument about the category, and offload does not have those.
 | Dump | Lookup? | What happens |
 | --- | --- | --- |
 | "Buy a hunting knife on Saturday" | No, it is a todo with a date | Filed. The list never fires. |
-| "What day is the gun show in Dallas" | It wanted one | No lookup, nothing to file, so: "I don't search that." |
+| "What day is the gun show in Dallas" | It wanted one | No lookup, nothing to file, so: "Can't search that." |
 | "Tickets for the gun show, it's on the 12th" | No, the date is given | Filed, silently. |
 | "Get tickets for the gun show when they drop" | It wanted one | Filed as a todo with no date, and offload says nothing. |
 | "What time do the polls open on Thursday" | Yes | Answered. A day is a day. |
 | "When does the march reach Camden" | Yes | Answered. It is a road closure, which is the diary. |
-| "Which candidate is ahead in the polls" | It wanted one | "I don't search that." |
+| "Which candidate is ahead in the polls" | It wanted one | "Can't search that." |
 | "Find me a therapist" | Yes | See the open question below. |
 
-**"I don't search that." is first person, and the design system's voice section
-says never "I".** The line is the product owner's, twice over, and two
-undocumented precedents already exist in the kits and in an answering handoff
-note. So the line stands and the debt gets paid: this feature adds the
-`decisions.md` entry that amends the voice rule for offload talking about its own
-limits, rather than quietly widening it a third time.
+**The line was "I don't search that." and the design system answered with
+neither option.** The brief asked whether to rewrite it in the third person or
+amend the rule that forbids "I". What came back on 2026-09-14 is a third answer
+and a wider one: **the sentence starts with the verb and names no subject**,
+neither "I" nor "offload", and contractions are in. So the line is "Can't search
+that.", "Couldn't look that up." is the failure clause, and `offload did not
+finish that one.` became `Didn't finish that one.` in two clients and the
+readme.
 
 **The boundary that matters is the topic, not the word.** A day is a day: when
 the polls are open, when a school term starts, when a march closes the road that
@@ -132,7 +134,7 @@ not an answer.
 
 **Self-harm is not like the other four, and this spec does not settle it.** A
 person asking offload to help them find support is the one case where silence is
-the harmful answer rather than the safe one, and "I don't search that." to
+the harmful answer rather than the safe one, and "Can't search that." to
 somebody in that state is worse than either searching or saying something
 deliberate. Every product this size has an answer to it and offload does not yet.
 Flagged rather than guessed at, and it blocks nothing else in the spec.
@@ -228,7 +230,7 @@ design log per OFF-7 before it is built rather than after.
 - **A lookup that fails for any other reason**: one clause, authored here rather
   than left to the model, and capped in code.
 
-  > Could not look that up.
+  > Couldn't look that up.
 
   Nothing about why. The rule CLAUDE.md records, a model telling somebody "the
   task tool seems to be down" about a tool that was fine, is exactly this line's
@@ -315,7 +317,7 @@ OFF-4's rule applied to a new source: process and forget, keep the reference.
   not by the prompt, and the refusal is covered by a test that tries it.
 - **AC-5** A dump on a refused topic causes no lookup. If the dump also contains
   something to file, it is filed and offload says nothing; if it does not, the
-  reply is the single line "I don't search that." and no category is named.
+  reply is the single line "Can't search that." and no category is named.
 - **AC-6** A dump that brushes a refused topic while asking a diary question is
   not refused: polling hours, a school term, a road closure.
 - **AC-7** Nothing fetched or searched reaches an analytics event, an LLM trace,
@@ -436,6 +438,53 @@ OFF-4's rule applied to a new source: process and forget, keep the reference.
   What it says is a drafting job for the product owner: sections 5 and 6 both
   move, and section 6's table of companies currently names no search or fetch
   recipient at all.
+
+## What the eval found
+
+Run on 2026-09-14, against the real model, on the filing path. Tuning 15 cases,
+two held-out sets of 15 written without looking at it.
+
+**Tuning 15/15. First held-out 80%, then 93% on a second one after the rule that
+fixed it.** The remaining failure is the rubric rather than the model: "cycle to
+the coast on Sunday if the bridge is open" names no bridge, so there is no query
+it could build out of the dump's own words, and the provenance rule in AC-24
+would refuse the one it invented. A condition it cannot name is a condition it
+cannot look up, which is two rules meeting and agreeing.
+
+Three things the eval found that reading could not:
+
+- **The preference rule was answering the wrong question.** "Only when filing
+  correctly needs a fact you do not have" reads, to a model, as "can I write a
+  row", and a row can always be written. "Go to the tip on Saturday, check when
+  it closes" filed a todo on Saturday and dropped the part they asked for. The
+  test is whether the row answers what they dumped, and the prompt says so now.
+- **A public fact is not something to work out.** Asked for a todo on Memorial
+  Day it produced 2027-05-31 from memory, correct arithmetic on a remembered
+  rule, unverifiable, and exactly the confident-and-unchecked answer this feature
+  exists to replace.
+- **The refusal never reached anybody**, and that one was not a prompt problem at
+  all. See below.
+
+## The loop change the refusal forced
+
+`say` exists because a filing turn kept writing a sentence nobody needed, so the
+loop was changed to ignore trailing text and take only what `say` carried.
+
+**Refusing is the case where that inversion goes one step too far.** Told to
+refuse a subject, the model writes "Can't search that." as trailing text and ends
+the turn. It does not reach for a tool, because refusing is a conversational act
+and that is what refusing looks like. The loop threw the sentence away, the turn
+came back having filed nothing and said nothing, and the caller reported
+"Nothing saved." to somebody who was owed an answer.
+
+Three rounds of prompt edits did not move it, which is the tell. The fix is the
+same lesson `say` itself is: **do not ask the model to do the unusual thing,
+change what the loop does with what it naturally produces.** Trailing text is
+ignored when something landed, and kept when nothing did. A turn that did nothing
+has nothing to be quiet about.
+
+This is wider than 016. Any turn that files nothing and explains itself in text
+used to come back as "Nothing saved."
 
 ## Constitution gate
 

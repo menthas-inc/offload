@@ -474,7 +474,7 @@ export function Composer({
                   // words, because some of this is already filed and saying so
                   // is what stops somebody re-sending and filing half twice.
                   <p className={styles.turnFailed} role="alert">
-                    offload did not finish that one.{" "}
+                    Didn't finish that one.{" "}
                     <button
                       type="button"
                       className={styles.retry}

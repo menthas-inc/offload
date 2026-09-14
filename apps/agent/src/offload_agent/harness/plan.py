@@ -499,13 +499,31 @@ async def _run(
         # paragraph and a tool call, and reading the text would end the turn
         # before the work was done.
         if response.stop_reason != "tool_use":
-            # **Ignored on a filing turn.** The reply is whatever `say` was
-            # called with, and a turn that did not call it ends with nothing,
-            # which is the ordinary outcome rather than a failure.
-            if reply_from_say:
-                return outcome
             text = "".join(b.text for b in response.content if b.type == "text").strip()
-            outcome.reply = text or None
+
+            # **Ignored on a filing turn that filed something.** The reply is
+            # whatever `say` was called with, and a turn that did not call it
+            # ends with nothing, which is the ordinary outcome rather than a
+            # failure. That inversion is why `say` exists at all.
+            #
+            # **But a turn that did nothing has nothing to be quiet about**, and
+            # this is where the inversion had gone one step too far. Refusing is
+            # a conversational act: told to refuse a subject, the model writes
+            # "Can't search that." as trailing text and ends the turn, because
+            # that is what refusing looks like. It almost never reaches for a
+            # tool to do it. The loop then threw the sentence away and the turn
+            # came back silent, having filed nothing, which the caller reports
+            # as "Nothing saved." about a refusal somebody is owed an answer to.
+            #
+            # So the rule is narrower than "ignore trailing text": ignore it
+            # when something landed. This is the same lesson as `say` itself,
+            # applied in the other direction. Do not ask the model to do the
+            # unusual thing; change what the loop does with what it naturally
+            # produces. Found by the 016 eval, where all three refusal cases
+            # came back empty and the raw response had the line in it.
+            if reply_from_say and (outcome.reply or outcome.landed):
+                return outcome
+            outcome.reply = outcome.reply or text or None
             return outcome
 
         results: list[dict] = []

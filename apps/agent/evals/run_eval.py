@@ -232,11 +232,17 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
     no sentence to mark.
     """
     looked: list[dict] = []
+    filed: list[str] = []
 
     async def call_tool(tool: str, tool_call_id: str, args: dict) -> dict:
         if tool == "look_up":
             looked.append(args)
             return {"ok": True, "found": False}
+        if tool in {"add_content", "add_note", "create_thread"}:
+            # The title and any date, because "it filed something" does not say
+            # whether the thing it filed was right.
+            when = args.get("occurs_at") or args.get("due_at") or ""
+            filed.append(f"{tool}({args.get('title') or args.get('text') or ''}{' @' + when if when else ''})")
         if tool == "create_thread":
             return {"ok": True, "threadId": "new", "threadName": args.get("name"), "notes": []}
         if tool == "list_thread_content":
@@ -275,13 +281,25 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
     if case.look_up is False and looked:
         failures.append(f"looked something up and should not have: {looked}")
 
-    refused = reply.strip() == "I don't search that."
+    refused = reply.strip() == "Can't search that."
     if case.refuses and not refused:
         failures.append(f"should have refused, said {reply!r}")
     if not case.refuses and refused:
         failures.append("refused something that is not on the list")
 
-    return Result(case, reply, failures, True, "")
+    # **A question is not something to file**, and a refused question least of
+    # all. The first run of this set passed the no-lookup half and failed the
+    # line, because the model found something to file in "what day is the gun
+    # show" and took the silent branch. Asserting the filing is what makes the
+    # case say which of the two halves is actually wrong.
+    if case.refuses and filed:
+        failures.append(f"filed a question rather than saying the line: {filed}")
+
+    # The record, on every filing case, passing or not. A case that fails on
+    # "did not look something up" is unreadable without knowing what it did
+    # instead, and that was two rounds of guessing before this line existed.
+    note = f"looked={[a.get('question') or a.get('url') for a in looked]} filed={filed}"
+    return Result(case, reply, failures, True, note)
 
 
 async def _run_one(client: AsyncAnthropic, case: Case, gate: asyncio.Semaphore) -> Result:
@@ -368,6 +386,8 @@ async def main() -> int:
                 print(f"       mechanical: {failure}")
             if not r.judged:
                 print(f"       judge: {r.judge_note}")
+            elif r.judge_note:
+                print(f"       did: {r.judge_note}")
         print()
     return 0 if accuracy == 1.0 else 1
 

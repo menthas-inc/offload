@@ -406,7 +406,7 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
       {turn.state === "partial" ? (
         <View className="mt-space-2 flex-row items-center gap-space-3">
           <Text className="font-core text-text-danger" style={{ fontSize: 13 }}>
-            offload did not finish that one.
+            Didn't finish that one.
           </Text>
           <Pressable onPress={onFinish} hitSlop={8}>
             <Text
