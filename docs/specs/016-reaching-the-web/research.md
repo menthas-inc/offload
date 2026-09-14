@@ -6,6 +6,24 @@
 > Sources are linked inline. Where a number is quoted it is from a vendor's own documentation on
 > the date above, which is the only kind of vendor claim this repo trusts.
 
+## 0. Decided, 2026-09-14
+
+Answered by the product owner on the first pass, so the rest of this document is read in their
+light rather than as open questions.
+
+- **The mitigations in section 2 stand**, including the fetch-only-a-URL-they-gave-us rule and the
+  quarantined reader.
+- **No MCP.** Revisit when people connect their own tools, and not before.
+- **The progress shape in section 4 stands**, and the brief is **free text, short, in offload's
+  voice**. Section 8 below says what that costs and how it is kept honest.
+- **A cancel appears after ten seconds** and stops the work, not just the watching. Section 9.
+- **Start general and narrow later, on evidence rather than on guesses.** This overturns the
+  recommendation in section 1 and it is the better call. Section 7 is the revised strategy and the
+  telemetry that has to exist for it to be a strategy rather than a hope.
+
+Open, and in section 10: the bounds, the cancel semantics that are genuinely ambiguous, citations,
+and what offload says when the web disagrees with a note.
+
 ## 1. The finding that reframes the request
 
 The four examples are four different mechanisms, and only one of them is web search.
@@ -17,7 +35,11 @@ The four examples are four different mechanisms, and only one of them is web sea
 | "here is an airbnb page" | Open Graph and JSON-LD off the page they pasted. Dates and location, two fields, read once. | Search does not apply at all: they gave us the URL. |
 | "here is a spotify link" | [Spotify's oEmbed endpoint](https://developer.spotify.com/documentation/embeds/reference/oembed), public, key-free, returns title, artist, art. Fetch it server side, it sends no CORS headers, and resolve `spotify.link` first because it 308s. | A model reading a rendered Spotify page to guess an artist name that an endpoint returns exactly. |
 
-**The rule this suggests: the narrowest mechanism that answers the question, and search is the last
+> **Superseded on 2026-09-14, and the reasoning it was wrong is in section 7.** The table stands as
+> a description of what each mechanism does. The conclusion below does not: it optimises the four
+> examples somebody happened to think of, and pays for that with a coverage cliff everywhere else.
+
+**The rule this suggested: the narrowest mechanism that answers the question, and search is the last
 one, not the first.** Every narrower mechanism is cheaper, faster, more accurate, and carries less
 untrusted text into a prompt. Search is what is left when nothing narrower exists.
 
@@ -239,12 +261,162 @@ Acceptance criteria, as a skeleton to argue with:
 - AC-6 Web and both phones show it, with the composer and the thread screen agreeing.
 - AC-7 A turn under the threshold shows exactly what it shows today.
 
-## 7. The questions, and what I would answer
+## 7. General first, narrow later, on evidence
+
+**The product owner's call, and it is right.** Building a tool per question means watching which
+questions get asked, building a tool, and watching again, forever. Coverage is a cliff rather than a
+slope: the questions with a tool are exact and everything else is unanswerable, and which side of
+that line a question falls on is invisible to the person asking.
+
+Three arguments beyond the one they made:
+
+- **"What date is Memorial Day" is a bad example of a narrow tool and a good example of why they are
+  hard.** A holidays API needs a country, a region within it, observed-versus-actual rules, moveable
+  feasts, and a religious calendar or two. And the class it belongs to, "when is a thing", contains
+  the Super Bowl, a school term, and a local festival, none of which any holidays API has.
+- **One mechanism is one threat model.** Every narrow integration is another vendor, another set of
+  failure modes, another thing to keep current. The security argument that pointed at narrow tools
+  was about the size of the untrusted text, and that is better handled by bounds on the general
+  mechanism than by having fewer of them.
+- **You cannot know what to build until it is used.** Which is the whole of their argument, and the
+  only reason the first version of this document did not make it is that I optimised the four
+  examples in the request instead of the distribution behind them.
+
+### Where I would qualify it
+
+**Reading a link somebody pasted is not a narrow tool, it is the second general mechanism.** Open
+Graph and JSON-LD are one extractor over a class, not an integration per site: Airbnb, Spotify, a
+recipe, a news article and a GitHub repo all publish them. It is also the only thing that can work
+for a link like an Airbnb listing, which search cannot find and cannot read for us.
+
+So the shape is **two general mechanisms, not one**:
+
+- **A question** goes to search.
+- **A link they pasted** goes to the reader, which tries structured metadata first and falls back to
+  reading the page.
+
+Everything else, weather included, is an optimisation added later when the counters say it is common.
+Weather is the one I would expect to graduate first, and not for coverage: search returns prose about
+the weather and an API returns numbers, and numbers are what a timeline can draw.
+
+### The telemetry that makes this a strategy
+
+This only works if the aggregate is real, and there is a trap in "log the searches anonymously".
+
+**A search query is content.** It is the person's own sentence, or a sentence derived from it, and
+OFF-1 says content does not go into a log or an event. Anonymising it does not help: a query is
+often uniquely identifying on its own, which is the whole reason search logs have been a privacy
+disaster everywhere they have leaked. A pasted URL is content for the same reason.
+
+So the counter cannot be the query. It has to be something the model produces alongside it:
+
+1. **A closed label per lookup**, chosen by the model from a versioned list, and it is the label that
+   gets counted. First cut: `weather`, `when_is`, `place`, `opening_hours`, `price_or_availability`,
+   `link_metadata`, `person_or_org`, `how_to`, `other`. Nothing else is stored, and the label is one
+   of a fixed set of strings, so the event carries no content by construction (AC-18's rule).
+2. **The outcome**: did the answer get used in the reply, did the turn file anything because of it,
+   did it fail. A tool used a thousand times whose answer is never used is a tool to delete.
+3. **A domain tally with no owner.** One table, `domain, day, count`, with no account id and no
+   message id and no foreign key to either. That answers "spotify.com was read four hundred times"
+   without any row that ties a domain to a person, which is the only version of this I would put my
+   name to. It is aggregate by construction rather than aggregate by policy.
+4. **Cost per label**, from the ledger that already exists, so "add a weather tool" is argued in
+   money as well as in counts.
+
+**The `other` bucket is the one that decides whether this worked.** If it is small, the taxonomy is
+describing what people actually ask. If it is most of them, the taxonomy is wrong, and the answer is
+to revise the list against real conversations by hand, not to start logging free text because the
+labels were disappointing. Writing that down now, because the pressure to log the query is going to
+be strongest exactly when the labels stop being informative.
+
+## 8. Anthropic's server tools, in more detail
+
+This is the part that decides how much of the feature we write. A server tool is not a tool we
+implement: the API runs it inside our own model call.
+
+**The mechanics that change our loop.**
+
+- A `server_tool_use` block appears in the response with an `srvtoolu_` id, and its result block,
+  for example `web_search_tool_result`, arrives in the same assistant turn, paired by `tool_use_id`.
+  **We never return a `tool_result` for it.** Our loop currently assumes every `tool_use` is ours to
+  answer, and that assumption breaks here.
+- **`pause_turn`.** A long turn can come back with `stop_reason: "pause_turn"` and we continue it by
+  sending the assistant content back unchanged, with the same tools. It can pause more than once. Our
+  loop has `MAX_MODEL_CALLS` and no notion of this, so a paused turn would today look like a turn
+  that stopped.
+- **Mixing ours and theirs in one turn is the sharp edge.** If Claude calls `web_search` and one of
+  our tools in the same parallel group, the API does **not** run the search. It returns
+  `stop_reason: "tool_use"` with the `server_tool_use` block present and no result block, and the
+  search runs only when we send back our own `tool_result` blocks. There is no flag for this: the
+  documented way to detect it is a `server_tool_use` id with no matching result block. And the
+  follow-up user message must contain **nothing but** `tool_result` blocks, or the request 400s. Our
+  loop appends results as a user message already, which is the right shape, but it also drops tools
+  it does not recognise, which would break the continuation.
+- **Round-tripping is mandatory.** Search results carry `encrypted_content` and citations carry
+  `encrypted_index`, and both must go back verbatim on later turns or the request fails validation.
+  Our conversation history is rebuilt from our own database rather than kept as API blocks, so this
+  is a real piece of work rather than a detail.
+
+**The controls, all of them per request.**
+
+- `max_uses` on each tool. `allowed_domains` or `blocked_domains`, never both, no scheme, subdomains
+  included automatically, paths supported for search and ignored for fetch, wildcards allowed only
+  in the path. Invalid formats 400 at request time. The docs carry an explicit **homograph warning**:
+  use ASCII-only entries, because a Cyrillic `а` in `аmazon.com` reads as `amazon.com` and is not.
+- Fetch adds `max_content_tokens`, `citations` (off by default), and `use_cache` (on by default).
+- Console settings at the organisation level sit above all of this, and a request-level allow list
+  must be a subset of the organisation's.
+
+**Zero data retention.** The basic versions, `web_search_20250305` and `web_fetch_20250910`, are ZDR
+eligible. The newer dynamic-filtering versions are **not**, because filtering runs inside code
+execution, unless we set `allowed_callers: ["direct"]` and give up the filtering. Dynamic filtering
+is the feature that keeps page text out of the context window by writing code to filter it first,
+which is exactly what we want for cost and for OFF-8, so this is a genuine trade rather than a
+formality. There is also a caveat worth repeating to a lawyer: even under ZDR, a site we fetch can
+retain whatever appears in the URL we requested.
+
+**What it costs to stop writing it ourselves.** No SSRF defence, no robots handling, no redirect
+chain, no PDF extractor, no cache, no rate limiter, and the prior-context URL rule enforced by
+somebody else's server rather than by our own diligence. Against that: three changes to the loop
+that are not small, and an API-shaped conversation history.
+
+## 9. Cancel
+
+Nielsen's rule is that anything past ten seconds needs a way out, and the product owner has asked for
+one at exactly that mark. It is also the first control in offload that stops work rather than undoing
+it.
+
+**What it has to do, in order of how much it matters.**
+
+1. **Stop the watching.** The client closes the stream, clears the brief, and gives the composer
+   back. Optimistic, immediately, whatever the server says next.
+2. **Stop the work.** The turn's job is marked cancelled and the worker is woken through the same
+   `pg_notify` rail `answers.ts` already uses, on its own channel. The worker cancels the asyncio
+   task, which aborts the in-flight request to the model.
+3. **Keep what landed.** Anything already filed stays filed. Cancel is not undo, and we have undo.
+   The turn settles as `partial` with whatever it had, which is a state the clients already draw and
+   which already offers the way to finish it. That is the whole reason not to invent a new one.
+4. **Say one short thing.** "Stopped." and the thread pills for anything that landed. Not an
+   apology, not an explanation.
+
+**The edges that need a decision rather than an implementation.**
+
+- **Cancel is best effort and must never lose a write.** If the model has already returned and the
+  result is being posted, the post wins. A cancel that arrives during a tool call waits for that call
+  rather than interrupting a transaction.
+- **Tokens already generated are billed.** An aborted request does not refund what the model produced
+  before the abort. Worth stating in the ledger so a cancelled turn does not look free.
+- **A cancelled turn is not a failed turn.** It should not retry, should not count against the
+  failure alarms, and should read differently from "offload could not finish that".
+- **Ten seconds from when?** From the dump being accepted, or from the first brief. I would use the
+  first, because the person's clock starts when they press send.
+
+## 10. The questions still open, and what I would answer
 
 **Scope**
 
-- **Q1. Is this "offload can look things up", or "offload has a browser"?** I would take the first
-  and write it down: three narrow extractors and one general search, with search as the fallback.
+- **Q1. Two general mechanisms, or one?** Section 7 argues for search plus a reader for pasted links,
+  and for weather graduating later on evidence. Confirm or cut it to search alone for the first pass.
 - **Q2. Does a person ask for it, or does offload decide?** Recommendation: offload decides, because
   "you dump things in and offload does the filing" and asking would be filing by another name. The
   risk is a lookup on a dump that wanted none, which is a cost and a latency problem rather than a
@@ -256,10 +428,6 @@ Acceptance criteria, as a skeleton to argue with:
 
 **Mechanism**
 
-- **Q5. Anthropic server tools or our own provider?** Recommendation A for search and fetch, ours for
-  the narrow extractors. The decision also decides the privacy answer in section 5.
-- **Q6. MCP, now or later?** Recommendation: not now, and the reason written down so it is not
-  relitigated. It becomes the right answer when people connect their own tools.
 - **Q7. Which domains, if any, are allowed or blocked?** `allowed_domains` is the strongest control
   we get for free and it is also the one most likely to make the feature feel broken. My instinct is
   a block list for the obvious hostile categories rather than an allow list, plus an allow list for
@@ -279,17 +447,9 @@ Acceptance criteria, as a skeleton to argue with:
 
 **Progress**
 
-- **Q11. Closed vocabulary or free text?** The one I most want your answer on. A closed set of step
-  kinds ("Looking something up", "Reading a page", "Filing") is OFF-1-safe by construction and says
-  less. Free text ("Checking the Alfama flat's check-in time") is what Claude Code does, reads far
-  better, and puts content into an event, which is the rule this repo breaks least often and most
-  expensively. A middle option exists: a closed kind plus a subject taken only from something already
-  on their screen, such as a domain they pasted or a thread name they wrote.
 - **Q12. What is the threshold before the first line appears?** I would start at 1.5s.
 - **Q13. Does the line survive an app restart?** It costs a column either way. My instinct is that
   the current step is worth reading on reconnect and worth nothing after the turn ends.
-- **Q14. Is there a way out?** Nielsen's rule says anything past ten seconds needs a way to stop it.
-  We have Undo after the fact and no cancel during. That is a real gap this feature will expose.
 
 **Truth**
 
@@ -299,3 +459,22 @@ Acceptance criteria, as a skeleton to argue with:
 - **Q16. What does offload say when the web contradicts what it already knew?** A note says one thing
   and a page says another. The notes rule is "where two disagree, the later one is true", and that
   rule was written about notes, not about the internet.
+
+**Free text, now that it is decided**
+
+- **Q17. Where may a brief not go?** The rule I would write: a brief is shown to the person whose
+  content it describes, and goes nowhere else. Never a log line, never an analytics event, never
+  stored past the turn, never inside an error we report. OFF-1 is about egress and about logs, and a
+  sentence shown to its own author breaks neither, which is why free text is allowable here at all.
+- **Q18. What does a brief say when it has nothing to say?** Between two steps there is a gap. Keep
+  the last one on screen, or fall back to the writing indicator. I would keep the last one: a line
+  that disappears reads as something going wrong.
+- **Q19. How short is short?** I would cap it hard, around 40 characters, and enforce the cap in code
+  rather than in the prompt, the way `say` is capped at 600 today.
+
+**Cancel**
+
+- **Q20. Does a cancelled turn keep the brief's last line?** "Stopped." replaces it, or sits under it.
+- **Q21. Can a cancelled turn be resumed?** `partial` already offers Finish, and I think it should
+  keep offering it. The alternative reading is that cancel means stop, and offering to continue is
+  arguing with them.
