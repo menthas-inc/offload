@@ -39,7 +39,7 @@ import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { cadenceLabel, datedFor, splitRepeating, widgetsFor } from "@offload/widgets";
 import { Glyph } from "../Glyph";
-import { useColors } from "../../lib/colors";
+import { atOpacity, useColors } from "../../lib/colors";
 import { ContentRowView } from "../shell/ContentRow";
 import { NotesSection } from "../shell/Notes";
 import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
@@ -562,7 +562,7 @@ function TitleSheet({
         entering={FadeIn.duration(220)}
         exiting={FadeOut.duration(140)}
         className="absolute inset-0"
-        style={{ backgroundColor: COLOR.scrim, opacity: 0.35 }}
+        style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
       >
         <Pressable
           className="flex-1"

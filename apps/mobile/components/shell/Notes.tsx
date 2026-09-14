@@ -24,7 +24,7 @@ import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeOut, useAnimatedStyle } from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Glyph } from "../Glyph";
-import { useColors } from "../../lib/colors";
+import { atOpacity, useColors } from "../../lib/colors";
 import { useConversation, useScreenSheet } from "./conversation-context";
 import {
   NOTE_BUDGET,
@@ -374,7 +374,7 @@ function Editor({
         entering={FadeIn.duration(220)}
         exiting={FadeOut.duration(140)}
         className="absolute inset-0"
-        style={{ backgroundColor: COLOR.scrim, opacity: 0.35 }}
+        style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
       >
         <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
       </Animated.View>

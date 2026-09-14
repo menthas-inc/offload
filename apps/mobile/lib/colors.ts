@@ -136,3 +136,26 @@ export function useColors(): Colors {
  *  module-level constant cannot follow a theme, and this exists only for code
  *  that runs before or outside React. */
 export const COLOR = LIGHT;
+
+/** A colour at an opacity, as one colour rather than a colour and an opacity.
+ *
+ *  **Because `entering={FadeIn}` overwrites `opacity` and nothing warns you.**
+ *  A scrim drawn as `backgroundColor: scrim, opacity: 0.35` with a Reanimated
+ *  entering animation on it does not fade to 0.35: the animation owns the
+ *  property and runs 0 to 1, so the screen fades to solid `ink-950` and only
+ *  snaps back to 0.35 when the animation ends. Recorded off a device on
+ *  2026-09-14 at 30fps: mean frame brightness fell to 24/255 and then jumped
+ *  back to 178, which is the "fades black real quick" that was reported.
+ *
+ *  Lengthening the fade, which is what the first attempt at this did, makes it
+ *  worse rather than better. The fix is for the layer to be translucent in
+ *  itself, so 100% of it is the dim that was wanted.
+ *
+ *  Hex in, `rgba()` out. The tokens are all `#rrggbb`; anything else comes back
+ *  unchanged rather than half parsed. */
+export function atOpacity(color: string, alpha: number): string {
+  const hex = /^#([0-9a-f]{6})$/i.exec(color.trim());
+  if (!hex) return color;
+  const n = parseInt(hex[1]!, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}

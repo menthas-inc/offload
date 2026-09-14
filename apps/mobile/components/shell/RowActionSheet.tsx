@@ -1,10 +1,17 @@
 // Everything a swipe cannot carry.
 //
-// **The scrim arrives with the sheet, not before it.** It faded in over 140ms
-// while the sheet took 220, so the page went dark and then, a beat later,
-// something slid up: read on a device as a flash and a fault rather than as one
-// movement. Both are 220 now, and the plate fades out on the same beat instead
-// of being taken off the screen in one frame.
+// **The scrim is translucent in itself, and that is not a detail.** Drawn as an
+// opaque ink with `opacity: 0.35`, a Reanimated `entering` animation takes the
+// opacity property over and runs it 0 to 1, so the screen fades to solid
+// `ink-950` and snaps back to 0.35 only when the animation ends. Reported as
+// "it fades black real quick"; a screen recording put the darkest frame at
+// 24/255. Lengthening the fade, which is what the first attempt at this did,
+// makes it worse. `atOpacity` is the fix and the reasoning is on it.
+//
+// **The scrim also arrives with the sheet rather than before it.** 140ms
+// against the sheet's 220 read as two movements where one thing is happening.
+// Both are 220, and the plate fades out on the same beat instead of being taken
+// off the screen in one frame.
 //
 // The `RowActionSheet` contract, governed from 5 September 2026. A long press
 // opens it. It lists what this account may actually do to the row and omits the
@@ -16,7 +23,7 @@
 import { Platform, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
-import { useColors } from "../../lib/colors";
+import { atOpacity, useColors } from "../../lib/colors";
 import { useScreenSheet } from "./conversation-context";
 
 const isAndroid = Platform.OS === "android";
@@ -55,7 +62,7 @@ export function RowActionSheet({
         entering={FadeIn.duration(220)}
         exiting={FadeOut.duration(140)}
         className="absolute inset-0"
-        style={{ backgroundColor: COLOR.scrim, opacity: 0.35 }}
+        style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
       >
         <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
       </Animated.View>
