@@ -68,7 +68,13 @@ def test_the_write_list_is_still_complete() -> None:
     # turn's silence is the default and a sentence is a deliberate act. An
     # answering turn does not have it, and would not need it: its reply is the
     # answer and comes back as text.
-    unaccounted = set(SCHEMAS) - reads - WRITES - {"say"}
+    # `look_up` is a fourth kind and is listed here rather than called a read.
+    # It reads nothing of this person's: it reads the web, in a separate call
+    # that holds no thread data and has no tools of its own, and what comes back
+    # is fields rather than rows. Counting it among the reads would put it in a
+    # list whose whole job is to say which of somebody's own things a turn may
+    # look at, which is the one thing it never does.
+    unaccounted = set(SCHEMAS) - reads - WRITES - {"say", "look_up"}
     assert unaccounted == set(), f"tool is neither a known read nor a known write: {unaccounted}"
 
 

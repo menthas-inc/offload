@@ -76,6 +76,15 @@ class DumpContext:
     # with no calendar is offering a tool that can only fail, and it costs every
     # one of them the definitions on every call.
     has_calendar: bool = False
+    # Whether offload may reach the web for this turn, from the two switches on
+    # the account. Read here, from the database, on every turn: the switches are
+    # authorization and a flag on a request would be the client deciding.
+    may_search: bool = False
+    may_read_links: bool = False
+
+    @property
+    def may_look_up(self) -> bool:
+        return self.may_search or self.may_read_links
 
 
 # Resolved through thread_members, which is the only path there is: `threads`
@@ -235,6 +244,7 @@ async def load(
     has_calendar = bool(
         (await conn.execute(_HAS_CALENDAR, {"account_id": account_id})).scalar()
     )
+    switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
 
     return DumpContext(
         dump=dump_row.text,
@@ -253,6 +263,8 @@ async def load(
         ),
         today=today,
         has_calendar=has_calendar,
+        may_search=bool(switches and switches.web_search_enabled),
+        may_read_links=bool(switches and switches.web_links_enabled),
     )
 
 
@@ -372,6 +384,27 @@ _PIECES = text(
 # Is there a calendar to talk to at all. One row or none; the tools are sent
 # only when there is, so an account with no connector never pays for their
 # definitions and is never offered a tool that can only fail.
+# The two switches, read from the account on every turn.
+#
+# **Authorization, so it is read here rather than passed in.** A flag on the job
+# payload would be a value some other process decided, and the rule is that the
+# server decides (SEC-2). This is one indexed read on a row the turn is about to
+# touch anyway.
+#
+# **No `deleted_at` filter, and that is not an oversight.** This role holds
+# column-level select on `accounts`, three columns since 0010 and five now, and
+# a column named in a where clause needs the grant as much as one in the select
+# list. The other account queries here filter it for the same reason: a turn
+# whose account has gone is a turn whose message is already gone, and `_DUMP`
+# checks that.
+_MAY_REACH = text(
+    """
+    select web_search_enabled, web_links_enabled
+      from accounts
+     where id = :account_id
+    """
+)
+
 _HAS_CALENDAR = text(
     """
     select 1
@@ -466,6 +499,15 @@ class AnswerContext:
     question: str
     threads: list[Thread]
     has_calendar: bool
+    # The same two switches, read the same way. "Will it rain on Saturday" is an
+    # answering turn, so a web tool offered only on the filing path answers half
+    # the questions this feature exists for.
+    may_search: bool = False
+    may_read_links: bool = False
+
+    @property
+    def may_look_up(self) -> bool:
+        return self.may_search or self.may_read_links
 
 
 async def load_answer(
@@ -504,10 +546,14 @@ async def load_answer(
         threads.append(Thread(id=default_id, name=default_row.name, is_default=True))
 
     calendar = await conn.execute(_HAS_CALENDAR, {"account_id": account_id})
+    switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
+
     return AnswerContext(
         question=question,
         threads=threads,
         has_calendar=bool(calendar.scalar()),
+        may_search=bool(switches and switches.web_search_enabled),
+        may_read_links=bool(switches and switches.web_links_enabled),
     )
 
 

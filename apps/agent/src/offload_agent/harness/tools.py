@@ -564,3 +564,46 @@ SAY_TOOL = {
 # anything else. Without this line the four reads are rejected as unknown_tool,
 # which would have looked like the model hallucinating them.
 TOOL_NAMES = frozenset(SCHEMAS)
+
+
+# 016: reaching the web. One tool, and everything dangerous is behind it.
+#
+# **It looks like an ordinary client tool because it is one.** The provider's
+# search and fetch are server tools that run inside the model call that declares
+# them, and declaring them here would put page text in the same turn that can
+# file, move and tick. So they are declared somewhere else, in a reader that has
+# no tools of its own, and this loop calls that reader the way it calls anything
+# else. The loop learns nothing about server tools, `pause_turn` or encrypted
+# blocks, which is three integrations it does not have to grow.
+
+
+class LookUp(BaseModel):
+    """Find out one thing from the web."""
+
+    # Exactly one of these. Checked in the worker rather than expressed in the
+    # schema, so the refusal can say which one was wrong.
+    question: str | None = Field(default=None, max_length=200)
+    url: str | None = Field(default=None, max_length=250)
+
+    # What the answer is for, which also selects the shape of what comes back.
+    want: list[str] = Field(default_factory=list, max_length=4)
+
+
+SCHEMAS["look_up"] = LookUp
+
+_DESCRIPTIONS["look_up"] = (
+    "Find one thing out from the web: a date, a time, a place, what a link "
+    "they pasted actually is. Use it when filing correctly needs a fact you do "
+    "not have and cannot work out, and not otherwise. Ask with `question` in "
+    "their own words, or with `url` when they dumped a link. `want` names the "
+    "fields you need back, from: date, time, place, dates_range, title, "
+    "artist, price, hours, forecast, fact."
+)
+
+LOOK_UP_TOOL = {
+    "name": "look_up",
+    "description": _DESCRIPTIONS["look_up"],
+    "input_schema": _schema_for(LookUp),
+}
+
+TOOL_NAMES = frozenset(SCHEMAS)

@@ -38,6 +38,7 @@ from offload_agent.harness.tools import (
     ANSWER_TOOLS,
     CALENDAR_TOOL_DEFS,
     FILING_TOOLS,
+    LOOK_UP_TOOL,
     SAY_TOOL,
     SCHEMAS,
     TOOL_NAMES,
@@ -413,7 +414,15 @@ async def plan(
         # The calendar tools only when there is a calendar. An account with
         # none is not offered a tool that can only fail, and the definition
         # budget stays what it was for everybody who has not connected one.
-        tools=(TOOLS + CALENDAR_TOOL_DEFS if ctx.has_calendar else TOOLS) + [SAY_TOOL],
+        # **The web tool on both paths, and gated per switch.** A dump that
+        # needs a date looked up is a filing turn; "will it rain on Saturday"
+        # is an answering one. Offering it on one path answers half the
+        # examples the feature exists for. Not sent at all when the switch is
+        # off, rather than sent and refused, so no call is ever spent on
+        # something that cannot work: the same reasoning as the calendar tools.
+        tools=(TOOLS + CALENDAR_TOOL_DEFS if ctx.has_calendar else TOOLS)
+        + ([LOOK_UP_TOOL] if ctx.may_look_up else [])
+        + [SAY_TOOL],
         # A resume starts with the count the database already holds, so the
         # bound is on the turn rather than on one attempt at it.
         filed=len(ctx.landed),
@@ -690,6 +699,8 @@ async def plan_answer(
     tools = list(ANSWER_TOOLS)
     if ctx.has_calendar:
         tools = tools + list(ANSWER_CALENDAR_TOOL_DEFS)
+    if ctx.may_look_up:
+        tools = tools + [LOOK_UP_TOOL]
 
     return await _run(
         client,

@@ -37,6 +37,12 @@ export interface AccountsTable {
   invite_email_sent_at: Timestamp | null;
   waitlist_email_sent_at: Timestamp | null;
   tier: Generated<string>;
+  /** Whether offload may send a query derived from a dump to a search company.
+   *  016. Read server-side in the worker at call time, never from a request. */
+  web_search_enabled: Generated<boolean>;
+  /** Whether offload may open a link somebody pasted. A different promise from
+   *  the one above: it sends none of their words anywhere. */
+  web_links_enabled: Generated<boolean>;
   consent_version: string | null;
   consented_at: Timestamp | null;
   created_at: Timestamp;
@@ -233,6 +239,43 @@ export interface MessagesTable {
   created_at: Timestamp;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;
+}
+
+/** Where a turn got something from, for the chip under it.
+ *
+ *  Two fields and the omissions are the point: a provider's citation also
+ *  carries the page's title and a quoted excerpt, and both are written by
+ *  whoever owns the page. Neither crosses out of the reader. */
+export interface TurnSourcesTable {
+  id: Generated<string>;
+  account_id: string;
+  turn_id: string;
+  domain: string;
+  url: string;
+  created_at: Generated<Timestamp>;
+}
+
+/** What kind of lookup happened, so the next narrow tool is argued from counts.
+ *
+ *  **No query and no URL.** A search query is somebody's own sentence and
+ *  anonymising it does not make it not content. */
+export interface LookupsTable {
+  id: Generated<string>;
+  account_id: string;
+  label: string;
+  kind: "search" | "read";
+  outcome: "used" | "unused" | "empty" | "failed" | "refused_bound";
+  cost_micros: Generated<number>;
+  created_at: Generated<Timestamp>;
+}
+
+/** Which domains get read, with nobody attached. No account id by design: this
+ *  is aggregate by construction rather than by policy. Read through
+ *  `domain_reads_visible`, which suppresses counts below a floor. */
+export interface DomainReadsTable {
+  domain: string;
+  day: string;
+  count: Generated<number>;
 }
 
 export interface ContentTable {
@@ -618,6 +661,9 @@ export interface Database {
   place_lookups: PlaceLookupsTable;
   llm_usage: LlmUsageTable;
   jobs: JobsTable;
+  turn_sources: TurnSourcesTable;
+  lookups: LookupsTable;
+  domain_reads: DomainReadsTable;
   analytics_events: AnalyticsEventsTable;
   waitlist_attempts: WaitlistAttemptsTable;
   schema_migrations: SchemaMigrationsTable;
