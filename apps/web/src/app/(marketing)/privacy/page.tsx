@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "1 September 2026";
+const UPDATED = "14 September 2026";
 
 function Todo({ children }: { children: ReactNode }) {
   return <span className={styles.todo}>{children}</span>;
@@ -316,6 +316,42 @@ export default function Privacy() {
             </li>
           </ul>
           <p>
+            <strong>Looking things up.</strong> Some of what you dump needs a fact offload does not
+            hold: what day a holiday falls on, what the weather will be, what a link you pasted
+            actually is. When that happens, two things leave.
+          </p>
+          <ul>
+            <li>
+              <strong>A search carries words you wrote.</strong> It is built only from the words of
+              the thing you just dumped, never from your other threads, your notes, or anything
+              anyone else put in a thread with you. It goes to Anthropic, who run the search, and
+              from there to a search index.
+            </li>
+            <li>
+              <strong>A link you paste is opened.</strong> The site you linked to receives a request
+              from us. It is not a company you picked, and it can see that somebody asked for that
+              page, along with anything already in the address you pasted.
+            </li>
+            <li>
+              <strong>offload only opens links you gave it.</strong> Not one it thought of, not one
+              that appeared inside a page it read, and not one someone else wrote into a thread you
+              share.
+            </li>
+            <li>
+              <strong>What comes back is not kept.</strong> What is stored is the answer it needed,
+              such as a date, and the address it came from. The page itself is not stored anywhere.
+            </li>
+            <li>
+              <strong>Both of these are switches, in Settings, and either can be off.</strong> With
+              both off, nothing about what you dump reaches a search or a site.
+            </li>
+            <li>
+              <strong>We record that a lookup happened, and not what it was.</strong> What kind of
+              thing was looked up, whether it helped, and what it cost. Never the words you searched
+              with and never a link tied to your account.
+            </li>
+          </ul>
+          <p>
             <strong>Automated decisions.</strong> Filing is automatic, which is the whole point of
             offload, but it produces no legal or similarly significant effect on anyone. Every
             decision it makes is visible to you and reversible by you, and anything filed in the
@@ -347,8 +383,14 @@ export default function Privacy() {
                 </tr>
                 <tr>
                   <td>Anthropic</td>
-                  <td>Claude, which does the sorting and the conversation</td>
-                  <td>The part of your content a given task needs</td>
+                  <td>
+                    Claude, which does the sorting and the conversation, and which runs the
+                    searches and opens the links described in section 5
+                  </td>
+                  <td>
+                    The part of your content a given task needs, and the words of a search when
+                    offload looks something up
+                  </td>
                 </tr>
                 <tr>
                   <td>Voyage AI</td>
