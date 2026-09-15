@@ -1237,6 +1237,55 @@ describe("a dumped link keeps its link", () => {
     expect(row.body).toBeNull();
   });
 
+  it("keeps the picture a page publishes about itself, https only", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Lisbon");
+    const { jobId } = await dump(accountId, "https://www.airbnb.com/rooms/9 for June");
+
+    const posted = await tool({
+      tool: "add_content",
+      type: "link",
+      jobId,
+      toolCallId: "img1",
+      threadId,
+      title: "Galata Haven",
+      url: "https://www.airbnb.com/rooms/9",
+      imageUrl: "https://a0.muscache.com/im/pictures/x.jpg",
+    });
+    expect(posted.statusCode).toBe(200);
+
+    const row = await db
+      .selectFrom("content")
+      .select("image_url")
+      .where("thread_id", "=", threadId)
+      .executeTakeFirstOrThrow();
+    expect(row.image_url).toBe("https://a0.muscache.com/im/pictures/x.jpg");
+  });
+
+  it("refuses an image address that is not https, because a device loads it unasked", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Lisbon");
+    const { jobId } = await dump(accountId, "something");
+
+    // Tighter than `url` on purpose. This one is fetched by somebody's own
+    // browser without them doing anything, and an http image on an https page
+    // is blocked as mixed content anyway, so the rule refuses a value that
+    // could only ever fail to draw.
+    for (const image of ["http://example.com/a.jpg", "javascript:alert(1)", "data:image/png;base64,x"]) {
+      const posted = await tool({
+        tool: "add_content",
+        type: "link",
+        jobId,
+        toolCallId: `img-${image.slice(0, 5)}`,
+        threadId,
+        title: "x",
+        url: "https://example.com/a",
+        imageUrl: image,
+      });
+      expect(posted.statusCode, image).toBe(400);
+    }
+  });
+
   it("refuses a scheme a person should never be handed", async () => {
     const accountId = await account();
     const threadId = await thread(accountId, "Lisbon");

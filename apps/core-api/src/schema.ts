@@ -322,6 +322,9 @@ export interface ContentTable {
    *  remembers four times out of five: two of the three link rows in production
    *  had lost their address entirely. */
   url: string | null;
+  /** A picture the page publishes about itself, as an address. The client loads
+   *  it from the site, so the site learns who looked and when. Disclosed. */
+  image_url: string | null;
   /** When it was ticked off. A timestamp rather than a boolean, because when
    *  something was done is a fact the agenda wants. */
   done_at: Timestamp | null;

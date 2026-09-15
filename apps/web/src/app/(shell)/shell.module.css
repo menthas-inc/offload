@@ -513,6 +513,18 @@
   min-width: 0;
 }
 
+/* The page's own picture, exactly where the type tile sits and exactly its
+   size, so a list of links and a list of anything else still line up. Cropped
+   rather than letterboxed: a thumbnail with bars reads as broken. */
+.rowThumb {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--surface-fill);
+}
+
 /* The domain on a link row: the one thing on a row that leaves the app.
    Accent, so it reads as the affordance the title is not, and small enough to
    sit under a title without competing with it. */

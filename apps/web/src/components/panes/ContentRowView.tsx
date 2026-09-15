@@ -98,7 +98,28 @@ export function ContentRowView({
       // simply filed needs nothing.
       data-arrived={handlers.arrived.has(row.id) ? true : undefined}
     >
-      {lead}
+      {/* **The page's own picture, in place of the type tile.** A listing is
+          recognised by its photo long before its title, and the tile is already
+          the right size and shape. Only on a link, so it can never displace the
+          checkbox a task's lead carries, and only while the row is live: an
+          archived row is a hollow tile by design.
+
+          Loaded from the site by this browser, which is the trade the cheap
+          shape makes. Written down in the privacy policy, not only here.
+          `referrerPolicy` so the site is not told which page it was loaded
+          from, and `decorative` alt because the page chose a picture, not a
+          description of one. */}
+      {row.type === "link" && row.imageUrl && !row.archivedAt ? (
+        <img
+          src={row.imageUrl}
+          alt=""
+          className={styles.rowThumb}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        lead
+      )}
 
       <span className={styles.rowText}>
         {handlers.editing === row.id ? (

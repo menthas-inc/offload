@@ -342,6 +342,16 @@ export default function Privacy() {
               such as a date, and the address it came from. The page itself is not stored anywhere.
             </li>
             <li>
+              <strong>A link can bring its picture, and the picture comes from the site.</strong>{" "}
+              When offload reads a link you pasted, it keeps the address of the image the page
+              publishes about itself, so the row shows the photo instead of a symbol. We do not
+              store the image. Your device loads it from that site each time the row is on screen,
+              which means the site can see your IP address and when you looked, the same as if you
+              had opened the page. In a thread you share, that applies to each person who sees the
+              row. Turn off <strong>Read links I paste</strong> in Settings and no new link keeps
+              one.
+            </li>
+            <li>
               <strong>Both of these are switches, in Settings, and either can be off.</strong> With
               both off, nothing about what you dump reaches a search or a site.
             </li>
@@ -390,6 +400,19 @@ export default function Privacy() {
                   <td>
                     The part of your content a given task needs, and the words of a search when
                     offload looks something up
+                  </td>
+                </tr>
+                <tr>
+                  {/* Not a processor we chose, which is the point of naming it
+                      here: it is whoever owns a page somebody pasted. */}
+                  <td>The site a link points to</td>
+                  <td>
+                    Shows the picture that page publishes about itself, on the row, when offload
+                    read the link
+                  </td>
+                  <td>
+                    Nothing we send. Your device asks that site for the image, so it sees your IP
+                    address and the time, the same as opening the page
                   </td>
                 </tr>
                 <tr>

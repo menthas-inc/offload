@@ -149,6 +149,18 @@ const body = z.discriminatedUnion("tool", [
       .max(2000)
       .refine((value) => /^https?:\/\//i.test(value), "only http and https")
       .nullish(),
+    /** The picture the page publishes about itself, as an address.
+     *
+     *  **https only, tighter than `url`.** This one is loaded by a person's own
+     *  device without them doing anything, so it gets the narrower check: an
+     *  http image on an https page is blocked as mixed content anyway, so the
+     *  rule refuses a value that could only ever fail to draw. */
+    imageUrl: z
+      .string()
+      .url()
+      .max(2000)
+      .refine((value) => /^https:\/\//i.test(value), "https only")
+      .nullish(),
     // **No default.** It was `note` until 014, which is the type that no longer
     // exists: a sentence with nothing else to be is a note now, and `add_note`
     // is where it goes. A row whose type nobody stated is a bug rather than
@@ -234,6 +246,18 @@ const body = z.discriminatedUnion("tool", [
       .url()
       .max(2000)
       .refine((value) => /^https?:\/\//i.test(value), "only http and https")
+      .nullish(),
+    /** The picture the page publishes about itself, as an address.
+     *
+     *  **https only, tighter than `url`.** This one is loaded by a person's own
+     *  device without them doing anything, so it gets the narrower check: an
+     *  http image on an https page is blocked as mixed content anyway, so the
+     *  rule refuses a value that could only ever fail to draw. */
+    imageUrl: z
+      .string()
+      .url()
+      .max(2000)
+      .refine((value) => /^https:\/\//i.test(value), "https only")
       .nullish(),
     tags: z.array(z.string().max(TAG_CHARS)).max(MAX_TAGS).nullish(),
     priority: z.number().int().min(0).max(100).nullish(),
@@ -1108,6 +1132,7 @@ async function existing(
       ...(call.title == null ? {} : { title: call.title }),
       ...(call.body === undefined ? {} : { body: call.body }),
       ...(call.url === undefined ? {} : { url: call.url }),
+      ...(call.imageUrl === undefined ? {} : { image_url: call.imageUrl }),
       ...(tags === undefined ? {} : { tags }),
       // A priority a person pinned is not the planner's to change. The write
       // is simply skipped rather than refused: the model asked for something
@@ -1331,6 +1356,7 @@ export async function toolRoutes(app: App): Promise<void> {
             title: call.title,
             body: call.body === "" ? null : call.body,
             url: call.url ?? null,
+            image_url: call.imageUrl ?? null,
             source: "person",
             tool_call_id: call.toolCallId,
             due_at: when.dueAt,

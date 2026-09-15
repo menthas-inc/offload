@@ -12,7 +12,15 @@
 // list: a gesture is something you have to remember, and an icon is something
 // you can see. The two gestures are unchanged and still carry everything else.
 
-import { ActivityIndicator, Linking, Platform, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useEffect } from "react";
 import Animated, {
@@ -188,6 +196,27 @@ export function ContentRowView({
               {row.doneAt ? <Glyph name="check" size={13} color={COLOR.onSolid} /> : null}
             </Pressable>
           ) : (
+            // **The page's own picture, where the type glyph would be.** A
+            // listing is recognised by its photo long before its title, and the
+            // tile is already the right size and shape for one. The glyph is
+            // what a row falls back to, which is every row that is not a link
+            // and every link whose page published nothing.
+            //
+            // Loaded from the site by this device. That is the trade the cheap
+            // shape makes and it is written down in the privacy policy, not
+            // only here.
+            row.imageUrl && !row.archivedAt ? (
+              <Image
+                source={{ uri: row.imageUrl }}
+                style={{ width: 36, height: 36, borderRadius: 6 }}
+                // The page chose a picture to represent itself; it did not write
+                // a description of it. Decorative, so a screen reader is not
+                // handed a filename, and the title beside it already says what
+                // the row is.
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+              />
+            ) : (
             // Archived is a hollow tile with a dashed border and secondary
             // ink, never opacity: dimming a row on a warm page reads as a
             // rendering fault and takes the label under the contrast floor.
@@ -203,6 +232,7 @@ export function ContentRowView({
             >
               <Glyph name={ICON[row.type] ?? "align-left"} size={18} color={COLOR.iconOnWell} />
             </View>
+            )
           )}
           <View className="flex-1">
             <Text

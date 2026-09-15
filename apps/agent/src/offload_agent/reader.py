@@ -53,6 +53,13 @@ WANT = {
     "hours",
     "forecast",
     "fact",
+    # The picture the page publishes about itself, as an address.
+    #
+    # **Only ever `og:image` or its equivalent**, which is the one image a page
+    # chooses to be represented by. Not an image found in the body, which is
+    # whatever the layout happened to contain, and not one composed from the
+    # URL.
+    "image",
 }
 
 #: What kind of lookup this was, for the counters that decide which narrow tool

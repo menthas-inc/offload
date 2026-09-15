@@ -182,6 +182,7 @@ const contentRow = z.object({
   title: z.string(),
   body: z.string().nullable(),
   url: z.string().nullable(),
+  imageUrl: z.string().nullable(),
   createdAt: z.string(),
   archivedAt: z.string().nullable(),
   /** What 006 extracts, and what 007's widgets are derived from. All of it may
@@ -279,6 +280,7 @@ interface RawRow {
   title: string;
   body: string | null;
   url: string | null;
+  image_url: string | null;
   created_at: Date;
   archived_at: Date | null;
   /** Null once the author deleted their account. OFF-3 keeps their content in
@@ -357,6 +359,9 @@ function toRow(row: RawRow, viewerId: string) {
     // the thing that opens; until 0041 it lived in `body` by convention and was
     // missing from two thirds of the link rows in production.
     url: row.url,
+    // An address, never bytes. The client loads it from the site, which is the
+    // thing section 9 of the privacy policy now says out loud.
+    imageUrl: row.image_url,
     createdAt: row.created_at.toISOString(),
     archivedAt: row.archived_at ? row.archived_at.toISOString() : null,
     doneAt: row.done_at ? row.done_at.toISOString() : null,
@@ -1131,7 +1136,9 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.title as title",
             "content.body as body",
       "content.url as url",
+            "content.image_url as image_url",
             "content.url as url",
+            "content.image_url as image_url",
             "content.created_at as created_at",
             "content.archived_at as archived_at",
             "content.account_id as account_id",
@@ -1226,6 +1233,7 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.title as title",
             "content.body as body",
             "content.url as url",
+            "content.image_url as image_url",
             "content.created_at as created_at",
             "content.archived_at as archived_at",
             "content.account_id as account_id",
@@ -1880,6 +1888,7 @@ async function rowById(contentId: string, viewerId: string) {
       "content.title as title",
       "content.body as body",
       "content.url as url",
+            "content.image_url as image_url",
       "content.created_at as created_at",
       "content.archived_at as archived_at",
       "content.account_id as account_id",

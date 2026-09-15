@@ -76,6 +76,14 @@ class AddContent(BaseModel):
     # appeared inside a page that was read, which is the same rule `look_up`
     # applies one layer down.
     url: str | None = Field(default=None, max_length=2000)
+
+    # The picture the page publishes about itself, from a `look_up` that read it.
+    #
+    # **Never composed and never from anywhere else.** It is an address a
+    # person's own device will load, so the only acceptable source is the page
+    # they dumped saying what represents it.
+    image_url: str | None = Field(default=None, max_length=2000)
+
     # No default. A sentence with nothing else to be is a note, and `add_note`
     # is where it goes, so this tool no longer has anything to fall back to.
     type: ContentType
@@ -138,6 +146,7 @@ class EditContent(BaseModel):
     title: str | None = Field(default=None, max_length=200)
     body: str | None = Field(default=None, max_length=4000)
     url: str | None = Field(default=None, max_length=2000)
+    image_url: str | None = Field(default=None, max_length=2000)
     tags: list[str] | None = Field(default=None, max_length=MAX_TAGS)
     priority: int | None = Field(default=None, ge=0, le=100)
 

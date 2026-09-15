@@ -11,6 +11,37 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-14 · A link row shows the page's own picture
+**Surface:** iOS, Android, web
+
+**Is:** a link row draws the image the page publishes about itself, 36px, where
+the type glyph would be. The glyph is the fallback, for every row that is not a
+link and every link whose page published nothing.
+
+A listing is recognised by its photo long before its title, and the tile was
+already the right size and shape for one. Cropped rather than letterboxed: a
+thumbnail with bars reads as broken.
+
+**The address is stored, never the bytes**, and that is a privacy decision rather
+than an implementation one. The device loads the image from the site, so the site
+sees the reader's IP and when they looked, every time the row is drawn, and in a
+shared thread that is every member. Put to the product owner with the two
+alternatives, proxying through the Core API and keeping a copy in R2, and this
+one was chosen knowing the cost. **Section 9 of the privacy policy says so
+plainly, and the sharing table now names "the site a link points to" as a
+recipient**, which is the first entry in it that is not a company we chose.
+
+Decorative to a screen reader on both surfaces: the page chose a picture, not a
+description of one, and the title beside it already says what the row is.
+`referrerPolicy="no-referrer"` on web so the site is not told which page it was
+loaded from.
+
+**Design system impact:** the kits draw a type tile and have no concept of a row
+whose tile is an image. Worth deciding whether the fallback glyph and the image
+are the same slot, as they are here, or whether a link row is its own shape. The
+36px and the `--radius-sm` come from the existing tile so the two line up in one
+list; if a link row becomes its own shape that constraint goes away.
+
 ### 2026-09-14 · A link row opens the page, from its domain
 **Surface:** iOS, Android, web
 

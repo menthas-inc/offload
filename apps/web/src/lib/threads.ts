@@ -158,6 +158,11 @@ export interface ContentRow {
   /** Where it came from, when it came from a page. The row opens it, which is
    *  the whole reason somebody dumps a link. Null on everything else. */
   url: string | null;
+  /** A picture the page publishes about itself, as an address. **Loaded from
+   *  the site by this device**, so the site learns who looked and when: that is
+   *  the cost of the cheap shape and it is disclosed in the privacy policy
+   *  rather than hidden in a comment. Null on everything that is not a link. */
+  imageUrl: string | null;
   createdAt: string;
   archivedAt: string | null;
   /** What 006 extracts. All of it may be null or empty, which is what a thread
