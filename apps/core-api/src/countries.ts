@@ -54,6 +54,23 @@ function build(): Country[] {
 
 export const COUNTRIES: Country[] = build();
 
+// **A generated list that fails by being empty is the worst kind.**
+//
+// `Intl.DisplayNames` needs full ICU. A Node built with the small one answers
+// nothing for every code, `build()` returns `[]`, the endpoint serves an empty
+// list and the settings screen draws a picker with one row in it saying "Not
+// set". Nothing raises, nothing logs, and the feature is simply absent.
+//
+// So it raises here, at import, which means the process does not start rather
+// than starting wrong. The number is a floor rather than an exact count,
+// because ICU's register moves and an exact assertion would fail on an upgrade
+// that is not a fault.
+if (COUNTRIES.length < 200) {
+  throw new Error(
+    `country list came out with ${COUNTRIES.length} entries: this Node has no full ICU`
+  );
+}
+
 const CODES = new Set(COUNTRIES.map((country) => country.code));
 
 /** Whether this is a country somebody could have picked.
