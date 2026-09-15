@@ -444,7 +444,8 @@ OFF-4's rule applied to a new source: process and forget, keep the reference.
 Run on 2026-09-14, against the real model, on the filing path. Tuning 15 cases,
 two held-out sets of 15 written without looking at it.
 
-**Tuning 16/16, and 15/15 on all three held-out sets after the last fix.**
+**Tuning 19/19, and 15/15 on a fourth held-out set written after the scope rule,
+blind.**
 
 Written fresh each time, because tuning on a set spends it. As first measured,
 blind: 80%, 93%, 93%. Each number is what the set scored before anything it found
@@ -565,6 +566,28 @@ nothing else.**
   says plainly that a lookup which did not work is not a licence to guess: a
   todo with no date is honest and easy to fix, a todo on the wrong day is
   neither.
+
+## Not every question is offload's
+
+Added 15 September, after "how do you make leek soup" came back with a recipe.
+
+**The test is whether the answer changes something they are planning, keeping or
+doing.** Not whether the fact is public: almost every fact worth looking up is
+public, and the first version of this rule got that wrong in the other direction,
+declining to look up ferry times and whether a bridge was open. Both of those are
+somebody's Saturday.
+
+- Not offload's: how to descale a kettle, the population of Portugal, the price
+  of bitcoin, whether a language is worth learning. Each has a better tool one
+  tap away, and answering makes offload a worse copy of it.
+- Offload's: when the clocks change, whether there is a strike on the 22nd, what
+  time the last train is, whether it will be dry tomorrow.
+
+The whole reply is `Not sure.` **And the same line covers a lookup that came back
+without the fact**, which had no line at all before and produced "Couldn't pin
+down the route for Saturday": offload explaining its own machinery, which it
+never does. Both cases mean one thing to the person reading, so both say it the
+same way.
 
 ## The bound was specified as the wrong rule
 

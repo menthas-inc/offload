@@ -211,6 +211,8 @@ _FILLER = frozenset(
         "here",
         "time",
         "date",
+        "dates",
+        "times",
         "day",
         "days",
         "today",
