@@ -490,6 +490,32 @@ has nothing to be quiet about.
 This is wider than 016. Any turn that files nothing and explains itself in text
 used to come back as "Nothing saved."
 
+## The picture, and why it is not the reader's
+
+A link row draws the picture the page publishes about itself, added 14 September
+after 016 shipped.
+
+**The obvious route does not work, and that was measured rather than assumed.**
+`image` went into the reader's wanted set, the model was asked for it against a
+real page, and nothing came back: the provider's fetch returns the page as text
+and `og:image` is a `<meta>` tag in the head, which that text does not contain.
+A field that can never be populated is exactly the silent failure this feature
+spent a week removing, so the tag is read directly instead.
+
+That means **offload's own server fetching a URL somebody typed**, which is a
+different thing from the provider doing it, and it is why `og.py` is mostly
+refusals: https only, every resolved address checked against the private ranges,
+no redirects, four seconds, 256KB, and the same checks applied again to the
+address the tag names, because a page can put anything in its own meta tag
+including one on our network.
+
+**The address is stored, never the bytes.** The device loads the image from the
+site, so the site sees the reader's IP and when they looked, and in a shared
+thread that is every member. Chosen by the product owner over proxying it and
+over keeping a copy, and disclosed rather than assumed: section 9 of the privacy
+policy says it plainly, and the sharing table names "the site a link points to"
+as a recipient, which is the first entry in it that is not a company we chose.
+
 ## What only a phone found
 
 **The one that mattered most: `fit` dropped the switches, so the web was off for

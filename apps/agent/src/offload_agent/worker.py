@@ -32,6 +32,7 @@ from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
 from offload_agent.embed_jobs import handle_embed
 from offload_agent.harness.plan import Outcome, classify, plan, plan_answer, plan_quick_add
+from offload_agent.og import picture
 from offload_agent.queue import ClaimedJob, claim, release_for_retry
 
 log = structlog.get_logger()
@@ -344,6 +345,7 @@ async def _look_up(
     budget: Lookups,
     args: dict,
     say: "StepWriter | None" = None,
+    http: httpx.AsyncClient | None = None,
 ) -> dict:
     """Answer a `look_up` without leaving the worker.
 
@@ -437,12 +439,29 @@ async def _look_up(
     if reading.failed or reading.found.unsure:
         return {"ok": True, "found": False}
 
+    fields = dict(reading.found.fields)
+
+    # The page's own picture, read from the page rather than asked of the model.
+    #
+    # **The model cannot see it.** The provider's fetch returns the page as text
+    # and `og:image` is a meta tag in the head, so asking for it in `want`
+    # produced a field that was never once populated. Tried first, measured,
+    # and replaced by this.
+    #
+    # Only on a URL they dumped, only when the lookup already succeeded, and
+    # never on a search: this is one extra request against a page we have just
+    # read anyway, and it is worth that only when there is a row to put it on.
+    if http is not None and url and "image" in (args.get("want") or []):
+        found = await picture(http, url)
+        if found:
+            fields["image"] = found
+
     # Fields and sources. **Not the title and not a quoted excerpt**, which are
     # written by whoever owns the page.
     return {
         "ok": True,
         "found": True,
-        "fields": reading.found.fields,
+        "fields": fields,
         "sources": [s["domain"] for s in budget.sources],
     }
 
@@ -509,7 +528,7 @@ def _tool_caller(
         if tool == "look_up":
             if lookups is None:
                 return {"ok": False, "error": "not available on this turn"}
-            return await _look_up(lookups[0], lookups[1], lookups[2], args, say)
+            return await _look_up(lookups[0], lookups[1], lookups[2], args, say, http)
 
         payload = {"tool": tool, "jobId": job_id, "toolCallId": tool_call_id, **_camel(args)}
 
