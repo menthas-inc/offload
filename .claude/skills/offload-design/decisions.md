@@ -11,6 +11,35 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-15 · One height in the turn footer, and it clears the bubble
+**Surface:** iOS, Android, web
+
+Two things the product owner spotted on web.
+
+**The footer row held three heights**: 22 for the Done mark, 26 for a source, 30
+for a thread pill. Side by side that reads as a mistake, which is what it was.
+They are all 30 now, named once and inherited, so the next mark added to this row
+cannot be a fourth.
+
+**30 because that is `Chip`**, the governed component the thread pills already
+come from. The other two were bespoke marks that happened to sit beside it.
+
+**This is a divergence from the kit and an inconsistency inside it.** The design
+system's own `TurnFooter` draws a 24px Done mark and a 26px source anchor next to
+a 30px `Chip`, in one row, which is the arrangement that produced the bug. Worth
+fixing there rather than only here.
+
+**And the footer had no gap.** The log's own `gap` separates turns and does not
+reach inside one, so the chips sat flush against the reply they describe and read
+as an extension of it rather than as a row about it. One space step, matching
+what the phones already had.
+
+**Design system impact:** make the three marks in `TurnFooter` one height, 30, to
+match the `Chip` beside them, and give the row a top margin. The phones had the
+same shape a pixel or two apart and are changed with web, so the two surfaces
+still agree.
+
+
 ### 2026-09-15 · Where they are, and a 250 row list on a phone
 **Surface:** iOS, Android, web
 

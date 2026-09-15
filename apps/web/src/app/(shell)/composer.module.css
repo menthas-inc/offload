@@ -238,7 +238,24 @@
   flex-flow: row wrap;
   align-items: center;
   gap: var(--space-2);
-  min-height: 26px;
+  min-height: var(--chip-h);
+  /* **A gap, because the footer is not part of the bubble above it.** The log's
+     own `gap` separates turns and does not reach inside one, so the chips sat
+     flush against the reply they describe and read as an extension of it. */
+  margin-top: var(--space-3);
+
+  /* **One height for everything in this row.** It held three: 22 for the Done
+     mark, 26 for a source, 30 for a thread. Side by side that reads as a
+     mistake, which is what it was.
+
+     30, because that is `Chip`, the governed component the thread pills already
+     use; the other two were bespoke marks that happened to sit beside it. The
+     design system's own `TurnFooter` draws 24 and 26 next to a 30 `Chip`, so
+     this is a divergence from the kit and an inconsistency inside it. Logged.
+
+     Inherited by the three of them rather than repeated, so the next mark added
+     to this row cannot be a fourth height. */
+  --chip-h: 30px;
 }
 
 /* The Done mark used to be absolutely positioned into the sent bubble's bottom
@@ -250,9 +267,9 @@
 .done {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 22px;
-  padding: 0 8px 0 6px;
+  gap: 5px;
+  height: var(--chip-h);
+  padding: 0 var(--space-4);
   border: 1px solid var(--moss-600);
   border-radius: 99px;
   background: var(--moss-600);
@@ -338,7 +355,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 26px;
+  min-height: var(--chip-h);
   padding: 0 var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
@@ -375,7 +392,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
+  height: var(--chip-h);
   padding: 0 var(--space-5);
   border-radius: var(--radius-pill);
   background: var(--moss-100);

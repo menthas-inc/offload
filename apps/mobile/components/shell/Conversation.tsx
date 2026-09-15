@@ -460,6 +460,17 @@ function Yours({
  *  simply filed says nothing back, so the thread it went to was named nowhere
  *  at all. Drawn under whichever turn carries the threads: the reply when there
  *  is one, the message somebody sent when there is not. */
+/** One height for everything in the footer.
+ *
+ *  It held three: 24 for the Done mark, 26 for a thread, 26 for a source. Side
+ *  by side on web that read as a mistake, which is what it was, and the phones
+ *  had the same shape one pixel apart. 30, because that is the governed `Chip`
+ *  the thread pills come from and the height the filter chips already use.
+ *
+ *  Named rather than repeated, so the next mark added to this row cannot be a
+ *  fourth height. */
+const CHIP_H = 30;
+
 function TurnFooter({ turn }: { turn: Turn }) {
   const COLOR = useColors();
   const router = useRouter();
@@ -492,8 +503,8 @@ function TurnFooter({ turn }: { turn: Turn }) {
           happening. */}
       {state === "done" ? (
         <View
-          className="flex-row items-center gap-space-2 rounded-pill bg-moss-600 px-space-3"
-          style={{ height: 24 }}
+          className="flex-row items-center gap-space-2 rounded-pill bg-moss-600 px-space-4"
+          style={{ height: CHIP_H }}
         >
           <Glyph name="check" size={11} color={COLOR.onBrand} />
           <Text
@@ -516,8 +527,8 @@ function TurnFooter({ turn }: { turn: Turn }) {
             fold();
             router.push({ pathname: "/threads/[id]", params: { id: thread.id } });
           }}
-          className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-4"
-          style={{ height: 26 }}
+          className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-5"
+          style={{ height: CHIP_H }}
         >
           <Glyph name="lasso" size={12} color={COLOR.accent} />
           <Text className="font-core text-text-accent" style={{ fontSize: 12.5 }}>
@@ -539,7 +550,7 @@ function TurnFooter({ turn }: { turn: Turn }) {
           accessibilityRole="link"
           accessibilityLabel={`Open ${source.domain}`}
           className="flex-row items-center gap-space-2 rounded-pill border border-border-strong px-space-4"
-          style={{ height: 26, maxWidth: 220 }}
+          style={{ height: CHIP_H, maxWidth: 220 }}
         >
           <Glyph name="link" size={12} color={COLOR.iconOnWell} />
           <Text
