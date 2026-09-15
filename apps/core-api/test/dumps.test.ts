@@ -19,7 +19,13 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
-import { cancelTurn, streamStep, takeDump } from "../src/routes/dumps.js";
+import {
+  cancelTurn,
+  sourcesForAll,
+  streamStep,
+  takeDump,
+  threadsForAll,
+} from "../src/routes/dumps.js";
 import { foundFor } from "../src/search/found.js";
 import { uuidv7 } from "../src/uuid.js";
 
@@ -921,5 +927,75 @@ describe("017 stopping a turn", () => {
       .execute();
 
     expect(await streamStep(messageId, id)).toEqual({ do: "wait" });
+  });
+});
+
+describe("the conversation's footer survives a reload", () => {
+  /** A thread with one row filed into it by this message, and one source read
+   *  by its turn. Written directly rather than through the tool endpoint,
+   *  because what is under test is the two resolvers and not the write path. */
+  async function filed(accountId: string, messageId: string, turnId: string, name: string) {
+    const t = await db
+      .insertInto("threads")
+      .values({ created_by_account_id: accountId, name, last_activity_at: new Date() })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await db
+      .insertInto("thread_members")
+      .values({ thread_id: t.id, account_id: accountId, state: "accepted" })
+      .execute();
+    await db
+      .insertInto("content")
+      .values({
+        thread_id: t.id,
+        account_id: accountId,
+        type: "task",
+        title: "Go to the tip",
+        derived_from_message_id: messageId,
+      })
+      .execute();
+    await db
+      .insertInto("turn_sources")
+      .values({
+        turn_id: turnId,
+        account_id: accountId,
+        domain: "timeanddate.com",
+        url: "https://timeanddate.com/x",
+      })
+      .execute();
+    return t.id;
+  }
+
+  it("resolves where a page of turns filed, and what they read", async () => {
+    const id = await account();
+    const { messageId, turnId } = await dump(id, "when does the tip close");
+    const threadId = await filed(id, messageId, turnId, "The tip");
+
+    // **This is what a cold start used to lose.** The tail carried the text and
+    // the state and nothing else, so every settled turn came back with no Done
+    // mark, no thread pill and no source chip: the whole footer, gone on the
+    // first reload, on the surface most likely to be reloaded.
+    expect((await threadsForAll([messageId], id)).get(messageId)).toEqual([
+      { id: threadId, name: "The tip" },
+    ]);
+    expect((await sourcesForAll([turnId], id)).get(turnId)).toEqual([
+      { domain: "timeanddate.com", url: "https://timeanddate.com/x" },
+    ]);
+  });
+
+  it("does not hand one account's threads or sources to another", async () => {
+    const mine = await account();
+    const theirs = await account();
+    const { messageId, turnId } = await dump(theirs, "hello");
+    await filed(theirs, messageId, turnId, "Theirs");
+
+    expect((await threadsForAll([messageId], mine)).get(messageId)).toBeUndefined();
+    expect((await sourcesForAll([turnId], mine)).get(turnId)).toBeUndefined();
+  });
+
+  it("asks nothing when the page is empty", async () => {
+    const id = await account();
+    expect((await threadsForAll([], id)).size).toBe(0);
+    expect((await sourcesForAll([], id)).size).toBe(0);
   });
 });

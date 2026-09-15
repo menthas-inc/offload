@@ -110,6 +110,10 @@ export interface TailMessage {
   turnId: string;
   waiting?: WaitingOn | null;
   found?: FoundResult[];
+  /** Where the turn filed, and where a fact in it came from. The footer's whole
+   *  content, and a reload used to drop all of it. */
+  threads?: TouchedThread[];
+  sources?: Source[];
 }
 
 export class DumpTooLong extends Error {

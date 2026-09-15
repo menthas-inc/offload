@@ -293,6 +293,14 @@ export function ConversationProvider({
             // are now, because the server resolves them rather than storing a
             // copy taken when the answer was written.
             found: message.found ?? [],
+            // **And the footer, which a cold start used to empty.** Every
+            // settled turn came back with no Done mark, no thread pill and no
+            // source chip, because the tail carried none of the three. `did` is
+            // derived here from the same record the pills come from, never from
+            // the reply.
+            threads: message.threads ?? [],
+            sources: message.sources ?? [],
+            did: (message.threads?.length ?? 0) > 0,
           })),
         );
       } catch (error) {

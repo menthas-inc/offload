@@ -236,6 +236,12 @@ export interface TailMessage {
    *  which is what made it a web bug rather than a server one. */
   found: FoundResult[];
   waiting: { id: string; because: string } | null;
+  /** Where the turn filed, and where a fact in it came from: the footer's whole
+   *  content. Added the day the footer was, because a reload dropped all three
+   *  and this endpoint has now been the place a reload loses something three
+   *  times. */
+  threads: TouchedThread[];
+  sources: Source[];
 }
 
 /** The current conversation, so a reload does not look like a fresh account.

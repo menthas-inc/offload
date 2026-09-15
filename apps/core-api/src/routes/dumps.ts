@@ -196,6 +196,10 @@ const currentConversation = z.object({
       turnId: z.string(),
       waiting: waitingOn,
       found: foundResults,
+      /** Where this turn filed, and where a fact in it came from. Empty on an
+       *  offload message and on any turn that read nothing. */
+      threads: z.array(z.object({ id: z.string(), name: z.string() })),
+      sources: z.array(z.object({ domain: z.string(), url: z.string() })),
     })
   ),
 });
@@ -254,6 +258,90 @@ export async function sourcesFor(
     .orderBy("created_at")
     .limit(6)
     .execute();
+}
+
+/** Where each of a page of messages filed, in one query.
+ *
+ *  The per-message `threadsFor` is right for a single turn and wrong for a page:
+ *  fifty messages is fifty round trips on every open, which is the reasoning
+ *  `foundFor` already carries. Only what landed, never `changed`: a pill saying
+ *  a turn went somewhere it only moved something out of would be untrue. */
+export async function threadsForAll(
+  messageIds: string[],
+  accountId: string,
+): Promise<Map<string, { id: string; name: string }[]>> {
+  const out = new Map<string, { id: string; name: string }[]>();
+  if (messageIds.length === 0) return out;
+
+  // **Both halves of `threadsFor`, not just the content one.** A turn that only
+  // wrote a note reaches a thread through `message_threads`, and 014 made those
+  // one concept; reading content alone would drop the pill on every note turn.
+  const [filed, noted] = await Promise.all([
+    db
+      .selectFrom("content")
+      .innerJoin("threads", "threads.id", "content.thread_id")
+      .select([
+        "content.derived_from_message_id as message_id",
+        "threads.id as id",
+        "threads.name as name",
+      ])
+      .where("content.derived_from_message_id", "in", messageIds)
+      .where("content.account_id", "=", accountId)
+      .where("content.deleted_at", "is", null)
+      .where("threads.deleted_at", "is", null)
+      .orderBy("content.created_at")
+      .execute(),
+    db
+      .selectFrom("message_threads")
+      .innerJoin("threads", "threads.id", "message_threads.thread_id")
+      // Membership, not authorship, exactly as the single-message version has
+      // it: a turn can act on a shared thread and the name is only shown to
+      // somebody already in it.
+      .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
+      .select([
+        "message_threads.message_id as message_id",
+        "threads.id as id",
+        "threads.name as name",
+      ])
+      .where("message_threads.message_id", "in", messageIds)
+      .where("message_threads.landed", "=", true)
+      .where("thread_members.account_id", "=", accountId)
+      .where("threads.deleted_at", "is", null)
+      .orderBy("message_threads.created_at")
+      .execute(),
+  ]);
+
+  for (const row of [...filed, ...noted]) {
+    if (!row.message_id) continue;
+    const list = out.get(row.message_id) ?? [];
+    if (!list.some((t) => t.id === row.id)) list.push({ id: row.id, name: row.name });
+    out.set(row.message_id, list);
+  }
+  return out;
+}
+
+/** What each of a page of turns read, in one query. Same reasoning. */
+export async function sourcesForAll(
+  turnIds: string[],
+  accountId: string,
+): Promise<Map<string, { domain: string; url: string }[]>> {
+  const out = new Map<string, { domain: string; url: string }[]>();
+  if (turnIds.length === 0) return out;
+
+  const rows = await db
+    .selectFrom("turn_sources")
+    .select(["turn_id", "domain", "url"])
+    .where("turn_id", "in", turnIds)
+    .where("account_id", "=", accountId)
+    .orderBy("created_at")
+    .execute();
+
+  for (const row of rows) {
+    const list = out.get(row.turn_id) ?? [];
+    list.push({ domain: row.domain, url: row.url });
+    out.set(row.turn_id, list);
+  }
+  return out;
 }
 
 async function threadsFor(
@@ -767,6 +855,24 @@ export async function dumpRoutes(app: App): Promise<void> {
         accountId,
       );
 
+      // **The footer, which a reload used to empty.** Every settled turn lost
+      // its Done mark, the thread it filed into and anything it read, because
+      // the tail carried none of the three: they were resolved only on the
+      // stream and on the single-message read. On a phone that is one cold start
+      // away, and it is the third time this endpoint has dropped something the
+      // rest of the API returns. `waiting` and `found` are the first two, and
+      // the comment above them says the same sentence.
+      const [landed, sources] = await Promise.all([
+        threadsForAll(
+          rows.map((row) => row.id),
+          accountId,
+        ),
+        sourcesForAll(
+          rows.map((row) => row.turn_id),
+          accountId,
+        ),
+      ]);
+
       return reply.send({
         conversationId: conversation.id,
         messages: rows.reverse().map((row) => ({
@@ -777,6 +883,10 @@ export async function dumpRoutes(app: App): Promise<void> {
           turnId: row.turn_id,
           waiting: waiting.get(row.id) ?? null,
           found: found.get(row.id) ?? [],
+          // Where it went and where a fact came from, both from the record of
+          // what was written rather than from anything the reply said.
+          threads: landed.get(row.id) ?? [],
+          sources: sources.get(row.turn_id) ?? [],
         })),
       });
     }

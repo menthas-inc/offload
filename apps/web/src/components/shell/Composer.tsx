@@ -170,6 +170,13 @@ export function Composer({
           // a web bug rather than a server one.
           found: message.found,
           waiting: message.waiting,
+          // **And the footer.** Same sentence as the two above: the server has
+          // always resolved these on the other two reads, and a reload emptied
+          // every settled turn's footer without them. `did` comes from the
+          // record the pills come from, never from the reply.
+          threads: message.threads,
+          sources: message.sources,
+          did: message.threads.length > 0,
         })),
       );
       // No toast on hydration. The eight seconds belongs to the moment offload
