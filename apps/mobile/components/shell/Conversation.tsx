@@ -337,13 +337,15 @@ function Turns() {
           <Theirs key={turn.id} turn={turn} />
         ),
       )}
-      {writing ? <Writing /> : null}
+      {writing ? <Working /> : null}
     </ScrollView>
   );
 }
 
 function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
   const COLOR = useColors();
+  // **`cancelled` is deliberately not here.** The clay border says something
+  // went wrong, and nothing did: somebody pressed Stop.
   const hurt = turn.state === "failed" || turn.state === "partial";
 
   return (
@@ -397,6 +399,22 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
             </Text>
           </Pressable>
         </View>
+      ) : null}
+
+      {/* 017. **One word, and nothing beside it.** `partial` gets Finish because
+          offload stopped by accident and finishing is what somebody wants;
+          this one they stopped themselves, and offering to undo their own
+          decision is the product arguing with them. The footer above already
+          says what landed, so this does not repeat it.
+
+          Secondary rather than danger: nothing went wrong. */}
+      {turn.state === "cancelled" ? (
+        <Text
+          className={`mt-space-2 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+          style={{ fontSize: 13 }}
+        >
+          Stopped.
+        </Text>
       ) : null}
     </View>
   );
@@ -567,6 +585,85 @@ function Theirs({ turn }: { turn: Turn }) {
             router.push({ pathname: "/threads/[id]", params: { id: threadId } });
           }}
         />
+      ) : null}
+    </View>
+  );
+}
+
+/** How long a turn runs before it is worth saying anything about it. 017.
+ *
+ *  Under this, the three dots are the honest answer: a line appearing and being
+ *  replaced twice inside a second is noise, and most turns finish here.
+ *
+ *  **Not the same number as the way out.** Saying what it is doing is
+ *  reassurance and comes early; offering to stop is an admission this is taking
+ *  too long and comes later. One number for both would either delay the
+ *  reassurance or offer the escape to somebody who did not need it. */
+const SAY_AFTER_MS = 2500;
+
+/** When the way out appears. The product owner's number. */
+const STOP_AFTER_MS = 10_000;
+
+/** What offload is doing, and past ten seconds a way to stop it.
+ *
+ *  **Both live where the three dots already were**, in the conversation area the
+ *  pinned composer has to itself, because the alternative is a toast and a toast
+ *  takes the only control away with it when it clears. This has no mock; the
+ *  divergence is logged.
+ *
+ *  It re-renders on a clock rather than on the step, because the two thresholds
+ *  are times and nothing else moves them: a turn can sit on one line for eight
+ *  seconds and the way out still has to arrive. */
+function Working() {
+  const { working, stop } = useConversation();
+  const [elapsed, setElapsed] = useState(0);
+
+  const since = working?.since ?? null;
+  useEffect(() => {
+    if (since === null) return;
+    setElapsed(Date.now() - since);
+    // Half a second. Fine enough that neither threshold lands visibly late,
+    // coarse enough not to be a render loop on a screen that is waiting.
+    const timer = setInterval(() => setElapsed(Date.now() - since), 500);
+    return () => clearInterval(timer);
+  }, [since]);
+
+  const step = elapsed >= SAY_AFTER_MS ? working?.step : null;
+  const canStop = working !== null && elapsed >= STOP_AFTER_MS;
+
+  // **Falls back to the dots, not to a filler sentence.** A turn with no step is
+  // a turn that is thinking rather than looking something up, and inventing a
+  // line for it would be offload narrating itself.
+  if (!step && !canStop) return <Writing />;
+
+  return (
+    <View className="gap-space-3" style={{ alignSelf: "flex-start" }}>
+      {step ? (
+        <Text
+          className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+          style={{ fontSize: 13.5 }}
+          // The line replaces itself rather than stacking, and a screen reader
+          // should hear the change without being interrupted mid-sentence.
+          accessibilityLiveRegion="polite"
+        >
+          {step}
+        </Text>
+      ) : (
+        <Writing />
+      )}
+
+      {canStop ? (
+        <Pressable
+          onPress={stop}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Stop"
+          className="min-h-tap-min justify-center"
+        >
+          <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13.5 }}>
+            Stop
+          </Text>
+        </Pressable>
       ) : null}
     </View>
   );

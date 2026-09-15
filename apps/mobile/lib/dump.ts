@@ -88,6 +88,8 @@ export interface Answer {
   reply: string | null;
   threads: TouchedThread[];
   sources: Source[];
+  /** 017. What offload is doing, on a turn still in flight. Null once settled. */
+  step: string | null;
   /** Every thread whose contents the turn changed, a superset of `threads`.
    *  A move's source is here and not there: the screen has to reload it, and a
    *  pill saying the dump went there would be untrue. */
@@ -127,7 +129,13 @@ const SLOW_MS = 5000;
 const MISSES_BEFORE_SLOWING = 20;
 
 const isFinal = (state: MessageState): boolean =>
-  state === "answered" || state === "partial" || state === "failed";
+  state === "answered" ||
+  state === "partial" ||
+  state === "failed" ||
+  // 017. A stopped turn is over. Without this the poll would keep asking about
+  // a turn nobody is working on, which is the one thing pressing Stop was
+  // meant to end.
+  state === "cancelled";
 
 /** Send it. The server stores it before anything else, so a resolved promise
  *  means the dump is safe even if nothing ever answers it. */
@@ -154,6 +162,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     reply: string | null;
     threads?: TouchedThread[];
     sources?: Source[];
+    step?: string | null;
     changed?: string[];
     waiting?: WaitingOn | null;
     // **The rows, which this used to drop on the floor.** `awaitAnswer` is the
@@ -169,6 +178,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     reply: data.reply,
     threads: data.threads ?? [],
     sources: data.sources ?? [],
+    step: data.step ?? null,
     changed: data.changed ?? [],
     waiting: data.waiting ?? null,
     found: data.found ?? [],
@@ -183,11 +193,15 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
  */
 export function awaitAnswer(
   messageId: string,
-  onAnswer: (answer: Answer) => void
+  onAnswer: (answer: Answer) => void,
+  /** 017. What offload is doing, on the ticks before the answer lands. Called
+   *  with null when the line is cleared, so a step never outlives the work. */
+  onStep?: (step: string | null) => void
 ): { cancel: () => void; now: () => void } {
   let done = false;
   let misses = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let said: string | null = null;
 
   const stop = (): void => {
     done = true;
@@ -203,6 +217,15 @@ export function awaitAnswer(
       stop();
       onAnswer(answer);
       return;
+    }
+
+    // **Only on a change.** The poll asks every second and the step changes
+    // two to five times a turn, so reporting every tick would be a state
+    // update per second for a string that is usually the same one.
+    const step = answer?.step ?? null;
+    if (step !== said) {
+      said = step;
+      onStep?.(step);
     }
 
     misses += 1;
@@ -243,6 +266,25 @@ export async function undoTurn(turnId: string): Promise<boolean> {
     method: "POST",
   });
   return data?.undone ?? false;
+}
+
+/** Stop a turn that is taking too long. 017.
+ *
+ *  **Fire and forget, deliberately.** AC-8 puts the screen back on the press and
+ *  not on the reply: a stop that waits for a round trip looks broken on exactly
+ *  the connection where somebody most wants to stop something. The caller has
+ *  already cleared its own state by the time this resolves, and the return value
+ *  is here for a test rather than for a screen.
+ *
+ *  Nothing is undone. Everything filed before the press stays filed, and Undo is
+ *  the thing that reverses it.
+ */
+export async function cancelTurn(turnId: string): Promise<boolean> {
+  const { data } = await send<{ state: MessageState; stopped: boolean }>(
+    `/v1/turns/${turnId}/cancel`,
+    { method: "POST" }
+  );
+  return data?.stopped ?? false;
 }
 
 /** Finish a turn that stopped partway.

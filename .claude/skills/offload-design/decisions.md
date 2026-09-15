@@ -11,6 +11,52 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-14 · What offload is doing, and the way out of it
+**Surface:** iOS, Android, web
+
+**Is:** a progress line and a Stop control, both in the conversation area, and
+neither has a mock.
+
+017 gives a turn that reaches the web two things it has never needed: one line
+saying what it is doing, and after ten seconds a way to stop it. The kits have
+neither, because until a turn could take twenty seconds the three dots were the
+whole truth.
+
+**Both live exactly where the three dots already were**: offload's side, at the
+log's gutter, the line above and the control under it. The alternative was a
+toast, and a toast clears itself and takes the only control away with it, which
+is the same reason 003's failure line is inline and not a toast.
+
+Two thresholds, deliberately different numbers. **2.5 seconds for the line**,
+because under that a sentence appears and is replaced before anybody reads it and
+most turns finish there. **10 seconds for the control**, the product owner's
+number. One number for both would either delay the reassurance or offer an escape
+to somebody who did not need one.
+
+**A turn with no step falls back to the dots rather than to a filler sentence.**
+A turn that is thinking rather than looking something up has nothing to report,
+and writing "Working on it" for it would be offload narrating itself.
+
+The line is the model's own words, capped at 80 characters by the server. It is
+written on the `look_up` call rather than after it returns, so it cannot contain
+anything the page said: a page title reading "Payment failed, verify your card",
+drawn in offload's voice, is a phishing message the product rendered itself.
+
+A stopped turn says **"Stopped."** and offers nothing. `partial` offers Finish
+because offload stopped by accident; this one they stopped, and offering to undo
+their own decision is the product arguing with them. Secondary rather than clay,
+because nothing went wrong.
+
+**Design system impact:** two things to draw. A progress line with its
+2.5-second appearance and its relationship to the writing indicator, and a Stop
+affordance at 10 seconds; both belong in the conversation component rather than
+in a new one. The "Stopped." state joins `failed` and `partial` as a third
+ending, and the kits draw neither of the first two on a sent bubble yet. Worth
+deciding whether Stop is a text button, as it is now, or something with more
+weight: it is the only control in the product that interrupts offload, and it
+currently looks exactly like Finish and Try again.
+
+
 ### 2026-09-14 · PrismField's contract is missing the prop React Native cannot do without
 **Surface:** iOS, Android
 

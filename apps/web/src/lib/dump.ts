@@ -73,6 +73,8 @@ export interface Answer {
   reply: string | null;
   threads?: TouchedThread[];
   sources?: Source[];
+  /** 017. What offload is doing, on a turn still in flight. Null once settled. */
+  step?: string | null;
   /** A calendar write offload proposed and nobody has answered yet. Only ever
    *  set on a write that reaches somebody else: guests, or a calendar marked
    *  shared. A write nobody learns about just happens, with the ordinary Undo. */
@@ -130,6 +132,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     reply: string | null;
     threads?: TouchedThread[];
     sources?: Source[];
+    step?: string | null;
     changed?: string[];
     waiting?: { id: string; because: string } | null;
     found?: FoundResult[];
@@ -139,6 +142,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     reply: body.reply,
     threads: body.threads ?? [],
     sources: body.sources ?? [],
+    step: body.step ?? null,
     changed: body.changed ?? [],
     waiting: body.waiting ?? null,
     found: body.found ?? [],
@@ -154,6 +158,8 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
 export function awaitAnswer(
   messageId: string,
   onAnswer: (answer: Answer) => void,
+  /** 017. What offload is doing, on a turn still in flight. */
+  onStep?: (step: string | null) => void,
 ): () => void {
   let done = false;
 
@@ -176,6 +182,15 @@ export function awaitAnswer(
     settle({ state: "failed", reply: null });
   });
 
+  // 017. The one event that does not settle the stream. The server can send the
+  // same line twice if something else woke its loop, and the client draws a step
+  // rather than appending one, so a repeat is a no-op on screen.
+  source.addEventListener("step", (event) => {
+    if (done) return;
+    const { text } = JSON.parse((event as MessageEvent).data) as { text: string };
+    onStep?.(text);
+  });
+
   // A closed stream is not an answer, and it is not a failure either. The
   // server bounds every stream to five minutes so the session gets rechecked,
   // which means a perfectly healthy wait ends in `error` regularly. Asking is
@@ -187,9 +202,16 @@ export function awaitAnswer(
       if (
         answer.state === "answered" ||
         answer.state === "partial" ||
-        answer.state === "failed"
+        answer.state === "failed" ||
+        // 017. A stopped turn is over. Without this the reconnect loop would
+        // keep asking about a turn nobody is working on.
+        answer.state === "cancelled"
       )
         settle(answer);
+      // 017. The reconnect path also catches the current step up, which is what
+      // AC-6 asks for: the stream is the fast route and this is the one that
+      // survives a dropped socket.
+      else onStep?.(answer.step ?? null);
       // Still thinking: the browser reconnects the EventSource on its own.
     });
   });
@@ -235,6 +257,29 @@ export async function fetchCurrent(): Promise<TailMessage[]> {
  *
  *  All three, because a reply saying "Added to Flat admin" that survives its
  *  own undo is a false sentence sitting permanently in the conversation. */
+/** Stop a turn that is taking too long. 017.
+ *
+ *  **Fire and forget, deliberately.** AC-8 puts the screen back on the press and
+ *  not on the reply: a stop that waits for a round trip looks broken on exactly
+ *  the connection where somebody most wants to stop something.
+ *
+ *  Nothing is undone. Everything filed before the press stays filed, and Undo is
+ *  the thing that reverses it.
+ */
+export async function cancelTurn(turnId: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API}/v1/turns/${turnId}/cancel`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!response.ok) return false;
+    const body = (await response.json()) as { stopped: boolean };
+    return body.stopped;
+  } catch {
+    return false;
+  }
+}
+
 export async function undoTurn(turnId: string): Promise<boolean> {
   const response = await fetch(`${API}/v1/turns/${turnId}/undo`, {
     method: "POST",

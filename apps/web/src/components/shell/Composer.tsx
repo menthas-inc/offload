@@ -24,6 +24,7 @@ import {
   resumeDump,
   sendDump,
   undoTurn,
+  cancelTurn,
   type Answer,
   type FoundResult,
   type FoundRow,
@@ -58,6 +59,11 @@ interface Turn {
   /** 016. Where a fact in this turn came from, for the chips in its footer.
    *  Empty on every turn that read nothing, which is nearly all of them. */
   sources?: TurnSource[];
+  /** 017. When this turn started waiting, for the two thresholds. On a turn
+   *  loaded from the tail it is when the page loaded rather than when the dump
+   *  was sent, which is the conservative reading: the turn has been in flight at
+   *  least that long, so the way out arrives late rather than never. */
+  since?: number;
   /** A calendar write offload proposed and nobody has answered yet. The reply
    *  carries the control that answers it, for the same reason it carries its
    *  own thread links and its own retry: a sentence cannot be clicked. */
@@ -99,6 +105,8 @@ export function Composer({
   const [draft, setDraft] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sending, setSending] = useState(false);
+  // 017. What offload is doing, on the turn in flight.
+  const [step, setStep] = useState<string | null>(null);
   const [tooLong, setTooLong] = useState<number | null>(null);
   const [undoable, setUndoable] = useState<Undoable | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -153,6 +161,7 @@ export function Composer({
           text: message.text ?? "",
           state: message.state,
           turnId: message.turnId,
+          since: Date.now(),
           // **Both of these were dropped here, and the server had always sent
           // them.** A reload turned an answer back into its sentence with no
           // rows beside it, and left a reply saying offload is waiting with
@@ -192,7 +201,9 @@ export function Composer({
   function watch(messageId: string, turnId: string | undefined): void {
     cancels.current.set(
       messageId,
-      awaitAnswer(messageId, (answer: Answer) => {
+      awaitAnswer(
+        messageId,
+        (answer: Answer) => {
         cancels.current.delete(messageId);
         setTurns((current) => {
           const filed = (answer.threads?.length ?? 0) > 0;
@@ -246,8 +257,36 @@ export function Composer({
           // Markers stripped rather than drawn. A toast is one line with a
           // control beside it, so a list has nowhere to go.
           offerUndo(turnId, plainText(answer.reply));
-      }),
+        },
+        (text) => setStep(text),
+      ),
     );
+  }
+
+  /** Stop the turn in flight. 017.
+   *
+   *  **The screen comes back on the press, not on the reply** (AC-8). The turn is
+   *  marked here and the request goes out unawaited, because a stop that waits
+   *  for a round trip looks broken on exactly the connection where somebody most
+   *  wants to stop something.
+   *
+   *  The stream is closed too. Without that it would deliver the answer the
+   *  person had already decided not to wait for. */
+  function stop(): void {
+    if (!inFlight?.turnId) return;
+    const { id, turnId } = inFlight;
+
+    cancels.current.get(id)?.();
+    cancels.current.delete(id);
+    setStep(null);
+    // The turn reads as stopped straight away rather than when the worker
+    // notices. The server settles it to the same state through the ordinary
+    // path, so a reload agrees with what is already on screen.
+    setTurns((current) =>
+      current.map((turn) => (turn.id === id ? { ...turn, state: "cancelled" as const } : turn)),
+    );
+
+    void cancelTurn(turnId);
   }
 
   async function submit(): Promise<void> {
@@ -265,7 +304,14 @@ export function Composer({
       setDraft("");
       setTurns((current) => [
         ...current,
-        { id: sent.messageId, from: "you", text, state: sent.state, turnId: sent.turnId },
+        {
+          id: sent.messageId,
+          from: "you",
+          text,
+          state: sent.state,
+          turnId: sent.turnId,
+          since: Date.now(),
+        },
       ]);
       watch(sent.messageId, sent.turnId);
     } catch (error) {
@@ -359,6 +405,11 @@ export function Composer({
   const live = turns.length > 0;
   const waiting = turns.some((turn) => turn.from === "you" && turn.state === "seen");
 
+  // 017. The turn in flight, if one is. Derived from the turns rather than held
+  // beside them, for the reason `waiting` is: two pieces of state that have to
+  // agree about the same thing are two pieces of state that will not.
+  const inFlight = turns.find((turn) => turn.from === "you" && turn.state === "seen");
+
   return (
     <div className={styles.composer}>
       {undoable ? (
@@ -422,6 +473,9 @@ export function Composer({
                 className={styles.turnYou}
                 // The failure is carried by the turn itself, so the message you
                 // wrote takes the clay border and the line sits under it.
+                // **`cancelled` is deliberately not here.** The clay border
+                // says something went wrong, and nothing did: somebody pressed
+                // Stop.
                 data-failed={
                   turn.state === "failed" || turn.state === "partial" ? true : undefined
                 }
@@ -450,6 +504,17 @@ export function Composer({
                       Finish it
                     </button>
                   </p>
+                ) : null}
+                {/* 017. **One word, and nothing beside it.** `partial` gets
+                    Finish because offload stopped by accident and finishing is
+                    what somebody wants; this one they stopped themselves, and
+                    offering to undo their own decision is the product arguing
+                    with them. The footer below already says what landed.
+
+                    Not `turnFailed`: that class is clay, and nothing went
+                    wrong here. */}
+                {turn.state === "cancelled" ? (
+                  <p className={styles.turnStopped}>Stopped.</p>
                 ) : null}
               </div>
               <TurnFooter
@@ -508,13 +573,7 @@ export function Composer({
                 : ""}
           </p>
 
-          {waiting ? (
-            <div className={styles.writing} aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
-          ) : null}
+          {waiting ? <Working step={step} since={inFlight?.since ?? null} onStop={stop} /> : null}
         </div>
       ) : null}
 
@@ -650,5 +709,90 @@ function Waiting({
         </button>
       </span>
     </span>
+  );
+}
+
+/** How long a turn runs before it is worth saying anything about it. 017.
+ *
+ *  Under this, the three dots are the honest answer: a line appearing and being
+ *  replaced twice inside a second is noise, and most turns finish here.
+ *
+ *  **Not the same number as the way out.** Saying what it is doing is
+ *  reassurance and comes early; offering to stop is an admission this is taking
+ *  too long and comes later. One number for both would either delay the
+ *  reassurance or offer the escape to somebody who did not need it. */
+const SAY_AFTER_MS = 2500;
+
+/** When the way out appears. The product owner's number. */
+const STOP_AFTER_MS = 10_000;
+
+/** What offload is doing, and past ten seconds a way to stop it.
+ *
+ *  **Both live where the three dots already were**, at the foot of the log,
+ *  because the alternative is a toast and a toast takes the only control away
+ *  with it when it clears. This has no mock; the divergence is logged.
+ *
+ *  It re-renders on a clock rather than on the step, because the two thresholds
+ *  are times and nothing else moves them: a turn can sit on one line for eight
+ *  seconds and the way out still has to arrive. */
+function Working({
+  step,
+  since,
+  onStop,
+}: {
+  step: string | null;
+  since: number | null;
+  onStop: () => void;
+}) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (since === null) return;
+    setElapsed(Date.now() - since);
+    // Half a second. Fine enough that neither threshold lands visibly late,
+    // coarse enough not to be a render loop on a page that is waiting.
+    const timer = setInterval(() => setElapsed(Date.now() - since), 500);
+    return () => clearInterval(timer);
+  }, [since]);
+
+  const line = elapsed >= SAY_AFTER_MS ? step : null;
+  const canStop = elapsed >= STOP_AFTER_MS;
+
+  // **Falls back to the dots, not to a filler sentence.** A turn with no step is
+  // a turn that is thinking rather than looking something up, and inventing a
+  // line for it would be offload narrating itself.
+  if (!line && !canStop) {
+    return (
+      <div className={styles.writing} aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.working}>
+      {line ? (
+        // The line replaces itself rather than stacking. The log's own live
+        // region announces the turn's transitions, so this one is scoped to the
+        // sentence and polite.
+        <p className={styles.workingStep} aria-live="polite">
+          {line}
+        </p>
+      ) : (
+        <div className={styles.writing} aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      )}
+
+      {canStop ? (
+        <button type="button" className={styles.retry} onClick={onStop}>
+          Stop
+        </button>
+      ) : null}
+    </div>
   );
 }

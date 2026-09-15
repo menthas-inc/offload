@@ -21,6 +21,7 @@ import { AppState, type AppStateStatus } from "react-native";
 import { plainText } from "@offload/markup";
 import {
   awaitAnswer,
+  cancelTurn,
   endConversation,
   fetchCurrent,
   resumeDump,
@@ -113,6 +114,12 @@ export interface Conversation {
   raised: boolean;
   turns: Turn[];
   writing: boolean;
+  /** 017. The turn in flight, if one is: what offload is doing and how long it
+   *  has been at it, so the sheet can draw the line and, past ten seconds, the
+   *  way out. Null the rest of the time, which is nearly always. */
+  working: { messageId: string; turnId: string; since: number; step: string | null } | null;
+  /** Stop the turn in flight. Returns the screen immediately. */
+  stop: () => void;
   draft: string;
   undoable: Undoable | null;
   /** Set only by a `+`. While it holds, the sheet shows what it is pinned to
@@ -238,6 +245,15 @@ export function ConversationProvider({
   }, []);
 
   const [writing, setWriting] = useState(false);
+  // 017. What offload is doing, and which turn is still in flight so it can be
+  // stopped. One at a time, because the composer only ever has one turn waiting:
+  // a second dump lands as its own turn and the first one's line is gone by then.
+  const [working, setWorking] = useState<{
+    messageId: string;
+    turnId: string;
+    since: number;
+    step: string | null;
+  } | null>(null);
   const [draft, setDraft] = useState("");
   const [undoable, setUndoable] = useState<Undoable | null>(null);
   const [filed, setFiled] = useState<{
@@ -315,9 +331,12 @@ export function ConversationProvider({
 
   const watch = useCallback(
     (messageId: string, turnId: string) => {
-      const poll = awaitAnswer(messageId, (answer) => {
+      const poll = awaitAnswer(
+        messageId,
+        (answer) => {
         polls.current.delete(messageId);
         setWriting(false);
+        setWorking((current) => (current?.messageId === messageId ? null : current));
 
         const did = answer.threads.length > 0;
         setTurns((current) => {
@@ -327,16 +346,11 @@ export function ConversationProvider({
                   ...turn,
                   state: answer.state,
                   did,
-                  // **The pills go here when there is no reply to hang them
-                  // on.** A dump that was simply filed says nothing back, so
-                  // the Done mark and the thread it went to are the whole of
-                  // what the turn has to say, and without this the thread was
-                  // named nowhere at all.
                   // **Always, not only when there is no reply.** The footer
                   // belongs to the turn rather than to either bubble, so the
                   // pills and the sources land here whether or not offload said
                   // anything, and the reply no longer draws them.
-    
+                  threads: answer.threads,
                   sources: answer.sources,
                 }
               : turn,
@@ -349,7 +363,6 @@ export function ConversationProvider({
               from: "offload" as const,
               text: answer.reply,
               turnId,
-              threads: answer.threads,
               waiting: answer.waiting ?? null,
               found: answer.found ?? [],
             },
@@ -378,11 +391,46 @@ export function ConversationProvider({
           // control beside it, so a list has nowhere to go, and the raw
           // characters were showing.
           offerUndo(turnId, plainText(answer.reply));
-      });
+        },
+        // 017. Only on a change, and only for the turn still in flight.
+        (step) =>
+          setWorking((current) =>
+            current?.messageId === messageId ? { ...current, step } : current,
+          ),
+      );
       polls.current.set(messageId, poll);
+      setWorking({ messageId, turnId, since: Date.now(), step: null });
     },
     [offerUndo],
   );
+
+  /** Stop the turn in flight. 017.
+   *
+   *  **The screen comes back on the press, not on the reply** (AC-8). The state
+   *  is cleared here and the request goes out unawaited, because a stop that
+   *  waits for a round trip looks broken on exactly the connection where
+   *  somebody most wants to stop something.
+   *
+   *  The poll is stopped too. Without that it would keep asking about a turn
+   *  nobody is working on, and would eventually draw the answer the person had
+   *  already decided they did not want to wait for. */
+  const stop = useCallback(() => {
+    const turn = working;
+    if (!turn) return;
+
+    polls.current.get(turn.messageId)?.cancel();
+    polls.current.delete(turn.messageId);
+    setWorking(null);
+    setWriting(false);
+    // The turn reads as stopped straight away rather than when the worker
+    // notices. The server settles it to the same state through the ordinary
+    // path, so a reload agrees with what is already on screen.
+    setTurns((current) =>
+      current.map((t) => (t.id === turn.messageId ? { ...t, state: "cancelled" as const } : t)),
+    );
+
+    void cancelTurn(turn.turnId);
+  }, [working]);
 
   /** A `+`'s own write. It never leaves the thread it was pinned to and it
    *  never becomes a turn: a section's `+` writing straight in and a note
@@ -487,6 +535,8 @@ export function ConversationProvider({
         raised: pin !== null || (live !== null && !folded),
         turns,
         writing,
+        working,
+        stop,
         draft,
         undoable,
         pin,

@@ -204,6 +204,30 @@
    Not inside the sent bubble's 78% and not inside the reply's: it is not a
    bubble and nothing in it is a quotation. Wraps rather than scrolls, and
    `min-height` rather than `height` so a long domain at 200% text does not clip. */
+/* 017. The progress line and the way out, where the three dots already were:
+   offload's side, at the log's gutter, stacked so the control sits under the
+   sentence rather than beside it and reflowing at 200% text. */
+/* Secondary, not clay: a stopped turn is not a failed one. */
+.turnStopped {
+  margin: var(--space-3) 0 0;
+  font: var(--weight-regular) var(--size-body-sm) / 1.45 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.working {
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.workingStep {
+  margin: 0;
+  font: var(--weight-regular) var(--size-body-sm) / 1.45 var(--font-core);
+  color: var(--text-secondary);
+}
+
 .turnFooter {
   align-self: stretch;
   display: flex;
