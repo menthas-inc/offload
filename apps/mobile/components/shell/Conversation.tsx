@@ -596,11 +596,16 @@ function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
           announced and then expires an hour later having done nothing. */}
       {turn.waiting ? <Waiting turn={turn} /> : null}
 
-      {/* The turn's footer, under the thing it describes. The state and the
-          pills come from the message that was sent, not from this reply: what
-          offload did is a fact about the turn rather than about the sentence. */}
-      {sent ? <TurnFooter turn={sent} /> : null}
     </View>
+
+      {/* The turn's footer, under the thing it describes and **outside the
+          bubble**, which is the whole point of it: it is not a quotation and
+          nothing in it is offload speaking. Inside, the chips were enclosed by
+          the reply and read as part of the sentence.
+
+          The state and the pills come from the message that was sent, not from
+          this reply: what offload did is a fact about the turn. */}
+      {sent ? <TurnFooter turn={sent} /> : null}
 
       {/* **Below the bubble, not inside it.** A row's press fill bleeds to its
           pane's padded edge by one space step, which is a turn's own padding,
