@@ -11,6 +11,37 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-15 · Where they are, and a 250 row list on a phone
+**Surface:** iOS, Android, web
+
+**Is:** a Country row in My account, under Email. Web draws a `select`; the
+phones push a screen with a search field and a list.
+
+No kit draws either. The nearest thing is Appearance, which is a segmented
+control over three values, and that shape does not survive 250.
+
+**Why My account and not Privacy.** It is a fact about them, like their name, and
+it reads as one. What it changes belongs in the note under it rather than in
+where it sits: a date or a forecast is the one where you are.
+
+**"Not set" is a row, not an empty field.** Clearing it is a real choice and the
+product behaves differently for it: offload tells the model it does not know and
+declines rather than guessing. A blank would read as a row that had not loaded.
+
+**The phones get a search field rather than a wheel.** What somebody knows is the
+name, not the code, and a 250 row scroll is not a choice anybody makes twice.
+Filtering matches the name or an exact code, so "PT" and "Port" both find
+Portugal. The current one is marked "Now", which is the word this product already
+uses for the state a thing is in.
+
+**Design system impact:** there is no long-list picker anywhere in the system and
+this is the first. Worth drawing once, because the next one is already visible: a
+timezone, if that ever follows the country. The web `select` is the platform
+control unstyled apart from the row's own value slot, which is a divergence from
+every other settings control and the cheapest thing that works; if the kits grow
+a picker, web should take it.
+
+
 ### 2026-09-15 · The eyes go, and the footer moves under the reply
 **Surface:** iOS, Android, web
 
