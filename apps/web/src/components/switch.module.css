@@ -1,0 +1,84 @@
+/* forms/Switch.jsx, as a stylesheet. Every value is the kit's: a 44 by 26
+   track with 3px of padding, a 20px knob, ink when on, --surface-fill-strong
+   when off, the disabled surface when disabled, and the toggle duration. */
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-5);
+  cursor: pointer;
+}
+
+.switch[data-disabled] {
+  cursor: not-allowed;
+}
+
+.label {
+  flex: 1;
+  font: var(--text-body-role);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+/* Present for the keyboard and the screen reader, invisible to everyone else.
+   Not display: none, which takes it out of the tab order and the tree. */
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.track {
+  box-sizing: border-box;
+  width: 44px;
+  height: 26px;
+  flex: 0 0 auto;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill-strong);
+  display: flex;
+  transition: background var(--duration-base) var(--ease-out);
+}
+
+.knob {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--paper);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.input:checked + .track {
+  background: var(--surface-inverse);
+}
+
+.input:checked + .track .knob {
+  transform: translateX(18px);
+}
+
+.input:disabled + .track {
+  background: var(--state-disabled-surface);
+}
+
+/* The system's focus ring, on the thing that is drawn rather than on the
+   input nobody can see. */
+.input:focus-visible + .track {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track,
+  .knob {
+    transition: none;
+  }
+}

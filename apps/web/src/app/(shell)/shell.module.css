@@ -740,12 +740,18 @@
 
 /* Narrow: one pane, and the crumb becomes the way back. */
 /* 1180 is the kit's own one-pane width, from WApp.jsx's preview toggle. Below
-   it there is one pane, no sidebar, and the crumb is the way back. */
+   it there is one pane and the crumb is the way back.
+
+   **The sidebar stays.** WApp.jsx draws WSidebar at both widths and only the
+   pane count and the crumb bar change, and hiding it here left a window under
+   1180 with no way to Settings, Notes or Activity from Today or My threads: the
+   back button is the only control the narrow crumb bar has, and a root page has
+   nothing to go back to. The trail hides only when a back button replaces it,
+   which is the kit's own rule (a trail of one is still drawn). */
 @media (max-width: 1180px) {
   .paneLeft { display: none; }
-  .sidebar { display: none; }
   .crumbBack { display: inline-flex; }
-  .crumbTrail { display: none; }
+  .crumbBack ~ .crumbTrail { display: none; }
 }
 
 /* Undo, floated over the pane it applies to. The same Toast contract 004 wired

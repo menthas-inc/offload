@@ -607,7 +607,15 @@ async def _run(
             # the turn merely looked at.
             if not body.get("ok"):
                 # Names only. The reason is data for the model, not for a reply.
-                outcome.failed.append(block.name)
+                #
+                # **A tool that declined is not a tool that failed.** A lookup
+                # the bound refused did exactly what it exists to do, and the
+                # model gets the reason and can ask differently or answer with
+                # what it has. Counting it here made the turn partial, threw
+                # the model's own answer away for "That did not finish.", and
+                # offered Finish it against a refusal that repeats every time.
+                if not body.get("declined"):
+                    outcome.failed.append(block.name)
             else:
                 outcome.worked += 1
 

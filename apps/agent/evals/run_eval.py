@@ -347,10 +347,14 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
             url = (args.get("url") or "").strip()
             if question and not _from_the_dump(question, case.question, COUNTRY):
                 refused_bound.append(question)
-                return {"ok": False, "error": "ask using only words from what they dumped"}
+                return {
+                    "ok": False,
+                    "declined": True,
+                    "error": "ask using only words from what they dumped",
+                }
             if url and not _in_the_dump(url, case.question):
                 refused_bound.append(url)
-                return {"ok": False, "error": "that url is not in what they dumped"}
+                return {"ok": False, "declined": True, "error": "that url is not in what they dumped"}
             # **A stub that can only fail is as useless as one that can only
             # succeed.** This answered every lookup `found: False`, so every
             # case ended with the model explaining that it had found nothing,

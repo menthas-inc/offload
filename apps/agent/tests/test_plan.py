@@ -581,6 +581,34 @@ async def test_a_refused_tool_makes_the_turn_partial_even_with_a_reply():
     assert not outcome.finished
 
 
+async def test_a_lookup_the_bound_declined_does_not_make_the_turn_partial():
+    """A refusal is the tool working, and the model's answer stands.
+
+    Asked for a museum's hours and its ticket price, the planner found the
+    hours, asked a second question with a word the dump did not contain, was
+    refused twice, and answered with what it had. The harness counted the two
+    refusals as failed tools, threw the answer away for "That did not finish."
+    and offered Finish it, which repeated the refusal exactly. A declined call
+    is handed back as an error for the model to read and is not a failure of
+    the turn.
+    """
+    model = StubModel([
+        Response(
+            content=[ToolUse(id="a", name="look_up", input={"question": "ticket price", "want": ["fact"]})],
+            stop_reason="tool_use",
+        ),
+        Response(content=[TextBlock("Open 10 to 6, closed Tuesdays.")], stop_reason="end_turn"),
+    ])
+    tools = Recorder([{"ok": False, "declined": True, "error": "limit_reached"}])
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", tools)
+
+    assert outcome.failed == []
+    assert outcome.worked == 0
+    assert outcome.finished
+    assert outcome.reply == "Open 10 to 6, closed Tuesdays."
+
+
 async def test_a_turn_with_no_failures_is_finished():
     model = StubModel([
         Response(content=[ToolUse(id="a", name="add_content",

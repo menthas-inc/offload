@@ -87,7 +87,7 @@ async def test_the_search_bound_is_the_turn_s_and_not_the_call_s(monkeypatch):
     assert budget.searches == 3
 
     second = await _look_up(None, CFG, budget, {"question": "the weather", "want": ["fact"]})
-    assert second == {"ok": False, "error": "limit_reached"}
+    assert second == {"ok": False, "declined": True, "error": "limit_reached"}
 
 
 async def test_a_switch_that_is_off_refuses_before_the_reader(monkeypatch):

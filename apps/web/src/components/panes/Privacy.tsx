@@ -16,6 +16,7 @@
 
 import { useState } from "react";
 import { PaneHead } from "../shell/PaneHead";
+import { Switch } from "../Switch";
 import { Group } from "./SettingsRows";
 import { useMe, updateWebAccess } from "../../lib/use-me";
 import styles from "../../app/(shell)/shell.module.css";
@@ -60,13 +61,13 @@ export function PrivacyPane() {
   );
 }
 
-/** A settings row whose control is a checkbox behaving as a switch.
+/** A settings row with the design system's Switch as its control.
  *
- *  A native input in a label, the same shape `Apps.tsx` already uses for its two
- *  calendar settings: the design system's `Checkbox` strikes its label through
- *  once ticked, which is right for a task read as done and wrong for a setting
- *  that is simply on. The label is the hit area, so a 17px box still answers a
- *  44px tap. */
+ *  The whole row is the label, so the switch is named by the title beside it
+ *  and the row is the hit area: a 44px track still answers a click anywhere on
+ *  the line. It was a native checkbox until 15 September, which passed for a
+ *  tick and drew in the browser's own blue; the handoff for 016 asked for the
+ *  real Switch, and `Apps.tsx`'s two calendar settings moved with it. */
 function Toggle({
   title,
   note,
@@ -81,19 +82,14 @@ function Toggle({
   last?: boolean;
 }) {
   return (
-    <div className={`${styles.settingsRow} ${last ? styles.settingsRowLast : ""}`}>
+    <label className={`${styles.settingsRow} ${last ? styles.settingsRowLast : ""}`}>
       <span className={styles.settingsText}>
         <span className={styles.settingsTitle}>{title}</span>
         <span className={styles.settingsNote}>{note}</span>
       </span>
-      <label className={styles.settingsValue}>
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(event) => onChange(event.target.checked)}
-          aria-label={title}
-        />
-      </label>
-    </div>
+      <span className={styles.settingsValue}>
+        <Switch checked={checked} onChange={onChange} />
+      </span>
+    </label>
   );
 }

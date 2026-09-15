@@ -577,6 +577,91 @@ describe("a turn that stopped partway", () => {
   });
 });
 
+describe("a turn that stopped twice", () => {
+  async function resumeJob(accountId: string, messageId: string): Promise<string> {
+    const message = await db
+      .selectFrom("messages")
+      .select(["conversation_id", "turn_id"])
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    const job = await db
+      .insertInto("jobs")
+      .values({
+        kind: "dump.answer",
+        account_id: accountId,
+        payload: JSON.stringify({
+          messageId,
+          conversationId: message.conversation_id,
+          turnId: message.turn_id,
+        }),
+        run_after: new Date(),
+        state: "running",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    return job.id;
+  }
+
+  it("replaces its earlier reply rather than adding one, and records a page once", async () => {
+    const accountId = await account();
+    const { jobId, messageId, turnId } = await dump(accountId);
+    const sources = [{ domain: "gulbenkian.pt", url: "https://gulbenkian.pt/hours" }];
+
+    await turnResult({ outcome: "partial", jobId, replyText: "That did not finish.", usage: [usage], sources });
+
+    // Finish it, and it stops again: the same sentence, the same page.
+    const second = await resumeJob(accountId, messageId);
+    await db.updateTable("messages").set({ state: "seen" }).where("id", "=", messageId).execute();
+    await turnResult({ outcome: "partial", jobId: second, replyText: "That did not finish.", usage: [usage], sources });
+
+    const replies = await db
+      .selectFrom("messages")
+      .select(["id", "text"])
+      .where("turn_id", "=", turnId)
+      .where("role", "=", "offload")
+      .where("deleted_at", "is", null)
+      .execute();
+    expect(replies.map((r) => r.text)).toEqual(["That did not finish."]);
+
+    const read = await db.selectFrom("turn_sources").select("url").where("turn_id", "=", turnId).execute();
+    expect(read).toHaveLength(1);
+
+    // Finished at last, with something to say: the sentence changes in place.
+    const third = await resumeJob(accountId, messageId);
+    await db.updateTable("messages").set({ state: "seen" }).where("id", "=", messageId).execute();
+    await turnResult({ outcome: "answered", jobId: third, replyText: "Open 10 to 6.", usage: [usage] });
+
+    const after = await db
+      .selectFrom("messages")
+      .select(["id", "text"])
+      .where("turn_id", "=", turnId)
+      .where("role", "=", "offload")
+      .where("deleted_at", "is", null)
+      .execute();
+    expect(after).toEqual([{ id: replies[0]!.id, text: "Open 10 to 6." }]);
+  });
+
+  it("drops its earlier reply when the resume had nothing to say", async () => {
+    const accountId = await account();
+    const { jobId, messageId, turnId } = await dump(accountId);
+
+    await turnResult({ outcome: "partial", jobId, replyText: "That did not finish.", usage: [usage] });
+
+    const second = await resumeJob(accountId, messageId);
+    await db.updateTable("messages").set({ state: "seen" }).where("id", "=", messageId).execute();
+    await turnResult({ outcome: "answered", jobId: second, usage: [usage] });
+
+    const replies = await db
+      .selectFrom("messages")
+      .select("id")
+      .where("turn_id", "=", turnId)
+      .where("role", "=", "offload")
+      .where("deleted_at", "is", null)
+      .execute();
+    expect(replies).toEqual([]);
+  });
+});
+
 describe("undo", () => {
   it("refuses the route without a session", async () => {
     const accountId = await account();

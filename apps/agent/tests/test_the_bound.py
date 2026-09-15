@@ -98,7 +98,7 @@ def test_every_refusal_in_the_lookup_path_leaves_a_record():
     guard = body.split("reading = await reader.read")[0]
 
     lines = guard.splitlines()
-    refusals = [i for i, line in enumerate(lines) if re.search(r'return \{"ok": False', line)]
+    refusals = [i for i, line in enumerate(lines) if re.search(r"return _declined\(", line)]
     assert refusals, "the guard clauses moved; this test needs rewriting"
 
     for i in refusals:

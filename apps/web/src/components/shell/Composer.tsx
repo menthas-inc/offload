@@ -388,7 +388,14 @@ export function Composer({
     setTurns((current) =>
       current
         .filter((turn) => turn.id !== `${messageId}-reply`)
-        .map((turn) => (turn.id === messageId ? { ...turn, state: sent.state } : turn)),
+        .map((turn) =>
+          turn.id === messageId
+            ? // The clock restarts with the turn. Carrying the old `since` over
+              // put Stop on screen a third of a second into a resumed turn,
+              // because ten seconds had already passed on the first attempt.
+              { ...turn, state: sent.state, since: Date.now() }
+            : turn,
+        ),
     );
     watch(messageId, sent.turnId);
   }

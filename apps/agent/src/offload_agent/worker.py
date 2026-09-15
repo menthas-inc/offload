@@ -143,6 +143,24 @@ class Lookups:
         self.rows.append(
             {"label": label, "kind": kind, "outcome": outcome, "costMicros": cost_micros}
         )
+        # **A refusal leaves a line.** The used and failed outcomes were logged
+        # at the call site and the refused ones only here, in the ledger, so a
+        # turn refused twice by the bound logged nothing and then reported
+        # `failed=['look_up', 'look_up']`, which reads as a broken tool. Label
+        # and outcome only, the same as the call site.
+        if outcome.startswith("refused"):
+            log.info("looked up", label=label, kind=kind, outcome=outcome)
+
+
+def _declined(error: str) -> dict:
+    """A lookup the bound refused, as the model sees it.
+
+    `ok: False` so the loop hands it back as an error and the model reads the
+    reason; `declined` so the harness does not count it as a failed tool. The
+    bound refusing is the tool working, and a turn it refused is a turn that can
+    still finish: the model can ask differently or answer with what it has.
+    """
+    return {"ok": False, "declined": True, "error": error}
 
 
 #: Words a query may add to the dump's own.
@@ -395,7 +413,7 @@ async def _look_up(
         # me saying nothing.
         budget.record(label="other", kind="search", outcome="refused_bound")
         log.info("lookup malformed", both=bool(question and url))
-        return {"ok": False, "error": "give exactly one of question and url"}
+        return _declined("give exactly one of question and url")
 
     if url:
         if not budget.may_read_links:
@@ -407,34 +425,31 @@ async def _look_up(
             # find that the switch was false because `fit` had dropped it.
             budget.record(label="link_metadata", kind="read", outcome="refused_bound")
             log.info("lookup refused", why="links off")
-            return {"ok": False, "error": "reading links is switched off"}
+            return _declined("reading links is switched off")
         if not _in_the_dump(url, budget.dump):
             budget.record(label="link_metadata", kind="read", outcome="refused_bound")
-            return {"ok": False, "error": "that url is not in what they dumped"}
+            return _declined("that url is not in what they dumped")
         if budget.reads >= budget.READS:
             budget.record(label="link_metadata", kind="read", outcome="refused_bound")
-            return {"ok": False, "error": "limit_reached"}
+            return _declined("limit_reached")
     else:
         if not budget.may_search:
             budget.record(label="other", kind="search", outcome="refused_bound")
             log.info("lookup refused", why="search off")
-            return {"ok": False, "error": "searching is switched off"}
+            return _declined("searching is switched off")
         if not _from_the_dump(question or "", budget.dump, budget.country):
             budget.record(label="other", kind="search", outcome="refused_bound")
             # **The refusal says how to recover.** The loop hands this back to
             # the model, which can try again; "ask using only words from what
             # they dumped" did not say that the country was allowed or that a
             # date it worked out was not, so it retried with the same shape.
-            return {
-                "ok": False,
-                "error": (
-                    "ask using only the words they dumped, plus their country. "
-                    "no dates you worked out, no extra clauses. try a shorter query."
-                ),
-            }
+            return _declined(
+                "ask using only the words they dumped, plus their country. "
+                "no dates you worked out, no extra clauses. try a shorter query."
+            )
         if budget.left() == 0:
             budget.record(label="other", kind="search", outcome="refused_bound")
-            return {"ok": False, "error": "limit_reached"}
+            return _declined("limit_reached")
 
     # **Before the reader, and only once the bounds have passed.** A step for a
     # lookup that was about to be refused would put a line on screen for work

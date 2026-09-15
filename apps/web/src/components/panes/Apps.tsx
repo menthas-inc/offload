@@ -13,6 +13,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "../Icon";
+import { Switch } from "../Switch";
 import { Group, Row } from "./SettingsRows";
 import {
   connectUrl,
@@ -123,29 +124,23 @@ export function AppsPane() {
                       ))}
                     </select>
 
-                    <label className={pane.settingsTitle}>
-                      <input
-                        type="checkbox"
-                        checked={calendar.selected}
-                        disabled={!calendar.threadId}
-                        onChange={(event) => void change(calendar, { selected: event.target.checked })}
-                      />{" "}
-                      Read this one
-                    </label>
+                    <Switch
+                      label="Read this one"
+                      checked={calendar.selected}
+                      disabled={!calendar.threadId}
+                      onChange={(next) => void change(calendar, { selected: next })}
+                    />
 
                     {/* Whether anybody else sees it, which is what decides
                         whether offload asks before it writes. Ours to ask
                         because Google cannot answer it: a calendar can be
                         public to anyone with the link. */}
-                    <label className={pane.settingsTitle}>
-                      <input
-                        type="checkbox"
-                        checked={calendar.isShared}
-                        disabled={calendar.accessRole !== "owner"}
-                        onChange={(event) => void change(calendar, { isShared: event.target.checked })}
-                      />{" "}
-                      Other people see this
-                    </label>
+                    <Switch
+                      label="Other people see this"
+                      checked={calendar.isShared}
+                      disabled={calendar.accessRole !== "owner"}
+                      onChange={(next) => void change(calendar, { isShared: next })}
+                    />
                   </div>
                 </div>
               ))}

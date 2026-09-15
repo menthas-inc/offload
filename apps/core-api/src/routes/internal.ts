@@ -565,21 +565,52 @@ export async function internalRoutes(app: App): Promise<void> {
           // filed writes no offload message at all: the Done mark and the pill
           // naming the thread carry it, and `reply` on the wire is already
           // nullable, so the clients have the shape for it.
-          const reply = result.replyText
-            ? await trx
-                .insertInto("messages")
-                .values({
-                  conversation_id: payload.conversationId!,
-                  account_id: accountId,
-                  role: "offload",
-                  type: "text",
-                  turn_id: payload.turnId!,
-                  text: result.replyText,
-                  state: "answered",
-                })
-                .returning("id")
-                .executeTakeFirstOrThrow()
-            : null;
+          // **A resumed turn replaces what it said last time.** The first
+          // attempt at a turn that stopped wrote "That did not finish." against
+          // the turn, and a second attempt used to write another beside it:
+          // two identical sentences, each with the same chips, under one Finish
+          // it. A turn has one reply, so the row is reused when there is one,
+          // and goes when the resume had nothing to say (a filing that then
+          // finished quietly earns its Done mark and no sentence).
+          const earlier = await trx
+            .selectFrom("messages")
+            .select("id")
+            .where("turn_id", "=", payload.turnId!)
+            .where("role", "=", "offload")
+            .where("deleted_at", "is", null)
+            .executeTakeFirst();
+
+          let reply: { id: string } | null = null;
+          if (result.replyText && earlier) {
+            await trx
+              .updateTable("messages")
+              .set({ text: result.replyText, state: "answered" })
+              .where("id", "=", earlier.id)
+              .execute();
+            // What the earlier sentence showed belongs to the earlier sentence.
+            await trx.deleteFrom("message_content").where("message_id", "=", earlier.id).execute();
+            reply = earlier;
+          } else if (result.replyText) {
+            reply = await trx
+              .insertInto("messages")
+              .values({
+                conversation_id: payload.conversationId!,
+                account_id: accountId,
+                role: "offload",
+                type: "text",
+                turn_id: payload.turnId!,
+                text: result.replyText,
+                state: "answered",
+              })
+              .returning("id")
+              .executeTakeFirstOrThrow();
+          } else if (earlier) {
+            await trx
+              .updateTable("messages")
+              .set({ deleted_at: new Date() })
+              .where("id", "=", earlier.id)
+              .execute();
+          }
 
           if (result.outcome === "answered" && reply && result.found?.length) {
             const ids = result.found.flatMap((r) => r.contentIds);
@@ -619,11 +650,28 @@ export async function internalRoutes(app: App): Promise<void> {
           // filing turn writes no reply at all and may still have read
           // something. Same reason the Done mark and the thread pills belong to
           // the turn: the sentence is optional and the record is not.
-          if (result.sources?.length) {
+          // **Only what this attempt read for the first time.** A resumed turn
+          // reads the same pages again, and recording them again grew the
+          // chip's count past the cap on every Finish it: three chips and
+          // "and 12 more" over eight pages. The tally is a count of reads, so
+          // it moves only for the new ones as well.
+          const known = new Set(
+            result.sources?.length
+              ? (
+                  await trx
+                    .selectFrom("turn_sources")
+                    .select("url")
+                    .where("turn_id", "=", payload.turnId!)
+                    .execute()
+                ).map((row) => row.url)
+              : [],
+          );
+          const sources = (result.sources ?? []).filter((source) => !known.has(source.url));
+          if (sources.length) {
             await trx
               .insertInto("turn_sources")
               .values(
-                result.sources.map((source) => ({
+                sources.map((source) => ({
                   account_id: accountId,
                   turn_id: payload.turnId!,
                   domain: source.domain,
@@ -635,7 +683,7 @@ export async function internalRoutes(app: App): Promise<void> {
             // And the tally with nobody attached. One statement, no account id
             // in it at all, which is what makes this aggregate by construction
             // rather than aggregate by policy.
-            for (const domain of new Set(result.sources.map((s) => s.domain))) {
+            for (const domain of new Set(sources.map((s) => s.domain))) {
               await sql`
                 insert into domain_reads (domain, day, count)
                 values (${domain}, current_date, 1)

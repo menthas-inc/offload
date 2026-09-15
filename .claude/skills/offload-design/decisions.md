@@ -11,6 +11,46 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-15 · What a usability pass on web found
+**Surface:** web
+
+Four things from driving offload.club in a real browser, each one already drawn
+in the kit and built differently.
+
+**The sidebar stays under 1180.** `WApp.jsx` draws `WSidebar` at both preview
+widths; only the pane count and the crumb bar change. The code hid the sidebar as
+well, and with it the only way from Today or My threads to Settings, Notes and
+Activity: the narrow crumb bar is a back button, and a root page has nothing to
+go back to. Back to the kit. The trail hides only when a back button replaces it,
+which is the kit's rule too, since a trail of one is still drawn.
+
+**Settings switches are `Switch`.** Privacy's two web switches and the two
+calendar settings in Apps were native checkboxes: a tick shape for a setting
+that is on, in the browser's own blue. `handoff/APPLY-2026-09-14` asked for the
+real `Switch`, a 44 by 26 track, ink when on, and web now has one, drawn over a
+visually hidden checkbox so the keyboard and a screen reader get a control the
+kit's span never gave them. The country row keeps its `select`, per the entry
+below this one.
+
+**A turn that stops twice says it once.** Finish it on a partial turn wrote a
+second "That did not finish." under the first, each with the same source chips,
+and the chip count grew past its cap on every attempt because the same pages were
+recorded again. A turn has one reply: the row is replaced, and a page is recorded
+the first time it is read.
+
+**Stop restarts with the turn.** Finish it carried the first attempt's clock, so
+the way out was on screen a third of a second into the resumed turn.
+
+**One thing seen and not changed.** The step line 017 puts at 2.5 seconds arrives
+at about 11 on an answering turn, after Stop, because it is written when the
+model's first lookup starts and the answer model's first round trip is that
+long. The three dots are the honest state until then and the fallback already
+says so; a filler sentence would be offload narrating itself. Noted here so the
+threshold is not tuned again.
+
+**Design system impact:** none. The kit already draws all four.
+
+
 ### 2026-09-15 · One height in the turn footer, and it clears the bubble
 **Surface:** iOS, Android, web
 
