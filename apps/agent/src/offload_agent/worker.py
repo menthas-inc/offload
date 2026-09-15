@@ -530,6 +530,29 @@ def _tool_caller(
                 return {"ok": False, "error": "not available on this turn"}
             return await _look_up(lookups[0], lookups[1], lookups[2], args, say, http)
 
+        # **The page's picture, on any link being filed.**
+        #
+        # Not only when the model happened to call `look_up` first. It filed
+        # `https://www.bbc.co.uk/news` without reading it, correctly, because it
+        # knows what that is, and the row came out with no picture: the image was
+        # a side effect of a lookup rather than a property of filing a link. One
+        # request against a page somebody chose to keep is the whole cost.
+        #
+        # Bounded by the same rule the lookup uses: the URL has to be one they
+        # dumped. A URL the model composed is not fetched, which matters because
+        # this is our own network making the request.
+        if (
+            tool == "add_content"
+            and args.get("type") == "link"
+            and args.get("url")
+            and not args.get("image_url")
+            and lookups is not None
+            and _in_the_dump(str(args["url"]), lookups[2].dump)
+        ):
+            found = await picture(http, str(args["url"]))
+            if found:
+                args = {**args, "image_url": found}
+
         payload = {"tool": tool, "jobId": job_id, "toolCallId": tool_call_id, **_camel(args)}
 
         # The query embedding is attached here, not asked of the model.

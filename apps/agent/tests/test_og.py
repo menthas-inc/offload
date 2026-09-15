@@ -100,3 +100,90 @@ async def test_a_page_that_only_answers_through_a_redirect_keeps_its_picture():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         assert await picture(client, "https://example.com/page") is None
+
+
+async def test_a_link_being_filed_gets_its_picture_without_a_lookup():
+    """The picture is a property of filing a link, not a side effect of reading one.
+
+    `https://www.bbc.co.uk/news` was filed without a lookup, correctly, because
+    the model knows what that is. The row came out with no picture, because the
+    image only arrived when `look_up` happened to run. Seen in production.
+    """
+    from offload_agent.config import Config
+    from offload_agent.worker import Lookups, _tool_caller
+
+    sent: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/tool-call"):
+            import json
+
+            sent.append(json.loads(request.read()))
+            return httpx.Response(200, json={"ok": True, "contentId": "c1"})
+        return html_response()
+
+    cfg = Config(
+        database_url="postgresql+asyncpg://x/y",
+        api_url="http://api.test",
+        internal_token="t",
+        anthropic_api_key="k",
+    )
+    dump = "https://example.com/page keep this"
+    budget = Lookups(dump, may_search=True, may_read_links=True)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        call = _tool_caller(client, cfg, "job-1", lookups=(None, cfg, budget))
+        await call(
+            "add_content",
+            "t1",
+            {
+                "thread_id": "th",
+                "title": "A page",
+                "type": "link",
+                "url": "https://example.com/page",
+            },
+        )
+
+    assert sent and sent[0]["imageUrl"] == "https://example.com/a.jpg?x=1&y=2"
+
+
+async def test_a_url_the_model_composed_is_not_fetched():
+    """Our own network making the request is the reason this rule exists."""
+    from offload_agent.config import Config
+    from offload_agent.worker import Lookups, _tool_caller
+
+    fetched: list[str] = []
+    sent: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/tool-call"):
+            import json
+
+            sent.append(json.loads(request.read()))
+            return httpx.Response(200, json={"ok": True, "contentId": "c1"})
+        fetched.append(str(request.url))
+        return html_response()
+
+    cfg = Config(
+        database_url="postgresql+asyncpg://x/y",
+        api_url="http://api.test",
+        internal_token="t",
+        anthropic_api_key="k",
+    )
+    budget = Lookups("nothing with a link in it", may_search=True, may_read_links=True)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        call = _tool_caller(client, cfg, "job-1", lookups=(None, cfg, budget))
+        await call(
+            "add_content",
+            "t1",
+            {
+                "thread_id": "th",
+                "title": "A page",
+                "type": "link",
+                "url": "https://example.com/invented",
+            },
+        )
+
+    assert fetched == []
+    assert sent and "imageUrl" not in sent[0]
