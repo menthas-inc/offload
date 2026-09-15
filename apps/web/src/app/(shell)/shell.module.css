@@ -513,6 +513,24 @@
   min-width: 0;
 }
 
+/* The domain on a link row: the one thing on a row that leaves the app.
+   Accent, so it reads as the affordance the title is not, and small enough to
+   sit under a title without competing with it. */
+.rowLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font: var(--weight-regular) var(--size-body-sm) / 1.4 var(--font-core);
+  color: var(--text-accent);
+  text-decoration: none;
+  width: fit-content;
+}
+
+.rowLink:hover {
+  text-decoration: underline;
+}
+
 .rowTitle {
   display: block;
   font-weight: var(--weight-medium);

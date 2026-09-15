@@ -63,6 +63,19 @@ class AddContent(BaseModel):
     thread_id: str = Field(min_length=1)
     title: str = Field(min_length=1, max_length=200)
     body: str = Field(default="", max_length=4000)
+
+    # Where it came from, when they dumped a link.
+    #
+    # **Its own field, because `body` was not one.** The URL used to go in
+    # `body` by convention and the convention held about half the time: of the
+    # link rows in production, one kept a full address and two lost it, so the
+    # row became a sentence about a page nobody could open. Getting back to the
+    # page is the entire reason somebody dumps a link.
+    #
+    # Only ever a URL they dumped. Never one composed, and never one that
+    # appeared inside a page that was read, which is the same rule `look_up`
+    # applies one layer down.
+    url: str | None = Field(default=None, max_length=2000)
     # No default. A sentence with nothing else to be is a note, and `add_note`
     # is where it goes, so this tool no longer has anything to fall back to.
     type: ContentType
@@ -124,6 +137,7 @@ class EditContent(BaseModel):
     content_id: str = Field(min_length=1)
     title: str | None = Field(default=None, max_length=200)
     body: str | None = Field(default=None, max_length=4000)
+    url: str | None = Field(default=None, max_length=2000)
     tags: list[str] | None = Field(default=None, max_length=MAX_TAGS)
     priority: int | None = Field(default=None, ge=0, le=100)
 

@@ -11,6 +11,41 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-14 · A link row opens the page, from its domain
+**Surface:** iOS, Android, web
+
+**Is:** a row that came from a page shows the registrable domain under its
+title, in accent, and that domain opens the page. Nothing else on the row
+changes.
+
+No kit draws this. `WRow` has one `onClick` that opens the row's own detail and
+no external affordance anywhere, so this is a divergence rather than an
+interpretation.
+
+**The domain is the link, and the title is not.** On web the title already opens
+the row's detail pane, so hanging the page on it would mean the same tap doing
+different things on two surfaces. The domain is free on both.
+
+**And the domain rather than the title or the URL.** A title is written by
+whoever owns the page, and a full URL is unreadable at 13px and carries tracking
+parameters somebody did not choose to display. The domain is the part a person
+recognises and the part that is ours, which is exactly the argument 016's source
+chip already makes. The two now say the same thing in the same words, which was
+not planned and is worth keeping.
+
+**It leaves the app.** The system browser on the phones and a new tab on web,
+with `noreferrer`, never a webview: a page rendered inside offload is a page
+whose owner is impossible to see, and that is the shape every credential-phishing
+flow relies on.
+
+**Design system impact:** two things. A link row needs drawing in the kits, which
+today have no external affordance on a row at all, and the question of whether
+the domain belongs under the title or trailing on the right is open. And `WRow`
+wants an `href`, which is the second component this month to want one: `Chip`
+needed it for the source chip and was worked around with a bare anchor. Worth
+deciding once for both rather than a third time.
+
+
 ### 2026-09-14 · The rail's lift, and one tier held back
 **Surface:** iOS, Android, web
 

@@ -24,7 +24,7 @@ import Link from "next/link";
 import { Icon } from "../Icon";
 import { RowTools } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
-import { isFiling, type ContentRow } from "../../lib/threads";
+import { domainOf, isFiling, type ContentRow } from "../../lib/threads";
 
 /** Everything the row needs from whoever is holding the page's state. One
  *  object rather than nine props, because both callers pass the same nine and a
@@ -58,6 +58,8 @@ export function ContentRowView({
   meta: React.ReactNode;
   handlers: RowHandlers;
 }) {
+  // Shown on a link row and nowhere else. What says the row goes somewhere.
+  const domain = domainOf(row.url);
   if (handlers.asking === row.id) {
     return (
       <div className={styles.confirmRow}>
@@ -118,6 +120,28 @@ export function ContentRowView({
           </Link>
         )}
         {meta}
+
+        {/* **The domain is the link, and the title is not.** The title already
+            opens the row's own detail, and the phones have no such pane, so
+            hanging the page on the title would mean the same tap doing
+            different things on different surfaces. The domain is free on both,
+            it is the part that says the row goes somewhere, and it is ours
+            rather than the page's: a title is written by whoever owns the page
+            and a domain is not.
+
+            A new tab, and `noreferrer` with it, so the page is not told which
+            thread it was opened from. */}
+        {domain ? (
+          <a
+            href={row.url ?? undefined}
+            target="_blank"
+            rel="noreferrer noopener"
+            className={styles.rowLink}
+          >
+            <Icon name="link" size={12} />
+            {domain}
+          </a>
+        ) : null}
       </span>
 
       {/* offload is still reading a row somebody typed straight in. The one

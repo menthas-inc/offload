@@ -93,11 +93,32 @@ export interface Place {
 }
 
 /** Satisfies `Sortable` so the shared widget rule takes it unchanged. */
+/** The registrable domain of a URL, for a row that is a link.
+ *
+ *  The same string the source chip shows, and for the same reason: it is the
+ *  part a person recognises, and it is ours rather than the page's. A title is
+ *  written by whoever owns the page; a domain is not.
+ *
+ *  Null rather than a guess when it cannot be parsed, so a row never claims to
+ *  be somewhere it is not. */
+export function domainOf(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host.startsWith("www.") ? host.slice(4) : host;
+  } catch {
+    return null;
+  }
+}
+
 export interface ContentRow extends Sortable {
   id: string;
   type: string;
   title: string;
   body: string | null;
+  /** Where it came from, when it came from a page. The row opens it, which is
+   *  the whole reason somebody dumps a link. Null on everything else. */
+  url: string | null;
   createdAt: string;
   archivedAt: string | null;
   doneAt: string | null;

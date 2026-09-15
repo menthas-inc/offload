@@ -317,6 +317,11 @@ export interface ContentTable {
   >;
   title: string;
   body: string | null;
+  /** Where it came from, when it came from a page. Its own column rather than a
+   *  convention inside `body`, because a convention is a thing the model
+   *  remembers four times out of five: two of the three link rows in production
+   *  had lost their address entirely. */
+  url: string | null;
   /** When it was ticked off. A timestamp rather than a boolean, because when
    *  something was done is a fact the agenda wants. */
   done_at: Timestamp | null;

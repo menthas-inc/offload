@@ -12,7 +12,7 @@
 // list: a gesture is something you have to remember, and an icon is something
 // you can see. The two gestures are unchanged and still carry everything else.
 
-import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useEffect } from "react";
 import Animated, {
@@ -26,7 +26,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
-import { isFiling, type ContentRow } from "../../lib/threads";
+import { domainOf, isFiling, type ContentRow } from "../../lib/threads";
 
 const REVEAL = 88;
 const isAndroid = Platform.OS === "android";
@@ -80,6 +80,10 @@ export function ContentRowView({
   note,
 }: Props) {
   const COLOR = useColors();
+  // Shown instead of an absent body on a link row, and it is what says the row
+  // goes somewhere. Ours rather than the page's: a title is written by whoever
+  // owns the page and a domain is not.
+  const domain = domainOf(row.url);
   const dx = useSharedValue(0);
   // Called from two UI-thread gesture worklets below (pan.onEnd, long.onStart)
   // and its return value is read synchronously there. Without the directive
@@ -235,6 +239,30 @@ export function ContentRowView({
               >
                 {note ?? row.body}
               </Text>
+            ) : null}
+
+            {/* **The domain is the link, and the title is not.** On web the
+                title already opens the row's own detail, so hanging the page on
+                it would mean the same tap doing different things on different
+                surfaces. The domain is free on both, it is the part that says
+                the row goes somewhere, and it is ours rather than the page's: a
+                title is written by whoever owns the page and a domain is not.
+
+                The system browser, never a webview. A page rendered inside
+                offload is a page whose owner is impossible to see. */}
+            {domain && !note ? (
+              <Pressable
+                onPress={() => row.url && void Linking.openURL(row.url)}
+                hitSlop={10}
+                accessibilityRole="link"
+                accessibilityLabel={`Open ${domain}`}
+                className="mt-space-1 flex-row items-center gap-space-2 self-start"
+              >
+                <Glyph name="link" size={12} color={COLOR.accent} />
+                <Text className="font-core text-text-accent" style={{ fontSize: 13 }}>
+                  {domain}
+                </Text>
+              </Pressable>
             ) : null}
           </View>
 

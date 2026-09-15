@@ -136,6 +136,19 @@ const body = z.discriminatedUnion("tool", [
     threadId: z.string().uuid(),
     title: z.string().min(1).max(200),
     body: z.string().max(4000).default(""),
+    /** Where it came from, when they dumped a link.
+     *
+     *  **Checked as a URL and restricted to http and https**, because this one
+     *  becomes something a person taps. A `javascript:` or a `data:` href in a
+     *  row is a script the product handed them, and the model is not the thing
+     *  that should be deciding that. The column has the same check, so a second
+     *  writer cannot get past this either. */
+    url: z
+      .string()
+      .url()
+      .max(2000)
+      .refine((value) => /^https?:\/\//i.test(value), "only http and https")
+      .nullish(),
     // **No default.** It was `note` until 014, which is the type that no longer
     // exists: a sentence with nothing else to be is a note now, and `add_note`
     // is where it goes. A row whose type nobody stated is a bug rather than
@@ -214,6 +227,14 @@ const body = z.discriminatedUnion("tool", [
     contentId: z.string().uuid(),
     title: z.string().min(1).max(200).nullish(),
     body: z.string().max(4000).nullish(),
+    /** Same check as `add_content`, and for the same reason: this becomes
+     *  something a person taps. */
+    url: z
+      .string()
+      .url()
+      .max(2000)
+      .refine((value) => /^https?:\/\//i.test(value), "only http and https")
+      .nullish(),
     tags: z.array(z.string().max(TAG_CHARS)).max(MAX_TAGS).nullish(),
     priority: z.number().int().min(0).max(100).nullish(),
   }),
@@ -1086,6 +1107,7 @@ async function existing(
     .set({
       ...(call.title == null ? {} : { title: call.title }),
       ...(call.body === undefined ? {} : { body: call.body }),
+      ...(call.url === undefined ? {} : { url: call.url }),
       ...(tags === undefined ? {} : { tags }),
       // A priority a person pinned is not the planner's to change. The write
       // is simply skipped rather than refused: the model asked for something
@@ -1308,6 +1330,7 @@ export async function toolRoutes(app: App): Promise<void> {
             type: call.type,
             title: call.title,
             body: call.body === "" ? null : call.body,
+            url: call.url ?? null,
             source: "person",
             tool_call_id: call.toolCallId,
             due_at: when.dueAt,

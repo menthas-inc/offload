@@ -1205,3 +1205,108 @@ describe("017 saying what it is doing", () => {
     expect(rows).toHaveLength(0);
   });
 });
+
+describe("a dumped link keeps its link", () => {
+  it("stores the url in its own column, and hands it back", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Lisbon");
+    const { jobId } = await dump(accountId, "https://www.airbnb.com/rooms/123 for June");
+
+    const posted = await tool({
+      tool: "add_content",
+      type: "link",
+      jobId,
+      toolCallId: "u1",
+      threadId,
+      title: "Galata Haven, Istanbul",
+      url: "https://www.airbnb.com/rooms/123",
+    });
+    expect(posted.statusCode).toBe(200);
+
+    const row = await db
+      .selectFrom("content")
+      .select(["url", "body", "title"])
+      .where("thread_id", "=", threadId)
+      .executeTakeFirstOrThrow();
+
+    // **Its own column, not a convention inside `body`.** The convention held
+    // about half the time: of the link rows in production, one kept a full
+    // address and two lost it, so the row became a sentence about a page nobody
+    // could open. Getting back to the page is the whole reason it was dumped.
+    expect(row.url).toBe("https://www.airbnb.com/rooms/123");
+    expect(row.body).toBeNull();
+  });
+
+  it("refuses a scheme a person should never be handed", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Lisbon");
+    const { jobId } = await dump(accountId, "something");
+
+    // This value becomes a thing somebody taps, and the model is not what
+    // should be deciding whether it is safe to. The column carries the same
+    // check, so a second writer cannot get past this either.
+    for (const url of ["javascript:alert(1)", "data:text/html,<script>", "file:///etc/passwd"]) {
+      const posted = await tool({
+        tool: "add_content",
+        type: "link",
+        jobId,
+        toolCallId: `bad-${url.slice(0, 6)}`,
+        threadId,
+        title: "x",
+        url,
+      });
+      expect(posted.statusCode, url).toBe(400);
+    }
+
+    const rows = await db
+      .selectFrom("content")
+      .select("id")
+      .where("thread_id", "=", threadId)
+      .execute();
+    expect(rows).toHaveLength(0);
+  });
+
+  it("lets an edit set a url on a row that never had one", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Lisbon");
+    const { jobId } = await dump(accountId, "https://example.com/a thing");
+
+    await tool({
+      tool: "add_content",
+      type: "link",
+      jobId,
+      toolCallId: "u2",
+      threadId,
+      title: "A thing",
+    });
+    const row = await db
+      .selectFrom("content")
+      .select("id")
+      .where("thread_id", "=", threadId)
+      .executeTakeFirstOrThrow();
+    expect(
+      (
+        await db
+          .selectFrom("content")
+          .select("url")
+          .where("id", "=", row.id)
+          .executeTakeFirstOrThrow()
+      ).url,
+    ).toBeNull();
+
+    await tool({
+      tool: "edit_content",
+      jobId,
+      toolCallId: "u3",
+      contentId: row.id,
+      url: "https://example.com/a",
+    });
+
+    const after = await db
+      .selectFrom("content")
+      .select("url")
+      .where("id", "=", row.id)
+      .executeTakeFirstOrThrow();
+    expect(after.url).toBe("https://example.com/a");
+  });
+});
