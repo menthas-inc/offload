@@ -321,6 +321,20 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         looking_at=ctx.looking_at,
         today=ctx.today,
         has_calendar=ctx.has_calendar,
+        # **Not context, and not trimmable.** These two are permissions, and
+        # they were missing here: this function rebuilds the context field by
+        # field, so anything it does not name silently takes its default, and
+        # both of these default to False. Every dump therefore ran with the web
+        # switched off while the account said it was on, the tool was offered
+        # because `may_look_up` was read from the unfitted context, and the call
+        # came back "searching is switched off" with nothing logged.
+        #
+        # A rebuild that drops a field is the same defect as a `select *` view
+        # that does not follow its table, and this is the fourth time this repo
+        # has met that shape. If a new field is added to `DumpContext`, it has
+        # to be added here too.
+        may_search=ctx.may_search,
+        may_read_links=ctx.may_read_links,
     )
 
 

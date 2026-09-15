@@ -492,6 +492,28 @@ used to come back as "Nothing saved."
 
 ## What only a phone found
 
+**The one that mattered most: `fit` dropped the switches, so the web was off for
+every dump.** The context is trimmed to fit the prompt budget by rebuilding a
+`DumpContext` field by field, and a rebuild only carries what it names. The two
+new permission fields were not named, so they took their dataclass default of
+`False` on every turn. The tool was still offered, because `may_look_up` is read
+from the unfitted context, so the model called it and got "searching is switched
+off" back from an account whose switches were both on.
+
+**It was invisible in three places at once**, which is why it took four phone
+turns: the refusal returned before the ledger was touched, so `lookups` was
+empty; it logged nothing, so the agent log said only `failed=1`; and the partial
+line gave a count rather than a name, so the count did not even say which tool.
+Every refusal records and logs now, `failed` carries names, and a test asserts
+that no branch of the lookup path can return without a record.
+
+**A rebuild that silently drops a field is the same defect as a `select *` view
+that does not follow its table**, which this repo has now met four times. The
+test is written as "every field of `DumpContext` survives `fit`", not "these two
+do", so the next field added fails in CI instead of on somebody's phone.
+
+
+
 Three defects survived every local gate and appeared on the first two real turns.
 All three are the same shape: **a stub that always succeeds tests the caller and
 nothing else.**

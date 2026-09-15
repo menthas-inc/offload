@@ -76,3 +76,31 @@ def test_a_url_has_to_have_been_dumped():
     assert _in_the_dump("https://www.rightmove.co.uk/properties/123", dump)
     # Not one the model composed, and not one that appeared inside a page.
     assert not _in_the_dump("https://evil.example.com/steal", dump)
+
+
+def test_every_refusal_in_the_lookup_path_leaves_a_record():
+    """No silent branch, ever again.
+
+    Three separate refusal paths returned without touching the ledger or the
+    log, and each one cost an hour: a turn refused by a bound looked exactly
+    like a turn that never wanted a lookup, in the table and in the log both.
+    This reads the source rather than exercising ten branches, which is blunt
+    and is the point: the claim is about the shape of the function.
+    """
+    import inspect
+    import re
+
+    from offload_agent import worker
+
+    body = inspect.getsource(worker._look_up)
+    # Everything up to the reader call. Past that the outcome is recorded once,
+    # for success and failure alike.
+    guard = body.split("reading = await reader.read")[0]
+
+    lines = guard.splitlines()
+    refusals = [i for i, line in enumerate(lines) if re.search(r'return \{"ok": False', line)]
+    assert refusals, "the guard clauses moved; this test needs rewriting"
+
+    for i in refusals:
+        window = "\n".join(lines[max(0, i - 6) : i])
+        assert "budget.record(" in window, f"a refusal with no record near line {i}: {lines[i]!r}"

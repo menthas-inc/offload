@@ -353,6 +353,14 @@ async def _look_up(
 
     if url:
         if not budget.may_read_links:
+            # **Recorded and logged like every other refusal.** These two were
+            # the last paths that returned in silence, and they were the ones
+            # production hit: the `lookups` table was empty, the log said
+            # nothing, and a turn refused by a switch was indistinguishable from
+            # a turn that never wanted a lookup. It took four phone turns to
+            # find that the switch was false because `fit` had dropped it.
+            budget.record(label="link_metadata", kind="read", outcome="refused_bound")
+            log.info("lookup refused", why="links off")
             return {"ok": False, "error": "reading links is switched off"}
         if not _in_the_dump(url, budget.dump):
             budget.record(label="link_metadata", kind="read", outcome="refused_bound")
@@ -362,6 +370,8 @@ async def _look_up(
             return {"ok": False, "error": "limit_reached"}
     else:
         if not budget.may_search:
+            budget.record(label="other", kind="search", outcome="refused_bound")
+            log.info("lookup refused", why="search off")
             return {"ok": False, "error": "searching is switched off"}
         if not _from_the_dump(question or "", budget.dump):
             budget.record(label="other", kind="search", outcome="refused_bound")

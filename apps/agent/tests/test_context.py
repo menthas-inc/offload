@@ -149,3 +149,44 @@ def test_the_thread_on_screen_survives_a_tight_fit():
     on_screen = Thread(id="00000000-0000-0000-0000-000000000009", name="Sustain", is_default=False)
     fitted = fit(ctx(turns=200, threads=300, looking_at=on_screen), ceiling=50)
     assert fitted.looking_at == on_screen
+
+
+def test_fitting_a_context_keeps_every_field_it_was_given():
+    """A rebuild that drops a field is the bug this file exists to prevent.
+
+    `fit` reconstructs a `DumpContext` field by field, so anything it forgets
+    takes the dataclass default silently. It forgot the two web switches, which
+    default to False, so every dump ran with the web switched off while the
+    account said it was on. The tool was still offered, because `may_look_up` is
+    read before fitting, and the call came back "searching is switched off" with
+    nothing recorded and nothing logged.
+
+    Written as "every field" rather than "these two", so the next field added to
+    `DumpContext` fails here instead of in production.
+    """
+    import dataclasses
+
+    from offload_agent.context import DumpContext, Thread, fit
+
+    threads = [Thread(id="00000001-0000-0000-0000-000000000000", name="Misc", is_default=True)]
+    ctx = DumpContext(
+        dump="when does the tip close",
+        turns=[],
+        threads=threads,
+        landed=[],
+        default_thread_id=threads[0].id,
+        today="Monday 14 September 2026",
+        has_calendar=True,
+        may_search=True,
+        may_read_links=True,
+    )
+
+    fitted = fit(ctx, ceiling=100_000)
+
+    for field in dataclasses.fields(DumpContext):
+        # `turns` and `threads` are the two this is allowed to shorten.
+        if field.name in {"turns", "threads"}:
+            continue
+        assert getattr(fitted, field.name) == getattr(ctx, field.name), (
+            f"fit() dropped {field.name}"
+        )
