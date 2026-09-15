@@ -588,6 +588,20 @@ class LookUp(BaseModel):
     # What the answer is for, which also selects the shape of what comes back.
     want: list[str] = Field(default_factory=list, max_length=4)
 
+    # 017. What to put on screen while this runs.
+    #
+    # **Here, on the call, rather than in a tool of its own.** A separate
+    # `say_doing` tool would cost a model round trip to produce one short
+    # sentence, on the one turn that is already the slowest in the product.
+    #
+    # And here rather than after the lookup returns, which is the part that
+    # matters: a step written before anything is fetched **cannot contain
+    # anything fetched**. AC-15 asks that no page text reach the progress line,
+    # and this makes that structural rather than something a test has to catch.
+    # A page title reading "Payment failed, verify your card", drawn in
+    # offload's own voice, is a phishing message the product rendered itself.
+    doing: str = Field(default="", max_length=80)
+
 
 SCHEMAS["look_up"] = LookUp
 
@@ -597,7 +611,10 @@ _DESCRIPTIONS["look_up"] = (
     "not have and cannot work out, and not otherwise. Ask with `question` in "
     "their own words, or with `url` when they dumped a link. `want` names the "
     "fields you need back, from: date, time, place, dates_range, title, "
-    "artist, price, hours, forecast, fact."
+    "artist, price, hours, forecast, fact. `doing` is one short line shown to "
+    "them while this runs: what you are finding out, in your own voice, no tool "
+    "names and no company names. \"Checking when the tip closes\", \"Looking "
+    "up Memorial day\"."
 )
 
 LOOK_UP_TOOL = {

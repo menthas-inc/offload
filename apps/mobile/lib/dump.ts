@@ -13,7 +13,16 @@
 import { send } from "./api";
 import { failed } from "./log";
 
-export type MessageState = "queued" | "seen" | "answered" | "failed" | "partial";
+export type MessageState =
+  | "queued"
+  | "seen"
+  | "answered"
+  | "failed"
+  /** offload stopped by accident. The composer offers Finish. */
+  | "partial"
+  /** Somebody stopped it. The composer offers nothing, because offering to undo
+   *  their own decision is the product arguing with them. */
+  | "cancelled";
 
 export interface Sent {
   messageId: string;

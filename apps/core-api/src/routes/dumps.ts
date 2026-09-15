@@ -92,11 +92,11 @@ const dumpBody = z.object({
   threadId: z.string().uuid().optional(),
 });
 
-type MessageState = "queued" | "seen" | "answered" | "failed" | "partial";
+type MessageState = "queued" | "seen" | "answered" | "failed" | "partial" | "cancelled";
 
 /** One list, used by every response that carries a state, so a value added to
  *  the CHECK constraint cannot reach one endpoint and not another. */
-const messageState = z.enum(["queued", "seen", "answered", "failed", "partial"]);
+const messageState = z.enum(["queued", "seen", "answered", "failed", "partial", "cancelled"]);
 
 const dumpResponse = z.object({
   messageId: z.string(),
@@ -151,6 +151,14 @@ const foundResults = z.array(
   })
 );
 
+/** 017. What a cancel did. `stopped` false means the turn had already finished
+ *  and nothing was stopped, and `state` is then the turn's real state rather
+ *  than the one the press asked for. */
+const cancelResponse = z.object({
+  state: z.enum(["queued", "seen", "answered", "failed", "partial", "cancelled"]),
+  stopped: z.boolean(),
+});
+
 const messageResponse = z.object({
   id: z.string(),
   conversationId: z.string(),
@@ -165,6 +173,9 @@ const messageResponse = z.object({
   /** 016. Where this turn got something from, for the chips under it. Empty on
    *  every turn that read nothing, which is nearly all of them. */
   sources: z.array(z.object({ domain: z.string(), url: z.string() })),
+  /** 017. What offload is doing, on a turn still in flight. Null on anything
+   *  settled and on a step old enough to be a dead worker's. */
+  step: z.string().nullable(),
   waiting: waitingOn,
   found: foundResults,
 });
@@ -347,6 +358,9 @@ export type StreamStep =
     }
   | { do: "failed" }
   | { do: "close" }
+  /** 017. One line of what offload is doing, on a turn still in flight. The
+   *  stream stays open: this is not a settlement. */
+  | { do: "step"; text: string }
   | { do: "wait" };
 
 export async function streamStep(
@@ -366,7 +380,7 @@ export async function streamStep(
 
   const current = await db
     .selectFrom("messages")
-    .select(["state", "turn_id"])
+    .select(["state", "turn_id", "step", "step_at"])
     .where("id", "=", messageId)
     .where("account_id", "=", accountId)
     .where("deleted_at", "is", null)
@@ -390,7 +404,29 @@ export async function streamStep(
     };
   }
   if (current.state === "failed") return { do: "failed" };
+
+  // **After the settlements, never before.** A worker can post its last step and
+  // its result close enough together that one wake sees both, and a step drawn
+  // in preference to the answer it preceded is a progress line that outlives the
+  // thing it was describing.
+  if (current.step && fresh(current.step_at)) {
+    return { do: "step", text: current.step };
+  }
+
   return { do: "wait" };
+}
+
+/** Whether a step is recent enough to draw.
+ *
+ *  A worker that dies mid-turn leaves its last line behind, and the message
+ *  stays `seen` until the job's own timeout reaps it. Without this, a client
+ *  reconnecting to that turn would be told offload is still looking something
+ *  up by a process that no longer exists. Two minutes is longer than any step
+ *  and shorter than the reaper. */
+const STEP_STALE_MS = 120_000;
+
+function fresh(at: Date | null): boolean {
+  return at !== null && Date.now() - at.getTime() < STEP_STALE_MS;
 }
 
 /** Take a dump: find or start its conversation, store it, and queue the answer.
@@ -625,7 +661,7 @@ export async function dumpRoutes(app: App): Promise<void> {
 
       const message = await db
         .selectFrom("messages")
-        .select(["id", "conversation_id", "state", "text", "turn_id"])
+        .select(["id", "conversation_id", "state", "text", "turn_id", "step", "step_at"])
         .where("id", "=", request.params.id)
         // Scoped, so another account's id is not found rather than forbidden:
         // a 403 confirms the row exists.
@@ -656,6 +692,11 @@ export async function dumpRoutes(app: App): Promise<void> {
         // Read at the turn rather than at the reply: a filing turn writes no
         // reply and may still have read something.
         sources: settled ? await sourcesFor(message.turn_id, accountId) : [],
+        // 017. Null on anything settled, so a client polling after the answer
+        // is never handed a progress line for work that is over. This is the
+        // reconnect path: the stream is the fast one and this is the one that
+        // survives a dropped socket.
+        step: settled || !fresh(message.step_at) ? null : message.step,
         // The control arrives with the reply that mentions it, rather than on
         // the next reload. A reply saying offload is waiting, with nothing to
         // answer it, is the dead end this whole change is about.
@@ -931,6 +972,16 @@ export async function dumpRoutes(app: App): Promise<void> {
           }
           if (step.do === "close") return finish();
 
+          // 017. The one event that does not end the stream. Sent on every wake
+          // that finds a step, which means the same line can be sent twice if
+          // something else woke the loop; the client draws a step rather than
+          // appending one, so a repeat is a no-op on screen and cheaper than
+          // holding per-connection state to deduplicate it.
+          if (step.do === "step") {
+            send("step", { text: step.text });
+            return;
+          }
+
           // A comment frame, only on the clock. Its job is to keep an idle
           // proxy from dropping a stream that is legitimately waiting on a
           // model.
@@ -997,6 +1048,37 @@ export async function dumpRoutes(app: App): Promise<void> {
 
       const outcome = await undoTurn(accountId, request.params.turnId);
 
+      if (!outcome) return reply.code(404).send({ error: "not_found" as const });
+      return reply.send(outcome);
+    },
+  );
+
+  // 017. Stop a turn that is taking too long.
+  //
+  // **Cancel stops work. It does not reverse it.** Everything filed before the
+  // press stays filed, and Undo is the thing that takes it back: a cancel that
+  // rolled back would make the control destructive, and the whole reason it
+  // exists is that somebody wants their screen returned.
+  //
+  // **Idempotent, and a no-op once the turn has settled.** A press that races
+  // the answer loses, because the work is already done and there is nothing left
+  // to stop. The response says what state the turn is actually in, so a client
+  // that cancelled and then reconnected is not told "stopped" about a turn that
+  // finished.
+  app.post(
+    "/v1/turns/:turnId/cancel",
+    {
+      schema: {
+        params: z.object({ turnId: z.string().uuid() }),
+        response: { 200: cancelResponse, 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId)
+        return reply.code(401).send({ error: "unauthenticated" as const });
+
+      const outcome = await cancelTurn(accountId, request.params.turnId);
       if (!outcome) return reply.code(404).send({ error: "not_found" as const });
       return reply.send(outcome);
     },
@@ -1084,6 +1166,79 @@ export async function dumpRoutes(app: App): Promise<void> {
  *  Returns null when the turn is not this account's or does not exist, which
  *  are one answer for the same reason the tool endpoint has one refusal.
  */
+/** Stop a turn that is taking too long. 017.
+ *
+ *  Extracted from the route for the reason `undoTurn` is: Better Auth signs the
+ *  session cookie, so driving the endpoint from a test would mean replicating
+ *  that signing, which is a test that breaks when the library changes rather
+ *  than when the product does.
+ *
+ *  Null when the turn is not this account's, which the route turns into a 404
+ *  rather than a 403: a 403 confirms the row exists.
+ */
+export async function cancelTurn(
+  accountId: string,
+  turnId: string,
+): Promise<{ state: MessageState; stopped: boolean } | null> {
+  // The turn resolved to this account server-side (SEC-2). A turn id is a uuid
+  // somebody could hold from elsewhere, and this is the only thing standing
+  // between that and cancelling a stranger's work.
+  const message = await db
+    .selectFrom("messages")
+    .select(["id", "state"])
+    .where("turn_id", "=", turnId)
+    .where("account_id", "=", accountId)
+    .where("role", "=", "person")
+    .where("deleted_at", "is", null)
+    .executeTakeFirst();
+
+  if (!message) return null;
+
+  // Already over. Say what it actually is rather than what was asked for, so a
+  // client that cancelled and then reconnected is not told "stopped" about a
+  // turn that finished.
+  if (message.state !== "seen" && message.state !== "queued") {
+    return { state: message.state, stopped: false };
+  }
+
+  await db.transaction().execute(async (trx) => {
+    // The jobs still to do for this message. Matched on state rather than on an
+    // id, because an answer turn can have queued a second job and stopping one
+    // of two is not stopping.
+    const jobs = await trx
+      .updateTable("jobs")
+      .set({ cancelled_at: new Date() })
+      .where("kind", "in", ["dump.plan", "dump.answer"])
+      .where("account_id", "=", accountId)
+      .where("state", "in", ["queued", "running"])
+      .where(sql<string>`payload ->> 'messageId'`, "=", message.id)
+      .returning("id")
+      .execute();
+
+    // The step goes with it. A progress line surviving a cancel would be the
+    // screen still saying offload is working on something nobody is working on.
+    await trx
+      .updateTable("messages")
+      .set({ step: null, step_at: null })
+      .where("id", "=", message.id)
+      .execute();
+
+    // **One notification per cancelled job, on the worker's own channel.**
+    // Separate from `offload_answer` because the direction is opposite and the
+    // listener is a different process: the client listens for answers, the
+    // worker listens for this.
+    for (const job of jobs) {
+      await sql`select pg_notify(${"offload_cancel"}, ${job.id})`.execute(trx);
+    }
+  });
+
+  // **The state is not written here.** The worker posts `cancelled` and the
+  // turn settles through the one path every other outcome takes, so a cancel
+  // cannot leave a message in a state no `turn-result` produced. If the worker
+  // is already gone, the job is marked and the turn settles from that.
+  return { state: "cancelled", stopped: true };
+}
+
 export async function undoTurn(
   accountId: string,
   turnId: string,

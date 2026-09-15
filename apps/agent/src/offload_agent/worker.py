@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent import context as ctx_mod
 from offload_agent import reader
+from offload_agent.cancels import Cancels, listen
 from offload_agent.compact import KINDS as COMPACT_KINDS
 from offload_agent.compact import handle_compact
 from offload_agent.config import Config
@@ -146,11 +147,16 @@ async def _look_up(
     cfg: Config,
     budget: Lookups,
     args: dict,
+    say: "StepWriter | None" = None,
 ) -> dict:
     """Answer a `look_up` without leaving the worker.
 
     Nothing here writes, so nothing crosses to the Core API: the sources and the
     counters ride home on the turn result the worker already posts.
+
+    The one exception is 017's step, which goes out before the lookup runs. That
+    ordering is the guarantee: a line written before anything is fetched cannot
+    carry anything fetched.
     """
     question = (args.get("question") or "").strip() or None
     url = (args.get("url") or "").strip() or None
@@ -176,6 +182,12 @@ async def _look_up(
         if budget.left() == 0:
             budget.record(label="other", kind="search", outcome="refused_bound")
             return {"ok": False, "error": "limit_reached"}
+
+    # **Before the reader, and only once the bounds have passed.** A step for a
+    # lookup that was about to be refused would put a line on screen for work
+    # that never happened.
+    if say is not None:
+        await say(args.get("doing") or "")
 
     reading = await reader.read(
         client,
@@ -215,12 +227,48 @@ async def _look_up(
     }
 
 
+#: 017. One line to the Core API, which puts it on screen.
+StepWriter = Callable[[str], Awaitable[None]]
+
+
+def _step_writer(http: httpx.AsyncClient, cfg: Config, job_id: str) -> StepWriter:
+    """Post the current step, and never let it break the turn.
+
+    **Failures are swallowed on purpose.** A progress line is the least
+    important thing happening on this turn: dropping the post loses a sentence,
+    and raising would lose the answer. The client falls back to the writing
+    indicator when no step arrives, which is what AC-3 already specifies for a
+    turn that produced none.
+
+    The cap is the server's (AC-4), so nothing is truncated here. An overlong
+    line is refused and not drawn, which is visible in a way that a silently
+    trimmed sentence is not.
+    """
+
+    async def say(text: str) -> None:
+        line = text.strip()
+        if not line:
+            return
+        try:
+            await http.post(
+                f"{cfg.api_url}/internal/v1/turn-step",
+                json={"jobId": job_id, "text": line},
+                headers={"authorization": f"Bearer {cfg.internal_token}"},
+                timeout=5.0,
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.info("step undelivered", job_id=job_id, error_type=type(exc).__name__)
+
+    return say
+
+
 def _tool_caller(
     http: httpx.AsyncClient,
     cfg: Config,
     job_id: str,
     embedder: "Callable[[str], Awaitable[str | None]] | None" = None,
     lookups: "tuple[AsyncAnthropic, Config, Lookups] | None" = None,
+    say: "StepWriter | None" = None,
 ):
     """The loop's only route to a write.
 
@@ -241,7 +289,7 @@ def _tool_caller(
         if tool == "look_up":
             if lookups is None:
                 return {"ok": False, "error": "not available on this turn"}
-            return await _look_up(lookups[0], lookups[1], lookups[2], args)
+            return await _look_up(lookups[0], lookups[1], lookups[2], args, say)
 
         payload = {"tool": tool, "jobId": job_id, "toolCallId": tool_call_id, **_camel(args)}
 
@@ -450,7 +498,11 @@ async def handle(
             fitted,
             cfg.model,
             _tool_caller(
-                http, cfg, job.id, lookups=(anthropic, cfg, budget)
+                http,
+                cfg,
+                job.id,
+                lookups=(anthropic, cfg, budget),
+                say=_step_writer(http, cfg, job.id),
             ),
         )
 
@@ -620,6 +672,30 @@ def _partial_reply(outcome: Outcome) -> str:
     return "Nothing saved."
 
 
+async def _stopped(job: ClaimedJob, *, cfg: Config, engine, http: httpx.AsyncClient) -> None:
+    """Report a turn somebody stopped. 017.
+
+    **Not a failure and not a retry.** Both of those exist because offload got
+    something wrong; this one is somebody exercising a control, and a turn that
+    retried itself after being stopped would be the product ignoring them
+    (AC-12). The job is closed by the Core API in the same transaction as the
+    state, exactly as every other outcome is.
+
+    Everything already filed stays filed (AC-10). Cancel stops work; Undo is the
+    thing that reverses it.
+    """
+    try:
+        await _post_result(http, cfg, {"outcome": "cancelled", "jobId": job.id})
+        log.info("turn stopped", job_id=job.id)
+    except ReportFailed:
+        # **Nothing else to do, and deliberately no retry.** The person's screen
+        # already moved on when they pressed it, and the Core API has the job
+        # marked cancelled either way, so the turn settles from that rather than
+        # from this post. Releasing it would put the cancelled job back in the
+        # queue, which is the one thing that must not happen here.
+        log.error("stop undeliverable", job_id=job.id)
+
+
 async def _give_up_or_retry(
     job: ClaimedJob, reason: str, *, cfg: Config, engine, http: httpx.AsyncClient
 ) -> None:
@@ -655,6 +731,12 @@ async def run(cfg: Config, stop: asyncio.Event) -> None:
 
     log.info("worker started", worker_id=worker_id, kinds=KINDS)
 
+    # 017. One listening connection for the process, alongside the poll rather
+    # than instead of it: jobs still arrive by claim, and this is only how a
+    # request to stop one reaches a worker already inside a model call.
+    cancels = Cancels()
+    listener = asyncio.create_task(listen(engine, cancels, stop))
+
     async with httpx.AsyncClient() as http:
         while not stop.is_set():
             try:
@@ -668,13 +750,44 @@ async def run(cfg: Config, stop: asyncio.Event) -> None:
                         await asyncio.wait_for(stop.wait(), timeout=cfg.poll_seconds)
                     continue
 
-                await handle(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
+                # **Cancelled before it was claimed.** The notification and the
+                # claim race, and this is the half of the race the listener
+                # cannot win: the job is already ours before the id arrives.
+                if cancels.asked(str(job.id)):
+                    await _stopped(job, engine=engine, http=http, cfg=cfg)
+                    cancels.done(str(job.id))
+                    continue
+
+                # **In a task rather than awaited directly**, which is the whole
+                # mechanism: a coroutine being awaited cannot be interrupted, and
+                # a task can. Cancelling it raises at the next await, which
+                # inside an Anthropic call is the socket read.
+                running = asyncio.create_task(
+                    handle(job, cfg=cfg, engine=engine, anthropic=anthropic, http=http)
+                )
+                cancels.watching(str(job.id), running)
+                try:
+                    await running
+                except asyncio.CancelledError:
+                    # **Ours, not the loop's.** A cancel aimed at this job must
+                    # not read as a shutdown, so it is caught here and the worker
+                    # carries on. If the process is actually stopping, `stop` is
+                    # set and the `while` ends on its own.
+                    if stop.is_set():
+                        raise
+                    await _stopped(job, engine=engine, http=http, cfg=cfg)
+                finally:
+                    cancels.done(str(job.id))
 
             except Exception as exc:  # noqa: BLE001
                 # The loop itself must not die. A worker that exits on a
                 # transient database blip stops answering everybody.
                 log.error("worker loop error", error_type=type(exc).__name__)
                 await asyncio.sleep(cfg.poll_seconds)
+
+    listener.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await listener
 
     await engine.dispose()
     log.info("worker stopped", worker_id=worker_id)
@@ -822,6 +935,7 @@ async def _handle_answer(
             job.id,
             embedder=_embed_query(cfg, http),
             lookups=(anthropic, cfg, budget),
+            say=_step_writer(http, cfg, job.id),
         )
         outcome = await plan_answer(anthropic, ctx, cfg.answer_model, caller)
 

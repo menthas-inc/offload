@@ -13,8 +13,12 @@ export type MessageState =
   | "seen"
   | "answered"
   | "failed"
-  /** Content landed, the reply describes it, and the turn did not finish. */
-  | "partial";
+  /** Content landed, the reply describes it, and offload did not finish. The
+   *  composer offers Finish. */
+  | "partial"
+  /** Somebody stopped it. The composer offers nothing, because offering to undo
+   *  their own decision is the product arguing with them. */
+  | "cancelled";
 
 export interface Sent {
   messageId: string;

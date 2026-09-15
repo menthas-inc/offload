@@ -151,6 +151,18 @@ const body = z.discriminatedUnion("outcome", [
     reason: z.enum(["model_error", "invalid_output", "timeout"]),
     usage: usage.optional(),
   }),
+  /** 017. Somebody stopped it. No reply and no reason: the reply would be
+   *  offload explaining a decision that was not its own, and the reason is on
+   *  screen already, because they are the one who pressed it.
+   *
+   *  **It still reports usage.** The model calls happened and were paid for,
+   *  and a cancelled turn that reported nothing would make the spend
+   *  disappear from the only place it is counted. */
+  z.strictObject({
+    outcome: z.literal("cancelled"),
+    jobId: z.string().uuid(),
+    usage: usage.optional(),
+  }),
 ]);
 
 /** The closed set the `lookups.label` column may hold, mirrored from the
@@ -180,6 +192,18 @@ const quickAddBody = z.strictObject({
   usage: usage.optional(),
 });
 const refused = z.object({ error: z.enum(["unauthorised", "unknown_job"]) });
+
+/** 017. One line of what offload is doing. Free text, because the alternative
+ *  is a closed set of stages and the whole point is that the line describes
+ *  this turn rather than a category it fits into.
+ *
+ *  **Capped here as well as by the check constraint**, because AC-4 puts the
+ *  cap on the server, and a step that the constraint rejects becomes a failed
+ *  write in the middle of a working turn. Better to refuse the post. */
+const stepBody = z.strictObject({
+  jobId: z.string().uuid(),
+  text: z.string().trim().min(1).max(80),
+});
 
 /** What the daily fold proposes, and what came back from applying it.
  *
@@ -406,6 +430,60 @@ export async function internalRoutes(app: App): Promise<void> {
     }
   );
 
+  // 017. What offload is doing, on its way out.
+  //
+  // **Deliberately not idempotent and deliberately unversioned.** A step is the
+  // current one; two steps racing means one of them is drawn for a moment and
+  // replaced, which is what a progress line does anyway. There is nothing to
+  // reconcile and no order to preserve.
+  app.post(
+    "/internal/v1/turn-step",
+    { schema: { body: stepBody, response: { 200: ok, 401: refused, 404: refused } } },
+    async (request, reply) => {
+      const header = request.headers.authorization;
+      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+      if (!tokenMatches(presented)) {
+        return reply.code(401).send({ error: "unauthorised" as const });
+      }
+
+      // The job is the authority on which message this is, exactly as
+      // `turn-result` has it. The worker never names a message id: it holds a
+      // job, and the job holds the message.
+      const job = await db
+        .selectFrom("jobs")
+        .select(["payload"])
+        .where("id", "=", request.body.jobId)
+        .where("kind", "in", ["dump.plan", "dump.answer"])
+        .executeTakeFirst();
+      if (!job) return reply.code(404).send({ error: "unknown_job" as const });
+
+      const messageId = (job.payload as { messageId?: string }).messageId;
+      if (!messageId) return reply.code(404).send({ error: "unknown_job" as const });
+
+      // **Only while the message is still waiting.** A step that lands after
+      // the turn settled would redraw a progress line under a finished answer,
+      // and a retried post is the ordinary way that happens.
+      const written = await db
+        .updateTable("messages")
+        .set({ step: request.body.text, step_at: new Date() })
+        .where("id", "=", messageId)
+        .where("state", "=", "seen")
+        .executeTakeFirst();
+
+      if (Number(written.numUpdatedRows) === 0) {
+        return reply.send({ status: "already" as const });
+      }
+
+      // Same channel the answer rides, because the client is already listening
+      // to it and a second channel would be a second connection for a string.
+      // The payload is the message id and nothing else, so the reader looks
+      // again rather than being handed anything.
+      await sql`select pg_notify(${"offload_answer"}, ${messageId})`.execute(db);
+
+      return reply.send({ status: "written" as const });
+    }
+  );
+
   app.post(
     "/internal/v1/turn-result",
     { schema: { body, response: { 200: ok, 401: refused, 404: refused } } },
@@ -577,7 +655,7 @@ export async function internalRoutes(app: App): Promise<void> {
 
           await trx
             .updateTable("messages")
-            .set({ state: result.outcome })
+            .set({ state: result.outcome, step: null, step_at: null })
             .where("id", "=", person.id)
             .execute();
 
@@ -587,24 +665,35 @@ export async function internalRoutes(app: App): Promise<void> {
             .where("id", "=", payload.conversationId!)
             .execute();
         } else {
-          // No offload message on failure. A turn that says nothing is not a
-          // turn, and the composer renders the failure from the person's
-          // message state rather than from a blank reply.
+          // No offload message on failure or on a cancel. A turn that says
+          // nothing is not a turn, and the composer renders both from the
+          // person's message state rather than from a blank reply.
+          //
+          // **The step is cleared here rather than only by the cancel
+          // endpoint.** A turn that is stopped, times out or fails all leave a
+          // progress line behind, and this is the one place every ending goes
+          // through. The endpoint clears it too, so the screen changes on the
+          // press rather than on the worker noticing.
           await trx
             .updateTable("messages")
-            .set({ state: "failed" })
+            .set({ state: result.outcome === "cancelled" ? "cancelled" : "failed", step: null, step_at: null })
             .where("id", "=", person.id)
             .execute();
         }
 
+        // **Optional on two outcomes now.** `failed` has always been able to
+        // arrive with no usage, and 017's `cancelled` can too: a turn stopped
+        // before its first call has nothing to report.
+        const calls = "usage" in result ? (result.usage ?? []) : [];
+
         // One row per model call, not per turn. A planner turn is several
         // calls and billing every one of them to the first row understates
         // every turn that used a tool.
-        if (result.usage && result.usage.length > 0) {
+        if (calls.length > 0) {
           await trx
             .insertInto("llm_usage")
             .values(
-              result.usage.map((entry) => ({
+              calls.map((entry) => ({
                 account_id: accountId,
                 job_kind: "dump.answer",
                 category: "interactive" as const,
@@ -646,9 +735,9 @@ export async function internalRoutes(app: App): Promise<void> {
                 // turn took, which is the number worth watching once a loop
                 // can take several, and it says nothing about what was in them.
                 properties: {
-                  latency_ms: result.usage.reduce((n, e) => n + e.latencyMs, 0),
-                  model: result.usage[0]?.model ?? "unknown",
-                  calls: result.usage.length,
+                  latency_ms: calls.reduce((n, e) => n + e.latencyMs, 0),
+                  model: calls[0]?.model ?? "unknown",
+                  calls: calls.length,
                   outcome: result.outcome,
                 },
                 tx: trx,

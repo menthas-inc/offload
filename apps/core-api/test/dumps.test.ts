@@ -19,7 +19,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
-import { streamStep, takeDump } from "../src/routes/dumps.js";
+import { cancelTurn, streamStep, takeDump } from "../src/routes/dumps.js";
 import { foundFor } from "../src/search/found.js";
 import { uuidv7 } from "../src/uuid.js";
 
@@ -821,5 +821,105 @@ describe("the thread a dump was typed in front of", () => {
       .where("id", "=", messageId)
       .executeTakeFirstOrThrow();
     expect(row.looking_at_thread_id).toBeNull();
+  });
+});
+
+describe("017 stopping a turn", () => {
+  it("marks the job, clears the step, and says it stopped", async () => {
+    const id = await account();
+    const { messageId, turnId, jobId } = await dump(id, "when does the tip close");
+    await db
+      .updateTable("messages")
+      .set({ step: "Checking when the tip closes", step_at: new Date() })
+      .where("id", "=", messageId)
+      .execute();
+
+    expect(await cancelTurn(id, turnId)).toEqual({ state: "cancelled", stopped: true });
+
+    const job = await db
+      .selectFrom("jobs")
+      .select("cancelled_at")
+      .where("id", "=", jobId)
+      .executeTakeFirstOrThrow();
+    expect(job.cancelled_at).not.toBeNull();
+
+    // A progress line surviving a cancel would be the screen still saying
+    // offload is working on something nobody is working on.
+    const message = await db
+      .selectFrom("messages")
+      .select(["step", "state"])
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(message.step).toBeNull();
+    // **Still `seen`.** The worker posts `cancelled` and the turn settles
+    // through the one path every other outcome takes, so a cancel cannot leave a
+    // message in a state no `turn-result` produced.
+    expect(message.state).toBe("seen");
+  });
+
+  it("does not undo a turn that already finished, and says what it really is", async () => {
+    const id = await account();
+    const { turnId, jobId } = await dump(id, "hello");
+    await post({ outcome: "answered", jobId, replyText: "Noted.", usage: goodUsage });
+
+    // AC-13. The press raced the answer and lost, which is the common case for a
+    // turn that took just over ten seconds.
+    expect(await cancelTurn(id, turnId)).toEqual({ state: "answered", stopped: false });
+  });
+
+  it("is idempotent, because a second press is a person pressing twice", async () => {
+    const id = await account();
+    const { turnId } = await dump(id, "hello");
+    expect(await cancelTurn(id, turnId)).toEqual({ state: "cancelled", stopped: true });
+    expect(await cancelTurn(id, turnId)).toEqual({ state: "cancelled", stopped: true });
+  });
+
+  it("will not stop somebody else's turn, and does not confirm it exists", async () => {
+    const mine = await account();
+    const theirs = await account();
+    const { turnId } = await dump(theirs, "hello");
+    // Null, which the route makes a 404: a 403 would confirm the row.
+    expect(await cancelTurn(mine, turnId)).toBeNull();
+  });
+
+  it("sends the step on a turn still in flight, and stops sending it once settled", async () => {
+    const id = await account();
+    const { messageId, jobId } = await dump(id, "when does the tip close");
+
+    await db
+      .updateTable("messages")
+      .set({ step: "Checking when the tip closes", step_at: new Date() })
+      .where("id", "=", messageId)
+      .execute();
+    expect(await streamStep(messageId, id)).toEqual({
+      do: "step",
+      text: "Checking when the tip closes",
+    });
+
+    // **The settlement wins.** A worker can post its last step and its result
+    // close enough together that one wake sees both, and a step drawn in
+    // preference to the answer it preceded is a progress line that outlives the
+    // thing it was describing.
+    await post({ outcome: "answered", jobId, replyText: "Half four.", usage: goodUsage });
+    const settled = await streamStep(messageId, id);
+    expect(settled.do).toBe("answered");
+  });
+
+  it("ignores a step left behind by a worker that died", async () => {
+    const id = await account();
+    const { messageId } = await dump(id, "hello");
+    await db
+      .updateTable("messages")
+      .set({
+        step: "Looking something up",
+        // Older than the staleness window. The message stays `seen` until the
+        // job's own timeout reaps it, and without this a client reconnecting
+        // would be told offload is still working by a process that is gone.
+        step_at: new Date(Date.now() - 10 * 60 * 1000),
+      })
+      .where("id", "=", messageId)
+      .execute();
+
+    expect(await streamStep(messageId, id)).toEqual({ do: "wait" });
   });
 });

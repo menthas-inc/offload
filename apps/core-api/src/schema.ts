@@ -162,6 +162,9 @@ export interface JobsTable {
   state: Generated<"queued" | "running" | "done" | "failed" | "dead">;
   locked_at: Timestamp | null;
   locked_by: string | null;
+  /** 017. When somebody asked this turn to stop. The worker abandons the task;
+   *  nothing is rolled back, because cancel stops work and undo reverses it. */
+  cancelled_at: Date | null;
   idempotency_key: string | null;
   last_error: string | null;
   created_at: Timestamp;
@@ -227,12 +230,18 @@ export interface MessagesTable {
   turn_id: string;
   text: string | null;
   /** `queued` is internal and never reaches a client. */
-  state: Generated<"queued" | "seen" | "answered" | "failed" | "partial">;
+  state: Generated<"queued" | "seen" | "answered" | "failed" | "partial" | "cancelled">;
   client_key: string | null;
   /** The thread on screen when this was dumped, membership checked. A filing
    *  default the text can override, not a destination. Null on anything dumped
    *  from outside a thread, and on a thread since deleted. */
   looking_at_thread_id: string | null;
+  /** 017. What offload is doing right now, at most 80 characters, cleared when
+   *  the turn settles. One column rather than a table: a step is the current
+   *  one and there is no history to keep. */
+  step: string | null;
+  /** So a step left behind by a worker that died is ignorable. */
+  step_at: Date | null;
   source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
   source_ref: string | null;
   attrs: Generated<unknown>;

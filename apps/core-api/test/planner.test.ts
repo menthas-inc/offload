@@ -159,6 +159,14 @@ const turnResult = (payload: unknown) =>
     payload: payload as Record<string, unknown>,
   });
 
+const turnStep = (payload: unknown, token = env.INTERNAL_SERVICE_TOKEN) =>
+  app.inject({
+    method: "POST",
+    url: "/internal/v1/turn-step",
+    headers: { authorization: `Bearer ${token}` },
+    payload: payload as Record<string, unknown>,
+  });
+
 const usage = {
   model: "claude-sonnet-5",
   inputTokens: 100,
@@ -1050,5 +1058,150 @@ describe("016 what a turn read", () => {
     const written = JSON.stringify(rows);
     expect(written).not.toContain("memorial");
     expect(written).not.toContain("lisbon");
+  });
+});
+
+describe("017 saying what it is doing", () => {
+  it("writes the step against the message the job names, never one it was handed", async () => {
+    const accountId = await account();
+    const { jobId, messageId } = await dump(accountId);
+
+    const posted = await turnStep({ jobId, text: "Checking when the tip closes" });
+    expect(posted.statusCode).toBe(200);
+
+    const message = await db
+      .selectFrom("messages")
+      .select(["step", "step_at"])
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(message.step).toBe("Checking when the tip closes");
+    expect(message.step_at).not.toBeNull();
+  });
+
+  it("refuses a step longer than the cap, at the boundary rather than in the column", async () => {
+    const accountId = await account();
+    const { jobId, messageId } = await dump(accountId);
+
+    // 81 characters. The constraint would also refuse it; the point of refusing
+    // here is that a rejected constraint is a failed write in the middle of a
+    // working turn, and this is a 400 the worker logs and carries on from.
+    const posted = await turnStep({ jobId, text: "x".repeat(81) });
+    expect(posted.statusCode).toBe(400);
+
+    const message = await db
+      .selectFrom("messages")
+      .select("step")
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(message.step).toBeNull();
+  });
+
+  it("refuses without the internal token, and for a job nobody has", async () => {
+    const accountId = await account();
+    const { jobId } = await dump(accountId);
+
+    expect((await turnStep({ jobId, text: "Looking" }, "wrong")).statusCode).toBe(401);
+    expect((await turnStep({ jobId: uuidv7(), text: "Looking" })).statusCode).toBe(404);
+  });
+
+  it("does not redraw a progress line under a turn that already settled", async () => {
+    const accountId = await account();
+    const { jobId, messageId } = await dump(accountId);
+
+    const settled = await turnResult({
+      outcome: "answered",
+      jobId,
+      replyText: "Sorted.",
+      usage: [usage],
+    });
+    expect(settled.statusCode).toBe(200);
+
+    // The worker's last step and its result can race, and delivery is at least
+    // once, so this is the ordinary case rather than a strange one.
+    const late = await turnStep({ jobId, text: "Still looking" });
+    expect(late.statusCode).toBe(200);
+    expect(late.json()).toEqual({ status: "already" });
+
+    const message = await db
+      .selectFrom("messages")
+      .select(["state", "step"])
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(message.state).toBe("answered");
+    expect(message.step).toBeNull();
+  });
+
+  it("clears the step when the turn settles, so nothing accumulates", async () => {
+    const accountId = await account();
+    const { jobId, messageId } = await dump(accountId);
+
+    await turnStep({ jobId, text: "Looking up Memorial day" });
+    await turnResult({ outcome: "answered", jobId, replyText: "The 25th.", usage: [usage] });
+
+    const message = await db
+      .selectFrom("messages")
+      .select(["step", "step_at"])
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(message.step).toBeNull();
+    expect(message.step_at).toBeNull();
+  });
+
+  it("reports a cancelled turn as cancelled, not as a failure, and keeps what landed", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "The tip");
+    const { jobId, messageId } = await dump(accountId);
+
+    await tool({
+      tool: "add_content",
+      type: "task",
+      jobId,
+      toolCallId: "c1",
+      threadId,
+      title: "Go to the tip",
+    });
+
+    const posted = await turnResult({ outcome: "cancelled", jobId });
+    expect(posted.statusCode).toBe(200);
+
+    const message = await db
+      .selectFrom("messages")
+      .select(["state", "step"])
+      .where("id", "=", messageId)
+      .executeTakeFirstOrThrow();
+    expect(message.state).toBe("cancelled");
+    expect(message.step).toBeNull();
+
+    // AC-10. Cancel stops work; it does not reverse it.
+    const rows = await db
+      .selectFrom("content")
+      .select("title")
+      .where("thread_id", "=", threadId)
+      .execute();
+    expect(rows.map((r) => r.title)).toEqual(["Go to the tip"]);
+
+    // The job is closed rather than released, because a cancelled turn that
+    // requeued itself would be the product ignoring the person (AC-12).
+    const job = await db
+      .selectFrom("jobs")
+      .select("state")
+      .where("id", "=", jobId)
+      .executeTakeFirstOrThrow();
+    expect(job.state).toBe("done");
+  });
+
+  it("accepts a cancel with no usage at all, for a turn stopped before its first call", async () => {
+    const accountId = await account();
+    const { jobId } = await dump(accountId);
+
+    const posted = await turnResult({ outcome: "cancelled", jobId });
+    expect(posted.statusCode).toBe(200);
+
+    const rows = await db
+      .selectFrom("llm_usage")
+      .select("id")
+      .where("account_id", "=", accountId)
+      .execute();
+    expect(rows).toHaveLength(0);
   });
 });
