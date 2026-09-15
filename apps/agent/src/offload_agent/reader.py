@@ -81,11 +81,6 @@ MAX_CONTENT_TOKENS = 10_000
 #: and one read makes the second impossible rather than merely discouraged.
 FETCHES_PER_LINK = 1
 
-#: Off until the vendor says what their fetch cache retains under our retention
-#: setting. Latency is worth less than an unanswered question about where page
-#: bytes live.
-USE_CACHE = False
-
 #: The one refusal category that is never a judgement call gets a backstop that
 #: is not the model's compliance.
 BLOCKED_DOMAINS: list[str] = []
@@ -175,7 +170,6 @@ def _server_tools(*, searches: int, fetches: int) -> list[dict]:
                 "name": "web_fetch",
                 "max_uses": fetches,
                 "max_content_tokens": MAX_CONTENT_TOKENS,
-                "use_cache": USE_CACHE,
             }
         )
     return tools

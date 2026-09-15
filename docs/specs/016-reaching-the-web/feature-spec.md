@@ -503,6 +503,12 @@ nothing else.**
   validation and lost the whole lookup, and the retry after a shape error sent a
   plain message where the API requires a `tool_result`, turning a recoverable
   error into a 400.
+- **`use_cache` is not a real parameter.** The fetch tool carried a field taken
+  from a reading of the docs and never sent to the API, which answered
+  `Extra inputs are not permitted`. **Every pasted link failed**, silently, and
+  the turn looked exactly like a model deciding it did not need a lookup. The SDK
+  ships a TypedDict per server tool, so `tests/test_server_tools.py` now checks
+  every field we send against the vendor's own list, with no network and no cost.
 - **`want` arrived as a bare string.** The model sent `want: "date"` rather than
   `["date"]`, the schema refused it, it tried four times and gave up. **The turn
   then filed the date from memory, unverified, under a green Done**, which is
