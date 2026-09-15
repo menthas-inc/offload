@@ -13,7 +13,13 @@
 // nothing back, so a turn can have three things to report and no bubble to
 // report them in.
 //
-// Order is fixed: state, then threads, then sources. What happened, where it
+// Order is fixed: state, then threads, then sources.
+//
+// **There is no `seen` mark any more.** 👀 sat here from 003 until 15 September,
+// and it was the product's only emoji. It said "offload has this and has not
+// answered yet", which is exactly what the writing indicator says, at the same
+// moment, three lines below. Two marks for one state, and the one that stayed is
+// the one that also says work is happening. What happened, where it
 // landed, where it came from.
 
 import Link from "next/link";
@@ -40,7 +46,7 @@ export function TurnFooter({
   refs = [],
   sources = [],
 }: {
-  state?: "seen" | "done" | null;
+  state?: "done" | null;
   refs?: TurnRef[];
   sources?: TurnSource[];
 }) {
@@ -52,14 +58,6 @@ export function TurnFooter({
 
   return (
     <div className={styles.turnFooter}>
-      {state === "seen" ? (
-        // The label is the readme's fuller string, because the marker has to say
-        // what it means to somebody who cannot see it.
-        <span className={styles.seen} aria-label="seen, not answered yet">
-          <span aria-hidden="true">👀</span>
-        </span>
-      ) : null}
-
       {state === "done" ? (
         <span className={styles.done}>
           <Icon name="check" size={11} />

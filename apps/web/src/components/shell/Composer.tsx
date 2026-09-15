@@ -9,7 +9,7 @@
 // one tab, because then half the app has no way to be spoken to.
 //
 // Everything here was on Today until 005 gave the app a shell. The dump, the
-// 👀 marker, the failed and partial states, the resume and the Undo all work
+// the failed and partial states, the resume and the Undo all work
 // exactly as 003 and 004 built them; what changed is where they live and that
 // the reply now links to the threads offload actually wrote to.
 
@@ -417,6 +417,32 @@ export function Composer({
   // agree about the same thing are two pieces of state that will not.
   const inFlight = turns.find((turn) => turn.from === "you" && turn.state === "seen");
 
+  /** Which sent turns have a reply under them, and which reply belongs to which.
+   *
+   *  A reply's id is its message's id plus `-reply`, which is how the composer
+   *  has always built it. Read once per render rather than searched per row. */
+  const replies = new Set<string>();
+  const answered = new Map<string, Turn>();
+  for (const turn of turns) {
+    if (turn.from !== "offload") continue;
+    const sent = turns.find((other) => other.id === turn.id.replace(/-reply$/, ""));
+    if (!sent) continue;
+    replies.add(sent.id);
+    answered.set(turn.id, sent);
+  }
+
+  /** What the footer says about a turn, from the record rather than the reply.
+   *
+   *  **Done means the turn finished and did something**, which is why `answered`
+   *  is in the condition and not just `did`: a partial turn that filed one row
+   *  wore a Done mark and "Didn't finish that one." at the same time, which is
+   *  the screen contradicting itself. */
+  const footerFor = (turn: Turn) => ({
+    state: turn.state === "answered" && turn.did ? ("done" as const) : null,
+    refs: turn.threads ?? [],
+    sources: turn.sources ?? [],
+  });
+
   return (
     <div className={styles.composer}>
       {undoable ? (
@@ -524,24 +550,12 @@ export function Composer({
                   <p className={styles.turnStopped}>Stopped.</p>
                 ) : null}
               </div>
-              <TurnFooter
-                // **Done means the turn finished and did something**, which
-                // is why `answered` is in the condition and not just `did`. A
-                // partial turn that filed one row wore a Done mark and the
-                // "Didn't finish that one." line at the same time, which is the
-                // screen contradicting itself; the 003 rule that Done is gated
-                // on the record rather than on the reply is the same rule, and
-                // this is its other half.
-                state={
-                  turn.state === "seen"
-                    ? "seen"
-                    : turn.state === "answered" && turn.did
-                      ? "done"
-                      : null
-                }
-                refs={turn.threads ?? []}
-                sources={turn.sources ?? []}
-              />
+              {/* **Only when nothing answered it.** The footer belongs to the
+                  turn, and the turn ends at the reply when there is one: drawn
+                  here regardless, the sources for an answer sat above the answer
+                  they were sources for. So a turn with a reply hangs its footer
+                  off that instead, further down. */}
+              {!replies.has(turn.id) ? <TurnFooter {...footerFor(turn)} /> : null}
               </Fragment>
             ) : (
               <div key={turn.id} className={styles.turn}>
@@ -579,6 +593,11 @@ export function Composer({
               {turn.found && turn.found.length > 0 ? (
                 <AnswerResults found={turn.found} onToggle={(row) => void tick(turn.id, row)} />
               ) : null}
+
+              {/* The turn's footer, under the thing it describes. The state and
+                  the pills come from the message that was sent, not from this
+                  reply: what offload did is a fact about the turn. */}
+              {answered.get(turn.id) ? <TurnFooter {...footerFor(answered.get(turn.id)!)} /> : null}
               </div>
             ),
           )}

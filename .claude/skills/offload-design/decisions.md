@@ -11,6 +11,40 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-15 · The eyes go, and the footer moves under the reply
+**Surface:** iOS, Android, web
+
+Four things the product owner found by using it.
+
+**1. 👀 is gone, and with it the product's only emoji.** It sat on a message
+offload had seen and not answered, from 003 until now. The writing indicator says
+the same thing, at the same moment, a few lines below: two marks for one state,
+and the one that stayed is the one that also says work is happening. The standing
+rule in `CLAUDE.md` moves from "one emoji" to "no emoji".
+
+**2. The footer now hangs off the reply when there is one.** It was drawn on the
+sent bubble in every case, which put an answer's source chips *above* the answer
+they were sources for. The footer still belongs to the turn rather than to either
+bubble, and the turn ends at the reply; a turn that said nothing back keeps its
+footer on the message, exactly as before.
+
+**3. Stop sits on the line it belongs to.** It was stacked under the progress
+line, which read as a second thing appearing rather than as the way out of the
+one already there.
+
+**4. A question about the world is declined**, not answered and not searched.
+"How do you make leek soup" and "how much is bitcoin" get `Not sure.` The test is
+not whether the fact is public: "when do the clocks go forward" is answered,
+because a date is what a day is made of and this product is about their days.
+
+**Design system impact:** the kits draw 👀 in `StatusChip` and in the mobile
+kit's README, and both are now wrong. The seen state has no mark at all. Worth
+checking the kits' conversation files for the footer's position too, since they
+were drawn before the footer existed. `Not sure.` joins `Can't search that.` as
+the second short line offload says when it is declining rather than failing; they
+are different states and should not look identical.
+
+
 ### 2026-09-14 · A link row shows the page's own picture
 **Surface:** iOS, Android, web
 

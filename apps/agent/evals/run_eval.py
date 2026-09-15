@@ -224,6 +224,22 @@ def _mechanical(case: Case, reply: str) -> list[str]:
     return failures
 
 
+#: What a stubbed lookup answers with, per wanted field. Values rather than
+#: emptiness, so a case exercises the path where the fact arrives.
+_STUB_FIELD = {
+    "date": "2026-10-25",
+    "time": "02:00",
+    "dates_range": "2026-10-25 to 2027-03-28",
+    "place": "somewhere",
+    "title": "A page",
+    "artist": "Somebody",
+    "price": "10",
+    "hours": "9 to 5",
+    "forecast": "dry",
+    "fact": "something true",
+    "image": "https://example.com/a.jpg",
+}
+
 #: Words a progress line must never contain. 017, AC-14.
 #:
 #: **Three kinds, and they fail for different reasons.** A vendor name tells them
@@ -328,7 +344,19 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
             if url and not _in_the_dump(url, case.question):
                 refused_bound.append(url)
                 return {"ok": False, "error": "that url is not in what they dumped"}
-            return {"ok": True, "found": False}
+            # **A stub that can only fail is as useless as one that can only
+            # succeed.** This answered every lookup `found: False`, so every
+            # case ended with the model explaining that it had found nothing,
+            # and the self-diagnosis check fired on all of them. The bounds
+            # above are the real thing; what comes back after them is a
+            # plausible result, so the case tests the ordinary path.
+            wanted = args.get("want") or ["fact"]
+            return {
+                "ok": True,
+                "found": True,
+                "fields": {name: _STUB_FIELD.get(name, "something") for name in wanted},
+                "sources": ["example.com"],
+            }
         if tool in {"add_content", "add_note", "create_thread"}:
             # The title and any date, because "it filed something" does not say
             # whether the thing it filed was right.
@@ -390,6 +418,16 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
     # The record, on every filing case, passing or not. A case that fails on
     # "did not look something up" is unreadable without knowing what it did
     # instead, and that was two rounds of guessing before this line existed.
+    # **Out of scope is its own line, and it is not the refusal line.**
+    # "Can't search that." is for the subjects offload will not touch; "Not
+    # sure." is for a question that is simply not about their life. A case that
+    # wants one and gets the other has the wrong idea of why it declined.
+    if case.id.startswith("scope-") and not case.look_up:
+        if reply.strip() != "Not sure.":
+            failures.append(f"should have said 'Not sure.', said {reply!r}")
+        if filed:
+            failures.append(f"filed a question rather than declining it: {filed}")
+
     # A lookup the bound threw out is not a lookup. It costs the turn its fact
     # and the person their answer, and it is invisible in the reply.
     if refused_bound:

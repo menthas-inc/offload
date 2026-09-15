@@ -46,7 +46,7 @@ Things that bite most often:
 - No em dashes or en dashes anywhere: UI copy, marketing, comments, commit messages, these docs, and **anything offload writes at runtime**. The prompt says so and models break this rule more than any other, so it is worth checking output rather than trusting the instruction.
 - **offload never explains a failure and never diagnoses itself.** It says what happened and the screen offers the way forward, next to a control that acts on it. A model cannot see whether a tool is down and will be wrong about it: it once told somebody "the task tool seems to be down" about a tool that had refused a malformed date. A sentence cannot be clicked, so the reply names what landed and links to it, and the failure line is one short clause plus a retry.
 - Sentence case everywhere. The brand name is lowercase even at the start of a sentence.
-- One emoji in the product, 👀, on a message offload has seen but not answered, and it needs a text alternative.
+- **No emoji in the product.** 👀 was the one, on a message offload had seen but not answered, and it went on 2026-09-15: the writing indicator says the same thing at the same moment, so it was two marks for one state.
 - Never hand-edit `_ds_bundle.js`, `_ds_manifest.json` or `_adherence.oxlintrc.json`. They are generated.
 
 ## Things that have already gone wrong here

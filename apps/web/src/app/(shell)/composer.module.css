@@ -217,9 +217,13 @@
 .working {
   align-self: flex-start;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
+  /* **A row, so Stop sits on the line it belongs to.** It was stacked
+     underneath, which read as a second thing that had appeared rather than as
+     the way out of the one already on screen. `baseline` would drop it below
+     the dots, which have no baseline of their own, so the two are centred. */
+  flex-flow: row wrap;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .workingStep {
@@ -237,23 +241,12 @@
   min-height: 26px;
 }
 
-/* Both marks used to be absolutely positioned into the sent bubble's bottom
-   left corner. In a row that grows sideways that put them under the bubble they
-   were tucked into, which is why the footer exists rather than the bubble
-   simply gaining chips. */
-.seen {
-  display: inline-flex;
-  align-items: center;
-  align-items: center;
-  height: 22px;
-  padding: 0 6px;
-  border: 1px solid var(--border-hairline);
-  border-radius: 99px;
-  background: var(--paper);
-  font-size: calc(11px * var(--type-scale));
-  line-height: 1;
-}
+/* The Done mark used to be absolutely positioned into the sent bubble's bottom
+   left corner. In a row that grows sideways that put it under the bubble it was
+   tucked into, which is why the footer exists rather than the bubble simply
+   gaining chips.
 
+   `.seen` sat here beside it and is gone with the emoji it drew. */
 .done {
   display: inline-flex;
   align-items: center;

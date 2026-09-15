@@ -317,6 +317,23 @@ function Turns() {
     return () => show.remove();
   }, []);
 
+  /** Which reply belongs to which sent turn.
+   *
+   *  A reply's id is its message's id plus `-reply`, which is how the context
+   *  has always built it. Read once per render rather than searched per row. */
+  const answered = new Map<string, Turn>();
+  const replied = new Set<string>();
+  for (const turn of turns) {
+    if (turn.from !== "offload") continue;
+    const sent = turns.find((other) => other.id === turn.id.replace(/-reply$/, ""));
+    if (!sent) continue;
+    // Two, keyed differently on purpose: one asks "does this sent turn have a
+    // reply", the other asks "which sent turn is this reply for". Keying by
+    // reply id and querying with a sent id looks right and is always false.
+    answered.set(turn.id, sent);
+    replied.add(sent.id);
+  }
+
   return (
     <ScrollView
       ref={scroll}
@@ -331,10 +348,15 @@ function Turns() {
           <Yours
             key={turn.id}
             turn={turn}
+            // **Only when nothing answered it.** The footer belongs to the turn,
+            // and the turn ends at the reply when there is one: drawn on the
+            // sent bubble regardless, the sources for an answer sat above the
+            // answer they were sources for.
+            footer={!replied.has(turn.id)}
             onFinish={() => void finish(turn.id)}
           />
         ) : (
-          <Theirs key={turn.id} turn={turn} />
+          <Theirs key={turn.id} turn={turn} sent={answered.get(turn.id) ?? null} />
         ),
       )}
       {writing ? <Working /> : null}
@@ -342,7 +364,15 @@ function Turns() {
   );
 }
 
-function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
+function Yours({
+  turn,
+  footer,
+  onFinish,
+}: {
+  turn: Turn;
+  footer: boolean;
+  onFinish: () => void;
+}) {
   const COLOR = useColors();
   // **`cancelled` is deliberately not here.** The clay border says something
   // went wrong, and nothing did: somebody pressed Stop.
@@ -379,7 +409,7 @@ function Yours({ turn, onFinish }: { turn: Turn; onFinish: () => void }) {
           whichever turn happened to carry them; a turn with a source as well
           has three things to report and, on an ordinary filing, no reply to
           report them in. */}
-      <TurnFooter turn={turn} />
+      {footer ? <TurnFooter turn={turn} /> : null}
 
       {/* The readme's own words, and the same ones web uses. They diverged
           here: this said "Saved what landed. The rest didn't come through."
@@ -442,8 +472,7 @@ function TurnFooter({ turn }: { turn: Turn }) {
   // `answered` is in the condition and not just `did`. A partial turn that filed
   // one row wore a Done mark and the "Didn't finish that one." line at the same
   // time, which is the screen contradicting itself.
-  const state =
-    turn.state === "seen" ? "seen" : turn.state === "answered" && turn.did ? "done" : null;
+  const state = turn.state === "answered" && turn.did ? "done" : null;
   const refs = turn.threads ?? [];
 
   // An empty footer is no footer, never a 26px gap.
@@ -451,18 +480,14 @@ function TurnFooter({ turn }: { turn: Turn }) {
 
   return (
     <View className="mt-space-3 flex-row flex-wrap items-center gap-space-2">
-      {/* Order is fixed: what happened, where it landed, where it came from. */}
-      {state === "seen" ? (
-        <View
-          className="flex-row items-center rounded-pill border border-border-hairline bg-surface-raised px-space-3"
-          style={{ height: 24 }}
-        >
-          <Text accessibilityLabel="seen, not answered yet" style={{ fontSize: 15 }}>
-            👀
-          </Text>
-        </View>
-      ) : null}
+      {/* Order is fixed: what happened, where it landed, where it came from.
 
+          **There is no `seen` mark any more.** 👀 sat here from 003 until 15
+          September, and it was the product's only emoji. It said "offload has
+          this and has not answered yet", which is exactly what the writing
+          indicator says, at the same moment, a few lines below. Two marks for
+          one state, and the one that stayed is the one that also says work is
+          happening. */}
       {state === "done" ? (
         <View
           className="flex-row items-center gap-space-2 rounded-pill bg-moss-600 px-space-3"
@@ -536,7 +561,7 @@ function TurnFooter({ turn }: { turn: Turn }) {
   );
 }
 
-function Theirs({ turn }: { turn: Turn }) {
+function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
   const COLOR = useColors();
   const router = useRouter();
   const { fold, tickFound } = useConversation();
@@ -571,8 +596,10 @@ function Theirs({ turn }: { turn: Turn }) {
           announced and then expires an hour later having done nothing. */}
       {turn.waiting ? <Waiting turn={turn} /> : null}
 
-      {/* The pills moved into the turn's footer, under the message they
-          answer, so they are drawn once whether or not offload said anything. */}
+      {/* The turn's footer, under the thing it describes. The state and the
+          pills come from the message that was sent, not from this reply: what
+          offload did is a fact about the turn rather than about the sentence. */}
+      {sent ? <TurnFooter turn={sent} /> : null}
     </View>
 
       {/* **Below the bubble, not inside it.** A row's press fill bleeds to its
@@ -642,7 +669,12 @@ function Working() {
   if (!step && !canStop) return <Writing />;
 
   return (
-    <View className="gap-space-3" style={{ alignSelf: "flex-start" }}>
+    // A row, so Stop sits on the line it belongs to rather than under it: it is
+    // the way out of the thing on screen, not a second thing that appeared.
+    <View
+      className="flex-row flex-wrap items-center gap-space-4"
+      style={{ alignSelf: "flex-start" }}
+    >
       {step ? (
         <Text
           className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
