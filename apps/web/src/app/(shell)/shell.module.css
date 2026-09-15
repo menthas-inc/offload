@@ -1775,22 +1775,29 @@ a.settingsRow:hover {
   background: var(--surface-fill);
 }
 
-/* **A day with anything on it glows inward, in blue.**
-   Grey said "there is something here" so quietly that it read as nothing, and
-   a flat fill said it so evenly that it read as one block of colour rather
-   than a light. The composer's card has the same job at a bigger size: a
-   crisp ring plus a shadow set inside the surface, graded so the colour comes
-   in from the edge and thins toward the middle. This is that trick at 40px:
-   the sharp ring stays, and the fill is gone in favour of a blurred inset
-   shadow the same shape as the cell, which is what makes it read as a glow
-   rather than a wash.
+/* **A day with something on it is a lift, not a light.**
+   The blue glow this replaces was not illegible, and legibility is not why it
+   went: with the waiting chip and the task dot on the same screen, blue was
+   carrying five meanings at once. Blue now keeps the two that are about time,
+   today and the day being read, and everything about content moved off the hue.
 
-   Inset rather than a border throughout: a border adds a pixel and the whole
-   row shuffles as things are added and ticked off. */
+   A raised surface, a hairline and a shadow. The pair with section 4 is what
+   makes it work: a wash dulls and an edge advances, which is why the grey
+   version of this read as *less* present than an empty cell. The lit day comes
+   forward and the empty day steps back.
+
+   **Two rules rather than one shadow list.** `--shadow-1` is the keyword `none`
+   in the dark scope, and `none` is not a legal item in a comma-separated list,
+   so a combined declaration is dropped entirely and the lift disappears in
+   dark. */
 .railDay[data-has] {
-  box-shadow:
-    inset 0 0 0 1px var(--border-focus),
-    inset 0 0 12px 0 var(--border-attention);
+  background: var(--surface-raised);
+  border-color: var(--border-lift);
+  box-shadow: var(--shadow-1);
+}
+
+:global([data-theme="dark"]) .railDay[data-has] {
+  box-shadow: var(--shadow-2);
 }
 
 /* The days either side of the month on screen. Present, because a month
@@ -1804,7 +1811,13 @@ a.settingsRow:hover {
 
 /* Today is outlined; the day you are reading is filled. Two different
    questions, so two different treatments rather than one that has to mean
-   both. */
+   both.
+
+   **Declared after the lift, and that ordering is load-bearing.** The lift sets
+   a border colour at the same specificity, so with today first it loses and
+   today comes out wearing the hairline. The border says things about the date
+   and the inset says things about the content, which is the architecture the
+   rail already had. */
 .railDay[data-today] {
   border-color: var(--border-focus);
 }
@@ -1816,6 +1829,7 @@ a.settingsRow:hover {
    inverse token does, which is how a near-black number ends up on blue. */
 .railDay[data-on] {
   background: var(--surface-attention);
+  border-color: var(--surface-attention);
   box-shadow: none;
 }
 
@@ -1842,6 +1856,18 @@ a.settingsRow:hover {
 .railDay[data-past] .railDom,
 .railDay[data-past] .railDow {
   color: var(--text-tertiary);
+}
+
+/* **A day with nothing on it steps back**, which is the other half of the lift.
+   Without it the lift has nothing to be raised above.
+
+   **Today is exempt**, and that exemption is the point of writing the rule this
+   way round. Before this, only past days and days outside the month were
+   demoted; a rule that demotes empty days catches today on any week where today
+   happens to be empty, which is most weeks. */
+.railDay:not([data-has]):not([data-today]):not([data-on]) .railDom {
+  color: var(--text-tertiary);
+  font-weight: var(--weight-regular);
 }
 
 .railDow {

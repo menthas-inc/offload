@@ -588,6 +588,24 @@ class LookUp(BaseModel):
     # What the answer is for, which also selects the shape of what comes back.
     want: list[str] = Field(default_factory=list, max_length=4)
 
+    @field_validator("want", mode="before")
+    @classmethod
+    def _one_is_a_list(cls, value: object) -> object:
+        """A single field name sent bare becomes a list of one.
+
+        **Found on a phone, not in a test.** Asked to book a restaurant for
+        mothers day, the model sent `want: "date"` rather than `["date"]`, the
+        schema refused it, and it tried four times and gave up. The turn then
+        filed the date from its own memory, unverified, which is the exact thing
+        this tool exists to stop, and nothing on screen said a lookup had failed.
+
+        Coercing is right rather than merely convenient: `want` is a closed set
+        of names, one of them sent on its own is unambiguous, and the alternative
+        is refusing a turn over a pair of brackets. The refusal is still there
+        for anything that is not a string or a list.
+        """
+        return [value] if isinstance(value, str) else value
+
     # 017. What to put on screen while this runs.
     #
     # **Here, on the call, rather than in a tool of its own.** A separate

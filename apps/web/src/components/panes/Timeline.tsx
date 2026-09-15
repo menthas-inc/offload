@@ -59,9 +59,16 @@ function time(at: string): string {
  *  for something offload has noticed. A done dot keeps its colour and loses its
  *  fill, so the legend stays about kind and weight says state. */
 const DOT: Record<string, string> = {
-  task: "var(--surface-attention)",
+  // **Text aliases, not fill aliases, and the lift is why.**
+  // `--surface-attention` and `--surface-noticed` are deliberately fixed across
+  // themes, which is right for a chip and wrong for a 5px mark whose backdrop
+  // now changes with the theme. Measured on the lift, the task dot was 2.62:1 in
+  // dark and the note dot 2.03:1 in light. Event and other already used text
+  // aliases and already passed, which is what makes this a rule rather than two
+  // patches.
+  task: "var(--text-attention)",
   event: "var(--text-primary)",
-  note: "var(--surface-noticed)",
+  note: "var(--text-noticed)",
   other: "var(--text-tertiary)",
 };
 

@@ -444,9 +444,12 @@ OFF-4's rule applied to a new source: process and forget, keep the reference.
 Run on 2026-09-14, against the real model, on the filing path. Tuning 15 cases,
 two held-out sets of 15 written without looking at it.
 
-**Tuning 16/16. Three held-out sets of 15, written fresh each time because
-tuning on one spends it: 80%, then 93%, then 93% on a set written after the
-bound was relaxed and before the last fix to it.** The remaining failure is the rubric rather than the model: "cycle to
+**Tuning 16/16, and 15/15 on all three held-out sets after the last fix.**
+
+Written fresh each time, because tuning on a set spends it. As first measured,
+blind: 80%, 93%, 93%. Each number is what the set scored before anything it found
+was fixed, and the three sets between them moved the preference rule, the refusal
+branch, the provenance bound and the `want` schema. The remaining failure is the rubric rather than the model: "cycle to
 the coast on Sunday if the bridge is open" names no bridge, so there is no query
 it could build out of the dump's own words, and the provenance rule in AC-24
 would refuse the one it invented. A condition it cannot name is a condition it
@@ -486,6 +489,28 @@ has nothing to be quiet about.
 
 This is wider than 016. Any turn that files nothing and explains itself in text
 used to come back as "Nothing saved."
+
+## What only a phone found
+
+Three defects survived every local gate and appeared on the first two real turns.
+All three are the same shape: **a stub that always succeeds tests the caller and
+nothing else.**
+
+- **The bound refused the flagship example**, because the eval's `look_up` stub
+  answered `ok` without running it. Below.
+- **The reader asked the model for a field the next line overwrote.** `sources`
+  was in the output schema with `domain` required; a source without one failed
+  validation and lost the whole lookup, and the retry after a shape error sent a
+  plain message where the API requires a `tool_result`, turning a recoverable
+  error into a 400.
+- **`want` arrived as a bare string.** The model sent `want: "date"` rather than
+  `["date"]`, the schema refused it, it tried four times and gave up. **The turn
+  then filed the date from memory, unverified, under a green Done**, which is
+  precisely what this feature exists to prevent and the screen said nothing. A
+  single field name sent bare is now coerced to a list of one, and the prompt
+  says plainly that a lookup which did not work is not a licence to guess: a
+  todo with no date is honest and easy to fix, a todo on the wrong day is
+  neither.
 
 ## The bound was specified as the wrong rule
 
