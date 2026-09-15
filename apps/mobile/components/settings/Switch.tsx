@@ -37,7 +37,17 @@ export function Switch({
       onValueChange={onChange}
       disabled={disabled}
       accessibilityLabel={label}
+      // **`thumbColor` as well as `trackColor`, and that is not decoration.**
+      // Without a thumb colour Android keeps its own Material accent for the
+      // whole control and the track colour is blended with it, so the switch
+      // came out teal on a screen whose contract says the on state is the
+      // inverse surface. Seen on a device; both phones take the same two
+      // props, so this is one rule rather than a platform branch.
       trackColor={{ true: COLOR.ink, false: COLOR.hairline }}
+      thumbColor={COLOR.raised}
+      // The hairline track needs an edge of its own in the off state, which is
+      // the one place iOS and Android agree by default and Android does not.
+      ios_backgroundColor={COLOR.hairline}
       style={style}
     />
   );
