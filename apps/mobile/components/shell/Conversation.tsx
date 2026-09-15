@@ -317,20 +317,22 @@ function Turns() {
     return () => show.remove();
   }, []);
 
-  /** Which reply belongs to which sent turn.
+  /** Which reply belongs to which sent message.
    *
-   *  A reply's id is its message's id plus `-reply`, which is how the context
-   *  has always built it. Read once per render rather than searched per row. */
+   *  **Matched on the turn id they share, not on the reply's own id.** The
+   *  composer builds a live reply as `<messageId>-reply`, and a reply loaded
+   *  from the tail has its real id instead, so a suffix rule linked them during
+   *  the session and silently stopped after a reload: the footer drew under the
+   *  sent bubble again, and a `replace` that found nothing to strip matched the
+   *  reply against itself, so it drew twice. Both messages of a turn carry the
+   *  same `turnId` on every path, which is the thing that was always true. */
   const answered = new Map<string, Turn>();
   const replied = new Set<string>();
-  for (const turn of turns) {
-    if (turn.from !== "offload") continue;
-    const sent = turns.find((other) => other.id === turn.id.replace(/-reply$/, ""));
+  for (const reply of turns) {
+    if (reply.from !== "offload" || !reply.turnId) continue;
+    const sent = turns.find((other) => other.from === "you" && other.turnId === reply.turnId);
     if (!sent) continue;
-    // Two, keyed differently on purpose: one asks "does this sent turn have a
-    // reply", the other asks "which sent turn is this reply for". Keying by
-    // reply id and querying with a sent id looks right and is always false.
-    answered.set(turn.id, sent);
+    answered.set(reply.id, sent);
     replied.add(sent.id);
   }
 
