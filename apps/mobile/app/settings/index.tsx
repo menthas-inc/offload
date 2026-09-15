@@ -179,6 +179,17 @@ export default function Settings() {
           />
         </Group>
 
+        <Group label="What offload does with it">
+          {/* The kit's Privacy group holds "Let offload notice patterns" too.
+              That row is not built, so this group holds the two that are. */}
+          <Row
+            icon="globe"
+            title="Reaching the web"
+            onPress={() => router.push("/settings/privacy")}
+            last
+          />
+        </Group>
+
         <Group label="The app">
           <Row
             icon="blend"

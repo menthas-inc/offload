@@ -17,6 +17,12 @@ export interface Me {
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to. */
   suggestedName: string | null;
+  /** 016. Whether offload may search the web, and whether it may open a link
+   *  they pasted. Two rather than one because they are two different promises:
+   *  a search sends their own words to a third party, and reading a link they
+   *  pasted sends nothing of theirs anywhere. */
+  webSearch: boolean;
+  webLinks: boolean;
 }
 
 /** Whether this account still has something to answer before the shell.

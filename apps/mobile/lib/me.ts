@@ -21,6 +21,10 @@ export interface Me {
   needsName: boolean;
   /** What Apple or Google called them, to fill the field in. */
   suggestedName: string | null;
+  /** 016. Whether offload may search the web, and whether it may open a link
+   *  they pasted. Two different promises, so two switches. */
+  webSearch: boolean;
+  webLinks: boolean;
 }
 
 /** Every mounted `useMe` hears a change to the identity.
@@ -62,6 +66,33 @@ export function useMe(): Me | null {
   }, []);
 
   return me;
+}
+
+/** Turning a switch. 016.
+ *
+ *  Patches one field, never the pair and never a name: a settings toggle
+ *  sending a display name is a toggle that can clear one by accident. The
+ *  server's own schema is the other half of that, where every field is optional
+ *  and only what was sent is written.
+ *
+ *  Broadcast like `saveName`, so every mounted `useMe` has the new state
+ *  without a refetch and the switch never disagrees with itself. */
+export async function setWebAccess(
+  patch: { webSearch?: boolean; webLinks?: boolean },
+): Promise<Me | null> {
+  try {
+    const updated = await request<Me>("/api/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!updated) return null;
+    for (const listener of listeners) listener(updated);
+    return updated;
+  } catch (error) {
+    failed("me.setWebAccess", error);
+    return null;
+  }
 }
 
 /** Setting your name. 011.
