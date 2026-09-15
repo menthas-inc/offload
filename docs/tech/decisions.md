@@ -284,6 +284,27 @@ Shortcuts taken deliberately for alpha and beta. Each says why it is affordable 
 
 3. ✅ **The thread map widget, answered 2026-09-03 by 006 and 007.** Raised by the spec 001 review: the kits name real places with plot coordinates, and whether that meant a geocoded map was left open. **It does.** People dump a place name, a shared maps link or a sentence with a restaurant in it, never coordinates, so a pin means resolving a name through a provider. The product owner chose **Google Maps Platform**. What follows is specced in `006`: only an extracted, validated place name leaves, resolution is a background job so no dump waits on a third party, two caches so a repeated place costs no call, no account column on either cache, and **a no-training term and short provider-side retention are conditions of shipping**, the same bar `decisions.md` already set for the transcription provider. It is a new sub-processor and gets its own privacy policy row, distinct from the existing Google sign-in row, signed off before the first call. **007 draws the widget with pins on a plain surface**, as the kits do; real tiles are a separate decision nobody needs yet.
 
+4. ⚠️ **offload does not know what country anybody is in, and 016 made that
+   visible.** Asked "when is the next bank holiday" on 15 September, it answered
+   **Monday 12 October 2026**, which is Columbus Day, citing `academybank.com`,
+   `idfpr.illinois.gov` and `dfs.ny.gov`. The answer is correct for somebody in
+   the United States and wrong for the person who asked. Nothing in the product
+   is broken: the lookup ran, the bound held, the chips are honest about where it
+   came from. It simply had no idea where to look from.
+
+   The gap is older than 016 and the agent's own comments name it: `accounts` has
+   no timezone, so the day boundary is UTC and "today" is wrong for anybody
+   dumping at 11pm in Lisbon. **Reaching the web is what turned a quiet
+   off-by-a-few-hours into a confidently wrong answer**, because a search takes
+   its assumptions from nowhere.
+
+   The call is where it comes from, and the options are not equivalent. The
+   phone's own locale is the most accurate and is a new thing to collect. A
+   connected calendar already carries a timezone, but only for accounts that have
+   one. Asking during first run is one more question on a screen whose whole
+   pitch is that it asks nothing. **Each of them touches the privacy policy**, so
+   this wants a decision rather than a default.
+
 What is left is not decisions but work, and it lives elsewhere: the deferred hardening above, to revisit before GA; the design questions raised in `.claude/skills/offload-design/decisions.md` under Open, which are design's to answer; and the specified-but-undefined items, which are implementation details each spec settles as it is written, not calls to make in the abstract.
 
 *The data model is specced at `docs/specs/001-data-model/`. What remains of it is implementation.*
