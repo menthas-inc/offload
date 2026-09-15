@@ -81,6 +81,11 @@ class DumpContext:
     # authorization and a flag on a request would be the client deciding.
     may_search: bool = False
     may_read_links: bool = False
+    #: Where they said they are, ISO 3166-1 alpha-2, or None when they have not
+    #: said. **None is a real answer**: offload tells the model it does not know
+    #: rather than letting a search assume, which is how "when is the next bank
+    #: holiday" came back with Columbus Day.
+    country: str | None = None
 
     @property
     def may_look_up(self) -> bool:
@@ -265,6 +270,7 @@ async def load(
         has_calendar=has_calendar,
         may_search=bool(switches and switches.web_search_enabled),
         may_read_links=bool(switches and switches.web_links_enabled),
+        country=(switches.country if switches else None),
     )
 
 
@@ -335,6 +341,7 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         # to be added here too.
         may_search=ctx.may_search,
         may_read_links=ctx.may_read_links,
+        country=ctx.country,
     )
 
 
@@ -413,7 +420,7 @@ _PIECES = text(
 # checks that.
 _MAY_REACH = text(
     """
-    select web_search_enabled, web_links_enabled
+    select web_search_enabled, web_links_enabled, country
       from accounts
      where id = :account_id
     """
@@ -518,6 +525,11 @@ class AnswerContext:
     # the questions this feature exists for.
     may_search: bool = False
     may_read_links: bool = False
+    #: Where they said they are, ISO 3166-1 alpha-2, or None when they have not
+    #: said. **None is a real answer**: offload tells the model it does not know
+    #: rather than letting a search assume, which is how "when is the next bank
+    #: holiday" came back with Columbus Day.
+    country: str | None = None
 
     @property
     def may_look_up(self) -> bool:
@@ -568,6 +580,7 @@ async def load_answer(
         has_calendar=bool(calendar.scalar()),
         may_search=bool(switches and switches.web_search_enabled),
         may_read_links=bool(switches and switches.web_links_enabled),
+        country=(switches.country if switches else None),
     )
 
 

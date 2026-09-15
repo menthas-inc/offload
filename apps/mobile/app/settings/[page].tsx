@@ -4,7 +4,7 @@
 // vocabulary rather than ten screens. Three exist here; the rest arrive with
 // their features and cost a `PAGES` entry each.
 
-import { Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -14,7 +14,7 @@ import { EditableRow, Group, Row } from "../../components/settings/Rows";
 import { Segmented } from "../../components/settings/Segmented";
 import { Switch } from "../../components/settings/Switch";
 import { useColors } from "../../lib/colors";
-import { saveName, setWebAccess, useMe } from "../../lib/me";
+import { fetchCountries, saveName, setCountry, setWebAccess, useMe } from "../../lib/me";
 import { useCalendars, updateCalendar } from "../../lib/calendars";
 import { API_URL } from "../../lib/auth";
 import {
@@ -29,7 +29,7 @@ import {
   type Theme,
   type WeekStart,
 } from "../../lib/appearance";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const isAndroid = Platform.OS === "android";
 
@@ -40,6 +40,7 @@ const TITLES: Record<string, string> = {
   account: "My account",
   appearance: "Appearance",
   privacy: "Privacy",
+  country: "Country",
   help: "Help and about",
 };
 
@@ -75,6 +76,7 @@ export default function SettingsPage() {
         {page === "account" ? <Account /> : null}
         {page === "appearance" ? <Appearance /> : null}
         {page === "privacy" ? <Privacy /> : null}
+        {page === "country" ? <CountryPicker /> : null}
         {page === "help" ? <Help /> : null}
       </ScrollView>
     </SafeAreaView>
@@ -94,6 +96,13 @@ export default function SettingsPage() {
  *  verification flow behind it, not a text field. The name is, since 011. */
 function Account() {
   const me = useMe();
+  const router = useRouter();
+  // One fetch for the whole list. It is the ISO register and does not change
+  // while somebody is looking at this screen.
+  const [countries, setCountries] = useState<{ code: string; name: string }[]>([]);
+  useEffect(() => {
+    void fetchCountries().then(setCountries);
+  }, []);
 
   return (
     <Group label="Details">
@@ -105,8 +114,105 @@ function Account() {
         value={me?.displayName ?? null}
         onSave={async (next) => (await saveName(next)) !== null}
       />
-      <Row title="Email" value={me?.email} last />
+      <Row title="Email" value={me?.email} />
+
+      {/* **Where they are, because offload had no idea.** Asked for the next
+          bank holiday it answered Columbus Day from three American sources:
+          correct somewhere, wrong for whoever asked. A search takes its
+          assumptions from nowhere.
+
+          Here rather than in Privacy: it is a fact about them, like their name.
+          Its own screen because the list is 250 rows and needs a search field,
+          which is not something a settings row can hold. */}
+      <Row
+        icon="map-pin"
+        title="Country"
+        value={countryName(me?.country ?? null, countries)}
+        onPress={() => router.push("/settings/country")}
+        last
+      />
     </Group>
+  );
+}
+
+/** The name for a code, or the absence said out loud.
+ *
+ *  "Not set" rather than a blank, because the blank reads as a row that has not
+ *  loaded. The absence is a real state: offload tells the model it does not know
+ *  rather than assuming, and the row should say that plainly. */
+function countryName(code: string | null, all: { code: string; name: string }[]): string {
+  if (!code) return "Not set";
+  return all.find((country) => country.code === code)?.name ?? code;
+}
+
+/** Saying where you are. 
+ *
+ *  A searchable list rather than a picker: 250 rows is a scroll nobody wants to
+ *  do, and the thing somebody knows is the name, not the code. Filtering is on
+ *  the name and on the code, so "PT" and "Port" both find Portugal.
+ *
+ *  **"Not set" is the first row and is always reachable**, because clearing it
+ *  is a real choice: offload then says it does not know where they are rather
+ *  than carrying on with a stale answer from somewhere they have left. */
+function CountryPicker() {
+  const me = useMe();
+  const router = useRouter();
+  const COLOR = useColors();
+  const [all, setAll] = useState<{ code: string; name: string }[]>([]);
+  const [find, setFind] = useState("");
+
+  useEffect(() => {
+    void fetchCountries().then(setAll);
+  }, []);
+
+  const needle = find.trim().toLowerCase();
+  const shown = needle
+    ? all.filter(
+        (country) =>
+          country.name.toLowerCase().includes(needle) ||
+          country.code.toLowerCase() === needle,
+      )
+    : all;
+
+  async function pick(code: string | null) {
+    await setCountry(code);
+    router.back();
+  }
+
+  return (
+    <>
+      <View className="pb-space-4">
+        <TextInput
+          value={find}
+          onChangeText={setFind}
+          placeholder="Find a country"
+          placeholderTextColor={COLOR.quiet}
+          autoCorrect={false}
+          autoCapitalize="none"
+          className={`min-h-tap-min rounded-lg px-space-5 font-core ${
+            isAndroid ? "bg-a-c-low text-a-on" : "bg-surface-fill text-text-primary"
+          }`}
+          style={{ fontSize: 15.5 }}
+        />
+      </View>
+
+      <Group>
+        <Row
+          title="Not set"
+          value={me?.country ? undefined : "Now"}
+          onPress={() => void pick(null)}
+        />
+        {shown.map((country, index) => (
+          <Row
+            key={country.code}
+            title={country.name}
+            value={me?.country === country.code ? "Now" : undefined}
+            onPress={() => void pick(country.code)}
+            last={index === shown.length - 1}
+          />
+        ))}
+      </Group>
+    </>
   );
 }
 

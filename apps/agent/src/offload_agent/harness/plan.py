@@ -298,6 +298,23 @@ def build_blocks(ctx: DumpContext) -> list[dict]:
         # typo they made.
         blocks.append({"type": "text", "text": f"Today is {ctx.today}. This is our data."})
 
+    # **Where they are, or that nobody knows.** A model has no location either,
+    # and a search takes its assumptions from nowhere: asked for the next bank
+    # holiday it answered Columbus Day from three American sources, which is
+    # correct somewhere and wrong for the person who asked. Saying the absence
+    # out loud is the half that matters, because silence reads as "anywhere" and
+    # the model picks.
+    blocks.append(
+        {
+            "type": "text",
+            "text": (
+                f"They are in {ctx.country}."
+                if ctx.country
+                else "You do not know what country they are in. They have not said."
+            ),
+        }
+    )
+
     if ctx.turns:
         history = "\n".join(f"{t.role}: {t.text}" for t in ctx.turns)
         blocks.append({"type": "text", "text": f"Earlier in this conversation:\n{history}"})
@@ -339,6 +356,23 @@ def build_quick_add_blocks(ctx: QuickAddContext) -> list[dict]:
         # this year rather than next, which is a wrong date on somebody's
         # calendar and the kind of error nobody reports.
         blocks.append({"type": "text", "text": f"Today is {ctx.today}. This is our data."})
+
+    # **Where they are, or that nobody knows.** A model has no location either,
+    # and a search takes its assumptions from nowhere: asked for the next bank
+    # holiday it answered Columbus Day from three American sources, which is
+    # correct somewhere and wrong for the person who asked. Saying the absence
+    # out loud is the half that matters, because silence reads as "anywhere" and
+    # the model picks.
+    blocks.append(
+        {
+            "type": "text",
+            "text": (
+                f"They are in {ctx.country}."
+                if ctx.country
+                else "You do not know what country they are in. They have not said."
+            ),
+        }
+    )
 
     if ctx.notes:
         written = "\n".join(f"- {n}" for n in ctx.notes)

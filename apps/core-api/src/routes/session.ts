@@ -7,6 +7,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { App } from "../app.js";
+import { COUNTRIES, isCountry } from "../countries.js";
 import { auth } from "../auth/auth.js";
 import { ATTEMPT_COOKIE, readCookie, unseal } from "../auth/attempt.js";
 import { db } from "../db.js";
@@ -74,6 +75,9 @@ const meResponse = z.object({
    *  state comes from the account rather than from anything a client kept. */
   webSearch: z.boolean(),
   webLinks: z.boolean(),
+  /** Where they are, ISO 3166-1 alpha-2, theirs to set. Null until they do, and
+   *  offload then says it does not know rather than assuming. */
+  country: z.string().nullable(),
   /** No name yet, so one has to be asked for before the app is any use.
    *
    *  Separate from `needsFirstRun` because the two came apart: every account
@@ -192,6 +196,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
       "email",
       "web_search_enabled",
       "web_links_enabled",
+      "country",
     ])
     .where("id", "=", accountId)
     .where("deleted_at", "is", null)
@@ -215,6 +220,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     // link they pasted opens something they already chose.
     webSearch: account.web_search_enabled,
     webLinks: account.web_links_enabled,
+    country: account.country,
   };
 }
 
@@ -244,6 +250,16 @@ export async function sessionRoutes(app: App): Promise<void> {
           displayName: nameField.optional(),
           webSearch: z.boolean().optional(),
           webLinks: z.boolean().optional(),
+          /** **Checked against the list the clients are offered**, not just
+           *  against a two-letter shape: a code the server would refuse is a
+           *  setting that silently fails to save. `null` clears it, and that is
+           *  a real state rather than an empty one: offload then says it does
+           *  not know where they are instead of assuming. */
+          country: z
+            .string()
+            .refine((code) => isCountry(code), "not a country")
+            .nullable()
+            .optional(),
         }),
         response: { 200: meResponse, 401: unauthenticated },
       },
@@ -256,13 +272,14 @@ export async function sessionRoutes(app: App): Promise<void> {
       // others, and a name still cannot be cleared: the product draws a
       // nameless account correctly, but that is the state of an account nobody
       // has got to yet rather than somewhere to return to by emptying a field.
-      const { displayName, webSearch, webLinks } = request.body;
+      const { displayName, webSearch, webLinks, country } = request.body;
       await db
         .updateTable("accounts")
         .set({
           ...(displayName !== undefined ? { display_name: displayName } : {}),
           ...(webSearch !== undefined ? { web_search_enabled: webSearch } : {}),
           ...(webLinks !== undefined ? { web_links_enabled: webLinks } : {}),
+          ...(country !== undefined ? { country } : {}),
           updated_at: new Date(),
         })
         .where("id", "=", accountId)
@@ -275,6 +292,26 @@ export async function sessionRoutes(app: App): Promise<void> {
       const me = await meFor(accountId);
       return me ? reply.send(me) : reply.status(401).send({ error: "unauthenticated" });
     }
+  );
+
+  // The countries somebody can say they are in.
+  //
+  // **One list, served rather than shipped twice.** The clients draw what this
+  // returns and the patch above validates against the same set, so a code a
+  // client can offer is always a code the server accepts. No session: it is the
+  // ISO register, not anything about anybody.
+  app.get(
+    "/api/countries",
+    {
+      schema: {
+        response: {
+          200: z.object({
+            countries: z.array(z.object({ code: z.string(), name: z.string() })),
+          }),
+        },
+      },
+    },
+    async (_request, reply) => reply.send({ countries: COUNTRIES })
   );
 
   // The address a refused sign-in used, read once and then cleared. No session

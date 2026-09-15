@@ -25,6 +25,9 @@ export interface Me {
    *  they pasted. Two different promises, so two switches. */
   webSearch: boolean;
   webLinks: boolean;
+  /** Where they said they are, ISO 3166-1 alpha-2. Null until they say, and
+   *  offload then tells the model it does not know rather than assuming. */
+  country: string | null;
 }
 
 /** Every mounted `useMe` hears a change to the identity.
@@ -77,6 +80,33 @@ export function useMe(): Me | null {
  *
  *  Broadcast like `saveName`, so every mounted `useMe` has the new state
  *  without a refetch and the switch never disagrees with itself. */
+/** The countries somebody can say they are in. 
+ *
+ *  Fetched rather than shipped: the server validates against the same list it
+ *  serves, so a code this offers is always one the patch accepts. */
+export async function fetchCountries(): Promise<{ code: string; name: string }[]> {
+  const { data } = await send<{ countries: { code: string; name: string }[] }>("/api/countries");
+  return data?.countries ?? [];
+}
+
+/** Saying where you are. Null clears it, which is a real state: offload then
+ *  tells the model it does not know rather than assuming. */
+export async function setCountry(country: string | null): Promise<Me | null> {
+  try {
+    const updated = await request<Me>("/api/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ country }),
+    });
+    if (!updated) return null;
+    for (const listener of listeners) listener(updated);
+    return updated;
+  } catch (error) {
+    failed("me.setCountry", error);
+    return null;
+  }
+}
+
 export async function setWebAccess(
   patch: { webSearch?: boolean; webLinks?: boolean },
 ): Promise<Me | null> {

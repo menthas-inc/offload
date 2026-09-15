@@ -284,7 +284,28 @@ Shortcuts taken deliberately for alpha and beta. Each says why it is affordable 
 
 3. ✅ **The thread map widget, answered 2026-09-03 by 006 and 007.** Raised by the spec 001 review: the kits name real places with plot coordinates, and whether that meant a geocoded map was left open. **It does.** People dump a place name, a shared maps link or a sentence with a restaurant in it, never coordinates, so a pin means resolving a name through a provider. The product owner chose **Google Maps Platform**. What follows is specced in `006`: only an extracted, validated place name leaves, resolution is a background job so no dump waits on a third party, two caches so a repeated place costs no call, no account column on either cache, and **a no-training term and short provider-side retention are conditions of shipping**, the same bar `decisions.md` already set for the transcription provider. It is a new sub-processor and gets its own privacy policy row, distinct from the existing Google sign-in row, signed off before the first call. **007 draws the widget with pins on a plain surface**, as the kits do; real tiles are a separate decision nobody needs yet.
 
-4. ⚠️ **offload does not know what country anybody is in, and 016 made that
+4. ✅ **Answered 2026-09-15 by a setting.** offload did not know what country
+   anybody was in, and 016 made it visible: asked for the next bank holiday it
+   answered Columbus Day from three American sources. **The product owner chose
+   a setting**, so it is two letters in `accounts.country`, theirs to set in
+   Settings and theirs to clear.
+
+   Not inferred from an IP, which is wrong for anybody travelling and collects
+   something nobody asked to give; not from the phone's locale, same; not from a
+   connected calendar, which most accounts do not have. **Null is a real state**,
+   and the prompt says the absence out loud: silence reads as "anywhere" and the
+   model picks, which is the whole bug.
+
+   Two consequences worth naming. The provenance bound had to let the country
+   into a query, because it is never in the dump and a bank holiday with no
+   country attached has no answer; it is safe for the same reason the year and
+   the month names are, a closed set carrying nothing anybody wrote. And the
+   privacy policy gained a line: the country reaches the model, and the sharing
+   table says so.
+
+   *Original note, kept because the reasoning is the decision:*
+
+   ⚠️ **offload does not know what country anybody is in, and 016 made that
    visible.** Asked "when is the next bank holiday" on 15 September, it answered
    **Monday 12 October 2026**, which is Columbus Day, citing `academybank.com`,
    `idfpr.illinois.gov` and `dfs.ny.gov`. The answer is correct for somebody in

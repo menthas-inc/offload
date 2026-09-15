@@ -23,6 +23,9 @@ export interface Me {
    *  pasted sends nothing of theirs anywhere. */
   webSearch: boolean;
   webLinks: boolean;
+  /** Where they said they are, ISO 3166-1 alpha-2. Null until they say, and
+   *  offload then tells the model it does not know rather than assuming. */
+  country: string | null;
 }
 
 /** Whether this account still has something to answer before the shell.

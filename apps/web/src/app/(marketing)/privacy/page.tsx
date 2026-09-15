@@ -342,6 +342,14 @@ export default function Privacy() {
               such as a date, and the address it came from. The page itself is not stored anywhere.
             </li>
             <li>
+              <strong>Your country goes with a search, if you set one.</strong> Settings has a
+              Country, and when it is set offload puts it in the question so a date or a forecast is
+              the one where you are. It is two letters and nothing else about where you live: not
+              your address, not your town, and never taken from your IP or your phone. Leave it
+              unset and offload tells itself it does not know, which is why an answer that needs a
+              country is sometimes "Not sure." rather than a guess.
+            </li>
+            <li>
               <strong>A link can bring its picture, and the picture comes from the site.</strong>{" "}
               When offload reads a link you pasted, it keeps the address of the image the page
               publishes about itself, so the row shows the photo instead of a symbol. We do not
@@ -398,8 +406,8 @@ export default function Privacy() {
                     searches and opens the links described in section 5
                   </td>
                   <td>
-                    The part of your content a given task needs, and the words of a search when
-                    offload looks something up
+                    The part of your content a given task needs, the words of a search when offload
+                    looks something up, and your country when you have set one
                   </td>
                 </tr>
                 <tr>

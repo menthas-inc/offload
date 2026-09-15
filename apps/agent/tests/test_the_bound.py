@@ -104,3 +104,21 @@ def test_every_refusal_in_the_lookup_path_leaves_a_record():
     for i in refusals:
         window = "\n".join(lines[max(0, i - 6) : i])
         assert "budget.record(" in window, f"a refusal with no record near line {i}: {lines[i]!r}"
+
+
+def test_their_own_country_may_be_added_to_a_query():
+    """A bank holiday with no country attached has no answer.
+
+    Asked for the next one, offload answered Columbus Day from three American
+    sources: correct somewhere, wrong for the person who asked. The country has
+    to reach the query, and it is never in the dump. Safe for the same reason the
+    year and the month names are: a closed set of about 250 values, chosen by
+    them in Settings, carrying nothing anybody wrote.
+    """
+    dump = "when is the next bank holiday"
+    assert not _from_the_dump("next bank holiday united kingdom", dump)
+    assert _from_the_dump("next bank holiday united kingdom", dump, "United Kingdom")
+
+
+def test_the_country_does_not_open_the_bound_to_anything_else():
+    assert not _from_the_dump("ana de sousa address", "when is the next bank holiday", "Portugal")

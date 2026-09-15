@@ -10,6 +10,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { initialsOf } from "../src/accounts/initials.js";
+import { isCountry } from "../src/countries.js";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
@@ -231,5 +232,32 @@ describe("016 the two switches", () => {
       payload: { displayName: "   " },
     });
     expect(response.statusCode).toBe(400);
+  });
+});
+
+describe("where they are", () => {
+  it("serves one list, and validates against the same one", async () => {
+    const response = await app.inject({ method: "GET", url: "/api/countries" });
+    expect(response.statusCode).toBe(200);
+
+    const { countries } = response.json() as { countries: { code: string; name: string }[] };
+    // Enough to be the real register rather than a handful somebody typed.
+    expect(countries.length).toBeGreaterThan(200);
+    expect(countries.some((c) => c.code === "PT" && c.name === "Portugal")).toBe(true);
+    expect(countries.some((c) => c.code === "GB")).toBe(true);
+
+    // Sorted by name, because a list of 250 in code order is unusable.
+    const names = countries.map((c) => c.name);
+    expect([...names].sort((a, b) => a.localeCompare(b, "en"))).toEqual(names);
+
+    // **The set the patch checks is the set this serves.** A client offering a
+    // code the server refuses is a setting that silently fails to save.
+    for (const country of countries) expect(isCountry(country.code)).toBe(true);
+  });
+
+  it("refuses something that is not a country", async () => {
+    expect(isCountry("ZZ")).toBe(false);
+    expect(isCountry("gb")).toBe(false);
+    expect(isCountry("UNITED KINGDOM")).toBe(false);
   });
 });

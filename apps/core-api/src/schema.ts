@@ -39,6 +39,9 @@ export interface AccountsTable {
   tier: Generated<string>;
   /** Whether offload may send a query derived from a dump to a search company.
    *  016. Read server-side in the worker at call time, never from a request. */
+  /** ISO 3166-1 alpha-2, theirs to set. Null until they do, and offload then
+   *  says it does not know rather than assuming. */
+  country: string | null;
   web_search_enabled: Generated<boolean>;
   /** Whether offload may open a link somebody pasted. A different promise from
    *  the one above: it sends none of their words anywhere. */

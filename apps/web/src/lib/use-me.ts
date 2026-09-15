@@ -29,6 +29,9 @@ export interface Me {
    *  they pasted. Two different promises, so two switches. */
   webSearch: boolean;
   webLinks: boolean;
+  /** Where they said they are, ISO 3166-1 alpha-2. Null until they say, and
+   *  offload then tells the model it does not know rather than assuming. */
+  country: string | null;
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to, and null when the provider sent nothing. */
   suggestedName: string | null;
@@ -134,6 +137,37 @@ export async function completeOnboarding(displayName: string): Promise<boolean> 
  *  sends a display name is one that can clear a name by accident. The server's
  *  schema is the other half of that, where every field is optional and only
  *  what was sent is written. */
+/** The countries somebody can say they are in. Fetched rather than shipped: the
+ *  server validates against the same list it serves. */
+export async function fetchCountries(): Promise<{ code: string; name: string }[]> {
+  try {
+    const response = await fetch(`${API}/api/countries`, { credentials: "include" });
+    if (!response.ok) return [];
+    const body = (await response.json()) as { countries: { code: string; name: string }[] };
+    return body.countries;
+  } catch {
+    return [];
+  }
+}
+
+/** Saying where you are. Null clears it, which is a real state. */
+export async function updateCountry(country: string | null): Promise<Me | null> {
+  try {
+    const response = await fetch(`${API}/api/me`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ country }),
+    });
+    if (!response.ok) return null;
+    const me = (await response.json()) as Me;
+    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
+    return me;
+  } catch {
+    return null;
+  }
+}
+
 export async function updateWebAccess(patch: {
   webSearch?: boolean;
   webLinks?: boolean;

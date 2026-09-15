@@ -111,8 +111,17 @@ class Lookups:
     SEARCHES = 3
     READS = 3
 
-    def __init__(self, dump: str, *, may_search: bool, may_read_links: bool) -> None:
+    def __init__(
+        self,
+        dump: str,
+        *,
+        may_search: bool,
+        may_read_links: bool,
+        country: str | None = None,
+    ) -> None:
         self.dump = dump
+        #: Where they said they are, so the bound lets the query name it.
+        self.country = country
         self.may_search = may_search
         self.may_read_links = may_read_links
         self.searches = 0
@@ -262,7 +271,7 @@ _FILLER = frozenset(
 )
 
 
-def _from_the_dump(text: str, dump: str) -> bool:
+def _from_the_dump(text: str, dump: str, country: str | None = None) -> bool:
     """Every word of it is either in the dump or is a word that carries nothing.
 
     **A bound on composition rather than on judgement**, which is the only kind
@@ -277,6 +286,15 @@ def _from_the_dump(text: str, dump: str) -> bool:
     which costs a lookup; the other direction costs somebody their address.
     """
     haystack = set(re.findall(r"[a-z0-9]+", dump.lower()))
+
+    # **Their own country, when they have set one.** It is not in the dump and it
+    # has to reach the query, because a bank holiday with no country attached has
+    # no answer: without this the bound refuses the one word that makes the
+    # lookup correct. Safe for the same reason the year and the month names are:
+    # a closed set of about 250 values, chosen by them in settings, carrying
+    # nothing anybody wrote.
+    if country:
+        haystack |= set(re.findall(r"[a-z0-9]+", country.lower()))
     return all(
         w in haystack or w in _FILLER or _a_year_from_today(w) or _same_word(w, haystack)
         for w in re.findall(r"[a-z0-9]+", text.lower())
@@ -394,7 +412,7 @@ async def _look_up(
             budget.record(label="other", kind="search", outcome="refused_bound")
             log.info("lookup refused", why="search off")
             return {"ok": False, "error": "searching is switched off"}
-        if not _from_the_dump(question or "", budget.dump):
+        if not _from_the_dump(question or "", budget.dump, budget.country):
             budget.record(label="other", kind="search", outcome="refused_bound")
             return {"ok": False, "error": "ask using only words from what they dumped"}
         if budget.left() == 0:
@@ -752,6 +770,7 @@ async def handle(
             fitted.dump,
             may_search=fitted.may_search,
             may_read_links=fitted.may_read_links,
+            country=fitted.country,
         )
         outcome = await plan(
             anthropic,
@@ -1217,7 +1236,12 @@ async def _handle_answer(
                 max_threads=cfg.max_threads,
             )
 
-        budget = Lookups(question, may_search=ctx.may_search, may_read_links=ctx.may_read_links)
+        budget = Lookups(
+            question,
+            may_search=ctx.may_search,
+            may_read_links=ctx.may_read_links,
+            country=ctx.country,
+        )
         caller = _tool_caller(
             http,
             cfg,
