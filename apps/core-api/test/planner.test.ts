@@ -955,10 +955,17 @@ describe("016 what a turn read", () => {
     const threadId = await thread(accountId, "EU with fam");
     const { jobId, turnId } = await dump(accountId);
 
+    // **Scoped to today's row, because the tally is keyed by (domain, day).**
+    // Without the day filter this reads whichever row the planner happens to
+    // return, and the assertion at the bottom reads the other one: it passed for
+    // as long as the suite ran inside one day and failed the first time midnight
+    // landed between two runs (22 where it wanted 23). Same class as the job
+    // test that asserted against whichever row was first in the table.
     const existing = await db
       .selectFrom("domain_reads")
       .select("count")
       .where("domain", "=", "timeanddate.com")
+      .where("day", "=", sql`current_date`)
       .executeTakeFirst();
     const before = existing?.count ?? 0;
 
@@ -1019,6 +1026,7 @@ describe("016 what a turn read", () => {
       .selectFrom("domain_reads")
       .selectAll()
       .where("domain", "=", "timeanddate.com")
+      .where("day", "=", sql`current_date`)
       .executeTakeFirstOrThrow();
     expect(tally.count).toBe(before + 1);
     expect(Object.keys(tally)).toEqual(["domain", "day", "count"]);

@@ -110,6 +110,12 @@ export function SettingsPane() {
           <Row icon="link" title="Connected apps" href="/settings/apps" last />
         </Group>
 
+        <Group label="What offload does with it">
+          {/* The kit's Privacy group holds "Let offload notice patterns" too.
+              That row is not built, so this group holds the two that are. */}
+          <Row icon="globe" title="Reaching the web" href="/settings/privacy" last />
+        </Group>
+
         <Group label="The app">
           <Row
             icon="blend"

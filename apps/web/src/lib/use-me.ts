@@ -25,6 +25,10 @@ export interface Me {
    *  run uses, because a name is not something Settings should have to be found
    *  for. */
   needsName: boolean;
+  /** 016. Whether offload may search the web, and whether it may open a link
+   *  they pasted. Two different promises, so two switches. */
+  webSearch: boolean;
+  webLinks: boolean;
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to, and null when the provider sent nothing. */
   suggestedName: string | null;
@@ -121,6 +125,33 @@ export async function completeOnboarding(displayName: string): Promise<boolean> 
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+/** Turning a switch. 016.
+ *
+ *  Patches one field, never the pair and never a name: a settings toggle that
+ *  sends a display name is one that can clear a name by accident. The server's
+ *  schema is the other half of that, where every field is optional and only
+ *  what was sent is written. */
+export async function updateWebAccess(patch: {
+  webSearch?: boolean;
+  webLinks?: boolean;
+}): Promise<Me | null> {
+  try {
+    const response = await fetch(`${API}/api/me`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!response.ok) return null;
+
+    const me = (await response.json()) as Me;
+    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
+    return me;
+  } catch {
+    return null;
   }
 }
 
