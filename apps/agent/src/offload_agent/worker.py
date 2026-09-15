@@ -341,6 +341,14 @@ async def _look_up(
     url = (args.get("url") or "").strip() or None
 
     if (question is None) == (url is None):
+        # **Recorded and logged, like every other refusal.** This was the one
+        # path that returned without touching the ledger, so a production turn
+        # that hit it left `lookups` empty and the agent log silent, and there
+        # was no way to tell it from a turn that never wanted a lookup. Found by
+        # having to guess at exactly that, on a phone, with the table in front of
+        # me saying nothing.
+        budget.record(label="other", kind="search", outcome="refused_bound")
+        log.info("lookup malformed", both=bool(question and url))
         return {"ok": False, "error": "give exactly one of question and url"}
 
     if url:
@@ -386,6 +394,12 @@ async def _look_up(
             budget.sources.append(entry)
 
     outcome = "failed" if reading.failed else ("empty" if reading.found.unsure else "used")
+    # The label and the outcome, never the query and never the URL. Enough to
+    # tell a refused turn from a quiet one without putting a word of theirs in a
+    # log (OFF-1).
+    log.info(
+        "looked up", label=reading.found.label, kind="read" if url else "search", outcome=outcome
+    )
     budget.record(
         label=reading.found.label,
         kind="read" if url else "search",

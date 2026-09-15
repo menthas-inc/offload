@@ -395,6 +395,27 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
     if refused_bound:
         failures.append(f"the provenance bound refused: {refused_bound}")
 
+    # **offload never diagnoses itself**, and a failed lookup is where it tries.
+    # "I could not pin down the date, what came back gave 1 November for the US
+    # and late October for the UK" is three sentences of machinery in place of a
+    # row they can see and correct.
+    if looked:
+        low = reply.lower()
+        for phrase in (
+            "could not find",
+            "couldn't find",
+            "could not pin",
+            "couldn't pin",
+            "the sources",
+            "what came back",
+            "i looked",
+            "i searched",
+            "search result",
+            "unclear",
+        ):
+            if phrase in low:
+                failures.append(f"the reply talks about the lookup: {phrase!r} in {reply!r}")
+
     # 017. What the progress line may contain, checked on every case that made a
     # lookup rather than in a set of its own: the line is written on the tool
     # call, so every lookup case is also a step case.
