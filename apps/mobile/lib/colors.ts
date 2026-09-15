@@ -56,6 +56,11 @@ export interface Colors {
    *  filled, which is what `borderFocus` is for. */
   attention: string;
   noticed: string;
+  raised: string;
+  lift: string;
+  textAttention: string;
+  textNoticed: string;
+  shadow: string;
   /** The quietest ink there is. Not `iconOnWell`, which is `text-secondary`
    *  and a visibly different grey: the fourth dot kind was that on a phone and
    *  `text-tertiary` on web, which is one legend drawn two ways. */
@@ -114,6 +119,23 @@ function paletteFor(dark: boolean): Colors {
     hairline: base["border-hairline"] ?? light["border-hairline"]!,
     sunken: base["surface-sunken"] ?? light["surface-sunken"]!,
     onAttention: base["text-on-solid"] ?? light["text-on-solid"]!,
+    // The rail's two tiers, 14 September. `raised` and `lift` are the lift; the
+    // two dot colours are text aliases rather than the fill aliases they were,
+    // because a fill alias is fixed across themes and a 5px mark on a ground
+    // that now moves with the theme measured 2.62:1 and 2.03:1.
+    raised: base["surface-raised"] ?? light["surface-raised"]!,
+    lift: base["border-lift"] ?? light["border-lift"]!,
+    textAttention: base["text-attention"] ?? light["text-attention"]!,
+    textNoticed: base["text-noticed"] ?? light["text-noticed"]!,
+    /** The lift's own shadow, as a colour rather than a CSS string.
+     *
+     *  `--shadow-1` and `--shadow-2` are whole `box-shadow` declarations, which
+     *  React Native cannot take, and in the dark scope `--shadow-1` is the
+     *  keyword `none`. So the two scopes are expressed here as the one thing RN
+     *  needs: light gets the blurred drop's colour, dark gets the hard 1px
+     *  line's, and the caller picks its geometry. Same values, same two rules,
+     *  spelled the way this platform can draw them. */
+    shadow: dark ? "rgba(255,255,255,0.04)" : "rgba(11,11,11,0.04)",
   };
 }
 

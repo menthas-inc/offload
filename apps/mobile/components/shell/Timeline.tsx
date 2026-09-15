@@ -84,9 +84,9 @@ export function Timeline({
    *  you, ink is a fact of the day rather than a demand on it, and amber is
    *  what the kits use for something offload has noticed. */
   const DOT: Record<string, string> = {
-    task: COLOR.attention,
+    task: COLOR.textAttention,
     event: COLOR.ink,
-    note: COLOR.noticed,
+    note: COLOR.textNoticed,
     other: COLOR.quiet,
   };
 
@@ -130,27 +130,39 @@ export function Timeline({
       accessibilityRole="button"
       accessibilityState={{ selected: day.iso === selected }}
       className="min-h-tap-min flex-1 items-center rounded-xs py-space-3"
-      // **A day with anything on it glows inward, in blue**, and the day being
-      // read is white on blue. Grey said "there is something here" so quietly
-      // that it read as nothing, and a flat fill said it so evenly that it
-      // read as one block of colour rather than a light. The ring is still a
-      // border, sized in every state so nothing shuffles as things are added
-      // and ticked off, but the fill is now a blurred inset `boxShadow`
-      // instead: RN 0.86 draws it natively, the same shape the web draws with
-      // `box-shadow`, so the colour comes in from the edge and thins toward
-      // the middle rather than filling the cell.
+      // **A day with something on it is a lift, not a light**, and the day being
+      // read is white on blue. The blue glow this replaces was not illegible;
+      // it went because with the waiting chip and the task dot on the same
+      // screen, blue was carrying five meanings at once. Blue now keeps the two
+      // that are about time, today and the day being read, and everything about
+      // content moved off the hue.
+      //
+      // **The border says things about the date, the surface says things about
+      // the content**, which is the architecture the rail already had. Today is
+      // still a blue edge, the read day is still the fill, and the lift sits
+      // underneath both. The border is drawn in every state so nothing shuffles
+      // as things are added and ticked off.
       style={{
         borderWidth: 1,
         borderColor:
           day.iso === selected
             ? COLOR.attention
-            : day.count > 0 || day.today
+            : day.today
               ? COLOR.borderFocus
+              : day.count > 0
+                ? COLOR.lift
+                : "transparent",
+        backgroundColor:
+          day.iso === selected
+            ? COLOR.attention
+            : day.count > 0
+              ? COLOR.raised
               : "transparent",
-        backgroundColor: day.iso === selected ? COLOR.attention : "transparent",
+        // The drop that makes it a lift rather than a tint. Not inset: an
+        // inset shadow is the glow this replaced.
         boxShadow:
           day.iso !== selected && day.count > 0
-            ? [{ offsetX: 0, offsetY: 0, blurRadius: 12, color: COLOR.borderAttention, inset: true }]
+            ? [{ offsetX: 0, offsetY: 1, blurRadius: 2, color: COLOR.shadow, inset: false }]
             : undefined,
       }}
     >
@@ -164,15 +176,25 @@ export function Timeline({
       >
         {day.dow}
       </Text>
+      {/* **A day with nothing on it steps back**, which is the other half of the
+          lift: without it the lift has nothing to be raised above. A wash dulls
+          and an edge advances, which is why the grey version of the lit state
+          read as *less* present than an empty cell.
+
+          **Today is exempt.** A day with nothing on it is still today, and a
+          rule that demotes empty days catches today on any week where today
+          happens to be empty, which is most weeks. */}
       <Text
-        className={`font-core font-semibold ${
+        className={`font-core ${
           day.iso === selected
-            ? ""
+            ? "font-semibold"
             : day.past || outside
-              ? "text-text-tertiary"
-              : isAndroid
-                ? "text-a-on"
-                : "text-text-primary"
+              ? "font-semibold text-text-tertiary"
+              : day.count === 0 && !day.today
+                ? "text-text-tertiary"
+                : isAndroid
+                  ? "font-semibold text-a-on"
+                  : "font-semibold text-text-primary"
         }`}
         style={{
           fontSize: 13,

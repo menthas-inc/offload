@@ -11,6 +11,48 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-14 · The rail's lift, and one tier held back
+**Surface:** iOS, Android, web
+
+**Is:** a day with something on it is a raised surface with a hairline and a
+shadow, not a blue inset glow.
+
+Applied from `handoff/APPLY-2026-09-14-rail.md`, which is the whole reasoning.
+The short version: blue was carrying five meanings on one screen once the waiting
+chip and the task dot were counted, so blue keeps the two that are about time,
+today and the day being read, and everything about content moved off the hue.
+
+**Sections 1, 3, 4, 5 and 6 are built.** The lift, the layering with today and
+the read day, the empty day stepping back, and the two dots that move to text
+aliases. The dots are the part worth repeating: `--surface-attention` and
+`--surface-noticed` are fixed across themes, which is right for a chip and wrong
+for a 5px mark whose backdrop now changes with the theme, and they measured
+2.62:1 and 2.03:1 on the lift.
+
+**Section 2, the amber ring for a day carrying a decision, is not built.** The
+note itself says it needs a product answer first and asks two questions, and
+building the CSS without knowing which days get the attribute would be a state
+nothing can enter.
+
+Two platform notes:
+- **The two shadow rules are separate, never one list.** `--shadow-1` is the
+  keyword `none` in the dark scope, and `none` is not legal in a comma-separated
+  shadow list, so a combined declaration is dropped and the lift vanishes in
+  dark.
+- **React Native cannot take either token**, since both are whole `box-shadow`
+  declarations. `colors.ts` exposes the one thing RN needs, the shadow's colour
+  per scheme, and the cell supplies the geometry. Same two values, same two
+  rules, spelled the way that platform draws them.
+
+**Design system impact:** none for the tokens, which arrived with this sync and
+are used as given. The open half stays open: section 2 needs the product answer
+on what counts as needing a decision, and the note's second question, whether one
+ink amber reading at two levels is legible as two signals, is unanswered and is
+the thing to check on a device once the ring exists. `TimelineWidget` in the kits
+is still three shapes behind the shipped rail and there is no governed component
+for a day cell on any surface, which the note names as the next thing to build.
+
+
 ### 2026-09-14 · What offload is doing, and the way out of it
 **Surface:** iOS, Android, web
 
