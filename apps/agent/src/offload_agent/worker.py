@@ -73,6 +73,23 @@ async def _post_result(
             )
             response.raise_for_status()
             return
+        except httpx.HTTPStatusError as exc:  # noqa: PERF203
+            # **A 4xx is the body being wrong, and retrying it is three of the
+            # same refusal.** Worse, the reason never reached a log: a turn that
+            # did the work and was refused over an array length looked exactly
+            # like a network blip. The status and the route, never the body,
+            # which holds what the turn filed.
+            last = exc
+            if exc.response.status_code < 500:
+                log.error(
+                    "result refused",
+                    status=exc.response.status_code,
+                    path=path,
+                    detail=str(exc.response.text)[:200],
+                )
+                break
+            if attempt < 2:
+                await asyncio.sleep(0.5 * (attempt + 1))
         except Exception as exc:  # noqa: BLE001, PERF203
             last = exc
             if attempt < 2:
@@ -809,15 +826,42 @@ async def handle(
         await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
 
 
+#: How many sources cross to the Core API, and it is the server's number too.
+#:
+#: **One search comes back with nine citations**, which is the thing nobody
+#: guessed: the cap was written for three lookups of two sources each, the real
+#: provider cites everything it touched, and the first production turn that ever
+#: completed a lookup posted nine and was refused by the schema. The turn had
+#: already done the work and paid for it, and it was thrown away over an array
+#: length.
+#:
+#: Twelve, and deduplicated by domain first, because the chip shows a domain: two
+#: URLs on wikipedia.org are one chip and counting them twice makes "and 4 more"
+#: a lie about how many places were read.
+MAX_SOURCES = 12
+
+
 def _web_wire(budget: "Lookups | None") -> dict:
     """The web half of a turn result: sources for the chips, rows for the counts.
 
     Omitted entirely on a turn that reached nothing, which is almost all of
     them, so an ordinary filing result is the shape it has always been.
+
+    **Bounded here as well as at the schema.** The server's cap is the contract;
+    a worker that sends past it loses a finished turn to a 400, which is a worse
+    outcome than a short list by every measure.
     """
     if budget is None or (not budget.sources and not budget.rows):
         return {}
-    return {"sources": budget.sources, "lookups": budget.rows}
+
+    seen: dict[str, dict] = {}
+    for source in budget.sources:
+        seen.setdefault(source["domain"], source)
+
+    return {
+        "sources": list(seen.values())[:MAX_SOURCES],
+        "lookups": budget.rows,
+    }
 
 
 def _nothing_left(outcome: Outcome, ctx: DumpContext) -> bool:

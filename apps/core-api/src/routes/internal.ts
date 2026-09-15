@@ -97,7 +97,12 @@ const body = z.discriminatedUnion("outcome", [
      *  prose onto somebody's screen in offload's own voice. */
     sources: z
       .array(z.object({ domain: z.string().max(253), url: z.string().url().max(2000) }))
-      .max(6)
+      // **Twelve, not six.** Six was written for three lookups of two sources
+      // each; one real search cites nine, and the first production turn to
+      // complete a lookup was refused over the length after doing the work. The
+      // worker deduplicates by domain and truncates to the same number, so this
+      // is the contract rather than the thing that catches a mistake.
+      .max(12)
       .optional(),
     /** And what kind of lookup it was, which is how the next narrow tool gets
      *  argued from counts rather than from whichever example came to mind.
@@ -128,7 +133,12 @@ const body = z.discriminatedUnion("outcome", [
      *  of that rather than of the turn finishing. Same shape as above. */
     sources: z
       .array(z.object({ domain: z.string().max(253), url: z.string().url().max(2000) }))
-      .max(6)
+      // **Twelve, not six.** Six was written for three lookups of two sources
+      // each; one real search cites nine, and the first production turn to
+      // complete a lookup was refused over the length after doing the work. The
+      // worker deduplicates by domain and truncates to the same number, so this
+      // is the contract rather than the thing that catches a mistake.
+      .max(12)
       .optional(),
     lookups: z
       .array(

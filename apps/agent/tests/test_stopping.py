@@ -14,7 +14,7 @@ import pytest
 
 from offload_agent.cancels import REMEMBER, Cancels
 from offload_agent.config import Config
-from offload_agent.worker import _step_writer, _stopped
+from offload_agent.worker import ReportFailed, _post_result, _step_writer, _stopped
 
 
 def cfg() -> Config:
@@ -163,3 +163,53 @@ async def test_an_empty_line_is_not_posted_at_all():
         await say("   ")
 
     assert posted == []
+
+
+async def test_a_refused_result_is_not_retried_three_times():
+    """A 4xx is the body being wrong, and the reason has to reach a log.
+
+    The first production turn to complete a lookup posted nine sources at a
+    schema that allowed six. It was refused, retried twice more, and reported as
+    `ReportFailed` with no status and no reason, which is indistinguishable from
+    the private network blinking. The turn had already done the work.
+    """
+    tries = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        tries["n"] += 1
+        return httpx.Response(400, json={"message": "sources: too big"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        with pytest.raises(ReportFailed):
+            await _post_result(http, cfg(), {"outcome": "answered", "jobId": "job-8"})
+
+    assert tries["n"] == 1, "a refusal was retried"
+
+
+async def test_a_5xx_is_still_retried():
+    """The other half: a server error is exactly what the retry is for."""
+    tries = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        tries["n"] += 1
+        return httpx.Response(503)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        with pytest.raises(ReportFailed):
+            await _post_result(http, cfg(), {"outcome": "answered", "jobId": "job-9"})
+
+    assert tries["n"] == 3
+
+
+def test_the_sources_are_deduplicated_by_domain_and_bounded():
+    """What the chip shows is a domain, so two URLs on one domain are one chip."""
+    from offload_agent.worker import MAX_SOURCES, Lookups, _web_wire
+
+    budget = Lookups("x", may_search=True, may_read_links=True)
+    budget.sources = [
+        {"domain": "en.wikipedia.org", "url": f"https://en.wikipedia.org/{n}"} for n in range(20)
+    ] + [{"domain": "timeanddate.com", "url": "https://timeanddate.com/x"}]
+
+    wire = _web_wire(budget)
+    assert [s["domain"] for s in wire["sources"]] == ["en.wikipedia.org", "timeanddate.com"]
+    assert len(wire["sources"]) <= MAX_SOURCES
