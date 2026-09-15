@@ -1,29 +1,47 @@
-// Every icon slug the web app asks for exists in public/icons/.
+#!/usr/bin/env node
+// An icon name that does not exist renders nothing, and every gate is happy.
 //
-// A slug that does not exist renders an empty box and nothing complains: no
-// error, no warning, no build failure, just a hole where a glyph should be.
-// Same invisible failure as a Tailwind class nobody defined and a CSS module
-// key that is `any`, which is why this sits beside `dead-classes.mjs` and
-// `dead-css.mjs` rather than being left to somebody noticing.
+// `Icon` on web takes `name: string` and builds a URL from it, so a typo is a
+// 404 for a mask image and an element with no glyph in it. `Glyph` on the phones
+// is typed against `IconName`, so the phones would have caught this one, except
+// the settings `Row` takes `icon?: string` and widens it back out again.
+//
+// Found when 016's Privacy row shipped with `icon="globe"`, which is not in the
+// set. It drew an empty circle on a device and passed lint, typecheck, the
+// suites and both dead-class scripts. Same family as `dead-classes.mjs`: the
+// failure is silence, so the check has to be a list.
+
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-const have = new Set(readdirSync("apps/web/public/icons").map((f) => f.replace(/\.svg$/, "")));
-const used = new Set();
-const walk = (dir) => {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) walk(path);
-    else if (/\.tsx?$/.test(entry.name)) {
-      const src = readFileSync(path, "utf8");
-      // Only `<Icon name="...">`, not every attribute called name: a form
-      // field named "email" is not an icon.
-      for (const m of src.matchAll(/<Icon[^>]*?\bname="([a-z0-9-]+)"/gs)) used.add(m[1]);
-      for (const m of src.matchAll(/\bicon:\s*"([a-z0-9-]+)"/g)) used.add(m[1]);
-      for (const m of src.matchAll(/\bicon=\{?"([a-z0-9-]+)"/g)) used.add(m[1]);
-    }
+import { execSync } from "node:child_process";
+
+const root = process.cwd();
+const known = new Set(
+  readdirSync(join(root, "apps/web/public/icons"))
+    .filter((f) => f.endsWith(".svg"))
+    .map((f) => f.slice(0, -4)),
+);
+
+// Both spellings the codebase uses: a JSX prop and an object literal field.
+const uses = /\bicon(?:Name)?\s*[:=]\s*[{"']([a-z0-9-]+)["'}]/g;
+
+const files = execSync(
+  `git ls-files 'apps/web/src/**/*.tsx' 'apps/web/src/**/*.ts' 'apps/mobile/**/*.tsx'`,
+  { cwd: root, encoding: "utf8" },
+)
+  .split("\n")
+  .filter(Boolean);
+
+let dead = 0;
+for (const file of files) {
+  const text = readFileSync(join(root, file), "utf8");
+  for (const [, name] of text.matchAll(uses)) {
+    if (known.has(name)) continue;
+    const line = text.slice(0, text.indexOf(name)).split("\n").length;
+    console.log(`  ${file}:${line}  ${name}   (no icons/${name}.svg)`);
+    dead += 1;
   }
-};
-walk("apps/web/src");
-const missing = [...used].filter((n) => !have.has(n));
-console.log(missing.length ? "  MISSING: " + missing.join(", ") : "  every icon slug resolves");
-process.exit(missing.length ? 1 : 0);
+}
+
+console.log(dead === 0 ? "\nNo dead icon names." : `\n  ${dead} dead icon name(s).`);
+process.exit(dead === 0 ? 0 : 1);

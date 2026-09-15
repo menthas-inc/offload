@@ -12,7 +12,7 @@ export default function PrivacyRoute() {
     <Panes
       crumbs={[
         { label: "Settings", href: "/settings", icon: "settings" },
-        { label: "Privacy", href: "/settings/privacy", icon: "globe" },
+        { label: "Privacy", href: "/settings/privacy", icon: "orbit" },
       ]}
       panes={[<SettingsPane key="settings" />, <PrivacyPane key="privacy" />]}
     />

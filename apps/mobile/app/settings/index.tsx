@@ -183,7 +183,7 @@ export default function Settings() {
           {/* The kit's Privacy group holds "Let offload notice patterns" too.
               That row is not built, so this group holds the two that are. */}
           <Row
-            icon="globe"
+            icon="orbit"
             title="Reaching the web"
             onPress={() => router.push("/settings/privacy")}
             last
