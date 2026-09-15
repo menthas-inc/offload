@@ -438,7 +438,12 @@ function TurnFooter({ turn }: { turn: Turn }) {
   // a one sentence reply is a footnote section.
   const shown = sources.slice(0, 3);
   const hidden = sources.length - shown.length;
-  const state = turn.state === "seen" ? "seen" : turn.did ? "done" : null;
+  // **Done means the turn finished and did something**, which is why
+  // `answered` is in the condition and not just `did`. A partial turn that filed
+  // one row wore a Done mark and the "Didn't finish that one." line at the same
+  // time, which is the screen contradicting itself.
+  const state =
+    turn.state === "seen" ? "seen" : turn.state === "answered" && turn.did ? "done" : null;
   const refs = turn.threads ?? [];
 
   // An empty footer is no footer, never a 26px gap.

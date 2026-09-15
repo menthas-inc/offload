@@ -518,7 +518,20 @@ export function Composer({
                 ) : null}
               </div>
               <TurnFooter
-                state={turn.state === "seen" ? "seen" : turn.did ? "done" : null}
+                // **Done means the turn finished and did something**, which
+                // is why `answered` is in the condition and not just `did`. A
+                // partial turn that filed one row wore a Done mark and the
+                // "Didn't finish that one." line at the same time, which is the
+                // screen contradicting itself; the 003 rule that Done is gated
+                // on the record rather than on the reply is the same rule, and
+                // this is its other half.
+                state={
+                  turn.state === "seen"
+                    ? "seen"
+                    : turn.state === "answered" && turn.did
+                      ? "done"
+                      : null
+                }
                 refs={turn.threads ?? []}
                 sources={turn.sources ?? []}
               />

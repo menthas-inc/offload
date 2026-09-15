@@ -726,7 +726,11 @@ async def handle(
                 job_id=job.id,
                 calls=len(outcome.usage),
                 filed=len(outcome.landed),
-                failed=len(outcome.failed),
+                # **The names, not the count.** A count says a tool failed and
+                # leaves you reading the whole loop to find out which; `refused`
+                # has carried names since the day it was added and this did not,
+                # which cost an hour on a phone. A tool name is not content.
+                failed=outcome.failed,
                 # See above: this is the count that was missing while three
                 # turns in production looked like they had done nothing.
                 refused=outcome.refused,
