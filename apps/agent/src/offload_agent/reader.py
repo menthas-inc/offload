@@ -108,6 +108,26 @@ class Found(BaseModel):
     label: str = "other"
 
 
+class Answer(BaseModel):
+    """What the model is asked for, which is less than what comes back.
+
+    **`sources` is deliberately absent.** It is on `Found` because the caller
+    reads it, and it is filled from the record of what was actually fetched, not
+    from the model's account of it, exactly as a turn's thread pills come from
+    the content rows rather than from the reply.
+
+    Asking for it anyway cost a production turn. The schema had `domain`
+    required, the model returned a source without one, validation rejected the
+    whole lookup, and the field it rejected was one the very next line
+    overwrote. "Book the restaurant for mothers day" came back as
+    "Didn't finish that one." because of a field nobody read.
+    """
+
+    fields: dict[str, str] = Field(default_factory=dict)
+    unsure: bool = False
+    label: str = "other"
+
+
 @dataclass
 class Reading:
     """The outcome, plus what it cost and what it touched."""
@@ -290,7 +310,7 @@ async def _shape(
                 {
                     "name": "found",
                     "description": "The fields you were asked for, and nothing else.",
-                    "input_schema": _schema(Found),
+                    "input_schema": _schema(Answer),
                 }
             ],
             tool_choice={"type": "tool", "name": "found"},
@@ -302,7 +322,7 @@ async def _shape(
             return Found(unsure=True)
 
         try:
-            found = Found.model_validate(block.input)
+            answer = Answer.model_validate(block.input)
         except ValidationError as exc:
             # **Field names and error types only.** This is the one place in the
             # product where injected page text sits closest to a log line, and
@@ -314,18 +334,35 @@ async def _shape(
             log.warning("reader output invalid", attempt=attempt, shape=shape)
             if attempt == 1:
                 return Found(unsure=True)
+            # **The correction goes back as a tool result, not as a message.**
+            # A `tool_use` block has to be answered by a `tool_result` with the
+            # same id; following it with a plain user turn is a 400, which is
+            # what the retry did in production and why a recoverable shape error
+            # became a failed lookup.
             turn = [
                 *turn,
                 {"role": "assistant", "content": response.content},
-                {"role": "user", "content": f"That did not validate: {shape}. Again."},
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "is_error": True,
+                            "content": f"That did not validate: {shape}. Again.",
+                        }
+                    ],
+                },
             ]
             continue
 
         # Only what was asked for, and the label coerced. Both are the same
         # rule: a set is closed or it is not a set.
-        found.fields = {k: v for k, v in found.fields.items() if k in asked and v}
-        if found.label not in LABELS:
-            found.label = "other"
+        found = Found(
+            fields={k: v for k, v in answer.fields.items() if k in asked and v},
+            unsure=answer.unsure,
+            label=answer.label if answer.label in LABELS else "other",
+        )
         return found
 
     return Found(unsure=True)

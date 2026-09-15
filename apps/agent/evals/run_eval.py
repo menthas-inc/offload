@@ -34,6 +34,7 @@ from anthropic import AsyncAnthropic
 
 from offload_agent.context import AnswerContext, DumpContext, Thread
 from offload_agent.harness.plan import plan, plan_answer
+from offload_agent.worker import _from_the_dump, _in_the_dump
 
 ANSWER_MODEL = "claude-opus-5"
 # The judge is a different tier on purpose. It reads a short reply against a
@@ -307,10 +308,26 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
     """
     looked: list[dict] = []
     filed: list[str] = []
+    refused_bound: list[str] = []
 
     async def call_tool(tool: str, tool_call_id: str, args: dict) -> dict:
         if tool == "look_up":
             looked.append(args)
+            # **The real bound, not an unconditional ok.** The stub used to
+            # answer every lookup the same way, so a query the provenance rule
+            # would refuse looked exactly like one it allowed. That hid the
+            # flagship case for a whole feature: asked to book a restaurant for
+            # mothers day, the planner sent "when is mothers day", the bound
+            # threw out the two function words, and the eval scored it a pass
+            # because a lookup had been attempted.
+            question = (args.get("question") or "").strip()
+            url = (args.get("url") or "").strip()
+            if question and not _from_the_dump(question, case.question):
+                refused_bound.append(question)
+                return {"ok": False, "error": "ask using only words from what they dumped"}
+            if url and not _in_the_dump(url, case.question):
+                refused_bound.append(url)
+                return {"ok": False, "error": "that url is not in what they dumped"}
             return {"ok": True, "found": False}
         if tool in {"add_content", "add_note", "create_thread"}:
             # The title and any date, because "it filed something" does not say
@@ -373,6 +390,11 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
     # The record, on every filing case, passing or not. A case that fails on
     # "did not look something up" is unreadable without knowing what it did
     # instead, and that was two rounds of guessing before this line existed.
+    # A lookup the bound threw out is not a lookup. It costs the turn its fact
+    # and the person their answer, and it is invisible in the reply.
+    if refused_bound:
+        failures.append(f"the provenance bound refused: {refused_bound}")
+
     # 017. What the progress line may contain, checked on every case that made a
     # lookup rather than in a set of its own: the line is written on the tool
     # call, so every lookup case is also a step case.

@@ -14,6 +14,7 @@ import re
 import signal
 import uuid
 from collections.abc import Awaitable, Callable
+from datetime import date
 
 import httpx
 import structlog
@@ -45,6 +46,7 @@ class ReportFailed(Exception):
     """The answer exists and could not be handed over. Distinct from a model
     failure, because the two want opposite responses: a model failure should be
     reported, and this one cannot be."""
+
 
 KINDS = ["dump.answer", "thread.quick_add", *EMBED_KINDS, *COMPACT_KINDS]
 
@@ -115,21 +117,198 @@ class Lookups:
         )
 
 
+#: Words a query may add to the dump's own.
+#:
+#: **A closed list, and every word on it is empty.** The bound exists to stop
+#: content leaving: a name, an address, a detail from somebody else's note in a
+#: shared thread. "when" carries none of that, and neither does "is". What is
+#: excluded is the whole point: no proper nouns, no places, no numbers, nothing
+#: that could identify anybody or anything, so the list can be read and checked
+#: rather than trusted.
+#:
+#: Why it exists at all: the first version refused the flagship example. Asked to
+#: book a restaurant for mothers day, the planner sent "when is mothers day",
+#: which is the dump's own words plus two function words, and the bound threw it
+#: out. The eval missed it because the stub answered every lookup `ok` without
+#: running the check, so a refused query looked exactly like a successful one.
+_FILLER = frozenset(
+    [
+        "a",
+        "an",
+        "the",
+        "this",
+        "that",
+        "these",
+        "those",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "am",
+        "do",
+        "does",
+        "did",
+        "doing",
+        "done",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "whom",
+        "whose",
+        "why",
+        "how",
+        "of",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+        "from",
+        "by",
+        "with",
+        "about",
+        "into",
+        "over",
+        "under",
+        "and",
+        "or",
+        "not",
+        "no",
+        "nor",
+        "but",
+        "if",
+        "then",
+        "than",
+        "it",
+        "its",
+        "they",
+        "them",
+        "their",
+        "there",
+        "here",
+        "time",
+        "date",
+        "day",
+        "days",
+        "today",
+        "tomorrow",
+        "year",
+        "years",
+        "open",
+        "opens",
+        "opening",
+        "close",
+        "closes",
+        "closing",
+        "hours",
+        "next",
+        "last",
+        "this",
+        "coming",
+        "will",
+        "would",
+        "shall",
+        "forecast",
+        "weather",
+        # Every month and every weekday. The same closed, content-free set the
+        # year rule covers, and the same reason: a date the planner worked out
+        # from today is not something anybody wrote. "Do the clocks change in
+        # September October 2026" was refused over two month names.
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    ]
+)
+
+
 def _from_the_dump(text: str, dump: str) -> bool:
-    """Every word of it appears in the dump.
+    """Every word of it is either in the dump or is a word that carries nothing.
 
     **A bound on composition rather than on judgement**, which is the only kind
     that survives an injected instruction. The planner may use everything it
     knows to decide whether to look something up; it may only send out of the
-    sentence in front of it. Without this, a note another member wrote in a
-    shared thread can steer a query carrying their details to a search company,
-    and nothing in the refusal list or the bounds would notice.
+    sentence in front of it, plus the closed list of function words above.
+    Without this, a note another member wrote in a shared thread can steer a
+    query carrying their details to a search company, and nothing in the refusal
+    list or the bounds would notice.
 
-    Coarse on purpose. The failure mode is a refused lookup that was fine, which
-    costs a lookup; the other direction costs somebody their address.
+    Still coarse on purpose. The failure mode is a refused lookup that was fine,
+    which costs a lookup; the other direction costs somebody their address.
     """
     haystack = set(re.findall(r"[a-z0-9]+", dump.lower()))
-    return all(w in haystack for w in re.findall(r"[a-z0-9]+", text.lower()))
+    return all(
+        w in haystack or w in _FILLER or _a_year_from_today(w) or _same_word(w, haystack)
+        for w in re.findall(r"[a-z0-9]+", text.lower())
+    )
+
+
+#: How much of a word has to match before two spellings count as one word.
+#:
+#: Four, because three lets "car" reach "card" and "cardiff", and five refuses
+#: "closes" against "close". It is a blunt instrument standing in for a stemmer,
+#: and a stemmer is a dependency and a language assumption this does not need.
+_STEM = 4
+
+
+def _same_word(word: str, dump_words: set[str]) -> bool:
+    """The dump's own word in a different shape.
+
+    "Cycle to the coast on Sunday if the bridge is open" produced the query
+    "is the bridge open sunday for cycling to the coast", and the bound threw it
+    out over `cycling`, which is the dump's own `cycle` with three letters on the
+    end. Every dump that becomes a question does this to at least one word.
+
+    **It cannot widen what leaves.** A token passes only if it shares four
+    letters of prefix with something the person actually wrote, so the words
+    still come from the dump; what changes is that they no longer have to be
+    spelled identically.
+    """
+    return any(
+        len(other) >= _STEM
+        and len(word) >= _STEM
+        and (word.startswith(other[:_STEM]) and other.startswith(word[:_STEM]))
+        for other in dump_words
+    )
+
+
+def _a_year_from_today(word: str) -> bool:
+    """This year or next, and nothing else.
+
+    **The narrowest possible hole, and it has to exist.** "Remembrance sunday" is
+    a date, the planner knows what year it is because the prompt tells it, and
+    "remembrance sunday 2026" was refused for the one token the dump could never
+    contain. Every "when is X" lookup has that shape.
+
+    Two values, so this carries about one bit. A year cannot hold a name, an
+    address, or anything anybody wrote, which is what the bound protects. Any
+    other number stays refused: "flat 34" and a phone number are exactly the
+    tokens this rule exists to keep in.
+    """
+    if not word.isdigit() or len(word) != 4:
+        return False
+    this_year = date.today().year
+    return int(word) in (this_year, this_year + 1)
 
 
 def _in_the_dump(url: str, dump: str) -> bool:
@@ -327,9 +506,7 @@ def _tool_caller(
                 # pure delay. It comes back as a refusal the planner can read
                 # and act on, which is what it should have been all along.
                 if 400 <= response.status_code < 500:
-                    log.warning(
-                        "tool call refused", job_id=job_id, status=response.status_code
-                    )
+                    log.warning("tool call refused", job_id=job_id, status=response.status_code)
                     return {"ok": False, "error": "invalid_arguments"}
 
                 response.raise_for_status()
@@ -393,9 +570,7 @@ async def handle(
         # branch below is: it returns before the catch-all, and a stuck
         # `running` row is nothing's job to reap.
         try:
-            await handle_compact(
-                job, cfg=cfg, engine=engine, http=http, client=anthropic
-            )
+            await handle_compact(job, cfg=cfg, engine=engine, http=http, client=anthropic)
         except Exception as exc:
             # **`log.error`, never `log.exception`.** The type, never the value:
             # an SDK exception can echo the request body, and the request body
@@ -926,9 +1101,7 @@ async def _handle_answer(
                 max_threads=cfg.max_threads,
             )
 
-        budget = Lookups(
-            question, may_search=ctx.may_search, may_read_links=ctx.may_read_links
-        )
+        budget = Lookups(question, may_search=ctx.may_search, may_read_links=ctx.may_read_links)
         caller = _tool_caller(
             http,
             cfg,

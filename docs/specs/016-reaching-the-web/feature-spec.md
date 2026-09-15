@@ -444,8 +444,9 @@ OFF-4's rule applied to a new source: process and forget, keep the reference.
 Run on 2026-09-14, against the real model, on the filing path. Tuning 15 cases,
 two held-out sets of 15 written without looking at it.
 
-**Tuning 15/15. First held-out 80%, then 93% on a second one after the rule that
-fixed it.** The remaining failure is the rubric rather than the model: "cycle to
+**Tuning 16/16. Three held-out sets of 15, written fresh each time because
+tuning on one spends it: 80%, then 93%, then 93% on a set written after the
+bound was relaxed and before the last fix to it.** The remaining failure is the rubric rather than the model: "cycle to
 the coast on Sunday if the bridge is open" names no bridge, so there is no query
 it could build out of the dump's own words, and the provenance rule in AC-24
 would refuse the one it invented. A condition it cannot name is a condition it
@@ -485,6 +486,57 @@ has nothing to be quiet about.
 
 This is wider than 016. Any turn that files nothing and explains itself in text
 used to come back as "Nothing saved."
+
+## The bound was specified as the wrong rule
+
+**AC-24 says "every word of the query appears in the dump", and that is not the
+rule this needs.** It refused the feature's own flagship example: asked to book a
+restaurant for mothers day, the planner sent "when is mothers day", and the two
+function words it added were enough to throw the lookup out. Production said
+"Didn't finish that one." about the exact turn the feature exists for.
+
+The rule it actually needs is **no word of the query carries anything of
+theirs**, which is what the bound was always protecting: a name, an address, a
+detail from somebody else's note in a shared thread. So the check now allows,
+beside the dump's own words:
+
+- **A closed list of function words**, every one of which is empty: "when", "is",
+  "what time", "will". No proper nouns, no places, no numbers.
+- **This year or next**, and no other number. About one bit, and a year cannot
+  hold a name. "Flat 34" and a phone number stay refused, which is what the rule
+  is for.
+- **Month and weekday names**, the same closed content-free set as the year.
+- **The dump's own word in another shape**, matched on four letters of shared
+  prefix. "Cycle to the coast" produced "cycling to the coast" and lost the
+  lookup over three letters.
+
+**None of these widen what can leave**, and the reason is structural rather than
+careful: only the person's own dump fills the haystack. A note somebody else
+wrote contributes no words at all, so nothing in a shared thread can reach a
+query through a stem or a filler word.
+
+That is four relaxations in one sitting, which is a rule eroding under pressure
+unless the principle is written down. It is written down here, and
+`tests/test_the_bound.py` holds each one, including the one case where the
+relaxation is genuinely loose ("card" reaches "cardiff") and is accepted with the
+reason.
+
+## The eval could not see any of this
+
+Every case above passed the eval while failing in production, because **the eval's
+`look_up` stub answered `ok` unconditionally**. It recorded that a lookup had been
+attempted, which is what the cases asserted, and never ran the bound that would
+have refused it. A refused query and a successful one were the same green tick.
+
+The stub runs the real `_from_the_dump` and `_in_the_dump` now, and a refused
+query fails its case. That change alone turned three passing cases red.
+
+**The rule this is an instance of:** a stub that always succeeds tests the caller
+and nothing else. The reader was stubbed the same way, and it hid two more
+defects that only production found: the reader asked the model for a `sources`
+field that the next line overwrote, so a missing `domain` rejected a whole
+lookup, and the retry after a shape error sent a plain message where the API
+requires a `tool_result`, turning a recoverable error into a 400.
 
 ## Constitution gate
 
