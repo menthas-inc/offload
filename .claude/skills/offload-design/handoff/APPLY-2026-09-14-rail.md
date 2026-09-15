@@ -138,6 +138,10 @@ reader the note needs one.
 
 ## Open, and it needs a product answer before this is built
 
+> **Parked 14 September 2026.** Put to the product owner with 016 and 017 and
+> answered "doesn't matter for now". Both questions below stand unanswered
+> rather than resolved, so this is where to start when the tier is wanted.
+
 - **What counts as needing a decision.** A due date and an unanswered proposal are clear. An
   overdue thing is arguably louder than either and nobody has said so. A task with no date is not a
   decision.

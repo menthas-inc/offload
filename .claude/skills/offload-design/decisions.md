@@ -44,9 +44,14 @@ Two platform notes:
   per scheme, and the cell supplies the geometry. Same two values, same two
   rules, spelled the way that platform draws them.
 
+**Parked by the product owner on 14 September**, asked and answered: the amber
+tier does not matter for now. Not rejected and not deferred to a date, so the
+note stays as written and whoever picks it up starts from the two questions
+rather than from scratch.
+
 **Design system impact:** none for the tokens, which arrived with this sync and
-are used as given. The open half stays open: section 2 needs the product answer
-on what counts as needing a decision, and the note's second question, whether one
+are used as given. The open half stays open and is now parked: section 2 needs
+the product answer on what counts as needing a decision, and the note's second question, whether one
 ink amber reading at two levels is legible as two signals, is unanswered and is
 the thing to check on a device once the ring exists. `TimelineWidget` in the kits
 is still three shapes behind the shipped rail and there is no governed component
