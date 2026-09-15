@@ -589,6 +589,29 @@ down the route for Saturday": offload explaining its own machinery, which it
 never does. Both cases mean one thing to the person reading, so both say it the
 same way.
 
+## What the bound costs, and why it is not being loosened again
+
+The provenance rule has been relaxed five times now: function words, this year
+and next, month and weekday names, the dump's own word in another shape, and the
+country. Each was argued from the same place, that the token carries nothing
+anybody wrote, and each was right. **It is still the thing that refuses about one
+lookup in fifteen.**
+
+The remaining refusals are the model elaborating: a day number it worked out, a
+clause it added, one content word it chose. The prompts now say to keep a query
+to their words plus the country, and the refusal says how to recover, which
+recovered one of the two. The last one is "march on saturday **route**", where
+`route` is a sensible word nobody typed.
+
+**It fails closed**, which is the important property: a refused query costs an
+answer, never a wrong one, and the turn says "Not sure." rather than guessing. So
+this is a cost rather than a defect, and it is written down instead of being
+patched a sixth time. **Loosening it further is a product decision** with the
+threat model in front of you, not something to do a word at a time: the bound
+exists because a note another member wrote in a shared thread must not be able to
+steer a query, and every word added to the allowlist is a word that rule no
+longer covers.
+
 ## The bound was specified as the wrong rule
 
 **AC-24 says "every word of the query appears in the dump", and that is not the

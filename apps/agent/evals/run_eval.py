@@ -34,6 +34,7 @@ from anthropic import AsyncAnthropic
 
 from offload_agent.context import AnswerContext, DumpContext, Thread
 from offload_agent.harness.plan import plan, plan_answer
+from offload_agent.countries import name_of
 from offload_agent.worker import _from_the_dump, _in_the_dump
 
 ANSWER_MODEL = "claude-opus-5"
@@ -224,6 +225,12 @@ def _mechanical(case: Case, reply: str) -> list[str]:
     return failures
 
 
+#: The country every case runs with. **Half the lookups worth testing depend on
+#: one**: "the next bank holiday" has no answer without it, and the right
+#: behaviour with no country set is to decline, so a suite without one would be
+#: measuring a different rule on every date case.
+COUNTRY = "PT"
+
 #: What a stubbed lookup answers with, per wanted field. Values rather than
 #: emptiness, so a case exercises the path where the fact arrives.
 _STUB_FIELD = {
@@ -338,7 +345,7 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
             # because a lookup had been attempted.
             question = (args.get("question") or "").strip()
             url = (args.get("url") or "").strip()
-            if question and not _from_the_dump(question, case.question):
+            if question and not _from_the_dump(question, case.question, COUNTRY):
                 refused_bound.append(question)
                 return {"ok": False, "error": "ask using only words from what they dumped"}
             if url and not _in_the_dump(url, case.question):
@@ -386,6 +393,11 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
         has_calendar=False,
         may_search=True,
         may_read_links=True,
+        # **A country, because half the lookups worth testing depend on one.**
+        # Without it "the next bank holiday" has no answer and the right
+        # behaviour is to decline, so every case about a date would be measuring
+        # the wrong rule.
+        country=COUNTRY,
     )
 
     try:
@@ -422,6 +434,14 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
     # "Can't search that." is for the subjects offload will not touch; "Not
     # sure." is for a question that is simply not about their life. A case that
     # wants one and gets the other has the wrong idea of why it declined.
+    # The country is the one word a query may add that they did not write, so a
+    # case about a date that depends on one asserts it actually went.
+    if case.id.startswith("country-"):
+        asked = " ".join((a.get("question") or "") for a in looked).lower()
+        wanted = {COUNTRY.lower(), (name_of(COUNTRY) or "").lower()}
+        if looked and not any(word and word in asked for word in wanted):
+            failures.append(f"the query did not name their country: {asked!r}")
+
     if case.id.startswith("scope-") and not case.look_up:
         if reply.strip() != "Not sure.":
             failures.append(f"should have said 'Not sure.', said {reply!r}")

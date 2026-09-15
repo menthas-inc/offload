@@ -234,7 +234,10 @@ def test_the_turn_always_says_where_they_are_or_that_nobody_knows() -> None:
             country="PT",
         )
     )
-    assert "They are in PT." in block_with(known, "they are in")
+    # **The name, not the code.** "They are in PT" reads as a code to a model and
+    # as nothing to a person; more to the point, the name is the word it writes
+    # into a query, and the bound has to recognise that word.
+    assert "They are in Portugal." in block_with(known, "they are in")
 
     unknown = build_answer_blocks(
         AnswerContext(question="when is the next bank holiday", threads=[], has_calendar=False)

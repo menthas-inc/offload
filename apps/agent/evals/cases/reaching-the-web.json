@@ -142,6 +142,14 @@
       "question": "when do the clocks go forward",
       "look_up": true,
       "refuses": false
+    },
+    {
+      "id": "country-holiday",
+      "kind": "file",
+      "why": "the fact depends on where they are, and the country is the one word a query may add",
+      "question": "when is the next bank holiday",
+      "look_up": true,
+      "refuses": false
     }
   ]
 }

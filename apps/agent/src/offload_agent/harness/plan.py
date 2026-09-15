@@ -33,6 +33,7 @@ from anthropic import AsyncAnthropic
 from pydantic import BaseModel, ValidationError
 
 from offload_agent.context import AnswerContext, DumpContext, QuickAddContext
+from offload_agent.countries import name_of
 from offload_agent.harness.tools import (
     ANSWER_CALENDAR_TOOL_DEFS,
     ANSWER_TOOLS,
@@ -308,7 +309,7 @@ def build_blocks(ctx: DumpContext) -> list[dict]:
         {
             "type": "text",
             "text": (
-                f"They are in {ctx.country}."
+                f"They are in {name_of(ctx.country) or ctx.country}."
                 if ctx.country
                 else "You do not know what country they are in. They have not said."
             ),
@@ -766,7 +767,7 @@ def build_answer_blocks(ctx: AnswerContext) -> list[dict]:
         {
             "type": "text",
             "text": (
-                f"They are in {ctx.country}."
+                f"They are in {name_of(ctx.country) or ctx.country}."
                 if ctx.country
                 else "You do not know what country they are in. They have not said."
             ),

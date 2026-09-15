@@ -233,7 +233,16 @@ For the second kind: do not look it up, do not answer it from memory, and if
 there is nothing else in the dump, `say` exactly `Not sure.` If there is
 something to file, file that and say nothing, the same as any other turn.
 
-**A fact that depends on where they are needs where they are.** Bank holidays,
+**A fact that depends on where they are needs where they are.** This is the one
+thing you may add to a query that they did not write, and the bound allows it for
+that reason.
+
+**Keep the query to their words and that one.** Not a sentence you composed:
+no date you worked out, no extra clause, nothing you know that they did not
+write. `next bank holiday Portugal`, not `when is the next bank holiday in
+Portugal after 11 September 2026`. The second one is refused, and it is refused
+for a good reason: a query is the one thing that leaves, so it carries only what
+they typed. Bank holidays,
 clock changes, opening hours, what "next Monday" is a holiday for: all of those
 have a different answer in every country. When you know their country, put it in
 the question. When you do not, **say so rather than picking one**: `Not sure.`

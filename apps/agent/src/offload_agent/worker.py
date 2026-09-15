@@ -28,6 +28,7 @@ from offload_agent.compact import KINDS as COMPACT_KINDS
 from offload_agent.compact import handle_compact
 from offload_agent.config import Config
 from offload_agent.context import DumpContext
+from offload_agent.countries import name_of
 from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
 from offload_agent.embed_jobs import handle_embed
@@ -294,7 +295,13 @@ def _from_the_dump(text: str, dump: str, country: str | None = None) -> bool:
     # a closed set of about 250 values, chosen by them in settings, carrying
     # nothing anybody wrote.
     if country:
+        # **The code and the name.** The prompt says "They are in Portugal", so
+        # that is the word the model writes into a query, and a bound that knew
+        # only "PT" refused it. Both, because either spelling is theirs.
         haystack |= set(re.findall(r"[a-z0-9]+", country.lower()))
+        named = name_of(country)
+        if named:
+            haystack |= set(re.findall(r"[a-z0-9]+", named.lower()))
     return all(
         w in haystack or w in _FILLER or _a_year_from_today(w) or _same_word(w, haystack)
         for w in re.findall(r"[a-z0-9]+", text.lower())
@@ -414,7 +421,17 @@ async def _look_up(
             return {"ok": False, "error": "searching is switched off"}
         if not _from_the_dump(question or "", budget.dump, budget.country):
             budget.record(label="other", kind="search", outcome="refused_bound")
-            return {"ok": False, "error": "ask using only words from what they dumped"}
+            # **The refusal says how to recover.** The loop hands this back to
+            # the model, which can try again; "ask using only words from what
+            # they dumped" did not say that the country was allowed or that a
+            # date it worked out was not, so it retried with the same shape.
+            return {
+                "ok": False,
+                "error": (
+                    "ask using only the words they dumped, plus their country. "
+                    "no dates you worked out, no extra clauses. try a shorter query."
+                ),
+            }
         if budget.left() == 0:
             budget.record(label="other", kind="search", outcome="refused_bound")
             return {"ok": False, "error": "limit_reached"}
