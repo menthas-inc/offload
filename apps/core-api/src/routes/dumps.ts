@@ -256,7 +256,12 @@ export async function sourcesFor(
     .where("turn_id", "=", turnId)
     .where("account_id", "=", accountId)
     .orderBy("created_at")
-    .limit(6)
+    // **Twelve, the same number the worker sends and the schema accepts.** Six
+    // here made the chip's count a lie: a turn that read seven places drew
+    // three chips and "and 3 more", which says six. The count is the one part
+    // of that row making a claim about how many places were read, so the read
+    // has to see all of them; the client is what decides how many to draw.
+    .limit(12)
     .execute();
 }
 
