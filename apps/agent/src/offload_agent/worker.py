@@ -689,7 +689,12 @@ def _camel(args: dict) -> dict:
 def _questions_wire(outcome: Outcome) -> list[dict]:
     """018. What the turn asked back, camelCased for the Core API, which renders
     the sentence and validates every value against the field."""
-    return [_camel(q) for q in outcome.questions]
+    # Values only. A label the model did not write is not sent as null: the
+    # Core API words every option itself and refused the whole result for one.
+    return [
+        _camel({**q, "options": [{"value": o["value"]} for o in q.get("options", [])]})
+        for q in outcome.questions
+    ]
 
 
 _DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")

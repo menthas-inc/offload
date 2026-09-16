@@ -1582,7 +1582,8 @@ describe("018 asking back", () => {
       outcome: "answered",
       jobId,
       usage: [usage],
-      questions: [{ field: "date", title: "Buy a birthday gift for Ana", contentId, options: [{ label: "This week", value: "2026-09-20" }, { label: "This month", value: "2026-09-30" }] }],
+      // Values only, as the worker sends them: the server words the labels.
+      questions: [{ field: "date", title: "Buy a birthday gift for Ana", contentId, options: [{ value: "2026-09-20" }, { value: "2026-09-30" }] }],
     });
     const [q] = await question(accountId, turnId);
 

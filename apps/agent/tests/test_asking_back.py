@@ -21,7 +21,7 @@ from offload_agent.harness.plan import (
     plan_quick_add,
 )
 from offload_agent.harness.tools import ASK_TOOL, FILING_TOOLS, Ask
-from offload_agent.worker import describe_value, parse_answer
+from offload_agent.worker import _questions_wire, describe_value, parse_answer
 
 from .test_plan import Recorder, Response, StubModel, TextBlock, ToolUse, ctx
 
@@ -238,3 +238,23 @@ def test_the_thread_a_question_came_from_is_a_block_and_its_notes_are_data():
     assert fitted.looking_at_notes == []
     texts = [b["text"] for b in build_answer_blocks(fitted)]
     assert any(t.startswith("They asked this from inside thread t1") for t in texts)
+
+
+def test_the_wire_carries_values_and_never_a_missing_label():
+    from offload_agent.harness.plan import Outcome
+
+    outcome = Outcome(reply=None)
+    outcome.questions.append(
+        {
+            "field": "date",
+            "title": "Renew the car insurance",
+            "content_id": "c1",
+            "options": [
+                {"value": "2026-09-20", "label": None},
+                {"value": "2026-09-30", "label": "x"},
+            ],
+        }
+    )
+    wire = _questions_wire(outcome)
+    assert wire[0]["contentId"] == "c1"
+    assert wire[0]["options"] == [{"value": "2026-09-20"}, {"value": "2026-09-30"}]

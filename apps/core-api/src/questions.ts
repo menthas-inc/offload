@@ -34,8 +34,17 @@ export const askedQuestion = z.object({
   field: z.enum(FIELDS),
   title: z.string().min(1).max(60),
   contentId: z.string().uuid().nullish(),
+  // The label is the model's and is never used: the server words every
+  // option from its value. Accepted absent or null so a model that sends
+  // none is not refused at the door, which is what took a whole turn down
+  // on the first real date question.
   options: z
-    .array(z.object({ label: z.string().min(1).max(OPTION_LABEL_CHARS), value: z.string().min(1).max(40) }))
+    .array(
+      z.object({
+        label: z.string().max(OPTION_LABEL_CHARS).nullish(),
+        value: z.string().min(1).max(40),
+      }),
+    )
     .max(MAX_VALUES)
     .default([]),
 });
