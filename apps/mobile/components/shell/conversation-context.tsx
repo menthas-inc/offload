@@ -338,7 +338,10 @@ export function ConversationProvider({
   }, []);
 
   const watch = useCallback(
-    (messageId: string, turnId: string) => {
+    // `since` is when the person pressed send, not when the server answered
+    // it: the dump request takes a second or more, and a clock stamped after
+    // it held the first step back and put Stop late by the same amount.
+    (messageId: string, turnId: string, since: number = Date.now()) => {
       const poll = awaitAnswer(
         messageId,
         (answer) => {
@@ -407,7 +410,7 @@ export function ConversationProvider({
           ),
       );
       polls.current.set(messageId, poll);
-      setWorking({ messageId, turnId, since: Date.now(), step: null });
+      setWorking({ messageId, turnId, since, step: null });
     },
     [offerUndo],
   );
@@ -483,8 +486,9 @@ export function ConversationProvider({
       setLive({ title: text.length > 40 ? `${text.slice(0, 40)}...` : text });
     setFolded(false);
 
+    const pressed = Date.now();
     try {
-      const sent = await sendDump(text, `${Date.now()}`, onScreen?.id);
+      const sent = await sendDump(text, `${pressed}`, onScreen?.id);
       if (!sent) {
         setWriting(false);
         return;
@@ -499,7 +503,7 @@ export function ConversationProvider({
           turnId: sent.turnId,
         },
       ]);
-      watch(sent.messageId, sent.turnId);
+      watch(sent.messageId, sent.turnId, pressed);
     } catch (error) {
       setWriting(false);
       failed("dump.send", error);

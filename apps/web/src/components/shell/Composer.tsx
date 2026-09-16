@@ -302,6 +302,11 @@ export function Composer({
 
     setSending(true);
     setTooLong(null);
+    // **The turn's clock starts at the press, not when the server answers the
+    // send.** The dump request takes a second or more, and a clock stamped
+    // after it held the first step back until four seconds after the press
+    // and put Stop at eleven. Somebody waiting is waiting from the press.
+    const pressed = Date.now();
     // Idempotency. A retry after the browser gave up on the response returns
     // the message the server already made rather than a second one.
     const clientKey = crypto.randomUUID();
@@ -317,7 +322,7 @@ export function Composer({
           text,
           state: sent.state,
           turnId: sent.turnId,
-          since: Date.now(),
+          since: pressed,
         },
       ]);
       watch(sent.messageId, sent.turnId);
