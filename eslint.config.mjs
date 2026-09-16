@@ -39,7 +39,12 @@ export default [
   {
     ignores: [
       // The design system owns its own files and its kits break these rules by design.
+      // Anchored with `**/` as well: an agent worktree under `.claude/worktrees/`
+      // holds a nested copy, and a root-relative ignore let ESLint walk into
+      // it and fail main's lint for as long as the worktree existed.
       ".claude/skills/offload-design/**",
+      "**/.claude/skills/offload-design/**",
+      "**/.claude/worktrees/**",
       "**/node_modules/**",
       "**/dist/**",
       "**/build/**",
