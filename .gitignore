@@ -41,3 +41,6 @@ apps/agent/.venv/
 apps/agent/**/__pycache__/
 apps/agent/.pytest_cache/
 apps/agent/.ruff_cache/
+
+# Built by .claude/skills/harness-map/build.mjs; the published artifact is the copy that counts.
+docs/tech/harness-map.html
