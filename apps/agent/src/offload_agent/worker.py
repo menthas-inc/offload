@@ -768,6 +768,17 @@ async def handle(
         async with engine.connect() as conn:
             asked = await ctx_mod.question_text(conn, message_id=message_id)
 
+        # **The first step is written before anything else happens**, ahead
+        # of the classifier. An answering turn's first model round trip runs
+        # ten to thirty seconds and the step a lookup writes arrives after it,
+        # which put the line on screen after Stop every time. Written here
+        # rather than in the answer path, because the classifier in between
+        # costs three seconds of its own and the line was landing at six.
+        # Reading the threads is what happens first on both paths, so that is
+        # what it says; a filing turn that finishes under the client's
+        # threshold never shows it.
+        await _step_writer(http, cfg, job.id)("Looking through your threads")
+
         if asked:
             verdict = await classify(anthropic, asked, cfg.sort_model)
             if verdict.asking and verdict.confident:
@@ -1259,13 +1270,8 @@ async def _handle_answer(
     """
     assert job.account_id is not None
 
-    # **The first step is written before anything else happens.** An answering
-    # turn's first model round trip runs ten to thirty seconds, and the step a
-    # lookup writes arrives after it, which put the line on screen after Stop
-    # every time and the three dots for the whole wait before it. Reading the
-    # threads is what happens first, so that is what it says.
+    # The first step was already written by `handle`, ahead of the classifier.
     say = _step_writer(http, cfg, job.id)
-    await say("Looking through your threads")
 
     try:
         async with engine.connect() as conn:
