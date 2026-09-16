@@ -594,7 +594,13 @@ async def test_a_lookup_the_bound_declined_does_not_make_the_turn_partial():
     """
     model = StubModel([
         Response(
-            content=[ToolUse(id="a", name="look_up", input={"question": "ticket price", "want": ["fact"]})],
+            content=[
+                ToolUse(
+                    id="a",
+                    name="look_up",
+                    input={"question": "ticket price", "want": ["fact"]},
+                )
+            ],
             stop_reason="tool_use",
         ),
         Response(content=[TextBlock("Open 10 to 6, closed Tuesdays.")], stop_reason="end_turn"),

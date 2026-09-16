@@ -33,8 +33,8 @@ from typing import Any
 from anthropic import AsyncAnthropic
 
 from offload_agent.context import AnswerContext, DumpContext, Thread
-from offload_agent.harness.plan import plan, plan_answer
 from offload_agent.countries import name_of
+from offload_agent.harness.plan import plan, plan_answer
 from offload_agent.worker import _from_the_dump, _in_the_dump
 
 ANSWER_MODEL = "claude-opus-5"
@@ -354,7 +354,11 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
                 }
             if url and not _in_the_dump(url, case.question):
                 refused_bound.append(url)
-                return {"ok": False, "declined": True, "error": "that url is not in what they dumped"}
+                return {
+                    "ok": False,
+                    "declined": True,
+                    "error": "that url is not in what they dumped",
+                }
             # **A stub that can only fail is as useless as one that can only
             # succeed.** This answered every lookup `found: False`, so every
             # case ended with the model explaining that it had found nothing,

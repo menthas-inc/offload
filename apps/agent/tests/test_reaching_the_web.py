@@ -228,7 +228,9 @@ async def test_the_reader_is_told_the_date_and_the_country(monkeypatch):
         country="PT",
         today="Tuesday 15 September 2026",
     )
-    out = await _look_up(None, CFG, budget, {"question": "when do the clocks change", "want": ["date"]})
+    out = await _look_up(
+        None, CFG, budget, {"question": "when do the clocks change", "want": ["date"]}
+    )
 
     assert out["ok"] is True
     assert got == {"today": "Tuesday 15 September 2026", "country": "PT"}

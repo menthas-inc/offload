@@ -35,6 +35,7 @@ from urllib.parse import urlparse
 import structlog
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel, Field, ValidationError
+
 from .countries import name_of
 
 log = structlog.get_logger()

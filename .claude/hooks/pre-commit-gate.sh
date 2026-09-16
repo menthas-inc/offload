@@ -49,6 +49,16 @@ case "$cmd" in
         exit 2
       fi
     fi
+    # The agent plane has no package.json, so `pnpm lint` never sees it and CI's
+    # `ruff check` was the first gate to. Six pushes in a row went red on ruff
+    # alone before this line existed. Skipped while the venv is absent so a fresh
+    # clone can still make its first commit.
+    if [ -d apps/agent/.venv ]; then
+      if ! (cd apps/agent && uv run ruff check . >&2); then
+        echo "BLOCKED by pre-commit gate: ruff failed in apps/agent." >&2
+        exit 2
+      fi
+    fi
     ;;
 esac
 exit 0
