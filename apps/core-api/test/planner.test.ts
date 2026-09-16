@@ -1591,6 +1591,7 @@ describe("018 asking back", () => {
     expect(first?.applied).toBe(true);
     expect(first?.envelope.state).toBe("answered");
     expect(first?.envelope.conversationId).toBe(conversationId);
+    expect(first?.envelope.threads.map((t) => t.id)).toEqual([threadId]);
 
     const row = await db.selectFrom("content").select(["due_at", "occurs_at", "title"]).where("id", "=", contentId).executeTakeFirstOrThrow();
     expect(row.due_at?.toISOString().slice(0, 10)).toBe("2026-09-30");

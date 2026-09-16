@@ -563,6 +563,10 @@ export function ConversationProvider({
             turnId: sent.turnId,
             // The turn's second question, if the first had one behind it.
             question: sent.question ?? null,
+            // The thread the answer changed: the Done mark and the pill, now
+            // rather than after a reload.
+            threads: sent.threads ?? [],
+            did: (sent.threads?.length ?? 0) > 0,
           },
         ];
       });

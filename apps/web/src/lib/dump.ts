@@ -29,6 +29,8 @@ export interface Sent {
   /** 018. On an answer's response: the turn's second question, now on the
    *  answering message, so it appears without a reload. */
   question?: QuestionOnWire | null;
+  /** 018. On an answer's response: the thread the answer changed. */
+  threads?: TouchedThread[];
 }
 
 /** A thread a turn actually wrote to. From the content rows it produced, not

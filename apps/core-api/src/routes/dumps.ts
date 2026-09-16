@@ -122,6 +122,10 @@ const dumpResponse = z.object({
   /** 018. On an answer's response: the turn's second question, now open on
    *  the answering message, so it appears without a reload. */
   question: questionOnWire.nullable().optional(),
+  /** 018. On an answer's response: the thread the answer changed, so the
+   *  tap's own turn wears the Done mark and the pill at once rather than
+   *  after a reload. Empty for the way out, which changed nothing. */
+  threads: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
 });
 
 /** The threads a turn actually wrote to.
@@ -1637,6 +1641,7 @@ export async function answerQuestion(
     state: MessageState;
     turnId: string;
     question: QuestionOnWire | null;
+    threads: { id: string; name: string }[];
   };
   field: string;
   applied: boolean;
@@ -1738,6 +1743,13 @@ export async function answerQuestion(
         state: country && applied ? ("seen" as const) : ("answered" as const),
         turnId,
         question: await openQuestionOn(trx, accountId, message.id),
+        threads: await trx
+          .selectFrom("message_threads")
+          .innerJoin("threads", "threads.id", "message_threads.thread_id")
+          .select(["threads.id as id", "threads.name as name"])
+          .where("message_threads.message_id", "=", message.id)
+          .where("message_threads.landed", "=", true)
+          .execute(),
       },
       field: question.field,
       applied,
