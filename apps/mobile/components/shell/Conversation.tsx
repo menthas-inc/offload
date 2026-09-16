@@ -355,16 +355,21 @@ function Turns() {
               // and the turn ends at the reply when there is one: drawn on the
               // sent bubble regardless, the sources for an answer sat above the
               // answer they were sources for.
-              footer={!replied.has(turn.id)}
+              footer={!replied.has(turn.id) && !turn.question}
               onFinish={() => void finish(turn.id)}
             />
             {/* 018. A turn that filed silently and asked back has no reply
                 bubble to hold the question, so the question gets one of its
-                own, in place: offload's sentence and the chips, nothing else. */}
+                own, in place: offload's sentence and the chips, nothing else.
+                Above the footer, as on web, because the footer closes the
+                turn; the sent bubble hands its footer down for that. */}
             {!replied.has(turn.id) && turn.question ? (
-              <Bubble>
-                <Question turn={turn} first />
-              </Bubble>
+              <>
+                <Bubble>
+                  <Question turn={turn} first />
+                </Bubble>
+                <TurnFooter turn={turn} />
+              </>
             ) : null}
           </Fragment>
         ) : (
