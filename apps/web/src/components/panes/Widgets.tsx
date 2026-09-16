@@ -31,7 +31,7 @@ import {
   widgetsFor,
   type Widget,
 } from "../../lib/widgets";
-import { QUICK_ADD_CHARS, quickAdd, setPreference } from "../../lib/threads";
+import { QUICK_ADD_CHARS, quickAdd } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 
 const HEADINGS: Record<string, string> = {
@@ -52,9 +52,11 @@ interface Props {
    *  which the server has already written. */
   onAdded: () => void;
   onToggle: (row: ContentRow) => void;
+  /** The To do fold moved. The page owns the preference, so it writes it. */
+  onFold: (next: boolean) => void;
 }
 
-export function Widgets({ threadId, rows, preference, handlers, onAdded, onToggle }: Props) {
+export function Widgets({ threadId, rows, preference, handlers, onAdded, onToggle, onFold }: Props) {
   const widgets = widgetsFor(rows, preference.widgets);
   if (widgets.length === 0) return null;
 
@@ -65,11 +67,12 @@ export function Widgets({ threadId, rows, preference, handlers, onAdded, onToggl
           key={widget.kind}
           widget={widget}
           dimension={preference.groupBy?.[widget.kind] ?? null}
-          hideDoneAtFirst={preference.hideDone === true}
+          hideDone={preference.hideDone === true}
           threadId={threadId}
           handlers={handlers}
           onAdded={onAdded}
           onToggle={onToggle}
+          onFold={onFold}
         />
       ))}
     </>
@@ -79,19 +82,21 @@ export function Widgets({ threadId, rows, preference, handlers, onAdded, onToggl
 function WidgetBlock({
   widget,
   dimension,
-  hideDoneAtFirst,
+  hideDone,
   threadId,
   handlers,
   onAdded,
   onToggle,
+  onFold,
 }: {
   widget: Widget<ContentRow>;
   dimension: string | null;
-  hideDoneAtFirst: boolean;
+  hideDone: boolean;
   threadId: string;
   handlers: RowHandlers;
   onAdded: () => void;
   onToggle: (row: ContentRow) => void;
+  onFold: (next: boolean) => void;
 }) {
   // Null is All, which is also where a row carrying no tag in this dimension
   // lives. Local rather than stored: a filter is what you are looking at now,
@@ -99,18 +104,13 @@ function WidgetBlock({
   const [only, setOnly] = useState<string | null>(null);
   const [allDone, setAllDone] = useState(false);
   const [adding, setAdding] = useState(false);
-  // Only To do earns this: `doneAt` is only ever set on a task, so a map or a
-  // files section has nothing to hide and never draws the control.
+  // Only To do earns the fold: `doneAt` is only ever set on a task, so a map
+  // or a files section has nothing to hide and never draws the control.
   //
-  // **A preference of the thread, not a state of the screen.** It starts from
-  // what the thread says and writes back on every press, so a list somebody
-  // folded is still folded on their phone and after a refresh. Held locally
-  // as well so the row moves on the press rather than on the round trip.
-  const [hideDone, setHideDone] = useState(hideDoneAtFirst);
-  function fold(next: boolean): void {
-    setHideDone(next);
-    void setPreference(threadId, { hideDone: next });
-  }
+  // **A preference of the thread, not a state of the screen**, so it arrives
+  // as a prop and leaves through `onFold`. It was local state seeded from the
+  // prop for an hour, and a thread that loaded after the first render kept
+  // the seed: folded on the server, open on the screen.
   const filters = filtersFor(widget.rows, dimension);
   const { left, done } = splitDone(matching(widget.rows, dimension, only));
 
@@ -137,7 +137,7 @@ function WidgetBlock({
                     : "Hide finished, currently shown"
                 }
                 title={hideDone ? "Show finished" : "Hide finished"}
-                onClick={() => fold(!hideDone)}
+                onClick={() => onFold(!hideDone)}
               >
                 {hideDone ? (
                   <span className={styles.sectionDoneCount}>{done.length} done</span>

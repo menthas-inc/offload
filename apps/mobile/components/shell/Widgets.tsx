@@ -26,7 +26,7 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { ContentRowView } from "./ContentRow";
 import { useConversation } from "./conversation-context";
-import { QUICK_ADD_CHARS, setPreference } from "../../lib/threads";
+import { QUICK_ADD_CHARS } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 
 const isAndroid = Platform.OS === "android";
@@ -43,6 +43,7 @@ export function Widgets({
   widgets,
   groupBy: dimensions,
   hideDone,
+  onFold,
   onDelete,
   onActions,
   onEdit,
@@ -54,8 +55,10 @@ export function Widgets({
   threadName: string;
   widgets: Widget<ContentRow>[];
   groupBy?: Record<string, string> | undefined;
-  /** The thread's own fold, so the list opens the way it was left. */
+  /** The thread's own fold, so the list opens the way it was left. The
+   *  screen owns the preference, so it writes it. */
   hideDone?: boolean | undefined;
+  onFold: (next: boolean) => void;
   onDelete: (row: ContentRow) => void;
   onActions: (row: ContentRow) => void;
   onEdit: (row: ContentRow) => void;
@@ -72,7 +75,8 @@ export function Widgets({
           key={widget.kind}
           widget={widget}
           dimension={dimensions?.[widget.kind] ?? null}
-          hideDoneAtFirst={hideDone === true}
+          hideDone={hideDone === true}
+          onFold={onFold}
           threadId={threadId}
           threadName={threadName}
           arrived={arrived}
@@ -90,7 +94,8 @@ export function Widgets({
 function WidgetBlock({
   widget,
   dimension,
-  hideDoneAtFirst,
+  hideDone,
+  onFold,
   threadId,
   threadName,
   arrived,
@@ -102,7 +107,8 @@ function WidgetBlock({
 }: {
   widget: Widget<ContentRow>;
   dimension: string | null;
-  hideDoneAtFirst: boolean;
+  hideDone: boolean;
+  onFold: (next: boolean) => void;
   threadId: string;
   threadName: string;
   arrived?: Set<string> | undefined;
@@ -118,17 +124,12 @@ function WidgetBlock({
   // lives. Local rather than stored: a filter is what you are looking at now.
   const [only, setOnly] = useState<string | null>(null);
   const [allDone, setAllDone] = useState(false);
-  // Only To do earns this: `doneAt` is only ever set on a task, so a map or a
-  // files section has nothing to hide and never draws the control.
+  // Only To do earns the fold: `doneAt` is only ever set on a task, so a map
+  // or a files section has nothing to hide and never draws the control.
   //
-  // **A preference of the thread, not a state of the screen.** It starts from
-  // what the thread says and writes back on every press, so a list folded on
-  // web is folded here. Held locally as well so the row moves on the press.
-  const [hideDone, setHideDone] = useState(hideDoneAtFirst);
-  function fold(next: boolean): void {
-    setHideDone(next);
-    void setPreference(threadId, { hideDone: next });
-  }
+  // **A preference of the thread, not a state of the screen**, so it arrives
+  // as a prop and leaves through `onFold`, and a list folded on web is folded
+  // here.
 
   const filters = filtersFor(widget.rows as readonly Sortable[], dimension);
   const { left, done } = splitDone(matching(widget.rows, dimension, only));
@@ -173,7 +174,7 @@ function WidgetBlock({
                   rows themselves are gone: while they are showing, the
                   finished rows are the count. */}
               <Pressable
-                onPress={() => fold(!hideDone)}
+                onPress={() => onFold(!hideDone)}
                 hitSlop={12}
                 accessibilityRole="button"
                 accessibilityState={{ expanded: !hideDone }}

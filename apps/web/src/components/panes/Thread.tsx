@@ -34,6 +34,7 @@ import {
   setArchived,
   type ContentRow,
   type ThreadBundle,
+  setPreference,
 } from "../../lib/threads";
 
 interface Props {
@@ -414,6 +415,14 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             handlers={handlers}
             onAdded={() => void load()}
             onToggle={(row) => void toggle(row)}
+            onFold={(next) => {
+              // Optimistic, like a tick: the rows fold on the press, and the
+              // thread carries the preference to the next device and the next
+              // load. A failed write leaves the screen as the server has it
+              // next time, which is the same rule every other write here has.
+              setThread({ ...thread, preference: { ...thread.preference, hideDone: next } });
+              void setPreference(id, { hideDone: next });
+            }}
           />
         )}
 

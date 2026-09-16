@@ -55,6 +55,7 @@ import {
   setArchived,
   type ContentRow,
   type ThreadBundle,
+  setPreference,
 } from "../../lib/threads";
 import { useConversation, useScreenSheet } from "../shell/conversation-context";
 import { failed } from "../../lib/log";
@@ -362,6 +363,12 @@ export default function Thread() {
             widgets={widgets}
             groupBy={thread.preference.groupBy}
             hideDone={thread.preference.hideDone}
+            onFold={(next: boolean) => {
+              // Optimistic, like a tick. A failed write leaves the screen as
+              // the server has it on the next load.
+              setThread({ ...thread, preference: { ...thread.preference, hideDone: next } });
+              void setPreference(id, { hideDone: next });
+            }}
             onDelete={(row: ContentRow) => void remove(row)}
             onActions={setActing}
             onEdit={setRenaming}
