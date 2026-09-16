@@ -53,6 +53,14 @@ export async function buildApp(): Promise<App> {
     origin: webOrigins,
     credentials: true,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    // **The preflight is cached, because it was half the wait.** A JSON POST
+    // from the web app is not a simple request, so the browser asks OPTIONS
+    // first, and without a max-age it asks again five seconds later. Traced
+    // on 2026-09-16: a dump took two round trips to a US region from Lisbon,
+    // one of them the preflight, against 18ms of server time. Two hours is
+    // Chrome's ceiling; a cached preflight still sends the real request with
+    // its cookie, so nothing about authorisation is cached with it.
+    maxAge: 7200,
   });
 
   await app.register(healthRoutes);
