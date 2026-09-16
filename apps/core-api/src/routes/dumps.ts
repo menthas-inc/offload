@@ -701,7 +701,33 @@ export async function dumpRoutes(app: App): Promise<void> {
       },
     },
     async (request, reply) => {
+      // **Timed in three parts, and the parts go back to the browser.** The
+      // request measured 1.5 seconds from a laptop in Lisbon against 45ms of
+      // server time, and nothing could say where the rest went. Server-Timing
+      // puts the split on the response, Timing-Allow-Origin lets a page on
+      // our own origin read it, and the log line keeps it with no content in
+      // it. The origin is echoed only after CORS has already accepted it.
+      const startedAt = performance.now();
+      const marks: [string, number][] = [];
+      const mark = (name: string): void => {
+        const last = marks.length ? marks[marks.length - 1]![1] : 0;
+        marks.push([name, performance.now() - startedAt - last]);
+      };
+      const timed = (): void => {
+        const total = performance.now() - startedAt;
+        reply.header(
+          "Server-Timing",
+          [...marks.map(([n, d]) => `${n};dur=${d.toFixed(1)}`), `total;dur=${total.toFixed(1)}`].join(", "),
+        );
+        if (request.headers.origin) reply.header("Timing-Allow-Origin", request.headers.origin);
+        request.log.info(
+          { timing: Object.fromEntries(marks.map(([n, d]) => [n, Math.round(d)])), totalMs: Math.round(total) },
+          "dump timing",
+        );
+      };
+
       const accountId = await currentAccountId(request);
+      mark("session");
       if (!accountId)
         return reply.code(401).send({ error: "unauthenticated" as const });
 
@@ -724,6 +750,8 @@ export async function dumpRoutes(app: App): Promise<void> {
           .where("client_key", "=", clientKey)
           .executeTakeFirst();
         if (existing) {
+          mark("idempotent");
+          timed();
           return reply.code(202).send({
             messageId: existing.id,
             conversationId: existing.conversation_id,
@@ -732,8 +760,11 @@ export async function dumpRoutes(app: App): Promise<void> {
           });
         }
       }
+      mark("idempotency");
 
       const result = await takeDump(accountId, text, clientKey, threadId);
+      mark("dump");
+      timed();
 
       return reply.code(202).send(result);
     },

@@ -119,10 +119,15 @@ class Lookups:
         may_search: bool,
         may_read_links: bool,
         country: str | None = None,
+        today: str | None = None,
     ) -> None:
         self.dump = dump
         #: Where they said they are, so the bound lets the query name it.
         self.country = country
+        #: What day it is, for the reader. Asked when the clocks change, it
+        #: read a page listing both changes of the year and returned the one
+        #: in March, six months gone, because nothing had told it the date.
+        self.today = today
         self.may_search = may_search
         self.may_read_links = may_read_links
         self.searches = 0
@@ -464,6 +469,8 @@ async def _look_up(
         url=url,
         want=list(args.get("want") or []),
         searches=budget.left() if question else 0,
+        today=budget.today,
+        country=budget.country,
     )
 
     budget.searches += reading.searches
@@ -814,6 +821,7 @@ async def handle(
             may_search=fitted.may_search,
             may_read_links=fitted.may_read_links,
             country=fitted.country,
+            today=fitted.today,
         )
         outcome = await plan(
             anthropic,
@@ -1287,6 +1295,7 @@ async def _handle_answer(
             may_search=ctx.may_search,
             may_read_links=ctx.may_read_links,
             country=ctx.country,
+            today=ctx.today,
         )
         caller = _tool_caller(
             http,

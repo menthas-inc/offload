@@ -573,6 +573,14 @@
   flex: 0 0 auto;
   align-self: center;
   margin-right: var(--space-3);
+  /* **The tools do not set the row's height.** They are 32px and a one-line
+     title is 21, so without this every row was 48px tall with the tick and
+     the words at the top of it and the tools centred on it: three things on
+     one row, aligned to two different lines. The negative block margin takes
+     them out of the height calculation, which is what the kit's row does by
+     drawing them only on hover; centred, they still sit inside the row's own
+     padding. The row is then as tall as its words, as WRow is. */
+  margin-block: calc(-1 * var(--space-4));
   display: flex;
   gap: var(--space-2);
   opacity: 0;

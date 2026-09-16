@@ -35,6 +35,7 @@ from urllib.parse import urlparse
 import structlog
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel, Field, ValidationError
+from .countries import name_of
 
 log = structlog.get_logger()
 
@@ -213,10 +214,27 @@ async def read(
     url: str | None,
     want: list[str],
     searches: int,
+    today: str | None = None,
+    country: str | None = None,
 ) -> Reading:
     """Answer one lookup. Raises nothing: a failure is a `Reading` that says so."""
     asked = [w for w in want if w in WANT] or ["fact"]
     fetches = FETCHES_PER_LINK if url else 0
+
+    # **The date and the country, from our database, on every lookup.** "When
+    # do the clocks change" found a page listing both changes of the year and
+    # came back with the March one, six months gone, because the reader had no
+    # idea what day it was. Both are ours rather than theirs, so neither is
+    # content leaving (OFF-1): the date is the server's clock and the country
+    # is a setting they chose from a closed list.
+    known = " ".join(
+        part
+        for part in (
+            f"Today is {today}." if today else None,
+            f"They are in {name_of(country) or country}." if country else None,
+        )
+        if part
+    )
 
     # The seed. **This is the only place a URL can enter this conversation**,
     # which is what makes the provider's prior-context rule an argument we pass
@@ -226,6 +244,8 @@ async def read(
         if url
         else f"Find: {', '.join(asked)}.\n\nThe question: {question}"
     )
+    if known:
+        opening = f"{opening}\n\n{known}"
 
     messages: list[dict] = [{"role": "user", "content": opening}]
     usage: list[dict] = []

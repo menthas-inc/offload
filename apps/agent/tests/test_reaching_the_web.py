@@ -76,7 +76,7 @@ async def test_the_search_bound_is_the_turn_s_and_not_the_call_s(monkeypatch):
     bound stated per turn becomes a bound on nothing.
     """
 
-    async def spent(client, model, *, question, url, want, searches):
+    async def spent(client, model, *, question, url, want, searches, **_):
         return reader.Reading(found=reader.Found(label="when_is"), searches=searches)
 
     monkeypatch.setattr(reader, "read", spent)
@@ -152,7 +152,7 @@ def test_www_is_not_part_of_a_domain():
 
 
 async def test_the_fields_that_come_back_are_the_ones_that_were_asked_for(monkeypatch):
-    async def reads(client, model, *, question, url, want, searches):
+    async def reads(client, model, *, question, url, want, searches, **_):
         return reader.Reading(
             found=reader.Found(
                 fields={"date": "2026-05-25", "editorial": "a page's own opinion"},
@@ -188,7 +188,7 @@ def test_a_turn_that_read_nothing_says_nothing():
 
 
 async def test_a_turn_that_read_something_carries_it_home(monkeypatch):
-    async def reads(client, model, *, question, url, want, searches):
+    async def reads(client, model, *, question, url, want, searches, **_):
         return reader.Reading(
             found=reader.Found(
                 fields={"date": "2026-05-25"},
@@ -209,3 +209,26 @@ async def test_a_turn_that_read_something_carries_it_home(monkeypatch):
     ]
     # No query, no url, anywhere in what goes home.
     assert "the 14th" not in str(wire)
+
+
+async def test_the_reader_is_told_the_date_and_the_country(monkeypatch):
+    """Asked when the clocks change, the reader returned the March change in
+    September: the page listed both and nothing had told it what day it was."""
+    got: dict = {}
+
+    async def capture(client, model, *, question, url, want, searches, today=None, country=None):
+        got.update(today=today, country=country)
+        return reader.Reading(found=reader.Found(label="when_is", fields={"date": "2026-10-25"}))
+
+    monkeypatch.setattr(reader, "read", capture)
+    budget = Lookups(
+        "when do the clocks change",
+        may_search=True,
+        may_read_links=True,
+        country="PT",
+        today="Tuesday 15 September 2026",
+    )
+    out = await _look_up(None, CFG, budget, {"question": "when do the clocks change", "want": ["date"]})
+
+    assert out["ok"] is True
+    assert got == {"today": "Tuesday 15 September 2026", "country": "PT"}
