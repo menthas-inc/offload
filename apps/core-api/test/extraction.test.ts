@@ -689,8 +689,9 @@ describe("arranging a thread", () => {
 
     await setPreference(me, t, { widgets: ["map", "todo"] });
     await setPreference(me, t, { groupBy: { todo: "city" } });
-    // The fold joins the other two without touching them, and unfolding
-    // removes it rather than storing a false.
+    // The fold is the member's: it lands on the membership row and never in
+    // the thread's attrs, so a shared list folded by one member is folded for
+    // nobody else.
     await setPreference(me, t, { hideDone: true });
 
     const row = await db
@@ -698,16 +699,19 @@ describe("arranging a thread", () => {
     expect(readPreference(row.attrs)).toEqual({
       widgets: ["map", "todo"],
       groupBy: { todo: "city" },
-      hideDone: true,
     });
+    expect((row.attrs as Record<string, unknown>)["hideDone"]).toBeUndefined();
+
+    const member = await db
+      .selectFrom("thread_members").select("hide_done")
+      .where("thread_id", "=", t).where("account_id", "=", me).executeTakeFirstOrThrow();
+    expect(member.hide_done).toBe(true);
 
     await setPreference(me, t, { hideDone: false });
     const unfolded = await db
-      .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
-    expect(readPreference(unfolded.attrs)).toEqual({
-      widgets: ["map", "todo"],
-      groupBy: { todo: "city" },
-    });
+      .selectFrom("thread_members").select("hide_done")
+      .where("thread_id", "=", t).where("account_id", "=", me).executeTakeFirstOrThrow();
+    expect(unfolded.hide_done).toBe(false);
   });
 
   it("returns what was there, so Undo is the same call (AC-7a)", async () => {

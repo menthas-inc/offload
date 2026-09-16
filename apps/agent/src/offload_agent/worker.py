@@ -1259,6 +1259,14 @@ async def _handle_answer(
     """
     assert job.account_id is not None
 
+    # **The first step is written before anything else happens.** An answering
+    # turn's first model round trip runs ten to thirty seconds, and the step a
+    # lookup writes arrives after it, which put the line on screen after Stop
+    # every time and the three dots for the whole wait before it. Reading the
+    # threads is what happens first, so that is what it says.
+    say = _step_writer(http, cfg, job.id)
+    await say("Looking through your threads")
+
     try:
         async with engine.connect() as conn:
             ctx = await ctx_mod.load_answer(
@@ -1280,7 +1288,7 @@ async def _handle_answer(
             job.id,
             embedder=_embed_query(cfg, http),
             lookups=(anthropic, cfg, budget),
-            say=_step_writer(http, cfg, job.id),
+            say=say,
         )
         outcome = await plan_answer(anthropic, ctx, cfg.answer_model, caller)
 

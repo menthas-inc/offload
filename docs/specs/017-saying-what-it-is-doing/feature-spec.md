@@ -100,6 +100,11 @@ streaming, sees the step that is current right now. Not the ones before it.
   previous ones, because they are not kept.
 - **AC-3** A turn that settles under the threshold shows exactly what it shows
   today: the writing indicator and nothing else.
+- **AC-3a** *Added 2026-09-15.* An answering turn writes its first step before
+  anything else happens, "Looking through your threads", because the answer
+  model's first round trip runs ten to thirty seconds and the step a lookup
+  writes arrived after Stop every time. A filing turn still writes nothing
+  until a lookup does: most of them finish under the threshold.
 - **AC-4** The line is capped in length by the server, not by the prompt, and a
   longer one is cut rather than drawn.
 - **AC-5** No step is written to a log, an analytics event, an LLM trace or an

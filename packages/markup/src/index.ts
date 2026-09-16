@@ -89,7 +89,6 @@ const ESCAPABLE = new Set(["*", "[", "]", "(", ")", ">", "-", "\\", "`"]);
 function addressable(href: string): boolean {
   // Anything a URL parser removes rather than rejects. Tab, CR and LF are the
   // dangerous three; the rest of C0 and DEL have no business here either.
-  // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001F\u007F]/.test(href)) return false;
   // Leading and trailing spaces are stripped the same way, so a href with them
   // is not the href it appears to be.

@@ -45,7 +45,7 @@ Two, both optional, both settable by a person and by offload through `set_thread
 - which dimension each widget groups by
 - what order the widgets come in
 
-**And a third, from 2026-09-15, settable by a person alone:** whether the finished rows of To do are folded away. It is a preference of the thread rather than a state of the screen, so a list somebody tidied is still tidy on their phone and after a refresh, which is what a control that reset on every visit was not. offload has no reason to fold a list and the tool does not carry it.
+**And a third, from 2026-09-15, settable by a person alone and theirs alone:** whether the finished rows of To do are folded away. It is a preference of the person rather than a state of the screen, so a list somebody tidied is still tidy on their phone and after a refresh, which is what a control that reset on every visit was not. It is not the thread's: which finished rows you have put away is about what you have read, not about how the thread is arranged, so one member folding a shared list folds it for nobody else. It lives on the membership row and the clients read it as part of the one preference object. offload has no reason to fold a list and the tool does not carry it.
 
 *`decisions.md` records thread-scoped configuration as a gap deferred to the connector spec. This is the smaller half of it arriving early. A thread-scoped calendar connection is still deferred there.*
 
@@ -63,7 +63,7 @@ Two, both optional, both settable by a person and by offload through `set_thread
 - **AC-6** Enumerating which dimensions a thread actually uses is a stated query with a stated cost, not an incidental scan.
 - **AC-7** Any member can tick, un-tick and reprioritise. All three are reversible and on the allowlist before shipping.
 - **AC-7a** `set_thread_preference` is membership-checked per call and reversible, and it is on the allowlist. It arrives with `threads.attrs`, not before it.
-- **AC-7b** The fold on To do is stored with the thread and read back on every surface: folded on web is folded on the phone and after a refresh. The count and the chevron are one control, so pressing "5 done" opens them.
+- **AC-7b** The fold on To do is stored per member and read back on every surface: folded on web is folded on your phone and after a refresh, and on nobody else's. The count and the chevron are one control, so pressing "5 done" opens them.
 - **AC-8** A priority a person set is marked as such and offload does not overwrite it.
 - **AC-9** The page's query count still does not grow with the number of widgets a thread earns.
 - **AC-10** Widget parity: the contract is defined once and the phones render the same widgets from the same data.

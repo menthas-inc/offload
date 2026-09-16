@@ -30,8 +30,8 @@
 - [x] **C4** The bundle still makes a fixed number of queries with four widgets on screen *(**AC-9**)*
   *Test:* counted at the pool, not reasoned about from the code. A thread earning all four widgets costs exactly what a thread earning none does..
 - [x] **C5** `dead-css`, `dead-classes` and `pnpm lint` clean.
-- [x] **C6** The To do fold is a thread preference, `hideDone` in `attrs`, written by `PATCH /v1/threads/:id/preference` from web and the phones and read back with the thread; the count and chevron are one control *(**AC-7b**)*.
-  *Test:* `readPreference` keeps `hideDone` only when it is `true`.
+- [x] **C6** The To do fold is the member's, `thread_members.hide_done`, written by `PATCH /v1/threads/:id/preference` from web and the phones and composed into `preference` by the server; the count and chevron are one control *(**AC-7b**)*.
+  *Test:* `setPreference` with `hideDone` lands on the membership and never in `attrs`; `readPreference` ignores a `hideDone` in `attrs`.
 
 ## D. The record
 

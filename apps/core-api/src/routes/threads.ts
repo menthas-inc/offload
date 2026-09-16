@@ -634,7 +634,12 @@ export async function reprioritise(
  *
  *  Co-owned, like the name: a shared thread's arrangement belongs to everybody
  *  in it. Merged rather than replaced, so setting the grouping does not silently
- *  clear the widget order. */
+ *  clear the widget order.
+ *
+ *  **Except the fold, which is the member's.** Which finished rows you have
+ *  put away is about what you have read, not about how the thread is arranged,
+ *  so it lives on the membership row and one person folding a shared list
+ *  folds it for nobody else. */
 export async function setPreference(
   accountId: string,
   threadId: string,
@@ -655,21 +660,52 @@ export async function setPreference(
       .executeTakeFirst();
     if (!row) throw new NotYours();
 
-    const before = readPreference(row.attrs);
-    const merged = readPreference({
-      widgets: patch.widgets === undefined ? before.widgets : patch.widgets,
-      groupBy: patch.groupBy === undefined ? before.groupBy : patch.groupBy,
-      hideDone: patch.hideDone === undefined ? before.hideDone : patch.hideDone,
-    });
+    const member = await trx
+      .selectFrom("thread_members")
+      .select("hide_done")
+      .where("thread_id", "=", threadId)
+      .where("account_id", "=", accountId)
+      .executeTakeFirstOrThrow();
 
-    await trx
-      .updateTable("threads")
-      .set({ attrs: JSON.stringify(merged), updated_at: sql`now()` })
-      .where("id", "=", threadId)
-      .execute();
+    const before = { ...readPreference(row.attrs), ...(member.hide_done ? { hideDone: true } : {}) };
+
+    if (patch.widgets !== undefined || patch.groupBy !== undefined) {
+      const merged = readPreference({
+        widgets: patch.widgets === undefined ? before.widgets : patch.widgets,
+        groupBy: patch.groupBy === undefined ? before.groupBy : patch.groupBy,
+      });
+      await trx
+        .updateTable("threads")
+        .set({ attrs: JSON.stringify(merged), updated_at: sql`now()` })
+        .where("id", "=", threadId)
+        .execute();
+    }
+
+    if (patch.hideDone !== undefined) {
+      // No `updated_at` on the thread: nothing about the thread moved.
+      await trx
+        .updateTable("thread_members")
+        .set({ hide_done: patch.hideDone === true })
+        .where("thread_id", "=", threadId)
+        .where("account_id", "=", accountId)
+        .execute();
+    }
 
     return before;
   });
+}
+
+/** The thread's arrangement and the viewer's own fold, as one object. The
+ *  clients read one preference; where each field lives is the server's. */
+async function preferenceOf(accountId: string, threadId: string): Promise<ThreadPreference> {
+  const row = await db
+    .selectFrom("threads")
+    .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
+    .select(["threads.attrs", "thread_members.hide_done"])
+    .where("threads.id", "=", threadId)
+    .where("thread_members.account_id", "=", accountId)
+    .executeTakeFirstOrThrow();
+  return { ...readPreference(row.attrs), ...(row.hide_done ? { hideDone: true } : {}) };
 }
 
 /** Rename a thread. Co-owned: a shared thread's name belongs to everybody in
@@ -1069,11 +1105,15 @@ export async function threadRoutes(app: App): Promise<void> {
         const { id } = request.params;
         await requireMember(accountId, id);
 
+        // The viewer's membership rides along, for the fold. It was checked a
+        // line above, so the join is a column and not a second check.
         const thread = await db
           .selectFrom("threads")
-          .select(["id", "name", "icon", "always_on", "attrs"])
-          .where("id", "=", id)
-          .where("deleted_at", "is", null)
+          .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
+          .select(["threads.id", "threads.name", "threads.icon", "threads.always_on", "threads.attrs", "thread_members.hide_done"])
+          .where("threads.id", "=", id)
+          .where("threads.deleted_at", "is", null)
+          .where("thread_members.account_id", "=", accountId)
           .executeTakeFirst();
         if (!thread) throw new NotYours();
 
@@ -1103,7 +1143,10 @@ export async function threadRoutes(app: App): Promise<void> {
           // is the normal case rather than an edge one.
           notes: await readableNotes(accountId, id),
           noteCounts: await noteCounts(accountId, id),
-          preference: readPreference(thread.attrs),
+          preference: {
+            ...readPreference(thread.attrs),
+            ...(thread.hide_done ? { hideDone: true } : {}),
+          },
           standing: null,
         });
       })
@@ -1873,13 +1916,10 @@ export async function threadRoutes(app: App): Promise<void> {
           ...(request.body.hideDone === undefined ? {} : { hideDone: request.body.hideDone }),
         });
 
-        const now = await db
-          .selectFrom("threads")
-          .select("attrs")
-          .where("id", "=", request.params.id)
-          .executeTakeFirstOrThrow();
-
-        return reply.send({ preference: readPreference(now.attrs), previous });
+        return reply.send({
+          preference: await preferenceOf(accountId, request.params.id),
+          previous,
+        });
       })
   );
 }

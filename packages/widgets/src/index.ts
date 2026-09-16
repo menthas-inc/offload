@@ -448,9 +448,11 @@ export function matching<T extends Sortable>(
 export interface ThreadPreference {
   groupBy?: Partial<Record<WidgetKind, string>>;
   widgets?: WidgetKind[];
-  /** The finished rows of To do are folded away. On the thread rather than
-   *  the device, so a list somebody tidied stays tidy on their phone and after
-   *  a refresh, which is the thing a control that resets every time is not. */
+  /** The finished rows of To do are folded away. **The viewer's, not the
+   *  thread's**: it is read from their membership and composed in by the
+   *  server, never from `attrs`, so `readPreference` does not produce it. On
+   *  the account rather than the device, so a list somebody tidied stays tidy
+   *  on their phone and after a refresh. */
   hideDone?: boolean;
 }
 
@@ -478,9 +480,6 @@ export function readPreference(attrs: unknown): ThreadPreference {
   return {
     ...(widgets && widgets.length > 0 ? { widgets } : {}),
     ...(Object.keys(grouping).length > 0 ? { groupBy: grouping } : {}),
-    // Only `true` is a preference. Anything else, including a stale `false`,
-    // is the absence of one, the same as an unknown widget kind.
-    ...(raw["hideDone"] === true ? { hideDone: true } : {}),
   };
 }
 

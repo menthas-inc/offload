@@ -11,6 +11,29 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-15 · The fold is yours, and an answering turn says something first
+**Surface:** iOS, Android, web
+
+**The fold moves from the thread to the member.** The entry below made it a third
+thread preference beside widget order and grouping, so one person folding the
+finished rows of a shared list folded them for everyone. The product owner
+reversed that the same day: which finished rows you have put away is about what
+you have read, not about how the thread is arranged. It is on the membership row
+now, the clients read it as part of the same preference object, and the copy
+the thread briefly carried is dropped. Recorded as a reversal rather than an
+edit to the entry below.
+
+**An answering turn's first step is written before the model is called.** 017
+put a line at 2.5 seconds and a way out at 10, and on a question the line landed
+at 12 to 27 seconds because it was written by the first lookup, after the answer
+model's first round trip. The worker now writes "Looking through your threads"
+as the turn starts, which is what happens first, and the model's own lines
+replace it. The three dots remain the state for a filing turn, which usually
+finishes under the threshold.
+
+**Design system impact:** none. Nothing drawn changes.
+
+
 ### 2026-09-15 · The fold is the thread's, the rail is earned, and the phones get the mark
 **Surface:** iOS, Android, web
 

@@ -135,6 +135,9 @@ export interface ThreadMembersTable {
   created_at: Timestamp;
   responded_at: Timestamp | null;
   expires_at: Timestamp | null;
+  /** The member's own fold of To do's finished rows. Theirs, not the
+   *  thread's, which is why it is here and not in `threads.attrs`. */
+  hide_done: Generated<boolean>;
 }
 
 export interface AccountKeysTable {
