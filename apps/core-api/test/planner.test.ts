@@ -1598,6 +1598,13 @@ describe("018 asking back", () => {
 
     const words = await db.selectFrom("messages").select(["text", "role", "state"]).where("id", "=", first!.envelope.messageId).executeTakeFirstOrThrow();
     expect(words).toEqual({ text: "30 September", role: "person", state: "answered" });
+    // The answer's turn wears the thread it changed, so the screen shows Done.
+    const landed = await db
+      .selectFrom("message_threads")
+      .select(["thread_id", "landed"])
+      .where("message_id", "=", first!.envelope.messageId)
+      .execute();
+    expect(landed).toEqual([{ thread_id: threadId, landed: true }]);
 
     expect(await answerQuestion(accountId, q!.id, 0)).toBeNull();
     const after = await db.selectFrom("questions").select(["state", "answered_option", "previous_value"]).where("id", "=", q!.id).executeTakeFirstOrThrow();

@@ -349,6 +349,20 @@ export async function validateAsked(
   return { ok: true, rows };
 }
 
+/** The answer's turn changed this thread. Recorded against the answering
+ *  message the way a move or an edit is, so the turn wears the Done mark and
+ *  the thread's pill, and the open panes reload: the turn filed nothing, and
+ *  without this a typed "Friday at 10" settled with nothing on screen to say
+ *  it had landed. */
+async function landedIn(trx: Trx, messageId: string | null, threadId: string): Promise<void> {
+  if (!messageId) return;
+  await trx
+    .insertInto("message_threads")
+    .values({ message_id: messageId, thread_id: threadId, landed: true })
+    .onConflict((oc) => oc.columns(["message_id", "thread_id"]).doUpdateSet({ landed: true }))
+    .execute();
+}
+
 /** The parser's own form of a value, which is what is stored and compared. */
 function storedForm(field: Field, parsed: Record<string, string>): string {
   switch (field) {
@@ -662,6 +676,7 @@ export async function applyAnswer(
     }
     await trx.updateTable("content").set({ ...set, updated_at: sql`now()` }).where("id", "=", row.id).execute();
     await touchThread(row.thread_id, trx);
+    await landedIn(trx, by.answeredMessageId, row.thread_id);
     await settle({ previous_value: JSON.stringify(previous) });
     await promotePending(trx, q.id, by.answeredMessageId);
     return { applied: true, field, threadId: row.thread_id };
@@ -688,7 +703,10 @@ export async function applyAnswer(
       return { applied: false, reason: "already_set" };
     }
     await trx.updateTable("notes").set({ ...set, updated_at: sql`now()` }).where("id", "=", row.id).execute();
-    if (row.subject_id) await touchThread(row.subject_id, trx);
+    if (row.subject_id) {
+      await touchThread(row.subject_id, trx);
+      await landedIn(trx, by.answeredMessageId, row.subject_id);
+    }
     await settle({ previous_value: JSON.stringify(previous) });
     await promotePending(trx, q.id, by.answeredMessageId);
     return { applied: true, field, threadId: row.subject_id };

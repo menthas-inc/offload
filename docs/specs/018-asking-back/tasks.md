@@ -63,5 +63,6 @@ Ordered. Each cites the acceptance criteria it serves and the principles it sati
 
 ## G. Close
 
-- [ ] **G1** All three suites, the eval's held-out number in the PR description, and one real turn on web and one on the phone: a stay with no dates, a tap, Undo, a typed answer with a tail. *(QUAL-1)*
+- [~] **G1** All three suites, the eval's held-out number in the PR description, and one real turn on web and one on the phone: a stay with no dates, a tap, Undo, a typed answer with a tail. *(QUAL-1)*
+  *Web, 2026-09-16:* "meeting with the landlord" from Today filed and asked "Which day and time?" with the typed invitation in the placeholder. The typed answer failed on production: the worker's role had no select on `questions`, which the local suite runs as the owner and cannot see. `0048` grants it. The phone turn waits for a build.
 - [x] **G2** The harness map regenerated (A4) and published.

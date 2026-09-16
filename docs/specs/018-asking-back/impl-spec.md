@@ -125,7 +125,7 @@ Migration `0046_asking_back.sql`. 0045 went to the reorder tweak that landed the
 | tag | `dimension:value` | appended to `content.tags`, one per dimension | the thread's existing values of the dimension, two to four |
 | country | ISO code | nothing; carried into the re-run | the account's and the thread's |
 
-The apply step is one `edit_content` in code, on the server, with the author rule of OFF-3 unchanged: the row was filed by this account in the asking turn, and the target is checked against that turn's landed rows at validation time. A tag or a country value is applied only when it is one of the values offered, checked in the apply step as well as in the worker, because the internal route is a second writer. A tag is never appended past the six a row may carry.
+The apply step is one `edit_content` in code, on the server, with the author rule of OFF-3 unchanged: the row was filed by this account in the asking turn, and the target is checked against that turn's landed rows at validation time. The answer's turn is recorded against the thread it changed in `message_threads`, as a move or an edit is, so the answering message wears the Done mark and the thread's pill and the open panes reload; found on the first real turn, where a typed "Friday at 10" applied and the screen showed nothing. A tag or a country value is applied only when it is one of the values offered, checked in the apply step as well as in the worker, because the internal route is a second writer. A tag is never appended past the six a row may carry.
 
 ## Interfaces
 
