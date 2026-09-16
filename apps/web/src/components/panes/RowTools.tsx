@@ -22,12 +22,13 @@
 // Anything beyond these two goes behind the row's own `ellipsis` on web, or a
 // `RowActionSheet` on a phone. Nothing has needed a third yet.
 //
-// **Except a handle, since 2026-09-16, and it is not an action.** A row in a
-// list somebody can arrange draws `grip-vertical` first, left of Edit. It does
-// nothing when clicked: it is dragged, or it takes the arrow keys, and either
-// way the row moves and its priority follows. It sits with the tools because
-// that is where a control only ever wanted on a hover belongs, and it leads
-// them because you reach for it with the row rather than for the row.
+// **And a handle, since 2026-09-16, which is not an action and not a tool.**
+// A row in a list somebody can arrange draws `grip-vertical` at its leading
+// edge, left of the checkbox, always, with no container: a move area rather
+// than a button. It does nothing when clicked: it is dragged, or it takes the
+// arrow keys, and either way the row moves and its priority follows. It sat
+// with the tools for a few hours and read as a fourth action beside Edit,
+// which it is not, so the product owner moved it to where a list is held.
 
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
@@ -48,12 +49,13 @@ export interface RowReorder {
   onStep: (delta: -1 | 1) => void;
 }
 
-/** The handle alone, for a row that draws its own tools. */
+/** The handle, at the leading edge of a row that can be moved. A button for
+ *  the keyboard's sake, drawn as nothing but the grip. */
 export function ReorderHandle({ title, reorder }: { title: string; reorder: RowReorder }) {
   return (
     <button
       type="button"
-      className={styles.handle}
+      className={styles.grip}
       draggable
       aria-label={`Move ${title}`}
       title="Drag, or use the arrow keys"
@@ -88,7 +90,6 @@ export function RowTools({
   title,
   archived,
   canDelete,
-  reorder,
   onEdit,
   onArchive,
   onDelete,
@@ -97,16 +98,12 @@ export function RowTools({
   archived: boolean;
   /** Yours, or nobody's. Decides which of the two ways out is drawn. */
   canDelete: boolean;
-  /** Present on a row in a list that can be arranged, absent everywhere else. */
-  reorder?: RowReorder | undefined;
   onEdit: () => void;
   onArchive: () => void;
   onDelete: () => void;
 }) {
   return (
     <span className={styles.rowTools}>
-      {reorder ? <ReorderHandle title={title} reorder={reorder} /> : null}
-
       <button
         type="button"
         className={styles.tool}

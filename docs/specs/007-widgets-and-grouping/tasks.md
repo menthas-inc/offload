@@ -42,8 +42,8 @@
 
 - [x] **E1** `reorderPlan` and `respread` in `@offload/widgets`: midpoint, re-spread when adjacent, the ends of the scale, never a tie *(**AC-7c**)*.
   *Test:* `apps/web/test/widgets.test.ts`, one case per rule, and the hundred-row limit.
-- [x] **E2** Web: `grip-vertical` first in `RowTools`, HTML5 drag with the row as the drag image, arrow keys on the focused handle, the drop line, and the optimistic write with one Undo for every number written *(**AC-7c**)*.
-- [x] **E3** Phones: the handle beside the pencil in `ContentRowView`, a pan after a hold, the row lifted and following the finger, the list measuring its rows, and the same optimistic write and Undo *(**AC-7c**)*.
+- [x] **E2** Web: `grip-vertical` leading the row, left of the checkbox (it began the day first in `RowTools`), HTML5 drag with the row as the drag image, arrow keys on the focused handle, the drop line, and the optimistic write with one Undo for every number written *(**AC-7c**)*.
+- [x] **E3** Phones: the handle leading the row, left of the checkbox (it began the day beside the pencil), a pan after a hold, the row lifted and following the finger, the list measuring its rows, and the same optimistic write and Undo *(**AC-7c**)*.
 - [x] **E4** `grip-vertical` vendored into the icon set, `public/icons` and the phones' generated set; `dead-icons` clean.
 - [ ] **E5** *Not done from this session: needs a device.* Hold the handle on each phone and check the row lifts without the action sheet opening or the scroll view taking the touch, and that a two-line title lands where it was dropped.
 - [x] **E6** Design system `decisions.md`: the handle and the drop line as new surface, with **Design system impact** filled in.

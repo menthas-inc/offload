@@ -13,7 +13,9 @@
 // you can see. The two gestures are unchanged and still carry everything else.
 //
 // **And since 2026-09-16 a handle, on a row in a list that can be arranged.**
-// `grip-vertical` left of the pencil. Hold it, and the row lifts and follows
+// `grip-vertical` at the row's leading edge, left of the checkbox, always
+// drawn and with no container: a move area, not one of the row's actions.
+// Hold it, and the row lifts and follows
 // the finger; let go, and the list says where it landed. The handle's own pan
 // activates after the hold, which is before the row's long press would have,
 // so holding the handle never opens the action sheet, and a vertical drag is
@@ -226,6 +228,20 @@ export function ContentRowView({
             border ? "border-b border-border-hairline" : ""
           }`}
         >
+          {reorder ? (
+            <GestureDetector gesture={drag}>
+              <View
+                className="justify-center self-stretch"
+                style={{ marginLeft: -6, marginRight: -6, marginBlock: -8 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Move ${row.title}`}
+                accessibilityHint="Hold, then drag"
+              >
+                <Glyph name="grip-vertical" size={17} color={COLOR.iconOnWell} />
+              </View>
+            </GestureDetector>
+          ) : null}
+
           {onToggle ? (
             <Pressable
               onPress={onToggle}
@@ -370,18 +386,6 @@ export function ContentRowView({
            *  whoever is looking: putting something back is not destructive and
            *  is not the author's alone. */}
           <View className="flex-row items-center gap-space-6" style={{ marginTop: 1 }}>
-            {reorder ? (
-              <GestureDetector gesture={drag}>
-                <View
-                  accessibilityRole="button"
-                  accessibilityLabel={`Move ${row.title}`}
-                  accessibilityHint="Hold, then drag"
-                >
-                  <Glyph name="grip-vertical" size={17} color={COLOR.iconOnWell} />
-                </View>
-              </GestureDetector>
-            ) : null}
-
             {row.canDelete ? (
               <Pressable
                 onPress={onEdit}

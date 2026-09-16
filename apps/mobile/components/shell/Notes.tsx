@@ -409,6 +409,21 @@ function NoteRow({
         divider ? "border-b border-border-hairline" : ""
       }`}
     >
+      {/* The move area, leading the row. Always drawn, no container. */}
+      {readOnly ? null : (
+        <GestureDetector gesture={drag}>
+          <View
+            className="justify-center self-stretch"
+            style={{ marginLeft: -6, marginRight: -6 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Move ${note.text}`}
+            accessibilityHint="Hold, then drag"
+          >
+            <Glyph name="grip-vertical" size={17} color={COLOR.iconOnWell} />
+          </View>
+        </GestureDetector>
+      )}
+
       <Pressable
         onPress={() => {
           if (readOnly) return;
@@ -452,19 +467,6 @@ function NoteRow({
           ) : null}
         </Text>
       </Pressable>
-
-      {readOnly ? null : (
-        <GestureDetector gesture={drag}>
-          <View
-            className="min-h-tap-min justify-center"
-            accessibilityRole="button"
-            accessibilityLabel={`Move ${note.text}`}
-            accessibilityHint="Hold, then drag"
-          >
-            <Glyph name="grip-vertical" size={17} color={COLOR.iconOnWell} />
-          </View>
-        </GestureDetector>
-      )}
     </Animated.View>
   );
 }

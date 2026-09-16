@@ -630,21 +630,42 @@
   color: var(--text-danger);
 }
 
-/* The one tool that does nothing when clicked. It is dragged, or it takes the
-   arrow keys, so the cursor says so and the hover does not invert: inverting
-   is what the tools that act do. */
-.handle {
-  composes: tool;
+/* The move area at the leading edge of a row that can be arranged: the grip
+   alone, always drawn, no container. It is dragged, or it takes the arrow
+   keys, so the cursor says so; nothing inverts, because inverting is what
+   the tools that act do. Tertiary ink at rest so it reads as the row's
+   texture rather than as a control, primary under the pointer. Outside the
+   row's height like the tools, so a one-line row stays one line, and pulled
+   into the row's own left padding so the checkbox keeps its place. */
+.grip {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  margin-block: calc(-1 * var(--space-4));
+  margin-left: calc(-1 * var(--space-3));
+  margin-right: calc(-1 * var(--space-3));
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-tertiary);
   cursor: grab;
   touch-action: none;
+  transition: color var(--transition-ui);
 }
 
-.handle:hover {
-  background: var(--surface-fill);
+.grip:hover,
+.grip:focus-visible {
   color: var(--text-primary);
 }
 
-.handle:active {
+.grip:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+.grip:active {
   cursor: grabbing;
 }
 
@@ -1667,23 +1688,6 @@ a.settingsRow:hover {
 
 .noteMain:disabled {
   cursor: default;
-}
-
-/* The handle on a note row, drawn the way the row tools are: on hover and on
-   focus, centred, and outside the row's height so a one-line note stays a
-   one-line note. */
-.noteHandle {
-  flex: 0 0 auto;
-  align-self: center;
-  margin-block: calc(-1 * var(--space-4));
-  display: flex;
-  opacity: 0;
-  transition: opacity var(--transition-ui);
-}
-
-.noteRow:hover .noteHandle,
-.noteRow:focus-within .noteHandle {
-  opacity: 1;
 }
 
 /* Wrapped, not clipped. The whole point of the row. */

@@ -11,6 +11,14 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-16 · The handle leads the row, always, and is not a button
+**Surface:** web, iOS, Android
+**Raised by:** the product owner, looking at the handle beside Edit.
+**Was:** The entry below: `grip-vertical` first among the row tools on web, shown on hover and focus in a 32px `--surface-fill` box; first among the trailing controls on the phones, beside the pencil; at the trailing edge of a note row.
+**Is:** The grip sits at the row's leading edge, left of the checkbox or the tile, on every row in a list that can be arranged, always drawn. No container: no fill, no border, no size of its own, just the glyph in `--text-tertiary` with a `grab` cursor, `--text-primary` under the pointer, drawn inside the row's own left padding so the checkbox keeps its place. On the phones the same glyph in `iconOnWell` leads the row. It is still a button for the keyboard, with the arrow keys, and the focus ring is the only box it ever draws.
+**Why:** Beside Edit it read as a fourth action, and it is not one: nothing happens when it is clicked. A list is held at its edge, which is where every list that can be dragged puts its grip, and a move area that is always there says the list can be arranged without anybody hovering to find out.
+**Design system impact:** `WRow` and the phones' `ListRow`: the `reorder` slot moves from leading the tools to leading the row, before `lead`, always visible, no container, tertiary ink. `MemoryRow`: the same slot at the leading edge rather than the trailing one. `RowTools` is back to two controls, edit and one way out. The 2026-09-16 entry below stands for the drag, the drop line and the priority arithmetic; only where the handle sits changes.
+
 ### 2026-09-16 · offload asks back, and the chips are values
 **Surface:** iOS, Android, web
 **Raised by:** 018, the first feature in which offload asks a person anything.

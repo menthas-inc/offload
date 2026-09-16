@@ -22,7 +22,7 @@
 
 import Link from "next/link";
 import { Icon } from "../Icon";
-import { RowTools, type RowReorder } from "./RowTools";
+import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
 import { domainOf, isFiling, type ContentRow } from "../../lib/threads";
 
@@ -126,6 +126,10 @@ export function ContentRowView({
           : undefined
       }
     >
+      {/* The move area, leading the row, left of the checkbox. Always drawn,
+          no container: where a list is held, not one of its actions. */}
+      {reorder ? <ReorderHandle title={row.title} reorder={reorder} /> : null}
+
       {/* **The page's own picture, in place of the type tile.** A listing is
           recognised by its photo long before its title, and the tile is already
           the right size and shape. Only on a link, so it can never displace the
@@ -206,7 +210,6 @@ export function ContentRowView({
         title={row.title}
         archived={row.archivedAt !== null}
         canDelete={row.canDelete}
-        reorder={reorder}
         onEdit={() => handlers.onEdit(row)}
         onArchive={() => handlers.onArchive(row)}
         onDelete={() => handlers.onAsk(row.id)}

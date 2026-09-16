@@ -383,6 +383,8 @@ export function Notes({
             : undefined
         }
       >
+        {/* The move area, leading the row. Always drawn, no container. */}
+        {reorder ? <ReorderHandle title={note.text} reorder={reorder} /> : null}
         <button
           type="button"
           className={styles.noteMain}
@@ -408,11 +410,6 @@ export function Notes({
             ) : null}
           </span>
         </button>
-        {reorder ? (
-          <span className={styles.noteHandle}>
-            <ReorderHandle title={note.text} reorder={reorder} />
-          </span>
-        ) : null}
       </div>
     );
   };

@@ -132,8 +132,8 @@ Both open to any member, both on 005's co-owned side, both reversible.
 
 | | Handle | Gesture | Feedback |
 | --- | --- | --- | --- |
-| web | `grip-vertical`, first in `RowTools`, shown with them on hover and focus | HTML5 drag from the handle, the whole row as the drag image; arrow keys on the focused handle move one step | a 2px ink line on the edge of the row under the pointer where the drop would land; the dragged row takes `--surface-fill` |
-| iOS, Android | `grip-vertical`, first in the row's trailing controls | `Gesture.Pan().activateAfterLongPress(250)` on the handle, in `ContentRowView`; the row follows the finger on a Reanimated `translateY` and lifts to `surface-raised` | the list measures its rows with `onLayout` and reads the drop off the dragged row's centre |
+| web | `grip-vertical` at the row's leading edge, left of the checkbox, always drawn, no container (moved there from the tools the same day) | HTML5 drag from the handle, the whole row as the drag image; arrow keys on the focused handle move one step | a 2px ink line on the edge of the row under the pointer where the drop would land; the dragged row takes `--surface-fill` |
+| iOS, Android | `grip-vertical` at the row's leading edge, left of the checkbox, always drawn, no container | `Gesture.Pan().activateAfterLongPress(250)` on the handle, in `ContentRowView`; the row follows the finger on a Reanimated `translateY` and lifts to `surface-raised` | the list measures its rows with `onLayout` and reads the drop off the dragged row's centre |
 
 The phones' handle pan activates at 250ms, before the row's own 320ms long press, so holding the handle never opens the action sheet, and a vertical drag is exactly what the row's swipe fails on (`failOffsetY`). No list library: the app already has reanimated and gesture-handler, and a reorderable list dependency for one widget is not the smallest change.
 
