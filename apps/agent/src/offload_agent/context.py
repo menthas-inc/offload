@@ -13,7 +13,7 @@ concatenated, because the whole value of the boundary is that the model can tell
 which is which.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -86,6 +86,10 @@ class DumpContext:
     #: rather than letting a search assume, which is how "when is the next bank
     #: holiday" came back with Columbus Day.
     country: str | None = None
+    #: 018. A typed message answered the open question before this turn ran.
+    #: The value is already on the row; the planner files the rest and not
+    #: the value again. Never dropped by `fit`.
+    answered: dict | None = None
 
     @property
     def may_look_up(self) -> bool:
@@ -246,9 +250,7 @@ async def load(
     ).all()
 
     today = (await conn.execute(_TODAY)).scalar_one()
-    has_calendar = bool(
-        (await conn.execute(_HAS_CALENDAR, {"account_id": account_id})).scalar()
-    )
+    has_calendar = bool((await conn.execute(_HAS_CALENDAR, {"account_id": account_id})).scalar())
     switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
 
     return DumpContext(
@@ -300,6 +302,7 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
             # estimate counts it rather than pretending a thread costs its name.
             + sum(approx_tokens(t.name) + 10 for t in threads)
             + sum(approx_tokens(f.title) + approx_tokens(f.thread_name) for f in ctx.landed)
+            + (approx_tokens(str(ctx.answered)) if ctx.answered else 0)
         )
 
     while total() > ceiling and turns:
@@ -342,6 +345,47 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         may_search=ctx.may_search,
         may_read_links=ctx.may_read_links,
         country=ctx.country,
+        answered=ctx.answered,
+    )
+
+
+def fit_answer(ctx: "AnswerContext", ceiling: int) -> "AnswerContext":
+    """018. The answering path's tail, under the same ceiling as filing.
+
+    Oldest turns first, the question itself never. Threads stay: they are the
+    only thing an answer can address and there are at most twelve. Every field
+    is named here for the reason `fit` names every field.
+    """
+    turns = list(ctx.turns)
+    notes = list(ctx.looking_at_notes)
+
+    def total() -> int:
+        return (
+            approx_tokens(ctx.question)
+            + sum(approx_tokens(t.text) for t in turns)
+            + sum(approx_tokens(t.name) + 10 for t in ctx.threads)
+            + sum(approx_tokens(n) for n in notes)
+        )
+
+    while total() > ceiling and turns:
+        turns.pop(0)
+    # The thread's notes go after the tail, oldest first, and the thread itself
+    # stays: it is one name, and it is the fact the country question turns on.
+    while total() > ceiling and notes:
+        notes.pop(0)
+
+    return AnswerContext(
+        question=ctx.question,
+        threads=ctx.threads,
+        has_calendar=ctx.has_calendar,
+        may_search=ctx.may_search,
+        may_read_links=ctx.may_read_links,
+        country=ctx.country,
+        today=ctx.today,
+        turns=turns,
+        country_override=ctx.country_override,
+        looking_at=ctx.looking_at,
+        looking_at_notes=notes,
     )
 
 
@@ -472,9 +516,7 @@ async def load_quick_add(
     to find the row and not enough to prove it is this account's, and a missing
     filter puts one person's thread into another person's model call.
     """
-    row = (
-        await conn.execute(_TYPED, {"content_id": content_id, "account_id": account_id})
-    ).first()
+    row = (await conn.execute(_TYPED, {"content_id": content_id, "account_id": account_id})).first()
     if row is None or not row.title:
         return None
 
@@ -485,9 +527,7 @@ async def load_quick_add(
         )
     ).all()
     notes = (
-        await conn.execute(
-            _THREAD_NOTES, {"thread_id": row.thread_id, "account_id": account_id}
-        )
+        await conn.execute(_THREAD_NOTES, {"thread_id": row.thread_id, "account_id": account_id})
     ).all()
 
     return QuickAddContext(
@@ -530,10 +570,29 @@ class AnswerContext:
     #: rather than letting a search assume, which is how "when is the next bank
     #: holiday" came back with Columbus Day.
     country: str | None = None
+    #: What day it is, for the reader and for a date in the question. It was
+    #: missing here while the worker already read it: a frozen dataclass turns
+    #: that into an AttributeError on every answering turn.
+    today: str | None = None
+    #: 018. The same tail the filing turn sees, oldest first. A question and
+    #: its answer are conversation, and an answer that cannot see them cannot
+    #: use them. Bounded by `fit_answer`.
+    turns: list[Turn] = field(default_factory=list)
+    #: 018. The country they picked when asked, in place of the account's.
+    country_override: str | None = None
+    #: 018. The thread the question was asked from, with its notes, so a
+    #: question whose answer depends on where they are can see that the thread
+    #: puts them somewhere other than the account says. None from Today.
+    looking_at: Thread | None = None
+    looking_at_notes: list[str] = field(default_factory=list)
 
     @property
     def may_look_up(self) -> bool:
         return self.may_search or self.may_read_links
+
+    @property
+    def country_in_effect(self) -> str | None:
+        return self.country_override or self.country
 
 
 async def load_answer(
@@ -542,11 +601,16 @@ async def load_answer(
     account_id: str,
     question: str,
     max_threads: int,
+    conversation_id: str | None = None,
+    message_id: str | None = None,
+    max_turns: int = 0,
+    country_override: str | None = None,
 ) -> AnswerContext:
-    """The thread list, and nothing else.
+    """The thread list, the day, and since 018 the conversation's tail.
 
-    The same query the dump context uses, because a thread list that differed
-    between filing and answering would be two ideas of what a person has.
+    The same queries the dump context uses, because a thread list or a tail
+    that differed between filing and answering would be two ideas of what a
+    person has.
     """
     thread_rows = (
         await conn.execute(_THREADS, {"account_id": account_id, "limit": max_threads})
@@ -562,8 +626,7 @@ async def load_answer(
     default_id = str(default_row.id) if default_row else None
 
     threads = [
-        Thread(id=str(r.id), name=r.name, is_default=str(r.id) == default_id)
-        for r in thread_rows
+        Thread(id=str(r.id), name=r.name, is_default=str(r.id) == default_id) for r in thread_rows
     ]
     # Always offered, even when too stale to make the cap: it is where anything
     # with no obvious home lives, so a question about "that thing I saved" has
@@ -573,6 +636,45 @@ async def load_answer(
 
     calendar = await conn.execute(_HAS_CALENDAR, {"account_id": account_id})
     switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
+    today = (await conn.execute(_TODAY)).scalar_one()
+
+    turn_rows = []
+    if conversation_id and message_id and max_turns > 0:
+        turn_rows = (
+            await conn.execute(
+                _TURNS,
+                {
+                    "conversation_id": conversation_id,
+                    "account_id": account_id,
+                    "exclude_id": message_id,
+                    "limit": max_turns,
+                },
+            )
+        ).all()
+
+    # 018. Where the question was asked from, resolved the way a dump's is:
+    # membership re-checked, deleted threads dropped. Its own notes only, the
+    # same split `load` makes, because a note another member wrote is not this
+    # person's statement of where they are.
+    looking_at: Thread | None = None
+    looking_at_notes: list[str] = []
+    if message_id:
+        dump_row = (
+            await conn.execute(_DUMP, {"message_id": message_id, "account_id": account_id})
+        ).first()
+        if dump_row is not None and dump_row.looking_at_id:
+            looking_at = Thread(
+                id=str(dump_row.looking_at_id),
+                name=dump_row.looking_at_name,
+                is_default=str(dump_row.looking_at_id) == default_id,
+            )
+            note_rows = (
+                await conn.execute(
+                    _THREAD_NOTES,
+                    {"thread_id": str(dump_row.looking_at_id), "account_id": account_id},
+                )
+            ).all()
+            looking_at_notes = [n.text for n in reversed(note_rows) if n.theirs]
 
     return AnswerContext(
         question=question,
@@ -581,6 +683,11 @@ async def load_answer(
         may_search=bool(switches and switches.web_search_enabled),
         may_read_links=bool(switches and switches.web_links_enabled),
         country=(switches.country if switches else None),
+        today=today,
+        turns=[Turn(role=r.role, text=r.text) for r in reversed(turn_rows)],
+        country_override=country_override,
+        looking_at=looking_at,
+        looking_at_notes=looking_at_notes,
     )
 
 
@@ -601,3 +708,51 @@ async def question_text(conn: AsyncConnection, *, message_id: str) -> str | None
     """
     row = (await conn.execute(_QUESTION, {"message_id": message_id})).scalar()
     return row.strip() if isinstance(row, str) and row.strip() else None
+
+
+# ---------------------------------------------------------------- 018 questions
+
+_OPEN_QUESTION = text(
+    """
+    select q.id, q.field, q.text, q.options, q.state, m.text as asked_about
+    from questions q
+    left join messages m on m.id = q.message_id
+    where q.id = :question_id and q.account_id = :account_id
+    """
+)
+
+
+async def today_line(conn: AsyncConnection) -> str:
+    """What day it is, as the prompt says it."""
+    return str((await conn.execute(_TODAY)).scalar_one())
+
+
+@dataclass(frozen=True)
+class OpenQuestion:
+    id: str
+    field: str
+    text: str
+    options: list[dict]
+    #: What the person dumped that led to the question, for a country re-run.
+    asked_about: str | None
+
+
+async def open_question(
+    conn: AsyncConnection, *, question_id: str, account_id: str, require_open: bool = True
+) -> OpenQuestion | None:
+    """The question a typed message may be answering. Scoped to the account,
+    and by default only while it is open: a question closed on another device
+    is not one this message can answer. A country re-run reads an answered one."""
+    row = (
+        await conn.execute(_OPEN_QUESTION, {"question_id": question_id, "account_id": account_id})
+    ).first()
+    if row is None or (require_open and row.state != "open"):
+        return None
+    options = row.options if isinstance(row.options, list) else []
+    return OpenQuestion(
+        id=str(row.id),
+        field=row.field,
+        text=row.text,
+        options=[o for o in options if isinstance(o, dict)],
+        asked_about=row.asked_about,
+    )

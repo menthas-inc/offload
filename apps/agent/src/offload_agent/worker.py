@@ -10,11 +10,12 @@ API's internal endpoint, which is what keeps one writer.
 
 import asyncio
 import contextlib
+import dataclasses
 import re
 import signal
 import uuid
 from collections.abc import Awaitable, Callable
-from datetime import date
+from datetime import date, datetime
 
 import httpx
 import structlog
@@ -32,7 +33,15 @@ from offload_agent.countries import name_of
 from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
 from offload_agent.embed_jobs import handle_embed
-from offload_agent.harness.plan import Outcome, classify, plan, plan_answer, plan_quick_add
+from offload_agent.harness.plan import (
+    Judgement,
+    Outcome,
+    classify,
+    judge_answer,
+    plan,
+    plan_answer,
+    plan_quick_add,
+)
 from offload_agent.og import picture
 from offload_agent.queue import ClaimedJob, claim, release_for_retry
 
@@ -55,7 +64,7 @@ KINDS = ["dump.answer", "thread.quick_add", *EMBED_KINDS, *COMPACT_KINDS]
 
 async def _post_result(
     client: httpx.AsyncClient, cfg: Config, body: dict, *, path: str = "turn-result"
-) -> None:
+) -> dict | None:
     """Report the outcome, retrying the report itself.
 
     Worth its own retry rather than folding into the job's. By the time this is
@@ -74,7 +83,10 @@ async def _post_result(
                 timeout=30.0,
             )
             response.raise_for_status()
-            return
+            try:
+                return response.json() if response.content else None
+            except ValueError:
+                return None
         except httpx.HTTPStatusError as exc:  # noqa: PERF203
             # **A 4xx is the body being wrong, and retrying it is three of the
             # same refusal.** Worse, the reason never reached a log: a turn that
@@ -83,12 +95,9 @@ async def _post_result(
             # which holds what the turn filed.
             last = exc
             if exc.response.status_code < 500:
-                log.error(
-                    "result refused",
-                    status=exc.response.status_code,
-                    path=path,
-                    detail=str(exc.response.text)[:200],
-                )
+                # The status and the route, never the body: a validation
+                # error echoes what was sent, and what was sent is content.
+                log.error("result refused", status=exc.response.status_code, path=path)
                 break
             if attempt < 2:
                 await asyncio.sleep(0.5 * (attempt + 1))
@@ -677,6 +686,87 @@ def _camel(args: dict) -> dict:
     return out
 
 
+def _questions_wire(outcome: Outcome) -> list[dict]:
+    """018. What the turn asked back, camelCased for the Core API, which renders
+    the sentence and validates every value against the field."""
+    return [_camel(q) for q in outcome.questions]
+
+
+_DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_CLOCK = re.compile(r"^\d{2}:\d{2}$")
+
+
+def _parse_day(value: str | None, today: date | None) -> str | None:
+    """A YYYY-MM-DD day within a year of today, or nothing."""
+    if not value or not _DAY.match(value):
+        return None
+    try:
+        day = date.fromisoformat(value)
+    except ValueError:
+        return None
+    if today is not None and abs((day - today).days) > 366:
+        return None
+    return value
+
+
+def _today_date(today: str | None) -> date | None:
+    """The day the context names, back into a date. Formatted by the database
+    as 'Tuesday 15 September 2026'; anything else is simply unknown."""
+    if not today:
+        return None
+    try:
+        return datetime.strptime(today, "%A %d %B %Y").date()
+    except ValueError:
+        return None
+
+
+def parse_answer(
+    field: str, verdict: Judgement, options: list[dict], today: str | None
+) -> dict | None:
+    """018. The judge's value, checked for shape and sense in code.
+
+    A value that fails is not an answer, whatever the model said. Dates within a
+    year, a span in order, a tag or a country among the values offered.
+    """
+    if not verdict.answers:
+        return None
+    anchor = _today_date(today)
+    if field == "date":
+        day = _parse_day(verdict.day, anchor)
+        return {"day": day} if day else None
+    if field == "span":
+        start = _parse_day(verdict.day, anchor)
+        end = _parse_day(verdict.to, anchor) or start
+        if not start or not end or end < start:
+            return None
+        return {"from": start, "to": end}
+    if field == "time":
+        day = _parse_day(verdict.day, anchor)
+        clock = verdict.time if verdict.time and _CLOCK.match(verdict.time) else None
+        if not day or not clock:
+            return None
+        hours, minutes = clock.split(":")
+        if int(hours) > 23 or int(minutes) > 59:
+            return None
+        return {"day": day, "time": clock}
+    offered = {str(o.get("value")) for o in options if o.get("value") is not None}
+    if field == "tag":
+        return {"tag": verdict.tag} if verdict.tag and verdict.tag in offered else None
+    if field == "country":
+        code = (verdict.country or "").upper()
+        return {"country": code} if code and code in offered else None
+    return None
+
+
+def describe_value(field: str, value: dict) -> str:
+    """The value as the planner's block names it. Ours, never a page's."""
+    if field == "span":
+        return f"{value.get('from')} to {value.get('to')}"
+    if field == "time":
+        return f"{value.get('day')} at {value.get('time')}"
+    return str(next(iter(value.values()), ""))
+
+
 def _usage_wire(outcome: Outcome) -> list[dict]:
     return [
         {
@@ -786,7 +876,102 @@ async def handle(
         # threshold never shows it.
         await _step_writer(http, cfg, job.id)("Looking through your threads")
 
-        if asked:
+        # 018. A country picked with a tap. The question is already answered;
+        # this job re-runs the answer for the country they chose, read-only.
+        if payload.get("questionId") and payload.get("country"):
+            async with engine.connect() as conn:
+                picked = await ctx_mod.open_question(
+                    conn,
+                    question_id=str(payload["questionId"]),
+                    account_id=job.account_id,
+                    require_open=False,
+                )
+            await _handle_answer(
+                job,
+                question=(picked.asked_about if picked and picked.asked_about else asked or ""),
+                cfg=cfg,
+                engine=engine,
+                anthropic=anthropic,
+                http=http,
+                country_override=str(payload["country"]),
+            )
+            return
+
+        # 018. A typed message while a question is open is read as a possible
+        # answer first, on the text and the question alone, before the
+        # classifier. A message is never consumed by it: whatever it carries
+        # beyond the answer files below.
+        answered: dict | None = None
+        open_id = payload.get("openQuestionId")
+        if open_id and asked:
+            async with engine.connect() as conn:
+                open_q = await ctx_mod.open_question(
+                    conn, question_id=str(open_id), account_id=job.account_id
+                )
+                today = await ctx_mod.today_line(conn)
+            if open_q is not None:
+                try:
+                    verdict = await judge_answer(
+                        anthropic,
+                        asked,
+                        field=open_q.field,
+                        question=open_q.text,
+                        options=open_q.options,
+                        today=today,
+                        model=cfg.sort_model,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    # Not an answer, then. The question closes and the dump
+                    # files; nothing is lost. The type only (OFF-1).
+                    log.warning("judge failed", error_type=type(exc).__name__)
+                    verdict = Judgement(answers=False)
+                value = parse_answer(open_q.field, verdict, open_q.options, today)
+                if value is None:
+                    await _post_result(
+                        http, cfg, {"jobId": job.id, "questionId": open_q.id}, path="question-close"
+                    )
+                    log.info("question closed", field=open_q.field, how="typed")
+                elif open_q.field == "country":
+                    await _post_result(
+                        http,
+                        cfg,
+                        {"jobId": job.id, "questionId": open_q.id, "value": value},
+                        path="question-answer",
+                    )
+                    log.info("question answered", field=open_q.field, how="typed")
+                    await _handle_answer(
+                        job,
+                        question=open_q.asked_about or asked,
+                        cfg=cfg,
+                        engine=engine,
+                        anthropic=anthropic,
+                        http=http,
+                        country_override=value["country"],
+                    )
+                    return
+                else:
+                    result = await _post_result(
+                        http,
+                        cfg,
+                        {"jobId": job.id, "questionId": open_q.id, "value": value},
+                        path="question-answer",
+                    )
+                    applied = bool(result and result.get("applied"))
+                    log.info("question answered", field=open_q.field, how="typed", applied=applied)
+                    if applied and verdict.whole:
+                        # The message was nothing but the answer. Settled with no
+                        # reply: the row's change is what they see.
+                        await _post_result(
+                            http, cfg, {"outcome": "answered", "jobId": job.id, "usage": []}
+                        )
+                        return
+                    if applied:
+                        answered = {
+                            "field": open_q.field,
+                            "label": describe_value(open_q.field, value),
+                        }
+
+        if asked and answered is None:
             verdict = await classify(anthropic, asked, cfg.sort_model)
             if verdict.asking and verdict.confident:
                 await _handle_answer(
@@ -815,6 +1000,8 @@ async def handle(
             )
             return
 
+        if answered is not None:
+            loaded = dataclasses.replace(loaded, answered=answered)
         fitted = ctx_mod.fit(loaded, cfg.max_prompt_tokens)
         budget = Lookups(
             fitted.dump,
@@ -891,6 +1078,7 @@ async def handle(
                 "outcome": "answered",
                 "jobId": job.id,
                 **({"replyText": outcome.reply} if outcome.reply else {}),
+                **({"questions": _questions_wire(outcome)} if outcome.questions else {}),
                 # What the turn read, and what kind of lookup it was. They ride
                 # home here rather than through an endpoint of their own,
                 # because the reader writes nothing and one fewer route is one
@@ -1266,6 +1454,7 @@ async def _handle_answer(
     engine,
     anthropic: AsyncAnthropic,
     http: httpx.AsyncClient,
+    country_override: str | None = None,
 ) -> None:
     """A question. Reads, answers, files nothing.
 
@@ -1283,18 +1472,23 @@ async def _handle_answer(
 
     try:
         async with engine.connect() as conn:
-            ctx = await ctx_mod.load_answer(
+            loaded = await ctx_mod.load_answer(
                 conn,
                 account_id=job.account_id,
                 question=question,
                 max_threads=cfg.max_threads,
+                conversation_id=str(job.payload.get("conversationId") or "") or None,
+                message_id=str(job.payload.get("messageId") or "") or None,
+                max_turns=cfg.max_turns,
+                country_override=country_override,
             )
+        ctx = ctx_mod.fit_answer(loaded, cfg.max_prompt_tokens)
 
         budget = Lookups(
             question,
             may_search=ctx.may_search,
             may_read_links=ctx.may_read_links,
-            country=ctx.country,
+            country=ctx.country_in_effect,
             today=ctx.today,
         )
         caller = _tool_caller(
@@ -1326,6 +1520,7 @@ async def _handle_answer(
                 # when it is read, so a row ticked or deleted later is never
                 # stale in an old answer.
                 "found": outcome.found,
+                **({"questions": _questions_wire(outcome)} if outcome.questions else {}),
             },
         )
         log.info(

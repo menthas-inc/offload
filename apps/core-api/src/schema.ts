@@ -654,6 +654,32 @@ export interface MessageChunksTable {
 
 /** Which rows an answer showed. Ids only: the reply resolves them at read time,
  *  so a row ticked or deleted elsewhere is never stale in an old reply. */
+/** 018. A question offload asked back, stored with the turn. Templates and
+ *  values only: nothing in a row was written by a person or by a page. */
+export interface QuestionsTable {
+  id: Generated<string>;
+  account_id: string;
+  conversation_id: string;
+  /** The person's message the turn was about; the control hangs off it. */
+  message_id: string;
+  turn_id: string;
+  ordinal: number;
+  field: "date" | "span" | "time" | "tag" | "country";
+  target_content_id: string | null;
+  target_note_id: string | null;
+  text: string;
+  /** [{label, value}], the escape carrying a null value. */
+  options: ColumnType<unknown, string, string>;
+  state: Generated<"pending" | "open" | "answered" | "closed">;
+  answered_option: number | null;
+  answered_message_id: string | null;
+  answer_turn_id: string | null;
+  previous_value: ColumnType<unknown, string | null, string | null>;
+  derived_from_untrusted: Generated<boolean>;
+  created_at: Timestamp;
+  settled_at: Timestamp | null;
+}
+
 export interface MessageContentTable {
   message_id: string;
   content_id: string;
@@ -710,6 +736,7 @@ export interface Database {
   note_chunks: NoteChunksTable;
   message_chunks: MessageChunksTable;
   message_content: MessageContentTable;
+  questions: QuestionsTable;
 
   readable_content: ContentTable & { viewer_account_id: string };
   readable_notes: NotesTable & { viewer_account_id: string };

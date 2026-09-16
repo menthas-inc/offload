@@ -12,6 +12,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
+import { invitation } from "../../lib/dump";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { useConversation } from "./conversation-context";
@@ -62,7 +63,10 @@ export function Composer({
   submitLabel?: string;
 }) {
   const COLOR = useColors();
-  const { draft, setDraft, submit, pin, onScreen } = useConversation();
+  const { draft, setDraft, submit, pin, onScreen, openQuestion } = useConversation();
+  // 018. Precedence: a pinned `+` field is never taken over, then the open
+  // question, then whatever the screen asked for, then the cycling set.
+  const asked = !pin && openQuestion ? invitation(openQuestion) : null;
   const [height, setHeight] = useState(0);
   const [which, setWhich] = useState(0);
   const field = useRef<TextInput>(null);
@@ -82,10 +86,10 @@ export function Composer({
   }, [pin]);
 
   useEffect(() => {
-    if (placeholder || draft.length > 0) return;
+    if (placeholder || asked || draft.length > 0) return;
     const timer = setInterval(() => setWhich((n) => (n + 1) % PLACEHOLDERS.length), 10_000);
     return () => clearInterval(timer);
-  }, [placeholder, draft.length]);
+  }, [placeholder, asked, draft.length]);
 
   const has = draft.trim().length > 0;
   const tall = height > 30;
@@ -119,7 +123,10 @@ export function Composer({
           onChangeText={setDraft}
           multiline
           maxLength={maxLength}
-          placeholder={placeholder ?? PLACEHOLDERS[which]}
+          placeholder={asked ?? placeholder ?? PLACEHOLDERS[which]}
+          // The field's name stays put while the placeholder holds a question;
+          // the question is announced through the conversation's own turns.
+          accessibilityLabel="Dump anything"
           placeholderTextColor={COLOR.iconOnWell}
           onContentSizeChange={(event) =>
             setHeight(Math.min(event.nativeEvent.contentSize.height, MAX_HEIGHT))

@@ -27,7 +27,8 @@ import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
 import { streamStep } from "../src/routes/dumps.js";
 import { handlers, PURGE_CEILING } from "../src/jobs/handlers.js";
-import { undoTurn } from "../src/routes/dumps.js";
+import { answerQuestion, takeDump, undoTurn } from "../src/routes/dumps.js";
+import { questionsFor } from "../src/questions.js";
 import { MAX_TOOL_CALLS } from "../src/routes/tools.js";
 import { uuidv7 } from "../src/uuid.js";
 
@@ -1442,5 +1443,269 @@ describe("a dumped link keeps its link", () => {
       .where("id", "=", row.id)
       .executeTakeFirstOrThrow();
     expect(after.url).toBe("https://example.com/a");
+  });
+});
+
+describe("018 asking back", () => {
+
+  async function filedTask(accountId: string, threadId: string, jobId: string, title: string) {
+    const res = await tool({ tool: "add_content", type: "task", jobId, toolCallId: `ask-${title}`, threadId, title });
+    return (res.json() as { contentId: string }).contentId;
+  }
+
+  async function question(accountId: string, turnId: string) {
+    return db
+      .selectFrom("questions")
+      .selectAll()
+      .where("turn_id", "=", turnId)
+      .where("account_id", "=", accountId)
+      .orderBy("ordinal")
+      .execute();
+  }
+
+  it("stores a question the turn asked, rendered from a template, with the way out last", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, messageId, turnId } = await dump(accountId, "buy a birthday gift for Ana");
+    const contentId = await filedTask(accountId, threadId, jobId, "Buy a birthday gift for Ana");
+
+    const posted = await turnResult({
+      outcome: "answered",
+      jobId,
+      usage: [usage],
+      questions: [
+        {
+          field: "date",
+          title: "Buy a birthday gift for Ana",
+          contentId,
+          options: [
+            { label: "This week", value: "2026-09-20" },
+            { label: "This month", value: "2026-09-30" },
+          ],
+        },
+      ],
+    });
+    expect(posted.json()).toEqual({ status: "written" });
+
+    const rows = await question(accountId, turnId);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.state).toBe("open");
+    expect(rows[0]!.text).toBe('Filed "Buy a birthday gift for Ana". By when?');
+    expect(rows[0]!.target_content_id).toBe(contentId);
+    const options = rows[0]!.options as { label: string; value: string | null }[];
+    expect(options.map((o) => o.label)).toEqual(["20 September", "30 September", "Not that"]);
+    expect(options[2]!.value).toBeNull();
+
+    // On the wire: labels and kinds, never values.
+    const read = await app.inject({ method: "GET", url: `/v1/messages/${messageId}` });
+    // Unauthenticated here; the envelope shape is covered through the helper.
+    expect(read.statusCode).toBe(401);
+    const wire = (await questionsFor(accountId, [messageId])).get(messageId);
+    expect(wire?.options).toEqual([
+      { label: "20 September", kind: "value" },
+      { label: "30 September", kind: "value" },
+      { label: "Not that", kind: "plain" },
+    ]);
+    expect(JSON.stringify(wire)).not.toContain("2026-09-20");
+  });
+
+  it("drops the whole list when one question names a row the turn did not file, and the turn still settles", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const other = await dump(accountId, "something earlier");
+    const foreign = await filedTask(accountId, threadId, other.jobId, "Earlier row");
+    const { jobId, messageId, turnId } = await dump(accountId, "call the landlord");
+
+    const posted = await turnResult({
+      outcome: "answered",
+      jobId,
+      usage: [usage],
+      questions: [{ field: "date", title: "Call the landlord", contentId: foreign, options: [] }],
+    });
+    expect(posted.json()).toEqual({ status: "written" });
+    expect(await question(accountId, turnId)).toEqual([]);
+    const person = await db.selectFrom("messages").select("state").where("id", "=", messageId).executeTakeFirstOrThrow();
+    expect(person.state).toBe("answered");
+  });
+
+  it("refuses a tag question with one value, a country question on a filing turn, and a repeated post does not double", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Music");
+    const { jobId, turnId } = await dump(accountId, "a song");
+    const contentId = await filedTask(accountId, threadId, jobId, "A song");
+
+    await turnResult({
+      outcome: "answered",
+      jobId,
+      usage: [usage],
+      questions: [{ field: "tag", title: "A song", contentId, options: [{ label: "Jazz", value: "genre:jazz" }] }],
+    });
+    expect(await question(accountId, turnId)).toEqual([]);
+
+    const again = await dump(accountId, "another song");
+    const second = await filedTask(accountId, threadId, again.jobId, "Another song");
+    await turnResult({
+      outcome: "answered",
+      jobId: again.jobId,
+      usage: [usage],
+      questions: [{ field: "country", title: "x", options: [{ label: "US", value: "US" }, { label: "TR", value: "TR" }] }],
+    });
+    expect(await question(accountId, again.turnId)).toEqual([]);
+
+    // The dimension has to be the thread's: a note of theirs names it.
+    await db
+      .insertInto("notes")
+      .values({ account_id: accountId, scope: "thread", subject_id: threadId, kind: "standing", origin: "stated", text: "Organised by genre" })
+      .execute();
+    const third = await dump(accountId, "a third song");
+    const row = await filedTask(accountId, threadId, third.jobId, "A third song");
+    const body = {
+      outcome: "answered",
+      jobId: third.jobId,
+      usage: [usage],
+      questions: [{ field: "tag", title: "A third song", contentId: row, options: [{ label: "Jazz", value: "genre:jazz" }, { label: "Folk", value: "genre:folk" }] }],
+    };
+    await turnResult(body);
+    await turnResult(body);
+    const rows = await question(accountId, third.turnId);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.text).toBe('Filed "A third song". Which genre?');
+    expect(second).toBeTruthy();
+  });
+
+  it("a tap fills the one field on the one row, writes the person's words, and a second tap is refused", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, turnId, conversationId } = await dump(accountId, "buy a birthday gift for Ana");
+    const contentId = await filedTask(accountId, threadId, jobId, "Buy a birthday gift for Ana");
+    await turnResult({
+      outcome: "answered",
+      jobId,
+      usage: [usage],
+      questions: [{ field: "date", title: "Buy a birthday gift for Ana", contentId, options: [{ label: "This week", value: "2026-09-20" }, { label: "This month", value: "2026-09-30" }] }],
+    });
+    const [q] = await question(accountId, turnId);
+
+    const first = await answerQuestion(accountId, q!.id, 1);
+    expect(first?.applied).toBe(true);
+    expect(first?.envelope.state).toBe("answered");
+    expect(first?.envelope.conversationId).toBe(conversationId);
+
+    const row = await db.selectFrom("content").select(["due_at", "occurs_at", "title"]).where("id", "=", contentId).executeTakeFirstOrThrow();
+    expect(row.due_at?.toISOString().slice(0, 10)).toBe("2026-09-30");
+    expect(row.occurs_at).toBeNull();
+    expect(row.title).toBe("Buy a birthday gift for Ana");
+
+    const words = await db.selectFrom("messages").select(["text", "role", "state"]).where("id", "=", first!.envelope.messageId).executeTakeFirstOrThrow();
+    expect(words).toEqual({ text: "30 September", role: "person", state: "answered" });
+
+    expect(await answerQuestion(accountId, q!.id, 0)).toBeNull();
+    const after = await db.selectFrom("questions").select(["state", "answered_option", "previous_value"]).where("id", "=", q!.id).executeTakeFirstOrThrow();
+    expect(after.state).toBe("answered");
+    expect(after.answered_option).toBe(1);
+
+    // Undo of the answer's turn puts the previous value back; the question stays answered.
+    const undone = await undoTurn(accountId, first!.envelope.turnId);
+    expect(undone).toEqual({ undone: true });
+    const restored = await db.selectFrom("content").select("due_at").where("id", "=", contentId).executeTakeFirstOrThrow();
+    expect(restored.due_at).toBeNull();
+    const still = await db.selectFrom("questions").select("state").where("id", "=", q!.id).executeTakeFirstOrThrow();
+    expect(still.state).toBe("answered");
+  });
+
+  it("Not that closes the question, writes the words, and changes nothing; a set field closes too", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, turnId } = await dump(accountId, "meeting with the landlord");
+    const contentId = await filedTask(accountId, threadId, jobId, "Meeting with the landlord");
+    await turnResult({
+      outcome: "answered",
+      jobId,
+      usage: [usage],
+      questions: [
+        { field: "time", title: "Meeting with the landlord", contentId, options: [{ label: "Thu 10:00", value: "2026-09-17T10:00" }, { label: "Fri 10:00", value: "2026-09-18T10:00" }] },
+        { field: "date", title: "Meeting with the landlord", contentId, options: [] },
+      ],
+    });
+    const rows = await question(accountId, turnId);
+    expect(rows.map((r) => r.state)).toEqual(["open", "pending"]);
+
+    const escaped = await answerQuestion(accountId, rows[0]!.id, 2);
+    expect(escaped?.escape).toBe(true);
+    expect(escaped?.applied).toBe(false);
+    const row = await db.selectFrom("content").select("occurs_at").where("id", "=", contentId).executeTakeFirstOrThrow();
+    expect(row.occurs_at).toBeNull();
+
+    // The second question opens once the first settled by any path.
+    const after = await question(accountId, turnId);
+    expect(after.map((r) => r.state)).toEqual(["closed", "open"]);
+
+    // A field set by hand since: the tap closes and changes nothing.
+    await db.updateTable("content").set({ due_at: new Date("2026-10-01T00:00:00Z") }).where("id", "=", contentId).execute();
+    const late = await answerQuestion(accountId, after[1]!.id, 0);
+    expect(late?.applied).toBe(false);
+    const kept = await db.selectFrom("content").select("due_at").where("id", "=", contentId).executeTakeFirstOrThrow();
+    expect(kept.due_at?.toISOString().slice(0, 10)).toBe("2026-10-01");
+  });
+
+  it("undo of the asking turn closes its question, and a typed answer applies through the internal route", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "EU with fam");
+    const { jobId, turnId, conversationId } = await dump(accountId, "https://airbnb.com/rooms/1");
+    const contentId = await filedTask(accountId, threadId, jobId, "Alfama flat");
+    await turnResult({
+      outcome: "answered",
+      jobId,
+      usage: [usage],
+      questions: [{ field: "span", title: "Alfama flat", contentId, options: [] }],
+    });
+    const [q] = await question(accountId, turnId);
+    expect((q!.options as unknown[]).length).toBe(1);
+
+    // A later dump in the same conversation carries the open question and answers it.
+    const typed = await dump(accountId, "10 to 12 October");
+    await db.updateTable("messages").set({ conversation_id: conversationId }).where("id", "=", typed.messageId).execute();
+    const answered = await app.inject({
+      method: "POST",
+      url: "/internal/v1/question-answer",
+      headers: { authorization: `Bearer ${env.INTERNAL_SERVICE_TOKEN}` },
+      payload: { jobId: typed.jobId, questionId: q!.id, value: { from: "2026-10-10", to: "2026-10-12" } },
+    });
+    // The job's conversation must match the question's; the test dump made its own.
+    expect(answered.json()).toEqual({ applied: false });
+
+    await db.updateTable("jobs").set({ payload: JSON.stringify({ messageId: typed.messageId, conversationId, turnId: typed.turnId }) }).where("id", "=", typed.jobId).execute();
+    const applied = await app.inject({
+      method: "POST",
+      url: "/internal/v1/question-answer",
+      headers: { authorization: `Bearer ${env.INTERNAL_SERVICE_TOKEN}` },
+      payload: { jobId: typed.jobId, questionId: q!.id, value: { from: "2026-10-10", to: "2026-10-12" } },
+    });
+    expect(applied.json()).toEqual({ applied: true });
+    const row = await db.selectFrom("content").select(["occurs_at", "occurs_end_at"]).where("id", "=", contentId).executeTakeFirstOrThrow();
+    expect(row.occurs_at?.toISOString().slice(0, 10)).toBe("2026-10-10");
+    expect(row.occurs_end_at?.toISOString().slice(0, 10)).toBe("2026-10-12");
+
+    // Undo of the asking turn removes the row and closes what it asked.
+    const fresh = await dump(accountId, "book the flight");
+    const flight = await filedTask(accountId, threadId, fresh.jobId, "Book the flight");
+    await turnResult({ outcome: "answered", jobId: fresh.jobId, usage: [usage], questions: [{ field: "date", title: "Book the flight", contentId: flight, options: [] }] });
+    await undoTurn(accountId, fresh.turnId);
+    const closed = await question(accountId, fresh.turnId);
+    expect(closed[0]!.state).toBe("closed");
+  });
+
+  it("closes an open question when the next dump starts a new conversation", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const { jobId, turnId, conversationId } = await dump(accountId, "renew passport");
+    const contentId = await filedTask(accountId, threadId, jobId, "Renew passport");
+    await turnResult({ outcome: "answered", jobId, usage: [usage], questions: [{ field: "date", title: "Renew passport", contentId, options: [] }] });
+    await db.updateTable("conversations").set({ last_message_at: sql`now() - interval '7 hours'` }).where("id", "=", conversationId).execute();
+
+    const next = await takeDump(accountId, "milk");
+    expect(next.conversationId).not.toBe(conversationId);
+    const [q] = await question(accountId, turnId);
+    expect(q!.state).toBe("closed");
   });
 });

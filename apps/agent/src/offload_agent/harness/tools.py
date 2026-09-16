@@ -43,9 +43,7 @@ _DATE_ISH = re.compile(
     r"(Z|[+-]\d{2}:?\d{2})?$"
 )
 
-ContentType = Literal[
-    "link", "image", "screenshot", "voice", "file", "task", "event", "location"
-]
+ContentType = Literal["link", "image", "screenshot", "voice", "file", "task", "event", "location"]
 
 
 class CreateThread(BaseModel):
@@ -544,6 +542,7 @@ ANSWER_CALENDAR_TOOL_DEFS = [
     for name in ("list_calendars", "find_events")
 ]
 
+
 class Say(BaseModel):
     """Tell them something. Only when there is something to tell."""
 
@@ -654,14 +653,61 @@ _DESCRIPTIONS["look_up"] = (
     "fields you need back, from: date, time, place, dates_range, title, "
     "artist, price, hours, forecast, fact. `doing` is one short line shown to "
     "them while this runs: what you are finding out, in your own voice, no tool "
-    "names and no company names. \"Checking when the tip closes\", \"Looking "
-    "up Memorial day\"."
+    'names and no company names. "Checking when the tip closes", "Looking '
+    'up Memorial day".'
 )
 
 LOOK_UP_TOOL = {
     "name": "look_up",
     "description": _DESCRIPTIONS["look_up"],
     "input_schema": _schema_for(LookUp),
+}
+
+TOOL_NAMES = frozenset(SCHEMAS)
+
+
+# 018. Asking back: one field the row needs and nothing gave.
+#
+# **Values, not words.** Each option is a value the server applies on its own,
+# and the label is offload's wording of it. The sentence is a template the
+# server renders per field, so the model supplies only the field, the row's own
+# title and the values. There is no free text anywhere in a question, which is
+# what keeps a note in a shared thread from speaking in offload's voice.
+class AskOption(BaseModel):
+    #: The value, in the field's form. The server words the label from it, so
+    #: nothing written here is ever read by a person.
+    value: str = Field(min_length=1, max_length=40)
+    label: str | None = Field(default=None, max_length=24)
+
+
+class Ask(BaseModel):
+    """Ask them for one field the row you just filed needs."""
+
+    field: Literal["date", "span", "time", "tag", "country"]
+    #: The row's own title, echoed into the template. Never a sentence.
+    title: str = Field(min_length=1, max_length=60)
+    #: The row the answer fills, from the contentId a filing returned.
+    #: Absent only for country, which fills nothing.
+    content_id: str | None = None
+    #: Up to four values. A date or a span with nothing to offer sends none;
+    #: the way out is added by the server.
+    options: list[AskOption] = Field(default_factory=list, max_length=4)
+
+
+SCHEMAS["ask"] = Ask
+_DESCRIPTIONS["ask"] = (
+    "Ask them for one field the row you just filed needs and nothing gave "
+    "you: its dates, its by-when, its day and time, or the tag this thread "
+    "groups by. Name the row by the contentId the filing returned. Offer up "
+    "to four values as options, or none when nothing can offer one; the "
+    "wording of each option is written for you from its value. Never a "
+    "question about what they meant, what kind of row it is, or where it "
+    "goes. Once per field per row, and at most twice in a turn."
+)
+ASK_TOOL = {
+    "name": "ask",
+    "description": _DESCRIPTIONS["ask"],
+    "input_schema": _schema_for(Ask),
 }
 
 TOOL_NAMES = frozenset(SCHEMAS)

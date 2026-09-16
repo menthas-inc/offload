@@ -543,8 +543,122 @@
   cursor: pointer;
 }
 
-.waitingConfirm:disabled,
-.waitingDecline:disabled { opacity: 0.6; cursor: default; }
+/* No opacity fade: the disabled aliases, as the system says. */
+.waitingConfirm:disabled {
+  background: var(--state-disabled-surface);
+  color: var(--state-disabled-text);
+  cursor: default;
+}
+
+.waitingDecline:disabled {
+  color: var(--state-disabled-text);
+  cursor: default;
+}
+
+/* 018. A question offload asked back, inside the bubble like the proposal
+   above. The sentence is a line in offload's own voice; the chips are values. */
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.turnOffload .question:not(:first-child) {
+  margin-top: var(--space-4);
+}
+
+.questionLine {
+  margin: 0;
+  font-size: calc(16px * var(--type-scale));
+  line-height: 1.5;
+}
+
+/* One clause and the chips are the retry, as the calendar control does it. */
+.questionFailed {
+  margin: 0;
+  font-size: calc(13px * var(--type-scale));
+  line-height: 1.4;
+  color: var(--text-danger);
+}
+
+.quickReplyRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+/* The Chip contract: the button is the 44 hit area and paints nothing; the
+   pill inside is drawn at the chip height with a strong border because it is
+   a control, ink on hover, and a label that never wraps, which is what the 24
+   character cap is for. */
+.quickReply {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-family: var(--font-core);
+  font-size: calc(15px * var(--type-scale));
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.quickReplyPill {
+  display: inline-flex;
+  align-items: center;
+  height: var(--chip-h);
+  padding: 0 var(--space-6);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--paper);
+  white-space: nowrap;
+  transition: background var(--transition-ui), transform var(--transition-ui);
+}
+
+.quickReply:hover:not(:disabled) .quickReplyPill {
+  background: var(--state-hover);
+}
+
+.quickReply:active:not(:disabled) .quickReplyPill {
+  transform: scale(var(--press-scale));
+}
+
+.quickReply:disabled {
+  color: var(--state-disabled-text);
+  cursor: default;
+}
+
+.quickReply:disabled .quickReplyPill {
+  border-color: var(--state-disabled-surface);
+  background: var(--state-disabled-surface);
+}
+
+/* The way out: plain, last, the same weight as the calendar's Not now. */
+.quickReplyPlain {
+  min-height: var(--tap-min);
+  padding: 0 var(--space-3);
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-family: var(--font-core);
+  font-size: calc(15px * var(--type-scale));
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.quickReplyPlain:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+.quickReplyPlain:disabled {
+  color: var(--state-disabled-text);
+  cursor: default;
+}
 
 .waitingDecline {
   min-height: var(--tap-min);

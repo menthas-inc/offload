@@ -18,6 +18,8 @@ import Link from "next/link";
 import {
   awaitAnswer,
   answerPending,
+  answerQuestion,
+  invitation,
   DumpTooLong,
   endConversation,
   fetchCurrent,
@@ -29,8 +31,11 @@ import {
   type FoundResult,
   type FoundRow,
   type MessageState,
+  type QuestionOnWire,
+  type Sent,
   type TouchedThread,
 } from "../../lib/dump";
+import { QuickReplies } from "./QuickReplies";
 import { Icon } from "../Icon";
 import { TurnFooter, type TurnSource } from "./TurnFooter";
 import { AnswerResults } from "./AnswerResult";
@@ -68,6 +73,10 @@ interface Turn {
    *  carries the control that answers it, for the same reason it carries its
    *  own thread links and its own retry: a sentence cannot be clicked. */
   waiting?: { id: string; because: string } | null;
+  /** 018. The question this turn asked back, on the message that was sent,
+   *  while it is open. Drawn inside the reply's bubble when there is one and
+   *  in a bubble of its own when the turn filed silently. */
+  question?: QuestionOnWire | null;
   /** Whether the turn actually did something, as opposed to answering.
    *
    *  From the same record the reply's links come from, never from the reply
@@ -170,6 +179,7 @@ export function Composer({
           // a web bug rather than a server one.
           found: message.found,
           waiting: message.waiting,
+          question: message.question ?? null,
           // **And the footer.** Same sentence as the two above: the server has
           // always resolved these on the other two reads, and a reload emptied
           // every settled turn's footer without them. `did` comes from the
@@ -226,8 +236,10 @@ export function Composer({
                   // said anything, and the reply no longer draws them.
                   threads: answer.threads,
                   sources: answer.sources,
+                  question: answer.question ?? null,
                 }
-              : turn,
+              : // 018. The next turn closes the last question whatever it says.
+                { ...turn, question: null },
           );
           return answer.reply
             ? [
@@ -315,7 +327,10 @@ export function Composer({
       const sent = await sendDump(text, clientKey, inThread?.id);
       setDraft("");
       setTurns((current) => [
-        ...current,
+        // 018. Chips leave with the next turn. The server decides whether the
+        // words answered the question; the screen only knows it is no longer
+        // open for a tap.
+        ...current.map((turn) => (turn.question ? { ...turn, question: null } : turn)),
         {
           id: sent.messageId,
           from: "you",
@@ -454,6 +469,46 @@ export function Composer({
    *  is in the condition and not just `did`: a partial turn that filed one row
    *  wore a Done mark and "Didn't finish that one." at the same time, which is
    *  the screen contradicting itself. */
+  // 018. One open question per conversation, and it owns the placeholder.
+  const openQuestion = turns.find((turn) => turn.question)?.question ?? null;
+
+  /** A tap answered, or was refused. Either way the chips go; when the server
+   *  wrote the person's words as a turn, that turn appears, and a country
+   *  re-run is waited for exactly as a dump is. */
+  function answeredQuestion(
+    turn: Turn,
+    sent: Sent | null,
+    option: { label: string; kind: "value" | "plain" },
+  ): void {
+    const question = turn.question;
+    setTurns((current) => {
+      const cleared = current.map((t) => (t.id === turn.id ? { ...t, question: null } : t));
+      if (!sent) return cleared;
+      return [
+        ...cleared,
+        {
+          id: sent.messageId,
+          from: "you" as const,
+          text: option.label,
+          state: sent.state,
+          turnId: sent.turnId,
+          since: Date.now(),
+          // The turn's second question, if the first had one behind it.
+          question: sent.question ?? null,
+        },
+      ];
+    });
+    if (!sent) return;
+    if (sent.state === "seen") watch(sent.messageId, sent.turnId);
+    // The way out changed nothing, so nothing reloads and nothing is undone.
+    if (option.kind !== "value") return;
+    // A value landed on a row somewhere. An empty list is "something changed,
+    // work out what", the same signal Undo sends. And the eight seconds: the
+    // answer is a turn of its own, and Undo puts the field back.
+    onFiled([]);
+    if (question?.field !== "country") offerUndo(sent.turnId, option.label);
+  }
+
   const footerFor = (turn: Turn) => ({
     state: turn.state === "answered" && turn.did ? ("done" as const) : null,
     refs: turn.threads ?? [],
@@ -572,6 +627,17 @@ export function Composer({
                   here regardless, the sources for an answer sat above the answer
                   they were sources for. So a turn with a reply hangs its footer
                   off that instead, further down. */}
+              {/* 018. A turn that filed silently and asked back has no reply
+                  bubble to hold the question, so the question gets one of its
+                  own: offload's sentence and the chips, nothing else. Above
+                  the footer, because the footer closes the turn. */}
+              {!replies.has(turn.id) && turn.question ? (
+                <div className={styles.turn}>
+                  <div className={styles.turnOffload}>
+                    <Question turn={turn} onAnswered={answeredQuestion} />
+                  </div>
+                </div>
+              ) : null}
               {!replies.has(turn.id) ? <TurnFooter {...footerFor(turn)} /> : null}
               </Fragment>
             ) : (
@@ -594,6 +660,11 @@ export function Composer({
                       )
                     }
                   />
+                ) : null}
+                {/* 018. The question, under the sentence and after any
+                    proposal, which keeps its own life. */}
+                {answered.get(turn.id)?.question ? (
+                  <Question turn={answered.get(turn.id)!} onAnswered={answeredQuestion} />
                 ) : null}
                 {/* The pills used to be here, inside the reply. They are in
                     the turn's footer now, with the Done mark and the sources,
@@ -624,9 +695,11 @@ export function Composer({
           <p className={styles.srOnly} role="status" aria-live="polite">
             {waiting
               ? "offload is thinking"
-              : turns.at(-1)?.from === "offload"
-                ? "offload answered"
-                : ""}
+              : openQuestion
+                ? "offload asked something"
+                : turns.at(-1)?.from === "offload"
+                  ? "offload answered"
+                  : ""}
           </p>
 
           {waiting ? <Working step={step} since={inFlight?.since ?? null} onStop={stop} /> : null}
@@ -651,7 +724,7 @@ export function Composer({
               void submit();
             }
           }}
-          placeholder="Dump anything"
+          placeholder={openQuestion ? invitation(openQuestion) : "Dump anything"}
           aria-label="Dump anything"
           disabled={sending}
         />
@@ -717,6 +790,60 @@ function conversationTitle(turns: Turn[]): string {
  *  **Names who finds out and nothing else.** The two controls beside it are the
  *  answer to "why is it asking", so a paragraph explaining would be offload
  *  diagnosing itself, which it does not do. */
+/** 018. A question offload asked back: its sentence, and the chips that
+ *  answer it. The sentence is plain text, never markup: it was composed from
+ *  a template and a title, and a title has no business becoming a link. */
+function Question({
+  turn,
+  onAnswered,
+}: {
+  turn: Turn;
+  onAnswered: (turn: Turn, sent: Sent | null, option: { label: string; kind: "value" | "plain" }) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [failedToSend, setFailedToSend] = useState(false);
+  const question = turn.question;
+  if (!question) return null;
+
+  async function pick(index: number) {
+    if (busy || !question) return;
+    const option = question.options[index];
+    if (!option) return;
+    setBusy(true);
+    setFailedToSend(false);
+    try {
+      const { status, sent } = await answerQuestion(question.id, index);
+      // 404 means closed, answered elsewhere or gone: the chips leave and
+      // there is nothing to retry. Anything else that failed is the network
+      // or the server, and the chips stay beside the line that offers again.
+      if (!sent && status !== 404) {
+        setFailedToSend(true);
+        return;
+      }
+      onAnswered(turn, sent, option);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className={styles.question}>
+      <p className={styles.questionLine}>{question.text}</p>
+      {failedToSend ? (
+        <p className={styles.questionFailed} role="alert">
+          That did not go through. Try again.
+        </p>
+      ) : null}
+      <QuickReplies
+        options={question.options}
+        label={question.text}
+        onPick={(index) => void pick(index)}
+        disabled={busy}
+      />
+    </div>
+  );
+}
+
 function Waiting({
   waiting,
   onAnswered,

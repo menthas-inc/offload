@@ -1,0 +1,760 @@
+{
+  "cases": [
+    {
+      "id": "task-groceries",
+      "kind": "file",
+      "why": "2: three tasks, no dates",
+      "question": "milk, eggs, basil",
+      "asks": "none",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "looking_at": "00000002-0000-0000-0000-000000000000"
+    },
+    {
+      "id": "task-feature",
+      "kind": "file",
+      "why": "4: a feature request in an app thread",
+      "question": "add multi-line input to my app",
+      "asks": "none",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "looking_at": "00000010-0000-0000-0000-000000000000"
+    },
+    {
+      "id": "task-flight",
+      "kind": "file",
+      "why": "17: the trip's dates are not the flight's",
+      "question": "book the flight",
+      "asks": "none",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "notes": {
+        "00000011-0000-0000-0000-000000000000": [
+          "Istanbul 10th to 12th October"
+        ]
+      }
+    },
+    {
+      "id": "read-airbnb-notes",
+      "kind": "file",
+      "why": "6: the dates come from the notes",
+      "question": "https://www.airbnb.com/rooms/12345678",
+      "asks": "none",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "notes": {
+        "00000011-0000-0000-0000-000000000000": [
+          "Istanbul 10th to 12th October"
+        ]
+      }
+    },
+    {
+      "id": "read-ana-dates",
+      "kind": "file",
+      "why": "11: a fact about somebody else's dates is a note",
+      "question": "Ana can only travel 14th to 17th",
+      "asks": "none",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "looking_at": "00000011-0000-0000-0000-000000000000"
+    },
+    {
+      "id": "read-reference",
+      "kind": "file",
+      "why": "18: a reference it cannot resolve is filed in their words",
+      "question": "add to shopping: the thing Ana mentioned",
+      "asks": "none",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ]
+    },
+    {
+      "id": "lookup-not-question",
+      "kind": "file",
+      "why": "13: a booking is a lookup, not a question",
+      "question": "book a table for mothers day",
+      "asks": "none",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ]
+    },
+    {
+      "id": "cannot-delete",
+      "kind": "file",
+      "why": "15: a delete it cannot do says so and asks nothing",
+      "question": "delete the Music thread",
+      "asks": "none",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ]
+    },
+    {
+      "id": "answer-all-threads",
+      "kind": "answer",
+      "why": "20: from Today, across everything",
+      "question": "what's left to do",
+      "asks": "none",
+      "rubric": "Answers about the open task from the rows without asking anything back. A count alone is enough; naming the task is also fine.",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "rows": [
+        {
+          "id": "o1",
+          "threadId": "00000010-0000-0000-0000-000000000000",
+          "threadName": "App fixes",
+          "title": "photos",
+          "type": "task",
+          "tags": []
+        }
+      ]
+    },
+    {
+      "id": "answer-in-thread",
+      "kind": "answer",
+      "why": "22: inside a thread, that thread",
+      "question": "what's left to do",
+      "asks": "none",
+      "rubric": "Answers about the open task from the rows without asking anything back. A count alone is enough; naming the task is also fine.",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "looking_at": "00000010-0000-0000-0000-000000000000",
+      "rows": [
+        {
+          "id": "o1",
+          "threadId": "00000010-0000-0000-0000-000000000000",
+          "threadName": "App fixes",
+          "title": "photos",
+          "type": "task",
+          "tags": []
+        }
+      ]
+    },
+    {
+      "id": "answer-recipe",
+      "kind": "answer",
+      "why": "24: not offload's question",
+      "question": "how do you make leek soup",
+      "asks": "none",
+      "rubric": "Says Not sure. and asks nothing.",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "look_up": false
+    },
+    {
+      "id": "country-agrees",
+      "kind": "answer",
+      "why": "25: from Today the account's country is used without asking",
+      "question": "when's the next holiday",
+      "asks": "none",
+      "rubric": "Gives a date or says Not sure.; never asks which country.",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "look_up": true
+    },
+    {
+      "id": "ask-passport-date",
+      "kind": "file",
+      "why": "30: a renewal is a reminder with a by-when",
+      "question": "remind me to renew passport",
+      "asks": "date",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ]
+    },
+    {
+      "id": "ask-airbnb-span",
+      "kind": "file",
+      "why": "28: a stay with no dates anywhere asks for them",
+      "question": "https://www.airbnb.com/rooms/12345678",
+      "asks": "span",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "looking_at": "00000014-0000-0000-0000-000000000000"
+    },
+    {
+      "id": "ask-span-then-city",
+      "kind": "file",
+      "why": "33: a stay in a thread grouped by city asks the dates first and the city second",
+      "question": "https://www.airbnb.com/rooms/12345678",
+      "asks": "span,tag",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "looking_at": "00000015-0000-0000-0000-000000000000",
+      "notes": {
+        "00000015-0000-0000-0000-000000000000": [
+          "Grouped by city"
+        ]
+      },
+      "rows": [
+        {
+          "id": "p1",
+          "threadId": "00000015-0000-0000-0000-000000000000",
+          "threadName": "Porto weekend",
+          "title": "Tram museum",
+          "type": "note",
+          "tags": [
+            "city:porto"
+          ]
+        },
+        {
+          "id": "p2",
+          "threadId": "00000015-0000-0000-0000-000000000000",
+          "threadName": "Porto weekend",
+          "title": "Lunch at the market",
+          "type": "note",
+          "tags": [
+            "city:braga"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "country-picked",
+      "kind": "answer",
+      "why": "34: case 32 answered Turkey re-runs for Turkey",
+      "question": "when's the next holiday",
+      "asks": "none",
+      "rubric": "Answers for Turkey with a date from the lookup, or says Not sure.; never asks which country and never says United States.",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        }
+      ],
+      "account_country": "US",
+      "country_override": "TR",
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "notes": {
+        "00000014-0000-0000-0000-000000000000": [
+          "Staying in Kadikoy 10th to 12th October"
+        ]
+      },
+      "look_up": true,
+      "must_not_contain": [
+        "United States"
+      ]
+    }
+  ]
+}

@@ -37,13 +37,13 @@ The same, with `ANSWER_TOOLS + [ASK_TOOL]`, and the schema restricted server-sid
 2. If `n` is the escape option: one conditional update `open → closed`, insert a person message in the conversation with the escape label as its text and a fresh `turn_id`, state `answered`. Return the envelope. No job.
 3. Otherwise, in one transaction: re-resolve the target row; if it is deleted, or the field already holds a value set after the question was created, close the question and return the envelope unchanged. Else record the field's previous value on the question row, apply the value, mark the question `answered` with the option index and the answering message's id, insert the person message (label as text, fresh `turn_id`), and touch the thread so open panes reload. Return the envelope with `state: answered`.
 4. Country: as 2 for the insert, then `enqueue(dump.answer, {messageId, conversationId, turnId, questionId, country})`, message state `seen`. The stream carries the rest exactly as a dump's does.
-5. Promote the turn's pending second question to `open` when the first settles by any path.
+5. Promote the turn's pending second question to `open` when the first settles by any path, **and move it onto the message that settled it**: the answering message's envelope is what every client reads next, a tap's response and a typed answer's stream alike, so the second question hangs off it. The tap's response carries it as `question`. The question row is locked for the tap's transaction, so two devices tapping at once queue, and the second gets the 404.
 
 ### A typed message
 
 `takeDump` is unchanged except that the enqueued job carries `openQuestionId` when the conversation has one. In the worker, before `classify`:
 
-1. `judge_answer(text, question, today, week_start)`: one call on the sort model, forced tool `answer`, schema `{answers: bool, value: object | null}` where `value` is typed per field: `{day}` for a date, `{from, to}` for a span, `{day, time}` for a time, `{tag}` for a tag, `{country}` for a country, all in the wire forms of the value table below. The prompt is given the field, the question sentence, the option labels, today's date and the week start, never the thread or the notes; it does the reading of "next weekend" the planner already does. Code then checks shape and sense: the day forms, `from <= to`, within a year of today, a tag among the thread's values, a country among the two. A shape failure gets one repair retry (OFF-5); anything that still fails is `answers: false`.
+1. `judge_answer(text, question, today, week_start)`: one call on the sort model, forced tool `answer`, schema `{answers: bool, value: object | null}` where `value` is typed per field: `{day}` for a date, `{from, to}` for a span, `{day, time}` for a time, `{tag}` for a tag, `{country}` for a country, all in the wire forms of the value table below. The prompt is given the field, the question sentence, the option labels and today's date, never the thread or the notes. The week start is the device's and the worker has none, so the judge reads weeks as ending on Sunday, which is what the option labels the planner writes also mean; it does the reading of "next weekend" the planner already does. Code then checks shape and sense: the day forms, `from <= to`, within a year of today, a tag among the thread's values, a country among the two. A shape failure gets one repair retry (OFF-5); anything that still fails is `answers: false`.
 2. If it answers: `POST /internal/v1/question-answer {questionId, jobId, value}`. The server applies it exactly as a tap would, with the person's own message as the answering message, and returns whether it applied. The worker then continues into classify and plan with `ctx.answered = {field, value}` as a labelled block ("They answered your question about the dates with 14th to 17th; that is already on the row. File the rest."), so the value is not filed twice and nothing else in the message is lost.
 3. If it does not answer: `POST /internal/v1/question-close {questionId, jobId}` and continue as today.
 4. Country: the judge's value is a country; the worker runs `plan_answer` with it as the override directly, no second job.
@@ -76,13 +76,17 @@ create table questions (
   id                   uuid primary key default uuid_v7(),
   account_id           uuid not null references accounts (id) on delete cascade,
   conversation_id      uuid not null references conversations (id) on delete cascade,
-  -- The offload reply that asked, so the envelope finds it the way it finds `waiting`.
+  -- The person's message the turn was about, so the envelope finds it the way
+  -- it finds `waiting`, and its text is what a country re-run answers again.
+  -- (Built as such: the first draft said the reply, and a silent filing has none.)
   message_id           uuid not null references messages (id) on delete cascade,
   turn_id              uuid not null,
   ordinal              smallint not null check (ordinal in (1, 2)),
   field                text not null check (field in ('date', 'span', 'time', 'tag', 'country')),
-  -- The row the answer fills. Null only for country, which fills nothing.
+  -- The row the answer fills. One of the two, or neither for country: a stay
+  -- said as a sentence is a note, and a note takes a span too.
   target_content_id    uuid references content (id) on delete set null,
+  target_note_id       uuid references notes (id) on delete set null,
   -- Template with the row's title in its slot, never free text.
   text                 text not null check (length(text) <= 80),
   -- [{label, value}]. Labels ≤ 24 chars, values typed per field; the client
@@ -104,7 +108,10 @@ create table questions (
 create index questions_message_idx on questions (message_id) where state in ('open', 'pending');
 create unique index questions_one_open_idx on questions (conversation_id) where state = 'open';
 create index questions_turn_idx on questions (turn_id);
+create index questions_answer_turn_idx on questions (answer_turn_id) where answer_turn_id is not null;
 ```
+
+Migration `0046_asking_back.sql`. 0045 went to the reorder tweak that landed the same day.
 
 `messages` does not change. The envelope gains `question` beside `waiting`, resolved by one `questionsFor(messageIds)` helper used in all four places the envelope is built (the dump response, `GET /v1/messages/:id`, the stream's `done`, `GET /v1/conversations/current`), the same shape `waitingFor` takes.
 
@@ -113,12 +120,12 @@ create index questions_turn_idx on questions (turn_id);
 | Field | Value | Applied to | Options offered |
 | --- | --- | --- | --- |
 | date | `YYYY-MM-DD` | `content.occurs_at` (day), or `due_at` on a task | end of this week, end of this month, in the account's day boundary (0035) and week start |
-| span | `{from, to}` | `occurs_at` and `ends_at` | the dates the thread's notes hold, when they hold any; otherwise no values, the escape alone, and the placeholder invites a typed span |
+| span | `{from, to}` | `occurs_at` and `occurs_end_at` | the dates the thread's notes hold, when they hold any; otherwise no values, the escape alone, and the placeholder invites a typed span |
 | time | `YYYY-MM-DDTHH:MM` | `occurs_at`, `all_day = false` | none from context; the model may offer up to four from the coming week |
 | tag | `dimension:value` | appended to `content.tags`, one per dimension | the thread's existing values of the dimension, two to four |
 | country | ISO code | nothing; carried into the re-run | the account's and the thread's |
 
-The apply step is one `edit_content` in code, on the server, with the author rule of OFF-3 unchanged: the row was filed by this account in the asking turn, and the target is checked against that turn's landed rows at validation time.
+The apply step is one `edit_content` in code, on the server, with the author rule of OFF-3 unchanged: the row was filed by this account in the asking turn, and the target is checked against that turn's landed rows at validation time. A tag or a country value is applied only when it is one of the values offered, checked in the apply step as well as in the worker, because the internal route is a second writer. A tag is never appended past the six a row may carry.
 
 ## Interfaces
 
@@ -126,8 +133,8 @@ The apply step is one `edit_content` in code, on the server, with the author rul
 
 ```python
 class AskOption(BaseModel):
-    label: str = Field(max_length=24)
     value: str = Field(max_length=40)      # typed per field, parsed server-side
+    label: str | None = None               # ignored: the server words every label
 
 class Ask(BaseModel):
     field: Literal["date", "span", "time", "tag", "country"]
@@ -152,9 +159,11 @@ The five templates live in the Core API, one per field, and are the only sentenc
 
 The escape option is appended by the server: `{label: "Not that", value: null}`.
 
+**The server words every label from its value** (review, 2026-09-16): a date as "20 September", a span as "10 to 12 October", a time as "Fri 18 Sep 10:00", a tag as its value capitalised, a country as its name. A label is written into the log as the person's own turn when tapped, read back into every later prompt as their words and indexed with them, so a page's sentence smuggled in as a label would become something they said. The model's `label` is accepted for compatibility and never stored. The same rule reaches `title`: the sentence uses the row's stored title, and the echoed one is ignored.
+
 ### Internal, `POST /internal/v1/turn-result`
 
-The `answered` arm gains `questions?: Question[]`, max 2, validated with the schema above plus: `content_id` must be among the turn's landed content ids; `field` and each option value must parse; a `tag` question's dimension must be one the thread's notes name; `country` only from a `dump.answer` job whose message is a question, with exactly two ISO codes. A list that fails is dropped whole and logged as `question refused {field, reason}`.
+The `answered` arm gains `questions?: Question[]`, max 2, validated with the schema above plus: `content_id` must be among the turn's landed content or note ids; `field` and each option value must parse, and are stored in the parser's form (a country uppercased, a tag normalised); a `tag` question's options share one dimension, which the thread already groups by: on a row's tags, or named as a word in a note of the person's own; `country` only from an answering turn that is not itself a country re-run, with exactly two ISO codes one of which is the account's; a field a note of the person's own forbids is refused. A list that fails is dropped whole and logged as `question refused {field, reason}`, reasons an enum: `too_many`, `bad_target`, `bad_value`, `too_few_values`, `no_target`, `wrong_path`, `forbidden_by_note`, `duplicate_field`, `bad_dimension`, `not_their_country`.
 
 ### Internal, `POST /internal/v1/question-answer` and `question-close`
 
@@ -180,7 +189,7 @@ question: {
 
 ### Agent context
 
-`AnswerContext` gains `turns: list[Turn]`, loaded by the same `_TURNS` query `load()` uses, and `build_answer_blocks` adds the "Earlier in this conversation" block between the thread list and the question. `fit()` for both contexts counts and drops turns as today; an open question's sentence and its answer are ordinary turns in that tail (the reply message and the person's message) and so travel together or not at all, oldest first. `DumpContext` gains `answered: {field, value} | None`, rendered as one labelled block, never dropped. `AnswerContext` gains `country_override: str | None`.
+`AnswerContext` gains `turns: list[Turn]`, loaded by the same `_TURNS` query `load()` uses, and `build_answer_blocks` adds the "Earlier in this conversation" block between the thread list and the question. `fit()` for both contexts counts and drops turns as today; an open question's sentence and its answer are ordinary turns in that tail (the reply message and the person's message) and so travel together or not at all, oldest first. `DumpContext` gains `answered: {field, value} | None`, rendered as one labelled block, never dropped. `AnswerContext` gains `country_override: str | None`, and `looking_at` with `looking_at_notes`: the thread the question was asked from and its own notes, loaded from the message's `looking_at_thread_id` the way a dump's is. The country question needs it, because the thread's name or notes are what put the person somewhere other than the account says. `fit_answer` drops the tail first and then the notes, oldest first, and never the thread.
 
 ## Dependencies
 
@@ -207,7 +216,7 @@ question: {
 | A typed message that looks like an answer but does not parse | Not an answer. The question closes and the message files. |
 | A question open when the conversation rolls over | Closed by `takeDump` when the new conversation starts. Its chips are gone on the next load. |
 | Undo on the asking turn | Content and reply go as today; the turn's questions close. |
-| Undo on an answer's turn | `previous_value` is written back to the target; the question stays answered. |
+| Undo on an answer's turn | `previous_value` is written back to the target; the question stays answered. Unconditionally, as every turn Undo is: a hand edit of the same field made in the eight seconds between the answer and the Undo is reverted with it, which is what Undo on any turn does to a field that turn wrote. |
 | The asking turn also proposed a calendar write | Both are on the envelope; the client draws the proposal first, the question under it; their lifetimes are independent. |
 | The country re-run refuses or fails | The failure line and Try again as any answering turn; the question stays answered, since the country was given. |
 | The judge call fails or times out | Treated as not an answer: the question closes and the dump files. Nothing is lost. |

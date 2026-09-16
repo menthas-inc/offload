@@ -11,6 +11,24 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-16 · offload asks back, and the chips are values
+**Surface:** iOS, Android, web
+**Raised by:** 018, the first feature in which offload asks a person anything.
+
+**Was:** `QuickReplies` held three options, drawn as a plain row; the 2026-09-09 entry said "the turn that asks carries no write tools".
+
+**Is:** five options at most, wrapping to further rows, in one accessible group named by the sentence that asked, so a screen reader hears what the chips answer. The last option is always the way out, "Not that", drawn plain like the calendar control's "Not now". No option is a primary: a choice among values is one offload does not know the answer to, and dark ink would say it did. A chip's label never wraps or truncates; the server caps it at 24 characters for exactly that. The sentence above the chips is plain text, one of five templates with the row's title in its slot, never markup and never a page's words.
+
+**Where it sits:** inside the reply bubble under the sentence and after the calendar proposal when both are on one turn, which keeps its own life. A turn that filed silently and asked has no reply bubble, so the question gets one of its own with nothing else in it. The composer's placeholder holds the open question while it is open; a date, span or time question with no values to offer is answered by typing, and the placeholder is the invitation, "Which dates? Type them, like 10 to 12 October". The field's accessible name stays "Dump anything".
+
+**The trust boundary, restated:** the turn that asked writes only what the dump asked for, as any filing turn does, and an answer never runs a turn with write tools at all. A tap is applied by the server with no model; a typed answer is judged and applied before the planner runs; the one re-run, for a country, is an answering turn and holds no write tool. The 2026-09-09 sentence is replaced by this one.
+
+**Picked up on the way past:** the calendar control's disabled state loses its opacity fade for the disabled aliases, `--state-disabled-surface` and `--state-disabled-text`, as the system says.
+
+**After the client review, the same day:** a value chip is the Chip contract's shape on both platforms, drawn 30 tall on `--paper` (web) or `--surface-card` (iOS) with a 44 hit area around it, 15px on both kinds; the option `kind` on the wire is `value` or `plain`, which replaces the kit's `primary | plain | thread | neutral` for this use, since no option here is a primary or a thread; a tap that lands offers the eight second Undo like any turn, and the way out offers nothing since nothing changed; a request that fails draws the calendar control's line, "That did not go through. Try again.", with the chips still there, and only a 404 takes the chips away silently; the three typed invitations are "Which dates? Type them, like 10 to 12 October", "By when? Type a day, like 30 September" and "Which day and time? Type them, like Friday at 10", the same on both clients; the phones read the sentence that asked as each chip's hint, since a container's name is not read on iOS; a long label wraps on the phones rather than being cut, and the 200% text check on the 360dp frame is still owed.
+
+**Design system impact:** `components/answering/QuickReplies.jsx` grows to five options, gains `label` as the group's accessible name and loses `note` from the product's use (the prop stays). Its contract wants checking in as a `.d.ts` and the adherence file regenerating. `readme.md`'s answering section: "three options at most" becomes five, and the trust-boundary sentence is the one above. The kits' `LiveConversation.jsx` and `WConversation` draw the question inside the bubble already; both want the standalone bubble for a silent turn and the placeholder invitation.
+
 ### 2026-09-16 · A row has a handle, and dragging it is changing its priority
 **Surface:** web, iOS, Android
 **Was:** The To do list and the Notes section were read-only in their order. To do sorted

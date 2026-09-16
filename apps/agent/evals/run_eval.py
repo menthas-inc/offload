@@ -77,6 +77,19 @@ class Case:
     truncated: bool = False
     """The read hit its page. A case about absence needs this, because a flat
     'no' is correct when the read was complete and wrong when it was not."""
+    #: 018. What the turn should ask back: a field, two fields in order as
+    #: "span,tag", or "none". Checked against `Outcome.questions` on both
+    #: kinds of turn. Unset means the case is not about asking.
+    asks: str | None = None
+    #: 018. The thread's own notes, by thread id, handed back by every filing
+    #: into it and read by an answering turn asked from inside it.
+    notes: dict[str, list[str]] = field(default_factory=dict)
+    #: 018. The thread the dump or the question was made from, by id.
+    looking_at: str | None = None
+    #: 018. The account's country when the case needs one other than the
+    #: suite's, and the country picked when a question was answered.
+    account_country: str | None = None
+    country_override: str | None = None
 
 
 @dataclass
@@ -106,7 +119,77 @@ def _threads(case: Case) -> list[Thread]:
     ]
 
 
-def _caller(case: Case):
+def _thread_named(case: Case, thread_id: str | None) -> Thread | None:
+    if not thread_id:
+        return None
+    return next((t for t in _threads(case) if t.id == thread_id), None)
+
+
+def _notes_of(case: Case, thread_id: str | None) -> list[dict[str, str]]:
+    """The shape `add_content` hands back, dated so the planner reads them as
+    notes rather than as a bare list of strings."""
+    return [
+        {"text": text, "writtenAt": "2026-09-01T09:00:00.000Z"}
+        for text in case.notes.get(thread_id or "", [])
+    ]
+
+
+def _asked_problems(case: Case, questions: list[dict]) -> list[str]:
+    """018. Whether the turn asked what the case says it should, and nothing
+    else. Fields in order, because a two-question case says which comes first."""
+    if case.asks is None:
+        return []
+    wanted = [] if case.asks == "none" else [f.strip() for f in case.asks.split(",")]
+    got = [str(q.get("field")) for q in questions]
+    if got != wanted:
+        offered = [[o.get("label") for o in q.get("options", [])] for q in questions]
+        return [f"asked {got} with {offered}, wanted {wanted}"]
+    return []
+
+
+def _stub_look_up(
+    args: dict, dump: str, country: str | None, looked: list[dict], refused_bound: list[str]
+) -> dict:
+    """One lookup stub for both kinds of turn: the real bounds, then a
+    plausible result, so a case exercises the ordinary path."""
+    looked.append(args)
+    # **The real bound, not an unconditional ok.** The stub used to answer
+    # every lookup the same way, so a query the provenance rule would refuse
+    # looked exactly like one it allowed. That hid the flagship case for a
+    # whole feature: asked to book a restaurant for mothers day, the planner
+    # sent "when is mothers day", the bound threw out the two function words,
+    # and the eval scored it a pass because a lookup had been attempted.
+    question = (args.get("question") or "").strip()
+    url = (args.get("url") or "").strip()
+    if question and not _from_the_dump(question, dump, country):
+        refused_bound.append(question)
+        return {
+            "ok": False,
+            "declined": True,
+            "error": "ask using only words from what they dumped",
+        }
+    if url and not _in_the_dump(url, dump):
+        refused_bound.append(url)
+        return {
+            "ok": False,
+            "declined": True,
+            "error": "that url is not in what they dumped",
+        }
+    # **A stub that can only fail is as useless as one that can only
+    # succeed.** This answered every lookup `found: False`, so every case
+    # ended with the model explaining that it had found nothing, and the
+    # self-diagnosis check fired on all of them. The bounds above are the real
+    # thing; what comes back after them is a plausible result.
+    wanted = args.get("want") or ["fact"]
+    return {
+        "ok": True,
+        "found": True,
+        "fields": {name: _STUB_FIELD.get(name, "something") for name in wanted},
+        "sources": ["example.com"],
+    }
+
+
+def _caller(case: Case, looked: list[dict], refused_bound: list[str]):
     """Every read returns the case's fixture, whichever tool is reached for.
 
     Deliberately indifferent to which tool the model picks: this measures the
@@ -115,6 +198,14 @@ def _caller(case: Case):
     """
 
     async def call_tool(tool: str, tool_call_id: str, args: dict) -> dict:
+        if tool == "look_up":
+            return _stub_look_up(
+                args,
+                case.question,
+                case.country_override or case.account_country or COUNTRY,
+                looked,
+                refused_bound,
+            )
         if tool == "account_facts":
             return {"ok": True, "facts": case.facts or {}}
         # **Every tool the model can reach for needs an answer here.**
@@ -193,8 +284,7 @@ async def _judge(client: AsyncAnthropic, case: Case, reply: str) -> tuple[bool, 
                         "why": {
                             "type": "string",
                             "description": (
-                                "One short clause. What it did wrong, "
-                                "or what it got right."
+                                "One short clause. What it did wrong, or what it got right."
                             ),
                         },
                     },
@@ -333,45 +423,14 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
     filed: list[str] = []
     refused_bound: list[str] = []
 
+    filed_ids = 0
+
     async def call_tool(tool: str, tool_call_id: str, args: dict) -> dict:
+        nonlocal filed_ids
         if tool == "look_up":
-            looked.append(args)
-            # **The real bound, not an unconditional ok.** The stub used to
-            # answer every lookup the same way, so a query the provenance rule
-            # would refuse looked exactly like one it allowed. That hid the
-            # flagship case for a whole feature: asked to book a restaurant for
-            # mothers day, the planner sent "when is mothers day", the bound
-            # threw out the two function words, and the eval scored it a pass
-            # because a lookup had been attempted.
-            question = (args.get("question") or "").strip()
-            url = (args.get("url") or "").strip()
-            if question and not _from_the_dump(question, case.question, COUNTRY):
-                refused_bound.append(question)
-                return {
-                    "ok": False,
-                    "declined": True,
-                    "error": "ask using only words from what they dumped",
-                }
-            if url and not _in_the_dump(url, case.question):
-                refused_bound.append(url)
-                return {
-                    "ok": False,
-                    "declined": True,
-                    "error": "that url is not in what they dumped",
-                }
-            # **A stub that can only fail is as useless as one that can only
-            # succeed.** This answered every lookup `found: False`, so every
-            # case ended with the model explaining that it had found nothing,
-            # and the self-diagnosis check fired on all of them. The bounds
-            # above are the real thing; what comes back after them is a
-            # plausible result, so the case tests the ordinary path.
-            wanted = args.get("want") or ["fact"]
-            return {
-                "ok": True,
-                "found": True,
-                "fields": {name: _STUB_FIELD.get(name, "something") for name in wanted},
-                "sources": ["example.com"],
-            }
+            return _stub_look_up(
+                args, case.question, case.account_country or COUNTRY, looked, refused_bound
+            )
         if tool in {"add_content", "add_note", "create_thread"}:
             # The title and any date, because "it filed something" does not say
             # whether the thing it filed was right.
@@ -381,13 +440,21 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
         if tool == "create_thread":
             return {"ok": True, "threadId": "new", "threadName": args.get("name"), "notes": []}
         if tool == "list_thread_content":
-            return {"ok": True, "result": {"rows": [], "truncated": False}}
+            # The case's rows, so a tag question has the thread's values to
+            # offer, which is where they come from on a real turn.
+            return {"ok": True, "result": {"rows": case.rows, "truncated": False}}
+        # One id per filing, so a question can name the row it is about.
+        filed_ids += 1
+        thread_id = str(args.get("thread_id") or "")
+        named = _thread_named(case, thread_id)
         return {
             "ok": True,
-            "threadId": args.get("thread_id"),
-            "threadName": "Miscellaneous",
-            "contentId": "c1",
-            "notes": [],
+            "threadId": thread_id,
+            "threadName": named.name if named else "Miscellaneous",
+            "contentId": f"c{filed_ids}",
+            "notes": _notes_of(case, thread_id),
+            "notesFromMembers": [],
+            "notesFromApps": [],
         }
 
     threads = _threads(case)
@@ -405,7 +472,8 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
         # Without it "the next bank holiday" has no answer and the right
         # behaviour is to decline, so every case about a date would be measuring
         # the wrong rule.
-        country=COUNTRY,
+        country=case.account_country or COUNTRY,
+        looking_at=_thread_named(case, case.looking_at),
     )
 
     try:
@@ -415,6 +483,7 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
 
     reply = outcome.reply or ""
     failures: list[str] = []
+    failures.extend(_asked_problems(case, outcome.questions))
 
     if case.look_up is True and not looked:
         failures.append("should have looked something up and did not")
@@ -488,9 +557,13 @@ async def _run_filing(client: AsyncAnthropic, case: Case) -> Result:
     for line in (a.get("doing") or "" for a in looked):
         failures.extend(_step_problems(line))
 
+    asked = [
+        f"{q.get('field')}: {[o.get('label') for o in q.get('options', [])]}"
+        for q in outcome.questions
+    ]
     note = (
         f"looked={[a.get('question') or a.get('url') for a in looked]} "
-        f"filed={filed} steps={[a.get('doing') for a in looked]}"
+        f"filed={filed} asked={asked} steps={[a.get('doing') for a in looked]}"
     )
     return Result(case, reply, failures, True, note)
 
@@ -501,20 +574,42 @@ async def _run_one(client: AsyncAnthropic, case: Case, gate: asyncio.Semaphore) 
             return await _run_filing(client, case)
 
     async with gate:
+        looked: list[dict] = []
+        refused_bound: list[str] = []
         ctx = AnswerContext(
             question=case.question,
             threads=_threads(case),
             has_calendar=case.facts is not None,
+            may_search=case.look_up is not None,
+            country=case.account_country or COUNTRY,
+            today="Friday 11 September 2026",
+            country_override=case.country_override,
+            looking_at=_thread_named(case, case.looking_at),
+            looking_at_notes=case.notes.get(case.looking_at or "", []),
         )
         try:
-            outcome = await plan_answer(client, ctx, ANSWER_MODEL, _caller(case))
+            outcome = await plan_answer(
+                client, ctx, ANSWER_MODEL, _caller(case, looked, refused_bound)
+            )
             reply = outcome.reply or ""
         except Exception as exc:  # noqa: BLE001
             return Result(case, "", [f"raised {type(exc).__name__}"], False, "")
 
         mechanical = _mechanical(case, reply)
+        mechanical.extend(_asked_problems(case, outcome.questions))
+        # A query the bound refused is 016's rule at work, visible in the note
+        # rather than the score: this set measures whether the turn asked.
+        bound_note = f" bound refused={refused_bound}" if refused_bound else ""
+        # 018. A turn that asked back has no reply to mark: the question is
+        # the whole of it, and the check above is the whole of the case.
+        if case.asks and case.asks != "none":
+            asked = [
+                f"{q.get('field')}: {[o.get('value') for o in q.get('options', [])]}"
+                for q in outcome.questions
+            ]
+            return Result(case, reply, mechanical, True, f"asked={asked}{bound_note}")
         judged, note = await _judge(client, case, reply)
-        return Result(case, reply, mechanical, judged, note)
+        return Result(case, reply, mechanical, judged, note + bound_note)
 
 
 async def main() -> int:

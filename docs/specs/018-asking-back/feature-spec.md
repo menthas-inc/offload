@@ -35,7 +35,7 @@ Two reasons, and nothing else.
 
    | Filed as | Needs | Unless |
    | --- | --- | --- |
-   | a stay or a booking (a link to a place, a note that says where they are staying) | span | the dump or the thread's notes give the dates |
+   | a stay or a booking (a link to a place, a booking they say they made) | span | the dump or the thread's notes give the dates. A sentence saying where they are staying is a note, case 8, and needs nothing |
    | a reminder | date | the dump gives one |
    | a task said with "by", "before", "deadline", or as a gift or a renewal | date | the dump gives one |
    | an appointment said as a meeting or a call with somebody | time | the dump gives a day and a time |

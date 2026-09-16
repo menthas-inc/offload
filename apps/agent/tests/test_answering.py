@@ -74,7 +74,11 @@ def test_the_write_list_is_still_complete() -> None:
     # is fields rather than rows. Counting it among the reads would put it in a
     # list whose whole job is to say which of somebody's own things a turn may
     # look at, which is the one thing it never does.
-    unaccounted = set(SCHEMAS) - reads - WRITES - {"say", "look_up"}
+    # `ask` (018) is the fifth kind, and the same shape as `say`: it reads
+    # nothing, writes nothing here, and never reaches the Core API on its own.
+    # What it asks is posted with the result and applied by the server later,
+    # from values the server validates, so it is neither a read nor a write.
+    unaccounted = set(SCHEMAS) - reads - WRITES - {"say", "look_up", "ask"}
     assert unaccounted == set(), f"tool is neither a known read nor a known write: {unaccounted}"
 
 

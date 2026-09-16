@@ -595,6 +595,7 @@
           <tr><td class="tool">account_facts</td><td><i class="dot none"></i></td><td><i class="dot read"></i></td><td><i class="dot none"></i></td><td class="where">core-api</td><td>Connected apps, calendars, settings: facts that are not rows.</td></tr>
           <tr><td class="tool">look_up</td><td><i class="dot"></i></td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">worker → reader → Anthropic server tools</td><td>Question or URL, wanted fields, a <code>doing</code> line. The bound, the budget and the refusal list are code in the worker; the reader is a second haiku call with <code>web_search</code> and <code>web_fetch</code>.</td></tr>
           <tr><td class="tool">say</td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td><i class="dot none"></i></td><td class="where">the loop itself</td><td>The only sentence a filing turn can send. Never called on an ordinary filing; the Done mark and the thread pills carry it.</td></tr>
+          <tr><td class="tool">ask</td><td><i class="dot"></i></td><td><i class="dot"></i></td><td><i class="dot none"></i></td><td class="where">the loop, then turn-result</td><td>One field the row just filed needs, or the country an answer is for. Values only; the sentence is a server template. Two per turn, validated and stored by core-api with the reply. See section 6.</td></tr>
         </tbody>
       </table>
     </div>
@@ -636,7 +637,7 @@
     <header>
       <div class="eyebrow">6</div>
       <h2>Where a person can already be asked</h2>
-      <p class="intro">There is no follow-up question today, and the prompt says so twice: "do not ask a question: they can see what they typed" and "never a dialog". But four things already carry something back to a person mid-turn or after it, and a follow-up will be built on, or against, each of them.</p>
+      <p class="intro">Since 018 the model can ask back, with <code>ask</code>: one field the row it just filed needs, or which country an answer is for. It is built on the shape below, the calendar write that waits: a control inside the reply, a row that outlives the turn, and an answer route with no model in it. What differs is that the model chose to ask, and that the options are values the server already holds.</p>
     </header>
     <figure>
       <div class="fig">
@@ -688,9 +689,13 @@
           <text x="650" y="292" font-size="12" text-anchor="middle" fill="currentColor">the write, an hour or a day later · no model turn, no new message</text>
         </svg>
       </div>
-      <figcaption><b>The one existing "ask" is not a question the model asked.</b> The server decided a write needed consent, the model was told to say so, and the control that answers it lives beside the reply and talks to the API alone. The model never learns what was chosen.</figcaption>
+      <figcaption><b>The write that waits, which a question copies.</b> The server decided a write needed consent, the model was told to say so, and the control that answers it lives beside the reply and talks to the API alone. A question follows the same lines: <code>ask</code> instead of <code>say</code>, a <code>questions</code> row instead of a pending one, <code>question</code> on the envelope beside <code>waiting</code>, and <code>POST /v1/questions/:id/answer</code> applying the tapped value as <code>edit_content</code> with no model turn.</figcaption>
     </figure>
     <div class="two">
+      <div class="card">
+        <h3>ask <span class="pill moss">values, not words</span></h3>
+        <p>Handled in the loop like <code>say</code>: nothing crosses to the API until the turn settles. Five fields, <code>date</code>, <code>span</code>, <code>time</code>, <code>tag</code>, <code>country</code>; the sentence is a server template with the row's title in it; up to four values plus "Not that", which the server appends. Two per turn in code, the third refused. One open per conversation, closed by the next turn whatever it says. A tap is applied with no model; a typed reply is judged by a forced-tool haiku call before the classifier, and if it answers, the planner is told so in a block and files the rest. Country is the one field an answering turn may ask, when the thread it was asked from puts the person somewhere the account does not, and the pick re-runs the answer read-only with the country as an override into the same bound.</p>
+      </div>
       <div class="card">
         <h3>say <span class="pill moss">one way</span></h3>
         <p>A filing turn's only voice, and it ends the sentence. Nothing marks a <code>say</code> as expecting an answer, the turn settles as answered the moment it lands, and the next dump is a new turn that sees the sentence only as a line in "earlier in this conversation".</p>
@@ -704,13 +709,14 @@
         <p>A partial turn can be picked up: same message, fresh job, and the model is handed what already landed as a block. It is the one path where a second model turn continues a first one rather than starting over, and it exists for failure, not for dialogue.</p>
       </div>
       <div class="card">
-        <h3>Earlier turns <span class="pill blue">filing only</span></h3>
-        <p>The filing path sees up to twenty prior turns as plain "role: text" lines. The answering path sees none. A follow-up that lands as a fresh dump is classified again from its text alone, so "yes" or "the second one" arrives with no question attached to it.</p>
+        <h3>Earlier turns <span class="pill blue">both paths</span></h3>
+        <p>Both paths see up to twenty prior turns as plain "role: text" lines, under the same ceiling, since 018; the answering path saw none before it. A question and its answer are ordinary turns in that tail. A typed reply to an open question is still classified from its text, but the judge has already read it against the question first, so "14th to 17th" lands on the row before the planner sees the message.</p>
       </div>
     </div>
     <ul class="notes">
-      <li><b>What a question would need that nothing has today:</b> a way for the model to mark a turn as open rather than answered; a place to keep the question and its options between turns, the way the pending row keeps a write; a route that carries the answer back into the same turn with the question in front of the model, rather than through the classifier as a new dump; and a screen state for it, which the design system already sketches as 012's control generalised: "three options at most, all typeable, one open question at a time, closed by the next turn whatever it says".</li>
-      <li><b>What the design system already commits to:</b> ask only what Undo cannot cover, never a dialog, options as words somebody would say, a proposal has one primary and one plain way out, and a choice among equals has no primary.</li>
+      <li><b>What the model never sees:</b> which option was tapped. The server applies the value and writes the label as the person's turn; the model meets it, if at all, as a line in the tail or as the "they answered your question" block on a typed reply.</li>
+      <li><b>What the server refuses whatever the prompt says:</b> a question about a row this turn did not file, a field a thread note forbids, a sentence over 80 characters or a label over 24, a tag with fewer than two values, country from anything but a question job, and any question at all on a quick add, a partial turn or a stopped one.</li>
+      <li><b>What the design system commits to, kept:</b> ask only what Undo cannot cover, never a dialog, options as words somebody would say, a choice among equals has no primary, and the way out is drawn plain.</li>
     </ul>
   </section>
 

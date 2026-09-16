@@ -14,12 +14,14 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { AppState, type AppStateStatus } from "react-native";
 import { plainText } from "@offload/markup";
 import {
+  answerQuestion,
   awaitAnswer,
   cancelTurn,
   endConversation,
@@ -30,6 +32,7 @@ import {
   type FoundResult,
   type FoundRow,
   type MessageState,
+  type QuestionOnWire,
   type Source,
   type TouchedThread,
 } from "../../lib/dump";
@@ -86,6 +89,10 @@ export interface Turn {
    *  something once you confirm, with nothing to confirm, is the dead end this
    *  exists to close: the proposal expires in an hour having done nothing. */
   waiting?: { id: string; because: string } | null;
+  /** 018. The question this turn asked back, on the message that was sent,
+   *  while it is open. Drawn inside the reply's bubble when there is one and
+   *  in a bubble of its own when the turn filed silently. */
+  question?: QuestionOnWire | null;
   /** What an answer showed.
    *
    *  Only ever set on an answering turn, and empty on a dump. Resolved by the
@@ -163,6 +170,15 @@ export interface Conversation {
    *  Local only: the server already knows, and re-fetching the conversation to
    *  learn something this client just decided is a round trip for nothing. */
   resolveWaiting: (turnId: string) => void;
+  /** 018. The one open question in the conversation, which owns the
+   *  composer's placeholder while it is open. */
+  openQuestion: QuestionOnWire | null;
+  /** 018. Answer the open question with a tap. "gone" when the server
+   *  refused it (closed, answered elsewhere): the chips go. "failed" when the
+   *  request did not land: the chips stay beside the line that offers again.
+   *  When the server wrote the words as a turn, that turn appears, and a
+   *  country re-run is waited for exactly as a dump is. */
+  answerOpen: (turnId: string, option: number) => Promise<"answered" | "gone" | "failed">;
   /** Tick a row from inside an answer. The only write an answer can do. */
   tickFound: (turnId: string, row: FoundRow) => Promise<void>;
   /** What the turn wrote to, so an open thread can catch up on its own. */
@@ -289,6 +305,7 @@ export function ConversationProvider({
             // the app mid-decision comes back to the same question rather than
             // to a reply about something that never happened.
             waiting: message.waiting ?? null,
+            question: message.question ?? null,
             // Same reason. An answer reopened tomorrow draws the rows as they
             // are now, because the server resolves them rather than storing a
             // copy taken when the answer was written.
@@ -363,8 +380,10 @@ export function ConversationProvider({
                   // anything, and the reply no longer draws them.
                   threads: answer.threads,
                   sources: answer.sources,
+                  question: answer.question ?? null,
                 }
-              : turn,
+              : // 018. The next turn closes the last question whatever it says.
+                { ...turn, question: null },
           );
           if (!answer.reply) return next;
           return [
@@ -494,7 +513,10 @@ export function ConversationProvider({
         return;
       }
       setTurns((current) => [
-        ...current,
+        // 018. Chips leave with the next turn. The server decides whether the
+        // words answered the question; the screen only knows it is no longer
+        // open for a tap.
+        ...current.map((turn) => (turn.question ? { ...turn, question: null } : turn)),
         {
           id: sent.messageId,
           from: "you",
@@ -509,6 +531,54 @@ export function ConversationProvider({
       failed("dump.send", error);
     }
   }, [draft, live, onScreen, pin, submitPin, watch]);
+
+  // 018. One open question per conversation.
+  const openQuestion = useMemo(
+    () => turns.find((turn) => turn.question)?.question ?? null,
+    [turns],
+  );
+
+  const answerOpen = useCallback(
+    async (turnId: string, option: number): Promise<"answered" | "gone" | "failed"> => {
+      const asked = turns.find((turn) => turn.id === turnId)?.question;
+      const picked = asked?.options[option];
+      if (!asked || !picked) return "gone";
+      const { status, sent } = await answerQuestion(asked.id, option);
+      // 404 means closed, answered elsewhere or gone: the chips leave and
+      // there is nothing to retry. Anything else is the network or the
+      // server, and the chips stay.
+      if (!sent && status !== 404) return "failed";
+      setTurns((current) => {
+        const cleared = current.map((turn) =>
+          turn.id === turnId ? { ...turn, question: null } : turn,
+        );
+        if (!sent) return cleared;
+        return [
+          ...cleared,
+          {
+            id: sent.messageId,
+            from: "you" as const,
+            text: picked.label,
+            state: sent.state,
+            turnId: sent.turnId,
+            // The turn's second question, if the first had one behind it.
+            question: sent.question ?? null,
+          },
+        ];
+      });
+      if (!sent) return "gone";
+      if (sent.state === "seen") watch(sent.messageId, sent.turnId);
+      // The way out changed nothing, so nothing reloads and nothing is undone.
+      if (picked.kind !== "value") return "answered";
+      // A value landed on a row somewhere. An empty list is "something
+      // changed, work out what", the same signal Undo sends. And the eight
+      // seconds: the answer is a turn of its own, and Undo puts the field back.
+      setFiled({ threadIds: [], at: Date.now() });
+      if (asked.field !== "country") offerUndo(sent.turnId, picked.label);
+      return "answered";
+    },
+    [turns, watch, offerUndo],
+  );
 
   const undo = useCallback(async (): Promise<void> => {
     if (!undoable) return;
@@ -568,6 +638,8 @@ export function ConversationProvider({
         finish,
         filed,
         resolveWaiting,
+        openQuestion,
+        answerOpen,
         tickFound,
       }}
     >

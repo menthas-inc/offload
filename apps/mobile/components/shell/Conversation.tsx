@@ -16,7 +16,7 @@
 // reason: an eight second window that vanishes because somebody tidied the
 // screen was not eight seconds.
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Keyboard,
   Linking,
@@ -44,6 +44,7 @@ import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
 import { answerPending } from "../../lib/calendars";
+import { QuickReplies } from "./QuickReplies";
 import { useRouter } from "expo-router";
 import { useConversation, type Pin, type Turn } from "./conversation-context";
 
@@ -347,16 +348,25 @@ function Turns() {
     >
       {turns.map((turn) =>
         turn.from === "you" ? (
-          <Yours
-            key={turn.id}
-            turn={turn}
-            // **Only when nothing answered it.** The footer belongs to the turn,
-            // and the turn ends at the reply when there is one: drawn on the
-            // sent bubble regardless, the sources for an answer sat above the
-            // answer they were sources for.
-            footer={!replied.has(turn.id)}
-            onFinish={() => void finish(turn.id)}
-          />
+          <Fragment key={turn.id}>
+            <Yours
+              turn={turn}
+              // **Only when nothing answered it.** The footer belongs to the turn,
+              // and the turn ends at the reply when there is one: drawn on the
+              // sent bubble regardless, the sources for an answer sat above the
+              // answer they were sources for.
+              footer={!replied.has(turn.id)}
+              onFinish={() => void finish(turn.id)}
+            />
+            {/* 018. A turn that filed silently and asked back has no reply
+                bubble to hold the question, so the question gets one of its
+                own, in place: offload's sentence and the chips, nothing else. */}
+            {!replied.has(turn.id) && turn.question ? (
+              <Bubble>
+                <Question turn={turn} first />
+              </Bubble>
+            ) : null}
+          </Fragment>
         ) : (
           <Theirs key={turn.id} turn={turn} sent={answered.get(turn.id) ?? null} />
         ),
@@ -609,6 +619,11 @@ function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
           announced and then expires an hour later having done nothing. */}
       {turn.waiting ? <Waiting turn={turn} /> : null}
 
+      {/* 018. The question, under the sentence and after any proposal, which
+          keeps its own life. On the message that was sent, because that is the
+          turn that asked. */}
+      {sent?.question ? <Question turn={sent} /> : null}
+
     </View>
 
       {/* The turn's footer, under the thing it describes and **outside the
@@ -757,6 +772,74 @@ function Writing() {
  *  Nothing has reached Google until Add lands. The server runs the outward test
  *  again against live state, because a calendar can be shared in the minutes
  *  somebody takes to decide. */
+/** 018. The reply bubble's shape with nothing of the reply in it, for a
+ *  question on a turn that said nothing. The same measures as `Theirs`. */
+function Bubble({ children }: { children: ReactNode }) {
+  return (
+    <View
+      className={`self-start px-space-5 py-space-4 ${isAndroid ? "bg-a-c" : "bg-ink-50"}`}
+      style={{
+        maxWidth: "92%",
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        borderBottomRightRadius: 16,
+        borderBottomLeftRadius: 4,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** 018. A question offload asked back: its sentence, and the chips that
+ *  answer it. The sentence is plain text, never markup: it was composed from
+ *  a template and a title, and a title has no business becoming a link. */
+function Question({ turn, first = false }: { turn: Turn; first?: boolean }) {
+  const { answerOpen } = useConversation();
+  const [busy, setBusy] = useState(false);
+  const [failedToSend, setFailedToSend] = useState(false);
+  const question = turn.question;
+  if (!question) return null;
+
+  const pick = async (index: number) => {
+    if (busy) return;
+    setBusy(true);
+    setFailedToSend(false);
+    try {
+      const outcome = await answerOpen(turn.id, index);
+      if (outcome === "failed") setFailedToSend(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View className={`gap-space-3 ${first ? "" : "mt-space-4"}`}>
+      <Text
+        className={`font-quiet ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+        style={{ fontSize: 16, lineHeight: 24 }}
+      >
+        {question.text}
+      </Text>
+      {failedToSend ? (
+        <Text
+          className="font-core text-text-danger"
+          style={{ fontSize: 13, lineHeight: 18 }}
+          accessibilityRole="alert"
+        >
+          That did not go through. Try again.
+        </Text>
+      ) : null}
+      <QuickReplies
+        options={question.options}
+        label={question.text}
+        onPick={(index) => void pick(index)}
+        disabled={busy}
+      />
+    </View>
+  );
+}
+
 function Waiting({ turn }: { turn: Turn }) {
   const { resolveWaiting } = useConversation();
   const [busy, setBusy] = useState(false);

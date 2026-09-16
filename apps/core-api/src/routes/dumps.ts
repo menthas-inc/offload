@@ -23,6 +23,19 @@ import { onAnswer } from "../dumps/answers.js";
 import { emit } from "../analytics.js";
 import { targetFor, undoWrite } from "../connectors/write.js";
 import { waitingFor } from "../connectors/tool-calls.js";
+import {
+  applyAnswer,
+  closeOpenQuestions,
+  closeQuestion,
+  closeQuestionsOfTurn,
+  openQuestionIn,
+  optionLabel,
+  questionOnWire,
+  questionsFor,
+  restoreAnswers,
+  openQuestionOn,
+  type QuestionOnWire,
+} from "../questions.js";
 import { foundFor } from "../search/found.js";
 import { memberOf } from "../threads/access.js";
 
@@ -106,6 +119,9 @@ const dumpResponse = z.object({
    *  it later. Undo is offered eight seconds after the reply, and a round trip
    *  inside that window is a round trip that can miss it. */
   turnId: z.string(),
+  /** 018. On an answer's response: the turn's second question, now open on
+   *  the answering message, so it appears without a reload. */
+  question: questionOnWire.nullable().optional(),
 });
 
 /** The threads a turn actually wrote to.
@@ -177,6 +193,8 @@ const messageResponse = z.object({
    *  settled and on a step old enough to be a dead worker's. */
   step: z.string().nullable(),
   waiting: waitingOn,
+  /** 018. The question offload asked back on this turn, while it is open. */
+  question: questionOnWire.optional(),
   found: foundResults,
 });
 
@@ -195,6 +213,7 @@ const currentConversation = z.object({
       /** What an Undo would reverse. The whole turn, not this row. */
       turnId: z.string(),
       waiting: waitingOn,
+      question: questionOnWire.optional(),
       found: foundResults,
       /** Where this turn filed, and where a fact in it came from. Empty on an
        *  offload message and on any turn that read nothing. */
@@ -586,6 +605,14 @@ export async function takeDump(
           .executeTakeFirstOrThrow()
       ).id;
 
+    // 018. A question closes with its conversation. A new conversation is the
+    // old one ending, so anything still open there closes now, and its chips
+    // are gone on the next load.
+    if (!recent) await closeOpenQuestions(trx, { accountId, exceptConversationId: conversationId });
+    // And the one open in this conversation, if any, rides on the job so the
+    // worker reads the message as a possible answer before anything else.
+    const openQuestionId = await openQuestionIn(trx, conversationId);
+
     // onConflict, not just the check above.
     //
     // That check is a select followed by an insert, and the case it exists
@@ -662,7 +689,12 @@ export async function takeDump(
     await enqueue({
       kind: "dump.answer",
       accountId,
-      payload: { messageId: message.id, conversationId, turnId },
+      payload: {
+        messageId: message.id,
+        conversationId,
+        turnId,
+        ...(openQuestionId ? { openQuestionId } : {}),
+      },
       priority: PRIORITY.interactive,
       // One retry, then the person is told (AC-5). The column's default is
       // 5, which is right for email and wrong for somebody watching a
@@ -825,6 +857,9 @@ export async function dumpRoutes(app: App): Promise<void> {
         // the next reload. A reply saying offload is waiting, with nothing to
         // answer it, is the dead end this whole change is about.
         waiting: settled ? ((await waitingFor([message.id])).get(message.id) ?? null) : null,
+        // 018. Same reason, same place: the question arrives with the turn
+        // that asked it, and survives a reload because it is read here too.
+        question: settled ? ((await questionsFor(accountId, [message.id])).get(message.id) ?? null) : null,
         // The rows an answer showed, resolved now rather than stored. Empty for
         // a dump, which files rather than answers.
         // Against the reply, never against the message being asked about. The
@@ -884,6 +919,8 @@ export async function dumpRoutes(app: App): Promise<void> {
       // mid-confirmation comes back to the same question rather than to a reply
       // about a thing that never happened.
       const waiting = await waitingFor(rows.map((row) => row.id));
+      // 018. The open question, one query for the page, same shape.
+      const questions = await questionsFor(accountId, rows.map((row) => row.id));
       // One query for the whole page, the same shape `waitingFor` takes. Per
       // message it is fifty queries on every open.
       const found = await foundFor(
@@ -918,6 +955,7 @@ export async function dumpRoutes(app: App): Promise<void> {
           state: row.state,
           turnId: row.turn_id,
           waiting: waiting.get(row.id) ?? null,
+          question: questions.get(row.id) ?? null,
           found: found.get(row.id) ?? [],
           // Where it went and where a fact came from, both from the record of
           // what was written rather than from anything the reply said.
@@ -1104,6 +1142,8 @@ export async function dumpRoutes(app: App): Promise<void> {
               changed: step.changed,
               sources: step.sources,
               waiting: (await waitingFor([message.id])).get(message.id) ?? null,
+              // 018. The question, with the turn that asked it.
+              question: (await questionsFor(accountId, [message.id])).get(message.id) ?? null,
               // Arrives with the reply that mentions it, rather than on the
               // next reload. Same reason the confirmation does.
               found: step.replyId
@@ -1227,6 +1267,37 @@ export async function dumpRoutes(app: App): Promise<void> {
       const outcome = await cancelTurn(accountId, request.params.turnId);
       if (!outcome) return reply.code(404).send({ error: "not_found" as const });
       return reply.send(outcome);
+    },
+  );
+
+  // 018. Answer a question offload asked back.
+  //
+  // **A tap runs no model.** The server fills the one field on the one row the
+  // question was about, writes the person's words into the log as their own
+  // turn, and settles. The escape closes the question and writes the words.
+  // Only the country question runs anything afterwards: its answer re-runs
+  // the answering turn, read-only, and the envelope says `seen` so the
+  // composer waits for it exactly as it waits for a dump.
+  app.post(
+    "/v1/questions/:id/answer",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({ option: z.number().int().min(0).max(4) }),
+        response: { 200: dumpResponse, 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+      const outcome = await answerQuestion(accountId, request.params.id, request.body.option);
+      if (!outcome) return reply.code(404).send({ error: "not_found" as const });
+      request.log.info(
+        { field: outcome.field, how: "tap", applied: outcome.applied, escape: outcome.escape },
+        "question answered",
+      );
+      return reply.send(outcome.envelope);
     },
   );
 
@@ -1474,6 +1545,12 @@ export async function undoTurn(
       .where("deleted_at", "is", null)
       .execute();
 
+    // 018. The asking turn's questions close with what they were about; an
+    // answer's turn puts the previous value back and the question stays
+    // answered. A turn is only ever one of the two.
+    await closeQuestionsOfTurn(trx, accountId, turnId);
+    await restoreAnswers(trx, accountId, turnId);
+
     await trx
       .updateTable("messages")
       .set({ deleted_at: stamp, purge_after: purge })
@@ -1545,3 +1622,148 @@ async function undoCalendarWrites(accountId: string, turnId: string): Promise<vo
 }
 
 export const DUMP_LIMITS = { MAX_DUMP_CHARS, CONVERSATION_GAP } as const;
+
+/** 018. Answer a question by option. Null when the question is not this
+ *  account's, not open, or the option does not exist, which the client draws
+ *  as the chips leaving without a failure line: there is nothing to retry. */
+export async function answerQuestion(
+  accountId: string,
+  questionId: string,
+  option: number,
+): Promise<{
+  envelope: {
+    messageId: string;
+    conversationId: string;
+    state: MessageState;
+    turnId: string;
+    question: QuestionOnWire | null;
+  };
+  field: string;
+  applied: boolean;
+  escape: boolean;
+} | null> {
+  return db.transaction().execute(async (trx) => {
+    // Locked for the length of this transaction, which is ours, so two taps
+    // from two devices queue here: the second reads the first's answered state
+    // and leaves without writing a turn. Without the lock both passed the
+    // check, both wrote the person's words, and only one applied.
+    const question = await trx
+      .selectFrom("questions")
+      .select(["id", "conversation_id", "message_id", "field", "state"])
+      .where("id", "=", questionId)
+      .where("account_id", "=", accountId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!question || question.state !== "open") return null;
+
+    // Where the dump that led to the question was made from. A country re-run
+    // reads it off the answering message, and the thread is the very fact the
+    // question turned on, so the answer carries it as the dump did.
+    const asked = await trx
+      .selectFrom("messages")
+      .select("looking_at_thread_id")
+      .where("id", "=", question.message_id)
+      .executeTakeFirst();
+
+    const picked = await optionLabel(trx, accountId, question.id, option);
+    if (!picked) return null;
+
+    const turnId = randomUUID();
+    const escape = picked.value === null;
+    const country = question.field === "country" && !escape;
+
+    // The person's own turn, in words, exactly as typing them would be.
+    const message = await trx
+      .insertInto("messages")
+      .values({
+        conversation_id: question.conversation_id,
+        account_id: accountId,
+        role: "person",
+        type: "text",
+        turn_id: turnId,
+        text: picked.label,
+        state: country ? "seen" : "answered",
+        looking_at_thread_id: asked?.looking_at_thread_id ?? null,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    let applied = false;
+    if (escape) {
+      await closeQuestion(trx, question.id, accountId, message.id);
+    } else {
+      const value = optionAsValue(picked.field, picked.value!);
+      const outcome = value
+        ? await applyAnswer(trx, question.id, accountId, value, {
+            answeredMessageId: message.id,
+            answerTurnId: turnId,
+            option,
+          })
+        : ({ applied: false, reason: "bad_value" } as const);
+      applied = outcome.applied;
+      // The row is gone or the field was set by hand since. The words are
+      // written, the question is closed, nothing else changes.
+      if (!applied) await closeQuestion(trx, question.id, accountId, message.id);
+    }
+
+    await trx
+      .updateTable("conversations")
+      .set({ last_message_at: sql`now()` })
+      .where("id", "=", question.conversation_id)
+      .execute();
+
+    if (country && applied) {
+      await enqueue({
+        kind: "dump.answer",
+        accountId,
+        payload: {
+          messageId: message.id,
+          conversationId: question.conversation_id,
+          turnId,
+          questionId: question.id,
+          country: picked.value,
+        },
+        priority: PRIORITY.interactive,
+        maxAttempts: 2,
+        tx: trx,
+      });
+    } else if (country) {
+      await trx.updateTable("messages").set({ state: "answered" }).where("id", "=", message.id).execute();
+    }
+
+    return {
+      envelope: {
+        messageId: message.id,
+        conversationId: question.conversation_id,
+        state: country && applied ? ("seen" as const) : ("answered" as const),
+        turnId,
+        question: await openQuestionOn(trx, accountId, message.id),
+      },
+      field: question.field,
+      applied,
+      escape,
+    };
+  });
+}
+
+/** An option's stored value in the field's wire form. */
+function optionAsValue(field: string, value: string): Record<string, string> | null {
+  switch (field) {
+    case "date":
+      return { day: value };
+    case "span": {
+      const [from, to] = value.split("/");
+      return from ? { from, to: to ?? from } : null;
+    }
+    case "time": {
+      const [day, time] = value.split("T");
+      return day && time ? { day, time } : null;
+    }
+    case "tag":
+      return { tag: value };
+    case "country":
+      return { country: value };
+    default:
+      return null;
+  }
+}

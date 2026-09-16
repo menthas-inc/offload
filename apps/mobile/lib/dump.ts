@@ -30,6 +30,9 @@ export interface Sent {
   state: MessageState;
   /** The undo unit. Carried from the send so the toast never has to ask. */
   turnId: string;
+  /** 018. On an answer's response: the turn's second question, now on the
+   *  answering message, so it appears without a reload. */
+  question?: QuestionOnWire | null;
 }
 
 /** A thread a turn actually wrote to, from the content rows it produced rather
@@ -83,6 +86,16 @@ export interface Source {
   url: string;
 }
 
+/** 018. A question offload asked back, while it is open. Labels and kinds
+ *  only: the values stay on the server and an index goes back. */
+export interface QuestionOnWire {
+  id: string;
+  field: "date" | "span" | "time" | "tag" | "country";
+  text: string;
+  options: { label: string; kind: "value" | "plain" }[];
+  ordinal: number;
+}
+
 export interface Answer {
   state: MessageState;
   reply: string | null;
@@ -90,6 +103,8 @@ export interface Answer {
   sources: Source[];
   /** 017. What offload is doing, on a turn still in flight. Null once settled. */
   step: string | null;
+  /** 018. The question this turn asked back, while it is open. */
+  question: QuestionOnWire | null;
   /** Every thread whose contents the turn changed, a superset of `threads`.
    *  A move's source is here and not there: the screen has to reload it, and a
    *  pill saying the dump went there would be untrue. */
@@ -109,6 +124,7 @@ export interface TailMessage {
   state: MessageState;
   turnId: string;
   waiting?: WaitingOn | null;
+  question?: QuestionOnWire | null;
   found?: FoundResult[];
   /** Where the turn filed, and where a fact in it came from. The footer's whole
    *  content, and a reload used to drop all of it. */
@@ -169,6 +185,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     step?: string | null;
     changed?: string[];
     waiting?: WaitingOn | null;
+    question?: QuestionOnWire | null;
     // **The rows, which this used to drop on the floor.** `awaitAnswer` is the
     // only way an open app learns its turn is done, so leaving `found` out of
     // the parsed shape meant every answer rendered its sentence and none of its
@@ -185,8 +202,42 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     step: data.step ?? null,
     changed: data.changed ?? [],
     waiting: data.waiting ?? null,
+    question: data.question ?? null,
     found: data.found ?? [],
   };
+}
+
+/** 018. Answer a question by option. Null when the server refused it: the
+ *  question is closed, answered elsewhere, or gone, and the chips simply go.
+ *  The envelope is a dump's, so the sheet waits for a country re-run the way
+ *  it waits for anything else. */
+export async function answerQuestion(
+  id: string,
+  option: number,
+): Promise<{ status: number; sent: Sent | null }> {
+  const { status, data } = await send<Sent>(`/v1/questions/${id}/answer`, {
+    method: "POST",
+    body: JSON.stringify({ option }),
+  });
+  return { status, sent: data };
+}
+
+/** 018. What the composer says while a question is open. A question with
+ *  nothing to offer but the way out is answered by typing, and the
+ *  placeholder is the invitation. */
+export function invitation(question: QuestionOnWire): string {
+  const typedOnly = question.options.every((o) => o.kind === "plain");
+  if (!typedOnly) return question.text;
+  switch (question.field) {
+    case "span":
+      return "Which dates? Type them, like 10 to 12 October";
+    case "date":
+      return "By when? Type a day, like 30 September";
+    case "time":
+      return "Which day and time? Type them, like Friday at 10";
+    default:
+      return question.text;
+  }
 }
 
 /** Wait for the answer by asking, and stop asking when there is one.

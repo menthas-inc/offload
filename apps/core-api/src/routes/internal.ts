@@ -22,6 +22,7 @@ import { emit } from "../analytics.js";
 import { env } from "../env.js";
 import { NOTE_TEXT_CHARS, applyCompaction } from "../threads/notes.js";
 import { parseWhen, plausible } from "../threads/dates.js";
+import { applyAnswer, askedQuestion, closeQuestion, storeQuestions, validateAsked } from "../questions.js";
 
 /** Constant time, and length-checked first because timingSafeEqual throws on a
  *  length mismatch and that throw is itself a length oracle. */
@@ -71,6 +72,10 @@ const body = z.discriminatedUnion("outcome", [
      *  other way round and the worker refuses to post one without a sentence,
      *  because a question with no answer is a failure. */
     replyText: z.string().min(1).optional(),
+    /** 018. What the turn asked back. Validated whole, against the closed
+     *  field set and the turn's own filings, and dropped whole on any failure
+     *  so the turn settles as if it had asked nothing. */
+    questions: z.array(askedQuestion).max(2).optional(),
     /** 013. Content ids an answer showed, in the order it read them.
      *
      *  Ids only. The reply resolves them when it is read, so a row ticked or
@@ -711,6 +716,38 @@ export async function internalRoutes(app: App): Promise<void> {
               .execute();
           }
 
+          // 018. The questions, on the answered arm only, after everything the
+          // turn filed is in the same transaction, so a target that did not
+          // settle is a target that does not exist. An answering turn is one
+          // that carried `found`; only it may ask the country.
+          if (result.outcome === "answered" && result.questions?.length) {
+            // An answer never creates a question: a job that is itself the
+            // re-run for a country somebody picked may not ask again.
+            const rerun = Boolean((payload as { questionId?: string }).questionId);
+            const answering = result.found !== undefined && !rerun;
+            const verdict = await validateAsked(trx, result.questions, {
+              accountId,
+              messageId: person.id,
+              answering,
+            });
+            if (verdict.ok) {
+              await storeQuestions(trx, verdict.rows, {
+                accountId,
+                conversationId: payload.conversationId!,
+                messageId: person.id,
+                turnId: payload.turnId!,
+                // A turn that read a calendar or the web: the flag is a
+                // record, since nothing the model wrote reaches a question.
+                derivedFromUntrusted:
+                  (payload as { sawApps?: boolean }).sawApps === true ||
+                  (result.lookups ?? []).some((l) => l.outcome !== "refused_bound"),
+              });
+            } else {
+              // Enums only: the field and the reason, never the sentence.
+              request.log.warn({ field: verdict.field, reason: verdict.reason }, "question refused");
+            }
+          }
+
           await trx
             .updateTable("messages")
             .set({ state: result.outcome, step: null, step_at: null })
@@ -820,4 +857,101 @@ export async function internalRoutes(app: App): Promise<void> {
       return reply.send({ status: written ? ("written" as const) : ("already" as const) });
     }
   );
+
+  // 018. The worker's two ways of settling an open question after judging a
+  // typed message. Both resolve the job first, the way turn-step does, and tie
+  // the question to the job's conversation, so a judgement about one message
+  // can only ever settle the question that message could answer.
+  async function questionScope(
+    request: { headers: { authorization?: string | string[] | undefined } },
+    jobId: string,
+  ): Promise<{ accountId: string; conversationId: string; messageId: string; turnId: string } | null> {
+    const header = Array.isArray(request.headers.authorization)
+      ? request.headers.authorization[0]
+      : request.headers.authorization;
+    const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+    if (!tokenMatches(presented)) return null;
+    const job = await db
+      .selectFrom("jobs")
+      .select(["account_id", "payload"])
+      .where("id", "=", jobId)
+      .where("kind", "=", "dump.answer")
+      .executeTakeFirst();
+    if (!job || !job.account_id) return null;
+    const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as {
+      messageId?: string;
+      conversationId?: string;
+      turnId?: string;
+    };
+    if (!payload.messageId || !payload.conversationId || !payload.turnId) return null;
+    return {
+      accountId: job.account_id,
+      conversationId: payload.conversationId,
+      messageId: payload.messageId,
+      turnId: payload.turnId,
+    };
+  }
+
+  app.post(
+    "/internal/v1/question-answer",
+    {
+      schema: {
+        body: z.strictObject({
+          jobId: z.string().uuid(),
+          questionId: z.string().uuid(),
+          value: z.record(z.string(), z.string()).optional(),
+        }),
+        response: { 200: z.object({ applied: z.boolean() }), 401: refused, 404: refused },
+      },
+    },
+    async (request, reply) => {
+      const scope = await questionScope(request, request.body.jobId);
+      if (!scope) return reply.code(401).send({ error: "unauthorised" as const });
+      const applied = await db.transaction().execute(async (trx) => {
+        const q = await trx
+          .selectFrom("questions")
+          .select("id")
+          .where("id", "=", request.body.questionId)
+          .where("account_id", "=", scope.accountId)
+          .where("conversation_id", "=", scope.conversationId)
+          .executeTakeFirst();
+        if (!q) return false;
+        const outcome = await applyAnswer(trx, q.id, scope.accountId, request.body.value ?? {}, {
+          answeredMessageId: scope.messageId,
+          answerTurnId: scope.turnId,
+          option: null,
+        });
+        if (!outcome.applied) await closeQuestion(trx, q.id, scope.accountId, scope.messageId);
+        return outcome.applied;
+      });
+      request.log.info({ how: "typed", applied }, "question answered");
+      return reply.send({ applied });
+    }
+  );
+
+  app.post(
+    "/internal/v1/question-close",
+    {
+      schema: {
+        body: z.strictObject({ jobId: z.string().uuid(), questionId: z.string().uuid() }),
+        response: { 200: z.object({ closed: z.boolean() }), 401: refused, 404: refused },
+      },
+    },
+    async (request, reply) => {
+      const scope = await questionScope(request, request.body.jobId);
+      if (!scope) return reply.code(401).send({ error: "unauthorised" as const });
+      const closed = await db.transaction().execute(async (trx) => {
+        const q = await trx
+          .selectFrom("questions")
+          .select("id")
+          .where("id", "=", request.body.questionId)
+          .where("account_id", "=", scope.accountId)
+          .where("conversation_id", "=", scope.conversationId)
+          .executeTakeFirst();
+        return q ? closeQuestion(trx, q.id, scope.accountId, scope.messageId) : false;
+      });
+      return reply.send({ closed });
+    }
+  );
+
 }

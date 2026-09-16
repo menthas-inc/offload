@@ -280,6 +280,9 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
         # The same, for a call whose arguments would not validate. Field names
         # and error types travel with it; the values never do (OFF-1).
         'outcome.refused.append(f"{block.name}: {shape}")',
+        # 018. The same comparison for `ask`, which is collected on the
+        # outcome and posted with the result. Reads the name, resolves nothing.
+        'if block.name == "ask":',
         # A comparison against one literal, deciding whether this call is the
         # one tool that writes nothing and never leaves the loop. It reads the
         # name and resolves nothing with it.
@@ -497,6 +500,8 @@ async def test_the_tools_are_sent_on_every_call():
             # Last, and it writes nothing: a turn speaks by calling it and
             # almost never does.
             "say",
+            # 018. Asks back, at most twice, and also writes nothing here.
+            "ask",
         ]
 
 
@@ -510,7 +515,7 @@ async def test_the_calendar_tools_arrive_with_a_calendar():
     assert "list_calendars" in names
     # And the ordinary ten are still all there, in front of them.
     assert names[:10] == [t["name"] for t in TOOLS]
-    assert names[-1] == "say"
+    assert names[-2:] == ["say", "ask"]
 
 
 async def test_a_reply_of_only_whitespace_is_no_reply():

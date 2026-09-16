@@ -342,12 +342,14 @@ export default function Privacy() {
               such as a date, and the address it came from. The page itself is not stored anywhere.
             </li>
             <li>
-              <strong>Your country goes with a search, if you set one.</strong> Settings has a
-              Country, and when it is set offload puts it in the question so a date or a forecast is
-              the one where you are. It is two letters and nothing else about where you live: not
-              your address, not your town, and never taken from your IP or your phone. Leave it
-              unset and offload tells itself it does not know, which is why an answer that needs a
-              country is sometimes "Not sure." rather than a guess.
+              <strong>A search may carry your approximate location.</strong> Today that is a
+              country: the one in Settings, or the one you pick when offload asks which country a
+              question is about, because a thread of yours says you are somewhere else. It goes in
+              the question so a date or a forecast is the one where you are. It is two letters and
+              nothing else about where you live: not your address, not your town, and never taken
+              from your IP or your phone. Leave it unset and offload tells itself it does not know,
+              which is why an answer that needs a country is sometimes "Not sure." rather than a
+              guess.
             </li>
             <li>
               <strong>A link can bring its picture, and the picture comes from the site.</strong>{" "}

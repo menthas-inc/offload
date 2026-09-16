@@ -26,6 +26,9 @@ export interface Sent {
   state: MessageState;
   /** The undo unit. Carried from the send so the toast never has to ask. */
   turnId: string;
+  /** 018. On an answer's response: the turn's second question, now on the
+   *  answering message, so it appears without a reload. */
+  question?: QuestionOnWire | null;
 }
 
 /** A thread a turn actually wrote to. From the content rows it produced, not
@@ -68,6 +71,16 @@ export interface Source {
   url: string;
 }
 
+/** 018. A question offload asked back, while it is open. Labels and kinds
+ *  only: the values stay on the server and an index goes back. */
+export interface QuestionOnWire {
+  id: string;
+  field: "date" | "span" | "time" | "tag" | "country";
+  text: string;
+  options: { label: string; kind: "value" | "plain" }[];
+  ordinal: number;
+}
+
 export interface Answer {
   state: MessageState;
   reply: string | null;
@@ -75,6 +88,8 @@ export interface Answer {
   sources?: Source[];
   /** 017. What offload is doing, on a turn still in flight. Null once settled. */
   step?: string | null;
+  /** 018. The question this turn asked back, while it is open. */
+  question?: QuestionOnWire | null;
   /** A calendar write offload proposed and nobody has answered yet. Only ever
    *  set on a write that reaches somebody else: guests, or a calendar marked
    *  shared. A write nobody learns about just happens, with the ordinary Undo. */
@@ -236,12 +251,55 @@ export interface TailMessage {
    *  which is what made it a web bug rather than a server one. */
   found: FoundResult[];
   waiting: { id: string; because: string } | null;
+  question?: QuestionOnWire | null;
   /** Where the turn filed, and where a fact in it came from: the footer's whole
    *  content. Added the day the footer was, because a reload dropped all three
    *  and this endpoint has now been the place a reload loses something three
    *  times. */
   threads: TouchedThread[];
   sources: Source[];
+}
+
+/** 018. Answer a question by option. Null when the server refused it: the
+ *  question is closed, answered elsewhere, or gone, and the chips simply go.
+ *  The envelope is a dump's, so the composer waits for a country re-run the
+ *  way it waits for anything else. */
+export async function answerQuestion(
+  id: string,
+  option: number,
+): Promise<{ status: number; sent: Sent | null }> {
+  try {
+    const response = await fetch(`${API}/v1/questions/${id}/answer`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ option }),
+    });
+    if (!response.ok) return { status: response.status, sent: null };
+    return { status: response.status, sent: (await response.json()) as Sent };
+  } catch {
+    // Offline, or the request never left. Not a refusal: the chips stay and
+    // the line offers the retry.
+    return { status: 0, sent: null };
+  }
+}
+
+/** 018. What the composer says while a question is open. A question with
+ *  nothing to offer but the way out is answered by typing, and the
+ *  placeholder is the invitation. */
+export function invitation(question: QuestionOnWire): string {
+  const typedOnly = question.options.every((o) => o.kind === "plain");
+  if (!typedOnly) return question.text;
+  switch (question.field) {
+    case "span":
+      return "Which dates? Type them, like 10 to 12 October";
+    case "date":
+      return "By when? Type a day, like 30 September";
+    case "time":
+      return "Which day and time? Type them, like Friday at 10";
+    default:
+      return question.text;
+  }
 }
 
 /** The current conversation, so a reload does not look like a fresh account.
