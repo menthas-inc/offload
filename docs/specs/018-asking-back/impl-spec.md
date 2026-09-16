@@ -43,7 +43,7 @@ The same, with `ANSWER_TOOLS + [ASK_TOOL]`, and the schema restricted server-sid
 
 `takeDump` is unchanged except that the enqueued job carries `openQuestionId` when the conversation has one. In the worker, before `classify`:
 
-1. `judge_answer(text, question)`: one call on the sort model, forced tool `answer`, schema `{answers: bool, value: string | null}`. The prompt is given the field, the question sentence and the option labels, never the thread or the notes. The value is parsed for the field's type in code (a date, a span, a clock time, one of the tag values, one of the two countries); anything that does not parse is `answers: false`.
+1. `judge_answer(text, question, today, week_start)`: one call on the sort model, forced tool `answer`, schema `{answers: bool, value: object | null}` where `value` is typed per field: `{day}` for a date, `{from, to}` for a span, `{day, time}` for a time, `{tag}` for a tag, `{country}` for a country, all in the wire forms of the value table below. The prompt is given the field, the question sentence, the option labels, today's date and the week start, never the thread or the notes; it does the reading of "next weekend" the planner already does. Code then checks shape and sense: the day forms, `from <= to`, within a year of today, a tag among the thread's values, a country among the two. A shape failure gets one repair retry (OFF-5); anything that still fails is `answers: false`.
 2. If it answers: `POST /internal/v1/question-answer {questionId, jobId, value}`. The server applies it exactly as a tap would, with the person's own message as the answering message, and returns whether it applied. The worker then continues into classify and plan with `ctx.answered = {field, value}` as a labelled block ("They answered your question about the dates with 14th to 17th; that is already on the row. File the rest."), so the value is not filed twice and nothing else in the message is lost.
 3. If it does not answer: `POST /internal/v1/question-close {questionId, jobId}` and continue as today.
 4. Country: the judge's value is a country; the worker runs `plan_answer` with it as the override directly, no second job.
@@ -113,7 +113,7 @@ create index questions_turn_idx on questions (turn_id);
 | Field | Value | Applied to | Options offered |
 | --- | --- | --- | --- |
 | date | `YYYY-MM-DD` | `content.occurs_at` (day), or `due_at` on a task | end of this week, end of this month, in the account's day boundary (0035) and week start |
-| span | `{from, to}` | `occurs_at` and `ends_at` | the dates the thread's notes hold, when they hold any |
+| span | `{from, to}` | `occurs_at` and `ends_at` | the dates the thread's notes hold, when they hold any; otherwise no values, the escape alone, and the placeholder invites a typed span |
 | time | `YYYY-MM-DDTHH:MM` | `occurs_at`, `all_day = false` | none from context; the model may offer up to four from the coming week |
 | tag | `dimension:value` | appended to `content.tags`, one per dimension | the thread's existing values of the dimension, two to four |
 | country | ISO code | nothing; carried into the re-run | the account's and the thread's |
@@ -199,6 +199,7 @@ question: {
 | The model asks about a row it did not file this turn | The list is refused whole at `turn-result`; the turn settles without questions. |
 | The model asks a field the thread's notes forbid | The prompt carries the rule; the Core API also refuses a question whose field a note on that thread forbids, read at validation, so the prompt is not the only gate. |
 | A tag question on a thread with one value | Refused by validation (fewer than two values). The row keeps no tag. |
+| A span or date question with no values to offer | Accepted with the escape as its only option; the placeholder carries the typed form. |
 | Two devices tap different options | The first conditional update wins; the second gets 404 and drops its chips silently. |
 | A tap after the row was archived, moved or deleted | The target is re-resolved; a deleted row closes the question and changes nothing. An archived or moved row still takes the value. |
 | A tap after the field was set by hand | The question closes and changes nothing; the person's message is still written. |

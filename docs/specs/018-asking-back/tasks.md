@@ -15,8 +15,8 @@ Ordered. Each cites the acceptance criteria it serves and the principles it sati
   *Test:* the schema refuses a fifth option, a 25-character label, a missing `content_id` on a non-country field.
 - [ ] **B2** `harness/plan.py`: `_run` collects `ask` like `say`, caps at two, answers the third `limit_reached`; `Outcome.questions`. `plan()` offers the tool; `plan_answer()` offers it; `plan_quick_add()` does not. *(AC-7, AC-24; DEV-1)*
   *Test:* three `ask` calls yield two recorded and one refused; `ask` does not count as landed or worked.
-- [ ] **B3** `worker.py`: post `questions` on the `answered` arm only; `judge_answer()` before `classify` when the job carries `openQuestionId`, with per-field parsing in code; `question-answer` and `question-close` calls; `ctx.answered` block; the country override into `plan_answer`. *(AC-12, AC-14, AC-15; OFF-5, SEC-1)*
-  *Test:* a typed "14th to 17th" parses as a span and posts `question-answer`; "hello" closes; a judge exception closes; the value never reaches `_from_the_dump`'s haystack.
+- [ ] **B3** `worker.py`: post `questions` on the `answered` arm only; `judge_answer()` before `classify` when the job carries `openQuestionId`, given today and the week start, with the shape and sense checks and one repair retry in code; `question-answer` and `question-close` calls; `ctx.answered` block; the country override into `plan_answer`. *(AC-12, AC-14, AC-15; OFF-5, SEC-1)*
+  *Test:* a typed "14th to 17th" and "next weekend" become spans against a fixed today; "sometime in autumn" and "hello" close; a judge exception closes; `to` before `from` is refused; the value never reaches `_from_the_dump`'s haystack.
 - [ ] **B4** `context.py`: `AnswerContext.turns` loaded by `_TURNS`, `build_answer_blocks` gains the tail; `DumpContext.answered`; `fit()` carries both, counted. *(AC-23; OFF-8)*
   *Test:* the answering tail is dropped oldest first under the ceiling; `answered` is never dropped; a `fit()` that omits a new field fails (the field-dropping trap has a test now).
 - [ ] **B5** `prompts/plan_v2.md`: a section "Asking back" carrying the table, the never list, and the note rule; `prompts/answer.md`: the country paragraph. Run through the `test-llm` skill with `evals/cases/asking-back.json` as the tuning set and `asking-back-holdout.json` held out. *(AC-1 to AC-6)*
@@ -41,7 +41,7 @@ Ordered. Each cites the acceptance criteria it serves and the principles it sati
 
 - [ ] **D1** `QuickReplies` ported from the design system into `components/shell/` per the checked-in contract: `options`, `note`, `onPick`, five chips wrapping, `role="group"` labelled by the sentence, chip labels never wrapping. *(AC-10; OFF-7)*
 - [ ] **D2** `Composer.tsx`: the question inside the bubble under the sentence and above the footer, beside `Waiting` when both exist with the proposal first; plain text, no markup; tap posts the option and writes the person's turn locally; chips leave; "Not that" draws nothing further; a 404 removes the chips without the failure line; the country path waits like a dump. *(AC-12, AC-13, AC-15, AC-18)*
-- [ ] **D3** The composer placeholder holds the open question, with precedence: a pinned `+` field is never taken over, then the question, then in-thread, then the cycling set; the field's accessible name stays "Dump anything" and the question is announced through the existing live region. *(AC-12)*
+- [ ] **D3** The composer placeholder holds the open question, with precedence: a pinned `+` field is never taken over, then the question, then in-thread, then the cycling set; for a date, span or time with no values the placeholder is the invitation, "Which dates? Type them, like 10 to 12 October"; the field's accessible name stays "Dump anything" and the question is announced through the existing live region. *(AC-9, AC-12)*
 - [ ] **D4** After an answer, the open thread pane, Today and the rail reload and the changed row takes the change mark. *(AC-16)*
 - [ ] **D5** The disabled state of the calendar control loses its opacity fade for the disabled tokens, picked up on the way past. *(OFF-7)*
 - [ ] **D6** `dead-classes`, `dead-css`, `dead-icons`, lint, typecheck, and a `test/markup.test.ts` case that a question is never parsed as markup.
@@ -56,7 +56,7 @@ Ordered. Each cites the acceptance criteria it serves and the principles it sati
 
 ## F. Country, gated
 
-- [ ] **F1** The privacy page line, agreed with the owner first: "if you set one, or picked one when offload asked". *(CLAUDE.md privacy rule)*
+- [ ] **F1** The privacy page line becomes "A search may carry your approximate location.", chosen by the owner on 2026-09-16, in the same commit as F2. *(CLAUDE.md privacy rule)*
 - [ ] **F2** `answer.md` country paragraph, `plan_answer` override, `_from_the_dump` admits the override the way it admits the setting, `turn-result` accepts `field: country` only from a question job. *(AC-3, AC-15, AC-22)*
   *Test:* case 32 asks with the two codes; case 34 re-runs read-only with Turkey and files nothing; the override never enters the haystack as a word.
 

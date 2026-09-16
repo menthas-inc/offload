@@ -24,6 +24,7 @@ What this spec takes from it: a question names the field it fills, a field the c
 | Two questions: together or in sequence? | Together, in one reply. |
 | Where the question lives | In the reply, options as chips inside the bubble, like 012's control. |
 | Every question's last option | A way to say the question is beside the point: "Not that". For a meeting with no time it is how "I meant set one up" is said, and the row stays a task. |
+| The privacy line for the country question | "A search may carry your approximate location." Chosen by the owner 2026-09-16; the country is what that location is today. |
 | Does an open question expire? | Only on the next turn. Nothing is waiting on it. *Review added: and when its conversation ends, which is the composer closing or six hours of silence, so a question cannot outlive the conversation it is in.* |
 | Can the answer's turn ask again? | One more question at most, when the answer opened exactly one further field. The turn after that asks none. *Review changed the mechanism: the asking turn decides both questions up front and the second is shown once the first settles, because the control holds one question and a tap closes the open one. Two per dump, one at a time, never a third.* |
 
@@ -82,7 +83,7 @@ Thirty-four cases, twenty-five of them no-ask, one deferred. Labelled by the pro
 | 25 | "when's the next holiday", from Today, country set | no | the account's country |
 | 26 | "buy birthday gift for Ana" | ask | date: end of this week, end of this month, Not that; a typed date also answers |
 | 27 | YouTube link, in Music, note says organised by genre | ask | tag: the thread's genres, Not that |
-| 28 | Airbnb link, no context, an Istanbul thread exists | ask | span: the dates, from the trip's notes where they exist, Not that |
+| 28 | Airbnb link, no context, an Istanbul thread exists | ask | span: filed into the trip thread without asking where; the dates from the trip's notes where they exist, otherwise Not that alone and a typed span |
 | 29 | a photo of a receipt, from Today | deferred | photos cannot be dumped yet; the owner's label was ask which thread |
 | 30 | "remind me to renew passport" | ask | date: end of this week, end of this month, Not that (owner) |
 | 31 | "meeting with the landlord", in Flat admin, no time | ask | time: options from the week, and Not that means it is a task to set one up (owner) |
