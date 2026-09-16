@@ -20,6 +20,7 @@ import { uuidv7 } from "../src/uuid.js";
 import { dimensionsIn } from "../src/threads/tags.js";
 import {
   groupBy,
+  liveCount,
   readPreference,
   widgetsFor,
   type Sortable,
@@ -449,5 +450,22 @@ describe("a repeating occurrence says which series it belongs to", () => {
     expect(byTitle.get("Yoga")).toBe("yoga-series");
     expect(byTitle.get("Lawyer")).toBe(null);
     expect(byTitle.get("Dentist")).toBe(null);
+  });
+});
+
+describe("a section counts what is live in it", () => {
+  it("counts open tasks and not finished ones", () => {
+    const open = row({ type: "task" });
+    const done = row({ type: "task", doneAt: "2026-09-01T00:00:00Z" });
+    expect(liveCount([open, open, done])).toBe(2);
+  });
+
+  it("is every row for a section nothing in can be done", () => {
+    const rows = [row({ type: "image" }), row({ type: "link" }), row({ placeId: "p1" })];
+    expect(liveCount(rows)).toBe(3);
+  });
+
+  it("is zero, not absent, when every task is done", () => {
+    expect(liveCount([row({ type: "task", doneAt: "2026-09-01T00:00:00Z" })])).toBe(0);
   });
 });

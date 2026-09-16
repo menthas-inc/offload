@@ -13,6 +13,7 @@ export {
   WIDGET_KINDS,
   dimensionsIn,
   groupBy,
+  liveCount,
   parseTag,
   readPreference,
   reorderPlan,

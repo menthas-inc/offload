@@ -27,6 +27,7 @@ import type { RowReorder } from "./RowTools";
 import {
   DONE_SHOWN,
   filtersFor,
+  liveCount,
   matching,
   reorderPlan,
   splitDone,
@@ -180,7 +181,10 @@ function WidgetBlock({
     <section>
       <h2 className={styles.section}>
         {HEADINGS[widget.kind]}
-        <em className={styles.sectionCount}>{widget.rows.length}</em>
+        {/* What is live in the section, not what it holds: "To do 3" is how
+            many are left, and the finished ones have their own count on the
+            fold. The kit draws exactly this. */}
+        <em className={styles.sectionCount}>{liveCount(widget.rows)}</em>
         <div className={styles.sectionControls}>
           {widget.kind === "todo" && done.length > 0 ? (
             <>

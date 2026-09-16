@@ -75,12 +75,14 @@ Derived from the page, in one pass:
 
 | Widget | Earns it | Renders |
 | --- | --- | --- |
-| `todo` | any `task` with `done_at` null | checkboxes, priority order |
+| `todo` | any `task`, done or not | checkboxes, priority order, finished ones sunk to the bottom |
 | `map` | any row with a `place_id` | pins on a plain surface, then a list |
 | `timeline` | any row with `occurs_at` | dated rows, oldest first |
 | `files` | any `image`, `screenshot`, `file` or `link` | a grid |
 
 **Never drawn empty and never configured into existence.** A thread that loses its last dated row loses its timeline, and that is the widget system working rather than state going missing.
+
+**A heading counts what is live**, `liveCount` in `@offload/widgets`: open tasks for To do, every row for the rest, since 2026-09-16. It was the widget's whole row count, and the phones and web each read it straight off `rows.length`, which is how one rule became two numbers. The filter chips are not headings and still count every row they select.
 
 Default order when the thread has no preference: by how much of the thread each widget accounts for, descending, so a trip full of places leads with the map without anyone choosing. Ties break in the table's order above, so the same thread always draws the same way.
 
@@ -145,7 +147,7 @@ The phones' handle pan activates at 250ms, before the row's own 320ms long press
 - **A preference naming a dimension nothing carries.** One unnamed group holding everything, which reads as ungrouped and is honest.
 - **A row tagged in two dimensions the thread could group by.** Only the named dimension is used. The other is still there and still groupable if the preference changes.
 - **Every row in a group is ticked.** The group collapses to a heading and a count rather than disappearing, so the work that was done is visible.
-- **A thread with 500 rows and four widgets.** One page of 30, bucketed four ways. The counts come from the bundle's aggregate, so a widget's header is honest even though its list is one page.
+- **A thread with 500 rows and four widgets.** One page of 30, bucketed four ways. A widget's heading counts the live rows the page holds and grows as the page does; it is never a number the list under it cannot show.
 
 ## Constitution check
 

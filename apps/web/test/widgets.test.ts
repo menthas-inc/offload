@@ -25,6 +25,7 @@ import {
   splitRepeating,
   dimensionsIn,
   groupBy,
+  liveCount,
   readPreference,
   reorderPlan,
   respread,
@@ -450,5 +451,22 @@ describe("reorderPlan: a drop becomes one write, or a re-spread", () => {
     expect(distinct.size).toBe(100);
     expect(Math.max(...distinct)).toBeLessThanOrEqual(100);
     expect(Math.min(...distinct)).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("a section counts what is live in it", () => {
+  it("counts open tasks and not finished ones", () => {
+    const open = row({ type: "task" });
+    const done = row({ type: "task", doneAt: "2026-09-01T00:00:00Z" });
+    expect(liveCount([open, open, done])).toBe(2);
+  });
+
+  it("is every row for a section nothing in can be done", () => {
+    const rows = [row({ type: "image" }), row({ type: "link" }), row({ placeId: "p1" })];
+    expect(liveCount(rows)).toBe(3);
+  });
+
+  it("is zero, not absent, when every task is done", () => {
+    expect(liveCount([row({ type: "task", doneAt: "2026-09-01T00:00:00Z" })])).toBe(0);
   });
 });

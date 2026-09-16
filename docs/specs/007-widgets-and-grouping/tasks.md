@@ -47,3 +47,8 @@
 - [x] **E4** `grip-vertical` vendored into the icon set, `public/icons` and the phones' generated set; `dead-icons` clean.
 - [ ] **E5** *Not done from this session: needs a device.* Hold the handle on each phone and check the row lifts without the action sheet opening or the scroll view taking the touch, and that a two-line title lands where it was dropped.
 - [x] **E6** Design system `decisions.md`: the handle and the drop line as new surface, with **Design system impact** filled in.
+
+## F. Tweaks
+
+- [x] **F1** 2026-09-16: a section heading counts what is live in it, `liveCount` in `@offload/widgets`, read by web and the phones *(**AC-11**)*. The kit's `ThreadScreen.jsx` already draws `tasks.filter(t=>!t.done).length` beside To do, so this is the code catching up with the kit, and there is no decision-log entry. The filter chips are left counting every row they select, All included: a chip is the size of a filter, not the section's count. The thread's own count on My threads moved with it, in 005.
+  *Test:* `liveCount` on both sides of the package: open tasks only; every row for a section nothing in can be done; zero rather than absent when every task is done.

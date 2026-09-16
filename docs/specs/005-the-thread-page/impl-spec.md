@@ -35,6 +35,8 @@ alter table content add column archived_at timestamptz;
 
 Everything else this feature needs already exists: `threads.name`, `always_on`, `content_count`, `last_activity_at`, `thread_members.state`, `content.account_id` for authorship, `content.derived_from_message_id` for provenance, and `deleted_at` plus `purge_after` for delete.
 
+**`content_count` is what is live in the thread**, neither archived nor deleted, since 2026-09-16 and `0047`, which put every existing thread on that footing once. Archive and restore maintain it in the same transaction as the write, as delete and move already did, and the agent's `archive_content` tool the same way; a move of an archived row moves neither count. It is the number on the thread row and it equals the bundle's `counts.active`. *Until then archiving left it alone on the grounds that the row was still there, and My threads said 9 about a thread whose own page said 7.*
+
 ### Why `archived_at` is not `deleted_at`
 
 They look alike and they are opposites. `deleted_at` starts an eight second clock ending in destruction and is author-only. `archived_at` is a permanent, reversible, everybody-can-do-it state that means "not in the active list any more". A shared grocery list is unusable without it and dangerous with only the other one.

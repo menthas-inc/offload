@@ -1078,14 +1078,29 @@ async function existing(
   }
 
   if (call.tool === "archive_content") {
-    await trx
+    // Only the transition writes, so archiving twice moves the count once.
+    // `readableContent` above never returns a deleted row, so a row here is
+    // live iff it is not archived, and `content_count` is what is live.
+    const changed = await trx
       .updateTable("content")
       .set({
         archived_at: call.archived ? sql`now()` : null,
         updated_at: sql`now()`,
       })
       .where("id", "=", ref.id)
-      .execute();
+      .where("archived_at", call.archived ? "is" : "is not", null)
+      .executeTakeFirst();
+    if (Number(changed.numUpdatedRows) > 0) {
+      await trx
+        .updateTable("threads")
+        .set({
+          content_count: call.archived
+            ? sql`greatest(content_count - 1, 0)`
+            : sql`content_count + 1`,
+        })
+        .where("id", "=", ref.threadId)
+        .execute();
+    }
     await touchThread(ref.threadId, trx);
     await noteThread(messageId, ref.threadId, true, trx);
     return { ok: true, done: true };

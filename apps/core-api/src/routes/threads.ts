@@ -453,7 +453,15 @@ export async function editContent(
  *
  *  Restore clears a pending destruction as well as an archive, so one control
  *  brings back an archived row and an undone delete alike, and the count it
- *  decremented comes back with it. */
+ *  decremented comes back with it.
+ *
+ *  **`content_count` is what is live in the thread**, since 2026-09-16: rows
+ *  neither archived nor deleted. Archiving left it alone until then, on the
+ *  grounds that the row was still there, and My threads said 9 about a thread
+ *  whose own page said 7 next to an "2 archived" row. The product owner's rule
+ *  is that archived rows do not count towards a total, and this is the total
+ *  the thread row shows. So archive decrements, and restore puts back exactly
+ *  one, whether the row was archived, deleted or both. */
 export async function setArchived(
   accountId: string,
   contentId: string,
@@ -466,9 +474,12 @@ export async function setArchived(
   await db.transaction().execute(async (trx) => {
     const before = await trx
       .selectFrom("content")
-      .select(["deleted_at"])
+      .select(["deleted_at", "archived_at"])
       .where("id", "=", ref.id)
       .executeTakeFirstOrThrow();
+    // Counted iff live. Both transitions read this once so a second archive of
+    // an archived row, or a restore of one already back, moves nothing.
+    const wasLive = before.deleted_at === null && before.archived_at === null;
 
     await trx
       .updateTable("content")
@@ -480,10 +491,16 @@ export async function setArchived(
       .where("id", "=", ref.id)
       .execute();
 
-    // Undeleting puts the count back. Without this an undo restores the row and
+    // Restoring puts the count back. Without this an undo restores the row and
     // leaves the header saying one fewer, which is AC-8 broken by the undo path
     // rather than by the delete.
-    if (!archived && before.deleted_at !== null) {
+    if (archived && wasLive) {
+      await trx
+        .updateTable("threads")
+        .set({ content_count: sql`greatest(content_count - 1, 0)` })
+        .where("id", "=", ref.threadId)
+        .execute();
+    } else if (!archived && !wasLive) {
       await trx
         .updateTable("threads")
         .set({ content_count: sql`content_count + 1` })
@@ -507,24 +524,28 @@ export async function moveContent(
   if (destination === ref.threadId) return { threadId: ref.threadId };
 
   await db.transaction().execute(async (trx) => {
-    await trx
+    const moved = await trx
       .updateTable("content")
       .set({ thread_id: destination, updated_at: sql`now()` })
       .where("id", "=", ref.id)
-      .execute();
+      .returning("archived_at")
+      .executeTakeFirstOrThrow();
 
     // Both counts, in the same transaction as the write that changes them, per
-    // 001. A count maintained anywhere else drifts.
-    await trx
-      .updateTable("threads")
-      .set({ content_count: sql`greatest(content_count - 1, 0)` })
-      .where("id", "=", ref.threadId)
-      .execute();
-    await trx
-      .updateTable("threads")
-      .set({ content_count: sql`content_count + 1` })
-      .where("id", "=", destination)
-      .execute();
+    // 001. A count maintained anywhere else drifts. An archived row is in
+    // neither count, so moving it moves nothing.
+    if (moved.archived_at === null) {
+      await trx
+        .updateTable("threads")
+        .set({ content_count: sql`greatest(content_count - 1, 0)` })
+        .where("id", "=", ref.threadId)
+        .execute();
+      await trx
+        .updateTable("threads")
+        .set({ content_count: sql`content_count + 1` })
+        .where("id", "=", destination)
+        .execute();
+    }
 
     await touchThread(ref.threadId, trx);
     await touchThread(destination, trx);
@@ -552,15 +573,19 @@ export async function deleteContent(
       })
       .where("id", "=", ref.id)
       .where("deleted_at", "is", null)
+      .returning("archived_at")
       .executeTakeFirst();
 
-    if (Number(result.numUpdatedRows) === 0) return false;
+    if (!result) return false;
 
-    await trx
-      .updateTable("threads")
-      .set({ content_count: sql`greatest(content_count - 1, 0)` })
-      .where("id", "=", ref.threadId)
-      .execute();
+    // An archived row already left the count when it was archived.
+    if (result.archived_at === null) {
+      await trx
+        .updateTable("threads")
+        .set({ content_count: sql`greatest(content_count - 1, 0)` })
+        .where("id", "=", ref.threadId)
+        .execute();
+    }
     await touchThread(ref.threadId, trx);
 
     // Enqueued by the delete rather than left to a timer, exactly as 004's undo

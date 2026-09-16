@@ -17,6 +17,7 @@ import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import {
   DONE_SHOWN,
   filtersFor,
+  liveCount,
   matching,
   reorderPlan,
   splitDone,
@@ -187,7 +188,10 @@ function WidgetBlock({
             className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
             style={{ fontSize: 12 }}
           >
-            {widget.rows.length}
+            {/* What is live in the section, not what it holds: "To do 3" is
+                how many are left, and the finished ones have their own count
+                on the fold. The kit draws exactly this. */}
+            {liveCount(widget.rows as readonly Sortable[])}
           </Text>
         </View>
 

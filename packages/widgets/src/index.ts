@@ -392,6 +392,19 @@ export function splitDone<T extends Sortable>(
   return { left, done };
 }
 
+/** What a section's heading counts: the rows live in it.
+ *
+ *  A finished task is still in the list, sunk below what is left, and the
+ *  heading does not count it: "To do 3" is how many there are to do, which is
+ *  what the kit draws and what the number was read as. A map or a files
+ *  section never holds a done row, so for them this is every row drawn, and one
+ *  rule covers all three rather than To do being a special case. Archived rows
+ *  are not here at all: the page fetches them as their own view.
+ */
+export function liveCount(rows: readonly Sortable[]): number {
+  return rows.filter((row) => row.doneAt === null).length;
+}
+
 /** One chip in a widget's filter row.
  *
  *  Shared rather than derived twice: this and `groupBy` read the same tags the

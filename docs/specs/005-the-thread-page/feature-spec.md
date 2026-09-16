@@ -82,7 +82,7 @@ The reversible allowlist in `decisions.md` gains **archive** in the same change.
 
 **Getting there**
 
-- **AC-1** My threads lists every thread the account is an accepted member of, grouped For now, Always on and Older, with a count on each. A thread is reachable from it in one click.
+- **AC-1** My threads lists every thread the account is an accepted member of, grouped For now, Always on and Older, with a count on each. The count is what is live in the thread, neither archived nor deleted, and it is the same number the thread's own pane head shows. A thread is reachable from it in one click. *Amended 2026-09-16: it counted archived rows, and the pane head did not.*
 - **AC-2** Opening a thread and then a piece of content shows both at once on a wide window, and one at a time on a narrow one, with a way back.
 - **AC-3** An account with no threads sees an invitation, not a zero.
 

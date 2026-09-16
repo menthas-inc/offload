@@ -18,6 +18,7 @@ export {
   dimensionsIn,
   filtersFor,
   groupBy,
+  liveCount,
   matching,
   parseTag,
   readPreference,

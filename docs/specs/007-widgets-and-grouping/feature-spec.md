@@ -82,6 +82,7 @@ The rule, stated so the three surfaces cannot drift:
 - **AC-8** A priority a person set is marked as such and offload does not overwrite it.
 - **AC-9** The page's query count still does not grow with the number of widgets a thread earns.
 - **AC-10** Widget parity: the contract is defined once and the phones render the same widgets from the same data.
+- **AC-11** A section's heading counts what is live in it. To do counts open tasks, and the finished ones are counted only on the fold that hides them. Notes counts active notes, and the folded ones have their own control. Files and Places count what is drawn. Archived rows count towards none of these: they are their own view of the thread. *Added 2026-09-16. To do counted every task it held, so a list with three left said seven.*
 
 ## Depends on
 

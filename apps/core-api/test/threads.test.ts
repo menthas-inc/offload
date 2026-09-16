@@ -604,16 +604,61 @@ describe("the write transactions", () => {
     expect(t2.content_count).toBe(1);
   });
 
-  it("archiving does not touch the count, because the row is still there (AC-15)", async () => {
+  it("archiving leaves the count, and restoring puts it back, once (AC-8, AC-15)", async () => {
+    // The thread row's number is what is live in the thread, the same total
+    // the pane head shows. It counted archived rows until 2026-09-16, and the
+    // two disagreed on any thread with something archived.
     const me = await account();
     const t = await thread(me, "Read later");
     const row = await content(me, t, "Three essays on attention");
+    const count = async () =>
+      (await db.selectFrom("threads").select("content_count").where("id", "=", t).executeTakeFirstOrThrow())
+        .content_count;
 
     await setArchived(me, row, true);
+    expect(await count()).toBe(0);
+    // A second archive of an archived row is not a second decrement.
+    await setArchived(me, row, true);
+    expect(await count()).toBe(0);
 
-    const t2 = await db
-      .selectFrom("threads").select("content_count").where("id", "=", t).executeTakeFirstOrThrow();
-    expect(t2.content_count).toBe(1);
+    await setArchived(me, row, false);
+    expect(await count()).toBe(1);
+    await setArchived(me, row, false);
+    expect(await count()).toBe(1);
+  });
+
+  it("deleting an archived row does not count it out twice (AC-8)", async () => {
+    const me = await account();
+    const t = await thread(me, "Read later");
+    const row = await content(me, t, "Three essays on attention");
+    await content(me, t, "Kept");
+    const count = async () =>
+      (await db.selectFrom("threads").select("content_count").where("id", "=", t).executeTakeFirstOrThrow())
+        .content_count;
+
+    await setArchived(me, row, true);
+    expect(await count()).toBe(1);
+    await deleteContent(me, row);
+    expect(await count()).toBe(1);
+    // Restore undoes both, and puts back one.
+    await setArchived(me, row, false);
+    expect(await count()).toBe(2);
+  });
+
+  it("moving an archived row moves neither count (AC-12)", async () => {
+    const me = await account();
+    const from = await thread(me, "Read later");
+    const to = await thread(me, "Flat admin");
+    const row = await content(me, from, "Three essays on attention");
+    await content(me, to, "Boiler service");
+    const count = async (id: string) =>
+      (await db.selectFrom("threads").select("content_count").where("id", "=", id).executeTakeFirstOrThrow())
+        .content_count;
+
+    await setArchived(me, row, true);
+    await moveContent(me, row, to);
+    expect(await count(from)).toBe(0);
+    expect(await count(to)).toBe(1);
   });
 });
 

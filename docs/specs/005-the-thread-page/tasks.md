@@ -43,7 +43,7 @@
 
 - [x] **D1** `PATCH /v1/content/:id`, membership-checked, returning `previous` *(**AC-9**)*
 - [x] **D2** `POST /v1/content/:id/archive` and `/restore` *(**AC-9**, **AC-15**)*
-  *Test:* an archived row is still readable and still counted; restore after the toast has gone still works.
+  *Test:* an archived row is still readable and counted as archived, and out of `content_count`; restore after the toast has gone still works.
 - [x] **D3** `DELETE /v1/content/:id`, author only, soft, enqueuing `content.purge` on 004's mechanism *(**AC-10**, **AC-14**)*
   *Test:* a non-author is refused; the row survives its eight seconds; the purge takes it after.
 - [x] **D4** `POST /v1/content/:id/move`, author only *(**AC-11**, **AC-12**)*
@@ -68,3 +68,9 @@
 
 - [x] **F1** Full suite green.
 - [ ] **F2** Deploy, migrate, and open a real thread holding real content filed by 004.
+
+## G. Tweaks
+
+- [x] **G1** 2026-09-16: `content_count` is what is live in the thread. Archive decrements, restore puts back one whether the row was archived, deleted or both, delete and move leave an archived row's count alone, and the agent's `archive_content` tool does the same; `0047` backfills *(**AC-1**, **AC-8**, **AC-15**)*. No visual change, so no decision-log entry.
+  *Test:* archive then archive again moves the count once; restore likewise; delete of an archived row does not count it out twice; a moved archived row moves neither count.
+
