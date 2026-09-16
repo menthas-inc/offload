@@ -114,7 +114,7 @@ export interface ThreadBundle {
   counts: { active: number; archived: number };
   members: Member[];
   /** How this thread wants to look. Absent fields mean derived from content. */
-  preference: { widgets?: string[]; groupBy?: Record<string, string> };
+  preference: { widgets?: string[]; groupBy?: Record<string, string>; hideDone?: boolean };
   /** What this thread holds about itself. Active only. */
   notes: Note[];
   /** Active and folded. The folded count is what the history control shows,
@@ -473,7 +473,11 @@ export async function restoreThread(id: string): Promise<boolean> {
 
 export async function setPreference(
   threadId: string,
-  patch: { widgets?: string[] | null; groupBy?: Record<string, string> | null },
+  patch: {
+    widgets?: string[] | null;
+    groupBy?: Record<string, string> | null;
+    hideDone?: boolean | null;
+  },
 ): Promise<boolean> {
   const response = await fetch(`${API}/v1/threads/${threadId}/preference`, {
     ...json,

@@ -11,6 +11,38 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-15 · The fold is the thread's, the rail is earned, and the phones get the mark
+**Surface:** iOS, Android, web
+
+Four small things the product owner asked for.
+
+**The To do fold is a preference of the thread.** Hiding the finished rows used
+to be screen state, gone on the next visit, so somebody who tidied a list tidied
+it again on every device. It is stored with the thread's other two preferences
+now (`hideDone` in `attrs`) and read back everywhere. Co-owned like the rest of
+them: a shared list folded by one member is folded for all, which is the same
+rule the widget order already follows.
+
+**"5 done" and its chevron are one control.** The count was text beside a 26px
+button, so pressing the words did nothing. One button now, count inside it, on
+web and both phones.
+
+**The rail is earned.** 015's opening paragraph said a thread with nothing dated
+shows no timeline and its AC-1 said every thread shows this week; the code did
+the second. Now the first: no dated thing, no rail. The kits' `TimelineWidget`
+already draws nothing for an empty thread, so this is code catching up.
+
+**The app icon is the mark.** Both phones shipped Expo's placeholder. They carry
+`assets/app-icon.svg` now, rendered at 1024: the ink square with the white mark
+for iOS, which masks its own corners, and the mark alone as the Android adaptive
+foreground over the same ink, so the platform's shape is whatever the platform
+draws.
+
+**Design system impact:** `WThings.jsx` and the phones' `ThreadScreen` should draw
+the done count inside the fold control rather than beside it. Nothing else: the
+rail behaviour and the icon are already what the system says.
+
+
 ### 2026-09-15 · What a usability pass on web found
 **Surface:** web
 

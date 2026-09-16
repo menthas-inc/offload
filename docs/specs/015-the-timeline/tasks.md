@@ -25,7 +25,7 @@
 
 ## Tests
 
-- [x] **T1** `railFor`: whole weeks, both week starts, today always in the span, a thread with nothing dated giving this week. (AC-1, AC-2, AC-4)
+- [x] **T1** `railFor`: whole weeks, both week starts, today always in the span, an empty set giving this week. The thread page does not mount the rail for an empty set since 2026-09-15. (AC-1, AC-2, AC-4)
 - [x] **T2** A span fills every day between its ends, and a repeating series draws every occurrence. (AC-7, AC-8)
 - [x] **T3** Gap rows at three, not at two. (AC-5)
 - [x] **T4** `datedFor` reads content and notes into one shape, and a task with a due date and an occurrence lands on both days. (AC-6)

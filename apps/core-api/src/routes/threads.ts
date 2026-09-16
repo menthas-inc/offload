@@ -166,6 +166,7 @@ const threadBundle = z.object({
   preference: z.object({
     widgets: z.array(z.string()).optional(),
     groupBy: z.record(z.string(), z.string()).optional(),
+    hideDone: z.boolean().optional(),
   }),
   /** Always null. offload does not summarise a thread yet and nothing writes a
    *  standing summary, so the field is here in the shape the client already
@@ -637,7 +638,11 @@ export async function reprioritise(
 export async function setPreference(
   accountId: string,
   threadId: string,
-  patch: { widgets?: string[] | null; groupBy?: Record<string, string> | null },
+  patch: {
+    widgets?: string[] | null;
+    groupBy?: Record<string, string> | null;
+    hideDone?: boolean | null;
+  },
 ): Promise<ThreadPreference> {
   await requireMember(accountId, threadId);
 
@@ -654,6 +659,7 @@ export async function setPreference(
     const merged = readPreference({
       widgets: patch.widgets === undefined ? before.widgets : patch.widgets,
       groupBy: patch.groupBy === undefined ? before.groupBy : patch.groupBy,
+      hideDone: patch.hideDone === undefined ? before.hideDone : patch.hideDone,
     });
 
     await trx
@@ -1836,16 +1842,19 @@ export async function threadRoutes(app: App): Promise<void> {
         body: z.strictObject({
           widgets: z.array(z.string()).nullish(),
           groupBy: z.record(z.string(), z.string()).nullish(),
+          hideDone: z.boolean().nullish(),
         }),
         response: {
           200: z.object({
             preference: z.object({
               widgets: z.array(z.string()).optional(),
               groupBy: z.record(z.string(), z.string()).optional(),
+              hideDone: z.boolean().optional(),
             }),
             previous: z.object({
               widgets: z.array(z.string()).optional(),
               groupBy: z.record(z.string(), z.string()).optional(),
+              hideDone: z.boolean().optional(),
             }),
           }),
           401: unauthenticated,
@@ -1861,6 +1870,7 @@ export async function threadRoutes(app: App): Promise<void> {
         const previous = await setPreference(accountId, request.params.id, {
           ...(request.body.widgets === undefined ? {} : { widgets: request.body.widgets }),
           ...(request.body.groupBy === undefined ? {} : { groupBy: request.body.groupBy }),
+          ...(request.body.hideDone === undefined ? {} : { hideDone: request.body.hideDone }),
         });
 
         const now = await db

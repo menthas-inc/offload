@@ -7,7 +7,7 @@
 Almost entirely client work, plus one column and one tool.
 
 ```
-threads.attrs jsonb          the two preferences
+threads.attrs jsonb          the two preferences, and the To do fold (hideDone) since 2026-09-15
 POST /internal/v1/tool-call  gains set_thread_preference
 apps/web  the widgets, the grouping, tick and reprioritise
 ```

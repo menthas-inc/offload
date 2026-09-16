@@ -30,7 +30,7 @@ Three things are wrong with that and they are the feature:
 
 ### The span, and what happens when it gets long
 
-The rail covers whole weeks, from the week of the earliest dated thing to the week of the latest, and always includes this week. A thread with nothing dated shows this week alone.
+The rail covers whole weeks, from the week of the earliest dated thing to the week of the latest, and always includes this week. A thread with nothing dated draws no rail at all; the first date on anything brings it, with this week and that one.
 
 **Past six weeks it stops being a rail and becomes a month.** Weeks read as time passing, which is the whole reason the empty days are drawn; a year of weeks is a scroll rather than a shape. So a long span draws the shape everybody already knows: one month, whole weeks including the days either side of it, a step back and forward, and **Today**, which is the way back from wherever stepping through months left somebody.
 
@@ -63,7 +63,7 @@ Monday by default. Sunday for anyone who wants it, in Settings under Appearance,
 
 **The rail**
 
-- **AC-1** The timeline is on every thread, including a thread with nothing dated on it, which shows the current week.
+- **AC-1** The timeline is on every thread with something dated on it, and not on one with nothing dated. *Reversed 2026-09-15: the original AC put an empty week on every thread, which contradicted the paragraph above that says the rail is earned. A week of empty cells above a list is a calendar for nothing.*
 - **AC-2** The rail draws whole weeks, one row per week, starting on the day the week-start setting names.
 - **AC-3** Every day in the span has a card, whether or not anything is on it.
 - **AC-4** The span runs from the week of the earliest dated thing to the week of the latest, and always contains today.

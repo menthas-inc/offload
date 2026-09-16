@@ -264,6 +264,14 @@ describe("reading a stored preference", () => {
       readPreference({ widgets: ["todo", "nonsense", "map"], groupBy: { todo: "City" } })
     ).toEqual({ widgets: ["todo", "map"], groupBy: { todo: "city" } });
   });
+
+  it("keeps the fold only when it is true", () => {
+    // The finished rows folded away is a preference; anything else, including
+    // a stored `false`, is the absence of one.
+    expect(readPreference({ hideDone: true })).toEqual({ hideDone: true });
+    expect(readPreference({ hideDone: false })).toEqual({});
+    expect(readPreference({ hideDone: "yes" })).toEqual({});
+  });
 });
 
 describe("a request with no body does not claim one", () => {

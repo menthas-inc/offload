@@ -31,7 +31,7 @@ import {
   widgetsFor,
   type Widget,
 } from "../../lib/widgets";
-import { QUICK_ADD_CHARS, quickAdd } from "../../lib/threads";
+import { QUICK_ADD_CHARS, quickAdd, setPreference } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 
 const HEADINGS: Record<string, string> = {
@@ -43,7 +43,7 @@ const HEADINGS: Record<string, string> = {
 interface Props {
   threadId: string;
   rows: ContentRow[];
-  preference: { widgets?: string[]; groupBy?: Record<string, string> };
+  preference: { widgets?: string[]; groupBy?: Record<string, string>; hideDone?: boolean };
   /** The same object the list below uses, so a row offers the same controls
    *  wherever it is drawn. A task in To do could be ticked and nothing else
    *  until this was shared: renaming it meant finding it again further down. */
@@ -65,6 +65,7 @@ export function Widgets({ threadId, rows, preference, handlers, onAdded, onToggl
           key={widget.kind}
           widget={widget}
           dimension={preference.groupBy?.[widget.kind] ?? null}
+          hideDoneAtFirst={preference.hideDone === true}
           threadId={threadId}
           handlers={handlers}
           onAdded={onAdded}
@@ -78,6 +79,7 @@ export function Widgets({ threadId, rows, preference, handlers, onAdded, onToggl
 function WidgetBlock({
   widget,
   dimension,
+  hideDoneAtFirst,
   threadId,
   handlers,
   onAdded,
@@ -85,6 +87,7 @@ function WidgetBlock({
 }: {
   widget: Widget<ContentRow>;
   dimension: string | null;
+  hideDoneAtFirst: boolean;
   threadId: string;
   handlers: RowHandlers;
   onAdded: () => void;
@@ -98,7 +101,16 @@ function WidgetBlock({
   const [adding, setAdding] = useState(false);
   // Only To do earns this: `doneAt` is only ever set on a task, so a map or a
   // files section has nothing to hide and never draws the control.
-  const [hideDone, setHideDone] = useState(false);
+  //
+  // **A preference of the thread, not a state of the screen.** It starts from
+  // what the thread says and writes back on every press, so a list somebody
+  // folded is still folded on their phone and after a refresh. Held locally
+  // as well so the row moves on the press rather than on the round trip.
+  const [hideDone, setHideDone] = useState(hideDoneAtFirst);
+  function fold(next: boolean): void {
+    setHideDone(next);
+    void setPreference(threadId, { hideDone: next });
+  }
   const filters = filtersFor(widget.rows, dimension);
   const { left, done } = splitDone(matching(widget.rows, dimension, only));
 
@@ -110,14 +122,14 @@ function WidgetBlock({
         <div className={styles.sectionControls}>
           {widget.kind === "todo" && done.length > 0 ? (
             <>
-              {/* Only said out loud once the rows themselves are gone: while
-                  they are showing, the finished rows are the count. */}
-              {hideDone ? (
-                <span className={styles.sectionDoneCount}>{done.length} done</span>
-              ) : null}
+              {/* One control, count and chevron together: "5 done" is the
+                  label of the thing that opens them, and pressing the words
+                  used to do nothing. The count is only said out loud once the
+                  rows themselves are gone: while they are showing, the
+                  finished rows are the count. */}
               <button
                 type="button"
-                className={styles.sectionAdd}
+                className={styles.sectionDone}
                 aria-pressed={hideDone}
                 aria-label={
                   hideDone
@@ -125,8 +137,11 @@ function WidgetBlock({
                     : "Hide finished, currently shown"
                 }
                 title={hideDone ? "Show finished" : "Hide finished"}
-                onClick={() => setHideDone((value) => !value)}
+                onClick={() => fold(!hideDone)}
               >
+                {hideDone ? (
+                  <span className={styles.sectionDoneCount}>{done.length} done</span>
+                ) : null}
                 <Icon name={hideDone ? "chevron-right" : "chevron-down"} size={15} />
               </button>
             </>

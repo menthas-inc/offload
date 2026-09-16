@@ -80,7 +80,7 @@ export interface ThreadBundle {
   members: Member[];
   notes: Note[];
   noteCounts: { active: number; folded: number };
-  preference: { widgets?: string[]; groupBy?: Record<string, string> };
+  preference: { widgets?: string[]; groupBy?: Record<string, string>; hideDone?: boolean };
   standing: string | null;
 }
 
@@ -252,6 +252,19 @@ export async function renameThread(
     ...body({ name }),
   });
   return data;
+}
+
+/** How the thread wants to look. Co-owned, like its name, and merged on the
+ *  server, so sending one field leaves the others as they were. */
+export async function setPreference(
+  threadId: string,
+  patch: { widgets?: string[] | null; groupBy?: Record<string, string> | null; hideDone?: boolean | null }
+): Promise<boolean> {
+  const { data } = await send<unknown>(`/v1/threads/${threadId}/preference`, {
+    method: "PATCH",
+    ...body(patch),
+  });
+  return data !== null;
 }
 
 /** Leave a thread, which deletes it when nobody else is in it.

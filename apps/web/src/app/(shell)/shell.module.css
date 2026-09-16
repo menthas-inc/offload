@@ -1126,6 +1126,27 @@
   margin-left: auto;
 }
 
+/* The fold. Count and chevron in one control, the same 26px the + beside it
+   draws, wide enough for its words when it has them. */
+.sectionDone {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 26px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background var(--transition-ui), color var(--transition-ui);
+}
+
+.sectionDone:hover {
+  background: var(--surface-fill);
+  color: var(--text-primary);
+}
+
 /* "N done", said only once the finished rows themselves are hidden. */
 .sectionDoneCount {
   font-weight: var(--weight-medium);

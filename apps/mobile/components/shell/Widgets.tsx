@@ -26,7 +26,7 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { ContentRowView } from "./ContentRow";
 import { useConversation } from "./conversation-context";
-import { QUICK_ADD_CHARS } from "../../lib/threads";
+import { QUICK_ADD_CHARS, setPreference } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 
 const isAndroid = Platform.OS === "android";
@@ -42,6 +42,7 @@ export function Widgets({
   threadName,
   widgets,
   groupBy: dimensions,
+  hideDone,
   onDelete,
   onActions,
   onEdit,
@@ -53,6 +54,8 @@ export function Widgets({
   threadName: string;
   widgets: Widget<ContentRow>[];
   groupBy?: Record<string, string> | undefined;
+  /** The thread's own fold, so the list opens the way it was left. */
+  hideDone?: boolean | undefined;
   onDelete: (row: ContentRow) => void;
   onActions: (row: ContentRow) => void;
   onEdit: (row: ContentRow) => void;
@@ -69,6 +72,7 @@ export function Widgets({
           key={widget.kind}
           widget={widget}
           dimension={dimensions?.[widget.kind] ?? null}
+          hideDoneAtFirst={hideDone === true}
           threadId={threadId}
           threadName={threadName}
           arrived={arrived}
@@ -86,6 +90,7 @@ export function Widgets({
 function WidgetBlock({
   widget,
   dimension,
+  hideDoneAtFirst,
   threadId,
   threadName,
   arrived,
@@ -97,6 +102,7 @@ function WidgetBlock({
 }: {
   widget: Widget<ContentRow>;
   dimension: string | null;
+  hideDoneAtFirst: boolean;
   threadId: string;
   threadName: string;
   arrived?: Set<string> | undefined;
@@ -114,7 +120,15 @@ function WidgetBlock({
   const [allDone, setAllDone] = useState(false);
   // Only To do earns this: `doneAt` is only ever set on a task, so a map or a
   // files section has nothing to hide and never draws the control.
-  const [hideDone, setHideDone] = useState(false);
+  //
+  // **A preference of the thread, not a state of the screen.** It starts from
+  // what the thread says and writes back on every press, so a list folded on
+  // web is folded here. Held locally as well so the row moves on the press.
+  const [hideDone, setHideDone] = useState(hideDoneAtFirst);
+  function fold(next: boolean): void {
+    setHideDone(next);
+    void setPreference(threadId, { hideDone: next });
+  }
 
   const filters = filtersFor(widget.rows as readonly Sortable[], dimension);
   const { left, done } = splitDone(matching(widget.rows, dimension, only));
@@ -153,20 +167,13 @@ function WidgetBlock({
         <View className="ml-auto flex-row items-center gap-space-6">
           {widget.kind === "todo" && done.length > 0 ? (
             <>
-              {/* Only said out loud once the rows themselves are gone: while
-                  they are showing, the finished rows are the count. */}
-              {hideDone ? (
-                <Text
-                  className={`font-core font-medium ${
-                    isAndroid ? "text-a-on-var" : "text-text-secondary"
-                  }`}
-                  style={{ fontSize: 13 }}
-                >
-                  {done.length} done
-                </Text>
-              ) : null}
+              {/* One control, count and chevron together: "5 done" is the
+                  label of the thing that opens them, and pressing the words
+                  used to do nothing. The count is only said out loud once the
+                  rows themselves are gone: while they are showing, the
+                  finished rows are the count. */}
               <Pressable
-                onPress={() => setHideDone((value) => !value)}
+                onPress={() => fold(!hideDone)}
                 hitSlop={12}
                 accessibilityRole="button"
                 accessibilityState={{ expanded: !hideDone }}
@@ -175,7 +182,18 @@ function WidgetBlock({
                     ? `Show ${done.length} finished, currently hidden`
                     : "Hide finished, currently shown"
                 }
+                className="flex-row items-center gap-space-2"
               >
+                {hideDone ? (
+                  <Text
+                    className={`font-core font-medium ${
+                      isAndroid ? "text-a-on-var" : "text-text-secondary"
+                    }`}
+                    style={{ fontSize: 13 }}
+                  >
+                    {done.length} done
+                  </Text>
+                ) : null}
                 <Glyph
                   name={hideDone ? "chevron-right" : "chevron-down"}
                   size={22}

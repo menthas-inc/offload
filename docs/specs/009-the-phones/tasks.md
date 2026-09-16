@@ -156,6 +156,7 @@ carries a failure mode no mock can express.
       which is what a settings screen is: sign out now sits with the identity
       on the Settings index, waits for the server to revoke the session rather
       than assuming it, and says so when it cannot.
+- [x] **G5** The app icon is the design system's `assets/app-icon.svg`: `icon.png` for iOS on the ink ground, and the mark alone as the Android adaptive foreground over `#0B0B0B`. Rendered at 1024 from the SVG, never hand drawn.
 - [ ] **G4** The kits catch up on what web settled and the phones inherit: no placeholder for a
       missing summary, no trailing count, "thing" still throughout, and `variant="soft"` on
       `Chip` which the contract retired.

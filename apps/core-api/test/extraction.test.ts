@@ -689,10 +689,22 @@ describe("arranging a thread", () => {
 
     await setPreference(me, t, { widgets: ["map", "todo"] });
     await setPreference(me, t, { groupBy: { todo: "city" } });
+    // The fold joins the other two without touching them, and unfolding
+    // removes it rather than storing a false.
+    await setPreference(me, t, { hideDone: true });
 
     const row = await db
       .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
     expect(readPreference(row.attrs)).toEqual({
+      widgets: ["map", "todo"],
+      groupBy: { todo: "city" },
+      hideDone: true,
+    });
+
+    await setPreference(me, t, { hideDone: false });
+    const unfolded = await db
+      .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
+    expect(readPreference(unfolded.attrs)).toEqual({
       widgets: ["map", "todo"],
       groupBy: { todo: "city" },
     });

@@ -118,7 +118,7 @@ A done dot is the same colour with no fill: a ring. **New surface**, since no ki
 
 | | |
 | --- | --- |
-| Nothing dated on the thread | This week, all empty, and the rail is still there (AC-1). |
+| Nothing dated on the thread | No rail (AC-1, as reversed 2026-09-15). `railFor` still answers this week for an empty set, which the day picker in the composer relies on; the thread page simply does not mount it. |
 | One thing, two years out | Whole weeks to it, with the empty run between collapsed to one line. |
 | A thing whose end is before its start | Drawn as a point on its start. A bad range is somebody else's bug and this is not the place to raise it. |
 | A day with eleven things | Four dots and a count, and the day view has all eleven. |

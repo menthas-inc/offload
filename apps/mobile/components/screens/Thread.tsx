@@ -202,9 +202,12 @@ export default function Thread() {
   // taking dated rows out of a list that is the only list there makes an
   // archived event invisible. The two have to be decided together, which is
   // why this reads the same flag the rail does.
-  const onRail = new Set(
-    showArchived ? [] : datedFor(rows, thread.notes).map((one) => one.rowId)
-  );
+  //
+  // **And the rail is earned.** With nothing dated there is no rail at all,
+  // which 015's own opening paragraph said and its AC-1 contradicted. Computed
+  // once, so the rail and the list agree about what is on it.
+  const dated = showArchived ? [] : datedFor(rows, thread.notes);
+  const onRail = new Set(dated.map((one) => one.rowId));
 
   // **A repeating thing is one row here, not thirty.** A weekly class filed as
   // thirty occurrences spends thirty rows saying what the row above said. The
@@ -332,11 +335,10 @@ export default function Thread() {
           ) : null}
         </View>
 
-        {/* The rail is above the widgets and is drawn for every thread,
-            including one with nothing dated on it. It is not earned, which is
-            why 015 took it out of the widget set rather than making it a
-            widget that is always earned. */}
-        {showArchived ? null : (
+        {/* The rail is above the widgets, and only on a thread with something
+            dated. It is not a widget: it lists every kind with a date rather
+            than one, which is why 015 took it out of the widget set. */}
+        {showArchived || dated.length === 0 ? null : (
           <Timeline
             // Keyed by the thread, so the day you were reading and the gaps you
             // opened do not follow you into the next one.
@@ -359,6 +361,7 @@ export default function Thread() {
             threadName={thread.name}
             widgets={widgets}
             groupBy={thread.preference.groupBy}
+            hideDone={thread.preference.hideDone}
             onDelete={(row: ContentRow) => void remove(row)}
             onActions={setActing}
             onEdit={setRenaming}
