@@ -54,6 +54,9 @@ export interface Note {
   occursEndAt: string | null;
   dueAt: string | null;
   placeId: string | null;
+  /** Where it sits in the section, 0 to 100 and higher first. Moved by
+   *  dragging the row, and by nothing else. */
+  priority: number;
   /** The date carries no time, so nothing may draw one. */
   allDay: boolean;
   /** That it comes round again. One note, a mark on every matching day. */
@@ -204,6 +207,19 @@ export async function completeContent(id: string, done: boolean): Promise<boolea
     ...body({ done }),
   });
   return status === 200;
+}
+
+/** Change a priority, which pins it so the planner leaves it alone. Returns
+ *  what it was, so a drag is undone by the same call with the old number. */
+export async function setPriority(
+  id: string,
+  priority: number
+): Promise<{ previous: { priority: number; priorityPinned: boolean } } | null> {
+  const { data } = await send<{ previous: { priority: number; priorityPinned: boolean } }>(
+    `/v1/content/${id}/priority`,
+    { method: "POST", ...body({ priority }) }
+  );
+  return data;
 }
 
 export async function setArchived(id: string, archived: boolean): Promise<boolean> {
@@ -360,6 +376,19 @@ export async function deleteNote(id: string): Promise<boolean> {
 export async function restoreNote(id: string): Promise<boolean> {
   const { status } = await send(`/v1/notes/${id}/restore`, { method: "POST" });
   return status === 200;
+}
+
+/** Move a note within its section. The same scale as content and the same
+ *  reversible shape; it never touches when the note was written. */
+export async function setNotePriority(
+  id: string,
+  priority: number
+): Promise<{ previous: { priority: number } } | null> {
+  const { data } = await send<{ previous: { priority: number } }>(
+    `/v1/notes/${id}/priority`,
+    { method: "POST", ...body({ priority }) }
+  );
+  return data;
 }
 
 export async function muteNote(id: string, muted: boolean): Promise<boolean> {

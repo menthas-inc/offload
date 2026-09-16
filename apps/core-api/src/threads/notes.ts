@@ -72,6 +72,9 @@ export interface Note {
   occursEndAt: Date | null;
   dueAt: Date | null;
   placeId: string | null;
+  /** Where it sits in the section. 0 to 100, higher first, then oldest first.
+   *  Written by a person dragging the row and by nothing else. */
+  priority: number;
   /** The date carries no time, so nothing may draw one. */
   allDay: boolean;
   /** That it repeats, as the rule rather than as occurrences. */
@@ -108,6 +111,7 @@ const COLUMNS = [
   "notes.occurs_end_at",
   "notes.due_at",
   "notes.place_id",
+  "notes.priority",
   "notes.repeats",
   "notes.repeats_until",
   "notes.attrs",
@@ -148,6 +152,7 @@ type Row = Pick<
   | "occurs_end_at"
   | "due_at"
   | "place_id"
+  | "priority"
   | "repeats"
   | "repeats_until"
   | "attrs"
@@ -169,6 +174,7 @@ function toNote(row: Row & { authorIsMember?: boolean | number }): Note {
     occursEndAt: row.occurs_end_at,
     dueAt: row.due_at,
     placeId: row.place_id,
+    priority: row.priority,
     repeats: row.repeats,
     repeatsUntil: row.repeats_until,
     allDay:
@@ -202,9 +208,37 @@ export async function readableNotes(
     .where("notes.deleted_at", "is", null)
     .where("notes.superseded_at", "is", null)
     .where("notes.viewer_account_id", "=", accountId)
+    // Where a person put it, then the order it was written in. Every note
+    // starts at the same priority, so a section nobody has rearranged reads
+    // oldest first, which is what it always did.
+    .orderBy("notes.priority", "desc")
     .orderBy("notes.created_at", "asc")
     .execute();
   return rows.map(toNote);
+}
+
+/** Move a note within its section.
+ *
+ *  Any member, like every other arrangement of a shared thread. The number
+ *  comes from the client, which knows the neighbours the row was dropped
+ *  between; the server keeps it on the scale and keeps `updated_at` out of it,
+ *  because precedence is when a note was last written and a note dragged to
+ *  the top has not been written again. Returns what it was, so Undo is the
+ *  same call with the old number. */
+export async function reprioritiseNote(
+  accountId: string,
+  noteId: string,
+  priority: number,
+  trx: Executor = db,
+): Promise<{ note: Note; previous: { priority: number } }> {
+  const current = await requireReadableNote(accountId, noteId, trx);
+  const row = await trx
+    .updateTable("notes")
+    .set({ priority })
+    .where("id", "=", noteId)
+    .returning((eb) => [...COLUMNS, authorIsMember(eb)])
+    .executeTakeFirstOrThrow();
+  return { note: toNote(row), previous: { priority: current.priority } };
 }
 
 /** What the daily job folded, newest first.

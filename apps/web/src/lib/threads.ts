@@ -78,6 +78,9 @@ export interface Note {
   occursEndAt: string | null;
   dueAt: string | null;
   placeId: string | null;
+  /** Where it sits in the section, 0 to 100 and higher first. Moved by
+   *  dragging the row, and by nothing else. */
+  priority: number;
   /** The date carries no time, so nothing may draw one. */
   allDay: boolean;
   /** That it comes round again. One note, a mark on every matching day. */
@@ -333,14 +336,36 @@ export async function completeContent(id: string, done: boolean): Promise<boolea
   return response.ok;
 }
 
-/** Change a priority. Doing this pins it, so offload stops guessing. */
-export async function setPriority(id: string, priority: number): Promise<boolean> {
+/** Change a priority. Doing this pins it, so offload stops guessing.
+ *
+ *  Returns what it was, so a drag is undone by the same call with the old
+ *  number. */
+export async function setPriority(
+  id: string,
+  priority: number,
+): Promise<{ previous: { priority: number; priorityPinned: boolean } } | null> {
   const response = await fetch(`${API}/v1/content/${id}/priority`, {
     ...json,
     method: "POST",
     body: JSON.stringify({ priority }),
   });
-  return response.ok;
+  if (!response.ok) return null;
+  return (await response.json()) as { previous: { priority: number; priorityPinned: boolean } };
+}
+
+/** Move a note within its section. The same scale as content and the same
+ *  reversible shape; it never touches when the note was written. */
+export async function setNotePriority(
+  id: string,
+  priority: number,
+): Promise<{ previous: { priority: number } } | null> {
+  const response = await fetch(`${API}/v1/notes/${id}/priority`, {
+    ...json,
+    method: "POST",
+    body: JSON.stringify({ priority }),
+  });
+  if (!response.ok) return null;
+  return (await response.json()) as { previous: { priority: number } };
 }
 
 /** How long a row may claim to be filing before the spinner gives up.

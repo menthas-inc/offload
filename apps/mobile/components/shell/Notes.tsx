@@ -19,10 +19,19 @@
 // prompt budget, so what replaced the cap line says which notes are not
 // reaching offload rather than that you may not add another.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
-import Animated, { FadeIn, FadeInDown, FadeOut, useAnimatedStyle } from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeOut,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import { reorderPlan, type ReorderWrite } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { atOpacity, useColors } from "../../lib/colors";
 import { useConversation, useScreenSheet } from "./conversation-context";
@@ -35,6 +44,7 @@ import {
   foldedNotes,
   muteNote,
   restoreNote,
+  setNotePriority,
   type Member,
   type Note,
 } from "../../lib/threads";
@@ -161,64 +171,64 @@ export function NotesSection({
     setFolded(result?.notes ?? []);
   }
 
-  /** One row. `readOnly` is the folded history, which is read and not worked
-   *  with, so it does not open. */
-  const row = (note: Note, divider: boolean, readOnly = false) => {
-    const name = author(note);
-    const date = when(note);
-    const dim = readOnly || !instructing.has(note.id) || note.muted;
+  /** A note was dragged somewhere else in the section.
+   *
+   *  The same arithmetic To do uses, on the same scale, through the note's
+   *  own endpoint. It moves the row and nothing else: not when the note was
+   *  written, which is what precedence turns on. */
+  const layouts = useRef(new Map<string, { y: number; height: number }>());
 
-    return (
-      <Pressable
-        key={note.id}
-        onPress={() => {
-          if (readOnly) return;
-          setEditing(note);
-          setDraft(note.text);
-          setBodyDraft(note.body);
-        }}
-        className={`min-h-tap-min flex-row items-start gap-space-3 py-space-4 ${
-          divider ? "border-b border-border-hairline" : ""
-        }`}
-        // The glyph alone is not a state, so the accessible name says it, and
-        // so does the one for a note that has stopped reaching offload.
-        accessibilityLabel={
-          (note.origin === "learned" ? "offload wrote this. " : "") +
-          note.text +
-          (!readOnly && !instructing.has(note.id) ? ". Not reaching offload" : "")
-        }
-      >
-        {note.origin === "learned" ? (
-          <View style={{ marginTop: 3 }}>
-            <Glyph name="sparkles" size={14} color={dim ? COLOR.iconOnWell : COLOR.accent} />
-          </View>
-        ) : null}
-
-        {/* Wrapped, not clipped. The whole point of the row. */}
-        <Text
-          className={`flex-1 font-core ${
-            dim
-              ? "text-text-tertiary"
-              : note.origin === "learned"
-                ? "text-text-accent"
-                : isAndroid
-                  ? "text-a-on"
-                  : "text-text-primary"
-          }`}
-          style={{ fontSize: 14.5, lineHeight: 21 }}
-        >
-          {note.text}
-          {date ? <Text className="text-text-tertiary"> {date}</Text> : null}
-          {note.body ? <Text className="text-text-tertiary"> more</Text> : null}
-          {name ? <Text className="text-text-tertiary"> {name}</Text> : null}
-          {note.muted ? <Text className="text-text-tertiary"> Muted</Text> : null}
-          {!readOnly && !instructing.has(note.id) ? (
-            <Text className="text-text-tertiary"> Not reaching offload</Text>
-          ) : null}
-        </Text>
-      </Pressable>
+  async function reorder(writes: ReorderWrite[]): Promise<void> {
+    const results = await Promise.all(
+      writes.map((one) => setNotePriority(one.id, one.priority))
     );
-  };
+    onChanged();
+    if (results.some((result) => result === null)) return;
+    onToast("Moved", {
+      label: "Undo",
+      onPress: () => {
+        void Promise.all(writes.map((one) => setNotePriority(one.id, one.previous))).then(
+          onChanged
+        );
+      },
+    });
+  }
+
+  function drop(id: string, dy: number): void {
+    const mine = layouts.current.get(id);
+    const from = notes.findIndex((note) => note.id === id);
+    if (!mine || from < 0) return;
+    const centre = mine.y + mine.height / 2 + dy;
+    let to = 0;
+    for (const note of notes) {
+      if (note.id === id) continue;
+      const theirs = layouts.current.get(note.id);
+      if (theirs && theirs.y + theirs.height / 2 < centre) to += 1;
+    }
+    const { writes } = reorderPlan(notes, from, to);
+    if (writes.length > 0) void reorder(writes);
+  }
+
+  /** One row. `readOnly` is the folded history, which is read and not worked
+   *  with, so it neither opens nor moves. */
+  const row = (note: Note, divider: boolean, readOnly = false) => (
+    <NoteRow
+      key={note.id}
+      note={note}
+      divider={divider}
+      readOnly={readOnly}
+      name={author(note)}
+      date={when(note)}
+      instructing={instructing.has(note.id)}
+      onLayout={(layout) => layouts.current.set(note.id, layout)}
+      onOpen={() => {
+        setEditing(note);
+        setDraft(note.text);
+        setBodyDraft(note.body);
+      }}
+      onDrop={(dy) => drop(note.id, dy)}
+    />
+  );
 
   // Nothing to show: draw nothing at all. A heading over an empty row is a
   // section announcing its own absence, and the pinned composer this + raises
@@ -329,6 +339,133 @@ export function NotesSection({
         />
       ) : null}
     </>
+  );
+}
+
+/** One note, and the handle that moves it.
+ *
+ *  A component rather than a closure because the drag is a shared value, and
+ *  a hook cannot live inside a map. The handle sits at the trailing edge, where
+ *  the pencil would be if a note row had one: a note opens on a tap, so the
+ *  handle is the row's only drawn control. The drag is the content row's,
+ *  exactly: hold, lift, follow, snap home, and the list re-sorts under it. */
+function NoteRow({
+  note,
+  divider,
+  readOnly,
+  name,
+  date,
+  instructing,
+  onLayout,
+  onOpen,
+  onDrop,
+}: {
+  note: Note;
+  divider: boolean;
+  readOnly: boolean;
+  name: string | null;
+  date: string | null;
+  instructing: boolean;
+  onLayout: (layout: { y: number; height: number }) => void;
+  onOpen: () => void;
+  onDrop: (dy: number) => void;
+}) {
+  const COLOR = useColors();
+  const dim = readOnly || !instructing || note.muted;
+
+  const dy = useSharedValue(0);
+  const lifted = useSharedValue(0);
+  const drag = Gesture.Pan()
+    .activateAfterLongPress(250)
+    .hitSlop(8)
+    .onStart(() => {
+      lifted.value = 1;
+    })
+    .onUpdate((event) => {
+      dy.value = event.translationY;
+    })
+    .onEnd((event) => {
+      runOnJS(onDrop)(event.translationY);
+    })
+    .onFinalize(() => {
+      lifted.value = 0;
+      dy.value = 0;
+    });
+  const lift = useAnimatedStyle(() => ({
+    transform: [{ translateY: dy.value }],
+    backgroundColor: lifted.value === 1 ? COLOR.raised : "transparent",
+    zIndex: lifted.value === 1 ? 10 : 0,
+    elevation: lifted.value === 1 ? 3 : 0,
+  }));
+
+  return (
+    <Animated.View
+      style={lift}
+      onLayout={(event) => {
+        const { y, height } = event.nativeEvent.layout;
+        onLayout({ y, height });
+      }}
+      className={`flex-row items-start gap-space-3 ${
+        divider ? "border-b border-border-hairline" : ""
+      }`}
+    >
+      <Pressable
+        onPress={() => {
+          if (readOnly) return;
+          onOpen();
+        }}
+        className="min-h-tap-min flex-1 flex-row items-start gap-space-3 py-space-4"
+        // The glyph alone is not a state, so the accessible name says it, and
+        // so does the one for a note that has stopped reaching offload.
+        accessibilityLabel={
+          (note.origin === "learned" ? "offload wrote this. " : "") +
+          note.text +
+          (!readOnly && !instructing ? ". Not reaching offload" : "")
+        }
+      >
+        {note.origin === "learned" ? (
+          <View style={{ marginTop: 3 }}>
+            <Glyph name="sparkles" size={14} color={dim ? COLOR.iconOnWell : COLOR.accent} />
+          </View>
+        ) : null}
+
+        {/* Wrapped, not clipped. The whole point of the row. */}
+        <Text
+          className={`flex-1 font-core ${
+            dim
+              ? "text-text-tertiary"
+              : note.origin === "learned"
+                ? "text-text-accent"
+                : isAndroid
+                  ? "text-a-on"
+                  : "text-text-primary"
+          }`}
+          style={{ fontSize: 14.5, lineHeight: 21 }}
+        >
+          {note.text}
+          {date ? <Text className="text-text-tertiary"> {date}</Text> : null}
+          {note.body ? <Text className="text-text-tertiary"> more</Text> : null}
+          {name ? <Text className="text-text-tertiary"> {name}</Text> : null}
+          {note.muted ? <Text className="text-text-tertiary"> Muted</Text> : null}
+          {!readOnly && !instructing ? (
+            <Text className="text-text-tertiary"> Not reaching offload</Text>
+          ) : null}
+        </Text>
+      </Pressable>
+
+      {readOnly ? null : (
+        <GestureDetector gesture={drag}>
+          <View
+            className="min-h-tap-min justify-center"
+            accessibilityRole="button"
+            accessibilityLabel={`Move ${note.text}`}
+            accessibilityHint="Hold, then drag"
+          >
+            <Glyph name="grip-vertical" size={17} color={COLOR.iconOnWell} />
+          </View>
+        </GestureDetector>
+      )}
+    </Animated.View>
   );
 }
 

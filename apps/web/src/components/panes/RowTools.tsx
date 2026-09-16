@@ -21,14 +21,74 @@
 //
 // Anything beyond these two goes behind the row's own `ellipsis` on web, or a
 // `RowActionSheet` on a phone. Nothing has needed a third yet.
+//
+// **Except a handle, since 2026-09-16, and it is not an action.** A row in a
+// list somebody can arrange draws `grip-vertical` first, left of Edit. It does
+// nothing when clicked: it is dragged, or it takes the arrow keys, and either
+// way the row moves and its priority follows. It sits with the tools because
+// that is where a control only ever wanted on a hover belongs, and it leads
+// them because you reach for it with the row rather than for the row.
 
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
+
+/** What a row that can be moved needs from the list it is in.
+ *
+ *  The list owns the order and the arithmetic; the row owns the handle and the
+ *  drop target. `over` is where the dragged row would land relative to this
+ *  one, so the row can draw the line on the right edge. */
+export interface RowReorder {
+  over: "above" | "below" | null;
+  dragging: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOver: () => void;
+  onDrop: () => void;
+  /** One step up or down, from the keyboard. */
+  onStep: (delta: -1 | 1) => void;
+}
+
+/** The handle alone, for a row that draws its own tools. */
+export function ReorderHandle({ title, reorder }: { title: string; reorder: RowReorder }) {
+  return (
+    <button
+      type="button"
+      className={styles.handle}
+      draggable
+      aria-label={`Move ${title}`}
+      title="Drag, or use the arrow keys"
+      onDragStart={(event) => {
+        // Firefox starts no drag without data on it. The title is as good as
+        // anything: nothing reads it back.
+        event.dataTransfer.setData("text/plain", title);
+        event.dataTransfer.effectAllowed = "move";
+        // The whole row travels with the pointer, not the 32px handle.
+        const row = event.currentTarget.closest("[data-drag-row]");
+        if (row instanceof HTMLElement) event.dataTransfer.setDragImage(row, 24, 24);
+        reorder.onDragStart();
+      }}
+      onDragEnd={reorder.onDragEnd}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          reorder.onStep(-1);
+        }
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          reorder.onStep(1);
+        }
+      }}
+    >
+      <Icon name="grip-vertical" size={15} />
+    </button>
+  );
+}
 
 export function RowTools({
   title,
   archived,
   canDelete,
+  reorder,
   onEdit,
   onArchive,
   onDelete,
@@ -37,12 +97,16 @@ export function RowTools({
   archived: boolean;
   /** Yours, or nobody's. Decides which of the two ways out is drawn. */
   canDelete: boolean;
+  /** Present on a row in a list that can be arranged, absent everywhere else. */
+  reorder?: RowReorder | undefined;
   onEdit: () => void;
   onArchive: () => void;
   onDelete: () => void;
 }) {
   return (
     <span className={styles.rowTools}>
+      {reorder ? <ReorderHandle title={title} reorder={reorder} /> : null}
+
       <button
         type="button"
         className={styles.tool}

@@ -23,12 +23,15 @@ import { useState } from "react";
 import styles from "../../app/(shell)/shell.module.css";
 import { Icon } from "../Icon";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
+import type { RowReorder } from "./RowTools";
 import {
   DONE_SHOWN,
   filtersFor,
   matching,
+  reorderPlan,
   splitDone,
   widgetsFor,
+  type ReorderWrite,
   type Widget,
 } from "../../lib/widgets";
 import { QUICK_ADD_CHARS, quickAdd } from "../../lib/threads";
@@ -54,9 +57,21 @@ interface Props {
   onToggle: (row: ContentRow) => void;
   /** The To do fold moved. The page owns the preference, so it writes it. */
   onFold: (next: boolean) => void;
+  /** A row was dragged to a new place. The writes hold the new order; the page
+   *  owns the rows and the Undo, so it makes them. */
+  onReorder: (writes: ReorderWrite[]) => void;
 }
 
-export function Widgets({ threadId, rows, preference, handlers, onAdded, onToggle, onFold }: Props) {
+export function Widgets({
+  threadId,
+  rows,
+  preference,
+  handlers,
+  onAdded,
+  onToggle,
+  onFold,
+  onReorder,
+}: Props) {
   const widgets = widgetsFor(rows, preference.widgets);
   if (widgets.length === 0) return null;
 
@@ -73,6 +88,7 @@ export function Widgets({ threadId, rows, preference, handlers, onAdded, onToggl
           onAdded={onAdded}
           onToggle={onToggle}
           onFold={onFold}
+          onReorder={onReorder}
         />
       ))}
     </>
@@ -88,6 +104,7 @@ function WidgetBlock({
   onAdded,
   onToggle,
   onFold,
+  onReorder,
 }: {
   widget: Widget<ContentRow>;
   dimension: string | null;
@@ -97,6 +114,7 @@ function WidgetBlock({
   onAdded: () => void;
   onToggle: (row: ContentRow) => void;
   onFold: (next: boolean) => void;
+  onReorder: (writes: ReorderWrite[]) => void;
 }) {
   // Null is All, which is also where a row carrying no tag in this dimension
   // lives. Local rather than stored: a filter is what you are looking at now,
@@ -113,6 +131,50 @@ function WidgetBlock({
   // the seed: folded on the server, open on the screen.
   const filters = filtersFor(widget.rows, dimension);
   const { left, done } = splitDone(matching(widget.rows, dimension, only));
+
+  // **Dragging, on To do and nowhere else.** It is the one list a person
+  // arranges: a map is ordered by the map and a file grid by nothing anybody
+  // reaches for. Only the rows still to do move; a finished one has sunk and
+  // sits by when it was ticked, which is not a place somebody chooses.
+  //
+  // The neighbours are the rows on screen. A filter or the fold hides rows,
+  // and a row dropped between two visible ones lands between those two
+  // whatever sits between them out of sight, which is what the drop meant.
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+
+  function moveTo(fromId: string, toIndex: number): void {
+    const from = left.findIndex((row) => row.id === fromId);
+    if (from < 0 || toIndex < 0 || toIndex >= left.length) return;
+    const { writes } = reorderPlan(left, from, toIndex);
+    if (writes.length > 0) onReorder(writes);
+  }
+
+  const reorderFor = (row: ContentRow, index: number): RowReorder | undefined => {
+    if (widget.kind !== "todo") return undefined;
+    const fromIndex = dragging ? left.findIndex((one) => one.id === dragging) : -1;
+    return {
+      over:
+        dragging && dragging !== row.id && over === row.id
+          ? fromIndex < index
+            ? "below"
+            : "above"
+          : null,
+      dragging: dragging === row.id,
+      onDragStart: () => setDragging(row.id),
+      onDragEnd: () => {
+        setDragging(null);
+        setOver(null);
+      },
+      onDragOver: () => setOver(row.id),
+      onDrop: () => {
+        if (dragging) moveTo(dragging, index);
+        setDragging(null);
+        setOver(null);
+      },
+      onStep: (delta) => moveTo(row.id, index + delta),
+    };
+  };
 
   return (
     <section>
@@ -193,8 +255,15 @@ function WidgetBlock({
         </div>
       ) : null}
 
-      {left.map((row) => (
-        <Row key={row.id} row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />
+      {left.map((row, index) => (
+        <Row
+          key={row.id}
+          row={row}
+          widget={widget.kind}
+          handlers={handlers}
+          onToggle={onToggle}
+          reorder={reorderFor(row, index)}
+        />
       ))}
 
       {/* A finished task keeps its place and sinks below everything
@@ -356,6 +425,7 @@ function Row({
   handlers,
   onToggle,
   note,
+  reorder,
 }: {
   row: ContentRow;
   widget: string;
@@ -364,6 +434,8 @@ function Row({
   /** Replaces the row's own meta line. Used by the repeating entry to say how
    *  often instead of naming one date the row is only standing in for. */
   note?: string;
+  /** The row can be dragged to a new place. To do's unfinished rows only. */
+  reorder?: RowReorder | undefined;
 }) {
   const done = row.doneAt !== null;
 
@@ -371,6 +443,7 @@ function Row({
     <ContentRowView
       row={row}
       handlers={handlers}
+      reorder={reorder}
       lead={
         widget === "todo" ? (
           // A checkbox rather than a type tile: the one row in the product you

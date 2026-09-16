@@ -1,7 +1,7 @@
 // Generated from the design system. Do not edit: run `pnpm icons`.
 // Source: .claude/skills/offload-design/assets/icons
 
-export type IconName = "album" | "archive" | "arrow-up" | "bell" | "blend" | "bookmark" | "brain" | "calendar" | "camera" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "coffee" | "compass" | "ellipsis" | "eye" | "folder" | "funnel" | "gallery-vertical-end" | "git-branch" | "group" | "house" | "image" | "inbox" | "lasso" | "layers" | "library-big" | "link" | "list" | "lock" | "map-pin" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "moon-star" | "moon" | "newspaper" | "orbit" | "paperclip" | "pencil" | "plus" | "radio" | "rewind" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "snowflake" | "sparkles" | "spline" | "square-check-big" | "sun" | "sunrise" | "text-quote" | "thermometer-sun" | "trash-2" | "umbrella" | "users" | "waypoints" | "wind" | "x";
+export type IconName = "album" | "archive" | "arrow-up" | "bell" | "blend" | "bookmark" | "brain" | "calendar" | "camera" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "coffee" | "compass" | "ellipsis" | "eye" | "folder" | "funnel" | "gallery-vertical-end" | "git-branch" | "grip-vertical" | "group" | "house" | "image" | "inbox" | "lasso" | "layers" | "library-big" | "link" | "list" | "lock" | "map-pin" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "moon-star" | "moon" | "newspaper" | "orbit" | "paperclip" | "pencil" | "plus" | "radio" | "rewind" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "snowflake" | "sparkles" | "spline" | "square-check-big" | "sun" | "sunrise" | "text-quote" | "thermometer-sun" | "trash-2" | "umbrella" | "users" | "waypoints" | "wind" | "x";
 
 export type Shape =
   | { kind: "path"; d: string }
@@ -554,6 +554,44 @@ export const ICONS: Record<IconName, Shape[]> = {
       "cx": 6,
       "cy": 18,
       "r": 3
+    }
+  ],
+  "grip-vertical": [
+    {
+      "kind": "circle",
+      "cx": 9,
+      "cy": 12,
+      "r": 1
+    },
+    {
+      "kind": "circle",
+      "cx": 9,
+      "cy": 5,
+      "r": 1
+    },
+    {
+      "kind": "circle",
+      "cx": 9,
+      "cy": 19,
+      "r": 1
+    },
+    {
+      "kind": "circle",
+      "cx": 15,
+      "cy": 12,
+      "r": 1
+    },
+    {
+      "kind": "circle",
+      "cx": 15,
+      "cy": 5,
+      "r": 1
+    },
+    {
+      "kind": "circle",
+      "cx": 15,
+      "cy": 19,
+      "r": 1
     }
   ],
   "group": [

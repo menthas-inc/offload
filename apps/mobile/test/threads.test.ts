@@ -66,3 +66,21 @@ describe("the place id the shared widget rule needs", () => {
     expect(page?.rows.map((r) => r.placeId)).toEqual(["p1", null]);
   });
 });
+
+describe("moving a row is a priority, through the endpoint a priority always used", () => {
+  it("sends the number to the content route and hands back what it was", async () => {
+    reply = { status: 200, data: { previous: { priority: 50, priorityPinned: false } } };
+    const result = await threads.setPriority("c1", 70);
+    expect(calls[0]?.path).toBe("/v1/content/c1/priority");
+    expect(calls[0]?.init.body).toBe(JSON.stringify({ priority: 70 }));
+    expect(result?.previous.priority).toBe(50);
+  });
+
+  it("sends a note's number to the note route", async () => {
+    reply = { status: 200, data: { previous: { priority: 50 } } };
+    const result = await threads.setNotePriority("n1", 75);
+    expect(calls[0]?.path).toBe("/v1/notes/n1/priority");
+    expect(calls[0]?.init.body).toBe(JSON.stringify({ priority: 75 }));
+    expect(result?.previous.priority).toBe(50);
+  });
+});

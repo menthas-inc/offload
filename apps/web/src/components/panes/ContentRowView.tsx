@@ -22,7 +22,7 @@
 
 import Link from "next/link";
 import { Icon } from "../Icon";
-import { RowTools } from "./RowTools";
+import { RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
 import { domainOf, isFiling, type ContentRow } from "../../lib/threads";
 
@@ -51,12 +51,17 @@ export function ContentRowView({
   lead,
   meta,
   handlers,
+  reorder,
 }: {
   row: ContentRow;
   /** The tile, the checkbox, whatever leads this row where it is shown. */
   lead: React.ReactNode;
   meta: React.ReactNode;
   handlers: RowHandlers;
+  /** The row can be dragged to a new place in its list. Only To do offers it:
+   *  it is the one list a person arranges, and the handle it draws is the one
+   *  control here that does nothing when clicked. */
+  reorder?: RowReorder | undefined;
 }) {
   // Shown on a link row and nowhere else. What says the row goes somewhere.
   const domain = domainOf(row.url);
@@ -97,6 +102,29 @@ export function ContentRowView({
       // exactly what happened. Blue is "this needs you", and a row that was
       // simply filed needs nothing.
       data-arrived={handlers.arrived.has(row.id) ? true : undefined}
+      // A drop target while a row in the same list is being dragged. The line
+      // is drawn on whichever edge the dragged row would land on, and the row
+      // under the pointer is what the list reads to decide where.
+      data-drag-row={reorder ? true : undefined}
+      data-dragging={reorder?.dragging ? true : undefined}
+      data-over={reorder?.over ?? undefined}
+      onDragOver={
+        reorder
+          ? (event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+              reorder.onDragOver();
+            }
+          : undefined
+      }
+      onDrop={
+        reorder
+          ? (event) => {
+              event.preventDefault();
+              reorder.onDrop();
+            }
+          : undefined
+      }
     >
       {/* **The page's own picture, in place of the type tile.** A listing is
           recognised by its photo long before its title, and the tile is already
@@ -178,6 +206,7 @@ export function ContentRowView({
         title={row.title}
         archived={row.archivedAt !== null}
         canDelete={row.canDelete}
+        reorder={reorder}
         onEdit={() => handlers.onEdit(row)}
         onArchive={() => handlers.onArchive(row)}
         onDelete={() => handlers.onAsk(row.id)}

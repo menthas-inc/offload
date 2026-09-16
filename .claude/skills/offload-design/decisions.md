@@ -11,6 +11,44 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-16 · A row has a handle, and dragging it is changing its priority
+**Surface:** web, iOS, Android
+**Was:** The To do list and the Notes section were read-only in their order. To do sorted
+by priority then recency and the only way to move a row was to know that; Notes sorted by
+when each was written and could not be moved at all. No kit draws a reorder on any row.
+**Is:** A row in either list carries `grip-vertical`, a Lucide glyph now vendored as the
+81st in the set. On web it is the first of the row tools, left of `pencil`, shown with
+them on hover and on focus; it is dragged (HTML5, the whole row as the drag image) or it
+takes the arrow keys, and the row under the pointer draws a 2px ink line on the edge the
+drop would land on while the dragged row takes `--surface-fill`. On the phones it sits
+first in the row's trailing controls, beside the pencil; hold it and the row lifts to
+`--surface-raised`, follows the finger, and snaps home when let go while the list re-sorts
+under it. A note row on the phones, which has no pencil, draws the handle alone at its
+trailing edge. The drop is a priority: the midpoint between the two neighbours, a
+re-spread of the visible list when they are adjacent, never a tie, on the 0 to 100 scale
+the reprioritise already used. Notes gained the same number for it, and moving one leaves
+when it was written alone.
+**Why:** The product owner wanted to rearrange a list by hand, and a list ordered by a
+number a person can already change has an obvious way to do that without a second
+ordering mechanism: change the number. One handle, the same on both lists, because a
+person dragging a task and a person dragging a note are doing the same thing.
+**Three things the kit would want to know.** The handle does nothing when clicked, so it
+is the one row tool whose hover does not invert to ink; it keeps `--surface-fill` and
+takes a `grab` cursor. The web note row split from one `<button>` into a `div` holding a
+text button and the handle, because a control inside a control is reachable by nothing,
+and the split is invisible: the inner button inherits the row's type and colour. And the
+drag hit area on the phones is the 17px glyph plus 8px of slop rather than a full 44,
+which is inside the row's own target and is the same compromise the row's other three
+controls already make.
+**Design system impact:** `readme.md` gains `grip-vertical` in the vendored list, which is
+81 glyphs now, and the guideline "A row's actions are drawn as conditional, never as
+refused" gains the handle as a fourth control, drawn on rows in a list that can be
+arranged. `WRow` and the phones' `ListRow` want a `reorder` slot: a handle leading the
+tools, and a `dragging` and `over` state for the fill and the line. `MemoryRow` wants the
+same slot at its trailing edge. `RowTools` on web is the reference for the order: handle,
+edit, one way out.
+
+
 ### 2026-09-15 · The fold is yours, and an answering turn says something first
 **Surface:** iOS, Android, web
 

@@ -37,7 +37,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { cadenceLabel, datedFor, splitRepeating, widgetsFor } from "@offload/widgets";
+import {
+  cadenceLabel,
+  datedFor,
+  splitRepeating,
+  widgetsFor,
+  type ReorderWrite,
+} from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { atOpacity, useColors } from "../../lib/colors";
 import { ContentRowView } from "../shell/ContentRow";
@@ -53,6 +59,7 @@ import {
   fetchContent,
   fetchThread,
   setArchived,
+  setPriority,
   type ContentRow,
   type ThreadBundle,
   setPreference,
@@ -176,6 +183,31 @@ export default function Thread() {
     await load();
     // Never the row's title: a toast is a few words and a title is not.
     toast.show("Deleted");
+  }
+
+  /** A row was dragged somewhere else in To do.
+   *
+   *  The writes are priorities, computed by the list from the rows either
+   *  side of the drop, through the endpoint a priority has always gone
+   *  through, which pins it. Optimistic, like a tick, and Undo writes every
+   *  previous number back. */
+  async function reorder(writes: ReorderWrite[]): Promise<void> {
+    setRows((current) =>
+      current.map((row) => {
+        const write = writes.find((one) => one.id === row.id);
+        return write ? { ...row, priority: write.priority, priorityPinned: true } : row;
+      }),
+    );
+    const results = await Promise.all(writes.map((one) => setPriority(one.id, one.priority)));
+    await load();
+    if (results.some((result) => result === null)) return;
+    toast.show("Moved", {
+      label: "Undo",
+      onPress: async () => {
+        await Promise.all(writes.map((one) => setPriority(one.id, one.previous)));
+        await load();
+      },
+    });
   }
 
   if (!thread) {
@@ -374,6 +406,7 @@ export default function Thread() {
             onEdit={setRenaming}
             onArchive={(row: ContentRow) => void archive(row)}
             onToggle={(row: ContentRow) => void tick(row)}
+            onReorder={(writes) => void reorder(writes)}
             arrived={arrived}
           />
         )}

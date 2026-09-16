@@ -21,6 +21,8 @@
 import { useState } from "react";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
+import { ReorderHandle, type RowReorder } from "./RowTools";
+import { reorderPlan, type ReorderWrite } from "../../lib/widgets";
 import {
   NOTE_BUDGET,
   NOTE_CHARS,
@@ -31,6 +33,7 @@ import {
   foldedNotes,
   muteNote,
   restoreNote,
+  setNotePriority,
   type Member,
   type Note,
 } from "../../lib/threads";
@@ -84,6 +87,10 @@ export function Notes({
   const [draft, setDraft] = useState("");
   const [bodyDraft, setBodyDraft] = useState<string | null>(null);
   const [folded, setFolded] = useState<Note[] | null>(null);
+  // Which row is being dragged, and which one the pointer is over. The active
+  // list only: folded history is read, not arranged.
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
 
   const shared = members.length > 1;
   const editing = notes.find((note) => note.id === editingId) ?? null;
@@ -191,6 +198,57 @@ export function Notes({
     setFolded(result?.notes ?? []);
   }
 
+  /** A note was dragged somewhere else in the section.
+   *
+   *  The same arithmetic To do uses, on the same scale, through the note's
+   *  own endpoint. It moves the row and nothing else: not when the note was
+   *  written, which is what precedence turns on, so a note dragged to the top
+   *  is not thereby the newest thing said. */
+  async function reorder(writes: ReorderWrite[]): Promise<void> {
+    close();
+    const results = await Promise.all(
+      writes.map((one) => setNotePriority(one.id, one.priority))
+    );
+    onChanged();
+    if (results.some((result) => result === null)) return;
+    onUndo("Moved", async () => {
+      await Promise.all(writes.map((one) => setNotePriority(one.id, one.previous)));
+      onChanged();
+    });
+  }
+
+  function moveTo(fromId: string, toIndex: number): void {
+    const from = notes.findIndex((note) => note.id === fromId);
+    if (from < 0 || toIndex < 0 || toIndex >= notes.length) return;
+    const { writes } = reorderPlan(notes, from, toIndex);
+    if (writes.length > 0) void reorder(writes);
+  }
+
+  const reorderFor = (note: Note, index: number): RowReorder => {
+    const fromIndex = dragging ? notes.findIndex((one) => one.id === dragging) : -1;
+    return {
+      over:
+        dragging && dragging !== note.id && over === note.id
+          ? fromIndex < index
+            ? "below"
+            : "above"
+          : null,
+      dragging: dragging === note.id,
+      onDragStart: () => setDragging(note.id),
+      onDragEnd: () => {
+        setDragging(null);
+        setOver(null);
+      },
+      onDragOver: () => setOver(note.id),
+      onDrop: () => {
+        if (dragging) moveTo(dragging, index);
+        setDragging(null);
+        setOver(null);
+      },
+      onStep: (delta) => moveTo(note.id, index + delta),
+    };
+  };
+
   // Nothing to show and nothing being written: draw nothing at all. A heading
   // over an empty row is a section announcing its own absence, which is the
   // same thing the standing summary already refuses to do.
@@ -286,41 +344,76 @@ export function Notes({
     </span>
   );
 
-  const row = (note: Note, readOnly = false) => {
+  // The row is a div holding a button and, on the active list, a handle. It
+  // was one button until 2026-09-16, and a handle inside a button is a control
+  // inside a control, which no browser will focus and no screen reader will
+  // announce. The text keeps the click; the handle keeps the drag.
+  const row = (note: Note, index: number, readOnly = false) => {
     const name = author(note);
     const date = when(note);
     const tone = note.muted ? "muted" : note.origin === "learned" ? "accent" : "neutral";
     const quietRow = readOnly || !instructing.has(note.id);
+    const reorder = readOnly ? null : reorderFor(note, index);
 
     return (
-      <button
+      <div
         key={note.id}
-        type="button"
         className={styles.noteRow}
         data-tone={tone}
         data-quiet={quietRow ? true : undefined}
         data-arrived={arrived?.has(note.id) ? true : undefined}
-        onClick={() => (readOnly ? undefined : open_(note))}
+        data-drag-row={reorder ? true : undefined}
+        data-dragging={reorder?.dragging ? true : undefined}
+        data-over={reorder?.over ?? undefined}
+        onDragOver={
+          reorder
+            ? (event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                reorder.onDragOver();
+              }
+            : undefined
+        }
+        onDrop={
+          reorder
+            ? (event) => {
+                event.preventDefault();
+                reorder.onDrop();
+              }
+            : undefined
+        }
       >
-        {note.origin === "learned" ? (
-          <>
-            <Icon name="sparkles" size={14} className={styles.noteGlyph} />
-            {/* The glyph alone is not a state, and the row has no other place
-                to say it. */}
-            <span className={styles.hidden}>offload wrote this. </span>
-          </>
-        ) : null}
-        <span className={styles.noteText}>
-          {note.text}
-          {date ? <span className={styles.noteBy}> {date}</span> : null}
-          {note.body ? <span className={styles.noteBy}> more</span> : null}
-          {name ? <span className={styles.noteBy}> {name}</span> : null}
-          {note.muted ? <span className={styles.noteBy}> Muted</span> : null}
-          {quietRow && !readOnly ? (
-            <span className={styles.noteBy}> Not reaching offload</span>
+        <button
+          type="button"
+          className={styles.noteMain}
+          disabled={readOnly}
+          onClick={() => (readOnly ? undefined : open_(note))}
+        >
+          {note.origin === "learned" ? (
+            <>
+              <Icon name="sparkles" size={14} className={styles.noteGlyph} />
+              {/* The glyph alone is not a state, and the row has no other
+                  place to say it. */}
+              <span className={styles.hidden}>offload wrote this. </span>
+            </>
           ) : null}
-        </span>
-      </button>
+          <span className={styles.noteText}>
+            {note.text}
+            {date ? <span className={styles.noteBy}> {date}</span> : null}
+            {note.body ? <span className={styles.noteBy}> more</span> : null}
+            {name ? <span className={styles.noteBy}> {name}</span> : null}
+            {note.muted ? <span className={styles.noteBy}> Muted</span> : null}
+            {quietRow && !readOnly ? (
+              <span className={styles.noteBy}> Not reaching offload</span>
+            ) : null}
+          </span>
+        </button>
+        {reorder ? (
+          <span className={styles.noteHandle}>
+            <ReorderHandle title={note.text} reorder={reorder} />
+          </span>
+        ) : null}
+      </div>
     );
   };
 
@@ -354,7 +447,7 @@ export function Notes({
       </h2>
 
       <div className={styles.notes}>
-        {notes.map((note) => {
+        {notes.map((note, index) => {
           if (editingId === note.id) {
             return (
               <div
@@ -367,7 +460,7 @@ export function Notes({
               </div>
             );
           }
-          return row(note);
+          return row(note, index);
         })}
 
         {adding ? (
@@ -395,7 +488,11 @@ export function Notes({
           <button type="button" className={styles.showMore} onClick={() => void showFolded()}>
             {folded ? "Hide" : `Show ${counts.folded} folded`}
           </button>
-          {folded ? <div className={styles.notes}>{folded.map((note) => row(note, true))}</div> : null}
+          {folded ? (
+            <div className={styles.notes}>
+              {folded.map((note, index) => row(note, index, true))}
+            </div>
+          ) : null}
         </>
       ) : null}
     </>

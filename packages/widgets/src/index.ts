@@ -486,3 +486,7 @@ export function readPreference(attrs: unknown): ThreadPreference {
 // The rail, and the day under it. Its own file because it shares nothing with
 // the widget rules above except the row shape, and 015 is the reason it exists.
 export * from "./timeline.js";
+
+// Dragging a row to a new place, as the priorities that hold it there. Its own
+// file because it is arithmetic over one field and every surface drags.
+export * from "./reorder.js";

@@ -30,6 +30,18 @@ alter table notes add column place_id        uuid references places (id);
 
 **Everything else stays**, including `kind = 'preference'`, `scope`, `subject_id` with no foreign key, `derived_from_untrusted`, `muted_at`, `superseded_at` and the nullable `account_id` that is authorship and never an access predicate.
 
+### A note has a place in its section, since 2026-09-16
+
+```sql
+alter table notes add column priority smallint not null default 50;   -- 0045
+```
+
+The same scale and column type as `content.priority`, so one drag helper serves both lists. Default 50 rather than 0, so a note can be moved either way before the section is re-spread. **`readable_notes` is dropped and recreated in the same migration**: it is `select notes.*`, which froze its column list when it was created, and `create or replace view` may only append columns while `*` puts the new one in the middle. 0036 did the same for the same reason.
+
+No index: the section is read whole, a few hundred rows at most, through `notes_thread` on `subject_id`, and sorts in memory.
+
+`readableNotes` orders by `priority desc, created_at asc`. `notesForPrompt` is untouched: it still budgets by `updated_at desc` and hands the model the set oldest written first. `reprioritiseNote` writes `priority` and **nothing else**, `updated_at` included, because that column is precedence and a note dragged to the top has not been written again. Any member, through `requireReadableNote`, like every other arrangement of a shared thread.
+
 ### What moves with it
 
 | | |
@@ -150,6 +162,8 @@ The prompt itself changes in `apps/agent/src/offload_agent/prompts/plan_v2.md`, 
 
 `POST /v1/threads/:id/notes` no longer returns 409 at a cap. `PATCH` gains `body` and the date fields. A new `GET /v1/threads/:id/notes/folded` is the paginated history.
 
+`POST /v1/notes/:id/priority` *(2026-09-16)* takes `{ priority: 0..100 }` and returns the note and `previous: { priority }`, the twin of the content route. No `/memories` alias: no shipped build calls it.
+
 ## The daily job
 
 Two kinds, because a fan-out and the work are different jobs:
@@ -182,6 +196,8 @@ Web is `apps/web/src/components/panes/Thread.tsx` and `Memories.tsx`; the phones
 - **the inferred mark on `origin = 'learned'`**, which already exists and now also means "offload wrote this text over your longer one";
 - **a folded count** and the control that opens the history;
 - **the over-budget line**, beside the control that resolves it.
+
+**And a handle, since 2026-09-16.** Each active row draws `grip-vertical` at its trailing edge, where the edit tool would be if a note row had one: on web as a button beside the text, which meant the row could no longer be one button, since a control inside a control is focusable by nothing; on the phones inside the row with the same pan-after-a-hold the content row uses. The drop goes through `reorderPlan` from `@offload/widgets` and `setNotePriority`, one call per changed row, with one Undo. Folded history draws no handle: it is read, not arranged.
 
 `MemoryRow` in the design system has no props for any of this. It is extended and renamed, and the entry in `.claude/skills/offload-design/decisions.md` carries the **Design system impact** field. The section heading is a raw `h2` today and moves to `SectionHeader`, which is a pre-existing divergence resolved rather than copied. The folded-history control has no governed pattern; the nearest built thing is the bespoke archived-content row on the thread page, and this is where that either becomes a pattern or is logged as a second divergence.
 

@@ -41,7 +41,11 @@ Memory becomes **note**, everywhere a person can see it: the thread section, the
 
 ### A note can have a date, and most do not
 
-A note carries `occurs_at`, an optional end, and `due_at`. It carries a place. It carries neither a tick nor a priority, because those are what makes something a task.
+A note carries `occurs_at`, an optional end, and `due_at`. It carries a place. It carries no tick, because that is what makes something a task.
+
+*Amended 2026-09-16.* It carries a place in its section. This spec first said a note carries no priority either, and that held until somebody wanted to move one: a section ordered by when each sentence was written can only be rearranged by writing the sentence again, and writing it again is what makes it the newest thing said, which is not what moving it means. So a note has a `priority` on the same 0 to 100 scale content uses, every note starts at 50, and the section reads highest first then oldest first, which for a section nobody has touched is the order it always had. A person moves a note by dragging its row, on every surface, and the drop is the same midpoint-and-re-spread rule 007 states for To do. Nothing else writes it: not the tool, not compaction, and a note offload writes lands at 50 among the untouched ones.
+
+**It is not precedence.** Which of two disagreeing notes is true still turns on when each was last written, and moving a note does not touch that. A note dragged to the top of the section is not thereby the newest thing said, and the prompt still reads the section oldest written first.
 
 Most notes have no date at all, and nothing about them changes. A note that has one appears on the timeline (015) and, when it also has a place, on the map that thread already earns.
 
@@ -136,7 +140,8 @@ Authorship, delete, mute, sharing and Undo are 008's and stay exactly as they ar
 **One concept**
 
 - **AC-1** A note holds text of at most 200 characters and an optional body of at most 4000. Both are stored as given; neither is silently truncated.
-- **AC-2** A note can carry `occurs_at`, an end, `due_at` and a place, and any of them may be absent. A note carries no tick and no priority.
+- **AC-2** A note can carry `occurs_at`, an end, `due_at` and a place, and any of them may be absent. A note carries no tick. *Amended 2026-09-16:* it carries a `priority`, which is where it sits in its section and nothing else.
+- **AC-2a** *(2026-09-16)* Any member can drag a note to a new place in the section on web and both phones, the section reads back in that order everywhere, and the move leaves `updated_at` alone: the prompt's order and precedence are unchanged by it. Reversible, one Undo for every number written.
 - **AC-3** Nothing in the product creates content of type `note` after this ships. Existing note rows are deleted by the migration rather than moved. That is a deliberate destruction of dumped content, taken under the dated one-time exception written into OFF-1 on 2026-09-10, and defensible only while the product is in alpha with a handful of accounts. Every other content type is untouched.
 - **AC-3a** A note is in the Notes section and nowhere else. "Everything in here" holds tasks, events, links, files, images, voice and locations after this ships.
 - **AC-3b** A person dumping a sentence a thread already holds gets a second note. offload writing one it already wrote gets nothing new, which is what the rule was built for.

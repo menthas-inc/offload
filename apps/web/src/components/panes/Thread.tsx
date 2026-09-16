@@ -23,7 +23,13 @@ import { Timeline } from "./Timeline";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import { useThreads } from "../shell/threads-context";
 import { Widgets } from "./Widgets";
-import { cadenceLabel, datedFor, splitRepeating, widgetsFor } from "../../lib/widgets";
+import {
+  cadenceLabel,
+  datedFor,
+  splitRepeating,
+  widgetsFor,
+  type ReorderWrite,
+} from "../../lib/widgets";
 import {
   completeContent,
   deleteContent,
@@ -32,6 +38,7 @@ import {
   fetchThread,
   renameThread,
   setArchived,
+  setPriority,
   type ContentRow,
   type ThreadBundle,
   setPreference,
@@ -203,6 +210,32 @@ export function Thread({ id, onChanged, onUndo }: Props) {
     await load();
     onUndo(wasDone ? "Back on the list" : "Ticked off", async () => {
       await completeContent(row.id, wasDone);
+      await load();
+    });
+  }
+
+  /** A row was dragged somewhere else in To do.
+   *
+   *  The writes are priorities, computed by the list from the rows either side
+   *  of the drop, and each one goes through the same endpoint a priority has
+   *  always gone through, which pins it. Usually one write; a re-spread of the
+   *  list is several, and Undo puts every one of them back.
+   *
+   *  Optimistic, like a tick: the row lands where it was dropped before the
+   *  server answers, and a failed write leaves the screen as the server has it
+   *  on the reload. */
+  async function reorder(writes: ReorderWrite[]): Promise<void> {
+    setRows((current) =>
+      current.map((row) => {
+        const write = writes.find((one) => one.id === row.id);
+        return write ? { ...row, priority: write.priority, priorityPinned: true } : row;
+      })
+    );
+    const results = await Promise.all(writes.map((one) => setPriority(one.id, one.priority)));
+    await load();
+    if (results.some((result) => result === null)) return;
+    onUndo("Moved", async () => {
+      await Promise.all(writes.map((one) => setPriority(one.id, one.previous)));
       await load();
     });
   }
@@ -423,6 +456,7 @@ export function Thread({ id, onChanged, onUndo }: Props) {
               setThread({ ...thread, preference: { ...thread.preference, hideDone: next } });
               void setPreference(id, { hideDone: next });
             }}
+            onReorder={(writes) => void reorder(writes)}
           />
         )}
 

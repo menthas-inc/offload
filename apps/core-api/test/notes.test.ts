@@ -31,9 +31,11 @@ import {
   notesForPrompt,
   readableNote,
   readableNotes,
+  reprioritiseNote,
   restoreNote,
   setMuted,
 } from "../src/threads/notes.js";
+import { reorderPlan } from "../src/threads/widgets.js";
 
 await migrate(() => {});
 
@@ -840,5 +842,80 @@ describe("AC-14 what a turn writes after it read a calendar", () => {
     expect(carried.yours.map((note) => note.text)).toEqual(["Todo names in three words"]);
     expect(carried.fromApps.map((note) => note.text)).toEqual(["the dentist moved to Thursday"]);
     expect(carried.members).toEqual([]);
+  });
+});
+
+describe("a note can be moved, and moving it is not writing it", () => {
+  it("orders the section by where a person put it, then by when it was written", async () => {
+    const ana = await account();
+    const flat = await thread(ana);
+    const first = await add(flat, ana, "Boiler is serviced in March");
+    const second = await add(flat, ana, "Keys are with the neighbour");
+    const third = await add(flat, ana, "Landlord prefers email");
+
+    // Untouched, a section reads oldest first, which is what it always did.
+    expect((await readableNotes(ana, flat)).map((note) => note.id)).toEqual([
+      first.id,
+      second.id,
+      third.id,
+    ]);
+
+    // Drag the last one to the top: the helper the screens use gives it the
+    // midpoint above the first row, and the read comes back in that order.
+    const notes = await readableNotes(ana, flat);
+    const { writes } = reorderPlan(notes, 2, 0);
+    expect(writes).toEqual([{ id: third.id, priority: 75, previous: 50 }]);
+    for (const write of writes) await reprioritiseNote(ana, write.id, write.priority);
+
+    expect((await readableNotes(ana, flat)).map((note) => note.id)).toEqual([
+      third.id,
+      first.id,
+      second.id,
+    ]);
+  });
+
+  it("returns what it was, so Undo is the same call with the old number", async () => {
+    const ana = await account();
+    const flat = await thread(ana);
+    const note = await add(flat, ana, "Keys are with the neighbour");
+
+    const { previous } = await reprioritiseNote(ana, note.id, 80);
+    expect(previous).toEqual({ priority: 50 });
+    await reprioritiseNote(ana, note.id, previous.priority);
+    expect((await readableNote(ana, note.id))?.priority).toBe(50);
+  });
+
+  it("leaves updated_at alone, because precedence is when a note was last written", async () => {
+    const ana = await account();
+    const flat = await thread(ana);
+    const older = await add(flat, ana, "We arrive on the 12th");
+    const newer = await add(flat, ana, "We arrive on the 14th");
+
+    await reprioritiseNote(ana, older.id, 90);
+
+    const after = await readableNote(ana, older.id);
+    expect(after?.writtenAt.getTime()).toBe(older.writtenAt.getTime());
+    // And the prompt still puts the newer sentence last, whatever the screen
+    // shows first.
+    const { yours } = await notesForPrompt(flat, ana);
+    expect(yours.map((entry) => entry.text)).toEqual([
+      "We arrive on the 12th",
+      "We arrive on the 14th",
+    ]);
+    expect(newer.writtenAt.getTime()).toBeGreaterThanOrEqual(older.writtenAt.getTime());
+  });
+
+  it("is any member's, like every other arrangement of a shared thread", async () => {
+    const ana = await account();
+    const john = await account("John Duarte");
+    const flat = await thread(ana);
+    await join(flat, john);
+    const note = await add(flat, ana, "Keys are with the neighbour");
+
+    await reprioritiseNote(john, note.id, 90);
+    expect((await readableNote(ana, note.id))?.priority).toBe(90);
+
+    const stranger = await account("Nobody");
+    await expect(reprioritiseNote(stranger, note.id, 10)).rejects.toBeInstanceOf(NotYours);
   });
 });

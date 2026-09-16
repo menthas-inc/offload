@@ -53,6 +53,20 @@ Two, both optional, both settable by a person and by offload through `set_thread
 
 005 shipped edit, archive, move, delete and rename, because those work on a note. The ones that need 006's fields arrive here: ticking a task off, and changing a priority. Both are available to any member, both reversible, both on the reversible allowlist before they ship.
 
+### Dragging a row is changing its priority
+
+*Added 2026-09-16, as a tweak.* The To do list is ordered by priority and then recency, and until now the only way to move a row was to know that and type a number. A row carries a drag handle now, on every surface, and dragging it to a new place **changes its priority so the new order holds**: the row takes the midpoint between the two rows it was dropped between, which is the same reprioritise a person always had, pinned the same way, undoable the same way. There is no second ordering mechanism and no position column; the order is still one signal.
+
+The rule, stated so the three surfaces cannot drift:
+
+- The neighbours are the rows on screen. A filter or the fold hides rows, and a row dropped between two visible ones lands between those two whatever sits between them out of sight.
+- Dropped at the top, the row goes above the first row, never past 100; at the bottom, below the last, never past 0.
+- Two rows at the same priority order by recency, newest first, which is not where anybody dropped anything. So a tie is never good enough: when the two neighbours are adjacent or equal, the whole visible list is re-spread evenly across 0 to 100 with the moved row in its slot, and every row whose number changed is written and pinned. A list somebody arranged by hand is theirs.
+- Only the rows still to do move. A finished row has sunk and sits by when it was ticked.
+- The scale has 101 whole numbers, so a list of more than a hundred unfinished rows cannot be held apart and a drop in one may not stick. Stated rather than hidden; the page shows thirty.
+
+"Everything in here" is ordered by recency alone and does not sort by priority, so it draws no handle and is unchanged.
+
 ## Acceptance criteria
 
 - **AC-1** A thread renders a widget only when its own content justifies one, and never renders one empty.
@@ -64,6 +78,7 @@ Two, both optional, both settable by a person and by offload through `set_thread
 - **AC-7** Any member can tick, un-tick and reprioritise. All three are reversible and on the allowlist before shipping.
 - **AC-7a** `set_thread_preference` is membership-checked per call and reversible, and it is on the allowlist. It arrives with `threads.attrs`, not before it.
 - **AC-7b** The fold on To do is stored per member and read back on every surface: folded on web is folded on your phone and after a refresh, and on nobody else's. The count and the chevron are one control, so pressing "5 done" opens them.
+- **AC-7c** An unfinished To do row can be dragged to a new place on web and both phones, from a handle beside its edit control, and on web the focused handle also moves the row with the arrow keys. The drop is a reprioritise: the midpoint between the new neighbours, a re-spread of the visible list when they are adjacent, never past the ends of the scale, and never a tie. It is reversible, and one Undo puts back every number a re-spread wrote.
 - **AC-8** A priority a person set is marked as such and offload does not overwrite it.
 - **AC-9** The page's query count still does not grow with the number of widgets a thread earns.
 - **AC-10** Widget parity: the contract is defined once and the phones render the same widgets from the same data.

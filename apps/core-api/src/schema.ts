@@ -484,6 +484,13 @@ export interface NotesTable {
   due_at: Timestamp | null;
   /** Null forever is a normal state, the same as it is for content. */
   place_id: string | null;
+  /** Where it sits in the section, 0 to 100 and higher first, on the same scale
+   *  content uses so one drag helper serves both lists. Default 50, so a
+   *  note can be moved either way before the list is re-spread.
+   *
+   *  **Not precedence.** Which of two disagreeing notes is true turns on
+   *  `updated_at`, and moving a note leaves that alone. */
+  priority: Generated<number>;
   /** That this note repeats, in the words `cadenceLabel` already says out loud.
    *
    *  **The rule rather than the occurrences.** A calendar sends occurrences and

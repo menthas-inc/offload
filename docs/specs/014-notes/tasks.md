@@ -56,3 +56,11 @@
 - [x] **T6** A turn whose only output is a note names the thread it landed in. (AC-7c)
 - [x] **T7** No note text in any log, trace, analytics event or job error, compaction included. **This was false when it was first ticked**: the failure path used `log.exception`, which renders the traceback whatever fields are passed. Fixed in the worker and in the embed path beside it. (AC-22, OFF-1)
 - [~] **T8** A note offload wrote reaches the model in the trusted list; one from a connected app does not. The server half is tested. *The adversarial held-out set is not run: it belongs with A12, which needs `/test-llm`.* (AC-14)
+
+## Moving a note, 2026-09-16
+
+- [x] **N1** `0045`: `notes.priority smallint default 50`, `readable_notes` recreated; `readableNotes` orders by it then `created_at asc`; `reprioritiseNote` writes it and nothing else. (AC-2, AC-2a)
+  *Test:* `notes.test.ts`: the section reads back in the dragged order, Undo is the same call with the old number, `updated_at` and the prompt's order are untouched, any member may and a stranger may not.
+- [x] **N2** `POST /v1/notes/:id/priority`, and `setNotePriority` on web and the phones. (AC-2a)
+- [x] **N3** The handle on the note row on all three surfaces, through the shared `reorderPlan`. On web the row is a div holding the text button and the handle. (AC-2a)
+- [ ] **N4** *Not done from this session: needs a device.* Hold a note's handle on each phone and check the row lifts and lands, and that the tap to open still opens.

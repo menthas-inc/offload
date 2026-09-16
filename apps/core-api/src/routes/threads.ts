@@ -25,6 +25,7 @@ import {
   addNote,
   deleteNote,
   editNote,
+  reprioritiseNote,
   foldedNotes,
   noteCounts,
   readableNotes,
@@ -136,6 +137,9 @@ const noteSchema = z.object({
   occursEndAt: z.coerce.date().nullable(),
   dueAt: z.coerce.date().nullable(),
   placeId: z.string().nullable(),
+  /** Where it sits in the section, 0 to 100 and higher first. A person moves
+   *  it by dragging the row; nothing else writes it. */
+  priority: z.number(),
   /** When it was last written. What decides which notes reach a prompt when a
    *  thread holds more than the budget, and what the row shows. */
   writtenAt: z.coerce.date(),
@@ -1769,6 +1773,32 @@ export async function threadRoutes(app: App): Promise<void> {
         })
     );
   }
+
+  // Move a note within its section. Any member, reversible by writing the
+  // previous number back, and the twin of `/v1/content/:id/priority`: the same
+  // scale, so the same drag helper serves both lists. No `/memories` alias,
+  // because no shipped build calls it.
+  app.post(
+    "/v1/notes/:id/priority",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.strictObject({ priority: z.number().int().min(0).max(100) }),
+        response: {
+          200: z.object({ note: noteSchema, previous: z.object({ priority: z.number() }) }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+        const result = await reprioritiseNote(accountId, request.params.id, request.body.priority);
+        return reply.send(result);
+      })
+  );
 
   // Mute and unmute. Any member, thread-wide, and reversible, which is why it
   // is on the OFF-6 allowlist rather than under an eight second toast.

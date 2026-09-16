@@ -11,6 +11,14 @@
 // avoided, and the product owner asked for it after an evening of tidying a
 // list: a gesture is something you have to remember, and an icon is something
 // you can see. The two gestures are unchanged and still carry everything else.
+//
+// **And since 2026-09-16 a handle, on a row in a list that can be arranged.**
+// `grip-vertical` left of the pencil. Hold it, and the row lifts and follows
+// the finger; let go, and the list says where it landed. The handle's own pan
+// activates after the hold, which is before the row's long press would have,
+// so holding the handle never opens the action sheet, and a vertical drag is
+// exactly what the row's swipe fails on. Reanimated and gesture-handler, which
+// the row already uses, rather than a list library the app does not have.
 
 import {
   ActivityIndicator,
@@ -74,6 +82,10 @@ interface Props {
    *  A collapsed repeating entry uses it to say how often and how many are
    *  held, because the one date it happens to carry is not what it is about. */
   note?: string | undefined;
+  /** The row can be dragged to a new place in its list. Given by To do for
+   *  its unfinished rows and by nothing else. `onDrop` gets how far the row
+   *  travelled; the list, which measured its rows, works out where that is. */
+  reorder?: { onDrop: (dy: number) => void } | undefined;
 }
 
 export function ContentRowView({
@@ -86,6 +98,7 @@ export function ContentRowView({
   onArchive,
   onToggle,
   note,
+  reorder,
 }: Props) {
   const COLOR = useColors();
   // Shown instead of an absent body on a link row, and it is what says the row
@@ -137,9 +150,44 @@ export function ContentRowView({
       runOnJS(onActions)();
     });
 
+  // The drag. Vertical only, from the handle, after a hold. The row follows
+  // the finger and, while it does, sits raised over its neighbours; on release
+  // it snaps home and the list re-sorts under it, so the travel is never
+  // animated twice. `onDrop` is a plain function and is called through
+  // `runOnJS`, the same rule `onActions` follows above.
+  const dy = useSharedValue(0);
+  const lifted = useSharedValue(0);
+  const onDrop = reorder?.onDrop;
+  const drag = Gesture.Pan()
+    .activateAfterLongPress(250)
+    .hitSlop(8)
+    .onStart(() => {
+      lifted.value = 1;
+    })
+    .onUpdate((event) => {
+      dy.value = event.translationY;
+    })
+    .onEnd((event) => {
+      if (onDrop) runOnJS(onDrop)(event.translationY);
+    })
+    .onFinalize(() => {
+      lifted.value = 0;
+      dy.value = 0;
+    });
+
   const sliding = useAnimatedStyle(() => ({
-    transform: [{ translateX: dx.value }],
-    backgroundColor: interpolateColor(mark.value, [0, 1], [COLOR.page, COLOR.accentSoft]),
+    transform: [{ translateX: dx.value }, { translateY: dy.value }],
+    backgroundColor:
+      lifted.value === 1
+        ? COLOR.raised
+        : interpolateColor(mark.value, [0, 1], [COLOR.page, COLOR.accentSoft]),
+  }));
+
+  // The lifted row draws over the rows it crosses, which its own view cannot
+  // do from inside the stacking order: the parent has to come forward.
+  const stacking = useAnimatedStyle(() => ({
+    zIndex: lifted.value === 1 ? 10 : 0,
+    elevation: lifted.value === 1 ? 3 : 0,
   }));
 
   /** The reveal is a property of the gesture, not of the row's existence.
@@ -154,7 +202,7 @@ export function ContentRowView({
   }));
 
   return (
-    <View className="relative">
+    <Animated.View className="relative" style={stacking}>
       <Animated.View
         className="absolute inset-y-0 right-0 items-center justify-center bg-clay-600"
         style={[revealed, { width: REVEAL + 24 }]}
@@ -322,6 +370,18 @@ export function ContentRowView({
            *  whoever is looking: putting something back is not destructive and
            *  is not the author's alone. */}
           <View className="flex-row items-center gap-space-6" style={{ marginTop: 1 }}>
+            {reorder ? (
+              <GestureDetector gesture={drag}>
+                <View
+                  accessibilityRole="button"
+                  accessibilityLabel={`Move ${row.title}`}
+                  accessibilityHint="Hold, then drag"
+                >
+                  <Glyph name="grip-vertical" size={17} color={COLOR.iconOnWell} />
+                </View>
+              </GestureDetector>
+            ) : null}
+
             {row.canDelete ? (
               <Pressable
                 onPress={onEdit}
@@ -364,6 +424,6 @@ export function ContentRowView({
           </View>
         </Animated.View>
       </GestureDetector>
-    </View>
+    </Animated.View>
   );
 }

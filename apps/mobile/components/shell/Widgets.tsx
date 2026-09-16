@@ -12,13 +12,15 @@
 // nothing needs filing should not lead with structure somebody has to read.
 // The group heading and the bare "Everything else" heading went with it.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import {
   DONE_SHOWN,
   filtersFor,
   matching,
+  reorderPlan,
   splitDone,
+  type ReorderWrite,
   type Sortable,
   type Widget,
 } from "@offload/widgets";
@@ -49,6 +51,7 @@ export function Widgets({
   onEdit,
   onArchive,
   onToggle,
+  onReorder,
   arrived,
 }: {
   threadId: string;
@@ -64,6 +67,9 @@ export function Widgets({
   onEdit: (row: ContentRow) => void;
   onArchive: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
+  /** A row was dragged to a new place. The writes hold the new order; the
+   *  screen owns the rows and the Undo, so it makes them. */
+  onReorder: (writes: ReorderWrite[]) => void;
   arrived?: Set<string> | undefined;
 }) {
   if (widgets.length === 0) return null;
@@ -85,6 +91,7 @@ export function Widgets({
           onDelete={onDelete}
           onActions={onActions}
           onToggle={onToggle}
+          onReorder={onReorder}
         />
       ))}
     </>
@@ -104,6 +111,7 @@ function WidgetBlock({
   onEdit,
   onArchive,
   onToggle,
+  onReorder,
 }: {
   widget: Widget<ContentRow>;
   dimension: string | null;
@@ -117,6 +125,7 @@ function WidgetBlock({
   onEdit: (row: ContentRow) => void;
   onArchive: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
+  onReorder: (writes: ReorderWrite[]) => void;
 }) {
   const COLOR = useColors();
   const { raiseFor } = useConversation();
@@ -134,6 +143,31 @@ function WidgetBlock({
   const filters = filtersFor(widget.rows as readonly Sortable[], dimension);
   const { left, done } = splitDone(matching(widget.rows, dimension, only));
   const shown = [...left, ...(hideDone ? [] : allDone ? done : done.slice(0, DONE_SHOWN))];
+
+  // **Dragging, on To do and nowhere else**, and only the rows still to do: a
+  // finished one has sunk and sits by when it was ticked, which is not a
+  // place somebody chooses. The rows measure themselves as they lay out, so
+  // where a row was dropped is read off those measurements rather than off a
+  // row height that a two-line title would make wrong. The neighbours are the
+  // rows on screen: a row dropped between two visible ones lands between
+  // those two, whatever a filter hides in between.
+  const movable = widget.kind === "todo";
+  const layouts = useRef(new Map<string, { y: number; height: number }>());
+
+  function drop(id: string, dy: number): void {
+    const mine = layouts.current.get(id);
+    const from = left.findIndex((row) => row.id === id);
+    if (!mine || from < 0) return;
+    const centre = mine.y + mine.height / 2 + dy;
+    let to = 0;
+    for (const row of left) {
+      if (row.id === id) continue;
+      const theirs = layouts.current.get(row.id);
+      if (theirs && theirs.y + theirs.height / 2 < centre) to += 1;
+    }
+    const { writes } = reorderPlan(left, from, to);
+    if (writes.length > 0) onReorder(writes);
+  }
 
   return (
     <View>
@@ -257,17 +291,25 @@ function WidgetBlock({
       ) : null}
 
       {shown.map((row, index) => (
-        <ContentRowView
+        <View
           key={row.id}
-          row={row}
-          border={index < shown.length - 1}
-          arrived={arrived?.has(row.id) ?? false}
-          onDelete={() => onDelete(row)}
-          onActions={() => onActions(row)}
-          onEdit={() => onEdit(row)}
-          onArchive={() => onArchive(row)}
-          onToggle={widget.kind === "todo" ? () => onToggle(row) : undefined}
-        />
+          onLayout={(event) => {
+            const { y, height } = event.nativeEvent.layout;
+            layouts.current.set(row.id, { y, height });
+          }}
+        >
+          <ContentRowView
+            row={row}
+            border={index < shown.length - 1}
+            arrived={arrived?.has(row.id) ?? false}
+            onDelete={() => onDelete(row)}
+            onActions={() => onActions(row)}
+            onEdit={() => onEdit(row)}
+            onArchive={() => onArchive(row)}
+            onToggle={widget.kind === "todo" ? () => onToggle(row) : undefined}
+            reorder={movable && row.doneAt === null ? { onDrop: (dy) => drop(row.id, dy) } : undefined}
+          />
+        </View>
       ))}
 
       {/* A finished task keeps its place and sinks below everything

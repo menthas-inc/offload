@@ -118,6 +118,27 @@ Both open to any member, both on 005's co-owned side, both reversible.
 - Ticking writes `done_at`, and a ticked row stays in the list struck through rather than vanishing, so Undo has something to point at.
 - Reprioritising sets `priority` and **`priority_pinned` to true**, which is what stops the planner overwriting it. The flag is set by a person's action, never by the model.
 
+## Dragging a row
+
+*2026-09-16.* Reprioritising with a handle instead of a number. No new endpoint, no new column: `POST /v1/content/:id/priority` is what a drop calls, once per row it changes.
+
+**What actually orders the list, found while building this.** `GET /v1/threads/:id/content` orders by `content.id desc`, which is recency, and `content_thread_priority_idx` from 0016 has no reader. The priority order lives in `sinkDone` in `@offload/widgets`: done last, then priority descending, then the page's own order, which is newest first. So the To do list is priority then recency in memory, and "Everything in here" is recency alone. This spec's earlier sentence that the page "already fetches a page ordered by priority then recency" described the index, not the query. Left as it is: the page is thirty rows, and the widget sorts them.
+
+**The arithmetic is shared.** `reorderPlan(rows, from, to)` in `packages/widgets/src/reorder.ts`, imported by the web, both phones and the server's test. It takes the visible list top first and returns the rows in their new order plus the writes: one `{ id, priority, previous }` when a midpoint exists, every changed row when the list had to be re-spread. `previous` is what Undo writes back. `respread` gives `n` rows `floor(100 * (n - i) / (n + 1))`, so three rows come out 75, 50, 25 and a hundred come out 100 down to 1.
+
+**Per surface:**
+
+| | Handle | Gesture | Feedback |
+| --- | --- | --- | --- |
+| web | `grip-vertical`, first in `RowTools`, shown with them on hover and focus | HTML5 drag from the handle, the whole row as the drag image; arrow keys on the focused handle move one step | a 2px ink line on the edge of the row under the pointer where the drop would land; the dragged row takes `--surface-fill` |
+| iOS, Android | `grip-vertical`, first in the row's trailing controls | `Gesture.Pan().activateAfterLongPress(250)` on the handle, in `ContentRowView`; the row follows the finger on a Reanimated `translateY` and lifts to `surface-raised` | the list measures its rows with `onLayout` and reads the drop off the dragged row's centre |
+
+The phones' handle pan activates at 250ms, before the row's own 320ms long press, so holding the handle never opens the action sheet, and a vertical drag is exactly what the row's swipe fails on (`failOffsetY`). No list library: the app already has reanimated and gesture-handler, and a reorderable list dependency for one widget is not the smallest change.
+
+**The writes are optimistic** on web and the phones: the rows take their new priorities on the drop, the requests go out together, the page reloads, and Undo writes every `previous` back through the same endpoint. A failed write leaves the screen as the server has it on the reload, which is the rule every other write on the page follows.
+
+**Notes take the same helper** through their own endpoint; 014's impl-spec has the column and the route.
+
 ## Edge cases
 
 - **A preference naming a widget the thread no longer earns.** Ignored, not an error.
@@ -130,7 +151,7 @@ Both open to any member, both on 005's co-owned side, both reversible.
 
 | | |
 | --- | --- |
-| DEV-1 | One column, one tool, three indexes that now have readers. |
+| DEV-1 | One column, one tool, three indexes that now have readers. The drag reuses the priority endpoint and adds no column. |
 | DEV-2 | 001 amended with `threads.attrs` in the same change. |
 | DEV-3 | No new dependency. The map is pins on a surface. |
 | QUAL-1 | Every criterion mapped in `tasks.md`. |

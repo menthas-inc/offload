@@ -26,6 +26,8 @@ import {
   dimensionsIn,
   groupBy,
   readPreference,
+  reorderPlan,
+  respread,
   widgetsFor,
   type Sortable,
 } from "../src/lib/widgets";
@@ -361,5 +363,92 @@ describe("a repeating thing is one row in a list, not thirty", () => {
     const { once, repeating } = splitRepeating([occurrence(15)], NOW);
     expect(once).toHaveLength(1);
     expect(repeating).toHaveLength(0);
+  });
+});
+
+// Dragging a row to a new place, as priorities. The same helper the phones and
+// the server import, asserted here because the web is where it was first
+// dragged and where a drop that does not stick would first be noticed.
+//
+// The rule: the moved row takes the midpoint between its new neighbours, the
+// list is re-spread when they are adjacent, and a tie is never good enough
+// because a tie falls back to recency, which is not where the row was dropped.
+describe("reorderPlan: a drop becomes one write, or a re-spread", () => {
+  const list = (...priorities: number[]) =>
+    priorities.map((priority, index) => ({ id: `r${index}`, priority }));
+
+  it("writes nothing when nothing moved", () => {
+    expect(reorderPlan(list(90, 50, 10), 1, 1).writes).toEqual([]);
+  });
+
+  it("takes the midpoint between the rows either side of the drop", () => {
+    const { rows, writes } = reorderPlan(list(90, 50, 10), 2, 1);
+    expect(rows.map((r) => r.id)).toEqual(["r0", "r2", "r1"]);
+    expect(writes).toEqual([{ id: "r2", priority: 70, previous: 10 }]);
+  });
+
+  it("at the top, sits above the first row and never past 100", () => {
+    expect(reorderPlan(list(90, 50, 10), 2, 0).writes).toEqual([
+      { id: "r2", priority: 95, previous: 10 },
+    ]);
+    // 99 leaves exactly one number above it, and that is the one it takes.
+    expect(reorderPlan(list(99, 50, 10), 2, 0).writes).toEqual([
+      { id: "r2", priority: 100, previous: 10 },
+    ]);
+  });
+
+  it("at the bottom, sits below the last row and never past 0", () => {
+    expect(reorderPlan(list(90, 50, 10), 0, 2).writes).toEqual([
+      { id: "r0", priority: 4, previous: 90 },
+    ]);
+    expect(reorderPlan(list(90, 50, 1), 0, 2).writes).toEqual([
+      { id: "r0", priority: 0, previous: 90 },
+    ]);
+  });
+
+  it("re-spreads the list when the neighbours are adjacent", () => {
+    // 51 and 50 have nothing between them, so every row takes an even slot
+    // and only the ones that changed are written.
+    const { rows, writes } = reorderPlan(list(51, 50, 10), 2, 1);
+    expect(rows.map((r) => r.priority)).toEqual([75, 50, 25]);
+    expect(writes).toEqual([
+      { id: "r0", priority: 75, previous: 51 },
+      { id: "r2", priority: 50, previous: 10 },
+      { id: "r1", priority: 25, previous: 50 },
+    ]);
+  });
+
+  it("never settles for a tie, because a tie sorts by recency and not by the drop", () => {
+    // To the top of a list of ties: the gap above is free, so one write.
+    const top = reorderPlan(list(50, 50, 50, 50), 3, 0);
+    expect(top.rows.map((r) => r.id)).toEqual(["r3", "r0", "r1", "r2"]);
+    expect(top.writes).toEqual([{ id: "r3", priority: 75, previous: 50 }]);
+
+    // Into the middle of them: nothing between 50 and 50, so the whole list.
+    const middle = reorderPlan(list(50, 50, 50, 50), 3, 1);
+    expect(middle.rows.map((r) => r.id)).toEqual(["r0", "r3", "r1", "r2"]);
+    expect(middle.rows.map((r) => r.priority)).toEqual([80, 60, 40, 20]);
+    expect(middle.writes).toHaveLength(4);
+  });
+
+  it("re-spreads when the top is already 100 or the bottom already 0", () => {
+    expect(reorderPlan(list(100, 50, 10), 2, 0).rows.map((r) => r.priority)).toEqual([75, 50, 25]);
+    expect(reorderPlan(list(90, 50, 0), 0, 2).rows.map((r) => r.priority)).toEqual([75, 50, 25]);
+  });
+
+  it("writes even when the row only crossed a tie, since the tie decided the old order", () => {
+    const { rows, writes } = reorderPlan(list(90, 50, 50, 10), 1, 2);
+    expect(rows.map((r) => r.id)).toEqual(["r0", "r2", "r1", "r3"]);
+    expect(writes).toEqual([{ id: "r1", priority: 30, previous: 50 }]);
+  });
+
+  it("holds a hundred rows apart and no more, which is the scale's limit", () => {
+    const hundred = respread(
+      Array.from({ length: 100 }, (_, i) => ({ id: `r${i}`, priority: 50 }))
+    );
+    const distinct = new Set(hundred.rows.map((r) => r.priority));
+    expect(distinct.size).toBe(100);
+    expect(Math.max(...distinct)).toBeLessThanOrEqual(100);
+    expect(Math.min(...distinct)).toBeGreaterThanOrEqual(0);
   });
 });
