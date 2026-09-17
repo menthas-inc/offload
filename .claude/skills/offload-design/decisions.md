@@ -11,6 +11,14 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-17 · A row's checkbox centres on the row, with the handle and the tools
+**Surface:** web
+**Raised by:** the product owner, looking at a two-line To do row.
+**Was:** The tick centred on the first line of the title, offset 2px, as `WRow` draws it, while the grip before it and the tools after it centre on the row. On a two-line row the three sat on two different lines.
+**Is:** The tick centres on the row. One row, one line for its controls: grip, tick, edit, way out.
+**Why:** The grip arrived beside the tick this week and made the mismatch visible. On the phones the row's controls are top-aligned together already, so nothing moves there.
+**Design system impact:** `WRow`: the `lead` checkbox centres on the row rather than on the title's first line.
+
 ### 2026-09-17 · The web composer takes lines: Enter sends, Shift+Enter breaks
 **Surface:** web
 **Raised by:** the product owner.

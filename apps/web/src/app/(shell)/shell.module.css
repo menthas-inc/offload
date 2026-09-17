@@ -939,16 +939,16 @@
    reachable, announced and toggled by a keyboard with no help, which is worth
    more than the two pixels of difference.
 
-   The offset centres it on the **first line of the title**, not on the row: a
-   row with a second line is taller, and a checkbox that centres on the row sits
-   below the words on one and above them on the other. Title is 15.5px at 1.35,
-   so the line is 21px and a 17px box wants 2px.
+   Centred on the row, since 2026-09-17, where the grip before it and the
+   tools after it already sit: one row's controls on one line. It centred on
+   the first line of the title before that, and on a two-line row the box
+   floated above the handle beside it.
 
    The row around it is `.row` now, the same one every other piece of content
    uses. It had its own `.check` wrapper, which is how the To do list ended up
    the one place in the product where a row had no controls on it. */
 .rowCheck {
-  margin-top: 2px;
+  align-self: center;
   width: 17px;
   height: 17px;
   border-radius: 5px;
