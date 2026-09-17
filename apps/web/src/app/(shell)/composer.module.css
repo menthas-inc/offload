@@ -62,12 +62,19 @@
   transition: border-radius var(--transition-ui);
 }
 
-/* More than a line in the field: the pill opens into a box and the controls
-   sit on the bottom edge beside the last line, as the phones' composer does. */
+/* More than a line in the field: the pill opens into a box, the row aligns
+   to its top so the thread label sits on the first line, and the three
+   controls drop to the bottom edge beside the last line, as the phones'
+   composer does. */
 .composerInner[data-tall] {
-  align-items: flex-end;
+  align-items: flex-start;
   border-radius: var(--radius-lg);
   padding-block: var(--space-2);
+}
+
+.composerInner[data-tall] .quiet,
+.composerInner[data-tall] .send {
+  align-self: flex-end;
 }
 
 .composerInner:focus-within { box-shadow: 0 0 0 3px var(--surface-attention-soft); }
@@ -84,6 +91,10 @@
   font-family: var(--font-core);
   font-size: calc(13px * var(--type-scale));
   color: var(--text-tertiary);
+  /* The same line box and vertical padding as the field's first line, so the
+     label is centred on it whether the row is one line or many. */
+  line-height: calc(var(--size-body) * 1.45);
+  padding-block: var(--space-2);
 }
 
 .composerInput {

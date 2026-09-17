@@ -15,9 +15,9 @@ the new truth, and the design system is updated to match on the next sync.
 **Surface:** web
 **Raised by:** the product owner.
 **Was:** `WComposer`'s field was a single-line input. Enter sent; there was no way to type a second line.
-**Is:** A textarea that grows with the text, to the same 380px the phones' composer grows to, then scrolls. A one-line dump keeps the 25px pill; past one line the corners open to `--radius-lg`, the row aligns to its bottom edge so the camera, the microphone and the send sit beside the last line, and the inner padding gains `--space-2` above and below. Enter sends. Shift+Enter is a line. The person's bubble keeps the breaks (`white-space: pre-wrap`); the sheet's title collapses them to one line.
+**Is:** A textarea that grows with the text, to the same 380px the phones' composer grows to, then scrolls. A one-line dump keeps the 25px pill; past one line the corners open to `--radius-lg`, the row aligns to its top so the "in thread" label sits centred on the first line (it shares the field's line box and padding), the camera, the microphone and the send drop to the bottom edge beside the last line, and the inner padding gains `--space-2` above and below. Enter sends. Shift+Enter is a line. The person's bubble keeps the breaks (`white-space: pre-wrap`); the sheet's title collapses them to one line.
 **Why:** A list is easier to dump as lines, and the web had nowhere to put one. Enter stays the send because on web the keyboard is the whole input; the phones keep Enter as a line because the arrow is the send and the keyboard is already on screen, which is what `Composer.jsx` and `M3Composer.jsx` already draw.
-**Design system impact:** `WComposer`: the field is a textarea; a `tall` state that opens the pill to `--radius-lg` and bottom-aligns the row; the kit's note on keys, "Enter sends, Shift+Enter for a line". The phones' composers: none.
+**Design system impact:** `WComposer`: the field is a textarea; a `tall` state that opens the pill to `--radius-lg`, keeps the thread label on the first line and drops the controls to the last; the kit's note on keys, "Enter sends, Shift+Enter for a line". The phones' composers: none.
 
 ### 2026-09-16 · The handle leads the row, always, and is not a button
 **Surface:** web, iOS, Android
