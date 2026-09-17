@@ -118,7 +118,19 @@ export function Composer({
   const [step, setStep] = useState<string | null>(null);
   const [tooLong, setTooLong] = useState<number | null>(null);
   const [undoable, setUndoable] = useState<Undoable | null>(null);
-  const input = useRef<HTMLInputElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+  // The field grows with the text and then scrolls, to the kit's number. A
+  // one-line dump keeps the pill; past a line the corners open up and the
+  // controls drop to the bottom edge, beside the last line.
+  const [tall, setTall] = useState(false);
+  useEffect(() => {
+    const el = input.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const height = Math.min(el.scrollHeight, MAX_FIELD_HEIGHT);
+    el.style.height = `${height}px`;
+    setTall(height > ONE_LINE_HEIGHT);
+  }, [draft]);
   const turnsBox = useRef<HTMLDivElement>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Keyed by message, so a settled stream drops its own entry. A plain array
@@ -710,16 +722,20 @@ export function Composer({
         </div>
       ) : null}
 
-      <div className={styles.composerInner}>
+      <div className={styles.composerInner} data-tall={tall ? true : undefined}>
         {/* Said, not enforced. The server passes the same thread to the model
             as a default and the prompt lets the words override it, so this
             reads as where things are going rather than as a lock. */}
         {inThread ? (
           <span className={styles.inThread}>in thread {inThread.name}</span>
         ) : null}
-        <input
+        {/* A textarea, since 2026-09-17: Enter sends, Shift+Enter is a line.
+            The phones keep Enter for a line because the keyboard is on
+            screen and the arrow is the send. */}
+        <textarea
           ref={input}
           className={styles.composerInput}
+          rows={1}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
@@ -783,10 +799,17 @@ export function Composer({
  *  fixture has one; a real conversation is not about a thread yet, and offload
  *  does not title conversations, so the honest label is your own opening line.
  *  When something names a conversation, this is where that name goes. */
+/** The kit's number, the same one the phones grow to. */
+const MAX_FIELD_HEIGHT = 380;
+/** A single line of body text with its leading; past this the pill opens. */
+const ONE_LINE_HEIGHT = 30;
+
 function conversationTitle(turns: Turn[]): string {
   const first = turns.find((turn) => turn.from === "you");
   if (!first) return "This conversation";
-  return first.text.length > 70 ? `${first.text.slice(0, 70)}…` : first.text;
+  // One line in the header, whatever the dump's own breaks.
+  const text = first.text.replace(/\s+/g, " ").trim();
+  return text.length > 70 ? `${text.slice(0, 70)}…` : text;
 }
 
 /** Confirm or decline a calendar write offload proposed.

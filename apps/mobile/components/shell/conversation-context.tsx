@@ -501,8 +501,11 @@ export function ConversationProvider({
 
     setDraft("");
     setWriting(true);
-    if (!live)
-      setLive({ title: text.length > 40 ? `${text.slice(0, 40)}...` : text });
+    if (!live) {
+      // One line in the header, whatever the dump's own breaks.
+      const line = text.replace(/\s+/g, " ").trim();
+      setLive({ title: line.length > 40 ? `${line.slice(0, 40)}...` : line });
+    }
     setFolded(false);
 
     const pressed = Date.now();

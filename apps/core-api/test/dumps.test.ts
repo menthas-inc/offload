@@ -192,6 +192,18 @@ describe("AC-2 which conversation a dump joins", () => {
   // reimplements the six-hour lookup instead of calling it, so the two tests
   // above assert the fixture's own logic and would pass whatever the route
   // did. Worth knowing before adding a third that way.
+  it("keeps the lines a dump was typed with", async () => {
+    const id = await account();
+    const text = "milk\neggs\n\nbasil, the fresh kind";
+    const sent = await takeDump(id, text);
+    const stored = await db
+      .selectFrom("messages")
+      .select("text")
+      .where("id", "=", sent.messageId)
+      .executeTakeFirstOrThrow();
+    expect(stored.text).toBe(text);
+  });
+
   it("starts a new one when the last was closed, however soon the next arrives", async () => {
     const id = await account();
     const first = await takeDump(id, "dentist after the 20th");

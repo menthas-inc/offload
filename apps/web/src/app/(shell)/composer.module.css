@@ -59,6 +59,16 @@
   border-radius: 25px;
   padding: 0 var(--space-3) 0 var(--space-6);
   background: var(--surface-input);
+  transition: border-radius var(--transition-ui);
+}
+
+/* More than a line in the field: the pill opens into a box and the controls
+   sit on the bottom edge beside the last line, as the phones' composer does. */
+.composerInner[data-tall] {
+  align-items: flex-end;
+  border-radius: var(--radius-lg);
+  padding-block: var(--space-2);
+}
 }
 
 .composerInner:focus-within { box-shadow: 0 0 0 3px var(--surface-attention-soft); }
@@ -86,6 +96,15 @@
   font: var(--text-body-role);
   letter-spacing: var(--tracking-body);
   color: var(--text-primary);
+  /* A textarea that grows with its text, to the kit's 380, then scrolls.
+     The height itself is set from the text as it changes. The cap is the
+     kit's own number, the one the phones grow to, named once here. */
+  --field-max-height: 380px;
+  resize: none;
+  padding: var(--space-2) 0;
+  line-height: 1.45;
+  max-height: var(--field-max-height);
+  overflow-y: auto;
 }
 
 .composerInput::placeholder { color: var(--text-tertiary); }
@@ -161,6 +180,8 @@
   font-family: var(--font-core);
   color: var(--text-primary);
   overflow-wrap: anywhere;
+  /* The lines they typed, as they typed them. */
+  white-space: pre-wrap;
 }
 
 /* An offload turn that carries results is two things stacked: the bubble, and

@@ -169,6 +169,8 @@ It stays on Today rather than being lifted into the shell, which is where `WComp
 - **Seen**, ported from `ui_kits/mobile_app/LiveConversation.jsx`'s `StatusChip`: the 👀 pill on `--paper` with a hairline border, sitting under the person's message. Its text alternative is the readme's string, "seen, not answered yet", not the kit's shorter "Seen" (AC-20).
 - **Failed**, invented here: an inline row under the message in `--surface-attention-soft` with `--text-on-attention`, carrying the line and a Try again control. Persistent, not a toast, because a toast clears in eight seconds and the person who stepped away never sees it (AC-5).
 
+**The field takes lines, since 2026-09-17.** On web it is a textarea that grows with the text to the kit's 380px and then scrolls; Enter sends and Shift+Enter is a line, because the keyboard is the whole input there and Enter is reserved for send. On the phones the keyboard is on screen and the arrow sends, so Enter is a line, which the multiline field already did. The lines travel as they were typed: the API stores the text verbatim (a test holds it to that), the prompt hands the dump to the model as one block with its breaks, and the person's own bubble draws them with `white-space: pre-wrap`; only the sheet's title collapses them to one line.
+
 **Live region** around the thinking indicator and the arriving answer, polite, announced once per transition (AC-19). **Reduced motion** replaces the pulsing dots with a static label rather than a faster pulse (AC-21).
 
 ## Dependencies
