@@ -156,7 +156,7 @@ function WTurns({turns,writing,onOpenThread,onTick,onPick}){
           {/* The question offload asked, answerable with a tap. Inside the bubble, where
               012's control sits, because it acts on the sentence above it. */}
           {AnswerResult&&t.options&&t.options.length&&!answered[i]?(
-            <QuickReplies options={t.options} note={t.note}
+            <QuickReplies options={t.options} note={t.note} label={t.text}
               onPick={(o)=>{setAnswered(a=>({...a,[i]:true}));onPick&&onPick(o)}}/>
           ):null}
         </div>

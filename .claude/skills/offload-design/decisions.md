@@ -11,6 +11,72 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-18 · Calendars as built: the page, the sheet, and what the mock could not know
+**Surface:** iOS, Android, web
+**Raised by:** 019, building `handoff/APPLY-2026-09-17-calendars.md` against the code and three reviews of the spec.
+
+**Was:** the note and `explorations/calendars-options.html` as drawn on 17 September.
+
+**Is:** the page and the sheet as the note draws them, with the divergences below, each one from a fact the mock could not carry.
+
+1. **`Shared with you`, not `Shared by Tom Reilly`.** Google's calendar list carries no owner's name, only an address, and another person's address is not a row note. The note says what is true without naming anybody.
+2. **The primary calendar is titled with the person's display name**, note `Your own calendar`, as the mock's first row shows. Google names that calendar by the address; the name comes from the offload account.
+3. **The group label is `Calendars offload can use` with `4 of 7 in use`**, superseding the section 2 crop that put the address in the label: the address is one line up in the provider block, and the taken page crop already had the label.
+4. **`Ask before adding` is one switch for the offload account**, drawn once after the connection blocks rather than inside each, since it is not a fact about a Google account. Its note reads *Off means offload adds it without asking, unless somebody else would see it.*: the drawn line, "lands straight on the calendar", is untrue when the calendar has more than one participant, when the event has guests, and when the thread has picked none or two.
+5. **A second `Sign in again` state.** A connection whose grant lacks the new sharing scope keeps syncing and shows 012's row with its own note, *offload needs one more permission: to see who can see each calendar. Until then it checks with you before every write.*
+6. **The sheet's captions grow two states and a line.** "none of yours, another member's" reads *offload is not reading any of your calendars for Lisbon trip.*; a shared thread carries *Everyone in Lisbon trip sees what is on them.* as a second line in every state; under the rows, *Ana reads 1 calendar here* counts other members' picks without naming their calendars. A row note carries the account's address when two rows share a name.
+7. **Web's popover carries the caption too**, on the More menu's own shell with `role="group"`, which the web crop drew without one.
+8. **Two lines no kit draws, named as new.** In the day's list under the rail, a calendar's event: the calendar's colour dot with its hairline ring, the title, the time or `All day`, and the calendar's name as its note, with no checkbox, no tools, no swipe and no sheet. And in the sheet of a person with no approved calendars, the caption *offload has no calendars to read yet.* over one row, *Approve a calendar in Settings*, which opens Connected apps.
+9. **The rail is earned by a pick as well as by a dated row**: a thread with a pick and nothing dated shows this week. The span stays the thread's own.
+10. **The thread's More row is web-only for now.** The phones' thread bar carries the glyph alone; there is no ellipsis there yet.
+11. **Disconnect confirms once**, with the confirmation deleting a thread uses, and its note reads *Notes offload made from your days stay. offload stops reading your calendars and cannot add to them.*, because threads no longer hold events.
+12. **On web the page is inline.** Connected apps is already the second pane, so the calendar block replaces the Calendar row in place rather than opening a third level.
+13. **The rail names another member's primary calendar by that member's display name**, never by the address Google gives it, and the event line for another member's calendar carries the title and the time only. The sheet counts other members' calendars and never names them; the rail names them, because "whose day is that" is what the line is for, and the name is one the member chose.
+14. **The phones' bar control is a bare glyph at 21 with a 10 hit slop**, as the back chevron beside it and every bar control on the phones: the kit's `IconButton` in a bar is the ghost one, and a filled circle read as a state.
+15. **Android's Material variants of the checkbox, the switch and the sheet are not built.** Android draws the design system's controls on Material's tokens, as the rest of the phone does; AC-16 stands as owed rather than met.
+
+**Why:** each is the note meeting a fact: what Google's list carries, what a shared thread has to say to be honest, what the code already has (the More menu's shell), and what the reviews found the mock had not drawn (a person with nothing approved, a thread narrowed to none of yours, the event line).
+
+**Design system impact:** `Group` in `SettingsDetail.jsx` gains the trailing count as the note scoped. The settings crops want the four copy changes above (1, 2, 3, 4, 5). The sheet crop wants the two captions, the second line and the others-read line (6), and the empty case (8). The web crop wants the caption (7). A day-list event line wants drawing (8), and `TimelineWidget` wants the earned-by-a-pick rule (9). `AppBar.d.ts` and `WPaneHead`'s comment still say one or two tools. The still-owed list in the note stands: the write target once asked, Android's Material variants as built here, and a thread narrowed to nothing, now given a sentence.
+
+### 2026-09-18 · The two declining lines keep to one line each
+**Surface:** iOS, Android, web
+**Raised by:** the code, against item 9 of `handoff/APPLY-2026-09-16.md`, which gave "Can't search that." the second line "Searching the web is off in Settings." and "Not sure." the second line "That one is not about your days."
+**Was:** the two lines as shipped: one sentence each, no second line.
+**Is:** the same. Neither line gains a second one.
+**Why:** the design read the two lines as two states, and they are not. "Can't search that." is the refused-subject line, said when the whole dump is a question about politics, weapons, self-harm or sex, and it is said whether or not the web switch is on; "Searching the web is off in Settings." would be untrue every time it appeared. "Not sure." covers four states in the prompts: a question that is not about their days, a lookup that did not work, the web switch being off, and a country offload does not know; "That one is not about your days." would be right in one of the four. The one honest version of a second line would have the model say which state it was in, and offload never explains a failure or diagnoses itself: the sentence says what happened and the screen offers the way forward. The rest of the 16 September note is adopted as written.
+**Design system impact:** `readme.md`'s Answering section: the two paragraphs beginning "There are two ways of declining" and "The test is not whether the fact is public" describe a second line the product does not draw; the first is replaced here with the states each line actually covers, and the second stands. `handoff/APPLY-2026-09-16.md` item 9 is withdrawn. The kits' conversation fixtures should draw each line alone.
+
+### 2026-09-17 · Two levels of calendar consent, and a thread that starts empty
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, for the settings page and a per-thread control, decided item by item off `explorations/calendars-options.html`.
+
+**Was:** a Calendar row in Connected apps with the value `On` that opened nothing, and no way anywhere to say which calendars offload may use or which ones a thread should care about.
+
+**Is:** two levels, and they are different questions. The account approves which calendars offload may use at all; **a thread picks which of those it uses, starting from none.**
+
+**The thread control carries no mark, which is the product owner's call and the right one.** Four treatments were drawn: a plain glyph, `IconButton`'s existing badge dot, a count, and the glyph in ink when narrowed. Three of the four invite a tap that finds nothing wrong, because a dot and a bubble mean attention in every app anyone has used. **The plain glyph is also the only one that stays true** once a thread starts empty: with no inheriting-versus-narrowed distinction there is nothing for a mark to mean, and the accessible name carries the count.
+
+**Inheritance was rejected on safety rather than on taste.** Inherit-and-narrow was the convenient model and it means approving a calendar at the account level silently widens what offload reads in threads set up months ago, shared ones included. **Explicit is the safer default when the thing being widened is other people's days.** It also drops a hidden third state and the `Use all` control that existed only to return to it.
+
+**Three governed components were drawn wrong before they were read, and each one changed the design rather than just the mock.**
+
+1. **`Checkbox`.** Drawn as a 21px box with a **moss** fill, which is the done row's mark that `readme.md` reserves for a finished thing, so every ticked calendar read as "offload completed this". The governed control is 20px, `--radius-xs`, `--surface-inverse` with an inline stroked tick. **A selection is ink, not moss.**
+2. **`IconButton`.** A 7px amber dot with a `--surface-page` ring was invented for the thread control when the component already has a `badge` prop: 8px, `--clay-600`, a 1.5px `--paper` ring, whose own comment says it means *something new*. Reading it is what disqualified the dot, and the same collision had already been used to reject the count.
+3. **`AppBar` and `Sheet`.** The bar was drawn with 8px gutters and 2px gaps against the real 20px and `--space-4` with −8 group compensation, so the fit arithmetic was wrong by about 24px; the sheet had a 28px top against `--radius-sheet`'s 24, which `readme.md`'s own "24px on sheet tops" line already stated.
+
+**The provider's colour is in, as recognition and not as the differentiator.** Measured on `--surface-fill`: four of seven ordinary Google colours are under 3:1 in light, the yellow at **1.51:1**, and two are under in dark, and they are not the same ones, because a bright hue falls against #F2F2F2 and a dark one against #232323. **No ground flatters a palette we do not control**, so the dot gets a `--border-hairline` ring for definition and the name does the telling apart. An earlier draft argued the dot was what distinguished two calendars both called Work, which at 1.51:1 it is not.
+
+**There is no "Add events to" setting**, which the product owner cut as a thread question rather than an account one. One calendar ticked answers it; two or more and offload asks in the conversation with the thread's calendars as the values, which is what the follow-up control from 018 was built for; none ticked and anything with a time on it stays a thing in the thread.
+
+**Design system impact:** `readme.md` gains a Calendars section. **No new design-system component and no new token**, and two things to scope that are neither: `Group`'s label gains a trailing slot in `SettingsDetail.jsx`, without which the list cannot show its count, and web's calendar popover is new UI because the web kit has no governed popover, built from existing tokens. Everything else is composition over governed `Checkbox`, `Switch`, `Button`, `Chip`, `AppBar`, `Sheet`, `IconButton` and `WPaneHead`. `handoff/APPLY-2026-09-17-calendars.md` carries it per surface and per theme.
+
+**One standing rule is amended, which is the only thing in this pass that reaches outside calendars.** `readme.md` said a web pane head carries two tools and that anything a thread gains later goes in the More menu. A calendar is precisely something a thread gained later, so the web control either broke the rule or went in the menu. **The rule now allows three tools with a criterion rather than an exception: a tool earns a head slot only if it changes what offload reads or shows, and anything that acts on the thread goes in More.** Rename, add note and Leave fail that test and stay in the menu; a scope control passes, because a scope you cannot see is a scope you forget. The original rule's point is preserved, since most capabilities are actions and the head still does not grow for them.
+
+**Still owed:** whether offload remembers a thread's write target or asks every time, which wants drawing rather than assuming; two accounts on the settings page, which is one block each with its own list and disconnect; and Android, where the group is a low container fill and the sheet is a Material bottom sheet.
+
+---
+
 ### 2026-09-17 · A row's checkbox centres on the row, with the handle and the tools
 **Surface:** web
 **Raised by:** the product owner, looking at a two-line To do row.
@@ -30,10 +96,36 @@ the new truth, and the design system is updated to match on the next sync.
 ### 2026-09-16 · The handle leads the row, always, and is not a button
 **Surface:** web, iOS, Android
 **Raised by:** the product owner, looking at the handle beside Edit.
-**Was:** The entry below: `grip-vertical` first among the row tools on web, shown on hover and focus in a 32px `--surface-fill` box; first among the trailing controls on the phones, beside the pencil; at the trailing edge of a note row.
+**Was:** The "A row has a handle" entry, further down: `grip-vertical` first among the row tools on web, shown on hover and focus in a 32px `--surface-fill` box; first among the trailing controls on the phones, beside the pencil; at the trailing edge of a note row.
 **Is:** The grip sits at the row's leading edge, left of the checkbox or the tile, on every row in a list that can be arranged, always drawn. No container: no fill, no border, no size of its own, just the glyph in `--text-tertiary` with a `grab` cursor, `--text-primary` under the pointer, drawn inside the row's own left padding so the checkbox keeps its place. On the phones the same glyph in `iconOnWell` leads the row. It is still a button for the keyboard, with the arrow keys, and the focus ring is the only box it ever draws.
 **Why:** Beside Edit it read as a fourth action, and it is not one: nothing happens when it is clicked. A list is held at its edge, which is where every list that can be dragged puts its grip, and a move area that is always there says the list can be arranged without anybody hovering to find out.
-**Design system impact:** `WRow` and the phones' `ListRow`: the `reorder` slot moves from leading the tools to leading the row, before `lead`, always visible, no container, tertiary ink. `MemoryRow`: the same slot at the leading edge rather than the trailing one. `RowTools` is back to two controls, edit and one way out. The 2026-09-16 entry below stands for the drag, the drop line and the priority arithmetic; only where the handle sits changes.
+**Design system impact:** `WRow` and the phones' `ListRow`: the `reorder` slot moves from leading the tools to leading the row, before `lead`, always visible, no container, tertiary ink. `MemoryRow`: the same slot at the leading edge rather than the trailing one. `RowTools` is back to two controls, edit and one way out. That entry stands for the drag, the drop line and the priority arithmetic, and the design's "offload asks with values" entry below stands for everything but the handle's place; only where the handle sits changes.
+
+### 2026-09-16 · offload asks with values, and a row can be picked up
+**Surface:** iOS, Android, web
+**Raised by:** `handoff/FROM-CODE-2026-09-16.md`, nine items from 018 and the reorder work, decided item by item off `explorations/asking-and-arranging.html`.
+
+**Six of the nine were decisions and three were approvals**, and two of the six only existed because the work was drawn at real size rather than read.
+
+**A value chip's fill does nothing, and that is the finding.** Code described a value as "the Chip contract's shape, 30 tall on `--paper`", which is not a tone `Chip` has. Measured on the reply bubble: `--surface-card` is **1.06:1** against it in light and **exactly 1.00:1** in dark, where the bubble and the card are the same token, while `--border-strong` is **3.17:1** in light and **3.59:1** in dark. So the border is the chip in both themes. Taken as drawn, with the paint living on `QuickReplies` rather than becoming a fifth `Chip` tone: a governed component should not grow a variant for one use, and what this needs from `Chip` is its geometry, which it now copies explicitly.
+
+**The way out carries an `x` and sits on a line of its own.** Plain and borderless beside bordered values, it read as a value whose border had failed to draw, so the product owner asked for the mark. And the line break is the decision it replaces: with five long labels the way out fell on its own line by accident and the forced break changed nothing, while with five short ones it landed beside a value. **The arrangement was a property of the labels rather than a decision**, which is what the break fixes.
+
+**All three typed invitations overran the field.** Measured at 390pt in a 266px field: 309, 269 and 327px, and what each one lost was its example, which is the useful half. The entry had them as three fixed strings and the drawing made them undeliverable, so they lose the preamble: **"Which dates? e.g. Sept 12th at 5pm"**, and the same pattern for the other two.
+
+**A question on a silent turn gets a reply bubble of its own**, after the footer, because the log's grammar is that a bubble is somebody talking and a question is offload talking. The alternative, chips loose on the plate, would have made it the only sentence in the log outside a bubble.
+
+**The drop line runs the row's full width**, not inset to the text: the system's own insets rule says a row spans the full width and pays the gutter back inside, so an inset line would be the one mark in the list that does not follow it, and it reads as underlining the row above rather than as a gap between two.
+
+**Declining got a second line.** "Can't search that." and "Not sure." are different states and were the same shape, so each now carries a tertiary line saying which: the capability is off, or the question is not about their days. The product owner took the explained version over the bare one; the cost is that offload says a little more about itself, and the gain is that the web-search line points at the switch that would change it.
+
+**Three approvals, drawn and taken as written:** every mark in `TurnFooter` becomes 30, which is `Chip`'s height and what the thread pill beside it already was, with one space step above the row; 👀 goes, and with it the product's last emoji, so a seen turn draws no row at all; and the done count moves inside its own control.
+
+**Design system impact:** `QuickReplies` rewritten, five options, `label` as the group's accessible name, `value | plain` kinds with the `x` on the way out and the forced break before it; the `.d.ts` rewritten with it. `ListRow` and `MemoryRow` gain `reorder`, `dragging` and `over`. `TurnFooter` gains a named `MARK_H` of 30 and loses its seen branch. `grip-vertical` vendored as the 81st glyph. `readme.md`: the emoji rule inverted in two places, the answering section rewritten around values, the row-actions guideline gains a fourth control, and the two declining lines are written down. `handoff/APPLY-2026-09-16.md` carries it per surface and per theme.
+
+**Still owed:** the 200% text check on a 360dp frame, which the code entry already lists, and which now means five wrapped chips and a forced break at 200%. And there is still no long-list picker anywhere in the system, which the country row needs and a timezone would need after it.
+
+---
 
 ### 2026-09-16 · offload asks back, and the chips are values
 **Surface:** iOS, Android, web

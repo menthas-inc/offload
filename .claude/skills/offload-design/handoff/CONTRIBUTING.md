@@ -93,8 +93,9 @@ log exists for.
 - **No em dashes** anywhere: UI copy, marketing, comments, commit messages.
 - **Sentence case everywhere**, including buttons and headers. The brand name is lowercase
   even at the start of a sentence.
-- **One emoji**, 👀, on a message offload has seen but not answered. It needs a text
-  alternative wherever it appears.
+- **No emoji.** 👀 was the only one, on a message offload had seen but not answered, and it
+  went on 16 September 2026: the writing indicator already said it. A seen message has no
+  mark at all.
 - **Undo lasts eight seconds** and nothing is destroyed while the toast is up.
 - **44px minimum hit area**, which may be larger than the drawn control.
 - **Contrast floor 4.5:1** for text, 3:1 for anything that outlines a control. The values in

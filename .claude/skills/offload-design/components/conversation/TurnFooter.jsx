@@ -15,25 +15,30 @@ const REF_ICON={thread:"lasso",time:"clock",money:null};
 
 /* Order is fixed: state, then threads, then sources. What happened, where it landed, where
    it came from, so a turn can be read without being read. */
+/* Every mark in this row is MARK_H tall, and it is 30 because that is Chip, which the
+   thread pills already come from. The row held 24, 26 and 30 side by side and that read as
+   a mistake, which is what it was: two bespoke marks either side of a governed component.
+   Named once so the next mark added here cannot be a fourth height. */
+const MARK_H=30;
+
 export function TurnFooter({state,refs=[],sources=[],maxSources=3,onOpenRef,onOpenSource,style,...rest}){
   const shown=sources.slice(0,maxSources);
   const hidden=sources.length-shown.length;
+  /* Seen has no mark. The writing indicator says the same thing at the same moment a few
+     lines below, so a seen turn reports nothing and draws no row at all: two marks for one
+     state, and the one that stayed is the one that also says work is happening. */
+  const mark=state==="done";
   /* An empty footer is no footer, never a 26px gap. */
-  if(!state&&!refs.length&&!sources.length)return null;
+  if(!mark&&!refs.length&&!sources.length)return null;
   return (
     <div {...rest} style={{alignSelf:"stretch",display:"flex",flexFlow:"row wrap",alignItems:"center",
-      gap:"var(--space-2)",minHeight:26,...style}}>
-      {state==="seen"?(
-        <span aria-label="seen, not answered yet"
-          style={{display:"inline-flex",alignItems:"center",height:24,padding:"0 var(--space-3)",
-            borderRadius:"var(--radius-pill)",background:"var(--surface-raised)",
-            border:"1px solid var(--border-hairline)",fontSize:15,lineHeight:1}}>👀</span>
-      ):null}
-      {state==="done"?(
-        <span style={{display:"inline-flex",alignItems:"center",gap:5,height:24,padding:"0 var(--space-3)",
+      gap:"var(--space-2)",marginTop:"var(--space-3)",minHeight:MARK_H,...style}}>
+      {mark?(
+        <span style={{display:"inline-flex",alignItems:"center",gap:5,height:MARK_H,boxSizing:"border-box",
+          padding:"0 var(--space-5)",
           borderRadius:"var(--radius-pill)",background:"var(--moss-600)",color:"var(--text-on-solid)",
-          font:"var(--weight-medium) 11px/1 var(--font-core)",whiteSpace:"nowrap"}}>
-          <Icon name="check" size={11}/>Done</span>
+          font:"var(--weight-medium) var(--size-label)/1 var(--font-core)",whiteSpace:"nowrap"}}>
+          <Icon name="check" size={12}/>Done</span>
       ):null}
 
       {refs.map((r,i)=>{const kind=r.kind||"thread";
@@ -49,9 +54,10 @@ export function TurnFooter({state,refs=[],sources=[],maxSources=3,onOpenRef,onOp
       {shown.map((s,i)=>(
         <a key={s.url||i} href={s.url} target="_blank" rel="noreferrer noopener"
           onClick={onOpenSource?(e)=>{e.preventDefault();onOpenSource(s)}:undefined}
-          style={{display:"inline-flex",alignItems:"center",gap:6,height:26,padding:"0 var(--space-4)",
+          style={{display:"inline-flex",alignItems:"center",gap:6,height:MARK_H,boxSizing:"border-box",
+            padding:"0 var(--space-5)",
             borderRadius:"var(--radius-pill)",background:"transparent",border:"1px solid var(--border-strong)",
-            color:"var(--text-secondary)",font:"var(--weight-regular) 12.5px/1 var(--font-core)",
+            color:"var(--text-secondary)",font:"var(--weight-regular) var(--size-label)/1 var(--font-core)",
             textDecoration:"none",maxWidth:"22ch",overflow:"hidden"}}>
           <Icon name="link" size={12}/>
           <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.domain}</span>

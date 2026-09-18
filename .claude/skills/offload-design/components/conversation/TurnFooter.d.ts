@@ -4,6 +4,8 @@
  * of offload's side.
  *
  * Left aligned at the log's gutter, wrapping rather than scrolling, min-height never height.
+ * Every mark in it is 30 tall, which is Chip's height, and the row carries one space step
+ * above it: the log's own gap separates turns and does not reach inside one.
  */
 export interface TurnRef {
   id?: string;
@@ -17,7 +19,13 @@ export interface TurnSource {
   url: string;
 }
 export interface TurnFooterProps {
-  /** seen draws 👀, done draws the moss mark. Never set on a turn that only answered. */
+  /**
+   * done draws the moss mark. Never set on a turn that only answered.
+   *
+   * seen draws nothing: the writing indicator says the same thing at the same moment a few
+   * lines below, so a seen turn with no refs and no sources renders no row. Accepted so a
+   * client can pass the message's own state through without branching.
+   */
   state?: "seen" | "done" | null;
   /** Where the turn's content landed, from the record rather than from the sentence. */
   refs?: TurnRef[];

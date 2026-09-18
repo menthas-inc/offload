@@ -1,0 +1,567 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Calendars: the page and the thread</title>
+<link rel="stylesheet" href="../styles.css?v=20260917-cal">
+<link rel="stylesheet" href="frames.css?v=20260917-cal">
+<style>
+.row>.cell{flex:0 0 auto;width:390px}
+.row>.cell.wide{width:520px}
+.cell .spec{max-width:100%}
+.crop{width:390px;flex:0 0 auto;border-radius:18px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);color:var(--text-primary);padding:0;box-sizing:border-box;display:flex;flex-direction:column}
+.crop.pad{padding:var(--space-6) var(--gutter-screen) var(--space-7)}
+.crop.tall{min-height:520px}
+.bad{border:1px dashed var(--clay-200);background:var(--clay-100)}
+.good{border:1px solid var(--border-accent)}
+.verdict{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px}
+.verdict.no{background:var(--clay-100);color:var(--text-danger)}
+.verdict.yes{background:var(--surface-accent-soft);color:var(--moss-700)}
+.ask{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;background:var(--surface-attention-soft);color:var(--text-on-attention)}
+/* the app bar, at the thread's own geometry */
+/* AppBar.jsx: --gutter-screen padding, --space-4 between the three children, each side
+   group --space-2 inside with a -8 margin so layout measures the 40px visual, not the 44
+   hit. --surface-chrome-strong, which is also what the badge has to ring against. */
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:var(--space-4);min-height:52px;padding:0 var(--gutter-screen);background:var(--surface-chrome-strong)}
+.bar .sp{flex:1;min-width:0}
+.bgl{display:flex;align-items:center;gap:var(--space-2);margin-left:-8px}
+.sbar{margin:calc(-1 * var(--space-6)) calc(-1 * var(--gutter-screen)) 0}
+.btitle{flex:1;min-width:0;font:var(--text-title-3);letter-spacing:var(--tracking-title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bgr{display:flex;align-items:center;gap:var(--space-2);margin-right:-8px}
+/* IconButton md: a 40px visual inside a 44px hit, negative margin so the 44 does not
+   push the layout. */
+.ib{width:44px;height:44px;margin:-2px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.ib>.vs{position:relative;width:40px;height:40px;border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);flex:0 0 auto}
+.ib.ink>.vs{color:var(--text-primary)}
+/* IconButton.jsx's own badge, verbatim: 8px at top 5 right 5, --clay-600, a 1.5px --paper
+   border, which is what rings it against the white chrome. */
+.ib.mk>.vs:after{content:"";position:absolute;top:5px;right:5px;width:8px;height:8px;box-sizing:content-box;border-radius:var(--radius-pill);background:var(--clay-600);border:1.5px solid var(--paper)}
+.cnt{position:absolute;top:2px;right:1px;min-width:16px;height:16px;box-sizing:border-box;padding:0 4px;border-radius:99px;background:var(--surface-inverse);color:var(--text-inverse);font:var(--weight-medium) 10px/16px var(--font-core);font-variant-numeric:tabular-nums;text-align:center;border:1.5px solid var(--paper)}
+/* settings vocabulary, copied off SettingsDetail.jsx */
+.ghdr{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);margin:var(--space-5) 0 var(--space-3) 2px}
+.grp{background:var(--surface-fill);border-radius:var(--radius-lg);padding:0 var(--space-4)}
+.sr{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-4);margin:0 calc(-1 * var(--space-4));box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.sr:last-child{box-shadow:none}
+.sr .tx{flex:1;min-width:0}
+.sr .t{display:block;font:var(--weight-regular) 15px/1.35 var(--font-core);color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr .n{display:block;font-size:var(--size-caption);line-height:1.4;color:var(--text-secondary);margin-top:3px}
+.sr .v{flex:0 0 auto;font-size:var(--size-body-sm);color:var(--text-secondary)}
+.sr .ch{flex:0 0 auto;color:var(--ink-300)}
+.sr.dn .t{color:var(--text-tertiary)}
+.sw{flex:0 0 auto;box-sizing:border-box;width:44px;height:26px;border-radius:var(--radius-pill);padding:3px;display:flex;justify-content:flex-end;background:var(--surface-inverse)}
+.sw i{display:block;width:20px;height:20px;border-radius:var(--radius-pill);background:var(--paper);box-shadow:var(--shadow-1)}
+.sw.off{justify-content:flex-start;background:var(--surface-fill-strong)}
+.box{width:20px;height:20px;flex:0 0 auto;border-radius:var(--radius-xs);border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;color:var(--text-inverse);box-sizing:border-box}
+.box.on{background:var(--surface-inverse);border-color:transparent}
+.tk{width:13px;height:13px}
+/* A provider swatch is somebody else's hex on our ground, so its luminance contrast is
+   not ours to pick: measured on the light group five of seven are under 3:1, the yellow at
+   1.51:1. The hairline ring is what gives every swatch an edge on both grounds; the name
+   beside it is what carries the meaning. */
+.dot{width:10px;height:10px;border-radius:99px;flex:0 0 auto;box-shadow:inset 0 0 0 1px var(--border-hairline)}
+.tile{width:32px;height:32px;flex:0 0 auto;border-radius:var(--radius-sm);background:var(--paper);display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+.mark{width:34px;height:34px;border-radius:8px;background:var(--surface-fill);border:1px dashed var(--border-strong);display:block;flex:0 0 auto}
+.mark.hero{width:88px;height:88px;border-radius:18px}
+.heroreg{flex:1;min-height:132px;display:flex;align-items:center;justify-content:center;padding:0 var(--gutter-screen)}
+.whd{padding:var(--space-6) 0 0}
+.whr{display:flex;align-items:flex-start;gap:var(--space-4);max-width:700px;margin:0 auto;padding:0 var(--space-8)}
+.wht{font:var(--weight-semibold) 20px/1.2 var(--font-core);letter-spacing:-.016em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wtools{display:flex;gap:var(--space-2);flex:0 0 auto}
+.wsub{font:var(--weight-regular) 13.5px/1.4 var(--font-core);color:var(--text-secondary);margin-top:3px}
+.waside{display:flex;align-items:center;gap:var(--space-4);flex:0 0 auto;margin-right:var(--space-4)}
+.wfaces{display:flex}
+.wav{width:34px;height:34px;flex:0 0 auto;border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;font:var(--weight-medium) 12px/1 var(--font-core);background:var(--surface-fill);color:var(--text-secondary);box-shadow:0 0 0 2px var(--surface-page)}
+.wfaces .wav+.wav{margin-left:-8px}
+.wshare{display:inline-flex;align-items:center;gap:var(--space-2);height:32px;box-sizing:border-box;padding:0 var(--space-5);border-radius:var(--radius-sm);background:var(--surface-raised);border:1px solid var(--border-strong);color:var(--text-primary);font:var(--weight-medium) var(--size-label)/1 var(--font-core);letter-spacing:var(--tracking-body);white-space:nowrap}
+.wib{width:44px;height:44px;margin:-6px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.wib>.wvs{width:32px;height:32px;box-sizing:border-box;border-radius:var(--radius-pill);background:var(--surface-fill);border:1px solid transparent;color:var(--text-primary);display:flex;align-items:center;justify-content:center}
+.h1{font:var(--text-title-1);letter-spacing:var(--tracking-title);margin:0;text-wrap:pretty}
+.p{font:var(--text-body-role);line-height:var(--leading-body);color:var(--text-secondary);margin:10px 0 0;text-wrap:pretty}
+.cap{font:var(--text-caption-role);color:var(--text-tertiary);line-height:1.45}
+.pb{display:flex;align-items:center;justify-content:center;gap:var(--space-4);height:48px;box-sizing:border-box;padding:0 var(--space-7);border-radius:var(--radius-sm);background:var(--surface-inverse);color:var(--text-inverse);font:var(--weight-medium) var(--size-body)/1 var(--font-core);letter-spacing:var(--tracking-body)}
+.pb.gh{background:transparent;color:var(--text-secondary)}
+.pb.dg{background:transparent;color:var(--text-danger);border:1px solid var(--clay-200)}
+.two{display:flex;gap:12px;align-items:flex-start}
+.std{padding:var(--space-7) var(--gutter-screen) var(--space-8)}
+.std h1{margin:0;font:var(--text-title-1);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-title)}
+.chips{display:flex;gap:var(--space-3);flex-wrap:wrap;margin-top:var(--space-5)}
+/* Chip.jsx's own paint and geometry: every tone carries a 1px border, transparent on
+   neutral, so a chip is 2px wider than its padding suggests. The component's 30px visual
+   sits in a 44px hit with margin -7px 0 to cancel it; a static mock draws the visual, so
+   the margin is left off rather than copied uncompensated. */
+.chp{display:inline-flex;align-items:center;gap:var(--space-3);height:30px;box-sizing:border-box;padding:0 var(--space-5);border:1px solid transparent;border-radius:var(--radius-pill);background:var(--surface-fill);font:var(--weight-medium) var(--size-label)/1 var(--font-core);color:var(--text-primary);white-space:nowrap}
+.chp.ol{background:transparent;border-color:var(--border-strong);color:var(--text-secondary)}
+.sl{margin:var(--space-7) 0 0;font:var(--text-quiet-role);font-variant-numeric:tabular-nums;font-size:18px;line-height:1.5;color:var(--text-primary)}
+.sc{display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-5);color:var(--text-tertiary);font-size:var(--size-caption)}
+.i-users{--ic:url(../assets/icons/users.svg)}.i-max{--ic:url(../assets/icons/maximize-2.svg)}.i-spark{--ic:url(../assets/icons/sparkles.svg)}
+/* the sheet */
+.sh{flex:0 0 auto;margin-top:auto;background:var(--surface-raised);border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;box-shadow:var(--shadow-sheet);padding:var(--space-5) var(--gutter-screen) var(--space-8)}
+.gb{width:36px;height:4px;border-radius:var(--radius-pill);background:var(--ink-200);margin:0 auto var(--space-6)}
+.shd{margin:0 0 var(--space-5);font:var(--weight-semibold) 21px/var(--leading-title) var(--font-core);letter-spacing:var(--tracking-title)}
+.shb{padding:0}
+.peek{flex:1;min-height:120px;background:var(--surface-page);position:relative}
+.peek:after{content:"";position:absolute;inset:0;background:var(--surface-scrim)}
+.g.xs{width:12px;height:12px}.g.sm{width:14px;height:14px}.g.md{width:16px;height:16px}.g.lg{width:18px;height:18px}.g.xl{width:20px;height:20px}
+.i-cal{--ic:url(../assets/icons/calendar.svg)}.i-chev-l{--ic:url(../assets/icons/chevron-left.svg)}
+.i-chev-r{--ic:url(../assets/icons/chevron-right.svg)}.i-chev-d{--ic:url(../assets/icons/chevron-down.svg)}
+.i-ell{--ic:url(../assets/icons/ellipsis.svg)}.i-share{--ic:url(../assets/icons/share-2.svg)}
+.i-check{--ic:url(../assets/icons/check.svg)}.i-x{--ic:url(../assets/icons/x.svg)}
+.i-plus{--ic:url(../assets/icons/plus.svg)}.i-eye{--ic:url(../assets/icons/eye.svg)}
+.i-lasso{--ic:url(../assets/icons/lasso.svg)}.i-link{--ic:url(../assets/icons/link.svg)}
+</style></head><body><div class="wrap">
+
+<h1>Calendars: the page, and the thread</h1>
+<p class="lede">Two screens, drawn at 390pt. <b>Neither is new ground.</b> Connected apps already has a Calendar row that taps to nothing, and first run already has a connect screen with the copy for what offload does with a calendar, so the settings page is that row finally leading somewhere and that copy finally having a home. The thread control is the newer thing, and the question it asks is not what it looks like but what a per-thread choice <i>is</i>: the calendars you approved are an account-level permission, and <b>a thread picks from none of them until somebody says otherwise</b>. That is decided in section 5, on safety rather than taste, and it is also what lets the thread's control stay a plain glyph. Every crop is drawn at the governed geometry: <code>AppBar</code>'s gutters and group margins, <code>IconButton</code>'s 40-in-44, and the badge exactly as <code>IconButton</code> already draws it.</p>
+
+<div class="sechead"><h2>What it asked, before it was answered</h2><u>the five decisions, for the record</u></div>
+<ul class="spec">
+<li><b>1. The calendar's own colour comes in, as recognition only.</b> Four of seven swatches measure under 3:1 on our light group and two in dark, so the dot helps you find a calendar and the name is what tells two apart. Section 2, with the numbers.</li>
+<li><b>2. A checkbox, not a switch, and the governed one.</b> Every other settings page uses switches, and this is a selection among peers rather than seven independent features. Ink fill, never the moss tick, which this system reserves for a finished row. Section 2.</li>
+<li><b>3. Where new events land</b> is a thread question, not an account one, so the settings page has no row for it. Resolved in section 5: the thread's own selection answers it, and offload asks when the selection cannot.</li>
+<li><b>4. What the thread control says at rest: nothing.</b> Four drawn. Two carry a mark that already means "something new" or invents one outright, and the third is real but leaves nothing to mark. Section 4.</li>
+<li><b>5. A thread picks, from nothing.</b> No calendar is used in a thread until somebody ticks it, and approving one in Settings never widens a thread that already exists. Section 5.</li>
+</ul>
+
+<div class="sechead"><h2>1. Before anything is connected</h2><u>decided: A, first run's own screen</u></div>
+<p class="snote">The row exists in Connected apps today with the value <code>Connect</code>. What it opens is this. Both options are the same page one level under it, so neither adds a screen to the map.</p>
+<div class="row">
+
+<div class="cell"><div class="tag m"><b>A</b><span>one provider, said properly</span></div>
+<div class="crop tall pad good">
+<div class="bar sbar"><span class="bgl"><span class="ib ink"><span class="vs"><i class="g xl i-chev-l"></i></span></span></span><span class="btitle">Calendar</span></div>
+<div class="heroreg"><span class="mark hero"></span></div>
+<h2 class="h1">Bring in your calendar</h2>
+<p class="p">So &ldquo;before the trip&rdquo; and &ldquo;after the dentist&rdquo; mean something.</p>
+<div style="display:flex;flex-direction:column;gap:var(--space-5);margin-top:var(--space-7)">
+<div style="display:flex;gap:var(--space-5);align-items:flex-start"><i class="g md i-cal" style="margin-top:3px;color:var(--text-tertiary)"></i><span style="font:var(--weight-regular) 14px/1.45 var(--font-core)"><b style="font-weight:500">offload reads your days.</b> <span style="color:var(--text-secondary)">Times, titles and who is on them.</span></span></div>
+<div style="display:flex;gap:var(--space-5);align-items:flex-start"><i class="g md i-plus" style="margin-top:3px;color:var(--text-tertiary)"></i><span style="font:var(--weight-regular) 14px/1.45 var(--font-core)"><b style="font-weight:500">And it can add to them.</b> <span style="color:var(--text-secondary)">Anything you dump with a time on it can land back on your calendar.</span></span></div>
+</div>
+<div class="pb" style="margin-top:var(--space-7)">Connect Google Calendar</div>
+<div class="cap" style="text-align:center;margin-top:var(--space-4)">You choose which calendars after this.</div>
+</div>
+<span class="verdict yes">taken</span>
+<ul class="spec">
+<li><b>It is first run's connect screen, verbatim.</b> Same heading, same two prose lines, same button. One screen entered two ways rather than two screens saying the same thing differently, and the copy is already reviewed.</li>
+<li>The last line is the only new sentence, and it is there because the next screen is a list of calendars: <b>connecting is not consenting to all of them.</b></li>
+<li>The mark is <code>ProviderMark</code> at its own defaults, <code>size=88 radius=18</code>, centred in a <code>flex:1</code> region: the official asset passed by the build and never redrawn. <b>The dashed tile is what ships today</b>, since <code>assets/brands/</code> holds only a readme and <code>App.jsx</code> mounts this screen with no <code>mark</code>. Android's twin is radius 20 on <code>--a-*</code> tokens, so the two are not interchangeable.</li>
+</ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>B</b><span>a provider list</span></div>
+<div class="crop tall pad">
+<div class="bar sbar"><span class="bgl"><span class="ib ink"><span class="vs"><i class="g xl i-chev-l"></i></span></span></span><span class="btitle">Calendar</span></div>
+<p class="p" style="margin-top:var(--space-5)">Connect a calendar so &ldquo;before the trip&rdquo; and &ldquo;after the dentist&rdquo; mean something.</p>
+<div class="ghdr">Providers</div>
+<div class="grp">
+<div class="sr"><span class="tile"><i class="g md i-cal"></i></span><span class="tx"><b class="t">Google Calendar</b></span><span class="v">Connect</span><span class="ch"><i class="g sm i-chev-r"></i></span></div>
+<div class="sr"><span class="tile"><i class="g md i-cal"></i></span><span class="tx"><b class="t">Apple Calendar</b></span><span class="v">Connect</span><span class="ch"><i class="g sm i-chev-r"></i></span></div>
+<div class="sr"><span class="tile"><i class="g md i-cal"></i></span><span class="tx"><b class="t">Outlook</b></span><span class="v">Connect</span><span class="ch"><i class="g sm i-chev-r"></i></span></div>
+</div>
+<div class="cap" style="margin-top:var(--space-5)">offload reads times, titles and who is on them, and can add to them.</div>
+</div>
+<ul class="spec">
+<li>Right if there will be three providers. <b>There is one</b>, and the product has shipped a single-provider connect screen since 004.</li>
+<li>A list of providers has nowhere to put what offload does with a calendar, so that argument shrinks to a caption. The page's job on a first visit is consent, and consent needs the two prose lines more than it needs a choice of vendor.</li>
+<li>Worth building the moment a second provider exists, and A is not in its way: A becomes the second pane after a provider is picked.</li>
+</ul>
+</div>
+
+</div>
+
+<div class="sechead"><h2>2. The list, once it is connected</h2><u>decided: B, ticks and the provider's colour</u></div>
+<p class="snote">Seven calendars on one account, which is ordinary. Four are in use. The account row is the same in all three; <b>three things change</b>: the mark on the right, whether the provider's colour comes in on the left, and whether the group header can carry a count at all. <b>Only a tickable list can</b>, which is one of the two reasons B is taken, and it is also the one thing on this page that needs a change to <code>Group</code>: its label is a plain <code>&lt;div&gt;</code> with no trailing slot.</p>
+<div class="row">
+
+<div class="cell"><div class="tag i"><b>A</b><span>switches, like every other page</span></div>
+<div class="crop pad">
+<div class="ghdr">jo@hey.com</div>
+<div class="grp">
+<div class="sr"><span class="tx"><b class="t">Jo Alves</b><span class="n">Your own calendar</span></span><span class="sw"><i></i></span></div>
+<div class="sr"><span class="tx"><b class="t">Work</b></span><span class="sw"><i></i></span></div>
+<div class="sr"><span class="tx"><b class="t">Family</b></span><span class="sw"><i></i></span></div>
+<div class="sr"><span class="tx"><b class="t">Ana &amp; Jo</b></span><span class="sw"><i></i></span></div>
+<div class="sr"><span class="tx"><b class="t">Birthdays</b></span><span class="sw off"><i></i></span></div>
+<div class="sr"><span class="tx"><b class="t">Holidays in Portugal</b></span><span class="sw off"><i></i></span></div>
+<div class="sr"><span class="tx"><b class="t">Tom's stag</b></span><span class="sw off"><i></i></span></div>
+</div>
+</div>
+<ul class="spec">
+<li>It is the vocabulary the other ten settings pages already use, so it costs nothing to build and nothing to learn.</li>
+<li><b>But a switch says "this feature is on".</b> Seven in a column reads as seven independent settings, when it is one setting with seven values. Nothing here turns a capability on or off; the capability is the connection, one level up.</li>
+<li>There is also no count anywhere, so the page cannot say <b>4 of 7</b> without a header that has no business above a group of switches.</li>
+</ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>B</b><span>checkbox, and the calendar's colour</span></div>
+<div class="crop pad good">
+<div class="ghdr" style="display:flex;align-items:baseline"><span style="flex:1">jo@hey.com</span><span style="font:var(--text-numeric-role);font-size:11px">4 of 7 in use</span></div>
+<div class="grp">
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#039BE5"></span><span class="tx"><b class="t">Jo Alves</b><span class="n">Your own calendar</span></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#7986CB"></span><span class="tx"><b class="t">Work</b></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#33B679"></span><span class="tx"><b class="t">Family</b></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#E67C73"></span><span class="tx"><b class="t">Ana &amp; Jo</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#F6BF26"></span><span class="tx"><b class="t">Birthdays</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#8E24AA"></span><span class="tx"><b class="t">Holidays in Portugal</b><span class="n">Read only</span></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#616161"></span><span class="tx"><b class="t">Tom's stag</b><span class="n">Shared by Tom Reilly</span></span></div>
+</div>
+</div>
+<span class="verdict yes">taken</span>
+<ul class="spec">
+<li><b>A choice among peers is a checkbox.</b> <code>Checkbox</code> as governed: a 20px box at <code>--radius-xs</code>, <code>--surface-inverse</code> with the inline stroked tick when ticked, and the whole row is the target because the component is a <code>&lt;label&gt;</code> wrapping both. The group header can then carry <b>4 of 7 in use</b>, which a column of switches cannot.</li>
+<li><b>Deliberately not the answering rows' mark.</b> Those are 21px with a moss fill, and moss means a finished row, so a moss-ticked calendar would say offload had completed it. <b>The two marks look alike and mean opposite things:</b> ink for a thing that is in play, moss for a thing that is done.</li>
+<li><b>The colour is the provider's data, not our palette</b>, which is exactly why it can be here: nothing else on the page is coloured, so a 10px dot cannot be mistaken for one of our two accents.</li>
+<li><b>Measured, and it is why the dot cannot be load-bearing.</b> On the light group, <code>rgb(242,242,242)</code>, <b>four of these seven swatches are under 3:1</b>: the yellow at <b>1.51:1</b>, then the green at 2.31, the coral at 2.50 and the blue at 2.75. The lavender clears it at 3.08 and the purple and grey clear it comfortably. These are somebody else's hexes and we do not get to pick them, so <b>the dot is a recognition aid and the name is the differentiator</b>. Where two names genuinely collide, two calendars called Work on two accounts, the row's note carries the account, the same way <b>Shared by Tom Reilly</b> does here. My first draft argued the dot was what told those two apart, which at 1.51:1 it is not.</li>
+<li><b>Every swatch carries a <code>--border-hairline</code> ring</b> so the pale ones have an edge rather than dissolving into the group. That is definition, not contrast: it does not move the ratio and is not meant to.</li>
+<li>An unticked row's title goes <code>--text-tertiary</code>. <b>No opacity</b>, by the rule the done row settled: the tick is the state and dimming a whole row on a warm page reads as a rendering fault.</li>
+<li>The notes are the honest ones: <b>Read only</b> on a subscribed calendar, because offload cannot add to it, and who shared it when somebody else did.</li>
+</ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>C</b><span>checkbox, no colour</span></div>
+<div class="crop pad">
+<div class="ghdr" style="display:flex;align-items:baseline"><span style="flex:1">jo@hey.com</span><span style="font:var(--text-numeric-role);font-size:11px">4 of 7 in use</span></div>
+<div class="grp">
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="tx"><b class="t">Jo Alves</b><span class="n">Your own calendar</span></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="tx"><b class="t">Work</b></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="tx"><b class="t">Family</b></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="tx"><b class="t">Ana &amp; Jo</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="tx"><b class="t">Birthdays</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="tx"><b class="t">Holidays in Portugal</b><span class="n">Read only</span></span></div>
+<div class="sr dn"><span class="box"></span><span class="tx"><b class="t">Tom's stag</b><span class="n">Shared by Tom Reilly</span></span></div>
+</div>
+</div>
+<ul class="spec">
+<li>Quieter, and it keeps the page inside the system's own palette with nothing to explain.</li>
+<li><b>The cost is recognition.</b> These names come from somebody else's app, where they have been colour-coded for years, and a list of seven identical rows is the one place the product asks you to read rather than recognise.</li>
+<li>It is the right answer if the colour turns out to be unreliable: providers return a palette index, not a hex, and a calendar with no colour set would leave a hole in B's left edge.</li>
+</ul>
+</div>
+
+</div>
+<ul class="spec">
+<li><b>Two accounts is the case that decides the grouping.</b> The email is the group label, so a second account is a second group with its own header and its own count, which is why the count sits in the header rather than at the top of the page.</li>
+<li><b>Nothing here can be the only tick.</b> Untick everything and offload has a connection it cannot read, which is a state worth a line rather than a block: the group header says <b>None in use</b> and the page's last row says what that means.</li>
+</ul>
+
+<div class="sechead"><h2>3. What the page owes besides the list</h2><u>decided: everything but the write target</u></div>
+<p class="snote">The list is the middle of the page. Drawn whole, in both themes, with B's list from section 2.</p>
+<div class="row">
+
+<div class="cell"><div class="tag m"><b>The page</b><span>light</span></div>
+<div class="crop pad good">
+<div class="bar sbar"><span class="bgl"><span class="ib ink"><span class="vs"><i class="g xl i-chev-l"></i></span></span></span><span class="btitle">Calendar</span></div>
+<div class="two" style="margin-top:var(--space-5);align-items:center">
+<span class="mark"></span>
+<span><span style="display:block;font:var(--weight-medium) 15px/1.3 var(--font-core)">Google Calendar</span><span class="cap" style="display:block;margin-top:3px">jo@hey.com, connected 4 Aug</span></span>
+</div>
+<div class="ghdr" style="display:flex;align-items:baseline"><span style="flex:1">Calendars offload can use</span><span style="font:var(--text-numeric-role);font-size:11px">4 of 7</span></div>
+<div class="grp">
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#039BE5"></span><span class="tx"><b class="t">Jo Alves</b><span class="n">Your own calendar</span></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#7986CB"></span><span class="tx"><b class="t">Work</b></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#33B679"></span><span class="tx"><b class="t">Family</b></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#E67C73"></span><span class="tx"><b class="t">Ana &amp; Jo</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#F6BF26"></span><span class="tx"><b class="t">Birthdays</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#8E24AA"></span><span class="tx"><b class="t">Holidays in Portugal</b><span class="n">Read only</span></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#616161"></span><span class="tx"><b class="t">Tom's stag</b><span class="n">Shared by Tom Reilly</span></span></div>
+</div>
+<div class="ghdr">When offload adds something</div>
+<div class="grp">
+<div class="sr"><span class="tx"><b class="t">Ask before adding</b><span class="n">Off means anything with a time on it lands straight on the calendar</span></span><span class="sw off"><i></i></span></div>
+</div>
+<div class="ghdr">Disconnect</div>
+<div class="grp">
+<div class="sr"><span class="tx"><b class="t" style="color:var(--text-danger)">Disconnect Google Calendar</b><span class="n">Threads keep what they already know. offload stops reading your days and cannot add to them.</span></span></div>
+</div>
+</div>
+<span class="verdict yes">taken</span>
+</div>
+
+<div class="cell"><div class="tag i"><b>Dark</b><span>the same page</span></div>
+<div class="crop pad" data-theme="dark">
+<div class="bar sbar"><span class="bgl"><span class="ib ink"><span class="vs"><i class="g xl i-chev-l"></i></span></span></span><span class="btitle">Calendar</span></div>
+<div class="two" style="margin-top:var(--space-5);align-items:center">
+<span class="mark"></span>
+<span><span style="display:block;font:var(--weight-medium) 15px/1.3 var(--font-core)">Google Calendar</span><span class="cap" style="display:block;margin-top:3px">jo@hey.com, connected 4 Aug</span></span>
+</div>
+<div class="ghdr" style="display:flex;align-items:baseline"><span style="flex:1">Calendars offload can use</span><span style="font:var(--text-numeric-role);font-size:11px">4 of 7</span></div>
+<div class="grp">
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#039BE5"></span><span class="tx"><b class="t">Jo Alves</b><span class="n">Your own calendar</span></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#7986CB"></span><span class="tx"><b class="t">Work</b></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#33B679"></span><span class="tx"><b class="t">Family</b></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#E67C73"></span><span class="tx"><b class="t">Ana &amp; Jo</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#F6BF26"></span><span class="tx"><b class="t">Birthdays</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#8E24AA"></span><span class="tx"><b class="t">Holidays in Portugal</b><span class="n">Read only</span></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#616161"></span><span class="tx"><b class="t">Tom's stag</b><span class="n">Shared by Tom Reilly</span></span></div>
+</div>
+<div class="ghdr">When offload adds something</div>
+<div class="grp">
+<div class="sr"><span class="tx"><b class="t">Ask before adding</b><span class="n">Off means anything with a time on it lands straight on the calendar</span></span><span class="sw off"><i></i></span></div>
+</div>
+<div class="ghdr">Disconnect</div>
+<div class="grp">
+<div class="sr"><span class="tx"><b class="t" style="color:var(--text-danger)">Disconnect Google Calendar</b><span class="n">Threads keep what they already know. offload stops reading your days and cannot add to them.</span></span></div>
+</div>
+</div>
+<ul class="spec">
+<li><b>The provider colours are the one thing dark cannot restyle</b>, and two of the seven struggle there: on the dark group, which computes to <b>#232323</b> rather than the <code>--surface-fill</code> I assumed, the purple is <b>2.23:1</b> and the grey <b>2.54:1</b>. The hairline ring is doing more work in dark than in light for exactly those two.</li>
+<li><b>Dark is the better of the two grounds here</b>, which is worth knowing: four swatches are under 3:1 in light and two in dark, and they are not the same four. A bright hue falls against #F2F2F2 and a dark one falls against #232323, so <b>no single ground flatters a palette we do not control</b>, and the yellow that measures 1.51:1 in light measures 9.28:1 in dark. Neither is a reason to drop the colour, and both are a reason not to let it carry meaning on its own.</li>
+</ul>
+</div>
+
+</div>
+<ul class="spec">
+<li><b>There is no "Add events to" row, and that is a decision rather than an omission.</b> offload may write to a calendar as of 8 September and nothing in the product says which one it writes to, so this page looked like the place. It is not: <b>where an event lands is a property of the thing you are working on</b>, so it belongs to the thread. Section 5 is where it resolves.</li>
+<li><b>Read only</b> stays on the rows that are, because it is still the honest reason a calendar offload can read is one it cannot add to.</li>
+<li><b>Disconnect says what it keeps, not just what it takes.</b> "Threads keep what they already know" is the true part, and it is the part somebody hovering over that row is afraid of.</li>
+<li><b>Not drawn: two accounts.</b> The provider block at the top becomes one block per account, and each gets its own list and its own disconnect. Straightforward, and worth seeing before it is built.</li>
+</ul>
+
+<div class="sechead"><h2>4. The control in the thread's title bar</h2><u>decided: what it says at rest</u></div>
+<p class="snote">The bar today is back, then share and the ellipsis, drawn here at <code>AppBar</code>'s real geometry: a 20px gutter, <code>--space-4</code> between the three children, and each side group holding 40px visuals <code>--space-2</code> apart with a &minus;8 margin so the layout measures the visual and not the 44px hit. <b>The thread bar carries no title</b>, so a third control costs nothing there; on a bar that does carry one it takes the title's measure <b>from 226 to 182 of 390</b>, measured in the crop at 224 and 180 and corrected for its 1px borders, which is the number to check against the longest thread name rather than against the width. <b>What sits under the bar is not just the name:</b> <code>Standing</code> is the thread's name, the people in it as chips, an outline <b>Share</b> chip beside them, offload's standing sentence at 18px and a <code>sparkles</code> caption. That block is the reason section 4 has a fifth option, because <b>it already duplicates a bar control</b>.</p>
+<div class="row">
+
+<div class="cell"><div class="tag m"><b>A</b><span>a plain glyph</span></div>
+<div class="crop good"><div class="bar">
+<span class="bgl"><span class="ib ink"><span class="vs"><i class="g xl i-chev-l"></i></span></span></span>
+<span class="sp"></span>
+<span class="bgr"><span class="ib"><span class="vs"><i class="g xl i-cal"></i></span></span><span class="ib"><span class="vs"><i class="g xl i-share"></i></span></span><span class="ib"><span class="vs"><i class="g xl i-ell"></i></span></span></span>
+</div>
+<div class="std">
+<h1>Lisbon trip</h1>
+<div class="chips"><span class="chp"><i class="g sm i-users"></i>Ana</span><span class="chp"><i class="g sm i-users"></i>Tom</span><span class="chp ol"><i class="g sm i-share"></i>Share</span></div>
+<p class="sl">Still a few things to book. You fly on Friday, and Ana can only travel the 14th to the 17th, so the dates are settled.</p>
+<div class="sc"><i class="g i-spark" style="width:13px;height:13px"></i><span>offload wrote this, updated 2m ago</span></div>
+</div></div>
+<span class="verdict yes">taken</span>
+<ul class="spec">
+<li>Quietest, and consistent with share and the ellipsis, which also say nothing about their contents.</li>
+<li><b>Any mark on this glyph would be read as "something needs you".</b> A dot and a bubble both mean attention in every app anyone has used, so a mark that means "you configured this" earns a tap that finds nothing wrong. A control that punishes a tap is worse than a control that says less.</li>
+<li><b>Section 5's decision is what makes the plain glyph correct rather than merely quiet.</b> With no calendars in a thread by default there is no inheriting-versus-narrowed distinction to signal: the state is the ticks, and the ticks live in the sheet. The glyph has nothing true to say at rest.</li>
+<li>The accessible name still carries it: <b>"Calendars, none in this thread"</b>, or <b>"Calendars, 1 of 4 in this thread"</b>.</li>
+</ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>D</b><span>the glyph carries it</span></div>
+<div class="crop"><div class="bar">
+<span class="bgl"><span class="ib ink"><span class="vs"><i class="g xl i-chev-l"></i></span></span></span>
+<span class="sp"></span>
+<span class="bgr"><span class="ib ink"><span class="vs"><i class="g xl i-cal"></i></span></span><span class="ib"><span class="vs"><i class="g xl i-share"></i></span></span><span class="ib"><span class="vs"><i class="g xl i-ell"></i></span></span></span>
+</div>
+<div class="std">
+<h1>Lisbon trip</h1>
+<div class="chips"><span class="chp"><i class="g sm i-users"></i>Ana</span><span class="chp"><i class="g sm i-users"></i>Tom</span><span class="chp ol"><i class="g sm i-share"></i>Share</span></div>
+<p class="sl">Still a few things to book. You fly on Friday, and Ana can only travel the 14th to the 17th, so the dates are settled.</p>
+<div class="sc"><i class="g i-spark" style="width:13px;height:13px"></i><span>offload wrote this, updated 2m ago</span></div>
+</div></div>
+<span class="verdict no">not taken</span>
+<ul class="spec">
+<li><b>Ink when the thread has narrowed, secondary when it follows the account.</b> No badge, no count, no new mark: the control is simply emphasised when it holds a decision, which is how the system already distinguishes a set control from an unset one.</li>
+<li><b>It is the semantically right shape, which is the argument.</b> A narrowed thread is a persistent state, not news. Emphasis is for state; a badge is for something that arrived.</li>
+<li><b>Its cost, plainly:</b> it is the quietest of the four. <code>--text-primary</code> against <code>--text-secondary</code> is 2.1x the luminance step between them, which reads in a row of three identical glyphs and would not read alone.</li>
+<li><b>Why it is not taken:</b> it is the mildest of the three marks and it is still a mark, and section 5 leaves it nothing to mark. It is the one to revisit if threads ever inherit.</li>
+</ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>B</b><span>the badge that already exists</span></div>
+<div class="crop"><div class="bar">
+<span class="bgl"><span class="ib ink"><span class="vs"><i class="g xl i-chev-l"></i></span></span></span>
+<span class="sp"></span>
+<span class="bgr"><span class="ib mk"><span class="vs"><i class="g xl i-cal"></i></span></span><span class="ib"><span class="vs"><i class="g xl i-share"></i></span></span><span class="ib"><span class="vs"><i class="g xl i-ell"></i></span></span></span>
+</div>
+<div class="std">
+<h1>Lisbon trip</h1>
+<div class="chips"><span class="chp"><i class="g sm i-users"></i>Ana</span><span class="chp"><i class="g sm i-users"></i>Tom</span><span class="chp ol"><i class="g sm i-share"></i>Share</span></div>
+<p class="sl">Still a few things to book. You fly on Friday, and Ana can only travel the 14th to the 17th, so the dates are settled.</p>
+<div class="sc"><i class="g i-spark" style="width:13px;height:13px"></i><span>offload wrote this, updated 2m ago</span></div>
+</div></div>
+<span class="verdict no">borrows a mark that means something else</span>
+<ul class="spec">
+<li><b>Drawn with <code>IconButton</code>'s own <code>badge</code></b>, which I had not read when I first drew this: 8px at top 5 right 5, <code>--clay-600</code>, a 1.5px <code>--paper</code> border, which is what rings it against the white chrome. My earlier version invented a 7px amber dot with a <code>--surface-page</code> ring, and neither the size, the colour nor the ring was the system's.</li>
+<li><b>And reading it is what rules it out.</b> Its source comment is "presence, not arithmetic: a dot on the glyph's top-right corner says there is something new" &mdash; so the dot already means <i>new</i>, and a narrowed calendar list is not new. <b>This is the same collision option C is rejected for</b>, one shape down: C borrows the count's meaning, B borrows the dot's.</li>
+<li>Available if you want the loudest signal and will accept that "there is something here" is close enough to "there is something new". I would not, and the system has a cheaper way to say state.</li>
+</ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>C</b><span>a count</span></div>
+<div class="crop"><div class="bar">
+<span class="bgl"><span class="ib ink"><span class="vs"><i class="g xl i-chev-l"></i></span></span></span>
+<span class="sp"></span>
+<span class="bgr"><span class="ib"><span class="vs"><i class="g xl i-cal"></i><span class="cnt">1</span></span></span><span class="ib"><span class="vs"><i class="g xl i-share"></i></span></span><span class="ib"><span class="vs"><i class="g xl i-ell"></i></span></span></span>
+</div>
+<div class="std">
+<h1>Lisbon trip</h1>
+<div class="chips"><span class="chp"><i class="g sm i-users"></i>Ana</span><span class="chp"><i class="g sm i-users"></i>Tom</span><span class="chp ol"><i class="g sm i-share"></i>Share</span></div>
+<p class="sl">Still a few things to book. You fly on Friday, and Ana can only travel the 14th to the 17th, so the dates are settled.</p>
+<div class="sc"><i class="g i-spark" style="width:13px;height:13px"></i><span>offload wrote this, updated 2m ago</span></div>
+</div></div>
+<ul class="spec">
+<li>Says more, and a number is legible where a dot is only a flag.</li>
+<li><b>But this mark does not exist in the product, and that is the objection.</b> I had written that it borrows the activity bell's meaning; the bell does not have one to borrow. Every bell in every kit is <code>&lt;IconButton icon="bell" label="Activity" badge={unread}/&gt;</code>, and <code>badge</code> is a truthy check that draws the 8px <code>--clay-600</code> dot: <b>the unread number is passed in and never displayed.</b> So <b>there is no counted glyph anywhere in offload</b>, and the only numeric unread is web's sidebar Activity row, where the number sits in the row as text rather than on a glyph.</li>
+<li><b>So the count above is drawn for the comparison, not quoted from anywhere.</b> It takes <code>IconButton</code>'s badge ring and geometry and puts a number in it in ink instead of clay. C is not borrowing a meaning, it is <b>inventing a mark type</b>, which is a higher price than B pays and for the same purpose.</li>
+<li>It is also the only one of the four that has to change when a calendar is approved or removed at the account level, so a thread you have not opened in a month would silently renumber.</li>
+</ul>
+</div>
+<div class="cell"><div class="tag i"><b>E</b><span>a chip in the standing row</span></div>
+<div class="crop"><div class="bar">
+<span class="bgl"><span class="ib ink"><span class="vs"><i class="g xl i-chev-l"></i></span></span></span>
+<span class="sp"></span>
+<span class="bgr"><span class="ib"><span class="vs"><i class="g xl i-share"></i></span></span><span class="ib"><span class="vs"><i class="g xl i-ell"></i></span></span></span>
+</div>
+<div class="std">
+<h1>Lisbon trip</h1>
+<div class="chips"><span class="chp"><i class="g sm i-users"></i>Ana</span><span class="chp"><i class="g sm i-users"></i>Tom</span><span class="chp ol"><i class="g sm i-cal"></i>1 calendar</span><span class="chp ol"><i class="g sm i-share"></i>Share</span></div>
+<p class="sl">Still a few things to book. You fly on Friday, and Ana can only travel the 14th to the 17th, so the dates are settled.</p>
+<div class="sc"><i class="g i-spark" style="width:13px;height:13px"></i><span>offload wrote this, updated 2m ago</span></div>
+</div></div>
+<span class="verdict no">not taken</span>
+<ul class="spec">
+<li><b>The option I had not drawn, and the only one with a precedent.</b> <code>Standing</code> already carries an outline <b>Share</b> chip directly under the share button in the bar, so surfacing a bar affordance in the thread's own header is a thing this product does.</li>
+<li>It is also the only treatment that can <b>say the state in words</b>, "1 calendar" or "No calendars", with no mark to misread and nothing to tap by mistake.</li>
+<li><b>Why it is still not taken, and it is not crowding.</b> Measured against the product's own width rather than the crop's: the four-chip row is <b>347 of the 350 a 390pt screen leaves inside <code>Standing</code>'s gutters, on one line</b>, with 3px to spare. It fits, and only just, which is worth knowing but is not the objection. <b>The objection is what the row is about:</b> every chip in it is a person, and <b>Share</b> earns its place because it is the one action that adds one. A calendar chip among people chips reads as a participant.</li>
+<li><b>And 3px of slack is its own argument against it.</b> The people in a thread are data: a third person, or one called Cristina, wraps the row and the calendar chip lands on a line of its own beneath the people, where it reads as neither. The bar has no such coupling.</li>
+<li><b>Where to revisit it.</b> If the state ever has to be visible without opening the sheet, this is the place, not a badge on the glyph: a word in the header is honest where a dot is a false alarm.</li>
+</ul>
+</div>
+
+</div>
+<ul class="spec">
+<li><b>Not in the ellipsis, for the record.</b> That was the cheapest option and it is where a per-thread setting would normally go. A menu cannot be seen without being opened, and <b>a scope you cannot see is a scope you forget</b>: this control decides what offload reads, so it has to be visible even when it says nothing. The ellipsis keeps a row too, so it is reachable both ways.</li>
+<li><b>On web that argument had to beat a written rule, not just a habit.</b> <code>readme.md</code> said a pane head carries two tools and that anything a thread gains later goes in the More menu, which is exactly what a calendar is. <b>The rule is amended rather than excepted:</b> a head carries up to three, and the third has a criterion, <b>a tool earns a head slot only if it changes what offload reads or shows, and anything that acts on the thread goes in More</b>. Rename, add note and Leave stay in the menu on that test; calendars passes. So the next capability does not inherit a fourth slot, it gets the same test.</li>
+<li><b>On web the same control is in the pane head</b>, left of the two tools that are already there, <code>maximize-2</code> and the ellipsis. <b>Web has no share button among its tools:</b> share lives in the head's <code>aside</code>, inside <code>WFaces</code>, as a secondary button after the people. Drawn in section 5, and that grouping is the evidence for E's rejection rather than an aside of mine.</li>
+</ul>
+
+<div class="sechead"><h2>5. What a per-thread choice is</h2><u>decided: B, an explicit pick from nothing</u></div>
+<p class="snote">The sheet is <code>Sheet</code>'s own geometry throughout: a 24px top, a 36 by 4 handle with <code>--space-6</code> under it, a 21px title, and <code>--surface-scrim</code> behind. <b>A thread starts with no calendars and you pick the ones it should use.</b> That is the decision, and it is the one that outlives the drawing, so the rejected model is kept below it with what it would have cost.</p>
+
+<div class="rowlabel">The sheet, and the state every thread starts in<u>390pt</u></div>
+<div class="row">
+
+<div class="cell"><div class="tag m"><b>B</b><span>picked, 1 of 4</span></div>
+<div class="crop tall good" style="min-height:540px">
+<div class="peek"></div>
+<div class="sh">
+<div class="gb"></div>
+<h2 class="shd">Calendars in this thread</h2>
+<div class="shb">
+<div class="cap" style="padding-bottom:var(--space-4)">Which of your calendars offload reads when it works on Lisbon trip.</div>
+<div class="grp">
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#039BE5"></span><span class="tx"><b class="t">Jo Alves</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#7986CB"></span><span class="tx"><b class="t">Work</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#33B679"></span><span class="tx"><b class="t">Family</b></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#E67C73"></span><span class="tx"><b class="t">Ana &amp; Jo</b></span></div>
+</div>
+</div>
+</div>
+</div>
+<span class="verdict yes">taken</span>
+<ul class="spec">
+<li><b>The ticks are the answer and there is no third state.</b> No <b>Use all</b>, no dot in the bar, and nothing to explain: a thread uses what you ticked, which is why the bar's glyph can stay plain.</li>
+<li><b>Lisbon trip is shared with Ana and Tom</b>, and "Ana &amp; Jo" is the calendar the trip is on. Work has nothing to do with it, and offload reading Work here would be noise at best and a leak of somebody's meetings into a thread two other people can read at worst. <b>Starting from nothing is what makes that the default rather than a correction</b>, and the second person is why: a correction you have to remember to make is one somebody else sees first.</li>
+<li><b>Approving a fifth calendar in Settings does not add it to any thread</b>, which is the point of an explicit pick. Threads gain calendars when somebody says so, never by inheritance.</li>
+<li><b>One rule this needs in code:</b> a thread's list is always intersected with the account's, so un-ticking a calendar in Settings removes it from every thread at once and the thread's stored id simply stops resolving. Without that, a thread can hold a calendar the account no longer allows.</li>
+</ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>The default</b><span>every new thread</span></div>
+<div class="crop tall good" style="min-height:540px">
+<div class="peek"></div>
+<div class="sh">
+<div class="gb"></div>
+<h2 class="shd">Calendars in this thread</h2>
+<div class="shb">
+<div class="cap" style="padding-bottom:var(--space-4)">offload is not reading any calendar for Lisbon trip. Tick the ones it should.</div>
+<div class="grp">
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#039BE5"></span><span class="tx"><b class="t">Jo Alves</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#7986CB"></span><span class="tx"><b class="t">Work</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#33B679"></span><span class="tx"><b class="t">Family</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#E67C73"></span><span class="tx"><b class="t">Ana &amp; Jo</b></span></div>
+</div>
+</div>
+</div>
+</div>
+<span class="verdict yes">the copy this needed</span>
+<ul class="spec">
+<li><b>This is now the commonest state in the product</b>, not an edge case, so it gets the sentence rather than a footnote. One line, changed from the picked version: it says what is true now and what to do about it.</li>
+<li><b>No empty illustration and no button.</b> The list is right there, so the four rows are the call to action; an empty state would be a screen telling you to use the screen it is covering.</li>
+<li>Four unticked rows in tertiary, which is the same treatment section 2 uses, so nothing here is a new state either.</li>
+</ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>A</b><span>inherit, then narrow</span></div>
+<div class="crop tall" style="min-height:540px">
+<div class="peek"></div>
+<div class="sh">
+<div class="gb"></div>
+<h2 class="shd">Calendars in this thread</h2>
+<div class="shb">
+<div class="cap" style="padding-bottom:var(--space-4)">Which of your calendars offload reads when it works on Lisbon trip.</div>
+<div class="grp">
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#039BE5"></span><span class="tx"><b class="t">Jo Alves</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#7986CB"></span><span class="tx"><b class="t">Work</b></span></div>
+<div class="sr dn"><span class="box"></span><span class="dot" style="background:#33B679"></span><span class="tx"><b class="t">Family</b></span></div>
+<div class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#E67C73"></span><span class="tx"><b class="t">Ana &amp; Jo</b></span></div>
+</div>
+<div style="display:flex;align-items:center;gap:10px;margin-top:var(--space-5)">
+<span style="flex:1" class="cap">Narrowed from all four.</span>
+<span style="font:var(--weight-medium) 13.5px/1 var(--font-core);color:var(--text-accent)">Use all</span>
+</div>
+</div>
+</div>
+</div>
+<span class="verdict no">not taken</span>
+<ul class="spec">
+<li>Its case was convenience: approve a calendar in Settings and every thread that never narrowed gets it, with nothing to do per thread.</li>
+<li><b>And that is exactly what it was rejected for.</b> Approving a calendar at the account level would silently widen what offload reads in threads somebody set up months ago, including shared ones. <b>Explicit is the safer default when the thing being widened is other people's days.</b></li>
+<li>It also costs two things B does not have: a hidden third state, inheriting, which is neither ticked nor unticked; and <b>Use all</b>, a control that exists only to get back to it.</li>
+</ul>
+</div>
+
+</div>
+
+<div class="rowlabel">The same control on web<u>the pane head, 1 of 4</u></div>
+<div class="row">
+<div class="cell wide"><div class="tag m"><b>Web</b><span>a popover on the glyph</span></div>
+<div class="crop good" style="width:520px">
+<div class="whd"><div class="whr">
+<div style="flex:1;min-width:0"><div class="wht">Lisbon trip</div><div class="wsub">14 things &middot; Ana, Tom</div></div>
+<span class="waside"><span class="wfaces"><span class="wav">AD</span><span class="wav">TR</span></span><span class="wshare"><i class="g md i-share"></i>Share</span></span>
+<span class="wtools">
+<span class="wib"><span class="wvs"><i class="g md i-cal"></i></span></span>
+<span class="wib"><span class="wvs"><i class="g md i-max"></i></span></span>
+<span class="wib"><span class="wvs"><i class="g md i-ell"></i></span></span>
+</span>
+</div></div>
+<div style="padding:var(--space-6) calc(var(--space-8) + 2 * 32px + 2 * var(--space-2)) var(--space-6) var(--space-6);display:flex;justify-content:flex-end">
+<div style="width:280px;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:var(--radius-md);box-shadow:var(--shadow-2);padding:var(--space-5)">
+<div style="font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-tertiary);padding-bottom:var(--space-4)">Calendars in this thread</div>
+<div style="display:flex;flex-direction:column">
+<div style="padding:7px 0" class="sr dn"><span class="box"></span><span class="dot" style="background:#039BE5"></span><span class="tx"><b class="t">Jo Alves</b></span></div>
+<div style="padding:7px 0" class="sr dn"><span class="box"></span><span class="dot" style="background:#7986CB"></span><span class="tx"><b class="t">Work</b></span></div>
+<div style="padding:7px 0" class="sr dn"><span class="box"></span><span class="dot" style="background:#33B679"></span><span class="tx"><b class="t">Family</b></span></div>
+<div style="padding:7px 0" class="sr"><span class="box on"><i class="g tk i-check"></i></span><span class="dot" style="background:#E67C73"></span><span class="tx"><b class="t">Ana &amp; Jo</b></span></div>
+</div>
+</div>
+</div>
+</div>
+<ul class="spec">
+<li>A popover anchored to the glyph rather than a modal, because it is a scope and not a task, and the pane behind it is what the scope is about. There is no governed popover in the web kit, so this is new UI built from <code>--surface-raised</code>, <code>--border-hairline</code>, <code>--radius-md</code> and <code>--shadow-2</code>.</li>
+<li><b>Web already proves section 4's option E, and the proof is in this crop.</b> <code>WThing</code>'s own comment on the head is "who is already in, then the share control: the same order as the phones", so the pane head holds the people as overlapped faces with Share after them, in the <code>aside</code> slot, <b>immediately left of the tools where the calendar glyph goes.</b> The people cluster and the tool cluster are two different things one gap apart, and a calendar belongs in the second.</li>
+<li>Same rows and same ticks. <b>"Plain" means something different on web, and it is worth saying rather than glossing:</b> <code>WPaneHead</code> renders its tools as <code>IconButton size="sm" variant="quiet"</code>, so every glyph there already sits on a <code>--surface-fill</code> ground at 32px. The calendar glyph matches its two neighbours exactly, which is the actual rule; it just is not a bare glyph on either surface, and on web it never was.</li>
+</ul>
+</div>
+</div>
+
+<div class="rowlabel">Where an event lands<u>the row the settings page does not have</u></div>
+<ul class="spec">
+<li><b>With one calendar ticked, the thread has already answered it.</b> Anything offload adds from Lisbon trip goes on "Ana &amp; Jo", because that is the only calendar this thread uses, and no setting anywhere had to say so.</li>
+<li><b>With two or more ticked, offload asks</b>, in the conversation, with the thread's own calendars as the values and the existing five-option control doing the asking. It is the case that control was built for, the labels are already short, and it means <b>the answer arrives at the moment it matters instead of being set in advance and forgotten.</b></li>
+<li><b>With none ticked there is nothing to ask</b>, because offload is not reading a calendar for this thread and has nowhere to put an event. Anything with a time on it stays a thing in the thread, which is what it would have been before a calendar was connected at all.</li>
+<li><b>Read-only calendars are not offered as an answer</b>, which is the last reason <b>Read only</b> earns its place on the settings row: it is why a calendar this thread reads is one offload cannot add to.</li>
+<li><b>What this leaves open:</b> whether offload remembers the answer for the thread or asks every time. My read is that it remembers, as a thread-level default that the same sheet could show, and that is worth drawing before it is built rather than assumed.</li>
+</ul>
+
+<div class="sechead"><h2>Not drawn</h2><u>say the word</u></div>
+<ul class="spec">
+<li><b>Android.</b> Expect the group to be a low container fill rather than <code>--surface-fill</code>, the switch and checkbox to be M3's, and the sheet to be a Material bottom sheet. Nothing above turns on an iOS-only idea.</li>
+<li><b>Two accounts on the settings page</b>, which is one block per account with its own list and its own disconnect.</li>
+<li><b>One empty case, and it is narrower than it looks.</b> Both empty states have copy: the settings group header reads <b>None in use</b>, and a thread with nothing ticked is section 5's own default crop. What is not settled is <b>a thread narrowed to nothing after having had calendars</b>, which is reachable by un-ticking and currently gets the same sentence as a thread that never picked. Probably right, and unverified.</li>
+<li><b>Where a calendar's events actually appear in a thread.</b> This is about which calendars offload may read, not about a thread showing its events, and if a thread should list them that is a different exploration.</li>
+</ul>
+
+</div></body></html>

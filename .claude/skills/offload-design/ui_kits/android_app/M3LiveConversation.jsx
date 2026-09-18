@@ -20,19 +20,18 @@ function SentVoice({secs,bars}){
   );
 }
 
-/* The mark hangs off the bubble's bottom-left in its own chip, so it never crowds
-   the text and reads the same on one line or five. */
+/* The one mark still drawn on the bubble, on the screens that predate the turn footer.
+   Seen has no mark anywhere: the writing indicator says the same thing at the same moment a
+   few lines below, and the eyes were the product's last emoji. */
 function StatusChip({state}){
-  if(state!=="seen"&&state!=="done")return null;
+  if(state!=="done")return null;
   return (
-    <span aria-label={state==="seen"?"Seen":"Done"} style={{position:"absolute",left:-15,bottom:-16,
-      display:"inline-flex",alignItems:"center",gap:4,padding:state==="done"?"0 10px 0 8px":"0 6px",
-      height:state==="done"?24:26,borderRadius:"var(--radius-pill)",background:state==="done"?"var(--moss-600)":"var(--paper)",
-      border:"1px solid "+(state==="done"?"var(--moss-600)":"var(--a-outline)"),
-      color:state==="done"?"var(--paper)":"inherit",boxShadow:"var(--shadow-1)"}}>
-      {state==="seen"
-        ?<span role="img" aria-hidden="true" style={{fontSize:17,lineHeight:1}}>{"\uD83D\uDC40"}</span>
-        :<><Icon name="check" size={11}/><span style={{font:"var(--weight-medium) 11px/1 var(--font-core)"}}>Done</span></>}
+    <span aria-label="Done" style={{position:"absolute",left:-15,bottom:-16,
+      display:"inline-flex",alignItems:"center",gap:4,padding:"0 10px 0 8px",
+      height:24,borderRadius:"var(--radius-pill)",background:"var(--moss-600)",
+      border:"1px solid var(--moss-600)",
+      color:"var(--paper)",boxShadow:"var(--shadow-1)"}}>
+      <Icon name="check" size={11}/><span style={{font:"var(--weight-medium) 11px/1 var(--font-core)"}}>Done</span>
     </span>
   );
 }
@@ -79,7 +78,7 @@ function Turns({turns,writing,onOpenThread,onTick,onPick}){
           borderRadius:"var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px",background:"var(--a-c)"}}>
           <div style={{font:"var(--text-quiet-role)",fontSize:16,lineHeight:1.5}}>{t.text}</div>
           {AnswerResult&&t.options&&t.options.length&&!answered[i]?(
-            <QuickReplies options={t.options} note={t.note}
+            <QuickReplies options={t.options} note={t.note} label={t.text}
               onPick={(o)=>{setAnswered(a=>({...a,[i]:true}));onPick&&onPick(o)}}/>
           ):null}
         </div>

@@ -209,6 +209,27 @@ are changes to code rather than to the kits, marked below.
 platform notes. **What is not:** the kit screens. The thread page on three clients, the composer on web,
 the nav foot and a Settings Appearance page, and the share sheet once the last item is settled.
 
+## The prism field, added 2026-09-08
+
+Colour on the phones, and the first decoration the system has allowed. A baked prism texture on two
+surfaces only, inside the bottom plate and behind the sign-in lockup, held frozen until offload
+files something. `handoff/APPLY-2026-09-08-prism.md` is the instruction set;
+`explorations/prism-design.html` is the settled design; the 2026-09-08 entry in `decisions.md`
+carries the reasoning, including the two contrast mistakes made on the way.
+
+| Piece | Where |
+| --- | --- |
+| Component | `components/layout/PrismField.{jsx,d.ts,prompt.md}` |
+| Card | `components/layout/prism.card.html` |
+| Tokens | `tokens/atmosphere.css`, imported by `styles.css` |
+| Textures | `assets/prism/p2-band-1.png`, `p2-bloom-1.png` (117KB and 90KB; the other 17 files in that folder are exploration records, not shipping assets) |
+| Rules | `readme.md`, four bullets under the state and platform notes |
+| Wired in | `App.jsx`, `M3App.jsx`, `FirstRun.jsx`, `M3FirstRun.jsx` |
+
+Needs `@shopify/react-native-skia` on the phones. Light theme only until someone bakes a dark set:
+every wash is a light tint chosen against paper and reads as fog on dark. **That bake is the one
+thing this side still owes.**
+
 ## Known drift in the design files
 
 One item left, and it is deliberate.

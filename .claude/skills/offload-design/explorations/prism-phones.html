@@ -1,0 +1,500 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Prism on the phones</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="frames.css">
+<style>
+.nav{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 30px;padding:0;list-style:none;font-size:13px}
+.nav a{color:var(--text-secondary)}.nav a[aria-current]{color:var(--text-primary);font-weight:500}
+/* Phone screen furniture. Everything below composites with plain alpha: no
+   blend modes, no filters, no shaders, because React Native has none of them
+   at a price worth paying and the mock should show what ships. */
+.pscr{flex:1;display:flex;flex-direction:column;min-height:0;position:relative;overflow:hidden}
+.tex{position:absolute;pointer-events:none;background-repeat:no-repeat;background-size:cover}
+.pbar{flex:0 0 auto;display:flex;align-items:center;gap:12px;height:52px;padding:0 20px;position:relative;z-index:1}
+.pbar h4{margin:0;font:var(--weight-semibold) 17px/1 var(--font-core);letter-spacing:-.012em;flex:1}
+.pbar i{width:20px;height:20px;color:var(--text-secondary);flex:0 0 auto}
+.psec{font:var(--weight-semibold) 21px/1.2 var(--font-core);letter-spacing:-.014em;padding:14px 20px 8px;display:flex;align-items:baseline;gap:8px;position:relative;z-index:1}
+.psec em{font-style:normal;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-accent)}
+.prow{display:flex;align-items:flex-start;gap:12px;padding:11px 20px;border-bottom:1px solid var(--border-hairline);position:relative;z-index:1}
+.prow .t{width:36px;height:36px;border-radius:10px;background:var(--surface-fill);color:var(--text-secondary);flex:0 0 auto}
+.prow .x{flex:1;min-width:0}
+.prow .x b{display:block;font:var(--weight-medium) 15.5px/21px var(--font-core);letter-spacing:-.008em}
+.prow .x s{text-decoration:none;display:block;margin-top:2px;font:var(--weight-regular) 13px/1.35 var(--font-core);color:var(--text-secondary)}
+.prow .x s u{text-decoration:none;color:var(--text-accent);font-weight:500}
+.plate{flex:0 0 auto;margin-top:auto;position:relative;z-index:1;background:var(--surface-raised);border-top:1px solid var(--border-hairline)}
+.plate.clear{background:transparent;border-top:none}
+.comp{display:flex;align-items:center;gap:12px;padding:12px 20px;position:relative;z-index:1}
+.comp .f2{flex:1;height:44px;border-radius:var(--radius-pill);background:var(--surface-input);display:flex;align-items:center;padding:0 16px;font:var(--weight-regular) 15px/1 var(--font-core);color:var(--text-tertiary)}
+.comp i{width:20px;height:20px;color:var(--text-secondary);flex:0 0 auto}
+.comp .send{width:40px;height:40px;border-radius:99px;background:var(--ink-950);color:var(--paper);flex:0 0 auto}
+.tabs{display:flex;align-items:center;justify-content:space-around;height:60px;position:relative;z-index:1;color:var(--ink-400)}
+.tabs span{display:flex;flex-direction:column;align-items:center;gap:4px;font:var(--weight-medium) 10px/1 var(--font-core)}
+.tabs i{width:22px;height:22px}
+.tabs span.on{color:var(--ink-950)}
+/* Sign in */
+.gate{flex:1;display:flex;flex-direction:column;justify-content:center;gap:26px;padding:0 28px;position:relative;z-index:1}
+.gate .bigmark{width:76px;height:76px;align-self:flex-start}
+.gate h3{margin:0;font:var(--weight-semibold) 30px/1.18 var(--font-core);letter-spacing:-.02em;text-wrap:pretty}
+.gate p{margin:0;font:var(--weight-regular) 15.5px/1.55 var(--font-quiet);color:var(--text-secondary)}
+.gate .btns{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.gate .terms{font:var(--text-caption-role);color:var(--text-tertiary);text-align:center}
+.gate .terms u{text-decoration:none;color:var(--text-accent);font-weight:500}
+.markbox{position:relative;width:76px;height:76px;flex:0 0 auto}
+.markbox .lm{position:absolute;inset:0}
+.markbox .fill{position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat}
+.opt{display:flex;flex-direction:column;gap:7px}
+table.mx td.y{color:var(--moss-700);font-weight:500}
+table.mx td.n{color:var(--clay-700);font-weight:500}
+.swatchrow{display:flex;gap:0;margin:10px 0 0;border-radius:8px;overflow:hidden;width:520px;max-width:100%}
+.swatchrow s{text-decoration:none;flex:1;height:52px;display:block}
+.sw{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+</style></head><body><div class="wrap">
+
+<h1>Prism on the phones</h1>
+<p class="lede">Colour for iOS and Android, taken from the marketing site's atmosphere. That effect is a WebGL shader pushed through an SVG turbulence filter, and React Native has neither at a price worth paying, so <b>the same math ran once here and the phones ship the result as a PNG</b>. One texture, decoded at launch, composited with plain alpha. No shader, no blur, no blend mode, no per-frame work, and byte-identical on both platforms. Everything below is drawn at real device size with the real baked assets, so what you see is what would ship.</p>
+
+<ul class="nav">
+<li><a href="#families">The two families</a></li>
+<li><a href="#a">A Sign in only</a></li>
+<li><a href="#b">B The plate</a></li>
+<li><a href="#c">C The corner</a></li>
+<li><a href="#d">D The ground</a></li>
+<li><a href="#cost">Cost and contrast</a></li>
+</ul>
+
+<!-- ============ FAMILIES ============ -->
+<div class="sechead" id="families"><h2>First, which colours</h2><u>the same field, mapped two ways</u></div>
+<p class="snote">The marketing shader reads its noise through a full-spectrum cosine palette, which is where the oil-on-water look comes from. Faded to 10% that still leans pink and cyan, hues offload does not own. The alternative maps the identical field onto a ring built from the palette we already have: <code>--blue-200</code>, a violet bridging blue and clay, <code>--moss-200</code>, a warm straw, <code>--clay-100</code>. Same shapes, same softness, different vocabulary.</p>
+
+<ul class="spec" style="margin:0 0 18px">
+<li><b>Both families are baked deeper than the web washes they come from</b>, and that is forced rather than chosen. The site gets its density from <code>mix-blend-mode: multiply</code>, which React Native does not have: a light tint composited with plain alpha over <code>#FAF9F7</code> paper is very nearly invisible. Baking the multiply into the texture is how you get the same result without the blend mode, and it is the rule for anything else ported off that page.</li>
+<li><b>The mark is baked at full saturation and the atmosphere at 66%</b>, which is the same split the shader makes. Where the colour is the subject it can be a colour; where it sits under content it is pulled back to something that can hold text.</li>
+</ul>
+<div class="swatchrow"><s style="background:#C9D6FA"></s><s style="background:#C9C2EE"></s><s style="background:#C7DACD"></s><s style="background:#EBD9B8"></s><s style="background:#FBE6E1"></s></div>
+<div class="sw"><span>blue-200 #C9D6FA</span><span>violet #C9C2EE</span><span>moss-200 #C7DACD</span><span>straw #EBD9B8</span><span>clay-100 #FBE6E1</span></div>
+
+<div class="rowlabel">Sign in, the one screen where the effect can be loud <u>mark filled, bloom behind at 34%</u></div>
+<div class="row">
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="left:-30%;top:-16%;width:112%;height:52%;background-image:url(../assets/prism/prism-bloom.png);opacity:.34"></div>
+<div class="gate">
+<span class="markbox"><span class="fill" style="background-image:url(../assets/prism/prism-mark.png);opacity:1"></span></span>
+<div><h3>Put it down.<br>offload files it.</h3><p style="margin-top:10px">Invite only while we are small.</p></div>
+<div class="btns">
+<span class="btn dark">Continue with Apple</span>
+<span class="btn light">Continue with Google</span>
+</div>
+<span class="terms">By continuing you agree to our <u>Terms</u> and <u>Privacy</u>.</span>
+</div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag i"><b>PRISM</b><span>full spectrum, as the site draws it</span></div>
+</div>
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="left:-30%;top:-16%;width:112%;height:52%;background-image:url(../assets/prism/oil-bloom.png);opacity:.34"></div>
+<div class="gate">
+<span class="markbox"><span class="fill" style="background-image:url(../assets/prism/oil-mark.png);opacity:1"></span></span>
+<div><h3>Put it down.<br>offload files it.</h3><p style="margin-top:10px">Invite only while we are small.</p></div>
+<div class="btns">
+<span class="btn dark">Continue with Apple</span>
+<span class="btn light">Continue with Google</span>
+</div>
+<span class="terms">By continuing you agree to our <u>Terms</u> and <u>Privacy</u>.</span>
+</div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag m"><b>OIL</b><span>the same field on offload's washes</span></div>
+</div>
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="gate">
+<span class="markbox"><i class="lm" style="width:76px;height:76px"></i></span>
+<div><h3>Put it down.<br>offload files it.</h3><p style="margin-top:10px">Invite only while we are small.</p></div>
+<div class="btns">
+<span class="btn dark">Continue with Apple</span>
+<span class="btn light">Continue with Google</span>
+</div>
+<span class="terms">By continuing you agree to our <u>Terms</u> and <u>Privacy</u>.</span>
+</div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag w"><b>TODAY</b><span>what the kit draws now</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>Prism is the site's own picture</b> and the pull of it is real: it is the thing somebody remembers about the landing page, and repeating it on first launch says the two are one product. The cost is that it introduces cyan and hot pink to a system whose entire colour argument is one accent used sparingly.</li>
+<li><b>Oil keeps the argument.</b> Every hue in it is already a token, so it reads as offload's own material rather than as a stock iridescence. Side by side it is quieter, and at in-app strengths the two are nearly indistinguishable anyway, which is itself the case for oil: if you cannot tell them apart at 10%, take the one that does not add five hues to the palette.</li>
+<li><b>The rest of this page uses oil</b>, and every option works with either. If you want prism, it is a one-word swap in the asset name.</li>
+</ul>
+<span class="rec">Recommended: oil</span>
+
+<!-- ============ A ============ -->
+<div class="sechead" id="a"><h2>A &middot; Sign in only</h2><u>colour where there is no content</u></div>
+<p class="snote">The effect lives on the two screens somebody sees before they have an account, and the app behind it is untouched. This is the marketing site's own rule carried over: the atmosphere belongs to the pre-account surfaces, and flat paper is the law once you are in.</p>
+
+<div class="row">
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="left:-30%;top:-16%;width:112%;height:52%;background-image:url(../assets/prism/oil-bloom.png);opacity:.34"></div>
+<div class="gate">
+<span class="markbox"><span class="fill" style="background-image:url(../assets/prism/oil-mark.png);opacity:1"></span></span>
+<div><h3>Put it down.<br>offload files it.</h3><p style="margin-top:10px">Invite only while we are small.</p></div>
+<div class="btns"><span class="btn dark">Continue with Apple</span><span class="btn light">Continue with Google</span></div>
+<span class="terms">By continuing you agree to our <u>Terms</u> and <u>Privacy</u>.</span>
+</div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag m"><b>A</b><span>sign in</span></div>
+</div>
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="pbar"><h4>Today</h4><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i></div>
+<div class="psec">Waiting on you <em>3</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Lisbon trip &middot; Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Ana needs an answer on the 14th</b><s>Flat admin &middot; asked Tuesday</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Oak brackets, 30cm, matte black</b><s><u>filing</u> &middot; just now</s></div></div>
+<div class="psec">Everything else <em>9</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Bank transfer for Ana</b><s>Flat admin &middot; Mon</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Sourdough starter, day 4</b><s>Kitchen &middot; you</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="x"><b>Airport transfer receipt</b><s>Lisbon trip &middot; 2 Sep</s></div></div>
+<div class="plate"><div class="comp"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag i"><b>A</b><span>Today, unchanged</span></div>
+</div>
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="pbar"><i class="g" style="--ic:url(../assets/icons/chevron-left.svg)"></i><h4>Lisbon trip</h4><i class="g" style="--ic:url(../assets/icons/share-2.svg)"></i></div>
+<div class="psec">Memories <em>2</em></div>
+<div class="prow"><i class="g" style="--ic:url(../assets/icons/sparkles.svg);width:14px;height:14px;color:var(--text-accent);margin-top:4px"></i><div class="x"><b style="font-weight:400;font-size:14.5px;line-height:1.45">Ana pays by bank transfer, not card, and wants the invoice a week ahead</b></div></div>
+<div class="psec">Everything in here <em>12</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="x"><b>Airport transfer receipt</b><s>you &middot; 2 Sep</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Apartment door code is 4417</b><s>Sam &middot; 1 Sep</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>you &middot; 14 Aug</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Confirm the checkout time</b><s>Fri 12 Sep</s></div></div>
+<div class="plate"><div class="comp"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span class="on"><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag i"><b>A</b><span>a thread, unchanged</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>Nothing can go wrong.</b> No text sits on a tint, no surface changes, and the app's cost is exactly what it is today. It is also the only option that needs no contrast argument at all.</li>
+<li><b>It does not answer the ask.</b> You said the app lacks colour; this puts colour on the one screen somebody sees once and never again. Two weeks in, the product is as grey as it was.</li>
+<li><b>Worth taking as the floor</b>, whichever of B, C or D you pick: all three assume the gate already looks like this.</li>
+</ul>
+
+<!-- ============ B ============ -->
+<div class="sechead" id="b"><h2>B &middot; The plate</h2><u>colour where the work happens</u></div>
+<p class="snote">A band behind the composer and the tab bar, densest at the bottom edge and gone before it reaches the list. The plate loses its own opaque fill and sits on the band instead. Colour is present on every screen, permanently, and never behind a paragraph: the only text over it is the placeholder and three tab labels.</p>
+
+<div class="row">
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="left:-10%;right:-10%;bottom:0;height:200px;background-image:url(../assets/prism/oil-band.png);opacity:.42"></div>
+<div class="pbar"><h4>Today</h4><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i></div>
+<div class="psec">Waiting on you <em>3</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Lisbon trip &middot; Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Ana needs an answer on the 14th</b><s>Flat admin &middot; asked Tuesday</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Oak brackets, 30cm, matte black</b><s><u>filing</u> &middot; just now</s></div></div>
+<div class="psec">Everything else <em>9</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Bank transfer for Ana</b><s>Flat admin &middot; Mon</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Sourdough starter, day 4</b><s>Kitchen &middot; you</s></div></div><div class="prow" style="border-bottom:none"><span class="t ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="x"><b>Airport transfer receipt</b><s>Lisbon trip &middot; 2 Sep</s></div></div>
+<div class="plate clear"><div class="comp"><span class="f2" style="background:rgba(255,255,255,.72)">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag m"><b>B</b><span>Today</span></div>
+</div>
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="left:-10%;right:-10%;bottom:0;height:200px;background-image:url(../assets/prism/oil-band.png);opacity:.42"></div>
+<div class="pbar"><i class="g" style="--ic:url(../assets/icons/chevron-left.svg)"></i><h4>Lisbon trip</h4><i class="g" style="--ic:url(../assets/icons/share-2.svg)"></i></div>
+<div class="psec">Memories <em>2</em></div>
+<div class="prow"><i class="g" style="--ic:url(../assets/icons/sparkles.svg);width:14px;height:14px;color:var(--text-accent);margin-top:4px"></i><div class="x"><b style="font-weight:400;font-size:14.5px;line-height:1.45">Ana pays by bank transfer, not card, and wants the invoice a week ahead</b></div></div>
+<div class="psec">Everything in here <em>12</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="x"><b>Airport transfer receipt</b><s>you &middot; 2 Sep</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Apartment door code is 4417</b><s>Sam &middot; 1 Sep</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>you &middot; 14 Aug</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Confirm the checkout time</b><s>Fri 12 Sep</s></div></div>
+<div class="plate clear"><div class="comp"><span class="f2" style="background:rgba(255,255,255,.72)">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span class="on"><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag i"><b>B</b><span>a thread</span></div>
+</div>
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="left:-10%;right:-10%;bottom:0;height:200px;background-image:url(../assets/prism/oil-band.png);opacity:.42"></div>
+<div class="pbar"><i class="g" style="--ic:url(../assets/icons/x.svg)"></i><h4 style="font-size:15px;font-weight:500">bookshelf brackets, and Ana wants the invoice a week early</h4></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:14px;padding:14px 20px;position:relative;z-index:1;justify-content:flex-end">
+<div style="align-self:flex-end;max-width:80%;background:var(--surface-fill);border-radius:16px;padding:11px 14px;font:var(--weight-regular) 15px/1.45 var(--font-core)">bookshelf brackets, and Ana wants the invoice a week early</div>
+<div style="align-self:flex-start;max-width:88%;font:var(--weight-regular) 15px/1.5 var(--font-quiet)">Filed both. The brackets went with the bookshelf build, and Ana&rsquo;s invoice note is now a memory on Flat admin.
+<span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><a style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:var(--radius-pill);background:var(--surface-accent-soft);color:var(--moss-700);font:var(--weight-medium) 13px/1 var(--font-core);text-decoration:none"><i class="g" style="--ic:url(../assets/icons/lasso.svg);width:13px;height:13px"></i>Bookshelf build</a><a style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:var(--radius-pill);background:var(--surface-accent-soft);color:var(--moss-700);font:var(--weight-medium) 13px/1 var(--font-core);text-decoration:none"><i class="g" style="--ic:url(../assets/icons/lasso.svg);width:13px;height:13px"></i>Flat admin</a></span></div>
+</div>
+<div class="plate clear"><div class="comp"><span class="f2" style="background:rgba(255,255,255,.72)">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag i"><b>B</b><span>the composer, keyboard down</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>It puts colour exactly where offload works.</b> The composer is the product; the band makes the bottom of every screen the warm end and leaves the reading area alone. Of the four this is the one that reads as deliberate rather than as a texture somebody switched on.</li>
+<li><b>The field needs a white bed.</b> The composer's placeholder is <code>--text-tertiary</code>, which is exactly 4.5:1 on flat paper and has no headroom, so the input keeps a 72% white fill and sits on the band rather than in it. Tab labels are <code>--ink-950</code> and <code>--ink-400</code> at 10px, and the inactive grey is the thing to watch: measured worst case below.</li>
+<li><b>It collides with a decided rule.</b> The plate drops its corners when a conversation is stacked on it, because both carry the same fill; a plate that carries a picture instead has to decide whether the picture continues up behind the raised sheet or stops at the join. Answerable, but it is new work on a part that was just settled.</li>
+<li><b>The keyboard case.</b> The plate clears to the composer alone when the keyboard is up, so the band has to shrink with it or it ends up behind the keyboard. Cheap, but it has to be specified.</li>
+</ul>
+<span class="rec">Recommended: B</span>
+
+<!-- ============ C ============ -->
+<div class="sechead" id="c"><h2>C &middot; The corner</h2><u>colour in the margin</u></div>
+<p class="snote">One bloom bleeding in from the top corner, behind the app bar and the first section heading, gone before the list starts. The text column never crosses it. Present on every screen, and it moves nothing: no surface loses its fill and no component changes.</p>
+
+<div class="row">
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="right:-34%;top:-24%;width:118%;height:46%;background-image:url(../assets/prism/oil-bloom.png);opacity:.30"></div>
+<div class="pbar"><h4>Today</h4><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i></div>
+<div class="psec">Waiting on you <em>3</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Lisbon trip &middot; Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Ana needs an answer on the 14th</b><s>Flat admin &middot; asked Tuesday</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Oak brackets, 30cm, matte black</b><s><u>filing</u> &middot; just now</s></div></div>
+<div class="psec">Everything else <em>9</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Bank transfer for Ana</b><s>Flat admin &middot; Mon</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Sourdough starter, day 4</b><s>Kitchen &middot; you</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="x"><b>Airport transfer receipt</b><s>Lisbon trip &middot; 2 Sep</s></div></div>
+<div class="plate"><div class="comp"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag m"><b>C</b><span>Today</span></div>
+</div>
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="right:-34%;top:-24%;width:118%;height:46%;background-image:url(../assets/prism/oil-bloom.png);opacity:.30"></div>
+<div class="pbar"><i class="g" style="--ic:url(../assets/icons/chevron-left.svg)"></i><h4>Lisbon trip</h4><i class="g" style="--ic:url(../assets/icons/share-2.svg)"></i></div>
+<div class="psec">Memories <em>2</em></div>
+<div class="prow"><i class="g" style="--ic:url(../assets/icons/sparkles.svg);width:14px;height:14px;color:var(--text-accent);margin-top:4px"></i><div class="x"><b style="font-weight:400;font-size:14.5px;line-height:1.45">Ana pays by bank transfer, not card, and wants the invoice a week ahead</b></div></div>
+<div class="psec">Everything in here <em>12</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="x"><b>Airport transfer receipt</b><s>you &middot; 2 Sep</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Apartment door code is 4417</b><s>Sam &middot; 1 Sep</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>you &middot; 14 Aug</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Confirm the checkout time</b><s>Fri 12 Sep</s></div></div>
+<div class="plate"><div class="comp"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span class="on"><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag i"><b>C</b><span>a thread</span></div>
+</div>
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="right:-34%;top:-24%;width:118%;height:46%;background-image:url(../assets/prism/oil-bloom.png);opacity:.30"></div>
+<div class="pbar"><h4>Memories</h4><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i></div>
+<div class="psec">What offload knows <em>18</em></div>
+<div class="prow"><i class="g" style="--ic:url(../assets/icons/sparkles.svg);width:14px;height:14px;color:var(--text-accent);margin-top:4px"></i><div class="x"><b style="font-weight:400;font-size:14.5px;line-height:1.45">You read at night and put things down before bed</b><s>learned in August</s></div></div>
+<div class="prow"><i class="g" style="--ic:url(../assets/icons/circle-dot.svg);width:14px;height:14px;color:var(--ink-300);margin-top:4px"></i><div class="x"><b style="font-weight:400;font-size:14.5px;line-height:1.45">Ana is a client, not a friend</b><s>you told offload</s></div></div>
+<div class="prow"><i class="g" style="--ic:url(../assets/icons/sparkles.svg);width:14px;height:14px;color:var(--text-accent);margin-top:4px"></i><div class="x"><b style="font-weight:400;font-size:14.5px;line-height:1.45">Receipts go to Flat admin, not to the trip they came from</b><s>learned last week</s></div></div>
+<div class="plate"><div class="comp"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span class="on"><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag i"><b>C</b><span>Memories</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>Cheapest to adopt of the three that touch the app.</b> One absolutely-positioned image at the top of the screen container. No component changes, no plate rework, no keyboard case, and it composes with the pane head and the app bar without either of them knowing.</li>
+<li><b>It is the weakest of the three as a design.</b> A soft shape in the corner is decoration in the plainest sense: it does not mark anything, does not belong to any surface, and could be lifted out with nobody noticing. B at least means something.</li>
+<li><b>The section heading sits on it.</b> "Waiting on you" is 21px <code>--ink-950</code>, which has enormous headroom, so this is safe. The count beside it is <code>--moss-600</code> at 12px, which is the one to check.</li>
+<li><b>It scrolls or it does not, and that has to be decided.</b> Pinned to the screen it is stable and cheap. Pinned to the content it slides away and the app is grey again below the fold, which is most of the time.</li>
+</ul>
+
+<!-- ============ D ============ -->
+<div class="sechead" id="d"><h2>D &middot; The ground</h2><u>colour everywhere</u></div>
+<p class="snote">The whole page background carries the field at a very low strength, heaviest at one corner and gone by the opposite one. Every row, every paragraph and every label sits on it. Shown here at 14%, which is about the ceiling before the tint becomes a colour rather than a warmth.</p>
+
+<div class="row">
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="inset:0;background-image:url(../assets/prism/oil-ground.png);opacity:.14"></div>
+<div class="pbar"><h4>Today</h4><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i></div>
+<div class="psec">Waiting on you <em>3</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Lisbon trip &middot; Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Ana needs an answer on the 14th</b><s>Flat admin &middot; asked Tuesday</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Oak brackets, 30cm, matte black</b><s><u>filing</u> &middot; just now</s></div></div>
+<div class="psec">Everything else <em>9</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Bank transfer for Ana</b><s>Flat admin &middot; Mon</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Sourdough starter, day 4</b><s>Kitchen &middot; you</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="x"><b>Airport transfer receipt</b><s>Lisbon trip &middot; 2 Sep</s></div></div>
+<div class="plate"><div class="comp"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag m"><b>D</b><span>Today, ground at 14%</span></div>
+</div>
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="inset:0;background-image:url(../assets/prism/oil-ground.png);opacity:.14"></div>
+<div class="pbar"><i class="g" style="--ic:url(../assets/icons/chevron-left.svg)"></i><h4>Lisbon trip</h4><i class="g" style="--ic:url(../assets/icons/share-2.svg)"></i></div>
+<div class="psec">Memories <em>2</em></div>
+<div class="prow"><i class="g" style="--ic:url(../assets/icons/sparkles.svg);width:14px;height:14px;color:var(--text-accent);margin-top:4px"></i><div class="x"><b style="font-weight:400;font-size:14.5px;line-height:1.45">Ana pays by bank transfer, not card, and wants the invoice a week ahead</b></div></div>
+<div class="psec">Everything in here <em>12</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="x"><b>Airport transfer receipt</b><s>you &middot; 2 Sep</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Apartment door code is 4417</b><s>Sam &middot; 1 Sep</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>you &middot; 14 Aug</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Confirm the checkout time</b><s>Fri 12 Sep</s></div></div>
+<div class="plate"><div class="comp"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span class="on"><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag i"><b>D</b><span>a thread</span></div>
+</div>
+
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="inset:0;background-image:url(../assets/prism/oil-ground.png);opacity:.30"></div>
+<div class="pbar"><h4>Today</h4><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i></div>
+<div class="psec">Waiting on you <em>3</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Lisbon trip &middot; Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Ana needs an answer on the 14th</b><s>Flat admin &middot; asked Tuesday</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Oak brackets, 30cm, matte black</b><s><u>filing</u> &middot; just now</s></div></div>
+<div class="psec">Everything else <em>9</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Bank transfer for Ana</b><s>Flat admin &middot; Mon</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Sourdough starter, day 4</b><s>Kitchen &middot; you</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="x"><b>Airport transfer receipt</b><s>Lisbon trip &middot; 2 Sep</s></div></div>
+<div class="plate"><div class="comp"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag a"><b>D+</b><span>the same at 30%, to show where it breaks</span></div>
+</div>
+
+</div>
+
+<ul class="spec">
+<li><b>The most colour for the least structure.</b> It reads as tinted paper rather than as an effect, and it needs one line of code: the screen's background becomes an image. No component knows about it.</li>
+<li><b>It is the one option that can fail the contrast floor</b>, and the third frame is there to show it. <code>--text-tertiary</code> is <code>#6E6E6E</code>, chosen because it is exactly 4.5:1 on every light surface with nothing spare. Every row's meta line uses it. At 14% the ground is still light enough; at 30% the warm corner takes it under, and that is the whole margin the palette has.</li>
+<li><b>It also fights <code>--surface-page</code>.</b> The page is already <code>#FAF9F7</code>, a warm off-white chosen deliberately, and a tint over it means the product's paper is no longer one colour. Rows, sheets and cards are all <code>--surface-raised</code> white and would now sit on a coloured field, which reads as a card lifted off a background rather than paper.</li>
+<li><b>If you want it</b>, it wants a hard rule: 14% is the ceiling, <code>--text-tertiary</code> must be re-measured at the densest corner, and it belongs behind the list only, not behind sheets.</li>
+</ul>
+
+<!-- ============ PARITY ============ -->
+<div class="sechead"><h2>iOS and Android, the same picture</h2><u>option B on both</u></div>
+<p class="snote">A baked texture is the strongest parity guarantee available: the same file, the same alpha, the same geometry. There is no shader to differ, no blur radius to interpret and no blend mode that one platform supports and the other approximates. What still differs is what already differs between the two kits: the tab bar's height and label treatment, and the plate's corners.</p>
+
+<div class="row">
+<div class="opt">
+<div class="f ios"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="left:-10%;right:-10%;bottom:0;height:200px;background-image:url(../assets/prism/oil-band.png);opacity:.42"></div>
+<div class="pbar"><h4>Today</h4><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i></div>
+<div class="psec">Waiting on you <em>3</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Lisbon trip &middot; Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Ana needs an answer on the 14th</b><s>Flat admin &middot; asked Tuesday</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Oak brackets, 30cm, matte black</b><s>filing &middot; just now</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Bank transfer for Ana</b><s>Flat admin &middot; Mon</s></div></div>
+<div class="plate clear"><div class="comp"><span class="f2" style="background:rgba(255,255,255,.72)">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="hi"><b></b></div>
+</div></div>
+<div class="tag i"><b>iOS</b><span>390 &times; 844</span></div>
+</div>
+
+<div class="opt">
+<div class="f and"><div class="in">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="tex" style="left:-10%;right:-10%;bottom:0;height:210px;background-image:url(../assets/prism/oil-band.png);opacity:.42"></div>
+<div class="pbar" style="height:56px"><h4 style="font-size:22px;font-weight:400;letter-spacing:0">Today</h4><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i></div>
+<div class="psec" style="font-size:20px">Waiting on you <em>3</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b style="font-size:16px">Book the airport transfer</b><s>Lisbon trip &middot; Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b style="font-size:16px">Ana needs an answer on the 14th</b><s>Flat admin &middot; asked Tuesday</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b style="font-size:16px">Oak brackets, 30cm, matte black</b><s>filing &middot; just now</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b style="font-size:16px">Time Out Market</b><s>Lisbon trip &middot; Sam</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b style="font-size:16px">Bank transfer for Ana</b><s>Flat admin &middot; Mon</s></div></div>
+<div class="plate clear"><div class="comp"><span class="f2" style="background:rgba(255,255,255,.72);height:48px">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg);width:44px;height:44px"></span></div>
+<div class="tabs" style="height:68px"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div></div>
+</div>
+<div class="navbar"><s class="t"></s><s class="c"></s><s class="b"></s></div>
+</div></div>
+<div class="tag i"><b>Android</b><span>412 &times; 915</span></div>
+</div>
+</div>
+
+<!-- ============ COST ============ -->
+<div class="sechead" id="cost"><h2>Cost and contrast</h2><u>what each option actually spends</u></div>
+
+<table class="mx">
+<tr><th style="width:150px">&nbsp;</th><th>A Sign in</th><th>B The plate</th><th>C The corner</th><th>D The ground</th></tr>
+<tr><td><b>Per-frame work</b></td><td class="y">none</td><td class="y">none</td><td class="y">none</td><td class="y">none</td></tr>
+<tr><td><b>Assets shipped</b></td><td>2 &middot; 105KB</td><td>1 &middot; 57KB</td><td>1 &middot; 74KB</td><td>1 &middot; 110KB</td></tr>
+<tr><td><b>Text over colour</b></td><td class="y">none</td><td>placeholder, 3 tab labels</td><td>1 heading, 1 count</td><td class="n">everything</td></tr>
+<tr><td><b>Contrast risk</b></td><td class="y">none</td><td>low, one bed needed</td><td class="y">very low</td><td class="n">real, needs a ceiling</td></tr>
+<tr><td><b>Components touched</b></td><td class="y">none</td><td>the plate, the composer</td><td class="y">none</td><td>the page surface</td></tr>
+<tr><td><b>Answers the ask</b></td><td class="n">no</td><td class="y">yes</td><td>partly</td><td class="y">yes</td></tr>
+</table>
+
+<ul class="spec">
+<li><b>Nothing here animates, and that is the point.</b> The marketing atmosphere costs ~96ms of raster a frame because each wash drifts inside a turbulence filter; frozen, it is one paint. A baked texture takes that to its conclusion: the decode happens once at launch, the composite is a single quad the GPU draws with the rest of the screen, and there is no rAF, no timer and no shader context. It is the same cost as any other image in the app, and it is unaffected by scrolling.</li>
+<li><b>The weights above are PNG, and PNG is the wrong format for this.</b> A field of photographic noise is close to incompressible losslessly, which is why these files are what they are; the textures are also baked at 256px because the field is smooth enough that a phone cannot tell it from 512px once it is stretched across the screen. A shipping build should re-encode to WebP, which on this kind of content typically lands well under half the PNG figure. Read the table as an upper bound.</li>
+<li><b>Reduced motion needs no special case</b>, because nothing moves. Worth saying out loud since the atmosphere on web has three separate gates for it.</li>
+<li><b>Dark theme is not covered by these assets.</b> Every wash in the ring is a light tint chosen against paper, and over <code>#1C1B19</code> they would read as fog. Dark needs its own bake at lower alpha, or the effect is a light-theme feature and says so.</li>
+<li><b>The measurement to take before shipping B or D</b> is <code>--text-tertiary</code> and <code>--ink-400</code> over the densest pixel of the texture, on both themes. Those two are the only colours in the system with no contrast headroom, and every row's meta line and every inactive tab label uses one of them.</li>
+</ul>
+
+<div class="rowlabel">If you want my read</div>
+<ul class="spec">
+<li><b>B, with A underneath it.</b> The gate gets the full effect because there is no content to protect, and the plate carries a band so the app has colour in the one place that is always on screen and never behind a paragraph. Together they answer the ask without touching the reading surface.</li>
+<li><b>C is the fallback</b> if the plate rework is more than you want to spend right now: it is an hour of work and no component changes, and it can be replaced by B later without anything else moving.</li>
+<li><b>D I would not ship</b> at a strength high enough to notice. The margin between visible and unreadable is the whole of what <code>--text-tertiary</code> has, and the product's paper is a decision that was already made.</li>
+</ul>
+
+</div></body></html>

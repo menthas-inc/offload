@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"02fac938e6f9","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/TurnFooter.jsx":"3ffb8edfd0ed","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"26fe2e1d4cf8","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"6980e3a3a7bb","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"a4551768e509","components/layout/MemoryRow.jsx":"b2ec5ff94bc1","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"6168aceeb5d8","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"89dc84e4bad9","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"50bc09c7916d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"ff74cfc9f291","ui_kits/android_app/M3SettingsScreen.jsx":"10bd3bef4213","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"74bb28c09731","ui_kits/android_app/M3TodayScreen.jsx":"5cc65d5723ad","ui_kits/mobile_app/App.jsx":"8b33bbed0476","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"12e4cf4ea57b","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"53511fd714cd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"3538ca7c057e","ui_kits/mobile_app/SettingsScreen.jsx":"6e07d5456b43","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"65f843b08dfa","ui_kits/mobile_app/TodayScreen.jsx":"fca5165004fc","ui_kits/mobile_app/data.js":"01d6d5ac0b68","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"fdac02706b2e","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"e2a8dedf1915","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"26fe2e1d4cf8","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"6980e3a3a7bb","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"ed63ae9f4be7","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"6168aceeb5d8","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"095d97ec62df","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"50bc09c7916d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"ff74cfc9f291","ui_kits/android_app/M3SettingsScreen.jsx":"10bd3bef4213","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"74bb28c09731","ui_kits/android_app/M3TodayScreen.jsx":"5cc65d5723ad","ui_kits/mobile_app/App.jsx":"8b33bbed0476","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"89aeba46db74","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"53511fd714cd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"3538ca7c057e","ui_kits/mobile_app/SettingsScreen.jsx":"6e07d5456b43","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"65f843b08dfa","ui_kits/mobile_app/TodayScreen.jsx":"fca5165004fc","ui_kits/mobile_app/data.js":"01d6d5ac0b68","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"fdac02706b2e","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -485,8 +485,9 @@ function _extends() { return _extends = Object.assign ? Object.assign.bind() : f
 /* The answers to a question offload asked, as taps. 012's calendar proposal is the same
    control with two fixed options, so this generalises it rather than replacing it.
 
-   Three at most, all of them typeable, and none of them destroys anything. A proposal
-   has one primary and one plain way out; a choice among equals has no primary. */
+   Five at most, all of them typeable, and none of them destroys anything. A choice among
+   values has no primary: dark ink would say offload was recommending one, and a question
+   is what offload asks when it does not know. */
 
 function usePress() {
   const [h, setH] = React.useState(false),
@@ -509,26 +510,32 @@ function usePress() {
 }
 function Reply({
   option,
-  onPick
+  onPick,
+  hint
 }) {
   const {
     h,
     p,
     bind
   } = usePress();
-  const kind = option.kind || "neutral";
+  const kind = option.kind || "value";
+  const plain = kind === "plain";
   const paint = {
-    /* --surface-inverse, not --ink-950: the ramp flips in dark, so a literal ink fill with
-       white on it is white on near-white. The inverse pair is the only one that holds. */
+    /* A value is Chip's geometry with a raised paint: --surface-card and --border-strong.
+       The fill is 1.06:1 against the reply bubble in light and exactly 1.00:1 in dark,
+       where the bubble and the card are the same token, so --border-strong is what draws
+       this chip in both themes and the fill only matters where the bubble does not reach. */
+    value: {
+      bg: h ? "var(--surface-fill)" : "var(--surface-card)",
+      fg: "var(--text-primary)",
+      bd: "var(--border-strong)"
+    },
+    /* Kept for 012's proposal, which has one recommendation and one way out. A question
+       among values never uses it. */
     primary: {
       bg: h ? "var(--ink-800)" : "var(--surface-inverse)",
       fg: "var(--text-inverse)",
       bd: "transparent"
-    },
-    neutral: {
-      bg: h ? "var(--ink-50)" : "var(--paper)",
-      fg: "var(--text-primary)",
-      bd: "var(--border-strong)"
     },
     thread: {
       bg: h ? "var(--moss-100)" : "var(--surface-accent-soft)",
@@ -536,60 +543,101 @@ function Reply({
       bd: "var(--border-accent)"
     },
     plain: {
-      bg: "transparent",
+      bg: h ? "var(--state-hover)" : "transparent",
       fg: "var(--text-secondary)",
       bd: "transparent"
     }
-  }[kind];
-  return /*#__PURE__*/React.createElement("button", _extends({
-    type: "button",
-    onClick: () => onPick && onPick(option)
+  }[kind] || {};
+  /* Drawn 30 tall inside a 44 target, the hit area cancelled by a negative margin so two
+     wrapped lines of chips sit 30 apart in ink and meet at 44 in target. */
+  return /*#__PURE__*/React.createElement("span", _extends({
+    role: "button",
+    tabIndex: 0,
+    "aria-label": hint ? option.label + ", " + hint : undefined,
+    onClick: () => onPick && onPick(option),
+    onKeyDown: e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onPick && onPick(option);
+      }
+    }
   }, bind, {
     style: {
-      minHeight: "var(--tap-min,44px)",
+      display: "inline-flex",
+      alignItems: "center",
+      height: "var(--tap-min,44px)",
+      margin: "-7px 0",
+      cursor: "pointer"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
       display: "inline-flex",
       alignItems: "center",
       gap: "var(--space-3)",
-      padding: kind === "plain" ? "0 var(--space-3)" : "0 var(--space-6)",
+      height: 30,
+      boxSizing: "border-box",
+      padding: plain ? "0 var(--space-3)" : "0 var(--space-5)",
       borderRadius: "var(--radius-pill)",
-      cursor: "pointer",
       background: paint.bg,
       color: paint.fg,
       border: "1px solid " + paint.bd,
-      font: (kind === "plain" ? "var(--weight-regular)" : "var(--weight-medium)") + " 15px/1 var(--font-core)",
+      font: (plain ? "var(--weight-regular)" : "var(--weight-medium)") + " var(--size-label)/1 var(--font-core)",
       letterSpacing: "var(--tracking-body)",
       whiteSpace: "nowrap",
       transition: "background var(--transition-ui)",
       transform: p ? "scale(var(--press-scale))" : "none"
     }
-  }), option.icon ? /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+  }, plain ? /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: "x",
+    size: 13
+  }) : option.icon ? /*#__PURE__*/React.createElement(__ds_scope.Icon, {
     name: option.icon,
     size: 14
-  }) : null, option.label);
+  }) : null, option.label));
 }
 function QuickReplies({
   options = [],
   onPick,
+  label,
   note,
   style,
   ...rest
 }) {
   if (!options.length) return null;
+  const shown = options.slice(0, 5);
+  /* The way out is not one of the values, so it never shares their line: the values wrap
+     among themselves and the plain options break to a row of their own. Which line it
+     landed on was otherwise a property of the labels rather than a decision. */
+  const values = shown.filter(o => (o.kind || "value") !== "plain");
+  const ways = shown.filter(o => o.kind === "plain");
   return /*#__PURE__*/React.createElement("div", _extends({}, rest, {
     style: {
       marginTop: "var(--space-4)",
       ...style
     }
   }), /*#__PURE__*/React.createElement("div", {
+    role: "group",
+    "aria-label": label,
     style: {
       display: "flex",
-      flexWrap: "wrap",
+      flexFlow: "row wrap",
       gap: "var(--space-4)"
     }
-  }, options.slice(0, 3).map((o, i) => /*#__PURE__*/React.createElement(Reply, {
+  }, values.map((o, i) => /*#__PURE__*/React.createElement(Reply, {
     key: o.id || o.label || i,
     option: o,
-    onPick: onPick
+    onPick: onPick,
+    hint: label
+  })), ways.length ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      flexBasis: "100%",
+      height: 0
+    }
+  }) : null, ways.map((o, i) => /*#__PURE__*/React.createElement(Reply, {
+    key: o.id || o.label || "way" + i,
+    option: o,
+    onPick: onPick,
+    hint: label
   }))), note ? /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: "var(--space-3)",
@@ -903,6 +951,11 @@ const REF_ICON = {
 
 /* Order is fixed: state, then threads, then sources. What happened, where it landed, where
    it came from, so a turn can be read without being read. */
+/* Every mark in this row is MARK_H tall, and it is 30 because that is Chip, which the
+   thread pills already come from. The row held 24, 26 and 30 side by side and that read as
+   a mistake, which is what it was: two bespoke marks either side of a governed component.
+   Named once so the next mark added here cannot be a fourth height. */
+const MARK_H = 30;
 function TurnFooter({
   state,
   refs = [],
@@ -915,8 +968,12 @@ function TurnFooter({
 }) {
   const shown = sources.slice(0, maxSources);
   const hidden = sources.length - shown.length;
+  /* Seen has no mark. The writing indicator says the same thing at the same moment a few
+     lines below, so a seen turn reports nothing and draws no row at all: two marks for one
+     state, and the one that stayed is the one that also says work is happening. */
+  const mark = state === "done";
   /* An empty footer is no footer, never a 26px gap. */
-  if (!state && !refs.length && !sources.length) return null;
+  if (!mark && !refs.length && !sources.length) return null;
   return /*#__PURE__*/React.createElement("div", _extends({}, rest, {
     style: {
       alignSelf: "stretch",
@@ -924,38 +981,27 @@ function TurnFooter({
       flexFlow: "row wrap",
       alignItems: "center",
       gap: "var(--space-2)",
-      minHeight: 26,
+      marginTop: "var(--space-3)",
+      minHeight: MARK_H,
       ...style
     }
-  }), state === "seen" ? /*#__PURE__*/React.createElement("span", {
-    "aria-label": "seen, not answered yet",
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      height: 24,
-      padding: "0 var(--space-3)",
-      borderRadius: "var(--radius-pill)",
-      background: "var(--surface-raised)",
-      border: "1px solid var(--border-hairline)",
-      fontSize: 15,
-      lineHeight: 1
-    }
-  }, "\uD83D\uDC40") : null, state === "done" ? /*#__PURE__*/React.createElement("span", {
+  }), mark ? /*#__PURE__*/React.createElement("span", {
     style: {
       display: "inline-flex",
       alignItems: "center",
       gap: 5,
-      height: 24,
-      padding: "0 var(--space-3)",
+      height: MARK_H,
+      boxSizing: "border-box",
+      padding: "0 var(--space-5)",
       borderRadius: "var(--radius-pill)",
       background: "var(--moss-600)",
       color: "var(--text-on-solid)",
-      font: "var(--weight-medium) 11px/1 var(--font-core)",
+      font: "var(--weight-medium) var(--size-label)/1 var(--font-core)",
       whiteSpace: "nowrap"
     }
   }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
     name: "check",
-    size: 11
+    size: 12
   }), "Done") : null, refs.map((r, i) => {
     const kind = r.kind || "thread";
     return /*#__PURE__*/React.createElement(__ds_scope.Chip, {
@@ -977,13 +1023,14 @@ function TurnFooter({
       display: "inline-flex",
       alignItems: "center",
       gap: 6,
-      height: 26,
-      padding: "0 var(--space-4)",
+      height: MARK_H,
+      boxSizing: "border-box",
+      padding: "0 var(--space-5)",
       borderRadius: "var(--radius-pill)",
       background: "transparent",
       border: "1px solid var(--border-strong)",
       color: "var(--text-secondary)",
-      font: "var(--weight-regular) 12.5px/1 var(--font-core)",
+      font: "var(--weight-regular) var(--size-label)/1 var(--font-core)",
       textDecoration: "none",
       maxWidth: "22ch",
       overflow: "hidden"
@@ -1679,6 +1726,9 @@ function ListRow({
   meta,
   leading,
   trailing,
+  reorder,
+  dragging = false,
+  over = false,
   chevron = false,
   selected = false,
   onClick,
@@ -1692,10 +1742,24 @@ function ListRow({
     bind
   } = usePress();
   const interactive = Boolean(onClick);
+  /* Held and being moved: the row lifts off the list rather than tinting, so it reads as
+     the thing in your hand while the list re-sorts under it. --shadow-2 because it is the
+     only shadow token with a value in dark. */
+  const lift = dragging ? {
+    background: "var(--surface-raised)",
+    borderRadius: "var(--radius-sm)",
+    boxShadow: "var(--shadow-2)"
+  } : null;
+  /* Where the drop would land: a 2px ink line on that edge, the row's full width, because
+     every other boundary in the list is full width and this one is a boundary. */
+  const line = over ? {
+    boxShadow: (over === "top" ? "inset 0 2px 0" : "inset 0 -2px 0") + " var(--ink-950)"
+  } : null;
   return /*#__PURE__*/React.createElement("div", _extends({
     onClick: onClick
   }, interactive ? bind : {}, rest, {
     style: {
+      position: "relative",
       display: "flex",
       alignItems: "center",
       gap: "var(--space-5)",
@@ -1705,6 +1769,8 @@ function ListRow({
       background: selected ? "var(--state-selected)" : p ? "var(--state-press)" : h && interactive ? "var(--state-hover)" : "transparent",
       boxShadow: border ? "inset 0 -1px 0 var(--border-hairline)" : "none",
       transition: "background var(--transition-ui)",
+      ...lift,
+      ...line,
       ...style
     }
   }), leading ? /*#__PURE__*/React.createElement("div", {
@@ -1741,7 +1807,7 @@ function ListRow({
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     }
-  }, meta) : null), trailing ? /*#__PURE__*/React.createElement("div", {
+  }, meta) : null), reorder || trailing ? /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -1751,7 +1817,18 @@ function ListRow({
       fontVariantNumeric: "tabular-nums",
       flex: "0 0 auto"
     }
-  }, trailing) : null, chevron ? /*#__PURE__*/React.createElement("span", {
+  }, reorder ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 8,
+      margin: -8,
+      color: dragging ? "var(--text-primary)" : "var(--text-secondary)",
+      cursor: "grab",
+      touchAction: "none"
+    }
+  }, reorder) : null, trailing) : null, chevron ? /*#__PURE__*/React.createElement("span", {
     style: {
       color: "var(--ink-300)",
       display: "flex"
@@ -1780,6 +1857,9 @@ function MemoryRow({
   onMute,
   maxChars = 200,
   arrived = false,
+  reorder,
+  dragging = false,
+  over = false,
   style,
   ...rest
 }) {
@@ -1797,8 +1877,9 @@ function MemoryRow({
     style: {
       display: "flex",
       flexDirection: "column",
-      background: arrived ? "var(--surface-accent-soft)" : "transparent",
-      borderRadius: arrived ? "var(--radius-sm)" : 0,
+      background: dragging ? "var(--surface-raised)" : arrived ? "var(--surface-accent-soft)" : "transparent",
+      borderRadius: dragging || arrived ? "var(--radius-sm)" : 0,
+      boxShadow: dragging ? "var(--shadow-2)" : over ? (over === "top" ? "inset 0 2px 0" : "inset 0 -2px 0") + " var(--ink-950)" : "none",
       transition: "background var(--duration-mark) var(--ease-out)",
       ...style
     }
@@ -1928,7 +2009,20 @@ function MemoryRow({
       font: "var(--text-caption-role)",
       color: "var(--text-tertiary)"
     }
-  }, muted ? "Muted" : null, muted && author ? " \u00b7 " : null, author) : null)));
+  }, muted ? "Muted" : null, muted && author ? " \u00b7 " : null, author) : null), reorder && !open ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 8,
+      margin: -8,
+      marginTop: 0,
+      flex: "0 0 auto",
+      color: dragging ? "var(--text-primary)" : "var(--text-secondary)",
+      cursor: "grab",
+      touchAction: "none"
+    }
+  }, reorder) : null));
 }
 function Act({
   children,
@@ -8722,14 +8816,15 @@ function SentVoice({
   }, mmss));
 }
 
-/* The mark hangs off the bubble's bottom-left in its own chip, so it never crowds
-   the text and reads the same on one line or five. */
+/* The one mark still drawn on the bubble, on the screens that predate the turn footer.
+   Seen has no mark anywhere: the writing indicator says the same thing at the same moment a
+   few lines below, and the eyes were the product's last emoji. */
 function StatusChip({
   state
 }) {
-  if (state !== "seen" && state !== "done") return null;
+  if (state !== "done") return null;
   return /*#__PURE__*/React.createElement("span", {
-    "aria-label": state === "seen" ? "Seen" : "Done",
+    "aria-label": "Done",
     style: {
       position: "absolute",
       left: -15,
@@ -8737,29 +8832,22 @@ function StatusChip({
       display: "inline-flex",
       alignItems: "center",
       gap: 4,
-      padding: state === "done" ? "0 10px 0 8px" : "0 6px",
-      height: state === "done" ? 24 : 26,
+      padding: "0 10px 0 8px",
+      height: 24,
       borderRadius: "var(--radius-pill)",
-      background: state === "done" ? "var(--moss-600)" : "var(--paper)",
-      border: "1px solid " + (state === "done" ? "var(--moss-600)" : "var(--a-outline)"),
-      color: state === "done" ? "var(--paper)" : "inherit",
+      background: "var(--moss-600)",
+      border: "1px solid var(--moss-600)",
+      color: "var(--paper)",
       boxShadow: "var(--shadow-1)"
     }
-  }, state === "seen" ? /*#__PURE__*/React.createElement("span", {
-    role: "img",
-    "aria-hidden": "true",
-    style: {
-      fontSize: 17,
-      lineHeight: 1
-    }
-  }, "\uD83D\uDC40") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Icon, {
+  }, /*#__PURE__*/React.createElement(Icon, {
     name: "check",
     size: 11
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       font: "var(--weight-medium) 11px/1 var(--font-core)"
     }
-  }, "Done")));
+  }, "Done"));
 }
 
 /* 4: a photo sent with a message is shown, not named. */
@@ -8872,6 +8960,7 @@ function Turns({
   }, t.text), AnswerResult && t.options && t.options.length && !answered[i] ? /*#__PURE__*/React.createElement(QuickReplies, {
     options: t.options,
     note: t.note,
+    label: t.text,
     onPick: o => {
       setAnswered(a => ({
         ...a,
@@ -14789,14 +14878,17 @@ function SentVoice({
   }, mmss));
 }
 
-/* The mark hangs off the bubble's bottom-left in its own chip, so it never crowds
-   the text and reads the same on one line or five. */
+/* The one mark still drawn on the bubble, on the screens that predate the turn footer.
+   Seen has no mark anywhere. */
 function StatusChip({
   state
 }) {
-  if (state !== "seen" && state !== "done") return null;
+  /* Seen draws nothing. The writing indicator says the same thing at the same moment a few
+     lines below, so the eyes were two marks for one state, and they were the product's last
+     emoji. Done is the only mark left here. */
+  if (state !== "done") return null;
   return /*#__PURE__*/React.createElement("span", {
-    "aria-label": state === "seen" ? "Seen" : "Done",
+    "aria-label": "Done",
     style: {
       position: "absolute",
       left: -15,
@@ -14804,29 +14896,22 @@ function StatusChip({
       display: "inline-flex",
       alignItems: "center",
       gap: 4,
-      padding: state === "done" ? "0 10px 0 8px" : "0 6px",
-      height: state === "done" ? 24 : 26,
+      padding: "0 10px 0 8px",
+      height: 24,
       borderRadius: "var(--radius-pill)",
-      background: state === "done" ? "var(--moss-600)" : "var(--paper)",
-      border: "1px solid " + (state === "done" ? "var(--moss-600)" : "var(--border-hairline)"),
-      color: state === "done" ? "var(--paper)" : "inherit",
+      background: "var(--moss-600)",
+      border: "1px solid var(--moss-600)",
+      color: "var(--paper)",
       boxShadow: "var(--shadow-1)"
     }
-  }, state === "seen" ? /*#__PURE__*/React.createElement("span", {
-    role: "img",
-    "aria-hidden": "true",
-    style: {
-      fontSize: 17,
-      lineHeight: 1
-    }
-  }, "\uD83D\uDC40") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Icon, {
+  }, /*#__PURE__*/React.createElement(Icon, {
     name: "check",
     size: 11
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       font: "var(--weight-medium) 11px/1 var(--font-core)"
     }
-  }, "Done")));
+  }, "Done"));
 }
 
 /* 4: a photo sent with a message is shown, not named. */
@@ -14941,6 +15026,7 @@ function Turns({
   }, t.text), AnswerResult && t.options && t.options.length && !answered[i] ? /*#__PURE__*/React.createElement(QuickReplies, {
     options: t.options,
     note: t.note,
+    label: t.text,
     onPick: o => {
       setAnswered(a => ({
         ...a,
@@ -23113,6 +23199,7 @@ function WTurns({
   }, t.text), AnswerResult && t.options && t.options.length && !answered[i] ? /*#__PURE__*/React.createElement(QuickReplies, {
     options: t.options,
     note: t.note,
+    label: t.text,
     onPick: o => {
       setAnswered(a => ({
         ...a,

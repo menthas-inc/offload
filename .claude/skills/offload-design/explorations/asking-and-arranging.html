@@ -1,0 +1,423 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Asking back, and arranging by hand</title>
+<link rel="stylesheet" href="../styles.css?v=20260916-asking">
+<link rel="stylesheet" href="frames.css?v=20260916-asking">
+<style>
+.crop{color:var(--text-primary);width:390px;flex:0 0 auto;box-sizing:border-box;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-plate);padding:16px var(--gutter-screen) 18px;display:flex;flex-direction:column;gap:10px}
+.crop.web{width:660px;padding:14px 18px 16px;background:var(--surface-page)}
+.crop.tight{gap:6px}
+.cell{width:390px;align-items:flex-start}
+.cell.w{width:660px}
+.cell>*{max-width:100%}
+.opt{display:flex;align-items:baseline;gap:8px;margin-top:2px}
+.opt b{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-primary)}
+.opt span{font:var(--weight-regular) 11.5px/1.3 var(--font-core);color:var(--text-tertiary)}
+.you{align-self:flex-end;max-width:84%;padding:8px 14px;border-radius:var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);background:var(--blue-50);border:1px solid var(--blue-100);color:var(--ink-950);font:var(--weight-regular) 15px/1.45 var(--font-core)}
+.ol{align-self:flex-start;max-width:92%;padding:10px 14px;border-radius:var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;background:var(--ink-50);font-size:16px;line-height:1.5;color:var(--text-primary)}
+.ol.q{max-width:none;align-self:stretch}
+.qs{display:block;font-size:16px;line-height:1.5}
+.chips{display:flex;flex-flow:row wrap;gap:var(--space-4);margin-top:var(--space-4)}
+.chips.col{flex-direction:column;align-items:flex-start}
+/* A value chip: 30 tall inside a 44 hit area, the Chip contract's geometry. The three
+   paints below are the decision in item 1. */
+.vc{display:inline-flex;align-items:center;height:44px;margin:-7px 0;cursor:pointer}
+.vc>span{display:inline-flex;align-items:center;height:30px;padding:0 var(--space-5);box-sizing:border-box;border-radius:var(--radius-pill);font:var(--weight-medium) var(--size-label)/1 var(--font-core);letter-spacing:var(--tracking-body);white-space:nowrap;border:1px solid transparent}
+.vc.fill>span{background:var(--surface-fill);color:var(--text-primary)}
+.vc.outl>span{background:transparent;color:var(--text-secondary);border-color:var(--border-strong)}
+.vc.card>span{background:var(--surface-card);color:var(--text-primary);border-color:var(--border-strong)}
+.vc.plain>span{background:transparent;color:var(--text-secondary);border-color:transparent;padding:0 var(--space-3);font-weight:var(--weight-regular);gap:6px}
+.vc.plain>span:before{content:"";width:13px;height:13px;background:currentColor;-webkit-mask:var(--ic-x) center/contain no-repeat;mask:var(--ic-x) center/contain no-repeat;--ic-x:url(../assets/icons/x.svg);flex:0 0 auto}
+.comp{display:flex;align-items:center;gap:10px;margin-top:4px}
+.comp .fld{flex:1;min-width:0;height:44px;border-radius:var(--radius-lg);background:var(--surface-fill);display:flex;align-items:center;padding:0 14px;font:var(--weight-regular) 15px/1 var(--font-core);color:var(--text-tertiary);overflow:hidden}
+.comp .fld em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.comp .snd{width:44px;height:44px;border-radius:99px;background:var(--surface-inverse);color:var(--text-inverse);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+/* rows */
+.wrow{position:relative;display:flex;align-items:center;gap:var(--space-5);min-height:var(--row-height);padding:var(--space-4) var(--space-5);box-shadow:inset 0 -1px 0 var(--border-hairline);background:transparent}
+.wrow .box{width:19px;height:19px;flex:0 0 auto;border-radius:5px;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;color:var(--paper)}
+.wrow .box.on{background:var(--moss-600);border-color:var(--moss-600)}
+.wrow .txt{flex:1;min-width:0}
+.wrow .t{display:block;font:var(--weight-medium) var(--size-body)/1.3 var(--font-core)}
+.wrow .m{display:block;font:var(--text-body-sm-role);color:var(--text-secondary);margin-top:2px}
+.wrow.hov{background:var(--state-hover)}
+.wrow.drag{background:var(--surface-fill)}
+.tools{display:flex;align-items:center;gap:var(--space-2);flex:0 0 auto;opacity:0}
+.wrow.hov .tools,.wrow.drag .tools{opacity:1}
+.tool{width:28px;height:28px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);background:transparent}
+.tool.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.tool.grip{background:var(--surface-fill);color:var(--text-secondary);cursor:grab}
+/* the drop line, two framings */
+.wrow.over:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink-950)}
+.wrow.over.inset:after{left:calc(var(--space-5) + 19px + var(--space-5));right:var(--space-5)}
+/* phone rows */
+.prow{display:flex;align-items:center;gap:var(--space-5);min-height:var(--row-height);padding:var(--space-4) 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.prow .txt{flex:1;min-width:0}
+.prow .t{display:block;font:var(--weight-medium) var(--size-body)/1.3 var(--font-core)}
+.prow .m{display:block;font:var(--text-body-sm-role);color:var(--text-secondary);margin-top:2px}
+.prow .ctl{display:flex;align-items:center;gap:var(--space-3);flex:0 0 auto;color:var(--text-tertiary)}
+.prow.lift{background:var(--surface-raised);border-radius:var(--radius-sm);box-shadow:var(--shadow-2);padding-left:var(--space-4);padding-right:var(--space-4);box-shadow:var(--shadow-2)}
+.prow .box{width:21px;height:21px;flex:0 0 auto;border-radius:6px;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;color:var(--paper)}
+.prow .box.on{background:var(--moss-600);border-color:var(--moss-600)}
+/* the footer's marks */
+.tfoot{align-self:stretch;display:flex;flex-flow:row wrap;justify-content:flex-start;align-items:center;gap:var(--space-2);margin-top:var(--space-3)}
+.tfoot.flush{margin-top:0}
+.dmark{display:inline-flex;align-items:center;gap:5px;box-sizing:border-box;padding:0 var(--space-3);border-radius:var(--radius-pill);background:var(--moss-600);color:var(--text-on-solid);font:var(--weight-medium) 11px/1 var(--font-core);white-space:nowrap}
+.dmark.h24{height:24px}.dmark.h30{height:30px;font-size:var(--size-label);padding:0 var(--space-5)}
+.pill{display:inline-flex;align-items:center;gap:var(--space-3);height:30px;padding:0 var(--space-5);box-sizing:border-box;border-radius:var(--radius-pill);background:var(--surface-accent-soft);color:var(--text-accent);border:1px solid var(--border-accent);font:var(--weight-medium) var(--size-label)/1 var(--font-core);white-space:nowrap}
+.src{display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;padding:0 var(--space-4);border-radius:var(--radius-pill);background:transparent;border:1px solid var(--border-strong);color:var(--text-secondary);font:var(--weight-regular) 12.5px/1 var(--font-core);text-decoration:none;max-width:22ch;overflow:hidden}
+.src.h26{height:26px}.src.h30{height:30px;padding:0 var(--space-5);font-size:var(--size-label)}
+.dots3{display:inline-flex;align-items:center;gap:5px}
+.dots3 i{width:6px;height:6px;border-radius:99px;background:var(--ink-400);display:block}
+.dots3 i:nth-child(2){background:var(--ink-300)}
+.dots3 i:nth-child(3){background:var(--ink-200)}
+.eyes{display:inline-flex;align-items:center;height:24px;padding:0 var(--space-3);border-radius:var(--radius-pill);background:var(--surface-raised);border:1px solid var(--border-hairline);font-size:15px;line-height:1}
+/* the fold control */
+.fold{display:inline-flex;align-items:center;gap:var(--space-3);height:26px;padding:0 var(--space-3) 0 var(--space-4);border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-secondary);font:var(--weight-medium) 12.5px/1 var(--font-core);border:none;cursor:pointer}
+.foldrow{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) 0}
+.foldrow .cnt{font:var(--weight-medium) 12.5px/1 var(--font-core);color:var(--text-secondary)}
+.foldrow .btn26{width:26px;height:26px;border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.verdict{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px}
+.verdict.no{background:var(--clay-100);color:var(--text-danger)}
+.verdict.yes{background:var(--surface-accent-soft);color:var(--moss-700)}
+.bad{border:1px dashed var(--clay-200)}
+.good{border:1px solid var(--border-accent)}
+.ask{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;background:var(--surface-attention-soft);color:var(--text-on-attention)}
+.ok{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;background:var(--surface-fill);color:var(--text-secondary)}
+.g{display:block;background:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-image:var(--ic);mask-image:var(--ic);flex:0 0 auto}
+.g.xs{width:11px;height:11px}.g.sm{width:14px;height:14px}.g.md{width:17px;height:17px}.g.lg{width:19px;height:19px}
+.i-check{--ic:url(../assets/icons/check.svg)}.i-lasso{--ic:url(../assets/icons/lasso.svg)}
+.i-link{--ic:url(../assets/icons/link.svg)}.i-up{--ic:url(../assets/icons/arrow-up.svg)}
+.i-grip{--ic:url(../assets/icons/grip-vertical.svg)}.i-pencil{--ic:url(../assets/icons/pencil.svg)}
+.i-trash{--ic:url(../assets/icons/trash-2.svg)}.i-chev-d{--ic:url(../assets/icons/chevron-down.svg)}
+.i-cal{--ic:url(../assets/icons/calendar.svg)}
+</style></head><body><div class="wrap">
+
+<h1>Asking back, and arranging by hand</h1>
+<p class="lede">Nine items from <code>handoff/FROM-CODE-2026-09-16.md</code>, drawn at real size and <b>decided item by item on 16 September</b>. Six were decisions, where code left the visual open, or where what it built conflicted with a governed contract, or where drawing it at real size turned up something the entry did not know; three were approvals. <b>This is the record of all nine rather than a request:</b> the readme, the log entry and <code>handoff/APPLY-2026-09-16.md</code> are written. Each section head carries its outcome and each option carries what happened to it, so the ones that lost are still here with the reason.</p>
+
+<div class="sechead"><h2>What it asked, before it was answered</h2><u>the six decisions, for the record</u></div>
+<ul class="spec">
+<li><b>1. A value chip has no tone in <code>Chip</code> to be.</b> Code describes it as "the Chip contract's shape, 30 tall on <code>--paper</code>". <code>Chip</code> has no paper-with-a-border tone, and measured on the reply bubble a paper fill is <b>1.06:1</b> against the ground where its border is 3.17:1, so the fill does nothing and the border carries the whole chip. Three paints drawn.</li>
+<li><b>2. Five chips do not fit on one line at 390.</b> They wrap, which the contract now allows, and the question is where the way out lands once they do.</li>
+<li><b>3. The question with no reply bubble.</b> A silent filing turn that asked has nothing to put the chips under, so the question gets a bubble of its own. Whether that bubble is a reply bubble is the decision.</li>
+<li><b>4. All three typed invitations truncate.</b> 309, 269 and 327px of text in a 266px field at 390pt, so every one loses its example. Leaving them is not an option; the wording is the decision.</li>
+<li><b>5. The drop line's measure.</b> Code says a 2px ink line on the edge the drop lands on. Full bleed or inset to the text is not said, and the two read differently in a list of rows that already have hairlines.</li>
+<li><b>8. "Not sure." must not look like "Can't search that."</b> Code names them as different states and identical in shape. Two ways to separate them.</li>
+</ul>
+
+<div class="sechead"><h2>Decided, 16 September</h2><u>all nine, and what changed in the drawing</u></div>
+<ul class="spec">
+<li><b>1. Paint C, the raised chip, plus an <code>x</code> on the way out.</b> Plain and borderless beside bordered values, it read as a value whose border had failed to draw. The <code>x</code> is now drawn in every crop below. The paint lives on <code>QuickReplies</code> rather than becoming a fifth <code>Chip</code> tone: what it needs from <code>Chip</code> is the 30-in-44 geometry, and a governed component should not grow a variant for one use.</li>
+<li><b>2. B, the way out on its own line.</b> Forced with a full-basis break rather than left to the labels.</li>
+<li><b>3. A, a reply bubble for the question</b>, after the footer.</li>
+<li><b>4. The preamble goes:</b> "Which dates? e.g. Sept 12th at 5pm", and the same pattern for the other two. <b>One thing to check:</b> that example carries a time, which answers the day-and-time question rather than a span. "Which dates? e.g. Sept 12th to 14th" is the same length if the span example is what you meant.</li>
+<li><b>5. A, the drop line at the row's full width.</b></li>
+<li><b>8. B, a second line under the short one.</b> Normalised so both follow one shape: the short sentence stays the reply and the explanation is a 13px <code>--text-tertiary</code> line under it, "Searching the web is off in Settings." and "That one is not about your days." As drawn, B had the first line carrying two sentences and the second carrying one, which would have been two shapes.</li>
+<li><b>6, 7 and 9 approved as drawn</b>, and 7 took the product's last emoji with it.</li>
+</ul>
+<ul class="spec">
+<li><b>Dark is specified for all of it</b> in <code>handoff/APPLY-2026-09-16.md</code>, which is where the coding agent should start. The one value worth repeating here: a value chip's fill is <b>exactly 1.00:1</b> against the reply bubble in dark, because the bubble and the card are both #212121, while <code>--border-strong</code> is 3.59:1. The border draws this chip in both themes and the dark fill is not a defect to fix.</li>
+</ul>
+
+<div class="sechead"><h2>1. What a value chip is made of</h2><u>decided: C, with an x</u></div>
+<p class="snote">The same question, three values and the way out, on the reply bubble's own ground. <code>--surface-card</code> and <code>--paper</code> are the same token, and the bubble is <code>--ink-50</code>, so the two are <b>1.06:1</b> apart. Measured on this page: the fills are 1.05:1 and 1.06:1 against the bubble and <code>--border-strong</code> is <b>3.17:1</b>, so <b>the border is the chip and the fill is a detail</b>. All three are 30 tall inside a 44 hit area, 15px, which is settled.</p>
+<div class="row">
+
+<div class="cell"><div class="opt"><b>A</b><span>Chip's neutral tone, a fill and no border</span></div>
+<div class="crop">
+<div class="you">dinner with sam next thursday</div>
+<div class="ol q"><span class="qs">Which Sam? You have three.</span>
+<div class="chips">
+<span class="vc fill"><span>Sam Okonkwo</span></span>
+<span class="vc fill"><span>Sam Reyes</span></span>
+<span class="vc fill"><span>Sam (work)</span></span>
+<span class="vc plain"><span>Not that</span></span>
+</div></div>
+</div>
+<span class="verdict no">1.05:1 against the bubble</span>
+<ul class="spec"><li>It is the tone <code>Chip</code> actually has, so it needs no new contract.</li><li>And on this ground it is invisible: <code>--surface-fill</code> is <code>--ink-100</code> and the bubble is <code>--ink-50</code>. The chips read as text with generous spacing until you hover one.</li></ul>
+</div>
+
+<div class="cell"><div class="opt"><b>B</b><span>Chip's outline tone, a border and no fill</span></div>
+<div class="crop">
+<div class="you">dinner with sam next thursday</div>
+<div class="ol q"><span class="qs">Which Sam? You have three.</span>
+<div class="chips">
+<span class="vc outl"><span>Sam Okonkwo</span></span>
+<span class="vc outl"><span>Sam Reyes</span></span>
+<span class="vc outl"><span>Sam (work)</span></span>
+<span class="vc plain"><span>Not that</span></span>
+</div></div>
+</div>
+<span class="verdict no">also the source chip's tone</span>
+<ul class="spec"><li>Honest about what is doing the work, and it is a tone <code>Chip</code> already has, so no new contract either.</li><li><b>The cost is a collision one row down.</b> The turn footer's source anchor is outline over <code>--border-strong</code> too, so a turn that asked and read a page draws the same object twice with two meanings: one you answer, one you visit.</li></ul>
+</div>
+
+<div class="cell"><div class="opt"><b>C</b><span>paper fill and a border, as built</span></div>
+<div class="crop">
+<div class="you">dinner with sam next thursday</div>
+<div class="ol q"><span class="qs">Which Sam? You have three.</span>
+<div class="chips">
+<span class="vc card"><span>Sam Okonkwo</span></span>
+<span class="vc card"><span>Sam Reyes</span></span>
+<span class="vc card"><span>Sam (work)</span></span>
+<span class="vc plain"><span>Not that</span></span>
+</div></div>
+</div>
+<span class="verdict yes">taken, and the paint stays on QuickReplies</span>
+<ul class="spec"><li>What the clients built, and what the kit's own <code>QuickReplies</code> already draws as <code>neutral</code>. It reads as a control rather than as a label, which is the thing a tappable answer wants to say.</li><li><b>It is not a <code>Chip</code> tone, and it does not become one.</b> That was the open question and taking C answered it: the paint lives on <code>QuickReplies</code> and what it borrows from <code>Chip</code> is the 30-in-44 geometry, which it now copies explicitly. A governed component does not grow a variant for one use.</li><li>The fill is 1.06:1 and still earns its place: on the phones the bubble sits on <code>--surface-plate</code>, which is paper, so a paper chip and a transparent one differ wherever the bubble does not reach.</li></ul>
+</div>
+
+</div>
+
+<div class="sechead"><h2>2. Five, and where the way out goes</h2><u>decided: B</u></div>
+<p class="snote">Five values and a way out in a 390 frame, drawn in paint C so the wrap is the only variable. The server caps a label at 24 characters, which is what stops one wrapping inside itself; five of them still do not fit on one line.</p>
+<div class="row">
+
+<div class="cell"><div class="opt"><b>A</b><span>the way out wraps with the rest</span></div>
+<div class="crop">
+<div class="ol q"><span class="qs">Three threads have a trip. Which one?</span>
+<div class="chips">
+<span class="vc card"><span>Lisbon</span></span>
+<span class="vc card"><span>Turkey</span></span>
+<span class="vc card"><span>USA</span></span>
+<span class="vc card"><span>Berlin</span></span>
+<span class="vc card"><span>Tom's stag</span></span>
+<span class="vc plain"><span>Not that</span></span>
+</div></div>
+</div>
+<span class="verdict no">reads as a sixth value</span>
+<ul class="spec"><li>One flow, nothing special about the last one, and the row is shortest.</li><li><b>The way out lands wherever the wrap leaves room.</b> Here it sits on line two beside one value, where the only thing saying it is not one of them is the missing border. With the five long labels this page first drew, it happened to fall on a line of its own and A and B were identical, which is the argument: the arrangement is a property of the labels rather than a decision.</li></ul>
+</div>
+
+<div class="cell"><div class="opt"><b>B</b><span>the way out on its own line</span></div>
+<div class="crop">
+<div class="ol q"><span class="qs">Three threads have a trip. Which one?</span>
+<div class="chips">
+<span class="vc card"><span>Lisbon</span></span>
+<span class="vc card"><span>Turkey</span></span>
+<span class="vc card"><span>USA</span></span>
+<span class="vc card"><span>Berlin</span></span>
+<span class="vc card"><span>Tom's stag</span></span>
+<span style="flex-basis:100%;height:0"></span>
+<span class="vc plain"><span>Not that</span></span>
+</div></div>
+</div>
+<span class="verdict yes">taken</span>
+<ul class="spec"><li>The values are a set and the way out is not one of them, which is what the plain paint already says and what a line break says at a glance.</li><li>It is the calendar control's arrangement too, where "Not now" sits under the proposal rather than beside it, so this is the existing shape rather than a new one.</li><li>Costs one row of height on a question with five values, which is the longest this can get.</li></ul>
+</div>
+
+<div class="cell"><div class="opt"><b>C</b><span>one per line</span></div>
+<div class="crop">
+<div class="ol q"><span class="qs">Three threads have a trip. Which one?</span>
+<div class="chips col">
+<span class="vc card"><span>Lisbon, October</span></span>
+<span class="vc card"><span>Turkey with Ana</span></span>
+<span class="vc card"><span>USA, spring</span></span>
+<span class="vc plain"><span>Not that</span></span>
+</div></div>
+</div>
+<ul class="spec"><li>Easiest to hit and easiest to read, and it is how a list of choices usually looks.</li><li>At five values it is a screenful, and the chips stop reading as an aside to a sentence and start reading as the screen's content. Drawn at four to be fair to it and it is already tall.</li></ul>
+</div>
+
+</div>
+<ul class="spec">
+<li><b>The 44 hit areas overlap nothing.</b> Each chip carries its own 44 with a negative margin, so the rows sit 30 apart visually and the targets meet without gaps. Two wrapped lines of chips are 88 of target in 74 of ink, which is why the gap between wrapped lines is the <code>--space-4</code> above rather than anything smaller.</li>
+<li><b>The group is named by the sentence that asked</b>, which is the <code>label</code> prop, so a screen reader hears "Three threads have a trip. Which one?" before the options. The phones repeat it as each chip's hint, since iOS does not read a container's name.</li>
+</ul>
+
+<div class="sechead"><h2>3. The question with no reply bubble</h2><u>decided: A</u></div>
+<p class="snote">A dump that filed silently and needed one thing cleared up. There is no reply bubble, because nothing was said back, and the footer still reports what happened. So the question needs a container of its own.</p>
+<div class="row">
+
+<div class="cell"><div class="opt"><b>A</b><span>a reply bubble with only a question in it</span></div>
+<div class="crop">
+<div class="you">book the airport transfer for the lisbon trip</div>
+<div class="tfoot"><span class="dmark h30"><i class="g xs i-check"></i>Done</span><span class="pill"><i class="g sm i-lasso"></i>Lisbon trip</span></div>
+<div class="ol q" style="margin-top:2px"><span class="qs">Which airport? The thread has two.</span>
+<div class="chips">
+<span class="vc card"><span>Lisbon Portela</span></span>
+<span class="vc card"><span>Gatwick</span></span>
+<span class="vc plain"><span>Not that</span></span>
+</div></div>
+</div>
+<span class="verdict yes">taken</span>
+<ul class="spec"><li>One shape for a question whether or not offload also said something, so the chips always sit in the same place relative to the sentence above them.</li><li>It is the bubble offload speaks in, and a question is offload speaking, so nothing new is introduced.</li><li><b>The order is the turn's order:</b> what happened, then what is still open. The footer reports the filing and the question comes after it, because the filing is done and the question is not.</li></ul>
+</div>
+
+<div class="cell"><div class="opt"><b>B</b><span>no bubble, the chips on the plate</span></div>
+<div class="crop">
+<div class="you">book the airport transfer for the lisbon trip</div>
+<div class="tfoot"><span class="dmark h30"><i class="g xs i-check"></i>Done</span><span class="pill"><i class="g sm i-lasso"></i>Lisbon trip</span></div>
+<div style="margin-top:6px"><span class="qs" style="color:var(--text-secondary)">Which airport? The thread has two.</span>
+<div class="chips">
+<span class="vc card"><span>Lisbon Portela</span></span>
+<span class="vc card"><span>Gatwick</span></span>
+<span class="vc plain"><span>Not that</span></span>
+</div></div>
+</div>
+<ul class="spec"><li>Lighter, and it makes the question feel like a footnote to the filing rather than a second thing to read.</li><li>But a sentence on the plate is the only sentence in the log that is not in a bubble, and the log's whole grammar is that a bubble is somebody talking. The chips end up the only thing giving it a shape.</li></ul>
+</div>
+
+</div>
+
+<div class="sechead"><h2>4. A question with nothing to offer</h2><u>decided: drop the preamble</u></div>
+<p class="snote">A date, a span or a time has no values worth listing, so the question is answered by typing and the composer's placeholder is the invitation. The field's accessible name stays "Dump anything", so what changes is only what you see.</p>
+<div class="row">
+<div class="cell"><div class="opt"><b>The three invitations</b><span>as the entry words them, verbatim</span></div>
+<div class="crop tight">
+<div class="ol q"><span class="qs">When is the Lisbon trip?</span></div>
+<div class="comp"><span class="fld"><em>Which dates? Type them, like 10 to 12 October</em></span><span class="snd"><i class="g md i-up"></i></span></div>
+<div class="comp"><span class="fld"><em>By when? Type a day, like 30 September</em></span><span class="snd"><i class="g md i-up"></i></span></div>
+<div class="comp"><span class="fld"><em>Which day and time? Type them, like Friday at 10</em></span><span class="snd"><i class="g md i-up"></i></span></div>
+</div>
+<ul class="spec"><li><b>All three are cut, not just the longest.</b> Measured in a 266px field on a 390pt phone: the dates line is <b>309px</b>, the deadline line <b>269px</b>, the day-and-time line <b>327px</b>. Every one of them loses its example, which is the useful half of the sentence.</li><li><b>So this is a decision after all, and there is only one option that works.</b> Nothing here fits, so "leave it as a hint" is not on the table: it means three placeholders that all end in an ellipsis. Dropping the preamble does fit, with room to spare, since the question above already asks the question: <b>"Like 10 to 12 October", "Like 30 September", "Like Friday at 10"</b>. The choice is those, or three other strings under about 34 characters.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>5. A row you can pick up</h2><u>decided: A, full width</u></div>
+<p class="snote">The handle is <code>grip-vertical</code>, vendored here as the 81st glyph, first in the row's tools and left of the pencil. Drawn on web at real size: a resting row, a hovered row with its tools, the row being dragged, and the row under the pointer. The only open thing is how far the drop line runs.</p>
+<div class="row">
+
+<div class="cell w"><div class="opt"><b>A</b><span>the line runs the row's full width</span></div>
+<div class="crop web">
+<div class="wrow"><span class="box"></span><span class="txt"><span class="t">Book the airport transfer</span></span><span class="tools"><span class="tool grip"><i class="g md i-grip"></i></span><span class="tool"><i class="g sm i-pencil"></i></span><span class="tool"><i class="g sm i-trash"></i></span></span></div>
+<div class="wrow drag"><span class="box"></span><span class="txt"><span class="t">Pay Ana for the flights</span></span><span class="tools"><span class="tool grip"><i class="g md i-grip"></i></span><span class="tool"><i class="g sm i-pencil"></i></span><span class="tool"><i class="g sm i-trash"></i></span></span></div>
+<div class="wrow over hov"><span class="box"></span><span class="txt"><span class="t">Print the boarding passes</span></span><span class="tools"><span class="tool grip"><i class="g md i-grip"></i></span><span class="tool"><i class="g sm i-pencil"></i></span><span class="tool"><i class="g sm i-trash"></i></span></span></div>
+<div class="wrow"><span class="box on"><i class="g xs i-check"></i></span><span class="txt"><span class="t" style="color:var(--text-tertiary);text-decoration:line-through">Renew the passport</span></span><span class="tools"><span class="tool grip"><i class="g md i-grip"></i></span><span class="tool"><i class="g sm i-pencil"></i></span><span class="tool"><i class="g sm i-trash"></i></span></span></div>
+</div>
+<span class="verdict yes">taken</span>
+<ul class="spec"><li>It is a row boundary, and every other boundary in this list is full width, so the line lands where a hairline already is and reads as that hairline thickening into a target.</li><li>Unambiguous about which gap the row lands in, which is the one thing the line has to say.</li></ul>
+</div>
+
+<div class="cell w"><div class="opt"><b>B</b><span>inset to the text column</span></div>
+<div class="crop web">
+<div class="wrow"><span class="box"></span><span class="txt"><span class="t">Book the airport transfer</span></span><span class="tools"><span class="tool grip"><i class="g md i-grip"></i></span><span class="tool"><i class="g sm i-pencil"></i></span><span class="tool"><i class="g sm i-trash"></i></span></span></div>
+<div class="wrow drag"><span class="box"></span><span class="txt"><span class="t">Pay Ana for the flights</span></span><span class="tools"><span class="tool grip"><i class="g md i-grip"></i></span><span class="tool"><i class="g sm i-pencil"></i></span><span class="tool"><i class="g sm i-trash"></i></span></span></div>
+<div class="wrow over inset hov"><span class="box"></span><span class="txt"><span class="t">Print the boarding passes</span></span><span class="tools"><span class="tool grip"><i class="g md i-grip"></i></span><span class="tool"><i class="g sm i-pencil"></i></span><span class="tool"><i class="g sm i-trash"></i></span></span></div>
+<div class="wrow"><span class="box on"><i class="g xs i-check"></i></span><span class="txt"><span class="t" style="color:var(--text-tertiary);text-decoration:line-through">Renew the passport</span></span><span class="tools"><span class="tool grip"><i class="g md i-grip"></i></span><span class="tool"><i class="g sm i-pencil"></i></span><span class="tool"><i class="g sm i-trash"></i></span></span></div>
+</div>
+<ul class="spec"><li>Ties the line to the titles rather than to the pane, which is arguably what is being reordered.</li><li>But the system's own insets rule says a row spans the full width and pays the gutter back inside, so an inset line is the one mark in the list that does not follow it. It also reads as underlining the row above rather than as a gap between two.</li></ul>
+</div>
+
+</div>
+<ul class="spec">
+<li><b>The handle does not invert.</b> Every other tool in the row goes to <code>--surface-inverse</code> on hover because it does something when clicked; the handle does nothing when clicked, so it keeps <code>--surface-fill</code> and takes a <code>grab</code> cursor. It is the fourth control in the row's guideline and the only one whose hover says "hold me" rather than "press me".</li>
+<li><b>The dragged row takes <code>--surface-fill</code></b> and keeps its tools visible, since it is still the row under the pointer as far as hover is concerned.</li>
+<li><b>Approve or turn down the 2px weight itself.</b> It is drawn at <code>--ink-950</code>, which against a list of <code>--border-hairline</code> boundaries is the heaviest mark in the pane. That is deliberate and it is the one number here I would want you to look at rather than read.</li>
+</ul>
+
+<div class="rowlabel">The same handle on the phones<u>approved</u></div>
+<p class="snote">First in the row's trailing controls, beside the pencil. Hold it and the row lifts to <code>--surface-raised</code> and follows the finger. A note row has no pencil, so it draws the handle alone at its trailing edge.</p>
+<div class="row">
+<div class="cell"><div class="opt"><b>A task row, and one lifted</b><span>iOS, 390pt</span></div>
+<div class="crop">
+<div class="prow"><span class="box"></span><span class="txt"><span class="t">Book the airport transfer</span><span class="m">you, added 6 Aug</span></span><span class="ctl"><i class="g md i-grip" style="color:var(--text-secondary)"></i><i class="g sm i-pencil"></i></span></div>
+<div class="prow lift"><span class="box"></span><span class="txt"><span class="t">Pay Ana for the flights</span><span class="m">Ana, due Thursday</span></span><span class="ctl"><i class="g md i-grip" style="color:var(--text-primary)"></i><i class="g sm i-pencil"></i></span></div>
+<div class="prow"><span class="box"></span><span class="txt"><span class="t">Print the boarding passes</span><span class="m">you, added yesterday</span></span><span class="ctl"><i class="g md i-grip" style="color:var(--text-secondary)"></i><i class="g sm i-pencil"></i></span></div>
+</div>
+<ul class="spec"><li>The lifted row takes <code>--shadow-2</code>, which is the only shadow token with a value in dark, so the lift survives both themes. The list re-sorts under it and it snaps home when let go.</li></ul>
+</div>
+<div class="cell"><div class="opt"><b>A note row</b><span>the handle alone</span></div>
+<div class="crop">
+<div class="prow"><span class="txt"><span class="t">Ana pays for the flights, I pay the flat</span><span class="m">14 Aug</span></span><span class="ctl"><i class="g md i-grip" style="color:var(--text-secondary)"></i></span></div>
+<div class="prow"><span class="txt"><span class="t">Gate code is 4471, the bins are round the back</span><span class="m">11 Aug</span></span><span class="ctl"><i class="g md i-grip" style="color:var(--text-secondary)"></i></span></div>
+</div>
+<ul class="spec"><li>The hit area is the 17px glyph plus 8px of slop rather than a full 44, which sits inside the row's own target and is the compromise the row's other three controls already make.</li><li>A note's own row is a <code>div</code> holding a text button and the handle rather than one button, because a control inside a control is reachable by nothing. The split is invisible: the inner button inherits the row's type and colour.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>6. One height in the footer</h2><u>approved</u></div>
+<p class="snote">The row held 24, 26 and 30 side by side. <code>TurnFooter</code> in this system still draws it that way, which is the arrangement that produced the bug on web, so the fix belongs here and not only in the clients.</p>
+<div class="row">
+<div class="cell"><div class="opt"><b>As the system draws it</b><span>24, 26, 30 in one row</span></div>
+<div class="crop bad"><div class="you">memorial day bbq at ana's, bring the big cooler</div>
+<div class="tfoot flush"><span class="dmark h24"><i class="g xs i-check"></i>Done</span><span class="pill"><i class="g sm i-lasso"></i>Ana's bbq</span><a class="src h26" href="#"><i class="g xs i-link"></i>timeanddate.com</a></div>
+</div>
+<span class="verdict no">three heights, no gap</span>
+<ul class="spec"><li>Two bespoke marks either side of a governed <code>Chip</code>, and the row sits flush against the bubble it describes, so it reads as an extension of the reply rather than a row about the turn.</li></ul>
+</div>
+<div class="cell"><div class="opt"><b>Corrected</b><span>all 30, and a gap above</span></div>
+<div class="crop good"><div class="you">memorial day bbq at ana's, bring the big cooler</div>
+<div class="tfoot"><span class="dmark h30"><i class="g xs i-check"></i>Done</span><span class="pill"><i class="g sm i-lasso"></i>Ana's bbq</span><a class="src h30" href="#"><i class="g xs i-link"></i>timeanddate.com</a></div>
+</div>
+<span class="verdict yes">30, because that is Chip</span>
+<ul class="spec"><li>30 is <code>Chip</code>'s height, and the thread pill already comes from <code>Chip</code>, so the other two match the governed one rather than all three meeting in the middle.</li><li>Named once and inherited, so the next mark added to this row cannot be a fourth height.</li><li>One space step above the row, matching what the phones already had. The log's own gap separates turns and does not reach inside one.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>7. The eyes go</h2><u>approved</u></div>
+<p class="snote">👀 has marked a seen-but-unanswered message since 003 and is the product's only emoji. The writing indicator says the same thing at the same moment a few lines below, so the seen state has no mark at all now.</p>
+<div class="row">
+<div class="cell"><div class="opt"><b>As the system draws it</b><span>a mark for seen</span></div>
+<div class="crop bad"><div class="you">can you look at the flat listing ana sent</div>
+<div class="tfoot"><span class="eyes">👀</span></div>
+</div>
+<span class="verdict no">the last emoji</span>
+</div>
+<div class="cell"><div class="opt"><b>Corrected</b><span>no mark, and the dots say it</span></div>
+<div class="crop good"><div class="you">can you look at the flat listing ana sent</div>
+<div class="ol" style="padding:13px 14px"><span class="dots3"><i></i><i></i><i></i></span></div>
+</div>
+<span class="verdict yes">two marks became one</span>
+<ul class="spec"><li>A seen turn now has nothing to report, so <code>TurnFooter</code> returns nothing and there is no 26px gap where the mark was. The Done mark and the chips are unaffected.</li><li><b>Four rules moved with it, and they are already changed.</b> The readme's emoji rule is now "Emoji: none."; principle 4 in the closing list is "No emoji at all."; the accessibility note no longer asks for a text alternative, because there is no mark to label; and <code>handoff/CONTRIBUTING.md</code>'s standing rule went from "One emoji" to "No emoji." The code repo's own <code>CLAUDE.md</code> is the coding agent's to change.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>8. Two ways of declining</h2><u>decided: B</u></div>
+<p class="snote">"Can't search that." is a refusal to look outward. "Not sure." is a question about the world that offload will not answer at all. Code names them as different states that should not look identical, and in the bubble they are two short sentences in the same shape.</p>
+<div class="row">
+
+<div class="cell"><div class="opt"><b>A</b><span>the sentence carries it</span></div>
+<div class="crop tight">
+<div class="you">how much is bitcoin</div>
+<div class="ol">Not sure.</div>
+<div class="you">what is the weather in lisbon on the 14th</div>
+<div class="ol">Can't search that.</div>
+<div class="you">when do the clocks go forward</div>
+<div class="ol">Sunday 25 October, at 2am.</div>
+</div>
+<span class="ok">was recommended, not taken</span>
+<ul class="spec"><li>They already differ in the only way that matters: one says the capability is off, the other says the question is not offload's. Reading them in sequence, nobody confuses them.</li><li>It keeps a refusal a sentence, which is the answering section's own rule, and adds no mark, colour or icon to a bubble whose whole point is that declining is ordinary.</li><li><b>The third line is the argument.</b> "When do the clocks go forward" is answered, because a date is what a day is made of, and it sits in the same bubble as both refusals. Any treatment that separates the two refusals also separates them from that.</li></ul>
+</div>
+
+<div class="cell"><div class="opt"><b>B</b><span>a second line under the short one</span></div>
+<div class="crop tight">
+<div class="you">how much is bitcoin</div>
+<div class="ol">Not sure.<span style="display:block;font-size:13px;color:var(--text-tertiary);margin-top:3px">That one is not about your days.</span></div>
+<div class="you">what is the weather in lisbon on the 14th</div>
+<div class="ol">Can't search that.<span style="display:block;font-size:13px;color:var(--text-tertiary);margin-top:3px">Searching the web is off in Settings.</span></div>
+<div class="you">when do the clocks go forward</div>
+<div class="ol">Sunday 25 October, at 2am.</div>
+</div>
+<span class="verdict yes">taken</span>
+<ul class="spec"><li><b>Taken, and normalised on the way in.</b> As first drawn the two were different shapes: one carried two sentences plus a tertiary line, the other one sentence plus a line. Both are now the short reply with a 13px <code>--text-tertiary</code> line under it, so the pattern is one thing.</li><li>Says why, and the web-search line points at the switch that would change it, which is a real thing a person can act on. That is what won it.</li><li><b>The cost, for the record:</b> offload says a little more about its own scope than the voice rule would like, and the answer below the two refusals now sits in a bubble with one line where they have two.</li></ul>
+</div>
+
+</div>
+
+<div class="sechead"><h2>9. The count is inside the control</h2><u>approved</u></div>
+<p class="snote">"5 done" was text beside a 26px button, so pressing the words did nothing. One control now, count inside it, on web and both phones.</p>
+<div class="row">
+<div class="cell"><div class="opt"><b>As the system draws it</b><span>text, then a button</span></div>
+<div class="crop bad tight">
+<div class="foldrow"><span class="cnt">5 done</span><span class="btn26"><i class="g sm i-chev-d"></i></span></div>
+</div>
+<span class="verdict no">the words are not the control</span>
+</div>
+<div class="cell"><div class="opt"><b>Corrected</b><span>one control, 26 tall</span></div>
+<div class="crop good tight">
+<div class="foldrow"><button class="fold">5 done<i class="g sm i-chev-d"></i></button></div>
+</div>
+<span class="verdict yes">one target</span>
+<ul class="spec"><li>26 rather than 30, because this is a fold inside a widget rather than a mark in the turn footer. It is the one place a 26 survives, and it is not beside a <code>Chip</code>.</li><li>The fold is a preference of the member now, not of the thread, so what it remembers is per person. Nothing drawn changes for that.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>Not drawn, and not asked for</h2><u>for the record</u></div>
+<ul class="spec">
+<li><b>The drop line in dark.</b> <code>--ink-950</code> is #EDEDED in dark, so the 2px line inverts with the theme and holds by construction, but nobody has looked at a 2px near-white line running across a dark row. It is the one thing on this page with no dark measurement behind it. <b>Item 1's dark question is closed rather than owed:</b> the fill is exactly 1.00:1 there and the border is 3.59:1, which is the design and not a defect.</li>
+<li><b>The long-list picker</b> from the country entry. There is no such component anywhere in the system and the entry says so; it is the next thing worth drawing once, because a timezone would be the second.</li>
+<li><b>The 200% text check on a 360dp frame</b>, which the code entry lists as still owed. Five wrapped chips at 200% is the case to look at.</li>
+<li><b>The reorder on <code>MemoryRow</code></b>, which wants the same slot at its trailing edge. Identical to the note row above, so it is drawn by implication rather than separately.</li>
+</ul>
+
+</div></body></html>
