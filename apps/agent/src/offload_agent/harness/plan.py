@@ -175,6 +175,11 @@ class Outcome:
     #: expands in place, and a read that hit its page has no rest to expand
     #: into, so the tail is the thread instead.
     found: list[dict] = field(default_factory=list)
+    #: Why the turn spoke, as the model named it in `say`. Checked against the
+    #: record by `_hold_to_the_reason` before the outcome leaves the loop.
+    because: str | None = None
+    #: A write this turn came back as waiting on somebody else.
+    waited: bool = False
 
     @property
     def finished(self) -> bool:
@@ -564,9 +569,9 @@ async def _run(
             # produces. Found by the 016 eval, where all three refusal cases
             # came back empty and the raw response had the line in it.
             if reply_from_say and (outcome.reply or outcome.landed):
-                return outcome
+                return _hold_to_the_reason(outcome)
             outcome.reply = outcome.reply or text or None
-            return outcome
+            return _hold_to_the_reason(outcome)
 
         results: list[dict] = []
         for block in response.content:
@@ -607,7 +612,9 @@ async def _run(
                 # It writes nothing, so it never crosses to the Core API. The
                 # loop keeps going: a turn may say something and then carry on
                 # filing, and the last thing said is what the person reads.
-                outcome.reply = str(args.model_dump()["text"]).strip() or None
+                said = args.model_dump()
+                outcome.reply = str(said["text"]).strip() or None
+                outcome.because = said.get("because")
                 results.append(_result(block.id, {"ok": True, "done": True}, error=False))
                 continue
 
@@ -642,6 +649,9 @@ async def _run(
             # what was actually put somewhere. A successful read or tick is not
             # a filing, and counting one would make the record claim a thread
             # the turn merely looked at.
+            if isinstance(body, dict) and body.get("waitingForThem"):
+                outcome.waited = True
+
             if not body.get("ok"):
                 # Names only. The reason is data for the model, not for a reply.
                 #
@@ -677,6 +687,35 @@ async def _run(
     # Out of round trips. Not an error: whatever is in `landed` is committed,
     # and the caller reports a partial turn the person can finish.
     outcome.out_of_calls = True
+    return _hold_to_the_reason(outcome)
+
+
+def _hold_to_the_reason(outcome: Outcome) -> Outcome:
+    """A `say` stands only when the record bears out the reason it named.
+
+    "Done." after a move, "Archived." after an archive, "Done, added to your
+    calendar": each came out of a prompt that says a turn that did what was
+    asked says nothing, on three models, across every run of the evals. The
+    prompt cannot hold this rule, so the loop does: the model has to name
+    which of the five things the person would not otherwise know it is
+    saying, and a reason the record contradicts drops the sentence. Trailing
+    text, which is the refusal a model wrote instead of calling `say`, is
+    left alone: it only reaches the reply when nothing landed at all.
+    """
+    if outcome.reply is None or outcome.because is None:
+        return outcome
+    landed = [item for item in outcome.landed if item.tool != "create_thread"]
+    made_a_thread = any(item.tool == "create_thread" for item in outcome.landed)
+    borne_out = {
+        "could_not_do": True,
+        "waiting": outcome.waited,
+        "new_thread": made_a_thread,
+        "could_not_read": not landed and not made_a_thread,
+        "nothing_to_file": not landed and not made_a_thread,
+    }.get(outcome.because, False)
+    if not borne_out:
+        log.info("say dropped", because=outcome.because, landed=len(landed))
+        outcome.reply = None
     return outcome
 
 
@@ -789,8 +828,10 @@ _JUDGE_PROMPT = (
     "question offload asked them, and if it does, what the answer is.\n\n"
     "You are given the field the question is about, the question, the options "
     "offered, and today's date. Read relative words against today: weeks start "
-    'on Monday, "next weekend" is the coming Saturday and Sunday, "the 14th" '
-    "is the next 14th. Dates are YYYY-MM-DD, times are HH:MM in 24 hour form.\n\n"
+    'on Monday, "this weekend" is the coming Saturday and Sunday, "next weekend" '
+    'is the one after that, "the 14th" is the next 14th. A time with no day is '
+    "today, or tomorrow when it has already passed. One date given for a span "
+    "is one night. Dates are YYYY-MM-DD, times are HH:MM in 24 hour form.\n\n"
     "Answer `answers` true only when the message plainly gives the field. A "
     "message about something else is not an answer, and neither is a vague "
     'one: "sometime in autumn" is not a date. When it answers, fill only the '

@@ -1,0 +1,99 @@
+{
+  "why": "Behrooz's account where Flat admin is shared with Ana. Her notes arrive as notes from members, and a calendar feed has written one note from an app. Rows in Flat admin were written by both of them.",
+  "threads": [
+    {
+      "id": "00000010-0000-0000-0000-000000000000",
+      "name": "App fixes"
+    },
+    {
+      "id": "00000002-0000-0000-0000-000000000000",
+      "name": "Groceries"
+    },
+    {
+      "id": "00000011-0000-0000-0000-000000000000",
+      "name": "EU with fam"
+    },
+    {
+      "id": "00000012-0000-0000-0000-000000000000",
+      "name": "Music"
+    },
+    {
+      "id": "00000013-0000-0000-0000-000000000000",
+      "name": "Flat admin"
+    },
+    {
+      "id": "00000014-0000-0000-0000-000000000000",
+      "name": "Istanbul trip"
+    },
+    {
+      "id": "00000015-0000-0000-0000-000000000000",
+      "name": "Porto weekend"
+    },
+    {
+      "id": "00000003-0000-0000-0000-000000000000",
+      "name": "Miscellaneous",
+      "default": "yes"
+    }
+  ],
+  "country": "PT",
+  "has_calendar": false,
+  "may_search": true,
+  "may_read_links": true,
+  "notes": {
+    "00000013-0000-0000-0000-000000000000": [
+      "The landlord is Mr Costa",
+      "Deposit was 1200"
+    ]
+  },
+  "notes_from_members": {
+    "00000013-0000-0000-0000-000000000000": [
+      "Ana is doing the electrics",
+      "The paint is Farrow and Ball Pigeon"
+    ]
+  },
+  "notes_from_apps": {
+    "00000013-0000-0000-0000-000000000000": [
+      "Boiler service booked 20 September, from the calendar"
+    ]
+  },
+  "rows": {
+    "00000013-0000-0000-0000-000000000000": [
+      {
+        "contentId": "c-deposit",
+        "threadId": "00000013-0000-0000-0000-000000000000",
+        "threadName": "Flat admin",
+        "type": "task",
+        "title": "Chase the deposit",
+        "body": null,
+        "done": false,
+        "yours": true,
+        "dueAt": null,
+        "occursAt": null
+      },
+      {
+        "contentId": "c-paint",
+        "threadId": "00000013-0000-0000-0000-000000000000",
+        "threadName": "Flat admin",
+        "type": "task",
+        "title": "paint",
+        "body": null,
+        "done": false,
+        "yours": false,
+        "dueAt": null,
+        "occursAt": null
+      },
+      {
+        "contentId": "c-brackets",
+        "threadId": "00000013-0000-0000-0000-000000000000",
+        "threadName": "Flat admin",
+        "type": "task",
+        "title": "oak brackets 30cm matte black",
+        "body": null,
+        "done": false,
+        "yours": true,
+        "dueAt": null,
+        "occursAt": null
+      }
+    ]
+  }
+}

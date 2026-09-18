@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import text
 
 from offload_agent.config import Config
+from offload_agent.context import today_line
 from offload_agent.queue import ClaimedJob, finish, release_for_retry
 
 log = structlog.get_logger()
@@ -106,6 +107,33 @@ def _lines(rows: list) -> str:
     )
 
 
+def _held_to_the_rules(plan: Compaction, rows: list) -> Compaction:
+    """The two rules compact.md states that the model breaks most, held here.
+
+    A note a person typed is never removed: Haiku removed "asdf" and a hostile
+    note another member wrote, both typed. And a fold needs two sources when
+    its one source is a person's note: re-adding a stated note under
+    `folded_from` naming only itself turns their words into offload's, which
+    is the rewrite the prompt forbids. A learned note may be rewritten alone,
+    because offload wrote it.
+    """
+    by_id = {row["id"]: row for row in rows}
+    typed = {i for i, row in by_id.items() if row["origin"] != "learned"}
+    remove = [i for i in plan.remove if i not in typed]
+    add = [
+        entry
+        for entry in plan.add
+        if not (len(entry.folded_from) == 1 and entry.folded_from[0] in typed)
+    ]
+    if len(remove) != len(plan.remove) or len(add) != len(plan.add):
+        log.info(
+            "compaction held to the rules",
+            removals_dropped=len(plan.remove) - len(remove),
+            rewrites_dropped=len(plan.add) - len(add),
+        )
+    return plan.model_copy(update={"remove": remove, "add": add})
+
+
 async def handle_compact(
     job: ClaimedJob, *, cfg: Config, engine, http: httpx.AsyncClient, client: AsyncAnthropic
 ) -> None:
@@ -138,7 +166,12 @@ async def handle_compact(
             await finish(conn, job.id)
         return
 
-    listing = _lines(list(reversed(rows)))
+    ordered = list(reversed(rows))
+    async with engine.connect() as conn:
+        today = await today_line(conn)
+    # The date, because the prompt asks for passed dates to be set aside and
+    # the model had no way to know what day it was.
+    listing = f"Today is {today}.\n\n" + _lines(ordered)
     started = time.monotonic()
 
     plan, usage = await _ask(client, cfg, listing)
@@ -149,6 +182,8 @@ async def handle_compact(
         async with engine.begin() as conn:
             await release_for_retry(conn, job.id, "compact_unparseable", delay_seconds=3600)
         return
+
+    plan = _held_to_the_rules(plan, ordered)
 
     body = {
         "jobId": job.id,

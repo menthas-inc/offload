@@ -1,0 +1,44 @@
+{
+  "why": "The suite's default account: a trip, a list and the default thread. Behrooz, in Portugal.",
+  "threads": [
+    {
+      "id": "00000001-0000-0000-0000-000000000000",
+      "name": "Lisbon trip"
+    },
+    {
+      "id": "00000002-0000-0000-0000-000000000000",
+      "name": "Groceries"
+    },
+    {
+      "id": "00000003-0000-0000-0000-000000000000",
+      "name": "Miscellaneous",
+      "default": "yes"
+    }
+  ],
+  "country": "PT",
+  "has_calendar": false,
+  "may_search": true,
+  "may_read_links": true,
+  "facts": {
+    "calendars": [
+      {
+        "filesInto": null,
+        "name": "ana@example.com"
+      },
+      {
+        "filesInto": "Studio",
+        "name": "Team"
+      },
+      {
+        "filesInto": null,
+        "name": "Holidays"
+      }
+    ],
+    "defaultThread": {
+      "id": "00000003-0000-0000-0000-000000000000",
+      "name": "Miscellaneous"
+    },
+    "displayName": "Behrooz",
+    "knowsDevicePreferences": false
+  }
+}

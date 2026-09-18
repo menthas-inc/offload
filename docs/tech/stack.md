@@ -48,8 +48,8 @@ The design system at `.claude/skills/offload-design/` specifies five, all at hig
   | Tier | Model | ID | Cost per 1M in / out | Used for |
   | --- | --- | --- | --- | --- |
   | `sort` | Claude Haiku 4.5 | `claude-haiku-4-5` | $1 / $5 | Filing a dump into a thread, tagging, extracting a date, deciding whether something needs you |
-  | `converse` | Claude Sonnet 5 | `claude-sonnet-5` | $3 / $15 | The composer conversation, thread standing blurbs, memory writes |
-  | `reason` | Claude Opus 5 | `claude-opus-5` | $5 / $25 | Hard retrieval and cross-thread reasoning, anything the cheaper tiers failed at |
+  | `converse` | Claude Sonnet 5 | `claude-sonnet-5` | $2 / $10 | The composer conversation, thread standing blurbs, memory writes |
+  | `reason` | Claude Opus 5 | `claude-opus-5` | $5 / $25 | Hard retrieval and cross-thread reasoning, anything the cheaper tiers failed at. Measured for the filing turn on 2026-09-17 (255 of 274 eval cases to Sonnet's 242, and it asks back where Sonnet does not) and not adopted, on cost |
 
   Every dump hits `sort`, which is why `sort` is the cheapest tier and why it must stay a plain structured call.
 - **Thinking and effort:** adaptive thinking (`thinking: {type: "adaptive"}`) on `converse` and `reason`, with `output_config.effort` as the depth control. `budget_tokens` does not exist on these models and returns a 400. `sort` is a plain structured call with no thinking.

@@ -1,0 +1,233 @@
+{
+  "statement": "What offload cannot do it says plainly and truthfully, once, and then gets on with the rest: a delete becomes an archive, a thread is deleted from My threads and never called impossible, a calendar that is not connected is in Settings under Connected apps, and somebody else's row cannot be rewritten.",
+  "why": "A model cannot delete, cannot reach a calendar that is not there, and cannot rewrite another member's words. Saying so is the way forward; saying 'impossible' about a thread they can delete themselves is a lie, and filing the request as a task to do later is a promise nobody will keep.",
+  "sources": [
+    "006 AC-10b, AC-12",
+    "012 AC-4",
+    "008: offload never deletes",
+    "plan_v2.md: Changing what is already there, Their calendar"
+  ],
+  "cases": [
+    {
+      "id": "get-rid-of-archives",
+      "why": "a delete of content is an archive, done and not discussed",
+      "surface": "file",
+      "input": "get rid of the brackets",
+      "context": "shared",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "called": [
+          "archive_content"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "delete-thread-points-at-my-threads",
+      "why": "a thread delete is theirs, on the row in My threads",
+      "surface": "file",
+      "input": "delete the Music thread",
+      "context": "behrooz",
+      "expect": {
+        "say": {
+          "contains": [
+            "My threads"
+          ],
+          "must_not_contain": [
+            "impossible",
+            "cannot be deleted",
+            "can't be deleted",
+            "not possible"
+          ],
+          "max_words": 40
+        },
+        "filed": "none",
+        "not_called": [
+          "archive_content"
+        ]
+      }
+    },
+    {
+      "id": "remove-thread-trip-off",
+      "why": "another wording of the same ask",
+      "surface": "file",
+      "input": "remove the Porto weekend thread, trip's off",
+      "context": "behrooz",
+      "expect": {
+        "say": {
+          "contains": [
+            "My threads"
+          ],
+          "must_not_contain": [
+            "impossible",
+            "cannot be deleted",
+            "not possible"
+          ]
+        },
+        "filed": "none"
+      }
+    },
+    {
+      "id": "calendar-not-connected-add",
+      "why": "an add to a calendar that is not there: say so, file the appointment anyway",
+      "surface": "file",
+      "input": "put the dentist on my calendar for Tuesday 3pm",
+      "context": "behrooz",
+      "expect": {
+        "say": {
+          "contains": [
+            "Settings"
+          ],
+          "max_words": 40
+        },
+        "filed": [
+          {
+            "has": [
+              "dentist"
+            ]
+          }
+        ],
+        "rubric": "Says once that a calendar needs connecting, in Settings under Connected apps. Files the dentist as a row. Does not promise to add it later and does not claim it is on a calendar."
+      }
+    },
+    {
+      "id": "calendar-not-connected-move",
+      "why": "a move on a calendar that is not there is not filed as a task",
+      "surface": "file",
+      "input": "move the standup on my calendar to 10",
+      "context": "behrooz",
+      "expect": {
+        "say": {
+          "contains": [
+            "Settings"
+          ]
+        },
+        "filed": "none"
+      }
+    },
+    {
+      "id": "calendar-not-connected-cancel",
+      "why": "same for a cancel",
+      "surface": "file",
+      "input": "cancel Friday's dinner on the calendar",
+      "context": "behrooz",
+      "expect": {
+        "say": {
+          "contains": [
+            "Settings"
+          ]
+        },
+        "filed": "none"
+      }
+    },
+    {
+      "id": "calendar-said-once",
+      "why": "one mention, and everything else in the dump still lands",
+      "surface": "file",
+      "input": "add the dentist to my calendar tuesday 3pm and remind me to buy flowers",
+      "context": "behrooz",
+      "expect": {
+        "filed_count": 2,
+        "say": {
+          "contains": [
+            "Settings"
+          ]
+        },
+        "rubric": "Mentions connecting a calendar exactly once. Both the dentist and the flowers are filed."
+      }
+    },
+    {
+      "id": "someone-elses-row-refused",
+      "why": "rewriting another member's row is refused, and that is said once without diagnosing",
+      "surface": "file",
+      "input": "rename the paint row to paint the hall",
+      "context": "shared",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "tool_errors": {
+        "edit_content": "not_author"
+      },
+      "expect": {
+        "must_not_contain": [
+          "error",
+          "tool",
+          "down",
+          "try again"
+        ],
+        "rubric": "Says in one short sentence that it cannot change that row because someone else wrote it, or that it could not change it. Names no tool and no error."
+      }
+    },
+    {
+      "id": "delete-note",
+      "why": "a note cannot be removed by offload, and it says so in one sentence (labelled 2026-09-17)",
+      "surface": "file",
+      "input": "delete the wifi note",
+      "context": "behrooz",
+      "notes": {
+        "00000013-0000-0000-0000-000000000000": [
+          "The wifi password is on the fridge"
+        ]
+      },
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": "none",
+        "rubric": "Says in one short sentence that it cannot remove a note. Naming the thread is fine. No apology, no tool named, no diagnosis."
+      }
+    },
+    {
+      "id": "delete-content-not-thread",
+      "why": "a delete of a row inside a thread is an archive, not a My threads sentence",
+      "surface": "file",
+      "input": "delete the deposit row",
+      "context": "shared",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "called": [
+          "archive_content"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "delete-thread-then-file-rest",
+      "why": "the cannot-do is said and the rest is filed",
+      "surface": "file",
+      "input": "delete the Music thread and add milk to groceries",
+      "context": "behrooz",
+      "expect": {
+        "say": {
+          "contains": [
+            "My threads"
+          ]
+        },
+        "filed": [
+          {
+            "has": [
+              "milk"
+            ],
+            "thread": "Groceries"
+          }
+        ]
+      }
+    },
+    {
+      "id": "cannot-delete",
+      "why": "15: a delete it cannot do says so and asks nothing",
+      "surface": "file",
+      "input": "delete the Music thread",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "calendar-write",
+      "why": "16: a dinner with a time is the write that waits, not a question",
+      "surface": "file",
+      "input": "dinner with Ana Friday 8pm",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    }
+  ]
+}

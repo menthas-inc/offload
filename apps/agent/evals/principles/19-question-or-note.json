@@ -1,0 +1,191 @@
+{
+  "statement": "Whether a message is a question about what they have put in or something to keep is decided on the text alone, before anything is read. A note with a question mark is still a note, anything ambiguous files, and a message that both asks and dumps is a dump.",
+  "why": "An unwanted row is archived in a second; a note treated as a question is lost. So the call fails towards filing, and it is made before retrieval so the same sentence lands the same way whatever the corpus holds.",
+  "sources": [
+    "013 AC-3, AC-3a",
+    "classify.md",
+    "tests/test_answer_behaviour.py: QUESTIONS"
+  ],
+  "cases": [
+    {
+      "id": "q-left-to-do",
+      "why": "a question about a thread",
+      "surface": "classify",
+      "input": "what is left to do from Lisbon",
+      "expect": {
+        "routes": "answer"
+      }
+    },
+    {
+      "id": "q-already-added",
+      "why": "an existence check",
+      "surface": "classify",
+      "input": "did I already add butter to the groceries list",
+      "expect": {
+        "routes": "answer"
+      }
+    },
+    {
+      "id": "q-where-staying",
+      "why": "a fact they filed",
+      "surface": "classify",
+      "input": "where am I staying in Istanbul",
+      "expect": {
+        "routes": "answer"
+      }
+    },
+    {
+      "id": "q-due-this-week",
+      "why": "a span of time",
+      "surface": "classify",
+      "input": "what is due this week",
+      "expect": {
+        "routes": "answer"
+      }
+    },
+    {
+      "id": "q-how-many-calendars",
+      "why": "an account fact",
+      "surface": "classify",
+      "input": "how many calendars do I have",
+      "expect": {
+        "routes": "answer"
+      }
+    },
+    {
+      "id": "q-show-list",
+      "why": "show me is a read",
+      "surface": "classify",
+      "input": "show me the Porto list",
+      "expect": {
+        "routes": "answer"
+      }
+    },
+    {
+      "id": "q-wifi",
+      "why": "asking for a note's content",
+      "surface": "classify",
+      "input": "what's the wifi password",
+      "expect": {
+        "routes": "answer"
+      }
+    },
+    {
+      "id": "q-anything-overdue",
+      "why": "one word question",
+      "surface": "classify",
+      "input": "anything overdue?",
+      "expect": {
+        "routes": "answer"
+      }
+    },
+    {
+      "id": "n-dentist-question-mark",
+      "why": "a note with a question mark",
+      "surface": "classify",
+      "input": "dentist after the 20th?",
+      "expect": {
+        "routes": "file"
+      }
+    },
+    {
+      "id": "n-book-flight",
+      "why": "a task",
+      "surface": "classify",
+      "input": "book the flight for the 3rd",
+      "expect": {
+        "routes": "file"
+      }
+    },
+    {
+      "id": "n-ask-bea",
+      "why": "a task that is itself a question to ask somebody",
+      "surface": "classify",
+      "input": "ask Bea about the deposit?",
+      "expect": {
+        "routes": "file"
+      }
+    },
+    {
+      "id": "n-milk",
+      "why": "one word",
+      "surface": "classify",
+      "input": "milk",
+      "expect": {
+        "routes": "file"
+      }
+    },
+    {
+      "id": "n-wifi-fact",
+      "why": "the note the question above would read",
+      "surface": "classify",
+      "input": "wifi password: hunter2",
+      "expect": {
+        "routes": "file"
+      }
+    },
+    {
+      "id": "n-link",
+      "why": "a link",
+      "surface": "classify",
+      "input": "https://www.airbnb.com/rooms/12345678",
+      "expect": {
+        "routes": "file"
+      }
+    },
+    {
+      "id": "n-think-about-it",
+      "why": "a thought with a question in it",
+      "surface": "classify",
+      "input": "is it worth getting the bigger fridge? think about it",
+      "expect": {
+        "routes": "file"
+      }
+    },
+    {
+      "id": "n-asks-and-dumps",
+      "why": "a question and a dump in one message is a dump",
+      "surface": "classify",
+      "input": "did the plumber come? need to chase him tomorrow",
+      "expect": {
+        "routes": "file"
+      }
+    },
+    {
+      "id": "n-ambiguous-fragment",
+      "why": "ambiguous fails towards filing",
+      "surface": "classify",
+      "input": "the deposit?",
+      "expect": {
+        "routes": "file"
+      }
+    },
+    {
+      "id": "n-porto",
+      "why": "a name with a question mark",
+      "surface": "classify",
+      "input": "Porto?",
+      "expect": {
+        "routes": "file"
+      }
+    },
+    {
+      "id": "w-capital",
+      "why": "a question about the world routes to answering, which says Not sure. (labelled 2026-09-17; classify.md says otherwise)",
+      "surface": "classify",
+      "input": "what's the capital of Peru",
+      "expect": {
+        "routes": "answer"
+      }
+    },
+    {
+      "id": "w-bank-holiday",
+      "why": "a diary question routes to answering, where the country question lives (labelled 2026-09-17)",
+      "surface": "classify",
+      "input": "when's the next bank holiday",
+      "expect": {
+        "routes": "answer"
+      }
+    }
+  ]
+}

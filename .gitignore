@@ -38,6 +38,9 @@ __pycache__/
 
 # Python, per-app virtualenv
 apps/agent/.venv/
+
+# LLM eval runs. The cases are committed; what a run produced is not.
+apps/agent/evals/results/
 apps/agent/**/__pycache__/
 apps/agent/.pytest_cache/
 apps/agent/.ruff_cache/

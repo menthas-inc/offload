@@ -1,0 +1,205 @@
+{
+  "statement": "Everything offload writes at runtime is in its own voice: short, sentence case, lowercase offload, no dashes, no emoji, no vendor, tool or mechanism named, no apology, no diagnosis of a failure, no 'thing' or 'content' for what somebody dumped. A progress line says what it is finding out, not how.",
+  "why": "These are the rules the product holds every written word to, and the ones a model breaks most: the dash above all. A progress line is the one string offload writes that a person reads as the product speaking while it works, so a vendor name or a page's words there are the product saying them.",
+  "sources": [
+    "CLAUDE.md: tone and copy",
+    "017 AC-14, AC-15",
+    "016: the voice rule, verb first, no subject",
+    "plan_v2.md: The reply",
+    "answer.md: Short, friendly, to the point"
+  ],
+  "cases": [
+    {
+      "id": "step-says-what-not-how",
+      "why": "a progress line about the thing, not the search",
+      "surface": "file",
+      "input": "check when the tip closes on saturday",
+      "context": "behrooz",
+      "expect": {
+        "look_up": true,
+        "step_present": true,
+        "rubric": "The look_up carries a doing line that names what is being found out, such as when the tip closes. It does not say searching, looking online, or name any tool or site."
+      }
+    },
+    {
+      "id": "step-on-a-link-may-name-domain",
+      "why": "a page read may name the site and nothing from inside it",
+      "surface": "file",
+      "input": "https://www.airbnb.com/rooms/12345678 for october",
+      "context": "behrooz",
+      "expect": {
+        "look_up": true,
+        "step_present": true
+      }
+    },
+    {
+      "id": "cannot-do-without-apology",
+      "why": "a cannot-do is plain, not sorry",
+      "surface": "file",
+      "input": "delete the Music thread",
+      "context": "behrooz",
+      "expect": {
+        "say": {
+          "contains": [
+            "My threads"
+          ],
+          "must_not_contain": [
+            "sorry",
+            "unfortunately",
+            "apolog",
+            "afraid"
+          ],
+          "max_words": 40
+        }
+      }
+    },
+    {
+      "id": "failure-not-diagnosed",
+      "why": "a failing tool is never described",
+      "surface": "file",
+      "input": "buy milk",
+      "context": "behrooz",
+      "fail_tools": {
+        "add_content": "unavailable",
+        "add_note": "unavailable"
+      },
+      "expect": {
+        "must_not_contain": [
+          "tool",
+          "down",
+          "error",
+          "try again",
+          "sorry",
+          "unavailable",
+          "glitch",
+          "issue"
+        ]
+      }
+    },
+    {
+      "id": "new-thread-line-is-verb-first",
+      "why": "the one ordinary sentence offload says, in its voice",
+      "surface": "file",
+      "input": "start a thread for the bookshelf: oak, 180 wide",
+      "context": "behrooz",
+      "expect": {
+        "creates_thread": true,
+        "say": {
+          "contains": [
+            "thread"
+          ],
+          "must_not_contain": [
+            "I ",
+            "I'",
+            "offload"
+          ],
+          "max_words": 12
+        },
+        "rubric": "One sentence that starts with a verb, such as Started a thread for the bookshelf. No subject, no dash, no exclamation."
+      }
+    },
+    {
+      "id": "answer-no-dash",
+      "why": "a reply with two facts in it, without a dash between them",
+      "surface": "answer",
+      "input": "where am I staying and when",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "note",
+          "title": "Alfama flat, 14th to the 17th",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-10-14"
+        }
+      ],
+      "expect": {
+        "rubric": "Names the flat and the dates in one short sentence or two, with commas or full stops. No dash of any kind."
+      }
+    },
+    {
+      "id": "answer-lowercase-offload",
+      "why": "the brand name is lowercase even at the start",
+      "surface": "answer",
+      "input": "what does offload know about the flat",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "note",
+          "title": "Alfama flat, 14th to the 17th",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-10-14"
+        }
+      ],
+      "expect": {
+        "rubric": "If the word offload appears, it is lowercase. Answers from the note in one short sentence, or says it has nothing."
+      }
+    },
+    {
+      "id": "answer-unknown-no-apology",
+      "why": "not knowing is one plain sentence",
+      "surface": "answer",
+      "input": "what's Ana's phone number",
+      "context": "three",
+      "rows": [],
+      "expect": {
+        "must_not_contain": [
+          "sorry",
+          "unfortunately",
+          "try "
+        ],
+        "max_words": 16
+      }
+    },
+    {
+      "id": "no-mechanism-in-say",
+      "why": "a say never describes classification or records",
+      "surface": "file",
+      "input": "delete the Music thread and add milk",
+      "context": "behrooz",
+      "expect": {
+        "say": {
+          "must_not_contain": [
+            "classif",
+            "record",
+            "created",
+            "database",
+            "note that"
+          ]
+        }
+      }
+    },
+    {
+      "id": "count-not-emoji",
+      "why": "no emoji, however friendly",
+      "surface": "answer",
+      "input": "did I already add butter to the list",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000002-0000-0000-0000-000000000000",
+          "threadName": "Groceries",
+          "type": "task",
+          "title": "buy butter",
+          "body": null,
+          "done": true,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "expect": {
+        "rubric": "Says yes and that it is already done, in one short sentence, with no emoji."
+      }
+    }
+  ]
+}

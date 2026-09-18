@@ -1,0 +1,44 @@
+{
+  "why": "Sam's account, a research lab: three threads and three calendars, one of them shared.",
+  "threads": [
+    {
+      "id": "00000010-0000-0000-0000-000000000000",
+      "name": "Fieldwork"
+    },
+    {
+      "id": "00000012-0000-0000-0000-000000000000",
+      "name": "Cabin"
+    },
+    {
+      "id": "00000011-0000-0000-0000-000000000000",
+      "name": "Odds and ends",
+      "default": "yes"
+    }
+  ],
+  "country": "PT",
+  "has_calendar": false,
+  "may_search": true,
+  "may_read_links": true,
+  "facts": {
+    "calendars": [
+      {
+        "filesInto": "Fieldwork",
+        "name": "sam@lab.org"
+      },
+      {
+        "filesInto": "Fieldwork",
+        "name": "Shared - Tomas"
+      },
+      {
+        "filesInto": null,
+        "name": "UK bank holidays"
+      }
+    ],
+    "defaultThread": {
+      "id": "00000011-0000-0000-0000-000000000000",
+      "name": "Odds and ends"
+    },
+    "displayName": "Sam",
+    "knowsDevicePreferences": false
+  }
+}

@@ -1,0 +1,201 @@
+{
+  "statement": "An ordinary filing says nothing. offload speaks only when they would not otherwise know: it could not read the dump, it could not do part of it, something is waiting on somebody else, or it decided something unexpected like starting a thread. It never claims what it did not do and never explains what it declined.",
+  "why": "Their own message wears a Done mark and a link to every thread written to, so a sentence repeating that says it twice. A reply that names a thread nothing went into is the one untruth this surface must never produce.",
+  "sources": [
+    "004 AC-23",
+    "004 AC-15 (partial success describes only what succeeded)",
+    "013: offload's own words are a record",
+    "plan_v2.md: The reply",
+    "harness/plan.py: Outcome.finished"
+  ],
+  "cases": [
+    {
+      "id": "plain-todo-silent",
+      "why": "the commonest turn says nothing",
+      "surface": "file",
+      "input": "buy oat milk",
+      "context": "behrooz",
+      "expect": {
+        "files_something": true,
+        "say": null
+      }
+    },
+    {
+      "id": "six-errands-silent",
+      "why": "six errands in one line: six rows, no sentence",
+      "surface": "file",
+      "input": "post the parcel, pick up the dry cleaning, call the bank, book the car in, water the plants, email Ana the photos",
+      "context": "behrooz",
+      "expect": {
+        "filed_count": 6,
+        "say": null
+      }
+    },
+    {
+      "id": "note-silent",
+      "why": "a note lands and nothing is said",
+      "surface": "file",
+      "input": "the flat is the Lisbon one",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_note"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "default-thread-silent",
+      "why": "landing in the default thread is not something to announce",
+      "surface": "file",
+      "input": "renew the library card",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "thread": "Miscellaneous"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "new-thread-is-worth-a-sentence",
+      "why": "a place that did not exist a moment ago",
+      "surface": "file",
+      "input": "start a thread for the bookshelf: oak, 180 wide, brackets",
+      "context": "behrooz",
+      "expect": {
+        "creates_thread": true,
+        "say": {
+          "contains": [
+            "thread"
+          ],
+          "max_words": 14,
+          "must_not_contain": [
+            "I "
+          ]
+        }
+      }
+    },
+    {
+      "id": "tool-failure-not-described",
+      "why": "a write that fails is not diagnosed",
+      "surface": "file",
+      "input": "buy oat milk",
+      "context": "behrooz",
+      "fail_tools": {
+        "add_content": "unavailable",
+        "add_note": "unavailable"
+      },
+      "expect": {
+        "must_not_contain": [
+          "down",
+          "try again",
+          "error",
+          "sorry",
+          "unfortunately",
+          "tool",
+          "unavailable"
+        ],
+        "rubric": "Does not claim anything was saved. Says nothing, or one short clause that names no mechanism, no tool, no apology and no suggestion to retry."
+      }
+    },
+    {
+      "id": "no-claim-of-unfiled",
+      "why": "nothing is said about where something was not put",
+      "surface": "file",
+      "input": "buy milk, and do not put this in Music",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "thread_not": "Music"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "from-inside-thread-silent",
+      "why": "typing from inside a thread gets no sentence either",
+      "surface": "file",
+      "input": "candles",
+      "context": "behrooz",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": [
+          {
+            "thread": "Flat admin"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "stay-with-dates-silent",
+      "why": "a note with dates is still just filed",
+      "surface": "file",
+      "input": "we are staying at the Alfama flat 14th to 17th",
+      "context": "three",
+      "looking_at": "00000001-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_note"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "hello-gets-a-line",
+      "why": "the one dump with nothing to file and a clear meaning",
+      "surface": "file",
+      "input": "hi",
+      "context": "behrooz",
+      "expect": {
+        "filed": "none",
+        "say_not": [
+          "Sorry, I did not understand that one."
+        ],
+        "rubric": "One short friendly line and nothing filed. Does not call the ask tool, does not apologise, does not say it did not understand."
+      }
+    },
+    {
+      "id": "partial-not-claimed",
+      "why": "the second write fails; the reply does not claim both",
+      "surface": "file",
+      "input": "buy milk and remind me to call mum tomorrow",
+      "context": "behrooz",
+      "fail_tools": {
+        "add_content:2": "unavailable"
+      },
+      "expect": {
+        "must_not_contain": [
+          "both",
+          "down",
+          "error",
+          "try again"
+        ],
+        "rubric": "Does not claim two rows were saved. Either says nothing or one short clause about what did not land, with no mechanism named."
+      }
+    },
+    {
+      "id": "no-thing-noun",
+      "why": "a reply never calls what they dumped a thing",
+      "surface": "file",
+      "input": "delete the Music thread",
+      "context": "behrooz",
+      "expect": {
+        "say": {
+          "contains": [
+            "My threads"
+          ]
+        }
+      }
+    }
+  ]
+}

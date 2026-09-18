@@ -1,0 +1,270 @@
+{
+  "statement": "A date is set only when the dump gives one. Relative words are read against today, a month with no year means the next time that month comes, and soon is not a date.",
+  "why": "An invented date puts a wrong row on somebody's calendar, and that is worse than a row with no date, which is honest and easy to fix. Late December is where this goes wrong silently: the 3rd is January.",
+  "sources": [
+    "006 AC-3, AC-4",
+    "014 AC-18",
+    "plan_v2.md: Dates",
+    "quick_add.md: Dates"
+  ],
+  "cases": [
+    {
+      "id": "soon-is-not-a-date",
+      "why": "soon gets nothing",
+      "surface": "file",
+      "input": "fix the leaking tap soon",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "type": "task",
+            "no_date": true
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "when-i-get-a-chance",
+      "why": "a vague when gets nothing",
+      "surface": "file",
+      "input": "sort the photos when I get a chance",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "no_date": true
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "after-the-20th",
+      "why": "after the 20th is a date",
+      "surface": "file",
+      "input": "dentist after the 20th",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date_any": [
+              "2026-09-20",
+              "2026-09-21"
+            ]
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "before-friday",
+      "why": "before Friday is a date, and today is a Friday so it means the next one",
+      "surface": "file",
+      "input": "send the invoice before Friday",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date_any": [
+              "2026-09-17",
+              "2026-09-18"
+            ]
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "month-no-year-next",
+      "why": "March has passed, so March is next year",
+      "surface": "file",
+      "input": "Ana's birthday on 3 March",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date": "2027-03-03"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "month-no-year-this",
+      "why": "November is still ahead, so it is this year",
+      "surface": "file",
+      "input": "conference on 5 November",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date": "2026-11-05"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "late-december-rolls-over",
+      "why": "the 3rd in late December is January",
+      "surface": "file",
+      "input": "dentist on the 3rd",
+      "context": "behrooz",
+      "today": "Tuesday 29 December 2026",
+      "expect": {
+        "filed": [
+          {
+            "date": "2027-01-03"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "tomorrow-is-a-date",
+      "why": "tomorrow from today's date",
+      "surface": "file",
+      "input": "call the plumber tomorrow",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date": "2026-09-12"
+          }
+        ],
+        "look_up": false,
+        "say": null
+      }
+    },
+    {
+      "id": "next-friday",
+      "why": "next Friday from a Friday",
+      "surface": "file",
+      "input": "chase the deposit next friday",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date": "2026-09-18"
+          }
+        ],
+        "look_up": false,
+        "say": null
+      }
+    },
+    {
+      "id": "in-two-weeks",
+      "why": "arithmetic from today",
+      "surface": "file",
+      "input": "renew the parking permit in two weeks",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date": "2026-09-25"
+          }
+        ],
+        "look_up": false,
+        "say": null
+      }
+    },
+    {
+      "id": "half-four-today",
+      "why": "a clock time with no day is today",
+      "surface": "file",
+      "input": "call the bank back at half four",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date": "2026-09-11"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "this-weekend",
+      "why": "this weekend is Saturday or Sunday",
+      "surface": "file",
+      "input": "beach this weekend",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date_any": [
+              "2026-09-12",
+              "2026-09-13"
+            ]
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "day-name-on-that-day",
+      "why": "Friday said on a Friday: today or next week are both accepted (labelled 2026-09-17)",
+      "surface": "file",
+      "input": "dentist Friday at 3",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date_any": [
+              "2026-09-11",
+              "2026-09-18"
+            ]
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "past-month-no-year",
+      "why": "past tense means the month that has passed, not the next one (labelled 2026-09-17)",
+      "surface": "file",
+      "input": "we went to Porto 14 to 16 August, lovely",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_note",
+            "date": "2026-08-14"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "no-date-invented-for-task",
+      "why": "a plain todo gets no date",
+      "surface": "file",
+      "input": "book the car in for a service",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "no_date": true
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "end-of-month",
+      "why": "the end of the month is a date",
+      "surface": "file",
+      "input": "pay the invoice by the end of the month",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "date": "2026-09-30"
+          }
+        ],
+        "say": null
+      }
+    }
+  ]
+}

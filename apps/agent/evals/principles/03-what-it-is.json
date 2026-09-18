@@ -1,0 +1,319 @@
+{
+  "statement": "A row is a task, an event, a location, a link or something they handed over; a sentence is a note, a date does not make it an event, a standing rule is a note rather than a task, and something that comes round again is one row with a rule.",
+  "why": "An event goes in the one place people expect things they have committed to with other people, so calling a plan an appointment puts it there wrongly. A rule that becomes a task is noise in a list; a task that becomes a rule is a lost todo. Four rows saying Yoga are four rows saying the same thing.",
+  "sources": [
+    "006 AC-1, AC-2, AC-5",
+    "014: a note is a sentence about the thread",
+    "plan_v2.md: What something is, Thread notes",
+    "tests/test_truthfulness.py: a rule becomes a note and a task does not"
+  ],
+  "cases": [
+    {
+      "id": "task-plain",
+      "why": "something to do",
+      "surface": "file",
+      "input": "chase the electrician about the quote",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_content",
+            "type": "task"
+          }
+        ],
+        "not_called": [
+          "add_note"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "event-with-clock",
+      "why": "an appointment with a clock time is an event",
+      "surface": "file",
+      "input": "dentist Tuesday at 3",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_content",
+            "type": "event",
+            "date": "2026-09-15"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "plan-is-a-note",
+      "why": "a sentence with a day in it is a plan, which is a note",
+      "surface": "file",
+      "input": "Sunday brunch on the way back to NYC",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_note"
+          }
+        ],
+        "not_called": [
+          "add_content"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "stay-sentence-is-note",
+      "why": "a stay said as a sentence is a note with dates",
+      "surface": "file",
+      "input": "we are staying in Istanbul the 10th to the 12th",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_note",
+            "date": "2026-10-10"
+          }
+        ],
+        "not_called": [
+          "add_content"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "leaving-and-back",
+      "why": "travel times are a plan, not two appointments",
+      "surface": "file",
+      "input": "leaving Thursday noon, back Sunday noon",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_note"
+          }
+        ],
+        "not_called": [
+          "add_content"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "fact-is-a-note",
+      "why": "a fact about the flat",
+      "surface": "file",
+      "input": "the wifi password is on the fridge",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_note"
+          }
+        ],
+        "not_called": [
+          "add_content"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "rule-is-a-note",
+      "why": "a standing rule, said as one",
+      "surface": "file",
+      "input": "in Flat admin, from now on keep titles to three words",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_note",
+            "thread": "Flat admin"
+          }
+        ],
+        "not_called": [
+          "add_content"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "rule-stop-putting",
+      "why": "a rule about where things go is a note, not a task to move them",
+      "surface": "file",
+      "input": "stop putting receipts in miscellaneous, they go in flat admin",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_note"
+          }
+        ],
+        "not_called": [
+          "add_content"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "reminder-is-a-task",
+      "why": "a reminder is a task with the flag, never a rule",
+      "surface": "file",
+      "input": "remind me to call mum on sunday",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_content",
+            "type": "task",
+            "reminder": true,
+            "date": "2026-09-13"
+          }
+        ],
+        "not_called": [
+          "add_note"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "location-title-is-the-place",
+      "why": "the place is the title and the rest is its own piece",
+      "surface": "file",
+      "input": "Time Out Market for lunch on Thursday",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "type": "location",
+            "has": [
+              "Time Out Market"
+            ],
+            "lacks": [
+              "lunch",
+              "Thursday"
+            ]
+          }
+        ],
+        "say": null,
+        "rubric": "A location row titled Time Out Market and nothing more, plus lunch on Thursday as a separate row or note."
+      }
+    },
+    {
+      "id": "link-keeps-url",
+      "why": "a link row carries the address exactly as written",
+      "surface": "file",
+      "input": "keep this https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "type": "link",
+            "url": "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "repeats-weekly-note",
+      "why": "one note that repeats, not four",
+      "surface": "file",
+      "input": "yoga every Tuesday for the next month",
+      "context": "behrooz",
+      "expect": {
+        "filed_count": 1,
+        "filed": [
+          {
+            "tool": "add_note",
+            "repeats": "week",
+            "date": "2026-09-15"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "repeats-weekday-event",
+      "why": "one event with a weekday rule, not five",
+      "surface": "file",
+      "input": "standup every weekday at 9",
+      "context": "behrooz",
+      "expect": {
+        "filed_count": 1,
+        "filed": [
+          {
+            "type": "event",
+            "repeats": "weekday"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "does-not-repeat",
+      "why": "one Tuesday is one row with no rule",
+      "surface": "file",
+      "input": "yoga on Tuesday",
+      "context": "behrooz",
+      "expect": {
+        "filed_count": 1,
+        "filed": [
+          {
+            "no_repeats": true,
+            "date": "2026-09-15"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "reminder-tonight",
+      "why": "the flag on a task",
+      "surface": "file",
+      "input": "remind me to take the bins out tonight",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "reminder": true,
+            "date": "2026-09-11"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "priority-from-words",
+      "why": "urgency in their words becomes a priority above the middle",
+      "surface": "file",
+      "input": "URGENT: pay the parking fine before it doubles",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "type": "task",
+            "priority_min": 60
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "monthly-rule",
+      "why": "monthly is one row with a month rule",
+      "surface": "file",
+      "input": "rent on the 1st of every month",
+      "context": "behrooz",
+      "expect": {
+        "filed_count": 1,
+        "filed": [
+          {
+            "repeats": "month",
+            "date": "2026-10-01"
+          }
+        ],
+        "say": null
+      }
+    }
+  ]
+}

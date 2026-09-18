@@ -130,10 +130,10 @@ TODAY = "Tuesday 15 September 2026"
 def test_a_span_is_two_days_in_order_and_within_a_year():
     ok = parse_answer("span", Judgement(answers=True, day="2026-10-10", to="2026-10-12"), [], TODAY)
     assert ok == {"from": "2026-10-10", "to": "2026-10-12"}
-    # A single day is a span of one.
+    # A single day is one night (decided 2026-09-17).
     assert parse_answer("span", Judgement(answers=True, day="2026-10-10"), [], TODAY) == {
         "from": "2026-10-10",
-        "to": "2026-10-10",
+        "to": "2026-10-11",
     }
     assert (
         parse_answer("span", Judgement(answers=True, day="2026-10-12", to="2026-10-10"), [], TODAY)
@@ -163,7 +163,15 @@ def test_a_tag_and_a_country_must_be_among_the_values_offered():
     assert parse_answer("tag", Judgement(answers=True, tag="city:porto"), tags, TODAY) == {
         "tag": "city:porto"
     }
-    assert parse_answer("tag", Judgement(answers=True, tag="city:paris"), tags, TODAY) is None
+    # A tag they typed that was not offered is a new value in the same
+    # dimension (2026-09-17), not a refusal.
+    assert parse_answer("tag", Judgement(answers=True, tag="city:paris"), tags, TODAY) == {
+        "tag": "city:paris"
+    }
+    assert parse_answer("tag", Judgement(answers=True, tag="paris"), tags, TODAY) == {
+        "tag": "city:paris"
+    }
+    assert parse_answer("tag", Judgement(answers=True, tag="a" * 60), tags, TODAY) is None
 
     countries = [{"label": "United States", "value": "US"}, {"label": "Turkey", "value": "TR"}]
     assert parse_answer("country", Judgement(answers=True, country="tr"), countries, TODAY) == {

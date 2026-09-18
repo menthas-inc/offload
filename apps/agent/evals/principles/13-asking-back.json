@@ -1,0 +1,1008 @@
+{
+  "statement": "offload files first and then may ask for one field the row genuinely needs and nothing gave it: the dates of a stay, the by-when of a reminder, a deadline, a gift or a renewal, the time of a meeting or call, or the tag a thread's notes say rows carry. It never asks what they meant, what kind of row it is or where it goes; never a field already given; at most two in a turn, dates before tags; options are values it already holds; and a note can require or forbid a question.",
+  "why": "An unanswered question costs nothing, so a question is only worth asking about a field the row needs. A wrong home is one move away and a wrong kind is corrected by the way out, so neither is asked. Where the notes give the answer, asking is filing by another name.",
+  "sources": [
+    "018 AC-1 to AC-9, AC-11",
+    "018: what offload never does here",
+    "plan_v2.md: Asking back",
+    "answer.md: the country question"
+  ],
+  "cases": [
+    {
+      "id": "never-who",
+      "why": "who they meant is never asked",
+      "surface": "file",
+      "input": "call him back",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none",
+        "files_something": true,
+        "say": null
+      }
+    },
+    {
+      "id": "never-which-thread",
+      "why": "which trip is never asked; it lands somewhere",
+      "surface": "file",
+      "input": "book the tickets",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none",
+        "files_something": true,
+        "say": null
+      }
+    },
+    {
+      "id": "never-is-that-a-todo",
+      "why": "what kind of row is never asked",
+      "surface": "file",
+      "input": "gym",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none",
+        "files_something": true,
+        "say": null
+      }
+    },
+    {
+      "id": "deadline-word-asks-date",
+      "why": "'deadline' with no date",
+      "surface": "file",
+      "input": "submit the grant application, deadline coming up",
+      "context": "behrooz",
+      "expect": {
+        "asks": "date",
+        "files_something": true
+      }
+    },
+    {
+      "id": "by-with-date-asks-nothing",
+      "why": "by the end of the month is a date",
+      "surface": "file",
+      "input": "pay the invoice by the end of the month",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none",
+        "filed": [
+          {
+            "date": "2026-09-30"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "renewal-with-date-asks-nothing",
+      "why": "a renewal with its by-when",
+      "surface": "file",
+      "input": "renew the passport before 1 november",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none",
+        "filed": [
+          {
+            "date": "2026-11-01"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "call-with-day-and-time",
+      "why": "a call with a day and a time needs nothing",
+      "surface": "file",
+      "input": "call the accountant tuesday 10am",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none",
+        "filed": [
+          {
+            "date": "2026-09-15"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "call-with-day-only-asks-time",
+      "why": "a call with a day but no time",
+      "surface": "file",
+      "input": "call with the accountant on tuesday",
+      "context": "behrooz",
+      "expect": {
+        "asks": "time",
+        "files_something": true
+      }
+    },
+    {
+      "id": "note-forbids-dates",
+      "why": "a note that forbids date questions wins over the table",
+      "surface": "file",
+      "input": "renew the contents insurance",
+      "context": "behrooz",
+      "notes": {
+        "00000013-0000-0000-0000-000000000000": [
+          "Never ask about dates here"
+        ]
+      },
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "none",
+        "files_something": true,
+        "say": null
+      }
+    },
+    {
+      "id": "note-requires-tag-with-values",
+      "why": "a thread organised by room offers the rooms it has",
+      "surface": "file",
+      "input": "new towels",
+      "context": "behrooz",
+      "notes": {
+        "00000013-0000-0000-0000-000000000000": [
+          "Organised by room"
+        ]
+      },
+      "rows": {
+        "00000013-0000-0000-0000-000000000000": [
+          {
+            "contentId": "r1",
+            "threadId": "00000013-0000-0000-0000-000000000000",
+            "threadName": "Flat admin",
+            "type": "task",
+            "title": "new tap",
+            "body": null,
+            "done": false,
+            "tags": [
+              "room:kitchen"
+            ],
+            "dueAt": null,
+            "occursAt": null
+          },
+          {
+            "contentId": "r2",
+            "threadId": "00000013-0000-0000-0000-000000000000",
+            "threadName": "Flat admin",
+            "type": "task",
+            "title": "regrout",
+            "body": null,
+            "done": false,
+            "tags": [
+              "room:bathroom"
+            ],
+            "dueAt": null,
+            "occursAt": null
+          }
+        ]
+      },
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "tag",
+        "options": [
+          "room:kitchen"
+        ]
+      }
+    },
+    {
+      "id": "tag-with-one-value-not-asked",
+      "why": "fewer than two values means nothing to offer, so no question",
+      "surface": "file",
+      "input": "new towels",
+      "context": "behrooz",
+      "notes": {
+        "00000013-0000-0000-0000-000000000000": [
+          "Organised by room"
+        ]
+      },
+      "rows": {
+        "00000013-0000-0000-0000-000000000000": [
+          {
+            "contentId": "r1",
+            "threadId": "00000013-0000-0000-0000-000000000000",
+            "threadName": "Flat admin",
+            "type": "task",
+            "title": "new tap",
+            "body": null,
+            "done": false,
+            "tags": [
+              "room:kitchen"
+            ],
+            "dueAt": null,
+            "occursAt": null
+          }
+        ]
+      },
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "none",
+        "say": null
+      }
+    },
+    {
+      "id": "tag-given-in-dump",
+      "why": "the dump names the genre, so no question",
+      "surface": "file",
+      "input": "jazz: https://www.youtube.com/watch?v=abc123xyz",
+      "context": "behrooz",
+      "notes": {
+        "00000012-0000-0000-0000-000000000000": [
+          "Organised by genre"
+        ]
+      },
+      "rows": {
+        "00000012-0000-0000-0000-000000000000": [
+          {
+            "contentId": "m1",
+            "threadId": "00000012-0000-0000-0000-000000000000",
+            "threadName": "Music",
+            "type": "link",
+            "title": "Kind of Blue",
+            "body": null,
+            "done": false,
+            "tags": [
+              "genre:jazz"
+            ],
+            "dueAt": null,
+            "occursAt": null
+          },
+          {
+            "contentId": "m2",
+            "threadId": "00000012-0000-0000-0000-000000000000",
+            "threadName": "Music",
+            "type": "link",
+            "title": "Nevermind",
+            "body": null,
+            "done": false,
+            "tags": [
+              "genre:rock"
+            ],
+            "dueAt": null,
+            "occursAt": null
+          }
+        ]
+      },
+      "looking_at": "00000012-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "none",
+        "filed": [
+          {
+            "tags_include": [
+              "genre:jazz"
+            ]
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "date-question-offers-two",
+      "why": "a date question always offers the end of this week and the end of this month",
+      "surface": "file",
+      "input": "buy a birthday gift for Ana",
+      "context": "behrooz",
+      "expect": {
+        "asks": "date",
+        "option_count": 2,
+        "options": [
+          "2026-09-30"
+        ]
+      }
+    },
+    {
+      "id": "span-no-notes-no-options",
+      "why": "a stay from Today with nothing to offer sends no options",
+      "surface": "file",
+      "input": "https://www.booking.com/hotel/pt/casa-alfama.html",
+      "context": "behrooz",
+      "expect": {
+        "asks": "span",
+        "no_options": true
+      }
+    },
+    {
+      "id": "span-offers-guessed-thread-dates",
+      "why": "from Today, the thread was offload's guess, so its dates are offered as options",
+      "surface": "file",
+      "input": "https://www.booking.com/hotel/tr/sultan-inn.html",
+      "context": "behrooz",
+      "notes": {
+        "00000014-0000-0000-0000-000000000000": [
+          "Istanbul 10th to 12th October"
+        ]
+      },
+      "expect": {
+        "asks": "span",
+        "options": [
+          "2026-10-10/2026-10-12"
+        ]
+      }
+    },
+    {
+      "id": "answered-block-files-the-rest",
+      "why": "the answer is already on the row; only the rest is filed",
+      "surface": "file",
+      "input": "the 20th, and add milk to groceries",
+      "context": "behrooz",
+      "answered": {
+        "field": "date",
+        "label": "by 20 September"
+      },
+      "expect": {
+        "filed": [
+          {
+            "has": [
+              "milk"
+            ],
+            "thread": "Groceries"
+          }
+        ],
+        "filed_count": 1,
+        "asks": "none",
+        "say": null
+      }
+    },
+    {
+      "id": "question-says-nothing",
+      "why": "a question is never explained or apologised for",
+      "surface": "file",
+      "input": "get mum a present",
+      "context": "behrooz",
+      "expect": {
+        "asks": "date",
+        "say": null
+      }
+    },
+    {
+      "id": "refusal-never-a-question",
+      "why": "an unreadable dump is refused, not asked about",
+      "surface": "file",
+      "input": "qwertyuiop asdfgh",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none",
+        "say": "Sorry, I did not understand that one.",
+        "filed": "none"
+      }
+    },
+    {
+      "id": "not-sure-never-a-question",
+      "why": "a question that is not offload's is not turned into one",
+      "surface": "file",
+      "input": "what's the best pasta shape for ragu",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none",
+        "say": "Not sure.",
+        "filed": "none"
+      }
+    },
+    {
+      "id": "reminder-with-date-not-asked",
+      "why": "a reminder that says when",
+      "surface": "file",
+      "input": "remind me to renew the passport on the 20th",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none",
+        "filed": [
+          {
+            "date": "2026-09-20",
+            "reminder": true
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "gift-with-occasion-date",
+      "why": "a gift whose occasion is dated in the dump",
+      "surface": "file",
+      "input": "get Ana a present for her birthday on 3 march",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none",
+        "filed": [
+          {
+            "date": "2027-03-03"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "task-groceries",
+      "why": "2: three tasks, no dates",
+      "surface": "file",
+      "input": "milk, eggs, basil",
+      "context": "behrooz",
+      "looking_at": "00000002-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "task-feature",
+      "why": "4: a feature request in an app thread",
+      "surface": "file",
+      "input": "add multi-line input to my app",
+      "context": "behrooz",
+      "looking_at": "00000010-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "task-flight",
+      "why": "17: the trip's dates are not the flight's",
+      "surface": "file",
+      "input": "book the flight",
+      "context": "behrooz",
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "notes": {
+        "00000011-0000-0000-0000-000000000000": [
+          "Istanbul 10th to 12th October"
+        ]
+      },
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "read-airbnb-notes",
+      "why": "6: the dates come from the notes",
+      "surface": "file",
+      "input": "https://www.airbnb.com/rooms/12345678",
+      "context": "behrooz",
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "notes": {
+        "00000011-0000-0000-0000-000000000000": [
+          "Istanbul 10th to 12th October"
+        ]
+      },
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "read-ana-dates",
+      "why": "11: a fact about somebody else's dates is a note",
+      "surface": "file",
+      "input": "Ana can only travel 14th to 17th",
+      "context": "behrooz",
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "read-reference",
+      "why": "18: a reference it cannot resolve is filed in their words",
+      "surface": "file",
+      "input": "add to shopping: the thing Ana mentioned",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "lookup-not-question",
+      "why": "13: a booking is a lookup, not a question",
+      "surface": "file",
+      "input": "book a table for mothers day",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "answer-all-threads",
+      "why": "20: from Today, across everything",
+      "surface": "answer",
+      "input": "what's left to do",
+      "context": "behrooz",
+      "rows": [
+        {
+          "id": "o1",
+          "threadId": "00000010-0000-0000-0000-000000000000",
+          "threadName": "App fixes",
+          "title": "photos",
+          "type": "task",
+          "tags": []
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Answers about the open task from the rows without asking anything back. A count alone is enough; naming the task is also fine.",
+        "asks": "none"
+      }
+    },
+    {
+      "id": "answer-in-thread",
+      "why": "22: inside a thread, that thread",
+      "surface": "answer",
+      "input": "what's left to do",
+      "context": "behrooz",
+      "looking_at": "00000010-0000-0000-0000-000000000000",
+      "rows": [
+        {
+          "id": "o1",
+          "threadId": "00000010-0000-0000-0000-000000000000",
+          "threadName": "App fixes",
+          "title": "photos",
+          "type": "task",
+          "tags": []
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Answers about the open task from the rows without asking anything back. A count alone is enough; naming the task is also fine.",
+        "asks": "none"
+      }
+    },
+    {
+      "id": "ask-passport-date",
+      "why": "30: a renewal is a reminder with a by-when",
+      "surface": "file",
+      "input": "remind me to renew passport",
+      "context": "behrooz",
+      "expect": {
+        "asks": "date"
+      }
+    },
+    {
+      "id": "ask-airbnb-span",
+      "why": "28: a stay with no dates anywhere asks for them",
+      "surface": "file",
+      "input": "https://www.airbnb.com/rooms/12345678",
+      "context": "behrooz",
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "span"
+      }
+    },
+    {
+      "id": "ask-span-then-city",
+      "why": "33: a stay in a thread grouped by city asks the dates first and the city second",
+      "surface": "file",
+      "input": "https://www.airbnb.com/rooms/12345678",
+      "context": "behrooz",
+      "looking_at": "00000015-0000-0000-0000-000000000000",
+      "notes": {
+        "00000015-0000-0000-0000-000000000000": [
+          "Grouped by city"
+        ]
+      },
+      "rows": [
+        {
+          "id": "p1",
+          "threadId": "00000015-0000-0000-0000-000000000000",
+          "threadName": "Porto weekend",
+          "title": "Tram museum",
+          "type": "note",
+          "tags": [
+            "city:porto"
+          ]
+        },
+        {
+          "id": "p2",
+          "threadId": "00000015-0000-0000-0000-000000000000",
+          "threadName": "Porto weekend",
+          "title": "Lunch at the market",
+          "type": "note",
+          "tags": [
+            "city:braga"
+          ]
+        }
+      ],
+      "expect": {
+        "asks": "span,tag"
+      }
+    },
+    {
+      "id": "task-login-bug",
+      "why": "a task in an app thread",
+      "surface": "file",
+      "input": "fix the login bug",
+      "context": "behrooz",
+      "looking_at": "00000010-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "task-bin-bags",
+      "why": "a shopping task",
+      "surface": "file",
+      "input": "buy bin bags",
+      "context": "behrooz",
+      "looking_at": "00000002-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "task-pack-chargers",
+      "why": "a trip task without a date",
+      "surface": "file",
+      "input": "pack the chargers",
+      "context": "behrooz",
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "notes": {
+        "00000011-0000-0000-0000-000000000000": [
+          "Lisbon 3rd to 6th November"
+        ]
+      },
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "read-wifi",
+      "why": "a fact about the flat is a note",
+      "surface": "file",
+      "input": "the wifi password is on the fridge",
+      "context": "behrooz",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "read-swim",
+      "why": "a repeating note",
+      "surface": "file",
+      "input": "swim every Thursday morning",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "read-airbnb-from-notes",
+      "why": "the notes hold the dates, from inside the thread",
+      "surface": "file",
+      "input": "https://www.airbnb.com/rooms/87654321",
+      "context": "behrooz",
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "notes": {
+        "00000011-0000-0000-0000-000000000000": [
+          "Lisbon 3rd to 6th November"
+        ]
+      },
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "event-lunch",
+      "why": "a lunch with a day and a time needs nothing",
+      "surface": "file",
+      "input": "lunch with Ana Tuesday 1pm",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "answer-groceries",
+      "why": "a read across the rows",
+      "surface": "answer",
+      "input": "what's on the groceries list",
+      "context": "behrooz",
+      "rows": [
+        {
+          "id": "g1",
+          "threadId": "00000002-0000-0000-0000-000000000000",
+          "threadName": "Groceries",
+          "title": "milk",
+          "type": "task",
+          "tags": []
+        },
+        {
+          "id": "g2",
+          "threadId": "00000002-0000-0000-0000-000000000000",
+          "threadName": "Groceries",
+          "title": "basil",
+          "type": "task",
+          "tags": []
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "A count or one short sentence. The rows are drawn beside the reply, so the titles need not be typed out. No word item, thing or content.",
+        "asks": "none"
+      }
+    },
+    {
+      "id": "ask-insurance-date",
+      "why": "a renewal is a task with a by-when",
+      "surface": "file",
+      "input": "renew the car insurance",
+      "context": "behrooz",
+      "expect": {
+        "asks": "date"
+      }
+    },
+    {
+      "id": "ask-present-date",
+      "why": "a gift is a task with a by-when",
+      "surface": "file",
+      "input": "get mum a present",
+      "context": "behrooz",
+      "expect": {
+        "asks": "date"
+      }
+    },
+    {
+      "id": "ask-booking-span",
+      "why": "a hotel link with no dates anywhere",
+      "surface": "file",
+      "input": "https://www.booking.com/hotel/tr/sultan-inn.html",
+      "context": "behrooz",
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "span"
+      }
+    },
+    {
+      "id": "ask-genre-2",
+      "why": "a link in a thread organised by genre",
+      "surface": "file",
+      "input": "https://www.youtube.com/watch?v=3JZ_D3ELwOQ",
+      "context": "behrooz",
+      "looking_at": "00000012-0000-0000-0000-000000000000",
+      "notes": {
+        "00000012-0000-0000-0000-000000000000": [
+          "Organised by genre"
+        ]
+      },
+      "rows": [
+        {
+          "id": "r1",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Music",
+          "title": "Kind of Blue",
+          "type": "link",
+          "tags": [
+            "genre:jazz"
+          ]
+        },
+        {
+          "id": "r2",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Music",
+          "title": "Selected Ambient Works",
+          "type": "link",
+          "tags": [
+            "genre:ambient"
+          ]
+        }
+      ],
+      "expect": {
+        "asks": "tag"
+      }
+    },
+    {
+      "id": "ask-accountant-time",
+      "why": "a call with somebody and no time",
+      "surface": "file",
+      "input": "call with the accountant",
+      "context": "behrooz",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "time"
+      }
+    },
+    {
+      "id": "task-photos",
+      "why": "1: a one word task in a thread about app fixes stays a task",
+      "surface": "file",
+      "input": "photos",
+      "context": "behrooz",
+      "looking_at": "00000010-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "task-dated",
+      "why": "3: a task said with its date is not asked for one",
+      "surface": "file",
+      "input": "dentist after the 20th",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "task-call-mum",
+      "why": "7: a bare task",
+      "surface": "file",
+      "input": "call mum",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "task-brackets",
+      "why": "9: a shopping task with no date",
+      "surface": "file",
+      "input": "oak brackets 30cm matte black",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "read-youtube-no-note",
+      "why": "5: a link in a thread with no note asking for a genre",
+      "surface": "file",
+      "input": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "context": "behrooz",
+      "looking_at": "00000012-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "read-staying",
+      "why": "8: a sentence about a stay with no dates is a note, not a stay to date",
+      "surface": "file",
+      "input": "we're staying at the Alfama flat",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "read-yoga",
+      "why": "10: a repeating note",
+      "surface": "file",
+      "input": "yoga every Tuesday",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "answer-porto",
+      "why": "19: where something goes is never asked",
+      "surface": "answer",
+      "input": "trip to Porto",
+      "context": "behrooz",
+      "may_search": true,
+      "may_read_links": true,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Files nothing and asks nothing; says something sensible about the Porto thread or answers plainly.",
+        "asks": "none",
+        "look_up": false
+      }
+    },
+    {
+      "id": "answer-two-trips",
+      "why": "21: two trips are both answered, the next first",
+      "surface": "answer",
+      "input": "where am I staying?",
+      "context": "behrooz",
+      "rows": [
+        {
+          "id": "s1",
+          "threadId": "00000014-0000-0000-0000-000000000000",
+          "threadName": "Istanbul trip",
+          "title": "Kadikoy flat",
+          "type": "note",
+          "tags": []
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Names the stay from the rows without asking which trip.",
+        "asks": "none"
+      }
+    },
+    {
+      "id": "answer-deposit",
+      "why": "23: a read",
+      "surface": "answer",
+      "input": "did I pay the deposit",
+      "context": "behrooz",
+      "rows": [
+        {
+          "id": "d1",
+          "threadId": "00000013-0000-0000-0000-000000000000",
+          "threadName": "Flat admin",
+          "title": "Deposit paid",
+          "type": "task",
+          "done": true,
+          "tags": []
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says yes, because the row is done. One short sentence. No question back.",
+        "asks": "none"
+      }
+    },
+    {
+      "id": "ask-gift-date",
+      "why": "26: a gift is a task with a by-when it did not give",
+      "surface": "file",
+      "input": "buy birthday gift for Ana",
+      "context": "behrooz",
+      "expect": {
+        "asks": "date"
+      }
+    },
+    {
+      "id": "ask-genre",
+      "why": "27: a link in a thread whose note says it is organised by genre",
+      "surface": "file",
+      "input": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "context": "behrooz",
+      "looking_at": "00000012-0000-0000-0000-000000000000",
+      "notes": {
+        "00000012-0000-0000-0000-000000000000": [
+          "Organised by genre"
+        ]
+      },
+      "rows": [
+        {
+          "id": "r1",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Music",
+          "title": "Kind of Blue",
+          "type": "link",
+          "tags": [
+            "genre:jazz"
+          ]
+        },
+        {
+          "id": "r2",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Music",
+          "title": "Selected Ambient Works",
+          "type": "link",
+          "tags": [
+            "genre:ambient"
+          ]
+        },
+        {
+          "id": "r3",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Music",
+          "title": "Nevermind",
+          "type": "link",
+          "tags": [
+            "genre:rock"
+          ]
+        }
+      ],
+      "expect": {
+        "asks": "tag"
+      }
+    },
+    {
+      "id": "ask-landlord-time",
+      "why": "31: a meeting with no time",
+      "surface": "file",
+      "input": "meeting with the landlord",
+      "context": "behrooz",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "time"
+      }
+    }
+  ]
+}

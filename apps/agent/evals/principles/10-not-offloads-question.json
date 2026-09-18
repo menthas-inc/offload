@@ -1,0 +1,405 @@
+{
+  "statement": "Some questions are not offload's at all: a fact about the world that changes nothing they are planning, keeping or doing gets no lookup and no answer from memory, and the whole reply is Not sure. A date, a forecast, opening hours or a strike on a day they are living is theirs and is answered.",
+  "why": "offload is a personal assistant, not a search engine with a chat window. Answering trivia makes it a worse version of a tool one tap away. Refusing the diary because a fact is public would refuse the product.",
+  "sources": [
+    "016: not every question is offload's (2026-09-15)",
+    "016 AC-17",
+    "plan_v2.md: What you do not look up, the second kind",
+    "answer.md: You answer about their life"
+  ],
+  "cases": [
+    {
+      "id": "answer-clocks-theirs",
+      "why": "a clock change is what a day is made of",
+      "surface": "answer",
+      "input": "when do the clocks go back",
+      "context": "behrooz",
+      "expect": {
+        "look_up": true,
+        "must_not_contain": [
+          "not sure"
+        ]
+      }
+    },
+    {
+      "id": "answer-strike-theirs",
+      "why": "a strike on a day they travel decides the day",
+      "surface": "answer",
+      "input": "is there a rail strike on the 22nd",
+      "context": "behrooz",
+      "expect": {
+        "look_up": true,
+        "must_not_contain": [
+          "not sure"
+        ]
+      }
+    },
+    {
+      "id": "answer-last-train-theirs",
+      "why": "a timetable their plan turns on",
+      "surface": "answer",
+      "input": "what time is the last train back from porto on sunday",
+      "context": "behrooz",
+      "expect": {
+        "look_up": true,
+        "must_not_contain": [
+          "not sure"
+        ]
+      }
+    },
+    {
+      "id": "answer-bitcoin",
+      "why": "a public number that changes nothing they are planning",
+      "surface": "answer",
+      "input": "how much is bitcoin right now",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "reply": "Not sure."
+      }
+    },
+    {
+      "id": "answer-quantum",
+      "why": "the chatbot register",
+      "surface": "answer",
+      "input": "explain quantum computing simply",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "reply": "Not sure."
+      }
+    },
+    {
+      "id": "answer-kettle",
+      "why": "a how-to with a better tool one tap away",
+      "surface": "answer",
+      "input": "how do I descale a kettle",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "reply": "Not sure."
+      }
+    },
+    {
+      "id": "answer-film",
+      "why": "an opinion",
+      "surface": "answer",
+      "input": "what's a good film to watch tonight",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "reply": "Not sure."
+      }
+    },
+    {
+      "id": "answer-population",
+      "why": "a public number",
+      "surface": "answer",
+      "input": "what's the population of portugal",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "reply": "Not sure."
+      }
+    },
+    {
+      "id": "answer-known-fact-still-not-sure",
+      "why": "even a fact it knows perfectly well",
+      "surface": "answer",
+      "input": "what's the capital of France",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "reply": "Not sure."
+      }
+    },
+    {
+      "id": "file-trivia-with-todo",
+      "why": "trivia beside a todo: the todo lands, the trivia gets nothing, nothing is said",
+      "surface": "file",
+      "input": "what's the capital of Mongolia, and buy milk",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "filed": [
+          {
+            "has": [
+              "milk"
+            ],
+            "thread": "Groceries"
+          }
+        ],
+        "filed_count": 1,
+        "say": null
+      }
+    },
+    {
+      "id": "file-howto-alone",
+      "why": "a how-to with nothing to file is the line",
+      "surface": "file",
+      "input": "how long do you boil an egg for",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "say": "Not sure.",
+        "filed": "none"
+      }
+    },
+    {
+      "id": "answer-opening-hours-theirs",
+      "why": "whether somewhere is open decides an errand",
+      "surface": "answer",
+      "input": "is the post office open on saturday morning",
+      "context": "behrooz",
+      "expect": {
+        "look_up": true,
+        "must_not_contain": [
+          "not sure"
+        ]
+      }
+    },
+    {
+      "id": "answer-not-sure-is-whole-reply",
+      "why": "no offer, no pointer elsewhere",
+      "surface": "answer",
+      "input": "what's the best way to learn spanish",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "reply": "Not sure."
+      }
+    },
+    {
+      "id": "answer-recipe",
+      "why": "24: not offload's question",
+      "surface": "answer",
+      "input": "how do you make leek soup",
+      "context": "behrooz",
+      "may_search": true,
+      "may_read_links": true,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says Not sure. and asks nothing.",
+        "asks": "none",
+        "look_up": false
+      }
+    },
+    {
+      "id": "answer-capital",
+      "why": "not offload's question",
+      "surface": "answer",
+      "input": "what's the capital of Peru",
+      "context": "behrooz",
+      "may_search": true,
+      "may_read_links": true,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says Not sure. and asks nothing.",
+        "asks": "none",
+        "look_up": false
+      }
+    },
+    {
+      "id": "h-preserve-scope",
+      "why": "out of reach with search off is the one line",
+      "surface": "answer",
+      "input": "what time does the hardware shop close?",
+      "context": "ana",
+      "rows": [],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "reply": "Not sure."
+      }
+    },
+    {
+      "id": "r2-preserve-scope",
+      "why": "out of scope stays a sentence",
+      "surface": "answer",
+      "input": "how far is the cabin from the station?",
+      "context": "sam",
+      "rows": [],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says offload has nothing about that. One or two short sentences, no guess, no list of what it can do instead.",
+        "must_not_contain": [
+          "i can help you with"
+        ],
+        "max_words": 24
+      }
+    },
+    {
+      "id": "preserve-out-of-scope",
+      "why": "out of scope stays a sentence, not a curt word",
+      "surface": "answer",
+      "input": "what is the weather tomorrow?",
+      "context": "three",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says offload cannot answer that or has nothing about it. One or two short sentences is fine. No guess, and no list of what it can do instead.",
+        "must_not_contain": [
+          "i can help you with"
+        ],
+        "max_words": 26
+      }
+    },
+    {
+      "id": "h-trivia-history",
+      "why": "true, public, and nothing to do with anybody's day",
+      "surface": "file",
+      "input": "when did the roman empire actually fall",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "h-trivia-science",
+      "why": "the same, in the register people use with a chatbot",
+      "surface": "file",
+      "input": "explain why the sky is blue",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "i-trivia-geography",
+      "why": "public, true, nothing to do with their day",
+      "surface": "file",
+      "input": "how tall is mount kilimanjaro",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "i-trivia-advice",
+      "why": "the chatbot register, which this product is not",
+      "surface": "file",
+      "input": "whats the best way to learn spanish",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "j-trivia-maths",
+      "why": "public and nothing to do with their day",
+      "surface": "file",
+      "input": "whats 15 percent of 84",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "j-trivia-opinion",
+      "why": "the chatbot register, which this product is not",
+      "surface": "file",
+      "input": "which is better rust or go",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "k-scope-howto",
+      "why": "a how-to with a better tool one tap away",
+      "surface": "file",
+      "input": "how do i descale a kettle",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "k-scope-number",
+      "why": "a public number that changes nothing they are planning",
+      "surface": "file",
+      "input": "whats the population of portugal",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "k-scope-opinion",
+      "why": "the chatbot register, which this product is not",
+      "surface": "file",
+      "input": "is rust worth learning in 2027",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "general-knowledge",
+      "why": "the middle this drifts into: true, public, and nothing to do with their day",
+      "surface": "file",
+      "input": "what is the capital of Mongolia",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "how-things-work",
+      "why": "the same, at length. offload is not a search engine with a chat window",
+      "surface": "file",
+      "input": "how does a car engine actually work",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "scope-recipe",
+      "why": "a how-to with nothing to do with their life, and a better tool one tap away",
+      "surface": "file",
+      "input": "how do you make leek soup",
+      "context": "three",
+      "expect": {
+        "look_up": false,
+        "say_not": [
+          "Can't search that."
+        ],
+        "say": "Not sure.",
+        "filed": "none"
+      }
+    },
+    {
+      "id": "scope-price",
+      "why": "a public number that changes nothing they are planning",
+      "surface": "file",
+      "input": "how much does bitcoin cost",
+      "context": "three",
+      "expect": {
+        "look_up": false,
+        "say_not": [
+          "Can't search that."
+        ],
+        "say": "Not sure.",
+        "filed": "none"
+      }
+    },
+    {
+      "id": "scope-clocks",
+      "why": "the counterexample: a date is what a day is made of, so it is theirs",
+      "surface": "file",
+      "input": "when do the clocks go forward",
+      "context": "three",
+      "expect": {
+        "look_up": true,
+        "say_not": [
+          "Can't search that."
+        ]
+      }
+    }
+  ]
+}

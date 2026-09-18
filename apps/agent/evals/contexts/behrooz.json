@@ -1,0 +1,42 @@
+{
+  "why": "A fuller account with eight threads, the one 018's cases were written against. Behrooz, in Portugal.",
+  "threads": [
+    {
+      "id": "00000010-0000-0000-0000-000000000000",
+      "name": "App fixes"
+    },
+    {
+      "id": "00000002-0000-0000-0000-000000000000",
+      "name": "Groceries"
+    },
+    {
+      "id": "00000011-0000-0000-0000-000000000000",
+      "name": "EU with fam"
+    },
+    {
+      "id": "00000012-0000-0000-0000-000000000000",
+      "name": "Music"
+    },
+    {
+      "id": "00000013-0000-0000-0000-000000000000",
+      "name": "Flat admin"
+    },
+    {
+      "id": "00000014-0000-0000-0000-000000000000",
+      "name": "Istanbul trip"
+    },
+    {
+      "id": "00000015-0000-0000-0000-000000000000",
+      "name": "Porto weekend"
+    },
+    {
+      "id": "00000003-0000-0000-0000-000000000000",
+      "name": "Miscellaneous",
+      "default": "yes"
+    }
+  ],
+  "country": "PT",
+  "has_calendar": false,
+  "may_search": true,
+  "may_read_links": true
+}

@@ -1,0 +1,688 @@
+{
+  "statement": "offload reaches the web only when filing or answering needs a fact it does not have and cannot work out: a check, a condition the plan turns on, a pasted link, or a public date. What is in a thread, a note or the conversation is the answer; arithmetic from today is arithmetic; and a lookup that fails is neither explained nor filled in from memory.",
+  "why": "A lookup costs a wait, and a wait to confirm something already known is worse than no lookup. A public date worked out from memory is right often enough to be trusted and wrong often enough to matter. And the person cannot tell which rows were checked, so a guessed date after a failed lookup is worse than no date.",
+  "sources": [
+    "016 AC-1, AC-2, AC-3, AC-14, AC-20",
+    "016: the test is whether the row answers what they dumped",
+    "plan_v2.md: Looking something up",
+    "answer.md: You can reach the web"
+  ],
+  "cases": [
+    {
+      "id": "lookup-empty-files-without",
+      "why": "a lookup that finds nothing: the row lands without the date and nothing is said",
+      "surface": "file",
+      "input": "add a todo on memorial day to call mum",
+      "context": "behrooz",
+      "lookup_result": {
+        "found": false
+      },
+      "expect": {
+        "look_up": true,
+        "filed": [
+          {
+            "type": "task",
+            "no_date": true
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "lookup-empty-nothing-to-file",
+      "why": "a lookup that finds nothing and nothing to file is one line",
+      "surface": "file",
+      "input": "when is memorial day this year",
+      "context": "behrooz",
+      "lookup_result": {
+        "found": false
+      },
+      "expect": {
+        "look_up": true,
+        "say": "Not sure.",
+        "filed": "none"
+      }
+    },
+    {
+      "id": "link-cannot-be-read",
+      "why": "a link that cannot be read files as a link and nothing is said about it",
+      "surface": "file",
+      "input": "keep https://example.com/some/page",
+      "context": "behrooz",
+      "lookup_result": {
+        "found": false
+      },
+      "expect": {
+        "filed": [
+          {
+            "type": "link",
+            "url": "https://example.com/some/page"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "note-has-the-dates",
+      "why": "the answer is in the thread's notes, so no lookup",
+      "surface": "file",
+      "input": "book a table for our first night there",
+      "context": "behrooz",
+      "notes": {
+        "00000014-0000-0000-0000-000000000000": [
+          "Istanbul 10th to 12th October"
+        ]
+      },
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "expect": {
+        "look_up": false,
+        "filed": [
+          {
+            "date": "2026-10-10"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "conversation-has-it",
+      "why": "the fact was said earlier in the conversation",
+      "surface": "file",
+      "input": "book the restaurant for the night we land",
+      "context": "behrooz",
+      "history": [
+        {
+          "role": "person",
+          "text": "we land in Istanbul on the 10th of October"
+        },
+        {
+          "role": "offload",
+          "text": ""
+        }
+      ],
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "expect": {
+        "look_up": false,
+        "filed": [
+          {
+            "date": "2026-10-10"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "question-word-looks-up",
+      "why": "'what time' is a question, so it is looked up",
+      "surface": "file",
+      "input": "farmers market saturday, what time does it start",
+      "context": "behrooz",
+      "expect": {
+        "look_up": true,
+        "files_something": true,
+        "step_present": true
+      }
+    },
+    {
+      "id": "condition-looks-up",
+      "why": "the plan turns on a fact",
+      "surface": "file",
+      "input": "cycle to the coast sunday if the bridge is open",
+      "context": "behrooz",
+      "expect": {
+        "look_up": true,
+        "files_something": true
+      }
+    },
+    {
+      "id": "explicit-time-no-lookup",
+      "why": "everything needed is in the sentence",
+      "surface": "file",
+      "input": "physio tuesday 8am, bring the referral",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "filed": [
+          {
+            "date": "2026-09-15"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "lookup-fact-reaches-row",
+      "why": "what came back goes on the row",
+      "surface": "file",
+      "input": "add a todo on memorial day to call mum",
+      "context": "behrooz",
+      "lookup_result": {
+        "fields": {
+          "date": "2026-10-25"
+        }
+      },
+      "expect": {
+        "look_up": true,
+        "filed": [
+          {
+            "type": "task",
+            "date": "2026-10-25"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "answer-weather-is-theirs",
+      "why": "a forecast on a day they are planning is looked up and said plainly",
+      "surface": "answer",
+      "input": "will it rain on saturday",
+      "context": "behrooz",
+      "lookup_result": {
+        "fields": {
+          "forecast": "dry, 24 degrees"
+        }
+      },
+      "expect": {
+        "look_up": true,
+        "rubric": "Gives the forecast for Saturday in one short sentence. Does not name a website, does not say it searched, does not apologise."
+      }
+    },
+    {
+      "id": "answer-from-rows-not-web",
+      "why": "the answer is in what they filed, so no lookup",
+      "surface": "answer",
+      "input": "when is the flat booked from",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "note",
+          "title": "Alfama flat, 14th to the 17th",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": "2026-10-14"
+        }
+      ],
+      "expect": {
+        "look_up": false,
+        "rubric": "Says the 14th, or 14th to the 17th. Nothing else."
+      }
+    },
+    {
+      "id": "answer-lookup-empty-not-sure",
+      "why": "a lookup that found nothing is 'Not sure.', not a description of the search",
+      "surface": "answer",
+      "input": "when is the next bank holiday",
+      "context": "behrooz",
+      "lookup_result": {
+        "found": false
+      },
+      "expect": {
+        "look_up": true,
+        "reply": "Not sure."
+      }
+    },
+    {
+      "id": "answer-arithmetic-not-lookup",
+      "why": "a date that is arithmetic is not looked up",
+      "surface": "answer",
+      "input": "what date is two weeks from today",
+      "context": "behrooz",
+      "expect": {
+        "look_up": false,
+        "rubric": "Says 25 September, in one short sentence."
+      }
+    },
+    {
+      "id": "link-read-titles-row",
+      "why": "a pasted link is read and the row is named after the page, not the address",
+      "surface": "file",
+      "input": "https://www.bbcgoodfood.com/recipes/ragu-bolognese for sunday",
+      "context": "behrooz",
+      "lookup_result": {
+        "fields": {
+          "title": "Slow cooked ragu bolognese"
+        }
+      },
+      "expect": {
+        "look_up": true,
+        "filed": [
+          {
+            "type": "link",
+            "url": "https://www.bbcgoodfood.com/recipes/ragu-bolognese",
+            "has": [
+              "ragu"
+            ]
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "note-and-web-disagree",
+      "why": "a note that holds the fact is the answer: no lookup, nothing said (labelled 2026-09-17; 016 AC-15 is superseded)",
+      "surface": "file",
+      "input": "remind me about memorial day",
+      "context": "behrooz",
+      "notes": {
+        "00000003-0000-0000-0000-000000000000": [
+          "Memorial day is on the 14th this year for us"
+        ]
+      },
+      "looking_at": "00000003-0000-0000-0000-000000000000",
+      "expect": {
+        "look_up": false,
+        "filed": [
+          {
+            "date": "2026-05-14"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "h-opening-hours",
+      "why": "a fact about the world that decides whether the plan works",
+      "surface": "file",
+      "input": "go to the tip on saturday, check when it closes",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "h-event-date",
+      "why": "when something is, which is not arithmetic and not in any thread",
+      "surface": "file",
+      "input": "watch the boat race, when is it this year",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "h-link-recipe",
+      "why": "a link they dumped, from a domain nobody wrote an extractor for",
+      "surface": "file",
+      "input": "https://www.bbcgoodfood.com/recipes/ragu-bolognese for sunday",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "h-forecast",
+      "why": "weather, which is the one everybody expects to graduate to its own tool",
+      "surface": "file",
+      "input": "beach on sunday if the weather holds",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "h-shopping",
+      "why": "three things and a place, none of which needs anything from outside",
+      "surface": "file",
+      "input": "lemons, eggs, olive oil from the corner shop",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "h-relative-date",
+      "why": "next friday is arithmetic from the date in the prompt",
+      "surface": "file",
+      "input": "chase the deposit next friday",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "h-standing-note",
+      "why": "a rule about a thread, which the web cannot know anything about",
+      "surface": "file",
+      "input": "keep the titles in this one short",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "h-already-said",
+      "why": "the time is in the sentence, so confirming it is a wait for nothing",
+      "surface": "file",
+      "input": "dentist 4pm thursday, leave early",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "i-ferry",
+      "why": "a plan that needs a timetable nobody has",
+      "surface": "file",
+      "input": "ferry to the island on the 20th, find out the crossing times",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "i-condition",
+      "why": "the plan turns on a fact about a place",
+      "surface": "file",
+      "input": "cycle to the coast sunday if the bridge is open",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "i-link-listing",
+      "why": "the page holds the two things they kept it for",
+      "surface": "file",
+      "input": "https://www.rightmove.co.uk/properties/12345678 viewing next week",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "i-holiday",
+      "why": "a public date that is not arithmetic",
+      "surface": "file",
+      "input": "book the restaurant for mothers day",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "i-plain-note",
+      "why": "somebody's own life, unknowable from anywhere else",
+      "surface": "file",
+      "input": "ana is allergic to hazelnuts",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "i-two-todos",
+      "why": "two errands, no facts missing",
+      "surface": "file",
+      "input": "post the parcel and pick up the dry cleaning",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "i-explicit-time",
+      "why": "everything needed is in the sentence",
+      "surface": "file",
+      "input": "standup moved to 9:30 on mondays",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "i-in-a-week",
+      "why": "arithmetic from today, not a fact about the world",
+      "surface": "file",
+      "input": "renew the parking permit in two weeks",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "j-market",
+      "why": "a date and a place, phrased as the question it is",
+      "surface": "file",
+      "input": "farmers market saturday, what time does it start",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "j-easter",
+      "why": "a movable feast, which is the shape that made the year rule necessary",
+      "surface": "file",
+      "input": "book the cottage for easter weekend",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "j-condition-named",
+      "why": "a condition on something the dump names, so a query can be built",
+      "surface": "file",
+      "input": "run in richmond park sunday unless the deer cull is on",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "j-link-ticket",
+      "why": "a link they kept, whose page holds what it is",
+      "surface": "file",
+      "input": "https://www.seetickets.com/event/fontaines-dc/999 going with sam",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "j-plain-errand",
+      "why": "nothing missing, nothing to ask",
+      "surface": "file",
+      "input": "drop the bike in for a service",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "j-personal-fact",
+      "why": "somebody's own life, unknowable from anywhere else",
+      "surface": "file",
+      "input": "toms new number is in the drawer",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "j-explicit",
+      "why": "the time is in the sentence",
+      "surface": "file",
+      "input": "physio tuesday 8am, bring the referral",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "j-arithmetic",
+      "why": "counted from today, not looked up",
+      "surface": "file",
+      "input": "cancel the trial in 10 days",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "k-plan-times",
+      "why": "the counterexample: a timetable their plan turns on",
+      "surface": "file",
+      "input": "last train back from brighton on friday, find out the time",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "k-plan-open",
+      "why": "whether somewhere is open decides whether the plan works",
+      "surface": "file",
+      "input": "post office on monday, check its a bank holiday first",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "k-plan-weather",
+      "why": "a forecast is what a day is made of",
+      "surface": "file",
+      "input": "washing out on the line tomorrow if its dry",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "k-link",
+      "why": "a link they kept, whose page holds what it is",
+      "surface": "file",
+      "input": "https://www.nationaltrust.org.uk/visit/devon/knightshayes for half term",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "k-plain",
+      "why": "an errand with nothing missing",
+      "surface": "file",
+      "input": "return the boots to the shop",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "k-personal",
+      "why": "somebody's own life, unknowable from anywhere else",
+      "surface": "file",
+      "input": "marias new address is 14 elm row",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "k-arithmetic",
+      "why": "counted from today rather than looked up",
+      "surface": "file",
+      "input": "chase the invoice in three weeks",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "k-explicit",
+      "why": "the time is in the sentence",
+      "surface": "file",
+      "input": "haircut friday half four",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "k-standing",
+      "why": "a rule about a thread, unknowable from outside",
+      "surface": "file",
+      "input": "keep everything for this trip in one place",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "holiday-date",
+      "why": "the example the feature was asked for: a todo whose date is a public fact",
+      "surface": "file",
+      "input": "add a todo on memorial day to call mum",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "weather-for-a-plan",
+      "why": "a plan whose sense depends on the weather",
+      "surface": "file",
+      "input": "picnic saturday, check if it will rain",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "pasted-link",
+      "why": "the information was handed over in a URL they chose to dump",
+      "surface": "file",
+      "input": "keep this https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT",
+      "context": "three",
+      "expect": {
+        "look_up": true
+      }
+    },
+    {
+      "id": "plain-todo",
+      "why": "nothing here needs a fact from anywhere",
+      "surface": "file",
+      "input": "buy oat milk",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "date-already-given",
+      "why": "the date is in the sentence, so working it out is not a lookup",
+      "surface": "file",
+      "input": "dentist on the 20th at 3pm",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "a-note",
+      "why": "a sentence about their own life, which the web cannot know",
+      "surface": "file",
+      "input": "we are staying in Istanbul the 10th to the 12th",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    },
+    {
+      "id": "tomorrow-is-arithmetic",
+      "why": "today is in the prompt, so tomorrow is arithmetic rather than a fact",
+      "surface": "file",
+      "input": "call the plumber tomorrow",
+      "context": "three",
+      "expect": {
+        "look_up": false
+      }
+    }
+  ]
+}

@@ -61,7 +61,11 @@ The tell for both: a reply that is confidently negative. "None." and "You have
 none connected" are almost never the model being wrong, and almost always the
 fixture being silent.
 
-**5. Run, in parallel.** `uv run python evals/run_eval.py evals/cases/<set>.json`
+**5. Run, in parallel.** Write the set as a principle-shaped case file in
+`apps/agent/evals/holdout/<date>-<slug>.json` and run it with
+`uv run python evals/run.py --holdout evals/holdout/<date>-<slug>.json`. The
+principle set itself is the standing tuning set: run the principles whose
+`sources` name the prompt you are changing, with `--principle`.
 
 **6. Read every failure against the reply it is about, before believing any of
 them.** A failure is a claim about the reply and roughly half of them will turn
@@ -100,24 +104,28 @@ which spends it.
 
 ```json
 {
+  "statement": "The behaviour this set is about, in one sentence.",
   "cases": [
     {
       "id": "which-ones-two",
       "why": "a set of two, where a sentence would also have worked",
-      "question": "which calendars are not connected to any threads?",
-      "rubric": "Names both calendars and nothing else. No count in front, no lead-in sentence, and no mention of the calendar that IS connected.",
-      "facts": { "calendars": [] },
-      "must_not_contain": ["two:", "there are"],
-      "max_words": 20
+      "surface": "answer",
+      "input": "which calendars are not connected to any threads?",
+      "context": "three",
+      "expect": {
+        "rubric": "Names both calendars and nothing else. No count in front, no lead-in sentence, and no mention of the calendar that IS connected.",
+        "must_not_contain": ["two:", "there are"],
+        "max_words": 20
+      }
     }
   ]
 }
 ```
 
-- `facts` populates `account_facts`. `rows` populates the three reads. Whichever
-  the model reaches for gets the fixture, so a case measures the reply rather
-  than the tool choice.
-- `threads` is optional and defaults to three ordinary ones.
+- `context` names a fixture in `apps/agent/evals/contexts/`; any fixture key on
+  the case overrides it. `facts` populates `account_facts`, `rows` the reads.
+  Whichever the model reaches for gets the fixture, so a case measures the
+  reply rather than the tool choice.
 - `why` is for the report, so a failure is legible six weeks later.
 
 ## What the numbers mean
@@ -143,11 +151,14 @@ find things.
 
 ## Where things live
 
-- Harness: `apps/agent/evals/run_eval.py`. It knows how to run and count, never
-  what is being tested.
-- Cases: `apps/agent/evals/cases/*.json`. Keep the held-out set beside the
-  tuning set with `-holdout` in the name, so the next person can see which was
-  which and does not tune on the wrong one.
+- Harness: `apps/agent/evals/run.py`. It knows how to run and count, never
+  what is being tested. `/run-llm-tests` and `apps/agent/evals/README.md`
+  describe the case shape.
+- Standing cases: `apps/agent/evals/principles/`, one file per principle. These
+  are the tuning set for any change to the prompt they name in `sources`.
+- Held-out sets: `apps/agent/evals/holdout/<date>-<slug>.json`, in the same
+  shape, run with `--holdout`, never tuned against. Once the change lands, fold
+  the held-out cases into the principle files, where they become regression.
 - Behaviour worth keeping forever graduates into
   `apps/agent/tests/test_answer_behaviour.py` as an `OFFLOAD_EVAL` test. A case
   file is a measurement; a test is a promise.

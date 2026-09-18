@@ -1,0 +1,343 @@
+{
+  "statement": "Each separable piece goes in the thread it belongs to: an existing thread first, the one on screen by default, their own words over everything, the default thread when nothing fits, and a new thread only when nothing existing is a reasonable home.",
+  "why": "Filing is the whole job and a wrong home is one move away, so the rule is biased towards landing somewhere over asking. The thread on screen is a default, not a pin: 'add this to Flat admin' has to work from anywhere.",
+  "sources": [
+    "004 AC-1 (pieces)",
+    "004 AC-2 (default thread by id)",
+    "004 AC-6 (by id, never by name)",
+    "018: where something goes is never asked",
+    "plan_v2.md: Filing"
+  ],
+  "cases": [
+    {
+      "id": "split-two-places",
+      "why": "two pieces, two homes",
+      "surface": "file",
+      "input": "Dentist after the 20th, and oak brackets 30cm matte black",
+      "context": "behrooz",
+      "expect": {
+        "filed_count": 2,
+        "filed": [
+          {
+            "has": [
+              "brackets"
+            ],
+            "thread": "Flat admin"
+          },
+          {
+            "has": [
+              "dentist"
+            ],
+            "thread_not": "Flat admin"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "looking-at-is-default",
+      "why": "typing from inside a thread means that thread",
+      "surface": "file",
+      "input": "check out the new Khruangbin record",
+      "context": "behrooz",
+      "looking_at": "00000012-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": [
+          {
+            "thread": "Music"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "words-override-screen",
+      "why": "their words beat the thread on screen",
+      "surface": "file",
+      "input": "add the brackets to Flat admin",
+      "context": "behrooz",
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": [
+          {
+            "has": [
+              "brackets"
+            ],
+            "thread": "Flat admin"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "plainly-elsewhere",
+      "why": "a dentist appointment dumped in an app thread is not about the app",
+      "surface": "file",
+      "input": "dentist tuesday 3pm",
+      "context": "behrooz",
+      "looking_at": "00000010-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": [
+          {
+            "has": [
+              "dentist"
+            ],
+            "thread_not": "App fixes"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "shopping-list-one-home",
+      "why": "a list is one row per item, all in Groceries (labelled 2026-09-17; plan_v2 still says one piece)",
+      "surface": "file",
+      "input": "milk, eggs, basil, olive oil",
+      "context": "behrooz",
+      "expect": {
+        "filed_count": 4,
+        "filed": [
+          {
+            "thread": "Groceries",
+            "has": [
+              "milk"
+            ]
+          },
+          {
+            "thread": "Groceries",
+            "has": [
+              "basil"
+            ]
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "default-thread-is-normal",
+      "why": "no obvious home is the default thread, said nothing about",
+      "surface": "file",
+      "input": "renew the library card",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "thread": "Miscellaneous"
+          }
+        ],
+        "say": null,
+        "creates_thread": false
+      }
+    },
+    {
+      "id": "prefer-existing",
+      "why": "an existing trip thread over a new one",
+      "surface": "file",
+      "input": "book the ferry for the Porto weekend",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "thread": "Porto weekend"
+          }
+        ],
+        "creates_thread": false,
+        "say": null
+      }
+    },
+    {
+      "id": "new-thread-when-nothing-fits",
+      "why": "a new project with no home starts a thread, and that is worth a sentence",
+      "surface": "file",
+      "input": "starting to plan the wedding: venue shortlist, photographer, band",
+      "context": "behrooz",
+      "expect": {
+        "creates_thread": true,
+        "files_something": true,
+        "say": {
+          "contains": [
+            "thread"
+          ],
+          "max_words": 14
+        }
+      }
+    },
+    {
+      "id": "move-from-inside",
+      "why": "a move is a move, asked about nothing",
+      "surface": "file",
+      "input": "move the brackets to Porto weekend",
+      "context": "shared",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "called": [
+          "move_content"
+        ],
+        "asks": "none",
+        "say": null
+      }
+    },
+    {
+      "id": "two-pieces-from-inside",
+      "why": "from inside a thread, both pieces stay there unless their words name another (labelled 2026-09-17)",
+      "surface": "file",
+      "input": "book the wine tour and buy bin bags",
+      "context": "behrooz",
+      "looking_at": "00000015-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": [
+          {
+            "has": [
+              "wine"
+            ],
+            "thread": "Porto weekend"
+          },
+          {
+            "has": [
+              "bin bags"
+            ],
+            "thread": "Porto weekend"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "same-name-two-threads",
+      "why": "two threads share a name; the one on screen wins by id",
+      "surface": "file",
+      "input": "buy limes",
+      "context": "behrooz",
+      "threads": [
+        {
+          "id": "00000010-0000-0000-0000-000000000000",
+          "name": "App fixes"
+        },
+        {
+          "id": "00000002-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        },
+        {
+          "id": "00000011-0000-0000-0000-000000000000",
+          "name": "EU with fam"
+        },
+        {
+          "id": "00000012-0000-0000-0000-000000000000",
+          "name": "Music"
+        },
+        {
+          "id": "00000013-0000-0000-0000-000000000000",
+          "name": "Flat admin"
+        },
+        {
+          "id": "00000014-0000-0000-0000-000000000000",
+          "name": "Istanbul trip"
+        },
+        {
+          "id": "00000015-0000-0000-0000-000000000000",
+          "name": "Porto weekend"
+        },
+        {
+          "id": "00000003-0000-0000-0000-000000000000",
+          "name": "Miscellaneous",
+          "default": "yes"
+        },
+        {
+          "id": "00000099-0000-0000-0000-000000000000",
+          "name": "Groceries"
+        }
+      ],
+      "looking_at": "00000099-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": [
+          {
+            "thread_id": "00000099-0000-0000-0000-000000000000"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "no-threads-yet",
+      "why": "an account with no threads has to get one",
+      "surface": "file",
+      "input": "buy milk",
+      "context": "behrooz",
+      "threads": [],
+      "expect": {
+        "creates_thread": true,
+        "files_something": true
+      }
+    },
+    {
+      "id": "named-thread-from-today",
+      "why": "naming a thread in the dump is the address",
+      "surface": "file",
+      "input": "for the Istanbul trip: buy lira before we go",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "thread": "Istanbul trip"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "app-fix-in-app-thread",
+      "why": "a feature request from Today finds the app thread",
+      "surface": "file",
+      "input": "add multi-line input to the composer in my app",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "thread": "App fixes"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "move-yoga",
+      "why": "a move asks nothing",
+      "surface": "file",
+      "input": "put the yoga note in Flat admin",
+      "context": "behrooz",
+      "rows": [
+        {
+          "id": "y1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "title": "yoga every Tuesday",
+          "type": "note",
+          "tags": []
+        }
+      ],
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "move",
+      "why": "12: a move asks nothing",
+      "surface": "file",
+      "input": "move the brackets to Flat admin",
+      "context": "behrooz",
+      "rows": [
+        {
+          "id": "b1",
+          "threadId": "00000003-0000-0000-0000-000000000000",
+          "threadName": "Miscellaneous",
+          "title": "oak brackets 30cm matte black",
+          "type": "task",
+          "tags": []
+        }
+      ],
+      "expect": {
+        "asks": "none"
+      }
+    }
+  ]
+}

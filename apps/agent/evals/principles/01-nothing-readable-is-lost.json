@@ -1,0 +1,227 @@
+{
+  "statement": "Anything that can be read is filed, however terse or misspelt, and only a dump with no recoverable meaning gets the refusal line, with nothing filed under it.",
+  "why": "The mistake that costs somebody something is losing what they wrote. The default thread exists so anything real has a home, and the refusal exists so a slipped keyboard does not become a row wearing the word Saved.",
+  "sources": [
+    "003 the dump",
+    "004 AC-2 (default thread)",
+    "004: Undo is for an action, never an answer",
+    "plan_v2.md: When there is nothing to file",
+    "tests/test_truthfulness.py: gibberish and terse dumps"
+  ],
+  "cases": [
+    {
+      "id": "terse-milk",
+      "why": "one word that is plainly a shopping list",
+      "surface": "file",
+      "input": "milk",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_content",
+            "type": "task",
+            "thread": "Groceries"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "terse-passport",
+      "why": "one word from Today with no thread on screen still lands",
+      "surface": "file",
+      "input": "passport",
+      "context": "behrooz",
+      "expect": {
+        "files_something": true,
+        "say": null,
+        "say_not": [
+          "Sorry, I did not understand that one."
+        ]
+      }
+    },
+    {
+      "id": "misspelt-appointment",
+      "why": "misspelt and abbreviated, still readable",
+      "surface": "file",
+      "input": "dentst tmrw 3pm",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "has": [
+              "dent"
+            ],
+            "date": "2026-09-12"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "half-sentence",
+      "why": "a fragment that means something to them",
+      "surface": "file",
+      "input": "the blue one from the shop on rua augusta",
+      "context": "behrooz",
+      "expect": {
+        "files_something": true,
+        "filed_count": 1,
+        "say": null
+      }
+    },
+    {
+      "id": "typo-list",
+      "why": "three misspelt groceries are three rows (labelled 2026-09-17)",
+      "surface": "file",
+      "input": "eggs, bred, buter",
+      "context": "behrooz",
+      "expect": {
+        "filed_count": 3,
+        "filed": [
+          {
+            "thread": "Groceries"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "pasted-confirmation",
+      "why": "a paste with meaning is filed, not refused for being long",
+      "surface": "file",
+      "input": "Your booking at Hotel Alfama is confirmed for 14 to 17 October. Confirmation ABC123. Check in from 3pm.",
+      "context": "behrooz",
+      "expect": {
+        "files_something": true,
+        "say_not": [
+          "Sorry, I did not understand that one."
+        ]
+      }
+    },
+    {
+      "id": "url-alone",
+      "why": "a bare link is something they handed over",
+      "surface": "file",
+      "input": "https://www.ikea.com/pt/en/p/lack-wall-shelf-white-30305718/",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "type": "link",
+            "url": "https://www.ikea.com/pt/en/p/lack-wall-shelf-white-30305718/"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "gibberish-brackets",
+      "why": "a slipped keyboard is the refusal line and nothing filed",
+      "surface": "file",
+      "input": "((((((",
+      "context": "behrooz",
+      "expect": {
+        "say": "Sorry, I did not understand that one.",
+        "filed": "none",
+        "asks": "none"
+      }
+    },
+    {
+      "id": "gibberish-spreadsheet",
+      "why": "a paste that went wrong",
+      "surface": "file",
+      "input": "=IF(A2>3,\"x\",\"\") #REF! ##### ####",
+      "context": "behrooz",
+      "expect": {
+        "say": "Sorry, I did not understand that one.",
+        "filed": "none",
+        "asks": "none"
+      }
+    },
+    {
+      "id": "hello",
+      "why": "a person saying hello has nothing to file and is not refused",
+      "surface": "file",
+      "input": "nothing much today",
+      "context": "behrooz",
+      "expect": {
+        "filed": "none",
+        "say_not": [
+          "Sorry, I did not understand that one."
+        ],
+        "rubric": "Replies with one short friendly sentence and files nothing. Does not say it did not understand, does not apologise, does not ask what they want."
+      }
+    },
+    {
+      "id": "thumbs-up",
+      "why": "a lone emoji is a hello: nothing filed, not the refusal line (labelled 2026-09-17)",
+      "surface": "file",
+      "input": "👍",
+      "context": "behrooz",
+      "expect": {
+        "filed": "none",
+        "asks": "none",
+        "rubric": "Files nothing. Either says nothing, or one short friendly line. Not the refusal line and not a question."
+      }
+    },
+    {
+      "id": "phone-number-alone",
+      "why": "a bare number is filed, per when in doubt file it (labelled 2026-09-17)",
+      "surface": "file",
+      "input": "0917 442 118",
+      "context": "behrooz",
+      "expect": {
+        "files_something": true,
+        "say": null
+      }
+    },
+    {
+      "id": "single-letter",
+      "why": "one letter is the refusal line (labelled 2026-09-17)",
+      "surface": "file",
+      "input": "k",
+      "context": "behrooz",
+      "expect": {
+        "say": "Sorry, I did not understand that one.",
+        "filed": "none"
+      }
+    },
+    {
+      "id": "from-inside-thread-terse",
+      "why": "one word from inside a thread lands there",
+      "surface": "file",
+      "input": "candles",
+      "context": "behrooz",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "expect": {
+        "filed": [
+          {
+            "thread": "Flat admin"
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "refusal-keys",
+      "why": "nonsense is the refusal line",
+      "surface": "file",
+      "input": "qwertyuiop",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    },
+    {
+      "id": "refusal",
+      "why": "14: nonsense is the refusal line, never a question",
+      "surface": "file",
+      "input": "asdkjhasd",
+      "context": "behrooz",
+      "expect": {
+        "asks": "none"
+      }
+    }
+  ]
+}

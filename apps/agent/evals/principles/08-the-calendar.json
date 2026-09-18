@@ -1,0 +1,201 @@
+{
+  "statement": "With a calendar connected, offload reads before it writes, takes the scope of a recurring change from their words with one occurrence as the default, never writes to a read only calendar, and reports a write that is waiting on somebody else as waiting rather than done.",
+  "why": "The irreversible thing is somebody else finding out, and the model does not decide whether a write is confirmed: the server tells it, and the reply has to say what the server said. Moving the wrong event is the other cost, and reading first is what prevents it.",
+  "sources": [
+    "012 AC-4, AC-7, AC-9",
+    "plan_v2.md: Their calendar",
+    "harness/tools.py: scope is one or following"
+  ],
+  "cases": [
+    {
+      "id": "read-before-write",
+      "why": "find the event before moving it",
+      "surface": "file",
+      "input": "move the dinner with Ana to 9pm",
+      "context": "calendar",
+      "expect": {
+        "before": [
+          [
+            "find_events",
+            "edit_event"
+          ]
+        ],
+        "called": [
+          "edit_event"
+        ]
+      }
+    },
+    {
+      "id": "scope-one-from-words",
+      "why": "this week's standup is one occurrence",
+      "surface": "file",
+      "input": "move this week's standup to 10",
+      "context": "calendar",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "edit_event",
+            "args": {
+              "scope": "one"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "scope-following-from-words",
+      "why": "from now on is this one and every one after",
+      "surface": "file",
+      "input": "standup is at 10 from now on",
+      "context": "calendar",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "edit_event",
+            "args": {
+              "scope": "following"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "scope-default-is-one",
+      "why": "no words about scope means one",
+      "surface": "file",
+      "input": "move the standup to 10",
+      "context": "calendar",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "edit_event",
+            "args": {
+              "scope": "one"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "cancel-one",
+      "why": "cancel next week's is one",
+      "surface": "file",
+      "input": "cancel next week's standup",
+      "context": "calendar",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "delete_event",
+            "args": {
+              "scope": "one"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "cancel-for-good",
+      "why": "for good is this one and every one after",
+      "surface": "file",
+      "input": "cancel the standup for good",
+      "context": "calendar",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "delete_event",
+            "args": {
+              "scope": "following"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "waiting-is-reported-as-waiting",
+      "why": "a write that reaches a guest is not done yet",
+      "surface": "file",
+      "input": "move the dinner with Ana to 9pm",
+      "context": "calendar",
+      "calendar_waits": "it has guests, and they would be told",
+      "expect": {
+        "called": [
+          "edit_event"
+        ],
+        "rubric": "Says the change is waiting for their go-ahead and that Ana, or the guests, will find out. Does not say the dinner has moved."
+      }
+    },
+    {
+      "id": "read-only-not-written",
+      "why": "a read only calendar is never written to, and that is said plainly",
+      "surface": "file",
+      "input": "add Republic Day on the Holidays calendar for 5 October",
+      "context": "calendar",
+      "expect": {
+        "calls_with_none": [
+          {
+            "tool": "create_event",
+            "args": {
+              "calendar_id": "cal-2"
+            }
+          }
+        ],
+        "rubric": "Does not write to the Holidays calendar. Says plainly, in one short sentence, that that calendar cannot be written to, or files the day elsewhere and says so."
+      }
+    },
+    {
+      "id": "private-write-quiet",
+      "why": "a write to their own private calendar is done, and is not something to announce",
+      "surface": "file",
+      "input": "put the dentist on my calendar tuesday 3pm",
+      "context": "calendar",
+      "expect": {
+        "calls_with": [
+          {
+            "tool": "create_event",
+            "args": {
+              "calendar_id": "cal-0"
+            }
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "dated-appointment-no-calendar-words",
+      "why": "with a calendar connected, a dated appointment is written to it unasked (labelled 2026-09-17; prompt does not say so yet)",
+      "surface": "file",
+      "input": "dentist tuesday 3pm",
+      "context": "calendar",
+      "expect": {
+        "called": [
+          "create_event"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "shared-calendar-write-waits",
+      "why": "a write to the shared studio calendar is confirmed first",
+      "surface": "file",
+      "input": "add a studio review on the Studio calendar friday 4pm",
+      "context": "calendar",
+      "calendar_waits": "the Studio calendar is shared",
+      "expect": {
+        "rubric": "Says the event is waiting for their go-ahead and who will find out. Does not say it is on the calendar."
+      }
+    },
+    {
+      "id": "event-not-found-not-invented",
+      "why": "an event that is not there is not moved from memory",
+      "surface": "file",
+      "input": "move the physio to thursday",
+      "context": "calendar",
+      "expect": {
+        "not_called": [
+          "edit_event"
+        ],
+        "rubric": "Does not edit any event. Says in one short sentence that it could not find a physio appointment, or files the physio as a row, and does not diagnose a tool."
+      }
+    }
+  ]
+}

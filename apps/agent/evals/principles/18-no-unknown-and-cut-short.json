@@ -1,0 +1,494 @@
+{
+  "statement": "No, I do not know, and the read was cut short are three different sentences. No is said only after a complete read; a ticked row is found and reported as done; a read that was truncated says what it saw and never a no; not knowing is one plain sentence with no guess, no apology and no suggestion; and a device preference is something offload has never held.",
+  "why": "A wrong no is somebody buying butter twice. Absence asserted from a shortlist that did not reach the end is a guess wearing the shape of an answer, and a guess at their theme is a guess about something offload cannot see.",
+  "sources": [
+    "013 AC-4, AC-4a, AC-4b, AC-4c, AC-4d, AC-5c, AC-7",
+    "answer.md: Saying no, and saying you do not know, are different sentences"
+  ],
+  "cases": [
+    {
+      "id": "no-after-complete-read",
+      "why": "a complete read that lacks it is a plain no",
+      "surface": "answer",
+      "input": "is butter on the groceries list",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "g1",
+          "threadId": "00000002-0000-0000-0000-000000000000",
+          "threadName": "Groceries",
+          "type": "task",
+          "title": "olives",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "g2",
+          "threadId": "00000002-0000-0000-0000-000000000000",
+          "threadName": "Groceries",
+          "type": "task",
+          "title": "bread",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "truncated": false,
+      "expect": {
+        "contains": [
+          "no"
+        ],
+        "must_not_contain": [
+          "could not find",
+          "couldn't find",
+          "not sure"
+        ],
+        "max_words": 12
+      }
+    },
+    {
+      "id": "done-is-found",
+      "why": "a ticked row is found and reported done",
+      "surface": "answer",
+      "input": "have I booked the flat",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Book the flat",
+          "body": null,
+          "done": true,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "expect": {
+        "must_not_contain": [
+          "not on",
+          "no,",
+          "could not find",
+          "nothing about"
+        ],
+        "rubric": "Says yes and that it is already done or ticked. One short sentence."
+      }
+    },
+    {
+      "id": "unknown-is-one-sentence",
+      "why": "nothing readable holds the answer",
+      "surface": "answer",
+      "input": "what's Ana's phone number",
+      "context": "three",
+      "rows": [],
+      "expect": {
+        "must_not_contain": [
+          "sorry",
+          "try ",
+          "maybe",
+          "probably"
+        ],
+        "max_words": 16,
+        "rubric": "Says it does not have that, in one short sentence. No guess, no apology, no suggestion to try other words."
+      }
+    },
+    {
+      "id": "empty-account",
+      "why": "an account with nothing filed gets the same plain sentence, not onboarding",
+      "surface": "answer",
+      "input": "what's due this week",
+      "context": "three",
+      "threads": [],
+      "rows": [],
+      "expect": {
+        "max_words": 16,
+        "must_not_contain": [
+          "start by",
+          "try adding",
+          "dump",
+          "get started"
+        ]
+      }
+    },
+    {
+      "id": "count-is-a-floor-when-cut-short",
+      "why": "a truncated read gives a floor, not an exact count",
+      "surface": "answer",
+      "input": "how many tasks are left in Lisbon",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Book the flat",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "c2",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Find a restaurant",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "c3",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Print the tickets",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "truncated": true,
+      "expect": {
+        "rubric": "Gives the count as a floor: at least three, or more than three, or three shown so far. Does not state exactly three as the whole."
+      }
+    },
+    {
+      "id": "truncated-existence-never-no",
+      "why": "cut short and asked whether something is there",
+      "surface": "answer",
+      "input": "is a rug on the Lisbon list",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Book the flat",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "c2",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Find a restaurant",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "c3",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Print the tickets",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "truncated": true,
+      "expect": {
+        "must_not_contain": [
+          "no,",
+          "no.",
+          "not on",
+          "isn't on",
+          "is not on"
+        ],
+        "rubric": "Says what it did see and does not claim the rug is absent. Keeping the uncertainty is required."
+      }
+    },
+    {
+      "id": "text-size-unknown",
+      "why": "a device preference has never been held",
+      "surface": "answer",
+      "input": "what text size am I on",
+      "context": "three",
+      "expect": {
+        "must_not_contain": [
+          "small",
+          "medium",
+          "large",
+          "default"
+        ],
+        "rubric": "Says plainly that offload does not know, or that it lives on the device. A whole sentence, no guess."
+      }
+    },
+    {
+      "id": "h-yesno-done",
+      "why": "a ticked row: yes plus its state",
+      "surface": "answer",
+      "input": "have I already sorted the boiler service?",
+      "context": "ana",
+      "rows": [
+        {
+          "contentId": "00000020-0000-0000-0000-000000000000",
+          "threadId": "00000008-0000-0000-0000-000000000000",
+          "threadName": "House",
+          "type": "task",
+          "title": "Boiler service",
+          "body": null,
+          "done": true,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says yes and that it is done. Does not list the other rows and does not offer further help.",
+        "must_not_contain": [
+          "let me know",
+          "anything else"
+        ],
+        "max_words": 20
+      }
+    },
+    {
+      "id": "h-preserve-truncated",
+      "why": "a cut short read keeps its caveat",
+      "surface": "answer",
+      "input": "is a rug already on the House list?",
+      "context": "ana",
+      "rows": [
+        {
+          "contentId": "00000020-0000-0000-0000-000000000000",
+          "threadId": "00000008-0000-0000-0000-000000000000",
+          "threadName": "House",
+          "type": "task",
+          "title": "Fix the tap",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "00000021-0000-0000-0000-000000000000",
+          "threadId": "00000008-0000-0000-0000-000000000000",
+          "threadName": "House",
+          "type": "task",
+          "title": "Paint the hall",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "00000022-0000-0000-0000-000000000000",
+          "threadId": "00000008-0000-0000-0000-000000000000",
+          "threadName": "House",
+          "type": "task",
+          "title": "Boiler service",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "truncated": true,
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Must not claim absence. The read was cut short, so it says what it saw and does not answer a flat no.",
+        "max_words": 30
+      }
+    },
+    {
+      "id": "r2-yesno-done",
+      "why": "ticked row, yes plus state",
+      "surface": "answer",
+      "input": "did I already order the stove?",
+      "context": "sam",
+      "rows": [
+        {
+          "contentId": "00000030-0000-0000-0000-000000000000",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Cabin",
+          "type": "task",
+          "title": "Order the stove",
+          "body": null,
+          "done": true,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says yes and that it is done. Does not list the other rows, no offer of more help.",
+        "must_not_contain": [
+          "let me know",
+          "anything else"
+        ],
+        "max_words": 18
+      }
+    },
+    {
+      "id": "r2-preserve-truncated",
+      "why": "cut short read keeps its caveat",
+      "surface": "answer",
+      "input": "is a smoke alarm on the Cabin list?",
+      "context": "sam",
+      "rows": [
+        {
+          "contentId": "00000030-0000-0000-0000-000000000000",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Cabin",
+          "type": "task",
+          "title": "Order the stove",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "00000031-0000-0000-0000-000000000000",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Cabin",
+          "type": "task",
+          "title": "Chimney sweep",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "00000032-0000-0000-0000-000000000000",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Cabin",
+          "type": "task",
+          "title": "Split logs",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "truncated": true,
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Must not claim absence. The read was cut short, so it says what it saw rather than answering a flat no.",
+        "max_words": 30
+      }
+    },
+    {
+      "id": "yesno-already-done",
+      "why": "a ticked row: yes plus its state, nothing else",
+      "surface": "answer",
+      "input": "did I already add buying butter to groceries?",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "00000010-0000-0000-0000-000000000000",
+          "threadId": "00000002-0000-0000-0000-000000000000",
+          "threadName": "Groceries",
+          "type": "task",
+          "title": "buy butter",
+          "body": null,
+          "done": true,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says yes it is there and already done. Does not list other rows and does not add an offer of help.",
+        "must_not_contain": [
+          "anything else",
+          "let me know"
+        ],
+        "max_words": 22
+      }
+    },
+    {
+      "id": "preserve-device-pref",
+      "why": "a refusal stays a whole friendly sentence",
+      "surface": "answer",
+      "input": "what is my theme set to?",
+      "context": "three",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says plainly that offload does not know the device's theme or that it lives on the device. A complete sentence, not a bare word, and no guess at dark or light.",
+        "must_not_contain": [
+          "dark mode is",
+          "light mode is"
+        ],
+        "max_words": 26
+      }
+    },
+    {
+      "id": "preserve-truncated",
+      "why": "a cut short read must keep its caveat",
+      "surface": "answer",
+      "input": "did I add anchovies to groceries?",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "00000010-0000-0000-0000-000000000000",
+          "threadId": "00000002-0000-0000-0000-000000000000",
+          "threadName": "Groceries",
+          "type": "task",
+          "title": "olives",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "00000011-0000-0000-0000-000000000000",
+          "threadId": "00000002-0000-0000-0000-000000000000",
+          "threadName": "Groceries",
+          "type": "task",
+          "title": "bread",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "00000012-0000-0000-0000-000000000000",
+          "threadId": "00000002-0000-0000-0000-000000000000",
+          "threadName": "Groceries",
+          "type": "task",
+          "title": "milk",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "truncated": true,
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says what it saw and does not claim anchovies are absent. Keeping the uncertainty is required; a flat no would be wrong.",
+        "max_words": 30
+      }
+    }
+  ]
+}

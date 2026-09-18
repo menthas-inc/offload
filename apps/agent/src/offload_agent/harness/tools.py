@@ -543,10 +543,21 @@ ANSWER_CALENDAR_TOOL_DEFS = [
 ]
 
 
+#: The five things a person would not otherwise know, and so the only reasons
+#: a filing turn may speak. A `say` names one, and the loop checks the record
+#: bears it out: `new_thread` needs a thread created this turn, `waiting`
+#: needs a write that came back waiting, and the two nothing-landed reasons
+#: need nothing landed. `could_not_do` is the one the record cannot see, a
+#: calendar that is not connected or a thread they have to delete themselves,
+#: so it is taken on trust. "Done." has no reason to claim, which is the point.
+SayReason = Literal["could_not_read", "nothing_to_file", "could_not_do", "waiting", "new_thread"]
+
+
 class Say(BaseModel):
     """Tell them something. Only when there is something to tell."""
 
     text: str = Field(min_length=1, max_length=600)
+    because: SayReason
 
 
 SCHEMAS["say"] = Say
@@ -554,8 +565,10 @@ SCHEMAS["say"] = Say
 _DESCRIPTIONS["say"] = (
     "Say something to them. **Almost never.** A dump that you simply filed "
     "needs nothing said: they can see the Done mark and the thread it went to. "
-    "Call this only when they would not otherwise know something, like a part "
-    "you could not do, or a thread you started. Not calling it is the normal "
+    "Call this only when they would not otherwise know something, and name "
+    "which of the five it is in `because`: could_not_read, nothing_to_file, "
+    "could_not_do, waiting, new_thread. A say whose reason the turn's record "
+    "does not bear out is dropped. Not calling it is the normal "
     "end of a turn."
 )
 

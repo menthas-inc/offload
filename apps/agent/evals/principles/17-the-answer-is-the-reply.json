@@ -1,0 +1,847 @@
+{
+  "statement": "The answer is the reply and nothing is wrapped around it. Which ones is a list with no count in front; which one, when or where is a sentence or less; yes or no is yes or no; one level down is not answered; one side of a pair is not the pairing; rows drawn beside the reply are not typed out again; context is added only when it changes what they would do next.",
+  "why": "They asked for one thing. A reply that begins Two: and ends by explaining the item they did not ask about has said the answer once and everything else twice. Going one level down is the commonest way a short answer becomes a long one.",
+  "sources": [
+    "013: reply shape",
+    "013 AC-5, AC-5b",
+    "answer.md: The answer is the reply",
+    "the brevity change of 2026-09-10, measured with /test-llm"
+  ],
+  "cases": [
+    {
+      "id": "two-threads-two-reads",
+      "why": "two subjects are two reads and two answers, never one blended list",
+      "surface": "answer",
+      "input": "what's left from Lisbon and Groceries",
+      "context": "three",
+      "rows": {
+        "00000001-0000-0000-0000-000000000000": [
+          {
+            "contentId": "c1",
+            "threadId": "00000001-0000-0000-0000-000000000000",
+            "threadName": "Lisbon trip",
+            "type": "task",
+            "title": "Book the flat",
+            "body": null,
+            "done": false,
+            "dueAt": null,
+            "occursAt": null
+          },
+          {
+            "contentId": "c2",
+            "threadId": "00000001-0000-0000-0000-000000000000",
+            "threadName": "Lisbon trip",
+            "type": "task",
+            "title": "Find a restaurant",
+            "body": null,
+            "done": false,
+            "dueAt": null,
+            "occursAt": null
+          },
+          {
+            "contentId": "c3",
+            "threadId": "00000001-0000-0000-0000-000000000000",
+            "threadName": "Lisbon trip",
+            "type": "task",
+            "title": "Print the tickets",
+            "body": null,
+            "done": false,
+            "dueAt": null,
+            "occursAt": null
+          }
+        ],
+        "00000002-0000-0000-0000-000000000000": [
+          {
+            "contentId": "g1",
+            "threadId": "00000002-0000-0000-0000-000000000000",
+            "threadName": "Groceries",
+            "type": "task",
+            "title": "olives",
+            "body": null,
+            "done": false,
+            "dueAt": null,
+            "occursAt": null
+          },
+          {
+            "contentId": "g2",
+            "threadId": "00000002-0000-0000-0000-000000000000",
+            "threadName": "Groceries",
+            "type": "task",
+            "title": "bread",
+            "body": null,
+            "done": false,
+            "dueAt": null,
+            "occursAt": null
+          }
+        ]
+      },
+      "expect": {
+        "call_count": {
+          "list_content": 2
+        },
+        "rubric": "Answers for Lisbon and for Groceries separately, each briefly, without merging them into one list. Rows are drawn beside the reply so titles need not be typed out."
+      }
+    },
+    {
+      "id": "show-them-is-the-read",
+      "why": "show them is answered by the rows, not by typing titles",
+      "surface": "answer",
+      "input": "show me what's left in Lisbon",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Book the flat",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "c2",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Find a restaurant",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "c3",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Print the tickets",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "expect": {
+        "max_words": 12,
+        "must_not_contain": [
+          "Book the flat",
+          "Find a restaurant",
+          "Print the tickets"
+        ]
+      }
+    },
+    {
+      "id": "count-is-the-sentence",
+      "why": "a set of rows is what it adds up to",
+      "surface": "answer",
+      "input": "what's left in Lisbon",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Book the flat",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "c2",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Find a restaurant",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "c3",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Print the tickets",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "expect": {
+        "max_words": 10,
+        "must_not_contain": [
+          "Book the flat",
+          "Find a restaurant",
+          "Print the tickets"
+        ],
+        "rubric": "Says what the rows add up to, such as Three left, or one short sentence. Does not list the titles."
+      }
+    },
+    {
+      "id": "one-fact-one-sentence",
+      "why": "one named fact is a sentence or less",
+      "surface": "answer",
+      "input": "when is the flat booked from",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "c1",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "note",
+          "title": "Alfama flat, 14th to the 17th",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "expect": {
+        "max_words": 14,
+        "rubric": "The dates, in a sentence or less. Naming the flat is fine. No preamble."
+      }
+    },
+    {
+      "id": "h-which-nowhere",
+      "why": "set of two out of four",
+      "surface": "answer",
+      "input": "which of my calendars are not filing anywhere?",
+      "context": "ana",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Names Birthdays and ana.personal@example.com. No count in front, no lead-in sentence, and no mention of the two that do file somewhere.",
+        "must_not_contain": [
+          "two:",
+          "work@studio.co",
+          "family"
+        ],
+        "max_words": 24
+      }
+    },
+    {
+      "id": "h-which-threads",
+      "why": "asks about threads, must not descend into calendars",
+      "surface": "answer",
+      "input": "which threads have a calendar going into them?",
+      "context": "ana",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Names Client work and House. Must not enumerate which calendar goes into which, since that was not asked, and must not name the calendars that file nowhere.",
+        "must_not_contain": [
+          "birthdays",
+          "ana.personal"
+        ],
+        "max_words": 20
+      }
+    },
+    {
+      "id": "h-which-one-of-three",
+      "why": "a single match inside a larger set",
+      "surface": "answer",
+      "input": "which calendar files into House?",
+      "context": "ana",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says Family. Does not name the other three calendars and does not put a count in front.",
+        "must_not_contain": [
+          "birthdays",
+          "work@studio.co"
+        ],
+        "max_words": 15
+      }
+    },
+    {
+      "id": "h-yesno-no",
+      "why": "no, without volunteering which one does",
+      "surface": "answer",
+      "input": "does Birthdays file into a thread?",
+      "context": "ana",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Answers no. Does not name any other calendar or thread.",
+        "must_not_contain": [
+          "family",
+          "house",
+          "work@studio"
+        ],
+        "max_words": 14
+      }
+    },
+    {
+      "id": "h-yesno-yes",
+      "why": "yes, without listing the rest",
+      "surface": "answer",
+      "input": "is work@studio.co connected to anything?",
+      "context": "ana",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Answers yes and may name Client work. Does not mention the other three calendars.",
+        "must_not_contain": [
+          "birthdays",
+          "family"
+        ],
+        "max_words": 18
+      }
+    },
+    {
+      "id": "h-fact-default",
+      "why": "one named fact",
+      "surface": "answer",
+      "input": "where do things go when offload cannot tell?",
+      "context": "ana",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says Inbox, the default thread. One short sentence, nothing else.",
+        "must_not_contain": [
+          "calendar"
+        ],
+        "max_words": 16
+      }
+    },
+    {
+      "id": "h-fact-count",
+      "why": "a count is the answer when a count is asked for",
+      "surface": "answer",
+      "input": "how many calendars do I have?",
+      "context": "ana",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says four. A count in front is correct here because the count IS the question. Does not then list them.",
+        "must_not_contain": [
+          "birthdays",
+          "family"
+        ],
+        "max_words": 12
+      }
+    },
+    {
+      "id": "h-rows-set",
+      "why": "rows drawn beside the reply must not be retyped",
+      "surface": "answer",
+      "input": "what is still open in House?",
+      "context": "ana",
+      "rows": [
+        {
+          "contentId": "00000020-0000-0000-0000-000000000000",
+          "threadId": "00000008-0000-0000-0000-000000000000",
+          "threadName": "House",
+          "type": "task",
+          "title": "Fix the tap",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "00000021-0000-0000-0000-000000000000",
+          "threadId": "00000008-0000-0000-0000-000000000000",
+          "threadName": "House",
+          "type": "task",
+          "title": "Order a rug",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says what they add up to, such as 'Two left', or one short sentence. Must NOT type out the row titles, because the rows are drawn beside the reply.",
+        "must_not_contain": [
+          "fix the tap",
+          "order a rug"
+        ],
+        "max_words": 14
+      }
+    },
+    {
+      "id": "h-rows-none",
+      "why": "nothing found is one short sentence",
+      "surface": "answer",
+      "input": "anything overdue in Client work?",
+      "context": "ana",
+      "rows": [],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says nothing is overdue. One short sentence, no apology, no suggestion to try other words.",
+        "must_not_contain": [
+          "sorry",
+          "rephrase"
+        ],
+        "max_words": 14
+      }
+    },
+    {
+      "id": "h-preserve-pref",
+      "why": "a device preference gets a whole sentence, not the bare line (labelled 2026-09-17)",
+      "surface": "answer",
+      "input": "how big is my text size set to?",
+      "context": "ana",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says plainly that offload does not know, because it lives on the device. A complete sentence, not a bare word, and no guess.",
+        "must_not_contain": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "max_words": 26
+      }
+    },
+    {
+      "id": "r2-which-nowhere",
+      "why": "one match out of three",
+      "surface": "answer",
+      "input": "which calendars are not going into a thread?",
+      "context": "sam",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says UK bank holidays. No count in front, no lead-in, and no mention of the two that do file somewhere.",
+        "must_not_contain": [
+          "sam@lab.org",
+          "tomas",
+          "one:"
+        ],
+        "max_words": 16
+      }
+    },
+    {
+      "id": "r2-pair-threads",
+      "why": "one side of a pair: threads only",
+      "surface": "answer",
+      "input": "which threads are calendars filing into?",
+      "context": "sam",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Names Fieldwork and nothing more. Must NOT say which calendar goes into it, because only the thread side was asked for.",
+        "must_not_contain": [
+          "sam@lab.org",
+          "tomas",
+          "holidays"
+        ],
+        "max_words": 14
+      }
+    },
+    {
+      "id": "r2-pair-cals",
+      "why": "the same pair from the other side",
+      "surface": "answer",
+      "input": "which calendars file somewhere?",
+      "context": "sam",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Names sam@lab.org and Shared - Tomas. Must NOT name Fieldwork, because only the calendar side was asked for.",
+        "must_not_contain": [
+          "fieldwork"
+        ],
+        "max_words": 18
+      }
+    },
+    {
+      "id": "r2-yesno-no",
+      "why": "no, without naming what does",
+      "surface": "answer",
+      "input": "does UK bank holidays go into a thread?",
+      "context": "sam",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Answers no. Does not name any other calendar or any thread.",
+        "must_not_contain": [
+          "fieldwork",
+          "sam@lab.org",
+          "tomas"
+        ],
+        "max_words": 13
+      }
+    },
+    {
+      "id": "r2-yesno-yes",
+      "why": "yes with the substance only",
+      "surface": "answer",
+      "input": "is sam@lab.org filing anywhere?",
+      "context": "sam",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Answers yes and may name Fieldwork. Does not mention the other two calendars.",
+        "must_not_contain": [
+          "tomas",
+          "holidays"
+        ],
+        "max_words": 16
+      }
+    },
+    {
+      "id": "r2-fact-default",
+      "why": "single named fact",
+      "surface": "answer",
+      "input": "what is my catch all thread called?",
+      "context": "sam",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says Odds and ends. One short sentence, nothing else.",
+        "must_not_contain": [
+          "calendar",
+          "fieldwork"
+        ],
+        "max_words": 14
+      }
+    },
+    {
+      "id": "r2-fact-count",
+      "why": "a count when the count is the question",
+      "surface": "answer",
+      "input": "how many calendars are set up?",
+      "context": "sam",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says three. A count is correct here because the count IS the question. Does not then list them.",
+        "must_not_contain": [
+          "sam@lab.org",
+          "tomas"
+        ],
+        "max_words": 12
+      }
+    },
+    {
+      "id": "r2-rows-set",
+      "why": "rows drawn beside must not be retyped",
+      "surface": "answer",
+      "input": "what is outstanding at the Cabin?",
+      "context": "sam",
+      "rows": [
+        {
+          "contentId": "00000030-0000-0000-0000-000000000000",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Cabin",
+          "type": "task",
+          "title": "Order the stove",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "00000031-0000-0000-0000-000000000000",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Cabin",
+          "type": "task",
+          "title": "Chimney sweep",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "00000032-0000-0000-0000-000000000000",
+          "threadId": "00000012-0000-0000-0000-000000000000",
+          "threadName": "Cabin",
+          "type": "task",
+          "title": "Split logs",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says what they add up to, such as 'Three left', or one short sentence. Must NOT type out the row titles.",
+        "must_not_contain": [
+          "chimney",
+          "split logs"
+        ],
+        "max_words": 13
+      }
+    },
+    {
+      "id": "r2-rows-none",
+      "why": "nothing found is one short sentence",
+      "surface": "answer",
+      "input": "anything left in Fieldwork?",
+      "context": "sam",
+      "rows": [],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says there is nothing. One short sentence, no apology, no suggestion to try other words.",
+        "must_not_contain": [
+          "sorry",
+          "rephrase"
+        ],
+        "max_words": 13
+      }
+    },
+    {
+      "id": "r2-preserve-pref",
+      "why": "a device preference gets a whole sentence, not the bare line (labelled 2026-09-17)",
+      "surface": "answer",
+      "input": "am I on dark mode?",
+      "context": "sam",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says plainly that offload does not know, because the theme lives on the device. A complete sentence, not a bare word, and no guess.",
+        "must_not_contain": [
+          "yes, you are",
+          "no, you are on"
+        ],
+        "max_words": 26
+      }
+    },
+    {
+      "id": "which-files-nowhere",
+      "why": "set of two, the list is the answer",
+      "surface": "answer",
+      "input": "which calendars do not file into a thread?",
+      "context": "three",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Names ana@example.com and Holidays. No count in front, no lead-in sentence, and no mention of Team which does file somewhere.",
+        "must_not_contain": [
+          "two:",
+          "there are two",
+          "team"
+        ],
+        "max_words": 22
+      }
+    },
+    {
+      "id": "which-files-somewhere",
+      "why": "set of one, asked as a which-ones",
+      "surface": "answer",
+      "input": "which calendar files into a thread?",
+      "context": "three",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says Team, and may say it files into Studio because that is the substance of the answer. Does not name the other two calendars and does not put a count in front.",
+        "must_not_contain": [
+          "ana@example.com",
+          "holidays"
+        ],
+        "max_words": 20
+      }
+    },
+    {
+      "id": "which-threads-have-cal",
+      "why": "asks about threads, answer must not descend into calendars",
+      "surface": "answer",
+      "input": "which of my threads has a calendar filing into it?",
+      "context": "three",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says Studio. Does not enumerate the calendars, which were not asked about.",
+        "must_not_contain": [
+          "ana@example.com",
+          "holidays"
+        ],
+        "max_words": 18
+      }
+    },
+    {
+      "id": "yesno-no",
+      "why": "no, and the one that does was not asked about",
+      "surface": "answer",
+      "input": "does ana@example.com file into a thread?",
+      "context": "three",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Answers no. Does not name Team or Studio.",
+        "must_not_contain": [
+          "team",
+          "studio"
+        ],
+        "max_words": 14
+      }
+    },
+    {
+      "id": "yesno-yes",
+      "why": "yes, without listing everything else",
+      "surface": "answer",
+      "input": "does Team file into a thread?",
+      "context": "three",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Answers yes and may name Studio, since that is what yes means here. Does not mention the other two calendars.",
+        "must_not_contain": [
+          "ana@example.com",
+          "holidays"
+        ],
+        "max_words": 18
+      }
+    },
+    {
+      "id": "fact-single",
+      "why": "one fact is a sentence or less",
+      "surface": "answer",
+      "input": "when is the flat booked from?",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "00000010-0000-0000-0000-000000000000",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Alfama flat, 14th to the 17th",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Gives the dates. Naming the flat is fine. No preamble, no offer of further help, nothing about other rows.",
+        "must_not_contain": [
+          "let me know",
+          "anything else"
+        ],
+        "max_words": 18
+      }
+    },
+    {
+      "id": "fact-default-thread",
+      "why": "a single named fact",
+      "surface": "answer",
+      "input": "what is my default thread?",
+      "context": "three",
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": true,
+      "expect": {
+        "rubric": "Says Miscellaneous. Nothing else.",
+        "must_not_contain": [
+          "calendar"
+        ],
+        "max_words": 12
+      }
+    },
+    {
+      "id": "rows-set",
+      "why": "rows are drawn beside the reply and must not be typed out",
+      "surface": "answer",
+      "input": "what is left to do from Lisbon?",
+      "context": "three",
+      "rows": [
+        {
+          "contentId": "00000010-0000-0000-0000-000000000000",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Book the flat",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "00000011-0000-0000-0000-000000000000",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Find a restaurant",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        },
+        {
+          "contentId": "00000012-0000-0000-0000-000000000000",
+          "threadId": "00000001-0000-0000-0000-000000000000",
+          "threadName": "Lisbon trip",
+          "type": "task",
+          "title": "Buy sunscreen",
+          "body": null,
+          "done": false,
+          "dueAt": null,
+          "occursAt": null
+        }
+      ],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says what the rows add up to, such as 'Three left', or one short sentence. Must NOT list the row titles, because the rows are already drawn beside the reply.",
+        "must_not_contain": [
+          "book the flat",
+          "find a restaurant"
+        ],
+        "max_words": 14
+      }
+    },
+    {
+      "id": "rows-empty",
+      "why": "nothing found is one short sentence",
+      "surface": "answer",
+      "input": "what is due this week in Lisbon?",
+      "context": "three",
+      "rows": [],
+      "may_search": false,
+      "may_read_links": false,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Says there is nothing due. One sentence, no apology, no suggestion to try other words.",
+        "must_not_contain": [
+          "sorry",
+          "rephrase"
+        ],
+        "max_words": 16
+      }
+    }
+  ]
+}

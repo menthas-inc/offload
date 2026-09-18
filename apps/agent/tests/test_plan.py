@@ -144,10 +144,10 @@ async def test_a_turn_that_calls_say_is_the_one_that_speaks():
     model = StubModel([
         Response(
             content=[
-                ToolUse(id="a", name="add_content",
-                       input={"thread_id": "t1", "title": "Brackets", "type": "task"}),
+                ToolUse(id="a", name="create_thread", input={"name": "Bookshelf"}),
                 ToolUse(id="b", name="say",
-                       input={"text": "Started a thread for the bookshelf."}),
+                       input={"text": "Started a thread for the bookshelf.",
+                              "because": "new_thread"}),
             ],
             stop_reason="tool_use",
         ),
@@ -160,6 +160,47 @@ async def test_a_turn_that_calls_say_is_the_one_that_speaks():
     assert outcome.reply == "Started a thread for the bookshelf."
     assert len(tools.calls) == 1
     assert outcome.finished
+
+
+async def test_a_say_whose_reason_the_record_contradicts_is_dropped():
+    """"Done." after a filing has no reason to claim. A model that claims one
+    anyway, here new_thread with no thread created, is dropped the same way,
+    and the turn is still finished because the filing landed."""
+    model = StubModel([
+        Response(
+            content=[
+                ToolUse(id="a", name="add_content",
+                       input={"thread_id": "t1", "title": "Brackets", "type": "task"}),
+                ToolUse(id="b", name="say", input={"text": "Done.", "because": "new_thread"}),
+            ],
+            stop_reason="tool_use",
+        ),
+        Response(content=[TextBlock("")], stop_reason="end_turn"),
+    ])
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert outcome.reply is None
+    assert outcome.finished
+
+
+async def test_a_say_with_no_reason_is_refused_by_the_schema():
+    model = StubModel([
+        Response(
+            content=[
+                ToolUse(id="a", name="add_content",
+                       input={"thread_id": "t1", "title": "Brackets", "type": "task"}),
+                ToolUse(id="b", name="say", input={"text": "Done."}),
+            ],
+            stop_reason="tool_use",
+        ),
+        Response(content=[TextBlock("")], stop_reason="end_turn"),
+    ])
+
+    outcome = await plan(model, ctx(), "claude-sonnet-5", Recorder())
+
+    assert outcome.reply is None
+    assert outcome.refused, "a say with no reason should have been refused, not kept"
 
 
 async def test_a_turn_that_filed_nothing_and_said_nothing_is_not_finished():
@@ -237,7 +278,13 @@ async def test_an_invented_tool_name_is_refused_and_dispatches_nothing():
         Response(content=[ToolUse(id="a", name="delete_everything", input={})],
                  stop_reason="tool_use"),
         Response(
-            content=[ToolUse(id="b", name="say", input={"text": "I could not do that."})],
+            content=[
+                ToolUse(
+                    id="b",
+                    name="say",
+                    input={"text": "I could not do that.", "because": "could_not_do"},
+                )
+            ],
             stop_reason="tool_use",
         ),
         Response(content=[TextBlock("")], stop_reason="end_turn"),
@@ -569,7 +616,10 @@ async def test_a_refused_tool_makes_the_turn_partial_even_with_a_reply():
                 ToolUse(
                     id="b",
                     name="say",
-                    input={"text": "The task tool seems to be down, try again shortly."},
+                    input={
+                        "text": "The task tool seems to be down, try again shortly.",
+                        "because": "could_not_do",
+                    },
                 )
             ],
             stop_reason="tool_use",

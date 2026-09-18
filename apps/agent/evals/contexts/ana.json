@@ -1,0 +1,48 @@
+{
+  "why": "Ana's account, a studio: three threads and four calendars.",
+  "threads": [
+    {
+      "id": "00000007-0000-0000-0000-000000000000",
+      "name": "Client work"
+    },
+    {
+      "id": "00000008-0000-0000-0000-000000000000",
+      "name": "House"
+    },
+    {
+      "id": "00000009-0000-0000-0000-000000000000",
+      "name": "Inbox",
+      "default": "yes"
+    }
+  ],
+  "country": "PT",
+  "has_calendar": false,
+  "may_search": true,
+  "may_read_links": true,
+  "facts": {
+    "calendars": [
+      {
+        "filesInto": "Client work",
+        "name": "work@studio.co"
+      },
+      {
+        "filesInto": "House",
+        "name": "Family"
+      },
+      {
+        "filesInto": null,
+        "name": "Birthdays"
+      },
+      {
+        "filesInto": null,
+        "name": "ana.personal@example.com"
+      }
+    ],
+    "defaultThread": {
+      "id": "00000009-0000-0000-0000-000000000000",
+      "name": "Inbox"
+    },
+    "displayName": "Ana",
+    "knowsDevicePreferences": false
+  }
+}

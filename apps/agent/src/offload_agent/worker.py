@@ -15,7 +15,7 @@ import re
 import signal
 import uuid
 from collections.abc import Awaitable, Callable
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import httpx
 import structlog
@@ -319,6 +319,10 @@ def _from_the_dump(text: str, dump: str, country: str | None = None) -> bool:
     which costs a lookup; the other direction costs somebody their address.
     """
     haystack = set(re.findall(r"[a-z0-9]+", dump.lower()))
+    # "the 22nd" in the dump admits "22" in the query. The token is theirs and
+    # only its shape changes, the allowance `_same_word` makes for letters. A
+    # number they did not write is still refused.
+    haystack |= set(re.findall(r"\b(\d{1,2})(?:st|nd|rd|th)\b", dump.lower()))
 
     # **Their own country, when they have set one.** It is not in the dump and it
     # has to reach the query, because a bank holiday with no country attached has
@@ -725,6 +729,9 @@ def _today_date(today: str | None) -> date | None:
         return None
 
 
+_TAG_SHAPE = re.compile(r"^[a-z0-9][a-z0-9 _-]{0,46}(:[a-z0-9][a-z0-9 _-]{0,46})?$")
+
+
 def parse_answer(
     field: str, verdict: Judgement, options: list[dict], today: str | None
 ) -> dict | None:
@@ -741,7 +748,10 @@ def parse_answer(
         return {"day": day} if day else None
     if field == "span":
         start = _parse_day(verdict.day, anchor)
-        end = _parse_day(verdict.to, anchor) or start
+        end = _parse_day(verdict.to, anchor)
+        if start and not end:
+            # One date typed for a stay is one night (decided 2026-09-17).
+            end = (date.fromisoformat(start) + timedelta(days=1)).isoformat()
         if not start or not end or end < start:
             return None
         return {"from": start, "to": end}
@@ -756,7 +766,19 @@ def parse_answer(
         return {"day": day, "time": clock}
     offered = {str(o.get("value")) for o in options if o.get("value") is not None}
     if field == "tag":
-        return {"tag": verdict.tag} if verdict.tag and verdict.tag in offered else None
+        # A typed tag may be a value the thread has not used yet (decided
+        # 2026-09-17): "classical" when jazz and rock were offered is a new
+        # genre, not a refusal. It takes the dimension the options share, so
+        # what lands groups with them. The Core API normalises it.
+        tag = (verdict.tag or "").strip().lower()
+        if not tag:
+            return None
+        if tag in offered:
+            return {"tag": tag}
+        dimensions = {v.split(":", 1)[0] for v in offered if ":" in v}
+        if ":" not in tag and len(dimensions) == 1:
+            tag = f"{next(iter(dimensions))}:{tag}"
+        return {"tag": tag} if _TAG_SHAPE.match(tag) else None
     if field == "country":
         code = (verdict.country or "").upper()
         return {"country": code} if code and code in offered else None
@@ -1029,6 +1051,7 @@ async def handle(
         )
 
         nothing_left = _nothing_left(outcome, fitted)
+        _author_the_failure_line(outcome, budget)
 
         # Not finished means either the loop ran out of round trips or a tool
         # failed. Both are partial, and in both the reply is ours: a model that
@@ -1169,6 +1192,47 @@ def _web_wire(budget: "Lookups | None") -> dict:
         "sources": list(seen.values())[:MAX_SOURCES],
         "lookups": budget.rows,
     }
+
+
+#: 016 AC-19. The one thing offload says when a lookup did not produce the
+#: fact, authored here rather than phrased by the model at runtime.
+NOT_SURE = "Not sure."
+
+
+def _author_the_failure_line(outcome: Outcome, budget: "Lookups") -> None:
+    """Replace whatever the model said about a lookup that failed.
+
+    "Couldn't pin down the route for Saturday" is offload explaining its own
+    machinery, and it came out twice in one eval run against a prompt that
+    quotes that exact sentence as the thing never to say. A rule the prompt
+    cannot hold is held here: when this turn looked something up and nothing
+    came back, the reply is the authored line if nothing was filed and nothing
+    at all if something was, because the row is the answer.
+    """
+    outcomes = {row["outcome"] for row in budget.rows}
+    if "used" in outcomes or not (outcomes & {"empty", "failed"}):
+        return
+    if outcome.questions:
+        return
+    filed = any(item.tool != "create_thread" for item in outcome.landed)
+    outcome.reply = None if filed else NOT_SURE
+
+
+def _author_the_answer_line(outcome: Outcome, budget: "Lookups") -> None:
+    """The answering path's two authored rules, held in code.
+
+    A lookup that found nothing, with no rows to answer from, is the authored
+    line rather than a sentence about what the search did not find (016
+    AC-19). And a turn that asked which country ends with no reply (018): the
+    model wrote "*(awaiting their pick)*" and "undefined" beside the question
+    in one eval run, and either would have reached a screen.
+    """
+    if outcome.questions:
+        outcome.reply = None
+        return
+    looked = {row["outcome"] for row in budget.rows}
+    if looked & {"empty", "failed"} and "used" not in looked and not outcome.found:
+        outcome.reply = NOT_SURE
 
 
 def _nothing_left(outcome: Outcome, ctx: DumpContext) -> bool:
@@ -1505,9 +1569,10 @@ async def _handle_answer(
             say=say,
         )
         outcome = await plan_answer(anthropic, ctx, cfg.answer_model, caller)
+        _author_the_answer_line(outcome, budget)
 
         reply = outcome.reply
-        if reply is None:
+        if reply is None and not outcome.questions:
             # A question with no sentence back is a failure, unlike a dump,
             # where filing something and saying nothing is merely terse.
             raise InvalidOutput("answered without a reply")

@@ -1,0 +1,370 @@
+{
+  "statement": "A query is built from the words of the dump being answered and nothing else, plus their country when the fact depends on where they are. No date it worked out, no name from a note, no clause of its own. When the fact needs a country and none is known, the reply is Not sure. rather than an answer for the wrong country. From inside a thread that puts them somewhere else, an answering turn asks which country and picks neither.",
+  "why": "A query is the one thing that leaves, so it carries only what they typed. The bound fails closed: a refused query costs an answer, never a wrong one. A bank holiday with no country has no answer, and the search will quietly answer for the United States if allowed.",
+  "sources": [
+    "016 AC-24 (a poisoned note cannot reach a query)",
+    "016: what may go into a query",
+    "018 AC-1 to AC-3 (the country question)",
+    "worker.py: _from_the_dump",
+    "answer.md: Use only words that are in their question, plus their country"
+  ],
+  "cases": [
+    {
+      "id": "no-country-not-sure",
+      "why": "no country known: say so rather than pick one",
+      "surface": "answer",
+      "input": "when's the next bank holiday",
+      "context": "behrooz",
+      "country": null,
+      "expect": {
+        "look_up": false,
+        "reply": "Not sure."
+      }
+    },
+    {
+      "id": "weather-no-country",
+      "why": "a forecast needs a place, and none is known (labelled 2026-09-17)",
+      "surface": "answer",
+      "input": "will it rain on saturday",
+      "context": "behrooz",
+      "country": null,
+      "expect": {
+        "reply": "Not sure."
+      }
+    },
+    {
+      "id": "no-country-dump-files-without",
+      "why": "no country and a todo: file it undated, say nothing (labelled 2026-09-17)",
+      "surface": "file",
+      "input": "remind me the day before the next bank holiday",
+      "context": "behrooz",
+      "country": null,
+      "expect": {
+        "filed": [
+          {
+            "type": "task",
+            "no_date": true
+          }
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "opening-hours-names-country",
+      "why": "opening hours differ by country, so the query carries it",
+      "surface": "answer",
+      "input": "what time do post offices close on saturday",
+      "context": "behrooz",
+      "expect": {
+        "look_up": true,
+        "query_names_country": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2026-10-05",
+          "title": "Republic Day"
+        }
+      }
+    },
+    {
+      "id": "poisoned-note-not-in-query",
+      "why": "a member's note naming a third party never reaches a query",
+      "surface": "file",
+      "input": "check what time the last metro runs on the 20th",
+      "context": "shared",
+      "looking_at": "00000013-0000-0000-0000-000000000000",
+      "notes_from_members": {
+        "00000013-0000-0000-0000-000000000000": [
+          "Ana Marques is flying in from Berlin on the 20th, meet her at the airport"
+        ]
+      },
+      "expect": {
+        "look_up": true,
+        "query_must_not_contain": [
+          "ana",
+          "marques",
+          "berlin"
+        ]
+      }
+    },
+    {
+      "id": "thread-note-not-in-query",
+      "why": "their own note is not in the query either",
+      "surface": "file",
+      "input": "check when the clocks change",
+      "context": "behrooz",
+      "notes": {
+        "00000014-0000-0000-0000-000000000000": [
+          "Staying in Kadikoy 10th to 12th October"
+        ]
+      },
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "expect": {
+        "look_up": true,
+        "query_must_not_contain": [
+          "kadikoy",
+          "istanbul"
+        ]
+      }
+    },
+    {
+      "id": "file-country-from-account",
+      "why": "a filing turn uses the account's country and asks nothing",
+      "surface": "file",
+      "input": "remind me the day before the next bank holiday",
+      "context": "behrooz",
+      "country": "US",
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "expect": {
+        "look_up": true,
+        "query_names_country": true,
+        "asks": "none"
+      }
+    },
+    {
+      "id": "country-not-asked-when-agreeing",
+      "why": "the thread and the account agree, so no question",
+      "surface": "answer",
+      "input": "is monday a bank holiday",
+      "context": "behrooz",
+      "looking_at": "00000015-0000-0000-0000-000000000000",
+      "expect": {
+        "look_up": true,
+        "asks": "none",
+        "query_names_country": true
+      },
+      "lookup_result": {
+        "fields": {
+          "fact": "Monday 14 September 2026 is not a public holiday",
+          "date": "2026-10-05"
+        }
+      }
+    },
+    {
+      "id": "country-not-asked-when-fact-does-not-depend",
+      "why": "a fact that is the same everywhere is not a country question",
+      "surface": "answer",
+      "input": "what's left to do for Istanbul",
+      "context": "behrooz",
+      "country": "US",
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "rows": {
+        "00000014-0000-0000-0000-000000000000": [
+          {
+            "contentId": "c1",
+            "threadId": "00000014-0000-0000-0000-000000000000",
+            "threadName": "Istanbul trip",
+            "type": "task",
+            "title": "Buy lira",
+            "body": null,
+            "done": false,
+            "dueAt": null,
+            "occursAt": null
+          }
+        ]
+      },
+      "expect": {
+        "asks": "none",
+        "look_up": false
+      }
+    },
+    {
+      "id": "country-two-options-only",
+      "why": "the question offers exactly the two countries",
+      "surface": "answer",
+      "input": "when's the next public holiday",
+      "context": "behrooz",
+      "country": "US",
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "expect": {
+        "asks": "country",
+        "options": [
+          "US",
+          "TR"
+        ],
+        "option_count": 2
+      }
+    },
+    {
+      "id": "no-composed-sentence",
+      "why": "a short query in their words, not a sentence with a date in it",
+      "surface": "answer",
+      "input": "when is the next bank holiday",
+      "context": "behrooz",
+      "expect": {
+        "look_up": true,
+        "query_must_not_contain": [
+          "2026",
+          "september",
+          "after"
+        ]
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2026-10-05",
+          "title": "Republic Day"
+        }
+      }
+    },
+    {
+      "id": "country-agrees",
+      "why": "25: from Today the account's country is used without asking",
+      "surface": "answer",
+      "input": "when's the next holiday",
+      "context": "behrooz",
+      "may_search": true,
+      "may_read_links": true,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Gives a date or says Not sure.; never asks which country.",
+        "asks": "none",
+        "look_up": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2026-10-05",
+          "title": "Republic Day"
+        }
+      }
+    },
+    {
+      "id": "country-picked",
+      "why": "34: case 32 answered Turkey re-runs for Turkey",
+      "surface": "answer",
+      "input": "when's the next holiday",
+      "context": "behrooz",
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "notes": {
+        "00000014-0000-0000-0000-000000000000": [
+          "Staying in Kadikoy 10th to 12th October"
+        ]
+      },
+      "country": "US",
+      "country_override": "TR",
+      "may_search": true,
+      "may_read_links": true,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Answers for Turkey with a date from the lookup, or says Not sure.; never asks which country and never says United States.",
+        "must_not_contain": [
+          "United States"
+        ],
+        "asks": "none",
+        "look_up": true
+      },
+      "lookup_result": {
+        "fields": {
+          "date": "2026-10-05",
+          "title": "Republic Day"
+        }
+      }
+    },
+    {
+      "id": "country-from-today",
+      "why": "from Today the account's country is used",
+      "surface": "answer",
+      "input": "is Monday a bank holiday",
+      "context": "behrooz",
+      "may_search": true,
+      "may_read_links": true,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Answers yes or no with a lookup, or says Not sure.; never asks which country.",
+        "asks": "none",
+        "look_up": true
+      },
+      "lookup_result": {
+        "fields": {
+          "fact": "Monday 14 September 2026 is not a public holiday",
+          "date": "2026-10-05"
+        }
+      }
+    },
+    {
+      "id": "country-split-2",
+      "why": "the account says US, the thread says Istanbul",
+      "surface": "answer",
+      "input": "is Monday a bank holiday",
+      "context": "behrooz",
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "notes": {
+        "00000014-0000-0000-0000-000000000000": [
+          "Flat in Kadikoy, 10th to 12th"
+        ]
+      },
+      "country": "US",
+      "may_search": true,
+      "may_read_links": true,
+      "has_calendar": false,
+      "expect": {
+        "asks": "country"
+      }
+    },
+    {
+      "id": "country-picked-2",
+      "why": "answered Turkey, re-run for Turkey",
+      "surface": "answer",
+      "input": "is Monday a bank holiday",
+      "context": "behrooz",
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "notes": {
+        "00000014-0000-0000-0000-000000000000": [
+          "Flat in Kadikoy, 10th to 12th"
+        ]
+      },
+      "country": "US",
+      "country_override": "TR",
+      "may_search": true,
+      "may_read_links": true,
+      "has_calendar": false,
+      "expect": {
+        "rubric": "Answers yes or no for Turkey from the lookup, or says Not sure.; never asks which country and never says United States.",
+        "must_not_contain": [
+          "United States"
+        ],
+        "asks": "none",
+        "look_up": true
+      },
+      "lookup_result": {
+        "fields": {
+          "fact": "Monday 14 September 2026 is not a public holiday",
+          "date": "2026-10-05"
+        }
+      }
+    },
+    {
+      "id": "country-split",
+      "why": "32: the account says US and the thread says Istanbul",
+      "surface": "answer",
+      "input": "when's the next holiday",
+      "context": "behrooz",
+      "looking_at": "00000014-0000-0000-0000-000000000000",
+      "notes": {
+        "00000014-0000-0000-0000-000000000000": [
+          "Staying in Kadikoy 10th to 12th October"
+        ]
+      },
+      "country": "US",
+      "may_search": true,
+      "may_read_links": true,
+      "has_calendar": false,
+      "expect": {
+        "asks": "country"
+      }
+    },
+    {
+      "id": "country-holiday",
+      "why": "the fact depends on where they are, and the country is the one word a query may add",
+      "surface": "file",
+      "input": "when is the next bank holiday",
+      "context": "three",
+      "expect": {
+        "look_up": true,
+        "say_not": [
+          "Can't search that."
+        ],
+        "query_names_country": true
+      }
+    }
+  ]
+}

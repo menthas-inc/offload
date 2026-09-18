@@ -49,6 +49,11 @@ def test_a_number_that_is_not_a_year_does_not_pass():
     assert not _from_the_dump("07700 900123", "when does the tip close")
 
 
+def test_an_ordinal_in_the_dump_admits_its_number():
+    assert _from_the_dump("rail strike 22", "is there a rail strike on the 22nd")
+    assert not _from_the_dump("rail strike 23", "is there a rail strike on the 22nd")
+
+
 def test_an_old_year_does_not_pass():
     assert not _from_the_dump("something 1987", "when does the tip close")
 

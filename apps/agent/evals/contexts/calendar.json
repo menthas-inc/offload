@@ -1,0 +1,98 @@
+{
+  "why": "Behrooz's account with a Google calendar connected: a private calendar, a shared studio one, and a read only holidays feed. Two events in the coming week.",
+  "threads": [
+    {
+      "id": "00000010-0000-0000-0000-000000000000",
+      "name": "App fixes"
+    },
+    {
+      "id": "00000002-0000-0000-0000-000000000000",
+      "name": "Groceries"
+    },
+    {
+      "id": "00000011-0000-0000-0000-000000000000",
+      "name": "EU with fam"
+    },
+    {
+      "id": "00000012-0000-0000-0000-000000000000",
+      "name": "Music"
+    },
+    {
+      "id": "00000013-0000-0000-0000-000000000000",
+      "name": "Flat admin"
+    },
+    {
+      "id": "00000014-0000-0000-0000-000000000000",
+      "name": "Istanbul trip"
+    },
+    {
+      "id": "00000015-0000-0000-0000-000000000000",
+      "name": "Porto weekend"
+    },
+    {
+      "id": "00000003-0000-0000-0000-000000000000",
+      "name": "Miscellaneous",
+      "default": "yes"
+    }
+  ],
+  "country": "PT",
+  "has_calendar": true,
+  "may_search": true,
+  "may_read_links": true,
+  "calendars": [
+    {
+      "calendarId": "cal-0",
+      "name": "owner@example.com",
+      "writable": true,
+      "shared": false
+    },
+    {
+      "calendarId": "cal-1",
+      "name": "Studio",
+      "writable": true,
+      "shared": true
+    },
+    {
+      "calendarId": "cal-2",
+      "name": "Holidays",
+      "writable": false,
+      "shared": false
+    }
+  ],
+  "events": [
+    {
+      "calendarId": "cal-1",
+      "sourceRef": "ev-standup",
+      "title": "Standup",
+      "startsAt": "2026-09-14T09:00:00Z"
+    },
+    {
+      "calendarId": "cal-0",
+      "sourceRef": "ev-dinner",
+      "title": "Dinner with Ana",
+      "startsAt": "2026-09-18T20:00:00Z"
+    }
+  ],
+  "facts": {
+    "displayName": "Behrooz",
+    "defaultThread": {
+      "id": "00000003-0000-0000-0000-000000000000",
+      "name": "Miscellaneous"
+    },
+    "calendars": [
+      {
+        "name": "owner@example.com",
+        "filesInto": null
+      },
+      {
+        "name": "Studio",
+        "filesInto": "App fixes"
+      },
+      {
+        "name": "Holidays",
+        "filesInto": null
+      }
+    ],
+    "knowsDevicePreferences": false
+  }
+}

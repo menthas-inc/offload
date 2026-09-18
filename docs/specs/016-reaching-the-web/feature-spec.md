@@ -244,13 +244,10 @@ design log per OFF-7 before it is built rather than after.
 
 ### When the web disagrees with a note
 
-**The note wins, and offload says both.**
-
-> Your note says the 14th. Memorial Day is the 25th.
-
-Somebody's own words about their own life outrank a page about the world, and
-the one case where a person most wants to know the machine noticed is the case
-where the two disagree.
+**The note wins, and nothing is looked up.** Somebody's own words about their
+own life outrank a page about the world, and a lookup to confirm a fact already
+in a note is a wait for nothing. *(Decided 2026-09-17; this section used to
+have offload name both dates.)*
 
 ### The switches
 
@@ -342,8 +339,11 @@ OFF-4's rule applied to a new source: process and forget, keep the reference.
 - **AC-14** A lookup that fails, times out or returns nothing costs the turn
   nothing else: what could be filed is filed, and the reply says one short
   clause, capped per AC-19.
-- **AC-15** When a thread note and a lookup disagree on a fact, the row is
-  written from the note, and the reply names both.
+- **AC-15** When a thread note holds the fact, the row is written from the
+  note, no lookup happens, and nothing is said. *(Narrowed 2026-09-17: the
+  earlier wording had the reply name both dates. A note is the answer, which is
+  what `plan_v2.md` has said since 2026-09-14, and the eval case
+  `note-and-web-disagree` holds it.)*
 - **AC-16** A lookup happens the same way inside a shared thread as inside a
   private one, and **a fetch is triggered only by a URL in the dump being
   answered**, recognised as a link by the same rule the composer uses, never by
