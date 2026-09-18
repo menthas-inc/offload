@@ -23,6 +23,38 @@ import { env } from "../env.js";
 import { NOTE_TEXT_CHARS, applyCompaction } from "../threads/notes.js";
 import { parseWhen, plausible } from "../threads/dates.js";
 import { applyAnswer, askedQuestion, closeQuestion, storeQuestions, validateAsked } from "../questions.js";
+import { fileUnfiled } from "../blobs/rows.js";
+import { memberOf } from "../threads/access.js";
+import type { Transaction } from "kysely";
+import type { Database } from "../schema.js";
+import type { FastifyBaseLogger } from "fastify";
+
+/** 020. The photos on a message that no live row carries, filed with a plain
+ *  title in the thread on screen or the default. Where the turn already
+ *  filed every photo this does nothing, which is the common case. */
+async function fileUnfiledPhotos(
+  trx: Transaction<Database>,
+  messageId: string,
+  accountId: string,
+  log: FastifyBaseLogger,
+): Promise<void> {
+  const message = await trx
+    .selectFrom("messages")
+    .select("looking_at_thread_id")
+    .where("id", "=", messageId)
+    .executeTakeFirst();
+  const account = await trx
+    .selectFrom("accounts")
+    .select("default_thread_id")
+    .where("id", "=", accountId)
+    .executeTakeFirst();
+  const lookingAt = message?.looking_at_thread_id;
+  const threadId =
+    lookingAt && (await memberOf(accountId, lookingAt, trx)) ? lookingAt : account?.default_thread_id;
+  if (!threadId) return;
+  const filed = await fileUnfiled(trx, messageId, accountId, threadId);
+  if (filed > 0) log.info({ filed }, "photos filed by the server");
+}
 
 /** Constant time, and length-checked first because timingSafeEqual throws on a
  *  length mismatch and that throw is itself a length oracle. */
@@ -716,6 +748,13 @@ export async function internalRoutes(app: App): Promise<void> {
               .execute();
           }
 
+          // 020. Every photo lands in Files, and the server is what holds
+          // that: a photo the turn did not file gets a row now, with a plain
+          // title, in the thread on screen or the default. Before the
+          // questions, so the one about which thread sees every row the turn
+          // ends with.
+          await fileUnfiledPhotos(trx, person.id, accountId, request.log);
+
           // 018. The questions, on the answered arm only, after everything the
           // turn filed is in the same transaction, so a target that did not
           // settle is a target that does not exist. An answering turn is one
@@ -774,6 +813,10 @@ export async function internalRoutes(app: App): Promise<void> {
             .set({ state: result.outcome === "cancelled" ? "cancelled" : "failed", step: null, step_at: null })
             .where("id", "=", person.id)
             .execute();
+
+          // 020. A turn that failed or was stopped still sent its photos, and
+          // they are still in Files. The one path every ending goes through.
+          await fileUnfiledPhotos(trx, person.id, accountId, request.log);
         }
 
         // **Optional on two outcomes now.** `failed` has always been able to

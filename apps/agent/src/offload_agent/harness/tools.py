@@ -22,7 +22,7 @@ shipped a version ahead of its storage is a tool that cannot work.
 import re
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # Mirrors apps/core-api/src/threads/tags.ts. Six is generous for one piece of
 # content and finite.
@@ -108,10 +108,23 @@ class AddContent(BaseModel):
 
     tags: list[str] = Field(default_factory=list, max_length=MAX_TAGS)
 
+    # 020. Which of the message's photos this row is, by its number in the
+    # order they were shown, one-based. An index rather than an id, so a
+    # photo can only be named on the message it arrived with; the Core API
+    # resolves it against that message's own photos. Only on an image or a
+    # screenshot, and each photo once.
+    photo: int | None = Field(default=None, ge=1, le=10)
+
     @field_validator("title")
     @classmethod
     def title_is_usable(cls, v: str) -> str:
         return v.strip()
+
+    @model_validator(mode="after")
+    def photo_is_a_picture(self) -> "AddContent":
+        if self.photo is not None and self.type not in ("image", "screenshot"):
+            raise ValueError("photo goes only on an image or a screenshot")
+        return self
 
     @field_validator("due_at", "occurs_at", "occurs_end_at")
     @classmethod
@@ -248,7 +261,10 @@ _DESCRIPTIONS = {
     "add_content": (
         "File one piece of what they dumped into a thread, by thread id. Call it "
         "once per separable piece. Anything with no obvious home goes in their "
-        "default thread. Set a date only when they gave you one."
+        "default thread. Set a date only when they gave you one. A photo they "
+        "sent is filed as an image or a screenshot with its number in photo, "
+        "once each; the title says what it is, and the body carries why it was "
+        "kept, what is in it, and the text in it."
     ),
     "list_thread_content": (
         "Read what is already in a thread, so you do not file something twice or "
@@ -696,7 +712,7 @@ class AskOption(BaseModel):
 class Ask(BaseModel):
     """Ask them for one field the row you just filed needs."""
 
-    field: Literal["date", "span", "time", "tag", "country"]
+    field: Literal["date", "span", "time", "tag", "country", "thread"]
     #: The row's own title, echoed into the template. Never a sentence.
     title: str = Field(min_length=1, max_length=60)
     #: The row the answer fills, from the contentId a filing returned.
@@ -714,8 +730,12 @@ _DESCRIPTIONS["ask"] = (
     "groups by. Name the row by the contentId the filing returned. Offer up "
     "to four values as options, or none when nothing can offer one; the "
     "wording of each option is written for you from its value. Never a "
-    "question about what they meant, what kind of row it is, or where it "
-    "goes. Once per field per row, and at most twice in a turn."
+    "question about what they meant or what kind of row it is. Where it goes "
+    "is never asked either, with one exception: a photo sent with no words "
+    "from outside any thread, that you filed alone in their default thread "
+    "because nothing said where it belongs. Then, and only then, ask "
+    "field thread with up to four thread ids as the values. Once per field "
+    "per row, and at most twice in a turn."
 )
 ASK_TOOL = {
     "name": "ask",

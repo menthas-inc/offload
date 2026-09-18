@@ -19,7 +19,7 @@ The seam was left on purpose. 013 said filing by default "is expected to soften"
 
 ### Vocabulary
 
-offload **asks back**. A person **answers**. The thing offload asks about is a **field**, and there are five: a **date**, a **span** (two dates), a **time** (a day and a clock time), a **tag** on a thread that groups by one, and a **country**. There is no "clarification" anywhere a person reads, and no "thing": in what a person reads there is no noun for what they dumped.
+offload **asks back**. A person **answers**. The thing offload asks about is a **field**, and there are five: a **date**, a **span** (two dates), a **time** (a day and a clock time), a **tag** on a thread that groups by one, and a **country**. *Amended 2026-09-18 by 020: a sixth, a **thread**, for a photo alone, and only that.* There is no "clarification" anywhere a person reads, and no "thing": in what a person reads there is no noun for what they dumped.
 
 ### Everything certain lands first
 
@@ -54,7 +54,7 @@ The list is longer than the one above on purpose, and every line is a case label
 - **A task is a task.** "Photos" in a thread about app fixes, "book the flight" in a trip, "call mum", "add multi-line input to my app": a todo without a date is honest and easy to fix, and most of them stay without one.
 - **What it can read, it does not ask.** An Airbnb link dumped inside a trip whose notes hold the dates takes them from the notes. A country the thread names is not asked about when the account agrees.
 - **A reference it cannot resolve is filed in their words.** "The thing Ana mentioned" becomes a row saying exactly that. The person knows what it is, and a wrong guess is worse than their own words.
-- **Where something goes is a guess offload makes, never a question.** "Trip to Porto" goes in the trip thread if there is one and in the default thread if not, and a wrong home is one move away. A photo with nothing said about it will be the same rule when photos can be dumped; today they cannot.
+- **Where something goes is a guess offload makes, never a question.** "Trip to Porto" goes in the trip thread if there is one and in the default thread if not, and a wrong home is one move away. A photo with nothing said about it will be the same rule when photos can be dumped; today they cannot. *Amended 2026-09-18: 020 made this the one exception. A photo dumped with no words, from Today, whose picture does not name a thread, lands in the default thread and asks which thread it belongs in, with up to four of the person's threads as options; the answer is a move, and Undo is the move back. Words, a thread the dump was sent from, or a picture that plainly belongs somewhere are never asked about.*
 - **What kind of row something is, is never asked.** The escape option is how a wrong kind gets corrected, below.
 - **A question that can be answered across everything is answered across everything.** "What is left to do" from Today reads every thread with open tasks; "where am I staying" with two trips answers both, the next one first.
 - **What Undo already covers is not asked about.** A reversible write sits behind eight seconds; asking first charges somebody a decision the toast already insures.
@@ -103,7 +103,7 @@ The list is longer than the one above on purpose, and every line is a case label
 ### What offload never does here
 
 - Never asks in a turn whose dump it could not read at all.
-- Never asks for anything outside the five fields: no names, no credentials, no "what did you mean", no "is that a todo", no which thread.
+- Never asks for anything outside the five fields: no names, no credentials, no "what did you mean", no "is that a todo", no which thread. *Except the 020 case above: a photo alone, from Today, with nothing in it that names a thread.*
 - Never asks the same field twice about the same row.
 - Never asks on a quick-add row, in compaction, on a turn somebody stopped, or on behalf of another member of a shared thread.
 - Never puts a page's words, another member's words, a calendar event's words, or a tool's error into a question or an option. Options are values; the sentence is a template.
@@ -165,7 +165,7 @@ Reason 1 changes nothing the privacy page says: an answer is a value applied to 
 ## Out of scope
 
 - Approximate location from the device, which would settle the country question without asking. Noted as coming.
-- A photo or file's thread. Photos cannot be dumped yet; when they can, where they go is a guess like any other row's.
+- A photo or file's thread, except the one case 020 carved out on 2026-09-18: a photo alone, from Today, with nothing in it that names a thread. Every other row's home is a guess like before.
 - A third question, a question created by an answer, and any question a person is led through step by step.
 - A date picker. Typing carries a specific date; the options carry the two ends.
 - Asking on quick-add rows, in compaction, or on behalf of another member of a shared thread.

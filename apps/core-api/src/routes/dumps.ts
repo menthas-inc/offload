@@ -38,6 +38,15 @@ import {
 } from "../questions.js";
 import { foundFor } from "../search/found.js";
 import { memberOf } from "../threads/access.js";
+import { MAX_PHOTOS } from "../blobs/photos.js";
+
+/** 020. A blob id that is not this account's, is already claimed, or is
+ *  gone. One reason for all three, and the whole dump is refused. */
+export class UnknownBlob extends Error {
+  constructor() {
+    super("unknown_blob");
+  }
+}
 
 /** Longer than anything the composer is designed for, and short enough that a
  *  paste cannot run up a bill. Refused before anything is written, and never
@@ -84,11 +93,19 @@ async function currentAccountId(
   return result?.session.userId ?? null;
 }
 
-const dumpBody = z.object({
-  text: z.string().min(1),
-  /** The outbox idempotency key. A device that retried without hearing the
-   *  response must not create the dump twice. */
-  clientKey: z.string().max(200).optional(),
+const dumpBody = z
+  .object({
+    /** Empty is allowed only alongside photos; the refinement below says so. */
+    text: z.string(),
+    /** The outbox idempotency key. A device that retried without hearing the
+     *  response must not create the dump twice. */
+    clientKey: z.string().max(200).optional(),
+    /** 020. Photos uploaded ahead of this message, claimed by it here. Each
+     *  must be this account's and unclaimed, or nothing is written. */
+    blobIds: z.array(z.string().uuid()).max(MAX_PHOTOS).optional(),
+    /** 020. They came through the share sheet. Recorded on the message as its
+     *  source and on the event as a boolean, and used for nothing else. */
+    viaShare: z.boolean().optional(),
   /** The thread that was on screen when this was dumped.
    *
    *  **A default, not a destination.** Somebody typing into the composer while
@@ -102,8 +119,11 @@ const dumpBody = z.object({
    *
    *  **Checked for membership before it is written down.** It arrives from a
    *  client and a thread id from a client is never an access decision. */
-  threadId: z.string().uuid().optional(),
-});
+    threadId: z.string().uuid().optional(),
+  })
+  .refine((body) => body.text.trim().length > 0 || (body.blobIds?.length ?? 0) > 0, {
+    message: "A dump is words, photos, or both.",
+  });
 
 type MessageState = "queued" | "seen" | "answered" | "failed" | "partial" | "cancelled";
 
@@ -166,6 +186,9 @@ const foundResults = z.array(
         title: z.string(),
         body: z.string().nullable(),
         done: z.boolean(),
+        photo: z
+          .object({ blobId: z.string(), width: z.number(), height: z.number(), ready: z.boolean() })
+          .nullable(),
       })
     ),
   })
@@ -179,11 +202,23 @@ const cancelResponse = z.object({
   stopped: z.boolean(),
 });
 
+/** 020. A photo on a person's message, as the client draws it. */
+const photoOnWire = z.object({
+  blobId: z.string(),
+  name: z.string().nullable(),
+  width: z.number(),
+  height: z.number(),
+  ready: z.boolean(),
+});
+type PhotoOnWire = z.infer<typeof photoOnWire>;
+
 const messageResponse = z.object({
   id: z.string(),
   conversationId: z.string(),
   state: messageState,
   text: z.string().nullable(),
+  /** 020. The photos the person's message carries. Always empty on a reply. */
+  photos: z.array(photoOnWire),
   reply: z.string().nullable(),
   threads: touchedThreads,
   /** Thread ids whose contents this turn changed, a superset of `threads`.
@@ -213,6 +248,8 @@ const currentConversation = z.object({
       id: z.string(),
       role: z.enum(["person", "offload"]),
       text: z.string().nullable(),
+      /** 020. Empty on every reply. */
+      photos: z.array(photoOnWire),
       state: messageState,
       /** What an Undo would reverse. The whole turn, not this row. */
       turnId: z.string(),
@@ -236,6 +273,9 @@ const tooLong = z.object({
 });
 const notFound = z.object({ error: z.literal("not_found") });
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });
+// 020. A 409 rather than a 400: a 400 schema on this route would also
+// serialise Fastify's own validation errors, and they do not fit it.
+const unknownBlob = z.object({ error: z.literal("unknown_blob") });
 
 /** The reply to a person's message, if it has been answered.
  *
@@ -294,6 +334,35 @@ export async function sourcesFor(
  *  fifty messages is fifty round trips on every open, which is the reasoning
  *  `foundFor` already carries. Only what landed, never `changed`: a pill saying
  *  a turn went somewhere it only moved something out of would be untrue. */
+/** 020. The photos a message carries, for the thumbnails beside it.
+ *
+ *  The name rides along because the reader here is always the dumper: a
+ *  conversation is private, so every message this returns is theirs. `ready`
+ *  is whether the renditions exist yet; until they do the client draws the
+ *  glyph. Never the coordinate, never the device. */
+export async function photosForAll(
+  messageIds: string[],
+  accountId: string,
+): Promise<Map<string, PhotoOnWire[]>> {
+  const out = new Map<string, PhotoOnWire[]>();
+  if (messageIds.length === 0) return out;
+  const rows = await db
+    .selectFrom("blobs")
+    .innerJoin("messages", "messages.id", "blobs.message_id")
+    .select(["blobs.id as id", "blobs.message_id as message_id", "blobs.name", "blobs.width", "blobs.height", "blobs.renditions_at", "blobs.created_at"])
+    .where("blobs.message_id", "in", messageIds)
+    .where("messages.account_id", "=", accountId)
+    .where("blobs.deleted_at", "is", null)
+    .orderBy("blobs.created_at", "asc")
+    .execute();
+  for (const row of rows) {
+    const list = out.get(row.message_id!) ?? [];
+    list.push({ blobId: row.id, name: row.name, width: row.width, height: row.height, ready: row.renditions_at !== null });
+    out.set(row.message_id!, list);
+  }
+  return out;
+}
+
 export async function threadsForAll(
   messageIds: string[],
   accountId: string,
@@ -559,6 +628,8 @@ export async function takeDump(
   clientKey?: string,
   /** The thread on screen, unchecked as it arrived. */
   threadId?: string,
+  /** 020. Photos to claim, and whether they came through the share sheet. */
+  photos?: { blobIds: string[]; viaShare: boolean },
 ): Promise<{
   messageId: string;
   conversationId: string;
@@ -566,6 +637,7 @@ export async function takeDump(
   turnId: string;
 }> {
   const turnId = randomUUID();
+  const blobIds = [...new Set(photos?.blobIds ?? [])];
 
   // Membership, before the id is written into a job payload. A thread id from a
   // client is a claim, and this one ends up naming a thread in a model prompt.
@@ -578,6 +650,18 @@ export async function takeDump(
     threadId && (await memberOf(accountId, threadId)) ? threadId : null;
 
   return db.transaction().execute(async (trx) => {
+    // 020. Two attempts with one client key, in flight together, which is
+    // what a device retrying because it never heard the response looks
+    // like. Without this the second would miss the idempotent lookup below,
+    // open a conversation of its own, block on the photos' row locks, and
+    // find them claimed once the first committed: a 409 for asking twice.
+    // The lock on the key serialises the two, so the second sees the
+    // first's message and the first's conversation. Released with the
+    // transaction.
+    if (clientKey) {
+      await sql`select pg_advisory_xact_lock(hashtext(${accountId}), hashtext(${clientKey}))`.execute(trx);
+    }
+
     // The join and the insert in one statement each, inside one
     // transaction, so two dumps a millisecond apart cannot disagree about
     // whether they were within the window.
@@ -626,20 +710,60 @@ export async function takeDump(
     // whose network hiccuped gets a 500 for asking twice. The index is the
     // real guarantee; the select just saves the round trip when the retry
     // is late rather than concurrent.
+    // 020. A retry of a message that already claimed its photos finds them
+    // claimed, so the idempotent path has to come before the claim check
+    // rather than only in the insert's conflict clause. The lock at the top
+    // is what makes this select see an attempt still in flight.
+    if (clientKey && blobIds.length > 0) {
+      const already = await trx
+        .selectFrom("messages")
+        .select(["id", "conversation_id", "state", "turn_id"])
+        .where("account_id", "=", accountId)
+        .where("client_key", "=", clientKey)
+        .executeTakeFirst();
+      if (already) {
+        return {
+          messageId: already.id,
+          conversationId: already.conversation_id,
+          state: already.state,
+          turnId: already.turn_id,
+        };
+      }
+    }
+
+    // 020. Every photo must be this account's, unclaimed and live, or the
+    // dump is refused whole: a message that claims a photo it cannot have is
+    // worse than no message. Locked, so two dumps cannot claim one photo.
+    if (blobIds.length > 0) {
+      const mine = await trx
+        .selectFrom("blobs")
+        .select("id")
+        .where("id", "in", blobIds)
+        .where("account_id", "=", accountId)
+        .where("message_id", "is", null)
+        .where("deleted_at", "is", null)
+        .forUpdate()
+        .execute();
+      if (mine.length !== blobIds.length) throw new UnknownBlob();
+    }
+
     const inserted = await trx
       .insertInto("messages")
       .values({
         conversation_id: conversationId,
         account_id: accountId,
         role: "person",
-        type: "text",
+        // A photo with no words is an image message; words with or without
+        // photos are text, and the photos ride on the row either way.
+        type: blobIds.length > 0 && text.trim().length === 0 ? "image" : "text",
         turn_id: turnId,
-        text,
+        text: text.trim().length === 0 ? null : text,
         // seen, not queued: offload has it. queued is internal and never
         // reaches a client.
         state: "seen",
         client_key: clientKey ?? null,
         looking_at_thread_id: lookingAt,
+        source: photos?.viaShare ? "share" : "person",
       })
       .onConflict((oc) =>
       // The index is partial, on client_key is not null, because most messages
@@ -676,6 +800,18 @@ export async function takeDump(
     }
 
     const message = inserted;
+
+    // The claim. Checked above, written here, one transaction.
+    let photoBytes = 0;
+    if (blobIds.length > 0) {
+      const claimed = await trx
+        .updateTable("blobs")
+        .set({ message_id: message.id })
+        .where("id", "in", blobIds)
+        .returning("byte_size")
+        .execute();
+      photoBytes = claimed.reduce((sum, row) => sum + row.byte_size, 0);
+    }
 
     await trx
       .updateTable("conversations")
@@ -720,6 +856,8 @@ export async function takeDump(
       name: "dump_sent",
       subjectId: subject?.analytics_subject_id ?? null,
       platform: "web",
+      // Counts, a size and a boolean. Never a name (OFF-1).
+      properties: { photos: blobIds.length, photo_bytes: photoBytes, via_share: Boolean(photos?.viaShare) },
       tx: trx,
     });
 
@@ -733,7 +871,10 @@ export async function dumpRoutes(app: App): Promise<void> {
     {
       schema: {
         body: dumpBody,
-        response: { 202: dumpResponse, 401: unauthenticated, 413: tooLong },
+        // 400 is deliberately not in this map: a validation failure and an
+        // unknown photo both answer 400, with different bodies, and a schema
+        // for one turns the other into a 500 at serialisation.
+        response: { 202: dumpResponse, 401: unauthenticated, 409: unknownBlob, 413: tooLong },
       },
     },
     async (request, reply) => {
@@ -767,7 +908,7 @@ export async function dumpRoutes(app: App): Promise<void> {
       if (!accountId)
         return reply.code(401).send({ error: "unauthenticated" as const });
 
-      const { text, clientKey, threadId } = request.body;
+      const { text, clientKey, threadId, blobIds, viaShare } = request.body;
 
       // Before the write, not after. AC-14.
       if (text.length > MAX_DUMP_CHARS) {
@@ -798,7 +939,22 @@ export async function dumpRoutes(app: App): Promise<void> {
       }
       mark("idempotency");
 
-      const result = await takeDump(accountId, text, clientKey, threadId);
+      let result;
+      try {
+        result = await takeDump(
+          accountId,
+          text,
+          clientKey,
+          threadId,
+          blobIds?.length ? { blobIds, viaShare: Boolean(viaShare) } : undefined,
+        );
+      } catch (error) {
+        if (error instanceof UnknownBlob) {
+          timed();
+          return reply.code(409).send({ error: "unknown_blob" as const });
+        }
+        throw error;
+      }
       mark("dump");
       timed();
 
@@ -844,6 +1000,7 @@ export async function dumpRoutes(app: App): Promise<void> {
         conversationId: message.conversation_id,
         state: message.state,
         text: message.text,
+        photos: (await photosForAll([message.id], accountId)).get(message.id) ?? [],
         reply: replyRow?.text ?? null,
         // Where it actually went, and everything it changed. Both empty until
         // the turn settles, which is the honest answer while it is running.
@@ -939,13 +1096,17 @@ export async function dumpRoutes(app: App): Promise<void> {
       // away, and it is the third time this endpoint has dropped something the
       // rest of the API returns. `waiting` and `found` are the first two, and
       // the comment above them says the same sentence.
-      const [landed, sources] = await Promise.all([
+      const [landed, sources, photos] = await Promise.all([
         threadsForAll(
           rows.map((row) => row.id),
           accountId,
         ),
         sourcesForAll(
           rows.map((row) => row.turn_id),
+          accountId,
+        ),
+        photosForAll(
+          rows.map((row) => row.id),
           accountId,
         ),
       ]);
@@ -956,6 +1117,7 @@ export async function dumpRoutes(app: App): Promise<void> {
           id: row.id,
           role: row.role,
           text: row.text,
+          photos: photos.get(row.id) ?? [],
           state: row.state,
           turnId: row.turn_id,
           waiting: waiting.get(row.id) ?? null,
@@ -1560,6 +1722,17 @@ export async function undoTurn(
       .set({ deleted_at: stamp, purge_after: purge })
       .where("turn_id", "=", turnId)
       .where("account_id", "=", accountId)
+      .where("deleted_at", "is", null)
+      .execute();
+
+    // 020. The photos go with the dump they arrived on, on the same clock.
+    // The rows that carried them were soft-deleted above, so nothing in a
+    // thread still links them; the purge destroys the objects after the
+    // window, and until then the eight seconds can put everything back.
+    await trx
+      .updateTable("blobs")
+      .set({ deleted_at: stamp, purge_after: purge })
+      .where("message_id", "in", live.map((row) => row.id))
       .where("deleted_at", "is", null)
       .execute();
 

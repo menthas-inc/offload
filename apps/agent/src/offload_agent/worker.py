@@ -20,6 +20,7 @@ from datetime import date, datetime, timedelta
 import httpx
 import structlog
 from anthropic import AsyncAnthropic
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from offload_agent import context as ctx_mod
@@ -28,7 +29,7 @@ from offload_agent.cancels import Cancels, listen
 from offload_agent.compact import KINDS as COMPACT_KINDS
 from offload_agent.compact import handle_compact
 from offload_agent.config import Config
-from offload_agent.context import DumpContext
+from offload_agent.context import DumpContext, Photo
 from offload_agent.countries import name_of
 from offload_agent.embed import EmbeddingUnavailable, embed, to_pgvector
 from offload_agent.embed_jobs import KINDS as EMBED_KINDS
@@ -44,6 +45,7 @@ from offload_agent.harness.plan import (
 )
 from offload_agent.og import picture
 from offload_agent.queue import ClaimedJob, claim, release_for_retry
+from offload_agent.renditions import prepare
 
 log = structlog.get_logger()
 
@@ -782,6 +784,18 @@ def parse_answer(
     if field == "country":
         code = (verdict.country or "").upper()
         return {"country": code} if code and code in offered else None
+    if field == "thread":
+        # 020. One of the threads offered, by id, or by the name the person
+        # typed matching an option's label. Never a thread not on the list.
+        picked = (verdict.thread or "").strip()
+        if picked in offered:
+            return {"thread": picked}
+        lowered = picked.lower()
+        for option in options:
+            label = str(option.get("label", "")).lower()
+            if option.get("value") is not None and label == lowered:
+                return {"thread": str(option["value"])}
+        return None
     return None
 
 
@@ -791,6 +805,10 @@ def describe_value(field: str, value: dict) -> str:
         return f"{value.get('from')} to {value.get('to')}"
     if field == "time":
         return f"{value.get('day')} at {value.get('time')}"
+    if field == "thread":
+        # An id would mean nothing in the planner's block; the server records
+        # the thread's name against the answering message.
+        return "a thread they chose"
     return str(next(iter(value.values()), ""))
 
 
@@ -891,6 +909,9 @@ async def handle(
         # talked into. See `classify`.
         async with engine.connect() as conn:
             asked = await ctx_mod.question_text(conn, message_id=message_id)
+            # 020. A photo makes the message a dump whatever its words: the
+            # answering path cannot see a picture and the picture has to land.
+            with_photos = await ctx_mod.photo_count(conn, message_id=message_id) > 0
 
         # **The first step is written before anything else happens**, ahead
         # of the classifier. An answering turn's first model round trip runs
@@ -998,7 +1019,7 @@ async def handle(
                             "label": describe_value(open_q.field, value),
                         }
 
-        if asked and answered is None:
+        if asked and answered is None and not with_photos:
             verdict = await classify(anthropic, asked, cfg.sort_model)
             if verdict.asking and verdict.confident:
                 await _handle_answer(
@@ -1027,6 +1048,18 @@ async def handle(
             )
             return
 
+        # 020. The photos, before the model sees anything. The renditions are
+        # made here and posted back, and the large copy of each is what the
+        # planner is handed; one that cannot be opened is named as such in the
+        # prompt and takes the plain-title path on the way out.
+        if loaded.photos:
+            await _step_writer(http, cfg, job.id)(
+                "Looking at the photo" if len(loaded.photos) == 1 else "Looking at the photos"
+            )
+            loaded = dataclasses.replace(
+                loaded, photos=await _prepare_photos(http, cfg, engine, job.id, loaded.photos)
+            )
+
         if answered is not None:
             loaded = dataclasses.replace(loaded, answered=answered)
         fitted = ctx_mod.fit(loaded, cfg.max_prompt_tokens)
@@ -1052,6 +1085,7 @@ async def handle(
 
         nothing_left = _nothing_left(outcome, fitted)
         _author_the_failure_line(outcome, budget)
+        _author_the_photo_line(outcome, fitted)
 
         # Not finished means either the loop ran out of round trips or a tool
         # failed. Both are partial, and in both the reply is ours: a model that
@@ -1134,6 +1168,10 @@ async def handle(
             # nothing at all. Field names and error types only (OFF-1).
             refused=outcome.refused,
             latency_ms=sum(u.latency_ms for u in outcome.usage),
+            # 020. How many pictures the turn read, and how many bytes of
+            # them. A count and a size, never the pictures (OFF-1).
+            photos=len(fitted.photos),
+            photo_bytes=sum(len(p.large) for p in fitted.photos if p.large),
         )
 
     except ReportFailed as exc:
@@ -1154,6 +1192,46 @@ async def handle(
         # log (OFF-1).
         log.error("dump failed", job_id=job.id, attempt=job.attempts, error_type=type(exc).__name__)
         await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
+
+
+_RENDITIONS_STATE = text(
+    """
+    select id, renditions_at
+    from blobs
+    where id = any(:ids)
+    """
+)
+
+
+async def _prepare_photos(
+    http: httpx.AsyncClient, cfg: Config, engine, job_id: str, photos: list[Photo]
+) -> list[Photo]:
+    """Each photo with its large rendition attached, making and posting the
+    renditions the Core API does not have yet. A retry of the turn finds them
+    made and only re-reads the original for the model's copy."""
+    async with engine.connect() as conn:
+        rows = (await conn.execute(_RENDITIONS_STATE, {"ids": [p.blob_id for p in photos]})).all()
+    made = {str(r.id): r.renditions_at is not None for r in rows}
+
+    # Three at a time: each is a fetch, a decode and two posts, and ten in a
+    # row is most of the turn on a phone's worth of photos.
+    gate = asyncio.Semaphore(3)
+
+    async def one(photo: Photo) -> Photo:
+        async with gate:
+            try:
+                large = await prepare(
+                    http, cfg, job_id, photo.blob_id, already_made=made.get(photo.blob_id, False)
+                )
+            except Exception as exc:  # noqa: BLE001
+                # The type only. A failed rendition is a photo the model does
+                # not see this turn; the server still files it, with a plain
+                # title.
+                log.error("rendition failed", blob_id=photo.blob_id, error_type=type(exc).__name__)
+                large = None
+        return dataclasses.replace(photo, large=large)
+
+    return list(await asyncio.gather(*(one(photo) for photo in photos)))
 
 
 #: How many sources cross to the Core API, and it is the server's number too.
@@ -1197,6 +1275,23 @@ def _web_wire(budget: "Lookups | None") -> dict:
 #: 016 AC-19. The one thing offload says when a lookup did not produce the
 #: fact, authored here rather than phrased by the model at runtime.
 NOT_SURE = "Not sure."
+
+
+#: 020. What offload says about a photo it could not open. One clause, no
+#: diagnosis; the row is filed under a plain title by the server, so the
+#: sentence names what happened and the row is the way forward.
+COULD_NOT_READ_ONE = "Could not make out one of the photos."
+COULD_NOT_READ_ANY = "Could not make out the photos."
+
+
+def _author_the_photo_line(outcome: Outcome, ctx: DumpContext) -> None:
+    """Say so when a photo could not be opened, in offload's own words rather
+    than the model's, which never saw it and cannot describe what it missed."""
+    unreadable = [p for p in ctx.photos if p.large is None]
+    if not unreadable:
+        return
+    line = COULD_NOT_READ_ANY if len(unreadable) == len(ctx.photos) else COULD_NOT_READ_ONE
+    outcome.reply = f"{outcome.reply.rstrip()} {line}" if outcome.reply else line
 
 
 def _author_the_failure_line(outcome: Outcome, budget: "Lookups") -> None:

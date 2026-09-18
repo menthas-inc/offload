@@ -36,6 +36,7 @@ import {
   editContent,
   fetchContent,
   fetchThread,
+  moveContent,
   renameThread,
   setArchived,
   setPriority,
@@ -43,6 +44,7 @@ import {
   type ThreadBundle,
   setPreference,
 } from "../../lib/threads";
+import { PhotoViewer, type ViewerPhoto } from "../shell/PhotoViewer";
 
 interface Props {
   id: string;
@@ -71,6 +73,9 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   // rather than appearing silently in the middle of a list.
   const [arrived, setArrived] = useState<Set<string>>(new Set());
   const { filed } = useThreads();
+  // 020. The photo open in the viewer, by row id. The set it pages through is
+  // every photo row on the page, in the page's order.
+  const [viewing, setViewing] = useState<string | null>(null);
 
   async function load(): Promise<void> {
     const [bundle, page] = await Promise.all([
@@ -161,6 +166,10 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   async function saveTitle(row: ContentRow): Promise<void> {
     const title = draft.trim();
     setEditing(null);
+    await rename(row, title);
+  }
+
+  async function rename(row: ContentRow, title: string): Promise<void> {
     if (!title || title === row.title) return;
 
     const result = await editContent(row.id, { title });
@@ -171,6 +180,22 @@ export function Thread({ id, onChanged, onUndo }: Props) {
     // component happened to be holding.
     onUndo("Renamed", async () => {
       await editContent(row.id, { title: result.previous.title });
+      await load();
+      onChanged();
+    });
+  }
+
+  /** 020. Move, by hand, from the viewer. The author's, like delete, and the
+   *  picture goes with the row: the server adjusts its wraps in the same
+   *  transaction. Undo is the same move back. */
+  async function move(row: ContentRow, threadId: string): Promise<void> {
+    const moved = await moveContent(row.id, threadId);
+    if (!moved) return;
+    setViewing(null);
+    await load();
+    onChanged();
+    onUndo("Moved", async () => {
+      await moveContent(row.id, moved.previous.threadId);
       await load();
       onChanged();
     });
@@ -319,7 +344,23 @@ export function Thread({ id, onChanged, onUndo }: Props) {
     onArchive: (row) => void archive(row),
     onAsk: setAsking,
     onDelete: (row) => void remove(row),
+    // 020. A photo row's tile, and a tile in Files, open the viewer.
+    onOpenPhoto: (row) => setViewing(row.id),
   };
+
+  // 020. What the viewer pages through: every photo row on the page, in the
+  // page's order, each with its row so the tools follow it.
+  const photoRows = rows.filter((row) => row.photo !== null);
+  const viewerSet: ViewerPhoto[] = photoRows.map((row) => ({
+    blobId: row.photo!.blobId,
+    ready: row.photo!.ready,
+    width: row.photo!.width,
+    height: row.photo!.height,
+    title: row.title,
+    body: row.body,
+    row,
+  }));
+  const viewerIndex = viewing ? photoRows.findIndex((row) => row.id === viewing) : -1;
 
   const restHeading =
     inWidgets.size > 0 ? "Everything else" : "Everything in here";
@@ -439,6 +480,28 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             onAdded={() => void load()}
           />
         )}
+
+        {viewerIndex >= 0 ? (
+          <PhotoViewer
+            photos={viewerSet}
+            index={viewerIndex}
+            threadId={id}
+            onIndex={(index) => setViewing(photoRows[index]?.id ?? null)}
+            onClose={() => setViewing(null)}
+            actions={{
+              onRename: (row, title) => rename(row, title),
+              onMove: (row, thread) => move(row, thread.id),
+              onArchive: (row) => {
+                setViewing(null);
+                return archive(row);
+              },
+              onDelete: (row) => {
+                setViewing(null);
+                return remove(row);
+              },
+            }}
+          />
+        ) : null}
 
         {showArchived ? null : (
           <Widgets

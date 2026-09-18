@@ -13,7 +13,7 @@
 // The group heading and the bare "Everything else" heading went with it.
 
 import { useRef, useState } from "react";
-import { Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import {
   DONE_SHOWN,
   filtersFor,
@@ -25,9 +25,11 @@ import {
   type Sortable,
   type Widget,
 } from "@offload/widgets";
+import { token } from "@offload/tokens";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { ContentRowView } from "./ContentRow";
+import { PhotoThumb } from "./PhotoThumb";
 import { useConversation } from "./conversation-context";
 import { QUICK_ADD_CHARS } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
@@ -51,6 +53,7 @@ export function Widgets({
   onActions,
   onEdit,
   onArchive,
+  onOpenPhoto,
   onToggle,
   onReorder,
   arrived,
@@ -67,6 +70,8 @@ export function Widgets({
   onActions: (row: ContentRow) => void;
   onEdit: (row: ContentRow) => void;
   onArchive: (row: ContentRow) => void;
+  /** 020. A tile in Files, or a photo row's tile, opens the viewer. */
+  onOpenPhoto: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
   /** A row was dragged to a new place. The writes hold the new order; the
    *  screen owns the rows and the Undo, so it makes them. */
@@ -91,6 +96,7 @@ export function Widgets({
           onArchive={onArchive}
           onDelete={onDelete}
           onActions={onActions}
+          onOpenPhoto={onOpenPhoto}
           onToggle={onToggle}
           onReorder={onReorder}
         />
@@ -111,6 +117,7 @@ function WidgetBlock({
   onActions,
   onEdit,
   onArchive,
+  onOpenPhoto,
   onToggle,
   onReorder,
 }: {
@@ -125,6 +132,7 @@ function WidgetBlock({
   onActions: (row: ContentRow) => void;
   onEdit: (row: ContentRow) => void;
   onArchive: (row: ContentRow) => void;
+  onOpenPhoto: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
   onReorder: (writes: ReorderWrite[]) => void;
 }) {
@@ -245,7 +253,10 @@ function WidgetBlock({
           {/* Raises the shell's composer, pinned to this thread and this
               section: the write it already had, just typed in the one place
               a phone has already solved the keyboard. It never leaves the
-              conversation, only its own field does. */}
+              conversation, only its own field does. Not on Files: the + writes
+              a row from a line of text, and a photo arrives through the
+              composer (020). */}
+          {widget.kind === "files" ? null : (
           <Pressable
             onPress={() =>
               raiseFor({
@@ -263,6 +274,7 @@ function WidgetBlock({
           >
             <Glyph name="plus" size={22} color={COLOR.iconOnWell} />
           </Pressable>
+          )}
         </View>
       </View>
 
@@ -294,27 +306,41 @@ function WidgetBlock({
         </ScrollView>
       ) : null}
 
-      {shown.map((row, index) => (
-        <View
-          key={row.id}
-          onLayout={(event) => {
-            const { y, height } = event.nativeEvent.layout;
-            layouts.current.set(row.id, { y, height });
-          }}
-        >
-          <ContentRowView
-            row={row}
-            border={index < shown.length - 1}
-            arrived={arrived?.has(row.id) ?? false}
-            onDelete={() => onDelete(row)}
-            onActions={() => onActions(row)}
-            onEdit={() => onEdit(row)}
-            onArchive={() => onArchive(row)}
-            onToggle={widget.kind === "todo" ? () => onToggle(row) : undefined}
-            reorder={movable && row.doneAt === null ? { onDrop: (dy) => drop(row.id, dy) } : undefined}
-          />
+      {/* 020. Files is the kit's grid: three columns of square tiles, each
+          the photo itself with no treatment, or the type glyph until the
+          renditions exist. A tap opens the viewer, which is where the row's
+          tools are; the tile itself has none, as the kit's FileTile has none
+          (ui_kits/mobile_app/ThreadWidgets.jsx). */}
+      {widget.kind === "files" ? (
+        <View className="flex-row flex-wrap gap-space-4 px-gutter-screen pb-space-6">
+          {[...left, ...done].map((row) => (
+            <FileTile key={row.id} row={row} onOpen={() => onOpenPhoto(row)} />
+          ))}
         </View>
-      ))}
+      ) : (
+        shown.map((row, index) => (
+          <View
+            key={row.id}
+            onLayout={(event) => {
+              const { y, height } = event.nativeEvent.layout;
+              layouts.current.set(row.id, { y, height });
+            }}
+          >
+            <ContentRowView
+              row={row}
+              border={index < shown.length - 1}
+              arrived={arrived?.has(row.id) ?? false}
+              onDelete={() => onDelete(row)}
+              onActions={() => onActions(row)}
+              onEdit={() => onEdit(row)}
+              onArchive={() => onArchive(row)}
+              onOpenPhoto={() => onOpenPhoto(row)}
+              onToggle={widget.kind === "todo" ? () => onToggle(row) : undefined}
+              reorder={movable && row.doneAt === null ? { onDrop: (dy) => drop(row.id, dy) } : undefined}
+            />
+          </View>
+        ))
+      )}
 
       {/* A finished task keeps its place and sinks below everything
           outstanding. Past five, the list shows the most recent and offers the
@@ -333,6 +359,47 @@ function WidgetBlock({
         </Pressable>
       ) : null}
     </View>
+  );
+}
+
+const GUTTER = parseInt(token("gutter-screen"), 10);
+const GAP = parseInt(token("space-4"), 10);
+
+/** One square in Files. From ui_kits/mobile_app/ThreadWidgets.jsx's FileTile:
+ *  a hairline, the small radius, the picture cropped to the square, a glyph
+ *  where there is no picture yet. Three to a row, the kit's gap between. */
+function FileTile({ row, onOpen }: { row: ContentRow; onOpen: () => void }) {
+  const COLOR = useColors();
+  const { width } = useWindowDimensions();
+  // The screen's gutter twice, the kit's gap twice, three tiles. The two
+  // tokens as numbers, since a square's side is arithmetic and not a class.
+  const side = Math.floor((width - 2 * GUTTER - 2 * GAP) / 3);
+  const glyph = (
+    <View className="flex-1 items-center justify-center">
+      <Glyph name="image" size={22} color={COLOR.iconOnWell} />
+    </View>
+  );
+  return (
+    <Pressable
+      onPress={onOpen}
+      accessibilityLabel={`Open ${row.title}`}
+      accessibilityRole="button"
+      className={`overflow-hidden rounded-sm border bg-surface-page ${
+        row.archivedAt ? "border-dashed border-border-strong" : "border-border-hairline"
+      }`}
+      style={{ width: side, height: side }}
+    >
+      {row.photo ? (
+        <PhotoThumb
+          blobId={row.photo.blobId}
+          ready={row.photo.ready}
+          style={{ width: side, height: side }}
+          fallback={glyph}
+        />
+      ) : (
+        glyph
+      )}
+    </Pressable>
   );
 }
 

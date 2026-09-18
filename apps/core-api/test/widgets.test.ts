@@ -58,6 +58,15 @@ describe("widgets are earned", () => {
     expect(widgetsFor(rows).map((w) => w.kind).sort()).toEqual(["files", "map", "todo"]);
   });
 
+  it("earns Files from a picture and never from a link (020 AC-29)", () => {
+    // A link earned it until 020, drawn as a row. In a grid of untitled
+    // squares a link loses the title and the domain that identify it, so it
+    // stays in the list with the page's own picture on it.
+    expect(widgetsFor([row({ type: "link" })]).map((w) => w.kind)).toEqual([]);
+    expect(widgetsFor([row({ type: "screenshot" })]).map((w) => w.kind)).toEqual(["files"]);
+    expect(widgetsFor([row({ type: "file" })]).map((w) => w.kind)).toEqual([]);
+  });
+
   it("loses a widget when the content that earned it goes (AC-1)", () => {
     // A thread that loses its last place loses its map. That is the system
     // working, not state going missing.

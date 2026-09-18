@@ -17,6 +17,7 @@
 import Link from "next/link";
 import { Icon } from "../Icon";
 import { PaneHead } from "../shell/PaneHead";
+import { PhotoThumb } from "../shell/PhotoThumb";
 import styles from "../../app/(shell)/shell.module.css";
 import type { ContentDetail as Detail } from "../../lib/threads";
 
@@ -67,9 +68,26 @@ export function ContentDetail({ detail, onToggle }: Props) {
           ◦ {detail.threadName}
         </Link>
 
+        {/* 020. A photo row opened as a row: the picture, then what offload
+            wrote about it. The large rendition, since the pane is wide. */}
+        {detail.photo ? (
+          <PhotoThumb
+            blobId={detail.photo.blobId}
+            ready={detail.photo.ready}
+            rendition="large"
+            alt={detail.body ?? detail.title}
+            className={styles.detailPicture}
+            fallback={
+              <span className={styles.detailPictureEmpty} aria-hidden="true">
+                <Icon name="image" size={28} />
+              </span>
+            }
+          />
+        ) : null}
+
         {detail.body ? (
           <>
-            <h2 className={styles.section}>Note</h2>
+            <h2 className={styles.section}>{detail.photo ? "About this" : "Note"}</h2>
             <p className={styles.standing}>{detail.body}</p>
           </>
         ) : null}

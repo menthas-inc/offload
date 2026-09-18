@@ -17,6 +17,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "../Icon";
+import { PhotoThumb } from "./PhotoThumb";
 import type { FoundResult, FoundRow } from "../../lib/dump";
 import styles from "../../app/(shell)/answer.module.css";
 
@@ -117,6 +118,19 @@ function Result({
                 {row.done ? <Icon name="check" size={13} /> : null}
               </span>
             </button>
+          ) : row.photo ? (
+            // 020. The picture itself, where the thread page draws it.
+            <PhotoThumb
+              blobId={row.photo.blobId}
+              ready={row.photo.ready}
+              alt=""
+              className={styles.tilePhoto}
+              fallback={
+                <span className={styles.tile} aria-hidden="true">
+                  <Icon name="image" size={16} />
+                </span>
+              }
+            />
           ) : (
             <span className={styles.tile} aria-hidden="true">
               <Icon name={TYPE_ICON[row.type] ?? "text-quote"} size={16} />

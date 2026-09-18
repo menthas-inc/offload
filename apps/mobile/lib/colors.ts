@@ -77,6 +77,13 @@ export interface Colors {
    *  does not flip. `onSolid` does flip, which is how a near-black number ends
    *  up on blue. */
   onAttention: string;
+  /** 020. The plane a photo is viewed on: dark in both themes, as the web
+   *  draws it. `surface-inverse` at 90% in light and `surface-page` at 92% in
+   *  dark, mixed here since a phone takes one colour. `ink` was tried and is
+   *  `text-primary`, which is near white in dark, so the plane went light. */
+  viewerPlane: string;
+  /** `surface-inverse`: the bar over the viewer on iOS, translucent. */
+  inverse: string;
 }
 
 function paletteFor(dark: boolean): Colors {
@@ -136,6 +143,10 @@ function paletteFor(dark: boolean): Colors {
      *  line's, and the caller picks its geometry. Same values, same two rules,
      *  spelled the way this platform can draw them. */
     shadow: dark ? "rgba(255,255,255,0.04)" : "rgba(11,11,11,0.04)",
+    inverse: base["surface-inverse"] ?? light["surface-inverse"]!,
+    viewerPlane: dark
+      ? atOpacity(base["surface-page"] ?? light["surface-page"]!, 0.92)
+      : atOpacity(base["surface-inverse"] ?? light["surface-inverse"]!, 0.9),
   };
 }
 

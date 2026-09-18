@@ -26,6 +26,8 @@ export interface FoundResult {
     title: string;
     body: string | null;
     done: boolean;
+    /** 020. The row's photo, when it has one, as the thread page sends it. */
+    photo: { blobId: string; width: number; height: number; ready: boolean } | null;
   }[];
 }
 
@@ -54,14 +56,31 @@ export async function foundFor(
     title: string;
     body: string | null;
     done_at: Date | null;
+    blob_id: string | null;
+    blob_width: number | null;
+    blob_height: number | null;
+    blob_ready: boolean | null;
   }>`
     select mc.message_id::text as message_id, mc.ord as ord, mc.truncated as truncated,
            c.id::text as id, c.thread_id::text as thread_id, t.name as thread_name,
-           c.type as type, c.title as title, c.body as body, c.done_at as done_at
+           c.type as type, c.title as title, c.body as body, c.done_at as done_at,
+           p.id::text as blob_id, p.width as blob_width, p.height as blob_height,
+           (p.renditions_at is not null) as blob_ready
     from message_content mc
     join readable_content c on c.id = mc.content_id
     join threads t on t.id = c.thread_id
       and t.deleted_at is null
+    -- 020. The row's photo, so an answer draws the picture where a thread
+    -- page would. The viewer already passed readable_content, so the blob
+    -- needs no check of its own.
+    left join lateral (
+      select b.id, b.width, b.height, b.renditions_at
+      from content_blobs cb
+      join blobs b on b.id = cb.blob_id and b.deleted_at is null
+      where cb.content_id = c.id
+      order by cb.created_at asc
+      limit 1
+    ) p on true
     -- Bound as one array parameter. An earlier version built this list by
     -- interpolating the ids into the string, and one caller passes a route
     -- param straight in, which is untrusted input reaching a query (SEC-1).
@@ -94,6 +113,9 @@ export async function foundFor(
       title: row.title,
       body: row.body ? row.body.slice(0, ANSWER_ROW_CHARS) : null,
       done: row.done_at !== null,
+      photo: row.blob_id
+        ? { blobId: row.blob_id, width: row.blob_width!, height: row.blob_height!, ready: Boolean(row.blob_ready) }
+        : null,
     });
     byMessage.set(row.message_id, results);
   }

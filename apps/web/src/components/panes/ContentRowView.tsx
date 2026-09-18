@@ -22,6 +22,7 @@
 
 import Link from "next/link";
 import { Icon } from "../Icon";
+import { PhotoThumb } from "../shell/PhotoThumb";
 import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
 import { domainOf, isFiling, type ContentRow } from "../../lib/threads";
@@ -44,6 +45,8 @@ export interface RowHandlers {
   onArchive: (row: ContentRow) => void;
   onAsk: (id: string | null) => void;
   onDelete: (row: ContentRow) => void;
+  /** 020. A photo row's tile opens the viewer; the row itself opens as a row. */
+  onOpenPhoto?: (row: ContentRow) => void;
 }
 
 export function ContentRowView({
@@ -149,6 +152,25 @@ export function ContentRowView({
           loading="lazy"
           referrerPolicy="no-referrer"
         />
+      ) : row.photo && !row.archivedAt ? (
+        // 020. The photo itself, in the same slot and at the same size the
+        // link row's picture takes, and the one part of the row that opens the
+        // viewer: the title still opens the row. The glyph until the renditions
+        // exist.
+        <button
+          type="button"
+          className={styles.rowThumbButton}
+          aria-label={`Open ${row.title}`}
+          onClick={() => handlers.onOpenPhoto?.(row)}
+        >
+          <PhotoThumb
+            blobId={row.photo.blobId}
+            ready={row.photo.ready}
+            alt=""
+            className={styles.rowThumb}
+            fallback={lead}
+          />
+        </button>
       ) : (
         lead
       )}

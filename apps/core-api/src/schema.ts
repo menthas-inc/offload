@@ -664,7 +664,7 @@ export interface QuestionsTable {
   message_id: string;
   turn_id: string;
   ordinal: number;
-  field: "date" | "span" | "time" | "tag" | "country";
+  field: "date" | "span" | "time" | "tag" | "country" | "thread";
   target_content_id: string | null;
   target_note_id: string | null;
   text: string;
@@ -678,6 +678,64 @@ export interface QuestionsTable {
   derived_from_untrusted: Generated<boolean>;
   created_at: Timestamp;
   settled_at: Timestamp | null;
+}
+
+/** 020. A photo as it arrived, encrypted in R2, and what it knows about
+ *  itself. Belongs to its message, held unclaimed between upload and send,
+ *  refcounted through `content_blobs`. */
+export interface BlobsTable {
+  id: Generated<string>;
+  /** Who handed it over; null once they are gone. */
+  account_id: string | null;
+  /** Null while unclaimed, and again once the message has purged while a
+   *  shared thread still carries the picture. */
+  message_id: string | null;
+  client_key: string;
+  /** The dumper's, shown to them alone. Never on a title, in a log, in an
+   *  event or sent to the model. */
+  name: string | null;
+  /** Sniffed from the bytes. */
+  content_type: string;
+  byte_size: number;
+  width: number;
+  height: number;
+  sha256: Buffer;
+  encryption_scheme: Generated<string>;
+  taken_at: Timestamp | null;
+  /** Exact, from the file. Stored and never served; what leaves is rounded. */
+  latitude: number | null;
+  longitude: number | null;
+  device: string | null;
+  town: string | null;
+  renditions_at: Timestamp | null;
+  unreadable_at: Timestamp | null;
+  created_at: Timestamp;
+  deleted_at: Timestamp | null;
+  purge_after: Timestamp | null;
+}
+
+/** The object key, wrapped once per place that may open it. */
+export interface BlobKeysTable {
+  blob_id: string;
+  scope: "account" | "thread";
+  scope_id: string;
+  wrapped_object_key: Buffer;
+  created_at: Timestamp;
+}
+
+/** Which rows carry which blob. The authorization path, with `messages`. */
+export interface ContentBlobsTable {
+  content_id: string;
+  blob_id: string;
+  created_at: Timestamp;
+}
+
+/** A rounded coordinate and its town. No account column, on purpose. */
+export interface PlaceReverseTable {
+  lat: string;
+  lng: string;
+  town: string | null;
+  resolved_at: Timestamp;
 }
 
 export interface MessageContentTable {
@@ -737,6 +795,10 @@ export interface Database {
   message_chunks: MessageChunksTable;
   message_content: MessageContentTable;
   questions: QuestionsTable;
+  blobs: BlobsTable;
+  blob_keys: BlobKeysTable;
+  content_blobs: ContentBlobsTable;
+  place_reverse: PlaceReverseTable;
 
   readable_content: ContentTable & { viewer_account_id: string };
   readable_notes: NotesTable & { viewer_account_id: string };

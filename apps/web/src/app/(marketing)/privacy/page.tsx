@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "14 September 2026";
+const UPDATED = "18 September 2026";
 
 function Todo({ children }: { children: ReactNode }) {
   return <span className={styles.todo}>{children}</span>;
@@ -152,7 +152,17 @@ export default function Privacy() {
               amounts pulled out of it.
             </li>
             <li>
-              <strong>Transcripts</strong> of your voice notes, and text read out of screenshots.
+              <strong>Transcripts</strong> of your voice notes, and <strong>what a photo or a
+              screenshot shows</strong>: a few sentences describing it, and the words in it.
+              offload is told to leave card numbers and ID numbers out of what it writes down,
+              and that is an instruction to a model rather than a guarantee.
+            </li>
+            <li>
+              <strong>What a photo says about itself.</strong> A camera writes the day, the device
+              and sometimes the place into the file, and we keep those with the photo. The day
+              goes on the row, so a photo can be found by when it was taken. The place stays with
+              the file and reaches nobody: offload does not yet turn it into the name of a town,
+              and when it does, this page names who does that before it starts.
             </li>
             <li>
               <strong>Notes</strong>, which are short sentences about a thread: something that is
@@ -286,8 +296,9 @@ export default function Privacy() {
         <section className={styles.section}>
           <h2 className={styles.h2}>5. AI, and what it does with what you upload</h2>
           <p>
-            Sorting an upload into a thread, pulling a date out of a sentence, transcribing a voice
-            note and answering you in the composer are all done by AI models we call on your behalf.
+            Sorting an upload into a thread, pulling a date out of a sentence, reading a photo,
+            transcribing a voice note and answering you in the composer are all done by AI models we
+            call on your behalf.
             To do that, the relevant part of your content is sent to the companies in the table
             below.
           </p>
@@ -303,6 +314,11 @@ export default function Privacy() {
             <li>
               <strong>Only what the task needs goes out.</strong> Not your account, not your
               history, not your other threads.
+            </li>
+            <li>
+              <strong>A photo goes as a smaller copy, with the camera&rsquo;s details removed.</strong>{" "}
+              When it reads a photo, the model sees the picture and nothing about the file: not
+              its name, not when it was taken, not where.
             </li>
             <li>
               <strong>Our own monitoring never sees content.</strong> The tooling we use to watch
@@ -408,8 +424,9 @@ export default function Privacy() {
                     searches and opens the links described in section 5
                   </td>
                   <td>
-                    The part of your content a given task needs, the words of a search when offload
-                    looks something up, and your country when you have set one
+                    The part of your content a given task needs, including a smaller copy of a
+                    photo you dump with its camera details removed, the words of a search when
+                    offload looks something up, and your country when you have set one
                   </td>
                 </tr>
                 <tr>
@@ -643,6 +660,11 @@ export default function Privacy() {
               from it, next to what you add. Changing your name in Settings changes what they see.
             </li>
             <li>
+              <strong>A photo you put in a shared thread is theirs to see too</strong>, with what
+              offload wrote about it and the day it was taken. The file&rsquo;s own name stays with
+              you.
+            </li>
+            <li>
               <strong>There are no public links.</strong> Nothing in offload can be handed to
               someone who is not in the thread, and nothing is visible to anyone you have not
               connected to.
@@ -682,7 +704,7 @@ export default function Privacy() {
             <li>
               <strong>What a file says is not protected even where the file is.</strong> A voice
               note's audio is encrypted while its transcript is ordinary text, and the same is true
-              of the words read out of a screenshot.
+              of what offload writes about a photo, the words in it included.
             </li>
             <li>None of this defends against a compromise of the running service itself.</li>
           </ul>

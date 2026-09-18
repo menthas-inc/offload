@@ -38,7 +38,15 @@ export type JobKind =
   | "embed.sweep"
   | "embed.content"
   | "embed.note"
-  | "embed.message";
+  | "embed.message"
+  // 020. The R2 delete for a blob nothing references, outside any
+  // transaction; and naming a photo's rounded coordinate, behind the same
+  // key as location.resolve.
+  | "blob.purge"
+  | "blob.locate"
+  // The daily chain: the unclaimed sweep on a quiet day, and the towns for
+  // photos uploaded before the geocoding key was set.
+  | "blob.daily";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */

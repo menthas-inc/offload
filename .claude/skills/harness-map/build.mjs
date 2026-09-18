@@ -82,7 +82,7 @@ const HEADER_MAP = [
   [/look|web|search|url|link/i, "web"],
   [/reply|answer|how to answer|being brief|say/i, "reply"],
   [/reading|data|what you are given|today/i, "frame"],
-  [/filing|notes|what something is|dates|tags|changing|calendar|row|thread|what it is|doing|rules/i, "work"],
+  [/filing|notes|what something is|dates|tags|changing|calendar|row|thread|what it is|doing|rules|photos/i, "work"],
 ];
 
 const PARAGRAPH_MAP = [

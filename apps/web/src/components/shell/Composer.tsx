@@ -27,15 +27,24 @@ import {
   sendDump,
   undoTurn,
   cancelTurn,
+  uploadPhoto,
+  refusePhoto,
+  PhotoRefused,
+  UnknownBlob,
+  MAX_PHOTOS,
   type Answer,
   type FoundResult,
   type FoundRow,
   type MessageState,
+  type PhotoOnWire,
   type QuestionOnWire,
   type Sent,
   type TouchedThread,
 } from "../../lib/dump";
 import { QuickReplies } from "./QuickReplies";
+import { AttachChip, type ChipError } from "./AttachChip";
+import { SentPhoto } from "./SentPhoto";
+import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import { Icon } from "../Icon";
 import { TurnFooter, type TurnSource } from "./TurnFooter";
 import { AnswerResults } from "./AnswerResult";
@@ -89,6 +98,19 @@ interface Turn {
    *  server on every read, so a row ticked or deleted elsewhere is never stale
    *  inside a reply from last week. */
   found?: FoundResult[];
+  /** 020. The photos this message carried. Only ever on a message you sent. */
+  photos?: PhotoOnWire[];
+}
+
+/** 020. A photo waiting in the composer. The key belongs to the draft until
+ *  it sends, so a retry finds the upload the server already made. */
+interface DraftPhoto {
+  key: string;
+  file: File;
+  name: string;
+  error: ChipError;
+  /** Set once the server has it. A retry skips what already landed. */
+  uploaded?: { blobId: string; width: number; height: number };
 }
 
 interface Undoable {
@@ -114,6 +136,13 @@ export function Composer({
   const [draft, setDraft] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sending, setSending] = useState(false);
+  // 020. The photos in the draft, the draft's own key, one line under the
+  // composer, and the viewer when a thumbnail was opened.
+  const [photos, setPhotos] = useState<DraftPhoto[]>([]);
+  const draftKey = useRef<string | null>(null);
+  const [line, setLine] = useState<{ text: string; retry?: boolean } | null>(null);
+  const [viewer, setViewer] = useState<{ turnId: string; index: number } | null>(null);
+  const picker = useRef<HTMLInputElement>(null);
   // 017. What offload is doing, on the turn in flight.
   const [step, setStep] = useState<string | null>(null);
   const [tooLong, setTooLong] = useState<number | null>(null);
@@ -180,6 +209,7 @@ export function Composer({
           id: message.id,
           from: message.role === "person" ? "you" : "offload",
           text: message.text ?? "",
+          photos: message.photos ?? [],
           state: message.state,
           turnId: message.turnId,
           since: Date.now(),
@@ -249,6 +279,10 @@ export function Composer({
                   threads: answer.threads,
                   sources: answer.sources,
                   question: answer.question ?? null,
+                  // 020. The renditions are made before the model reads the
+                  // photos, so a settled turn's thumbnails exist; one that
+                  // could not be opened draws the glyph when its fetch fails.
+                  photos: turn.photos?.map((photo) => ({ ...photo, ready: true })),
                 }
               : // 018. The next turn closes the last question whatever it says.
                 { ...turn, question: null },
@@ -320,24 +354,92 @@ export function Composer({
     void cancelTurn(turnId);
   }
 
+  /** 020. Photos into the draft, from the picker, a paste or a drop. The
+   *  ordinary refusals happen here, on the device, so they never cost a
+   *  request; the server checks the same things again. */
+  function addFiles(files: Iterable<File>): void {
+    const incoming = [...files];
+    if (incoming.length === 0) return;
+    setPhotos((current) => {
+      const room = MAX_PHOTOS - current.length;
+      if (room <= 0 || incoming.length > room) setLine({ text: "Ten at a time." });
+      const taken = incoming.slice(0, Math.max(0, room)).map((file, at) => ({
+        key: crypto.randomUUID(),
+        file,
+        name: photoName(file, current.length + at),
+        error: refusePhoto(file),
+      }));
+      return [...current, ...taken];
+    });
+    input.current?.focus();
+  }
+
+  /** The file's own name, or "Photo", "Photo 2". A browser names a pasted
+   *  image `image.png`, which is an identifier and not a name. */
+  function photoName(file: File, at: number): string {
+    const own = file.name && !/^image\.(png|jpe?g|webp|gif|heic|heif)$/i.test(file.name) ? file.name : "";
+    return own || (at === 0 ? "Photo" : `Photo ${at + 1}`);
+  }
+
+  function removePhoto(key: string): void {
+    setPhotos((current) => current.filter((photo) => photo.key !== key));
+  }
+
+  const sendable = photos.filter((photo) => !photo.error);
+  const hasSomething = draft.trim().length > 0 || sendable.length > 0;
+
   async function submit(): Promise<void> {
     const text = draft.trim();
-    if (!text || sending) return;
+    if (!hasSomething || sending) return;
+    // A chip the device refused is not sent around: the way forward is its
+    // remove control.
+    if (photos.some((photo) => photo.error)) return;
 
     setSending(true);
     setTooLong(null);
+    setLine(null);
     // **The turn's clock starts at the press, not when the server answers the
     // send.** The dump request takes a second or more, and a clock stamped
     // after it held the first step back until four seconds after the press
     // and put Stop at eleven. Somebody waiting is waiting from the press.
     const pressed = Date.now();
     // Idempotency. A retry after the browser gave up on the response returns
-    // the message the server already made rather than a second one.
-    const clientKey = crypto.randomUUID();
+    // the message the server already made rather than a second one. 020: the
+    // key belongs to the draft until it sends, and so does each photo's.
+    const clientKey = draftKey.current ?? (draftKey.current = crypto.randomUUID());
 
     try {
-      const sent = await sendDump(text, clientKey, inThread?.id);
+      // 020. Each photo first, on its own, held unclaimed until the message
+      // claims it. One that already landed on an earlier try is not sent
+      // again.
+      const sentPhotos: PhotoOnWire[] = [];
+      for (const photo of sendable) {
+        const uploaded = photo.uploaded ?? (await uploadPhoto(photo.file, photo.key));
+        setPhotos((current) => current.map((p) => (p.key === photo.key ? { ...p, uploaded } : p)));
+        sentPhotos.push({
+          blobId: uploaded.blobId,
+          name: photo.name,
+          width: uploaded.width,
+          height: uploaded.height,
+          ready: false,
+          // The file itself, until the server's copy exists. Never revoked:
+          // a turn keeps it for the session, and a session's worth of object
+          // URLs is a few dozen.
+          localUrl: URL.createObjectURL(photo.file),
+        });
+      }
+      const sent = await sendDump(
+        text,
+        clientKey,
+        inThread?.id,
+        sentPhotos.length ? { blobIds: sentPhotos.map((p) => p.blobId) } : undefined,
+      );
       setDraft("");
+      // Only what went: a photo dropped in while the send was out stays
+      // for the next one.
+      const went = new Set(sendable.map((photo) => photo.key));
+      setPhotos((current) => current.filter((photo) => !went.has(photo.key)));
+      draftKey.current = null;
       setTurns((current) => [
         // 018. Chips leave with the next turn. The server decides whether the
         // words answered the question; the screen only knows it is no longer
@@ -347,6 +449,7 @@ export function Composer({
           id: sent.messageId,
           from: "you",
           text,
+          photos: sentPhotos,
           state: sent.state,
           turnId: sent.turnId,
           since: pressed,
@@ -355,11 +458,47 @@ export function Composer({
       watch(sent.messageId, sent.turnId);
     } catch (error) {
       if (error instanceof DumpTooLong) setTooLong(error.maxChars);
-      else setTooLong(null);
+      else if (error instanceof PhotoRefused && error.reason === "daily_limit") {
+        setLine({ text: "Enough for today." });
+      } else if (
+        error instanceof PhotoRefused &&
+        (error.reason === "too_big" || error.reason === "not_a_photo")
+      ) {
+        // The server disagreed with the device about one of them. Mark the
+        // first chip not yet landed rather than guessing which; the remove
+        // control is the way forward either way.
+        const reason: ChipError = error.reason;
+        setPhotos((current) => {
+          const at = current.findIndex((p) => !p.error && !p.uploaded);
+          return current.map((p, i) => (i === at ? { ...p, error: reason } : p));
+        });
+      } else if (error instanceof PhotoRefused && error.reason === "unavailable") {
+        // No object store behind the API. A retry cannot help, so none.
+        setLine({ text: "Not taking photos yet." });
+      } else if (error instanceof UnknownBlob) {
+        // The server no longer has one of the uploads: an hour passed and
+        // the sweep took it. Forget what landed, so Retry uploads again.
+        setPhotos((current) => current.map(({ uploaded: _gone, ...p }) => p));
+        setLine({ text: "Did not send.", retry: true });
+      } else setLine({ text: "Did not send.", retry: true });
     } finally {
       setSending(false);
       input.current?.focus();
     }
+  }
+
+  /** 020. What the viewer shows for a message's photos: the pictures and
+   *  their names. Rows are not known here, so the viewer has no tools; the
+   *  Files grid is where a photo's row is. */
+  function viewerPhotos(turn: Turn): ViewerPhoto[] {
+    return (turn.photos ?? []).map((photo) => ({
+      blobId: photo.blobId,
+      ready: photo.ready,
+      width: photo.width,
+      height: photo.height,
+      title: photo.name ?? "Photo",
+      localUrl: photo.localUrl,
+    }));
   }
 
   /** Nothing landed, so there is nothing to resume. Put the text back where
@@ -602,6 +741,17 @@ export function Composer({
                 }
               >
                 {turn.text}
+                {turn.photos?.length ? (
+                  <span className={styles.sentPhotos}>
+                    {turn.photos.map((photo, at) => (
+                      <SentPhoto
+                        key={photo.blobId}
+                        photo={photo}
+                        onOpen={() => setViewer({ turnId: turn.id, index: at })}
+                      />
+                    ))}
+                  </span>
+                ) : null}
                 {turn.state === "failed" ? (
                   <p className={styles.turnFailed} role="alert">
                     offload could not answer that one. Your dump is saved.{" "}
@@ -722,65 +872,155 @@ export function Composer({
         </div>
       ) : null}
 
-      <div className={styles.composerInner} data-tall={tall ? true : undefined}>
-        {/* Said, not enforced. The server passes the same thread to the model
-            as a default and the prompt lets the words override it, so this
-            reads as where things are going rather than as a lock. */}
-        {inThread ? (
-          <span className={styles.inThread}>in thread {inThread.name}</span>
-        ) : null}
-        {/* A textarea, since 2026-09-17: Enter sends, Shift+Enter is a line.
-            The phones keep Enter for a line because the keyboard is on
-            screen and the arrow is the send. */}
-        <textarea
-          ref={input}
-          className={styles.composerInput}
-          rows={1}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
+      <div
+        className={styles.composerInner}
+        data-tall={tall ? true : undefined}
+        data-expanded={tall || photos.length > 0 ? true : undefined}
+        // 020. A photo dropped onto the card attaches, because that is how a
+        // screenshot reaches a browser.
+        onDragOver={(event) => {
+          if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+        }}
+        onDrop={(event) => {
+          if (event.dataTransfer.files.length === 0) return;
+          event.preventDefault();
+          addFiles(event.dataTransfer.files);
+        }}
+      >
+        <div className={styles.fieldRow}>
+          {/* Said, not enforced. The server passes the same thread to the model
+              as a default and the prompt lets the words override it, so this
+              reads as where things are going rather than as a lock. */}
+          {inThread ? (
+            <span className={styles.inThread}>in thread {inThread.name}</span>
+          ) : null}
+          {/* A textarea, since 2026-09-17: Enter sends, Shift+Enter is a line.
+              The phones keep Enter for a line because the keyboard is on
+              screen and the arrow is the send. */}
+          <textarea
+            ref={input}
+            className={styles.composerInput}
+            rows={1}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void submit();
+              }
+            }}
+            // 020. A pasted image attaches; pasted text is text.
+            onPaste={(event) => {
+              const files = [...event.clipboardData.files].filter((file) =>
+                file.type.startsWith("image/"),
+              );
+              if (files.length === 0) return;
               event.preventDefault();
-              void submit();
-            }
-          }}
-          placeholder={openQuestion ? invitation(openQuestion) : "Dump anything"}
-          aria-label="Dump anything"
-          disabled={sending}
-        />
-        {/* Photo and voice, drawn and inert. Attachments are text-only until
-            blobs exist, and the kit's composer is three affordances and a
-            field: shipping one of them leaves a different object. */}
-        <button
-          type="button"
-          className={styles.quiet}
-          disabled
-          aria-disabled="true"
-          aria-label="Add a photo"
-          title="Photos are not built yet"
-        >
-          <Icon name="camera" size={17} />
-        </button>
-        <button
-          type="button"
-          className={styles.quiet}
-          disabled
-          aria-disabled="true"
-          aria-label="Record a voice note"
-          title="Voice notes are not built yet"
-        >
-          <Icon name="mic" size={17} />
-        </button>
-        <button
-          type="button"
-          className={styles.send}
-          disabled={draft.trim().length === 0 || sending}
-          aria-label="Send"
-          onClick={() => void submit()}
-        >
-          <Icon name="arrow-up" size={17} />
-        </button>
+              addFiles(files);
+            }}
+            placeholder={openQuestion ? invitation(openQuestion) : "Dump anything"}
+            aria-label="Dump anything"
+            disabled={sending}
+          />
+        </div>
+        <div className={styles.toolsRow}>
+          {/* 020. The chips, in the row with the controls, wrapping, as the
+              phones' composer draws them. Locked while a send is out: a chip
+              removed mid-send would still go. */}
+          {photos.length ? (
+            <div className={styles.chips}>
+              {photos.map((photo) => (
+                <AttachChip
+                  key={photo.key}
+                  name={photo.name}
+                  error={photo.error}
+                  disabled={sending}
+                  onRemove={() => removePhoto(photo.key)}
+                />
+              ))}
+            </div>
+          ) : null}
+          <span className={styles.actions}>
+            {/* The camera, live since 020. The microphone stays as it was,
+                drawn and inert, until voice notes are built. */}
+            <input
+              ref={picker}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+              multiple
+              hidden
+              onChange={(event) => {
+                addFiles(event.target.files ?? []);
+                event.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              className={styles.quiet}
+              aria-label="Add a photo"
+              title="Add a photo"
+              disabled={sending}
+              onClick={() => picker.current?.click()}
+            >
+              <Icon name="camera" size={17} />
+            </button>
+            <button
+              type="button"
+              className={styles.quiet}
+              disabled
+              aria-disabled="true"
+              aria-label="Record a voice note"
+              title="Voice notes are not built yet"
+            >
+              <Icon name="mic" size={17} />
+            </button>
+            <button
+              type="button"
+              className={styles.send}
+              // A chip the device refused holds the send: the way forward is
+              // its remove control, and a button that does nothing when
+              // pressed is worse than one that is off.
+              disabled={!hasSomething || sending || photos.some((photo) => photo.error)}
+              data-busy={sending ? true : undefined}
+              aria-label="Send"
+              aria-busy={sending}
+              onClick={() => void submit()}
+            >
+              <Icon name="arrow-up" size={17} />
+            </button>
+          </span>
+        </div>
       </div>
+
+      {line ? (
+        <p className={styles.composerLine} role="alert">
+          {line.text}
+          {line.retry ? (
+            <button type="button" className={styles.retry} onClick={() => void submit()}>
+              Retry
+            </button>
+          ) : (
+            <button type="button" className={styles.retry} onClick={() => setLine(null)}>
+              OK
+            </button>
+          )}
+        </p>
+      ) : null}
+
+      {viewer
+        ? (() => {
+            const turn = turns.find((t) => t.id === viewer.turnId);
+            const set = turn ? viewerPhotos(turn) : [];
+            return set.length ? (
+              <PhotoViewer
+                photos={set}
+                index={Math.min(viewer.index, set.length - 1)}
+                onIndex={(index) => setViewer({ turnId: viewer.turnId, index })}
+                onClose={() => setViewer(null)}
+              />
+            ) : null;
+          })()
+        : null}
 
       {tooLong ? (
         <p className={styles.composerError} role="alert">

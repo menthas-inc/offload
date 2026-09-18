@@ -20,7 +20,7 @@ import { usePathname, useRouter } from "expo-router";
 import Animated, { FadeIn, FadeOut, useAnimatedStyle } from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Plate, type Tab } from "./Plate";
-import { Conversation, ConversationScrim } from "./Conversation";
+import { Conversation, ConversationPhotoViewer, ConversationScrim } from "./Conversation";
 import { useConversation } from "./conversation-context";
 import { ToastHost, useToast } from "./Toast";
 import { timeOfDay } from "../../lib/sun";
@@ -110,6 +110,7 @@ export function Shell() {
           exiting={FadeOut.duration(140)}
         >
           <Conversation />
+          <ConversationPhotoViewer />
           <Plate tabs={tabs} placeholder={inThread ? "Add to this" : undefined} />
         </Animated.View>
       )}

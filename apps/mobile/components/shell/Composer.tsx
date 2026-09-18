@@ -5,17 +5,33 @@
 // sent on Return would send half a thought every time somebody wanted a second
 // line.
 //
-// **The camera and the microphone are not drawn.** The kit has both, fully
-// designed, and attachments are out: they need blobs, upload and transcription,
-// none of which is built. A control that does nothing is worse on a phone than
-// absent, because a phone is exactly where somebody expects both to work.
+// **The camera is drawn since 020, the microphone still is not.** The kit has
+// both, fully designed. A photo is a chip in the composer, the kit's
+// `AttachChip`, sitting in the row with the controls and wrapping; the pill
+// opens into a box when it holds any, as it does for a tall draft. The
+// microphone waits for voice notes: a control that does nothing is worse on a
+// phone than absent, because a phone is exactly where somebody expects it to
+// work.
 
 import { useEffect, useRef, useState } from "react";
-import { Platform, Pressable, Text, TextInput, View } from "react-native";
-import { invitation } from "../../lib/dump";
+import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { invitation, MAX_PHOTOS } from "../../lib/dump";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
-import { useConversation } from "./conversation-context";
+import { AttachChip } from "./AttachChip";
+import { useConversation, type PickedPhoto } from "./conversation-context";
 
 const isAndroid = Platform.OS === "android";
 
@@ -63,7 +79,22 @@ export function Composer({
   submitLabel?: string;
 }) {
   const COLOR = useColors();
-  const { draft, setDraft, submit, pin, onScreen, openQuestion } = useConversation();
+  const {
+    draft,
+    setDraft,
+    submit,
+    pin,
+    onScreen,
+    openQuestion,
+    photos,
+    addPhotos,
+    removePhoto,
+    line,
+    clearLine,
+    writing,
+    focusRequest,
+  } = useConversation();
+  const [sending, setSending] = useState(false);
   // 018. Precedence: a pinned `+` field is never taken over, then the open
   // question, then whatever the screen asked for, then the cycling set.
   const asked = !pin && openQuestion ? invitation(openQuestion) : null;
@@ -85,14 +116,91 @@ export function Composer({
     else field.current?.blur();
   }, [pin]);
 
+  // 020. A share from another app: the chips are in, the sheet is open, and
+  // the words come next, so the field takes focus and the keyboard comes up.
+  // A tick later, since the sheet may be mounting on the same frame.
+  useEffect(() => {
+    if (focusRequest === 0) return;
+    const timer = setTimeout(() => field.current?.focus(), 50);
+    return () => clearTimeout(timer);
+  }, [focusRequest]);
+
   useEffect(() => {
     if (placeholder || asked || draft.length > 0) return;
     const timer = setInterval(() => setWhich((n) => (n + 1) % PLACEHOLDERS.length), 10_000);
     return () => clearInterval(timer);
   }, [placeholder, asked, draft.length]);
 
-  const has = draft.trim().length > 0;
+  // A pinned + writes one line into a section and never a photo: the chips
+  // wait out of sight and come back with the ordinary composer.
+  const chips = pin ? [] : photos;
+  const has = draft.trim().length > 0 || chips.some((photo) => !photo.error);
+  const held = chips.some((photo) => photo.error);
   const tall = height > 30;
+  const expanded = tall || chips.length > 0;
+
+  /** 020. The picker or the camera, in the platform's own sheet. The picker
+   *  needs no permission on either platform; the camera does, and a refusal
+   *  is the one line with the way to the settings beside it. */
+  async function pick(from: "library" | "camera"): Promise<void> {
+    const room = MAX_PHOTOS - photos.length;
+    if (room <= 0) return addPhotos([]);
+    let result: ImagePicker.ImagePickerResult;
+    if (from === "camera") {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Camera is off for offload.", undefined, [
+          { text: "Not now", style: "cancel" },
+          { text: "Open settings", onPress: () => void Linking.openSettings() },
+        ]);
+        return;
+      }
+      result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 1 });
+    } else {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsMultipleSelection: true,
+        selectionLimit: room,
+        quality: 1,
+      });
+    }
+    if (result.canceled) return;
+    const picked: PickedPhoto[] = result.assets.map((asset) => ({
+      uri: asset.uri,
+      name: asset.fileName ?? null,
+      type: asset.mimeType ?? null,
+      size: asset.fileSize ?? null,
+    }));
+    addPhotos(picked, "picker");
+    field.current?.focus();
+  }
+
+  function offerPhoto(): void {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: ["Choose from library", "Take a photo", "Cancel"], cancelButtonIndex: 2 },
+        (index) => {
+          if (index === 0) void pick("library");
+          if (index === 1) void pick("camera");
+        },
+      );
+    } else {
+      Alert.alert("Add a photo", undefined, [
+        { text: "Choose from library", onPress: () => void pick("library") },
+        { text: "Take a photo", onPress: () => void pick("camera") },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    }
+  }
+
+  async function send(): Promise<void> {
+    setSending(true);
+    try {
+      await submit();
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <View className="px-gutter-screen pb-space-5 pt-space-4">
@@ -112,10 +220,10 @@ export function Composer({
       ) : null}
 
       <View
-        className={`flex-row items-center gap-space-3 border border-border-focus px-space-6 ${
-          tall ? "rounded-lg" : "rounded-pill"
+        className={`${expanded ? "flex-col items-stretch" : "flex-row items-center"} gap-space-3 border border-border-focus px-space-6 ${
+          expanded ? "rounded-lg" : "rounded-pill"
         } ${isAndroid ? "bg-a-c" : "bg-surface-input"}`}
-        style={{ minHeight: 48, paddingRight: 6 }}
+        style={{ minHeight: 48, paddingRight: 6, paddingBottom: expanded ? 6 : 0 }}
       >
         <TextInput
           ref={field}
@@ -131,22 +239,84 @@ export function Composer({
           onContentSizeChange={(event) =>
             setHeight(Math.min(event.nativeEvent.contentSize.height, MAX_HEIGHT))
           }
+          editable={!sending && !writing}
           className={`flex-1 font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
           style={{ fontSize: 16, lineHeight: 22, paddingVertical: 12, maxHeight: MAX_HEIGHT }}
         />
 
-        <Pressable
-          onPress={() => void submit()}
-          disabled={!has}
-          accessibilityLabel={submitLabel}
-          className={`items-center justify-center rounded-pill ${
-            has ? (isAndroid ? "bg-a-on" : "bg-surface-inverse") : "bg-surface-fill"
-          }`}
-          style={{ width: 34, height: 34, opacity: has ? 1 : 0.55 }}
-        >
-          <Glyph name="arrow-up" size={17} color={has ? COLOR.onSolid : COLOR.iconOnWell} />
-        </Pressable>
+        {/* 020. The chips, in the row with the controls, wrapping, as the kit
+            draws them. Ten with the keyboard up is more than a phone should
+            hold, so the row scrolls inside the composer's own cap. */}
+        <View className={`flex-row items-center gap-space-2 ${expanded ? "" : "flex-none"}`}>
+          {chips.length > 0 ? (
+            <ScrollView
+              horizontal={false}
+              style={{ maxHeight: 96, flex: 1 }}
+              contentContainerStyle={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {chips.map((photo) => (
+                <AttachChip
+                  key={photo.key}
+                  name={photo.name}
+                  error={photo.error}
+                  disabled={sending || writing}
+                  onRemove={() => removePhoto(photo.key)}
+                />
+              ))}
+            </ScrollView>
+          ) : null}
+          <View className="ml-auto flex-row items-center gap-space-2">
+            {/* The camera, not while a + is pinned: a + is a line of text. */}
+            {pin ? null : (
+              <Pressable
+                onPress={offerPhoto}
+                disabled={sending || writing}
+                hitSlop={5}
+                accessibilityLabel="Add a photo"
+                className="items-center justify-center rounded-pill"
+                style={{ width: 34, height: 34 }}
+              >
+                <Glyph name="camera" size={17} color={COLOR.iconOnWell} />
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => void send()}
+              disabled={!has || held || sending}
+              accessibilityLabel={submitLabel}
+              accessibilityState={{ busy: sending }}
+              className={`items-center justify-center rounded-pill ${
+                has && !held ? (isAndroid ? "bg-a-on" : "bg-surface-inverse") : "bg-surface-fill"
+              }`}
+              style={{ width: 34, height: 34, opacity: has && !held ? 1 : 0.55 }}
+            >
+              {sending ? (
+                <ActivityIndicator size="small" color={COLOR.onSolid} />
+              ) : (
+                <Glyph name="arrow-up" size={17} color={has && !held ? COLOR.onSolid : COLOR.iconOnWell} />
+              )}
+            </Pressable>
+          </View>
+        </View>
       </View>
+
+      {line ? (
+        <View className="mt-space-2 flex-row items-center gap-space-3" accessibilityLiveRegion="polite">
+          <Text className="font-core text-text-danger" style={{ fontSize: 13 }}>
+            {line.text}
+          </Text>
+          {line.retry ? (
+            <Pressable onPress={() => void send()} hitSlop={14} accessibilityRole="button">
+              <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13 }}>
+                Retry
+              </Text>
+            </Pressable>
+          ) : null}
+          <Pressable onPress={clearLine} hitSlop={15} accessibilityLabel="Dismiss" className="ml-auto">
+            <Glyph name="x" size={14} color={COLOR.iconOnWell} />
+          </Pressable>
+        </View>
+      ) : null}
 
       {showCounter && maxLength ? (
         <Text

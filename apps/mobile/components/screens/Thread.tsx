@@ -49,6 +49,8 @@ import { atOpacity, useColors } from "../../lib/colors";
 import { ContentRowView } from "../shell/ContentRow";
 import { NotesSection } from "../shell/Notes";
 import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
+import { PhotoViewer, type ViewerPhoto } from "../shell/PhotoViewer";
+import { MoveSheet } from "../shell/MoveSheet";
 import { ToastHost, useToast } from "../shell/Toast";
 import { Timeline } from "../shell/Timeline";
 import { Widgets } from "../shell/Widgets";
@@ -58,6 +60,7 @@ import {
   editContent,
   fetchContent,
   fetchThread,
+  moveContent,
   setArchived,
   setPriority,
   type ContentRow,
@@ -79,6 +82,10 @@ export default function Thread() {
   const [showArchived, setShowArchived] = useState(false);
   const [acting, setActing] = useState<ContentRow | null>(null);
   const [renaming, setRenaming] = useState<ContentRow | null>(null);
+  // 020. The photo open in the viewer, by row id, and the row a move sheet
+  // is up for. The viewer pages through every photo row on the page.
+  const [viewing, setViewing] = useState<string | null>(null);
+  const [moving, setMoving] = useState<ContentRow | null>(null);
   // What arrived while this screen was open, marked for a moment rather than
   // appearing silently in the middle of a list.
   const [arrived, setArrived] = useState<Set<string>>(new Set());
@@ -180,9 +187,28 @@ export default function Thread() {
 
   async function remove(row: ContentRow): Promise<void> {
     if (!(await deleteContent(row.id))) return;
+    setViewing(null);
     await load();
     // Never the row's title: a toast is a few words and a title is not.
     toast.show("Deleted");
+  }
+
+  /** 020. Move, by hand, from the row's own sheet. The author's, like delete,
+   *  and the picture goes with the row: the server adjusts its wraps in the
+   *  same transaction. Undo is the same move back. */
+  async function move(row: ContentRow, threadId: string): Promise<void> {
+    setMoving(null);
+    const moved = await moveContent(row.id, threadId);
+    if (!moved) return;
+    setViewing(null);
+    await load();
+    toast.show("Moved", {
+      label: "Undo",
+      onPress: async () => {
+        await moveContent(row.id, moved.previous.threadId);
+        await load();
+      },
+    });
   }
 
   /** A row was dragged somewhere else in To do.
@@ -255,17 +281,40 @@ export default function Thread() {
   const restHeading =
     inWidgets.size > 0 ? "Everything else" : "Everything in here";
 
+  // 020. What the viewer pages through: every photo row on the page, in the
+  // page's order, each with its row so the tools follow it.
+  const photoRows = rows.filter((row) => row.photo !== null);
+  const viewerSet: ViewerPhoto[] = photoRows.map((row) => ({
+    blobId: row.photo!.blobId,
+    ready: row.photo!.ready,
+    width: row.photo!.width,
+    height: row.photo!.height,
+    title: row.title,
+    body: row.body,
+    row,
+  }));
+  const viewerIndex = viewing ? photoRows.findIndex((row) => row.id === viewing) : -1;
+
   const actions: RowAction[] = acting
     ? [
         // Edit leads, because renaming is the commonest thing to want and the
         // one this sheet did not offer: the only way to fix a title was on the
         // web.
         { label: "Edit", icon: "pencil", run: () => setRenaming(acting) },
-        {
-          label: acting.doneAt ? "Mark not done" : "Mark done",
-          icon: acting.doneAt ? "rewind" : "check",
-          run: () => tick(acting),
-        },
+        // 020. The first move control the product has drawn, on the row's own
+        // sheet. The author's, like delete, because both change who can see
+        // something.
+        ...(acting.canMove ? [{ label: "Move", icon: "layers", run: () => setMoving(acting) }] : []),
+        // A picture is not done or not done.
+        ...(acting.photo
+          ? []
+          : [
+              {
+                label: acting.doneAt ? "Mark not done" : "Mark done",
+                icon: acting.doneAt ? "rewind" : "check",
+                run: () => tick(acting),
+              },
+            ]),
         // One way out, never two. Your own content offers Delete; somebody
         // else's, in a shared thread, offers Archive, because OFF-3 says you
         // may not destroy what another person wrote and a thread still has to
@@ -405,6 +454,7 @@ export default function Thread() {
             onActions={setActing}
             onEdit={setRenaming}
             onArchive={(row: ContentRow) => void archive(row)}
+            onOpenPhoto={(row: ContentRow) => setViewing(row.id)}
             onToggle={(row: ContentRow) => void tick(row)}
             onReorder={(writes) => void reorder(writes)}
             arrived={arrived}
@@ -485,6 +535,7 @@ export default function Thread() {
             onActions={() => setActing(row)}
             onEdit={() => setRenaming(row)}
             onArchive={() => void archive(row)}
+            onOpenPhoto={() => setViewing(row.id)}
           />
         ))}
 
@@ -522,6 +573,21 @@ export default function Thread() {
         ) : null}
       </ScrollView>
 
+      {/* 020. The viewer, over the screen, and the row's tools on the same
+          sheet a row opens from its list. The set is every photo row on the
+          page, in the page's order. Mounted before the sheets, which are
+          absolute siblings: More opens the action sheet, and a sheet under
+          the plane is a sheet nobody can see. */}
+      {viewerIndex >= 0 ? (
+        <PhotoViewer
+          photos={viewerSet}
+          index={viewerIndex}
+          onIndex={(index) => setViewing(photoRows[index]?.id ?? null)}
+          onClose={() => setViewing(null)}
+          onMore={setActing}
+        />
+      ) : null}
+
       <TitleSheet
         // **Keyed by the row, so the field starts out holding its title.**
         // Filling it from an effect meant the sheet mounted empty and then
@@ -546,6 +612,14 @@ export default function Thread() {
         open={acting !== null}
         actions={actions}
         onClose={() => setActing(null)}
+      />
+      <MoveSheet
+        open={moving !== null}
+        exceptThreadId={id}
+        onClose={() => setMoving(null)}
+        onPick={(thread) => {
+          if (moving) void move(moving, thread.id);
+        }}
       />
       <ToastHost state={toast} />
     </SafeAreaView>

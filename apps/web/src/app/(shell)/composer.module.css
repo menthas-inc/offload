@@ -700,3 +700,219 @@
   font: var(--text-body-sm-role);
   cursor: pointer;
 }
+
+/* ------------------------------------------------------------ 020, photos */
+
+/* The composer holds a field row and a tools row. Collapsed they sit side by
+   side in the pill; expanded, for a tall draft or any chip, the pill opens
+   into a box with the field on top and the chips and the three controls
+   beneath, the chips wrapping and the controls at the end, which is the
+   phones' composer (ui_kits/mobile_app/Composer.jsx). */
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.toolsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.composerInner[data-expanded] {
+  flex-direction: column;
+  align-items: stretch;
+  border-radius: var(--radius-lg);
+  padding-block: var(--space-2) var(--space-2);
+}
+
+.composerInner[data-expanded] .fieldRow {
+  align-items: flex-start;
+}
+
+.composerInner[data-expanded] .toolsRow {
+  width: 100%;
+  align-items: flex-end;
+}
+
+/* The chips, wrapping. Ten with the field above is more than a pill should
+   hold, so the chips scroll inside the composer's own cap as long text does,
+   and the controls beside them stay where they are. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 auto;
+  min-width: 0;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 0 4px 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-hairline);
+}
+
+.chip[data-error] {
+  border-color: var(--border-danger);
+}
+
+.chipGlyph {
+  display: inline-flex;
+  color: var(--text-tertiary);
+}
+
+.chipName {
+  font-family: var(--font-core);
+  font-size: var(--size-caption);
+  line-height: 1.2;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipLine {
+  font-family: var(--font-core);
+  font-size: var(--size-caption);
+  line-height: 1.2;
+  color: var(--text-danger);
+  white-space: nowrap;
+}
+
+/* A plain glyph, not an IconButton: a 44px hit area inside a 26px chip bleeds
+   its hover pill out past the chip's own edge. */
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background var(--transition-ui), color var(--transition-ui);
+}
+
+.chipRemove:hover {
+  background: var(--surface-fill);
+  color: var(--text-primary);
+}
+
+.chipRemove:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.chipRemove:disabled:hover {
+  background: transparent;
+  color: var(--text-tertiary);
+}
+
+/* The send control while the photos leave: the arrow gives way to a ring. */
+.send[data-busy] {
+  color: transparent;
+  position: relative;
+}
+
+.send[data-busy]::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--text-inverse);
+  border-top-color: transparent;
+  animation: composer-spin 0.8s linear infinite;
+}
+
+@keyframes composer-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .send[data-busy]::after { animation: none; border-top-color: var(--text-inverse); opacity: 0.6; }
+}
+
+/* One short clause under the composer, with the way forward beside it. */
+.composerLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
+  color: var(--text-danger);
+}
+
+/* A photo sent with a message: the picture, then its name, in the person's
+   own bubble. 36px and --radius-sm, the row tile's, so one thumbnail size
+   holds across the product. */
+.sentPhotos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.sentPhoto {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--blue-100);
+  background: var(--surface-raised);
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.sentPhotoTile {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--surface-fill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.sentPhotoName {
+  min-width: 0;
+  flex: 1;
+  font-family: var(--font-core);
+  font-size: var(--size-caption);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

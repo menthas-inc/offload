@@ -63,6 +63,8 @@ export interface FoundRow {
   title: string;
   body: string | null;
   done: boolean;
+  /** 020. The row's photo, when it has one. */
+  photo: { blobId: string; width: number; height: number; ready: boolean } | null;
 }
 
 /** 016. Where a fact in a turn came from. Two fields, and the omissions are the
@@ -77,7 +79,7 @@ export interface Source {
  *  only: the values stay on the server and an index goes back. */
 export interface QuestionOnWire {
   id: string;
-  field: "date" | "span" | "time" | "tag" | "country";
+  field: "date" | "span" | "time" | "tag" | "country" | "thread";
   text: string;
   options: { label: string; kind: "value" | "plain" }[];
   ordinal: number;
@@ -118,24 +120,109 @@ export class DumpTooLong extends Error {
 /** @param threadId The thread on screen, if any. A filing default, not a
  *  destination: the server checks membership and the model is told the words
  *  override it. */
+/** @param photos 020. The photos uploaded ahead of this message, claimed by it. */
 export async function sendDump(
   text: string,
   clientKey: string,
   threadId?: string,
+  photos?: { blobIds: string[]; viaShare?: boolean },
 ): Promise<Sent> {
   const response = await fetch(`${API}/v1/dumps`, {
     method: "POST",
     credentials: "include",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ text, clientKey, ...(threadId ? { threadId } : {}) }),
+    body: JSON.stringify({
+      text,
+      clientKey,
+      ...(threadId ? { threadId } : {}),
+      ...(photos?.blobIds.length ? { blobIds: photos.blobIds, viaShare: Boolean(photos.viaShare) } : {}),
+    }),
   });
 
   if (response.status === 413) {
     const body = (await response.json()) as { maxChars: number };
     throw new DumpTooLong(body.maxChars);
   }
+  if (response.status === 409) throw new UnknownBlob();
   if (!response.ok) throw new Error(`dump failed: ${response.status}`);
   return (await response.json()) as Sent;
+}
+
+/** 020. The server no longer holds one of the message's uploads: an hour
+ *  passed unsent and the sweep took it. The composer forgets what landed
+ *  and uploads again on Retry. */
+export class UnknownBlob extends Error {
+  constructor() {
+    super("unknown_blob");
+  }
+}
+
+// ---------------------------------------------------------------- 020, photos
+
+/** A photo on a person's message, as the server sends it. `ready` is whether
+ *  the renditions exist yet; until they do the thumbnail draws the glyph. */
+export interface PhotoOnWire {
+  blobId: string;
+  name: string | null;
+  width: number;
+  height: number;
+  ready: boolean;
+  /** This device only, never from the wire: the file as an object URL, for
+   *  the moment between the send and the renditions. */
+  localUrl?: string;
+}
+
+/** Per message, and the server holds the same number. */
+export const MAX_PHOTOS = 10;
+/** Per photo. The server holds the same number and refuses by bytes. */
+export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
+/** What the product takes. Checked by extension too, because a browser
+ *  reports an empty type for HEIC. */
+const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
+const PHOTO_EXTENSIONS = /\.(jpe?g|png|webp|heic|heif)$/i;
+
+export function isPhoto(file: File): boolean {
+  return PHOTO_TYPES.has(file.type.toLowerCase()) || (file.type === "" && PHOTO_EXTENSIONS.test(file.name));
+}
+
+/** Why a photo was refused on the device, or null when it may go. The one
+ *  line each is the failure table's. */
+export function refusePhoto(file: File): "too_big" | "not_a_photo" | null {
+  if (!isPhoto(file)) return "not_a_photo";
+  if (file.size > MAX_PHOTO_BYTES) return "too_big";
+  return null;
+}
+
+export class PhotoRefused extends Error {
+  constructor(readonly reason: "too_big" | "not_a_photo" | "daily_limit" | "unavailable") {
+    super(reason);
+  }
+}
+
+/** Upload one photo, ahead of the dump that will claim it. Idempotent on the
+ *  client key, which belongs to the draft until it sends. */
+export async function uploadPhoto(
+  file: File,
+  clientKey: string,
+): Promise<{ blobId: string; width: number; height: number }> {
+  const form = new FormData();
+  form.append("clientKey", clientKey);
+  if (file.name) form.append("name", file.name);
+  form.append("file", file, file.name || "photo");
+  const response = await fetch(`${API}/v1/blobs`, { method: "POST", credentials: "include", body: form });
+  if (response.status === 413) throw new PhotoRefused("too_big");
+  if (response.status === 415) throw new PhotoRefused("not_a_photo");
+  if (response.status === 429) throw new PhotoRefused("daily_limit");
+  if (response.status === 503) throw new PhotoRefused("unavailable");
+  if (!response.ok) throw new Error(`upload failed: ${response.status}`);
+  return (await response.json()) as { blobId: string; width: number; height: number };
+}
+
+/** Where a rendition is read from. The session cookie reaches the API on its
+ *  own origin, so an `<img>` needs `crossOrigin="use-credentials"` and
+ *  nothing else. */
+export function photoUrl(blobId: string, rendition: "thumb" | "large"): string {
+  return `${API}/v1/blobs/${blobId}/${rendition}`;
 }
 
 /** Ask once. The fallback, and the thing the stream is an optimisation over. */
@@ -243,6 +330,8 @@ export interface TailMessage {
   id: string;
   role: "person" | "offload";
   text: string | null;
+  /** 020. Empty on every reply. */
+  photos?: PhotoOnWire[];
   state: MessageState;
   /** What an Undo would reverse. The whole turn, not this row. */
   turnId: string;

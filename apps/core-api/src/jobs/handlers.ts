@@ -3,10 +3,13 @@
 // Handlers are pure of transport concerns: claiming, retrying, backoff and
 // scrubbing live in the runner. A handler does the work or throws.
 
-import { sql } from "kysely";
+import { sql, type Transaction } from "kysely";
 import { db } from "../db.js";
+import type { Database } from "../schema.js";
 import { NOTE_PROMPT_BUDGET, deleteNotesForThread } from "../threads/notes.js";
 import { resolvePlace } from "../places/resolve.js";
+import { locateBlob, reverseGeocodingOn } from "../places/reverse.js";
+import { objectKey, objectStore, RENDITIONS } from "../blobs/store.js";
 import type { Mailer } from "../mail/index.js";
 import { env } from "../env.js";
 import { scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
@@ -160,7 +163,10 @@ const contentPurge: Handler = async () => {
     ]);
 
     const total = counts.reduce((sum, row) => sum + Number(row.n), 0);
-    if (total === 0) return;
+    // 020. Nothing due on the four tables still leaves the photo sweep at the
+    // bottom of this function to run, so an upload nobody sent is not kept
+    // until something else happens to be deleted.
+    if (total === 0) return sweepBlobs(trx, due);
 
     if (total > PURGE_CEILING) {
       // Counts only, and it throws rather than returning, so the job is
@@ -195,7 +201,78 @@ const contentPurge: Handler = async () => {
       await deleteNotesForThread(thread.id, trx);
     }
     await trx.deleteFrom("threads").where(due).execute();
+
+    await sweepBlobs(trx, due);
   });
+};
+
+/** 020. Photos, after everything that could have referenced one is gone.
+ *
+ *  A thread wrap with no row left in that thread linking the blob goes,
+ *  including a dead thread's, whose rows the cascade just took. A row in
+ *  its own Undo window still holds its `content_blobs` link, so its wrap
+ *  survives the window. Then a blob nothing references, its message gone
+ *  and no row linking it, is soft-deleted onto the purge clock, and so is
+ *  an upload nothing claimed within the hour. The R2 delete is its own
+ *  job, because a network call inside this transaction is how a slow
+ *  third party becomes a stalled database. */
+async function sweepBlobs(trx: Transaction<Database>, due: ReturnType<typeof sql<boolean>>): Promise<void> {
+    await sql`
+      delete from blob_keys bk
+      where bk.scope = 'thread'
+        and not exists (
+          select 1 from content_blobs cb
+          join content c on c.id = cb.content_id
+          where cb.blob_id = bk.blob_id and c.thread_id = bk.scope_id
+        )
+    `.execute(trx);
+    const orphaned = await trx
+      .updateTable("blobs")
+      .set({ deleted_at: sql`now()`, purge_after: sql`now()` })
+      .where("deleted_at", "is", null)
+      .where("message_id", "is", null)
+      .where("created_at", "<", sql<Date>`now() - interval '1 hour'`)
+      .where((eb) =>
+        eb.not(eb.exists(eb.selectFrom("content_blobs").select("blob_id").whereRef("content_blobs.blob_id", "=", "blobs.id"))),
+      )
+      .returning("id")
+      .execute();
+    const dueBlobs = await trx
+      .selectFrom("blobs")
+      .select(({ fn }) => fn.countAll<string>().as("n"))
+      .where(due)
+      .executeTakeFirstOrThrow();
+    if (orphaned.length > 0 || Number(dueBlobs.n) > 0) {
+      await enqueue({ kind: "blob.purge", payload: {}, priority: PRIORITY.background, tx: trx });
+    }
+}
+
+/** The R2 delete for every blob past its purge clock, then the row.
+ *
+ *  Outside any transaction, one blob at a time, the object first: a row that
+ *  outlives a failed delete is retried next run, while an object that outlives
+ *  a deleted row is ciphertext nobody can open and nothing will ever remove.
+ *  Same ceiling discipline as `contentPurge`. */
+const blobPurge: Handler = async () => {
+  const store = objectStore();
+  if (!store) return;
+  const due = await db
+    .selectFrom("blobs")
+    .select("id")
+    .where("deleted_at", "is not", null)
+    .where("purge_after", "is not", null)
+    .where("purge_after", "<", sql<Date>`now()`)
+    .limit(PURGE_CEILING)
+    .execute();
+  if (due.length === 0) return;
+  if (due.length >= PURGE_CEILING) {
+    throw new Error(`blob purge ceiling reached: ${due.length} due, ceiling ${PURGE_CEILING}`);
+  }
+  for (const blob of due) {
+    await store.remove(RENDITIONS.map((rendition) => objectKey(blob.id, rendition)));
+    await db.deleteFrom("blobs").where("id", "=", blob.id).execute();
+  }
+  console.log(JSON.stringify({ level: "info", msg: "blobs purged", removed: due.length }));
 };
 
 /** Turn a place name into a point on a map, out of band.
@@ -444,6 +521,67 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
   );
 };
 
+/** 020. Name the town a photo was taken in, from its rounded coordinate.
+ *  Ids only in the payload and the log line; the coordinate never leaves the
+ *  row except rounded, and never reaches a log at all. */
+const blobLocate: Handler = async (payload) => {
+  const blobId = String(payload["blobId"] ?? "");
+  if (!blobId) throw new Error("blob.locate job has no blobId");
+  const outcome = await locateBlob(blobId);
+  console.log(JSON.stringify({ level: "info", msg: "blob located", blobId, outcome }));
+};
+
+/** The photo chain's daily tick.
+ *
+ *  Two things `content.purge` cannot be relied on for, because it runs only
+ *  when something is deleted: an upload nobody sent on a day nobody deleted
+ *  anything, which the sweep it triggers takes care of; and the towns for
+ *  photos uploaded before `GOOGLE_MAPS_API_KEY` was set, which `blob.locate`
+ *  is enqueued for only at rendition time. With the key set, up to
+ *  `LOCATE_BACKFILL` blobs a day whose rounded pair is not yet in the cache
+ *  get a job, keyed on the blob and the day so a pending one is never
+ *  doubled and a provider that was down is asked again tomorrow. A pair
+ *  the provider could not name is in the cache with no town and is not
+ *  asked about again. Ids only, in the payload and the log. */
+const LOCATE_BACKFILL = 200;
+const blobDaily: Handler = async () => {
+  await scheduleDaily("blob.daily");
+  await enqueue({ kind: "content.purge", payload: {}, priority: PRIORITY.background });
+  if (!reverseGeocodingOn()) return;
+  const due = await db
+    .selectFrom("blobs")
+    .select("id")
+    .where("deleted_at", "is", null)
+    .where("renditions_at", "is not", null)
+    .where("latitude", "is not", null)
+    .where("longitude", "is not", null)
+    .where("town", "is", null)
+    .where((eb) =>
+      eb.not(
+        eb.exists(
+          eb
+            .selectFrom("place_reverse")
+            .select("lat")
+            .whereRef("place_reverse.lat", "=", sql`round(blobs.latitude::numeric, 3)`)
+            .whereRef("place_reverse.lng", "=", sql`round(blobs.longitude::numeric, 3)`),
+        ),
+      ),
+    )
+    .orderBy("created_at", "desc")
+    .limit(LOCATE_BACKFILL)
+    .execute();
+  const day = new Date().toISOString().slice(0, 10);
+  for (const blob of due) {
+    await enqueue({
+      kind: "blob.locate",
+      payload: { blobId: blob.id },
+      priority: PRIORITY.background,
+      idempotencyKey: `blob.locate:${blob.id}:${day}`,
+    });
+  }
+  console.log(JSON.stringify({ level: "info", msg: "blob locate backfill", enqueued: due.length }));
+};
+
 export const handlers: Record<string, Handler> = {
   "account.daily": accountDaily,
   "account.daily.run": accountDailyRun,
@@ -455,4 +593,8 @@ export const handlers: Record<string, Handler> = {
   "email.invited": invited,
   "content.purge": contentPurge,
   "location.resolve": locationResolve,
+  "blob.purge": blobPurge,
+  "blob.locate": blobLocate,
+  "blob.daily": blobDaily,
 };
+

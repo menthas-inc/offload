@@ -10,7 +10,7 @@
 // web asks once per stream reconnect, the server is `pg_notify`-driven, and
 // there is no rate limiter to catch an interval set too tight.
 
-import { send } from "./api";
+import { API_URL, send, upload } from "./api";
 import { failed } from "./log";
 
 export type MessageState =
@@ -78,6 +78,8 @@ export interface FoundRow {
   title: string;
   body: string | null;
   done: boolean;
+  /** 020. The row's photo, when it has one. */
+  photo: { blobId: string; width: number; height: number; ready: boolean } | null;
 }
 
 /** 016. Where a fact in a turn came from. Two fields, and the omissions are the
@@ -92,7 +94,7 @@ export interface Source {
  *  only: the values stay on the server and an index goes back. */
 export interface QuestionOnWire {
   id: string;
-  field: "date" | "span" | "time" | "tag" | "country";
+  field: "date" | "span" | "time" | "tag" | "country" | "thread";
   text: string;
   options: { label: string; kind: "value" | "plain" }[];
   ordinal: number;
@@ -123,6 +125,8 @@ export interface TailMessage {
   id: string;
   role: "person" | "offload";
   text: string | null;
+  /** 020. Empty on every reply. */
+  photos?: PhotoOnWire[];
   state: MessageState;
   turnId: string;
   waiting?: WaitingOn | null;
@@ -164,17 +168,106 @@ const isFinal = (state: MessageState): boolean =>
 /** @param threadId The thread on screen, if any. A filing default, not a
  *  destination: the server checks membership and the prompt lets the words
  *  override it. */
+/** @param photos 020. The photos uploaded ahead of this message, claimed by it. */
 export async function sendDump(
   text: string,
   clientKey: string,
   threadId?: string,
+  photos?: { blobIds: string[]; viaShare?: boolean },
 ): Promise<Sent | null> {
   const { status, data } = await send<Sent>("/v1/dumps", {
     method: "POST",
-    body: JSON.stringify({ text, clientKey, ...(threadId ? { threadId } : {}) }),
+    body: JSON.stringify({
+      text,
+      clientKey,
+      ...(threadId ? { threadId } : {}),
+      ...(photos?.blobIds.length ? { blobIds: photos.blobIds, viaShare: Boolean(photos.viaShare) } : {}),
+    }),
   });
   if (status === 413) throw new DumpTooLong(0);
+  if (status === 409) throw new UnknownBlob();
   return data;
+}
+
+// ---------------------------------------------------------------- 020, photos
+
+/** The server no longer holds one of the message's uploads: an hour passed
+ *  unsent and the sweep took it. The composer forgets what landed and
+ *  uploads again on Retry. */
+export class UnknownBlob extends Error {
+  constructor() {
+    super("unknown_blob");
+  }
+}
+
+/** A photo on a person's message, as the server sends it. `ready` is whether
+ *  the renditions exist yet; until they do the thumbnail draws the glyph. */
+export interface PhotoOnWire {
+  blobId: string;
+  name: string | null;
+  width: number;
+  height: number;
+  ready: boolean;
+  /** This device only, never from the wire: the file's uri, for the moment
+   *  between the send and the renditions. */
+  localUri?: string;
+}
+
+/** Per message, and the server holds the same number. */
+export const MAX_PHOTOS = 10;
+/** Per photo. The server holds the same number and refuses by bytes. */
+export const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
+
+/** What the product takes. A picker reports a MIME type most of the time and
+ *  an extension the rest, so both are read. */
+const PHOTO_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"]);
+const PHOTO_EXTENSIONS = /\.(jpe?g|png|webp|heic|heif)$/i;
+
+export type PhotoRefusal = "too_big" | "not_a_photo" | "daily_limit" | "unavailable";
+
+export function refusePhoto(file: { type: string | null; name: string; size: number | null }): "too_big" | "not_a_photo" | null {
+  const type = (file.type ?? "").toLowerCase();
+  const looksLikeOne = PHOTO_TYPES.has(type) || (!type && PHOTO_EXTENSIONS.test(file.name));
+  if (!looksLikeOne) return "not_a_photo";
+  if (file.size !== null && file.size > MAX_PHOTO_BYTES) return "too_big";
+  return null;
+}
+
+export class PhotoRefused extends Error {
+  constructor(readonly reason: PhotoRefusal) {
+    super(reason);
+  }
+}
+
+/** Upload one photo, ahead of the dump that will claim it. Idempotent on the
+ *  client key, which belongs to the draft until it sends. */
+export async function uploadPhoto(
+  file: { uri: string; name: string; type: string | null },
+  clientKey: string,
+): Promise<{ blobId: string; width: number; height: number }> {
+  const form = new FormData();
+  form.append("clientKey", clientKey);
+  form.append("name", file.name);
+  // React Native's FormData takes a file by uri; the object shape is the
+  // runtime's own and not a Blob.
+  form.append("file", {
+    uri: file.uri,
+    name: file.name || "photo",
+    type: file.type || "image/jpeg",
+  } as unknown as Blob);
+  const { status, data } = await upload<{ blobId: string; width: number; height: number }>("/v1/blobs", form);
+  if (status === 413) throw new PhotoRefused("too_big");
+  if (status === 415) throw new PhotoRefused("not_a_photo");
+  if (status === 429) throw new PhotoRefused("daily_limit");
+  if (status === 503) throw new PhotoRefused("unavailable");
+  if (!data) throw new Error(`upload failed: ${status}`);
+  return data;
+}
+
+/** Where a rendition is read from. The session travels as a header, which
+ *  `Image` takes on its source. */
+export function photoUrl(blobId: string, rendition: "thumb" | "large"): string {
+  return `${API_URL}/v1/blobs/${blobId}/${rendition}`;
 }
 
 /** Ask once. */

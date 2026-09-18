@@ -22,6 +22,7 @@
 import { useState } from "react";
 import styles from "../../app/(shell)/shell.module.css";
 import { Icon } from "../Icon";
+import { PhotoThumb } from "../shell/PhotoThumb";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import type { RowReorder } from "./RowTools";
 import {
@@ -216,15 +217,19 @@ function WidgetBlock({
               The same model reads it, grounded in this thread, and it leaves no
               trace in the conversation: adding a task to a list is not talking
               to offload. */}
-          <button
-            type="button"
-            className={styles.sectionAdd}
-            aria-label={`Add to ${HEADINGS[widget.kind]}`}
-            title="Add"
-            onClick={() => setAdding(true)}
-          >
-            <Icon name="plus" size={15} />
-          </button>
+          {/* 020. Not on Files: the + writes a row from a line of text, and a
+              photo arrives through the composer. */}
+          {widget.kind !== "files" ? (
+            <button
+              type="button"
+              className={styles.sectionAdd}
+              aria-label={`Add to ${HEADINGS[widget.kind]}`}
+              title="Add"
+              onClick={() => setAdding(true)}
+            >
+              <Icon name="plus" size={15} />
+            </button>
+          ) : null}
         </div>
       </h2>
 
@@ -259,16 +264,29 @@ function WidgetBlock({
         </div>
       ) : null}
 
-      {left.map((row, index) => (
-        <Row
-          key={row.id}
-          row={row}
-          widget={widget.kind}
-          handlers={handlers}
-          onToggle={onToggle}
-          reorder={reorderFor(row, index)}
-        />
-      ))}
+      {/* 020. Files is the kit's grid, three columns of square tiles, each
+          the photo itself with no treatment, or the type glyph until the
+          renditions exist. A tap opens the viewer, which is where the row's
+          tools are; the tile itself has none, as the kit's FileTile has none
+          (ui_kits/mobile_app/ThreadWidgets.jsx). */}
+      {widget.kind === "files" ? (
+        <div className={styles.fileGrid}>
+          {[...left, ...done].map((row) => (
+            <FileTile key={row.id} row={row} onOpen={() => handlers.onOpenPhoto?.(row)} />
+          ))}
+        </div>
+      ) : (
+        left.map((row, index) => (
+          <Row
+            key={row.id}
+            row={row}
+            widget={widget.kind}
+            handlers={handlers}
+            onToggle={onToggle}
+            reorder={reorderFor(row, index)}
+          />
+        ))
+      )}
 
       {/* A finished task keeps its place and sinks below everything
           outstanding. Past five, the list shows the most recent and offers the
@@ -276,7 +294,7 @@ function WidgetBlock({
           that the work happened. The heading toggle above hides this whole
           block; "Show all" is the separate, narrower question of whether to
           see all of them once they are already showing. */}
-      {!hideDone ? (
+      {!hideDone && widget.kind !== "files" ? (
         <>
           {(allDone ? done : done.slice(0, DONE_SHOWN)).map((row) => (
             <Row key={row.id} row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />
@@ -420,6 +438,39 @@ function Pins({ rows }: { rows: ContentRow[] }) {
         </span>
       ))}
     </div>
+  );
+}
+
+/** One square in Files. From ui_kits/mobile_app/ThreadWidgets.jsx's FileTile:
+ *  a hairline, `--radius-sm`, the picture cropped to the square, a glyph where
+ *  there is no picture yet. */
+function FileTile({ row, onOpen }: { row: ContentRow; onOpen: () => void }) {
+  const glyph = (
+    <span className={styles.fileTileGlyph} aria-hidden="true">
+      <Icon name="image" size={22} />
+    </span>
+  );
+  return (
+    <button
+      type="button"
+      className={styles.fileTile}
+      aria-label={`Open ${row.title}`}
+      title={row.title}
+      data-archived={row.archivedAt ? true : undefined}
+      onClick={onOpen}
+    >
+      {row.photo ? (
+        <PhotoThumb
+          blobId={row.photo.blobId}
+          ready={row.photo.ready}
+          alt=""
+          className={styles.fileTilePicture}
+          fallback={glyph}
+        />
+      ) : (
+        glyph
+      )}
+    </button>
   );
 }
 

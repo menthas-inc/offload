@@ -25,6 +25,23 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsImageWithMaxCount": 10
+          },
+          "androidIntentFilters": ["image/*"],
+          "androidMultiIntentFilters": ["image/*"]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "So a photo you pick can be dumped in.",
+          "cameraPermission": "So a photo you take can be dumped in."
+        }
+      ],
       "expo-web-browser",
       "expo-apple-authentication",
       "expo-system-ui",

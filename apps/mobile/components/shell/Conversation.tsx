@@ -47,6 +47,33 @@ import { answerPending } from "../../lib/calendars";
 import { QuickReplies } from "./QuickReplies";
 import { useRouter } from "expo-router";
 import { useConversation, type Pin, type Turn } from "./conversation-context";
+import { SentPhoto } from "./SentPhoto";
+import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
+
+/** 020. The viewer for a sent message's photos, mounted by the shell above
+ *  the sheet. No row yet, so no tools: the Files grid is where a photo's row
+ *  is. */
+export function ConversationPhotoViewer() {
+  const { turns, photoOpen, openPhoto, closePhoto } = useConversation();
+  if (!photoOpen) return null;
+  const turn = turns.find((one) => one.id === photoOpen.turnId);
+  const set: ViewerPhoto[] = (turn?.photos ?? []).map((photo) => ({
+    blobId: photo.blobId,
+    ready: photo.ready,
+    width: photo.width,
+    height: photo.height,
+    title: photo.name ?? "Photo",
+  }));
+  if (set.length === 0) return null;
+  return (
+    <PhotoViewer
+      photos={set}
+      index={Math.min(photoOpen.index, set.length - 1)}
+      onIndex={(index) => openPhoto(photoOpen.turnId, index)}
+      onClose={closePhoto}
+    />
+  );
+}
 
 const isAndroid = Platform.OS === "android";
 
@@ -302,7 +329,7 @@ function PinnedTarget({ pin }: { pin: Pin }) {
 }
 
 function Turns() {
-  const { turns, writing, finish } = useConversation();
+  const { turns, writing, finish, openPhoto } = useConversation();
   const scroll = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -357,6 +384,7 @@ function Turns() {
               // answer they were sources for.
               footer={!replied.has(turn.id) && !turn.question}
               onFinish={() => void finish(turn.id)}
+              onOpenPhoto={(index) => openPhoto(turn.id, index)}
             />
             {/* 018. A turn that filed silently and asked back has no reply
                 bubble to hold the question, so the question gets one of its
@@ -385,9 +413,11 @@ function Yours({
   turn,
   footer,
   onFinish,
+  onOpenPhoto,
 }: {
   turn: Turn;
   footer: boolean;
+  onOpenPhoto: (index: number) => void;
   onFinish: () => void;
 }) {
   const COLOR = useColors();
@@ -412,12 +442,18 @@ function Yours({
           borderBottomRightRadius: 4,
         }}
       >
-        <Text
-          className="font-core text-ink-950"
-          style={{ fontSize: 15, lineHeight: 22 }}
-        >
-          {turn.text}
-        </Text>
+        {turn.text ? (
+          <Text
+            className="font-core text-ink-950"
+            style={{ fontSize: 15, lineHeight: 22 }}
+          >
+            {turn.text}
+          </Text>
+        ) : null}
+        {/* 020. The photos the message carried, shown rather than named. */}
+        {(turn.photos ?? []).map((photo, at) => (
+          <SentPhoto key={photo.blobId} photo={photo} onOpen={() => onOpenPhoto(at)} />
+        ))}
       </View>
 
       {/* Everything about this turn that is not a sentence, in one row that

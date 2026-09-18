@@ -11,11 +11,13 @@
 // refusal, for the reason stated there.
 
 import { z } from "zod";
-import { sql } from "kysely";
+import { sql, type Transaction } from "kysely";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
+import type { Database } from "../schema.js";
+import { dropThreadWrapIfUnused, ensureThreadWrap } from "../blobs/keys.js";
 import { initialsOf } from "../accounts/initials.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import {
@@ -188,6 +190,12 @@ const contentRow = z.object({
   body: z.string().nullable(),
   url: z.string().nullable(),
   imageUrl: z.string().nullable(),
+  /** 020. The picture a photo row carries, as the id the client builds a
+   *  rendition URL from. `ready` is whether the renditions exist yet. Null on
+   *  everything that is not a photo. */
+  photo: z
+    .object({ blobId: z.string(), width: z.number(), height: z.number(), ready: z.boolean() })
+    .nullable(),
   createdAt: z.string(),
   archivedAt: z.string().nullable(),
   /** What 006 extracts, and what 007's widgets are derived from. All of it may
@@ -367,6 +375,9 @@ function toRow(row: RawRow, viewerId: string) {
     // An address, never bytes. The client loads it from the site, which is the
     // thing section 9 of the privacy policy now says out loud.
     imageUrl: row.image_url,
+    // 020. Filled in by `withPhotos` after the page is read, one query for
+    // the page rather than a join on every select that shapes a row.
+    photo: null as { blobId: string; width: number; height: number; ready: boolean } | null,
     createdAt: row.created_at.toISOString(),
     archivedAt: row.archived_at ? row.archived_at.toISOString() : null,
     doneAt: row.done_at ? row.done_at.toISOString() : null,
@@ -518,38 +529,60 @@ export async function moveContent(
   contentId: string,
   destination: string,
 ): Promise<{ threadId: string }> {
-  const ref = await requireAuthor(accountId, contentId);
-  await requireMember(accountId, destination);
+  return db.transaction().execute((trx) => moveContentIn(trx, accountId, contentId, destination));
+}
+
+/** The move itself, inside a transaction the caller owns. 018's thread answer
+ *  runs it inside the answer's own transaction, and Undo runs it back. */
+export async function moveContentIn(
+  trx: Transaction<Database>,
+  accountId: string,
+  contentId: string,
+  destination: string,
+): Promise<{ threadId: string }> {
+  const ref = await requireAuthor(accountId, contentId, trx);
+  await requireMember(accountId, destination, trx);
 
   if (destination === ref.threadId) return { threadId: ref.threadId };
 
-  await db.transaction().execute(async (trx) => {
-    const moved = await trx
-      .updateTable("content")
-      .set({ thread_id: destination, updated_at: sql`now()` })
-      .where("id", "=", ref.id)
-      .returning("archived_at")
-      .executeTakeFirstOrThrow();
+  const moved = await trx
+    .updateTable("content")
+    .set({ thread_id: destination, updated_at: sql`now()` })
+    .where("id", "=", ref.id)
+    .returning("archived_at")
+    .executeTakeFirstOrThrow();
 
-    // Both counts, in the same transaction as the write that changes them, per
-    // 001. A count maintained anywhere else drifts. An archived row is in
-    // neither count, so moving it moves nothing.
-    if (moved.archived_at === null) {
-      await trx
-        .updateTable("threads")
-        .set({ content_count: sql`greatest(content_count - 1, 0)` })
-        .where("id", "=", ref.threadId)
-        .execute();
-      await trx
-        .updateTable("threads")
-        .set({ content_count: sql`content_count + 1` })
-        .where("id", "=", destination)
-        .execute();
-    }
+  // Both counts, in the same transaction as the write that changes them, per
+  // 001. A count maintained anywhere else drifts. An archived row is in
+  // neither count, so moving it moves nothing.
+  if (moved.archived_at === null) {
+    await trx
+      .updateTable("threads")
+      .set({ content_count: sql`greatest(content_count - 1, 0)` })
+      .where("id", "=", ref.threadId)
+      .execute();
+    await trx
+      .updateTable("threads")
+      .set({ content_count: sql`content_count + 1` })
+      .where("id", "=", destination)
+      .execute();
+  }
 
-    await touchThread(ref.threadId, trx);
-    await touchThread(destination, trx);
-  });
+  // 020. A row carrying a picture takes it along: the destination gets a
+  // wrap, and the origin loses its own once nothing there links the blob.
+  // The object itself is never touched.
+  const carried = await trx
+    .selectFrom("content_blobs")
+    .select("blob_id")
+    .where("content_id", "=", ref.id)
+    .execute();
+  for (const { blob_id } of carried) {
+    await ensureThreadWrap(trx, blob_id, destination);
+    await dropThreadWrapIfUnused(trx, blob_id, ref.threadId);
+  }
+
+  await touchThread(ref.threadId, trx);
+  await touchThread(destination, trx);
 
   return { threadId: ref.threadId };
 }
@@ -1278,7 +1311,7 @@ export async function threadRoutes(app: App): Promise<void> {
         const last = page.at(-1);
 
         return reply.send({
-          rows: page.map((row) => toRow(row, accountId)),
+          rows: await withPhotos(page.map((row) => toRow(row, accountId))),
           nextCursor: rows.length > PAGE && last ? last.id : null,
         });
       })
@@ -1365,7 +1398,7 @@ export async function threadRoutes(app: App): Promise<void> {
           : undefined;
 
         return reply.send({
-          ...toRow(row, accountId),
+          ...(await withPhotos([toRow(row, accountId)]))[0]!,
           threadId: row.threadId,
           threadName: row.threadName,
           from: from
@@ -2024,7 +2057,28 @@ async function rowById(contentId: string, viewerId: string) {
     ])
     .where("content.id", "=", contentId)
     .executeTakeFirstOrThrow();
-  return toRow(row, viewerId);
+  return (await withPhotos([toRow(row, viewerId)]))[0]!;
+}
+
+/** 020. Attach each row's photo, one query for the page. A row carries at most
+ *  one photo today, since a photo row is one photo; the first live blob wins
+ *  if that ever changes. */
+export async function withPhotos<T extends { id: string; photo: unknown }>(rows: T[]): Promise<T[]> {
+  if (rows.length === 0) return rows;
+  const found = await db
+    .selectFrom("content_blobs")
+    .innerJoin("blobs", "blobs.id", "content_blobs.blob_id")
+    .select(["content_blobs.content_id as content_id", "blobs.id as id", "blobs.width", "blobs.height", "blobs.renditions_at"])
+    .where("content_blobs.content_id", "in", rows.map((row) => row.id))
+    .where("blobs.deleted_at", "is", null)
+    .orderBy("content_blobs.created_at", "asc")
+    .execute();
+  const byContent = new Map<string, { blobId: string; width: number; height: number; ready: boolean }>();
+  for (const blob of found) {
+    if (byContent.has(blob.content_id)) continue;
+    byContent.set(blob.content_id, { blobId: blob.id, width: blob.width, height: blob.height, ready: blob.renditions_at !== null });
+  }
+  return rows.map((row) => ({ ...row, photo: byContent.get(row.id) ?? null }));
 }
 
 export const THREAD_LIMITS = { PAGE, STALE_DAYS } as const;

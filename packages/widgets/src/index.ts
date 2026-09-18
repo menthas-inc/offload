@@ -253,11 +253,12 @@ const EARNS: Record<WidgetKind, (row: Sortable) => boolean> = {
   // the work. A thread whose tasks are all done still shows the list, which is
   // a record of a finished job rather than an empty widget.
   todo: (row) => row.type === "task",
-  files: (row) =>
-    row.type === "image" ||
-    row.type === "screenshot" ||
-    row.type === "file" ||
-    row.type === "link",
+  // 020. Files is the kit's grid of square tiles, and a picture is what a tile
+  // is. A link earned it until then, drawn as a row; a link in a grid of
+  // untitled squares loses the title and the domain that identify it, so a
+  // link row stays in the list with the page's own picture on it. `file`
+  // waits for the spec that brings PDFs.
+  files: (row) => row.type === "image" || row.type === "screenshot",
 };
 
 export interface Widget<T extends Sortable> {

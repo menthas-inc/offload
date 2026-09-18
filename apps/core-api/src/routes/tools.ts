@@ -55,6 +55,7 @@ import {
 } from "./threads.js";
 import { findEvents, listCalendarsFor, writeThroughTool } from "../connectors/tool-calls.js";
 import type { WriteAction } from "../connectors/write.js";
+import { linkPhoto, photoForRow, withTaken } from "../blobs/rows.js";
 
 /** The only string that ever leaves for a geocoder.
  *
@@ -166,6 +167,12 @@ const body = z.discriminatedUnion("tool", [
     // is where it goes. A row whose type nobody stated is a bug rather than
     // something to guess at.
     type: z.enum(["link", "image", "screenshot", "voice", "file", "task", "event", "location"]),
+    /** 020. Which of the message's photos this row is, one-based, in the
+     *  order they were attached. An index rather than an id, so the model can
+     *  only ever name a photo it was handed on this very message: the server
+     *  resolves it against the message's own blobs and nothing else. Only on
+     *  an image or a screenshot, and the schema says so. */
+    photo: z.number().int().min(1).max(10).nullish(),
     // Dates are only ever set when the dump states or implies one. The prompt
     // carries that rule; this says what shape one may take, and it is
     // deliberately generous: see `../threads/dates.ts` for the production
@@ -517,6 +524,9 @@ const result = z.union([
       "unknown_thread",
       "limit_reached",
       "bad_tags",
+      // 020. A photo index that names nothing on this message, or a photo
+      // this turn already filed, or an index on a row that is not a picture.
+      "unknown_photo",
       "bad_place_name",
       "unknown_content",
       "not_yours",
@@ -613,6 +623,7 @@ type Outcome =
         | "unknown_thread"
         | "limit_reached"
         | "bad_tags"
+        | "unknown_photo"
         | "bad_place_name"
         | "unknown_content"
         | "not_yours"
@@ -1359,6 +1370,14 @@ export async function toolRoutes(app: App): Promise<void> {
         const when = parseDates(call);
         if (when === null) return { ok: false, error: "bad_date" };
 
+        // 020. The photo this row is, resolved against the message's own
+        // blobs before anything is written. An index on a row that is not a
+        // picture, an index past the end, and a photo this turn already
+        // filed are one refusal each: the model gets the complaint back and
+        // files again without it.
+        const photo = call.photo ? await photoForRow(trx, messageId, call.photo, call.type) : null;
+        if (call.photo && !photo) return { ok: false, error: "unknown_photo" };
+
         const inserted = await trx
           .insertInto("content")
           .values({
@@ -1369,7 +1388,10 @@ export async function toolRoutes(app: App): Promise<void> {
             derived_from_message_id: messageId,
             type: call.type,
             title: call.title,
-            body: call.body === "" ? null : call.body,
+            // The photo's own sentence about when and where, appended by the
+            // server rather than asked of the model: a date and a town, never
+            // a coordinate.
+            body: withTaken(call.body, photo),
             url: call.url ?? null,
             image_url: call.imageUrl ?? null,
             source: "person",
@@ -1442,6 +1464,10 @@ export async function toolRoutes(app: App): Promise<void> {
             tx: trx,
           });
         }
+
+        // 020. The row carries the picture: the link, and the thread wrap
+        // that makes it readable to that thread's members.
+        if (photo) await linkPhoto(trx, inserted.id, photo.id, thread.id);
 
         // Denormalised, in the same transaction as the write that changes them,
         // per 001. A count maintained anywhere else drifts.

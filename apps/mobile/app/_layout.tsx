@@ -17,6 +17,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { pinExistingSession } from "../lib/auth";
 import { ConversationProvider } from "../components/shell/conversation-context";
 import { Shell } from "../components/shell/Shell";
+import { ShareArrival } from "../components/shell/ShareArrival";
 
 export default function RootLayout() {
 
@@ -99,6 +100,10 @@ export default function RootLayout() {
             outside that group, so opening one threw the moment the screen
             asked for it. */}
         <ConversationProvider>
+        {/* 020. A photo shared from another app lands in the composer. Above
+            the router, like the conversation it lands in, and before the gate
+            so a share while signed out waits in the draft behind it. */}
+        <ShareArrival />
         <SafeAreaProvider>
           <StatusBar style="auto" />
           {/* The ground every navigator fades through.

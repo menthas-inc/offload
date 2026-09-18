@@ -2170,3 +2170,92 @@ a.settingsRow:hover {
   padding: var(--space-4) 0;
   box-shadow: inset 0 -1px 0 var(--border-hairline);
 }
+
+/* ------------------------------------------------------------ 020, photos */
+
+/* A photo row's tile is a button: the one part of the row that opens the
+   viewer, while the title opens the row. No box of its own, the picture is
+   the box. */
+.rowThumbButton {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.rowThumbButton:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Files: the kit's grid. Three columns of squares, the kit's gap, and the
+   tiles are the pictures. */
+.fileGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  padding: 0 0 var(--space-6);
+}
+
+.fileTile {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface-page);
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fileTile:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.fileTile[data-archived] {
+  opacity: 1;
+  border-style: dashed;
+}
+
+.fileTilePicture {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fileTileGlyph {
+  display: inline-flex;
+  color: var(--text-tertiary);
+}
+
+/* A photo row opened as its own pane: the picture, whole, at the pane's
+   width, then the words. */
+.detailPicture {
+  display: block;
+  width: 100%;
+  max-height: 60dvh;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  background: var(--surface-fill);
+  margin: var(--space-4) 0;
+}
+
+.detailPictureEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  margin: var(--space-4) 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-fill);
+  color: var(--text-tertiary);
+}

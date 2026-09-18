@@ -92,6 +92,22 @@ describe("and no more than its job", () => {
     });
   }
 
+  // 020. Which photos a message carries and when their renditions landed.
+  // Never the file's name, the exact coordinate or the device, which are
+  // the dumper's and reach the worker through no read it has.
+  it("reads five columns of blobs, never the name or the coordinate", async () => {
+    const ok = await asAgent("select id, message_id, created_at, deleted_at, renditions_at from blobs limit 1");
+    expect(ok.allowed, ok.error).toBe(true);
+    for (const column of ["name", "latitude", "longitude", "device", "town"]) {
+      const nope = await asAgent(`select ${column} from blobs limit 1`);
+      expect(nope.allowed, `it could read blobs.${column}`).toBe(false);
+    }
+    const links = await asAgent("select 1 from content_blobs limit 1");
+    expect(links.allowed, links.error).toBe(true);
+    const keys = await asAgent("select 1 from blob_keys limit 1");
+    expect(keys.allowed, "it could read blob_keys").toBe(false);
+  });
+
   it("reads only three columns of accounts, never the address", async () => {
     const ok = await asAgent("select id, state, default_thread_id from accounts limit 1");
     expect(ok.allowed, ok.error).toBe(true);

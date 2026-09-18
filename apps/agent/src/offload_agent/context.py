@@ -52,12 +52,30 @@ class Filed:
 
 
 @dataclass(frozen=True)
+class Photo:
+    """020. A photo the message carries, as the model will see it.
+
+    `index` is one-based and in the order the photos were attached, and it is
+    the only way the model names one: `add_content` takes the index, never an
+    id. `large` is the rendition's bytes, filled by the worker after it made
+    them, and None for a file that could not be opened.
+    """
+
+    blob_id: str
+    index: int
+    large: bytes | None = None
+
+
+@dataclass(frozen=True)
 class DumpContext:
     dump: str
     turns: list[Turn]
     threads: list[Thread]
     landed: list[Filed]
     default_thread_id: str | None
+    #: 020. The photos on this message, in order. Outside the text budget:
+    #: their cost is bounded by the ten-photo cap per message, not by `fit`.
+    photos: list[Photo] = field(default_factory=list)
     # The thread that was on screen when this was dumped, if any.
     #
     # A default, not a destination. Somebody typing into the composer from
@@ -146,19 +164,57 @@ _LANDED = text(
 # The tail, newest first, then reversed by the caller. Reading the whole
 # conversation and slicing in Python would pull 40,000 rows on a heavy account
 # to use twenty of them.
+#
+# 020. A message that carried photos reads as its words and the titles of the
+# rows those photos became, never as an image again: the picture is read once,
+# on its own turn, and the tail carries text (OFF-8).
 _TURNS = text(
     """
-    select role, text
-    from messages
-    where conversation_id = :conversation_id
-      and account_id = :account_id
-      and deleted_at is null
-      and text is not null
-      and id <> :exclude_id
-    order by created_at desc
+    select m.role, m.text,
+           (select count(*) from blobs b
+             where b.message_id = m.id and b.deleted_at is null) as photos,
+           (select string_agg(c.title, ', ' order by c.created_at)
+              from content c
+             where c.derived_from_message_id = m.id
+               and c.deleted_at is null
+               and exists (select 1 from content_blobs cb where cb.content_id = c.id)
+           ) as photo_titles
+    from messages m
+    where m.conversation_id = :conversation_id
+      and m.account_id = :account_id
+      and m.deleted_at is null
+      and (m.text is not null
+           or exists (select 1 from blobs b where b.message_id = m.id and b.deleted_at is null))
+      and m.id <> :exclude_id
+    order by m.created_at desc
     limit :limit
     """
 )
+
+# 020. The photos on the dump, in the order they were attached.
+_PHOTOS = text(
+    """
+    select b.id
+    from blobs b
+    join messages m on m.id = b.message_id
+    where b.message_id = :message_id
+      and m.account_id = :account_id
+      and b.deleted_at is null
+    order by b.created_at, b.id
+    """
+)
+
+
+def turn_text(text_: str | None, photos: int, photo_titles: str | None) -> str:
+    """How a message reads in the tail: its words, then its photos as a count
+    and the titles they became."""
+    words = text_ or ""
+    if not photos:
+        return words
+    noun = "photo" if photos == 1 else "photos"
+    tail = f"({photos} {noun}: {photo_titles})" if photo_titles else f"({photos} {noun})"
+    return f"{words} {tail}".strip()
+
 
 # The dump, and the thread it was typed in front of.
 #
@@ -214,7 +270,13 @@ async def load(
     dump_row = (
         await conn.execute(_DUMP, {"message_id": message_id, "account_id": account_id})
     ).first()
-    if dump_row is None or not dump_row.text:
+    if dump_row is None:
+        return None
+    # 020. A photo with no words is a dump. Nothing else without words is.
+    photo_rows = (
+        await conn.execute(_PHOTOS, {"message_id": message_id, "account_id": account_id})
+    ).all()
+    if not dump_row.text and not photo_rows:
         return None
 
     thread_rows = (
@@ -254,8 +316,12 @@ async def load(
     switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
 
     return DumpContext(
-        dump=dump_row.text,
-        turns=[Turn(role=r.role, text=r.text) for r in reversed(turn_rows)],
+        dump=dump_row.text or "",
+        turns=[
+            Turn(role=r.role, text=turn_text(r.text, int(r.photos or 0), r.photo_titles))
+            for r in reversed(turn_rows)
+        ],
+        photos=[Photo(blob_id=str(r.id), index=at + 1) for at, r in enumerate(photo_rows)],
         threads=threads,
         landed=[Filed(title=r.title, thread_name=r.thread_name) for r in landed_rows],
         default_thread_id=default_id,
@@ -346,6 +412,9 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         may_read_links=ctx.may_read_links,
         country=ctx.country,
         answered=ctx.answered,
+        # 020. Never dropped and never counted here: the ten-photo cap is the
+        # bound, and a photo dropped from the prompt is a photo filed blind.
+        photos=ctx.photos,
     )
 
 
@@ -708,6 +777,26 @@ async def question_text(conn: AsyncConnection, *, message_id: str) -> str | None
     """
     row = (await conn.execute(_QUESTION, {"message_id": message_id})).scalar()
     return row.strip() if isinstance(row, str) and row.strip() else None
+
+
+_PHOTO_COUNT = text(
+    """
+    select count(*) from blobs
+    where message_id = :message_id and deleted_at is null
+    """
+)
+
+
+async def photo_count(conn: AsyncConnection, *, message_id: str) -> int:
+    """020. How many photos the message carries, before anything is loaded.
+
+    A message with a photo on it files, whatever its words: the answering
+    path never sees a picture, and the picture has to land somewhere. So the
+    classifier is not consulted, and "what is this?" with a photo is a dump
+    whose row describes the picture.
+    """
+    row = (await conn.execute(_PHOTO_COUNT, {"message_id": message_id})).scalar()
+    return int(row or 0)
 
 
 # ---------------------------------------------------------------- 018 questions

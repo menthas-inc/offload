@@ -138,6 +138,33 @@ export async function send<T>(path: string, init: RequestInit = {}): Promise<Sen
   };
 }
 
+/** The cookie header the API wants, for a fetch this module does not make:
+ *  an `Image` loading a rendition sends it as a header, since React Native
+ *  has no cookie jar. Empty when signed out. */
+export async function authHeaders(): Promise<Record<string, string>> {
+  const cookie = await within(Promise.resolve(authClient.getCookie()).catch(() => ""), 3000, "");
+  return cookie ? { cookie } : {};
+}
+
+/** 020. A multipart upload. No content type of our own: the runtime writes
+ *  the boundary, and setting one by hand is the one way to break it. A minute
+ *  rather than fifteen seconds, because a photo on a slow connection is
+ *  longer than a JSON body. */
+export async function upload<T>(path: string, form: FormData): Promise<Sent<T>> {
+  const headers = await authHeaders();
+  const response = await within(
+    fetch(`${API_URL}${path}`, { method: "POST", body: form, headers }),
+    60000,
+    null as unknown as Response,
+  );
+  if (!response) return { status: 0, data: null };
+  if (!response.ok) return { status: response.status, data: null };
+  const text = await response.text();
+  return { status: response.status, data: text.length > 0 ? (JSON.parse(text) as T) : null };
+}
+
+export { API_URL };
+
 export const getMe = (): Promise<Me | null> => request<Me>("/api/me");
 
 /** Finishing first run, with both ticks from the consent screen. The server

@@ -29,13 +29,20 @@ import {
   resumeDump,
   sendDump,
   undoTurn,
+  uploadPhoto,
+  refusePhoto,
+  PhotoRefused,
+  UnknownBlob,
+  MAX_PHOTOS,
   type FoundResult,
   type FoundRow,
   type MessageState,
+  type PhotoOnWire,
   type QuestionOnWire,
   type Source,
   type TouchedThread,
 } from "../../lib/dump";
+import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, quickAdd } from "../../lib/threads";
 import { failed } from "../../lib/log";
 
@@ -99,6 +106,28 @@ export interface Turn {
    *  server on every read, so a row ticked or deleted elsewhere is never stale
    *  inside a reply from last week. */
   found?: FoundResult[];
+  /** 020. The photos this message carried. Only ever on a message you sent. */
+  photos?: PhotoOnWire[];
+}
+
+/** 020. A photo waiting in the composer. The key belongs to the draft until
+ *  it sends, so a retry finds the upload the server already made. */
+export interface DraftPhoto {
+  key: string;
+  uri: string;
+  name: string;
+  type: string | null;
+  error: ChipError;
+  /** Set once the server has it. A retry skips what already landed. */
+  uploaded?: { blobId: string; width: number; height: number };
+}
+
+/** 020. A photo as a picker or the share sheet hands it over. */
+export interface PickedPhoto {
+  uri: string;
+  name: string | null;
+  type: string | null;
+  size: number | null;
 }
 
 interface Live {
@@ -142,6 +171,23 @@ export interface Conversation {
   onScreen: { id: string; name: string } | null;
   setDraft: (value: string) => void;
   submit: () => Promise<void>;
+  /** 020. The photos in the draft, and the ways in and out. `addPhotos` from
+   *  the picker or the share sheet; `line` is the one clause under the
+   *  composer when a send did not go, with Retry when that is the way forward. */
+  photos: DraftPhoto[];
+  addPhotos: (picked: PickedPhoto[], via?: "picker" | "share") => void;
+  removePhoto: (key: string) => void;
+  line: { text: string; retry?: boolean } | null;
+  clearLine: () => void;
+  /** 020. The photo of a sent message open in the viewer, which the shell
+   *  mounts above the sheet. */
+  photoOpen: { turnId: string; index: number } | null;
+  openPhoto: (turnId: string, index: number) => void;
+  closePhoto: () => void;
+  /** 020. A share sheet arrival wants the field focused and the keyboard up,
+   *  which only the mounted composer can do. Bumped per arrival; the composer
+   *  consumes it. */
+  focusRequest: number;
   fold: () => void;
   raise: () => void;
   /** A `+` raising the composer pinned to its own thread and write. */
@@ -203,6 +249,17 @@ export function ConversationProvider({
   const [live, setLive] = useState<Live | null>(null);
   const [folded, setFolded] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
+  // 020. The photos in the draft, the draft's own key, whether they came
+  // through the share sheet, and the one line under the composer.
+  const [photos, setPhotos] = useState<DraftPhoto[]>([]);
+  const draftKey = useRef<string | null>(null);
+  const viaShare = useRef(false);
+  const [line, setLine] = useState<{ text: string; retry?: boolean } | null>(null);
+  const [photoOpen, setPhotoOpen] = useState<{ turnId: string; index: number } | null>(null);
+  const [focusRequest, setFocusRequest] = useState(0);
+  // 020. A share that lands while a send is out waits for it: the chips
+  // appear when the send finishes, rather than being wiped by it.
+  const heldShare = useRef<PickedPhoto[]>([]);
   const [pin, setPin] = useState<Pin | null>(null);
   const [onScreen, setOnScreen] = useState<{ id: string; name: string } | null>(null);
   const [sheets, setSheets] = useState(0);
@@ -299,6 +356,7 @@ export function ConversationProvider({
             id: message.id,
             from: message.role === "person" ? "you" : "offload",
             text: message.text ?? "",
+            photos: message.photos ?? [],
             state: message.state,
             turnId: message.turnId,
             // Survives a reload, which is the point: somebody who backgrounds
@@ -381,6 +439,10 @@ export function ConversationProvider({
                   threads: answer.threads,
                   sources: answer.sources,
                   question: answer.question ?? null,
+                  // 020. The renditions are made before the model reads the
+                  // photos, so a settled turn's thumbnails exist; one that
+                  // could not be opened draws the glyph when its fetch fails.
+                  photos: (turn.photos ?? []).map((photo) => ({ ...photo, ready: true })),
                 }
               : // 018. The next turn closes the last question whatever it says.
                 { ...turn, question: null },
@@ -490,31 +552,120 @@ export function ConversationProvider({
     [],
   );
 
+  // 020. Photos into the draft, from the picker or the share sheet. The
+  // ordinary refusals happen here, on the device, so they never cost a
+  // request; the server checks the same things again. A share releases a
+  // pinned + first: a photo is a dump, and a + is a line of text.
+  const addPhotos = useCallback(
+    (picked: PickedPhoto[], via: "picker" | "share" = "picker") => {
+      if (picked.length === 0) return;
+      if (via === "share") {
+        if (writing) {
+          heldShare.current = [...heldShare.current, ...picked];
+          return;
+        }
+        viaShare.current = true;
+        setPin(null);
+        setFolded(false);
+        setFocusRequest((n) => n + 1);
+      }
+      setPhotos((current) => {
+        const room = MAX_PHOTOS - current.length;
+        if (room <= 0 || picked.length > room) setLine({ text: "Ten at a time." });
+        const taken = picked.slice(0, Math.max(0, room)).map((file, at) => ({
+          key: `${Date.now()}-${current.length + at}-${Math.random().toString(36).slice(2, 8)}`,
+          uri: file.uri,
+          // The file's own name, or "Photo", "Photo 2".
+          name: file.name || (current.length + at === 0 ? "Photo" : `Photo ${current.length + at + 1}`),
+          type: file.type,
+          error: refusePhoto({ type: file.type, name: file.name ?? "", size: file.size }),
+        }));
+        return [...current, ...taken];
+      });
+    },
+    [writing],
+  );
+
+  // The share that waited, once the send is done.
+  useEffect(() => {
+    if (writing || heldShare.current.length === 0) return;
+    const held = heldShare.current;
+    heldShare.current = [];
+    addPhotos(held, "share");
+  }, [writing, addPhotos]);
+
+  const removePhoto = useCallback((key: string) => {
+    setPhotos((current) => current.filter((photo) => photo.key !== key));
+  }, []);
+
+  const clearLine = useCallback(() => setLine(null), []);
+
   const submit = useCallback(async (): Promise<void> => {
     const text = draft.trim();
-    if (text.length === 0) return;
+    const sendable = photos.filter((photo) => !photo.error);
+    if (text.length === 0 && sendable.length === 0) return;
+    // A chip the device refused holds the send: its remove control is the way
+    // forward, and a send that quietly skipped it would file half a draft.
+    if (photos.some((photo) => photo.error)) return;
 
     if (pin) {
+      if (text.length === 0) return;
       await submitPin(pin, text);
       return;
     }
 
-    setDraft("");
+    setLine(null);
     setWriting(true);
     if (!live) {
       // One line in the header, whatever the dump's own breaks.
-      const line = text.replace(/\s+/g, " ").trim();
+      const line = (text || (sendable.length === 1 ? "A photo" : `${sendable.length} photos`))
+        .replace(/\s+/g, " ")
+        .trim();
       setLive({ title: line.length > 40 ? `${line.slice(0, 40)}...` : line });
     }
     setFolded(false);
 
     const pressed = Date.now();
+    // 020. The key belongs to the draft until it sends, and so does each
+    // photo's, so a retry finds what the server already made.
+    const clientKey = draftKey.current ?? (draftKey.current = `${pressed}`);
     try {
-      const sent = await sendDump(text, `${pressed}`, onScreen?.id);
+      // Each photo first, on its own, held unclaimed until the message claims
+      // it. One that already landed on an earlier try is not sent again.
+      const sentPhotos: PhotoOnWire[] = [];
+      for (const photo of sendable) {
+        const uploaded =
+          photo.uploaded ??
+          (await uploadPhoto({ uri: photo.uri, name: photo.name, type: photo.type }, photo.key));
+        setPhotos((current) => current.map((p) => (p.key === photo.key ? { ...p, uploaded } : p)));
+        sentPhotos.push({
+          blobId: uploaded.blobId,
+          name: photo.name,
+          width: uploaded.width,
+          height: uploaded.height,
+          ready: false,
+          // The file itself, until the server's copy exists.
+          localUri: photo.uri,
+        });
+      }
+      const sent = await sendDump(
+        text,
+        clientKey,
+        onScreen?.id,
+        sentPhotos.length ? { blobIds: sentPhotos.map((p) => p.blobId), viaShare: viaShare.current } : undefined,
+      );
       if (!sent) {
         setWriting(false);
+        setLine({ text: "Did not send.", retry: true });
         return;
       }
+      setDraft("");
+      // Only what went: a photo added while the send was out stays for the
+      // next one.
+      const went = new Set(sendable.map((photo) => photo.key));
+      setPhotos((current) => current.filter((photo) => !went.has(photo.key)));
+      draftKey.current = null;
+      viaShare.current = false;
       setTurns((current) => [
         // 018. Chips leave with the next turn. The server decides whether the
         // words answered the question; the screen only knows it is no longer
@@ -524,6 +675,7 @@ export function ConversationProvider({
           id: sent.messageId,
           from: "you",
           text,
+          photos: sentPhotos,
           state: sent.state,
           turnId: sent.turnId,
         },
@@ -531,9 +683,33 @@ export function ConversationProvider({
       watch(sent.messageId, sent.turnId, pressed);
     } catch (error) {
       setWriting(false);
-      failed("dump.send", error);
+      if (error instanceof PhotoRefused && error.reason === "daily_limit") {
+        setLine({ text: "Enough for today." });
+      } else if (
+        error instanceof PhotoRefused &&
+        (error.reason === "too_big" || error.reason === "not_a_photo")
+      ) {
+        // The server disagreed with the device about one of them. Mark the
+        // first chip not yet landed; the remove control is the way forward.
+        const reason: ChipError = error.reason;
+        setPhotos((current) => {
+          const at = current.findIndex((p) => !p.error && !p.uploaded);
+          return current.map((p, i) => (i === at ? { ...p, error: reason } : p));
+        });
+      } else if (error instanceof PhotoRefused && error.reason === "unavailable") {
+        // No object store behind the API. A retry cannot help, so none.
+        setLine({ text: "Not taking photos yet." });
+      } else if (error instanceof UnknownBlob) {
+        // The server no longer has one of the uploads: an hour passed and
+        // the sweep took it. Forget what landed, so Retry uploads again.
+        setPhotos((current) => current.map(({ uploaded: _gone, ...p }) => p));
+        setLine({ text: "Did not send.", retry: true });
+      } else {
+        setLine({ text: "Did not send.", retry: true });
+        failed("dump.send", error);
+      }
     }
-  }, [draft, live, onScreen, pin, submitPin, watch]);
+  }, [draft, photos, live, onScreen, pin, submitPin, watch]);
 
   // 018. One open question per conversation.
   const openQuestion = useMemo(
@@ -636,6 +812,15 @@ export function ConversationProvider({
         closeSheet,
         setDraft,
         submit,
+        photos,
+        addPhotos,
+        removePhoto,
+        line,
+        clearLine,
+        photoOpen,
+        openPhoto: (turnId, index) => setPhotoOpen({ turnId, index }),
+        closePhoto: () => setPhotoOpen(null),
+        focusRequest,
         fold: () => setFolded(true),
         raise: () => setFolded(false),
         raiseFor,

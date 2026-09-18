@@ -34,6 +34,7 @@ app.log.info("job runner started");
 await startDaily("calendar.supervise");
 await startDaily("jobs.purge");
 await startDaily("account.daily");
+await startDaily("blob.daily");
 
 // 013's sweep books its own successor, so this only has to start the chain.
 // Enqueued rather than run inline: boot should not wait on three index scans.

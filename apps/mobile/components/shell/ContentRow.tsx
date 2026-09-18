@@ -43,6 +43,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
+import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
 import { domainOf, isFiling, type ContentRow } from "../../lib/threads";
 
@@ -88,12 +89,15 @@ interface Props {
    *  its unfinished rows and by nothing else. `onDrop` gets how far the row
    *  travelled; the list, which measured its rows, works out where that is. */
   reorder?: { onDrop: (dy: number) => void } | undefined;
+  /** 020. A photo row's tile opens the viewer; the row itself opens as a row. */
+  onOpenPhoto?: (() => void) | undefined;
 }
 
 export function ContentRowView({
   row,
   border,
   arrived,
+  onOpenPhoto,
   onDelete,
   onActions,
   onEdit,
@@ -269,7 +273,32 @@ export function ContentRowView({
             // Loaded from the site by this device. That is the trade the cheap
             // shape makes and it is written down in the privacy policy, not
             // only here.
-            row.imageUrl && !row.archivedAt ? (
+            row.photo && !row.archivedAt ? (
+              // 020. The photo itself, in the same slot and at the same size
+              // the link row's picture takes, and the one part of the row that
+              // opens the viewer. The glyph until the renditions exist.
+              <Pressable
+                onPress={onOpenPhoto}
+                hitSlop={4}
+                accessibilityLabel={`Open ${row.title}`}
+                accessibilityRole="button"
+              >
+                <PhotoThumb
+                  blobId={row.photo.blobId}
+                  ready={row.photo.ready}
+                  style={{ width: 36, height: 36 }}
+                  className="rounded-sm"
+                  fallback={
+                    <View
+                      className={`items-center justify-center rounded-sm ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
+                      style={{ width: 36, height: 36 }}
+                    >
+                      <Glyph name="image" size={18} color={COLOR.iconOnWell} />
+                    </View>
+                  }
+                />
+              </Pressable>
+            ) : row.imageUrl && !row.archivedAt ? (
               <Image
                 source={{ uri: row.imageUrl }}
                 style={{ width: 36, height: 36, borderRadius: 6 }}

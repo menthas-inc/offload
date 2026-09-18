@@ -4,6 +4,7 @@
 import Fastify, { type FastifyBaseLogger, type FastifyInstance } from "fastify";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import cors from "@fastify/cors";
+import multipart from "@fastify/multipart";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -22,6 +23,8 @@ import { toolRoutes } from "./routes/tools.js";
 import { connectorRoutes } from "./routes/connectors.js";
 import { threadRoutes } from "./routes/threads.js";
 import { wellKnownRoutes } from "./routes/well-known.js";
+import { blobRoutes } from "./routes/blobs.js";
+import { MAX_PHOTO_BYTES } from "./blobs/photos.js";
 
 /** The app carries the Zod type provider, so routes get their schemas inferred
  *  rather than restated. Naming it keeps that off every call site. */
@@ -63,6 +66,12 @@ export async function buildApp(): Promise<App> {
     maxAge: 7200,
   });
 
+  // 020. One photo per request, bounded before a byte is kept. The limit is
+  // the server's own; the client checks it first as a courtesy.
+  await app.register(multipart, {
+    limits: { fileSize: MAX_PHOTO_BYTES, files: 2, fields: 4, parts: 8 },
+  });
+
   await app.register(healthRoutes);
   await app.register(authRoutes);
   await app.register(sessionRoutes);
@@ -74,6 +83,7 @@ export async function buildApp(): Promise<App> {
   await app.register(threadRoutes);
   await app.register(connectorRoutes);
   await app.register(wellKnownRoutes);
+  await app.register(blobRoutes);
 
   return app;
 }

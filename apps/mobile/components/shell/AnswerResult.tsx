@@ -14,6 +14,7 @@
 
 import { Platform, Pressable, Text, View } from "react-native";
 import { Glyph } from "../Glyph";
+import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
 import type { FoundResult, FoundRow } from "../../lib/dump";
 
@@ -152,6 +153,22 @@ function Result({
                 {row.done ? <Glyph name="check" size={13} color={colors.onBrand} /> : null}
               </View>
             </Pressable>
+          ) : row.photo ? (
+            // 020. The picture itself, where the thread page draws it.
+            <PhotoThumb
+              blobId={row.photo.blobId}
+              ready={row.photo.ready}
+              style={{ width: 32, height: 32 }}
+              className="rounded-a-sm"
+              fallback={
+                <View
+                  className="items-center justify-center rounded-a-sm bg-surface-fill"
+                  style={{ width: 32, height: 32 }}
+                >
+                  <Glyph name="image" size={16} />
+                </View>
+              }
+            />
           ) : (
             <View
               className="items-center justify-center rounded-a-sm bg-surface-fill"

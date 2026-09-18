@@ -63,6 +63,7 @@ from offload_agent.config import Config
 from offload_agent.context import (
     AnswerContext,
     DumpContext,
+    Photo,
     Piece,
     QuickAddContext,
     Thread,
@@ -76,6 +77,7 @@ from offload_agent.harness.plan import (
     plan_answer,
     plan_quick_add,
 )
+from offload_agent.renditions import make
 from offload_agent.worker import (
     Lookups,
     _author_the_answer_line,
@@ -209,6 +211,8 @@ _FIXTURE_KEYS = {
     "default_thread",
     "fail_tools",
     "tool_errors",
+    # 020. File names under fixtures/photos, attached to the dump in order.
+    "photos",
 }
 
 
@@ -715,6 +719,19 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
             tags = [str(t).lower() for t in (args.get("tags") or [])]
             if any(t.lower() not in tags for t in matcher["tags_include"]):
                 return False
+        # 020. Which photo the row is, by its number.
+        if "photo" in matcher and args.get("photo") != matcher["photo"]:
+            return False
+        if matcher.get("no_photo") and args.get("photo"):
+            return False
+        # And what the body carries, for the transcription rules: a digit run
+        # a passport must not leak, a line a screenshot must.
+        body = str(args.get("body") or "")
+        for needle in matcher.get("body_has", []):
+            if needle.lower() not in body.lower():
+                return False
+        if matcher.get("body_no_digits") and re.search(r"\d{4,}", body):
+            return False
         return not (matcher.get("no_tags") and args.get("tags"))
 
     for tool, args in candidates:
@@ -958,6 +975,20 @@ _spent: list[float] = []
 # Surfaces
 
 
+PHOTO_FIXTURES = Path(__file__).parent / "fixtures" / "photos"
+
+
+def _photos(fx: dict) -> list[Photo]:
+    """The case's photos, by file name under `fixtures/photos/`, through the
+    same rendition code the worker runs, so the model sees what it would."""
+    names = fx.get("photos") or []
+    out: list[Photo] = []
+    for at, name in enumerate(names):
+        made = make((PHOTO_FIXTURES / name).read_bytes())
+        out.append(Photo(blob_id=f"photo-{at + 1}", index=at + 1, large=made.large))
+    return out
+
+
 async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
     fx = case.fixture
     dump = str(case.input)
@@ -977,6 +1008,9 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         country=rec.country,
         looking_at=_thread(fx, fx.get("looking_at")),
         answered=fx.get("answered"),
+        # 020. The photos, as the worker would hand them over: the large
+        # rendition of each fixture, made by the real rendition code.
+        photos=_photos(fx),
     )
     try:
         outcome = await plan(client, ctx, model, rec)

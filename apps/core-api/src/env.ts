@@ -37,6 +37,11 @@ const schema = z.object({
    *  with a name and no pin, which is a state the product handles anyway
    *  because a provider can always be down. */
   GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
+  /** 020. Whether a photo's coordinate may leave to be named, rounded, by
+   *  the same provider. Its own switch and not the key: setting the key for
+   *  place names must not start a second egress path the privacy policy has
+   *  not described yet. On when the policy's row says so. */
+  PHOTO_TOWNS: z.enum(["on", "off"]).default("off"),
 
   // Connectors, 012. **A different Google project from sign-in, on purpose.**
   // Calendar scopes are sensitive and pull a whole Cloud project into a heavier
@@ -71,6 +76,14 @@ const schema = z.object({
   // provisioning and a real one cannot run without a real key.
   DATA_ROOT_KEY: z.string().min(1).optional(),
 
+  // 020. Cloudflare R2, where photos live as ciphertext. All four or none:
+  // without them the in-memory store stands in, which is what development and
+  // tests want and what production must never get, checked below.
+  R2_ACCOUNT_ID: z.string().min(1).optional(),
+  R2_ACCESS_KEY_ID: z.string().min(1).optional(),
+  R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  R2_BUCKET: z.string().min(1).optional(),
+
   // Read once by seed:admins and never on a request path, so that an email in
   // an env var can never become an authorization decision at runtime.
   ADMIN_EMAILS: z.string().optional(),
@@ -97,6 +110,24 @@ export const webOrigins: string[] = [
 
 if (isProduction && !env.DATA_ROOT_KEY) {
   throw new Error("DATA_ROOT_KEY is required in production: account keys cannot be wrapped without it.");
+}
+
+/** Whether R2 is configured. Either every variable or none: two of four is a
+ *  misconfiguration, not a partial store. */
+export const r2Configured = Boolean(
+  env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET,
+);
+const r2Any = Boolean(env.R2_ACCOUNT_ID || env.R2_ACCESS_KEY_ID || env.R2_SECRET_ACCESS_KEY || env.R2_BUCKET);
+if (r2Any && !r2Configured) {
+  throw new Error("R2 is half configured: set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and R2_BUCKET together.");
+}
+// Not a boot failure: a deploy that carries this code before the bucket
+// exists must still serve everything else. The upload route refuses with 503
+// until the variables arrive, and the line below is the one thing that says
+// why. Never the in-memory store in production: a photo held in a process is
+// a photo lost on the next restart.
+if (isProduction && !r2Configured) {
+  console.warn(JSON.stringify({ level: "warn", msg: "R2 is not configured; photos are refused" }));
 }
 
 /** The port to actually bind. */

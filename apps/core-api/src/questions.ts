@@ -12,11 +12,12 @@ import { db } from "./db.js";
 import type { Database } from "./schema.js";
 import { normaliseTags, BadTags, MAX_TAGS } from "./threads/tags.js";
 import { COUNTRIES, isCountry } from "./countries.js";
-import { touchThread } from "./threads/access.js";
+import { NotYours, touchThread } from "./threads/access.js";
+import { moveContentIn } from "./routes/threads.js";
 
 type Trx = Transaction<Database>;
 
-export const FIELDS = ["date", "span", "time", "tag", "country"] as const;
+export const FIELDS = ["date", "span", "time", "tag", "country", "thread"] as const;
 export type Field = (typeof FIELDS)[number];
 
 /** The way out, on every question. An answer, not a dismissal. */
@@ -86,6 +87,8 @@ export function renderText(field: Field, title: string, dimension?: string): str
       return `Filed "${name}". Which ${dimension ?? "tag"}?`;
     case "country":
       return "For which country?";
+    case "thread":
+      return `Kept "${name}". Which thread?`;
   }
 }
 
@@ -99,6 +102,7 @@ function clip(text: string, max: number): string {
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ISO = /^[A-Z]{2}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** A value in the field's wire form, or null. Shape and sense only: a day is a
  *  day, a span is in order, a clock exists. Membership among the options is
@@ -139,6 +143,10 @@ export function parseValue(field: Field, raw: unknown): Record<string, string> |
       const country = str("country")?.toUpperCase() ?? null;
       return country && ISO.test(country) ? { country } : null;
     }
+    case "thread": {
+      const thread = str("thread");
+      return thread && UUID.test(thread) ? { thread } : null;
+    }
   }
 }
 
@@ -167,6 +175,8 @@ export function optionValue(field: Field, value: string): Record<string, string>
       return parseValue(field, { tag: value });
     case "country":
       return parseValue(field, { country: value });
+    case "thread":
+      return parseValue(field, { thread: value });
   }
 }
 
@@ -223,6 +233,10 @@ export function labelFor(field: Field, value: string): string {
       const name = COUNTRIES.find((c) => c.code === code)?.name ?? code;
       return name.length <= OPTION_LABEL_CHARS ? name : code;
     }
+    case "thread":
+      // Named from the database in `validateAsked`, which is the only place a
+      // thread's name is read; the value alone cannot be worded.
+      return value;
   }
 }
 
@@ -238,7 +252,11 @@ export type Refusal =
   | "forbidden_by_note"
   | "duplicate_field"
   | "bad_dimension"
-  | "not_their_country";
+  | "not_their_country"
+  // 020. The one condition under which where a row goes may be asked did
+  // not hold: the dump had words, a thread was on screen, the turn wrote
+  // more than the photo, or the photo is not in the default thread.
+  | "thread_condition";
 
 interface Validated {
   field: Field;
@@ -305,6 +323,15 @@ export async function validateAsked(
       seen.add(key);
     }
 
+    // 020. Where a row goes is never asked, except here, and the exception is
+    // a condition the server checks rather than a judgment the model made:
+    // no words, no thread on screen, and the turn wrote exactly one row, the
+    // photo, in the default thread.
+    if (q.field === "thread") {
+      const condition = await threadQuestionAllowed(trx, ctx.accountId, ctx.messageId, targetContentId, landed);
+      if (!condition) return { ok: false, reason: "thread_condition", field: q.field };
+    }
+
     const options: StoredOption[] = [];
     for (const o of q.options) {
       // Stored in the parser's own form: a country as its code uppercased, a
@@ -315,7 +342,17 @@ export async function validateAsked(
       if (options.some((have) => have.value === value)) continue;
       options.push({ label: labelFor(q.field, value), value });
     }
+    if (q.field === "thread") {
+      // Each option a thread the person is an accepted member of, named from
+      // the database and never from the model, and never the default it is
+      // already in. Anything else is dropped rather than refused whole: a
+      // wrong guess among four is not a reason to ask nothing.
+      const named = await threadOptions(trx, ctx.accountId, options.map((o) => o.value!), threadId);
+      options.length = 0;
+      options.push(...named);
+    }
     if (q.field === "tag" && options.length < 2) return { ok: false, reason: "too_few_values", field: q.field };
+    if (q.field === "thread" && options.length < 1) return { ok: false, reason: "too_few_values", field: q.field };
     if (q.field === "country") {
       if (options.length !== 2) return { ok: false, reason: "too_few_values", field: q.field };
       // One of the two is where the account says they are. The other is what
@@ -372,6 +409,67 @@ async function landedIn(trx: Trx, messageId: string | null, threadId: string): P
     .execute();
 }
 
+/** 020. Whether this turn may ask which thread: the dump had no words, no
+ *  thread was on screen, and the only row it wrote is the photo row named,
+ *  sitting in the account's default thread. */
+async function threadQuestionAllowed(
+  trx: Trx,
+  accountId: string,
+  messageId: string,
+  targetContentId: string | null,
+  landed: { id: string; thread_id: string }[],
+): Promise<boolean> {
+  if (!targetContentId) return false;
+  if (landed.length !== 1 || landed[0]!.id !== targetContentId) return false;
+  const message = await trx
+    .selectFrom("messages")
+    .select(["text", "looking_at_thread_id"])
+    .where("id", "=", messageId)
+    .executeTakeFirst();
+  if (!message || (message.text ?? "").trim() !== "" || message.looking_at_thread_id) return false;
+  const account = await trx
+    .selectFrom("accounts")
+    .select("default_thread_id")
+    .where("id", "=", accountId)
+    .executeTakeFirst();
+  if (!account?.default_thread_id || landed[0]!.thread_id !== account.default_thread_id) return false;
+  const carries = await trx
+    .selectFrom("content_blobs")
+    .select("blob_id")
+    .where("content_id", "=", targetContentId)
+    .executeTakeFirst();
+  return Boolean(carries);
+}
+
+/** 020. The threads offered, as the server knows them: accepted membership,
+ *  live, not the one the row is in, named from the row and clipped to the
+ *  label cap. Order as offered, up to the cap the caller already applied. */
+async function threadOptions(
+  trx: Trx,
+  accountId: string,
+  ids: string[],
+  exceptThreadId: string | null,
+): Promise<StoredOption[]> {
+  if (ids.length === 0) return [];
+  const rows = await trx
+    .selectFrom("threads")
+    .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
+    .select(["threads.id as id", "threads.name as name"])
+    .where("threads.id", "in", ids)
+    .where("threads.deleted_at", "is", null)
+    .where("thread_members.account_id", "=", accountId)
+    .where("thread_members.state", "=", "accepted")
+    .execute();
+  const byId = new Map(rows.map((row) => [row.id, row.name]));
+  const out: StoredOption[] = [];
+  for (const id of ids) {
+    const name = byId.get(id);
+    if (!name || id === exceptThreadId) continue;
+    out.push({ label: clip(name, OPTION_LABEL_CHARS), value: id });
+  }
+  return out;
+}
+
 /** The parser's own form of a value, which is what is stored and compared. */
 function storedForm(field: Field, parsed: Record<string, string>): string {
   switch (field) {
@@ -385,6 +483,8 @@ function storedForm(field: Field, parsed: Record<string, string>): string {
       return parsed["tag"]!;
     case "country":
       return parsed["country"]!;
+    case "thread":
+      return parsed["thread"]!;
   }
 }
 
@@ -435,6 +535,7 @@ async function forbidden(trx: Trx, threadId: string, accountId: string, field: F
     time: ["time", "times", "when"],
     tag: ["tag", "tags", "genre", "city", "room"],
     country: ["country"],
+    thread: ["thread", "threads", "where"],
   };
   const notes = await ownNotes(trx, threadId, accountId);
   return notes.some((note) => {
@@ -636,7 +737,7 @@ export async function applyAnswer(
   // A tag or a country is one of the values offered, checked here as well as
   // in the worker: the internal route is a second writer, and a set enforced
   // in one place is a set until there is a second writer.
-  if (field === "tag" || field === "country") {
+  if (field === "tag" || field === "country" || field === "thread") {
     const offered = Array.isArray(q.options) ? (q.options as StoredOption[]) : [];
     if (!offered.some((o) => o.value !== null && o.value === storedForm(field, parsed))) {
       return { applied: false, reason: "bad_value" };
@@ -661,6 +762,49 @@ export async function applyAnswer(
     await settle({ previous_value: null });
     await promotePending(trx, q.id, by.answeredMessageId);
     return { applied: true, field, threadId: null };
+  }
+
+  // 020. The thread answer is a move, through the same function a move by
+  // hand runs, so the wraps follow the picture. A row already moved by hand
+  // is a question beside the point, and closes.
+  if (field === "thread") {
+    if (!q.target_content_id) return { applied: false, reason: "no_target" };
+    const row = await trx
+      .selectFrom("content")
+      .select(["id", "thread_id"])
+      .where("id", "=", q.target_content_id)
+      .where("deleted_at", "is", null)
+      .forUpdate()
+      .executeTakeFirst();
+    const account = await trx
+      .selectFrom("accounts")
+      .select("default_thread_id")
+      .where("id", "=", accountId)
+      .executeTakeFirst();
+    if (!row) {
+      await trx.updateTable("questions").set({ state: "closed", settled_at: sql`now()` }).where("id", "=", q.id).execute();
+      await promotePending(trx, q.id, by.answeredMessageId);
+      return { applied: false, reason: "gone" };
+    }
+    if (row.thread_id !== account?.default_thread_id || row.thread_id === parsed["thread"]) {
+      await trx.updateTable("questions").set({ state: "closed", settled_at: sql`now()` }).where("id", "=", q.id).execute();
+      await promotePending(trx, q.id, by.answeredMessageId);
+      return { applied: false, reason: "already_set" };
+    }
+    try {
+      await moveContentIn(trx, accountId, row.id, parsed["thread"]!);
+    } catch (error) {
+      if (error instanceof NotYours) {
+        await trx.updateTable("questions").set({ state: "closed", settled_at: sql`now()` }).where("id", "=", q.id).execute();
+        await promotePending(trx, q.id, by.answeredMessageId);
+        return { applied: false, reason: "gone" };
+      }
+      throw error;
+    }
+    await landedIn(trx, by.answeredMessageId, parsed["thread"]!);
+    await settle({ previous_value: JSON.stringify({ thread_id: row.thread_id }) });
+    await promotePending(trx, q.id, by.answeredMessageId);
+    return { applied: true, field, threadId: parsed["thread"]! };
   }
 
   if (q.target_content_id) {
@@ -751,6 +895,8 @@ function contentPatch(
       return { tags: [...row.tags, tag] };
     }
     case "country":
+    case "thread":
+      // Handled before this is reached: country fills nothing, thread moves.
       return null;
   }
 }
@@ -785,6 +931,16 @@ export async function restoreAnswers(trx: Trx, accountId: string, answerTurnId: 
   for (const q of rows) {
     const previous = (q.previous_value ?? null) as Record<string, unknown> | null;
     if (!previous) continue;
+    // 020. A thread answer is undone by moving the row back, wraps and all.
+    if (typeof previous["thread_id"] === "string" && q.target_content_id) {
+      try {
+        await moveContentIn(trx, accountId, q.target_content_id, previous["thread_id"]);
+      } catch (error) {
+        // The row is gone, or the thread it came from is. Nothing to put back.
+        if (!(error instanceof NotYours)) throw error;
+      }
+      continue;
+    }
     const back = {
       due_at: (previous["due_at"] as string | null) ?? null,
       occurs_at: (previous["occurs_at"] as string | null) ?? null,

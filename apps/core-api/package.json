@@ -15,16 +15,19 @@
     "agent:role": "node --import tsx --import ./src/preload-env.ts src/agent-role.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1135.0",
     "@better-auth/expo": "^1.7.2",
     "@fastify/cors": "^11.0.0",
+    "@fastify/multipart": "^10.1.1",
     "@offload/tokens": "workspace:^",
+    "@offload/widgets": "workspace:^",
     "better-auth": "^1.7.2",
     "fastify": "^5.2.0",
     "fastify-type-provider-zod": "^6.1.0",
+    "image-size": "^2.0.4",
     "kysely": "^0.29.5",
     "pg": "^8.13.1",
-    "zod": "^4.5.4",
-    "@offload/widgets": "workspace:^"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

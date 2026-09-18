@@ -11,6 +11,37 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-18 · Links leave Files, which is the kit's grid now
+**Surface:** web, iOS, Android
+**Raised by:** the codebase, building 020, on the product owner's call to draw Files as the kit's grid.
+**Was:** 007 earned Files for a link, a file, an image and a screenshot, and drew every one as a row, because nothing had a picture. The kit's `FilesWidget` had always been a three-column grid of square `FileTile`s with a chip filter above, links among them as a glyph tile with a "Links" chip.
+**Is:** Files is the kit's grid: three columns of square tiles at `--radius-sm` with a hairline, each the photo itself cropped to the square with no treatment, or the type glyph until the renditions exist. It is earned by a photo or a screenshot and by nothing else. A link row stays in the list, with the page's own picture in its tile as decided on 14 September. The tile has no controls; a tap opens the viewer, where the row's tools are. The chip row above the grid is the thread's tag dimension as 007 built it, and there is no chip by kind. The + does not draw on the Files heading.
+**Why:** A link in a grid of untitled squares loses the title and the domain that identify it, and a row that opens the page is more useful than a tile that does not. `file` waits for the spec that brings PDFs.
+**Design system impact:** `FilesWidget` and `FileTile` in both mobile kits and the `data.js` fixture: the `link` entries and the "Links" chip leave the file grid, and the filter row is the tag dimension rather than a mixed list of kinds. The web kit gains a Files grid on `WThing`, which it never drew.
+
+### 2026-09-18 · The photo viewer, and the move sheet inside it
+**Surface:** web, iOS, Android
+**Raised by:** the codebase, building 020. No kit draws either.
+**Is:** A photo opened from a tile, a thumbnail or a row's tile is shown on a dark plane over whatever was on screen: the large rendition as big as the window allows, and beneath it, or under a pull on the phones, the row's title and what the row says about the picture. The plane is `--surface-inverse` at 90% in the light theme and `--surface-page` at 92% in the dark, not `--surface-scrim`: at the scrim's 0.32 a white screenshot on a warm page read as a page behind a page. The controls follow the pane pattern, `maximize-2` for Full screen, `ellipsis` for More, `x` for Close, overlaid top right on the web and in the platform's bar on the phones. More holds rename, move for the author, and one way out, never two, as the rows have had it since 5 September: put back when archived, delete for the author, archive for anybody else; on the phones More opens the same action sheet a row opens, so a row's tools live in one place, Move is a new entry on it, and Mark done is not offered on a picture. A set is paged with arrows and the arrow keys on the web, a swipe on the phones; Esc, the scrim, a pull down and the Android back gesture close it; the phones pinch to zoom; reduced motion opens it plain. The move sheet is the share sheet's shape from `Sharing.jsx`: a search field on top, the person's threads beneath minus the one the row is in, a tap moves. It is the first move control the product has drawn.
+**Why:** The product owner chose the grid with the row's tools in the viewer, and a picture needs somewhere to be seen at its own size.
+**Design system impact:** two new screens to draw in every kit: a `PhotoViewer` with the plane, the three controls, the caption and the paging, and a `MoveSheet` reusing the share sheet's list. A semantic token for a dark viewer plane in both themes would replace the two mixes above.
+
+### 2026-09-18 · A sent photo's thumbnail is the row tile's size
+**Surface:** iOS, Android, web
+**Raised by:** the codebase, building 020.
+**Was:** `SentPhoto` in `LiveConversation.jsx` draws the tile at 34px and `--radius-xs`, as a placeholder, since the kit has no photos.
+**Is:** 36px and `--radius-sm`, the row tile's size from the 14 September decision, with the picture in it and the name beside it, so one thumbnail size holds across the product: the sent bubble, the row's tile, the composer's chip glyph.
+**Why:** Two sizes two pixels apart for the same picture is a difference nobody chose.
+**Design system impact:** `SentPhoto` in both mobile kits takes 36px and `--radius-sm`. `WTurns` in the web kit draws text only and gains the same `SentPhoto` under the person's bubble.
+
+### 2026-09-18 · The web composer borrows the phones' chips, photo and tile
+**Surface:** web
+**Raised by:** the codebase, building 020.
+**Was:** `WComposer` drew the camera and the microphone with no chip, no expanded shape for attachments and no sent photo; `WThing` had no file grid.
+**Is:** The web composer takes the mobile kit's `AttachChip` whole: the image glyph, the name at twenty characters, an 18px remove glyph, in the row with the three controls, wrapping, with the pill open to `--radius-lg` and the field above when it holds any; the row scrolls inside the composer's own cap past three lines of chips. A pasted or dropped image attaches. The send control shows a ring while the photos leave. One clause under the composer when a send did not go, with Retry beside it. The microphone stays drawn and inert.
+**Why:** The web kit's composer was written before attachments; the phones' was not, and one chip is one chip.
+**Design system impact:** `WComposer`: an `AttachChip` row, the expanded shape with chips, paste and drop, the sending ring, the line under the composer. `WThing`: a Files grid. The kit's fixture: photos with real thumbnails rather than the `preview` placeholder.
+
 ### 2026-09-17 · A row's checkbox centres on the row, with the handle and the tools
 **Surface:** web
 **Raised by:** the product owner, looking at a two-line To do row.

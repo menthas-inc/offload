@@ -166,6 +166,10 @@ export interface ContentRow {
    *  the cost of the cheap shape and it is disclosed in the privacy policy
    *  rather than hidden in a comment. Null on everything that is not a link. */
   imageUrl: string | null;
+  /** 020. The picture a photo row carries, as the id a rendition URL is built
+   *  from. `ready` is whether the renditions exist yet. Null on everything
+   *  that is not a photo. */
+  photo: { blobId: string; width: number; height: number; ready: boolean } | null;
   createdAt: string;
   archivedAt: string | null;
   /** What 006 extracts. All of it may be null or empty, which is what a thread
