@@ -67,7 +67,6 @@ export async function targetFor(
     .where("c.id", "=", calendarId)
     .where("n.account_id", "=", accountId)
     .where("n.deleted_at", "is", null)
-    .where("n.state", "=", "active")
     .executeTakeFirst();
 
   if (!row) return null;

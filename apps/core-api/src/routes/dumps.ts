@@ -1865,8 +1865,7 @@ export async function answerCalendarQuestion(
       .where("c.selected", "=", true)
       .where("n.account_id", "=", accountId)
       .where("n.deleted_at", "is", null)
-      .where("n.state", "=", "active")
-      .executeTakeFirst();
+        .executeTakeFirst();
     const stillPicked =
       row && calendar && !picksOnAnswer
         ? await trx

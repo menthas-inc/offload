@@ -94,7 +94,6 @@ export async function calendarOfEvent(accountId: string, sourceRef: string): Pro
     .where("e.deleted_at", "is", null)
     .where("n.account_id", "=", accountId)
     .where("n.deleted_at", "is", null)
-    .where("n.state", "=", "active")
     .executeTakeFirst();
   return row?.id ?? null;
 }
