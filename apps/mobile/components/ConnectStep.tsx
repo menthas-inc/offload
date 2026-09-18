@@ -31,16 +31,22 @@ export type ConnectTone = "ios" | "android";
  *  `assets/brands/google-calendar.svg`, from Google's own brand resources, and
  *  their terms govern clear space and forbid recolouring: the 88px rounded
  *  container may have to grow to satisfy the clear-space rule. */
-function ProviderMark({
+export function ProviderMark({
   tone,
   source,
+  size = 88,
+  radius,
 }: {
   tone: ConnectTone;
   source?: number | null;
+  /** 88 on the connect screen; 34 in Settings' provider block (019), where
+   *  the radius is given rather than inferred: 8 is a proportional scaling of
+   *  the stand-in's own 18 rather than a step on the radius scale. */
+  size?: number;
+  radius?: number;
 }) {
   const COLOR = useColors();
   const [broken, setBroken] = useState(false);
-  const size = 88;
   // Only the stand-in is rounded, and the two cases are genuinely different.
   //
   // **The real mark carries its own silhouette** and Google Calendar's includes
@@ -51,7 +57,7 @@ function ProviderMark({
   //
   // The stand-in **is** a bare square, and its radius is what makes a dashed
   // box read as the slot an icon goes in rather than as a broken image.
-  const standInRadius = tone === "ios" ? 18 : 20;
+  const standInRadius = radius ?? (tone === "ios" ? 18 : 20);
 
   if (source && !broken) {
     return (
@@ -205,5 +211,24 @@ export function ConnectStepBody({
         </View>
       </View>
     </>
+  );
+}
+
+/** The connect button, the one first run draws: the same control from the
+ *  first-run door and the Settings door, so the two screens are one screen
+ *  with one sentence added. `min-h-composer-height` on iOS and the Material
+ *  row height on Android, `text-body`, inverse text on ink. */
+export function ConnectButton({ tone, onPress }: { tone: ConnectTone; onPress: () => void }) {
+  const isAndroid = tone === "android";
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      className={`${
+        isAndroid ? "min-h-a-row-height bg-blue-600" : "min-h-composer-height bg-ink-950"
+      } w-full items-center justify-center rounded-pill active:opacity-90`}
+    >
+      <Text className="font-core text-body font-medium text-text-inverse">{CONNECT_STEP.connect}</Text>
+    </Pressable>
   );
 }

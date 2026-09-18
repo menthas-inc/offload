@@ -23,43 +23,18 @@ import { Logo } from "../../../components/Logo";
 import { RunArt } from "../../../components/RunArt";
 import { completeOnboarding, updateName, useMe } from "../../../lib/use-me";
 import { connectUrl, useCalendars } from "../../../lib/use-calendars";
-import { Icon } from "../../../components/Icon";
+import {
+  CONNECT_BUTTON,
+  CONNECT_SUB,
+  CONNECT_TITLE,
+  ConnectFacts,
+  ProviderMark,
+} from "../../../components/ConnectBlock";
 import { NAME_MAX } from "../../../lib/name";
 import styles from "../auth.module.css";
 
-/** The two facts, matching the phones exactly. `gate.ts` keeps the phones from
- *  drifting apart; the web has always repeated the strings, and the three have
- *  to match. All of it is provisional per the design system. */
-/** The provider's mark, 88px as both phone kits draw it, and never redrawn.
- *
- *  Referenced by path so that dropping Google's own file into
- *  `public/brands/` is the whole of turning it on. Until it is there the image
- *  fails to load and the dashed stand-in takes its place, so a missing asset is
- *  visible rather than silent. */
-function ProviderMark() {
-  const [ok, setOk] = useState(true);
-  if (!ok) return <span className={styles.providerMark} aria-hidden="true" />;
-  return (
-    <img
-      src="/brands/google-calendar.svg"
-      alt=""
-      width={88}
-      height={88}
-      className={styles.providerMarkImage}
-      onError={() => setOk(false)}
-    />
-  );
-}
-
-const CONNECT_FACTS = [
-  ["calendar", "offload reads your days.", "Times, titles and who is on them."],
-  [
-    "plus",
-    "And it can add to them.",
-    "Anything you dump with a time on it can land back on your calendar.",
-  ],
-] as const;
-
+// The connect screen's copy and mark live in `components/ConnectBlock.tsx`,
+// where Settings draws the same screen (019). One source, two doors.
 const SCREENS = [
   {
     title: "Dump anything",
@@ -215,7 +190,7 @@ export default function WelcomePage() {
         <div className={styles.runCopy}>
           <h1 className={styles.runTitle}>
             {offering
-              ? "Bring in your calendar"
+              ? CONNECT_TITLE
               : screen
                 ? screen.title
                 : naming
@@ -224,7 +199,7 @@ export default function WelcomePage() {
           </h1>
           <p className={styles.runSub}>
             {offering
-              ? "So \u201cbefore the trip\u201d and \u201cafter the dentist\u201d mean something."
+              ? CONNECT_SUB
               : screen
                 ? screen.sub
                 : naming
@@ -239,16 +214,7 @@ export default function WelcomePage() {
              privacy refusal. A switch implies somebody could have set it the
              other way. The strings match the phones exactly; the design system
              marks all of this copy provisional. */
-          <div className={styles.consent}>
-            {CONNECT_FACTS.map(([icon, head, rest]) => (
-              <p key={head} className={styles.runFact}>
-                <Icon name={icon} size={16} />
-                <span>
-                  <b>{head}</b> {rest}
-                </span>
-              </p>
-            ))}
-          </div>
+          <ConnectFacts />
         ) : naming ? (
           /* `.consent` is the column both asking screens share, not a consent
              wrapper: same width, same alignment, same moment in the flow. */
@@ -320,7 +286,7 @@ export default function WelcomePage() {
           {offering ? (
             <>
               <a className={styles.runButton} href={connectUrl("first-run")}>
-                Connect Google Calendar
+                {CONNECT_BUTTON}
               </a>
             </>
           ) : (

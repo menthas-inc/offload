@@ -936,7 +936,26 @@ async def handle(
                     conn, question_id=str(open_id), account_id=job.account_id
                 )
                 today = await ctx_mod.today_line(conn)
-            if open_q is not None:
+            if open_q is not None and open_q.field == "calendar":
+                # 019. A calendar's name is matched in the Core API, in code,
+                # against what was typed: no judge, since a label may be a
+                # name somebody else wrote. Applied means the whole message
+                # was the answer and the event is on its way; otherwise the
+                # question is closed there and the dump files as itself.
+                result = await _post_result(
+                    http,
+                    cfg,
+                    {"jobId": job.id, "questionId": open_q.id, "value": {"text": asked}},
+                    path="question-answer",
+                )
+                applied = bool(result and result.get("applied"))
+                log.info("question answered", field="calendar", how="typed", applied=applied)
+                if applied:
+                    await _post_result(
+                        http, cfg, {"outcome": "answered", "jobId": job.id, "usage": []}
+                    )
+                    return
+            elif open_q is not None:
                 try:
                     verdict = await judge_answer(
                         anthropic,

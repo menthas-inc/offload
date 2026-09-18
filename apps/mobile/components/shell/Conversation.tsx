@@ -361,15 +361,25 @@ function Turns() {
             {/* 018. A turn that filed silently and asked back has no reply
                 bubble to hold the question, so the question gets one of its
                 own, in place: offload's sentence and the chips, nothing else.
-                Above the footer, as on web, because the footer closes the
-                turn; the sent bubble hands its footer down for that. */}
+                After the footer, as on web, in the turn's order: what
+                happened, then what is still open. The sent bubble hands its
+                footer down so the footer can sit between them. */}
             {!replied.has(turn.id) && turn.question ? (
               <>
+                <TurnFooter turn={turn} />
                 <Bubble>
                   <Question turn={turn} first />
                 </Bubble>
-                <TurnFooter turn={turn} />
               </>
+            ) : null}
+            {/* 019. A tapped calendar answer that turned into a proposal: the
+                control sits on the person's own turn, in a bubble of its own,
+                because the turn that asked has no reply to hold it. As on
+                web. */}
+            {!replied.has(turn.id) && turn.waiting ? (
+              <Bubble>
+                <Waiting turn={turn} />
+              </Bubble>
             ) : null}
           </Fragment>
         ) : (

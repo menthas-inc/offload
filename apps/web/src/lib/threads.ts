@@ -128,6 +128,44 @@ export interface ThreadBundle {
    *  written and tested now: a branch typed unreachable is a branch nobody
    *  checks, and it would be discovered broken on the day it first fills. */
   standing: string | null;
+  /** 019. The viewer's picks and approved count, and whether anybody has
+   *  picked here, which earns the rail. Null when the account has no calendar
+   *  connection at all, which hides the glyph. */
+  calendars: { picked: number; total: number; anyPicked: boolean } | null;
+}
+
+/** 019. One of the viewer's approved calendars, against a thread. */
+export interface ThreadCalendar {
+  id: string;
+  name: string;
+  colour: string | null;
+  writable: boolean;
+  sharedWithYou: boolean;
+  primary: boolean;
+  picked: boolean;
+  /** The account's address, when two rows share a name. */
+  note: string | null;
+}
+
+export interface ThreadCalendars {
+  calendars: ThreadCalendar[];
+  /** Other members with picks here: named, their calendars counted. */
+  others: Array<{ displayName: string; count: number }>;
+}
+
+/** 019. An event on one of the thread's calendars, for the rail. A title and
+ *  a time: never the guests, never the place. */
+export interface ThreadEvent {
+  id: string;
+  sourceRef: string;
+  calendarId: string;
+  calendarName: string;
+  colour: string | null;
+  title: string;
+  occursAt: string | null;
+  occursEndAt: string | null;
+  allDay: boolean;
+  untrusted: boolean;
 }
 
 export interface Place {
@@ -232,6 +270,35 @@ export async function fetchThreads(): Promise<ThreadGroup[]> {
 
 export const fetchThread = (id: string): Promise<ThreadBundle | null> =>
   get<ThreadBundle>(`/v1/threads/${id}`);
+
+export const fetchThreadCalendars = (id: string): Promise<ThreadCalendars | null> =>
+  get<ThreadCalendars>(`/v1/threads/${id}/calendars`);
+
+export async function setThreadCalendar(
+  threadId: string,
+  calendarId: string,
+  picked: boolean,
+): Promise<ThreadCalendars | null> {
+  try {
+    const response = await fetch(`${API}/v1/threads/${threadId}/calendars/${calendarId}`, {
+      ...json,
+      method: "PATCH",
+      body: JSON.stringify({ picked }),
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as ThreadCalendars;
+  } catch {
+    // Offline, or the request never left. The popover draws the line and the
+    // box stays as it was.
+    return null;
+  }
+}
+
+/** The events on the thread's calendars between two days, inclusive. */
+export async function fetchThreadEvents(threadId: string, from: string, to: string): Promise<ThreadEvent[]> {
+  const body = await get<{ events: ThreadEvent[] }>(`/v1/threads/${threadId}/events?from=${from}&to=${to}`);
+  return body?.events ?? [];
+}
 
 export async function fetchContent(
   threadId: string,

@@ -511,6 +511,9 @@ export function Composer({
           // rather than after a reload.
           threads: sent.threads ?? [],
           did: (sent.threads?.length ?? 0) > 0,
+          // 019. A tapped calendar answer that needs their say-so: the
+          // proposal sits on their own turn.
+          waiting: sent.waiting ?? null,
         },
       ];
     });
@@ -643,10 +646,12 @@ export function Composer({
                   here regardless, the sources for an answer sat above the answer
                   they were sources for. So a turn with a reply hangs its footer
                   off that instead, further down. */}
+              {!replies.has(turn.id) ? <TurnFooter {...footerFor(turn)} /> : null}
               {/* 018. A turn that filed silently and asked back has no reply
                   bubble to hold the question, so the question gets one of its
-                  own: offload's sentence and the chips, nothing else. Above
-                  the footer, because the footer closes the turn. */}
+                  own: offload's sentence and the chips, nothing else. After
+                  the footer, in the turn's order: what happened, then what is
+                  still open. The filing is done and the question is not. */}
               {!replies.has(turn.id) && turn.question ? (
                 <div className={styles.turn}>
                   <div className={styles.turnOffload}>
@@ -654,7 +659,23 @@ export function Composer({
                   </div>
                 </div>
               ) : null}
-              {!replies.has(turn.id) ? <TurnFooter {...footerFor(turn)} /> : null}
+              {/* 019. A tapped calendar answer that turned into a proposal:
+                  the control sits on the person's own turn, in a bubble of its
+                  own, because the turn that asked has no reply to hold it. */}
+              {!replies.has(turn.id) && turn.waiting ? (
+                <div className={styles.turn}>
+                  <div className={styles.turnOffload}>
+                    <Waiting
+                      waiting={turn.waiting}
+                      onAnswered={() =>
+                        setTurns((current) =>
+                          current.map((t) => (t.id === turn.id ? { ...t, waiting: null } : t))
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+              ) : null}
               </Fragment>
             ) : (
               <div key={turn.id} className={styles.turn}>

@@ -27,7 +27,9 @@ export type EventName =
   // a URL nor sixty-four characters long.
   | "calendar_connected"
   | "calendar_sync_completed"
-  | "calendar_event_written";
+  | "calendar_event_written"
+  // 019. A thread picked or un-picked a calendar: two ids and a boolean.
+  | "calendar_picked";
 
 type Source = "core-api" | "agent" | "worker" | "web" | "ios" | "android";
 

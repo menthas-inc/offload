@@ -16,8 +16,9 @@ import {
   listEvents,
   type GoogleEvent,
 } from "./google.js";
-import { mapEvent, sourceRefFor, threadFor, upsertEvent, type Rule } from "./events.js";
+import { mapEvent, sourceRefFor, upsertEvent } from "./events.js";
 import { accessTokenFor, markNeedsReauth } from "./tokens.js";
+import { refreshCalendars } from "./calendars.js";
 
 const DAYS_BACK = 60;
 const MONTHS_FORWARD = 12;
@@ -118,6 +119,22 @@ export async function syncConnection(connectionId: string, full = false): Promis
     throw error;
   }
 
+  // A full pass is where the calendar list itself is refreshed, along with
+  // each calendar's colour and its participant count. 012 read the list once,
+  // at connect, and never again, so a calendar created afterwards never
+  // appeared and one deleted at Google stayed forever.
+  if (full) {
+    try {
+      await refreshCalendars(connectionId, accessToken);
+    } catch (error) {
+      if (error instanceof GrantRevoked) {
+        await markNeedsReauth(connectionId);
+        return outcome;
+      }
+      throw error;
+    }
+  }
+
   const calendars = await db
     .selectFrom("connector_calendars")
     .selectAll()
@@ -128,14 +145,7 @@ export async function syncConnection(connectionId: string, full = false): Promis
   const { timeMin, timeMax } = windowFor(new Date());
 
   for (const calendar of calendars) {
-    if (!calendar.default_thread_id) continue;
     outcome.calendars += 1;
-
-    const rules = (await db
-      .selectFrom("connector_calendar_rules")
-      .select(["ordinal", "match_kind", "match_value", "thread_id"])
-      .where("calendar_id", "=", calendar.id)
-      .execute()) as Rule[];
 
     const useToken = full ? null : calendar.sync_token;
     let page = await listEvents(accessToken, calendar.external_id, {
@@ -158,9 +168,9 @@ export async function syncConnection(connectionId: string, full = false): Promis
       // Cancelled arrives in a delta as the way a deletion is reported.
       if (event.status === "cancelled") {
         const result = await db
-          .updateTable("content")
+          .updateTable("connector_events")
           .set({ deleted_at: new Date(), updated_at: new Date() })
-          .where("account_id", "=", connection.account_id)
+          .where("calendar_id", "=", calendar.id)
           .where("source_ref", "=", sourceRef)
           .where("deleted_at", "is", null)
           .executeTakeFirst();
@@ -169,27 +179,23 @@ export async function syncConnection(connectionId: string, full = false): Promis
       }
       if (!event.startsAt) continue;
 
-      const threadId = threadFor(event, rules, calendar.default_thread_id);
-      await upsertEvent(db, connection.account_id, mapEvent(event, calendar.external_id, threadId));
+      await upsertEvent(db, connection.account_id, calendar.id, mapEvent(event, calendar.external_id));
       outcome.written += 1;
     }
 
     // A full pass is the only one that can conclude something is gone from an
-    // absence: a delta only ever reports what changed.
+    // absence: a delta only ever reports what changed. It is also where the
+    // window is enforced: the copy holds sixty days back and no more, since it
+    // is a cache of somebody else's system and not a record of what anybody
+    // dumped.
     if (full || outcome.resynced) {
-      outcome.retired += await retireMissing(connection.account_id, calendar.external_id, seen, timeMin, timeMax);
+      outcome.retired += await retireMissing(calendar.id, seen, timeMin, timeMax);
+      await forgetBehindTheWindow(calendar.id, timeMin);
     }
 
     await db
       .updateTable("connector_calendars")
-      .set({
-        sync_token: page.nextSyncToken,
-        synced_at: new Date(),
-        // Google's word on the role, every pass. An invariant checked only when
-        // it is written goes stale the day somebody shares the calendar.
-        ...(calendar.access_role === "owner" ? {} : { is_shared: true }),
-        updated_at: new Date(),
-      })
+      .set({ sync_token: page.nextSyncToken, synced_at: new Date(), updated_at: new Date() })
       .where("id", "=", calendar.id)
       .execute();
   }
@@ -207,19 +213,11 @@ export async function syncConnection(connectionId: string, full = false): Promis
  *
  *  Deleted elsewhere, or the tail of a series a split shortened. Scoped to the
  *  window because outside it Google was never asked. */
-async function retireMissing(
-  accountId: string,
-  calendarExternalId: string,
-  seen: string[],
-  timeMin: Date,
-  timeMax: Date
-): Promise<number> {
+async function retireMissing(calendarId: string, seen: string[], timeMin: Date, timeMax: Date): Promise<number> {
   let query = db
-    .updateTable("content")
+    .updateTable("connector_events")
     .set({ deleted_at: new Date(), updated_at: new Date() })
-    .where("account_id", "=", accountId)
-    .where("source", "=", "calendar")
-    .where("source_ref", "like", `${calendarExternalId}:%`)
+    .where("calendar_id", "=", calendarId)
     .where("deleted_at", "is", null)
     .where("occurs_at", ">=", timeMin)
     .where("occurs_at", "<=", timeMax);
@@ -228,6 +226,18 @@ async function retireMissing(
 
   const result = await query.executeTakeFirst();
   return Number(result.numUpdatedRows ?? 0);
+}
+
+/** Rows whose occurrence has fallen behind the window go, deleted rather than
+ *  retired: outside the window Google is never asked again, and a copy nobody
+ *  refreshes is a copy nobody should keep. An event with an end is judged by
+ *  its end, so a stay that started before the window and ends inside it stays. */
+async function forgetBehindTheWindow(calendarId: string, timeMin: Date): Promise<void> {
+  await db
+    .deleteFrom("connector_events")
+    .where("calendar_id", "=", calendarId)
+    .where(sql<boolean>`coalesce(occurs_end_at, occurs_at) < ${timeMin}`)
+    .execute();
 }
 
 /** Notices a chain that broke in a way nobody predicted.
@@ -266,4 +276,44 @@ export async function superviseSyncs(): Promise<number> {
 
   for (const connection of stalled) await scheduleNextSync(connection.id);
   return stalled.length;
+}
+
+/** One full pass per active connection, once a day.
+ *
+ *  012 specified a nightly full pass and never enqueued one, so reconciliation
+ *  by absence, the calendar list, the colours and the participant counts were
+ *  all read once at connect and never again. The supervisor runs daily; this
+ *  rides on it. Its own key slot so it never collapses into the quarter-hour
+ *  chain's row. */
+export async function scheduleFullSyncs(now = new Date()): Promise<number> {
+  // The window holds for a connection that has stopped syncing too: a grant
+  // the person revoked is a copy nobody refreshes, and a copy nobody
+  // refreshes still ages out, which is what the privacy page says of it.
+  const stalled = await db
+    .selectFrom("connector_calendars as c")
+    .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+    .select("c.id as id")
+    .where("n.state", "<>", "active")
+    .where("n.deleted_at", "is", null)
+    .execute();
+  const { timeMin } = windowFor(now);
+  for (const calendar of stalled) await forgetBehindTheWindow(calendar.id, timeMin);
+
+  const active = await db
+    .selectFrom("connector_connections")
+    .select("id")
+    .where("state", "=", "active")
+    .where("deleted_at", "is", null)
+    .execute();
+  const day = `${now.getUTCFullYear()}-${now.getUTCMonth()}-${now.getUTCDate()}`;
+  for (const connection of active) {
+    await enqueue({
+      kind: "calendar.sync",
+      payload: { connectionId: connection.id, full: true },
+      priority: 100,
+      idempotencyKey: `calendar.sync:${connection.id}:full:${day}`,
+      maxAttempts: 3,
+    });
+  }
+  return active.length;
 }

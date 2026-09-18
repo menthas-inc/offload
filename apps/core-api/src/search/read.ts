@@ -15,6 +15,7 @@
 // No membership rule is written in this file.
 
 import { sql } from "kysely";
+import { calendarName } from "../connectors/calendars.js";
 import { db } from "../db.js";
 
 /** Candidates per arm, before fusion. Enough for the fusion to reorder
@@ -427,6 +428,9 @@ async function asidesFor(accountId: string, options: SearchOptions): Promise<Asi
       and m.deleted_at is null
       and m.state in ('seen', 'answered')
       and m.text is not null
+      -- 019. A tapped label that was somebody else's calendar name is not
+      -- the person's words, here any more than in the tail or the index.
+      and not m.derived_from_untrusted
       and m.search_text @@ websearch_to_tsquery('simple', ${options.query})
       and not exists (
         select 1 from content c
@@ -458,7 +462,9 @@ async function asidesFor(accountId: string, options: SearchOptions): Promise<Asi
 export interface AccountFacts {
   displayName: string | null;
   defaultThread: { id: string; name: string } | null;
-  calendars: { name: string; filesInto: string | null }[];
+  /** 019. The approved calendars, by name. Where an event lands is the
+   *  thread's question, not a fact about the account. */
+  calendars: { name: string }[];
   /** Device preferences are absent on purpose and the prompt says so. Theme and
    *  text size live in SecureStore and localStorage, deliberately, so they can
    *  be read before first paint; the server has never held them and a copy kept
@@ -498,12 +504,9 @@ export async function accountFacts(accountId: string): Promise<AccountFacts> {
       "connector_connections.id",
       "connector_calendars.connection_id",
     )
-    .leftJoin("threads", "threads.id", "connector_calendars.default_thread_id")
-    .select([
-      "connector_calendars.summary as name",
-      "threads.name as files_into",
-    ])
+    .select(["connector_calendars.summary as summary", "connector_calendars.is_primary as is_primary"])
     .where("connector_connections.account_id", "=", accountId)
+    .where("connector_connections.deleted_at", "is", null)
     .where("connector_calendars.selected", "=", true)
     .execute();
 
@@ -513,7 +516,7 @@ export async function accountFacts(accountId: string): Promise<AccountFacts> {
       account?.thread_id && account.thread_name
         ? { id: account.thread_id, name: account.thread_name }
         : null,
-    calendars: calendars.map((c) => ({ name: c.name, filesInto: c.files_into ?? null })),
+    calendars: calendars.map((c) => ({ name: calendarName(c, account?.display_name ?? null) })),
     knowsDevicePreferences: false,
   };
 }

@@ -94,6 +94,10 @@ export async function revokeAndForget(connectionId: string): Promise<void> {
   }
 
   await db.deleteFrom("connector_secrets").where("connection_id", "=", connectionId).execute();
+  // 019. The copy and the picks go with the calendars: nothing can read them
+  // after this, and a copy of somebody else's system that nobody reads is not
+  // something to keep. The calendars' foreign keys cascade to both.
+  await db.deleteFrom("connector_calendars").where("connection_id", "=", connectionId).execute();
   await db
     .updateTable("connector_connections")
     .set({ state: "revoked", deleted_at: new Date(), updated_at: new Date() })

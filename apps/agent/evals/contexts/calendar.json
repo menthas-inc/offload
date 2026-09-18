@@ -42,21 +42,21 @@
   "calendars": [
     {
       "calendarId": "cal-0",
-      "name": "owner@example.com",
+      "name": "Behrooz",
       "writable": true,
-      "shared": false
+      "yours": true
     },
     {
       "calendarId": "cal-1",
       "name": "Studio",
       "writable": true,
-      "shared": true
+      "yours": true
     },
     {
       "calendarId": "cal-2",
       "name": "Holidays",
       "writable": false,
-      "shared": false
+      "yours": true
     }
   ],
   "events": [
@@ -81,7 +81,7 @@
     },
     "calendars": [
       {
-        "name": "owner@example.com",
+        "name": "Behrooz",
         "filesInto": null
       },
       {

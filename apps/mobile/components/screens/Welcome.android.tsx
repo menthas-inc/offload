@@ -317,7 +317,9 @@ export default function Welcome() {
                   ? void WebBrowser.openAuthSessionAsync(
                       `${API_URL}/api/connectors/google/start?landing=first-run`,
                       "offload://today",
-                    ).then(() => router.replace("/today"))
+                      // 019. The calendar page, with none in use yet: the
+                      // ticks are the second decision and it is theirs.
+                    ).then(() => router.replace("/settings/calendar"))
                   : consenting || nameOnly
                     ? void finish(!nameOnly)
                     : setStep(step + 1)

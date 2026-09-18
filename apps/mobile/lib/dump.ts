@@ -35,6 +35,8 @@ export interface Sent {
   question?: QuestionOnWire | null;
   /** 018. On an answer's response: the thread the answer changed. */
   threads?: TouchedThread[];
+  /** 019. On a calendar answer's response: the write that waits for them. */
+  waiting?: WaitingOn | null;
 }
 
 /** A thread a turn actually wrote to, from the content rows it produced rather
@@ -226,17 +228,18 @@ export async function answerQuestion(
 
 /** 018. What the composer says while a question is open. A question with
  *  nothing to offer but the way out is answered by typing, and the
- *  placeholder is the invitation. */
+ *  placeholder is the invitation. Example first, no preamble: all three lines
+ *  overran a 266px field at 390pt, and what each lost was its example. */
 export function invitation(question: QuestionOnWire): string {
   const typedOnly = question.options.every((o) => o.kind === "plain");
   if (!typedOnly) return question.text;
   switch (question.field) {
     case "span":
-      return "Which dates? Type them, like 10 to 12 October";
+      return "Which dates? e.g. Sept 12th at 5pm";
     case "date":
-      return "By when? Type a day, like 30 September";
+      return "By when? e.g. Sept 30th";
     case "time":
-      return "Which day and time? Type them, like Friday at 10";
+      return "Which day and time? e.g. Friday at 5pm";
     default:
       return question.text;
   }

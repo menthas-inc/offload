@@ -22,7 +22,16 @@ import { emit } from "../analytics.js";
 import { env } from "../env.js";
 import { NOTE_TEXT_CHARS, applyCompaction } from "../threads/notes.js";
 import { parseWhen, plausible } from "../threads/dates.js";
-import { applyAnswer, askedQuestion, closeQuestion, storeQuestions, validateAsked } from "../questions.js";
+import {
+  applyAnswer,
+  askedQuestion,
+  closeQuestion,
+  matchCalendarLabel,
+  storeQuestions,
+  validateAsked,
+  type StoredOption,
+} from "../questions.js";
+import { answerCalendarQuestion } from "./dumps.js";
 
 /** Constant time, and length-checked first because timingSafeEqual throws on a
  *  length mismatch and that throw is itself a length oracle. */
@@ -907,6 +916,38 @@ export async function internalRoutes(app: App): Promise<void> {
     async (request, reply) => {
       const scope = await questionScope(request, request.body.jobId);
       if (!scope) return reply.code(401).send({ error: "unauthorised" as const });
+      // 019. A typed answer to a calendar question is matched here, in code,
+      // against the labels: the worker never reads them, since one may be a
+      // name somebody else wrote. A hit reaches Google, so it takes the tapped
+      // answer's own path, outside any transaction, with the dump as the
+      // person's message. A miss closes the question and the dump files.
+      const typedText = request.body.value?.["text"];
+      if (typedText !== undefined) {
+        const q = await db
+          .selectFrom("questions")
+          .select(["id", "field", "options"])
+          .where("id", "=", request.body.questionId)
+          .where("account_id", "=", scope.accountId)
+          .where("conversation_id", "=", scope.conversationId)
+          .where("state", "=", "open")
+          .executeTakeFirst();
+        if (!q || q.field !== "calendar") return reply.send({ applied: false });
+        const option = matchCalendarLabel(typedText, Array.isArray(q.options) ? (q.options as StoredOption[]) : []);
+        if (option === null) {
+          await db.transaction().execute((trx) => closeQuestion(trx, q.id, scope.accountId, scope.messageId));
+          request.log.info({ how: "typed", field: "calendar", applied: false }, "question closed");
+          return reply.send({ applied: false });
+        }
+        const answered = await answerCalendarQuestion(scope.accountId, {
+          questionId: q.id,
+          option,
+          lookingAt: null,
+          typed: { messageId: scope.messageId, turnId: scope.turnId },
+        });
+        const applied = Boolean(answered && answered.applied);
+        request.log.info({ how: "typed", field: "calendar", applied }, "question answered");
+        return reply.send({ applied });
+      }
       const applied = await db.transaction().execute(async (trx) => {
         const q = await trx
           .selectFrom("questions")

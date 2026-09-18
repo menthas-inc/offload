@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/calendar_picked.v1.json",
+  "title": "calendar_picked",
+  "description": "A thread picked or un-picked a calendar. Two ids and a boolean. Never a calendar's name.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["thread_id", "calendar_id", "picked"],
+  "properties": {
+    "thread_id": { "type": "string", "format": "uuid" },
+    "calendar_id": { "type": "string", "format": "uuid" },
+    "picked": { "type": "boolean" }
+  }
+}

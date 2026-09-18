@@ -25,6 +25,8 @@ export interface Me {
    *  they pasted. Two different promises, so two switches. */
   webSearch: boolean;
   webLinks: boolean;
+  /** 019. Every calendar write is put to them first. */
+  calendarAskFirst: boolean;
   /** Where they said they are, ISO 3166-1 alpha-2. Null until they say, and
    *  offload then tells the model it does not know rather than assuming. */
   country: string | null;

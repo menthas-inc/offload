@@ -27,18 +27,22 @@ for (const file of readdirSync(SOURCE).sort()) {
     kind: "path",
     d: m[1],
   }));
-  const circles = [...svg.matchAll(/<circle[^>]*cx="([\d.]+)"[^>]*cy="([\d.]+)"[^>]*r="([\d.]+)"/g)].map(
-    (m) => ({ kind: "circle", cx: +m[1], cy: +m[2], r: +m[3] }),
-  );
-  const rects = [
-    ...svg.matchAll(
-      /<rect[^>]*width="([\d.]+)"[^>]*height="([\d.]+)"[^>]*x="([\d.]+)"[^>]*y="([\d.]+)"(?:[^>]*rx="([\d.]+)")?/g,
-    ),
-  ].map((m) => ({ kind: "rect", width: +m[1], height: +m[2], x: +m[3], y: +m[4], rx: m[5] ? +m[5] : 0 }));
-  // Attribute order is not guaranteed, and lucide writes `x1 x2 y1 y2` on some
-  // icons and `x1 y1 x2 y2` on others. Read each attribute by name.
+  // Attribute order is not guaranteed: lucide writes `x1 x2 y1 y2` on some
+  // icons and `x1 y1 x2 y2` on others, and `calendar.svg` arrived with `x y
+  // width height` where every other rect had `width height x y`. A regex that
+  // fixed the order dropped that rect and the glyph shipped as two pegs and a
+  // line, which no gate could see. Read each attribute by name.
+  const attrs = (tag) => (name) => Number((tag.match(new RegExp(`\\b${name}="([\\d.-]+)"`)) ?? [])[1] ?? 0);
+  const circles = [...svg.matchAll(/<circle\b([^>]*)>/g)].map((m) => {
+    const at = attrs(m[1]);
+    return { kind: "circle", cx: at("cx"), cy: at("cy"), r: at("r") };
+  });
+  const rects = [...svg.matchAll(/<rect\b([^>]*)>/g)].map((m) => {
+    const at = attrs(m[1]);
+    return { kind: "rect", width: at("width"), height: at("height"), x: at("x"), y: at("y"), rx: at("rx") };
+  });
   const lines = [...svg.matchAll(/<line\b([^>]*)>/g)].map((m) => {
-    const at = (name) => Number((m[1].match(new RegExp(`${name}="([\\d.-]+)"`)) ?? [])[1] ?? 0);
+    const at = attrs(m[1]);
     return { kind: "line", x1: at("x1"), y1: at("y1"), x2: at("x2"), y2: at("y2") };
   });
 
@@ -53,8 +57,14 @@ for (const file of readdirSync(SOURCE).sort()) {
   const all = [...paths, ...circles, ...rects, ...lines, ...polylines];
   // A generated artifact that fails by doing nothing is the worst kind: an
   // icon silently absent renders as empty space and every gate passes. This
-  // refuses instead.
+  // refuses instead, and it refuses a partial icon too: every drawable element
+  // in the file has to come out as a shape, or the file has something this
+  // does not read.
+  const drawable = (svg.match(/<(path|circle|rect|line|polyline)\b/g) ?? []).length;
   if (all.length === 0) throw new Error(`icons: ${name}.svg produced no shapes`);
+  if (all.length !== drawable) {
+    throw new Error(`icons: ${name}.svg has ${drawable} drawable elements and ${all.length} were read`);
+  }
   shapes[name] = all;
 }
 

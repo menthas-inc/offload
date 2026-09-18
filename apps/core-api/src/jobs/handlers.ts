@@ -9,7 +9,7 @@ import { NOTE_PROMPT_BUDGET, deleteNotesForThread } from "../threads/notes.js";
 import { resolvePlace } from "../places/resolve.js";
 import type { Mailer } from "../mail/index.js";
 import { env } from "../env.js";
-import { scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
+import { scheduleFullSyncs, scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
 import { enqueue, PRIORITY, scheduleDaily } from "./queue.js";
 import { emit } from "../analytics.js";
 import { sweepEmbeds } from "../search/sweep.js";
@@ -269,7 +269,11 @@ const calendarSync: Handler = async (payload) => {
 const calendarSupervise: Handler = async () => {
   await scheduleDaily("calendar.supervise");
   const restarted = await superviseSyncs();
-  console.log(JSON.stringify({ level: "info", msg: "calendar supervise", restarted }));
+  // 019. The nightly full pass, which 012 specified and never enqueued: the
+  // calendar list, the colours, the participant counts, reconciliation by
+  // absence and the window all ride on it.
+  const full = await scheduleFullSyncs();
+  console.log(JSON.stringify({ level: "info", msg: "calendar supervise", restarted, full }));
 };
 
 /** `jobs` is the one growing table nothing swept.

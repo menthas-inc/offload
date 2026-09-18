@@ -19,18 +19,39 @@ import { useColors } from "../../lib/colors";
 
 const isAndroid = Platform.OS === "android";
 
-export function Group({ label, children }: { label?: string; children: React.ReactNode }) {
+export function Group({
+  label,
+  count,
+  children,
+}: {
+  label?: string;
+  /** 019. A trailing count on the label, `4 of 7 in use`, in the numeric role
+   *  set down to 11px. The kit's `Group` had no trailing slot and this is the
+   *  one component change the calendar page needed. */
+  count?: string;
+  children: React.ReactNode;
+}) {
   return (
     <>
       {label ? (
-        <Text
-          className={`px-space-1 pb-space-3 pt-space-5 font-core font-medium ${
-            isAndroid ? "text-a-on-var" : "text-text-tertiary"
-          }`}
-          style={{ fontSize: 12 }}
-        >
-          {label}
-        </Text>
+        <View className="flex-row items-baseline px-space-1 pb-space-3 pt-space-5">
+          <Text
+            className={`flex-1 font-core font-medium ${
+              isAndroid ? "text-a-on-var" : "text-text-tertiary"
+            }`}
+            style={{ fontSize: 12 }}
+          >
+            {label}
+          </Text>
+          {count ? (
+            <Text
+              className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-tertiary"}`}
+              style={{ fontSize: 11, fontVariant: ["tabular-nums"] }}
+            >
+              {count}
+            </Text>
+          ) : null}
+        </View>
       ) : null}
       <View
         className={`overflow-hidden rounded-lg px-space-4 ${

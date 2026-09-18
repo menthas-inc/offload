@@ -75,6 +75,8 @@ const meResponse = z.object({
    *  state comes from the account rather than from anything a client kept. */
   webSearch: z.boolean(),
   webLinks: z.boolean(),
+  /** 019. Every calendar write is put to them first. */
+  calendarAskFirst: z.boolean(),
   /** Where they are, ISO 3166-1 alpha-2, theirs to set. Null until they do, and
    *  offload then says it does not know rather than assuming. */
   country: z.string().nullable(),
@@ -196,6 +198,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
       "email",
       "web_search_enabled",
       "web_links_enabled",
+      "calendar_ask_first",
       "country",
     ])
     .where("id", "=", accountId)
@@ -220,6 +223,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     // link they pasted opens something they already chose.
     webSearch: account.web_search_enabled,
     webLinks: account.web_links_enabled,
+    calendarAskFirst: account.calendar_ask_first,
     country: account.country,
   };
 }
@@ -250,6 +254,7 @@ export async function sessionRoutes(app: App): Promise<void> {
           displayName: nameField.optional(),
           webSearch: z.boolean().optional(),
           webLinks: z.boolean().optional(),
+          calendarAskFirst: z.boolean().optional(),
           /** **Checked against the list the clients are offered**, not just
            *  against a two-letter shape: a code the server would refuse is a
            *  setting that silently fails to save. `null` clears it, and that is
@@ -272,13 +277,14 @@ export async function sessionRoutes(app: App): Promise<void> {
       // others, and a name still cannot be cleared: the product draws a
       // nameless account correctly, but that is the state of an account nobody
       // has got to yet rather than somewhere to return to by emptying a field.
-      const { displayName, webSearch, webLinks, country } = request.body;
+      const { displayName, webSearch, webLinks, calendarAskFirst, country } = request.body;
       await db
         .updateTable("accounts")
         .set({
           ...(displayName !== undefined ? { display_name: displayName } : {}),
           ...(webSearch !== undefined ? { web_search_enabled: webSearch } : {}),
           ...(webLinks !== undefined ? { web_links_enabled: webLinks } : {}),
+          ...(calendarAskFirst !== undefined ? { calendar_ask_first: calendarAskFirst } : {}),
           ...(country !== undefined ? { country } : {}),
           updated_at: new Date(),
         })

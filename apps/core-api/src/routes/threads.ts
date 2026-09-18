@@ -33,6 +33,8 @@ import {
   setMuted,
 } from "../threads/notes.js";
 import { readPreference, type ThreadPreference } from "../threads/widgets.js";
+import { calendarCounts, dropPicksOf, setPick, threadEvents, viewerCalendars } from "../threads/calendars.js";
+import { emit } from "../analytics.js";
 import { isBareDate, parseWhen } from "../threads/dates.js";
 import {
   NotYours,
@@ -179,6 +181,12 @@ const threadBundle = z.object({
    *  string rather than `null` so the client's branch is real code that is
    *  typechecked and tested rather than a branch nobody can reach. */
   standing: z.string().nullable(),
+  /** 019. The viewer's picks and approved count, and whether anybody has
+   *  picked here, which earns the rail. Null when the account has no calendar
+   *  connection at all, which is what hides the glyph. */
+  calendars: z
+    .object({ picked: z.number(), total: z.number(), anyPicked: z.boolean() })
+    .nullable(),
 });
 
 const contentRow = z.object({
@@ -808,6 +816,8 @@ export async function deleteThread(
       .where("thread_id", "=", threadId)
       .where("account_id", "=", accountId)
       .execute();
+    // 019. A member leaving takes their calendar picks with them.
+    await dropPicksOf(accountId, threadId, trx);
 
     const remaining = await trx
       .selectFrom("thread_members")
@@ -1177,7 +1187,121 @@ export async function threadRoutes(app: App): Promise<void> {
             ...(thread.hide_done ? { hideDone: true } : {}),
           },
           standing: null,
+          calendars: await calendarCounts(accountId, id),
         });
+      })
+  );
+
+  // ------------------------------------------------- a thread's calendars
+  //
+  // 019. The viewer's approved calendars against this thread, and a pick on
+  // one of them. A pick is the member's own, reads for the whole thread, and
+  // can be made or taken back only by them, in a thread they are in.
+  const threadCalendar = z.object({
+    id: z.string(),
+    name: z.string(),
+    colour: z.string().nullable(),
+    writable: z.boolean(),
+    sharedWithYou: z.boolean(),
+    primary: z.boolean(),
+    picked: z.boolean(),
+    note: z.string().nullable(),
+  });
+  const threadCalendars = z.object({
+    calendars: z.array(threadCalendar),
+    others: z.array(z.object({ displayName: z.string(), count: z.number() })),
+  });
+
+  app.get(
+    "/v1/threads/:id/calendars",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: { 200: threadCalendars, 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+        return reply.send(await viewerCalendars(accountId, request.params.id));
+      })
+  );
+
+  // PATCH rather than PUT: the API's CORS allowlist has never needed PUT and
+  // the calendar's own approve route is a PATCH.
+  app.patch(
+    "/v1/threads/:id/calendars/:calendarId",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid(), calendarId: z.string().uuid() }),
+        body: z.object({ picked: z.boolean() }),
+        response: { 200: threadCalendars, 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+        const { id, calendarId } = request.params;
+        await setPick(accountId, id, calendarId, request.body.picked);
+        // Ids and a boolean. Nothing anybody named (OFF-1).
+        await emit({
+          name: "calendar_picked",
+          properties: { thread_id: id, calendar_id: calendarId, picked: request.body.picked },
+        }).catch(() => undefined);
+        return reply.send(await viewerCalendars(accountId, id));
+      })
+  );
+
+  // The events on the thread's calendars inside a window, for the rail. A
+  // title and a time, whoever asks: never the guests, never the place.
+  app.get(
+    "/v1/threads/:id/events",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        querystring: z.object({
+          from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+        response: {
+          200: z.object({
+            events: z.array(
+              z.object({
+                id: z.string(),
+                sourceRef: z.string(),
+                calendarId: z.string(),
+                calendarName: z.string(),
+                colour: z.string().nullable(),
+                title: z.string(),
+                occursAt: z.string().nullable(),
+                occursEndAt: z.string().nullable(),
+                allDay: z.boolean(),
+                untrusted: z.boolean(),
+              })
+            ),
+          }),
+          401: unauthenticated,
+          404: notFound,
+        },
+      },
+    },
+    async (request, reply) =>
+      guard(reply, async () => {
+        const accountId = await currentAccountId(request);
+        if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+        // The client asks in its own local days and this reads in UTC, so a
+        // day of padding either side keeps a late evening on the last day and
+        // an early morning on the first; the client places by local day. The
+        // window is capped at the rail's own reach, which is the copy's.
+        const DAY = 24 * 60 * 60 * 1000;
+        const from = new Date(new Date(`${request.query.from}T00:00:00Z`).getTime() - DAY);
+        const to = new Date(new Date(`${request.query.to}T23:59:59Z`).getTime() + DAY);
+        if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to < from || to.getTime() - from.getTime() > 400 * DAY) {
+          return reply.send({ events: [] });
+        }
+        return reply.send({ events: await threadEvents(accountId, request.params.id, from, to) });
       })
   );
 

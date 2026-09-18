@@ -1444,6 +1444,34 @@ describe("a dumped link keeps its link", () => {
       .executeTakeFirstOrThrow();
     expect(after.url).toBe("https://example.com/a");
   });
+
+  it("019 lets an edit put a time on a row filed without one, and not on one already on a calendar", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Lisbon");
+    const { jobId } = await dump(accountId, "dentist");
+    const filed = await tool({ tool: "add_content", type: "event", jobId, toolCallId: "t1", threadId, title: "Dentist" });
+    const contentId = (filed.json() as { contentId: string }).contentId;
+
+    const timed = await tool({ tool: "edit_content", jobId, toolCallId: "t2", contentId, occursAt: "2026-09-22T15:00:00Z" });
+    expect(timed.json()).toEqual({ ok: true, done: true });
+    const after = await db.selectFrom("content").select(["occurs_at", "attrs"]).where("id", "=", contentId).executeTakeFirstOrThrow();
+    expect(after.occurs_at?.toISOString()).toBe("2026-09-22T15:00:00.000Z");
+    expect((after.attrs as { all_day?: boolean }).all_day).toBe(false);
+
+    const day = await tool({ tool: "edit_content", jobId, toolCallId: "t3", contentId, occursAt: "2026-09-23" });
+    expect(day.json()).toEqual({ ok: true, done: true });
+    const asDay = await db.selectFrom("content").select("attrs").where("id", "=", contentId).executeTakeFirstOrThrow();
+    expect((asDay.attrs as { all_day?: boolean }).all_day).toBe(true);
+
+    const bad = await tool({ tool: "edit_content", jobId, toolCallId: "t4", contentId, occursAt: "next tuesday" });
+    expect(bad.json()).toEqual({ ok: false, error: "bad_date" });
+
+    await db.updateTable("content").set({ source_ref: "cal:evt" }).where("id", "=", contentId).execute();
+    const held = await tool({ tool: "edit_content", jobId, toolCallId: "t5", contentId, occursAt: "2026-09-24T10:00:00Z" });
+    expect(held.json()).toEqual({ ok: false, error: "already_on_calendar" });
+    const titleOnly = await tool({ tool: "edit_content", jobId, toolCallId: "t6", contentId, title: "Dentist, moved" });
+    expect(titleOnly.json()).toEqual({ ok: true, done: true });
+  });
 });
 
 describe("018 asking back", () => {

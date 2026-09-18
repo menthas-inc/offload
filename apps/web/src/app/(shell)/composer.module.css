@@ -285,8 +285,8 @@
      this is a divergence from the kit and an inconsistency inside it. Logged.
 
      Inherited by the three of them rather than repeated, so the next mark added
-     to this row cannot be a fourth height. */
-  --chip-h: 30px;
+     to this row cannot be a fourth height. The value sits on the log, because
+     the quick replies under a question share it. */
 }
 
 /* The Done mark used to be absolutely positioned into the sent bubble's bottom
@@ -530,6 +530,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+  /* The one chip height in the log: the footer's marks and pills, and the
+     quick replies under a question, which are `Chip` too. Set on the log so a
+     chip drawn in a bubble and one drawn in a footer cannot come out
+     different. */
+  --chip-h: 30px;
   /* More room at the foot than the head: the last reply sits directly above
      the field, and at var(--space-3) the two read as one block. */
   padding: var(--space-3) var(--space-6) var(--space-6);
@@ -614,47 +619,63 @@
 
 .quickReplyRow {
   display: flex;
-  flex-wrap: wrap;
+  flex-flow: row wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-4);
 }
 
-/* The Chip contract: the button is the 44 hit area and paints nothing; the
-   pill inside is drawn at the chip height with a strong border because it is
-   a control, ink on hover, and a label that never wraps, which is what the 24
-   character cap is for. */
+/* The forced break before the way out: the values wrap among themselves and
+   the plain options start a line of their own. */
+.quickReplyBreak {
+  flex-basis: 100%;
+  height: 0;
+}
+
+/* The Chip contract: the button is the 44 hit area and paints nothing, and a
+   negative margin cancels it so wrapped lines sit 30 apart in ink and 44 apart
+   in target. The pill inside is drawn at the chip height. */
 .quickReply {
   display: inline-flex;
   align-items: center;
   min-height: var(--tap-min);
+  /* Half of (--tap-min minus --chip-h): 44 and 30, as the phones compute it. */
+  margin: calc((var(--chip-h) - var(--tap-min)) / 2) 0;
   padding: 0;
   border: none;
   background: none;
   color: var(--text-primary);
   font-family: var(--font-core);
-  font-size: calc(15px * var(--type-scale));
-  font-weight: var(--weight-medium);
+  font-size: var(--size-label);
   line-height: 1;
   cursor: pointer;
 }
 
+/* A value is Chip's geometry with a raised paint: --surface-card inside
+   --border-strong. The fill is 1.06:1 against the reply bubble in light and
+   1.00:1 in dark, where the bubble and the card are the same token, so the
+   border is what draws this chip and the fill only matters where the bubble
+   does not reach. A label never wraps, which is what the 24 character cap is
+   for. */
 .quickReplyPill {
   display: inline-flex;
   align-items: center;
+  box-sizing: border-box;
   height: var(--chip-h);
-  padding: 0 var(--space-6);
+  padding: 0 var(--space-5);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
-  background: var(--paper);
+  background: var(--surface-card);
+  font-weight: var(--weight-medium);
   white-space: nowrap;
   transition: background var(--transition-ui), transform var(--transition-ui);
 }
 
 .quickReply:hover:not(:disabled) .quickReplyPill {
-  background: var(--state-hover);
+  background: var(--surface-fill);
 }
 
-.quickReply:active:not(:disabled) .quickReplyPill {
+.quickReply:active:not(:disabled) .quickReplyPill,
+.quickReply:active:not(:disabled) .quickReplyPlain {
   transform: scale(var(--press-scale));
 }
 
@@ -668,27 +689,28 @@
   background: var(--state-disabled-surface);
 }
 
-/* The way out: plain, last, the same weight as the calendar's Not now. */
+/* The way out: plain, no border, the same weight as the calendar's Not now,
+   and an x before the label. */
 .quickReplyPlain {
-  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  box-sizing: border-box;
+  height: var(--chip-h);
   padding: 0 var(--space-3);
-  border: none;
-  background: none;
+  border-radius: var(--radius-pill);
   color: var(--text-secondary);
-  font-family: var(--font-core);
-  font-size: calc(15px * var(--type-scale));
-  line-height: 1;
+  font-weight: var(--weight-regular);
   white-space: nowrap;
-  cursor: pointer;
+  transition: background var(--transition-ui), transform var(--transition-ui);
 }
 
-.quickReplyPlain:hover:not(:disabled) {
-  color: var(--text-primary);
+.quickReply:hover:not(:disabled) .quickReplyPlain {
+  background: var(--state-hover);
 }
 
-.quickReplyPlain:disabled {
+.quickReply:disabled .quickReplyPlain {
   color: var(--state-disabled-text);
-  cursor: default;
 }
 
 .waitingDecline {

@@ -61,10 +61,17 @@ export interface Colors {
   textAttention: string;
   textNoticed: string;
   shadow: string;
+  /** `--shadow-2`, spelled the way the row that lifts off the list can draw it:
+   *  the colour, and whether the theme's shadow is a blur or a hard line. It is
+   *  the one shadow token with a value in dark, so it is the only one a lift may
+   *  take. */
+  shadowLift: { color: string; offsetY: number; radius: number };
   /** The quietest ink there is. Not `iconOnWell`, which is `text-secondary`
    *  and a visibly different grey: the fourth dot kind was that on a phone and
    *  `text-tertiary` on web, which is one legend drawn two ways. */
   quiet: string;
+  /** A glyph on a control that cannot be pressed right now. */
+  disabledText: string;
   borderFocus: string;
   /** The inward glow on a day that has something on it, as an inset
    *  `boxShadow` colour: a soft blue that fades toward the middle of the
@@ -114,6 +121,7 @@ function paletteFor(dark: boolean): Colors {
     attention: base["surface-attention"] ?? light["surface-attention"]!,
     noticed: base["surface-noticed"] ?? light["surface-noticed"]!,
     quiet: base["text-tertiary"] ?? light["text-tertiary"]!,
+    disabledText: base["state-disabled-text"] ?? light["state-disabled-text"]!,
     borderFocus: base["border-focus"] ?? light["border-focus"]!,
     borderAttention: base["border-attention"] ?? light["border-attention"]!,
     hairline: base["border-hairline"] ?? light["border-hairline"]!,
@@ -136,6 +144,9 @@ function paletteFor(dark: boolean): Colors {
      *  line's, and the caller picks its geometry. Same values, same two rules,
      *  spelled the way this platform can draw them. */
     shadow: dark ? "rgba(255,255,255,0.04)" : "rgba(11,11,11,0.04)",
+    shadowLift: dark
+      ? { color: "rgba(255,255,255,0.04)", offsetY: 1, radius: 0 }
+      : { color: "rgba(11,11,11,0.08)", offsetY: 4, radius: 8 },
   };
 }
 
@@ -158,6 +169,9 @@ export function useColors(): Colors {
  *  module-level constant cannot follow a theme, and this exists only for code
  *  that runs before or outside React. */
 export const COLOR = LIGHT;
+
+/** `--surface-scrim` is ink at this opacity; the soft one is half of it. */
+export const SCRIM_OPACITY = 0.32;
 
 /** A colour at an opacity, as one colour rather than a colour and an opacity.
  *

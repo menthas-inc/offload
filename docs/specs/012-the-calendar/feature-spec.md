@@ -1,6 +1,6 @@
 # 012 The calendar, feature spec
 
-**Status:** drafted 2026-09-08
+**Status:** drafted 2026-09-08. **Amended 2026-09-18 by 019**, which reshapes the model this spec settled: a calendar no longer names a thread and has no rules (AC-8), a thread picks the calendars it reads through and starts with none; whether other people see a calendar is read from Google's sharing list as a participant count, not set by the person (AC-5a), and there is no primary-calendar exception; an event is held once per calendar on the connection for the window rather than filed into a thread (AC-6, the routing half of AC-8); disconnecting deletes the copy after one confirmation and there is no separate removal (AC-12). Everything else here stands. `docs/specs/019-calendars/` is the current word on those points.
 **Surfaces:** web, iOS, Android, and the agent plane
 **Connector:** Google Calendar. Mail, Browser and Photos are their own features.
 

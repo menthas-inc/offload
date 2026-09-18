@@ -179,6 +179,13 @@
 .runFoot { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 
 .runButton {
+  /* A button and, on the connect screen, a link: centred the same way either
+     way, since an anchor has no button's centring of its own. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  text-decoration: none;
   width: 240px;
   min-height: 48px;
   border: none;
@@ -516,4 +523,21 @@
   width: 88px;
   height: 88px;
   object-fit: contain;
+}
+
+/* 019. The connect screen as a block inside Settings: the same pieces first
+   run draws, stacked and centred, in a pane rather than a page. */
+.connectBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-7);
+  padding: var(--space-8) 0 var(--space-6);
+}
+
+.connectAfter {
+  margin: 0;
+  font: var(--text-caption-role);
+  color: var(--text-tertiary);
+  text-align: center;
 }

@@ -21,13 +21,14 @@ import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { onAnswer } from "../dumps/answers.js";
 import { emit } from "../analytics.js";
-import { targetFor, undoWrite } from "../connectors/write.js";
-import { waitingFor } from "../connectors/tool-calls.js";
+import { targetFor, undoWrite, type WriteAction } from "../connectors/write.js";
+import { waitingFor, writeThroughTool } from "../connectors/tool-calls.js";
 import {
   applyAnswer,
   closeOpenQuestions,
   closeQuestion,
   closeQuestionsOfTurn,
+  landedIn,
   openQuestionIn,
   optionLabel,
   questionOnWire,
@@ -126,6 +127,9 @@ const dumpResponse = z.object({
    *  tap's own turn wears the Done mark and the pill at once rather than
    *  after a reload. Empty for the way out, which changed nothing. */
   threads: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
+  /** 019. On a calendar answer's response: the proposal the tap turned into,
+   *  when the calendar needed the person's say-so, drawn on their own turn. */
+  waiting: z.object({ id: z.string(), because: z.string() }).nullable().optional(),
 });
 
 /** The threads a turn actually wrote to.
@@ -1288,7 +1292,15 @@ export async function dumpRoutes(app: App): Promise<void> {
       schema: {
         params: z.object({ id: z.string().uuid() }),
         body: z.strictObject({ option: z.number().int().min(0).max(4) }),
-        response: { 200: dumpResponse, 401: unauthenticated, 404: notFound },
+        response: {
+          200: dumpResponse,
+          401: unauthenticated,
+          404: notFound,
+          // 019. A calendar answer's write did not go through. The question
+          // is open again and the client draws the failure line with the
+          // chips still there.
+          502: z.object({ error: z.literal("did_not_go_through") }),
+        },
       },
     },
     async (request, reply) => {
@@ -1297,6 +1309,13 @@ export async function dumpRoutes(app: App): Promise<void> {
 
       const outcome = await answerQuestion(accountId, request.params.id, request.body.option);
       if (!outcome) return reply.code(404).send({ error: "not_found" as const });
+      if ("calendar" in outcome) {
+        const answered = await answerCalendarQuestion(accountId, outcome.calendar);
+        if (!answered) return reply.code(404).send({ error: "not_found" as const });
+        if (answered.failed) return reply.code(502).send({ error: "did_not_go_through" as const });
+        request.log.info({ field: "calendar", how: "tap", applied: answered.applied }, "question answered");
+        return reply.send(answered.envelope);
+      }
       request.log.info(
         { field: outcome.field, how: "tap", applied: outcome.applied, escape: outcome.escape },
         "question answered",
@@ -1473,10 +1492,11 @@ export async function undoTurn(
   // stalled database.
   //
   // Google first, and the local row only if that succeeded, so offload and the
-  // calendar never disagree. An event Google refuses to delete keeps its row
-  // and stays in both places, which is the honest outcome: the update below
-  // deliberately excludes `source = 'calendar'`, so nothing here can leave a
-  // row deleted while the event is still on somebody's calendar.
+  // calendar never disagree. A row whose event Google refuses to delete keeps
+  // its `source_ref` and its row, and stays in both places, which is the honest
+  // outcome: the update below deliberately excludes rows still carrying a
+  // `source_ref`, so nothing here can leave a row deleted while the event is
+  // still on somebody's calendar.
   await undoCalendarWrites(accountId, turnId);
 
   return db.transaction().execute(async (trx) => {
@@ -1527,7 +1547,7 @@ export async function undoTurn(
       )
       .where("account_id", "=", accountId)
       .where("deleted_at", "is", null)
-      .where("source", "<>", "calendar")
+      .where("source_ref", "is", null)
       .execute();
 
     // Notes the turn wrote, on the same clock and by the same predicate.
@@ -1590,18 +1610,28 @@ export async function undoTurn(
  *  its row exactly where they are, and the rest of the turn still undoes. The
  *  alternative is refusing to undo a dump because Google is down. */
 async function undoCalendarWrites(accountId: string, turnId: string): Promise<void> {
-  const rows = await db
+  // Rows this turn filed and then put on a calendar, and rows a tapped answer
+  // in this turn put on one: both remember their event in `source_ref`.
+  const filed = await db
     .selectFrom("content")
     .innerJoin("messages", "messages.id", "content.derived_from_message_id")
-    .select(["content.source_ref as sourceRef", "content.attrs as attrs"])
+    .select(["content.source_ref as sourceRef"])
     .where("messages.turn_id", "=", turnId)
     .where("content.account_id", "=", accountId)
-    .where("content.source", "=", "calendar")
     .where("content.deleted_at", "is", null)
     .where("content.source_ref", "is not", null)
     .execute();
+  const answered = await db
+    .selectFrom("questions")
+    .innerJoin("content", "content.id", "questions.target_content_id")
+    .select(["content.source_ref as sourceRef"])
+    .where("questions.answer_turn_id", "=", turnId)
+    .where("questions.account_id", "=", accountId)
+    .where("questions.field", "=", "calendar")
+    .where("content.source_ref", "is not", null)
+    .execute();
 
-  for (const row of rows) {
+  for (const row of [...filed, ...answered]) {
     if (!row.sourceRef) continue;
     // `source_ref` is `<calendar external id>:<event id>`, so the calendar it
     // belongs to is the prefix.
@@ -1646,7 +1676,7 @@ export async function answerQuestion(
   field: string;
   applied: boolean;
   escape: boolean;
-} | null> {
+} | { calendar: { questionId: string; option: number; lookingAt: string | null } } | null> {
   return db.transaction().execute(async (trx) => {
     // Locked for the length of this transaction, which is ours, so two taps
     // from two devices queue here: the second reads the first's answered state
@@ -1676,6 +1706,11 @@ export async function answerQuestion(
     const turnId = randomUUID();
     const escape = picked.value === null;
     const country = question.field === "country" && !escape;
+    // 019. A calendar answer reaches Google, which cannot happen inside this
+    // transaction: it settles here and writes on its own path afterwards.
+    if (question.field === "calendar" && !escape) {
+      return { calendar: { questionId: question.id, option, lookingAt: asked?.looking_at_thread_id ?? null } };
+    }
 
     // The person's own turn, in words, exactly as typing them would be.
     const message = await trx
@@ -1756,6 +1791,251 @@ export async function answerQuestion(
       escape,
     };
   });
+}
+
+/** 019. Answer a calendar question: settle first, write outside, remember
+ *  after.
+ *
+ *  Settling first is what makes a second tap a 404 rather than a second event.
+ *  The write reaches Google and so runs outside any transaction; a failure
+ *  reopens the question, takes back the pick the tap made, and the client
+ *  draws the failure line with the chips still there. The row remembers the
+ *  event it became inside the write path itself. */
+export async function answerCalendarQuestion(
+  accountId: string,
+  input: {
+    questionId: string;
+    option: number;
+    lookingAt: string | null;
+    /** 019. A typed answer: the dump is already the person's message, so no
+     *  turn is written and the write is recorded against it. */
+    typed?: { messageId: string; turnId: string };
+  },
+): Promise<{
+  envelope: {
+    messageId: string;
+    conversationId: string;
+    state: MessageState;
+    turnId: string;
+    question: QuestionOnWire | null;
+    threads: { id: string; name: string }[];
+    waiting: { id: string; because: string } | null;
+  };
+  applied: boolean;
+  failed: boolean;
+} | null> {
+  const turnId = input.typed?.turnId ?? randomUUID();
+
+  const settled = await db.transaction().execute(async (trx) => {
+    const question = await trx
+      .selectFrom("questions")
+      .select(["id", "conversation_id", "message_id", "target_content_id", "previous_value", "state"])
+      .where("id", "=", input.questionId)
+      .where("account_id", "=", accountId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!question || question.state !== "open") return null;
+
+    const picked = await optionLabel(trx, accountId, question.id, input.option);
+    if (!picked || picked.value === null) return null;
+    const calendarId = picked.value;
+    const picksOnAnswer = (question.previous_value as { picks?: boolean } | null)?.picks === true;
+
+    // Still theirs, approved, writable, and picked in the row's thread unless
+    // the tap is the pick. A calendar un-approved since the question was asked
+    // closes it with nothing written.
+    const row = question.target_content_id
+      ? await trx
+          .selectFrom("content")
+          .select(["id", "thread_id", "title", "occurs_at", "occurs_end_at", "source_ref"])
+          .where("id", "=", question.target_content_id)
+          .where("deleted_at", "is", null)
+          .forUpdate()
+          .executeTakeFirst()
+      : undefined;
+    // Still in the thread. Somebody who left between the ask and the tap
+    // would otherwise pick their calendar into a thread they are no longer
+    // in, and nobody left could take it out.
+    const stillMember = row ? await memberOf(accountId, row.thread_id, trx) : false;
+    const calendar = await trx
+      .selectFrom("connector_calendars as c")
+      .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+      .select(["c.id as id", "c.access_role as accessRole"])
+      .where("c.id", "=", calendarId)
+      .where("c.selected", "=", true)
+      .where("n.account_id", "=", accountId)
+      .where("n.deleted_at", "is", null)
+      .where("n.state", "=", "active")
+      .executeTakeFirst();
+    const stillPicked =
+      row && calendar && !picksOnAnswer
+        ? await trx
+            .selectFrom("thread_calendars")
+            .select("calendar_id")
+            .where("thread_id", "=", row.thread_id)
+            .where("calendar_id", "=", calendarId)
+            .where("account_id", "=", accountId)
+            .executeTakeFirst()
+        : { calendar_id: calendarId };
+    const owned = await trx
+      .selectFrom("connector_calendars as c")
+      .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+      .select("c.access_role")
+      .where("c.id", "=", calendarId)
+      .where("n.account_id", "=", accountId)
+      .executeTakeFirst();
+
+    // The person's own turn, in words. A calendar somebody else owns has a
+    // name somebody else wrote, so the message is marked and the tail the
+    // prompts read never carries it as the person's words. A typed answer is
+    // already a message of theirs, and their own words.
+    const message = input.typed
+      ? { id: input.typed.messageId }
+      : await trx
+          .insertInto("messages")
+          .values({
+            conversation_id: question.conversation_id,
+            account_id: accountId,
+            role: "person",
+            type: "text",
+            turn_id: turnId,
+            text: picked.label,
+            state: "answered",
+            looking_at_thread_id: input.lookingAt,
+            derived_from_untrusted: owned?.access_role !== "owner",
+          })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+
+    const writable = calendar && (calendar.accessRole === "owner" || calendar.accessRole === "writer");
+    if (!row || !stillMember || !calendar || !writable || !stillPicked || row.source_ref || !row.occurs_at) {
+      await closeQuestion(trx, question.id, accountId, message.id);
+      return { question, message, turnId, row: null as null, calendarId, picksOnAnswer };
+    }
+
+    await trx
+      .updateTable("questions")
+      .set({
+        state: "answered",
+        settled_at: sql`now()`,
+        answered_option: input.option,
+        answered_message_id: message.id,
+        answer_turn_id: turnId,
+        previous_value: JSON.stringify({ picks: picksOnAnswer, calendar: calendarId }),
+      })
+      .where("id", "=", question.id)
+      .execute();
+    if (picksOnAnswer) {
+      await trx
+        .insertInto("thread_calendars")
+        .values({ thread_id: row.thread_id, calendar_id: calendarId, account_id: accountId })
+        .onConflict((oc) => oc.columns(["thread_id", "calendar_id"]).doNothing())
+        .execute();
+    }
+    await trx
+      .updateTable("conversations")
+      .set({ last_message_at: sql`now()` })
+      .where("id", "=", question.conversation_id)
+      .execute();
+
+    return { question, message, turnId, row, calendarId, picksOnAnswer };
+  });
+  if (!settled) return null;
+
+  const envelopeFor = async (waiting: { id: string; because: string } | null) =>
+    db.transaction().execute(async (trx) => ({
+      messageId: settled.message.id,
+      conversationId: settled.question.conversation_id,
+      state: "answered" as const,
+      turnId: settled.turnId,
+      question: await openQuestionOn(trx, accountId, settled.message.id),
+      threads: await trx
+        .selectFrom("message_threads")
+        .innerJoin("threads", "threads.id", "message_threads.thread_id")
+        .select(["threads.id as id", "threads.name as name"])
+        .where("message_threads.message_id", "=", settled.message.id)
+        .where("message_threads.landed", "=", true)
+        .execute(),
+      waiting,
+    }));
+
+  if (!settled.row) return { envelope: await envelopeFor(null), applied: false, failed: false };
+  const row = settled.row;
+
+  const write: WriteAction = {
+    action: "create",
+    draft: {
+      title: row.title,
+      startsAt: row.occurs_at as Date,
+      endsAt: row.occurs_end_at ?? new Date((row.occurs_at as Date).getTime() + 60 * 60 * 1000),
+      location: null,
+      attendees: [],
+    },
+  };
+
+  const reopen = async () => {
+    await db.transaction().execute(async (trx) => {
+      await trx
+        .updateTable("questions")
+        .set({ state: "open", settled_at: null, answered_option: null, answered_message_id: null, answer_turn_id: null })
+        .where("id", "=", settled.question.id)
+        .execute();
+      if (settled.picksOnAnswer) {
+        await trx
+          .deleteFrom("thread_calendars")
+          .where("thread_id", "=", row.thread_id)
+          .where("calendar_id", "=", settled.calendarId)
+          .where("account_id", "=", accountId)
+          .execute();
+      }
+      // The person's words came with the tap; a write that did not go
+      // through takes them back too, so the chips stay on the asking turn.
+      // Soft, as every message goes: the row was theirs. A typed answer is
+      // the dump itself and stays.
+      if (!input.typed) {
+        await trx
+          .updateTable("messages")
+          .set({ deleted_at: sql`now()` })
+          .where("id", "=", settled.message.id)
+          .execute();
+      }
+    });
+  };
+
+  let outcome: Awaited<ReturnType<typeof writeThroughTool>>;
+  try {
+    outcome = await writeThroughTool(accountId, settled.calendarId, write, settled.message.id, row.id);
+  } catch (error) {
+    // The type only (OFF-1): enough to tell a sealed-token fault from Google
+    // being down, and never the event's title.
+    console.warn(
+      JSON.stringify({
+        at: "calendar.answer",
+        outcome: "failed",
+        error_type: error instanceof Error ? error.name : typeof error,
+      })
+    );
+    await reopen();
+    return { envelope: await envelopeFor(null), applied: false, failed: true };
+  }
+  if (outcome.kind === "refused") {
+    console.warn(JSON.stringify({ at: "calendar.answer", outcome: "refused", reason: outcome.reason }));
+    await reopen();
+    return { envelope: await envelopeFor(null), applied: false, failed: true };
+  }
+
+  if (outcome.kind === "written") {
+    await db.transaction().execute(async (trx) => {
+      await landedIn(trx, settled.message.id, row.thread_id);
+    });
+    return { envelope: await envelopeFor(null), applied: true, failed: false };
+  }
+
+  return {
+    envelope: await envelopeFor({ id: outcome.pendingId, because: outcome.line }),
+    applied: true,
+    failed: false,
+  };
 }
 
 /** An option's stored value in the field's wire form. */

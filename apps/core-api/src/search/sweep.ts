@@ -89,7 +89,9 @@ const NOTES = sql<{ id: string; account_id: string | null; version: string }>`
 `;
 
 // Only settled messages. `queued` has no text worth indexing yet and `failed`
-// has nothing worth finding, and both would be re-swept forever.
+// has nothing worth finding, and both would be re-swept forever. A message
+// whose text is somebody else's words, a calendar name the person tapped, is
+// not indexed as theirs (019).
 const MESSAGES = sql<{ id: string; account_id: string | null; version: string }>`
   select m.id::text as id, m.account_id::text as account_id,
          extract(epoch from m.created_at)::bigint::text as version
@@ -97,6 +99,7 @@ const MESSAGES = sql<{ id: string; account_id: string | null; version: string }>
   where m.deleted_at is null
     and m.text is not null
     and m.state in ('seen', 'answered')
+    and not m.derived_from_untrusted
     and not exists (
       select 1 from message_chunks ch
       where ch.message_id = m.id

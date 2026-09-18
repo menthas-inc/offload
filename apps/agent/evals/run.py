@@ -200,6 +200,7 @@ _FIXTURE_KEYS = {
     "answered",
     "country_override",
     "calendar_waits",
+    "calendar_write",
     "lookup_result",
     "landed",
     "pieces",
@@ -363,6 +364,8 @@ class Recorder:
         #: run here on the same record.
         self.budget = Lookups(dump, may_search=True, may_read_links=True)
         self.filed_ids = 0
+        self.content_timed: dict[str, bool] = {}
+        self.refused_time_once = False
         #: Title of every row this turn added, by the id handed back, so an
         #: edit naming that id can be read as the title's final state.
         self.content_titles: dict[str, str] = {}
@@ -392,11 +395,14 @@ class Recorder:
             return self._look_up(args)
         if tool == "account_facts":
             return {"ok": True, "facts": fx.get("facts") or {}}
+        # 019. The scope is the server's, so the stub answers with every
+        # calendar the fixture lists and marks none as somebody else's unless
+        # the fixture says so; the model never names a calendar.
         if tool == "list_calendars":
             cals = fx.get("calendars")
             if cals is None:
                 cals = [
-                    {"name": c.get("name"), "writable": True, "shared": False}
+                    {"name": c.get("name"), "writable": True}
                     for c in (fx.get("facts") or {}).get("calendars", [])
                 ]
             return {
@@ -406,26 +412,45 @@ class Recorder:
                         "calendarId": c.get("calendarId", f"cal-{i}"),
                         "name": c.get("name"),
                         "writable": c.get("writable", True),
-                        "shared": c.get("shared", False),
+                        "yours": c.get("yours", True),
                     }
                     for i, c in enumerate(cals)
                 ],
             }
         if tool == "find_events":
-            wanted = str(args.get("calendar_id") or "")
             return {
                 "ok": True,
                 "events": [
-                    {k: v for k, v in e.items() if k != "calendarId"}
+                    {
+                        **{k: v for k, v in e.items() if k != "calendarId"},
+                        "untrusted": e.get("untrusted", False),
+                    }
                     for e in fx.get("events") or []
-                    if not e.get("calendarId") or e["calendarId"] == wanted
                 ],
             }
-        if tool in {"create_event", "edit_event", "delete_event"}:
-            wanted = str(args.get("calendar_id") or "")
-            for c in fx.get("calendars") or []:
-                if c.get("calendarId") == wanted and c.get("writable") is False:
-                    return {"ok": False, "error": "read_only"}
+        if tool == "create_event":
+            # The row's thread decides. `calendar_write` in a fixture says what
+            # the server would say: written (the default), asked, noCalendar.
+            if not str(args.get("content_id") or "").startswith("c"):
+                return {"ok": False, "error": "unknown_content"}
+            if not self.content_timed.get(str(args.get("content_id"))):
+                return {"ok": False, "error": "no_time"}
+            # `no_time_once`: the first create is refused whatever the row
+            # holds, so the case can see the model fix the same row rather
+            # than file another.
+            if fx.get("calendar_write") == "no_time_once" and not self.refused_time_once:
+                self.refused_time_once = True
+                return {"ok": False, "error": "no_time"}
+            because = fx.get("calendar_waits")
+            if because:
+                return {"ok": True, "waitingForThem": True, "because": because}
+            outcome = fx.get("calendar_write") or "written"
+            if outcome == "asked":
+                return {"ok": True, "asked": True}
+            if outcome == "noCalendar":
+                return {"ok": True, "noCalendar": True}
+            return {"ok": True, "written": True, "sourceRef": "evt-1"}
+        if tool in {"edit_event", "delete_event"}:
             because = fx.get("calendar_waits")
             if because:
                 return {"ok": True, "waitingForThem": True, "because": because}
@@ -471,9 +496,15 @@ class Recorder:
             if tool == "add_content":
                 out["contentId"] = f"c{self.filed_ids}"
                 self.content_titles[out["contentId"]] = str(args.get("title") or "")
+                # 019. Whether the row has a time, which `create_event` checks
+                # as the server does: a stub that wrote any row to a calendar
+                # could not see a row filed without one and filed again.
+                self.content_timed[out["contentId"]] = bool(args.get("occurs_at"))
             else:
                 out["noteId"] = f"n{self.filed_ids}"
             return out
+        if tool == "edit_content" and args.get("occurs_at"):
+            self.content_timed[str(args.get("content_id"))] = True
         if tool in {
             "edit_content",
             "move_content",
@@ -1244,6 +1275,12 @@ async def _run_quick_add(client: AsyncAnthropic, case: Case, model: str) -> Resu
             failures.append(f"added to another thread: {args.get('thread_id')}")
         if tool == "edit_content" and str(args.get("content_id")) != ctx.content_id:
             failures.append(f"edited a row it was not given: {args.get('content_id')}")
+        # 019 gave edit_content a time for the filing turn; a quick add still
+        # leaves the day it arrived with alone, and sends none of its own.
+        if tool == "edit_content" and any(
+            args.get(k) for k in ("due_at", "occurs_at", "occurs_end_at")
+        ):
+            failures.append("set a date on a quick add, which keeps the day it arrived with")
         if tool not in {"edit_content", "add_content"}:
             failures.append(f"called {tool}, which a quick add cannot")
         for key in ("title", "body"):

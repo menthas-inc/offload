@@ -53,7 +53,9 @@ import {
   setArchived,
   setPreference,
 } from "./threads.js";
-import { findEvents, listCalendarsFor, writeThroughTool } from "../connectors/tool-calls.js";
+import { calendarOfEvent, findEvents, summarise, writeThroughTool } from "../connectors/tool-calls.js";
+import { approvedWritable, turnScope, writablePicks } from "../threads/calendars.js";
+import { raiseCalendarQuestion } from "../questions.js";
 import type { WriteAction } from "../connectors/write.js";
 
 /** The only string that ever leaves for a geocoder.
@@ -261,6 +263,13 @@ const body = z.discriminatedUnion("tool", [
       .nullish(),
     tags: z.array(z.string().max(TAG_CHARS)).max(MAX_TAGS).nullish(),
     priority: z.number().int().min(0).max(100).nullish(),
+    /** 019. The same three as `add_content`, so a row filed without a time
+     *  can be given one. On a device the model, refused `no_time` by
+     *  `create_event`, filed the row a second time with the time on it and
+     *  left the first behind: there was no tool that put a time on a row. */
+    dueAt: z.string().max(40).nullish(),
+    occursAt: z.string().max(40).nullish(),
+    occursEndAt: z.string().max(40).nullish(),
   }),
   z.strictObject({
     tool: z.literal("move_content"),
@@ -324,11 +333,12 @@ const body = z.discriminatedUnion("tool", [
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
   }),
+  // 019. No calendar id on any of these: the turn's scope decides what is
+  // read, and the row's thread decides where a write goes.
   z.strictObject({
     tool: z.literal("find_events"),
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
-    calendarId: z.string().uuid(),
     fromIso: z.string().min(1).max(40),
     toIso: z.string().min(1).max(40),
   }),
@@ -336,10 +346,8 @@ const body = z.discriminatedUnion("tool", [
     tool: z.literal("create_event"),
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
-    calendarId: z.string().uuid(),
-    title: z.string().min(1).max(200),
-    startsAt: z.string().min(1).max(40),
-    endsAt: z.string().min(1).max(40),
+    /** The row going on the calendar. Its title and times are the event's. */
+    contentId: z.string().uuid(),
     location: z.string().max(200).nullish(),
     guests: z.array(z.string().max(320)).max(50).nullish(),
   }),
@@ -347,7 +355,6 @@ const body = z.discriminatedUnion("tool", [
     tool: z.literal("edit_event"),
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
-    calendarId: z.string().uuid(),
     sourceRef: z.string().min(1).max(400),
     title: z.string().max(200).nullish(),
     startsAt: z.string().max(40).nullish(),
@@ -359,7 +366,6 @@ const body = z.discriminatedUnion("tool", [
     tool: z.literal("delete_event"),
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
-    calendarId: z.string().uuid(),
     sourceRef: z.string().min(1).max(400),
     scope: z.enum(["one", "following"]).default("one"),
   }),
@@ -483,7 +489,7 @@ const result = z.union([
     facts: z.object({
       displayName: z.string().nullable(),
       defaultThread: z.object({ id: z.string(), name: z.string() }).nullable(),
-      calendars: z.array(z.object({ name: z.string(), filesInto: z.string().nullable() })),
+      calendars: z.array(z.object({ name: z.string() })),
       // Stated rather than omitted. The model is told there is nothing to know
       // here, so it answers "I do not know that" instead of guessing.
       knowsDevicePreferences: z.literal(false),
@@ -497,20 +503,30 @@ const result = z.union([
         calendarId: z.string(),
         name: z.string(),
         writable: z.boolean(),
-        shared: z.boolean(),
+        yours: z.boolean(),
       })
     ),
   }),
   z.object({
     ok: z.literal(true),
     events: z.array(
-      z.object({ sourceRef: z.string(), title: z.string(), startsAt: z.string().nullable() })
+      z.object({
+        sourceRef: z.string(),
+        title: z.string(),
+        startsAt: z.string().nullable(),
+        untrusted: z.boolean(),
+      })
     ),
   }),
   z.object({ ok: z.literal(true), written: z.literal(true), sourceRef: z.string().nullable() }),
   /** offload did nothing and is waiting for them. `because` names who finds
    *  out, so the model can say it in its own words. */
   z.object({ ok: z.literal(true), waitingForThem: z.literal(true), because: z.string() }),
+  /** 019. The row's thread has several calendars, or none yet: offload asked
+   *  which, in the conversation. The model says nothing about it. */
+  z.object({ ok: z.literal(true), asked: z.literal(true) }),
+  /** 019. Nothing approved to write to. The row stays a row; nothing is said. */
+  z.object({ ok: z.literal(true), noCalendar: z.literal(true) }),
   z.object({
     ok: z.literal(false),
     error: z.enum([
@@ -528,6 +544,11 @@ const result = z.union([
       // The person took access away in their Google account. Permanent, so the
       // model says to reconnect rather than the loop retrying into a wall.
       "needs_reconnect",
+      // 019. A row already on a calendar, one with no time on it, and an event
+      // that is not on one of the account's own calendars.
+      "already_on_calendar",
+      "no_time",
+      "unknown_event",
     ]),
   }),
 ]);
@@ -596,17 +617,19 @@ type Outcome =
       facts: {
         displayName: string | null;
         defaultThread: { id: string; name: string } | null;
-        calendars: { name: string; filesInto: string | null }[];
+        calendars: { name: string }[];
         knowsDevicePreferences: false;
       };
     }
   | { ok: true; done: true }
   /** 012. What the model is told about a calendar write: that it happened, or
    *  that a person has to agree first and why. Never a choice it makes. */
-  | { ok: true; calendars: { calendarId: string; name: string; writable: boolean; shared: boolean }[] }
-  | { ok: true; events: { sourceRef: string; title: string; startsAt: string | null }[] }
+  | { ok: true; calendars: { calendarId: string; name: string; writable: boolean; yours: boolean }[] }
+  | { ok: true; events: { sourceRef: string; title: string; startsAt: string | null; untrusted: boolean }[] }
   | { ok: true; written: true; sourceRef: string | null }
   | { ok: true; waitingForThem: true; because: string }
+  | { ok: true; asked: true }
+  | { ok: true; noCalendar: true }
   | {
       ok: false;
       error:
@@ -619,6 +642,9 @@ type Outcome =
         | "unknown_calendar"
         | "read_only"
         | "needs_reconnect"
+        | "already_on_calendar"
+        | "no_time"
+        | "unknown_event"
         | "bad_date"
         | "thread_memory_full";
     };
@@ -684,6 +710,18 @@ async function jobContext(jobId: string): Promise<JobContext | null> {
  *  "has this turn read a calendar" has to be written down somewhere and the
  *  job is the row that already carries what a turn is.
  */
+/** The thread on screen when this was dumped, membership checked at the time
+ *  and re-checked by every read that scopes on it. Null from Today. */
+async function lookingAt(messageId: string | null, trx: Executor): Promise<string | null> {
+  if (!messageId) return null;
+  const row = await trx
+    .selectFrom("messages")
+    .select("looking_at_thread_id")
+    .where("id", "=", messageId)
+    .executeTakeFirst();
+  return row?.looking_at_thread_id ?? null;
+}
+
 async function markSawApps(jobId: string): Promise<void> {
   await db
     .updateTable("jobs")
@@ -824,6 +862,10 @@ async function existing(
   /** Whether this turn has read a connected app before now. Everything it
    *  writes afterwards is marked untrusted: see `jobContext`. */
   sawApps: boolean,
+  /** 019. The thread whose picks scope the calendar reads: the one on screen
+   *  when the dump was made, or the pinned one for a quick add. Null from
+   *  Today, where every approved calendar is in scope. */
+  scopeThreadId: string | null,
 ): Promise<Outcome> {
   if (call.tool === "rename_thread") {
     await requireMember(accountId, call.threadId, trx);
@@ -1010,52 +1052,96 @@ async function existing(
   // stalled database.
   if (call.tool === "list_calendars") {
     await markSawApps(call.jobId);
-    return { ok: true, calendars: await listCalendarsFor(accountId) };
+    return { ok: true, calendars: summarise(await turnScope(accountId, scopeThreadId)) };
   }
 
   if (call.tool === "find_events") {
     await markSawApps(call.jobId);
-    const found = await findEvents(
-      accountId,
-      call.calendarId,
-      new Date(call.fromIso),
-      new Date(call.toIso)
-    );
-    if (found === "needs_reconnect") return { ok: false, error: "needs_reconnect" };
+    const found = await findEvents(await turnScope(accountId, scopeThreadId), new Date(call.fromIso), new Date(call.toIso));
     return {
       ok: true,
-      events: found.map((e) => ({ sourceRef: e.sourceRef, title: e.title, startsAt: e.startsAt })),
+      events: found.map((e) => ({ sourceRef: e.sourceRef, title: e.title, startsAt: e.startsAt, untrusted: e.untrusted })),
     };
   }
 
-  if (call.tool === "create_event" || call.tool === "edit_event" || call.tool === "delete_event") {
+  if (call.tool === "create_event") {
+    // 019. The row going on the calendar, and its thread decides which one.
+    // **The row has to be this account's own**: a row on a calendar is changed
+    // there only by its author, and putting another member's row on your
+    // calendar would give it an event only you could take back.
+    const row = await readableContent(accountId, call.contentId, trx);
+    if (!row || row.authorId !== accountId) return { ok: false, error: "unknown_content" };
+    const detail = await trx
+      .selectFrom("content")
+      .select(["title", "occurs_at", "occurs_end_at", "source_ref", "derived_from_message_id"])
+      .where("id", "=", row.id)
+      .executeTakeFirstOrThrow();
+    // And filed by this turn, or typed straight into the thread the quick add
+    // is pinned to: a question raised on a row from another turn would hang
+    // off a message it has nothing to do with.
+    if (messageId ? detail.derived_from_message_id !== messageId : row.threadId !== scopeThreadId) {
+      return { ok: false, error: "unknown_content" };
+    }
+    if (detail.source_ref) return { ok: false, error: "already_on_calendar" };
+    if (!detail.occurs_at) return { ok: false, error: "no_time" };
+
+    const write: WriteAction = {
+      action: "create",
+      draft: {
+        title: detail.title,
+        startsAt: detail.occurs_at,
+        endsAt: detail.occurs_end_at ?? new Date(detail.occurs_at.getTime() + 60 * 60 * 1000),
+        location: call.location ?? null,
+        attendees: call.guests ?? [],
+      },
+    };
+
+    const picks = await writablePicks(accountId, row.threadId, trx);
+    if (picks.length === 1) {
+      const outcome = await writeThroughTool(accountId, picks[0]!.id, write, messageId, row.id);
+      if (outcome.kind === "refused") return { ok: false, error: outcome.reason };
+      if (outcome.kind === "written") return { ok: true, written: true, sourceRef: outcome.sourceRef };
+      return { ok: true, waitingForThem: true, because: outcome.line };
+    }
+
+    // Several, or none yet while the account has approved a writable calendar:
+    // offload asks which, in the conversation, and the model says nothing.
+    // The tap picks the calendar for the thread when the thread had none.
+    // A quick add has no conversation to ask in, so the row stays where it is.
+    const offered = picks.length > 1 ? picks : await approvedWritable(accountId, trx);
+    if (offered.length === 0) return { ok: true, noCalendar: true };
+    if (!messageId) return { ok: true, noCalendar: true };
+    const raised = await raiseCalendarQuestion(trx, {
+      accountId,
+      messageId,
+      contentId: row.id,
+      title: detail.title,
+      calendars: offered.slice(0, 4),
+      picksOnAnswer: picks.length === 0,
+      sawApps,
+    });
+    return raised ? { ok: true, asked: true } : { ok: true, noCalendar: true };
+  }
+
+  if (call.tool === "edit_event" || call.tool === "delete_event") {
+    const calendarId = await calendarOfEvent(accountId, call.sourceRef);
+    if (!calendarId) return { ok: false, error: "unknown_event" };
     const write: WriteAction =
-      call.tool === "create_event"
+      call.tool === "edit_event"
         ? {
-            action: "create",
-            draft: {
-              title: call.title,
-              startsAt: new Date(call.startsAt),
-              endsAt: new Date(call.endsAt),
-              location: call.location ?? null,
-              attendees: call.guests ?? [],
+            action: "edit",
+            sourceRef: call.sourceRef,
+            scope: call.scope,
+            patch: {
+              ...(call.title == null ? {} : { title: call.title }),
+              ...(call.startsAt == null ? {} : { startsAt: new Date(call.startsAt) }),
+              ...(call.endsAt == null ? {} : { endsAt: new Date(call.endsAt) }),
+              ...(call.location == null ? {} : { location: call.location }),
             },
           }
-        : call.tool === "edit_event"
-          ? {
-              action: "edit",
-              sourceRef: call.sourceRef,
-              scope: call.scope,
-              patch: {
-                ...(call.title == null ? {} : { title: call.title }),
-                ...(call.startsAt == null ? {} : { startsAt: new Date(call.startsAt) }),
-                ...(call.endsAt == null ? {} : { endsAt: new Date(call.endsAt) }),
-                ...(call.location == null ? {} : { location: call.location }),
-              },
-            }
-          : { action: "delete", sourceRef: call.sourceRef, scope: call.scope };
+        : { action: "delete", sourceRef: call.sourceRef, scope: call.scope };
 
-    const outcome = await writeThroughTool(accountId, call.calendarId, write, messageId);
+    const outcome = await writeThroughTool(accountId, calendarId, write, messageId);
     if (outcome.kind === "refused") return { ok: false, error: outcome.reason };
     if (outcome.kind === "written") return { ok: true, written: true, sourceRef: outcome.sourceRef };
     // Nothing has reached Google. The model says what it is waiting for; it
@@ -1140,6 +1226,21 @@ async function existing(
       throw error;
     }
   }
+  // A time given here is written as add_content would write it: the same
+  // parse, the same refusal, and a bare date is a day. A row already on a
+  // calendar keeps its time: that change goes through `edit_event`, which
+  // is the one that reaches Google.
+  const when = parseDates(call);
+  if (when === null) return { ok: false, error: "bad_date" };
+  const timed = call.dueAt != null || call.occursAt != null || call.occursEndAt != null;
+  if (timed) {
+    const onCalendar = await trx
+      .selectFrom("content")
+      .select("source_ref")
+      .where("id", "=", ref.id)
+      .executeTakeFirst();
+    if (onCalendar?.source_ref) return { ok: false, error: "already_on_calendar" };
+  }
 
   await trx
     .updateTable("content")
@@ -1149,6 +1250,10 @@ async function existing(
       ...(call.url === undefined ? {} : { url: call.url }),
       ...(call.imageUrl === undefined ? {} : { image_url: call.imageUrl }),
       ...(tags === undefined ? {} : { tags }),
+      ...(call.dueAt == null ? {} : { due_at: when.dueAt }),
+      ...(call.occursAt == null ? {} : { occurs_at: when.occursAt }),
+      ...(call.occursEndAt == null ? {} : { occurs_end_at: when.occursEndAt }),
+      ...(call.occursAt == null ? {} : { attrs: sql`attrs || ${JSON.stringify(allDayAttrs(call) ?? { all_day: false })}::jsonb` }),
       // A priority a person pinned is not the planner's to change. The write
       // is simply skipped rather than refused: the model asked for something
       // reasonable and the answer is that somebody already decided.
@@ -1306,7 +1411,9 @@ export async function toolRoutes(app: App): Promise<void> {
         // take a content id rather than a thread, and four of them delegate to
         // the functions the thread page already uses, so the rule the screen
         // enforces and the rule the model gets are the same rule.
-        if (call.tool !== "add_content") return existing(call, accountId, trx, messageId, sawApps);
+        if (call.tool !== "add_content") {
+          return existing(call, accountId, trx, messageId, sawApps, pinned ?? (await lookingAt(messageId, trx)));
+        }
 
         // add_content.
         //

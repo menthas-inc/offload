@@ -146,9 +146,16 @@ _LANDED = text(
 # The tail, newest first, then reversed by the caller. Reading the whole
 # conversation and slicing in Python would pull 40,000 rows on a heavy account
 # to use twenty of them.
+# 019. A message written for a tapped answer whose label was a calendar
+# somebody else named carries `derived_from_untrusted`, and what the prompt
+# reads of it is that they picked a shared calendar, never the words its owner
+# chose. The client draws the real text; the prompt does not.
 _TURNS = text(
     """
-    select role, text
+    select role,
+           case when derived_from_untrusted
+                then '(picked a calendar shared with them)'
+                else text end as text
     from messages
     where conversation_id = :conversation_id
       and account_id = :account_id
@@ -470,6 +477,11 @@ _MAY_REACH = text(
     """
 )
 
+# 019. Any approved calendar on the account. The tools are sent whenever there
+# is one: in a thread they read through the calendars it picked, which may be
+# none, and a write from a thread with none is what raises the question that
+# picks one. From Today every approved calendar is in reach. Scoping the tools
+# to the thread's picks would leave a thread with none unable to ask.
 _HAS_CALENDAR = text(
     """
     select 1
@@ -634,7 +646,6 @@ async def load_answer(
     if default_row is not None and not any(t.is_default for t in threads):
         threads.append(Thread(id=default_id, name=default_row.name, is_default=True))
 
-    calendar = await conn.execute(_HAS_CALENDAR, {"account_id": account_id})
     switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
     today = (await conn.execute(_TODAY)).scalar_one()
 
@@ -675,6 +686,8 @@ async def load_answer(
                 )
             ).all()
             looking_at_notes = [n.text for n in reversed(note_rows) if n.theirs]
+
+    calendar = await conn.execute(_HAS_CALENDAR, {"account_id": account_id})
 
     return AnswerContext(
         question=question,

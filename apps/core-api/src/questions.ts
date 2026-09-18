@@ -7,7 +7,7 @@
 // exactly one row from exactly one of those values.
 
 import { z } from "zod";
-import { sql, type Transaction } from "kysely";
+import { sql, type Kysely, type Transaction } from "kysely";
 import { db } from "./db.js";
 import type { Database } from "./schema.js";
 import { normaliseTags, BadTags, MAX_TAGS } from "./threads/tags.js";
@@ -15,8 +15,14 @@ import { COUNTRIES, isCountry } from "./countries.js";
 import { touchThread } from "./threads/access.js";
 
 type Trx = Transaction<Database>;
+/** For the two writers that may run inside a caller's transaction or on the
+ *  pool: the tool route raises a calendar question from whichever it holds. */
+type Writer = Trx | Kysely<Database>;
 
-export const FIELDS = ["date", "span", "time", "tag", "country"] as const;
+/** 019 added `calendar`: which of the person's calendars a row goes on. Raised
+ *  by the server from inside a calendar write, never by the model's `ask`, and
+ *  applied through 012's write path rather than by filling a field. */
+export const FIELDS = ["date", "span", "time", "tag", "country", "calendar"] as const;
 export type Field = (typeof FIELDS)[number];
 
 /** The way out, on every question. An answer, not a dismissal. */
@@ -86,6 +92,8 @@ export function renderText(field: Field, title: string, dimension?: string): str
       return `Filed "${name}". Which ${dimension ?? "tag"}?`;
     case "country":
       return "For which country?";
+    case "calendar":
+      return `Filed "${name}". Which calendar?`;
   }
 }
 
@@ -99,6 +107,7 @@ function clip(text: string, max: number): string {
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ISO = /^[A-Z]{2}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** A value in the field's wire form, or null. Shape and sense only: a day is a
  *  day, a span is in order, a clock exists. Membership among the options is
@@ -139,6 +148,10 @@ export function parseValue(field: Field, raw: unknown): Record<string, string> |
       const country = str("country")?.toUpperCase() ?? null;
       return country && ISO.test(country) ? { country } : null;
     }
+    case "calendar": {
+      const calendar = str("calendar")?.toLowerCase() ?? null;
+      return calendar && UUID.test(calendar) ? { calendar } : null;
+    }
   }
 }
 
@@ -167,6 +180,8 @@ export function optionValue(field: Field, value: string): Record<string, string>
       return parseValue(field, { tag: value });
     case "country":
       return parseValue(field, { country: value });
+    case "calendar":
+      return parseValue(field, { calendar: value });
   }
 }
 
@@ -223,6 +238,10 @@ export function labelFor(field: Field, value: string): string {
       const name = COUNTRIES.find((c) => c.code === code)?.name ?? code;
       return name.length <= OPTION_LABEL_CHARS ? name : code;
     }
+    case "calendar":
+      // Worded from the calendar row by `raiseCalendarQuestion`, the one
+      // label not derived from its value by arithmetic. Never reached.
+      return value;
   }
 }
 
@@ -277,6 +296,8 @@ export async function validateAsked(
   const seen = new Set<string>();
   for (const q of asked) {
     if (ctx.answering !== (q.field === "country")) return { ok: false, reason: "wrong_path", field: q.field };
+    // 019. Only the server raises a calendar question, from inside a write.
+    if (q.field === "calendar") return { ok: false, reason: "wrong_path", field: q.field };
 
     let targetContentId: string | null = null;
     let targetNoteId: string | null = null;
@@ -363,7 +384,7 @@ export async function validateAsked(
  *  the thread's pill, and the open panes reload: the turn filed nothing, and
  *  without this a typed "Friday at 10" settled with nothing on screen to say
  *  it had landed. */
-async function landedIn(trx: Trx, messageId: string | null, threadId: string): Promise<void> {
+export async function landedIn(trx: Trx, messageId: string | null, threadId: string): Promise<void> {
   if (!messageId) return;
   await trx
     .insertInto("message_threads")
@@ -385,6 +406,8 @@ function storedForm(field: Field, parsed: Record<string, string>): string {
       return parsed["tag"]!;
     case "country":
       return parsed["country"]!;
+    case "calendar":
+      return parsed["calendar"]!;
   }
 }
 
@@ -435,6 +458,7 @@ async function forbidden(trx: Trx, threadId: string, accountId: string, field: F
     time: ["time", "times", "when"],
     tag: ["tag", "tags", "genre", "city", "room"],
     country: ["country"],
+    calendar: ["calendar", "calendars"],
   };
   const notes = await ownNotes(trx, threadId, accountId);
   return notes.some((note) => {
@@ -443,10 +467,87 @@ async function forbidden(trx: Trx, threadId: string, accountId: string, field: F
   });
 }
 
+// ---------------------------------------------------------------- the calendar question
+
+/** 019. Which of the person's calendars a row goes on, raised by the server
+ *  from inside `create_event` when the row's thread has several writable
+ *  calendars picked, or none yet while the account has approved some.
+ *
+ *  **The label is a calendar's name**, the one label here not worded from its
+ *  value: the person's own for a calendar they own, somebody else's words for
+ *  one shared with them, which is why the question and the answer's message
+ *  are marked untrusted in that case. The value is the calendar's id. */
+export async function raiseCalendarQuestion(
+  trx: Writer,
+  input: {
+    accountId: string;
+    messageId: string;
+    contentId: string;
+    title: string;
+    calendars: Array<{ id: string; name: string; owned: boolean }>;
+    /** The thread had no calendar: the tap picks the one chosen for it. */
+    picksOnAnswer: boolean;
+    /** The turn has read a connected app, so the title it quotes may have a
+     *  stranger's words in it. The taint is per turn, as 008 has it. */
+    sawApps: boolean;
+  },
+): Promise<boolean> {
+  const message = await trx
+    .selectFrom("messages")
+    .select(["conversation_id", "turn_id"])
+    .where("id", "=", input.messageId)
+    .where("account_id", "=", input.accountId)
+    .executeTakeFirst();
+  if (!message) return false;
+
+  const options: StoredOption[] = [];
+  for (const calendar of input.calendars.slice(0, MAX_VALUES)) {
+    const value = calendar.id.toLowerCase();
+    if (!UUID.test(value) || options.some((o) => o.value === value)) continue;
+    options.push({ label: clip(calendar.name, OPTION_LABEL_CHARS), value });
+  }
+  if (options.length === 0) return false;
+  options.push({ label: ESCAPE_LABEL, value: null });
+
+  const text = renderText("calendar", input.title);
+  await storeQuestions(
+    trx,
+    [{ field: "calendar", text, options, targetContentId: input.contentId, targetNoteId: null }],
+    {
+      accountId: input.accountId,
+      conversationId: message.conversation_id,
+      messageId: input.messageId,
+      turnId: message.turn_id,
+      derivedFromUntrusted: input.sawApps || input.calendars.some((calendar) => !calendar.owned),
+    },
+  );
+  if (input.picksOnAnswer) {
+    await trx
+      .updateTable("questions")
+      .set({ previous_value: JSON.stringify({ picks: true }) })
+      .where("turn_id", "=", message.turn_id)
+      .where("field", "=", "calendar")
+      .execute();
+  }
+  return true;
+}
+
+/** A typed answer to a calendar question: the text, trimmed and lowercased,
+ *  equal to or a prefix of exactly one offered label. No model. Anything else
+ *  is null, and the caller closes the question. */
+export function matchCalendarLabel(text: string, options: StoredOption[]): number | null {
+  const typed = text.trim().toLowerCase();
+  if (!typed) return null;
+  const hits = options
+    .map((option, index) => ({ option, index }))
+    .filter(({ option }) => option.value !== null && option.label.toLowerCase().startsWith(typed));
+  return hits.length === 1 ? hits[0]!.index : null;
+}
+
 // ---------------------------------------------------------------- store
 
 export async function storeQuestions(
-  trx: Trx,
+  trx: Writer,
   rows: Validated[],
   ctx: {
     accountId: string;
@@ -631,6 +732,9 @@ export async function applyAnswer(
   if (!q) return { applied: false, reason: "not_open" };
 
   const field = q.field as Field;
+  // 019. A calendar answer reaches Google and cannot run inside this
+  // transaction; the answer route handles it on its own path.
+  if (field === "calendar") return { applied: false, reason: "bad_value" };
   const parsed = parseValue(field, value);
   if (!parsed) return { applied: false, reason: "bad_value" };
   // A tag or a country is one of the values offered, checked here as well as
@@ -751,6 +855,7 @@ function contentPatch(
       return { tags: [...row.tags, tag] };
     }
     case "country":
+    case "calendar":
       return null;
   }
 }
@@ -785,6 +890,25 @@ export async function restoreAnswers(trx: Trx, accountId: string, answerTurnId: 
   for (const q of rows) {
     const previous = (q.previous_value ?? null) as Record<string, unknown> | null;
     if (!previous) continue;
+    // 019. A calendar answer's write was taken back at Google before this
+    // transaction, which cleared the row's `source_ref`; what is left to undo
+    // is the pick the tap made for the thread, if it made one.
+    if (previous["picks"] === true && q.target_content_id) {
+      const row = await trx
+        .selectFrom("content")
+        .select(["thread_id", "source_ref"])
+        .where("id", "=", q.target_content_id)
+        .executeTakeFirst();
+      if (row && row.source_ref === null) {
+        await trx
+          .deleteFrom("thread_calendars")
+          .where("thread_id", "=", row.thread_id)
+          .where("account_id", "=", accountId)
+          .where("calendar_id", "=", previous["calendar"] as string)
+          .execute();
+      }
+      continue;
+    }
     const back = {
       due_at: (previous["due_at"] as string | null) ?? null,
       occurs_at: (previous["occurs_at"] as string | null) ?? null,
