@@ -659,9 +659,9 @@ export function ConversationProvider({
         setLine({ text: "Did not send.", retry: true });
         return;
       }
-      setDraft("");
-      // Only what went: a photo added while the send was out stays for the
-      // next one.
+      // Only what went: words typed and a photo added while the send was
+      // out stay for the next one.
+      setDraft((current) => (current.trim() === text ? "" : current));
       const went = new Set(sendable.map((photo) => photo.key));
       setPhotos((current) => current.filter((photo) => !went.has(photo.key)));
       draftKey.current = null;

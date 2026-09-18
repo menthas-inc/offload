@@ -50,6 +50,7 @@ import { ContentRowView } from "../shell/ContentRow";
 import { NotesSection } from "../shell/Notes";
 import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "../shell/PhotoViewer";
+import { forgetRendition } from "../shell/PhotoThumb";
 import { MoveSheet } from "../shell/MoveSheet";
 import { CalendarsSheet, calendarsLabel } from "../shell/CalendarsSheet";
 import { ToastHost, useToast } from "../shell/Toast";
@@ -192,6 +193,8 @@ export default function Thread() {
 
   async function remove(row: ContentRow): Promise<void> {
     if (!(await deleteContent(row.id))) return;
+    // 020. The device's copy goes with the row.
+    if (row.photo) forgetRendition(row.photo.blobId);
     setViewing(null);
     await load();
     // Never the row's title: a toast is a few words and a title is not.

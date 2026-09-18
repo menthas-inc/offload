@@ -32,7 +32,11 @@ export function ShareArrival() {
     if (files.length > 0) {
       addPhotos(
         files.map((file) => ({
-          uri: file.path,
+          // The library hands over a bare path on Android, and the runtime's
+          // FormData wants a uri with a scheme: a path with none fails the
+          // upload as a network error, which is what the first share on a
+          // Pixel did.
+          uri: /^[a-z]+:\/\//.test(file.path) ? file.path : `file://${file.path}`,
           name: file.fileName || null,
           type: file.mimeType || null,
           size: file.size,

@@ -337,6 +337,31 @@
         "call_count": { "add_content": 4 },
         "asks": "none"
       }
+    },
+    {
+      "id": "same-photo-twice-is-two-rows",
+      "why": "a picture the thread already holds is still a row: they sent it again, and a spare row is one tap to delete where a photo that never landed is gone. Seen on a phone on 2026-09-19: the second send read the thread, found the first, and stopped with nothing filed",
+      "surface": "file",
+      "input": "",
+      "context": "behrooz",
+      "photos": ["beach.jpg"],
+      "looking_at": "00000015-0000-0000-0000-000000000000",
+      "rows": [
+        {
+          "id": "00000015-0000-0000-0000-00000000c001",
+          "threadId": "00000015-0000-0000-0000-000000000000",
+          "threadName": "Porto weekend",
+          "title": "Photo of the beach from the Porto trip",
+          "body": "Kept as a photo from the Porto trip. A plain shot of the beach, no writing or other detail visible.",
+          "type": "image",
+          "tags": []
+        }
+      ],
+      "expect": {
+        "filed": [{ "tool": "add_content", "type": "image", "photo": 1, "thread": "Porto weekend" }],
+        "asks": "none",
+        "say": null
+      }
     }
   ]
 }

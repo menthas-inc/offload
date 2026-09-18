@@ -7,7 +7,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Platform, Pressable, Text, TextInput, View } from "react-native";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glyph } from "../Glyph";
 import { atOpacity, useColors } from "../../lib/colors";
@@ -53,6 +54,9 @@ export function MoveSheet({
       .filter((thread) => !needle || thread.name.toLowerCase().includes(needle));
   }, [threads, query, exceptThreadId]);
 
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
+
   if (!open) return null;
 
   return (
@@ -65,11 +69,15 @@ export function MoveSheet({
       >
         <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
       </Animated.View>
+      {/* Lifted by the keyboard, which the search field raises on open: this
+          app is edge to edge, Android ignores adjustResize, and a sheet
+          anchored to the bottom sat entirely under the keyboard on a Pixel,
+          which is the waitlist form's own lesson. The same lift Notes uses. */}
       <Animated.View
         entering={SlideInDown.duration(260)}
         exiting={SlideOutDown.duration(200)}
         className={`absolute inset-x-0 bottom-0 rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
-        style={{ maxHeight: "70%", paddingBottom: insets.bottom }}
+        style={[{ maxHeight: "70%", paddingBottom: insets.bottom }, lift]}
         accessibilityViewIsModal
       >
         <View className="flex-row items-center gap-space-3 border-b border-border-hairline px-gutter-screen" style={{ height: 52 }}>

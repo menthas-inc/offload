@@ -99,6 +99,12 @@ export function Composer({
   // question, then whatever the screen asked for, then the cycling set.
   const asked = !pin && openQuestion ? invitation(openQuestion) : null;
   const [height, setHeight] = useState(0);
+  // The height of one line, as this platform reports it: Android counts the
+  // field's padding into `contentSize` and iOS does not, so "taller than one
+  // line" is measured against the first height seen rather than a number.
+  // Before 020 a wrong answer here only rounded the corners; now it opens
+  // the box, and an empty field on Android was opening it.
+  const [oneLine, setOneLine] = useState<number | null>(null);
   const [which, setWhich] = useState(0);
   const field = useRef<TextInput>(null);
 
@@ -136,7 +142,7 @@ export function Composer({
   const chips = pin ? [] : photos;
   const has = draft.trim().length > 0 || chips.some((photo) => !photo.error);
   const held = chips.some((photo) => photo.error);
-  const tall = height > 30;
+  const tall = oneLine !== null && height > oneLine + 8;
   const expanded = tall || chips.length > 0;
 
   /** 020. The picker or the camera, in the platform's own sheet. The picker
@@ -167,7 +173,9 @@ export function Composer({
     if (result.canceled) return;
     const picked: PickedPhoto[] = result.assets.map((asset) => ({
       uri: asset.uri,
-      name: asset.fileName ?? null,
+      // The Android picker names a file by its media id, `64349.jpg`, which
+      // is an identifier and not a name: the chip says "Photo" instead.
+      name: asset.fileName && !/^\d+\.\w+$/.test(asset.fileName) ? asset.fileName : null,
       type: asset.mimeType ?? null,
       size: asset.fileSize ?? null,
     }));
@@ -185,10 +193,14 @@ export function Composer({
         },
       );
     } else {
+      // Android draws three buttons as neutral, negative, positive in that
+      // order, so Cancel goes first to be the quiet one and the library, the
+      // commoner choice, last to be the emphasised one. The stock dialog for
+      // now; the M3 kit would draw a bottom sheet, which is logged as owed.
       Alert.alert("Add a photo", undefined, [
-        { text: "Choose from library", onPress: () => void pick("library") },
-        { text: "Take a photo", onPress: () => void pick("camera") },
         { text: "Cancel", style: "cancel" },
+        { text: "Take a photo", onPress: () => void pick("camera") },
+        { text: "Choose from library", onPress: () => void pick("library") },
       ]);
     }
   }
@@ -236,10 +248,15 @@ export function Composer({
           // the question is announced through the conversation's own turns.
           accessibilityLabel="Dump anything"
           placeholderTextColor={COLOR.iconOnWell}
-          onContentSizeChange={(event) =>
-            setHeight(Math.min(event.nativeEvent.contentSize.height, MAX_HEIGHT))
-          }
-          editable={!sending && !writing}
+          onContentSizeChange={(event) => {
+            const next = Math.min(event.nativeEvent.contentSize.height, MAX_HEIGHT);
+            setOneLine((first) => (first === null ? next : Math.min(first, next)));
+            setHeight(next);
+          }}
+          // Not `editable={false}` while a send is out: on Android the field
+          // came back from that with its text drawn in nothing, present to
+          // the screen reader and invisible to the eye. The send control is
+          // what locks; the words typed meanwhile survive the send.
           className={`flex-1 font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
           style={{ fontSize: 16, lineHeight: 22, paddingVertical: 12, maxHeight: MAX_HEIGHT }}
         />

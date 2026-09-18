@@ -10,6 +10,7 @@
 // web asks once per stream reconnect, the server is `pg_notify`-driven, and
 // there is no rate limiter to catch an interval set too tight.
 
+import { File } from "expo-file-system";
 import { API_URL, send, upload } from "./api";
 import { failed } from "./log";
 
@@ -250,13 +251,12 @@ export async function uploadPhoto(
   const form = new FormData();
   form.append("clientKey", clientKey);
   form.append("name", file.name);
-  // React Native's FormData takes a file by uri; the object shape is the
-  // runtime's own and not a Blob.
-  form.append("file", {
-    uri: file.uri,
-    name: file.name || "photo",
-    type: file.type || "image/jpeg",
-  } as unknown as Blob);
+  // Expo 57's fetch is the WinterCG one and takes a real `File` as a part;
+  // React Native's old `{ uri, name, type }` shape is refused with
+  // "Unsupported FormDataPart implementation", which is what the first send
+  // from a Pixel got. `File` here is expo-file-system's, a Blob over the
+  // uri, read as the request streams.
+  form.append("file", new File(file.uri) as unknown as Blob, file.name || "photo");
   const { status, data } = await upload<{ blobId: string; width: number; height: number }>("/v1/blobs", form);
   if (status === 413) throw new PhotoRefused("too_big");
   if (status === 415) throw new PhotoRefused("not_a_photo");

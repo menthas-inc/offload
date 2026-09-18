@@ -1102,7 +1102,7 @@ async def handle(
             ),
         )
 
-        nothing_left = _nothing_left(outcome, fitted)
+        nothing_left = _nothing_left(outcome, fitted) or _photos_land_anyway(outcome, fitted)
         _author_the_failure_line(outcome, budget)
         _author_the_photo_line(outcome, fitted)
 
@@ -1301,6 +1301,27 @@ NOT_SURE = "Not sure."
 #: sentence names what happened and the row is the way forward.
 COULD_NOT_READ_ONE = "Could not make out one of the photos."
 COULD_NOT_READ_ANY = "Could not make out the photos."
+
+
+def _photos_land_anyway(outcome: Outcome, ctx: DumpContext) -> bool:
+    """A photo turn the model stopped without filing is still a turn that
+    filed something, because the server files every photo no row claims
+    before the turn settles (020).
+
+    Seen on a phone on 2026-09-19: the same shop sign sent twice, and the
+    second time the model read the thread, found the first, and stopped with
+    nothing filed and nothing said. Reported as partial, that turn said
+    "Nothing saved." under a Files grid that had just gained the photo, and
+    offered a Finish that would have read the thread again. Narrow, as
+    `_nothing_left` is: the model has to have stopped of its own accord,
+    with nothing refused and nothing half done, and the message has to carry
+    a photo the server can open.
+    """
+    if outcome.failed or outcome.refused or outcome.out_of_calls:
+        return False
+    if outcome.landed or outcome.reply is not None:
+        return False
+    return any(p.large is not None for p in ctx.photos)
 
 
 def _author_the_photo_line(outcome: Outcome, ctx: DumpContext) -> None:

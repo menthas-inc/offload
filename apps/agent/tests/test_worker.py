@@ -5,6 +5,8 @@ has been called and paid for, and everything after that has to avoid throwing
 the answer away or leaving the job locked.
 """
 
+import dataclasses
+
 import httpx
 import pytest
 
@@ -68,9 +70,7 @@ async def test_the_service_token_is_sent_and_the_body_names_no_account():
         return httpx.Response(200, json={"status": "written"})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        await _post_result(
-            client, cfg(), {"outcome": "answered", "jobId": "j", "replyText": "hi"}
-        )
+        await _post_result(client, cfg(), {"outcome": "answered", "jobId": "j", "replyText": "hi"})
 
     assert seen["auth"] == "Bearer t"
     # There is nothing in the body for a worker to assert an identity with, and
@@ -164,8 +164,9 @@ def _outcome(*names):
 
     return Outcome(
         reply=None,
-        landed=[Landed(tool="add_content", thread_id="t", thread_name=n, content_id="c")
-                for n in names],
+        landed=[
+            Landed(tool="add_content", thread_id="t", thread_name=n, content_id="c") for n in names
+        ],
     )
 
 
@@ -195,7 +196,7 @@ async def test_the_partial_reply_claims_nothing_when_nothing_landed():
 
 
 async def test_the_partial_reply_does_not_say_nothing_was_saved_after_a_move():
-    """"Nothing saved." is a claim about the database, and it was false for the
+    """ "Nothing saved." is a claim about the database, and it was false for the
     one kind of turn it was most likely to appear on.
 
     `landed` holds filings. A move, a tick, an archive and a rename are none of
@@ -302,9 +303,7 @@ def _ctx(landed: int):
         dump="todos each: repellent, clean litter, bottles",
         turns=[],
         threads=[],
-        landed=[
-            Filed(title=f"piece {i}", thread_name="sustain/release") for i in range(landed)
-        ],
+        landed=[Filed(title=f"piece {i}", thread_name="sustain/release") for i in range(landed)],
         default_thread_id=None,
     )
 
@@ -333,6 +332,34 @@ async def test_a_first_attempt_that_does_nothing_is_still_unfinished():
     from offload_agent.worker import _nothing_left
 
     assert _nothing_left(_outcome(), _ctx(0)) is False
+
+
+async def test_a_photo_turn_the_model_stopped_on_is_finished_because_the_server_files_it():
+    """Seen on a phone on 2026-09-19: a shop sign sent twice, and the second
+    time the model read the thread, found the first, and stopped with nothing
+    filed and nothing said. The server files every photo no row claims before
+    the turn settles, so that turn is finished and silent, not partial and
+    "Nothing saved." under a grid that just gained the picture.
+    """
+    from offload_agent.context import Photo
+    from offload_agent.harness.plan import Outcome
+    from offload_agent.worker import _photos_land_anyway
+
+    ctx = dataclasses.replace(_ctx(0), photos=[Photo(blob_id="b1", index=1, large=b"jpeg")])
+    assert _photos_land_anyway(Outcome(reply=None), ctx) is True
+    # Not when the model said something, filed something, or was cut off:
+    # those are the ordinary rules.
+    assert _photos_land_anyway(Outcome(reply="Kept it."), ctx) is False
+    cut = Outcome(reply=None)
+    cut.out_of_calls = True
+    assert _photos_land_anyway(cut, ctx) is False
+    refused = Outcome(reply=None)
+    refused.refused.append("add_content")
+    assert _photos_land_anyway(refused, ctx) is False
+    # And not for a photo the worker could not open: that one takes the
+    # authored line and the plain-title path.
+    unreadable = dataclasses.replace(ctx, photos=[Photo(blob_id="b1", index=1, large=None)])
+    assert _photos_land_anyway(Outcome(reply=None), unreadable) is False
 
 
 async def test_a_resume_cut_off_by_the_bound_is_still_unfinished():
