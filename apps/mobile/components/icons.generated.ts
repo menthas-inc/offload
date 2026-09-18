@@ -15,9 +15,9 @@ export const ICONS: Record<IconName, Shape[]> = {
       "kind": "rect",
       "width": 18,
       "height": 18,
-      "x": 2,
-      "y": 2,
-      "rx": 0
+      "x": 3,
+      "y": 3,
+      "rx": 2
     },
     {
       "kind": "path",
@@ -128,6 +128,14 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "M3 9h18"
+    },
+    {
+      "kind": "rect",
+      "width": 18,
+      "height": 18,
+      "x": 3,
+      "y": 3,
+      "rx": 2
     }
   ],
   "camera": [
@@ -653,9 +661,9 @@ export const ICONS: Record<IconName, Shape[]> = {
       "kind": "rect",
       "width": 18,
       "height": 18,
-      "x": 2,
-      "y": 2,
-      "rx": 0
+      "x": 3,
+      "y": 3,
+      "rx": 2
     }
   ],
   "inbox": [
@@ -761,9 +769,9 @@ export const ICONS: Record<IconName, Shape[]> = {
       "kind": "rect",
       "width": 18,
       "height": 11,
-      "x": 2,
-      "y": 2,
-      "rx": 0
+      "x": 3,
+      "y": 11,
+      "rx": 2
     }
   ],
   "map-pin": [
@@ -834,6 +842,14 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "M19 10v2a7 7 0 0 1-14 0v-2"
+    },
+    {
+      "kind": "rect",
+      "width": 6,
+      "height": 13,
+      "x": 9,
+      "y": 2,
+      "rx": 3
     }
   ],
   "moon-star": [

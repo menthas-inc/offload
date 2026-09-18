@@ -51,6 +51,7 @@ import { NotesSection } from "../shell/Notes";
 import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "../shell/PhotoViewer";
 import { MoveSheet } from "../shell/MoveSheet";
+import { CalendarsSheet, calendarsLabel } from "../shell/CalendarsSheet";
 import { ToastHost, useToast } from "../shell/Toast";
 import { Timeline } from "../shell/Timeline";
 import { Widgets } from "../shell/Widgets";
@@ -89,6 +90,10 @@ export default function Thread() {
   // What arrived while this screen was open, marked for a moment rather than
   // appearing silently in the middle of a list.
   const [arrived, setArrived] = useState<Set<string>>(new Set());
+  // 019. The calendars sheet, and a counter bumped when the picks change so
+  // the rail reads the calendars again.
+  const [calendarsOpen, setCalendarsOpen] = useState(false);
+  const [calendarsVersion, setCalendarsVersion] = useState(0);
   const toast = useToast();
   const { filed, setOnScreen } = useConversation();
 
@@ -242,7 +247,7 @@ export default function Thread() {
         className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`}
         edges={["top"]}
       >
-        <Bar onBack={() => router.back()} />
+        <Bar onBack={() => router.back()} calendars={null} onCalendars={() => undefined} />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
@@ -267,6 +272,9 @@ export default function Thread() {
   // once, so the rail and the list agree about what is on it.
   const dated = showArchived ? [] : datedFor(rows, thread.notes);
   const onRail = new Set(dated.map((one) => one.rowId));
+  // 019. A pick earns the rail on its own: a thread with a calendar and
+  // nothing dated shows this week, with the calendar's events on it.
+  const railEarned = dated.length > 0 || thread.calendars?.anyPicked === true;
 
   // **A repeating thing is one row here, not thirty.** A weekly class filed as
   // thirty occurrences spends thirty rows saying what the row above said. The
@@ -352,7 +360,14 @@ export default function Thread() {
       className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`}
       edges={["top"]}
     >
-      <Bar onBack={() => router.back()} />
+      <Bar
+        onBack={() => router.back()}
+        // 019. The calendar glyph, drawn whenever the account has a connection
+        // at all, with no badge or count in any state: the accessible name
+        // carries the state.
+        calendars={thread.calendars}
+        onCalendars={() => setCalendarsOpen(true)}
+      />
 
       <ScrollView contentContainerClassName="pb-space-9">
         <View className="px-gutter-screen pb-space-8 pt-space-7">
@@ -420,7 +435,7 @@ export default function Thread() {
         {/* The rail is above the widgets, and only on a thread with something
             dated. It is not a widget: it lists every kind with a date rather
             than one, which is why 015 took it out of the widget set. */}
-        {showArchived || dated.length === 0 ? null : (
+        {showArchived || !railEarned ? null : (
           <Timeline
             // Keyed by the thread, so the day you were reading and the gaps you
             // opened do not follow you into the next one.
@@ -429,6 +444,7 @@ export default function Thread() {
             threadName={thread.name}
             rows={rows}
             notes={thread.notes}
+            calendars={{ anyPicked: thread.calendars?.anyPicked === true, version: calendarsVersion }}
             onDelete={(row: ContentRow) => void remove(row)}
             onActions={setActing}
             onEdit={setRenaming}
@@ -621,18 +637,54 @@ export default function Thread() {
           if (moving) void move(moving, thread.id);
         }}
       />
+      <CalendarsSheet
+        open={calendarsOpen}
+        threadId={thread.id}
+        threadName={thread.name}
+        members={thread.members.length}
+        onClose={() => setCalendarsOpen(false)}
+        onChanged={() => {
+          setCalendarsVersion((v) => v + 1);
+          void fetchThread(id).then((bundle) => {
+            if (bundle) setThread(bundle);
+          });
+        }}
+      />
       <ToastHost state={toast} />
     </SafeAreaView>
   );
 }
 
-function Bar({ onBack }: { onBack: () => void }) {
+function Bar({
+  onBack,
+  calendars,
+  onCalendars,
+}: {
+  onBack: () => void;
+  calendars: { picked: number; total: number } | null;
+  onCalendars: () => void;
+}) {
   const COLOR = useColors();
   return (
     <View className="h-appbar-height flex-row items-center px-gutter-screen">
-      <Pressable onPress={onBack} hitSlop={12}>
+      <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back">
         <Glyph name="chevron-left" size={22} color={COLOR.iconOnWell} />
       </Pressable>
+      <View className="flex-1" />
+      {/* The bar's one trailing control until share and the ellipsis are
+          built: left of both when they are. A bare glyph, as the back chevron
+          and every bar control on the phones: the kit's `IconButton` in a bar
+          is the ghost one, and a filled circle here read as a state. */}
+      {calendars ? (
+        <Pressable
+          onPress={onCalendars}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={calendarsLabel(calendars.picked, calendars.total)}
+        >
+          <Glyph name="calendar" size={21} color={COLOR.iconOnWell} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }

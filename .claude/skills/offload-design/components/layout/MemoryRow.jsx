@@ -1,15 +1,16 @@
 import React from "react";
 import { Icon } from "../core/Icon.jsx";
 
-export function MemoryRow({text,origin="told",author,muted=false,open=false,onOpen,onClose,onSave,onDelete,onMute,maxChars=200,arrived=false,style,...rest}){
+export function MemoryRow({text,origin="told",author,muted=false,open=false,onOpen,onClose,onSave,onDelete,onMute,maxChars=200,arrived=false,reorder,dragging=false,over=false,style,...rest}){
   const [draft,setDraft]=React.useState(text);
   React.useEffect(()=>{if(open)setDraft(text)},[open,text]);
   const learned=origin==="learned"&&!muted;
   const save=()=>{const next=draft.trim();if(next&&onSave)onSave(next);if(onClose)onClose()};
   return (
     <div {...rest} style={{display:"flex",flexDirection:"column",
-      background:arrived?"var(--surface-accent-soft)":"transparent",
-      borderRadius:arrived?"var(--radius-sm)":0,
+      background:dragging?"var(--surface-raised)":arrived?"var(--surface-accent-soft)":"transparent",
+      borderRadius:dragging||arrived?"var(--radius-sm)":0,
+      boxShadow:dragging?"var(--shadow-2)":over?(over==="top"?"inset 0 2px 0":"inset 0 -2px 0")+" var(--ink-950)":"none",
       transition:"background var(--duration-mark) var(--ease-out)",...style}}>
       <div role={open?undefined:"button"} tabIndex={open?undefined:0} onClick={open?undefined:onOpen}
         onKeyDown={open?undefined:(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();if(onOpen)onOpen()}}}
@@ -62,6 +63,11 @@ export function MemoryRow({text,origin="told",author,muted=false,open=false,onOp
             {muted?"Muted":null}{muted&&author?" \u00b7 ":null}{author}
           </span>:null}
         </span>
+        {/* A memory row has no pencil, since the whole row opens to edit, so the handle sits
+            alone at the trailing edge. Hidden while the editor is open: you cannot reorder
+            a row you are in the middle of rewriting. */}
+        {reorder&&!open?<span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",padding:8,margin:-8,
+          marginTop:0,flex:"0 0 auto",color:dragging?"var(--text-primary)":"var(--text-secondary)",cursor:"grab",touchAction:"none"}}>{reorder}</span>:null}
       </div>
     </div>
   );

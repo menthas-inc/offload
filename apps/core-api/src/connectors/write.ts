@@ -7,8 +7,10 @@
 // stranger, so a field it could set to skip a confirmation would be the whole
 // defence handed to the attacker.
 
+import { sql } from "kysely";
 import { db } from "../db.js";
 import {
+  countParticipants,
   createEvent,
   deleteEvent,
   getEvent,
@@ -16,6 +18,8 @@ import {
   patchEvent,
   type EventDraft,
 } from "./google.js";
+import { grantsAcl } from "./google.js";
+import { logParticipantsFailed } from "./calendars.js";
 import { outwardTest, type OutwardVerdict } from "./outward.js";
 import { truncate, type Scope } from "./recurrence.js";
 import { accessTokenFor, markNeedsReauth } from "./tokens.js";
@@ -26,7 +30,12 @@ export interface CalendarTarget {
   externalId: string;
   connectionId: string;
   accountId: string;
-  isShared: boolean;
+  /** Null: not owned, or the grant lacks the scope. Read as more than one. */
+  participants: number | null;
+  /** Whether the connection's grant carries the access-list scope, so the
+   *  write path knows whether a fresh count can be read. */
+  grantsAcl: boolean;
+  askFirst: boolean;
   accessRole: string;
   timezone: string | null;
 }
@@ -42,14 +51,18 @@ export async function targetFor(
   const row = await db
     .selectFrom("connector_calendars as c")
     .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+    .innerJoin("accounts as a", "a.id", "n.account_id")
+    .leftJoin("connector_secrets as s", "s.connection_id", "n.id")
     .select([
       "c.id as calendarId",
       "c.external_id as externalId",
-      "c.is_shared as isShared",
+      "c.participants as participants",
       "c.access_role as accessRole",
       "c.timezone as timezone",
       "n.id as connectionId",
       "n.account_id as accountId",
+      "a.calendar_ask_first as askFirst",
+      "s.scope as scope",
     ])
     .where("c.id", "=", calendarId)
     .where("n.account_id", "=", accountId)
@@ -57,7 +70,9 @@ export async function targetFor(
     .where("n.state", "=", "active")
     .executeTakeFirst();
 
-  return row ?? null;
+  if (!row) return null;
+  const { scope, ...target } = row;
+  return { ...target, grantsAcl: grantsAcl(scope) };
 }
 
 export function writable(target: CalendarTarget): boolean {
@@ -101,7 +116,34 @@ export async function verdictFor(
         ? (write.draft.attendees ?? [])
         : (write.patch.attendees ?? attendeesBefore);
 
-  return outwardTest({ attendeesBefore, attendeesAfter, calendarIsShared: target.isShared });
+  return outwardTest({
+    attendeesBefore,
+    attendeesAfter,
+    participants: await freshParticipants(target, accessToken),
+    askFirst: target.askFirst,
+  });
+}
+
+/** The calendar's participant count, read again now for a calendar the person
+ *  owns on a grant that allows it, the way the event's guests are read live
+ *  above: a calendar shared at noon confirms at noon rather than after the
+ *  nightly pass. The fresh count is written back. A read that fails leaves the
+ *  stored count, and a stored null reads as more than one. */
+async function freshParticipants(target: CalendarTarget, accessToken: string): Promise<number | null> {
+  if (target.accessRole !== "owner" || !target.grantsAcl) return target.participants;
+  try {
+    const count = await countParticipants(accessToken, target.externalId);
+    await db
+      .updateTable("connector_calendars")
+      .set({ participants: count, participants_read_at: new Date(), updated_at: new Date() })
+      .where("id", "=", target.calendarId)
+      .execute();
+    return count;
+  } catch (error) {
+    if (error instanceof GrantRevoked) throw error;
+    logParticipantsFailed(target.calendarId, error);
+    return target.participants;
+  }
 }
 
 export interface WriteResult {
@@ -243,12 +285,23 @@ export async function undoWrite(target: CalendarTarget, sourceRef: string): Prom
     return false;
   }
 
+  const now = new Date();
+  // The copy, if the sync has already brought the event in.
   await db
-    .updateTable("content")
-    .set({ deleted_at: new Date(), updated_at: new Date() })
-    .where("account_id", "=", target.accountId)
+    .updateTable("connector_events")
+    .set({ deleted_at: now, updated_at: now })
+    .where("calendar_id", "=", target.calendarId)
     .where("source_ref", "=", sourceRef)
     .where("deleted_at", "is", null)
+    .execute();
+  // The row forgets the event it became. Whether the row itself goes is the
+  // caller's decision: a whole-turn Undo takes the row too, an answer's Undo
+  // leaves it as it was filed.
+  await db
+    .updateTable("content")
+    .set({ source_ref: null, attrs: sql`attrs - 'calendar'`, updated_at: now })
+    .where("account_id", "=", target.accountId)
+    .where("source_ref", "=", sourceRef)
     .execute();
 
   return true;

@@ -190,18 +190,32 @@ export default function Privacy() {
             <strong>A connected calendar is the one that also goes the other way.</strong> You can
             ask offload to add, change or delete an event, and it writes to your calendar to do it.
             It never writes anywhere else: not your mail, not your files. When a change would reach
-            somebody else, because the event has guests or the calendar is one you share, offload
-            asks you first and tells you who will find out. When it reaches nobody but you, it just
-            does it and you have a few seconds to undo.
+            somebody else, because the event has guests or because more than one person can see the
+            calendar, offload asks you first and tells you who will find out. To know who can see a
+            calendar you own, offload reads its sharing list from Google and keeps only a count of
+            the people on it, never their names or addresses; when it cannot tell, it asks first
+            rather than guessing. When a change reaches nobody but you, it just does it and you have
+            a few seconds to undo. In Settings you can ask offload to check with you before every
+            change instead.
+          </p>
+          <p>
+            <strong>Which calendars offload reads is two decisions, not one.</strong> Connecting an
+            account lets you tick the calendars offload may use at all. A thread then picks which of
+            those it reads, starting from none. If you pick a calendar for a thread you share, the
+            events on it become visible to everyone in that thread, as a title and a time, for as
+            long as the calendar is picked. Who is invited to an event stays with you. Un-ticking a
+            calendar in Settings takes it out of every thread at once.
           </p>
           <p>
             <strong>An event brings other people with it.</strong> If somebody is invited to an
             event on your calendar, offload keeps their name and whether they accepted, so it can
             tell you who you are seeing. It keeps their email address only for an event offload
             itself created with guests, because changing that event later means telling those guests
-            again. Everyone else&rsquo;s address is dropped before anything is stored. These details
-            are kept for as long as the event is, which is until you delete it. We keep what a
-            calendar describes and none of the event&rsquo;s own description text.
+            again. Everyone else&rsquo;s address is dropped before anything is stored. Our copy of a
+            calendar holds a rolling window, sixty days back and twelve months ahead, and an event
+            that falls behind it leaves the copy; the whole copy goes when you un-tick the calendar
+            or disconnect the account. We keep what a calendar describes and none of the
+            event&rsquo;s own description text.
           </p>
 
           <h3 className={styles.h3}>What we collect because software has to run</h3>
@@ -464,10 +478,13 @@ export default function Privacy() {
                 </tr>
                 <tr>
                   <td>Google Calendar</td>
-                  <td>Only if you connect one: reads your calendars, and writes the changes you ask for</td>
                   <td>
-                    The events in the calendars you turn on, and the events offload writes for you.
-                    A separate connection from signing in, which you can end at any time
+                    Only if you connect one: reads the calendars you tick, reads who can see each
+                    calendar you own and keeps that as a count, and writes the changes you ask for
+                  </td>
+                  <td>
+                    The events in the calendars you tick, and the events offload writes for you. A
+                    separate connection from signing in, which you can end at any time
                   </td>
                 </tr>
                 <tr>
@@ -663,6 +680,11 @@ export default function Privacy() {
               <strong>A photo you put in a shared thread is theirs to see too</strong>, with what
               offload wrote about it and the day it was taken. The file&rsquo;s own name stays with
               you.
+            </li>
+            <li>
+              <strong>A calendar you pick for a shared thread is read for the whole thread.</strong>{" "}
+              Everyone in it sees the events on that calendar, as a title and a time, for as long as
+              it is picked. Nobody but you can write to it, and un-picking it takes it back out.
             </li>
             <li>
               <strong>There are no public links.</strong> Nothing in offload can be handed to

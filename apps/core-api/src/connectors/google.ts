@@ -5,16 +5,30 @@
 // API, and one place has to change when it moves.
 //
 // **Least privilege.** `calendar.calendarlist.readonly` to see which calendars
-// exist and `calendar.events` to read and write events. Not `calendar`, which
-// also grants access-list and calendar management this feature does not use:
-// the sharing question is answered by the person, not by an ACL read.
+// exist, `calendar.events` to read and write events, and since 019
+// `calendar.acls.readonly` to count who can see a calendar the person owns.
+// Not `calendar`, which also grants calendar management this feature does not
+// use. The access list is read, counted and dropped: a count is what decides
+// whether a write is put to the person first, and nothing else about the list
+// is kept anywhere.
 
 import { env } from "../env.js";
 
 export const SCOPES = [
   "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
   "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/calendar.acls.readonly",
 ] as const;
+
+export const ACL_SCOPE = "https://www.googleapis.com/auth/calendar.acls.readonly";
+
+/** Whether a stored grant, the space-separated string Google returned, carries
+ *  the access-list scope. A connection made before 019, or one whose consent
+ *  screen had the scope unticked, does not, and reads as "more than one
+ *  participant" everywhere until the person signs in again. */
+export function grantsAcl(scope: string | null): boolean {
+  return (scope ?? "").split(/\s+/).includes(ACL_SCOPE);
+}
 
 const AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN = "https://oauth2.googleapis.com/token";
@@ -135,7 +149,12 @@ export interface GoogleCalendar {
   timezone: string | null;
   accessRole: "owner" | "writer" | "reader" | "freeBusyReader";
   primary: boolean;
+  /** Google's own hex for the calendar, or null. Recognition, never the
+   *  differentiator. */
+  colour: string | null;
 }
+
+const HEX = /^#[0-9a-fA-F]{6}$/;
 
 const ROLES = new Set(["owner", "writer", "reader", "freeBusyReader"]);
 
@@ -153,12 +172,52 @@ export async function listCalendars(accessToken: string): Promise<GoogleCalendar
       externalId: String(item["id"] ?? ""),
       summary: String(item["summaryOverride"] ?? item["summary"] ?? "Calendar"),
       timezone: typeof item["timeZone"] === "string" ? item["timeZone"] : null,
-      // An unrecognised role reads as the least privilege we know, which also
-      // means `is_shared` cannot be turned off for it.
+      // An unrecognised role reads as the least privilege we know.
       accessRole: (ROLES.has(role) ? role : "reader") as GoogleCalendar["accessRole"],
       primary: item["primary"] === true,
+      colour:
+        typeof item["backgroundColor"] === "string" && HEX.test(item["backgroundColor"])
+          ? item["backgroundColor"]
+          : null,
     };
   });
+}
+
+/** Everyone Google lets see a calendar the person owns, as a count.
+ *
+ *  **Counted and dropped.** The list carries addresses, and the number is the
+ *  only thing anything downstream needs: more than one means a write there is
+ *  put to the person first. Every rule with a role other than `none` counts, so
+ *  the owner is one and a calendar only they see is exactly 1. A `default` rule
+ *  with role `none` is how Google expresses a private calendar and counts
+ *  nothing; a `default`, `domain` or `group` rule with a role is more people
+ *  than can be counted and counts as two on its own. Only an owner may list
+ *  the rules, so this is never called for a calendar the person does not own. */
+export async function countParticipants(accessToken: string, calendarId: string): Promise<number> {
+  let count = 0;
+  let broad = false;
+  let pageToken: string | null = null;
+  do {
+    const params = new URLSearchParams({ maxResults: "250" });
+    if (pageToken) params.set("pageToken", pageToken);
+    const response = await fetch(
+      `${API}/calendars/${encodeURIComponent(calendarId)}/acl?${params.toString()}`,
+      { headers: { authorization: `Bearer ${accessToken}` } }
+    );
+    if (response.status === 401) throw new GrantRevoked();
+    if (!response.ok) throw new Error(`google acl ${response.status}`);
+    const body = (await response.json()) as {
+      items?: Array<{ role?: string; scope?: { type?: string } }>;
+      nextPageToken?: string;
+    };
+    for (const rule of body.items ?? []) {
+      if (!rule.role || rule.role === "none") continue;
+      if (rule.scope?.type === "user") count += 1;
+      else broad = true;
+    }
+    pageToken = body.nextPageToken ?? null;
+  } while (pageToken);
+  return count + (broad ? 2 : 0);
 }
 
 /** One occurrence, already flattened. A recurring series arrives expanded,

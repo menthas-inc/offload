@@ -14,9 +14,10 @@
 // kind and lets a day have several, and drops the toggle: picking a day is the
 // toggle. Logged in the design system's `decisions.md`.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
+import cal from "../../app/(shell)/calendar.module.css";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import {
   WEEKS_BEFORE_MONTHS,
@@ -33,8 +34,8 @@ import {
   type RailRow,
 } from "../../lib/widgets";
 import { useAppearance } from "../../lib/appearance";
-import { QUICK_ADD_CHARS, quickAdd } from "../../lib/threads";
-import type { ContentRow, Note } from "../../lib/threads";
+import { QUICK_ADD_CHARS, fetchThreadEvents, quickAdd } from "../../lib/threads";
+import type { ContentRow, Note, ThreadEvent } from "../../lib/threads";
 
 interface Props {
   threadId: string;
@@ -45,6 +46,19 @@ interface Props {
   /** Something was typed straight onto the open day. The page reloads to pick
    *  up the row, which the server has already written. */
   onAdded: () => void;
+  /** 019. Whether any member has picked a calendar here, which is what puts
+   *  the calendars' events on the rail. Bumped when the picks change. */
+  calendars: { anyPicked: boolean; version: number };
+}
+
+/** 019. A calendar's event as an entry on the rail: kind `event`, never done,
+ *  never repeating here since the copy already holds every occurrence. The id
+ *  is prefixed so it can never collide with a row's. */
+function eventDated(event: ThreadEvent): Dated | null {
+  if (!event.occursAt) return null;
+  const from = localDay(new Date(event.occursAt));
+  const end = event.occursEndAt ? localDay(new Date(event.occursEndAt)) : from;
+  return { id: `event:${event.id}`, rowId: `event:${event.id}`, due: false, kind: "event", from, to: end < from ? from : end, done: false };
 }
 
 /** The hour, for a row that has one. */
@@ -72,7 +86,7 @@ const DOT: Record<string, string> = {
   other: "var(--text-tertiary)",
 };
 
-export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdded }: Props) {
+export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdded, calendars }: Props) {
   const { weekStart } = useAppearance();
   // Computed on render rather than held, so the first render after midnight
   // moves today. Nothing polls for it.
@@ -93,18 +107,59 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdded }:
   // from. Movement says which direction you went in a way a redraw cannot.
   const [went, setWent] = useState<1 | -1>(1);
 
-  const dated = useMemo(() => datedFor(rows, notes), [rows, notes]);
+  // The thread's own dated things: what the span is made of.
+  const own = useMemo(() => datedFor(rows, notes), [rows, notes]);
 
   // **A rail past a few weeks stops being a rail.** Weeks read as time passing,
   // which is what the empty days are for; a year of weeks is a scroll. Past the
   // threshold it draws the shape everybody already knows instead, a month at a
   // time with a way to step through them.
-  const weeks = useMemo(
-    () => weeksSpanned(dated, today, weekStart),
-    [dated, today, weekStart]
-  );
+  //
+  // **The span is the thread's own.** A picked calendar's twelve months of
+  // events do not stretch a rail into a month view; they are drawn inside
+  // whatever span the thread's rows and notes make.
+  const weeks = useMemo(() => weeksSpanned(own, today, weekStart), [own, today, weekStart]);
   const asMonth = weeks > WEEKS_BEFORE_MONTHS;
 
+  const ownRail = useMemo(
+    () => (asMonth ? null : railFor(own, today, weekStart)),
+    [asMonth, own, today, weekStart]
+  );
+  const ownGrid = useMemo(
+    () => (asMonth ? monthFor(month ?? today, own, today, weekStart) : null),
+    [asMonth, month, own, today, weekStart]
+  );
+
+  // The days on screen, which is the window the calendars are read for.
+  const shown = ownRail ?? ownGrid?.weeks ?? [];
+  const from = shown[0]?.days[0]?.iso ?? today;
+  const to = shown[shown.length - 1]?.days[6]?.iso ?? today;
+
+  // 019. The events on the thread's calendars inside that window, from the
+  // copy. Read again when the window moves or the picks change.
+  const [events, setEvents] = useState<ThreadEvent[]>([]);
+  useEffect(() => {
+    if (!calendars.anyPicked) {
+      setEvents([]);
+      return;
+    }
+    let live = true;
+    void fetchThreadEvents(threadId, from, to).then((found) => {
+      if (live) setEvents(found);
+    });
+    return () => {
+      live = false;
+    };
+  }, [threadId, from, to, calendars.anyPicked, calendars.version]);
+
+  const dated = useMemo(
+    () => [...own, ...events.map(eventDated).filter((one): one is Dated => one !== null)],
+    [own, events]
+  );
+  const eventsById = useMemo(() => new Map(events.map((event) => [`event:${event.id}`, event])), [events]);
+
+  // The same span, now with the calendars' dots in it: the events were
+  // fetched for exactly these days, so they cannot widen it.
   const rail = useMemo(
     () => (asMonth ? null : railFor(dated, today, weekStart)),
     [asMonth, dated, today, weekStart]
@@ -129,6 +184,9 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdded }:
   const dayNotes = onDay
     .map((one) => ({ one, note: notesById.get(one.rowId) }))
     .filter((pair): pair is { one: Dated; note: Note } => pair.note !== undefined);
+  const dayEvents = onDay
+    .map((one) => ({ one, event: eventsById.get(one.rowId) }))
+    .filter((pair): pair is { one: Dated; event: ThreadEvent } => pair.event !== undefined);
 
   // A day switch closes the open composer rather than carrying it along: it
   // was open on the day it was open on, and offering to add to a different one
@@ -284,9 +342,28 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdded }:
         ) : null}
       </div>
 
-      {dayRows.length === 0 && dayNotes.length === 0 ? (
+      {dayRows.length === 0 && dayNotes.length === 0 && dayEvents.length === 0 ? (
         <p className={styles.railEmpty}>Nothing on this day.</p>
       ) : null}
+
+      {/* 019. A calendar's event: the calendar's colour dot with its ring, the
+          title, the time or All day, and the calendar's name as its note. No
+          checkbox, no tools, no sheet: it is the calendar's, read through the
+          thread, and changing it is changing the calendar. */}
+      {dayEvents.map(({ one, event }) => (
+        <div key={one.id} className={cal.eventLine}>
+          <span
+            className={cal.dot}
+            style={{ background: event.colour ?? "var(--border-strong)" }}
+            aria-hidden="true"
+          />
+          <span className={cal.text}>
+            <span className={cal.eventTitle}>{event.title}</span>
+            <span className={cal.note}>{event.calendarName}</span>
+          </span>
+          <span className={cal.eventTime}>{event.allDay || !event.occursAt ? "All day" : time(event.occursAt)}</span>
+        </div>
+      ))}
 
       {dayNotes.map(({ one, note }) => (
         <div key={one.id} className={styles.railNote}>

@@ -10,7 +10,7 @@
 // shape, gives the dot a colour per kind and lets a day carry several, and
 // drops the toggle: picking a day is the toggle.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { ReduceMotion, SlideInLeft, SlideInRight, runOnJS } from "react-native-reanimated";
@@ -33,8 +33,23 @@ import { useColors } from "../../lib/colors";
 import { useWeekStart } from "../../lib/appearance";
 import { ContentRowView } from "./ContentRow";
 import { useConversation } from "./conversation-context";
-import { QUICK_ADD_CHARS } from "../../lib/threads";
-import type { ContentRow, Note } from "../../lib/threads";
+import { QUICK_ADD_CHARS, fetchThreadEvents } from "../../lib/threads";
+import type { ContentRow, Note, ThreadEvent } from "../../lib/threads";
+
+/** The hour, for an event that has one, the way a row's meta draws it. */
+function timeOf(at: string): string {
+  return new Date(at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+/** 019. A calendar's event as an entry on the rail: kind `event`, never done,
+ *  never repeating here since the copy already holds every occurrence. The id
+ *  is prefixed so it can never collide with a row's. */
+function eventDated(event: ThreadEvent): Dated | null {
+  if (!event.occursAt) return null;
+  const from = localDay(new Date(event.occursAt));
+  const end = event.occursEndAt ? localDay(new Date(event.occursEndAt)) : from;
+  return { id: `event:${event.id}`, rowId: `event:${event.id}`, due: false, kind: "event", from, to: end < from ? from : end, done: false };
+}
 
 const isAndroid = Platform.OS === "android";
 
@@ -48,6 +63,9 @@ interface Props {
   onEdit: (row: ContentRow) => void;
   onArchive: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
+  /** 019. Whether any member has picked a calendar here, which is what puts
+   *  the calendars' events on the rail. Bumped when the picks change. */
+  calendars: { anyPicked: boolean; version: number };
 }
 
 export function Timeline({
@@ -55,6 +73,7 @@ export function Timeline({
   threadName,
   rows,
   notes,
+  calendars,
   onDelete,
   onActions,
   onEdit,
@@ -90,14 +109,58 @@ export function Timeline({
     other: COLOR.quiet,
   };
 
-  const dated = useMemo(() => datedFor(rows, notes), [rows, notes]);
+  // The thread's own dated things: what the span is made of.
+  const own = useMemo(() => datedFor(rows, notes), [rows, notes]);
 
   // **A rail past a few weeks stops being a rail.** Weeks read as time passing,
   // which is what the empty days are for; a year of weeks is a scroll. Past the
   // threshold it draws the shape everybody already knows instead.
-  const weeks = useMemo(() => weeksSpanned(dated, today, weekStart), [dated, today, weekStart]);
+  //
+  // **The span is the thread's own.** A picked calendar's twelve months of
+  // events do not stretch a rail into a month view; they are drawn inside
+  // whatever span the thread's rows and notes make.
+  const weeks = useMemo(() => weeksSpanned(own, today, weekStart), [own, today, weekStart]);
   const asMonth = weeks > WEEKS_BEFORE_MONTHS;
 
+  const ownRail = useMemo(
+    () => (asMonth ? null : railFor(own, today, weekStart)),
+    [asMonth, own, today, weekStart],
+  );
+  const ownGrid = useMemo(
+    () => (asMonth ? monthFor(month ?? today, own, today, weekStart) : null),
+    [asMonth, month, own, today, weekStart],
+  );
+
+  // The days on screen, which is the window the calendars are read for.
+  const shown = ownRail ?? ownGrid?.weeks ?? [];
+  const from = shown[0]?.days[0]?.iso ?? today;
+  const to = shown[shown.length - 1]?.days[6]?.iso ?? today;
+
+  // 019. The events on the thread's calendars inside that window, from the
+  // copy. Read again when the window moves or the picks change.
+  const [events, setEvents] = useState<ThreadEvent[]>([]);
+  useEffect(() => {
+    if (!calendars.anyPicked) {
+      setEvents([]);
+      return;
+    }
+    let live = true;
+    void fetchThreadEvents(threadId, from, to).then((found) => {
+      if (live) setEvents(found);
+    });
+    return () => {
+      live = false;
+    };
+  }, [threadId, from, to, calendars.anyPicked, calendars.version]);
+
+  const dated = useMemo(
+    () => [...own, ...events.map(eventDated).filter((one): one is Dated => one !== null)],
+    [own, events],
+  );
+  const eventsById = useMemo(() => new Map(events.map((event) => [`event:${event.id}`, event])), [events]);
+
+  // The same span, now with the calendars' dots in it: the events were
+  // fetched for exactly these days, so they cannot widen it.
   const rail = useMemo(
     () => (asMonth ? null : railFor(dated, today, weekStart)),
     [asMonth, dated, today, weekStart],
@@ -120,6 +183,9 @@ export function Timeline({
   const dayNotes = onDay
     .map((one) => ({ one, note: notesById.get(one.rowId) }))
     .filter((pair): pair is { one: Dated; note: Note } => pair.note !== undefined);
+  const dayEvents = onDay
+    .map((one) => ({ one, event: eventsById.get(one.rowId) }))
+    .filter((pair): pair is { one: Dated; event: ThreadEvent } => pair.event !== undefined);
 
   const cell = (day: Day, outside = false) => (
     <Pressable
@@ -396,7 +462,7 @@ export function Timeline({
         </Pressable>
       </View>
 
-      {dayRows.length === 0 && dayNotes.length === 0 ? (
+      {dayRows.length === 0 && dayNotes.length === 0 && dayEvents.length === 0 ? (
         <Text
           className="px-gutter-screen font-core text-text-tertiary"
           style={{ fontSize: 13, lineHeight: 19 }}
@@ -404,6 +470,45 @@ export function Timeline({
           Nothing on this day.
         </Text>
       ) : null}
+
+      {/* 019. A calendar's event: the calendar's colour dot with its ring, the
+          title, the time or All day, and the calendar's name as its note. No
+          checkbox, no tools, no swipe, no sheet: it is the calendar's, read
+          through the thread, and changing it is changing the calendar. */}
+      {dayEvents.map(({ one, event }) => (
+        <View
+          key={one.id}
+          className="flex-row items-center gap-space-4 border-b border-border-hairline px-gutter-screen py-space-4"
+          style={{ minHeight: 46 }}
+          accessible
+          accessibilityLabel={`${event.title}, ${event.calendarName}, ${event.allDay || !event.occursAt ? "all day" : timeOf(event.occursAt)}`}
+        >
+          <View
+            className="rounded-pill border border-border-hairline"
+            style={{ width: 10, height: 10, backgroundColor: event.colour ?? COLOR.iconOnWell }}
+          />
+          <View className="flex-1">
+            <Text
+              className={`font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+              style={{ fontSize: 15, lineHeight: 20 }}
+            >
+              {event.title}
+            </Text>
+            <Text
+              className={`mt-space-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+              style={{ fontSize: 12.5, lineHeight: 17.5 }}
+            >
+              {event.calendarName}
+            </Text>
+          </View>
+          <Text
+            className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+            style={{ fontSize: 12.5, fontVariant: ["tabular-nums"] }}
+          >
+            {event.allDay || !event.occursAt ? "All day" : timeOf(event.occursAt)}
+          </Text>
+        </View>
+      ))}
 
       {/* A note is drawn as a note: no tick, no tools, nothing to open. */}
       {dayNotes.map(({ one, note }) => (

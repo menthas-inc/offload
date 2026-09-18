@@ -1,0 +1,63 @@
+/* forms/Checkbox.jsx, as a stylesheet. Every value is the kit's: a 20px box
+   at --radius-xs, --border-strong when unticked, --surface-inverse with an
+   inline stroked tick when ticked, the disabled surface when disabled. The
+   box sits inside a 44px target without moving. */
+
+.checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  min-height: var(--tap-min);
+  margin: 0 calc((20px - var(--tap-min)) / 2);
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.checkbox[data-disabled] {
+  cursor: not-allowed;
+}
+
+/* Present for the keyboard and the screen reader, invisible to everyone else. */
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.box {
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-inverse);
+  transition: background var(--transition-ui), border-color var(--transition-ui);
+}
+
+.input:checked + .box {
+  background: var(--surface-inverse);
+  border-color: transparent;
+}
+
+.input:disabled + .box {
+  background: var(--state-disabled-surface);
+  border-color: var(--state-disabled-surface);
+}
+
+.input:focus-visible + .box {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}

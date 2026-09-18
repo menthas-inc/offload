@@ -1,0 +1,98 @@
+<!-- @dsCard group="Components" viewport="1900x1000" name="Answering" subtitle="AnswerResult, QuickReplies and the two ways of declining" -->
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css?v=20260916-asking"><style>body{margin:0;font:var(--text-body-role);background:var(--surface-plate)}.you{align-self:flex-end;max-width:84%;padding:8px 14px;border-radius:var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);background:var(--blue-50);border:1px solid var(--blue-100);color:var(--ink-950);font:var(--weight-regular) 15px/1.45 var(--font-core)}.ol{align-self:flex-start;max-width:92%;padding:10px 14px;border-radius:var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;background:var(--ink-50);font:var(--text-quiet-role);font-size:16px;line-height:1.5}.lbl{font:var(--text-caption-role);color:var(--text-tertiary);letter-spacing:var(--tracking-caps);text-transform:uppercase;margin-bottom:10px}.col{width:390px;display:flex;flex-direction:column;gap:10px}</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script></head><body><div data-ds-theme-root data-theme="light" style="background:var(--surface-plate);color:var(--text-primary);padding:20px;min-height:100%;box-sizing:border-box"><div class="ds-theme-tg" role="group" aria-label="Theme" style="display:flex;border:1px solid var(--border-hairline);border-radius:var(--radius-pill);overflow:hidden;width:max-content;margin-bottom:14px">
+<button type="button" data-set="light" aria-pressed="true" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:var(--surface-inverse);color:var(--text-inverse)">Light</button>
+<button type="button" data-set="dark" aria-pressed="false" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:transparent;color:var(--text-secondary)">Dark</button>
+</div><div id="root"></div><script src="../../_ds_bundle.js?v=20260916-asking"></script>
+<script type="text/babel">
+const {AnswerResult,QuickReplies,TurnFooter}=window.OffloadDesignSystem_dc4a89;
+const LISBON=[{id:"1",title:"Book the airport transfer",meta:"you, added 6 Aug"},
+{id:"2",title:"Pay Ana €214 for the flights",meta:"Ana, due Thursday"},
+{id:"3",title:"Print the boarding passes",meta:"you, added yesterday"},
+{id:"4",title:"Confirm the Alfama key handover",meta:"Ana, added 7 Aug"},
+{id:"5",title:"Renew the travel insurance",meta:"you, added 8 Aug"},
+{id:"6",title:"Download the offline map",meta:"you, added 9 Aug"},
+{id:"7",title:"Ask Tom about the tram pass",meta:"Tom, added 9 Aug"}];
+function Demo(){
+  const [done,setDone]=React.useState({});
+  const [picked,setPicked]=React.useState(null);
+  const tick=(r)=>setDone(d=>({...d,[r.id]:!d[r.id]}));
+  const rows=LISBON.map(r=>({...r,done:Boolean(done[r.id])}));
+  return <div style={{display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
+    <div className="col"><div className="lbl">A set, five shown</div>
+      <div className="you">what is left to do from Lisbon?</div>
+      <div className="ol">Seven left.</div>
+      <AnswerResult thread={{id:"lisbon",name:"Lisbon trip"}} count={7} rows={rows} shown={5} onToggle={tick} onOpenThread={()=>{}}/>
+    </div>
+    <div className="col"><div className="lbl">A read that was cut short</div>
+      <div className="you">did I add printer paper to the office list?</div>
+      <div className="ol">I looked at the first twenty of forty six things and printer paper is not among them.</div>
+      <AnswerResult thread={{id:"office",name:"Office"}} count="20 of 46" truncated threadTotal={26}
+        rows={[{id:"a",title:"Toner, black, two",meta:"you, added 2 Sep"},{id:"b",title:"Desk lamp bulb",meta:"you, added 30 Aug"}]}
+        onToggle={tick} onOpenThread={()=>{}}/>
+    </div>
+    <div className="col"><div className="lbl">A fact, one row, no tick</div>
+      <div className="you">where am I staying in Lisbon?</div>
+      <div className="ol">The Alfama flat, 14th to the 17th.</div>
+      <AnswerResult thread={{id:"lisbon",name:"Lisbon trip"}} count={1} onOpenThread={()=>{}}
+        rows={[{id:"f",type:"location",title:"Alfama flat, Rua dos Remédios 14",meta:"Ana booked it, 4 Aug"}]}/>
+    </div>
+    <div className="col"><div className="lbl">A proposal, and a question</div>
+      <div className="ol">No, butter is not on the list. Add it?
+        <QuickReplies label="No, butter is not on the list. Add it?" onPick={(o)=>setPicked(o.label)}
+          options={[{id:"y",label:"Add it",kind:"primary"},{id:"n",label:"Not that",kind:"plain"}]}/>
+      </div>
+      {/* Five values and a way out: the values wrap among themselves and the way out takes a
+          line of its own, because it is not one of them. */}
+      <div className="ol">Three threads have a trip. Which one?
+        <QuickReplies label="Three threads have a trip. Which one?" onPick={(o)=>setPicked(o.label)}
+          options={[{id:"a",label:"Lisbon"},{id:"b",label:"Turkey"},{id:"c",label:"USA"},
+            {id:"d",label:"Berlin"},{id:"e",label:"Tom's stag"},{id:"n",label:"Not that",kind:"plain"}]}/>
+      </div>
+      {picked?<div className="you">{picked}</div>:null}
+    </div>
+    <div className="col"><div className="lbl">A silent turn that asked</div>
+      <div className="you">book the airport transfer for the lisbon trip</div>
+      <TurnFooter state="done" refs={[{id:"lisbon",name:"Lisbon trip"}]} onOpenRef={()=>{}}/>
+      {/* No reply bubble, because nothing was said back, so the question gets one of its own
+          after the footer: what happened, then what is still open. */}
+      <div className="ol" style={{marginTop:2}}>Which airport? The thread has two.
+        <QuickReplies label="Which airport? The thread has two." onPick={(o)=>setPicked(o.label)}
+          options={[{id:"p",label:"Lisbon Portela"},{id:"g",label:"Gatwick"},{id:"n",label:"Not that",kind:"plain"}]}/>
+      </div>
+    </div>
+    <div className="col"><div className="lbl">Two ways of declining</div>
+      <div className="you">how much is bitcoin</div>
+      <div className="ol">Not sure.
+        <span style={{display:"block",fontSize:13,lineHeight:1.4,color:"var(--text-tertiary)",marginTop:3}}>That one is not about your days.</span>
+      </div>
+      <div className="you">what is the weather in lisbon on the 14th</div>
+      <div className="ol">Can't search that.
+        <span style={{display:"block",fontSize:13,lineHeight:1.4,color:"var(--text-tertiary)",marginTop:3}}>Searching the web is off in Settings.</span>
+      </div>
+      <div className="you">when do the clocks go forward</div>
+      <div className="ol">Sunday 25 October, at 2am.</div>
+    </div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script></div><script>
+(function(){
+  var root=document.querySelector("[data-ds-theme-root]");
+  document.querySelectorAll(".ds-theme-tg button").forEach(function(b){
+    b.addEventListener("click",function(){
+      var t=b.dataset.set;
+      root.setAttribute("data-theme",t);
+      document.documentElement.setAttribute("data-theme",t);
+      document.querySelectorAll(".ds-theme-tg button").forEach(function(x){
+        var on=x.dataset.set===t;
+        x.setAttribute("aria-pressed",String(on));
+        x.style.background=on?"var(--surface-inverse)":"transparent";
+        x.style.color=on?"var(--text-inverse)":"var(--text-secondary)";
+      });
+    });
+  });
+})();
+</script></body></html>

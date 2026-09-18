@@ -43,6 +43,9 @@ export interface AccountsTable {
    *  says it does not know rather than assuming. */
   country: string | null;
   web_search_enabled: Generated<boolean>;
+  /** 019. Every calendar write is put to the person first, whoever it reaches.
+   *  Off by default: the reversible-by-default rule stands until they ask. */
+  calendar_ask_first: Generated<boolean>;
   /** Whether offload may open a link somebody pasted. A different promise from
    *  the one above: it sends none of their words anywhere. */
   web_links_enabled: Generated<boolean>;
@@ -248,6 +251,10 @@ export interface MessagesTable {
   step: string | null;
   /** So a step left behind by a worker that died is ignorable. */
   step_at: Date | null;
+  /** 019. Written for a tapped answer whose label was a calendar somebody else
+   *  named. The tail the prompts read substitutes a fixed line for its text, so
+   *  the name never reaches a prompt as the person's words. */
+  derived_from_untrusted: Generated<boolean>;
   source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
   source_ref: string | null;
   attrs: Generated<unknown>;
@@ -555,31 +562,62 @@ export interface ConnectorCalendarsTable {
   summary: string;
   timezone: string | null;
   access_role: "owner" | "writer" | "reader" | "freeBusyReader";
-  /** Does anybody but you see this. **The person's answer, not Google's**: an
-   *  access list needs another sensitive scope and still misses a calendar
-   *  that is public to anyone with the link. Defaults true, and the sync forces
-   *  it back to true whenever `access_role` stops being `owner`. */
-  is_shared: Generated<boolean>;
+  /** Everyone Google lets see this calendar, the person included, counted from
+   *  the access list under `calendar.acls.readonly`. **A count and nothing
+   *  else.** Null when the person does not own the calendar, since only an
+   *  owner may list the rules, or when the grant lacks the scope; every reader
+   *  treats null as more than one, which is the safe direction. */
+  participants: number | null;
+  participants_read_at: Timestamp | null;
+  /** Google's own colour for the calendar, a hex string, as recognition and
+   *  never as the differentiator: four of seven ordinary ones fail 3:1. */
+  colour: string | null;
   is_primary: Generated<boolean>;
-  /** Reads into offload at all, and cannot be true without a thread: an event
-   *  offload holds is a content row, and `content.thread_id` is not null. */
+  /** Approved: offload may read it at all. Adds it to no thread; threads pick
+   *  from the approved list, starting from none. */
   selected: Generated<boolean>;
-  default_thread_id: string | null;
   sync_token: string | null;
   synced_at: Timestamp | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 }
 
-/** Sends some of a calendar's events somewhere other than its default thread.
- *  In `ordinal` order, first match wins. */
-export interface ConnectorCalendarRulesTable {
+/** 019. One copy of each event per calendar, on the connection, outside every
+ *  thread, held for the window and no longer. Threads read it through their
+ *  picks; Today reads all of it. Same minimisation 012 wrote: no description,
+ *  no conferencing, no attachments, and an address only on an event offload
+ *  created with guests. */
+export interface ConnectorEventsTable {
   id: Generated<string>;
+  /** Denormalised from the connection, for Today's read. Written once. */
+  account_id: string;
   calendar_id: string;
-  ordinal: number;
-  match_kind: "title_contains" | "attendee_is" | "all";
-  match_value: string | null;
+  /** `<calendar external id>:<event id>`. */
+  source_ref: string;
+  title: string;
+  occurs_at: Timestamp | null;
+  occurs_end_at: Timestamp | null;
+  all_day: Generated<boolean>;
+  timezone: string | null;
+  location: string | null;
+  series_ref: string | null;
+  organizer_is_me: Generated<boolean>;
+  /** Text somebody else wrote. Defaults true so a path that forgets errs safe. */
+  untrusted: Generated<boolean>;
+  attendees: ColumnType<unknown, string, string>;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  deleted_at: Timestamp | null;
+}
+
+/** 019. The calendars a thread reads through, one row per member per calendar.
+ *  A thread starts with none, and a pick reads for the whole thread while a
+ *  write reaches a calendar only through the acting account's own picks. */
+export interface ThreadCalendarsTable {
   thread_id: string;
+  calendar_id: string;
+  /** The member who picked, so leaving removes exactly theirs. */
+  account_id: string;
   created_at: Timestamp;
 }
 
@@ -597,6 +635,8 @@ export interface ConnectorPendingWritesTable {
    *  control that answers it. Without it a proposal is unreachable from any
    *  screen and expires having done nothing. */
   message_id: string | null;
+  /** 019. The row a confirmed create marks as on the calendar. */
+  content_id: string | null;
   expires_at: Timestamp;
   created_at: Timestamp;
   confirmed_at: Timestamp | null;
@@ -664,7 +704,7 @@ export interface QuestionsTable {
   message_id: string;
   turn_id: string;
   ordinal: number;
-  field: "date" | "span" | "time" | "tag" | "country" | "thread";
+  field: "date" | "span" | "time" | "tag" | "country" | "calendar" | "thread";
   target_content_id: string | null;
   target_note_id: string | null;
   text: string;
@@ -755,7 +795,8 @@ export interface Database {
   connector_connections: ConnectorConnectionsTable;
   connector_secrets: ConnectorSecretsTable;
   connector_calendars: ConnectorCalendarsTable;
-  connector_calendar_rules: ConnectorCalendarRulesTable;
+  connector_events: ConnectorEventsTable;
+  thread_calendars: ThreadCalendarsTable;
   connector_pending_writes: ConnectorPendingWritesTable;
   accounts: AccountsTable;
   account_identities: AccountIdentitiesTable;

@@ -18,10 +18,24 @@ import Link from "next/link";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 
-export function Group({ label, children }: { label?: string; children: React.ReactNode }) {
+export function Group({
+  label,
+  count,
+  children,
+}: {
+  label?: string;
+  /** 019. A count in the label's trailing slot: `4 of 7 in use`. */
+  count?: string | undefined;
+  children: React.ReactNode;
+}) {
   return (
     <section className={styles.settingsBlock}>
-      {label ? <h2 className={styles.settingsLabel}>{label}</h2> : null}
+      {label ? (
+        <h2 className={styles.settingsLabel}>
+          {count ? <span className={styles.settingsLabelText}>{label}</span> : label}
+          {count ? <span className={styles.settingsLabelCount}>{count}</span> : null}
+        </h2>
+      ) : null}
       <div>{children}</div>
     </section>
   );

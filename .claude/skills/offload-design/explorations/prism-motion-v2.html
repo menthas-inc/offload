@@ -1,0 +1,621 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Prism motion, three layers and distortion</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="frames.css">
+<style>
+.dev{position:relative;width:390px;height:844px;flex:0 0 auto;border:1px solid var(--border-strong);border-radius:44px;box-shadow:var(--shadow-3);overflow:hidden;background:var(--surface-page);display:flex;flex-direction:column}
+.dev.gate390{height:844px}
+.dev>.sb{padding:12px 26px 4px;background:var(--surface-chrome);backdrop-filter:var(--blur-chrome);-webkit-backdrop-filter:var(--blur-chrome);font:var(--weight-semibold) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums;position:relative;z-index:2}
+.dev>.sb em{color:var(--ink-900)}
+.pscr{flex:1;display:flex;flex-direction:column;min-height:0;position:relative;overflow:hidden}
+/* AppBar's contract: min-height --appbar-height, 0 --gutter-screen padding,
+   --surface-chrome-strong, --blur-chrome, and a hairline bottom border. Opaque,
+   like every other chrome surface, and it stays that way here: the composer row
+   and the tab row are the only two surfaces this exploration diverges on. */
+.pbar{flex:0 0 auto;display:flex;align-items:center;gap:var(--space-4);min-height:var(--appbar-height);padding:0 var(--gutter-screen);position:relative;z-index:2;
+  background:var(--surface-chrome-strong);backdrop-filter:var(--blur-chrome);-webkit-backdrop-filter:var(--blur-chrome);border-bottom:1px solid transparent}
+.pbar h4{margin:0;font:var(--text-title-3);letter-spacing:var(--tracking-title);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pbar .brand{flex:1;min-width:0;display:flex;align-items:center}
+.pbar .brand .lm{width:21px;height:21px}
+.pbar .acts{display:flex;align-items:center;gap:var(--space-2);margin-right:-8px;flex:0 0 auto}
+.pbar .ib{display:inline-flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin:-2px;flex:0 0 auto}
+.pbar .bx{position:relative;display:inline-flex;width:40px;height:40px;border-radius:var(--radius-pill);color:var(--text-secondary)}
+.pbar .bx.ic:before{-webkit-mask-size:20px;mask-size:20px}
+.pbar .bx .dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:var(--radius-pill);background:var(--clay-600);border:1.5px solid var(--paper)}
+.pbar i{width:20px;height:20px;color:var(--text-secondary);flex:0 0 auto}
+.list{flex:1;min-height:0;overflow-y:auto;position:relative;z-index:2;padding-top:var(--space-5)}
+/* Button, secondary/sm/rounded: a 32px visual in a 44px touch box, cancelled
+   by a negative margin so the layout measures the visual. */
+.sortwrap{padding:var(--space-6) var(--gutter-screen) var(--space-9)}
+.sortbtn{display:inline-flex;align-items:center;justify-content:center;border:none;background:transparent;padding:0;height:var(--tap-min);margin:-6px 0;cursor:pointer}
+.sortbtn>span{display:flex;align-items:center;justify-content:center;gap:var(--space-2);height:32px;padding:0 var(--space-5);box-sizing:border-box;border-radius:var(--radius-sm);font:var(--weight-medium) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body);background:var(--surface-raised);color:var(--text-primary);border:1px solid var(--border-strong)}
+.sortbtn .g{width:16px;height:16px}
+.psec{padding:var(--space-9) var(--gutter-screen) var(--space-5)}
+.psec>span.in{display:flex;align-items:center;gap:var(--space-4);padding-bottom:var(--space-4);border-bottom:1px solid var(--ink-950)}
+.psec .ttl{font:var(--weight-semibold) var(--size-title-2)/1.15 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-title);color:var(--text-primary)}
+.psec em{font-style:normal;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 var(--space-3);border-radius:var(--radius-pill);background:var(--surface-fill);font:var(--weight-medium) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums;color:var(--text-secondary)}
+.psec .fill{flex:1}
+.psec.accent>span.in{border-bottom-color:var(--moss-600)}
+.psec.accent em{background:var(--surface-accent-soft);color:var(--text-accent)}
+.psec .act{font:var(--text-label-role);font-variant-numeric:tabular-nums;color:var(--text-secondary)}
+.prow{display:flex;align-items:center;gap:var(--space-5);min-height:var(--row-height-lg);padding:var(--space-5) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.prow .t{width:36px;height:36px;border-radius:var(--radius-sm);background:var(--surface-fill);color:var(--text-secondary);flex:0 0 auto}
+.prow .x{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.prow .x b{display:block;font:var(--weight-medium) var(--size-body)/1.3 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* PriorityRow: a 22px pill circle with a 13px glyph, flex-start, a two-tone
+   meta line, and a Badge for the due date. Not the 36px square tile. */
+.prio{display:flex;align-items:flex-start;gap:var(--space-5);padding:var(--space-5) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.prio.last{box-shadow:none}
+.prio .dot{width:22px;height:22px;margin-top:1px;flex:0 0 auto;border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-secondary);display:flex}
+.prio .dot.att{background:var(--surface-attention);color:var(--text-on-solid)}
+.prio .dot.ic:before{-webkit-mask-size:13px;mask-size:13px}
+.prio .x{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.prio .x b{font:var(--weight-medium) var(--size-body)/1.35 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body)}
+.prio .x s{text-decoration:none;font-size:var(--size-body-sm);line-height:1.4;color:var(--text-secondary)}
+.prio .x s i{font-style:normal;color:var(--text-tertiary)}
+.prio .x s u{text-decoration:none;color:var(--text-accent);font-weight:500}
+.bdg{display:inline-flex;align-items:center;height:20px;padding:0 var(--space-3);border-radius:var(--radius-xs);font:var(--weight-medium) var(--size-caption)/1 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:.01em;background:var(--surface-fill);color:var(--text-secondary)}
+.bdg.att{background:var(--surface-attention);color:var(--text-on-solid)}
+.bdg.acc{background:var(--surface-accent-soft);color:var(--text-accent)}
+.prio .bw{flex:0 0 auto;padding-top:2px}
+/* ThreadDigest: a Card padding=0, header row over digest lines. */
+.dig{padding:0 var(--gutter-screen) var(--space-5)}
+.dig .card{border-radius:var(--radius-card);background:var(--surface-card);border:1px solid var(--border-hairline)}
+.dig .hd{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-5) var(--space-6);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.dig .hd .g{width:18px;height:18px;color:var(--text-secondary)}
+.dig .hd .nm{flex:1;min-width:0;font:var(--text-title-3);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dig .bd{padding:var(--space-5) var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.dig .ln{display:flex;gap:var(--space-4);align-items:flex-start}
+.dig .ln .g{width:15px;height:15px;color:var(--text-tertiary);margin-top:2px;flex:0 0 auto}
+.dig .ln span.t{flex:1;min-width:0;font-size:var(--size-body-sm);line-height:1.4;color:var(--text-primary)}
+.dig .ln span.w{font-size:var(--size-caption);color:var(--text-tertiary);flex:0 0 auto}
+/* DayAgenda: one spine down the day, events as dots on it, clear runs as
+   moss-bordered bands. The time column is a fixed 112px so every title
+   starts at the same x. */
+.agenda{display:flex;flex-direction:column;gap:var(--space-8);padding:0 var(--gutter-screen) var(--space-8)}
+.agenda .dh{display:flex;align-items:baseline;gap:var(--space-4);padding-bottom:var(--space-4)}
+.agenda .dh b{font:var(--weight-medium) var(--size-title-3)/1.2 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-title)}
+.agenda .dh s{text-decoration:none;font-size:var(--size-caption);color:var(--text-tertiary)}
+.agenda .spine{position:relative;padding-left:19px}
+.agenda .spine>.rail{position:absolute;left:3px;top:10px;bottom:10px;width:1px;background:var(--border-hairline)}
+.agenda .ev{position:relative;display:flex;align-items:flex-start;gap:var(--space-5);padding:var(--space-4) 0}
+.agenda .ev>.pip{position:absolute;left:-19px;top:calc(var(--space-4) + 7px);width:8px;height:8px;border-radius:var(--radius-pill);background:var(--ink-900)}
+.agenda .ev>.pip.acc{background:var(--moss-600)}
+.agenda .ev>.pip.att{background:var(--blue-600)}
+.agenda .tm{width:112px;flex:0 0 auto;font-size:var(--size-body-sm);line-height:22px;color:var(--text-tertiary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.agenda .ev .ti{flex:1;min-width:0;font:var(--weight-medium) var(--size-title-3)/1.3 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-title);padding-top:1px}
+.agenda .ev .nw{flex:0 0 auto;font-size:var(--size-caption);color:var(--clay-600)}
+.agenda .free{position:relative;display:flex;align-items:flex-start;gap:var(--space-5);margin:var(--space-2) 0 var(--space-2) -19px;padding:var(--space-5) 0 var(--space-5) 16px;border-left:3px solid var(--moss-500);background:linear-gradient(90deg,var(--moss-50),transparent)}
+.agenda .free .fl{flex:1;min-width:0;font:var(--weight-medium) var(--size-body)/1.35 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body);color:var(--moss-700)}
+.prow .tr{display:flex;align-items:center;gap:var(--space-4);color:var(--text-tertiary);font:var(--text-caption-role);font-variant-numeric:tabular-nums;flex:0 0 auto}
+.prow.last{box-shadow:none}
+.prow .x s{text-decoration:none;display:block;font:var(--text-body-sm-role);font-variant-numeric:tabular-nums;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .x s u{text-decoration:none;color:var(--text-accent);font-weight:500}
+[hidden]{display:none!important}
+.mk{animation:markFade var(--duration-mark) var(--ease-out) both}
+@keyframes markFade{0%{background:var(--surface-accent-soft)}100%{background:transparent}}
+.plate{flex:0 0 auto;margin-top:auto;position:relative;z-index:9;
+  /* --surface-raised in the kit; 86% here, and this is the whole divergence. */
+  background:rgba(255,255,255,.86);
+  border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-sheet)}
+.comp{display:flex;padding:var(--space-4) var(--gutter-screen) var(--space-5);border-top:1px solid transparent}
+.pill{flex:1;min-width:0;box-sizing:border-box;display:flex;align-items:center;gap:var(--space-3);min-height:48px;padding:0 var(--space-3) 0 var(--space-6);border-radius:var(--radius-pill);background:var(--surface-input);border:1px solid var(--border-focus)}
+.pill .ph{flex:1;min-width:0;font:var(--text-body-role);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body);color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill .acts{display:flex;align-items:center;gap:var(--space-2);flex:0 0 auto;margin-left:auto}
+.pill .ib{display:inline-flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin:-6px;flex:0 0 auto}
+.pill .bx{display:inline-flex;width:32px;height:32px;border-radius:var(--radius-pill);color:var(--text-secondary)}
+.pill .bx.qt{background:var(--surface-fill);color:var(--text-primary)}
+.pill .bx.ic:before{-webkit-mask-size:16px;mask-size:16px}
+/* TabBar's contract: 64px, a hairline top border, --surface-chrome-strong,
+   --blur-chrome, active --text-primary over inactive --text-tertiary. The only
+   thing this exploration changes is the fill, from opaque to 86%. */
+.tabs{display:flex;align-items:center;justify-content:space-around;height:var(--tabbar-height);color:var(--text-tertiary);background:transparent;border-top:1px solid transparent}
+.tabs span{display:flex;flex-direction:column;align-items:center;gap:4px;font:var(--weight-medium) 10px/1 var(--font-core)}
+.tabs i{width:22px;height:22px}
+.tabs span.on{color:var(--ink-950)}
+.tabs span.on i{color:var(--ink-950)}
+.hib{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:10;pointer-events:none}
+.hib b{display:block;width:134px;height:5px;border-radius:3px;background:var(--ink-300)}
+/* Scroll offset, dump nudge and perpetual drift each own one element, so the
+   three transforms compose instead of overwriting each other. Same shape as
+   stacking three Animated values in React Native. */
+.bandpar{position:absolute;left:-16%;right:-16%;bottom:0;height:210px;z-index:1;pointer-events:none;overflow:hidden;
+  transform:translate3d(var(--sx,0px),var(--sy,0px),0)}
+.bandarr{position:absolute;inset:0}
+.bl{position:absolute;inset:0;background-size:cover;background-repeat:no-repeat;transform-origin:50% 80%}
+/* Three different fields, not three copies of one: the layers never show each
+   other's shapes, so the pile keeps making combinations it has not made before. */
+.bl.l1{background-image:url(../assets/prism/p2-band-1.png);opacity:calc(var(--dens,1)*.22);animation:d1 var(--p1) ease-in-out infinite}
+.bl.l2{background-image:url(../assets/prism/p2-band-2.png);opacity:calc(var(--dens,1)*.16);animation:d2 var(--p2) ease-in-out infinite}
+.bl.l3{background-image:url(../assets/prism/p2-band-3.png);opacity:calc(var(--dens,1)*.12);animation:d3 var(--p3) ease-in-out infinite}
+/* The scales differ, and that is what makes it read as the field warping
+   rather than sliding: three rigid layers at one scale is a slideshow, three
+   at 1.0, 1.35 and 1.7 beat against each other. */
+@keyframes d1{0%,100%{transform:translate3d(-7%,2%,0) scale(1)}50%{transform:translate3d(8%,-4%,0) scale(1.16)}}
+@keyframes d2{0%,100%{transform:translate3d(6%,-4%,0) scale(1.38)}50%{transform:translate3d(-9%,5%,0) scale(1.2)}}
+@keyframes d3{0%,100%{transform:translate3d(-4%,5%,0) scale(1.72)}50%{transform:translate3d(7%,-6%,0) scale(1.5)}}
+/* The lens: a magnified crop with its radial falloff already in the alpha, so
+   nothing is masked at run time. Translating it IS the effect. */
+.lens{position:absolute;bottom:-34%;left:0;width:74%;height:150%;pointer-events:none;
+  background-image:url(../assets/prism/p2-lens.png);background-size:contain;background-position:center;background-repeat:no-repeat;
+  opacity:calc(var(--dens,1)*.30);animation:lensSweep var(--pl) ease-in-out infinite}
+@keyframes lensSweep{0%,100%{transform:translate3d(-24%,4%,0) scale(1)}50%{transform:translate3d(60%,-8%,0) scale(1.22)}}
+.bandarr.arrive{animation:arrive var(--duration-mark) var(--ease-out) both}
+@keyframes arrive{0%{transform:translate3d(0,0,0) scale(1)}26%{transform:translate3d(-13px,-5px,0) scale(1.04)}100%{transform:translate3d(0,0,0) scale(1)}}
+/* The real thing, drawn per pixel. On device this is a react-native-skia
+   runtime shader; here it is a small ImageData warp upscaled, which is the same
+   picture by a slower route. */
+.warp{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:calc(var(--dens,1)*.36)}
+.bloompar{position:absolute;left:-34%;top:-20%;width:120%;height:58%;z-index:1;pointer-events:none;overflow:hidden}
+.bloompar .bl{background-size:contain;background-position:center}
+.bloompar .bl.l1{background-image:url(../assets/prism/p2-bloom-1.png);opacity:calc(var(--dens,1)*.26)}
+.bloompar .bl.l2{background-image:url(../assets/prism/p2-bloom-2.png);opacity:calc(var(--dens,1)*.19)}
+.bloompar .bl.l3{background-image:url(../assets/prism/p2-bloom-3.png);opacity:calc(var(--dens,1)*.14)}
+.gate{flex:1;min-height:0;display:flex;flex-direction:column;position:relative;z-index:2}
+.lockup{flex:1;display:flex;align-items:center;justify-content:center}
+.lockup .stack{display:flex;flex-direction:column;align-items:center;gap:20px}
+.markbox{position:relative;width:92px;height:92px;flex:0 0 auto}
+.markbox .fill{position:absolute;inset:0;background-image:url(../assets/prism/prism-mark.png);background-size:contain;background-position:center;background-repeat:no-repeat}
+.word{font:var(--weight-semibold) 30px/1 var(--font-core);letter-spacing:-0.03em;color:var(--text-primary)}
+.gbody{text-align:center;padding:0 var(--gutter-screen) 44px}
+.gt{font:var(--text-title-1);letter-spacing:var(--tracking-title)}
+.gs{font:var(--text-body-role);color:var(--text-secondary);margin-top:12px;line-height:var(--leading-body)}
+.gfoot{flex:0 0 auto;padding:0 var(--gutter-screen) 22px;display:flex;flex-direction:column;gap:10px}
+.prov{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:52px;box-sizing:border-box;border-radius:var(--radius-pill);cursor:pointer;font:var(--weight-medium) var(--size-body)/1 var(--font-core);letter-spacing:var(--tracking-body)}
+.prov.apple{background:var(--ink-950);color:var(--text-inverse);border:1px solid transparent}
+.prov.google{background:var(--surface-raised);color:var(--text-primary);border:1px solid var(--border-strong)}
+.terms{font:var(--text-caption-role);color:var(--text-tertiary);text-align:center;line-height:1.45}
+.terms b{color:var(--text-accent);font-weight:500}
+.bar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:14px 18px;border:1px solid var(--border-hairline);border-radius:14px;background:var(--surface-raised);margin:0 0 26px;position:sticky;top:14px;z-index:20;box-shadow:var(--shadow-1)}
+.bar b{font:var(--weight-medium) 13px/1 var(--font-core)}
+.bar label{display:flex;align-items:center;gap:9px;font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-secondary)}
+.bar input[type=range]{width:150px;accent-color:var(--ink-950)}
+.bar output{font:var(--text-numeric-role);font-size:12px;color:var(--text-primary);min-width:86px}
+.bar button{font:var(--weight-medium) 13px/1 var(--font-core);height:34px;padding:0 15px;border-radius:var(--radius-pill);border:1px solid var(--border-strong);background:var(--paper);color:var(--text-primary);cursor:pointer}
+.bar button.pri{background:var(--ink-950);color:var(--paper);border-color:transparent}
+.frames{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.cap{display:flex;flex-direction:column;gap:9px;width:390px}
+.cap h3{margin:0;font:var(--weight-semibold) 16px/1.3 var(--font-core);letter-spacing:-.01em}
+.cap p{margin:0;font:var(--weight-regular) 13px/1.55 var(--font-core);color:var(--text-secondary)}
+.cap .act{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.cap .cost{font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;align-self:flex-start}
+.cost.free{background:var(--surface-accent-soft);color:var(--moss-700)}
+.cost.pay{background:var(--surface-attention-soft);color:var(--text-on-attention)}
+@media (prefers-reduced-motion: reduce){
+  .bl,.lens,.bandarr.arrive,.mk{animation:none!important}
+  .bandpar{transform:none!important}
+}
+</style></head><body><div class="wrap">
+
+<h1>Prism motion, three layers and distortion</h1>
+<p class="lede">The dump effect kept as it was. The drift rebuilt to your notes: <b>three layers instead of two, three different baked fields rather than copies of one, shapes about twice the size, offsets four times bigger, and five times the speed</b>. Then two answers to the distortion question, one that costs nothing and one that costs Skia, so you can see whether the real thing is worth paying for.</p>
+
+<div class="bar">
+<b>Drift</b>
+<label>Period <input id="period" type="range" min="6" max="60" step="1" value="16"><output id="periodOut">16 / 19 / 23s</output></label>
+<label>Travel <input id="amp" type="range" min="40" max="200" step="10" value="100"><output id="ampOut">100%</output></label>
+<label>Density <input id="dens" type="range" min="30" max="140" step="5" value="100"><output id="densOut">100%</output></label>
+<button id="dumpAll" class="pri">Dump something</button>
+<button id="resetAll">Reset</button>
+<span style="font:var(--weight-regular) 12px/1.4 var(--font-core);color:var(--text-tertiary);max-width:30ch">All three frames are in real time. Nothing here is sped up.</span>
+</div>
+
+<div class="frames">
+
+<!-- ============ 1 ============ -->
+<div class="cap">
+<h3>1 &middot; Three layers, three fields</h3>
+<p>Scales 1.0, 1.38 and 1.72 drifting on 16, 19 and 23 second loops in three directions. The differing scales are what make it read as the field moving rather than a picture sliding: at one scale three layers are a slideshow. Still transforms on baked textures, so still no raster work and no JS per frame.</p>
+<span class="cost free">Free &middot; transforms only</span>
+<div class="dev" id="f1">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="bandpar"><div class="bandarr"><div class="bl l1"></div><div class="bl l2"></div><div class="bl l3"></div></div></div>
+<div class="pbar"><span class="brand"><i class="lm"></i></span><span class="acts"><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/bell.svg)"><span class="dot"></span></span></span><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/settings.svg)"></span></span></span></div>
+<div class="list" data-list></div>
+<div class="plate">
+<div class="comp"><span class="pill"><span class="ph">Dump anything</span><span class="acts"><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/camera.svg)"></span></span><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/mic.svg)"></span></span><span class="ib"><span class="bx qt ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></span></span></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>My threads</span><span><i class="g" style="--ic:url(../assets/icons/cloudy.svg)"></i>Memories</span></div>
+</div>
+</div>
+<div class="hib"><b></b></div>
+</div>
+<div class="act"><button data-dump="f1">Dump something</button></div>
+</div>
+
+<!-- ============ 2 ============ -->
+<div class="cap">
+<h3>2 &middot; The same, plus a lens</h3>
+<p>A fourth layer: a magnified crop of the field with its radial falloff baked into the alpha, sweeping across on a 34 second loop. Where it passes, the field underneath appears locally enlarged. This is the cheap way to get a magnifier: nothing is masked, nothing is sampled, one more image translating.</p>
+<span class="cost free">Free &middot; one more baked image</span>
+<div class="dev" id="f2">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="bandpar"><div class="bandarr"><div class="bl l1"></div><div class="bl l2"></div><div class="bl l3"></div><div class="lens"></div></div></div>
+<div class="pbar"><span class="brand"><i class="lm"></i></span><span class="acts"><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/bell.svg)"><span class="dot"></span></span></span><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/settings.svg)"></span></span></span></div>
+<div class="list" data-list></div>
+<div class="plate">
+<div class="comp"><span class="pill"><span class="ph">Dump anything</span><span class="acts"><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/camera.svg)"></span></span><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/mic.svg)"></span></span><span class="ib"><span class="bx qt ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></span></span></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>My threads</span><span><i class="g" style="--ic:url(../assets/icons/cloudy.svg)"></i>Memories</span></div>
+</div>
+</div>
+<div class="hib"><b></b></div>
+</div>
+<div class="act"><button data-dump="f2">Dump something</button></div>
+</div>
+
+<!-- ============ 3 ============ -->
+<div class="cap">
+<h3>3 &middot; Real distortion, per pixel</h3>
+<p>The field genuinely warped: every pixel samples the texture at an offset from an animated flow, so the shapes stretch and fold rather than translate. This is what you cannot fake with transforms. On device it is a <code>react-native-skia</code> runtime shader, which is cheap per frame but adds several MB to the bundle and keeps the GPU render loop awake for as long as it runs.</p>
+<span class="cost pay">Costs Skia &middot; and a live render loop</span>
+<div class="dev" id="f3">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="bandpar"><div class="bandarr"><canvas class="warp" id="warpCanvas" width="256" height="140"></canvas></div></div>
+<div class="pbar"><span class="brand"><i class="lm"></i></span><span class="acts"><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/bell.svg)"><span class="dot"></span></span></span><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/settings.svg)"></span></span></span></div>
+<div class="list" data-list></div>
+<div class="plate">
+<div class="comp"><span class="pill"><span class="ph">Dump anything</span><span class="acts"><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/camera.svg)"></span></span><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/mic.svg)"></span></span><span class="ib"><span class="bx qt ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></span></span></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>My threads</span><span><i class="g" style="--ic:url(../assets/icons/cloudy.svg)"></i>Memories</span></div>
+</div>
+</div>
+<div class="hib"><b></b></div>
+</div>
+<div class="act"><button data-dump="f3">Dump something</button><label style="font:var(--weight-regular) 12.5px/1 var(--font-core);color:var(--text-secondary);display:flex;gap:7px;align-items:center">Warp <input id="warpAmp" type="range" min="0" max="26" step="1" value="11"><output id="warpOut">11</output></label></div>
+</div>
+
+<!-- ============ GATE ============ -->
+<div class="cap">
+<h3>The gate, three layers</h3>
+<p>The same three-field drift behind <code>SignInScreen</code>: the centred vertical lockup, the real copy, both provider glyphs. The field is the whole upper half of the screen rather than a sliver behind a plate, which is why perpetual motion is unambiguously worth it here. The mark filled with the prism is option A, and it is the only divergence on this screen.</p>
+<span class="cost free">Free &middot; transforms only</span>
+<div class="dev gate390" id="f4">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="bloompar"><div class="bl l1"></div><div class="bl l2"></div><div class="bl l3"></div></div>
+<div class="gate">
+<div class="lockup"><span class="stack"><span class="markbox"><span class="fill"></span></span><span class="word">offload</span></span></div>
+<div class="gbody"><div class="gt">One place for everything you would otherwise forget.</div><div class="gs">Sign in to start. Invite only for now.</div></div>
+<div class="gfoot">
+<button type="button" class="prov apple"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:block"><path d="M16.37 1.43c0 1.14-.42 2.2-1.25 3.02-.9.9-2.02 1.42-3.02 1.33-.06-1.08.44-2.2 1.26-3.03.86-.87 2.1-1.4 3.01-1.32zM20.9 8.6c-1.7-.1-3.1.96-3.9.96-.83 0-2.05-.92-3.38-.9-1.74.03-3.35 1.01-4.24 2.57-1.82 3.15-.47 7.82 1.3 10.38.86 1.25 1.9 2.65 3.25 2.6 1.3-.05 1.8-.84 3.37-.84 1.57 0 2.02.84 3.38.82 1.4-.03 2.29-1.27 3.15-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.7-1.04-2.72-4.12-.03-2.58 2.1-3.82 2.2-3.88-1.2-1.77-3.07-1.97-3.71-2.01z"></path></svg>Continue with Apple</button>
+<button type="button" class="prov google"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" style="display:block"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>Continue with Google</button>
+<div class="terms">No invite yet? <b>Join the waitlist</b><br>Terms &middot; Privacy</div>
+</div>
+</div>
+</div>
+<div class="hib"><b></b></div>
+</div>
+</div>
+
+</div>
+
+<div class="sechead"><h2>The distortion question, answered</h2><u>what is actually cheap on a phone</u></div>
+<table class="mx">
+<tr><th style="width:210px">Approach</th><th style="width:150px">Per-frame cost</th><th>What it costs you</th></tr>
+<tr><td><b>Scale-differentiated layers</b><br><span style="color:var(--text-tertiary)">frame 1</span></td><td style="color:var(--moss-700);font-weight:500">nothing</td><td>Three baked images, about 340KB as PNG and roughly half that as WebP. No shader, no sampling, no JS. Reads as warping because the layers beat against each other at different scales.</td></tr>
+<tr><td><b>A baked lens</b><br><span style="color:var(--text-tertiary)">frame 2</span></td><td style="color:var(--moss-700);font-weight:500">nothing</td><td>One more image, 47KB, with the radial falloff already in its alpha so nothing is masked at run time. Gives local magnification but the magnification never changes: it is a fixed lens moving, not a lens that deforms.</td></tr>
+<tr><td><b>Skia runtime shader</b><br><span style="color:var(--text-tertiary)">frame 3</span></td><td>one GPU pass over the band</td><td>Several MB of bundle, and the render loop stays awake while it animates, which is the part that shows up on battery. The shader itself is trivial work: a fragment sampling a texture at an offset is what a GPU is for.</td></tr>
+<tr><td><b>SVG filter, as the site does</b></td><td class="n" style="color:var(--clay-700);font-weight:500">~96ms, measured</td><td>Not available on React Native without Skia anyway, and this is the exact thing that made the web atmosphere have to freeze behind the privacy page. Ruled out.</td></tr>
+<tr><td><b>Sprite sheet of warp frames</b></td><td style="color:var(--moss-700);font-weight:500">nothing</td><td>Pre-render the warp offline and step through frames. Genuinely free per frame, but a fluid warp needs 40+ frames to not read as a flip book, which is megabytes. Mentioned for completeness; not recommended.</td></tr>
+</table>
+
+<ul class="spec">
+<li><b>The honest comparison is frame 1 against frame 3.</b> Turn the warp slider to 0 and frame 3 becomes a still image, which is the fair baseline. What Skia buys is shapes that <em>stretch and fold</em>; what three layers give you is shapes that <em>pass over each other</em>. Both are unique over time. Only one of them costs a dependency.</li>
+<li><b>Frame 2's lens is the weakest of the three.</b> It magnifies, but by a fixed amount, so once you have watched it cross once there is nothing new in it. The three-layer pile keeps producing combinations because the periods are coprime enough not to resynchronise for hours.</li>
+<li><b>If you do take Skia, take it for the gate and not the app.</b> The gate is on screen for seconds at a time with the field across the whole top, so a live shader there is both visible and short-lived. Behind the plate it is a warp nobody can see, running all day.</li>
+<li><b>The real question option B asks is whether <code>TabBar</code> may stop being opaque.</b> Its contract is 64px, a hairline top border, <code>background: --surface-chrome-strong</code>, and <code>backdropFilter: --blur-chrome</code>, with the active label at <code>--text-primary</code> over inactive at <code>--text-tertiary</code>. So B's premise, that the plate gives up its own fill, was a divergence from that contract from the start, and the 86% bed in these frames is not a new compromise: it is that contract with one value changed.</li>
+<li><b>And the component was written expecting this.</b> <code>TabBar</code> already carries <code>--blur-chrome</code>, <code>saturate(140%) blur(14px)</code>, which does nothing at all today because <code>--surface-chrome-strong</code> resolves to opaque <code>--surface-raised</code>. The blur is sitting there waiting for a translucent chrome token. That is the decision in front of you: whether <code>--surface-chrome-strong</code> gains an alpha, in which case <code>--blur-chrome</code> starts doing its job and every chrome surface in the product, tab bar, app bar, sticky section headers and the composer, changes together. It is a token decision, not a tab bar decision.</li>
+<li><b>The label colours need no change either way</b>, and my earlier note that they did was wrong: it measured against an <code>--ink-400</code> inactive state that exists nowhere in the kit. At 86% the contract's own <code>--text-tertiary</code> holds 4.71:1 over the field at 100% density and 4.60:1 at the 140% cap, keeping the 3.86:1 separation from the active label that the component already ships with.</li>
+<li><b>Density is capped at 140%</b>, and the cap is the contrast floor rather than taste. At 140% the inactive label still clears everywhere at 4.91:1; at 200%, which the slider used to allow, it drops to 3.62:1 and fails part of the strip. Within 30 to 140 it is a purely aesthetic dial.</li>
+<li><b>The composer needs no contrast argument at all, and my earlier one was about a bed that does not exist.</b> <code>Composer.jsx</code>'s pill is already opaque <code>--surface-input</code> with a 1px <code>--border-focus</code> hairline, so the placeholder sits on <code>#F2F2F2</code> and never meets the band. What diverges is the composer <em>row</em>, which gives up <code>--surface-chrome</code>; the pill inside it keeps its fill exactly as specified. That makes the option simpler than two rounds of my own measurements suggested: no text in the composer is ever over the field.</li>
+<li><b>Reduced motion stops all of it, and frame 3 shows the gate rather than claiming it.</b> The CSS animations are cut by a media query; the warp cannot be, because a media query has no way to stop a <code>requestAnimationFrame</code> and no way to notice a backgrounded tab. So the loop checks <code>matchMedia</code> and <code>document.hidden</code>, paints one still frame at a fixed clock when either says stop, and restarts on <code>visibilitychange</code>. That gate is not mock scaffolding: it is the code you would have to write on device, and leaving it out is how a live shader ends up running in a backgrounded app.</li>
+<li><b>One line in one file is the entire divergence, and it is not a token change.</b> <code>App.jsx</code> composes the bottom plate as a single wrapper carrying <code>background: --surface-raised</code>, <code>--radius-xl</code> top corners and <code>--shadow-sheet</code>, and it passes <code>bare</code> to <code>Composer</code> and <code>background: transparent</code> to <code>TabBar</code>. So neither child has a fill to give up: on the phones they are already transparent. The only thing standing between the band and the plate is that wrapper's own <code>--surface-raised</code>, which is 86% in these frames. Everything else on screen, including the app bar's opaque chrome and the composer's <code>--surface-input</code> pill, is exactly as specified.</li>
+<li><b>Which makes this much cheaper to try than I said two rounds ago.</b> I had it as a <code>--surface-chrome-strong</code> question rippling through the tab bar, app bar, sticky section headers and composer together. It is not: those surfaces are untouched, and the change is one property on one wrapper on one screen. The contrast work still stands, because the labels sit on 86% white over the field either way, but the cost of adopting it does not.</li>
+<li><b>The dump nudge is unchanged</b> and works on all three, since it sits on its own layer above the drift and below the scroll offset.</li>
+</ul>
+
+</div>
+<script>
+(function(){
+  /* One list, written once and cloned, so the four frames cannot drift apart
+     and the file stays readable. */
+  var ROWS = [
+    ['SECTION','On the clock','','', 'Open calendar'],
+    ['SECTION','Other things','11'],
+    ['map-pin','Time Out Market','Lisbon trip \u00b7 Sam','16:20'],
+    ['link','Tram 28 route map','Lisbon trip \u00b7 Sam','14:05'],
+    ['text-quote','Sourdough starter, day 4','Kitchen \u00b7 you','11:48'],
+    ['image','Airport transfer receipt','Lisbon trip \u00b7 2 Sep','09:30'],
+    ['text-quote','Apartment door code is 4417','Lisbon trip \u00b7 Sam','2 Sep'],
+    ['square-check-big','Confirm the checkout time','Lisbon trip \u00b7 Fri 12 Sep','1 Sep'],
+    ['album','Tile samples for the bathroom','Flat admin \u00b7 you','31 Aug'],
+    ['bookmark','That piece on sleep and memory','Reading \u00b7 28 Aug','28 Aug'],
+    ['calendar','Ana\u2019s birthday, the 14th','Flat admin \u00b7 you','27 Aug'],
+    ['mic','Voice note, Tuesday morning','filing \u00b7 3 Sep','26 Aug'],
+    ['camera','Photo of the bookshelf wall','Bookshelf build \u00b7 you','24 Aug'],
+    ['check-check','Renew the passport','Flat admin \u00b7 done 28 Aug','22 Aug']
+  ];
+  function row(icon, title, meta, time){
+    var d = document.createElement('div');
+    d.className = 'prow';
+    d.innerHTML = '<span class="t ic" style="--ic:url(../assets/icons/' + icon + '.svg)"></span>' +
+      '<div class="x"><b></b><s></s></div>' + (time ? '<span class="tr"></span>' : '');
+    if (time) d.querySelector('.tr').textContent = time;
+    d.querySelector('b').textContent = title;
+    setMeta(d.querySelector('s'), meta);
+    return d;
+  }
+  /* filing is the system's only per-row progress word and it is moss, so it
+     cannot be part of a flat text run. */
+  function setMeta(el, meta){
+    if (meta.indexOf('filing') !== 0){ el.textContent = meta; return; }
+    var u = document.createElement('u');
+    u.textContent = 'filing';
+    el.appendChild(u);
+    el.appendChild(document.createTextNode(meta.slice('filing'.length)));
+  }
+  function section(title, count, tone, action){
+    var d = document.createElement('div');
+    d.className = tone === 'accent' ? 'psec accent' : 'psec';
+    d.innerHTML = '<span class="in"><span class="ttl"></span><em></em><span class="fill"></span></span>';
+    d.querySelector('.ttl').textContent = title;
+    if (count) d.querySelector('em').textContent = count; else d.querySelector('em').remove();
+    if (action){ var a = document.createElement('span'); a.className = 'act'; a.textContent = action; d.querySelector('.in').insertBefore(a, d.querySelector('.fill')); }
+    return d;
+  }
+  var PRIORITY = [
+    {icon:'text-quote', title:'Ana needs an answer on the 14th\u201317th', thread:'Flat admin', meta:'asked Tuesday', due:'2 days', tone:'attention'},
+    {icon:'square-check-big', title:'Book the airport transfer', thread:'Lisbon trip', meta:'you added it', due:'Fri'},
+    {icon:'square-check-big', title:'Bank transfer for Ana', thread:'Flat admin', meta:'Sam asked'}
+  ];
+  var DIGESTS = [
+    {name:'Lisbon trip', added:4, lines:[
+      {icon:'map-pin', text:'Time Out Market, lunch, closes 4pm on Sundays', time:'16:20'},
+      {icon:'link', text:'Tram 28 route map', time:'14:05'},
+      {icon:'image', text:'Airport transfer receipt', time:'09:30'}
+    ]},
+    {name:'Bookshelf build', added:2, lines:[
+      {icon:'text-quote', text:'Oak brackets, 30cm, matte black', time:'11:48'},
+      {icon:'camera', text:'Photo of the wall before drilling', time:'yesterday'}
+    ]}
+  ];
+  var DAYS = [{label:'Today', date:'Thu 11 Sep', isToday:true, events:[
+    {start:9.5, end:10.25, title:'Standup', tone:'ink'},
+    {start:11, end:12, title:'Call with Ana', tone:'attention'},
+    {start:16.5, end:17.5, title:'Pick up the tile samples', tone:'accent'}
+  ]}];
+  function priorityRow(it, last){
+    var d = document.createElement('div');
+    d.className = last ? 'prio last' : 'prio';
+    d.innerHTML = '<span class="dot ic' + (it.tone === 'attention' ? ' att' : '') +
+      '" style="--ic:url(../assets/icons/' + it.icon + '.svg)"></span>' +
+      '<div class="x"><b></b><s></s></div>' +
+      (it.due ? '<span class="bw"><span class="bdg' + (it.tone === 'attention' ? ' att' : '') + '"></span></span>' : '');
+    d.querySelector('b').textContent = it.title;
+    var s = d.querySelector('s');
+    if (it.filing){ var u = document.createElement('u'); u.textContent = it.thread; s.appendChild(u); }
+    else s.appendChild(document.createTextNode(it.thread));
+    var i = document.createElement('i');
+    i.textContent = ' \u00b7 ' + it.meta;
+    s.appendChild(i);
+    if (it.due) d.querySelector('.bdg').textContent = it.due;
+    return d;
+  }
+  function digest(th){
+    var d = document.createElement('div');
+    d.className = 'dig';
+    var lines = th.lines.map(function(l){
+      return '<div class="ln"><i class="g" style="--ic:url(../assets/icons/' + l.icon + '.svg)"></i>' +
+        '<span class="t"></span><span class="w"></span></div>';
+    }).join('');
+    d.innerHTML = '<div class="card"><div class="hd">' +
+      '<i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>' +
+      '<span class="nm"></span><span class="bdg acc"></span></div>' +
+      '<div class="bd">' + lines + '</div></div>';
+    d.querySelector('.nm').textContent = th.name;
+    d.querySelector('.bdg').textContent = '+' + th.added;
+    var ls = d.querySelectorAll('.ln');
+    th.lines.forEach(function(l, i){
+      ls[i].querySelector('.t').textContent = l.text;
+      ls[i].querySelector('.w').textContent = l.time;
+    });
+    return d;
+  }
+  /* One am/pm per range, on the end time only, so the time column stays even. */
+  function clock(h, mer){
+    var H = Math.floor(h), M = Math.round((h - H) * 60);
+    var h12 = H % 12 === 0 ? 12 : H % 12;
+    return h12 + ':' + String(M).padStart(2, '0') + (mer ? (H >= 12 ? 'pm' : 'am') : '');
+  }
+  function range(a, b){ return clock(a, false) + ' - ' + clock(b, true); }
+  function freeLabel(h){
+    var m = Math.round(h * 60);
+    if (m < 60) return m + 'mins free';
+    var H = Math.floor(m / 60), M = m % 60;
+    return H + (M ? ':' + String(M).padStart(2, '0') : '') + 'hrs free';
+  }
+  function agenda(days, nowHour){
+    var wrap = document.createElement('div');
+    wrap.className = 'agenda';
+    days.forEach(function(day){
+      var evs = day.events.slice().sort(function(a, b){ return a.start - b.start; });
+      var html = '<div class="dh"><b></b><s></s></div><div class="spine"><span class="rail"></span>';
+      evs.forEach(function(ev, i){
+        var isNow = day.isToday && nowHour >= ev.start && nowHour < ev.end;
+        html += '<div class="ev"><span class="pip ' + (ev.tone === 'accent' ? 'acc' : ev.tone === 'attention' ? 'att' : '') + '"></span>' +
+          '<span class="tm">' + range(ev.start, ev.end) + '</span><span class="ti"></span>' +
+          (isNow ? '<span class="nw">now</span>' : '') + '</div>';
+        var next = evs[i + 1];
+        /* A gap only becomes a band at 45 minutes; below that it is noise. */
+        if (next && next.start - ev.end >= 0.75){
+          html += '<div class="free"><span class="tm">' + range(ev.end, next.start) + '</span>' +
+            '<span class="fl">' + freeLabel(next.start - ev.end) + '</span></div>';
+        }
+      });
+      html += '</div>';
+      var d = document.createElement('div');
+      d.innerHTML = html;
+      d.querySelector('.dh b').textContent = day.label;
+      d.querySelector('.dh s').textContent = day.date;
+      var tis = d.querySelectorAll('.ev .ti');
+      evs.forEach(function(ev, i){ tis[i].textContent = ev.title; });
+      wrap.appendChild(d);
+    });
+    return wrap;
+  }
+  document.querySelectorAll('[data-list]').forEach(function(list){
+    // Unheadered PriorityRows first, exactly as TodayScreen orders them.
+    var nw = priorityRow({icon:'link', title:'Oak brackets, 30cm, matte black', thread:'filing', meta:'just now', filing:true}, false);
+    nw.setAttribute('data-new', ''); nw.hidden = true;
+    list.appendChild(nw);
+    PRIORITY.forEach(function(it, i){
+      list.appendChild(priorityRow(it, i === PRIORITY.length - 1));
+    });
+    list.appendChild(section('What moved', String(DIGESTS.length), 'accent'));
+    DIGESTS.forEach(function(d){ list.appendChild(digest(d)); });
+
+    ROWS.forEach(function(r){
+      if (r[0] === 'SECTION'){
+        list.appendChild(section(r[1], r[2], r[3], r[4]));
+        if (r[1] === 'On the clock') list.appendChild(agenda(DAYS, 11.4));
+      }
+      else list.appendChild(row(r[0], r[1], r[2], r[3]));
+    });
+    /* border={i < other.length-1}: the last row in the list carries no separator. */
+    var all = list.querySelectorAll('.prow');
+    if (all.length) all[all.length - 1].classList.add('last');
+    var sort = document.createElement('div');
+    sort.className = 'sortwrap';
+    sort.innerHTML = '<button type="button" class="sortbtn"><span>Sort these for me<i class="g" style="--ic:url(../assets/icons/chevron-right.svg)"></i></span></button>';
+    list.appendChild(sort);
+    /* count={other.length}: the pill has to equal the rows beneath it. */
+    var others = list.querySelectorAll('.prow');
+    var lastSec = list.querySelectorAll('.psec em');
+    if (lastSec.length) lastSec[lastSec.length - 1].textContent = String(others.length);
+  });
+
+  var root = document.documentElement;
+  var period = 16, amp = 1;
+  function apply(){
+    var p1 = period, p2 = Math.round(period*1.19), p3 = Math.round(period*1.44);
+    root.style.setProperty('--p1', p1 + 's');
+    root.style.setProperty('--p2', p2 + 's');
+    root.style.setProperty('--p3', p3 + 's');
+    root.style.setProperty('--pl', Math.round(period*2.1) + 's');
+    document.getElementById('periodOut').textContent = p1 + ' / ' + p2 + ' / ' + p3 + 's';
+  }
+  document.getElementById('period').addEventListener('input', function(e){ period = Number(e.target.value); apply(); });
+  /* Travel scales the keyframes by restyling them, which is the only way to
+     parameterise a percentage inside @keyframes. */
+  var sheet = document.createElement('style');
+  document.head.appendChild(sheet);
+  function applyAmp(){
+    var a = amp;
+    function k(name, x1,y1,s1, x2,y2,s2){
+      return '@keyframes ' + name + '{0%,100%{transform:translate3d(' + (x1*a).toFixed(2) + '%,' + (y1*a).toFixed(2) + '%,0) scale(' + s1 + ')}' +
+        '50%{transform:translate3d(' + (x2*a).toFixed(2) + '%,' + (y2*a).toFixed(2) + '%,0) scale(' + s2 + ')}}';
+    }
+    sheet.textContent = k('d1',-7,2,1, 8,-4,1.16) + k('d2',6,-4,1.38, -9,5,1.2) + k('d3',-4,5,1.72, 7,-6,1.5) +
+      k('lensSweep',-24,4,1, 60,-8,1.22);
+    document.getElementById('ampOut').textContent = Math.round(a*100) + '%';
+  }
+  document.getElementById('amp').addEventListener('input', function(e){ amp = Number(e.target.value)/100; applyAmp(); });
+  document.getElementById('dens').addEventListener('input', function(e){
+    root.style.setProperty('--dens', String(Number(e.target.value)/100));
+    document.getElementById('densOut').textContent = e.target.value + '%';
+  });
+  apply(); applyAmp();
+
+  /* Scroll parallax, unchanged. */
+  document.querySelectorAll('.dev').forEach(function(dev){
+    var list = dev.querySelector('.list'), par = dev.querySelector('.bandpar');
+    if (!list || !par) return;
+    var pending = false;
+    list.addEventListener('scroll', function(){
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function(){
+        pending = false;
+        var y = list.scrollTop;
+        par.style.setProperty('--sx', Math.max(-26, Math.min(26, -y*0.055)).toFixed(1) + 'px');
+        par.style.setProperty('--sy', Math.max(-9, Math.min(9, y*0.014)).toFixed(1) + 'px');
+      });
+    }, { passive: true });
+  });
+
+  function dump(id){
+    var dev = document.getElementById(id);
+    if (!dev) return;
+    var arr = dev.querySelector('.bandarr'), r = dev.querySelector('[data-new]'), list = dev.querySelector('.list');
+    if (list) list.scrollTop = 0;
+    if (r){ r.hidden = false; r.classList.remove('mk'); void r.offsetWidth; r.classList.add('mk'); }
+    if (arr){ arr.classList.remove('arrive'); void arr.offsetWidth; arr.classList.add('arrive'); }
+  }
+  document.querySelectorAll('[data-dump]').forEach(function(b){ b.addEventListener('click', function(){ dump(b.dataset.dump); }); });
+  document.getElementById('dumpAll').addEventListener('click', function(){ ['f1','f2','f3'].forEach(dump); });
+  document.getElementById('resetAll').addEventListener('click', function(){
+    document.querySelectorAll('[data-new]').forEach(function(r){ r.classList.remove('mk'); r.hidden = true; });
+    document.querySelectorAll('.bandarr').forEach(function(a){ a.classList.remove('arrive'); });
+  });
+
+  /* The per-pixel warp. Small buffer, upscaled by CSS: the field is soft enough
+     that the interpolation reads as part of the effect. Mirrors what an SkSL
+     fragment shader would do, one sample per pixel from a flow field. */
+  var canvas = document.getElementById('warpCanvas');
+  var ctx = canvas.getContext('2d', { willReadFrequently: true });
+  var W = canvas.width, H = canvas.height;
+  var warpAmp = 11, src = null, out = ctx.createImageData(W, H);
+  document.getElementById('warpAmp').addEventListener('input', function(e){
+    warpAmp = Number(e.target.value);
+    document.getElementById('warpOut').textContent = warpAmp;
+    if (src && !frame) render(0);
+  });
+  var reduceMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var frame = 0;
+  function shouldRun(){ return !reduceMQ.matches && !document.hidden; }
+  function render(t){
+    var s = src.data, o = out.data;
+    for (var y = 0; y < H; y++){
+      for (var x = 0; x < W; x++){
+        var dx = warpAmp * (Math.sin(y*0.085 + t*0.55) + 0.62*Math.sin((x*0.5 + y*0.7)*0.055 - t*0.42));
+        var dy = warpAmp * 0.55 * (Math.cos(x*0.062 - t*0.48) + 0.5*Math.cos((x - y)*0.045 + t*0.36));
+        var sx = ((x + dx) | 0) % W; if (sx < 0) sx += W;
+        var sy = ((y + dy) | 0); if (sy < 0) sy = 0; else if (sy >= H) sy = H - 1;
+        var si = (sy*W + sx) * 4, di = (y*W + x) * 4;
+        o[di] = s[si]; o[di+1] = s[si+1]; o[di+2] = s[si+2]; o[di+3] = s[si+3];
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+  }
+  function draw(now){
+    frame = 0;
+    if (!src) return;
+    /* Reduced motion gets the picture without the movement, one paint at a
+       fixed clock, which is what the frozen atmosphere on web already does. */
+    if (!shouldRun()){ render(0); return; }
+    render(now / 1000);
+    frame = requestAnimationFrame(draw);
+  }
+  function kick(){ if (src && !frame) frame = requestAnimationFrame(draw); }
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden){ if (frame){ cancelAnimationFrame(frame); frame = 0; } } else kick();
+  });
+  reduceMQ.addEventListener('change', function(){
+    if (frame){ cancelAnimationFrame(frame); frame = 0; }
+    if (src) render(0);
+    kick();
+  });
+  var img = new Image();
+  img.onload = function(){
+    var off = document.createElement('canvas');
+    off.width = W; off.height = H;
+    var octx = off.getContext('2d');
+    octx.drawImage(img, 0, 0, W, H);
+    try { src = octx.getImageData(0, 0, W, H); } catch (err) { src = null; }
+    if (!src) return;
+    render(0);
+    kick();
+  };
+  img.src = '../assets/prism/p2-band-1.png';
+})();
+</script>
+</body></html>

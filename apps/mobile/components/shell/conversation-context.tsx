@@ -746,6 +746,9 @@ export function ConversationProvider({
             // rather than after a reload.
             threads: sent.threads ?? [],
             did: (sent.threads?.length ?? 0) > 0,
+            // 019. A tapped calendar that needs the person's say-so: the
+            // proposal sits on their own turn, since nothing replied to it.
+            waiting: sent.waiting ?? null,
           },
         ];
       });

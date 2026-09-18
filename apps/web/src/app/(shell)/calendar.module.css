@@ -1,0 +1,154 @@
+/* 019. A calendar as a row, the same row in Settings and in a thread's
+   popover, and the popover itself.
+
+   From explorations/calendars-options.html: the calendar's own colour as a
+   10px dot inside a hairline ring, as recognition and never as the
+   differentiator; a checkbox rather than a switch, because this is a selection
+   among peers; a ticked row in full ink and an unticked one in tertiary, which
+   inverts the task checkbox's treatment for the same reason: dimming marks the
+   row that is out of play. Nothing is struck through and no moss appears. */
+
+.row {
+  composes: settingsRow from "./shell.module.css";
+  cursor: pointer;
+}
+
+.rowLast {
+  composes: settingsRowLast from "./shell.module.css";
+}
+
+.dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  /* Definition, not contrast: the pale ones keep an edge, the ratio does not move. */
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+}
+
+.text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The settings row's title, tertiary until the row is picked: dimming marks
+   the row that is out of play. */
+.title {
+  composes: settingsTitle from "./shell.module.css";
+  color: var(--text-tertiary);
+}
+
+.row[data-picked] .title {
+  color: var(--text-primary);
+}
+
+.note {
+  composes: settingsNote from "./shell.module.css";
+}
+
+/* The provider block: the mark at 34, the name, the address and the date. */
+.provider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) 0 var(--space-5);
+}
+
+.providerName {
+  display: block;
+  font-size: calc(15px * var(--type-scale));
+  line-height: 1.35;
+  font-family: var(--font-core);
+  color: var(--text-primary);
+}
+
+.providerMeta {
+  display: block;
+  margin-top: 2px;
+  font: var(--text-caption-role);
+  color: var(--text-secondary);
+}
+
+/* The disconnect row: the one danger-coloured title on the page. */
+.dangerTitle {
+  color: var(--text-danger);
+}
+
+/* The popover on a thread's head: the More menu's shell, wider and with
+   room for a caption, which the mock's web crop drew without. Two popovers
+   off one head take one radius and one offset. */
+.popover {
+  composes: moreMenu from "./shell.module.css";
+  width: 320px;
+  max-width: calc(100vw - 2 * var(--space-5));
+  padding: var(--space-5);
+}
+
+.popoverTitle {
+  margin: 0;
+  font: var(--weight-semibold) var(--size-body)/1.3 var(--font-core);
+  color: var(--text-primary);
+}
+
+.caption {
+  margin: var(--space-2) 0 var(--space-3);
+  font: var(--text-body-sm-role);
+  color: var(--text-secondary);
+}
+
+.captionLine {
+  margin: 0 0 var(--space-3);
+  font: var(--text-body-sm-role);
+  color: var(--text-secondary);
+}
+
+.others {
+  margin: var(--space-3) 0 0;
+  font: var(--text-caption-role);
+  color: var(--text-tertiary);
+}
+
+/* The one row of a person with nothing approved: a way to Connected apps. */
+.settingsLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 46px;
+  padding: var(--space-3) 0;
+  font-size: calc(15px * var(--type-scale));
+  font-family: var(--font-core);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.settingsLinkChevron {
+  margin-left: auto;
+  color: var(--text-tertiary);
+}
+
+/* The day list's event line under the rail: the calendar's colour dot with
+   its ring, the title, the time or All day, and the calendar's name as its
+   note. No checkbox, no tools, no swipe, no sheet: it is the calendar's. */
+.eventLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 46px;
+  padding: var(--space-3) var(--space-5);
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+}
+
+.eventTime {
+  flex: 0 0 auto;
+  font: var(--text-caption-role);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.eventTitle {
+  display: block;
+  font-size: calc(15px * var(--type-scale));
+  line-height: 1.35;
+  font-family: var(--font-core);
+  color: var(--text-primary);
+}

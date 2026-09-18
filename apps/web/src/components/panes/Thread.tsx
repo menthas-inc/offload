@@ -18,6 +18,7 @@ import Link from "next/link";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { PaneHead } from "../shell/PaneHead";
+import { CalendarsTool } from "../shell/CalendarsPopover";
 import { Notes } from "./Notes";
 import { Timeline } from "./Timeline";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
@@ -64,6 +65,10 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [renaming, setRenaming] = useState(false);
+  // 019. The calendars popover, and a counter bumped when the picks change so
+  // the rail reads the calendars again.
+  const [calendarsOpen, setCalendarsOpen] = useState(false);
+  const [calendarsVersion, setCalendarsVersion] = useState(0);
   // Which row is asking to be deleted. The kit asks in the row's own place
   // rather than in a dialog, so the question never covers what it is about.
   const [asking, setAsking] = useState<string | null>(null);
@@ -310,6 +315,9 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   // rail and the list agree about what is on it.
   const dated = showArchived ? [] : datedFor(rows, thread.notes);
   const onRail = new Set(dated.map((one) => one.rowId));
+  // 019. A pick earns the rail on its own: a thread with a calendar and
+  // nothing dated shows this week, with the calendar's events on it.
+  const railEarned = dated.length > 0 || thread.calendars?.anyPicked === true;
 
   // **A repeating thing is one row here, not thirty.** A weekly class filed as
   // thirty occurrences spends thirty rows saying what the row above said, and
@@ -422,6 +430,26 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             </button>
           </>
         }
+        tools={
+          /* 019. The third tool, drawn whenever the account has a calendar
+             connection at all; with none there is nothing to open. */
+          thread.calendars ? (
+            <CalendarsTool
+              threadId={id}
+              threadName={thread.name}
+              members={thread.members.length}
+              counts={thread.calendars}
+              open={calendarsOpen}
+              onOpenChange={setCalendarsOpen}
+              onChanged={() => {
+                setCalendarsVersion((v) => v + 1);
+                void fetchThread(id).then((bundle) => {
+                  if (bundle) setThread(bundle);
+                });
+              }}
+            />
+          ) : undefined
+        }
         more={[
           {
             label: "Rename thread",
@@ -439,6 +467,16 @@ export function Thread({ id, onChanged, onUndo }: Props) {
               setAddingNote(true);
             },
           },
+          // 019. Reachable both ways: the tool on the head and a row here.
+          ...(thread.calendars
+            ? [
+                {
+                  label: "Calendars in this thread",
+                  icon: "calendar",
+                  onSelect: () => setCalendarsOpen(true),
+                },
+              ]
+            : []),
         ]}
       />
 
@@ -465,7 +503,7 @@ export function Thread({ id, onChanged, onUndo }: Props) {
         {/* The rail is above the widgets, and only on a thread with something
             dated. It is not a widget: it lists every kind with a date rather
             than one, which is why 015 took it out of the widget set. */}
-        {showArchived || dated.length === 0 ? null : (
+        {showArchived || !railEarned ? null : (
           <Timeline
             // Keyed by the thread, so the day you were reading and the gaps you
             // opened do not follow you into the next one. Without it, opening a
@@ -478,6 +516,7 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             handlers={handlers}
             onToggle={(row) => void toggle(row)}
             onAdded={() => void load()}
+            calendars={{ anyPicked: thread.calendars?.anyPicked === true, version: calendarsVersion }}
           />
         )}
 

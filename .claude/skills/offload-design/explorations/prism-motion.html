@@ -1,0 +1,284 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Prism motion</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="frames.css">
+<style>
+/* Frames are at true device size here rather than scaled down: the whole
+   question is whether a 4px drift over 80 seconds is worth having, and that
+   does not survive being shrunk to 60%. */
+.dev{position:relative;width:390px;height:844px;flex:0 0 auto;border:1px solid var(--border-hairline);border-radius:22px;overflow:hidden;background:var(--surface-page);display:flex;flex-direction:column}
+.dev.gate390{height:760px}
+.pscr{flex:1;display:flex;flex-direction:column;min-height:0;position:relative;overflow:hidden}
+.pbar{flex:0 0 auto;display:flex;align-items:center;gap:12px;height:52px;padding:0 20px;position:relative;z-index:2}
+.pbar h4{margin:0;font:var(--weight-semibold) 17px/1 var(--font-core);letter-spacing:-.012em;flex:1}
+.pbar i{width:20px;height:20px;color:var(--text-secondary);flex:0 0 auto}
+.list{flex:1;min-height:0;overflow-y:auto;position:relative;z-index:2;-webkit-overflow-scrolling:touch}
+.psec{font:var(--weight-semibold) 21px/1.2 var(--font-core);letter-spacing:-.014em;padding:14px 20px 8px;display:flex;align-items:baseline;gap:8px}
+.psec em{font-style:normal;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-accent)}
+.prow{display:flex;align-items:flex-start;gap:12px;padding:11px 20px;border-bottom:1px solid var(--border-hairline)}
+.prow .t{width:36px;height:36px;border-radius:10px;background:var(--surface-fill);color:var(--text-secondary);flex:0 0 auto}
+.prow .x{flex:1;min-width:0}
+.prow .x b{display:block;font:var(--weight-medium) 15.5px/21px var(--font-core);letter-spacing:-.008em}
+.prow .x s{text-decoration:none;display:block;margin-top:2px;font:var(--weight-regular) 13px/1.35 var(--font-core);color:var(--text-secondary)}
+.prow .x s u{text-decoration:none;color:var(--text-accent);font-weight:500}
+.prow[hidden]{display:none}
+/* The change mark, the pattern this already has: a moss ground settling to
+   transparent over --duration-mark. */
+.prow.mk{animation:markFade var(--duration-mark) var(--ease-out) both}
+@keyframes markFade{0%{background:var(--surface-accent-soft)}100%{background:transparent}}
+.plate{flex:0 0 auto;margin-top:auto;position:relative;z-index:2}
+.comp{display:flex;align-items:center;gap:12px;padding:12px 20px}
+.comp .f2{flex:1;height:44px;border-radius:var(--radius-pill);background:rgba(255,255,255,.74);display:flex;align-items:center;padding:0 16px;font:var(--weight-regular) 15px/1 var(--font-core);color:var(--text-tertiary)}
+.comp i{width:20px;height:20px;color:var(--text-secondary);flex:0 0 auto}
+.comp .send{width:40px;height:40px;border-radius:99px;background:var(--ink-950);color:var(--paper);flex:0 0 auto}
+.tabs{display:flex;align-items:center;justify-content:space-around;height:60px;color:var(--ink-400)}
+.tabs span{display:flex;flex-direction:column;align-items:center;gap:4px;font:var(--weight-medium) 10px/1 var(--font-core)}
+.tabs i{width:22px;height:22px}
+.tabs span.on{color:var(--ink-950)}
+.hib{flex:0 0 auto;display:flex;justify-content:center;padding:8px 0 10px;position:relative;z-index:2}
+.hib b{width:136px;height:5px;border-radius:99px;background:var(--ink-300);display:block}
+/* Three nested layers, one transform each: the scroll offset, the arrival
+   nudge, and the perpetual drift. They compose without fighting, which is also
+   how you would stack three Animated values in React Native. */
+.bandpar{position:absolute;left:-10%;right:-10%;bottom:0;height:200px;z-index:1;pointer-events:none;
+  transform:translate3d(var(--sx,0px),var(--sy,0px),0)}
+.bandarr{position:absolute;inset:0}
+.bandimg{position:absolute;inset:0;background-image:url(../assets/prism/prism-band.png);background-size:cover;background-repeat:no-repeat;opacity:.36}
+.bandimg.b2{opacity:.22;background-position:60% 40%}
+.bloompar{position:absolute;left:-30%;top:-16%;width:112%;height:52%;z-index:1;pointer-events:none}
+.bloomimg{position:absolute;inset:0;background-image:url(../assets/prism/prism-bloom.png);background-size:cover;background-repeat:no-repeat;opacity:.34}
+.bloomimg.b2{opacity:.20;background-position:35% 65%}
+/* The arrival: a lateral nudge that settles, on the change mark's own clock. */
+.bandarr.arrive{animation:arrive var(--duration-mark) var(--ease-out) both}
+@keyframes arrive{0%{transform:translate3d(0,0,0) scale(1)}26%{transform:translate3d(-11px,-4px,0) scale(1.03)}100%{transform:translate3d(0,0,0) scale(1)}}
+/* The perpetual drift. Two copies, opposite directions, different periods, so
+   the pair is never in the same relationship twice. About 2% of travel, which
+   on a 200px band is roughly 4px. */
+.drift1{animation:drift1 var(--pa) ease-in-out infinite}
+.drift2{animation:drift2 var(--pb) ease-in-out infinite}
+@keyframes drift1{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-2.4%,1.6%,0) scale(1.07)}}
+@keyframes drift2{0%,100%{transform:translate3d(1.8%,-1.1%,0) scale(1.05)}50%{transform:translate3d(-1.5%,1.9%,0) scale(.96)}}
+.gate{flex:1;display:flex;flex-direction:column;justify-content:center;gap:26px;padding:0 28px;position:relative;z-index:2}
+.gate h3{margin:0;font:var(--weight-semibold) 30px/1.18 var(--font-core);letter-spacing:-.02em;text-wrap:pretty}
+.gate p{margin:0;font:var(--weight-regular) 15.5px/1.55 var(--font-quiet);color:var(--text-secondary)}
+.gate .btns{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.gate .terms{font:var(--text-caption-role);color:var(--text-tertiary);text-align:center}
+.gate .terms u{text-decoration:none;color:var(--text-accent);font-weight:500}
+.markbox{position:relative;width:76px;height:76px;flex:0 0 auto}
+.markbox .fill{position:absolute;inset:0;background-image:url(../assets/prism/prism-mark.png);background-size:contain;background-position:center;background-repeat:no-repeat}
+.bar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:14px 18px;border:1px solid var(--border-hairline);border-radius:14px;background:var(--surface-raised);margin:0 0 26px;position:sticky;top:14px;z-index:20;box-shadow:var(--shadow-1)}
+.bar b{font:var(--weight-medium) 13px/1 var(--font-core)}
+.bar label{display:flex;align-items:center;gap:9px;font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-secondary)}
+.bar input[type=range]{width:170px}
+.bar output{font:var(--text-numeric-role);font-size:12px;color:var(--text-primary);min-width:52px}
+.bar button{font:var(--weight-medium) 13px/1 var(--font-core);height:34px;padding:0 15px;border-radius:var(--radius-pill);border:1px solid var(--border-strong);background:var(--paper);color:var(--text-primary);cursor:pointer}
+.bar button.pri{background:var(--ink-950);color:var(--paper);border-color:transparent}
+.bar button:active{transform:scale(.98)}
+.bar .seg{display:inline-flex;background:var(--surface-fill);border-radius:var(--radius-pill);padding:3px;gap:2px}
+.bar .seg button{height:28px;border:none;background:transparent;color:var(--text-secondary);padding:0 12px}
+.bar .seg button[aria-pressed=true]{background:var(--surface-raised);color:var(--text-primary);box-shadow:var(--shadow-1)}
+.frames{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.cap{display:flex;flex-direction:column;gap:9px;width:390px}
+.cap h3{margin:0;font:var(--weight-semibold) 16px/1.3 var(--font-core);letter-spacing:-.01em}
+.cap p{margin:0;font:var(--weight-regular) 13px/1.55 var(--font-core);color:var(--text-secondary)}
+.cap .act{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+@media (prefers-reduced-motion: reduce){
+  .drift1,.drift2,.bandarr.arrive,.prow.mk{animation:none!important}
+  .bandpar{transform:none!important}
+}
+</style></head><body><div class="wrap">
+
+<h1>Prism motion</h1>
+<p class="lede">Three treatments at true device size, with the prism textures you picked. Everything that moves below moves by <b>transform only</b>, on an already-rasterized texture, which is the whole reason this is affordable: the marketing site pays ~96ms of raster a frame because its washes drift <em>inside</em> a turbulence filter, and there is no filter here to re-run. In React Native each of these is an <code>Animated</code> value with <code>useNativeDriver: true</code>, so it runs on the UI thread and never touches JS.</p>
+
+<div class="bar">
+<b>Speed</b>
+<span class="seg"><button data-speed="1" aria-pressed="true">Real time</button><button data-speed="10" aria-pressed="false">10&times; preview</button><button data-speed="40" aria-pressed="false">40&times;</button></span>
+<label>Drift period <input id="period" type="range" min="30" max="150" step="5" value="80"><output id="periodOut">80s / 96s</output></label>
+<button id="dump" class="pri">Dump something</button>
+<span style="font:var(--weight-regular) 12px/1.4 var(--font-core);color:var(--text-tertiary);max-width:34ch">Real time is what ships. The previews only speed the clock up so you can see the path.</span>
+</div>
+
+<div class="frames">
+
+<!-- ============ 4 + 3 ============ -->
+<div class="cap">
+<h3>4 + 3 &middot; Scroll parallax, and motion on arrival</h3>
+<p>Nothing moves on its own. Scroll the list and the field slides under the plate; press <b>Dump something</b> and the band nudges and settles over <code>--duration-mark</code> while the new row takes the change mark. Zero cost at rest, and the arrival motion says the same thing the moss ground already says.</p>
+<div class="dev" id="f1">
+<div class="pscr">
+<div class="bandpar"><div class="bandarr"><div class="bandimg"></div></div></div>
+<div class="pbar"><h4>Today</h4><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i></div>
+<div class="list">
+<div class="psec">Waiting on you <em>3</em></div>
+<div class="prow" data-new hidden><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Oak brackets, 30cm, matte black</b><s><u>filing</u> &middot; just now</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Lisbon trip &middot; Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Ana needs an answer on the 14th</b><s>Flat admin &middot; asked Tuesday</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Bank transfer for Ana</b><s>Flat admin &middot; Mon</s></div></div>
+<div class="psec">Everything else <em>11</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>Lisbon trip &middot; Sam</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Lisbon trip &middot; Sam</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Sourdough starter, day 4</b><s>Kitchen &middot; you</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="x"><b>Airport transfer receipt</b><s>Lisbon trip &middot; 2 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Apartment door code is 4417</b><s>Lisbon trip &middot; Sam</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Confirm the checkout time</b><s>Lisbon trip &middot; Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/album.svg)"></span><div class="x"><b>Tile samples for the bathroom</b><s>Flat admin &middot; you</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/bookmark.svg)"></span><div class="x"><b>That piece on sleep and memory</b><s>Reading &middot; 28 Aug</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/calendar.svg)"></span><div class="x"><b>Ana&rsquo;s birthday, the 14th</b><s>Flat admin &middot; you</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/mic.svg)"></span><div class="x"><b>Voice note, Tuesday morning</b><s><u>filing</u> &middot; 3 Sep</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/bookmark.svg)"></span><div class="x"><b>That piece on the Lisbon earthquake</b><s>Reading &middot; 26 Aug</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Ask Sam about the deposit</b><s>Flat admin &middot; Wed</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/camera.svg)"></span><div class="x"><b>Photo of the bookshelf wall</b><s>Bookshelf build &middot; you</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Olive oil from the market, the green tin</b><s>Kitchen &middot; 12 Aug</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/check-check.svg)"></span><div class="x"><b>Renew the passport</b><s>Flat admin &middot; done 28 Aug</s></div></div>
+</div>
+<div class="plate">
+<div class="comp"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div>
+</div>
+<div class="hib"><b></b></div>
+</div>
+</div>
+<div class="act"><button data-dump="f1">Dump something</button><button data-reset="f1">Reset</button></div>
+</div>
+
+<!-- ============ 2 ============ -->
+<div class="cap">
+<h3>2 &middot; Two layers, counter-drifting, always</h3>
+<p>Two copies of the band on 80 and 96 second loops going opposite ways, about 2% of travel each, which is roughly 4px. Never the same twice and never still. Scroll it too: the drift and the parallax compose. The cost is that the compositor never idles, so this spends a little battery while the phone sits on a table.</p>
+<div class="dev" id="f2">
+<div class="pscr">
+<div class="bandpar"><div class="bandarr"><div class="bandimg drift1"></div><div class="bandimg b2 drift2"></div></div></div>
+<div class="pbar"><h4>Today</h4><i class="g" style="--ic:url(../assets/icons/settings.svg)"></i></div>
+<div class="list">
+<div class="psec">Waiting on you <em>3</em></div>
+<div class="prow" data-new hidden><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Oak brackets, 30cm, matte black</b><s><u>filing</u> &middot; just now</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Book the airport transfer</b><s>Lisbon trip &middot; Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Ana needs an answer on the 14th</b><s>Flat admin &middot; asked Tuesday</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Bank transfer for Ana</b><s>Flat admin &middot; Mon</s></div></div>
+<div class="psec">Everything else <em>11</em></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/map-pin.svg)"></span><div class="x"><b>Time Out Market</b><s>Lisbon trip &middot; Sam</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/link.svg)"></span><div class="x"><b>Tram 28 route map</b><s>Lisbon trip &middot; Sam</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Sourdough starter, day 4</b><s>Kitchen &middot; you</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/image.svg)"></span><div class="x"><b>Airport transfer receipt</b><s>Lisbon trip &middot; 2 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Apartment door code is 4417</b><s>Lisbon trip &middot; Sam</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Confirm the checkout time</b><s>Lisbon trip &middot; Fri 12 Sep</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/album.svg)"></span><div class="x"><b>Tile samples for the bathroom</b><s>Flat admin &middot; you</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/bookmark.svg)"></span><div class="x"><b>That piece on sleep and memory</b><s>Reading &middot; 28 Aug</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/calendar.svg)"></span><div class="x"><b>Ana&rsquo;s birthday, the 14th</b><s>Flat admin &middot; you</s></div></div>
+<div class="prow"><span class="t ic" style="--ic:url(../assets/icons/mic.svg)"></span><div class="x"><b>Voice note, Tuesday morning</b><s><u>filing</u> &middot; 3 Sep</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/bookmark.svg)"></span><div class="x"><b>That piece on the Lisbon earthquake</b><s>Reading &middot; 26 Aug</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/square-check-big.svg)"></span><div class="x"><b>Ask Sam about the deposit</b><s>Flat admin &middot; Wed</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/camera.svg)"></span><div class="x"><b>Photo of the bookshelf wall</b><s>Bookshelf build &middot; you</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/text-quote.svg)"></span><div class="x"><b>Olive oil from the market, the green tin</b><s>Kitchen &middot; 12 Aug</s></div></div><div class="prow"><span class="t ic" style="--ic:url(../assets/icons/check-check.svg)"></span><div class="x"><b>Renew the passport</b><s>Flat admin &middot; done 28 Aug</s></div></div>
+</div>
+<div class="plate">
+<div class="comp"><span class="f2">Dump anything</span><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i><span class="send ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Threads</span><span><i class="g" style="--ic:url(../assets/icons/brain.svg)"></i>Memories</span></div>
+</div>
+<div class="hib"><b></b></div>
+</div>
+</div>
+<div class="act"><button data-dump="f2">Dump something</button><button data-reset="f2">Reset</button></div>
+</div>
+
+<!-- ============ 2 ON THE GATE ============ -->
+<div class="cap">
+<h3>2 on the gate, where it actually pays off</h3>
+<p>The same two-layer drift on the sign in bloom. This is the case for perpetual motion: the field is the whole top of the screen rather than a sliver behind a plate, so 4px of travel is visible, and the gate is on screen for fifteen seconds in a session, not all day. Worth having here even if the app itself stays still.</p>
+<div class="dev gate390" id="f3">
+<div class="pscr">
+<div class="bloompar"><div class="bloomimg drift1"></div><div class="bloomimg b2 drift2"></div></div>
+<div class="gate">
+<span class="markbox"><span class="fill"></span></span>
+<div><h3 style="font:var(--weight-semibold) 30px/1.18 var(--font-core);letter-spacing:-.02em;margin:0">Put it down.<br>offload files it.</h3><p style="margin-top:10px">Invite only while we are small.</p></div>
+<div class="btns"><span class="btn dark" style="height:52px;border-radius:var(--radius-pill)">Continue with Apple</span><span class="btn light" style="height:52px;border-radius:var(--radius-pill)">Continue with Google</span></div>
+<span class="terms">By continuing you agree to our <u>Terms</u> and <u>Privacy</u>.</span>
+</div>
+<div class="hib"><b></b></div>
+</div>
+</div>
+</div>
+
+</div>
+
+<div class="sechead"><h2>What each one costs, and what it maps to</h2><u>React Native</u></div>
+<table class="mx">
+<tr><th style="width:190px">&nbsp;</th><th>4 + 3, the recommendation</th><th>2, perpetual</th></tr>
+<tr><td><b>At rest</b></td><td style="color:var(--moss-700);font-weight:500">nothing running</td><td>one looping transform per layer</td></tr>
+<tr><td><b>What triggers it</b></td><td>the person scrolling, and offload filing</td><td>time</td></tr>
+<tr><td><b>Raster work</b></td><td>none, transform on a baked layer</td><td>none, transform on a baked layer</td></tr>
+<tr><td><b>JS per frame</b></td><td>none, <code>Animated.event</code> native driver</td><td>none, <code>Animated.loop</code> native driver</td></tr>
+<tr><td><b>Backgrounded</b></td><td>nothing to stop</td><td>must be paused explicitly</td></tr>
+<tr><td><b>Visible where</b></td><td>the sliver around the plate, on scroll</td><td>the same sliver, always</td></tr>
+<tr><td><b>Says something</b></td><td style="color:var(--moss-700);font-weight:500">yes, arrival is offload working</td><td>no, it is weather</td></tr>
+</table>
+
+<ul class="spec">
+<li><b>The arrival nudge runs on <code>--duration-mark</code></b>, the 1400ms the change mark already uses, so a row arriving and the band shifting are one gesture rather than two effects that happen to coincide. That is the argument for 3 over anything perpetual: it is the only option that carries meaning, and it is the same sentence the moss ground is already saying.</li>
+<li><b>The parallax factor is deliberately small.</b> The band is 20% wider than the screen, so there is real headroom, and the temptation is to use it: at anything above about 0.08 of scroll distance the field starts to feel like a separate object sliding behind a window rather than the page having depth.</li>
+<li><b>Perpetual drift on the plate is the weakest case for it</b>, and the third frame is the strong one. Most of the band is behind an opaque input and three tab labels, so a 4px drift is spending battery on pixels nobody can see. The same 4px on the gate's bloom is across the whole top of the screen.</li>
+<li><b>Reduced motion cuts all of it</b>, including the parallax, which the standing rule requires: a shortened animation is still an animation. The band simply sits where it is.</li>
+<li><b>One thing to decide if you take 2:</b> whether the drift pauses while the list is scrolling. It costs nothing to leave running, since both are native transforms, but two motions at once on the same layer is the sort of thing that reads as drift rather than as parallax.</li>
+</ul>
+
+</div>
+<script>
+(function(){
+  var speed = 1, base = 80;
+  function applyPeriods(){
+    var a = base, b = Math.round(base*1.2);
+    document.documentElement.style.setProperty('--pa', (a/speed).toFixed(2) + 's');
+    document.documentElement.style.setProperty('--pb', (b/speed).toFixed(2) + 's');
+    document.getElementById('periodOut').textContent = a + 's / ' + b + 's';
+  }
+  document.querySelectorAll('.bar .seg button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.bar .seg button').forEach(function(b){ b.setAttribute('aria-pressed', String(b === btn)); });
+      speed = Number(btn.dataset.speed);
+      applyPeriods();
+    });
+  });
+  var range = document.getElementById('period');
+  range.addEventListener('input', function(){ base = Number(range.value); applyPeriods(); });
+  applyPeriods();
+
+  /* Scroll parallax. In React Native this is Animated.event on the ScrollView's
+     onScroll with useNativeDriver, which is why it costs nothing: the offset
+     never round-trips through JS. Here it is a scroll listener writing two
+     custom properties, which is the closest a browser gets. */
+  document.querySelectorAll('.dev').forEach(function(dev){
+    var list = dev.querySelector('.list');
+    var par = dev.querySelector('.bandpar') || dev.querySelector('.bloompar');
+    if (!list || !par) return;
+    var pending = false;
+    list.addEventListener('scroll', function(){
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function(){
+        pending = false;
+        var y = list.scrollTop;
+        /* Clamped, because the headroom is 20% of the screen and running past
+           it slides the faded edge of the texture into view. */
+        var sx = Math.max(-22, Math.min(22, -y * 0.055));
+        var sy = Math.max(-8, Math.min(8, y * 0.014));
+        par.style.setProperty('--sx', sx.toFixed(1) + 'px');
+        par.style.setProperty('--sy', sy.toFixed(1) + 'px');
+      });
+    }, { passive: true });
+  });
+
+  /* Arrival. Animated.sequence in React Native, also native driver. */
+  function dump(id){
+    var dev = document.getElementById(id);
+    if (!dev) return;
+    var arr = dev.querySelector('.bandarr');
+    var row = dev.querySelector('[data-new]');
+    var list = dev.querySelector('.list');
+    if (list) list.scrollTop = 0;
+    if (row){ row.hidden = false; row.classList.remove('mk'); void row.offsetWidth; row.classList.add('mk'); }
+    if (arr){ arr.classList.remove('arrive'); void arr.offsetWidth; arr.classList.add('arrive'); }
+  }
+  function reset(id){
+    var dev = document.getElementById(id);
+    if (!dev) return;
+    var row = dev.querySelector('[data-new]');
+    if (row){ row.classList.remove('mk'); row.hidden = true; }
+    var arr = dev.querySelector('.bandarr');
+    if (arr) arr.classList.remove('arrive');
+  }
+  document.querySelectorAll('[data-dump]').forEach(function(b){ b.addEventListener('click', function(){ dump(b.dataset.dump); }); });
+  document.querySelectorAll('[data-reset]').forEach(function(b){ b.addEventListener('click', function(){ reset(b.dataset.reset); }); });
+  document.getElementById('dump').addEventListener('click', function(){ dump('f1'); dump('f2'); });
+})();
+</script>
+</body></html>

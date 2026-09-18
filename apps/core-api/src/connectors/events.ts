@@ -1,8 +1,10 @@
-// Turning a calendar event into a piece of content, and deciding where it goes.
+// Turning a calendar event into offload's copy of it.
 //
-// **Nothing renders an event specially.** It is a `content` row like anything
-// else, so the agenda, Today, a thread's widgets and search all get it for free
-// and there is no second path to keep in step.
+// **The copy lives on the connection, not in a thread.** 012 filed events into
+// the thread a calendar named; 019 holds one row per event per calendar in
+// `connector_events` and threads read it through their picks, so a calendar
+// picked in two threads is one copy and a calendar picked nowhere is still on
+// the person's day.
 
 import type { Transaction, Kysely } from "kysely";
 import type { Database } from "../schema.js";
@@ -41,43 +43,18 @@ export function isUntrusted(event: GoogleEvent): boolean {
   return event.organizedByMe !== true;
 }
 
-export interface Rule {
-  ordinal: number;
-  match_kind: "title_contains" | "attendee_is" | "all";
-  match_value: string | null;
-  thread_id: string;
-}
-
-/** Where this event files. First match wins, else the calendar's own thread.
- *
- *  Matching is deliberately dull: lowercase substring for a title, exact
- *  address for an attendee. A rule nobody can predict the behaviour of is worse
- *  than no rule. */
-export function threadFor(event: GoogleEvent, rules: Rule[], defaultThreadId: string): string {
-  for (const rule of [...rules].sort((a, b) => a.ordinal - b.ordinal)) {
-    if (rule.match_kind === "all") return rule.thread_id;
-    const value = (rule.match_value ?? "").trim().toLowerCase();
-    if (!value) continue;
-    if (rule.match_kind === "title_contains" && event.title.toLowerCase().includes(value)) {
-      return rule.thread_id;
-    }
-    if (
-      rule.match_kind === "attendee_is" &&
-      event.attendees.some((a) => (a.email ?? "").toLowerCase() === value)
-    ) {
-      return rule.thread_id;
-    }
-  }
-  return defaultThreadId;
-}
-
 export interface MappedEvent {
   sourceRef: string;
-  threadId: string;
   title: string;
   occursAt: Date | null;
   occursEndAt: Date | null;
-  attrs: Record<string, unknown>;
+  allDay: boolean;
+  timezone: string | null;
+  location: string | null;
+  seriesRef: string | null;
+  organizerIsMe: boolean;
+  untrusted: boolean;
+  attendees: ReturnType<typeof minimiseAttendees>;
 }
 
 /** The whole mapping, in one place.
@@ -86,72 +63,68 @@ export interface MappedEvent {
  *  the fields that behave like mail rather than like structure, which is what
  *  OFF-4 is about. The organiser is kept because the trust rule cannot be
  *  computed without it. */
-export function mapEvent(
-  event: GoogleEvent,
-  calendarExternalId: string,
-  threadId: string
-): MappedEvent {
+export function mapEvent(event: GoogleEvent, calendarExternalId: string): MappedEvent {
   return {
     sourceRef: sourceRefFor(calendarExternalId, event.externalId),
-    threadId,
     title: event.title,
     occursAt: event.startsAt,
     occursEndAt: event.endsAt,
-    attrs: {
-      calendar: calendarExternalId,
-      series_ref: event.seriesId,
-      all_day: event.allDay,
-      timezone: event.timezone,
-      location: event.location,
-      organizer_is_me: event.organizedByMe,
-      untrusted: isUntrusted(event),
-      attendees: minimiseAttendees(event.attendees, event.organizedByMe),
-    },
+    allDay: event.allDay,
+    timezone: event.timezone,
+    location: event.location,
+    seriesRef: event.seriesId,
+    organizerIsMe: event.organizedByMe,
+    untrusted: isUntrusted(event),
+    attendees: minimiseAttendees(event.attendees, event.organizedByMe),
   };
 }
 
-/** Write or update one occurrence.
+/** Write or update one occurrence in the copy.
  *
- *  Idempotent by `(account_id, source_ref)`, so a re-sync updates rather than
+ *  Idempotent by `(calendar_id, source_ref)`, so a re-sync updates rather than
  *  duplicating and an at-least-once job is safe to run twice. */
 export async function upsertEvent(
   tx: Transaction<Database> | Kysely<Database>,
   accountId: string,
+  calendarId: string,
   mapped: MappedEvent
 ): Promise<void> {
   await tx
-    .insertInto("content")
+    .insertInto("connector_events")
     .values({
       account_id: accountId,
-      thread_id: mapped.threadId,
-      type: "event",
+      calendar_id: calendarId,
+      source_ref: mapped.sourceRef,
       title: mapped.title,
       occurs_at: mapped.occursAt,
       occurs_end_at: mapped.occursEndAt,
-      source: "calendar",
-      source_ref: mapped.sourceRef,
-      attrs: JSON.stringify(mapped.attrs),
+      all_day: mapped.allDay,
+      timezone: mapped.timezone,
+      location: mapped.location,
+      series_ref: mapped.seriesRef,
+      organizer_is_me: mapped.organizerIsMe,
+      untrusted: mapped.untrusted,
+      attendees: JSON.stringify(mapped.attendees),
     })
     .onConflict((oc) =>
-      oc
-        .columns(["account_id", "source_ref"])
-        .where("source_ref", "is not", null)
-        .doUpdateSet((eb) => ({
-          // The thread is not overwritten. A person who moved an event into a
-          // different thread meant it, and a sync that put it back every
-          // fifteen minutes would be the product arguing with them.
-          title: eb.ref("excluded.title"),
-          occurs_at: eb.ref("excluded.occurs_at"),
-          occurs_end_at: eb.ref("excluded.occurs_end_at"),
-          attrs: eb.ref("excluded.attrs"),
-          // **Brought back, not just updated.** A row retired by reconciliation
-          // or by a cancellation stays soft-deleted otherwise, so an event that
-          // Google returns again, because a series' end moved back out or the
-          // window shifted, would be updated and still invisible forever.
-          deleted_at: null,
-          purge_after: null,
-          updated_at: new Date(),
-        }))
+      oc.columns(["calendar_id", "source_ref"]).doUpdateSet((eb) => ({
+        title: eb.ref("excluded.title"),
+        occurs_at: eb.ref("excluded.occurs_at"),
+        occurs_end_at: eb.ref("excluded.occurs_end_at"),
+        all_day: eb.ref("excluded.all_day"),
+        timezone: eb.ref("excluded.timezone"),
+        location: eb.ref("excluded.location"),
+        series_ref: eb.ref("excluded.series_ref"),
+        organizer_is_me: eb.ref("excluded.organizer_is_me"),
+        untrusted: eb.ref("excluded.untrusted"),
+        attendees: eb.ref("excluded.attendees"),
+        // **Brought back, not just updated.** A row retired by reconciliation
+        // or by a cancellation stays soft-deleted otherwise, so an event that
+        // Google returns again, because a series' end moved back out or the
+        // window shifted, would be updated and still invisible forever.
+        deleted_at: null,
+        updated_at: new Date(),
+      }))
     )
     .execute();
 }

@@ -1410,11 +1410,26 @@
    blocks, which is what the rest of this shell looks like; the phones draw
    fill-backed cards, which is what a phone list looks like. */
 .settingsLabel {
+  display: flex;
+  align-items: baseline;
   margin: 0 0 var(--space-2);
   font-weight: var(--weight-medium);
   font-size: calc(12px * var(--type-scale));
   line-height: 1;
   font-family: var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.settingsLabelText {
+  flex: 1 1 auto;
+}
+
+/* 019. The label's trailing count, `4 of 7 in use`, in the numeric role at
+   11px, which the crops deliberately set down from the role's own. */
+.settingsLabelCount {
+  flex: 0 0 auto;
+  font: var(--text-numeric-role);
+  font-size: calc(11px * var(--type-scale));
   color: var(--text-tertiary);
 }
 
@@ -1432,6 +1447,16 @@
 
 .settingsRowLast {
   box-shadow: none;
+}
+
+/* 019. A settings row that is a button: the disconnect row. */
+.settingsRowButton {
+  composes: settingsRow;
+  width: 100%;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
 }
 
 a.settingsRow:hover {

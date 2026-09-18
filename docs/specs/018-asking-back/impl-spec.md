@@ -1,6 +1,6 @@
 # 018 Asking back, implementation
 
-**Feature spec:** `feature-spec.md`. **Decisions and the labelled set:** `research.md`.
+**Feature spec:** `feature-spec.md`. **Decisions and the labelled set:** `research.md`. **Amended 2026-09-18 by 019:** `FIELDS` gains `calendar`, raised only by the server (`raiseCalendarQuestion`), refused from the worker with `wrong_path`, applied by the answer route outside the transaction through 012's write path, undone through 012's `undoWrite`; a message written for such an answer can carry `derived_from_untrusted`. See `docs/specs/019-calendars/impl-spec.md`.
 
 ## The shape in one paragraph
 

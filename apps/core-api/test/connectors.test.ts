@@ -1,15 +1,18 @@
-// 012: the routes Settings uses, and the checks they must not skip.
+// 012 and 019: the routes Settings uses, and the checks they must not skip.
 //
-// SEC-2 / AC-4 / AC-5a / AC-8. These are the cases nobody exercises by hand:
-// another account's calendar, a thread you are not in, and the two invariants
-// the migration's check constraints also hold.
+// SEC-2 / AC-4 / 019 AC-2, AC-3, AC-6. These are the cases nobody exercises by
+// hand: another account's calendar, an old client's field, an un-tick that has
+// to reach every thread, and a disconnect that has to leave nothing behind.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { makeSignature } from "better-auth/crypto";
 import { buildApp, type App } from "../src/app.js";
 import { db, closeDb } from "../src/db.js";
+import { env } from "../src/env.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
-import { superviseSyncs, syncNow } from "../src/connectors/sync.js";
+import { superviseSyncs, scheduleFullSyncs, syncNow } from "../src/connectors/sync.js";
+import { grantsAcl } from "../src/connectors/google.js";
 
 await migrate(() => {});
 
@@ -24,18 +27,29 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.deleteFrom("jobs").execute();
+  await db.deleteFrom("sessions").execute();
   await db.deleteFrom("connector_calendars").execute();
   await db.deleteFrom("connector_connections").execute();
   await db.deleteFrom("accounts").execute();
 });
 
-async function account(): Promise<string> {
+async function signIn(accountId: string): Promise<string> {
+  const token = uuidv7();
+  await db
+    .insertInto("sessions")
+    .values({ account_id: accountId, token, expires_at: new Date(Date.now() + 60 * 60 * 1000) })
+    .execute();
+  return `better-auth.session_token=${token}.${await makeSignature(token, env.BETTER_AUTH_SECRET)}`;
+}
+
+async function account(name = "Jo Alves"): Promise<string> {
   const row = await db
     .insertInto("accounts")
     .values({
       email: `${uuidv7()}@example.com`,
       state: "active",
       email_verified: true,
+      display_name: name,
       analytics_subject_id: uuidv7(),
     })
     .returning("id")
@@ -43,38 +57,73 @@ async function account(): Promise<string> {
   return row.id;
 }
 
-async function calendar(
-  accountId: string,
-  accessRole: "owner" | "writer" | "reader" = "owner",
-  isShared = true
-): Promise<string> {
-  const connection = await db
+async function connection(accountId: string, scope: string | null = null, withSecret = true): Promise<string> {
+  const row = await db
     .insertInto("connector_connections")
     .values({ account_id: accountId, provider: "google", external_account_email: `${uuidv7()}@g.com` })
     .returning("id")
     .executeTakeFirstOrThrow();
+  // A stand-in, not a sealed value: nothing here opens it. Disconnect does,
+  // so its test makes a connection with no secret row.
+  if (!withSecret) return row.id;
+  await db
+    .insertInto("connector_secrets")
+    .values({
+      connection_id: row.id,
+      access_token: Buffer.from("x"),
+      refresh_token: null,
+      access_expires_at: null,
+      scope,
+      wrapped_by: "test",
+    })
+    .execute();
+  return row.id;
+}
 
+async function calendar(
+  connectionId: string,
+  over: { accessRole?: "owner" | "writer" | "reader"; selected?: boolean; primary?: boolean; summary?: string } = {}
+): Promise<string> {
   const row = await db
     .insertInto("connector_calendars")
     .values({
-      connection_id: connection.id,
+      connection_id: connectionId,
       external_id: `cal-${uuidv7()}`,
-      summary: "Home",
-      access_role: accessRole,
-      is_shared: isShared,
+      summary: over.summary ?? "Home",
+      access_role: over.accessRole ?? "owner",
+      is_primary: over.primary ?? false,
+      selected: over.selected ?? false,
     })
     .returning("id")
     .executeTakeFirstOrThrow();
   return row.id;
 }
 
-const patch = (id: string, body: Record<string, unknown>) =>
-  app.inject({ method: "PATCH", url: `/api/connectors/calendars/${id}`, payload: body });
+async function thread(accountId: string): Promise<string> {
+  const row = await db
+    .insertInto("threads")
+    .values({ name: "Home", created_by_account_id: accountId })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  await db
+    .insertInto("thread_members")
+    .values({ thread_id: row.id, account_id: accountId, state: "accepted" })
+    .execute();
+  return row.id;
+}
+
+const patch = (id: string, body: Record<string, unknown>, cookie?: string) =>
+  app.inject({
+    method: "PATCH",
+    url: `/api/connectors/calendars/${id}`,
+    payload: body,
+    ...(cookie ? { headers: { cookie } } : {}),
+  });
 
 describe("SEC-2 a calendar belongs to one account", () => {
   it("refuses to touch one without a session", async () => {
     const owner = await account();
-    const id = await calendar(owner);
+    const id = await calendar(await connection(owner));
     expect((await patch(id, { selected: false })).statusCode).toBe(401);
   });
 
@@ -84,50 +133,142 @@ describe("SEC-2 a calendar belongs to one account", () => {
     const response = await patch(uuidv7(), { selected: false });
     expect(response.statusCode).toBe(401);
   });
-});
 
-describe("AC-5a the sharing flag", () => {
-  it("cannot be turned off on a calendar somebody else owns", async () => {
-    // Somebody else owning it is proof somebody else sees it, so marking it
-    // "just me" would make an outward-facing write look reversible.
+  it("is 404 on another account's calendar", async () => {
     const owner = await account();
-    const id = await calendar(owner, "writer");
-    const row = await db
-      .updateTable("connector_calendars")
-      .set({ is_shared: false })
-      .where("id", "=", id)
-      .returning("id")
-      .executeTakeFirst()
-      .catch(() => null);
-    expect(row).toBeNull();
-  });
-
-  it("defaults to shared", async () => {
-    const owner = await account();
-    const id = await calendar(owner);
-    const row = await db
-      .selectFrom("connector_calendars")
-      .select("is_shared")
-      .where("id", "=", id)
-      .executeTakeFirstOrThrow();
-    expect(row.is_shared).toBe(true);
+    const other = await account("Tom Reilly");
+    const id = await calendar(await connection(owner));
+    expect((await patch(id, { selected: true }, await signIn(other))).statusCode).toBe(404);
   });
 });
 
-describe("AC-8 a calendar that reads has somewhere to put things", () => {
-  it("cannot be selected without a thread", async () => {
-    // content.thread_id has been not null since 0008, so a selected calendar
-    // with no thread is rows that cannot be written.
+describe("019 AC-3 approving and taking it back", () => {
+  it("enqueues a sync the moment it is ticked", async () => {
     const owner = await account();
-    const id = await calendar(owner);
-    const failed = await db
-      .updateTable("connector_calendars")
-      .set({ selected: true })
-      .where("id", "=", id)
-      .returning("id")
-      .executeTakeFirst()
-      .catch(() => null);
-    expect(failed).toBeNull();
+    const id = await calendar(await connection(owner));
+    const before = await queued();
+    expect((await patch(id, { selected: true }, await signIn(owner))).statusCode).toBe(200);
+    expect(await queued()).toBe(before + 1);
+  });
+
+  it("un-ticking removes the pick from every thread and drops the copy, in one write", async () => {
+    // Re-ticking later restores none of it: a pick that survived an un-tick
+    // would re-widen every thread that had it, silently.
+    const owner = await account();
+    const other = await account("Tom Reilly");
+    const n = await connection(owner);
+    const id = await calendar(n, { selected: true });
+    const mine = await thread(owner);
+    const shared = await thread(other);
+    await db.insertInto("thread_members").values({ thread_id: shared, account_id: owner, state: "accepted" }).execute();
+    await db
+      .insertInto("thread_calendars")
+      .values([
+        { thread_id: mine, calendar_id: id, account_id: owner },
+        { thread_id: shared, calendar_id: id, account_id: owner },
+      ])
+      .execute();
+    await db
+      .insertInto("connector_events")
+      .values({ account_id: owner, calendar_id: id, source_ref: "cal:evt", title: "Dentist", occurs_at: new Date() })
+      .execute();
+
+    expect((await patch(id, { selected: false }, await signIn(owner))).statusCode).toBe(200);
+    expect(await db.selectFrom("thread_calendars").select("thread_id").where("calendar_id", "=", id).execute()).toEqual([]);
+    expect(await db.selectFrom("connector_events").select("id").where("calendar_id", "=", id).execute()).toEqual([]);
+
+    expect((await patch(id, { selected: true }, await signIn(owner))).statusCode).toBe(200);
+    expect(await db.selectFrom("thread_calendars").select("thread_id").where("calendar_id", "=", id).execute()).toEqual([]);
+  });
+
+  it("ignores the fields an older client still sends", async () => {
+    // `threadId` and `isShared` stopped meaning anything. Stripped, not refused.
+    const owner = await account();
+    const id = await calendar(await connection(owner));
+    const response = await patch(id, { selected: true, threadId: uuidv7(), isShared: false }, await signIn(owner));
+    expect(response.statusCode).toBe(200);
+  });
+});
+
+describe("019 AC-2 what Settings reads", () => {
+  it("names the primary calendar by the person, carries no participant count, and says which grant lacks the scope", async () => {
+    const owner = await account("Jo Alves");
+    const n = await connection(owner, "https://www.googleapis.com/auth/calendar.events");
+    await calendar(n, { primary: true, summary: `${uuidv7()}@g.com`, selected: true });
+    await calendar(n, { accessRole: "reader", summary: "Holidays" });
+    await db.updateTable("connector_calendars").set({ participants: 3 }).where("connection_id", "=", n).execute();
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/connectors/calendars",
+      headers: { cookie: await signIn(owner) },
+    });
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as {
+      askFirst: boolean;
+      connections: Array<{ needsScope: boolean; calendars: Array<Record<string, unknown>> }>;
+    };
+    expect(body.askFirst).toBe(false);
+    expect(body.connections[0]!.needsScope).toBe(true);
+    const [primary, holidays] = body.connections[0]!.calendars;
+    expect(primary!["name"]).toBe("Jo Alves");
+    expect(primary!["primary"]).toBe(true);
+    expect(holidays!["name"]).toBe("Holidays");
+    expect(holidays!["sharedWithYou"]).toBe(true);
+    expect(holidays!["writable"]).toBe(false);
+    expect(JSON.stringify(body)).not.toContain("participants");
+  });
+
+  it("reads the scope off the stored grant, not the connection's age", () => {
+    expect(grantsAcl("https://www.googleapis.com/auth/calendar.events")).toBe(false);
+    expect(
+      grantsAcl("https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.acls.readonly")
+    ).toBe(true);
+    expect(grantsAcl(null)).toBe(false);
+  });
+});
+
+describe("019 AC-5 the ask-first switch", () => {
+  it("is the account's, read and set through /api/me", async () => {
+    const owner = await account();
+    const cookie = await signIn(owner);
+    const before = await app.inject({ method: "GET", url: "/api/me", headers: { cookie } });
+    expect((before.json() as { calendarAskFirst: boolean }).calendarAskFirst).toBe(false);
+    const set = await app.inject({
+      method: "PATCH",
+      url: "/api/me",
+      headers: { cookie },
+      payload: { calendarAskFirst: true },
+    });
+    expect(set.statusCode).toBe(200);
+    const after = await db.selectFrom("accounts").select("calendar_ask_first").where("id", "=", owner).executeTakeFirstOrThrow();
+    expect(after.calendar_ask_first).toBe(true);
+  });
+});
+
+describe("019 disconnect leaves nothing behind", () => {
+  it("deletes the calendars, the copy and the picks", async () => {
+    const owner = await account();
+    const n = await connection(owner, null, false);
+    const id = await calendar(n, { selected: true });
+    const t = await thread(owner);
+    await db.insertInto("thread_calendars").values({ thread_id: t, calendar_id: id, account_id: owner }).execute();
+    await db
+      .insertInto("connector_events")
+      .values({ account_id: owner, calendar_id: id, source_ref: "cal:evt", title: "Dentist", occurs_at: new Date() })
+      .execute();
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/connectors/${n}/disconnect`,
+      headers: { cookie: await signIn(owner) },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(await db.selectFrom("connector_calendars").select("id").where("connection_id", "=", n).execute()).toEqual([]);
+    expect(await db.selectFrom("connector_events").select("id").where("account_id", "=", owner).execute()).toEqual([]);
+    expect(await db.selectFrom("thread_calendars").select("thread_id").where("account_id", "=", owner).execute()).toEqual([]);
+    const gone = await db.selectFrom("connector_connections").select("deleted_at").where("id", "=", n).executeTakeFirstOrThrow();
+    expect(gone.deleted_at).not.toBeNull();
   });
 });
 
@@ -139,18 +280,27 @@ describe("the sync supervisor actually runs", () => {
     // the supervisor is only ever enqueued when the server boots, and a test
     // suite never boots the server. It failed three times in production
     // within seconds of the deploy.
-    //
-    // So this asserts the least interesting thing that would have caught it,
-    // which is that the statement is valid SQL against the real schema.
     await expect(superviseSyncs()).resolves.toBeTypeOf("number");
   });
 
   it("re-enqueues a connection with nothing pending", async () => {
     const owner = await account();
-    await calendar(owner);
+    await calendar(await connection(owner));
     const before = await queued();
     await superviseSyncs();
     expect(await queued()).toBeGreaterThan(before);
+  });
+
+  it("schedules one full pass per active connection, once a day", async () => {
+    // 019. 012 specified the nightly pass and never enqueued it.
+    const owner = await account();
+    await connection(owner);
+    await connection(owner);
+    const before = await queued();
+    expect(await scheduleFullSyncs()).toBe(2);
+    expect(await queued()).toBe(before + 2);
+    await scheduleFullSyncs();
+    expect(await queued()).toBe(before + 2);
   });
 });
 
@@ -165,61 +315,15 @@ const queued = async (): Promise<number> => {
 };
 
 describe("turning a calendar on syncs it", () => {
-  it("enqueues a sync the moment it is selected", async () => {
-    // **The bug the first real connect found.** Nothing enqueued the first
-    // sync: the chain only reschedules itself and the daily supervisor was the
-    // only other enqueuer, so a calendar turned on showed nothing until the
-    // supervisor next ran, up to a day later. That is not a slow sync, it is a
-    // feature that looks broken.
-    const owner = await account();
-    const id = await calendar(owner);
-    const threadId = await thread(owner);
-
-    await db
-      .updateTable("connector_calendars")
-      .set({ default_thread_id: threadId })
-      .where("id", "=", id)
-      .execute();
-
-    const before = await queued();
-    const row = await db
-      .selectFrom("connector_calendars")
-      .select("connection_id")
-      .where("id", "=", id)
-      .executeTakeFirstOrThrow();
-    await syncNow(row.connection_id);
-
-    expect(await queued()).toBe(before + 1);
-  });
-
   it("collapses a burst of toggles into one run", async () => {
     // Its own key prefix so it does not collide with the quarter-hour chain,
     // which would silently no-op one of the two under onConflict doNothing.
     const owner = await account();
-    const id = await calendar(owner);
-    const row = await db
-      .selectFrom("connector_calendars")
-      .select("connection_id")
-      .where("id", "=", id)
-      .executeTakeFirstOrThrow();
-
+    const n = await connection(owner);
     const before = await queued();
-    await syncNow(row.connection_id);
-    await syncNow(row.connection_id);
-    await syncNow(row.connection_id);
+    await syncNow(n);
+    await syncNow(n);
+    await syncNow(n);
     expect(await queued()).toBe(before + 1);
   });
 });
-
-async function thread(accountId: string): Promise<string> {
-  const row = await db
-    .insertInto("threads")
-    .values({ name: "Home" })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-  await db
-    .insertInto("thread_members")
-    .values({ thread_id: row.id, account_id: accountId, state: "accepted" })
-    .execute();
-  return row.id;
-}

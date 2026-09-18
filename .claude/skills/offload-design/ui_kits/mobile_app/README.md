@@ -47,7 +47,7 @@ so both phone kits get the same animation from the same component.
 
 ## Flows you can click
 
-1. Type into the composer → 👀 on your message, then offload's dots, then an answer with tinted chips. Ask about money, dates or the bookshelf for a specific reply; an instruction like "delete the dentist reminder" gets a Done mark instead of a sentence.
+1. Type into the composer → offload's dots, then an answer with tinted chips. A seen message has no mark: the dots are the state. Ask about money, dates or the bookshelf for a specific reply; an instruction like "delete the dentist reminder" gets a Done mark instead of a sentence.
 2. Fold that conversation with the grabber → it becomes a header inside the footer plate. Maximise it → the full conversation page.
 3. Swipe any row left → it slides under a red panel and deletes, with an undo toast for eight seconds.
 4. Tap the bell → the activity sheet unrolls; dismiss it and the rows go grey.

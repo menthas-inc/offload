@@ -72,7 +72,7 @@ offload's voice is a calm assistant that has already done the work and does not 
 - Row and its meta: `Ana needs an answer on the 14th–17th` / `Lisbon trip · asked Tuesday`
 - Free time in the agenda: `4:30hrs free`
 
-**Emoji: one, deliberately.** 👀 marks a message offload has seen but not yet answered, because a glyph reads as chrome there and an emoji reads as a person. Nowhere else: not in UI labels, not in copy, not in thread names. Meaning is carried by Lucide glyphs and by type weight. Unicode characters are used only as punctuation (`·`, `–`, `, `, curly quotes).
+**Emoji: none.** 👀 marked a message offload had seen but not answered from 003 until 16 September 2026, and it was the only one in the product. It is gone: the writing indicator says the same thing at the same moment a few lines below, so that was two marks for one state, and the one that stayed is the one that also says work is happening. **A seen message has no mark at all.** Meaning is carried by Lucide glyphs and by type weight. Unicode characters are used only as punctuation (`·`, `, `, curly quotes); never a dash.
 
 ---
 
@@ -134,7 +134,7 @@ Icons are rendered as a **`currentColor` mask**, so a glyph always inherits the 
 
 Tab glyphs: `sun` / `moon` (Today and Tonight, on real sunset), `lasso` (My threads, a loop drawn round related things), `cloudy` (Notes). Then `sparkles` (anything offload did for you), `map-pin` `link` `image` `mic` `camera` `paperclip` `scan-text` (kinds of dumped thing), `square-check-big` / `check` / `check-check` (tasks and done states), `users` (shared threads and people), `arrow-up` (send), `plus` (new), `ellipsis` (more), `chevron-*` and `maximize-2` (navigation), `bell` `settings` `search` `clock` `calendar` `bookmark` `archive` `trash-2` `pencil` `share-2` `funnel` `lock` `house` `message-circle` `circle` `list`.
 
-All 80 vendored glyphs: `album` `archive` `arrow-up` `bell` `blend` `bookmark` `brain` `calendar` `camera` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `coffee` `compass` `ellipsis` `eye` `folder` `funnel` `gallery-vertical-end` `git-branch` `group` `house` `image` `inbox` `lasso` `layers` `library-big` `link` `list` `lock` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `moon` `moon-star` `newspaper` `orbit` `paperclip` `pencil` `plus` `radio` `rewind` `rss` `scan-text` `search` `settings` `share-2` `snowflake` `sparkles` `spline` `square-check-big` `sun` `sunrise` `text-quote` `thermometer-sun` `trash-2` `umbrella` `users` `waypoints` `wind` `x`.
+All 81 vendored glyphs: `album` `archive` `arrow-up` `bell` `blend` `bookmark` `brain` `calendar` `camera` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `coffee` `compass` `ellipsis` `eye` `folder` `funnel` `gallery-vertical-end` `git-branch` `grip-vertical` `group` `house` `image` `inbox` `lasso` `layers` `library-big` `link` `list` `lock` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `moon` `moon-star` `newspaper` `orbit` `paperclip` `pencil` `plus` `radio` `rewind` `rss` `scan-text` `search` `settings` `share-2` `snowflake` `sparkles` `spline` `square-check-big` `sun` `sunrise` `text-quote` `thermometer-sun` `trash-2` `umbrella` `users` `waypoints` `wind` `x`.
 
 No icon font. No PNG icons. No emoji. No hand-drawn or bespoke SVG illustration, if a screen needs a picture, it uses a real image the user provided, or nothing.
 
@@ -308,8 +308,8 @@ the build, not something the mockups demonstrate.
 **Targets, focus and labels.** 44px minimum hit area, which may be larger than the drawn
 control (`hitArea` on `Button` and `IconButton`). Focus is a 2px ink outline offset 2px, or
 an ink border plus `--shadow-focus` on fields, and it is never removed. Every icon-only
-control carries a label. The 👀 marker needs a text alternative wherever it appears: "seen,
-not answered yet".
+control carries a label. **A seen message has no mark and so needs no alternative**, which is
+one fewer thing to get wrong than the 👀 it replaced.
 
 **Undo lasts eight seconds**, up from four, because four is not enough time to read a toast,
 reach for a pointer or hear a screen reader announce it. Nothing is destroyed while the
@@ -358,6 +358,18 @@ archive, no rename, and on the phones the row's own pan and long press both come
 conversation is itself a drag-driven sheet. The tick is 21px drawn inside a 44px target and its
 name carries the thread, "Book the airport transfer, Lisbon trip".
 
+**There are two ways of declining, one line each.** "Can't search that." is a refused subject:
+politics, weapons, self-harm, sex, said whether or not the web switch is on. "Not sure." is
+everything else offload does not have: a question that is not about their days, a lookup that did not
+work, the web switch off, a country it does not know. A second line naming the state was drawn on
+16 September and withdrawn on the 18th (see the log): the states do not split the way the two lines
+do, and offload never explains a failure or diagnoses itself.
+
+**The test is not whether the fact is public.** "When do the clocks go forward" is answered, because
+a date is what a day is made of and this product is about their days. "How do you make leek soup"
+and "how much is bitcoin" get "Not sure." That line sits in the same bubble as the answer, which is
+why the two refusals need the second line to separate them from it.
+
 **A refusal is a sentence, not an error state.** No warning colour and no suggestion to try other
 words. "I could not find that" describes offload; "No, butter is not on the list" describes the
 list; a truncated read says what it saw and claims nothing about the rest. A device preference is
@@ -370,14 +382,45 @@ the header and the tail have no dark variant. The one real defect was a primary 
 `--ink-950` with `--text-on-solid`: the ink ramp flips, so that is white on #EDEDED. **A filled
 primary takes `--surface-inverse` with `--text-inverse`**, never a ramp value with white on it.
 
-**Follow-ups are 012's control generalised.** Three options at most, all of them typeable, and the
-labels are words somebody would say. A proposal has one primary and one plain way out; a choice
-among equals has no primary, because dark ink means offload is recommending. Nothing that deletes,
-archives or empties gets a chip. Picking writes your turn into the log exactly as typing would,
-and the turn it creates is the one that carries the write: the turn that asked carries no write
-tools, which is what stops a sentence in a shared thread talking offload into one. One open
-question at a time, closed by the next turn whatever it says. **And ask only what Undo cannot
-cover:** a reversible write already sits behind eight seconds, so do it and report it instead.
+**Follow-ups are 012's control generalised.** **Five options at most**, all of them typeable, and
+the labels are words somebody would say, capped at 24 characters by the server so a label never
+wraps inside itself. Nothing that deletes, archives or empties gets a chip. One open question at a
+time, closed by the next turn whatever it says. **And ask only what Undo cannot cover:** a
+reversible write already sits behind eight seconds, so do it and report it instead.
+
+**A question's options are values, and no value is a primary.** A choice among things it could be
+is one offload does not know the answer to, and dark ink would say it did. A value is `Chip`'s
+geometry with a raised paint, `--surface-card` inside `--border-strong`, 30 tall in a 44 target.
+The fill is 1.06:1 against the reply bubble in light and **exactly 1.00:1 in dark**, where the
+bubble and the card are the same token, while the border is 3.17:1 and 3.59:1. So **the border is
+what draws this chip** and the fill only matters where the bubble does not reach. The paint lives on
+`QuickReplies` rather than as a fifth `Chip` tone: what it needs from `Chip` is the geometry, and a
+governed component should not grow a variant for one use. 012's proposal keeps its one primary,
+because there offload does have a recommendation.
+
+**The way out is last, on a line of its own, and carries an `x`.** "Not that", plain, no border. It
+is not one of the values, so it never shares their line: which line it landed on was otherwise a
+property of the labels rather than a decision. The `x` is what stops a borderless chip beside
+bordered ones reading as a value whose border failed to draw.
+
+**One group, named by the sentence that asked.** The `label` prop is that sentence verbatim, so a
+screen reader hears the question before the options; the clients repeat it as each chip's hint,
+because iOS does not read a container's name.
+
+**A question with no values to offer is answered by typing**, and the composer's placeholder is the
+invitation: "Which dates? e.g. Sept 12th at 5pm". The field's accessible name stays "Dump anything".
+The preamble is dropped because it did not fit: all three invitations overran a 266px field at
+390pt, at 309, 269 and 327px, and what each lost was its example.
+
+**A turn that filed silently and asked gets a reply bubble for the question**, with nothing else in
+it, after the footer that reports the filing. The order is the turn's order: what happened, then
+what is still open.
+
+**The trust boundary.** Picking writes your turn into the log exactly as typing would, and the turn
+it creates is the one that carries the write. The turn that asked writes only what the dump asked
+for, as any filing turn does, and **an answer never runs a turn with write tools at all**: a tap is
+applied by the server with no model, a typed answer is judged and applied before the planner runs,
+and the one re-run for a country is an answering turn holding no write tool.
 
 ## Reaching the web
 
@@ -393,7 +436,8 @@ that turn may now have read something it has to be able to report.
 
 **So the Done mark moves.** It used to hang off the sent bubble's bottom left corner, 10px up and
 6px into it, which is exactly why it could never grow a chip: a row that starts there runs back
-under the bubble it is tucked inside. 👀 moves with it, into the same slot.
+under the bubble it is tucked inside. **And there is nothing beside it:** the seen mark that used
+to share that corner went on 16 September, so the footer carries the Done mark alone.
 
 **Never a surface.** No fill, no hairline, no card: the chips are the only painted things in the
 row, which is what keeps a turn that did three things from looking like a panel. It wraps rather
@@ -475,6 +519,78 @@ solid fill with both suppressed, because its contents are listed directly undern
 declared before it loses at equal specificity and today comes out wearing the hairline. Today's
 border is declared last.
 
+## Calendars
+
+Decided 17 September 2026 off `explorations/calendars-options.html`. Connected apps had a Calendar
+row that led nowhere and first run had a connect screen; this is the row leading somewhere and that
+screen having a second home. **Two levels of consent, and they are different questions:** the
+account approves which calendars offload may use at all, and a thread picks which of those it uses.
+
+**The connect screen is first run's, verbatim.** Same heading, same two prose lines about reading
+your days and adding to them, same button. One screen entered two ways, with one sentence added
+under the button: **"You choose which calendars after this."** Connecting is not consenting to all
+of them.
+
+**A calendar is a checkbox, not a switch.** A switch says a capability is on, and the capability is
+the connection one level up; this is a selection among peers, so it is `Checkbox` as governed: 20px,
+`--radius-xs`, `--border-strong` unticked, `--surface-inverse` with the inline stroked tick when ticked.
+**Never the moss tick**, which this document reserves for a finished row: a calendar in use has not
+been completed. It also means the group header can carry **4 of 7 in use**, which a column of
+switches cannot. **That is the one component change the page needs:** `Group`'s label is a plain
+`<div>`, so it becomes a baseline flex row with the label in a `flex:1` span and the count after it,
+in `--text-numeric-role` at 11px. Groups with no count render exactly as they do now.
+
+**An unticked row goes `--text-tertiary`**, and the ticked one keeps full ink. That inverts
+`Checkbox`'s own label treatment, where ticking dims a row and strikes it through, and the reason is
+the same one: dimming marks the row that is out of play, which for a task is the finished one and
+for a selection is the unpicked one.
+
+**The provider's colour comes in as a 10px dot, as recognition and never as the differentiator.**
+These are somebody else's hexes and we do not get to pick them: measured on `--surface-fill`, four of
+seven ordinary Google colours are under 3:1, the yellow at **1.51:1**, and two are under in dark.
+Every swatch carries a `--border-hairline` ring so the pale ones keep an edge, which is definition
+and not contrast. **Where two calendars share a name, the row's note carries the account or the
+owner**, the way a shared calendar already says who shared it. Nothing else on the page is coloured,
+which is what keeps a provider swatch from reading as one of our two accents.
+
+**The page says what it cannot do, not just what it can.** `Read only` on a subscribed calendar,
+because offload cannot add to it, and disconnect says what it **keeps**: threads keep what they
+already know, offload stops reading your days.
+
+**The thread control is a plain `calendar` glyph in the app bar**, left of share and the ellipsis, and
+**it never carries a badge or a count.** A dot and a bubble both mean attention in every app anyone
+has used, so a mark meaning "you configured this" earns a tap that finds nothing wrong. `IconButton`
+already owns a badge dot that means *something new*, and this is not news. **Nothing in offload
+counts on a glyph at all:** the activity bell is passed an unread number and draws `IconButton`'s
+dot with it, and web's only numeric unread sits in a sidebar row as text, so a counted glyph would
+be a new mark type rather than a borrowed one. The accessible name
+carries the state instead: **"Calendars, none in this thread"**, or **"Calendars, 1 of 4 in this
+thread"**. On web it is the same glyph in the pane head opening a popover rather than a sheet, and it
+is **the third tool in that head**, which the pane-head rule was amended for: a scope control earns a
+head slot where an action does not. The ellipsis keeps a **Calendars in this thread** row on both
+surfaces, so the picker is reachable two ways.
+
+**A thread starts with no calendars and picks explicitly.** Approving a calendar in Settings adds it
+to no thread, ever: **explicit is the safer default when the thing being widened is other people's
+days**, and a shared thread silently gaining somebody's work calendar is the failure that rules
+inheritance out. So the ticks are the whole state, there is no inheriting third state and no **Use
+all** control, and that is what lets the glyph stay plain.
+
+**No calendars is the commonest state in the product**, so it gets a sentence rather than a
+footnote, and no empty illustration: the list is already on screen, so the rows are the call to
+action. One line changes, to **"offload is not reading any calendar for Lisbon trip. Tick the ones
+it should."**
+
+**A thread's list is always intersected with the account's**, so un-ticking a calendar in Settings
+removes it from every thread at once and a thread's stored id simply stops resolving. Without that,
+a thread can hold a calendar the account no longer allows.
+
+**Where an event lands is a thread question, so there is no "Add events to" setting.** One calendar
+ticked and the thread has already answered it. Two or more and **offload asks in the conversation**,
+with the thread's own calendars as the values in the existing follow-up control, which is the case
+that control was built for. None ticked and there is nothing to ask: anything with a time on it
+stays a thing in the thread. **Read-only calendars are never offered as an answer.**
+
 ## The admin panel
 
 Staff-only, so it optimises for reading columns rather than for calm. Same tokens, same
@@ -506,8 +622,9 @@ cheaper model, or stop and tell the person offload is resting. Dumps are always 
 - **Insets are owned by components, not screens.** A row spans the full width and pays the gutter back inside, so its fill and hairline reach the frame edge while its text sits on the gutter. A screen that adds its own horizontal gutter around rows double-insets them; this drifted three times before being fixed at the component.
 - **Swipe to delete** is horizontal-only: pointer capture is taken only once a drag passes 6px, otherwise a tap never reaches the row underneath.
 - **A row's actions are drawn as conditional, never as refused.** Edit and archive sit on the row for any member; delete sits there for the author alone and is simply absent otherwise. Two rows side by side showing a different number of controls is the honest reading of one permission rule. Anything beyond those three goes behind a `RowActionSheet` on a phone, or the row's own `ellipsis` on web.
+- **A fourth control, on a list that can be arranged: the reorder handle.** `grip-vertical`, at the row's leading edge, left of the checkbox or the tile, always drawn, on every surface (the 2026-09-16 entry "The handle leads the row" moved it there from beside the pencil, where it read as a fourth action; the kits still draw it trailing and are what has to catch up). **No container**: no fill, no border, no size of its own, the glyph in `--text-tertiary` with a `grab` cursor and `--text-primary` under the pointer, drawn inside the row's own left padding so the checkbox keeps its place. It is still a button for the keyboard, with the arrow keys, and the focus ring is the only box it ever draws. Its target is the glyph plus 8px of slop rather than a full 44, which sits inside the row's own target and is the compromise the row's other controls already make. **The row being moved lifts** to `--surface-raised` with `--shadow-2`; **the row the drop would land against takes a 2px `--ink-950` line** on that edge, at the row's full width, because every other boundary in the list is full width and this one is a boundary. **The drop is a priority**, the midpoint between the two neighbours on the 0 to 100 scale the reprioritise already used, never a tie.
 - **The way to the archived pile is a row at the foot of the list**, not a tool on the pane: "3 archived" with a chevron, below everything live. The archive is a place you go rather than a mode you toggle into, and the count is readable without hunting for a highlighted icon.
-- **A pane head carries two tools and a More menu.** Open full, then `ellipsis`, which holds rename, add note, Leave, and anything a thread gains later. The head stops growing every time the thread gains a capability.
+- **A pane head carries up to three tools and a More menu**, and the third has a criterion, added 17 September 2026 when calendars asked for it. Open full, then `ellipsis`, which holds rename, add note, Leave, and anything a thread gains later. **A tool earns a head slot only if it changes what offload reads or shows; anything that acts on the thread goes in More.** `calendar` is the one scope control so far, so the head is at three and the next capability does not get a fourth by precedent, it gets the same test. The point of the original two-tool rule stands: **the head does not grow every time a thread gains a capability**, because most capabilities are actions.
 - **Theme and text size are named rows at the foot of the nav, and a Settings page as well.** Both read the same stored value. An accessibility control behind an unlabelled glyph is not a control anybody can find.
 - **Notes are rows, not chips.** A note is a sentence up to 200 characters, so `MemoryRow` sets it as one and the row grows to hold its own editor. A section holding none draws nothing at all, which means the first note on a thread comes from dumping something. **The row carries more since 014**: a date when the note has one, a mark that it has a longer body behind it, and a tertiary treatment for a note past the prompt budget, which is on the thread and not reaching offload.
 - **Hiding by stacking order is not hiding.** Anything concealed only by an opaque sibling in front of it becomes visible during any group fade: a screen transition, a modal, a list animating in. Anything that must not appear carries its own opacity or is not mounted. `SwipeRow`'s reveal is the worked example, its opacity driven from the same value as its offset.
@@ -527,8 +644,9 @@ Answered by the brand owner. Nothing here is open.
    pending and no substitution warning needs repeating in new work.
 3. **Ink blue stays** as the second accent, #3355D6, carrying "this needs you" opposite
    moss. Two accents, no third.
-4. **The 👀 marker stays**, the one emoji in the product, on a message offload has seen but
-   not answered. Nowhere else.
+4. **No emoji at all.** 👀 marked a seen-but-unanswered message from 003 and was the only one in
+   the product; it went on 16 September 2026, because the writing indicator already said it
+   at the same moment. A seen message has no mark.
 5. **A new account opens in light.** Light is the default theme, not the device setting;
    dark is a choice in Settings. The three kits already default to Light and their preview
    bars switch for review.

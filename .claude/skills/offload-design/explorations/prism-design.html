@@ -1,0 +1,562 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Prism, the design</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="frames.css">
+<style>
+:root{--dens:1.4}
+.dev{position:relative;width:390px;height:844px;flex:0 0 auto;border:1px solid var(--border-strong);border-radius:44px;box-shadow:var(--shadow-3);overflow:hidden;background:var(--surface-page);display:flex;flex-direction:column}
+.dev.gate390{height:844px}
+.dev>.sb{padding:12px 26px 4px;background:var(--surface-chrome);backdrop-filter:var(--blur-chrome);-webkit-backdrop-filter:var(--blur-chrome);font:var(--weight-semibold) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums;position:relative;z-index:2}
+.dev>.sb em{color:var(--ink-900)}
+.pscr{flex:1;display:flex;flex-direction:column;min-height:0;position:relative;overflow:hidden}
+/* AppBar's contract: min-height --appbar-height, 0 --gutter-screen padding,
+   --surface-chrome-strong, --blur-chrome, and a hairline bottom border. Opaque,
+   like every other chrome surface, and it stays that way here: the composer row
+   and the tab row are the only two surfaces this exploration diverges on. */
+.pbar{flex:0 0 auto;display:flex;align-items:center;gap:var(--space-4);min-height:var(--appbar-height);padding:0 var(--gutter-screen);position:relative;z-index:2;
+  background:var(--surface-chrome-strong);backdrop-filter:var(--blur-chrome);-webkit-backdrop-filter:var(--blur-chrome);border-bottom:1px solid transparent}
+.pbar h4{margin:0;font:var(--text-title-3);letter-spacing:var(--tracking-title);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pbar .brand{flex:1;min-width:0;display:flex;align-items:center}
+.pbar .brand .lm{width:21px;height:21px}
+.pbar .acts{display:flex;align-items:center;gap:var(--space-2);margin-right:-8px;flex:0 0 auto}
+.pbar .ib{display:inline-flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin:-2px;flex:0 0 auto}
+.pbar .bx{position:relative;display:inline-flex;width:40px;height:40px;border-radius:var(--radius-pill);color:var(--text-secondary)}
+.pbar .bx.ic:before{-webkit-mask-size:20px;mask-size:20px}
+.pbar .bx .dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:var(--radius-pill);background:var(--clay-600);border:1.5px solid var(--paper)}
+.pbar i{width:20px;height:20px;color:var(--text-secondary);flex:0 0 auto}
+.list{flex:1;min-height:0;overflow-y:auto;position:relative;z-index:2;padding-top:var(--space-5)}
+/* Button, secondary/sm/rounded: a 32px visual in a 44px touch box, cancelled
+   by a negative margin so the layout measures the visual. */
+.sortwrap{padding:var(--space-6) var(--gutter-screen) var(--space-9)}
+.sortbtn{display:inline-flex;align-items:center;justify-content:center;border:none;background:transparent;padding:0;height:var(--tap-min);margin:-6px 0;cursor:pointer}
+.sortbtn>span{display:flex;align-items:center;justify-content:center;gap:var(--space-2);height:32px;padding:0 var(--space-5);box-sizing:border-box;border-radius:var(--radius-sm);font:var(--weight-medium) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body);background:var(--surface-raised);color:var(--text-primary);border:1px solid var(--border-strong)}
+.sortbtn .g{width:16px;height:16px}
+.psec{padding:var(--space-9) var(--gutter-screen) var(--space-5)}
+.psec>span.in{display:flex;align-items:center;gap:var(--space-4);padding-bottom:var(--space-4);border-bottom:1px solid var(--ink-950)}
+.psec .ttl{font:var(--weight-semibold) var(--size-title-2)/1.15 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-title);color:var(--text-primary)}
+.psec em{font-style:normal;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 var(--space-3);border-radius:var(--radius-pill);background:var(--surface-fill);font:var(--weight-medium) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums;color:var(--text-secondary)}
+.psec .fill{flex:1}
+.psec.accent>span.in{border-bottom-color:var(--moss-600)}
+.psec.accent em{background:var(--surface-accent-soft);color:var(--text-accent)}
+.psec .act{font:var(--text-label-role);font-variant-numeric:tabular-nums;color:var(--text-secondary)}
+.prow{display:flex;align-items:center;gap:var(--space-5);min-height:var(--row-height-lg);padding:var(--space-5) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.prow .t{width:36px;height:36px;border-radius:var(--radius-sm);background:var(--surface-fill);color:var(--text-secondary);flex:0 0 auto}
+.prow .x{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.prow .x b{display:block;font:var(--weight-medium) var(--size-body)/1.3 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* PriorityRow: a 22px pill circle with a 13px glyph, flex-start, a two-tone
+   meta line, and a Badge for the due date. Not the 36px square tile. */
+.prio{display:flex;align-items:flex-start;gap:var(--space-5);padding:var(--space-5) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.prio.last{box-shadow:none}
+.prio .dot{width:22px;height:22px;margin-top:1px;flex:0 0 auto;border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-secondary);display:flex}
+.prio .dot.att{background:var(--surface-attention);color:var(--text-on-solid)}
+.prio .dot.ic:before{-webkit-mask-size:13px;mask-size:13px}
+.prio .x{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.prio .x b{font:var(--weight-medium) var(--size-body)/1.35 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body)}
+.prio .x s{text-decoration:none;font-size:var(--size-body-sm);line-height:1.4;color:var(--text-secondary)}
+.prio .x s i{font-style:normal;color:var(--text-tertiary)}
+.prio .x s u{text-decoration:none;color:var(--text-accent);font-weight:500}
+.bdg{display:inline-flex;align-items:center;height:20px;padding:0 var(--space-3);border-radius:var(--radius-xs);font:var(--weight-medium) var(--size-caption)/1 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:.01em;background:var(--surface-fill);color:var(--text-secondary)}
+.bdg.att{background:var(--surface-attention);color:var(--text-on-solid)}
+.bdg.acc{background:var(--surface-accent-soft);color:var(--text-accent)}
+.prio .bw{flex:0 0 auto;padding-top:2px}
+/* ThreadDigest: a Card padding=0, header row over digest lines. */
+.dig{padding:0 var(--gutter-screen) var(--space-5)}
+.dig .card{border-radius:var(--radius-card);background:var(--surface-card);border:1px solid var(--border-hairline)}
+.dig .hd{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-5) var(--space-6);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.dig .hd .g{width:18px;height:18px;color:var(--text-secondary)}
+.dig .hd .nm{flex:1;min-width:0;font:var(--text-title-3);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dig .bd{padding:var(--space-5) var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.dig .ln{display:flex;gap:var(--space-4);align-items:flex-start}
+.dig .ln .g{width:15px;height:15px;color:var(--text-tertiary);margin-top:2px;flex:0 0 auto}
+.dig .ln span.t{flex:1;min-width:0;font-size:var(--size-body-sm);line-height:1.4;color:var(--text-primary)}
+.dig .ln span.w{font-size:var(--size-caption);color:var(--text-tertiary);flex:0 0 auto}
+/* DayAgenda: one spine down the day, events as dots on it, clear runs as
+   moss-bordered bands. The time column is a fixed 112px so every title
+   starts at the same x. */
+.agenda{display:flex;flex-direction:column;gap:var(--space-8);padding:0 var(--gutter-screen) var(--space-8)}
+.agenda .dh{display:flex;align-items:baseline;gap:var(--space-4);padding-bottom:var(--space-4)}
+.agenda .dh b{font:var(--weight-medium) var(--size-title-3)/1.2 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-title)}
+.agenda .dh s{text-decoration:none;font-size:var(--size-caption);color:var(--text-tertiary)}
+.agenda .spine{position:relative;padding-left:19px}
+.agenda .spine>.rail{position:absolute;left:3px;top:10px;bottom:10px;width:1px;background:var(--border-hairline)}
+.agenda .ev{position:relative;display:flex;align-items:flex-start;gap:var(--space-5);padding:var(--space-4) 0}
+.agenda .ev>.pip{position:absolute;left:-19px;top:calc(var(--space-4) + 7px);width:8px;height:8px;border-radius:var(--radius-pill);background:var(--ink-900)}
+.agenda .ev>.pip.acc{background:var(--moss-600)}
+.agenda .ev>.pip.att{background:var(--blue-600)}
+.agenda .tm{width:112px;flex:0 0 auto;font-size:var(--size-body-sm);line-height:22px;color:var(--text-tertiary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.agenda .ev .ti{flex:1;min-width:0;font:var(--weight-medium) var(--size-title-3)/1.3 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-title);padding-top:1px}
+.agenda .ev .nw{flex:0 0 auto;font-size:var(--size-caption);color:var(--clay-600)}
+.agenda .free{position:relative;display:flex;align-items:flex-start;gap:var(--space-5);margin:var(--space-2) 0 var(--space-2) -19px;padding:var(--space-5) 0 var(--space-5) 16px;border-left:3px solid var(--moss-500);background:linear-gradient(90deg,var(--moss-50),transparent)}
+.agenda .free .fl{flex:1;min-width:0;font:var(--weight-medium) var(--size-body)/1.35 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body);color:var(--moss-700)}
+.prow .tr{display:flex;align-items:center;gap:var(--space-4);color:var(--text-tertiary);font:var(--text-caption-role);font-variant-numeric:tabular-nums;flex:0 0 auto}
+.prow.last{box-shadow:none}
+.prow .x s{text-decoration:none;display:block;font:var(--text-body-sm-role);font-variant-numeric:tabular-nums;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .x s u{text-decoration:none;color:var(--text-accent);font-weight:500}
+[hidden]{display:none!important}
+.mk{animation:markFade var(--duration-mark) var(--ease-out) both}
+@keyframes markFade{0%{background:var(--surface-accent-soft)}100%{background:transparent}}
+.plate{flex:0 0 auto;margin-top:auto;position:relative;z-index:9;overflow:hidden;background:transparent;
+  border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-sheet)}
+/* --surface-raised in the kit; 86% here, and this is the whole divergence. */
+.veil{position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(255,255,255,.38) 0%,rgba(255,255,255,.38) 30%,rgba(255,255,255,.86) 60%,rgba(255,255,255,.86) 100%)}
+.comp{position:relative;z-index:2;display:flex;padding:var(--space-4) var(--gutter-screen) var(--space-5);border-top:1px solid transparent}
+.pill{flex:1;min-width:0;box-sizing:border-box;display:flex;align-items:center;gap:var(--space-3);min-height:48px;padding:0 var(--space-3) 0 var(--space-6);border-radius:var(--radius-pill);background:var(--surface-input);border:1px solid var(--border-focus)}
+.pill .ph{flex:1;min-width:0;font:var(--text-body-role);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body);color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill .acts{display:flex;align-items:center;gap:var(--space-2);flex:0 0 auto;margin-left:auto}
+.pill .ib{display:inline-flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin:-6px;flex:0 0 auto}
+.pill .bx{display:inline-flex;width:32px;height:32px;border-radius:var(--radius-pill);color:var(--text-secondary)}
+.pill .bx.qt{background:var(--surface-fill);color:var(--text-primary)}
+.pill .bx.ic:before{-webkit-mask-size:16px;mask-size:16px}
+/* TabBar's contract: 64px, a hairline top border, --surface-chrome-strong,
+   --blur-chrome, active --text-primary over inactive --text-tertiary. The only
+   thing this exploration changes is the fill, from opaque to 86%. */
+.tabs{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-around;height:var(--tabbar-height);color:var(--text-tertiary);background:transparent;border-top:1px solid transparent}
+.tabs span{display:flex;flex-direction:column;align-items:center;gap:4px;font:var(--weight-medium) 10px/1 var(--font-core)}
+.tabs i{width:22px;height:22px}
+.tabs span.on{color:var(--ink-950)}
+.tabs span.on i{color:var(--ink-950)}
+.hib{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:10;pointer-events:none}
+.hib b{display:block;width:134px;height:5px;border-radius:3px;background:var(--ink-300)}
+/* Scroll offset, dump nudge and perpetual drift each own one element, so the
+   three transforms compose instead of overwriting each other. Same shape as
+   stacking three Animated values in React Native. */
+.bandpar{position:absolute;left:-16%;right:-16%;top:0;bottom:0;z-index:0;pointer-events:none;overflow:hidden;
+  transform:translate3d(var(--sx,0px),0,0)}
+.bandarr{position:absolute;inset:0}
+.bandarr.arrive{animation:arrive var(--duration-mark) var(--ease-out) both}
+@keyframes arrive{0%{transform:translate3d(0,0,0) scale(1)}26%{transform:translate3d(-14.95px,-5.75px,0) scale(1.046)}100%{transform:translate3d(0,0,0) scale(1)}}
+/* The real thing, drawn per pixel. On device this is a react-native-skia
+   runtime shader; here it is a small ImageData warp upscaled, which is the same
+   picture by a slower route. */
+.warp{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:calc(var(--dens,1)*.36)}
+.bloompar{position:absolute;left:-34%;top:-20%;width:120%;height:58%;z-index:1;pointer-events:none;overflow:hidden}
+.gate{flex:1;min-height:0;display:flex;flex-direction:column;position:relative;z-index:2}
+.lockup{flex:1;display:flex;align-items:center;justify-content:center}
+.lockup .stack{display:flex;flex-direction:column;align-items:center;gap:20px}
+.markbox{position:relative;width:92px;height:92px;flex:0 0 auto}
+.markbox .fill{position:absolute;inset:0;background:var(--ink-950);-webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle cx="48" cy="21" r="9" fill="black"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="black" stroke-width="9" stroke-linecap="round"/></svg>') center/contain no-repeat;mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><circle cx="48" cy="21" r="9" fill="black"/><path d="M22 46 V62 a12 12 0 0 0 12 12 h28 a12 12 0 0 0 12 -12 V46" fill="none" stroke="black" stroke-width="9" stroke-linecap="round"/></svg>') center/contain no-repeat}
+.word{font:var(--weight-semibold) 30px/1 var(--font-core);letter-spacing:-0.03em;color:var(--text-primary)}
+.gbody{text-align:center;padding:0 var(--gutter-screen) 44px}
+.gt{font:var(--text-title-1);letter-spacing:var(--tracking-title)}
+.gs{font:var(--text-body-role);color:var(--text-secondary);margin-top:12px;line-height:var(--leading-body)}
+.gfoot{flex:0 0 auto;padding:0 var(--gutter-screen) 22px;display:flex;flex-direction:column;gap:10px}
+.prov{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:52px;box-sizing:border-box;border-radius:var(--radius-pill);cursor:pointer;font:var(--weight-medium) var(--size-body)/1 var(--font-core);letter-spacing:var(--tracking-body)}
+.prov.apple{background:var(--ink-950);color:var(--text-inverse);border:1px solid transparent}
+.prov.google{background:var(--surface-raised);color:var(--text-primary);border:1px solid var(--border-strong)}
+.terms{font:var(--text-caption-role);color:var(--text-tertiary);text-align:center;line-height:1.45}
+.terms b{color:var(--text-accent);font-weight:500}
+.bar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:14px 18px;border:1px solid var(--border-hairline);border-radius:14px;background:var(--surface-raised);margin:0 0 26px;position:sticky;top:14px;z-index:20;box-shadow:var(--shadow-1)}
+.bar b{font:var(--weight-medium) 13px/1 var(--font-core)}
+.bar label{display:flex;align-items:center;gap:9px;font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-secondary)}
+.bar input[type=range]{width:150px;accent-color:var(--ink-950)}
+.bar output{font:var(--text-numeric-role);font-size:12px;color:var(--text-primary);min-width:86px}
+.bar button{font:var(--weight-medium) 13px/1 var(--font-core);height:34px;padding:0 15px;border-radius:var(--radius-pill);border:1px solid var(--border-strong);background:var(--paper);color:var(--text-primary);cursor:pointer}
+.bar button.pri{background:var(--ink-950);color:var(--paper);border-color:transparent}
+.frames{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.cap{display:flex;flex-direction:column;gap:9px;width:390px}
+.cap h3{margin:0;font:var(--weight-semibold) 16px/1.3 var(--font-core);letter-spacing:-.01em}
+.cap p{margin:0;font:var(--weight-regular) 13px/1.55 var(--font-core);color:var(--text-secondary)}
+.cap .act{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.cap .cost{font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;align-self:flex-start}
+.cost.free{background:var(--surface-accent-soft);color:var(--moss-700)}
+.cost.pay{background:var(--surface-attention-soft);color:var(--text-on-attention)}
+@media (prefers-reduced-motion: reduce){
+  .bandarr.arrive,.mk{animation:none!important}
+  .bandpar{transform:none!important}
+}
+</style></head><body><div class="wrap">
+
+<h1>Prism, the design</h1>
+<p class="lede">The settled version, on the two surfaces it ships to. A single prism field sits behind the bottom plate in the app and behind the lockup on sign in, <b>frozen</b>, holding one warped still. When offload files something the real shader runs for two seconds, eases its clock to a stop, and freezes again wherever it landed. Nothing runs while the phone sits on a table, and no two arrivals leave the field in the same place. Density 140%, and the dump nudge 15% harder than the version you reviewed.</p>
+
+<div class="bar">
+<b>Arrival</b>
+<button id="dumpAll" class="pri">Dump something</button>
+<button id="replayGate">Replay the gate</button>
+<button id="resetAll">Reset</button>
+<label>Warp <input id="warpAmp" type="range" min="0" max="26" step="1" value="11"><output id="warpOut">11</output></label>
+<label>Density <input id="dens" type="range" min="60" max="180" step="5" value="140"><output id="densOut">140%</output></label>
+<span style="font:var(--weight-regular) 12px/1.4 var(--font-core);color:var(--text-tertiary);max-width:32ch">Both fields are frozen until something arrives. The shader runs for two seconds, slows, and stops.</span>
+</div>
+
+<div class="frames">
+
+<!-- ============ 1 ============ -->
+<div class="cap">
+<h3>In the app</h3>
+<p>The field is clipped to the plate, so it never reaches the list, and the only text over it is the three tab labels: the composer's placeholder sits on its own opaque pill. The fill above the field is graded rather than flat, light along the plate's rounded top edge where nothing sits and full by the label band, so the colour reads as a rim around the composer. Press <b>Dump something</b>: the row arrives with the change mark, the field nudges, and it warps for two seconds underneath. Scrolling slides it inside the plate, which is the one thing here that moves without offload having done anything.</p>
+<span class="cost free">Frozen at rest &middot; 2s of shader per arrival</span>
+<div class="dev" id="f1">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="pbar"><span class="brand"><i class="lm"></i></span><span class="acts"><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/bell.svg)"><span class="dot"></span></span></span><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/settings.svg)"></span></span></span></div>
+<div class="list" data-list></div>
+<div class="plate">
+<div class="bandpar"><div class="bandarr"><canvas class="warp" data-warp="band" width="256" height="140"></canvas></div></div>
+<div class="veil"></div>
+<div class="comp"><span class="pill"><span class="ph">Dump anything</span><span class="acts"><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/camera.svg)"></span></span><span class="ib"><span class="bx ic" style="--ic:url(../assets/icons/mic.svg)"></span></span><span class="ib"><span class="bx qt ic" style="--ic:url(../assets/icons/arrow-up.svg)"></span></span></span></span></div>
+<div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>My threads</span><span><i class="g" style="--ic:url(../assets/icons/cloudy.svg)"></i>Memories</span></div>
+</div>
+</div>
+<div class="hib"><b></b></div>
+</div>
+</div>
+
+<!-- ============ GATE ============ -->
+<div class="cap">
+<h3>On sign in</h3>
+<p>The gate's arrival is the screen itself, so the field warps once as it appears and then holds. Behind <code>SignInScreen</code>'s centred lockup there is no content to protect and the field is the whole upper half of the screen, so at the same density it reads far more strongly. The mark itself stays ink.</p>
+<span class="cost free">Frozen at rest &middot; 2s of shader on appear</span>
+<div class="dev gate390" id="f4">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="pscr">
+<div class="bloompar"><div class="bandarr"><canvas class="warp" data-warp="bloom" width="200" height="200"></canvas></div></div>
+<div class="gate">
+<div class="lockup"><span class="stack"><span class="markbox"><span class="fill"></span></span><span class="word">offload</span></span></div>
+<div class="gbody"><div class="gt">One place for everything you would otherwise forget.</div><div class="gs">Sign in to start. Invite only for now.</div></div>
+<div class="gfoot">
+<button type="button" class="prov apple"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:block"><path d="M16.37 1.43c0 1.14-.42 2.2-1.25 3.02-.9.9-2.02 1.42-3.02 1.33-.06-1.08.44-2.2 1.26-3.03.86-.87 2.1-1.4 3.01-1.32zM20.9 8.6c-1.7-.1-3.1.96-3.9.96-.83 0-2.05-.92-3.38-.9-1.74.03-3.35 1.01-4.24 2.57-1.82 3.15-.47 7.82 1.3 10.38.86 1.25 1.9 2.65 3.25 2.6 1.3-.05 1.8-.84 3.37-.84 1.57 0 2.02.84 3.38.82 1.4-.03 2.29-1.27 3.15-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.7-1.04-2.72-4.12-.03-2.58 2.1-3.82 2.2-3.88-1.2-1.77-3.07-1.97-3.71-2.01z"></path></svg>Continue with Apple</button>
+<button type="button" class="prov google"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" style="display:block"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>Continue with Google</button>
+<div class="terms">No invite yet? <b>Join the waitlist</b><br>Terms &middot; Privacy</div>
+</div>
+</div>
+</div>
+<div class="hib"><b></b></div>
+</div>
+</div>
+
+</div>
+
+<div class="sechead"><h2>The spec</h2><u>what to build</u></div>
+<table class="mx">
+<tr><th style="width:180px">&nbsp;</th><th>Value</th></tr>
+<tr><td><b>Field</b></td><td>One baked prism texture per surface: <code>p2-band-1.png</code> clipped to the plate, <code>p2-bloom-1.png</code> behind the lockup. 512&times;176 and 320&times;320, 117KB and 90KB as PNG, roughly half that as WebP.</td></tr>
+<tr><td><b>Density</b></td><td>140%. The field composites at <code>0.36 &times; 1.4</code> over <code>--surface-page</code>.</td></tr>
+<tr><td><b>The fill over it</b></td><td>Graded, not flat: 38% white at the plate's top edge, held to 30% of its height, reaching 86% by 60%. The tab labels sit below that, on the full 86%. Flat 86% everywhere left the field at a sixth of the gate's strength with no density setting able to recover it, since the fill eats whatever density adds.</td></tr>
+<tr><td><b>At rest</b></td><td>Frozen. One warped still at a fixed clock. No timer, no loop, no shader context awake.</td></tr>
+<tr><td><b>On arrival</b></td><td>2000ms of live shader, with the clock eased to a stop over the final 700ms so the flow slows rather than cuts. The field stays where it landed, so the next arrival starts somewhere new.</td></tr>
+<tr><td><b>The nudge</b></td><td>The field translates <code>-14.95px, -5.75px</code> and scales to <code>1.046</code> at 26% of <code>--duration-mark</code>, then settles. 15% harder than the reviewed version. The plate itself does not move.</td></tr>
+<tr><td><b>The gate</b></td><td>Same field, same density, warps once on appear. No arrival exists there, so the screen's own appearance is the trigger.</td></tr>
+<tr><td><b>Containment</b></td><td>The field is a child of the plate, so its box is the plate's box at any height and the rounded top corners clip it. It cannot reach the list, which is the only place <code>--text-tertiary</code> would meet it, and that colour has no contrast headroom.</td></tr>
+<tr><td><b>Reduced motion</b></td><td>The shader never runs. Both surfaces hold the frozen still, and the nudge and the change mark are cut.</td></tr>
+<tr><td><b>Backgrounded</b></td><td>Any run in flight is cancelled on <code>visibilitychange</code>. Because nothing loops at rest, there is nothing else to stop.</td></tr>
+</table>
+
+<ul class="spec">
+<li><b>Skia is the dependency, and this is the cheapest honest way to have it.</b> A runtime shader adds several MB to the bundle, and the reason it usually costs battery is the render loop staying awake. Here it is awake for two seconds after somebody puts something down, which is also the only moment the distortion means anything.</li>
+<li><b>The warp is the change mark in a second place.</b> The row takes a moss ground settling over <code>--duration-mark</code>; the field takes two seconds of flow. Both say that offload just did something, and they fire together rather than as two effects that happen to coincide.</li>
+<li><b>The app's field is quiet by design and the gate's is not.</b> Same texture, same density: behind the plate most of it is under an 86% fill and three tab labels, and on the gate it is the open upper half of the screen. The asymmetry is the point, since one screen has content to protect and the other does not.</li>
+<li><b>Two surfaces diverge from their contracts, and only two:</b> the plate wrapper in <code>App.jsx</code> goes from <code>--surface-raised</code> to 86%, and the gate gains a field behind <code>SignInScreen</code>. Everything else on both screens is as specified, including the app bar's opaque chrome, the composer's <code>--surface-input</code> pill and <code>TabBar</code>'s transparent fill.</li>
+<li><b>What is not decided is dark theme.</b> Every wash in the texture is a light tint chosen against paper, and over <code>#1C1B19</code> they read as fog. Dark needs its own bake at a lower density, or the field is a light-theme feature and the readme says so.</li>
+</ul>
+
+</div>
+<script>
+(function(){
+  /* One list, written once and cloned, so the four frames cannot drift apart
+     and the file stays readable. */
+  var ROWS = [
+    ['SECTION','On the clock','','', 'Open calendar'],
+    ['SECTION','Other things','11'],
+    ['map-pin','Time Out Market','Lisbon trip \u00b7 Sam','16:20'],
+    ['link','Tram 28 route map','Lisbon trip \u00b7 Sam','14:05'],
+    ['text-quote','Sourdough starter, day 4','Kitchen \u00b7 you','11:48'],
+    ['image','Airport transfer receipt','Lisbon trip \u00b7 2 Sep','09:30'],
+    ['text-quote','Apartment door code is 4417','Lisbon trip \u00b7 Sam','2 Sep'],
+    ['square-check-big','Confirm the checkout time','Lisbon trip \u00b7 Fri 12 Sep','1 Sep'],
+    ['album','Tile samples for the bathroom','Flat admin \u00b7 you','31 Aug'],
+    ['bookmark','That piece on sleep and memory','Reading \u00b7 28 Aug','28 Aug'],
+    ['calendar','Ana\u2019s birthday, the 14th','Flat admin \u00b7 you','27 Aug'],
+    ['mic','Voice note, Tuesday morning','filing \u00b7 3 Sep','26 Aug'],
+    ['camera','Photo of the bookshelf wall','Bookshelf build \u00b7 you','24 Aug'],
+    ['check-check','Renew the passport','Flat admin \u00b7 done 28 Aug','22 Aug']
+  ];
+  function row(icon, title, meta, time){
+    var d = document.createElement('div');
+    d.className = 'prow';
+    d.innerHTML = '<span class="t ic" style="--ic:url(../assets/icons/' + icon + '.svg)"></span>' +
+      '<div class="x"><b></b><s></s></div>' + (time ? '<span class="tr"></span>' : '');
+    if (time) d.querySelector('.tr').textContent = time;
+    d.querySelector('b').textContent = title;
+    setMeta(d.querySelector('s'), meta);
+    return d;
+  }
+  /* filing is the system's only per-row progress word and it is moss, so it
+     cannot be part of a flat text run. */
+  function setMeta(el, meta){
+    if (meta.indexOf('filing') !== 0){ el.textContent = meta; return; }
+    var u = document.createElement('u');
+    u.textContent = 'filing';
+    el.appendChild(u);
+    el.appendChild(document.createTextNode(meta.slice('filing'.length)));
+  }
+  function section(title, count, tone, action){
+    var d = document.createElement('div');
+    d.className = tone === 'accent' ? 'psec accent' : 'psec';
+    d.innerHTML = '<span class="in"><span class="ttl"></span><em></em><span class="fill"></span></span>';
+    d.querySelector('.ttl').textContent = title;
+    if (count) d.querySelector('em').textContent = count; else d.querySelector('em').remove();
+    if (action){ var a = document.createElement('span'); a.className = 'act'; a.textContent = action; d.querySelector('.in').insertBefore(a, d.querySelector('.fill')); }
+    return d;
+  }
+  var PRIORITY = [
+    {icon:'text-quote', title:'Ana needs an answer on the 14th\u201317th', thread:'Flat admin', meta:'asked Tuesday', due:'2 days', tone:'attention'},
+    {icon:'square-check-big', title:'Book the airport transfer', thread:'Lisbon trip', meta:'you added it', due:'Fri'},
+    {icon:'square-check-big', title:'Bank transfer for Ana', thread:'Flat admin', meta:'Sam asked'}
+  ];
+  var DIGESTS = [
+    {name:'Lisbon trip', added:4, lines:[
+      {icon:'map-pin', text:'Time Out Market, lunch, closes 4pm on Sundays', time:'16:20'},
+      {icon:'link', text:'Tram 28 route map', time:'14:05'},
+      {icon:'image', text:'Airport transfer receipt', time:'09:30'}
+    ]},
+    {name:'Bookshelf build', added:2, lines:[
+      {icon:'text-quote', text:'Oak brackets, 30cm, matte black', time:'11:48'},
+      {icon:'camera', text:'Photo of the wall before drilling', time:'yesterday'}
+    ]}
+  ];
+  var DAYS = [{label:'Today', date:'Thu 11 Sep', isToday:true, events:[
+    {start:9.5, end:10.25, title:'Standup', tone:'ink'},
+    {start:11, end:12, title:'Call with Ana', tone:'attention'},
+    {start:16.5, end:17.5, title:'Pick up the tile samples', tone:'accent'}
+  ]}];
+  function priorityRow(it, last){
+    var d = document.createElement('div');
+    d.className = last ? 'prio last' : 'prio';
+    d.innerHTML = '<span class="dot ic' + (it.tone === 'attention' ? ' att' : '') +
+      '" style="--ic:url(../assets/icons/' + it.icon + '.svg)"></span>' +
+      '<div class="x"><b></b><s></s></div>' +
+      (it.due ? '<span class="bw"><span class="bdg' + (it.tone === 'attention' ? ' att' : '') + '"></span></span>' : '');
+    d.querySelector('b').textContent = it.title;
+    var s = d.querySelector('s');
+    if (it.filing){ var u = document.createElement('u'); u.textContent = it.thread; s.appendChild(u); }
+    else s.appendChild(document.createTextNode(it.thread));
+    var i = document.createElement('i');
+    i.textContent = ' \u00b7 ' + it.meta;
+    s.appendChild(i);
+    if (it.due) d.querySelector('.bdg').textContent = it.due;
+    return d;
+  }
+  function digest(th){
+    var d = document.createElement('div');
+    d.className = 'dig';
+    var lines = th.lines.map(function(l){
+      return '<div class="ln"><i class="g" style="--ic:url(../assets/icons/' + l.icon + '.svg)"></i>' +
+        '<span class="t"></span><span class="w"></span></div>';
+    }).join('');
+    d.innerHTML = '<div class="card"><div class="hd">' +
+      '<i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>' +
+      '<span class="nm"></span><span class="bdg acc"></span></div>' +
+      '<div class="bd">' + lines + '</div></div>';
+    d.querySelector('.nm').textContent = th.name;
+    d.querySelector('.bdg').textContent = '+' + th.added;
+    var ls = d.querySelectorAll('.ln');
+    th.lines.forEach(function(l, i){
+      ls[i].querySelector('.t').textContent = l.text;
+      ls[i].querySelector('.w').textContent = l.time;
+    });
+    return d;
+  }
+  /* One am/pm per range, on the end time only, so the time column stays even. */
+  function clock(h, mer){
+    var H = Math.floor(h), M = Math.round((h - H) * 60);
+    var h12 = H % 12 === 0 ? 12 : H % 12;
+    return h12 + ':' + String(M).padStart(2, '0') + (mer ? (H >= 12 ? 'pm' : 'am') : '');
+  }
+  function range(a, b){ return clock(a, false) + ' - ' + clock(b, true); }
+  function freeLabel(h){
+    var m = Math.round(h * 60);
+    if (m < 60) return m + 'mins free';
+    var H = Math.floor(m / 60), M = m % 60;
+    return H + (M ? ':' + String(M).padStart(2, '0') : '') + 'hrs free';
+  }
+  function agenda(days, nowHour){
+    var wrap = document.createElement('div');
+    wrap.className = 'agenda';
+    days.forEach(function(day){
+      var evs = day.events.slice().sort(function(a, b){ return a.start - b.start; });
+      var html = '<div class="dh"><b></b><s></s></div><div class="spine"><span class="rail"></span>';
+      evs.forEach(function(ev, i){
+        var isNow = day.isToday && nowHour >= ev.start && nowHour < ev.end;
+        html += '<div class="ev"><span class="pip ' + (ev.tone === 'accent' ? 'acc' : ev.tone === 'attention' ? 'att' : '') + '"></span>' +
+          '<span class="tm">' + range(ev.start, ev.end) + '</span><span class="ti"></span>' +
+          (isNow ? '<span class="nw">now</span>' : '') + '</div>';
+        var next = evs[i + 1];
+        /* A gap only becomes a band at 45 minutes; below that it is noise. */
+        if (next && next.start - ev.end >= 0.75){
+          html += '<div class="free"><span class="tm">' + range(ev.end, next.start) + '</span>' +
+            '<span class="fl">' + freeLabel(next.start - ev.end) + '</span></div>';
+        }
+      });
+      html += '</div>';
+      var d = document.createElement('div');
+      d.innerHTML = html;
+      d.querySelector('.dh b').textContent = day.label;
+      d.querySelector('.dh s').textContent = day.date;
+      var tis = d.querySelectorAll('.ev .ti');
+      evs.forEach(function(ev, i){ tis[i].textContent = ev.title; });
+      wrap.appendChild(d);
+    });
+    return wrap;
+  }
+  document.querySelectorAll('[data-list]').forEach(function(list){
+    // Unheadered PriorityRows first, exactly as TodayScreen orders them.
+    var nw = priorityRow({icon:'link', title:'Oak brackets, 30cm, matte black', thread:'filing', meta:'just now', filing:true}, false);
+    nw.setAttribute('data-new', ''); nw.hidden = true;
+    list.appendChild(nw);
+    PRIORITY.forEach(function(it, i){
+      list.appendChild(priorityRow(it, i === PRIORITY.length - 1));
+    });
+    list.appendChild(section('What moved', String(DIGESTS.length), 'accent'));
+    DIGESTS.forEach(function(d){ list.appendChild(digest(d)); });
+
+    ROWS.forEach(function(r){
+      if (r[0] === 'SECTION'){
+        list.appendChild(section(r[1], r[2], r[3], r[4]));
+        if (r[1] === 'On the clock') list.appendChild(agenda(DAYS, 11.4));
+      }
+      else list.appendChild(row(r[0], r[1], r[2], r[3]));
+    });
+    /* border={i < other.length-1}: the last row in the list carries no separator. */
+    var all = list.querySelectorAll('.prow');
+    if (all.length) all[all.length - 1].classList.add('last');
+    var sort = document.createElement('div');
+    sort.className = 'sortwrap';
+    sort.innerHTML = '<button type="button" class="sortbtn"><span>Sort these for me<i class="g" style="--ic:url(../assets/icons/chevron-right.svg)"></i></span></button>';
+    list.appendChild(sort);
+    /* count={other.length}: the pill has to equal the rows beneath it. */
+    var others = list.querySelectorAll('.prow');
+    var lastSec = list.querySelectorAll('.psec em');
+    if (lastSec.length) lastSec[lastSec.length - 1].textContent = String(others.length);
+  });
+
+  var root = document.documentElement;
+  var warpAmp = 11;
+  var reduceMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  document.getElementById('dens').addEventListener('input', function(e){
+    root.style.setProperty('--dens', String(Number(e.target.value)/100));
+    document.getElementById('densOut').textContent = e.target.value + '%';
+  });
+  document.getElementById('warpAmp').addEventListener('input', function(e){
+    warpAmp = Number(e.target.value);
+    document.getElementById('warpOut').textContent = warpAmp;
+    FIELDS.forEach(function(f){ if (f.src && !f.frame) f.render(f.phase); });
+  });
+
+  /* Scroll parallax. Free, and the only thing on either screen that moves
+     without offload having done something. */
+  document.querySelectorAll('.dev').forEach(function(dev){
+    var list = dev.querySelector('.list'), par = dev.querySelector('.bandpar');
+    if (!list || !par) return;
+    var pending = false;
+    list.addEventListener('scroll', function(){
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function(){
+        pending = false;
+        var y = list.scrollTop;
+        par.style.setProperty('--sx', Math.max(-26, Math.min(26, -y*0.055)).toFixed(1) + 'px');
+      });
+    }, { passive: true });
+  });
+
+  /* One field per canvas. On device each is a react-native-skia runtime shader;
+     here it is a small ImageData warp upscaled by CSS, which is the same picture
+     by a slower route.
+
+     The field is FROZEN. It holds one warped still until offload does something,
+     then the shader runs for two seconds, eases its clock to a stop over the
+     last 700ms, and freezes again wherever it landed. So no two arrivals leave
+     the field in the same place, nothing runs while the phone sits on a table,
+     and there is no loop to gate against a backgrounded app. */
+  var RUN_MS = 2000, SETTLE_MS = 700;
+  var FIELDS = [];
+  document.querySelectorAll('canvas.warp').forEach(function(canvas){
+    var ctx = canvas.getContext('2d', { willReadFrequently: true });
+    var W = canvas.width, H = canvas.height;
+    var f = { canvas: canvas, src: null, frame: 0, phase: 0, until: 0, out: ctx.createImageData(W, H) };
+    f.render = function(t){
+      var s = f.src.data, o = f.out.data;
+      for (var y = 0; y < H; y++){
+        for (var x = 0; x < W; x++){
+          var dx = warpAmp * (Math.sin(y*0.085 + t*0.55) + 0.62*Math.sin((x*0.5 + y*0.7)*0.055 - t*0.42));
+          var dy = warpAmp * 0.55 * (Math.cos(x*0.062 - t*0.48) + 0.5*Math.cos((x - y)*0.045 + t*0.36));
+          var sx = ((x + dx) | 0) % W; if (sx < 0) sx += W;
+          var sy = ((y + dy) | 0); if (sy < 0) sy = 0; else if (sy >= H) sy = H - 1;
+          var si = (sy*W + sx) * 4, di = (y*W + x) * 4;
+          o[di] = s[si]; o[di+1] = s[si+1]; o[di+2] = s[si+2]; o[di+3] = s[si+3];
+        }
+      }
+      ctx.putImageData(f.out, 0, 0);
+      f.phase = t;
+    };
+    /* The clock advances by real elapsed time, scaled down through the settle,
+       so the flow slows to a halt instead of cutting out mid-motion. */
+    f.step = function(now){
+      f.frame = 0;
+      if (!f.src) return;
+      var left = f.until - now;
+      if (left <= 0 || document.hidden || reduceMQ.matches){ f.render(f.phase); return; }
+      var rate = left < SETTLE_MS ? (function(u){ return u*u*(3-2*u); })(left / SETTLE_MS) : 1;
+      var dt = Math.min(64, now - (f.last || now));
+      f.last = now;
+      f.render(f.phase + (dt / 1000) * rate);
+      f.frame = requestAnimationFrame(f.step);
+    };
+    f.arrive = function(){
+      if (!f.src || reduceMQ.matches) return;
+      f.until = performance.now() + RUN_MS;
+      f.last = 0;
+      if (!f.frame) f.frame = requestAnimationFrame(f.step);
+    };
+    var img = new Image();
+    img.onload = function(){
+      var off = document.createElement('canvas');
+      off.width = W; off.height = H;
+      var octx = off.getContext('2d');
+      if (canvas.dataset.warp === 'band'){ octx.translate(0, H); octx.scale(1, -1); }
+      octx.drawImage(img, 0, 0, W, H);
+      try { f.src = octx.getImageData(0, 0, W, H); } catch (err) { f.src = null; }
+      if (!f.src) return;
+      /* Frozen at a fixed clock, which is also exactly what reduced motion and
+         a backgrounded app get. */
+      f.render(40 * 0.03);
+      if (canvas.dataset.warp === 'bloom') f.arrive();
+    };
+    img.src = canvas.dataset.warp === 'bloom'
+      ? '../assets/prism/p2-bloom-1.png'
+      : '../assets/prism/p2-band-1.png';
+    FIELDS.push(f);
+  });
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) return;
+    FIELDS.forEach(function(f){ if (f.frame){ cancelAnimationFrame(f.frame); f.frame = 0; } });
+  });
+
+  function fieldsIn(dev){
+    return FIELDS.filter(function(f){ return dev.contains(f.canvas); });
+  }
+  function dump(id){
+    var dev = document.getElementById(id);
+    if (!dev) return;
+    var arr = dev.querySelector('.bandarr'), r = dev.querySelector('[data-new]'), list = dev.querySelector('.list');
+    if (list) list.scrollTop = 0;
+    if (r){ r.hidden = false; r.classList.remove('mk'); void r.offsetWidth; r.classList.add('mk'); }
+    if (arr){ arr.classList.remove('arrive'); void arr.offsetWidth; arr.classList.add('arrive'); }
+    fieldsIn(dev).forEach(function(f){ f.arrive(); });
+  }
+  document.querySelectorAll('[data-dump]').forEach(function(b){ b.addEventListener('click', function(){ dump(b.dataset.dump); }); });
+  document.getElementById('dumpAll').addEventListener('click', function(){ dump('f1'); });
+  document.getElementById('replayGate').addEventListener('click', function(){
+    var gate = document.getElementById('f4');
+    var arr = gate.querySelector('.bandarr');
+    if (arr){ arr.classList.remove('arrive'); void arr.offsetWidth; arr.classList.add('arrive'); }
+    fieldsIn(gate).forEach(function(f){ f.arrive(); });
+  });
+  document.getElementById('resetAll').addEventListener('click', function(){
+    document.querySelectorAll('[data-new]').forEach(function(r){ r.classList.remove('mk'); r.hidden = true; });
+    document.querySelectorAll('.bandarr').forEach(function(a){ a.classList.remove('arrive'); });
+  });
+})();
+</script>
+</body></html>

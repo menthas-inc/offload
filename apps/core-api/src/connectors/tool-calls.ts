@@ -10,12 +10,13 @@
 // executes inside the turn and returns a result, so there was no pending state
 // to reuse and this is where it is built.
 
+import { sql } from "kysely";
 import { db } from "../db.js";
-import { mapEvent, sourceRefFor } from "./events.js";
-import { GrantRevoked, listEvents, type EventDraft } from "./google.js";
-import { outwardLine } from "./outward.js";
+import { GrantRevoked, type EventDraft } from "./google.js";
+import { outwardLine, type OutwardVerdict } from "./outward.js";
 import { accessTokenFor, markNeedsReauth } from "./tokens.js";
 import { performWrite, targetFor, verdictFor, writable, type WriteAction } from "./write.js";
+import type { ScopedCalendar } from "../threads/calendars.js";
 
 /** How long a proposal is worth confirming. An unconfirmed one changed nothing
  *  anywhere, so expiry is an ordinary ending rather than a failure. */
@@ -25,25 +26,17 @@ export interface CalendarSummary {
   calendarId: string;
   name: string;
   writable: boolean;
-  shared: boolean;
+  /** The acting account's own. Only these can be written to. */
+  yours: boolean;
 }
 
-export async function listCalendarsFor(accountId: string): Promise<CalendarSummary[]> {
-  const rows = await db
-    .selectFrom("connector_calendars as c")
-    .innerJoin("connector_connections as n", "n.id", "c.connection_id")
-    .select(["c.id as id", "c.summary as summary", "c.access_role as role", "c.is_shared as shared"])
-    .where("n.account_id", "=", accountId)
-    .where("n.deleted_at", "is", null)
-    .where("n.state", "=", "active")
-    .orderBy("c.is_primary", "desc")
-    .execute();
-
-  return rows.map((row) => ({
-    calendarId: row.id,
-    name: row.summary,
-    writable: row.role === "owner" || row.role === "writer",
-    shared: row.shared,
+/** The calendars in the turn's scope, at most twenty, as the model sees them. */
+export function summarise(scope: ScopedCalendar[]): CalendarSummary[] {
+  return scope.slice(0, 20).map((calendar) => ({
+    calendarId: calendar.id,
+    name: calendar.name,
+    writable: calendar.writable,
+    yours: calendar.yours,
   }));
 }
 
@@ -52,44 +45,58 @@ export interface FoundEvent {
   title: string;
   startsAt: string | null;
   calendarId: string;
+  /** Somebody else's text: another member's calendar, or an event the person
+   *  did not write. Read, never obeyed. */
+  untrusted: boolean;
 }
 
-/** What is on somebody's calendar between two dates.
+/** What is on the calendars in scope between two moments, from the copy.
  *
- *  Read live rather than from `content`, so the model sees the calendar as it
- *  is now rather than as the last sync left it, and so a calendar that is
- *  connected but not filing anywhere can still be answered about. */
-export async function findEvents(
-  accountId: string,
-  calendarId: string,
-  from: Date,
-  to: Date
-): Promise<FoundEvent[] | "needs_reconnect"> {
-  const target = await targetFor(calendarId, accountId);
-  if (!target) return [];
+ *  Never Google: an answering turn costs no token refresh and no round trip,
+ *  and what the model sees is exactly what the rail shows. Capped at fifty. */
+export async function findEvents(scope: ScopedCalendar[], from: Date, to: Date): Promise<FoundEvent[]> {
+  if (scope.length === 0) return [];
+  const rows = await db
+    .selectFrom("connector_events as e")
+    .select(["e.source_ref as sourceRef", "e.title as title", "e.occurs_at as occursAt", "e.calendar_id as calendarId", "e.untrusted as untrusted"])
+    .where(
+      "e.calendar_id",
+      "in",
+      scope.map((calendar) => calendar.id)
+    )
+    .where("e.deleted_at", "is", null)
+    .where("e.occurs_at", "<=", to)
+    .where(sql<boolean>`coalesce(e.occurs_end_at, e.occurs_at) >= ${from}`)
+    .orderBy("e.occurs_at")
+    .limit(50)
+    .execute();
 
-  let token: string;
-  try {
-    token = await accessTokenFor(target.connectionId);
-  } catch (error) {
-    if (error instanceof GrantRevoked) {
-      await markNeedsReauth(target.connectionId);
-      return "needs_reconnect";
-    }
-    throw error;
-  }
+  const yours = new Set(scope.filter((calendar) => calendar.yours).map((calendar) => calendar.id));
+  return rows.map((row) => ({
+    sourceRef: row.sourceRef,
+    title: row.title,
+    startsAt: row.occursAt ? row.occursAt.toISOString() : null,
+    calendarId: row.calendarId,
+    untrusted: row.untrusted || !yours.has(row.calendarId),
+  }));
+}
 
-  const page = await listEvents(token, target.externalId, { syncToken: null, timeMin: from, timeMax: to });
-  if (page === "resync") return [];
-
-  return page.events
-    .filter((event) => event.status !== "cancelled")
-    .map((event) => ({
-      sourceRef: sourceRefFor(target.externalId, event.externalId),
-      title: event.title,
-      startsAt: event.startsAt ? event.startsAt.toISOString() : null,
-      calendarId,
-    }));
+/** The calendar an event lives on, among the acting account's own. Another
+ *  member's pick is readable and never writable, so an event on one of theirs
+ *  is unknown here. */
+export async function calendarOfEvent(accountId: string, sourceRef: string): Promise<string | null> {
+  const row = await db
+    .selectFrom("connector_events as e")
+    .innerJoin("connector_calendars as c", "c.id", "e.calendar_id")
+    .innerJoin("connector_connections as n", "n.id", "c.connection_id")
+    .select("c.id as id")
+    .where("e.source_ref", "=", sourceRef)
+    .where("e.deleted_at", "is", null)
+    .where("n.account_id", "=", accountId)
+    .where("n.deleted_at", "is", null)
+    .where("n.state", "=", "active")
+    .executeTakeFirst();
+  return row?.id ?? null;
 }
 
 export type ToolWriteOutcome =
@@ -107,7 +114,10 @@ export async function writeThroughTool(
   write: WriteAction,
   /** The message whose tool call this is. A proposal without one cannot be
    *  reached from any screen, so it would be announced and then expire. */
-  messageId: string | null
+  messageId: string | null,
+  /** 019. The row a create is putting on the calendar. It remembers the event
+   *  it became, on a performed write now and on a confirmed one later. */
+  contentId: string | null = null
 ): Promise<ToolWriteOutcome> {
   const target = await targetFor(calendarId, accountId);
   if (!target) return { kind: "refused", reason: "unknown_calendar" };
@@ -131,7 +141,21 @@ export async function writeThroughTool(
   }
 
   if (!verdict.outward) {
-    const done = await performWrite(target, write, verdict);
+    // The same answer for a grant Google refuses at the write itself, which
+    // a token that looked fine at the read cannot rule out: on a device the
+    // tap drew the failure line, the turn's tool call went out as a 500, and
+    // the connection stayed "active" for the next attempt to fail the same way.
+    let done;
+    try {
+      done = await performWrite(target, write, verdict);
+    } catch (error) {
+      if (error instanceof GrantRevoked) {
+        await markNeedsReauth(target.connectionId);
+        return { kind: "refused", reason: "needs_reconnect" };
+      }
+      throw error;
+    }
+    if (done.sourceRef && write.action === "create") await remember(contentId, target.externalId, done.sourceRef);
     return { kind: "written", sourceRef: done.sourceRef };
   }
 
@@ -140,6 +164,7 @@ export async function writeThroughTool(
     .values({
       account_id: accountId,
       calendar_id: calendarId,
+      content_id: contentId,
       action: write.action,
       scope: write.action === "create" ? null : write.scope,
       // **Stored as JSON, so the Dates in it come back as strings.** A
@@ -149,7 +174,9 @@ export async function writeThroughTool(
       // time on it. That is the whole point of the confirmation path, and it
       // crashed at the moment somebody tapped. `reviveWrite` below puts them
       // back.
-      payload: JSON.stringify(write),
+      // The reason rides along so the line can be recomputed for as long as
+      // the proposal sits.
+      payload: JSON.stringify({ ...write, because: verdict.reason }),
       source_ref: write.action === "create" ? null : write.sourceRef,
       message_id: messageId,
       expires_at: new Date(Date.now() + PENDING_TTL_MS),
@@ -190,54 +217,29 @@ export async function confirmPending(accountId: string, pendingId: string): Prom
     .where("id", "=", pendingId)
     .execute();
 
-  // Filed straight away rather than waiting for the next sync, so the thing
-  // they just agreed to is on screen when they look.
+  // The row the proposal was about remembers the event it became. The copy
+  // brings the event in on the next sync; nothing is filed into a thread.
   if (done.sourceRef && write.action === "create") {
-    const calendar = await db
-      .selectFrom("connector_calendars")
-      .select(["external_id", "default_thread_id"])
-      .where("id", "=", pending.calendar_id)
-      .executeTakeFirst();
-    if (calendar?.default_thread_id) {
-      const draft = (write as { draft: EventDraft }).draft;
-      const eventId = done.sourceRef.split(":").slice(1).join(":");
-      await db
-        .insertInto("content")
-        .values({
-          account_id: accountId,
-          thread_id: calendar.default_thread_id,
-          type: "event",
-          title: draft.title,
-          occurs_at: draft.startsAt,
-          occurs_end_at: draft.endsAt,
-          source: "calendar",
-          source_ref: done.sourceRef,
-          attrs: JSON.stringify(
-            mapEvent(
-              {
-                externalId: eventId,
-                seriesId: null,
-                status: "confirmed",
-                title: draft.title,
-                location: draft.location ?? null,
-                startsAt: draft.startsAt,
-                endsAt: draft.endsAt,
-                allDay: draft.allDay ?? false,
-                timezone: draft.timezone ?? null,
-                organizedByMe: true,
-                attendees: (draft.attendees ?? []).map((email) => ({ name: null, email, response: null })),
-              },
-              calendar.external_id,
-              calendar.default_thread_id
-            ).attrs
-          ),
-        })
-        .onConflict((oc) => oc.columns(["account_id", "source_ref"]).where("source_ref", "is not", null).doNothing())
-        .execute();
-    }
+    await remember(pending.content_id, target.externalId, done.sourceRef);
   }
 
   return true;
+}
+
+/** A row that went on the calendar remembers which event it became, so it is
+ *  not put on again and the rail draws it once. */
+async function remember(contentId: string | null, calendarExternalId: string, sourceRef: string): Promise<void> {
+  if (!contentId) return;
+  await db
+    .updateTable("content")
+    .set({
+      source_ref: sourceRef,
+      attrs: sql`attrs || ${JSON.stringify({ calendar: calendarExternalId })}::jsonb`,
+      updated_at: new Date(),
+    })
+    .where("id", "=", contentId)
+    .where("source_ref", "is", null)
+    .execute();
 }
 
 /** Put the `Date`s back after a round trip through jsonb.
@@ -344,7 +346,12 @@ function becauseOf(payload: unknown): string {
         ? (write.patch.attendees ?? [])
         : [];
 
-  if (guests.length === 1) return `${guests[0]} will be told.`;
-  if (guests.length > 1) return `${guests.length} guests will be told.`;
-  return "Everyone on this calendar will see it.";
+  const reason = (payload as { because?: OutwardVerdict["reason"] } | null)?.because;
+  const verdict: OutwardVerdict = {
+    outward: true,
+    notify: guests.length > 0,
+    audience: guests,
+    reason: guests.length > 0 ? "guests" : reason === "asked_for" ? "asked_for" : "shared_calendar",
+  };
+  return outwardLine(verdict) ?? "Everyone on this calendar will see it.";
 }

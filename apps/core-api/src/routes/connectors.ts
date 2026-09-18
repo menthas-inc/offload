@@ -14,9 +14,11 @@ import {
   consentUrl,
   exchangeCode,
   GrantRevoked,
+  grantsAcl,
   listCalendars,
   revoke,
 } from "../connectors/google.js";
+import { calendarName, refreshCalendars } from "../connectors/calendars.js";
 import { openState, pkce, sealState, LANDINGS, type Landing } from "../connectors/state.js";
 import { connectorsAvailable, seal, VAULT_NAME } from "../connectors/vault.js";
 import { revokeAndForget } from "../connectors/tokens.js";
@@ -42,7 +44,10 @@ const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 /** Where a landing enum actually sends somebody. Never a value from the
  *  request: an open redirect at the end of an authenticated flow. */
 function landingUrl(landing: Landing, outcome: "connected" | "failed"): string {
-  const path = landing === "first-run" ? "/welcome" : "/settings/apps";
+  // 019. Connected lands on the calendar page from both doors: every calendar
+  // comes back unticked, and the page is where the person says which ones.
+  // A failure from first run goes back to first run's offer.
+  const path = landing === "first-run" && outcome === "failed" ? "/welcome" : "/settings/apps";
   return `${env.WEB_URL}${path}?calendar=${outcome}`;
 }
 
@@ -55,35 +60,13 @@ async function calendarOwnedBy(calendarId: string, accountId: string) {
   return db
     .selectFrom("connector_calendars as c")
     .innerJoin("connector_connections as n", "n.id", "c.connection_id")
-    .select([
-      "c.id as id",
-      "c.access_role as accessRole",
-      "c.is_shared as isShared",
-      "c.selected as selected",
-      "c.default_thread_id as defaultThreadId",
-      "n.id as connectionId",
-    ])
+    .select(["c.id as id", "c.access_role as accessRole", "c.selected as selected", "n.id as connectionId"])
     .where("c.id", "=", calendarId)
     .where("n.account_id", "=", accountId)
     .where("n.deleted_at", "is", null)
     .executeTakeFirst();
 }
 
-/** A thread this account is actually in.
- *
- *  006 shipped this exact fix for a dump's sort destination: a thread id from a
- *  client is an access decision, and trusting it routes somebody's calendar
- *  into any thread id they can name. */
-async function isMember(threadId: string, accountId: string): Promise<boolean> {
-  const row = await db
-    .selectFrom("thread_members")
-    .select("thread_id")
-    .where("thread_id", "=", threadId)
-    .where("account_id", "=", accountId)
-    .where("state", "=", "accepted")
-    .executeTakeFirst();
-  return Boolean(row);
-}
 
 export async function connectorRoutes(app: App): Promise<void> {
   // Is this offered at all. Every screen reads it and says "not available yet"
@@ -149,6 +132,7 @@ export async function connectorRoutes(app: App): Promise<void> {
         const tokens = await exchangeCode(request.query.code, opened.verifier);
         const calendars = await listCalendars(tokens.accessToken);
         const primary = calendars.find((c) => c.primary);
+        let connectionId: string | null = null;
 
         // **No placeholder for the account's identity.** It fell back to the
         // literal "google", and the unique key is
@@ -180,6 +164,7 @@ export async function connectorRoutes(app: App): Promise<void> {
             )
             .returning("id")
             .executeTakeFirstOrThrow();
+          connectionId = connection.id;
 
           await tx
             .insertInto("connector_secrets")
@@ -207,32 +192,12 @@ export async function connectorRoutes(app: App): Promise<void> {
               }))
             )
             .execute();
-
-          for (const calendar of calendars) {
-            await tx
-              .insertInto("connector_calendars")
-              .values({
-                connection_id: connection.id,
-                external_id: calendar.externalId,
-                summary: calendar.summary,
-                timezone: calendar.timezone,
-                access_role: calendar.accessRole,
-                // Shared until they say otherwise, except their own primary.
-                is_shared: !(calendar.primary && calendar.accessRole === "owner"),
-                is_primary: calendar.primary,
-                selected: false,
-              })
-              .onConflict((oc) =>
-                oc.columns(["connection_id", "external_id"]).doUpdateSet((eb) => ({
-                  summary: eb.ref("excluded.summary"),
-                  timezone: eb.ref("excluded.timezone"),
-                  access_role: eb.ref("excluded.access_role"),
-                  updated_at: new Date(),
-                }))
-              )
-              .execute();
-          }
         });
+
+        // The list, the colours and the participant counts, from the one
+        // function the full pass also runs. Every calendar comes in unticked:
+        // connecting is not consenting to all of them.
+        if (connectionId) await refreshCalendars(connectionId, tokens.accessToken);
 
         return reply.redirect(landingUrl(opened.landing, "connected"));
       } catch (error) {
@@ -291,22 +256,34 @@ export async function connectorRoutes(app: App): Promise<void> {
         response: {
           200: z.object({
             available: z.boolean(),
+            /** 019. Every calendar write is put to the person first. One
+             *  switch for the offload account, whatever Google accounts hang
+             *  off it. */
+            askFirst: z.boolean(),
             connections: z.array(
               z.object({
                 id: z.string(),
                 email: z.string(),
                 state: z.enum(["active", "needs_reauth", "revoked"]),
+                connectedAt: z.string(),
+                /** The grant lacks the sharing scope, so every calendar on it
+                 *  reads as more than one participant until they sign in
+                 *  again. The connection keeps working. */
+                needsScope: z.boolean(),
                 calendars: z.array(
                   z.object({
                     id: z.string(),
-                    summary: z.string(),
-                    accessRole: z.enum(["owner", "writer", "reader", "freeBusyReader"]),
-                    /** Can offload write here at all. AC-4. */
+                    /** Worded once here: the person's name for a primary
+                     *  calendar, Google's summary otherwise. */
+                    name: z.string(),
+                    colour: z.string().nullable(),
+                    /** Can offload write here at all. AC-4 of 012. */
                     writable: z.boolean(),
-                    isShared: z.boolean(),
-                    isPrimary: z.boolean(),
+                    /** Somebody else owns it. The note says so without naming
+                     *  them, since Google's list carries no name. */
+                    sharedWithYou: z.boolean(),
+                    primary: z.boolean(),
                     selected: z.boolean(),
-                    threadId: z.string().nullable(),
                   })
                 ),
               })
@@ -320,12 +297,25 @@ export async function connectorRoutes(app: App): Promise<void> {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
 
+      const account = await db
+        .selectFrom("accounts")
+        .select(["display_name", "calendar_ask_first"])
+        .where("id", "=", accountId)
+        .executeTakeFirst();
+
       const connections = await db
-        .selectFrom("connector_connections")
-        .select(["id", "external_account_email as email", "state"])
-        .where("account_id", "=", accountId)
-        .where("deleted_at", "is", null)
-        .orderBy("connected_at")
+        .selectFrom("connector_connections as n")
+        .leftJoin("connector_secrets as s", "s.connection_id", "n.id")
+        .select([
+          "n.id as id",
+          "n.external_account_email as email",
+          "n.state as state",
+          "n.connected_at as connectedAt",
+          "s.scope as scope",
+        ])
+        .where("n.account_id", "=", accountId)
+        .where("n.deleted_at", "is", null)
+        .orderBy("n.connected_at")
         .execute();
 
       const calendars = connections.length
@@ -344,42 +334,46 @@ export async function connectorRoutes(app: App): Promise<void> {
 
       return reply.send({
         available: connectorsAvailable(),
+        askFirst: account?.calendar_ask_first ?? false,
         connections: connections.map((connection) => ({
           id: connection.id,
           email: connection.email,
           state: connection.state,
+          connectedAt: connection.connectedAt.toISOString(),
+          needsScope: !grantsAcl(connection.scope),
           calendars: calendars
             .filter((calendar) => calendar.connection_id === connection.id)
             .map((calendar) => ({
               id: calendar.id,
-              summary: calendar.summary,
-              accessRole: calendar.access_role,
+              name: calendarName(calendar, account?.display_name ?? null),
+              colour: calendar.colour,
               writable: calendar.access_role === "owner" || calendar.access_role === "writer",
-              isShared: calendar.is_shared,
-              isPrimary: calendar.is_primary,
+              sharedWithYou: calendar.access_role !== "owner",
+              primary: calendar.is_primary,
               selected: calendar.selected,
-              threadId: calendar.default_thread_id,
             })),
         })),
       });
     }
   );
 
-  // Where a calendar files, whether it files at all, and whether anybody else
-  // sees it. Three small answers, one route, because they are one row.
+  // Approving a calendar, or taking the approval back. One answer, one route.
+  //
+  // **Un-ticking removes the calendar from every thread that picked it, at
+  // once and for good.** A pick that survived an un-tick would re-widen every
+  // thread that had it the day the calendar was ticked again, silently, which
+  // is the one thing the model forbids. Its copy goes with it: a copy nobody
+  // may read is a copy nobody should keep.
   app.patch(
     "/api/connectors/calendars/:id",
     {
       schema: {
         params: z.object({ id: z.string().uuid() }),
-        body: z.object({
-          selected: z.boolean().optional(),
-          isShared: z.boolean().optional(),
-          threadId: z.string().uuid().nullable().optional(),
-        }),
+        // Older clients still send `threadId` and `isShared`. Stripped, not
+        // refused: a field that stopped meaning anything is not an error.
+        body: z.object({ selected: z.boolean() }),
         response: {
           200: z.object({ ok: z.literal(true) }),
-          400: z.object({ error: z.enum(["not_writable", "needs_thread", "not_a_member"]) }),
           401: unauthenticated,
           404: z.object({ error: z.literal("not_found") }),
         },
@@ -393,28 +387,18 @@ export async function connectorRoutes(app: App): Promise<void> {
       const calendar = await calendarOwnedBy(request.params.id, accountId);
       if (!calendar) return reply.status(404).send({ error: "not_found" as const });
 
-      const body = request.body;
-      const threadId = body.threadId === undefined ? calendar.defaultThreadId : body.threadId;
-      const selected = body.selected ?? calendar.selected;
-      const isShared = body.isShared ?? calendar.isShared;
-
-      // A thread id from a client is an access decision.
-      if (threadId && threadId !== calendar.defaultThreadId && !(await isMember(threadId, accountId))) {
-        return reply.status(400).send({ error: "not_a_member" as const });
-      }
-      // An event offload holds is a content row, and content.thread_id is not
-      // null. A calendar that reads has to have somewhere to put things.
-      if (selected && !threadId) return reply.status(400).send({ error: "needs_thread" as const });
-      // Somebody else owning it is proof somebody else sees it.
-      if (!isShared && calendar.accessRole !== "owner") {
-        return reply.status(400).send({ error: "not_writable" as const });
-      }
-
-      await db
-        .updateTable("connector_calendars")
-        .set({ selected, is_shared: isShared, default_thread_id: threadId, updated_at: new Date() })
-        .where("id", "=", calendar.id)
-        .execute();
+      const selected = request.body.selected;
+      await db.transaction().execute(async (tx) => {
+        await tx
+          .updateTable("connector_calendars")
+          .set({ selected, updated_at: new Date() })
+          .where("id", "=", calendar.id)
+          .execute();
+        if (!selected) {
+          await tx.deleteFrom("thread_calendars").where("calendar_id", "=", calendar.id).execute();
+          await tx.deleteFrom("connector_events").where("calendar_id", "=", calendar.id).execute();
+        }
+      });
 
       // Turning one on is the moment somebody expects to see their week. The
       // recurring chain is fifteen minutes and only starts once a sync has run,
@@ -425,17 +409,16 @@ export async function connectorRoutes(app: App): Promise<void> {
     }
   );
 
-  // Disconnecting. Two answers, never one: stopping the sync and removing what
-  // was already filed are different decisions and only the second destroys
-  // anything.
+  // Disconnecting. One answer since 019: the grant goes back to Google, and
+  // the calendars go with their copy and their picks, because nothing could
+  // read them afterwards. The clients confirm once before calling this.
   app.post(
     "/api/connectors/:id/disconnect",
     {
       schema: {
         params: z.object({ id: z.string().uuid() }),
-        body: z.object({ removeFiled: z.boolean().default(false) }),
         response: {
-          200: z.object({ removed: z.number() }),
+          200: z.object({ ok: z.literal(true) }),
           401: unauthenticated,
           404: z.object({ error: z.literal("not_found") }),
         },
@@ -454,30 +437,9 @@ export async function connectorRoutes(app: App): Promise<void> {
         .executeTakeFirst();
       if (!connection) return reply.status(404).send({ error: "not_found" as const });
 
-      let removed = 0;
-      if (request.body.removeFiled) {
-        const calendars = await db
-          .selectFrom("connector_calendars")
-          .select("external_id")
-          .where("connection_id", "=", connection.id)
-          .execute();
-
-        for (const calendar of calendars) {
-          const result = await db
-            .updateTable("content")
-            .set({ deleted_at: new Date(), updated_at: new Date() })
-            .where("account_id", "=", accountId)
-            .where("source", "=", "calendar")
-            .where("source_ref", "like", `${calendar.external_id}:%`)
-            .where("deleted_at", "is", null)
-            .executeTakeFirst();
-          removed += Number(result.numUpdatedRows ?? 0);
-        }
-      }
-
       // The grant goes back to Google, not only out of our table.
       await revokeAndForget(connection.id);
-      return reply.send({ removed });
+      return reply.send({ ok: true as const });
     }
   );
 }

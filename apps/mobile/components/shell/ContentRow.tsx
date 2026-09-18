@@ -181,12 +181,19 @@ export function ContentRowView({
       dy.value = 0;
     });
 
+  // The lift takes `--surface-raised` and `--shadow-2`, the only shadow token
+  // with a value in dark, where it is a hard 1px line rather than a blur. iOS
+  // reads these; Android draws its elevation from `stacking` below.
   const sliding = useAnimatedStyle(() => ({
     transform: [{ translateX: dx.value }, { translateY: dy.value }],
     backgroundColor:
       lifted.value === 1
         ? COLOR.raised
         : interpolateColor(mark.value, [0, 1], [COLOR.page, COLOR.accentSoft]),
+    shadowColor: COLOR.shadowLift.color,
+    shadowOffset: { width: 0, height: COLOR.shadowLift.offsetY },
+    shadowRadius: COLOR.shadowLift.radius,
+    shadowOpacity: lifted.value === 1 ? 1 : 0,
   }));
 
   // The lifted row draws over the rows it crosses, which its own view cannot

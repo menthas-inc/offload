@@ -1,0 +1,210 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Connect apps, onboarding, A</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="frames.css">
+<script src="./image-slot.js"></script>
+<style>
+.dev{position:relative;width:390px;height:844px;flex:0 0 auto;border:1px solid var(--border-strong);border-radius:44px;box-shadow:var(--shadow-3);overflow:hidden;background:var(--surface-page);display:flex;flex-direction:column}
+.dev>.sb{padding:12px 26px 4px;background:var(--surface-chrome);font:var(--weight-semibold) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums;position:relative;z-index:2}
+.dev>.sb em{color:var(--ink-900)}
+.hib{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:10;pointer-events:none}
+.hib b{display:block;width:134px;height:5px;border-radius:3px;background:var(--ink-300)}
+.scr{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+/* GateFoot's own numbers: 0 gutter 22px, 10px gap. */
+.foot{flex:0 0 auto;padding:0 var(--gutter-screen) 22px;display:flex;flex-direction:column;gap:10px}
+.btn52{display:flex;align-items:center;justify-content:center;gap:10px;height:52px;box-sizing:border-box;border:1px solid transparent;border-radius:var(--radius-pill);font:var(--weight-medium) var(--size-body)/1 var(--font-core);letter-spacing:var(--tracking-body);cursor:pointer;width:100%}
+.btn52.dark{background:var(--ink-950);color:var(--text-inverse)}
+.btn52.light{background:var(--surface-raised);color:var(--text-primary);border-color:var(--border-strong)}
+.btn52.ghost{background:transparent;color:var(--text-secondary)}
+/* The step dots the tutorial already draws. Five now: three tutorial, the
+   name, and this. */
+.dots{display:flex;align-items:center;gap:6px}
+.gbody.left{text-align:left}
+.btn48{display:flex;align-items:center;justify-content:center;width:100%;height:48px;box-sizing:border-box;border:1px solid transparent;border-radius:var(--radius-sm);background:var(--ink-950);color:var(--text-inverse);font:var(--weight-medium) var(--size-body)/1 var(--font-core);letter-spacing:var(--tracking-body);cursor:pointer}
+.dots s{text-decoration:none;display:block;width:6px;height:6px;border-radius:var(--radius-pill);background:var(--ink-200);transition:width 200ms var(--ease-out)}
+.dots s.on{width:18px;background:var(--ink-950)}
+.topbar{flex:0 0 auto;display:flex;align-items:center;min-height:var(--appbar-height);padding:0 var(--gutter-screen);gap:var(--space-4)}
+.topbar .lm{width:21px;height:21px;flex:0 0 auto}
+.topbar .sp{flex:1}
+.topbar .skip{display:inline-flex;align-items:center;justify-content:center;height:var(--tap-min);padding:0 var(--space-4);margin:0 calc(var(--space-4) * -1);font:var(--weight-medium) var(--size-body-sm)/1 var(--font-core);color:var(--text-secondary);background:none;border:none;cursor:pointer}
+/* The connected app's mark. Sized per placement; the official asset gets
+   dropped in rather than drawn. */
+.logo{border-radius:var(--radius-sm);overflow:hidden;flex:0 0 auto}
+.gbody{text-align:center;padding:0 var(--gutter-screen) var(--space-9)}
+.gt{font:var(--text-title-1);letter-spacing:var(--tracking-title);text-wrap:pretty}
+.gs{font:var(--text-body-role);color:var(--text-secondary);line-height:var(--leading-body);margin-top:12px;text-wrap:pretty}
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-8);min-height:0}
+/* Two facts, not a feature list: what it reads and what it will never do. */
+.pact{position:relative;display:flex;flex-direction:column;gap:var(--space-5);padding:0 var(--gutter-screen) var(--space-9)}
+.dev.chosen .prov{position:relative;outline:1px dashed var(--clay-600);outline-offset:6px;border-radius:4px}
+.dev.chosen .prov:after{content:'copy provisional';position:absolute;right:var(--gutter-screen);bottom:10px;font:var(--weight-medium) 9px/1 var(--font-core);letter-spacing:.08em;text-transform:uppercase;color:var(--clay-600)}
+h1 .chose{font:var(--weight-medium) 11px/1 var(--font-core);letter-spacing:.08em;text-transform:uppercase;color:var(--text-accent);background:var(--surface-accent-soft);padding:6px 9px;border-radius:var(--radius-pill);vertical-align:middle;margin-left:10px;font-style:normal}
+.lede.warn{border-left:3px solid var(--clay-600);padding-left:14px}
+.cap .tag{align-self:flex-start;font:var(--weight-medium) 10px/1 var(--font-core);letter-spacing:.07em;text-transform:uppercase;padding:5px 8px;border-radius:5px}
+.cap .tag.yes{background:var(--surface-accent-soft);color:var(--text-accent)}
+.cap .tag.no{background:var(--surface-fill);color:var(--text-tertiary)}
+.dev.chosen .prov{margin-bottom:12px}
+.dev.chosen .prov .pact{padding-bottom:calc(var(--space-9) + 8px)}
+.pact div{display:flex;gap:var(--space-5);align-items:flex-start}
+.pact .g{width:16px;height:16px;margin-top:3px;flex:0 0 auto;color:var(--text-tertiary)}
+.pact span{flex:1;min-width:0;font-size:var(--size-body-sm);line-height:1.45;color:var(--text-secondary)}
+.pact b{color:var(--text-primary);font-weight:500}
+/* Option B's list. Card + row, the vocabulary Settings already uses. */
+.lhead{padding:var(--space-6) var(--gutter-screen) var(--space-8)}
+.lhead .t{font:var(--text-title-1);letter-spacing:var(--tracking-title);text-wrap:pretty}
+.lhead .s{font:var(--text-body-role);color:var(--text-secondary);line-height:var(--leading-body);margin-top:10px;text-wrap:pretty}
+.lbody{flex:1;min-height:0;overflow-y:auto;padding:0 var(--gutter-screen);display:flex;flex-direction:column;justify-content:center}
+.card{border-radius:var(--radius-card);background:var(--surface-card);border:1px solid var(--border-hairline);overflow:hidden}
+.crow{display:flex;align-items:center;gap:var(--space-5);padding:var(--space-4);min-height:var(--row-height-lg);box-sizing:border-box}
+.crow .x{flex:1;min-width:0}
+.crow .x b{display:block;font:var(--weight-regular) 15px/1.35 var(--font-core);color:var(--text-primary)}
+.crow .x s{text-decoration:none;display:block;margin-top:3px;font-size:var(--size-caption);line-height:1.4;color:var(--text-secondary)}
+.pillwrap{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;height:var(--tap-min);margin:calc((var(--tap-min) - 36px) / -2) 0;border:none;background:none;padding:0;cursor:pointer}
+.pillbtn{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 var(--space-6);box-sizing:border-box;border-radius:var(--radius-pill);background:var(--ink-950);color:var(--text-inverse);border:1px solid transparent;font:var(--weight-medium) var(--size-label)/1 var(--font-core)}
+.pillbtn.done{background:var(--surface-accent-soft);color:var(--text-accent);gap:var(--space-3)}
+.pillbtn .g{width:14px;height:14px}
+.quiet{font-size:var(--size-caption);line-height:1.5;color:var(--text-tertiary);padding:var(--space-6) var(--space-2) 0;text-wrap:pretty}
+/* Option C's proof. The real agenda spine, shown as what connecting gets you. */
+.proof{flex:1;min-height:0;overflow-y:auto;padding:0 var(--gutter-screen);display:flex;flex-direction:column;justify-content:center}
+.pv{border-radius:var(--radius-card);background:var(--surface-card);border:1px solid var(--border-hairline);overflow:hidden}
+.pv .ph{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-5) var(--space-6);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.pv .ph .lb{flex:1;min-width:0;font:var(--weight-medium) var(--size-label)/1 var(--font-core);text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary)}
+.pv .pb{padding:var(--space-6)}
+.spine{position:relative;padding-left:19px}
+.spine>.rail{position:absolute;left:3px;top:10px;bottom:10px;width:1px;background:var(--border-hairline)}
+.ev{position:relative;display:flex;align-items:flex-start;gap:var(--space-5);padding:var(--space-4) 0}
+.ev>.pip{position:absolute;left:-19px;top:calc(var(--space-4) + 7px);width:8px;height:8px;border-radius:var(--radius-pill);background:var(--ink-900)}
+.ev>.pip.acc{background:var(--moss-600)}
+.ev>.pip.att{background:var(--blue-600)}
+.ev .tm{width:104px;flex:0 0 auto;font-size:var(--size-body-sm);line-height:22px;color:var(--text-tertiary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ev .ti{flex:1;min-width:0;font:var(--weight-medium) var(--size-title-3)/1.3 var(--font-core);letter-spacing:var(--tracking-title);padding-top:1px}
+.free{position:relative;display:flex;align-items:flex-start;gap:var(--space-5);margin:var(--space-2) 0 var(--space-2) -19px;padding:var(--space-5) 0 var(--space-5) 16px;border-left:3px solid var(--moss-500);background:linear-gradient(90deg,var(--moss-50),transparent)}
+.free .fl{flex:1;min-width:0;font:var(--weight-medium) var(--size-body)/1.35 var(--font-core);letter-spacing:var(--tracking-body);color:var(--moss-700)}
+.without{padding:var(--space-8) var(--space-2) 0;font-size:var(--size-body-sm);line-height:1.5;color:var(--text-secondary);text-wrap:pretty}
+.without b{color:var(--text-primary);font-weight:500}
+.frames{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.cap{display:flex;flex-direction:column;gap:9px;width:390px}
+.cap h3{margin:0;font:var(--weight-semibold) 16px/1.3 var(--font-core);letter-spacing:-.01em}
+.cap p{margin:0;font:var(--weight-regular) 13px/1.55 var(--font-core);color:var(--text-secondary)}
+image-slot{--is-empty-bg:var(--surface-fill)}
+/* B and C are the record, not the deliverable: a neutral stand-in for the
+   provider mark rather than a drop target nobody needs to fill. */
+.logostub{flex:0 0 auto;display:block;background:var(--surface-fill);border:1px dashed var(--border-strong)}
+</style></head><body><div class="wrap">
+
+<h1>Connect apps, onboarding <em class="chose">A chosen</em></h1>
+<p class="lede"><b>A is the direction</b>, kept at the top; B and C stay below as the record of what it was chosen against. The screen sits at the end of first run, it is optional, and it does not say Skip, because Skip belongs to the name screen and means <em>skip the tutorial</em>; a connection you decline is <b>Not now</b>. The Google Calendar mark is a drop slot rather than something I drew: hand-tracing a brand mark gets the geometry and the colours slightly wrong, and slightly wrong is worse on a logo than anywhere else. Drop the official file onto A's slot and it stays there. In the kits the mark is a prop and the expected path is <code>assets/brands/google-calendar.svg</code>, recorded in <code>assets/brands/README.md</code>; until something is passed they draw a dashed stand-in, so a missing asset is visible rather than silent.</p>
+<p class="lede warn"><b>None of the copy on these screens is final.</b> Every string is placeholder for the app to decide, and the two lines under the mark most of all: they read as a promise about what offload does to your data, which is a product commitment rather than a design one. One of them has already moved. <b>Writes are allowed</b> as of 8 September, so the old &ldquo;never writes to them&rdquo; guarantee is gone from every screen here and from web Settings. What replaces it is a placeholder, not an answer.</p>
+
+<div class="frames">
+
+<!-- ================= A ================= -->
+<div class="cap">
+<span class="tag yes">chosen</span>
+<h3>A &middot; One app, one screen</h3>
+<p>The tutorial's own frame, so this is a step rather than an epilogue: dots left, the way out top right, one button where Next sits. The mark at 88px and the two facts that decide it. The screen makes no claim about a list, so nothing has to change when a second app arrives: it simply becomes screen six, or this becomes option B. Strongest on comprehension, since the logo is the first thing read and there is nothing to compare it against.</p>
+<div class="dev chosen">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="scr">
+<div class="topbar"><span class="dots"><s></s><s></s><s></s><s class="on"></s></span><span class="sp"></span><button type="button" class="skip">Not now</button></div>
+<div class="hero">
+<image-slot id="gcal-a" style="width:88px;height:88px" shape="rounded" radius="18" placeholder="Google Calendar"></image-slot>
+</div>
+<div class="prov">
+<div class="gbody left">
+<div class="gt">Bring in your calendar</div>
+<div class="gs">So &ldquo;before the trip&rdquo; and &ldquo;after the dentist&rdquo; mean something.</div>
+</div>
+<div class="pact">
+<div><i class="g" style="--ic:url(../assets/icons/calendar.svg)"></i><span><b>offload reads your days.</b> Times, titles and who is on them.</span></div>
+<div><i class="g" style="--ic:url(../assets/icons/plus.svg)"></i><span><b>And it can add to them.</b> Anything you dump with a time on it can land back on your calendar.</span></div>
+</div>
+</div>
+<div class="foot">
+<button type="button" class="btn48">Connect Google Calendar</button>
+</div>
+</div>
+<div class="hib"><b></b></div>
+</div>
+</div>
+
+<!-- ================= B ================= -->
+<div class="cap">
+<span class="tag no">not taken</span>
+<h3>B &middot; A list of one</h3>
+<p>The row vocabulary Settings already uses, so this screen and the Settings page where you change your mind later are the same screen. Honest about being a list with one thing in it, and it grows without a redesign. The cost: a list of one reads as a list that is missing something, and the mark drops to 44px to fit the row.</p>
+<div class="dev">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="scr">
+<div class="topbar"><i class="lm"></i><span class="sp"></span><button type="button" class="skip">Not now</button></div>
+<div class="lhead">
+<div class="t">Connect what you use</div>
+<div class="s">Optional, and you can change it any time in Settings.</div>
+</div>
+<div class="lbody">
+<div class="card">
+<div class="crow">
+<span class="logostub" style="width:44px;height:44px;border-radius:10px"></span>
+<span class="x"><b>Google Calendar</b><s>Reads your days, and can add to them.</s></span>
+<button type="button" class="pillwrap"><span class="pillbtn">Connect</span></button>
+</div>
+</div>
+<div class="quiet">You can disconnect it here or from your Google account.</div>
+</div>
+<div class="dots"><s></s><s></s><s></s><s></s><s class="on"></s></div>
+<div class="foot"><button type="button" class="btn52 dark">Done</button></div>
+</div>
+<div class="hib"><b></b></div>
+</div>
+</div>
+
+<!-- ================= C ================= -->
+<div class="cap">
+<span class="tag no">not taken</span>
+<h3>C &middot; Show the day it makes</h3>
+<p>The real <code>DayAgenda</code>, spine, pips and moss free-time band, shown as what the connection fills in. Argues from the empty section rather than from a promise: <b>On the clock</b> on Today has nothing in it until a calendar is attached. Most persuasive of the three, and the only one where the mark is not the largest thing on screen.</p>
+<div class="dev">
+<div class="sb"><b>9:41</b><em><s class="d"></s><s></s></em></div>
+<div class="scr">
+<div class="topbar"><i class="lm"></i><span class="sp"></span><button type="button" class="skip">Not now</button></div>
+<div class="lhead">
+<div class="t">This is your day with a calendar on it</div>
+</div>
+<div class="proof">
+<div class="pv">
+<div class="ph">
+<span class="logostub" style="width:28px;height:28px;border-radius:7px"></span>
+<span class="lb">On the clock</span>
+</div>
+<div class="pb">
+<div class="spine"><span class="rail"></span>
+<div class="ev"><span class="pip"></span><span class="tm">9:30 - 10:15am</span><span class="ti">Standup</span></div>
+<div class="ev"><span class="pip att"></span><span class="tm">11:00 - 12:00pm</span><span class="ti">Call with Ana</span></div>
+<div class="free"><span class="tm">12:00 - 4:30pm</span><span class="fl">4:30hrs free</span></div>
+<div class="ev"><span class="pip acc"></span><span class="tm">4:30 - 5:30pm</span><span class="ti">Pick up the tile samples</span></div>
+</div>
+</div>
+</div>
+<div class="without">Without one, <b>On the clock</b> stays empty and offload has no idea what &ldquo;before the trip&rdquo; means. It reads your days, and can add to them.</div>
+</div>
+<div class="dots"><s></s><s></s><s></s><s></s><s class="on"></s></div>
+<div class="foot"><button type="button" class="btn52 dark">Connect Google Calendar</button></div>
+</div>
+<div class="hib"><b></b></div>
+</div>
+</div>
+
+</div>
+
+<div class="sechead"><h2>What each one commits you to</h2><u>and the two questions underneath</u></div>
+<ul class="spec">
+<li><b>The logo is a drop slot on A, deliberately.</b> I can draw offload's own mark from <code>Logo.jsx</code> because the geometry is ours and written down. Google Calendar's is not: the corner radius, the four edge colours and the numeral's weight are all specified by somebody else, and an approximation that is 90% right is the one kind of wrong a person notices instantly on a logo they see every day. Drop the official SVG on A's slot and it persists. B and C carry a neutral stand-in, since they are the record rather than the deliverable.</li>
+<li><b>Placement decides how large the mark can be, and that is the real trade.</b> A is 88px, which is the only size at which somebody scanning the screen knows what is being asked before reading a word. B is 44px because a row is 72px tall. C is 28px, because in C the agenda is the argument and the mark only labels where it came from.</li>
+<li><b>None of them says Skip.</b> The 7 September entry moved Skip to the name screen, where it means skip the tutorial. Declining a connection is not skipping a step, so it is <b>Not now</b> &mdash; same position as Skip, top right, different word.</li>
+<li><b>Connecting is a step, so the tutorial's last button says Next.</b> Nothing has started at that point, and "Get started" on a card with another card after it is a promise the flow does not keep. That also settles the indicator question the 8 September entry left open: the dots span the tutorial plus this screen, four on both platforms.</li>
+<li><b>The two lines under the mark are the only copy here that makes a promise, and promises are the app's to make.</b> They are placeholder. The first says what offload reads; the second said it would never write, and that is now wrong: writes are allowed, so it says offload can add to your calendar instead. Both need the app's wording before this ships, and the second needs more than wording. If offload writes, somebody will want to know what appears, under whose name, and whether it can be undone, and none of those are answered by a sentence on an onboarding screen. It may need its own row in Settings rather than a line here.</li>
+<li><b>Two facts, not a feature list, is the part worth keeping.</b> Whatever the strings become, the shape holds: what it reads, what it does back. Both as sentences rather than toggles, per the Privacy refusal from 5 September, since a switch implies somebody could have set it the other way.</li>
+<li><b>The indicator is <code>FirstRun.jsx</code>'s, but the count of five is an assumption of mine.</b> The shape is the source's: 6px tall, the active step an 18px pill, inactive 6px circles. The source maps <code>TUTORIAL</code> and therefore renders three, one per tutorial screen. Five here says the indicator now spans the whole of first run, tutorial plus name plus this, and nothing decides that: the 7 September entry adds the name screen without saying whether it joins the dots. If it does not, this screen has no indicator at all, which is also a reasonable answer for an optional last step.</li>
+<li><b>One question I cannot answer for you.</b> Whether this screen appears at all for an account that already existed. The name screen already has two arrivals, first run and its own standalone launch, and a connection prompt has the same shape: everybody in the alpha is an existing account, so the standalone version is the one that will actually be seen.</li>
+<li><b>A second, smaller one.</b> Whether declining is remembered. If Not now means never asking again, the Settings row is the only way back and should be findable; if it means asking later, the screen needs a rule for when, and &ldquo;every launch until you say yes&rdquo; is how a prompt becomes something people learn to dismiss without reading.</li>
+</ul>
+
+</div></body></html>

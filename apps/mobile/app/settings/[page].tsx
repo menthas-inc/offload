@@ -6,7 +6,7 @@
 
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import Constants from "expo-constants";
 import { Glyph } from "../../components/Glyph";
@@ -15,7 +15,12 @@ import { Segmented } from "../../components/settings/Segmented";
 import { Switch } from "../../components/settings/Switch";
 import { useColors } from "../../lib/colors";
 import { fetchCountries, saveName, setCountry, setWebAccess, useMe } from "../../lib/me";
-import { useCalendars, updateCalendar } from "../../lib/calendars";
+import { approveCalendar, disconnect, setAskFirst, useCalendars } from "../../lib/calendars";
+import { CalendarRow } from "../../components/settings/CalendarRow";
+import { ConnectButton, ConnectStepBody, ProviderMark } from "../../components/ConnectStep";
+import { RowActionSheet } from "../../components/shell/RowActionSheet";
+import { googleCalendarMark } from "../../lib/brands";
+import { CONNECT_STEP } from "../../lib/gate";
 import { API_URL } from "../../lib/auth";
 import {
   setTheme,
@@ -29,7 +34,7 @@ import {
   type Theme,
   type WeekStart,
 } from "../../lib/appearance";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const isAndroid = Platform.OS === "android";
 
@@ -37,6 +42,7 @@ const WEB = process.env["EXPO_PUBLIC_WEB_URL"] ?? "https://offload.club";
 
 const TITLES: Record<string, string> = {
   apps: "Connected apps",
+  calendar: "Calendar",
   account: "My account",
   appearance: "Appearance",
   privacy: "Privacy",
@@ -73,6 +79,7 @@ export default function SettingsPage() {
 
       <ScrollView contentContainerClassName="px-gutter-screen pb-space-9 pt-space-2">
         {page === "apps" ? <Apps /> : null}
+        {page === "calendar" ? <CalendarPage /> : null}
         {page === "account" ? <Account /> : null}
         {page === "appearance" ? <Appearance /> : null}
         {page === "privacy" ? <Privacy /> : null}
@@ -402,21 +409,17 @@ function Help() {
  *  and say they are not built, because knowing what is coming is worth more
  *  than a page with one row on it.
  *
- *  Connecting leaves for Google's consent screen in the system browser, which
- *  is the same round trip signing in already makes. */
+ *  019. The Calendar row leads one level down, to the calendar page: first
+ *  run's connect screen before anything is connected, the list with its count
+ *  once something is. Approving a calendar there adds it to no thread; threads
+ *  pick from inside. */
 function Apps() {
+  const router = useRouter();
   const { loading, available, connections, reload } = useCalendars();
-  const [busy, setBusy] = useState<string | null>(null);
-
-  async function change(
-    id: string,
-    patch: Parameters<typeof updateCalendar>[1],
-  ) {
-    setBusy(id);
-    const ok = await updateCalendar(id, patch);
-    setBusy(null);
-    if (ok) reload();
-  }
+  // On focus, not only on mount: the calendar page one level down connects
+  // and disconnects, and coming back to a row that still says On after a
+  // disconnect is the version of that bug somebody notices.
+  useFocusEffect(useCallback(reload, [reload]));
 
   return (
     <>
@@ -425,70 +428,24 @@ function Apps() {
           {/* Not a failure and not a promise. What is true. */}
           <Row title="Calendar" note="Not available yet." last />
         </Group>
-      ) : connections.length === 0 ? (
+      ) : (
         <Group label="Calendar">
           <Row
-            title="Google Calendar"
-            note="See your week in offload, and let it add things for you."
-            value="Connect"
-            onPress={() =>
-              void WebBrowser.openAuthSessionAsync(
-                `${API_URL}/api/connectors/google/start?landing=settings`,
-                `${WEB}/settings/apps`,
-              ).then(reload)
+            title="Calendar"
+            // `On` with the address, as the kit draws it. Which calendars
+            // are in use is the page's to say, one level down.
+            note={
+              connections.length === 0
+                ? "See your week in offload, and let it add things for you."
+                : connections.length === 1
+                  ? connections[0]!.email
+                  : `${connections.length} Google accounts`
             }
+            value={connections.length === 0 ? "Connect" : "On"}
+            onPress={() => router.push("/settings/calendar")}
             last
           />
         </Group>
-      ) : (
-        connections.map((connection) => (
-          <Group key={connection.id} label={connection.email}>
-            {connection.state === "needs_reauth" ? (
-              <Row
-                title="Sign in again"
-                note="offload lost access to this account."
-                value="Reconnect"
-                onPress={() =>
-                  void WebBrowser.openAuthSessionAsync(
-                    `${API_URL}/api/connectors/google/start?landing=settings`,
-                    `${WEB}/settings/apps`,
-                  ).then(reload)
-                }
-              />
-            ) : null}
-
-            {connection.calendars.map((calendar, index) => (
-              <Row
-                key={calendar.id}
-                title={calendar.summary}
-                note={
-                  calendar.writable
-                    ? calendar.isShared
-                      ? "Other people see this one."
-                      : "Only you see this one."
-                    : "You can only read this one."
-                }
-                value={
-                  busy === calendar.id
-                    ? "Saving"
-                    : calendar.selected
-                      ? "On"
-                      : "Off"
-                }
-                // Turning one on needs a thread, which is a choice this screen
-                // cannot make. Off is always available.
-                onPress={
-                  calendar.selected
-                    ? () => void change(calendar.id, { selected: false })
-                    : calendar.threadId
-                      ? () => void change(calendar.id, { selected: true })
-                      : undefined
-                }
-                last={index === connection.calendars.length - 1}
-              />
-            ))}
-          </Group>
-        ))
       )}
 
       <Group label="Not built yet">
@@ -511,3 +468,200 @@ function Apps() {
     </>
   );
 }
+
+/** 019. The calendar page, one level under Connected apps.
+ *
+ *  Before anything is connected it is first run's connect screen, verbatim,
+ *  plus one sentence under the button: connecting is not consenting to all
+ *  of them. Once connected, one block per account, then one switch for the
+ *  offload account. A calendar is a checkbox, never a switch: the capability
+ *  is the connection one level up, and this is a selection among peers. */
+function CalendarPage() {
+  const router = useRouter();
+  const { loading, available, askFirst, connections, reload, settle } = useCalendars();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+
+  async function approve(id: string, selected: boolean) {
+    setBusy(id);
+    setFailed(false);
+    const ok = await approveCalendar(id, selected);
+    setBusy(null);
+    if (ok) {
+      settle({ calendarId: id, selected });
+      reload();
+    } else setFailed(true);
+  }
+
+  async function ask(next: boolean) {
+    setFailed(false);
+    if (await setAskFirst(next)) settle({ askFirst: next });
+    else setFailed(true);
+  }
+
+  const connect = () =>
+    void WebBrowser.openAuthSessionAsync(
+      `${API_URL}/api/connectors/google/start?landing=settings`,
+      `${WEB}/settings/apps`,
+    ).then(reload);
+
+  if (loading) return null;
+
+  if (!available) {
+    return (
+      <Group label="Calendar">
+        <Row title="Calendar" note="Not available yet." last />
+      </Group>
+    );
+  }
+
+  if (connections.length === 0) {
+    return (
+      <View className="flex-1" style={{ minHeight: 560 }}>
+        <ConnectStepBody tone={isAndroid ? "android" : "ios"} mark={googleCalendarMark} />
+        <View className="px-gutter-screen pb-space-6">
+          <ConnectButton tone={isAndroid ? "android" : "ios"} onPress={connect} />
+          {/* The one sentence Settings adds: connecting is not consenting to
+              all of them, and this is the only place that can say so before
+              Google's consent screen. */}
+          <Text
+            className={`mt-space-4 text-center font-core ${isAndroid ? "text-a-on-var" : "text-text-tertiary"}`}
+            style={{ fontSize: 12.5, lineHeight: 17 }}
+          >
+            You choose which calendars after this.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      {failed ? (
+        <Text className="pt-space-4 font-core text-text-danger" style={{ fontSize: 13 }} accessibilityRole="alert">
+          That did not go through. Try again.
+        </Text>
+      ) : null}
+
+      {connections.map((connection) => {
+        const inUse = connection.calendars.filter((c) => c.selected).length;
+        const count = inUse === 0 ? "None in use" : `${inUse} of ${connection.calendars.length} in use`;
+        return (
+          <View key={connection.id}>
+            <View className="flex-row items-center gap-space-5 pb-space-5 pt-space-5">
+              <ProviderMark tone={isAndroid ? "android" : "ios"} source={googleCalendarMark} size={34} radius={8} />
+              <View className="flex-1">
+                <Text className={`font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 15, lineHeight: 20 }}>
+                  Google Calendar
+                </Text>
+                <Text className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 12.5, lineHeight: 17 }}>
+                  {connection.email}, connected {connectedOn(connection.connectedAt)}
+                </Text>
+              </View>
+            </View>
+
+            {connection.state === "needs_reauth" ? (
+              <Group>
+                <Row title="Sign in again" note="offload lost access to this account." value="Reconnect" onPress={connect} last />
+              </Group>
+            ) : connection.needsScope ? (
+              /* The grant lacks the sharing scope. The connection keeps
+                 working; every write confirms until they sign in again. */
+              <Group>
+                <Row
+                  title="Sign in again"
+                  note="offload needs one more permission: to see who can see each calendar. Until then it checks with you before every write."
+                  onPress={connect}
+                  last
+                />
+              </Group>
+            ) : null}
+
+            <Group label="Calendars offload can use" count={count}>
+              {connection.calendars.map((calendar, index) => (
+                <CalendarRow
+                  key={calendar.id}
+                  calendar={calendar}
+                  picked={calendar.selected}
+                  disabled={busy === calendar.id}
+                  onChange={(next) => void approve(calendar.id, next)}
+                  last={index === connection.calendars.length - 1}
+                />
+              ))}
+            </Group>
+
+            <Group>
+              <Pressable
+                className="flex-row items-center gap-space-4 py-space-4"
+                style={{ minHeight: isAndroid ? 56 : 48 }}
+                accessibilityRole="button"
+                onPress={() => setDisconnecting(connection.id)}
+              >
+                <View className="flex-1">
+                  <Text className="font-core text-text-danger" style={{ fontSize: 15, lineHeight: 20 }}>
+                    Disconnect Google Calendar
+                  </Text>
+                  <Text
+                    className={`mt-space-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+                    style={{ fontSize: 12.5, lineHeight: 17.5 }}
+                  >
+                    Notes offload made from your days stay. offload stops reading your calendars and cannot add to them.
+                  </Text>
+                </View>
+              </Pressable>
+            </Group>
+          </View>
+        );
+      })}
+
+      <Group label="When offload adds something">
+        <View className="flex-row items-center gap-space-4 py-space-4" style={{ minHeight: isAndroid ? 56 : 48 }}>
+          <View className="flex-1">
+            <Text className={`font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 15, lineHeight: 20 }}>
+              Ask before adding
+            </Text>
+            <Text
+              className={`mt-space-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+              style={{ fontSize: 12.5, lineHeight: 17.5 }}
+            >
+              Off means offload adds it without asking, unless somebody else would see it.
+            </Text>
+          </View>
+          <Switch checked={askFirst} onChange={(next) => void ask(next)} label="Ask before adding" />
+        </View>
+      </Group>
+
+      {/* Disconnecting asks once, in the sheet the row's own actions use, then
+          revokes at Google and deletes the copy and every pick. */}
+      <RowActionSheet
+        open={disconnecting !== null}
+        subject="Disconnect Google Calendar?"
+        actions={[
+          {
+            label: "Disconnect",
+            icon: "cloud-off",
+            danger: true,
+            run: async () => {
+              const id = disconnecting;
+              setDisconnecting(null);
+              if (!id) return;
+              setFailed(false);
+              if (await disconnect(id)) {
+                reload();
+                router.back();
+              } else setFailed(true);
+            },
+          },
+        ]}
+        onClose={() => setDisconnecting(null)}
+      />
+    </>
+  );
+}
+
+function connectedOn(iso: string): string {
+  const at = new Date(iso);
+  return `${at.getDate()} ${at.toLocaleString("en-GB", { month: "short" })}`;
+}
+

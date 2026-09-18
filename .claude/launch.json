@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "core-api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@offload/core-api", "dev"],
+      "port": 4701
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@offload/web", "dev"],
+      "port": 4700
+    }
+  ]
+}

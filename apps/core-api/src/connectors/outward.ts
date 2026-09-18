@@ -6,21 +6,26 @@
 // guests, can be deleted again inside the Undo window and nobody ever saw it.
 // The irreversible thing is a notification that has already landed.
 //
-// **Two conditions, and the first is a union across the edit.** Removing every
+// **Three conditions, and the first is a union across the edit.** Removing every
 // guest from an invited event sends each of them a cancellation, so a test that
 // read only the proposed state would see no attendees and call it reversible.
+// The second is the calendar's participant count, read from Google since 019.
+// The third is the person asking to be asked on every write.
 //
-// **Evaluated server-side, from the event and the calendar.** The model is told
-// the outcome and has no field it could set to change it, which matters because
-// some of what the model just read was written by a stranger.
+// **Evaluated server-side, from the event, the calendar and the account.** The
+// model is told the outcome and has no field it could set to change it, which
+// matters because some of what the model just read was written by a stranger.
 
 export interface OutwardInput {
   /** Who is on the event now, before this write. */
   attendeesBefore: string[];
   /** Who will be on it after. Same list for a delete. */
   attendeesAfter: string[];
-  /** The person's own answer about this calendar, not Google's access list. */
-  calendarIsShared: boolean;
+  /** Everyone Google lets see the calendar, the person included. Null when
+   *  offload could not read it, which counts as more than one. */
+  participants: number | null;
+  /** The account's `Ask before adding` switch. */
+  askFirst: boolean;
 }
 
 export interface OutwardVerdict {
@@ -30,7 +35,7 @@ export interface OutwardVerdict {
   /** Who finds out, for the sentence on the confirmation. Addresses, because
    *  the person is about to be told which of their guests this reaches. */
   audience: string[];
-  reason: "guests" | "shared_calendar" | "none";
+  reason: "guests" | "shared_calendar" | "asked_for" | "none";
 }
 
 export function outwardTest(input: OutwardInput): OutwardVerdict {
@@ -39,10 +44,15 @@ export function outwardTest(input: OutwardInput): OutwardVerdict {
   if (audience.length > 0) {
     return { outward: true, notify: true, audience, reason: "guests" };
   }
-  if (input.calendarIsShared) {
+  if (input.participants === null || input.participants > 1) {
     // Nobody to mail, and still outward: everybody who can see the calendar can
-    // see the event, which is a person finding out by other means.
+    // see the event, which is a person finding out by other means. Unknown is
+    // treated the same way, because guessing "only them" is the one guess that
+    // skips a confirmation.
     return { outward: true, notify: false, audience: [], reason: "shared_calendar" };
+  }
+  if (input.askFirst) {
+    return { outward: true, notify: false, audience: [], reason: "asked_for" };
   }
   return { outward: false, notify: false, audience: [], reason: "none" };
 }
@@ -54,6 +64,7 @@ export function outwardTest(input: OutwardInput): OutwardVerdict {
 export function outwardLine(verdict: OutwardVerdict): string | null {
   if (!verdict.outward) return null;
   if (verdict.reason === "shared_calendar") return "Everyone on this calendar will see it.";
+  if (verdict.reason === "asked_for") return "You asked to check first.";
   if (verdict.audience.length === 1) return `${verdict.audience[0]} will be told.`;
   return `${verdict.audience.length} guests will be told.`;
 }

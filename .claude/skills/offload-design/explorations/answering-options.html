@@ -1,0 +1,651 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Answering a question</title>
+<link rel="stylesheet" href="../styles.css?v=20260909-answering">
+<link rel="stylesheet" href="frames.css?v=20260909-answering">
+<style>
+.dev{color:var(--text-primary);width:390px;box-sizing:border-box;flex:0 0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);display:flex;flex-direction:column;position:relative}
+.dev.full{height:736px}
+.peek{flex:1;min-height:0;background:var(--surface-page);position:relative}
+.peek:after{content:"";position:absolute;inset:0;background:var(--surface-scrim-soft)}
+.sheet{flex:0 0 auto;background:var(--surface-plate);border-radius:var(--radius-xl) var(--radius-xl) 0 0;box-shadow:var(--shadow-sheet);display:flex;flex-direction:column;position:relative;z-index:2}
+.dev.full .sheet{height:78%}
+.grab{height:22px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.grab b{width:34px;height:4px;border-radius:2px;background:var(--ink-200);display:block}
+.shead{display:flex;align-items:center;gap:10px;flex:0 0 auto;padding:0 var(--gutter-screen) 12px}
+.shead span{flex:1;min-width:0;font:var(--weight-medium) 16px/1.3 var(--font-core);letter-spacing:-.008em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shead u{text-decoration:none;width:24px;height:24px;border-radius:99px;background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.turns{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:10px;padding:0 var(--gutter-screen) 10px;justify-content:flex-end}
+.turns.top{justify-content:flex-start}
+.you{align-self:flex-end;max-width:84%;padding:8px 14px;border-radius:var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);background:var(--blue-50);border:1px solid var(--blue-100);color:var(--ink-950);font:var(--weight-regular) 15px/1.45 var(--font-core)}
+.ol{color:var(--text-primary);align-self:flex-start;max-width:92%;padding:10px 14px;border-radius:var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;background:var(--ink-50);font:var(--text-quiet-role);font-size:16px;line-height:1.5}
+.res{align-self:stretch;display:flex;flex-direction:column;gap:8px;margin-top:-2px}
+.chip{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:var(--radius-pill);background:var(--surface-accent-soft);border:1px solid var(--border-accent);color:var(--text-accent);font:var(--weight-medium) 13px/1 var(--font-core);white-space:nowrap}
+.card{background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:var(--radius-md);overflow:hidden}
+.r{display:flex;gap:12px;align-items:flex-start;padding:9px 12px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.r:last-child{box-shadow:none}
+.r .box{width:21px;height:21px;flex:0 0 auto;margin-top:2px;border-radius:6px;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;color:var(--paper)}
+.r .box.on{background:var(--moss-600);border-color:var(--moss-600)}
+.r .tile{width:32px;height:32px;flex:0 0 auto;border-radius:var(--radius-sm);background:var(--surface-fill);color:var(--text-secondary);display:flex;align-items:center;justify-content:center}
+.r .txt{flex:1;min-width:0}
+.r .t{display:block;color:var(--text-primary);font:var(--weight-medium) 15.5px/1.35 var(--font-core)}
+.r .m{display:block;font-size:12.5px;line-height:1.4;color:var(--text-secondary);margin-top:2px}
+.r.done .t{color:var(--text-tertiary);text-decoration:line-through;text-decoration-thickness:1px}
+.more{display:flex;align-items:center;gap:7px;width:100%;box-sizing:border-box;padding:11px 12px;background:var(--surface-fill);border:none;color:var(--text-primary);font:var(--weight-medium) 13.5px/1 var(--font-core);cursor:pointer}
+.tail{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-accent-soft);box-shadow:inset 0 1px 0 var(--border-hairline)}
+.tail em{font-style:normal;flex:1;font-size:12.5px;line-height:1.4;color:var(--text-secondary)}
+.comp{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:8px var(--gutter-screen) 16px}
+.comp .fld{flex:1;height:44px;border-radius:var(--radius-lg);background:var(--surface-input,var(--ink-100));display:flex;align-items:center;padding:0 14px;font:var(--weight-regular) 15px/1 var(--font-core);color:var(--text-tertiary)}
+.comp .snd{width:44px;height:44px;border-radius:99px;background:var(--ink-950);color:var(--paper);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.crop{color:var(--text-primary);width:390px;flex:0 0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-plate);padding:16px var(--gutter-screen) 18px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px}
+.loose .r{padding-left:0;padding-right:0}
+.hdrow{display:flex;align-items:center;gap:9px;padding:9px 12px;min-height:44px;box-sizing:border-box;box-shadow:inset 0 -1px 0 var(--border-hairline);background:var(--surface-accent-soft);color:var(--text-accent)}
+.yw{align-self:flex-end;max-width:84%;display:flex;flex-direction:column}
+.yw .you{align-self:stretch;max-width:none}
+.mark{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:var(--radius-pill);margin:-10px 0 0 -6px;background:var(--paper);border:1px solid var(--border-hairline);font-size:15px;line-height:1}
+.mark.done{background:var(--moss-600);border-color:var(--moss-600);color:var(--paper);font:var(--weight-medium) 11px/1 var(--font-core)}
+.because{font-size:13px;line-height:1.4;color:var(--text-secondary);margin-top:12px}
+.acts{display:flex;align-items:center;gap:16px;margin-top:8px}
+.acts .go{min-height:44px;display:inline-flex;align-items:center;padding:0 22px;border-radius:var(--radius-pill);background:var(--ink-950);color:var(--paper);font:var(--weight-medium) 15px/1 var(--font-core)}
+.acts .no{min-height:44px;display:inline-flex;align-items:center;color:var(--text-secondary);font:var(--weight-regular) 15px/1 var(--font-core)}
+.filed{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.filed .chip{height:26px;font-size:12.5px}
+.qs{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.q{min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;gap:7px;padding:0 18px;border-radius:var(--radius-pill);border:1px solid var(--border-strong);background:var(--paper);color:var(--text-primary);font:var(--weight-medium) 15px/1 var(--font-core)}
+.q.pri{background:var(--surface-inverse);border-color:var(--surface-inverse);color:var(--text-inverse)}
+.q.plain{border-color:transparent;background:none;color:var(--text-secondary);font-weight:var(--weight-regular);padding:0 6px}
+.q.obj{background:var(--surface-accent-soft);border-color:var(--border-accent);color:var(--text-accent)}
+.orjust{font-size:13px;line-height:1.4;color:var(--text-tertiary);margin-top:10px}
+.gone{font-size:13px;line-height:1.4;color:var(--text-tertiary);margin-top:10px;display:flex;align-items:center;gap:7px}
+.cell{width:390px;align-items:flex-start}
+.cell>*{max-width:100%}
+.inside{margin:12px -22px -10px}
+.inside .r{background:var(--state-hover);padding-left:22px;padding-right:22px;box-shadow:none}
+.hdrow b{font:var(--weight-medium) 13.5px/1 var(--font-core);color:var(--text-accent)}
+.count{margin-left:auto;font:var(--text-numeric-role);font-size:12px;color:var(--text-accent)}
+.wrow{display:flex;gap:14px;align-items:flex-start;padding:10px 14px;border-radius:var(--radius-sm);background:var(--paper)}
+.bad{border:1px dashed var(--clay-200);background:var(--clay-100)}
+.bad .wrow{background:transparent}
+.good{border:1px solid var(--border-accent);background:var(--surface-accent-soft)}
+.good .wrow{background:transparent}
+.verdict{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px}
+.verdict.no{background:var(--clay-100);color:var(--text-danger)}
+.verdict.yes{background:var(--surface-accent-soft);color:var(--moss-700)}
+.g.xs{width:12px;height:12px}.g.sm{width:14px;height:14px}.g.md{width:16px;height:16px}.g.lg{width:18px;height:18px}
+.i-lasso{--ic:url(../assets/icons/lasso.svg)}.i-check{--ic:url(../assets/icons/check.svg)}
+.i-chev-d{--ic:url(../assets/icons/chevron-down.svg)}.i-chev-r{--ic:url(../assets/icons/chevron-right.svg)}
+.i-x{--ic:url(../assets/icons/x.svg)}.i-up{--ic:url(../assets/icons/arrow-up.svg)}
+.i-pin{--ic:url(../assets/icons/map-pin.svg)}
+</style></head><body><div class="wrap">
+
+<h1>Answering a question</h1>
+<p class="lede">Mocks for 013, drawn from the server that is already built: one reply, up to three results, up to twenty rows each, and rows that are resolved on read rather than baked into the message. Everything here is the phone, because the phone is where the answer has the least room and every question the brief left open is a question about room. Web follows once the shapes are settled. The three constraints I took as given: results sit below the reply bubble and never inside it, a result names its thread once and in one place, and nothing in an answer can destroy anything.</p>
+
+<div class="sechead"><h2>What this is meant to answer</h2><u>read this first</u></div>
+<ul class="spec">
+<li><b>ROWS_SHOWN should be 5 on the phones, not 8.</b> The log is about 446pt on a 844pt phone, and eight rows with the header and the control overrun it by roughly 165pt, so you land on rows with the sentence that answers the question already above the top edge. Section 3 draws 5, 8 and 12 at real size. Web has roughly twice the height and can keep 8.</li>
+<li><b>The chip becomes the card's header row.</b> The rows get a surface of their own and the thread names them from inside it, which keeps one link per result and gives the count somewhere honest to live. It also bounds the hover fill, so web needs no exception to the pane row's negative margin. Section 2.</li>
+<li><b>A truncated read ends in the thread, and says the number it actually saw.</b> Not a Show more, because there is nothing more to show. Section 4.</li>
+<li><b>The done state loses its opacity here and everywhere.</b> Tertiary ink, a 1px strike and the moss tick, which is what both shipping components already do and what the kits still get wrong. Section 5.</li>
+<li><b>Three things a turn already carries collide with a result.</b> The Done mark must not appear on an answering turn, a result goes below the bubble while 012's control stays inside it, and the filed chips are empty when nothing was filed. Section 6.</li>
+<li><b>Follow-ups are 012's control generalised, and the best one is not asked at all.</b> Quick replies, object pickers, staleness, and the three accelerators that are not a chip row. Section 7.</li>
+</ul>
+
+<div class="sechead"><h2>1. The three shapes of an answer</h2><u>iOS, 390pt, real size</u></div>
+<p class="snote">A fact, a set and a yes or no. One layout holds all three because the reply is always a sentence and the rows are always the same rows: what changes is how many there are, and whether there are any.</p>
+<div class="row">
+
+<div class="cell"><div class="tag i"><b>A fact</b><span>a sentence, sometimes one row</span></div>
+<div class="dev full">
+<div class="peek"></div>
+<div class="sheet">
+<div class="grab"><b></b></div>
+<div class="shead"><span>Where am I staying in Lisbon?</span><u><span class="g xs i-x"></span></u></div>
+<div class="turns">
+<div class="you">Where am I staying in Lisbon?</div>
+<div class="ol">The Alfama flat, 14th to the 17th.</div>
+<div class="res">
+<div class="card">
+<div class="hdrow"><i class="g sm i-lasso"></i><b>Lisbon trip</b><span class="count">1</span></div><div class="r"><span class="tile"><i class="g md i-pin"></i></span><span class="txt"><b class="t">Alfama flat, Rua dos Remédios 14</b><span class="m">Ana booked it, 4 Aug</span></span></div></div>
+</div>
+</div>
+<div class="comp"><span class="fld">Ask, or just dump</span><span class="snd"><i class="g md i-up"></i></span></div>
+</div></div>
+<ul class="spec"><li>The row is a location, so its lead is the type tile. Only a task gets a checkbox.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>A set</b><span>what it adds up to, then the rows</span></div>
+<div class="dev full">
+<div class="peek"></div>
+<div class="sheet">
+<div class="grab"><b></b></div>
+<div class="shead"><span>What is left to do from Lisbon?</span><u><span class="g xs i-x"></span></u></div>
+<div class="turns">
+<div class="you">What is left to do from Lisbon?</div>
+<div class="ol">Three left.</div>
+<div class="res">
+<div class="card">
+<div class="hdrow"><i class="g sm i-lasso"></i><b>Lisbon trip</b><span class="count">3</span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Book the airport transfer</b><span class="m">you, added 6 Aug</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Pay Ana €214 for the flights</b><span class="m">Ana, due Thursday</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Print the boarding passes</b><span class="m">you, added yesterday</span></span></div>
+</div>
+</div>
+</div>
+<div class="comp"><span class="fld">Ask, or just dump</span><span class="snd"><i class="g md i-up"></i></span></div>
+</div></div>
+<ul class="spec"><li>Three rows because there are three. Never a list in prose above a list of rows.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>Yes, and no</b><span>two different sentences</span></div>
+<div class="dev full">
+<div class="peek"></div>
+<div class="sheet">
+<div class="grab"><b></b></div>
+<div class="shead"><span>Did I already add butter?</span><u><span class="g xs i-x"></span></u></div>
+<div class="turns">
+<div class="you">Did I already add butter to the groceries list?</div>
+<div class="ol">Yes, and you ticked it off on Tuesday.</div>
+<div class="res">
+<div class="card">
+<div class="hdrow"><i class="g sm i-lasso"></i><b>Groceries</b><span class="count">1</span></div><div class="r done"><span class="box on"><i class="g xs i-check"></i></span><span class="txt"><b class="t">Butter</b><span class="m">you, ticked Tuesday</span></span></div></div>
+</div>
+<div class="you">is there anything about a car in there?</div>
+<div class="ol">No, nothing about a car is on the list.</div>
+</div>
+<div class="comp"><span class="fld">Ask, or just dump</span><span class="snd"><i class="g md i-up"></i></span></div>
+</div></div>
+<ul class="spec"><li>A definite no is a sentence with no result under it. It describes the list, so it needs no rows to prove itself.</li><li>An existence check never assumes the row is unticked, so the done state carries an answer here rather than a decoration.</li></ul>
+</div>
+
+</div>
+
+<div class="sechead"><h2>2. Where the rows live</h2><u>same answer, three framings</u></div>
+<p class="snote">A result names its thread once, and that is settled. What was open is where the name sits and whether the rows have a surface of their own. C is the one being built: the rows get a card and the thread names them from a header row inside it, which is a new part rather than the chip a reply already draws. All three are drawn on the plate, at the sheet's real gutter.</p>
+<div class="row">
+
+<div class="cell"><div class="tag i"><b>A. Loose on the plate</b><span>hairlines only</span></div>
+<div class="crop">
+<div class="ol">Three left.</div>
+<div class="res"><span class="chip"><i class="g xs i-lasso"></i>Lisbon trip</span>
+<div class="loose">
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Book the airport transfer</b><span class="m">you, added 6 Aug</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Pay Ana €214 for the flights</b><span class="m">Ana, due Thursday</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Print the boarding passes</b><span class="m">you, added yesterday</span></span></div>
+</div></div>
+</div>
+<ul class="spec"><li>Lightest, and it matches the thread page exactly.</li><li>But it reads as the screen rather than as the answer, and the reply above it is left holding rows it does not visibly own. On web this is also the framing whose hover fill runs to the pane edge and under the bubble's corner.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>B. A card, chip above it</b><span>the existing chip, kept</span></div>
+<div class="crop">
+<div class="ol">Three left.</div>
+<div class="res"><span class="chip"><i class="g xs i-lasso"></i>Lisbon trip</span>
+<div class="card">
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Book the airport transfer</b><span class="m">you, added 6 Aug</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Pay Ana €214 for the flights</b><span class="m">Ana, due Thursday</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Print the boarding passes</b><span class="m">you, added yesterday</span></span></div>
+</div></div>
+</div>
+<ul class="spec"><li>The card is what says these rows arrived together as one read, and the chip above it is exactly the chip a reply already draws, so nothing new is built.</li><li><b>Cost:</b> the count has nowhere to live, and a chip sitting loose above a card reads as two objects where there is one result.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>C. Chip as the card's header</b><span>chosen</span></div>
+<div class="crop">
+<div class="ol">Three left.</div>
+<div class="res"><div class="card">
+<div class="hdrow"><i class="g sm i-lasso" style="color:var(--text-accent)"></i><b>Lisbon trip</b><span class="count">3</span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Book the airport transfer</b><span class="m">you, added 6 Aug</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Pay Ana €214 for the flights</b><span class="m">Ana, due Thursday</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Print the boarding passes</b><span class="m">you, added yesterday</span></span></div>
+</div></div>
+</div>
+<ul class="spec"><li>One object per read. Two results in one answer are two cards, legible as two without a heading over either.</li><li>The count sits in the header, which is where a truncated read can say <b>20 of 46</b> without a sentence about it.</li><li><b>What this costs, and it is the thing to get right:</b> the header is a new part, not the existing chip. It has to stay a real link to the thread, with a 44px target, its own name for a screen reader, and the moss it borrows from the chip. Everything else in the product names a thread with <b>Chip</b>, so this is a second way of doing it and belongs in the readme as such.</li></ul>
+<span class="rec">Chosen</span>
+</div>
+
+</div>
+
+<div class="sechead"><h2>3. How many rows before Show more</h2><u>the open question, at real size</u></div>
+<p class="snote">The same result, twenty three unticked tasks, cut at five, eight and twelve. <b>Conversation.tsx</b> caps the sheet at 78% of the screen, so on a 844pt phone the log is about 446pt once the header and the composer have taken theirs, which is what these frames draw. All three are shown where a new answer lands: scrolled to the bottom. What matters is not whether the rows fit but whether the sentence, the thread and the rows are on screen together, because that is what makes it an answer rather than a list.</p>
+<div class="row">
+
+<div class="cell"><div class="tag m"><b>5</b><span>recommended on the phones</span></div>
+<div class="dev full">
+<div class="peek"></div>
+<div class="sheet">
+<div class="grab"><b></b></div>
+<div class="shead"><span>Everything still open in Berlin</span><u><span class="g xs i-x"></span></u></div>
+<div class="turns">
+<div class="you">what is still open from Berlin?</div>
+<div class="ol">Twenty three left.</div>
+<div class="res"><div class="card">
+<div class="hdrow"><i class="g sm i-lasso"></i><b>Berlin, March</b><span class="count">23</span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Return the deposit form</b><span class="m">you, added 3 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Ana's half of the apartment</b><span class="m">Ana, due Friday</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Cancel the storage unit</b><span class="m">you, added 8 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Send Tom the receipts</b><span class="m">you, added 11 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Book the return train</b><span class="m">you, added 12 Mar</span></span></div>
+<button class="more"><i class="g sm i-chev-d"></i>Show 15 more</button>
+</div></div>
+</div>
+<div class="comp"><span class="fld">Ask, or just dump</span><span class="snd"><i class="g md i-up"></i></span></div>
+</div></div>
+<ul class="spec"><li>The sentence, the thread chip, all five rows and the control land in view together. Only the question sits above the fold, and the sheet header is still carrying it.</li></ul>
+<span class="rec">ROWS_SHOWN = 5 on iOS and Android</span>
+</div>
+
+<div class="cell"><div class="tag i"><b>8</b><span>what the server assumes</span></div>
+<div class="dev full">
+<div class="peek"></div>
+<div class="sheet">
+<div class="grab"><b></b></div>
+<div class="shead"><span>Everything still open in Berlin</span><u><span class="g xs i-x"></span></u></div>
+<div class="turns">
+<div class="you">what is still open from Berlin?</div>
+<div class="ol">Twenty three left.</div>
+<div class="res"><div class="card">
+<div class="hdrow"><i class="g sm i-lasso"></i><b>Berlin, March</b><span class="count">23</span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Return the deposit form</b><span class="m">you, added 3 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Ana's half of the apartment</b><span class="m">Ana, due Friday</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Cancel the storage unit</b><span class="m">you, added 8 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Send Tom the receipts</b><span class="m">you, added 11 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Book the return train</b><span class="m">you, added 12 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Photograph the meter reading</b><span class="m">you, added 14 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Close the transit card</b><span class="m">you, added 16 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Ask Ana for the key deposit</b><span class="m">Ana, added 18 Mar</span></span></div>
+<button class="more"><i class="g sm i-chev-d"></i>Show 12 more</button>
+</div></div>
+</div>
+<div class="comp"><span class="fld">Ask, or just dump</span><span class="snd"><i class="g md i-up"></i></span></div>
+</div></div>
+<ul class="spec"><li>The rows overrun the scroller, so on arrival you land at the bottom of a list with the sentence pushed off the top. The tail of the answer is a Show more with no visible answer above it.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>12</b><span>for the argument</span></div>
+<div class="dev full">
+<div class="peek"></div>
+<div class="sheet">
+<div class="grab"><b></b></div>
+<div class="shead"><span>Everything still open in Berlin</span><u><span class="g xs i-x"></span></u></div>
+<div class="turns">
+<div class="res" style="margin-top:0"><div class="card">
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Cancel the storage unit</b><span class="m">you, added 8 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Send Tom the receipts</b><span class="m">you, added 11 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Book the return train</b><span class="m">you, added 12 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Photograph the meter reading</b><span class="m">you, added 14 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Close the transit card</b><span class="m">you, added 16 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Ask Ana for the key deposit</b><span class="m">Ana, added 18 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Forward the utilities final bill</b><span class="m">you, added 19 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Return Tom's adapter</b><span class="m">you, added 20 Mar</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Cancel the gym trial</b><span class="m">you, added 22 Mar</span></span></div>
+<button class="more"><i class="g sm i-chev-d"></i>Show 11 more</button>
+</div></div>
+</div>
+<div class="comp"><span class="fld">Ask, or just dump</span><span class="snd"><i class="g md i-up"></i></span></div>
+</div></div>
+<ul class="spec"><li>Drawn where it lands after arrival: no question, no sentence, no thread chip, and three rows still hidden behind a control. At this length the reply has become a screen, and the thread page is the better place for it.</li></ul>
+</div>
+
+</div>
+<ul class="spec">
+<li><b>Show more expands in place</b> and shows the rest of what arrived, up to the twenty the server sent. It never fetches. Once expanded there is no Show less: the answer is as long as it is.</li>
+<li><b>The count on the control is the honest remainder</b> of what is in hand, so 23 found with 20 delivered and 5 drawn reads <b>Show 15 more</b>, not 18. The eighteen that are actually left live in the thread, which is what the tail chip in section 4 is for.</li>
+<li>Suggested constant: <b>5 on the phones, 8 on web</b>. One number for both surfaces is what makes one of them wrong.</li>
+</ul>
+
+<div class="sechead"><h2>4. The two refusals</h2><u>a treatment, not an error</u></div>
+<p class="snote">Neither is an error state and neither gets a warning colour. A refusal is a short sentence in the same bubble as any other answer, and the difference between them is what the sentence describes.</p>
+<div class="row">
+
+<div class="cell"><div class="tag i"><b>Nothing found</b><span>describes offload</span></div>
+<div class="crop">
+<div class="you">where did I put the boiler warranty?</div>
+<div class="ol">I could not find that.</div>
+<div class="you">what is my theme set to?</div>
+<div class="ol">I do not know. Theme is set on this phone and the server has never held it.</div>
+</div>
+<ul class="spec"><li>No result, no chip, no suggestion to try different words. A bubble with one sentence in it is the whole treatment, which is what keeps it from reading as a failure.</li><li>The device preference answer is the same shape, and it is a true statement rather than a gap.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>A read that was cut short</b><span>says what it saw</span></div>
+<div class="crop">
+<div class="you">did I add printer paper to the office list?</div>
+<div class="ol">I looked at the first twenty of forty six things and printer paper is not among them.</div>
+<div class="res"><div class="card">
+<div class="hdrow"><i class="g sm i-lasso"></i><b>Office</b><span class="count">20 of 46</span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Toner, black, two</b><span class="m">you, added 2 Sep</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Desk lamp bulb</b><span class="m">you, added 30 Aug</span></span></div>
+<a class="tail" href="#"><i class="g sm i-lasso" style="color:var(--text-accent)"></i><em>Twenty six more in Office. The rest of the answer is in the thread.</em><i class="g sm i-chev-r" style="color:var(--text-accent)"></i></a>
+</div></div>
+</div>
+<ul class="spec"><li><b>The tail is the thread, not a Show more.</b> There is nothing more to show: what was not read was not sent.</li><li>The header already counts what it saw, <b>20 of 46</b>, so nothing in the card claims the rest. A wrong no is somebody buying printer paper twice.</li><li><b>This is where C costs something:</b> the header and the tail both go to Office. It stands because they say different things, the header naming the result and the tail catching the eye where the rows run out, but it is the one place two links to one thread sit in a single result and it should not spread.</li><li>It uses the header's moss and the header's icon so it reads as the same link, one per result, rather than a new control.</li></ul>
+</div>
+
+</div>
+
+<div class="sechead"><h2>5. The tickable row, and the done state the kits get wrong</h2><u>a correction that is not answering's alone</u></div>
+<p class="snote">A row in an answer can be ticked and can do nothing else. The done state below is a correction to <b>WThing.jsx:38</b> and its mobile twin, which both draw a finished row at half opacity while both shipping components refuse to.</p>
+<div class="row">
+
+<div class="cell"><div class="tag i"><b>Open</b><span>21px mark, 44px target</span></div>
+<div class="crop" style="gap:0;padding-top:14px;padding-bottom:14px"><div class="card"><div class="r"><span class="box"></span><span class="txt"><b class="t">Book the airport transfer</b><span class="m">you, added 6 Aug</span></span></div></div></div>
+<ul class="spec"><li>The mark is 21px and the tap target is 44px, sized independently of it.</li><li>Its name carries the thread: <b>"Book the airport transfer, Lisbon trip, not ticked"</b>. Today the phones announce "checkbox, not checked" and web has no tickable row at all.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>Done, corrected</b><span>take this</span></div>
+<div class="crop good" style="gap:0;padding-top:14px;padding-bottom:14px"><div class="card"><div class="r done"><span class="box on"><i class="g xs i-check"></i></span><span class="txt"><b class="t">Pay Ana €214 for the flights</b><span class="m">you, ticked just now</span></span></div></div></div>
+<span class="verdict yes"><i class="g xs i-check"></i>moss tick, tertiary ink, 1px strike</span>
+<ul class="spec"><li>The row keeps its place and its full contrast. Three signals already say done, so opacity has nothing left to add.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>Done, as the kits draw it</b><span>do not ship</span></div>
+<div class="crop bad" style="gap:0;padding-top:14px;padding-bottom:14px"><div class="card" style="opacity:.5"><div class="r"><span class="box on"><i class="g xs i-check"></i></span><span class="txt"><b class="t">Pay Ana €214 for the flights</b><span class="m">you, ticked just now</span></span></div></div></div>
+<span class="verdict no">opacity: 0.5</span>
+<ul class="spec"><li>Dimming a row on a warm page reads as a rendering fault, and it takes the label under the contrast floor on the way. The meta line here is the part that fails first.</li></ul>
+</div>
+
+</div>
+<ul class="spec">
+<li><b>Ticking is the only write.</b> No delete, no archive, no rename, and no tool row on hover. On the phones the row's <b>Gesture.Pan</b> and its long press both come off inside an answer, because the conversation is itself a drag driven sheet and a horizontal swipe nested in it is a conflict nobody has tested.</li>
+<li><b>The tap is checked at the tap.</b> A row found a minute ago is not permission now, and the ordinary per row Undo is the way back, not the turn Undo.</li>
+<li><b>A row edited elsewhere reads as edited here.</b> The reply holds ids, so an old answer never shows a stale title or a row that has since gone.</li>
+</ul>
+
+<div class="sechead"><h2>6. Three collisions with what a turn already carries</h2><u>decide before it is built</u></div>
+<p class="snote">A turn is not empty before answering arrives. It can already carry a seen mark, a Done mark, the calendar confirmation from 012 and the chips saying where it filed. Each of those meets a result card, and in all three cases the code as it stands would draw the wrong thing.</p>
+
+<div class="rowlabel">A. The Done mark<u>Conversation.tsx, turn.state === "answered" &amp;&amp; turn.did</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>What the flag gives you</b><span>a tick for reading</span></div>
+<div class="crop bad">
+<div class="yw"><div class="you">what is left to do from Lisbon?</div><span class="mark done"><i class="g xs i-check"></i>Done</span></div>
+<div class="ol">Three left.</div>
+</div>
+<span class="verdict no">Done means offload did something</span>
+<ul class="spec"><li>An answering turn writes nothing, so a tick here says a job was carried out when the only thing that happened was a read. It is the same wrong tick the comment in the code already warns about, arriving from the other direction.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>An answered question</b><span>no mark at all</span></div>
+<div class="crop good">
+<div class="yw"><div class="you">what is left to do from Lisbon?</div></div>
+<div class="ol">Three left.</div>
+</div>
+<span class="verdict yes">the answer is the receipt</span>
+<ul class="spec"><li>The reply underneath is proof it was read, so the mark has nothing to add. <b>did</b> stays false for every answering turn.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>Still seen</b><span>while it is reading</span></div>
+<div class="crop">
+<div class="yw"><div class="you">what is left to do from Lisbon?</div><span class="mark">👀</span></div>
+<div class="ol" style="display:flex;gap:5px;align-items:center;padding:14px"><span style="width:6px;height:6px;border-radius:99px;background:var(--ink-300)"></span><span style="width:6px;height:6px;border-radius:99px;background:var(--ink-300)"></span><span style="width:6px;height:6px;border-radius:99px;background:var(--ink-300)"></span></div>
+</div>
+<ul class="spec"><li>Unchanged, and it does more work here than it does on a dump: retrieval takes longer than filing, so 👀 is the whole of what is on screen for a second or two.</li></ul>
+</div>
+</div>
+
+<div class="rowlabel">B. Inside the bubble, or below it<u>012 put a control inside; results go below</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>012, unchanged</b><span>a control inside</span></div>
+<div class="crop">
+<div class="you">dinner with Ana on Thursday at 8</div>
+<div class="ol">Thursday at 8. Ana is on the invitation, so she will see it.
+<div class="because">Adding this shares it with one person outside your account.</div>
+<div class="acts"><span class="go">Add it</span><span class="no">Not now</span></div>
+</div>
+</div>
+<ul class="spec"><li>The control acts on the sentence it sits under, and it is one fixed thing. Inside is right, and stays right.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>Answering</b><span>the result below</span></div>
+<div class="crop good">
+<div class="you">what is left to do from Lisbon?</div>
+<div class="ol">Three left.</div>
+<div class="res"><div class="card">
+<div class="hdrow"><i class="g sm i-lasso"></i><b>Lisbon trip</b><span class="count">3</span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Book the airport transfer</b><span class="m">you, added 6 Aug</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Pay Ana €214 for the flights</b><span class="m">Ana, due Thursday</span></span></div>
+</div></div>
+</div>
+<span class="verdict yes">a result is not a control</span>
+<ul class="spec"><li>A result is an unbounded list of live rows, not one fixed control, and it has its own surface. Below the bubble, at the sheet's gutter, full width.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>The same result, inside</b><span>why the rule exists</span></div>
+<div class="crop bad">
+<div class="you">what is left to do from Lisbon?</div>
+<div class="ol">Three left.
+<div class="inside">
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Book the airport transfer</b><span class="m">you, added 6 Aug</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Pay Ana €214 for the flights</b><span class="m">Ana, due Thursday</span></span></div>
+</div>
+</div>
+</div>
+<span class="verdict no">the fill runs under the corner</span>
+<ul class="spec"><li>A row's hover and press fill bleeds to the padded edge by design, <b>margin: 0 calc(-1 * var(--space-5))</b>, and a turn's own padding is that same space-5. Inside a bubble the two cancel and a square fill runs out under an 18px rounded corner.</li><li>It is also the wrong measure: the bubble caps at 92% and a list of rows should not be inset from one side only.</li></ul>
+</div>
+</div>
+
+<div class="rowlabel">C. Filed chips against the result header<u>one thread, named twice</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Both drawn</b><span>what the current turn does</span></div>
+<div class="crop bad">
+<div class="you">what is left to do from Lisbon?</div>
+<div class="ol">Three left.
+<div class="filed"><span class="chip"><i class="g xs i-lasso"></i>Lisbon trip</span></div>
+</div>
+<div class="res"><div class="card">
+<div class="hdrow"><i class="g sm i-lasso"></i><b>Lisbon trip</b><span class="count">3</span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Book the airport transfer</b><span class="m">you, added 6 Aug</span></span></div>
+</div></div>
+</div>
+<span class="verdict no">two components, one thread</span>
+<ul class="spec"><li>The chips answer "where did this go", which is a question about a write. An answering turn wrote nothing, so the chips are describing something that did not happen, and they name the thread the header directly beneath them already names.</li><li>Rule: <b>turn.threads is empty on an answering turn</b>, and the header is the only link out.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>A dump keeps its chips</b><span>nothing changes here</span></div>
+<div class="crop good">
+<div class="you">tram 28 runs every 11 minutes, and book the transfer</div>
+<div class="ol">Filed both. The transfer is a task.
+<div class="filed"><span class="chip"><i class="g xs i-lasso"></i>Lisbon trip</span></div>
+</div>
+</div>
+<span class="verdict yes">where it landed, from the rows</span>
+<ul class="spec"><li>The two turn kinds are now visibly different: chips inside the bubble mean something was written, a card below it means something was read. That distinction is worth keeping deliberately rather than by accident.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>7. Follow-ups, and the fastest way through one</h2><u>next spec, drawn early</u></div>
+<p class="snote">The product already asks one question with buttons on it: 012's calendar proposal, a because-line with <b>Add it</b> and <b>Not now</b> inside the reply bubble. So a follow-up is not a new pattern to invent, it is that pattern generalised, and the work is in the rules around it rather than in the control. Everything below is inside the bubble, for the reason section 6B gives.</p>
+
+<div class="rowlabel">A. A proposal, which is a yes or a no<u>one primary, one plain way out</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Asked</b><span>the answer, then the offer</span></div>
+<div class="crop">
+<div class="you">did I add butter to the groceries list?</div>
+<div class="ol">No, butter is not on the list. Add it?
+<div class="qs"><span class="q pri">Add it</span><span class="q plain">No</span></div>
+</div>
+</div>
+<ul class="spec"><li>The offer is one sentence on the end of the answer, not a second turn. A question that arrives on its own is a notification.</li><li>Exactly 012's shape, so it needs no new component: primary, plain out, both inside the bubble.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m"><b>Picked</b><span>the tap becomes your turn</span></div>
+<div class="crop good">
+<div class="you">did I add butter to the groceries list?</div>
+<div class="ol">No, butter is not on the list. Add it?</div>
+<div class="yw"><div class="you">Add it</div><span class="mark done"><i class="g xs i-check"></i>Done</span></div>
+<div class="ol">Added to Groceries.</div>
+</div>
+<span class="verdict yes">the log reads as if you typed it</span>
+<ul class="spec"><li>The chips are gone and your pick is an ordinary bubble. Conversations are searched now, so a log full of questions with no visible answers is a corpus that cannot say what happened.</li><li>This turn wrote something, so it earns the <b>Done</b> mark the answering turn in section 6A does not.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>And the way back</b><span>eight seconds, as everywhere</span></div>
+<div class="crop" style="gap:14px">
+<div class="ol">Added to Groceries.</div>
+<div class="snack"><b>Butter added to Groceries.</b><u>Undo</u></div>
+</div>
+<ul class="spec"><li>The ordinary toast, not a new one. A tap that writes is still a write, and it is reversible in the same window and by the same control as every other one.</li></ul>
+</div>
+</div>
+
+<div class="rowlabel">B. A choice among things<u>the option looks like the thing</u></div>
+<div class="row">
+<div class="cell"><div class="tag m"><b>Three threads</b><span>no primary</span></div>
+<div class="crop good">
+<div class="you">what did I book for the trip?</div>
+<div class="ol">Three threads have a trip in them. Which one?
+<div class="qs"><span class="q obj"><i class="g xs i-lasso"></i>Lisbon trip</span><span class="q obj"><i class="g xs i-lasso"></i>Istanbul, October</span><span class="q obj"><i class="g xs i-lasso"></i>Berlin, March</span></div>
+</div>
+</div>
+<span class="verdict yes">threads look like threads</span>
+<ul class="spec"><li>None of these is the safe one, so none of them is dark. A primary here would be offload guessing with a button.</li><li>They carry the thread's own moss and its lasso, so a picker of threads is legible as a picker of threads rather than as three buttons that happen to be named.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>More than three</b><span>name two, keep the rest typed</span></div>
+<div class="crop">
+<div class="you">what did I book for the trip?</div>
+<div class="ol">Five threads have a trip in them. Lisbon and Istanbul are the recent ones.
+<div class="qs"><span class="q obj"><i class="g xs i-lasso"></i>Lisbon trip</span><span class="q obj"><i class="g xs i-lasso"></i>Istanbul, October</span></div>
+<div class="orjust">Or name another one.</div>
+</div>
+</div>
+<ul class="spec"><li><b>Three is the cap</b>, and it is a cap on the sentence as much as on the row: a question with six answers on it is a menu, and reading it is slower than typing the word.</li><li>The sentence says how many there really are, so two chips never imply there were only two.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>Answered by typing</b><span>always available</span></div>
+<div class="crop">
+<div class="ol">Three threads have a trip in them. Which one?</div>
+<div class="you">the october one</div>
+<div class="ol">Istanbul, October. The flights and the flat are both booked.</div>
+</div>
+<ul class="spec"><li>The chips are an accelerator and never the only way in. Typed, spoken later, or tapped, all three land on the same turn.</li><li>Which also means the option labels have to be words somebody would say, because they double as the vocabulary of the typed answer.</li></ul>
+</div>
+</div>
+
+<div class="rowlabel">C. When the question goes stale<u>one open question at a time</u></div>
+<div class="row">
+<div class="cell"><div class="tag m"><b>You said something else</b><span>the chips stop being offered</span></div>
+<div class="crop good">
+<div class="ol">No, butter is not on the list. Add it?
+<div class="gone"><i class="g xs i-x"></i>Not offered any more</div>
+</div>
+<div class="you">what time is the dentist on Thursday?</div>
+<div class="ol">Half past nine, with Dr Ibekwe.</div>
+</div>
+<span class="verdict yes">a late yes is a yes to something else</span>
+<ul class="spec"><li>The sentence stays in the log because it was said. The chips do not, because tapping <b>Add it</b> four turns later means adding butter to whatever is being discussed now.</li><li>One open question at a time, and the newest turn closes the last one.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>The composer carries it</b><span>while it is open</span></div>
+<div class="crop" style="gap:14px">
+<div class="ol">No, butter is not on the list. Add it?
+<div class="qs"><span class="q pri">Add it</span><span class="q plain">No</span></div>
+</div>
+<div class="comp" style="padding:0"><span class="fld">Add butter? Yes or no</span><span class="snd"><i class="g md i-up"></i></span></div>
+</div>
+<ul class="spec"><li>The placeholder holds the open question, so the keyboard is never a worse path than the chips and the question survives a fold.</li><li>It is also what makes this work by voice later, with no second design.</li></ul>
+</div>
+</div>
+
+<div class="rowlabel">D. Three accelerators that are not a chip row<u>the answer to “what else”</u></div>
+<div class="row">
+<div class="cell"><div class="tag m"><b>1. Do it, and say so</b><span>the fastest follow-up is none</span></div>
+<div class="crop good" style="gap:14px">
+<div class="you">butter</div>
+<div class="ol">Added to Groceries, under the shopping list.</div>
+<div class="snack"><b>Butter added to Groceries.</b><u>Undo</u></div>
+</div>
+<span class="verdict yes">ask only when Undo cannot cover it</span>
+<ul class="spec"><li>Reversible writes already run behind an eight second toast, so asking first charges somebody a decision for something the toast is already insuring.</li><li><b>The test:</b> ask when the write is not reversible, when it reaches somebody else, or when the guess is a genuine coin flip. Otherwise act and offer the way back. This is the single biggest speed-up available and it removes UI rather than adding it.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>2. Answer once, for good</b><span>a second tap writes a memory</span></div>
+<div class="crop">
+<div class="you">the october one</div>
+<div class="ol">Istanbul, October.
+<div class="qs"><span class="q">Always file trips there</span></div>
+</div>
+</div>
+<ul class="spec"><li>The follow-up worth removing is next week's, not this one. A disambiguation that keeps recurring is a standing rule waiting to be written, and 008 already has somewhere to put it.</li><li>Offered after the pick, never instead of it, and only when the same question has been asked before.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i"><b>3. Several at once</b><span>the rows are already on screen</span></div>
+<div class="crop">
+<div class="you">which of the Lisbon ones are done?</div>
+<div class="ol">Three left. Tick the ones that are finished.</div>
+<div class="res"><div class="card">
+<div class="hdrow"><i class="g sm i-lasso"></i><b>Lisbon trip</b><span class="count">3</span></div>
+<div class="r"><span class="box on"><i class="g xs i-check"></i></span><span class="txt"><b class="t">Book the airport transfer</b><span class="m">you, added 6 Aug</span></span></div>
+<div class="r"><span class="box on"><i class="g xs i-check"></i></span><span class="txt"><b class="t">Print the boarding passes</b><span class="m">you, added yesterday</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Pay Ana €214 for the flights</b><span class="m">Ana, due Thursday</span></span></div>
+</div></div>
+</div>
+<ul class="spec"><li>A question whose answer is a subset of rows should be answered on the rows, not on a chip row that names them again. Each tick is its own write with its own Undo, so there is nothing to confirm.</li><li>It costs no new control: the tickable row from section 5 already does this. What is new is the sentence inviting it.</li></ul>
+</div>
+</div>
+
+<div class="rowlabel">The rules this all rests on<u>for the readme</u></div>
+<ul class="spec">
+<li><b>Three options at most, and every one of them is typeable.</b> The labels are the words somebody would say.</li>
+<li><b>A proposal has one primary and one plain way out. A choice among equals has no primary.</b> Dark ink means offload is recommending, so it may not appear on a question where offload does not know.</li>
+<li><b>No option destroys anything.</b> Nothing that deletes, archives or empties a thread is ever a chip. It is the same rule as AC-6a and for the same reason.</li>
+<li><b>Picking writes your turn into the log</b> exactly as typing would, and the turn it creates carries the write tools. The turn that asked carries none. A sentence in a shared thread can therefore never talk offload into a write: the tools arrive with a human tap.</li>
+<li><b>One open question at a time</b>, closed by the next turn whatever it says.</li>
+<li><b>Ask only what Undo cannot cover.</b> Not reversible, reaches somebody else, or a genuine coin flip. Everything else is done and reported.</li>
+</ul>
+
+<div class="sechead"><h2>8. Dark</h2><u>the card is paper on a near-black plate</u></div>
+<p class="snote">The plate in dark is <b>#0F0F11</b>, darker than a card on purpose, because it is also the colour the prism veil is made of. So the answer card is the lighter object for once: <b>--surface-raised</b> at #212121 with its hairline, sitting on the plate rather than on paper. Nothing about the layout changes; three things about the paint do.</p>
+<div class="row" data-theme="dark">
+
+<div class="cell"><div class="tag i" data-theme="light"><b>A set</b><span>card lighter than its ground</span></div>
+<div class="crop" style="background:var(--surface-plate)">
+<div class="you">what is left to do from Lisbon?</div>
+<div class="ol">Three left.</div>
+<div class="res"><div class="card">
+<div class="hdrow"><i class="g sm i-lasso"></i><b>Lisbon trip</b><span class="count">3</span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Book the airport transfer</b><span class="m">you, added 6 Aug</span></span></div>
+<div class="r done"><span class="box on"><i class="g xs i-check"></i></span><span class="txt"><b class="t">Pay Ana €214 for the flights</b><span class="m">you, ticked just now</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Print the boarding passes</b><span class="m">you, added yesterday</span></span></div>
+</div></div>
+</div>
+<ul class="spec" data-theme="light"><li>The bubble and the card land on the same value, #212121, and stay legible as two things because the plate between them is #0F0F11. On light the relationship is the other way up and the hairline does the work.</li><li>Moss holds its value in both themes, so the tick and the header need no dark variant. Only the tints move.</li></ul>
+</div>
+
+<div class="cell"><div class="tag i" data-theme="light"><b>Cut short</b><span>the tail on moss-50</span></div>
+<div class="crop" style="background:var(--surface-plate)">
+<div class="ol">I looked at the first twenty of forty six things and printer paper is not among them.</div>
+<div class="res"><div class="card">
+<div class="hdrow"><i class="g sm i-lasso"></i><b>Office</b><span class="count">20 of 46</span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Toner, black, two</b><span class="m">you, added 2 Sep</span></span></div>
+<div class="r"><span class="box"></span><span class="txt"><b class="t">Desk lamp bulb</b><span class="m">you, added 30 Aug</span></span></div>
+<a class="tail" href="#"><i class="g sm i-lasso" style="color:var(--text-accent)"></i><em>Twenty six more in Office. The rest of the answer is in the thread.</em><i class="g sm i-chev-r" style="color:var(--text-accent)"></i></a>
+</div></div>
+</div>
+<ul class="spec" data-theme="light"><li>The header and the tail both sit on <b>--moss-50</b>, which is #182E20 in dark rather than a tint of white, so the moss stays a surface instead of turning into a wash.</li></ul>
+</div>
+
+<div class="cell"><div class="tag m" data-theme="light"><b>The one real bug</b><span>fixed in the component</span></div>
+<div class="crop" style="background:var(--surface-plate)">
+<div class="ol">No, butter is not on the list. Add it?
+<div class="qs"><span class="q pri">Add it</span><span class="q plain">No</span></div>
+</div>
+<div class="ol">Three threads have a trip in them. Which one?
+<div class="qs"><span class="q obj"><i class="g xs i-lasso"></i>Lisbon trip</span><span class="q obj"><i class="g xs i-lasso"></i>Istanbul, October</span></div>
+</div>
+</div>
+<span class="verdict yes" data-theme="light">--surface-inverse, never --ink-950</span>
+<ul class="spec" data-theme="light"><li>The ink ramp flips in dark, so a primary drawn as <b>--ink-950</b> with <b>--text-on-solid</b> is white on #EDEDED. It now takes <b>--surface-inverse</b> with <b>--text-inverse</b>, which is a light pill with dark ink in dark and the reverse on light.</li><li>The plain way out and the thread options needed nothing: both were already on semantic pairs.</li></ul>
+</div>
+
+</div>
+
+<div class="sechead"><h2>Not drawn yet</h2><u>say the word</u></div>
+<ul class="spec">
+<li><b>Web.</b> The same five sections in the pane layout, where the answer sits in a 700px measure and ROWS_SHOWN can stay at 8.</li>
+<li><b>Android.</b> Expect the card to be a low container fill rather than paper with a hairline, in line with the rest of M3.</li>
+<li><b>Dark.</b> The card is paper on a plate that is near black in dark, so it needs a look before it is called done.</li>
+<li><b>Two results in one answer</b>, which is two cards under one sentence. Straightforward once the framing is picked, and worth drawing to check the sentence still governs both.</li>
+</ul>
+
+</div></body></html>

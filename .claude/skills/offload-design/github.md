@@ -8,54 +8,71 @@ path:
 
 ## Last sync
 
-date: 2026-09-14T23:05:00Z
+date: 2026-09-17T19:40:00Z
 
-Third pass of the day, and the design half of the 21:04 sync. No new commits pulled.
+Design-only pass, no commits pulled. The product owner asked for the calendar integration page in
+Settings and a per-thread calendar control; both are drawn in
+`explorations/calendars-options.html` and decided item by item, and all of it is folded in.
 
-**016 is folded in and ready to build:** the turn footer, the source chip, the two switch notes and
-the voice change, all in `handoff/APPLY-2026-09-14-reaching-the-web.md`. **015's rail is decided
-too**, off the open question in its own log entry, and carries its own note,
-`handoff/APPLY-2026-09-14-rail.md`.
+**Two levels of consent, and they are different questions.** The account approves which calendars
+offload may use at all; **a thread picks which of those it uses, starting from none.** Approving a
+calendar in Settings adds it to no thread, ever, because inheritance would silently widen what
+offload reads in threads set up months ago, shared ones included.
 
-**The rail: blue keeps today and the day being read, and content moved off the hue.** A day with
-something on it is a lift rather than a tint, and a day carrying a decision takes a 1px
-`--border-decision` inset inside it. Seven options were drawn in both themes and the dark frame decided
-it, producing three findings a light mock could not have: `--shadow-1` is the keyword `none` in
-dark, every tint darkens by design so no glow can be load-bearing, and a ring is the only treatment
-that measures the same in both themes.
+**The thread control carries no mark in any state.** A dot and a bubble both mean attention, so a
+mark meaning "you configured this" earns a tap that finds nothing wrong, and with threads starting
+empty there is no state for a mark to carry. The accessible name does it.
 
-**Two corrections to things this project asserted earlier**, both found by measuring rather than
-reasoning. The shipped lit state does *not* go illegible in dark, its ring measures 3.55:1, so the
-"needs a dark pass" instruction is withdrawn and the reason to change it is the five meanings alone.
-And `decisions.md`'s 11 September entry is out of date about React Native: `Timeline.tsx` draws the
-same blurred inset shadow the web does, natively on RN 0.86.
+**Three governed components were drawn wrong before they were read, and each one changed the design
+rather than only the mock.** `Checkbox` had a moss fill, which this readme reserves for a finished
+row, so every ticked calendar read as something offload had completed; `IconButton` already owns a
+badge dot whose own comment says it means *something new*, which is what disqualified the dot on the
+thread control; and `AppBar` and `Sheet` were drawn at the wrong gutters and the wrong top radius,
+the latter contradicting the readme's own "24px on sheet tops".
 
-**One line still waiting on code from the 016 pass:** "offload did not finish that one." becomes
-"Didn't finish that one." in `Conversation.tsx`, its web twin and the readme.
+**The provider's colour is in as recognition, never as the differentiator.** Four of seven ordinary
+Google colours measure under 3:1 on `--surface-fill` in light, the yellow at 1.51:1, and two are
+under in dark; they are not the same ones, so no ground flatters a palette we do not control. The
+name tells two calendars apart and the dot only helps you find one.
 
-017's progress line and Stop are designed in `explorations/reaching-the-web-options.html` section 5
-and deliberately not built.
+**There is no "Add events to" setting**, cut by the product owner as a thread question: one calendar
+ticked answers it, two or more and offload asks in the conversation with the thread's calendars as
+the values, using 018's follow-up control as it stands.
+
+**No new design-system component and no new token**, but three things to scope that are neither
+composition nor a component: `Group`'s label gains a trailing slot in `SettingsDetail.jsx`, without
+which the settings list cannot show `4 of 7 in use`; **web's calendar popover is new UI** since the
+web kit has no governed popover; and **one standing rule is amended**, below. Everything else is
+composition over governed `Checkbox`, `Switch`, `Button`, `Chip`, `AppBar`, `Sheet`, `IconButton`
+and `WPaneHead`.
+
+**The amendment is the only thing in this pass that reaches outside calendars.** `readme.md`'s
+behaviour notes said a web pane head carries two tools and that anything a thread gains later goes
+in the More menu, which is exactly what a calendar is. The rule now allows **up to three tools with
+a criterion rather than an exception: a tool earns a head slot only if it changes what offload reads
+or shows, and anything that acts on the thread goes in More.** Rename, add note and Leave fail that
+test and stay in the menu; a scope control passes, because a scope you cannot see is a scope you
+forget. **This governs every web thread pane head, not just this feature.**
 
 ### Updated in this project
 
-- **Three new colour aliases**, all three scopes: `--border-lift` (the edge of a raised cell,
-  `--border-hairline` in light and `--ink-300` in dark), `--border-decision` (a ring on something
-  needing an answer), `--text-noticed` (the ink-weight counterpart to `--surface-noticed`)
-- Both colour palette cards updated so the new aliases are visible: a border row on Surfaces &
-  states, and the two amber meanings named on Semantics
-- `readme.md`: a Timeline rail section, and a Reaching the web section, and the Person rule rewritten
-- Five log entries dated 14 September: the footer, the source chip, the voice, the rail, and the merge
-- `components/conversation/TurnFooter`, wired into all three kits with its card
-- Two apply notes: `APPLY-2026-09-14-reaching-the-web.md` and `APPLY-2026-09-14-rail.md`
-- Explorations: `reaching-the-web-options.html` and `rail-blue.html`
+- `readme.md`: a Calendars section, plus **an existing standing rule amended**: the web pane-head
+  tool budget in Behaviour notes for the build, now three with a stated criterion
+- `decisions.md`: one entry dated 17 September, naming the three components read late and the rule
+- `handoff/APPLY-2026-09-17-calendars.md`, six sections, both themes and all three surfaces
+- `explorations/calendars-options.html`, five decisions with the rejected options kept
 
 ### What the coding agent should pick up, in order
 
-1. `handoff/APPLY-2026-09-14-reaching-the-web.md`, points 1 to 4. The footer blocks the chip.
-2. `handoff/APPLY-2026-09-14-rail.md`. Independent of 016, and it is CSS and tokens rather than structure.
-3. The one copy line above, which is reviewed copy so it is named rather than changed quietly.
-4. Two product answers before the rail is built: what counts as needing a decision, and whether one ink
-   amber at two levels holds, now that the note dot resolves to `--text-noticed` and the ring to `--border-decision`, which share a value.
+1. `handoff/APPLY-2026-09-17-calendars.md`, **section 5 first**: it is the model the two screens
+   depend on and the one thing that cannot change later without a migration.
+2. Section 2's checkbox, which is the correction most likely to be got wrong from habit: a
+   selection tick is ink, and the dimming inverts from `Checkbox`'s own label treatment.
+3. Section 4's bar, which carries two rules, not one: the new button never gets `badge`, and **the
+   web pane head is now capped at three tools by a stated criterion**, so the next capability gets
+   the same test rather than a fourth slot.
+4. Three things still owed, listed at the end of the note: whether a thread remembers its write
+   target, two accounts on the settings page, and Android.
 
 ## Screen map
 
@@ -63,6 +80,7 @@ and deliberately not built.
 | --- | --- | --- |
 | Web app | `ui_kits/web_app/` | `apps/web/src/` |
 | iOS and Android | `ui_kits/mobile_app/`, `ui_kits/android_app/` | `apps/mobile/app/`, `apps/mobile/components/` |
+| Calendars | `explorations/calendars-options.html`, `handoff/APPLY-2026-09-17-calendars.md` | settings: the Connected apps Calendar row on all three surfaces; thread: `ThreadScreen.jsx`, `M3ThreadScreen.jsx`, `WThing.jsx` app bars |
 | Timeline rail | `explorations/rail-blue.html`, `handoff/APPLY-2026-09-14-rail.md` | `apps/web/src/app/(shell)/shell.module.css`, `apps/web/src/components/panes/Timeline.tsx`, `apps/mobile/components/shell/Timeline.tsx` |
 | Reaching the web | `components/conversation/`, the kits' conversation files, `explorations/reaching-the-web-options.html` | `docs/specs/016-reaching-the-web/`, `docs/specs/017-saying-what-it-is-doing/`, `apps/mobile/components/shell/Conversation.tsx` |
 | Answering | `components/answering/`, the kits' conversation files, `explorations/answering-options.html` | `apps/core-api/src/search/`, `apps/agent/src/offload_agent/`, `docs/specs/013-answering/` |
@@ -75,6 +93,20 @@ and deliberately not built.
 | Atmosphere tokens | not carried, the marketing site's | `packages/tokens/atmosphere.css` (keep from the repository) |
 
 ## Sync history
+
+### 2026-09-16T22:15:00Z
+
+Nine items from 018 and the reorder work, drawn at real size and decided item by item: the raised
+value chip with an `x` on the way out, five options in a named group, a reply bubble for a question
+on a silent turn, the drop line at full width, and a second line under each of the two declining
+lines. 👀 went, with it the product's last emoji.
+
+### 2026-09-14T23:05:00Z
+
+Folded in 016's turn footer, source chip, switch notes and voice change, and decided 015's rail:
+the paper lift for a day with content and `--border-decision` for a day carrying an answer, with
+blue keeping today and the day being read. Three colour aliases minted. Two claims this project had
+asserted were corrected by measuring rather than reasoning.
 
 ### 2026-09-14T21:40:00Z
 

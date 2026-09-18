@@ -1,8 +1,9 @@
 import { buildApp } from "./app.js";
 import { migrate } from "./migrate.js";
-import { port } from "./env.js";
+import { env, isProduction, port } from "./env.js";
 import { closeDb } from "./db.js";
 import { createJobRunner } from "./jobs/runner.js";
+import { chooseMailer } from "./mail/index.js";
 import { startDaily, enqueue, PRIORITY } from "./jobs/queue.js";
 
 // Migrate before serving. A deploy that starts answering requests against a
@@ -26,7 +27,9 @@ app.log.info({ applied }, "migrations up to date");
 // OFFLOAD_SERVICE=worker in scripts/start.mjs and nothing else changes.
 const runner = createJobRunner((level, fields, msg) => app.log[level](fields, msg));
 runner.start();
-app.log.info("job runner started");
+// Which mailer, in the first line anyone reads: a local server that says
+// "resend" here is one that was asked to.
+app.log.info({ mail: chooseMailer({ ...env, production: isProduction }) }, "job runner started");
 
 // The two chains that have to keep running on their own. Both re-enqueue
 // themselves for tomorrow before doing any work, and the key is the day, so a

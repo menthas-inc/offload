@@ -146,8 +146,8 @@
         "message": "<IconButton> shape must be one of 'circle' | 'rounded'."
       },
       {
-        "selector": "JSXOpeningElement[name.name='ListRow'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|meta|leading|trailing|chevron|selected|onClick|border|style|key|ref|className|style|children)$/]",
-        "message": "<ListRow> doesn't accept that prop. Declared props: title, meta, leading, trailing, chevron, selected, onClick, border, style."
+        "selector": "JSXOpeningElement[name.name='ListRow'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|meta|leading|trailing|reorder|dragging|over|chevron|selected|onClick|border|style|key|ref|className|style|children)$/]",
+        "message": "<ListRow> doesn't accept that prop. Declared props: title, meta, leading, trailing, reorder, dragging, over, chevron, selected, onClick, border, style."
       },
       {
         "selector": "JSXOpeningElement[name.name='Logo'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|size|tone|style|key|ref|className|style|children)$/]",
@@ -194,8 +194,8 @@
         "message": "<QuickReplyOption> doesn't accept that prop. Declared props: id, label, kind, icon."
       },
       {
-        "selector": "JSXOpeningElement[name.name='QuickReplyOption'] > JSXAttribute[name.name='kind'] > Literal[value!=/^(?:primary|plain|thread|neutral)$/]",
-        "message": "<QuickReplyOption> kind must be one of 'primary' | 'plain' | 'thread' | 'neutral'."
+        "selector": "JSXOpeningElement[name.name='QuickReplyOption'] > JSXAttribute[name.name='kind'] > Literal[value!=/^(?:value|plain|primary|thread)$/]",
+        "message": "<QuickReplyOption> kind must be one of 'value' | 'plain' | 'primary' | 'thread'."
       },
       {
         "selector": "JSXOpeningElement[name.name='RowAction'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|icon|danger|onSelect|key|ref|className|style|children)$/]",
