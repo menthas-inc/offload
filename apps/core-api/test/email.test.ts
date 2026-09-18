@@ -12,7 +12,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { handlers } from "../src/jobs/handlers.js";
-import { MemoryMailer, renderHtml, renderText, type EmailSlots } from "../src/mail/index.js";
+import { chooseMailer, createMailer, MemoryMailer, renderHtml, renderText, type EmailSlots } from "../src/mail/index.js";
 import { promote } from "../src/admin/promote.js";
 
 await migrate(() => {});
@@ -120,4 +120,29 @@ describe("AC-11 what every email is made of", () => {
       });
     });
   }
+});
+
+describe("which mailer the environment earns", () => {
+  // Written after two local dev servers sent the suite's waitlist
+  // confirmations through Resend on 2026-09-18. The key alone must never send.
+  const base = { EMAIL_FROM: "offload@offload.club" } as const;
+
+  it("a key in a development or test shell is the memory mailer", () => {
+    expect(chooseMailer({ ...base, RESEND_API_KEY: "re_x", MAIL_LIVE: undefined, production: false })).toBe("memory");
+    expect(chooseMailer({ ...base, RESEND_API_KEY: undefined, MAIL_LIVE: undefined, production: false })).toBe("memory");
+  });
+
+  it("MAIL_LIVE=1 with a key sends, and without a key still cannot", () => {
+    expect(chooseMailer({ ...base, RESEND_API_KEY: "re_x", MAIL_LIVE: "1", production: false })).toBe("resend");
+    expect(chooseMailer({ ...base, RESEND_API_KEY: undefined, MAIL_LIVE: "1", production: false })).toBe("memory");
+  });
+
+  it("production sends, and refuses to boot without a key", () => {
+    expect(chooseMailer({ ...base, RESEND_API_KEY: "re_x", MAIL_LIVE: undefined, production: true })).toBe("resend");
+    expect(() => chooseMailer({ ...base, RESEND_API_KEY: undefined, MAIL_LIVE: undefined, production: true })).toThrow(/RESEND_API_KEY/);
+  });
+
+  it("the default choice in this test process is the memory mailer, whatever .env holds", () => {
+    expect(createMailer()).toBeInstanceOf(MemoryMailer);
+  });
 });

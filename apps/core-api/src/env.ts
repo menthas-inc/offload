@@ -63,7 +63,15 @@ const schema = z.object({
 
   // Email. Optional so the API boots without it: a missing key means the
   // in-memory mailer, which is what development and tests want anyway.
+  //
+  // **The key alone never sends outside production.** On 2026-09-18 two local
+  // dev servers, each with this key in its .env, drained the shared jobs table
+  // that the test suite enqueues into and sent every waitlist confirmation the
+  // tests created through Resend: hundreds of messages to reserved addresses,
+  // and the account's budget. A local send is an opt-in per shell, MAIL_LIVE=1,
+  // and nothing else turns it on.
   RESEND_API_KEY: z.string().min(1).optional(),
+  MAIL_LIVE: z.enum(["1"]).optional(),
   EMAIL_FROM: z.string().email().default("offload@offload.club"),
 
   // The root of the key hierarchy, 32 bytes base64. Required in production and
