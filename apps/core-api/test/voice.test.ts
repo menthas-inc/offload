@@ -436,7 +436,7 @@ describe("the transcript", () => {
     // Typed words with a note: swept at send, and again once the transcript lands.
     const { messageId: withWords, jobId: job2 } = await spoken(me, "also");
     const first = (await pendingEmbeds()).find((p) => p.rowId === withWords);
-    expect(first).toBeUndefined();
+    expect(first?.kind).toBe("embed.message");
     await db
       .insertInto("message_chunks")
       .values({ message_id: withWords, account_id: me.id, role: "person", ord: 0, text: "also", model: "voyage-4", embedded_at: sql`now() - interval '1 minute'` })
@@ -474,7 +474,8 @@ describe("hearing it back", () => {
     expect(whole.statusCode).toBe(200);
     expect(whole.headers["content-type"]).toBe("audio/mp4");
     expect(whole.headers["accept-ranges"]).toBe("bytes");
-    expect(whole.headers["cache-control"]).toBe("private, max-age=3600");
+    // `no-store`: the phones keep the one copy they control.
+    expect(whole.headers["cache-control"]).toBe("no-store");
     expect(whole.headers["x-content-type-options"]).toBe("nosniff");
     expect(whole.rawPayload.equals(audio("m4a"))).toBe(true);
 

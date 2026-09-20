@@ -348,8 +348,9 @@ export function awaitAnswer(
     settle(JSON.parse((event as MessageEvent).data) as Answer);
   });
 
-  source.addEventListener("failed", () => {
-    settle({ state: "failed", reply: null });
+  source.addEventListener("failed", (event) => {
+    const body = JSON.parse((event as MessageEvent).data) as { voice?: VoiceOnWire | null };
+    settle({ state: "failed", reply: null, voice: body.voice ?? null });
   });
 
   // 017. The one event that does not settle the stream. The server can send the

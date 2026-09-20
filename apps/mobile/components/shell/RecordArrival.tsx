@@ -63,7 +63,8 @@ export function RecordArrival() {
     setPending(false);
     if (recording || note) return;
     // No sheet raised: the plate's composer takes the row on whatever
-    // screen is up. A pinned + is released first, as a share does.
+    // screen is up. A pinned + is released first, as a share does; the
+    // recorder reads the pin through a ref, so the same tick sees it gone.
     dismissPin();
     void startRecording();
   }, [pending, pathname, writing, recording, note, dismissPin, startRecording]);

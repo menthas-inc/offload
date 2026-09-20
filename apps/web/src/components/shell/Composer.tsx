@@ -48,7 +48,7 @@ import { QuickReplies } from "./QuickReplies";
 import { AttachChip, type ChipError } from "./AttachChip";
 import { SentPhoto } from "./SentPhoto";
 import { SentVoice, mmss } from "./SentVoice";
-import { Recorder, recorderSupported, type Recording } from "../../lib/recorder";
+import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import { Icon } from "../Icon";
 import { TurnFooter, type TurnSource } from "./TurnFooter";
@@ -159,11 +159,39 @@ export function Composer({
   const sendButton = useRef<HTMLButtonElement>(null);
   const recording = rec !== null;
   const holdsNote = recording || note !== null;
+  // Leaving the shell mid-recording lets the microphone go with it.
+  useEffect(() => () => void rec?.discard(), [rec]);
+  // The window of bars is as many as the row's width holds at the kit's
+  // pitch, measured rather than fixed, so a wide card is not 160px of bars
+  // flush right with nothing beside them.
+  const wave = useRef<HTMLSpanElement>(null);
+  const [waveBars, setWaveBars] = useState(32);
+  useEffect(() => {
+    const el = wave.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () => setWaveBars(Math.max(8, Math.floor(el.clientWidth / BAR_PITCH_PX)));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [holdsNote]);
+  // A screen reader hears "Recording" once and "Stopped, 0:14" once, never
+  // the running seconds.
+  const [announced, setAnnounced] = useState("");
+  useEffect(() => {
+    if (recording) setAnnounced("Recording");
+    else if (note) setAnnounced(`Stopped, ${mmss(note.durationMs)}`);
+    else setAnnounced("");
+  }, [recording, note]);
   // 017. What offload is doing, on the turn in flight.
   const [step, setStep] = useState<string | null>(null);
   const [tooLong, setTooLong] = useState<number | null>(null);
   const toast = useToast();
   const input = useRef<HTMLTextAreaElement>(null);
+  // Focus returns to the field once it is back, after a discard.
+  useEffect(() => {
+    if (!holdsNote) input.current?.focus();
+  }, [holdsNote]);
   // The field grows with the text and then scrolls, to the kit's number. A
   // one-line dump keeps the pill; past a line the corners open up and the
   // controls drop to the bottom edge, beside the last line.
@@ -184,7 +212,8 @@ export function Composer({
     el.style.height = `${height}px`;
     oneLine.current = oneLine.current === null ? height : Math.min(oneLine.current, height);
     setTall(height > oneLine.current + 4);
-  }, [draft]);
+    // And when the field comes back after a note left the row.
+  }, [draft, holdsNote]);
   const turnsBox = useRef<HTMLDivElement>(null);
   // Keyed by message, so a settled stream drops its own entry. A plain array
   // grew for the life of the tab.
@@ -373,10 +402,13 @@ export function Composer({
       const started = await Recorder.start(
         (bars, elapsedMs) => setRecLive({ bars, elapsedMs }),
         () => {
-          // Stopped on its own at the cap: the note stays in the row.
-          void started.take().then((taken) => {
-            setNote(taken);
-            setRec(null);
+          // Stopped on its own at the cap: the note stays in the row. Send
+          // and Discard take the recorder out of state before they stop it,
+          // so this runs for the cap alone.
+          setRec((current) => {
+            if (current !== started) return current;
+            void started.take().then((taken) => setNote(taken));
+            return null;
           });
         },
       );
@@ -391,14 +423,14 @@ export function Composer({
   /** Stop and keep nothing. Past a minute the note is parked under the
    *  toast for eight seconds, because Discard sits a thumb's width from Send. */
   async function discardRecording(): Promise<void> {
-    const taken = rec ? await rec.take() : note;
+    const ending = rec;
     setRec(null);
     setNote(null);
     noteUploaded.current = null;
+    const taken = ending ? await ending.take() : note;
     if (taken && taken.durationMs > 60_000) {
       toast.show("Discarded", { label: "Undo", onPress: () => setNote(taken) });
     }
-    input.current?.focus();
   }
 
   /** Stop the turn in flight. 017.
@@ -483,9 +515,10 @@ export function Composer({
 
     // 021. Send stops the recording and sends it. The note is taken here,
     // ahead of the bubble, so the bubble draws its final bars.
-    const spoken = rec ? await rec.take() : note;
+    const ending = rec;
     setRec(null);
     setNote(null);
+    const spoken = ending ? await ending.take() : note;
 
     setSending(true);
     setTooLong(null);
@@ -599,7 +632,6 @@ export function Composer({
             : turn,
         ),
       );
-      if (spoken) sentNotes.current.set(sent.messageId, spoken);
       watch(sent.messageId, sent.turnId);
     } catch (error) {
       if (error instanceof DumpTooLong) {
@@ -1103,10 +1135,11 @@ export function Composer({
         // 020. A photo dropped onto the card attaches, because that is how a
         // screenshot reaches a browser.
         onDragOver={(event) => {
+          if (holdsNote) return;
           if (event.dataTransfer.types.includes("Files")) event.preventDefault();
         }}
         onDrop={(event) => {
-          if (event.dataTransfer.files.length === 0) return;
+          if (holdsNote || event.dataTransfer.files.length === 0) return;
           event.preventDefault();
           addFiles(event.dataTransfer.files);
         }}
@@ -1127,12 +1160,15 @@ export function Composer({
             // 021. The kit's recording row: the dot while it records and not
             // after, the time, the window of bars growing from the right.
             <span className={styles.recording} role="group" aria-label="Voice note">
+              <span className={styles.srOnly} role="status">
+                {announced}
+              </span>
               {recording ? <span className={styles.recordingDot} aria-hidden="true" /> : null}
-              <span className={styles.recordingTime} aria-live="polite">
+              <span className={styles.recordingTime}>
                 {mmss(recording ? recLive.elapsedMs : (note?.durationMs ?? 0))}
               </span>
-              <span className={styles.recordingWave} aria-hidden="true">
-                {(recording ? recLive.bars : (note?.waveform.map((v) => v / 255) ?? [])).map((h, at, all) => (
+              <span className={styles.recordingWave} aria-hidden="true" ref={wave}>
+                {(recording ? recLive.bars.slice(-waveBars) : (note?.waveform.map((v) => v / 255) ?? [])).map((h, at, all) => (
                   <span
                     key={at}
                     className={styles.recordingBar}

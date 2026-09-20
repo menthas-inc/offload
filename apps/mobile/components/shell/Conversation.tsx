@@ -387,7 +387,7 @@ function Turns() {
               onFinish={() => void finish(turn.id)}
               onOpenPhoto={(index) => openPhoto(turn.id, index)}
               onRetry={() => retry(turn.id)}
-              recording={recording !== null}
+              recording={recording}
             />
             {/* 018. A turn that filed silently and asked back has no reply
                 bubble to hold the question, so the question gets one of its

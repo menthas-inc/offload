@@ -137,7 +137,7 @@ export function SentVoice({
         <span className={styles.sentVoiceTime}>{mmss(remaining)}</span>
       </button>
       {notYet ? (
-        <span className={styles.sentVoiceLine} role="status">
+        <span className={styles.sentVoiceLine} role="alert">
           Not here yet.
         </span>
       ) : null}

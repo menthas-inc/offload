@@ -75,16 +75,23 @@ export function recordingsDirectory(): Directory {
   return new Directory(Paths.cache, "voice");
 }
 
-/** Delete whatever a kill left behind. Called on launch. */
+/** Where a note fetched to be heard waits, briefly. */
+export function playbackDirectory(): Directory {
+  return new Directory(Paths.cache, "voice-play");
+}
+
+/** Delete whatever a kill left behind, in both directories: a note never
+ *  sent and a note fetched to be heard. Called on launch and on sign-out. */
 export function sweepRecordings(): void {
-  try {
-    const dir = recordingsDirectory();
-    if (!dir.exists) return;
-    for (const entry of dir.list()) {
-      if (entry instanceof File) entry.delete();
+  for (const dir of [recordingsDirectory(), playbackDirectory()]) {
+    try {
+      if (!dir.exists) continue;
+      for (const entry of dir.list()) {
+        if (entry instanceof File) entry.delete();
+      }
+    } catch {
+      // A cache directory that cannot be read is one with nothing in it.
     }
-  } catch {
-    // A cache directory that cannot be read is one with nothing in it.
   }
 }
 

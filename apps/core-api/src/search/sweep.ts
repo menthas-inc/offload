@@ -96,15 +96,14 @@ const NOTES = sql<{ id: string; account_id: string | null; version: string }>`
 // 021. What is indexed is `said(text, transcript)`, and a voice note's
 // transcript lands after the message was written: a message that has typed
 // words is swept once at send and again when the transcript arrives, which
-// is what the `transcribed_at` clock is for, and one that is still waiting
-// for its words is not swept at all.
+// is what the `transcribed_at` clock is for, and one with no words yet has
+// nothing to sweep, which `said()` being null already says.
 const MESSAGES = sql<{ id: string; account_id: string | null; version: string }>`
   select m.id::text as id, m.account_id::text as account_id,
          extract(epoch from greatest(m.created_at, coalesce(m.transcribed_at, m.created_at)))::bigint::text as version
   from messages m
   where m.deleted_at is null
     and said(m.text, m.transcript) is not null
-    and not (m.type = 'voice' and m.transcribed_at is null)
     and m.state in ('seen', 'answered')
     and not m.derived_from_untrusted
     and not exists (

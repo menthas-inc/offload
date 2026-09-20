@@ -86,9 +86,11 @@ interface Upload {
   fields: Record<string, string>;
 }
 
-async function readUpload(request: FastifyRequest): Promise<Upload> {
+async function readUpload(request: FastifyRequest, fileSize?: number): Promise<Upload> {
   const upload: Upload = { clientKey: null, name: null, bytes: null, tooBig: false, fields: {} };
-  for await (const part of request.parts()) {
+  // A route's own byte cap, where it is under the plugin's: the body stops
+  // being read at the cap rather than buffered to the larger one.
+  for await (const part of request.parts(fileSize ? { limits: { fileSize } } : undefined)) {
     if (part.type === "file") {
       if (upload.bytes) {
         // One photo per request. A second file is drained and ignored.
@@ -325,7 +327,7 @@ export async function blobRoutes(app: App): Promise<void> {
       const store = objectStore();
       if (!store) return reply.code(503).send({ error: "voice_unavailable" });
 
-      const upload = await readUpload(request);
+      const upload = await readUpload(request, MAX_AUDIO_BYTES);
       if (upload.tooBig) return reply.code(413).send({ error: "too_big" });
       if (!upload.bytes || !upload.clientKey) return reply.code(415).send({ error: "not_a_voice_note" });
       if (upload.bytes.length > MAX_AUDIO_BYTES) return reply.code(413).send({ error: "too_big" });
@@ -421,10 +423,13 @@ export async function blobRoutes(app: App): Promise<void> {
         return reply.code(416).header("Content-Range", `bytes */${bytes.length}`).send();
       }
 
+      // `no-store`: the phones keep the one copy they control and delete
+      // it on pause; a platform cache holding a second decrypted copy would
+      // be one nothing here can reach.
       void reply
         .header("Accept-Ranges", "bytes")
         .header("Content-Type", blob.content_type)
-        .header("Cache-Control", "private, max-age=3600")
+        .header("Cache-Control", "no-store")
         .header("X-Content-Type-Options", "nosniff")
         .header("Content-Disposition", `inline; filename="${audioFilename(blob.content_type)}"`);
       if (!range) {
@@ -613,7 +618,7 @@ export async function blobRoutes(app: App): Promise<void> {
     {
       schema: {
         params: z.object({ id: z.string().uuid() }),
-        body: z.object({ jobId: z.string().uuid(), providerRef: z.string().min(1).max(200) }),
+        body: z.object({ jobId: z.string().uuid(), providerRef: z.string().regex(/^[A-Za-z0-9_-]{1,200}$/) }),
       },
     },
     async (request, reply) => {
@@ -665,12 +670,14 @@ export async function blobRoutes(app: App): Promise<void> {
       const accountId = job.account_id;
 
       const written = await db.transaction().execute(async (trx) => {
+        // Soft-deleted rows included: a turn undone while the worker was
+        // listening still holds a reference at the provider, and the forget
+        // below is the only thing that clears it (OFF-1's egress promise).
         const voice = await trx
           .selectFrom("blobs")
-          .select("id")
+          .select(["id", "deleted_at"])
           .where("message_id", "=", messageId)
           .where("kind", "=", "audio")
-          .where("deleted_at", "is", null)
           .executeTakeFirst();
         if (!voice) return false;
 

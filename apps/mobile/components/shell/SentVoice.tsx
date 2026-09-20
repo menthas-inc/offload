@@ -13,35 +13,26 @@
 // The bytes come down through `fetch` with the session as a header into a
 // cache file, and the player plays the file. Not a URL handed to the player:
 // a native player carries no header (020's lesson with `Image`), and a token
-// in a URL is a credential in a cache. The file goes on pause, on leaving
-// the screen and on sign-out.
+// in a URL is a credential in a cache. The file goes when the note ends, on
+// leaving the screen and on sign-out; a pause keeps it for the resume.
 
 import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { Directory, File, Paths } from "expo-file-system";
+import { File } from "expo-file-system";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { authHeaders } from "../../lib/api";
 import { voiceUrl, type VoiceOnWire } from "../../lib/dump";
-import { mmss } from "../../lib/recorder";
+import { mmss, playbackDirectory, sweepRecordings } from "../../lib/recorder";
 
 /** Past this many characters the transcript folds, roughly four lines. */
 const FOLD_AT = 280;
 
-/** Where a fetched note waits on this device, briefly. */
-function playbackDirectory(): Directory {
-  return new Directory(Paths.cache, "voice-play");
-}
-
-/** Forget every device copy of a note being heard. Sign-out calls this. */
+/** Forget every device copy of a note, heard or not yet sent. Sign-out
+ *  calls this; launch runs the same sweep. */
 export function forgetPlayback(): void {
-  try {
-    const dir = playbackDirectory();
-    if (dir.exists) dir.delete();
-  } catch {
-    // Nothing to forget.
-  }
+  sweepRecordings();
 }
 
 /** One playing at a time across the screen: starting one pauses the other. */
@@ -64,6 +55,7 @@ export function SentVoice({
   const [loaded, setLoaded] = useState<string | null>(null);
   const [state, setState] = useState<"idle" | "playing" | "paused">("idle");
   const fetched = useRef<File | null>(null);
+  const mounted = useRef(true);
 
   const duration = voice.durationMs;
   const positionMs = state === "idle" ? 0 : status.currentTime * 1000;
@@ -82,7 +74,9 @@ export function SentVoice({
 
   useEffect(
     () => () => {
-      // Leaving the screen: paused and forgotten.
+      // Leaving the screen: paused and forgotten. A fetch still in flight
+      // sees `mounted` and deletes what it wrote.
+      mounted.current = false;
       try {
         player.pause();
       } catch {
@@ -116,8 +110,14 @@ export function SentVoice({
     const bytes = new Uint8Array(await response.arrayBuffer());
     const dir = playbackDirectory();
     dir.create({ idempotent: true, intermediates: true });
-    const file = new File(dir, `${voice.blobId}.m4a`);
+    const type = response.headers.get("content-type") ?? "audio/mp4";
+    const extension = type.includes("webm") ? "webm" : type.includes("ogg") ? "ogg" : "m4a";
+    const file = new File(dir, `${voice.blobId}.${extension}`);
     file.write(bytes);
+    if (!mounted.current) {
+      file.delete();
+      return null;
+    }
     fetched.current = file;
     setLoaded(file.uri);
     return file.uri;
@@ -126,9 +126,10 @@ export function SentVoice({
   async function toggle(): Promise<void> {
     if (inert) return;
     if (state === "playing") {
+      // The copy stays for the resume; it goes at the end, on leaving the
+      // screen and on sign-out.
       player.pause();
       setState("paused");
-      forgetCopy();
       return;
     }
     setNotYet(false);

@@ -23,6 +23,8 @@ is not where it belongs.
 from __future__ import annotations
 
 import asyncio
+import logging
+import re
 import time
 from dataclasses import dataclass
 from urllib.parse import urlparse
@@ -55,6 +57,15 @@ AUDIO_END_AT_MS = 600_000
 #: up and retries on the job's own backoff.
 POLL_SECONDS = 3.0
 POLL_LIMIT_SECONDS = 360.0
+
+#: What a reference may look like before it is put in a URL path with our key.
+_REF = re.compile(r"^[A-Za-z0-9_-]{1,200}$")
+
+# httpx logs every request URL at INFO, and the poll and the delete carry the
+# reference in the path. Quiet here rather than trusted to the root logger's
+# level, so a debugging session that raises it does not print them.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 def _url(path: str) -> str:
@@ -132,13 +143,15 @@ async def submit(http: httpx.AsyncClient, cfg: Config, audio: bytes) -> str:
     )
     submitted.raise_for_status()
     ref = submitted.json().get("id")
-    if not isinstance(ref, str) or not ref:
+    if not isinstance(ref, str) or not _REF.match(ref):
         raise TranscriptionFailed("no reference")
     return ref
 
 
 async def poll(http: httpx.AsyncClient, cfg: Config, ref: str, *, started_at: float) -> Transcript:
     """Ask until the provider is done, or until the limit."""
+    if not _REF.match(ref):
+        raise TranscriptionFailed("bad reference")
     headers = _headers(cfg)
     deadline = started_at + POLL_LIMIT_SECONDS
     while True:
@@ -168,6 +181,8 @@ async def poll(http: httpx.AsyncClient, cfg: Config, ref: str, *, started_at: fl
 async def forget(http: httpx.AsyncClient, cfg: Config, ref: str) -> None:
     """Delete the provider's copy of the transcript. Gone and never-there
     are the same outcome; anything else raises so the job retries."""
+    if not _REF.match(ref):
+        return
     response = await http.delete(_url(f"/v2/transcript/{ref}"), headers=_headers(cfg), timeout=30.0)
     if response.status_code == 404:
         return

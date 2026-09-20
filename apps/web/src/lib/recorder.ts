@@ -15,8 +15,9 @@ import { MAX_VOICE_MS, WAVEFORM_BARS } from "./dump";
  *  and which its bubble then says with "Not here yet.". */
 const MIME_TYPES = ["audio/mp4", "audio/webm;codecs=opus", "audio/ogg;codecs=opus"];
 
-/** The kit's live window: the last few seconds, as bars. */
-export const LIVE_BARS = 32;
+/** A bar and its gap, the kit's 3px and 2px. The live window is as many
+ *  bars as the row's width holds at this pitch. */
+export const BAR_PITCH_PX = 5;
 export const SAMPLE_MS = 100;
 
 export interface Recording {
@@ -111,7 +112,9 @@ export class Recorder {
         const rms = Math.sqrt(sum / data.length);
         self.samples.push(rms);
         const elapsed = Date.now() - self.startedAt;
-        self.onSample(self.samples.slice(-LIVE_BARS).map((v) => Math.min(1, v * 3)), elapsed);
+        // Every sample, scaled to a bar: the row slices as many as its
+        // width holds, so the window scales with the row.
+        self.onSample(self.samples.map((v) => Math.min(1, v * 3)), elapsed);
         if (elapsed >= MAX_VOICE_MS) void self.stop();
       }, SAMPLE_MS);
     }

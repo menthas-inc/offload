@@ -1425,8 +1425,12 @@ async def _write_down(
     try:
         await asyncio.shield(task)
     except asyncio.CancelledError:
-        with contextlib.suppress(Exception):
+        try:
             await task
+        except Exception as exc:  # noqa: BLE001
+            # The type only, as everywhere in this file. The turn settles
+            # as cancelled either way; this keeps the failure visible.
+            log.warning("write-down failed under a cancel", error_type=type(exc).__name__)
         raise
 
 

@@ -18,10 +18,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
   AppState,
+  Keyboard,
   Linking,
   Platform,
   Pressable,
@@ -33,7 +35,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useKeepAwake } from "expo-keep-awake";
 import { invitation, MAX_PHOTOS } from "../../lib/dump";
-import { mmss } from "../../lib/recorder";
+import { mmss, SAMPLE_MS } from "../../lib/recorder";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { AttachChip } from "./AttachChip";
@@ -78,30 +80,57 @@ function KeepAwake() {
 
 /** 021. The kit's recording row, in place of the field. The dot while it
  *  records and not after; the time; the window of bars growing from the
- *  right. Reduced motion is handled by the tokens' rule, not here. */
+ *  right. While recording, the row reads the live window from the
+ *  provider's store on its own clock, so nothing else re-renders ten times
+ *  a second. The dot blinks on a timer that reduced motion turns off; the
+ *  row's meaning never depends on it. A screen reader hears "Recording"
+ *  once and "Stopped, 0:14" once, never the running seconds. */
 function RecordingRow({
-  live,
-  elapsedMs,
+  liveSamples,
   stopped,
+  note,
   color,
 }: {
-  live: number[];
-  elapsedMs: number;
+  liveSamples: { current: { live: number[]; elapsedMs: number } };
   stopped: boolean;
+  note: { durationMs: number; waveform: number[] } | null;
   color: ReturnType<typeof useColors>;
 }) {
   const [dim, setDim] = useState(false);
+  const [tick, setTick] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
   useEffect(() => {
-    if (stopped) return;
+    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduceMotion);
+    return () => sub.remove();
+  }, []);
+  useEffect(() => {
+    if (stopped || reduceMotion) {
+      setDim(false);
+      return;
+    }
     const timer = setInterval(() => setDim((d) => !d), 600);
     return () => clearInterval(timer);
+  }, [stopped, reduceMotion]);
+  useEffect(() => {
+    if (stopped) return;
+    const timer = setInterval(() => setTick((n) => n + 1), SAMPLE_MS);
+    return () => clearInterval(timer);
   }, [stopped]);
+  useEffect(() => {
+    AccessibilityInfo.announceForAccessibility(
+      stopped ? `Stopped, ${mmss(note?.durationMs ?? liveSamples.current.elapsedMs)}` : "Recording",
+    );
+    // Once per transition, which is what the two dependencies are.
+  }, [stopped, note, liveSamples]);
+  void tick;
+  const live = stopped ? (note?.waveform.map((v) => v / 255) ?? []) : liveSamples.current.live;
+  const elapsedMs = stopped ? (note?.durationMs ?? 0) : liveSamples.current.elapsedMs;
   return (
     <View
       className="flex-1 flex-row items-center gap-space-3"
       style={{ minHeight: 34, paddingVertical: 7 }}
       accessibilityRole="none"
-      accessibilityLabel={stopped ? `Stopped, ${mmss(elapsedMs)}` : "Recording"}
     >
       {stopped ? null : (
         <View
@@ -111,7 +140,6 @@ function RecordingRow({
       <Text
         className="font-core"
         style={{ fontSize: 12.5, color: color.iconOnWell, fontVariant: ["tabular-nums"] }}
-        accessibilityLiveRegion="polite"
       >
         {mmss(elapsedMs)}
       </Text>
@@ -123,7 +151,8 @@ function RecordingRow({
               width: 3,
               borderRadius: 2,
               height: Math.max(3, Math.round(h * 24)),
-              backgroundColor: color.ink,
+              // The kit's pair: `--a-on` on Android, `--text-primary` elsewhere.
+              backgroundColor: isAndroid ? color.tabOn : color.ink,
               opacity: 0.35 + 0.65 * (at / Math.max(1, live.length)),
             }}
           />
@@ -166,14 +195,11 @@ export function Composer({
     focusRequest,
     recording,
     note,
+    liveSamples,
     startRecording,
     discardRecording,
   } = useConversation();
-  const holdsNote = !pin && (recording !== null || note !== null);
-  // 021. The field gives way to the row, so the keyboard drops with it.
-  useEffect(() => {
-    if (recording) field.current?.blur();
-  }, [recording]);
+  const holdsNote = !pin && (recording || note !== null);
   const [sending, setSending] = useState(false);
   // 018. Precedence: a pinned `+` field is never taken over, then the open
   // question, then whatever the screen asked for, then the cycling set.
@@ -350,13 +376,8 @@ export function Composer({
         ) : null}
         {holdsNote ? (
           <>
-            <KeepAwake />
-            <RecordingRow
-              live={recording ? recording.live : (note?.waveform.map((v) => v / 255) ?? [])}
-              elapsedMs={recording ? recording.elapsedMs : (note?.durationMs ?? 0)}
-              stopped={recording === null}
-              color={COLOR}
-            />
+            {recording ? <KeepAwake /> : null}
+            <RecordingRow liveSamples={liveSamples} stopped={!recording} note={note} color={COLOR} />
           </>
         ) : (
         <TextInput
@@ -437,7 +458,13 @@ export function Composer({
               </Pressable>
             ) : (
               <Pressable
-                onPress={() => void startRecording()}
+                onPress={() => {
+                  // The field gives way to the row, so the keyboard drops
+                  // first: a view removed under the keyboard does not
+                  // reliably take it down on Android.
+                  Keyboard.dismiss();
+                  void startRecording();
+                }}
                 disabled={sending || writing}
                 hitSlop={5}
                 accessibilityLabel="Voice note"
@@ -472,6 +499,14 @@ export function Composer({
           <Text className="font-core text-text-danger" style={{ fontSize: 13 }}>
             {line.text}
           </Text>
+          {/* 021. The way forward beside the line, when there is one. */}
+          {line.action ? (
+            <Pressable onPress={line.action.onPress} hitSlop={8}>
+              <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13 }}>
+                {line.action.label}
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable onPress={clearLine} hitSlop={15} accessibilityLabel="Dismiss" className="ml-auto">
             <Glyph name="x" size={14} color={COLOR.iconOnWell} />
           </Pressable>

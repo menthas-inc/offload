@@ -1512,10 +1512,14 @@ export async function threadRoutes(app: App): Promise<void> {
         // Provenance is the dump and the author, never the history of where
         // this has been. Content that moved must not carry its old thread's
         // name to people who were never in it.
+        // 021. The message's words are `said(text, transcript)`: a spoken
+        // dump's words reach provenance exactly as typed ones do, since a row
+        // filed into a shared thread already points members at the words it
+        // came from. The audio never does; it is the dumper's alone.
         const from = row.fromMessageId
           ? await db
               .selectFrom("messages")
-              .select(["id", "text", "created_at"])
+              .select(["id", sql<string | null>`said(text, transcript)`.as("text"), "created_at"])
               .where("id", "=", row.fromMessageId)
               .where("deleted_at", "is", null)
               .executeTakeFirst()

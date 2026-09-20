@@ -1411,6 +1411,9 @@ export async function dumpRoutes(app: App): Promise<void> {
               threads: step.threads,
               changed: step.changed,
               sources: step.sources,
+              // 021. The transcript rides the settlement too, for a wake that
+              // sees the write and the reply together.
+              voice: (await voiceForAll([message.id], accountId)).get(message.id) ?? null,
               waiting: (await waitingFor([message.id])).get(message.id) ?? null,
               // 018. The question, with the turn that asked it.
               question: (await questionsFor(accountId, [message.id])).get(message.id) ?? null,
@@ -1423,7 +1426,12 @@ export async function dumpRoutes(app: App): Promise<void> {
             return finish();
           }
           if (step.do === "failed") {
-            send("failed", { state: "failed" });
+            send("failed", {
+              state: "failed",
+              // 021. Whether the words were written before the turn failed
+              // decides which line the bubble draws.
+              voice: (await voiceForAll([message.id], accountId)).get(message.id) ?? null,
+            });
             return finish();
           }
           if (step.do === "close") return finish();
