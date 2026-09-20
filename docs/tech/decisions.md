@@ -803,6 +803,8 @@ Three reviewers over the whole branch. Two findings would have shipped a feature
 
 **After, twice each:** 08 at 24/26 then 23/26, 23 photos at 21/22. The judge now sees what each calendar write came back as (held, asked, refused, written), is told that silence after a filing is the design and that the hour is not a fault unless the rubric names one, and the four cases whose rubric only restated `say: null` lost the rubric.
 
+**What the two reviews found, same day.** The Postgres fallback for an unknown zone ran inside the transaction the refusal had aborted, so it could never run: the name is checked in Python first. ICU accepts `+0500` and resolves it to `+05:00`, which Postgres reads with the opposite sign, so the API stores the name ICU resolves to, held to the alphabet, and the column carries a check. The phones sent the header on every request while the privacy page said "each thing you dump"; they send it on the three routes now, like the web, and the page names the three. A decline is recorded on the outcome and logged, so an authorisation refusal firing is still auditable now that `failed` no longer holds it; only a 400 or 422 is the model's own mistake.
+
 **Left alone on purpose.** The prompt line changes touch every principle that names `plan_v2.md`; those have not been rerun in this batch, and the next full run is what says whether anything else moved.
 
 **Design system impact:** none.
