@@ -11,6 +11,19 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-20 · The thread's head is one line on the phones, as it is on the web
+**Surface:** iOS, Android
+
+**Was:** `ThreadScreen.jsx` and `M3ThreadScreen.jsx` draw the thread's name as a title-1 heading inside the scroll, with the people chips and a Share chip under it, and a bar above holding back, Share and More. The app followed the kits: the bar carried back and the calendar, the name and the Share chip sat in the scroll and rolled away, and there was no More at all, so nothing on a phone renamed a thread or added a note to one that had none.
+
+**Is:** the bar is the head, one line, the shape `WPaneHead` gives the web: the back chevron, the name, then Share, the calendar when the account has a connection, and More. More holds what the web's ellipsis holds, in its order: Rename thread, Add a note, and Calendars in this thread. Rename opens the same sheet a row's title does; Add a note raises the composer pinned to the thread, which is what the Notes section's `+` already did. The scroll starts at the first section. What stays above it is who else is in and the standing, only when there is either; a thread that is just you with no standing has nothing there.
+
+**Why:** the name in the scroll left the bar nearly empty, spent the top of every thread on a heading a person had just tapped, and the two-level head was the one place the phones and the web disagreed on what a thread's page is. The controls that were missing were missing because the kit's bar had nowhere to put them and the chips under the heading were not it.
+
+**The checkbox, the tile and the row's tools are centred on the row**, on the phones as `ListRow` centres its leading and trailing on the web. The phone row aligned them to the first line with a two-point nudge, which read as misaligned the moment a row had a second line, and the web's row had centred them since 007.
+
+**Design system impact:** both phone thread kits want the `Standing` heading moved into the `AppBar` as its title and the Share chip replaced by the bar's own share control, with `ellipsis` gaining a menu of Rename thread, Add a note and Calendars in this thread. `Checkbox` keeps its own first-line alignment for a standalone tick with a label; inside a `ListRow` the row's centring wins, which is worth one line in `ListRow`'s contract.
+
 ### 2026-09-20 · A write is drawn before it is sent, and a refused one comes back with a word
 **Surface:** web, iOS, Android
 

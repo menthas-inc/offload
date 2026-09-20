@@ -246,7 +246,7 @@ export function ContentRowView({
       <GestureDetector gesture={Gesture.Simultaneous(pan, long)}>
         <Animated.View
           style={sliding}
-          className={`flex-row items-start gap-space-5 px-gutter-screen py-space-4 ${
+          className={`flex-row items-center gap-space-5 px-gutter-screen py-space-4 ${
             border ? "border-b border-border-hairline" : ""
           }`}
         >
@@ -277,7 +277,6 @@ export function ContentRowView({
               style={{
                 width: 21,
                 height: 21,
-                marginTop: 2,
                 borderColor: row.doneAt ? COLOR.accent : COLOR.iconOnWell,
                 backgroundColor: row.doneAt ? COLOR.accent : "transparent",
               }}
@@ -437,7 +436,7 @@ export function ContentRowView({
            *  is not the author's alone. */}
           <View
             className="flex-row items-center gap-space-6"
-            style={[{ marginTop: 1 }, hidden]}
+            style={hidden}
             pointerEvents={provisional ? "none" : "auto"}
             accessibilityElementsHidden={provisional}
           >

@@ -1,8 +1,10 @@
 // One thread, from ui_kits/mobile_app/ThreadScreen.jsx.
 //
-// The app bar carries back, Share and More, and nothing else: **the name is a
-// heading inside the scroll**, not in the bar, which is the kit's own layout and
-// the opposite of the web's pane head.
+// The app bar carries back, the name, Share, the calendar and More, one line,
+// the same head the web draws. The kit puts the name as a heading inside the
+// scroll with Share as a chip under it; that was built and then unbuilt on
+// 2026-09-20, with an entry in the design system's log. Rename and Add a note
+// are under More, where the web keeps them.
 //
 // Four things the kit does not draw and this does, each with an entry in the
 // design system's log:
@@ -64,8 +66,10 @@ import {
   fetchThread,
   isProvisional,
   moveContent,
+  NOTE_CHARS,
   provisionalNote,
   provisionalRow,
+  renameThread,
   setArchived,
   setPriority,
   startsAs,
@@ -101,9 +105,12 @@ export default function Thread() {
   // 019. The calendars sheet, and a counter bumped when the picks change so
   // the rail reads the calendars again.
   const [calendarsOpen, setCalendarsOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [naming, setNaming] = useState(false);
   const [calendarsVersion, setCalendarsVersion] = useState(0);
   const toast = useToast();
-  const { filed, setOnScreen, provisional: inFlight, adoptProvisional } = useConversation();
+  const { filed, setOnScreen, provisional: inFlight, adoptProvisional, raiseFor } =
+    useConversation();
 
   // The `+` writes in flight for this thread, drawn from the composer's list
   // rather than from the server: the row is on screen at the press, with the
@@ -344,6 +351,28 @@ export default function Thread() {
     );
   }
 
+  /** The thread's name. Co-owned, so anybody in it may change it, and undone
+   *  the same way a row's rename is. */
+  function renameThreadTo(name: string): void {
+    if (!thread) return;
+    const previous = thread.name;
+    const draw = (value: string) =>
+      setThread((current) => (current ? { ...current, name: value } : current));
+    void perform(
+      {
+        apply: () => draw(name),
+        revert: () => draw(previous),
+        write: () => renameThread(id, name).then((result) => result !== null),
+        unwrite: () => renameThread(id, previous).then((result) => result !== null),
+        did: "Renamed",
+        failed: "Couldn't rename that",
+        unfailed: "Couldn't put the name back",
+      },
+      toast,
+      writes,
+    );
+  }
+
   /** 020. Move, by hand, from the row's own sheet. The author's, like delete,
    *  and the picture goes with the row: the server adjusts its wraps in the
    *  same transaction. The row leaves this list at the press and comes back
@@ -574,33 +603,33 @@ export default function Thread() {
       ]
     : [];
 
+  const others = thread.members.filter((member) => !member.isYou);
+
   return (
     <SafeAreaView
       className={`flex-1 ${isAndroid ? "bg-a-surface" : "bg-surface-page"}`}
       edges={["top"]}
     >
       <Bar
+        title={thread.name}
         onBack={() => router.back()}
         // 019. The calendar glyph, drawn whenever the account has a connection
         // at all, with no badge or count in any state: the accessible name
         // carries the state.
         calendars={thread.calendars}
         onCalendars={() => setCalendarsOpen(true)}
+        onMore={() => setMoreOpen(true)}
       />
 
       <ScrollView contentContainerClassName="pb-space-9">
-        <View className="px-gutter-screen pb-space-8 pt-space-7">
-          <Text
-            className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
-            style={{ fontSize: 28, lineHeight: 34, letterSpacing: -0.5 }}
-          >
-            {thread.name}
-          </Text>
-
-          <View className="mt-space-5 flex-row flex-wrap gap-space-3">
-            {thread.members
-              .filter((member) => !member.isYou)
-              .map((member) => (
+        {/* Who else is in, then what offload holds to be true of the thread.
+            The name is in the bar, so with neither there is nothing here and
+            the first section starts at the top. */}
+        {others.length > 0 || thread.standing ? (
+        <View className="px-gutter-screen pb-space-8 pt-space-5">
+          {others.length > 0 ? (
+          <View className="flex-row flex-wrap gap-space-3">
+            {others.map((member) => (
                 <View
                   key={member.accountId}
                   className="flex-row items-center gap-space-2 rounded-pill bg-surface-fill px-space-5"
@@ -615,25 +644,14 @@ export default function Thread() {
                   </Text>
                 </View>
               ))}
-            <View
-              className="flex-row items-center gap-space-2 rounded-pill border border-border-hairline px-space-5"
-              style={{ height: 30, opacity: 0.55 }}
-            >
-              <Glyph name="share-2" size={14} color={COLOR.iconOnWell} />
-              <Text
-                className="font-core text-text-secondary"
-                style={{ fontSize: 13 }}
-              >
-                Share
-              </Text>
-            </View>
           </View>
+          ) : null}
 
           {/* Only when there is one. */}
           {thread.standing ? (
             <>
               <Text
-                className="mt-space-7 font-quiet text-text-primary"
+                className={`font-quiet text-text-primary ${others.length > 0 ? "mt-space-7" : ""}`}
                 style={{ fontSize: 18, lineHeight: 27 }}
               >
                 {thread.standing}
@@ -650,6 +668,7 @@ export default function Thread() {
             </>
           ) : null}
         </View>
+        ) : null}
 
         {/* The rail is above the widgets, and only on a thread with something
             dated. It is not a widget: it lists every kind with a date rather
@@ -846,6 +865,43 @@ export default function Thread() {
         actions={actions}
         onClose={() => setActing(null)}
       />
+      {/* The head's More: what the web keeps under its ellipsis, in its order.
+          The calendars are reachable both ways, as there. */}
+      <RowActionSheet
+        open={moreOpen}
+        actions={[
+          { label: "Rename thread", icon: "pencil", run: () => setNaming(true) },
+          {
+            label: "Add a note",
+            icon: "brain",
+            run: () =>
+              raiseFor({
+                threadId: thread.id,
+                threadName: thread.name,
+                write: "note",
+                title: "Add a note",
+                placeholder: "What is true about this thread?",
+                charLimit: NOTE_CHARS,
+                showCounter: true,
+              }),
+          },
+          ...(thread.calendars
+            ? [{ label: "Calendars in this thread", icon: "calendar", run: () => setCalendarsOpen(true) }]
+            : []),
+        ]}
+        onClose={() => setMoreOpen(false)}
+      />
+      {naming ? (
+        <EditSheet
+          initial={thread.name}
+          placeholder="What is it about?"
+          onClose={() => setNaming(false)}
+          onSave={(name) => {
+            setNaming(false);
+            if (name !== thread.name) renameThreadTo(name);
+          }}
+        />
+      ) : null}
       <MoveSheet
         open={moving !== null}
         exceptThreadId={id}
@@ -873,34 +929,62 @@ export default function Thread() {
 }
 
 function Bar({
+  title,
   onBack,
   calendars,
   onCalendars,
+  onMore,
 }: {
+  /** Neither while the thread loads: the bar is the back chevron alone. */
+  title?: string;
   onBack: () => void;
   calendars: { picked: number; total: number } | null;
   onCalendars: () => void;
+  onMore?: () => void;
 }) {
   const COLOR = useColors();
   return (
-    <View className="h-appbar-height flex-row items-center px-gutter-screen">
+    <View className="h-appbar-height flex-row items-center gap-space-4 px-gutter-screen">
       <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back">
         <Glyph name="chevron-left" size={22} color={COLOR.iconOnWell} />
       </Pressable>
-      <View className="flex-1" />
-      {/* The bar's one trailing control until share and the ellipsis are
-          built: left of both when they are. A bare glyph, as the back chevron
-          and every bar control on the phones: the kit's `IconButton` in a bar
-          is the ghost one, and a filled circle here read as a state. */}
-      {calendars ? (
-        <Pressable
-          onPress={onCalendars}
-          hitSlop={10}
+      <Text
+        numberOfLines={1}
+        className={`flex-1 font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+        style={{ fontSize: 17 }}
+      >
+        {title}
+      </Text>
+      {/* Bare glyphs, as the back chevron and every bar control on the phones:
+          the kit's `IconButton` in a bar is the ghost one, and a filled circle
+          here read as a state. Share first, then the calendar, then More: the
+          web's aside, tools and ellipsis, in that order. */}
+      {onMore ? (
+      <View className="flex-row items-center gap-space-5">
+        {/* Inert until inviting exists. Drawn because the bar without it is a
+            different screen from the one designed. */}
+        <View
+          style={{ opacity: 0.55 }}
           accessibilityRole="button"
-          accessibilityLabel={calendarsLabel(calendars.picked, calendars.total)}
+          accessibilityLabel="Share"
+          accessibilityState={{ disabled: true }}
         >
-          <Glyph name="calendar" size={21} color={COLOR.iconOnWell} />
+          <Glyph name="share-2" size={21} color={COLOR.iconOnWell} />
+        </View>
+        {calendars ? (
+          <Pressable
+            onPress={onCalendars}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={calendarsLabel(calendars.picked, calendars.total)}
+          >
+            <Glyph name="calendar" size={21} color={COLOR.iconOnWell} />
+          </Pressable>
+        ) : null}
+        <Pressable onPress={onMore} hitSlop={10} accessibilityRole="button" accessibilityLabel="More">
+          <Glyph name="ellipsis" size={21} color={COLOR.iconOnWell} />
         </Pressable>
+      </View>
       ) : null}
     </View>
   );
@@ -934,21 +1018,81 @@ function TitleSheet({
   onRemove: (row: ContentRow) => void;
 }) {
   const COLOR = useColors();
+  if (!row) return null;
+
+  return (
+    <EditSheet
+      initial={row.title}
+      placeholder="What is it?"
+      onClose={onClose}
+      onSave={(title) => (title === row.title ? onClose() : onSave(row, title))}
+      leading={
+        /* One way out, never two, and the same rule the action sheet states:
+           your own content offers Delete, somebody else's offers Archive,
+           because OFF-3 says you may not destroy what another person wrote.
+           An archived row offers the way back instead. */
+        <Pressable
+          onPress={() => onRemove(row)}
+          accessibilityLabel={
+            row.archivedAt ? "Put back in the thread" : row.canDelete ? "Delete" : "Archive"
+          }
+          className="mr-auto flex-row items-center gap-space-2 rounded-pill border border-border-hairline px-space-5"
+          style={{ height: 30 }}
+        >
+          <Glyph
+            name={row.archivedAt ? "rewind" : row.canDelete ? "trash-2" : "archive"}
+            size={14}
+            color={row.archivedAt || !row.canDelete ? COLOR.iconOnWell : COLOR.danger}
+          />
+          <Text
+            className={`font-core font-medium ${
+              row.archivedAt || !row.canDelete ? "text-text-secondary" : "text-text-danger"
+            }`}
+            style={{ fontSize: 13 }}
+          >
+            {row.archivedAt ? "Put back" : row.canDelete ? "Delete" : "Archive"}
+          </Text>
+        </Pressable>
+      }
+    />
+  );
+}
+
+/** One line of text, edited in a sheet: a row's title, the thread's name.
+ *
+ *  Mounted only while open, and keyed by whoever opens it, so the field starts
+ *  out holding its text: filling it from an effect meant the sheet mounted
+ *  empty and then caught up, and on a device it stayed empty. */
+function EditSheet({
+  initial,
+  placeholder,
+  onClose,
+  onSave,
+  leading,
+}: {
+  initial: string;
+  placeholder: string;
+  onClose: () => void;
+  /** The text, trimmed and never empty. The sheet closes at the press and
+   *  the screen writes it, so the keyboard is never held up for a round trip. */
+  onSave: (text: string) => void;
+  /** A control at the start of the button row, before Cancel and Save. */
+  leading?: React.ReactNode;
+}) {
+  const COLOR = useColors();
   // Same reason as the action sheet: this is anchored to the bottom of a screen
   // and the plate is mounted above the router.
-  useScreenSheet(row !== null);
-  const [draft, setDraft] = useState(row?.title ?? "");
+  useScreenSheet(true);
+  const [draft, setDraft] = useState(initial);
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const lift = useAnimatedStyle(() => ({
     transform: [{ translateY: keyboardHeight.value }],
   }));
 
-  if (!row) return null;
-
   function save(): void {
-    const title = draft.trim();
-    if (!row || title.length === 0 || title === row.title) return onClose();
-    onSave(row, title);
+    const text = draft.trim();
+    if (text.length === 0) return onClose();
+    onSave(text);
   }
 
   return (
@@ -980,7 +1124,7 @@ function TitleSheet({
           value={draft}
           onChangeText={setDraft}
           autoFocus
-          placeholder="What is it?"
+          placeholder={placeholder}
           placeholderTextColor={COLOR.iconOnWell}
           className={`rounded-sm border border-border-hairline px-space-4 py-space-3 font-core ${
             isAndroid ? "text-a-on" : "text-text-primary"
@@ -990,39 +1134,8 @@ function TitleSheet({
           returnKeyType="done"
         />
 
-        <View className="mt-space-4 flex-row items-center gap-space-4">
-          {/* One way out, never two, and the same rule the action sheet
-              states: your own content offers Delete, somebody else's offers
-              Archive, because OFF-3 says you may not destroy what another
-              person wrote. An archived row offers the way back instead. */}
-          <Pressable
-            onPress={() => (row ? onRemove(row) : onClose())}
-            accessibilityLabel={
-              row?.archivedAt
-                ? "Put back in the thread"
-                : row?.canDelete
-                  ? "Delete"
-                  : "Archive"
-            }
-            className="mr-auto flex-row items-center gap-space-2 rounded-pill border border-border-hairline px-space-5"
-            style={{ height: 30 }}
-          >
-            <Glyph
-              name={
-                row?.archivedAt ? "rewind" : row?.canDelete ? "trash-2" : "archive"
-              }
-              size={14}
-              color={row?.archivedAt || !row?.canDelete ? COLOR.iconOnWell : COLOR.danger}
-            />
-            <Text
-              className={`font-core font-medium ${
-                row?.archivedAt || !row?.canDelete ? "text-text-secondary" : "text-text-danger"
-              }`}
-              style={{ fontSize: 13 }}
-            >
-              {row?.archivedAt ? "Put back" : row?.canDelete ? "Delete" : "Archive"}
-            </Text>
-          </Pressable>
+        <View className="mt-space-4 flex-row items-center justify-end gap-space-4">
+          {leading}
 
           <Pressable
             onPress={onClose}
