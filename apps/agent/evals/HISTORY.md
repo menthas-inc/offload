@@ -11,6 +11,12 @@ and is not committed.
 | 2026-09-17 11:41 | all | 1 | 413/459 (90%) |  | `claude-opus-5` | `not recorded` | `uncommitted` | whole set with filing and quick add on Opus, original prompts, 27 newly labelled cases included |
 | 2026-09-17 11:49 | all | 3 | 261/459 (57%) |  | `claude-opus-5` | `not recorded` | `uncommitted` | runs=3 after the code and prompt changes; the account ran out of credit after principle 13, 155 errors |
 | 2026-09-17 12:26 | all | 1 | 415/459 (90%) | $6.83 | `claude-sonnet-5` | `not recorded` | `uncommitted` | rewritten plan_v2 at about half the tokens, Sonnet filing, one run |
+| 2026-09-20 18:50 | 23 | 2 | 13/22 (59%) | $0.63 | `claude-sonnet-5` | `b64294d0` | `0e09566` | 020 photos, first run, twice |
+| 2026-09-20 18:50 | 08 | 2 | 13/26 (50%) | $0.99 | `claude-sonnet-5` | `b64294d0` | `0e09566` | 019 calendars per thread, first run of the 14 new cases, twice |
+| 2026-09-20 19:08 | 23 | 2 | 18/21 (86%) | $0.60 | `claude-sonnet-5` | `b64294d0` | `0e09566` | 020 photos, second run after the case repairs and the drawn beach |
+| 2026-09-20 19:08 | 08 | 2 | 18/26 (69%) | $0.96 | `claude-sonnet-5` | `b64294d0` | `0e09566` | 019 calendars, second run with results in the judge's transcript and the untrusted event on the right Thursday |
+| 2026-09-20 19:09 | 08 | 2 | 13/26 (50%) | $1.02 | `claude-sonnet-5` | `b64294d0` | `0e09566` | 019 calendars, the same cases with the judge on Sonnet 5, to price the judge |
+| 2026-09-20 19:11 | 08 | 2 | 14/26 (54%) | $1.04 | `claude-sonnet-5` | `b64294d0` | `0e09566` | 019 calendars, the judge told about silence and time zones |
 
 ## Full runs by principle
 

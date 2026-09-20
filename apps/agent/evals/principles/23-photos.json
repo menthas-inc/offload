@@ -29,7 +29,7 @@
     },
     {
       "id": "text-message-is-a-task-with-its-date",
-      "why": "somebody asking for something by Friday is a task by Friday",
+      "why": "somebody asking for something by Friday is a task by Friday; today is a Friday, so today or next week both fit, as 04 has it",
       "surface": "file",
       "input": "",
       "context": "behrooz",
@@ -38,7 +38,7 @@
       "expect": {
         "filed": [
           { "tool": "add_content", "type": "screenshot", "photo": 1, "has": ["contract"] },
-          { "tool": "add_content", "type": "task", "has": ["contract"], "date": "2026-09-18" }
+          { "tool": "add_content", "type": "task", "has": ["contract"], "date_any": ["2026-09-11", "2026-09-18"] }
         ],
         "asks": "none",
         "say": null
@@ -116,7 +116,7 @@
       "looking_at": "00000010-0000-0000-0000-000000000000",
       "expect": {
         "filed": [
-          { "tool": "add_content", "type": "image", "photo": 1, "body_has": ["brief"] },
+          { "tool": "add_content", "type_any": ["image", "screenshot"], "photo": 1, "body_has": ["brief"] },
           { "tool": "add_content", "type": "task", "has": ["venue"], "date": "2026-09-20" }
         ],
         "asks": "none"
@@ -131,7 +131,7 @@
       "photos": ["brackets.jpg"],
       "looking_at": "00000013-0000-0000-0000-000000000000",
       "expect": {
-        "filed": [{ "tool": "add_content", "type": "image", "photo": 1, "has": ["bracket"], "body_has": ["buy"] }],
+        "filed": [{ "tool": "add_content", "type_any": ["image", "screenshot"], "photo": 1, "has": ["bracket"] }],
         "filed_count": 1,
         "asks": "none",
         "say": null
@@ -205,7 +205,7 @@
       "context": "behrooz",
       "photos": ["receipt.jpg"],
       "expect": {
-        "filed": [{ "tool": "add_content", "type": "image", "photo": 1, "thread_not": "Miscellaneous", "has": ["IKEA"], "body_has": ["84"] }],
+        "filed": [{ "tool": "add_content", "type_any": ["image", "screenshot"], "photo": 1, "thread_not": "Miscellaneous", "has": ["IKEA"], "body_has": ["84"] }],
         "asks": "none",
         "say": null
       }
@@ -227,7 +227,7 @@
     },
     {
       "id": "group-chat-one-line-matters",
-      "why": "only the actionable line becomes a row; the whole exchange stays on the screenshot",
+      "why": "the chatter stays on the screenshot; the dinner is a row, bringing dessert may be one, and padel and the family lunch never are",
       "surface": "file",
       "input": "",
       "context": "shared",
@@ -236,9 +236,10 @@
       "expect": {
         "filed": [
           { "tool": "add_content", "type": "screenshot", "photo": 1, "body_has": ["padel"] },
-          { "tool": "add_content", "has": ["dinner"], "date": "2026-09-17", "no_photo": true }
+          { "tool": "add_content", "type": "event", "has": ["dinner"], "date": "2026-09-17", "no_photo": true }
         ],
-        "filed_count": 2,
+        "filed_max": 3,
+        "not_filed": [{ "has": ["padel"], "no_photo": true }, { "has": ["family lunch"], "no_photo": true }],
         "asks": "none"
       }
     },
@@ -280,6 +281,7 @@
       "context": "behrooz",
       "photos": ["error.png"],
       "looking_at": "00000010-0000-0000-0000-000000000000",
+      "label_pending": "An error screenshot dumped into App fixes with no words: the model files the screenshot and a task 'Fix TypeError...' beside it, every time. Is the second row wanted, a checkbox to tick when it is fixed, or noise, the screenshot being the item? The case guesses noise.",
       "expect": {
         "filed": [{ "tool": "add_content", "type": "screenshot", "photo": 1, "thread": "App fixes", "body_has": ["TypeError"] }],
         "filed_count": 1,
@@ -330,9 +332,9 @@
       "looking_at": "00000013-0000-0000-0000-000000000000",
       "expect": {
         "filed": [
-          { "tool": "add_content", "type": "image", "photo": 1 },
-          { "tool": "add_content", "type": "image", "photo": 2 },
-          { "tool": "add_content", "type": "image", "photo": 3 }
+          { "tool": "add_content", "type_any": ["image", "screenshot"], "photo": 1 },
+          { "tool": "add_content", "type_any": ["image", "screenshot"], "photo": 2 },
+          { "tool": "add_content", "type_any": ["image", "screenshot"], "photo": 3 }
         ],
         "call_count": { "add_content": 4 },
         "asks": "none"

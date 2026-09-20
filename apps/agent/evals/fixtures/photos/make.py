@@ -65,6 +65,36 @@ def photo(label: str, size=(1600, 1200), colour=(120, 160, 110)) -> Image.Image:
     return im
 
 
+def beach(size=(1600, 1200)) -> Image.Image:
+    """A beach with nothing written on it: sky, a sun, the sea with a few
+    wave lines, wet sand, dry sand. Drawn rather than photographed, like the
+    rest, but drawn as a scene: two flat blue rectangles read to the model as
+    nothing at all, and the case about a wordless photo got "could not make
+    out the photo" instead of the question it exists to test."""
+    w, h = size
+    im = Image.new("RGB", size, (150, 200, 240))
+    d = ImageDraw.Draw(im)
+    # Sky, lighter towards the horizon.
+    horizon = int(h * 0.45)
+    for y in range(horizon):
+        t = y / horizon
+        d.line([(0, y), (w, y)], fill=(int(120 + 80 * t), int(180 + 40 * t), int(235 + 10 * t)))
+    d.ellipse([w * 0.72, h * 0.10, w * 0.82, h * 0.10 + w * 0.10], fill=(255, 240, 180))
+    # Sea, darker at the horizon, with foam lines nearer the shore.
+    shore = int(h * 0.72)
+    for y in range(horizon, shore):
+        t = (y - horizon) / (shore - horizon)
+        d.line([(0, y), (w, y)], fill=(int(30 + 60 * t), int(110 + 70 * t), int(170 + 50 * t)))
+    for k in range(4):
+        y = int(shore - 30 - k * 55)
+        for x in range(k * 40, w, 260):
+            d.arc([x, y - 12, x + 180, y + 12], 0, 180, fill=(235, 245, 250), width=4)
+    # Wet sand, then dry sand.
+    d.rectangle([0, shore, w, int(h * 0.80)], fill=(196, 176, 140))
+    d.rectangle([0, int(h * 0.80), w, h], fill=(226, 208, 168))
+    return im
+
+
 def exif(
     taken: str | None = "2026:08:11 14:03:00",
     gps: tuple[float, float] | None = (38.7169, -9.1399),
@@ -162,7 +192,7 @@ def main() -> None:
             "NO. C123456\nDOB 03 05 1991",
             colour=(120, 40, 40),
         ),
-        "beach.jpg": photo("", colour=(90, 150, 200)),
+        "beach.jpg": beach(),
         "group-chat.png": screenshot(
             [
                 "Tom: anyone up for padel sunday",
