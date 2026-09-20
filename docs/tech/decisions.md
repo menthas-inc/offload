@@ -806,6 +806,8 @@ Three reviewers over the whole branch. Two findings would have shipped a feature
 
 **The `/api/connectors` contract changes shape and the phone builds before it are dead on deploy.** The old clients title a calendar by `summary`, which is `name` now, and only enable a tick when `threadId` is set, which nothing sends. The response is not aliased for them: the app is in alpha with invite-only accounts, every tester rebuilds through EAS, and an alias would carry 012's model one release further for a client nobody keeps.
 
+**A connection's state gates the token step and nothing else** *(added 2026-09-19)*. The first day in production found a grant that had lapsed on the 15th: Settings showed two ticked calendars and the thread sheet said there were none to read, because every read filtered on `state = 'active'`. Approval is the person's decision and it stands through a sign-in Google now wants, so the picks, the counts, the sheet and the events already held read regardless of state, and `accessTokenFor` is the one place that reads it, refusing a lapsed grant by name and without a network call. Google's refresh tokens for an app still in testing lapse after seven days, so this is the ordinary state for the alpha, not an edge.
+
 **Design system impact:** recorded in the design log's entry of the same date.
 
 ### 2026-09-17 · Filing moves to Opus, and three prompt rules move into code

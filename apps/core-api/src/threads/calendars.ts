@@ -34,7 +34,15 @@ export interface ThreadCalendars {
   others: Array<{ displayName: string; count: number }>;
 }
 
-/** The viewer's approved calendars against this thread, with the pick on each. */
+/** The viewer's approved calendars against this thread, with the pick on each.
+ *
+ *  **A connection's state gates the token step and nothing else.** An approved
+ *  calendar stays approved through a sign-in Google now wants: its picks, its
+ *  count, its rows here and the events already held all read as before, and a
+ *  write reaches `accessTokenFor`, which is the one place that knows, and
+ *  refuses `needs_reconnect`. Found in production on 2026-09-19: a grant that
+ *  had lapsed on the 15th left Settings showing two ticked calendars and the
+ *  thread saying there were none to read. */
 export async function viewerCalendars(accountId: string, threadId: string): Promise<ThreadCalendars> {
   if (!(await memberOf(accountId, threadId))) throw new NotYours();
 
@@ -61,7 +69,6 @@ export async function viewerCalendars(accountId: string, threadId: string): Prom
     ])
     .where("n.account_id", "=", accountId)
     .where("n.deleted_at", "is", null)
-    .where("n.state", "=", "active")
     .where("c.selected", "=", true)
     .orderBy("c.is_primary", "desc")
     .orderBy("c.summary")
@@ -95,7 +102,6 @@ export async function viewerCalendars(accountId: string, threadId: string): Prom
     .where("p.account_id", "<>", accountId)
     .where("c.selected", "=", true)
     .where("n.deleted_at", "is", null)
-    .where("n.state", "=", "active")
     // By member, not by name: two members called Sam are two lines.
     .groupBy(["p.account_id", "a.display_name"])
     .orderBy("a.display_name")
@@ -164,7 +170,6 @@ export async function calendarCounts(
     .select([sql<string>`count(*)`.as("total"), sql<string>`count(p.calendar_id)`.as("picked")])
     .where("n.account_id", "=", accountId)
     .where("n.deleted_at", "is", null)
-    .where("n.state", "=", "active")
     .where("c.selected", "=", true)
     .executeTakeFirstOrThrow();
 
@@ -176,7 +181,6 @@ export async function calendarCounts(
     .where("p.thread_id", "=", threadId)
     .where("c.selected", "=", true)
     .where("n.deleted_at", "is", null)
-    .where("n.state", "=", "active")
     .limit(1)
     .executeTakeFirst();
 
@@ -236,7 +240,6 @@ export async function threadEvents(
     .where("p.thread_id", "=", threadId)
     .where("c.selected", "=", true)
     .where("n.deleted_at", "is", null)
-    .where("n.state", "=", "active")
     .where("e.deleted_at", "is", null)
     .where("e.occurs_at", "<=", to)
     .where(sql<boolean>`coalesce(e.occurs_end_at, e.occurs_at) >= ${from}`)
@@ -306,8 +309,7 @@ export async function turnScope(accountId: string, threadId: string | null, trx:
       "owner.display_name as ownerName",
     ])
     .where("c.selected", "=", true)
-    .where("n.deleted_at", "is", null)
-    .where("n.state", "=", "active");
+    .where("n.deleted_at", "is", null);
   query = inThread
     ? query.where((eb) =>
         eb.exists(

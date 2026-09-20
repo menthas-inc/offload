@@ -559,7 +559,6 @@ _HAS_CALENDAR = text(
       join connector_connections n on n.id = c.connection_id
      where n.account_id = :account_id
        and n.deleted_at is null
-       and n.state = 'active'
        and c.selected
      limit 1
     """

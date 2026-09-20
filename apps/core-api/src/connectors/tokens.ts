@@ -25,6 +25,17 @@ const SKEW_MS = 60 * 1000;
  *  and the caller marks it; it is never retried. */
 export async function accessTokenFor(connectionId: string): Promise<string> {
   return db.transaction().execute(async (tx) => {
+    // The connection's state is read here and nowhere else on the way to
+    // Google: a grant already known to have lapsed is refused without a
+    // network call, and every read of what is held stays open regardless.
+    const connection = await tx
+      .selectFrom("connector_connections")
+      .select("state")
+      .where("id", "=", connectionId)
+      .where("deleted_at", "is", null)
+      .executeTakeFirst();
+    if (!connection || connection.state !== "active") throw new GrantRevoked();
+
     const row = await tx
       .selectFrom("connector_secrets")
       .selectAll()

@@ -19,9 +19,13 @@ import { uuidv7 } from "../src/uuid.js";
 import { matchCalendarLabel } from "../src/questions.js";
 import { GrantRevoked } from "../src/connectors/google.js";
 
+const tokens = vi.hoisted(() => ({ real: false }));
 vi.mock("../src/connectors/tokens.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/connectors/tokens.js")>();
-  return { ...actual, accessTokenFor: vi.fn(async () => "token") };
+  return {
+    ...actual,
+    accessTokenFor: vi.fn(async (id: string) => (tokens.real ? actual.accessTokenFor(id) : "token")),
+  };
 });
 
 const google = vi.hoisted(() => ({
@@ -351,6 +355,37 @@ describe("AC-10, AC-12 what a thread reads", () => {
     await event(me, id, "Dentist", "2026-09-22T15:00:00Z");
     const body = (await get(`/v1/threads/${t}/events?from=2026-09-21&to=2026-09-27`, await signIn(me))).json() as { events: unknown[] };
     expect(body.events).toEqual([]);
+  });
+
+  it("a connection that needs a sign-in keeps its picks, its count and its held events; only a write refuses", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const n = await connection(me);
+    const id = await calendar(n, { summary: "Home" });
+    await pick(t, id, me);
+    await event(me, id, "Dentist", "2026-09-22T15:00:00Z");
+    await db.updateTable("connector_connections").set({ state: "needs_reauth" }).where("id", "=", n).execute();
+    const cookie = await signIn(me);
+
+    const sheet = (await get(`/v1/threads/${t}/calendars`, cookie)).json() as { calendars: Array<{ name: string; picked: boolean }> };
+    expect(sheet.calendars).toEqual([expect.objectContaining({ name: "Home", picked: true })]);
+    const bundle = (await get(`/v1/threads/${t}`, cookie)).json() as { calendars: { picked: number; total: number } };
+    expect(bundle.calendars).toEqual({ picked: 1, total: 1, anyPicked: true });
+    const rail = (await get(`/v1/threads/${t}/events?from=2026-09-21&to=2026-09-27`, cookie)).json() as { events: Array<{ title: string }> };
+    expect(rail.events.map((e) => e.title)).toEqual(["Dentist"]);
+
+    // The write is where the state tells: the real token step refuses, by
+    // name and without reaching Google.
+    const { jobId, messageId } = await dump(me, t);
+    const contentId = await row(me, t, "Haircut", messageId);
+    tokens.real = true;
+    try {
+      const result = (await tool({ tool: "create_event", jobId, toolCallId: "w1", contentId })).json() as Record<string, unknown>;
+      expect(result).toEqual({ ok: false, error: "needs_reconnect" });
+    } finally {
+      tokens.real = false;
+    }
+    expect(google.createEvent).not.toHaveBeenCalled();
   });
 
   it("two connections to the same Google calendar draw an event once", async () => {
