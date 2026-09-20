@@ -39,20 +39,20 @@ The request log carries method, path, status, byte count and duration; never the
 3. **Transcribe**, inside a task the cancel waits for. The worker's cancel mechanism raises `CancelledError` at the next await; this step runs under `asyncio.shield`, and on cancellation the handler awaits the shielded task to completion before re-raising, which is 017's "a cancel in the middle of a write waits for that one thing" applied to the first write of the turn. Inside:
    - If `provider_ref` is null: `GET /internal/v1/blobs/:id/original` streams the decrypted bytes (the route already exists and serves any kind); `POST {EU}/v2/upload` with the bytes as the body returns `upload_url`, a reference only the same key can use; `POST {EU}/v2/transcript` with exactly `{ audio_url, language_detection: true, audio_end_at: 600000 }`, the keys asserted at import time against the vendor's reference (the 016 lesson: a field taken from documentation and never checked is a guess); then `POST /internal/v1/blobs/:id/submitted { jobId, providerRef }` before the first poll, so a death here costs a poll on retry and never a second upload.
    - Poll `GET {EU}/v2/transcript/:ref` every 3 s until `status` is `completed` or `error`, for at most 6 minutes. `error` and the timeout raise, and the job retries on its own backoff; after `max_attempts` the loop's terminal path posts `turn-result` `failed` with the new reason `transcription_failed`.
-   - On `completed`: `POST /internal/v1/messages/:id/transcript { jobId, text, durationMs: audio_duration * 1000 }`. The Core API sets `messages.transcript` and `transcribed_at`, `blobs.measured_ms`, writes one `llm_usage` row (`model = 'assemblyai'`, tokens zero, `cost_micros` from the measured seconds at `ASSEMBLYAI_MICROS_PER_SECOND`, the provider's wall time as latency) so the admin Costs page counts it, and enqueues `voice.forget { blobId }`.
+   - On `completed`: `POST /internal/v1/messages/:id/transcript { jobId, text, durationMs: audio_duration * 1000, costMicros, latencyMs }`. *Amended 2026-09-21: the worker prices the note, since it holds the rate, and the route writes what it is told.* The Core API sets `messages.transcript` and `transcribed_at`, `blobs.measured_ms`, writes one `llm_usage` row (`model = 'assemblyai'`, tokens zero, `job_kind = 'dump.answer'`, the cost and latency as posted) so the admin Costs page counts it, enqueues `voice.forget { blobId }`, and notifies the message's stream on the same channel a reply uses, so the transcript reaches the bubble ahead of the reply.
 4. **Nothing to hear.** If `said(text, transcript)` is empty after the write and the message has no photos, the worker posts `turn-result` `answered` with `replyText = HEARD_NOTHING` ("Heard nothing in that one.") and no usage, and returns; no model is called. With words or photos, the turn continues on them and the reply says nothing about it.
 5. **From here the message is text.** `question_text`, `_DUMP`, `_TURNS`, 018's judge and `load_answer` all read `said(m.text, m.transcript)` in place of `m.text`. `build_blocks` labels the dump block "spoken, written down" when the message has a transcript, and `plan_v2.md` and the classify prompt gain the "Spoken" paragraph: it may carry other people's speech, a sentence addressed to somebody else is quotation, numbers arrive as words, there is little punctuation. Nothing else in the turn changes.
 6. **The photo readers learn the kind.** `_PHOTOS`, `_PHOTO_COUNT` and the `photos` subquery in `_TURNS` add `and b.kind = 'image'`, as do `photosOf`, `fileUnfiled`, `photosForAll` and the two end-of-turn steps in `internal.ts`. The test is the feature spec's: one photo and one voice note on a message file exactly one photo row, and the audio has no `content_blobs` row and no thread wrap.
 
 ### Forgetting the provider's copy
 
-`voice.forget`, a worker job: read `blobs.provider_ref`; `DELETE {EU}/v2/transcript/:ref`; on 2xx or 404, `POST /internal/v1/blobs/:id/forgotten`, which nulls the reference; anything else raises and the job retries on its backoff, up to its attempts. `blob.daily` enqueues `voice.forget` for every blob whose `provider_ref` is not null and is older than an hour, which covers a worker that died after submitting, a turn undone in flight, and a parked job. The job is keyed on the blob and reads the reference from the row, so it runs whether or not the message survives.
+`voice.forget`, a worker job: read `blobs.provider_ref` directly, under the worker's own column grant; `DELETE {EU}/v2/transcript/:ref`; on 2xx or 404, `POST /internal/v1/blobs/:id/forgotten`, which nulls the reference; anything else raises and the job is released for retry after five minutes, up to its attempts. `blob.daily` enqueues `voice.forget` for every blob whose `provider_ref` is not null and is older than an hour, under an idempotency key that carries the day so a reference that survives a day's attempts is asked about again tomorrow. This covers a worker that died after submitting, a turn undone in flight, and a parked job. The job is keyed on the blob and reads the reference from the row, so it runs whether or not the message survives.
 
 ### Serving
 
 `GET /v1/blobs/:id/audio`, session-authenticated. Readable when `kind = 'audio'`, the blob is live, and its message belongs to the requester and is live. **No thread arm**: 020's `readable()` is not used, since its second arm would hand a thread member a linked blob, and this route serves originals. The object is decrypted whole (at most 10 MB), and the response honours a single `Range` with 206 and `Content-Range`, or answers 200, with `Accept-Ranges: bytes`, `Content-Type` from the row, `Content-Length`, `Cache-Control: private, max-age=3600`, `X-Content-Type-Options: nosniff`, `Content-Disposition: inline`. A blob that is not audio, not the requester's, or gone is 404. A test proves an accepted member of a thread holding a row filed from the note gets 404.
 
-- **Web** draws `<audio preload="none" crossOrigin="use-credentials">` with the route as `src`; `timeupdate` fills the bars; one element per screen, paused when another starts.
+- **Web** draws an `Audio` element with `preload="none"` and `crossOrigin="use-credentials"` and the route as `src`, or the recording's own object URL when it was sent from this tab; `timeupdate` fills the bars; one plays at a time, the last one started pausing the other. *Amended 2026-09-21: the web records AAC in MP4 wherever the browser offers it (Safari, recent Chrome), then Opus in WebM or Ogg, because an iPhone cannot play Opus; a Firefox note's bubble on an iPhone says "Not here yet.".*
 - **Phones** fetch the route with the session cookie through `expo-file-system` into the app's cache directory, then play the file with `expo-audio`'s player under `playsInSilentMode: true`; the file is deleted on pause, on unmount and on sign-out. Never a URL handed to a native player, which cannot carry the session, and never a token in a query string.
 
 ### Undo, purge, deletion
@@ -117,7 +117,7 @@ grant select (kind, duration_ms, measured_ms, provider_ref) on blobs to offload_
 - `POST /v1/dumps`: `blobIds` may hold one audio id; 400 `one_voice_note` for two.
 - `GET /v1/blobs/:id/audio`: the bytes, Range-aware, dumper only.
 - `POST /v1/dumps/:id/resume`: unchanged in shape; it already accepts `failed`, and it now recomputes `openQuestionId` for the conversation as the original enqueue does, so a spoken answer whose transcription failed once is still judged as an answer on the retry.
-- The envelope: `voice: { blobId, durationMs, waveform: number[], transcript: string | null, transcribed: boolean } | null` on person messages, in both `messageResponse` and the current-conversation shape; `text` stays the typed words. `photos` excludes audio by construction.
+- The envelope: `voice: { blobId, durationMs, waveform: number[], transcript: string | null, transcribed: boolean } | null` on person messages, in both `messageResponse` and the current-conversation shape; `text` stays the typed words. `photos` excludes audio by construction. The stream sends a `transcript` event on every wake once the transcript exists, which the client draws rather than appends, as it does the step; the reconnect and the phones' poll read `voice` on the message instead.
 - `dump_sent.v1.json`: `voice` boolean, `voice_seconds` integer, `voice_bytes` integer, optional.
 - `turn-result`'s `reason` enum gains `transcription_failed`.
 
@@ -125,7 +125,7 @@ grant select (kind, duration_ms, measured_ms, provider_ref) on blobs to offload_
 
 - `GET /internal/v1/blobs/:id/original`: unchanged; serves any kind.
 - `POST /internal/v1/blobs/:id/submitted`: `{ jobId, providerRef }`, sets `provider_ref`. Job-bound like 020's rendition route.
-- `POST /internal/v1/messages/:id/transcript`: `{ jobId, text (max 20,000 chars), durationMs }`. Sets `transcript` and `transcribed_at`, `blobs.measured_ms`, writes the `llm_usage` row, enqueues `voice.forget`. Validation errors on this route never echo the body; the reply is the field name and the reason.
+- `POST /internal/v1/messages/:id/transcript`: `{ jobId, text (max 20,000 chars), durationMs, costMicros, latencyMs }`. Sets `transcript` and `transcribed_at`, `blobs.measured_ms`, writes the `llm_usage` row, enqueues `voice.forget`, notifies the stream. Validation errors on this route never echo the body; the reply is the field name and the reason.
 - `POST /internal/v1/blobs/:id/forgotten`: `{ jobId }`, nulls `provider_ref`.
 
 ### Agent
@@ -135,17 +135,17 @@ grant select (kind, duration_ms, measured_ms, provider_ref) on blobs to offload_
 - `harness/plan.py`: the dump label gains "spoken, written down" when `spoken`.
 - `worker.py`: the voice step at the top of `handle()` under the shield; `HEARD_NOTHING`; the `voice.forget` handler; `voice_seconds` and the outcome on the log line.
 - `prompts/plan_v2.md` and the classify prompt: the "Spoken" paragraph. `evals/principles/voice.json` is **deferred**: its cases are made from real recordings once the feature can produce them, and it is never run without the product owner's yes.
-- Config: `ASSEMBLYAI_API_KEY` (unset means every voice job fails `transcription_failed` and the boot line says so), `ASSEMBLYAI_MICROS_PER_SECOND` (default from the current price).
+- Config: `ASSEMBLYAI_API_KEY` (unset means every voice job fails `transcription_failed` after its retry and the boot line says `transcription: off`), `ASSEMBLYAI_MICROS_PER_SECOND` (default 41.67, their published $0.15 an hour on 2026-09-20).
 
 ### Web
 
-- `Composer.tsx`: the microphone live; the recording row borrowed from the mobile kit with the waveform window scaled to the row; the words as static text above it; the stopped state; Discard with the toast past a minute; upload then dump with the audio in `blobIds`; the failed treatment on the bubble with Try again putting the `Blob` back in the row; the live head's Close disabled while recording; Escape and Enter.
+- `Composer.tsx`: the microphone live; the recording row borrowed from the mobile kit with the waveform window scaled to the row; the words as static text above it; the stopped state; Discard with the toast past a minute; upload then dump with the audio in `blobIds`; the failed treatment on the bubble with Try again putting the `Blob` back in the row when the send never landed, and resuming the same message when the turn failed after it did (the audio is on the server and cannot go back in the row; the line reads "Couldn't write that one down." when no transcript exists and the standard failed line when one does); the live head's Close disabled while recording; Escape and Enter. A voice-only conversation is titled "Voice note, 0:14" until the transcript exists.
 - `SentVoice.tsx`, new, borrowed from the kit: the glyph, 32 bars from the wire, the duration, the playing state, the button name and state; the transcript beneath with "Show all".
 - `Conversation` turns: `voice` on the person's bubble, above the photos.
 
 ### Mobile
 
-- `expo-audio`, `expo-keep-awake`, `expo-quick-actions`; the recording state in `conversation-context.tsx`; `Composer.tsx` as above with the keyboard dropped and the plate still; `SentVoice.tsx` in `components/shell` with the cache-file playback; the quick action on the root layout; the launch sweep of the recordings directory; the Material pair on Android.
+- `expo-audio`, `expo-keep-awake`, `expo-quick-actions`; one `AudioRecorder` from `useAudioRecorder` for the provider's life, driven per note by `lib/recorder.ts`'s `Session`; the recording state in `conversation-context.tsx`; `Composer.tsx` as above with the keyboard dropped and the plate still, `useKeepAwake` mounted only while recording; `SentVoice.tsx` in `components/shell` with the cache-file playback through `expo-audio`'s player and `playsInSilentMode`; `RecordArrival.tsx` on the root layout, which sets the one static item (`symbol:mic` on iOS, the `record` drawable on Android, rendered from the design's mic glyph to `assets/quick-record.png`) and runs the arrival order; the launch sweep of the recordings directory; sign-out forgets the playback copies; the Material pair on Android. The phones draw the voice-note failed line themselves; the general failed line for a typed dump was never drawn there and is out of this spec's scope.
 
 ## Prompt budget, per OFF-8
 
@@ -158,6 +158,10 @@ The transcript is the dump text, which `fit` never drops, and it is bounded at t
 - Mobile: `expo-audio`, `expo-keep-awake`, `expo-quick-actions`. Each carries a config plugin, so this is an EAS build on both platforms.
 - Web: nothing new.
 - **AssemblyAI**, gated on the key. The account is the product owner's; the endpoint is the code's. The privacy page changes in the same commit as the key, as the feature spec drafts: the row, the section 5 line, "words you dumped".
+
+## Tests, and what stays a device check
+
+The Core API suite holds the routes, the claim, the transcript write, the sweep and the kind test (`test/voice.test.ts`); the worker suite holds the provider client against a mock transport, the shielded write-down with a cancel mid-poll, the retry that polls rather than uploads, the readers on the database and the heard-nothing turn end to end (`tests/test_voice.py`). The web and phone suites have no DOM, as the rest of them do not, so they hold the resample, the metering scale, the time and the poll's transcript tick; the row, the bubble and playback were checked in a browser against the worktree's own API and are checked on the devices as the feature spec lists.
 
 ## Edge cases
 
