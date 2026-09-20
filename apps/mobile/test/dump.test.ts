@@ -17,7 +17,13 @@ vi.mock("../lib/api", () => ({
     calls.push({ path, init });
     return Promise.resolve({ status: 200, data: answer });
   },
+  upload: () => Promise.resolve({ status: 200, data: null }),
 }));
+
+// 020 made the module import a native file API for the photo upload. It is a
+// device thing, shipped as TypeScript source the test runner cannot parse, and
+// nothing here uploads, so it is stood in for rather than loaded.
+vi.mock("expo-file-system", () => ({ File: class {} }));
 
 const { awaitAnswer, fetchAnswer } = await import("../lib/dump");
 

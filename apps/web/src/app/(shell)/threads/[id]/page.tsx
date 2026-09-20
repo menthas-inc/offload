@@ -45,7 +45,7 @@ export default function ThreadRoute({ params }: { params: Promise<{ id: string }
       ]}
       panes={[
         <MyThreads key="threads" groups={groups} loading={!ready} onChanged={reload} />,
-        <Thread key={id} id={id} onChanged={reload} onUndo={() => {}} />,
+        <Thread key={id} id={id} onChanged={reload} />,
       ]}
     />
   );

@@ -22,6 +22,8 @@ import { useState } from "react";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import { ReorderHandle, type RowReorder } from "./RowTools";
+import { useToast } from "../shell/Toast";
+import { perform, type Writes } from "../../lib/optimistic";
 import { reorderPlan, type ReorderWrite } from "../../lib/widgets";
 import {
   NOTE_BUDGET,
@@ -31,7 +33,9 @@ import {
   deleteNote,
   editNote,
   foldedNotes,
+  isProvisional,
   muteNote,
+  provisionalNote,
   restoreNote,
   setNotePriority,
   type Member,
@@ -52,8 +56,12 @@ interface Props {
    *  the first note on a thread could only come from telling offload. */
   adding: boolean;
   onAdding: (adding: boolean) => void;
-  onChanged: () => void;
-  onUndo: (message: string, undo: () => Promise<unknown>) => void;
+  /** The notes are the thread's. Every change here is drawn through this
+   *  before it is sent, and the thread's own reload settles it. */
+  onNotes: (update: (notes: Note[]) => Note[]) => void;
+  /** The thread's count of writes in flight, shared so a note's write holds
+   *  the thread's reload back the same as a row's does. */
+  writes: Writes;
 }
 
 /** The date on a row, derived rather than stored, so a weekday can never
@@ -76,9 +84,10 @@ export function Notes({
   arrived,
   adding,
   onAdding,
-  onChanged,
-  onUndo,
+  onNotes,
+  writes,
 }: Props) {
+  const toast = useToast();
   // Who is reading, from the member list the bundle already carries. Decides
   // which rows offer delete, because deleting is the author's alone and
   // everybody else gets mute.
@@ -144,52 +153,102 @@ export function Notes({
     return note.authorId === viewerId || !note.authorIsMember;
   }
 
-  async function save(): Promise<void> {
+  // ---------------------------------------------------------------- writes
+  //
+  // Drawn first, sent second, through the thread's `perform`: the row changes
+  // at the press and comes back with a word if the server refuses.
+
+  const patch = (noteId: string, fields: Partial<Note>): void =>
+    onNotes((current) => current.map((note) => (note.id === noteId ? { ...note, ...fields } : note)));
+
+  function save(): void {
     const text = draft.trim();
     if (text.length === 0) return close();
 
     if (adding) {
-      await addNote(threadId, text);
+      // The note is drawn at the press with a made-up id, and the server's
+      // note replaces it whole when the write lands: it carries the fields
+      // the screen could only guess at.
+      const note = provisionalNote(text, viewerId);
       close();
-      onChanged();
+      void perform(
+        {
+          apply: () => onNotes((current) => [...current, note]),
+          revert: () => onNotes((current) => current.filter((one) => one.id !== note.id)),
+          write: async () => {
+            const result = await addNote(threadId, text);
+            if (!result) return false;
+            onNotes((current) => current.map((one) => (one.id === note.id ? result.note : one)));
+            return true;
+          },
+          failed: "Couldn't add that",
+        },
+        toast,
+        writes,
+      );
       return;
     }
 
     if (!editing) return close();
+    const previous = editing.text;
     const previousBody = editing.body;
-    const result = await editNote(
-      editing.id,
-      text,
-      bodyDraft === previousBody ? undefined : bodyDraft
-    );
+    const body = bodyDraft === previousBody ? undefined : bodyDraft;
     close();
-    if (!result) return;
     // Reversible by writing the previous value back, which is what puts an
     // edit on the OFF-6 allowlist rather than under a confirmation.
-    const { previous } = result;
-    onUndo("Note changed", async () => {
-      await editNote(editing.id, previous, previousBody);
-      onChanged();
-    });
-    onChanged();
+    void perform(
+      {
+        apply: () => patch(editing.id, { text, body: body === undefined ? previousBody : body }),
+        revert: () => patch(editing.id, { text: previous, body: previousBody }),
+        write: () => editNote(editing.id, text, body).then((result) => result !== null),
+        unwrite: () => editNote(editing.id, previous, previousBody).then((result) => result !== null),
+        did: "Note changed",
+        failed: "Couldn't change the note",
+        unfailed: "Couldn't put the note back",
+      },
+      toast,
+      writes,
+    );
   }
 
-  async function remove(note: Note): Promise<void> {
+  function remove(note: Note): void {
     close();
-    if (!(await deleteNote(note.id))) return;
-    onChanged();
-    // Never the note's text: a toast is a few words and this runs to 200
-    // characters.
-    onUndo("Note deleted", async () => {
-      await restoreNote(note.id);
-      onChanged();
-    });
+    const at = notes.findIndex((one) => one.id === note.id);
+    void perform(
+      {
+        apply: () => onNotes((current) => current.filter((one) => one.id !== note.id)),
+        revert: () =>
+          onNotes((current) =>
+            current.some((one) => one.id === note.id)
+              ? current
+              : [...current.slice(0, at), note, ...current.slice(at)],
+          ),
+        write: () => deleteNote(note.id),
+        unwrite: () => restoreNote(note.id),
+        // Never the note's text: a toast is a few words and this runs to 200
+        // characters.
+        did: "Note deleted",
+        failed: "Couldn't delete the note",
+        unfailed: "Couldn't put the note back",
+      },
+      toast,
+      writes,
+    );
   }
 
-  async function mute(note: Note): Promise<void> {
+  /** No Undo: the same control, pressed again, is the undo. */
+  function mute(note: Note): void {
     close();
-    if (!(await muteNote(note.id, !note.muted))) return;
-    onChanged();
+    void perform(
+      {
+        apply: () => patch(note.id, { muted: !note.muted }),
+        revert: () => patch(note.id, { muted: note.muted }),
+        write: () => muteNote(note.id, !note.muted),
+        failed: note.muted ? "Couldn't unmute the note" : "Couldn't mute the note",
+      },
+      toast,
+      writes,
+    );
   }
 
   async function showFolded(): Promise<void> {
@@ -204,24 +263,42 @@ export function Notes({
    *  own endpoint. It moves the row and nothing else: not when the note was
    *  written, which is what precedence turns on, so a note dragged to the top
    *  is not thereby the newest thing said. */
-  async function reorder(writes: ReorderWrite[]): Promise<void> {
+  function reorder(writes_: ReorderWrite[]): void {
     close();
-    const results = await Promise.all(
-      writes.map((one) => setNotePriority(one.id, one.priority))
+    const set = (pick: (write: ReorderWrite) => number): void =>
+      onNotes((current) =>
+        current.map((note) => {
+          const write = writes_.find((one) => one.id === note.id);
+          return write ? { ...note, priority: pick(write) } : note;
+        }),
+      );
+    const all = async (pick: (write: ReorderWrite) => number): Promise<boolean> => {
+      const results = await Promise.all(writes_.map((one) => setNotePriority(one.id, pick(one))));
+      return results.every((result) => result !== null);
+    };
+    void perform(
+      {
+        apply: () => set((write) => write.priority),
+        revert: () => set((write) => write.previous),
+        write: () => all((write) => write.priority),
+        unwrite: () => all((write) => write.previous),
+        did: "Moved",
+        failed: "Couldn't move that",
+        unfailed: "Couldn't put that back",
+      },
+      toast,
+      writes,
     );
-    onChanged();
-    if (results.some((result) => result === null)) return;
-    onUndo("Moved", async () => {
-      await Promise.all(writes.map((one) => setNotePriority(one.id, one.previous)));
-      onChanged();
-    });
   }
 
   function moveTo(fromId: string, toIndex: number): void {
-    const from = notes.findIndex((note) => note.id === fromId);
-    if (from < 0 || toIndex < 0 || toIndex >= notes.length) return;
-    const { writes } = reorderPlan(notes, from, toIndex);
-    if (writes.length > 0) void reorder(writes);
+    // Only what the server has can be arranged: a note drawn at the press
+    // has no priority to write yet and is left out of the plan.
+    const settled = notes.filter((note) => !isProvisional(note.id));
+    const from = settled.findIndex((note) => note.id === fromId);
+    if (from < 0 || toIndex < 0 || toIndex >= settled.length) return;
+    const { writes: plan } = reorderPlan(settled, from, toIndex);
+    if (plan.length > 0) reorder(plan);
   }
 
   const reorderFor = (note: Note, index: number): RowReorder => {
@@ -276,7 +353,7 @@ export function Notes({
           // Enter saves, shift-Enter is a new line. A note is one sentence.
           if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
-            void save();
+            save();
           }
         }}
       />
@@ -311,7 +388,7 @@ export function Notes({
             note of your own would offer only Delete, and the way back from a
             reversible action would be a destructive one. */}
         {note?.muted ? (
-          <button type="button" className={styles.noteAction} onClick={() => void mute(note)}>
+          <button type="button" className={styles.noteAction} onClick={() => mute(note)}>
             Unmute
           </button>
         ) : note && canDelete(note) ? (
@@ -319,12 +396,12 @@ export function Notes({
             type="button"
             className={styles.noteAction}
             data-tone="danger"
-            onClick={() => void remove(note)}
+            onClick={() => remove(note)}
           >
             Delete
           </button>
         ) : note ? (
-          <button type="button" className={styles.noteAction} onClick={() => void mute(note)}>
+          <button type="button" className={styles.noteAction} onClick={() => mute(note)}>
             Mute
           </button>
         ) : null}
@@ -336,7 +413,7 @@ export function Notes({
           type="button"
           className={styles.noteSave}
           disabled={draft.trim().length === 0}
-          onClick={() => void save()}
+          onClick={save}
         >
           Save
         </button>
@@ -353,7 +430,10 @@ export function Notes({
     const date = when(note);
     const tone = note.muted ? "muted" : note.origin === "learned" ? "accent" : "neutral";
     const quietRow = readOnly || !instructing.has(note.id);
-    const reorder = readOnly ? null : reorderFor(note, index);
+    // A note drawn at the press neither opens nor moves until the server has
+    // it: there is nothing yet to open or move.
+    const inert = readOnly || isProvisional(note.id);
+    const reorder = inert ? null : reorderFor(note, index);
 
     return (
       <div
@@ -389,7 +469,7 @@ export function Notes({
           type="button"
           className={styles.noteMain}
           disabled={readOnly}
-          onClick={() => (readOnly ? undefined : open_(note))}
+          onClick={() => (inert ? undefined : open_(note))}
         >
           {note.origin === "learned" ? (
             <>

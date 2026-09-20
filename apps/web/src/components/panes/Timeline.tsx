@@ -34,7 +34,7 @@ import {
   type RailRow,
 } from "../../lib/widgets";
 import { useAppearance } from "../../lib/appearance";
-import { QUICK_ADD_CHARS, fetchThreadEvents, quickAdd } from "../../lib/threads";
+import { QUICK_ADD_CHARS, fetchThreadEvents } from "../../lib/threads";
 import type { ContentRow, Note, ThreadEvent } from "../../lib/threads";
 
 interface Props {
@@ -43,9 +43,9 @@ interface Props {
   notes: Note[];
   handlers: RowHandlers;
   onToggle: (row: ContentRow) => void;
-  /** Something was typed straight onto the open day. The page reloads to pick
-   *  up the row, which the server has already written. */
-  onAdded: () => void;
+  /** Something was typed straight onto the open day. The page owns the rows,
+   *  so it draws the new one on that day and writes it. */
+  onAdd: (text: string, day: string) => void;
   /** 019. Whether any member has picked a calendar here, which is what puts
    *  the calendars' events on the rail. Bumped when the picks change. */
   calendars: { anyPicked: boolean; version: number };
@@ -86,7 +86,7 @@ const DOT: Record<string, string> = {
   other: "var(--text-tertiary)",
 };
 
-export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdded, calendars }: Props) {
+export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, calendars }: Props) {
   const { weekStart } = useAppearance();
   // Computed on render rather than held, so the first render after midnight
   // moves today. Nothing polls for it.
@@ -331,11 +331,9 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdded, c
 
         {adding ? (
           <DayQuickAdd
-            threadId={threadId}
-            day={selected}
-            onDone={() => {
+            onAdd={(text) => {
               setAdding(false);
-              onAdded();
+              onAdd(text, selected);
             }}
             onCancel={() => setAdding(false)}
           />
@@ -427,29 +425,13 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdded, c
  *
  *  **The day stays structural**, because it is not something they said. It is
  *  the heading they pressed +  on. */
-function DayQuickAdd({
-  threadId,
-  day,
-  onDone,
-  onCancel,
-}: {
-  threadId: string;
-  day: string;
-  onDone: () => void;
-  onCancel: () => void;
-}) {
+function DayQuickAdd({ onAdd, onCancel }: { onAdd: (text: string) => void; onCancel: () => void }) {
   const [text, setText] = useState("");
-  const [saving, setSaving] = useState(false);
 
-  async function save(): Promise<void> {
+  function save(): void {
     const trimmed = text.trim();
     if (trimmed.length === 0) return onCancel();
-    setSaving(true);
-    const written = await quickAdd(threadId, trimmed, "timeline", { day });
-    setSaving(false);
-    if (!written) return;
-    setText("");
-    onDone();
+    onAdd(trimmed);
   }
 
   return (
@@ -458,13 +440,12 @@ function DayQuickAdd({
         className={styles.quickAddField}
         value={text}
         autoFocus
-        disabled={saving}
         maxLength={QUICK_ADD_CHARS}
         placeholder="Type it, offload will sort it out"
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Escape") onCancel();
-          if (event.key === "Enter") void save();
+          if (event.key === "Enter") save();
         }}
         aria-label="Add to this day"
       />
@@ -476,8 +457,8 @@ function DayQuickAdd({
           <button
             type="button"
             className={styles.quickAddSave}
-            disabled={text.trim().length === 0 || saving}
-            onClick={() => void save()}
+            disabled={text.trim().length === 0}
+            onClick={save}
           >
             Add
           </button>

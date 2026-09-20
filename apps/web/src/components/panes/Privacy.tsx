@@ -19,13 +19,16 @@ import { PaneHead } from "../shell/PaneHead";
 import { Switch } from "../Switch";
 import { Group } from "./SettingsRows";
 import { useMe, updateWebAccess } from "../../lib/use-me";
+import { useToast } from "../shell/Toast";
 import styles from "../../app/(shell)/shell.module.css";
 
 export function PrivacyPane() {
   const state = useMe("shell");
   const me = state.status === "ready" ? state.me : null;
-  // Optimistic, and reverted if the write fails: a switch that waits for a
-  // round trip to move reads as a switch that did not work.
+  const toast = useToast();
+  // Optimistic, and reverted with a word if the write fails: a switch that
+  // waits for a round trip to move reads as a switch that did not work, and
+  // one that moves back on its own with nothing said reads as haunted.
   const [pending, setPending] = useState<{ webSearch?: boolean; webLinks?: boolean }>({});
 
   const search = pending.webSearch ?? me?.webSearch ?? true;
@@ -34,7 +37,9 @@ export function PrivacyPane() {
   async function set(patch: { webSearch?: boolean; webLinks?: boolean }): Promise<void> {
     setPending((current) => ({ ...current, ...patch }));
     const updated = await updateWebAccess(patch);
-    if (!updated) setPending({});
+    if (updated) return;
+    setPending({});
+    toast.show("Couldn't change that", { label: "Retry", onPress: () => set(patch) });
   }
 
   return (

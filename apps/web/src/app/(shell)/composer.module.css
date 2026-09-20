@@ -440,9 +440,11 @@
   color: var(--text-accent);
 }
 
-/* Undo, floated over the composer rather than over a pane, because the action
-   it takes back was taken here. The design system's Toast contract. */
+/* The shell's one toast, floated over the composer. The design system's Toast
+   contract. `pointer-events` back on, because the composer block it sits in
+   turns them off and a toast whose Undo cannot be pressed is not a toast. */
 .toast {
+  pointer-events: auto;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);

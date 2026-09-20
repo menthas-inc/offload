@@ -788,6 +788,20 @@ Three reviewers over the whole branch. Two findings would have shipped a feature
 
 **Design system impact:** none. The client findings are logged separately in the design system's own `decisions.md`.
 
+### 2026-09-20 · A client write is drawn first, and a reload yields to a write in flight
+
+**Decision:** every row-level write on the web and the phones is optimistic. The screen applies the change to its own state, sends the request, and the request's one remaining job is to disagree: a refusal puts the screen back and a toast offers the same action again. `lib/optimistic.ts` on each client holds the whole rule as `perform(op)`: `apply`, `revert`, `write`, an optional `unwrite` for the Undo, and the words. One copy per client, like `threads.ts`, and one test per copy.
+
+**A reload yields to a write in flight.** The old shape reloaded after every write, and with optimism that reload is the bug: it lands while the next change is still travelling and undoes it on screen for the length of a round trip. `useWrites` counts what is in flight and reloads once the count reaches zero, failed writes included, and every reload checks `idle()` after its fetch and drops its result if something started meanwhile. The counts, the notes and the rows are patched by hand in between; the settle reload is what makes the screen the server's again.
+
+**Undo waits for the write it undoes.** Two writes to one row in flight at once race on the server, and the second can land first. `reverse` awaits the original write's promise and does nothing if it never landed. The Undo toast is shown at the press regardless.
+
+**A provisional row carries a made-up id.** `pending:` prefixed, so every surface can tell it from a real one and draws it inert. On the web the thread pane inserts it into its own rows and swaps the id when the write lands. On the phones the write leaves the composer, which is shell-level, so the context keeps a `pending` list the thread screen derives its rows from; a landed entry keeps drawing under the server's id until the screen's reload has the real row, then the screen adopts it, with a fifteen second backstop for a screen that is not there. A landed id is excluded from the change mark, since a row you typed is not news.
+
+**A dump's send is optimistic too**, with a local `unsent` flag rather than a wire state: the turn is drawn at the press under `unsent:<key>`, the server's ids replace it, and a send that throws or returns nothing becomes `failed` with `unsent` so the bubble can say the dump is not saved rather than that it is. A 413 still puts the words straight back in the field.
+
+**Design system impact:** recorded in the design log's entry of the same date.
+
 ### 2026-09-18 · A thread picks its calendars, an event is held once, and the sharing count comes from Google
 
 **Decision:** 019 turns 012's model round. A calendar no longer names a thread and has no routing rules; a thread holds **picks**, one row per member per calendar, and starts with none. The sync writes **one copy of each event per calendar** into `connector_events` on the connection, held for the sixty-day, twelve-month window and no longer, and every thread read, the rail and the agent's `find_events`, is served from that copy through the thread's picks intersected with each picking member's approved list. Today, when it draws a day, reads every approved calendar. The rows 012 filed into threads are deleted on migration; the rows offload wrote from a dump stay, as rows that remember their event.

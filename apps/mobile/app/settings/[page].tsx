@@ -13,6 +13,7 @@ import { Glyph } from "../../components/Glyph";
 import { EditableRow, Group, Row } from "../../components/settings/Rows";
 import { Segmented } from "../../components/settings/Segmented";
 import { Switch } from "../../components/settings/Switch";
+import { ToastHost, useToast, type ToastState } from "../../components/shell/Toast";
 import { useColors } from "../../lib/colors";
 import { fetchCountries, saveName, setCountry, setWebAccess, useMe } from "../../lib/me";
 import { approveCalendar, disconnect, setAskFirst, useCalendars } from "../../lib/calendars";
@@ -55,6 +56,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const COLOR = useColors();
   const title = TITLES[page ?? ""] ?? "Settings";
+  const toast = useToast();
 
   return (
     <SafeAreaView
@@ -82,10 +84,11 @@ export default function SettingsPage() {
         {page === "calendar" ? <CalendarPage /> : null}
         {page === "account" ? <Account /> : null}
         {page === "appearance" ? <Appearance /> : null}
-        {page === "privacy" ? <Privacy /> : null}
+        {page === "privacy" ? <Privacy toast={toast} /> : null}
         {page === "country" ? <CountryPicker /> : null}
         {page === "help" ? <Help /> : null}
       </ScrollView>
+      <ToastHost state={toast} />
     </SafeAreaView>
   );
 }
@@ -310,10 +313,11 @@ function Appearance() {
  *  offload, so the first clause of each note is what leaves and the second is
  *  the bound on it. No "Off by default" label: that label exists to explain why
  *  something is off, and one saying a switch is on reads as an apology for it. */
-function Privacy() {
+function Privacy({ toast }: { toast: ToastState }) {
   const me = useMe();
-  // Optimistic, and reverted by the broadcast if the write fails: a switch that
-  // waits for a round trip to move reads as a switch that did not work.
+  // Optimistic, and reverted with a word if the write fails: a switch that
+  // waits for a round trip to move reads as a switch that did not work, and
+  // one that moves back on its own with nothing said reads as haunted.
   const [pending, setPending] = useState<{ webSearch?: boolean; webLinks?: boolean }>({});
 
   const search = pending.webSearch ?? me?.webSearch ?? true;
@@ -322,7 +326,9 @@ function Privacy() {
   async function set(patch: { webSearch?: boolean; webLinks?: boolean }) {
     setPending((current) => ({ ...current, ...patch }));
     const updated = await setWebAccess(patch);
-    if (!updated) setPending({});
+    if (updated) return;
+    setPending({});
+    toast.show("Couldn't change that", { label: "Retry", onPress: () => set(patch) });
   }
 
   return (

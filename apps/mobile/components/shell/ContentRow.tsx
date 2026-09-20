@@ -45,7 +45,7 @@ import Animated, {
 import { Glyph } from "../Glyph";
 import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
-import { domainOf, isFiling, type ContentRow } from "../../lib/threads";
+import { domainOf, isFiling, isProvisional, type ContentRow } from "../../lib/threads";
 
 const REVEAL = 88;
 const isAndroid = Platform.OS === "android";
@@ -111,6 +111,14 @@ export function ContentRowView({
   // goes somewhere. Ours rather than the page's: a title is written by whoever
   // owns the page and a domain is not.
   const domain = domainOf(row.url);
+  // A row drawn at the press, before the server has it. It looks like the row
+  // it is about to be and offers nothing: no swipe, no long press, no tools,
+  // because there is nothing to act on until the write lands and the id is
+  // real. The handle and the tools keep their space and lose their presence,
+  // so the row does not reflow when the id arrives, which is the readme's own
+  // rule for the filing slot.
+  const provisional = isProvisional(row.id);
+  const hidden = provisional ? { opacity: 0 } : null;
   const dx = useSharedValue(0);
   // Called from two UI-thread gesture worklets below (pan.onEnd, long.onStart)
   // and its return value is read synchronously there. Without the directive
@@ -135,6 +143,7 @@ export function ContentRowView({
   }, [arrived, mark]);
 
   const pan = Gesture.Pan()
+    .enabled(!provisional)
     .activeOffsetX([-12, 12])
     .failOffsetY([-8, 8])
     .onUpdate((event) => {
@@ -150,6 +159,7 @@ export function ContentRowView({
     });
 
   const long = Gesture.LongPress()
+    .enabled(!provisional)
     .minDuration(320)
     .onStart(() => {
       dx.value = settle();
@@ -165,6 +175,7 @@ export function ContentRowView({
   const lifted = useSharedValue(0);
   const onDrop = reorder?.onDrop;
   const drag = Gesture.Pan()
+    .enabled(!provisional)
     .activateAfterLongPress(250)
     .hitSlop(8)
     .onStart(() => {
@@ -243,10 +254,12 @@ export function ContentRowView({
             <GestureDetector gesture={drag}>
               <View
                 className="justify-center self-stretch"
-                style={{ marginLeft: -6, marginRight: -6, marginBlock: -8 }}
+                style={[{ marginLeft: -6, marginRight: -6, marginBlock: -8 }, hidden]}
+                pointerEvents={provisional ? "none" : "auto"}
                 accessibilityRole="button"
                 accessibilityLabel={`Move ${row.title}`}
                 accessibilityHint="Hold, then drag"
+                accessibilityElementsHidden={provisional}
               >
                 <Glyph name="grip-vertical" size={17} color={COLOR.iconOnWell} />
               </View>
@@ -256,6 +269,7 @@ export function ContentRowView({
           {onToggle ? (
             <Pressable
               onPress={onToggle}
+              disabled={provisional}
               hitSlop={12}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: row.doneAt !== null }}
@@ -421,7 +435,12 @@ export function ContentRowView({
            *  offers Archive instead. An archived row offers the way back,
            *  whoever is looking: putting something back is not destructive and
            *  is not the author's alone. */}
-          <View className="flex-row items-center gap-space-6" style={{ marginTop: 1 }}>
+          <View
+            className="flex-row items-center gap-space-6"
+            style={[{ marginTop: 1 }, hidden]}
+            pointerEvents={provisional ? "none" : "auto"}
+            accessibilityElementsHidden={provisional}
+          >
             {row.canDelete ? (
               <Pressable
                 onPress={onEdit}

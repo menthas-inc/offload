@@ -53,12 +53,8 @@ import { isRich, plainText } from "@offload/markup";
 import { completeContent } from "../../lib/threads";
 import { Logo } from "../Logo";
 import { FILL_COMPOSER } from "../panes/Today";
+import { ToastHost, useToast } from "./Toast";
 import styles from "../../app/(shell)/composer.module.css";
-
-/** OFF-6 and the readme: eight seconds, up from four, because four is not
- *  enough time to read a toast, reach for a pointer or hear a screen reader
- *  announce it. */
-const UNDO_WINDOW_MS = 8_000;
 
 interface Turn {
   id: string;
@@ -100,6 +96,11 @@ interface Turn {
   found?: FoundResult[];
   /** 020. The photos this message carried. Only ever on a message you sent. */
   photos?: PhotoOnWire[];
+  /** The send itself did not land, so nothing on the server knows this turn.
+   *  Drawn as the failed state, with different words: the dump is not saved,
+   *  and Try again puts the words back in the field. Local only, never on the
+   *  wire, which is why it is not a `MessageState`. */
+  unsent?: boolean;
 }
 
 /** 020. A photo waiting in the composer. The key belongs to the draft until
@@ -111,11 +112,6 @@ interface DraftPhoto {
   error: ChipError;
   /** Set once the server has it. A retry skips what already landed. */
   uploaded?: { blobId: string; width: number; height: number };
-}
-
-interface Undoable {
-  turnId: string;
-  message: string;
 }
 
 export function Composer({
@@ -135,18 +131,20 @@ export function Composer({
 }) {
   const [draft, setDraft] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
+  // Only while a send is out, and only to hold the photos still: the words
+  // leave the field at the press, but a chip removed mid-send would still go.
   const [sending, setSending] = useState(false);
   // 020. The photos in the draft, the draft's own key, one line under the
   // composer, and the viewer when a thumbnail was opened.
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
   const draftKey = useRef<string | null>(null);
-  const [line, setLine] = useState<{ text: string; retry?: boolean } | null>(null);
+  const [line, setLine] = useState<{ text: string } | null>(null);
   const [viewer, setViewer] = useState<{ turnId: string; index: number } | null>(null);
   const picker = useRef<HTMLInputElement>(null);
   // 017. What offload is doing, on the turn in flight.
   const [step, setStep] = useState<string | null>(null);
   const [tooLong, setTooLong] = useState<number | null>(null);
-  const [undoable, setUndoable] = useState<Undoable | null>(null);
+  const toast = useToast();
   const input = useRef<HTMLTextAreaElement>(null);
   // The field grows with the text and then scrolls, to the kit's number. A
   // one-line dump keeps the pill; past a line the corners open up and the
@@ -170,7 +168,6 @@ export function Composer({
     setTall(height > oneLine.current + 4);
   }, [draft]);
   const turnsBox = useRef<HTMLDivElement>(null);
-  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Keyed by message, so a settled stream drops its own entry. A plain array
   // grew for the life of the tab.
   const cancels = useRef<Map<string, () => void>>(new Map());
@@ -180,7 +177,6 @@ export function Composer({
     return () => {
       for (const cancel of list.values()) cancel();
       list.clear();
-      if (undoTimer.current) clearTimeout(undoTimer.current);
     };
   }, []);
 
@@ -257,9 +253,7 @@ export function Composer({
 
   function offerUndo(turnId: string | undefined, reply: string): void {
     if (!turnId) return;
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    setUndoable({ turnId, message: reply });
-    undoTimer.current = setTimeout(() => setUndoable(null), UNDO_WINDOW_MS);
+    toast.show(reply, { label: "Undo", onPress: () => undo(turnId) });
   }
 
   /** Wait for one message's answer, wherever the waiting started.
@@ -397,6 +391,19 @@ export function Composer({
   const sendable = photos.filter((photo) => !photo.error);
   const hasSomething = draft.trim().length > 0 || sendable.length > 0;
 
+  /** Send what is in the field.
+   *
+   *  **The bubble appears at the press.** The send takes a second or more on a
+   *  slow connection, and with photos a good deal longer, and for that time
+   *  the field used to sit there with the words still in it, which read as a
+   *  button that had not worked. Now the words leave the field and join the
+   *  conversation as they are pressed, the photos with them as the files
+   *  themselves, under an id only this tab knows; the server's ids replace it
+   *  when the send lands. If it does not, the bubble takes the failed state
+   *  with its own words, since nothing is saved, and Try again puts the text
+   *  back. A refusal the person can act on in the draft, a photo the server
+   *  would not take or too many words, takes the bubble back itself and says
+   *  so under the field, where the thing to change is. */
   async function submit(): Promise<void> {
     const text = draft.trim();
     if (!hasSomething || sending) return;
@@ -407,6 +414,7 @@ export function Composer({
     setSending(true);
     setTooLong(null);
     setLine(null);
+    setDraft("");
     // **The turn's clock starts at the press, not when the server answers the
     // send.** The dump request takes a second or more, and a clock stamped
     // after it held the first step back until four seconds after the press
@@ -416,13 +424,48 @@ export function Composer({
     // the message the server already made rather than a second one. 020: the
     // key belongs to the draft until it sends, and so does each photo's.
     const clientKey = draftKey.current ?? (draftKey.current = crypto.randomUUID());
+    const provisional = `unsent:${clientKey}`;
+
+    // The photos as they are drawn until the server's copies exist: the file
+    // itself, under the chip's key until the upload gives it a blob. Never
+    // revoked: a turn keeps it for the session, and a session's worth of
+    // object URLs is a few dozen.
+    const shown: PhotoOnWire[] = sendable.map((photo) => ({
+      blobId: photo.uploaded?.blobId ?? photo.key,
+      name: photo.name,
+      width: photo.uploaded?.width ?? 0,
+      height: photo.uploaded?.height ?? 0,
+      ready: false,
+      localUrl: URL.createObjectURL(photo.file),
+    }));
+    setTurns((current) => [
+      // 018. Chips leave with the next turn. The server decides whether the
+      // words answered the question; the screen only knows it is no longer
+      // open for a tap.
+      ...current.map((turn) => (turn.question ? { ...turn, question: null } : turn)),
+      { id: provisional, from: "you", text, photos: shown, state: "queued", since: pressed },
+    ]);
+    input.current?.focus();
+
+    /** The bubble goes and the words come back, for a refusal that is fixed
+     *  in the draft. The photos never left their chips. */
+    const takeBack = (): void => {
+      setTurns((current) => current.filter((turn) => turn.id !== provisional));
+      setDraft(text);
+    };
+    const unsent = (): void =>
+      setTurns((current) =>
+        current.map((turn) =>
+          turn.id === provisional ? { ...turn, state: "failed", unsent: true } : turn,
+        ),
+      );
 
     try {
       // 020. Each photo first, on its own, held unclaimed until the message
       // claims it. One that already landed on an earlier try is not sent
       // again.
       const sentPhotos: PhotoOnWire[] = [];
-      for (const photo of sendable) {
+      for (const [at, photo] of sendable.entries()) {
         const uploaded = photo.uploaded ?? (await uploadPhoto(photo.file, photo.key));
         setPhotos((current) => current.map((p) => (p.key === photo.key ? { ...p, uploaded } : p)));
         sentPhotos.push({
@@ -431,10 +474,7 @@ export function Composer({
           width: uploaded.width,
           height: uploaded.height,
           ready: false,
-          // The file itself, until the server's copy exists. Never revoked:
-          // a turn keeps it for the session, and a session's worth of object
-          // URLs is a few dozen.
-          localUrl: URL.createObjectURL(photo.file),
+          localUrl: shown[at]?.localUrl,
         });
       }
       const sent = await sendDump(
@@ -443,31 +483,27 @@ export function Composer({
         inThread?.id,
         sentPhotos.length ? { blobIds: sentPhotos.map((p) => p.blobId) } : undefined,
       );
-      setDraft("");
       // Only what went: a photo dropped in while the send was out stays
       // for the next one.
       const went = new Set(sendable.map((photo) => photo.key));
       setPhotos((current) => current.filter((photo) => !went.has(photo.key)));
       draftKey.current = null;
-      setTurns((current) => [
-        // 018. Chips leave with the next turn. The server decides whether the
-        // words answered the question; the screen only knows it is no longer
-        // open for a tap.
-        ...current.map((turn) => (turn.question ? { ...turn, question: null } : turn)),
-        {
-          id: sent.messageId,
-          from: "you",
-          text,
-          photos: sentPhotos,
-          state: sent.state,
-          turnId: sent.turnId,
-          since: pressed,
-        },
-      ]);
+      setTurns((current) =>
+        current.map((turn) =>
+          turn.id === provisional
+            ? { ...turn, id: sent.messageId, photos: sentPhotos, state: sent.state, turnId: sent.turnId }
+            : turn,
+        ),
+      );
       watch(sent.messageId, sent.turnId);
     } catch (error) {
-      if (error instanceof DumpTooLong) setTooLong(error.maxChars);
-      else if (error instanceof PhotoRefused && error.reason === "daily_limit") {
+      if (error instanceof DumpTooLong) {
+        // The server's own refusal, and the words go straight back: there is
+        // nothing to retry until they are shorter.
+        takeBack();
+        setTooLong(error.maxChars);
+      } else if (error instanceof PhotoRefused && error.reason === "daily_limit") {
+        takeBack();
         setLine({ text: "Enough for today." });
       } else if (
         error instanceof PhotoRefused &&
@@ -476,6 +512,7 @@ export function Composer({
         // The server disagreed with the device about one of them. Mark the
         // first chip not yet landed rather than guessing which; the remove
         // control is the way forward either way.
+        takeBack();
         const reason: ChipError = error.reason;
         setPhotos((current) => {
           const at = current.findIndex((p) => !p.error && !p.uploaded);
@@ -483,13 +520,16 @@ export function Composer({
         });
       } else if (error instanceof PhotoRefused && error.reason === "unavailable") {
         // No object store behind the API. A retry cannot help, so none.
+        takeBack();
         setLine({ text: "Not taking photos yet." });
-      } else if (error instanceof UnknownBlob) {
-        // The server no longer has one of the uploads: an hour passed and
-        // the sweep took it. Forget what landed, so Retry uploads again.
-        setPhotos((current) => current.map(({ uploaded: _gone, ...p }) => p));
-        setLine({ text: "Did not send.", retry: true });
-      } else setLine({ text: "Did not send.", retry: true });
+      } else {
+        if (error instanceof UnknownBlob) {
+          // The server no longer has one of the uploads: an hour passed and
+          // the sweep took it. Forget what landed, so Try again uploads again.
+          setPhotos((current) => current.map(({ uploaded: _gone, ...p }) => p));
+        }
+        unsent();
+      }
     } finally {
       setSending(false);
       input.current?.focus();
@@ -543,11 +583,18 @@ export function Composer({
 
     apply(next);
     const ok = await completeContent(row.contentId, next);
-    if (!ok) apply(row.done);
+    if (!ok) {
+      apply(row.done);
+      toast.show(next ? "Couldn't tick that off" : "Couldn't put that back", {
+        label: "Retry",
+        onPress: () => tick(turnId, row),
+      });
+      return;
+    }
     // The thread pane beside this one is now stale. The same invalidation a
     // dump fires, for the same reason: a screen already showing that thread
     // updates itself instead of quietly disagreeing with the answer.
-    else onFiled([row.threadId]);
+    onFiled([row.threadId]);
   }
 
   function retry(messageId: string): void {
@@ -580,11 +627,7 @@ export function Composer({
     watch(messageId, sent.turnId);
   }
 
-  async function undo(): Promise<void> {
-    if (!undoable) return;
-    const { turnId } = undoable;
-    setUndoable(null);
-    if (undoTimer.current) clearTimeout(undoTimer.current);
+  async function undo(turnId: string): Promise<void> {
     // Optimistic, and safe to be: the rows are soft-deleted server-side and a
     // failed call leaves the conversation as the database has it on next load.
     setTurns((current) => current.filter((turn) => turn.turnId !== turnId));
@@ -684,14 +727,7 @@ export function Composer({
 
   return (
     <div className={styles.composer}>
-      {undoable ? (
-        <div className={styles.toast} role="status">
-          <span className={styles.toastMessage}>{undoable.message}</span>
-          <button type="button" className={styles.toastAction} onClick={() => void undo()}>
-            Undo
-          </button>
-        </div>
-      ) : null}
+      <ToastHost />
 
       <div className={styles.card}>
       {live ? (
@@ -766,7 +802,13 @@ export function Composer({
                 ) : null}
                 {turn.state === "failed" ? (
                   <p className={styles.turnFailed} role="alert">
-                    offload could not answer that one. Your dump is saved.{" "}
+                    {/* Two different failures with one treatment. An answer
+                        that failed left the dump saved; a send that failed
+                        left nothing anywhere, and saying it is saved would be
+                        the one untrue sentence on the screen. */}
+                    {turn.unsent
+                      ? "That didn't go through. "
+                      : "offload could not answer that one. Your dump is saved. "}
                     <button type="button" className={styles.retry} onClick={() => retry(turn.id)}>
                       Try again
                     </button>
@@ -950,7 +992,6 @@ export function Composer({
             }}
             placeholder={openQuestion ? invitation(openQuestion) : "Dump anything"}
             aria-label="Dump anything"
-            disabled={sending}
           />
         </div>
         <div className={styles.toolsRow}>
@@ -1025,15 +1066,9 @@ export function Composer({
       {line ? (
         <p className={styles.composerLine} role="alert">
           {line.text}
-          {line.retry ? (
-            <button type="button" className={styles.retry} onClick={() => void submit()}>
-              Retry
-            </button>
-          ) : (
-            <button type="button" className={styles.retry} onClick={() => setLine(null)}>
-              OK
-            </button>
-          )}
+          <button type="button" className={styles.retry} onClick={() => setLine(null)}>
+            OK
+          </button>
         </p>
       ) : null}
 
