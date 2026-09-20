@@ -17,6 +17,9 @@ and is not committed.
 | 2026-09-20 19:08 | 08 | 2 | 18/26 (69%) | $0.96 | `claude-sonnet-5` | `b64294d0` | `0e09566` | 019 calendars, second run with results in the judge's transcript and the untrusted event on the right Thursday |
 | 2026-09-20 19:09 | 08 | 2 | 13/26 (50%) | $1.02 | `claude-sonnet-5` | `b64294d0` | `0e09566` | 019 calendars, the same cases with the judge on Sonnet 5, to price the judge |
 | 2026-09-20 19:11 | 08 | 2 | 14/26 (54%) | $1.04 | `claude-sonnet-5` | `b64294d0` | `0e09566` | 019 calendars, the judge told about silence and time zones |
+| 2026-09-20 19:49 | 23 | 2 | 21/22 (96%) | $0.65 | `claude-sonnet-5` | `101d56c2` | `46a3125` | after: output budget with a retry, the error screenshot's task, device zone |
+| 2026-09-20 19:49 | 08 | 2 | 24/26 (92%) | $1.07 | `claude-sonnet-5` | `101d56c2` | `46a3125` | after: output budget, done is silent after a change, declined refusals, calendar paragraphs gated, waiting wording, device zone, rubrics off the silent cases |
+| 2026-09-20 19:56 | 08 | 2 | 23/26 (88%) | $1.12 | `claude-sonnet-5` | `101d56c2` | `46a3125` | after, second: the dinner at 8pm Lisbon, the stub declines like the worker |
 
 ## Full runs by principle
 

@@ -71,6 +71,7 @@ this way the file goes, and the diff says which behaviour was dropped.
 | `has_calendar`, `may_search`, `may_read_links` | the switches | file, answer |
 | `country` | two letters, or `null` for not known | file, answer |
 | `today` | the date line, default Friday 11 September 2026 | all |
+| `time_zone` | the device's IANA zone, default Europe/Lisbon; `null` for UTC | file, answer, quick_add |
 | `history` | `[{role: person or offload, text}]` | file, answer |
 | `answered` | `{field, label}`, the block a typed answer leaves | file |
 | `country_override` | the country picked when asked | answer |

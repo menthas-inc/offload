@@ -258,6 +258,10 @@ export interface MessagesTable {
   source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
   source_ref: string | null;
   attrs: Generated<unknown>;
+  /** The device's IANA time zone when this was sent, from the request header,
+   *  so the turn that reads the message reads "today" and "3pm" in it. Null
+   *  is read as UTC. Per message until the account carries one. */
+  time_zone: string | null;
   created_at: Timestamp;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;

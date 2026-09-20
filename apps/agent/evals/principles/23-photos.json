@@ -274,17 +274,19 @@
       }
     },
     {
-      "id": "error-screenshot-is-a-row-not-a-task",
-      "why": "an error message files as a screenshot in the app's thread; a task only when the words ask",
+      "id": "error-screenshot-is-a-task-too",
+      "why": "an error in a picture of a screen is a screenshot in the app's thread and a task to fix it beside it, said or not; labelled 2026-09-20, the checkbox is wanted",
       "surface": "file",
       "input": "",
       "context": "behrooz",
       "photos": ["error.png"],
       "looking_at": "00000010-0000-0000-0000-000000000000",
-      "label_pending": "An error screenshot dumped into App fixes with no words: the model files the screenshot and a task 'Fix TypeError...' beside it, every time. Is the second row wanted, a checkbox to tick when it is fixed, or noise, the screenshot being the item? The case guesses noise.",
       "expect": {
-        "filed": [{ "tool": "add_content", "type": "screenshot", "photo": 1, "thread": "App fixes", "body_has": ["TypeError"] }],
-        "filed_count": 1,
+        "filed": [
+          { "tool": "add_content", "type": "screenshot", "photo": 1, "thread": "App fixes", "body_has": ["TypeError"] },
+          { "tool": "add_content", "type": "task", "thread": "App fixes", "has": ["TypeError"], "no_photo": true }
+        ],
+        "filed_count": 2,
         "asks": "none",
         "say": null
       }

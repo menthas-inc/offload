@@ -664,10 +664,10 @@ def _tool_caller(
                 # and act on, which is what it should have been all along.
                 if 400 <= response.status_code < 500:
                     log.warning("tool call refused", job_id=job_id, status=response.status_code)
-                    return {"ok": False, "error": "invalid_arguments"}
+                    return {"ok": False, "declined": True, "error": "invalid_arguments"}
 
                 response.raise_for_status()
-                return response.json()
+                return _declined_if_argument(response.json())
             except Exception as exc:  # noqa: BLE001, PERF203
                 last = exc
                 if attempt < 2:
@@ -680,6 +680,44 @@ def _tool_caller(
         return {"ok": False, "error": "unavailable"}
 
     return call
+
+
+# The Core API's refusals that are about the arguments the model sent, as
+# against the server being unable: a row with no time, a thread it cannot see,
+# a date it cannot parse, a tag too many. The model reads the reason and
+# fixes the call, and the turn is not partial for it.
+#
+# **Refused `no_time`, the model did the right thing and the person still saw
+# "That did not finish."** It filed, was refused, put the time on the same row
+# and wrote the event: five calls, every one right, and the loop counted the
+# refusal as a failed tool, so the reply was built as a partial turn with a
+# Finish control against a turn that had finished. A refusal the model can
+# answer is a decline, the way the lookup bound's are.
+ARGUMENT_REFUSALS = frozenset(
+    {
+        "unknown_thread",
+        "bad_tags",
+        "unknown_photo",
+        "bad_place_name",
+        "unknown_content",
+        "not_yours",
+        "bad_date",
+        "unknown_calendar",
+        "read_only",
+        "already_on_calendar",
+        "no_time",
+        "unknown_event",
+        "invalid_arguments",
+    }
+)
+
+
+def _declined_if_argument(body: dict) -> dict:
+    """Mark a refusal about the arguments as declined, so the loop does not
+    count it as a tool that failed."""
+    if isinstance(body, dict) and not body.get("ok") and body.get("error") in ARGUMENT_REFUSALS:
+        return {**body, "declined": True}
+    return body
 
 
 def _camel(args: dict) -> dict:
@@ -956,7 +994,12 @@ async def handle(
                 open_q = await ctx_mod.open_question(
                     conn, question_id=str(open_id), account_id=job.account_id
                 )
-                today = await ctx_mod.today_line(conn)
+                today = await ctx_mod.today_line(
+                    conn,
+                    await ctx_mod.message_zone(
+                        conn, message_id=str(message_id), account_id=job.account_id
+                    ),
+                )
             if open_q is not None and open_q.field == "calendar":
                 # 019. A calendar's name is matched in the Core API, in code,
                 # against what was typed: no judge, since a label may be a
@@ -1595,7 +1638,10 @@ async def _handle_quick_add(
     try:
         async with engine.connect() as conn:
             loaded = await ctx_mod.load_quick_add(
-                conn, account_id=job.account_id, content_id=content_id
+                conn,
+                account_id=job.account_id,
+                content_id=content_id,
+                time_zone=str(job.payload.get("timeZone") or "") or None,
             )
 
         if loaded is None:

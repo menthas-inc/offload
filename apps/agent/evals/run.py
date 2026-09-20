@@ -82,6 +82,7 @@ from offload_agent.worker import (
     Lookups,
     _author_the_answer_line,
     _author_the_failure_line,
+    _declined_if_argument,
     _from_the_dump,
     _in_the_dump,
     parse_answer,
@@ -132,6 +133,9 @@ def _cost(model: str, input_tokens: int, output_tokens: int, cache_read: int = 0
 
 
 TODAY = "Friday 11 September 2026"
+#: The fixtures' device zone. Lisbon in September is UTC+1, so 3pm there is
+#: 14:00Z; a case can set `time_zone` to another name, or null for UTC.
+TIME_ZONE = "Europe/Lisbon"
 TODAY_ISO = "2026-09-11"
 
 
@@ -195,6 +199,7 @@ _FIXTURE_KEYS = {
     "history",
     "country",
     "today",
+    "time_zone",
     "has_calendar",
     "may_search",
     "may_read_links",
@@ -392,7 +397,12 @@ class Recorder:
 
     async def __call__(self, tool: str, tool_call_id: str, args: dict) -> dict:
         self.calls.append((tool, dict(args)))
-        body = await self._answer(tool, args)
+        # The stub answers as the Core API would; the worker's own reading of
+        # that answer (a refusal about the arguments is a decline, not a
+        # failure) runs here too, so a case measures the same loop a turn
+        # takes. Without it the no_time case failed as "filed nothing and said
+        # nothing" on a turn that had filed and written.
+        body = _declined_if_argument(await self._answer(tool, args))
         self.results.append(body)
         return body
 
@@ -963,10 +973,12 @@ _JUDGE = """You are marking one turn of an assistant called offload against a ru
 Answer only with a tool call. The rubric is the whole standard, in both
 directions: a turn that is pleasant but breaks it fails, and a turn is never
 failed for something the rubric does not name. Not the wording, not what you
-would have done, and never the hour in a time stamp: offload does not know
-the person's time zone yet, so an hour is right or wrong only when the rubric
-says which hour. Read the transcript as the record of what offload actually
-did: each line is a tool it called with the arguments it sent, and an arrow
+would have done, and not the hour in a time stamp unless the rubric names one:
+moments are written in UTC and the person is in Lisbon, where the clock is one
+hour ahead in September, so 3pm there is 14:00Z, and only a rubric that says
+which hour makes an hour a fault. Read the transcript as the record of what
+offload actually did: each line is a tool it called with the arguments it
+sent, and an arrow
 after a call is what the server answered. A calendar write "held for the
 person's go-ahead" has not been written: saying it is waiting is true and
 saying it is done is false. The last line is what it said to the person, or
@@ -1083,6 +1095,7 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         landed=[],
         default_thread_id=default.id if default else None,
         today=fx.get("today") or TODAY,
+        time_zone=fx.get("time_zone", TIME_ZONE),
         has_calendar=bool(fx.get("has_calendar")),
         may_search=fx.get("may_search", True),
         may_read_links=fx.get("may_read_links", True),
@@ -1230,6 +1243,7 @@ async def _run_answer(client: AsyncAnthropic, case: Case, model: str) -> Result:
         may_read_links=fx.get("may_read_links", True),
         country=rec.country,
         today=fx.get("today") or TODAY,
+        time_zone=fx.get("time_zone", TIME_ZONE),
         turns=[Turn(role=t["role"], text=t["text"]) for t in fx.get("history") or []],
         country_override=fx.get("country_override"),
         looking_at=_thread(fx, looking_at),
@@ -1351,6 +1365,7 @@ async def _run_quick_add(client: AsyncAnthropic, case: Case, model: str) -> Resu
         ],
         pieces=[Piece(title=p["title"], done=bool(p.get("done"))) for p in fx.get("pieces") or []],
         today=fx.get("today") or TODAY,
+        time_zone=fx.get("time_zone", TIME_ZONE),
     )
     try:
         outcome = await plan_quick_add(client, ctx, model, rec)

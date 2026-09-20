@@ -16,6 +16,7 @@ import { z } from "zod";
 import { sql } from "kysely";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
+import { timeZoneOf } from "../time-zone.js";
 import { webOrigins } from "../env.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
@@ -634,6 +635,8 @@ export async function takeDump(
   threadId?: string,
   /** 020. Photos to claim, and whether they came through the share sheet. */
   photos?: { blobIds: string[]; viaShare: boolean },
+  /** The device's time zone from the request header, already checked. */
+  timeZone: string | null = null,
 ): Promise<{
   messageId: string;
   conversationId: string;
@@ -768,6 +771,7 @@ export async function takeDump(
         client_key: clientKey ?? null,
         looking_at_thread_id: lookingAt,
         source: photos?.viaShare ? "share" : "person",
+        time_zone: timeZone,
       })
       .onConflict((oc) =>
       // The index is partial, on client_key is not null, because most messages
@@ -951,6 +955,7 @@ export async function dumpRoutes(app: App): Promise<void> {
           clientKey,
           threadId,
           blobIds?.length ? { blobIds, viaShare: Boolean(viaShare) } : undefined,
+          timeZoneOf(request),
         );
       } catch (error) {
         if (error instanceof UnknownBlob) {
@@ -1469,10 +1474,11 @@ export async function dumpRoutes(app: App): Promise<void> {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
-      const outcome = await answerQuestion(accountId, request.params.id, request.body.option);
+      const timeZone = timeZoneOf(request);
+      const outcome = await answerQuestion(accountId, request.params.id, request.body.option, timeZone);
       if (!outcome) return reply.code(404).send({ error: "not_found" as const });
       if ("calendar" in outcome) {
-        const answered = await answerCalendarQuestion(accountId, outcome.calendar);
+        const answered = await answerCalendarQuestion(accountId, { ...outcome.calendar, timeZone });
         if (!answered) return reply.code(404).send({ error: "not_found" as const });
         if (answered.failed) return reply.code(502).send({ error: "did_not_go_through" as const });
         request.log.info({ field: "calendar", how: "tap", applied: answered.applied }, "question answered");
@@ -1837,6 +1843,8 @@ export async function answerQuestion(
   accountId: string,
   questionId: string,
   option: number,
+  /** The device's time zone from the request header, already checked. */
+  timeZone: string | null = null,
 ): Promise<{
   envelope: {
     messageId: string;
@@ -1897,6 +1905,7 @@ export async function answerQuestion(
         text: picked.label,
         state: country ? "seen" : "answered",
         looking_at_thread_id: asked?.looking_at_thread_id ?? null,
+        time_zone: timeZone,
       })
       .returning("id")
       .executeTakeFirstOrThrow();
@@ -1983,6 +1992,8 @@ export async function answerCalendarQuestion(
     /** 019. A typed answer: the dump is already the person's message, so no
      *  turn is written and the write is recorded against it. */
     typed?: { messageId: string; turnId: string };
+    /** The device's time zone from the request header, already checked. */
+    timeZone?: string | null;
   },
 ): Promise<{
   envelope: {
@@ -2073,6 +2084,7 @@ export async function answerCalendarQuestion(
             turn_id: turnId,
             text: picked.label,
             state: "answered",
+            time_zone: input.timeZone ?? null,
             looking_at_thread_id: input.lookingAt,
             derived_from_untrusted: owned?.access_role !== "owner",
           })

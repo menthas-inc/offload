@@ -153,7 +153,9 @@ async def test_a_refusal_is_returned_as_data_and_not_retried():
         result = await call("add_content", "toolu_1", {"thread_id": "gone", "title": "x"})
 
     assert attempts == 1, "a considered refusal was retried as though it were a blip"
-    assert result == {"ok": False, "error": "unknown_thread"}
+    # And marked declined: a thread the model cannot see is the model's
+    # argument to fix, not a tool that failed, so the turn is not partial.
+    assert result == {"ok": False, "error": "unknown_thread", "declined": True}
 
 
 # --------------------------------------------------------------- the partial reply
@@ -256,7 +258,7 @@ async def test_a_refused_tool_call_is_not_retried_as_a_network_failure():
 
     assert attempts == 1, "a considered refusal was retried as though it were a blip"
     # Data the planner can read and act on, not a claim that the tool is down.
-    assert result == {"ok": False, "error": "invalid_arguments"}
+    assert result == {"ok": False, "declined": True, "error": "invalid_arguments"}
 
 
 async def test_a_5xx_is_still_retried():
