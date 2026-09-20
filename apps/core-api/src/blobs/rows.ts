@@ -23,12 +23,15 @@ export interface MessagePhoto {
   unreadable: boolean;
 }
 
-/** The photos a message carries, in the order they were attached. */
+/** The photos a message carries, in the order they were attached. 021: the
+ *  voice note on the same message is not one of them, to this or to anything
+ *  built on it. */
 export async function photosOf(trx: Trx, messageId: string): Promise<MessagePhoto[]> {
   const rows = await trx
     .selectFrom("blobs")
     .select(["id", "taken_at", "town", "unreadable_at"])
     .where("message_id", "=", messageId)
+    .where("kind", "=", "image")
     .where("deleted_at", "is", null)
     .orderBy("created_at", "asc")
     .orderBy("id", "asc")

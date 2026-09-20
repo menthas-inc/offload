@@ -1,0 +1,68 @@
+# 021 Voice notes, tasks
+
+Ordered. Each cites the acceptance criteria it serves and the principles it satisfies. The home-screen shortcut is its own track and ships on its own if a platform fights back. Anything under `docs/tech/`, `docs/constitution/` or `.claude/skills/offload-design/` is written on `main`, never in the feature worktree. The key stays unset until the product owner sets it; every task here is testable without it.
+
+## A. Setup and record
+
+- [x] **A1** Migration `0051_voice_notes.sql`: `said()`, `blobs.kind` with its default and the width and height check, `duration_ms`, `measured_ms`, `waveform`, `provider_ref` and its partial index, `messages.transcript` and `transcribed_at`, `search_text` regenerated and its index rebuilt, `readable_messages` recreated, the worker role's grants, and the comment that `content.type = 'voice'` is written by nothing. *(AC-5, AC-11, AC-13, AC-22; DATA-1, OFF-3)*
+  *Test:* applies to the seeded database and rolls forward from 0050; every pre-existing blob reads `kind = 'image'`; an audio row with a width is refused and an image row without one is refused; `said('a', null)`, `said(null, 'b')`, `said('a', 'b')` and `said('', '')` return `a`, `b`, `a\n\nb` and null; a message with a transcript and no words is found by a term in the transcript; the worker role reads `kind` and not `waveform`.
+- [ ] **A2** On `main`, `.claude/skills/offload-design/decisions.md`: the eleven entries under "Logged against the kit" in the feature spec, each with **Design system impact**. *(OFF-7)*
+- [ ] **A3** On `main`, `docs/tech/decisions.md`: a "Voice notes, decided during 021" heading carrying the decisions in the feature spec's last section; the Photos entry "the classifier is not consulted when the message carries a blob" amended to "a photo"; the transcription entry gains the EU endpoint as the gate and the provider's own retention numbers with the date read. `docs/specs/018-asking-back/feature-spec.md`: the "Voice answers" out-of-scope line struck, dated. *(DEV-2)*
+- [ ] **A4** The privacy policy, `apps/web/src/app/(marketing)/privacy/page.tsx`, drafted now and committed with the key: the AssemblyAI row's "on their European servers", the section 5 line after the photo line with the two reasons for the European servers, and "words you dumped". Shown to the product owner before commit. *(AC-27; CLAUDE.md privacy rule)*
+- [x] **A5** `schemas/events/dump_sent.v1.json`: `voice`, `voice_seconds`, `voice_bytes`. *(AC-12; OFF-1)*
+  *Test:* the schema check passes; the deny-list scan finds no transcript field anywhere.
+- [ ] **A6** Regenerate the harness map once the prompt, the tools and the routes exist. *(DEV-2)*
+
+## B. API
+
+- [x] **B1** `blobs/audio.ts` and `routes/blobs.ts`: `POST /v1/blobs/audio` with the 10 MB stream limit, the container sniff by the route's own kind, the duration and waveform validation, the audio ceiling by count and by `coalesce(measured_ms, duration_ms)`, idempotency, the seal, the R2 write, the account wrap, the row with `kind = 'audio'`. The log line carries bytes and never the waveform. *(AC-6, AC-10, AC-11, AC-12; SEC-2, OFF-1, OFF-2)*
+  *Test:* 10 MB + 1 byte is 413 with no row and no object; a JPEG named `note.m4a` with `audio/mp4` declared is 415; an M4A, a WebM and an Ogg are each accepted with their sniffed type and null dimensions; a HEIC sent to this route is 415 despite its `ftyp`; a 33-bar waveform and a 601 s duration are 400; the 101st note of the day is 429, and so is the note that takes the day past 60 minutes by declared length, and by measured length once one is set; a repeat key returns the same id.
+- [x] **B2** `GET /v1/blobs/:id/audio`: the message-only authorization, `kind = 'audio'`, the whole-object open, Range with 206 and 416, the headers. *(AC-24, AC-25; OFF-3, SEC-2)*
+  *Test:* the dumper reads; an accepted member of the thread holding a row filed from the note is 404; a photo's id on this route is 404 for its own dumper; a `Range: bytes=0-99` answers 206 with `Content-Range` and 100 bytes; `bytes=99999999-` is 416; `Cache-Control` is `private`; no credential appears in any URL the tests build.
+- [x] **B3** `POST /v1/dumps`: one audio blob at most, `type = 'voice'` with an audio blob whatever else rides, `text` as the typed words, the event's three fields. `photosForAll` filters `kind = 'image'`, and the envelope gains `voice`. *(AC-5, AC-9, AC-12, AC-13; OFF-1)*
+  *Test:* two audio ids are 400 and nothing is written; words plus a voice note is `type = 'voice'` with the words in `text` and `transcript` null; the tail carries `voice` with 32 bars and `transcribed: false` and `photos` empty for that message; the event validates and carries no waveform.
+- [x] **B4** Internal: `POST /internal/v1/blobs/:id/submitted`, `POST /internal/v1/messages/:id/transcript` with the `llm_usage` row and the `voice.forget` enqueue, `POST /internal/v1/blobs/:id/forgotten`. Job-bound like 020's rendition route. *(AC-13, AC-16, AC-27; OFF-1, OFF-5)*
+  *Test:* the transcript write sets `transcript`, `transcribed_at` and `measured_ms`, writes one ledger row with `model = 'assemblyai'` and a cost from the seconds, and enqueues exactly one `voice.forget`; a 20,001-character transcript is refused with a reply that does not contain the text; `submitted` then `forgotten` round-trips `provider_ref` to null; `search_text` on the message now matches a term from the transcript.
+- [x] **B5** The photo readers learn the kind: `photosOf`, `photoForRow`, `fileUnfiled`, the two end-of-turn steps in `internal.ts`, the 020 photo ceiling. *(AC-22; OFF-3)*
+  *Test:* a message with one photo and one voice note, run through `turn-result` with a model that filed nothing, files exactly one row titled `A photo`, and the audio blob has no `content_blobs` row and no `blob_keys` row of scope `thread`; the photo ceiling ignores audio.
+- [x] **B6** `search/sweep.ts`: exclude a voice message with no `transcribed_at`, version on `greatest(created_at, transcribed_at)`; `embed_jobs.py`'s `_MESSAGE` reads `said(...)`. `POST /v1/dumps/:id/resume` recomputes `openQuestionId`. `turn-result`'s `reason` gains `transcription_failed`. *(AC-13, AC-18)*
+  *Test:* a voice message with words is embedded once at send and again after the transcript lands, and the second chunk set holds the transcript; a voice-only message is not enqueued before its transcript; a resumed voice message on a conversation with an open question carries its id.
+- [x] **B7** `blob.daily` enqueues `voice.forget` for references older than an hour; `blob.purge` tolerates a blob with one key. *(AC-26, AC-27)*
+  *Test:* a blob with `provider_ref` set 61 minutes ago is enqueued and one set 59 minutes ago is not; an audio blob purges with one delete.
+
+## C. Agent
+
+- [ ] **C1** `transcribe.py`: the EU constant and the host guard, the frozen request keys checked at import against the vendor's reference, upload, submit, `submitted`, poll with the 6-minute cap, the transcript post, type-only logging. `worker.py`: the voice step at the top of `handle()` under the shield with the cancel awaited through it, "Listening" ahead of "Looking through your threads", `HEARD_NOTHING`, the `voice.forget` handler, `voice_seconds` and the outcome on the log line. Config: `ASSEMBLYAI_API_KEY`, `ASSEMBLYAI_MICROS_PER_SECOND`, the boot line. *(AC-14, AC-16, AC-17, AC-18, AC-27; SEC-1, OFF-1, OFF-5)*
+  *Test:* a request built for the US host raises; a key not in the frozen set fails at import; against a stub provider, a job that dies after `submitted` and retries polls and never uploads again; a cancel during the poll still writes the transcript and then settles `cancelled`; an empty `completed` on a message with no words and no photos posts `answered` with the heard-nothing line and no model call; `error` after the attempts posts `failed` with `transcription_failed`; the log lines and the exception paths carry no transcript and no reference.
+- [ ] **C2** `context.py`, `plan.py`: `voice_of`, `said(...)` in `_DUMP`, `_QUESTION`, `_TURNS`, the answer and judge loaders, `kind = 'image'` in `_PHOTOS`, `_PHOTO_COUNT` and `_TURNS`' photo count, `DumpContext.spoken`, the "spoken, written down" label. *(AC-13, AC-19, AC-20, AC-22; OFF-8, SEC-1)*
+  *Test:* `question_text` on a voice message returns the transcript; on words plus a voice note it returns both with the blank line; `photo_count` on a message with one audio blob is 0; the tail renders a voice message as its words with no photo count; `build_blocks` labels a spoken dump and places it as a user-turn block; `fit()` never drops it.
+- [ ] **C3** `prompts/plan_v2.md` and the classify prompt: the "Spoken" paragraph. *(AC-19, AC-21)*
+  *Test:* the paragraph is present in both prompts' rendered text; the existing principle evals are unchanged in count.
+- [ ] **C4, deferred.** `evals/principles/voice.json` from real recordings made with the feature: the spoken dump, question, order, answer to an open question, and the third-party imperative. Written once the product owner has recorded them; run through the `test-llm` skill with a held-out half. **Never run without the product owner's yes in the session.** *(AC-19, AC-21)*
+
+## D. Web
+
+- [ ] **D1** `Composer.tsx`: the live microphone in the kit's order; `getUserMedia` and the refusal line; `MediaRecorder` with the mime preference and 64 kbps; the recording row borrowed from the kit with the scaled waveform window, the words as static text, the stopped state at `10:00`, Discard with the toast past a minute, Escape and Enter; the resample to 32 bars; upload then dump; the bubble at the press and the failed treatment with Try again putting the `Blob` back; Close disabled while recording; a hidden tab keeps recording. *(AC-1 to AC-7, AC-9, AC-10, AC-11)*
+  *Test:* with a stubbed recorder, the row appears on tap and the field is gone; Discard at 30 s restores the words and chips with no toast, at 61 s shows the toast and Undo restores the row; the upload carries 32 bars and the duration; a refused send keeps the recording in the row; Enter sends and Escape discards.
+- [ ] **D2** `SentVoice.tsx`: the glyph, the 32 bars from the wire, the duration floored, tertiary at rest and primary as played, the countdown, the button name and state, one playing at a time, inert while recording; the transcript beneath with "Show all"; `voice` on the person's bubble above the photos; the failed and unsent treatments on a voice bubble. *(AC-9, AC-15, AC-18, AC-24)*
+  *Test:* the bubble draws the bars and `0:14` before the transcript and the transcript beneath once `transcribed`; a second bubble's play pauses the first; the button's accessible name and state read as specced; `59.6` renders `0:59`.
+- [ ] **D3** `dead-classes`, `dead-css`, `dead-icons`, lint, typecheck.
+
+## E. Mobile
+
+- [ ] **E1** `expo-audio` and `expo-keep-awake` with their plugins and the permission string; the recording state in `conversation-context.tsx`; `Composer.tsx`: the microphone, the permission line with `openSettings`, the recorder at AAC mono 64 kbps with metering, the row with the words above and the keyboard dropped, keep-awake for the recording, the stop on `AppState` and on interruption, `10:00`, Discard with the toast past a minute, the resample, upload then dump, the bubble at the press, the failed treatment putting the note back, the file deleted on send and discard and swept on launch. *(AC-1 to AC-7, AC-9, AC-10, AC-11)*
+  *Test:* with the recorder mocked, `AppState` to `background` stops the recording and the row stays with both controls; the recordings directory is empty after a send and after a discard; the launch sweep deletes a leftover; `app.json` declares no audio background mode.
+- [ ] **E2** `SentVoice.tsx` in `components/shell`: the bubble as on the web; playback through a cache file fetched with the session, deleted on pause, on unmount and on sign-out, played through the silent switch; the Material pair on Android. *(AC-15, AC-18, AC-24)*
+  *Test:* the cache file exists while playing and not after pause; sign-out leaves the cache directory empty.
+- [ ] **E3** `dead-classes`, `dead-icons`, lint, typecheck; an EAS build on both platforms.
+- [ ] **E4** On a device, the feature spec's list: the keyboard drop and the plate, an incoming call, the auto-lock held off, the silent switch, the audio fetch on Android, reduced motion, the largest text size on a 360dp frame, the dark transcript contrast. *(AC-4, AC-24; OFF-7)*
+
+## F. The home-screen shortcut
+
+- [ ] **F1** `expo-quick-actions` with its plugin: the static `record` item with the platform icons; the root layout handing it to the conversation context; the arrival order from the feature spec. *(AC-8)*
+  *Test:* with the action mocked, a cold arrival puts the plate's composer into the recording row on Today with no sheet; over an open thread the thread stays and is the filing default at send; over a draft the words and chips stay and a pinned + is released; during a locked send the row appears when the send lands; while recording nothing changes; signed out, the gate shows and the action is dropped.
+- [ ] **F2** On both devices: the long press from cold and over an open thread. *(AC-8)*
+
+## G. Close
+
+- [ ] **G1** The three tracks green, the design log and the tech log written on `main`, the privacy page committed with the key or held with it, and the harness map regenerated.

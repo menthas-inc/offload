@@ -34,6 +34,15 @@ import {
 } from "../blobs/photos.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { reverseGeocodingOn } from "../places/reverse.js";
+import {
+  audioFilename,
+  DAILY_VOICE_MS,
+  DAILY_VOICE_NOTES,
+  MAX_AUDIO_BYTES,
+  parseDurationMs,
+  parseWaveform,
+  sniffAudio,
+} from "../blobs/audio.js";
 
 function fetchHeaders(request: FastifyRequest): Headers {
   const headers = new Headers();
@@ -72,10 +81,13 @@ interface Upload {
   name: string | null;
   bytes: Buffer | null;
   tooBig: boolean;
+  /** 021. The other string fields, bounded: a voice note's duration and
+   *  bars ride here. */
+  fields: Record<string, string>;
 }
 
 async function readUpload(request: FastifyRequest): Promise<Upload> {
-  const upload: Upload = { clientKey: null, name: null, bytes: null, tooBig: false };
+  const upload: Upload = { clientKey: null, name: null, bytes: null, tooBig: false, fields: {} };
   for await (const part of request.parts()) {
     if (part.type === "file") {
       if (upload.bytes) {
@@ -97,9 +109,47 @@ async function readUpload(request: FastifyRequest): Promise<Upload> {
       upload.clientKey = part.value.slice(0, 200);
     } else if (part.fieldname === "name" && typeof part.value === "string") {
       upload.name = part.value.slice(0, 255) || null;
+    } else if (typeof part.value === "string" && Object.keys(upload.fields).length < 8) {
+      upload.fields[part.fieldname] = part.value.slice(0, 400);
     }
   }
   return upload;
+}
+
+/** 021. May this account hear this voice note? Its dumper, through the
+ *  message, and nobody else: a conversation is never shared (013), and this
+ *  is the one route that serves a blob as it arrived, so 020's second arm
+ *  through a thread's rows is deliberately not here. */
+async function hearable(blobId: string, accountId: string): Promise<{ content_type: string } | null> {
+  const row = await db
+    .selectFrom("blobs as b")
+    .innerJoin("messages as m", "m.id", "b.message_id")
+    .select("b.content_type")
+    .where("b.id", "=", blobId)
+    .where("b.kind", "=", "audio")
+    .where("b.deleted_at", "is", null)
+    .where("m.account_id", "=", accountId)
+    .where("m.deleted_at", "is", null)
+    .executeTakeFirst();
+  return row ?? null;
+}
+
+/** One byte range, or null for none or for anything but a single range. */
+function parseRange(header: string | undefined, size: number): { start: number; end: number } | null | "unsatisfiable" {
+  if (!header) return null;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!match || (match[1] === "" && match[2] === "")) return null;
+  let start = match[1] === "" ? NaN : Number(match[1]);
+  let end = match[2] === "" ? size - 1 : Number(match[2]);
+  if (Number.isNaN(start)) {
+    // A suffix range: the last N bytes.
+    const suffix = Number(match[2]);
+    if (suffix === 0) return "unsatisfiable";
+    start = Math.max(0, size - suffix);
+    end = size - 1;
+  }
+  if (start >= size || start > end) return "unsatisfiable";
+  return { start, end: Math.min(end, size - 1) };
 }
 
 /** May this account read this blob? The dumper through the message, a
@@ -197,9 +247,11 @@ export async function blobRoutes(app: App): Promise<void> {
         .select(["id", "width", "height", "deleted_at"])
         .where("account_id", "=", accountId)
         .where("client_key", "=", upload.clientKey)
+        .where("kind", "=", "image")
         .executeTakeFirst();
       if (existing && existing.deleted_at === null) {
-        return reply.code(201).send({ blobId: existing.id, width: existing.width, height: existing.height });
+        // A photo's dimensions are not null by the kind constraint.
+        return reply.code(201).send({ blobId: existing.id, width: existing.width!, height: existing.height! });
       }
       if (existing) {
         await store.remove(RENDITIONS.map((rendition) => objectKey(existing.id, rendition)));
@@ -210,6 +262,7 @@ export async function blobRoutes(app: App): Promise<void> {
         .selectFrom("blobs")
         .select(({ fn }) => [fn.countAll<string>().as("n"), fn.sum<string>("byte_size").as("bytes")])
         .where("account_id", "=", accountId)
+        .where("kind", "=", "image")
         .where("created_at", ">", sql<Date>`now() - interval '24 hours'`)
         .executeTakeFirstOrThrow();
       if (Number(today.n) >= DAILY_PHOTOS || Number(today.bytes ?? 0) + upload.bytes.length > DAILY_BYTES) {
@@ -245,6 +298,144 @@ export async function blobRoutes(app: App): Promise<void> {
 
       request.log.info({ blobId: blob.id, bytes: bytes.length, type }, "photo stored");
       return reply.code(201).send({ blobId: blob.id, width: size.width, height: size.height });
+    },
+  );
+
+  // ------------------------------------------------------------ 021, a voice note
+
+  app.post(
+    "/v1/blobs/audio",
+    {
+      schema: {
+        response: {
+          201: z.object({ blobId: z.string() }),
+          400: refused,
+          401: unauthenticated,
+          413: refused,
+          415: refused,
+          429: refused,
+          503: refused,
+        },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+      const store = objectStore();
+      if (!store) return reply.code(503).send({ error: "voice_unavailable" });
+
+      const upload = await readUpload(request);
+      if (upload.tooBig) return reply.code(413).send({ error: "too_big" });
+      if (!upload.bytes || !upload.clientKey) return reply.code(415).send({ error: "not_a_voice_note" });
+      if (upload.bytes.length > MAX_AUDIO_BYTES) return reply.code(413).send({ error: "too_big" });
+
+      // The kind is this route's. A HEIC begins with the same four bytes an
+      // M4A does and is refused here by its brand, never by a shared sniff.
+      const type = sniffAudio(upload.bytes);
+      if (!type) return reply.code(415).send({ error: "not_a_voice_note" });
+      const durationMs = parseDurationMs(upload.fields["durationMs"]);
+      const waveform = parseWaveform(upload.fields["waveform"]);
+      if (!durationMs || !waveform) return reply.code(400).send({ error: "bad_voice_note" });
+
+      const existing = await db
+        .selectFrom("blobs")
+        .select(["id", "deleted_at"])
+        .where("account_id", "=", accountId)
+        .where("client_key", "=", upload.clientKey)
+        .where("kind", "=", "audio")
+        .executeTakeFirst();
+      if (existing && existing.deleted_at === null) {
+        return reply.code(201).send({ blobId: existing.id });
+      }
+      if (existing) {
+        await store.remove([objectKey(existing.id, "original")]);
+        await db.deleteFrom("blobs").where("id", "=", existing.id).where("deleted_at", "is not", null).execute();
+      }
+
+      // The day's ceiling, by count and by length: the provider's measurement
+      // where it exists, the device's count where it does not yet. Outside
+      // the insert's transaction, as 020's is: a cost bound, not a bill.
+      const today = await db
+        .selectFrom("blobs")
+        .select(({ fn }) => [
+          fn.countAll<string>().as("n"),
+          fn.sum<string>(sql`coalesce(measured_ms, duration_ms)`).as("ms"),
+        ])
+        .where("account_id", "=", accountId)
+        .where("kind", "=", "audio")
+        .where("created_at", ">", sql<Date>`now() - interval '24 hours'`)
+        .executeTakeFirstOrThrow();
+      if (Number(today.n) >= DAILY_VOICE_NOTES || Number(today.ms ?? 0) + durationMs > DAILY_VOICE_MS) {
+        return reply.code(429).send({ error: "daily_limit" });
+      }
+
+      const bytes = upload.bytes;
+      const blob = await db.transaction().execute(async (trx) => {
+        const inserted = await trx
+          .insertInto("blobs")
+          .values({
+            account_id: accountId,
+            message_id: null,
+            client_key: upload.clientKey!,
+            name: null,
+            kind: "audio",
+            content_type: type,
+            byte_size: bytes.length,
+            width: null,
+            height: null,
+            duration_ms: durationMs,
+            waveform,
+            sha256: sha256(bytes),
+          })
+          .returning(["id"])
+          .executeTakeFirstOrThrow();
+        const key = await mintObjectKey(trx, inserted.id, accountId);
+        await storeSealed(inserted.id, "original", key, bytes);
+        return inserted;
+      });
+
+      // Bytes, a type and a length. Never the bars.
+      request.log.info({ blobId: blob.id, bytes: bytes.length, type, durationMs }, "voice note stored");
+      return reply.code(201).send({ blobId: blob.id });
+    },
+  );
+
+  app.get(
+    "/v1/blobs/:id/audio",
+    { schema: { params: z.object({ id: z.string().uuid() }) } },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+
+      const { id } = request.params;
+      const blob = await hearable(id, accountId);
+      if (!blob) return reply.code(404).send({ error: "not_found" });
+
+      // Whole, then sliced: AES-GCM is not seekable and the cap is 10 MB.
+      const bytes = await db.transaction().execute(async (trx) => openStored(id, "original", await objectKeyOf(trx, id)));
+      if (!bytes) return reply.code(404).send({ error: "not_found" });
+
+      const range = parseRange(request.headers.range, bytes.length);
+      if (range === "unsatisfiable") {
+        return reply.code(416).header("Content-Range", `bytes */${bytes.length}`).send();
+      }
+
+      void reply
+        .header("Accept-Ranges", "bytes")
+        .header("Content-Type", blob.content_type)
+        .header("Cache-Control", "private, max-age=3600")
+        .header("X-Content-Type-Options", "nosniff")
+        .header("Content-Disposition", `inline; filename="${audioFilename(blob.content_type)}"`);
+      if (!range) {
+        return reply.code(200).header("Content-Length", String(bytes.length)).send(bytes);
+      }
+      const slice = bytes.subarray(range.start, range.end + 1);
+      return reply
+        .code(206)
+        .header("Content-Range", `bytes ${range.start}-${range.end}/${bytes.length}`)
+        .header("Content-Length", String(slice.length))
+        .send(slice);
     },
   );
 
@@ -408,6 +599,144 @@ export async function blobRoutes(app: App): Promise<void> {
       if (!blob) return reply.code(404).send({ error: "unknown_blob" });
       await db.updateTable("blobs").set({ unreadable_at: sql`now()` }).where("id", "=", blob.id).execute();
       request.log.info({ blobId: blob.id }, "photo unreadable");
+      return reply.code(200).send({ ok: true });
+    },
+  );
+
+  // ------------------------------------------------------------ 021, the worker and a voice note
+
+  /** The transcript's reference at the provider, held from submission until
+   *  the delete after the read lands, so a retry polls it rather than sending
+   *  the audio a second time. Never logged. */
+  app.post(
+    "/internal/v1/blobs/:id/submitted",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.object({ jobId: z.string().uuid(), providerRef: z.string().min(1).max(200) }),
+      },
+    },
+    async (request, reply) => {
+      if (!tokenMatches(bearer(request))) return reply.code(401).send({ error: "unauthorised" });
+      const blob = await blobForJob(request.body.jobId, request.params.id);
+      if (!blob) return reply.code(404).send({ error: "unknown_blob" });
+      await db
+        .updateTable("blobs")
+        .set({ provider_ref: request.body.providerRef })
+        .where("id", "=", blob.id)
+        .where("kind", "=", "audio")
+        .execute();
+      request.log.info({ blobId: blob.id }, "voice note submitted");
+      return reply.code(200).send({ ok: true });
+    },
+  );
+
+  /** The transcript, once. Sets the message's words as heard, the measured
+   *  length, one ledger row for what it cost, and enqueues the delete of the
+   *  provider's copy. A validation error here names the field and never the
+   *  text. */
+  app.post(
+    "/internal/v1/messages/:id/transcript",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: z.object({
+          jobId: z.string().uuid(),
+          text: z.string().max(20_000),
+          durationMs: z.number().int().min(0).max(36_000_000),
+          costMicros: z.number().int().min(0).default(0),
+          latencyMs: z.number().int().min(0).default(0),
+        }),
+      },
+    },
+    async (request, reply) => {
+      if (!tokenMatches(bearer(request))) return reply.code(401).send({ error: "unauthorised" });
+      const { jobId, text, durationMs, costMicros, latencyMs } = request.body;
+      const job = await db
+        .selectFrom("jobs")
+        .select(["payload", "account_id"])
+        .where("id", "=", jobId)
+        .where("kind", "=", "dump.answer")
+        .executeTakeFirst();
+      const messageId = (job?.payload as { messageId?: string } | undefined)?.messageId;
+      if (!messageId || messageId !== request.params.id || !job?.account_id) {
+        return reply.code(404).send({ error: "unknown_message" });
+      }
+      const accountId = job.account_id;
+
+      const written = await db.transaction().execute(async (trx) => {
+        const voice = await trx
+          .selectFrom("blobs")
+          .select("id")
+          .where("message_id", "=", messageId)
+          .where("kind", "=", "audio")
+          .where("deleted_at", "is", null)
+          .executeTakeFirst();
+        if (!voice) return false;
+
+        await trx
+          .updateTable("messages")
+          .set({ transcript: text, transcribed_at: sql`now()` })
+          .where("id", "=", messageId)
+          .where("account_id", "=", accountId)
+          .execute();
+        await trx
+          .updateTable("blobs")
+          .set({ measured_ms: durationMs })
+          .where("id", "=", voice.id)
+          .execute();
+        // The admin Costs page counts what the provider charged, beside the
+        // model calls of the same turn. Tokens are zero: minutes are what it
+        // bills by, and the cost column already carries the answer.
+        await trx
+          .insertInto("llm_usage")
+          .values({
+            account_id: accountId,
+            job_kind: "dump.answer",
+            category: "interactive",
+            model: "assemblyai",
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_read_tokens: 0,
+            cost_micros: costMicros,
+            latency_ms: latencyMs,
+          })
+          .execute();
+        await enqueue({
+          kind: "voice.forget",
+          accountId,
+          payload: { blobId: voice.id },
+          priority: PRIORITY.background,
+          tx: trx,
+        });
+        return true;
+      });
+      if (!written) return reply.code(404).send({ error: "unknown_message" });
+
+      // A length and a flag. Never the words.
+      request.log.info({ messageId, durationMs, empty: text.trim().length === 0 }, "transcript written");
+      return reply.code(200).send({ ok: true });
+    },
+  );
+
+  /** The provider's copy is gone; the reference goes with it. */
+  app.post(
+    "/internal/v1/blobs/:id/forgotten",
+    { schema: { params: z.object({ id: z.string().uuid() }), body: z.object({ jobId: z.string().uuid() }) } },
+    async (request, reply) => {
+      if (!tokenMatches(bearer(request))) return reply.code(401).send({ error: "unauthorised" });
+      // A voice.forget job names its blob in its own payload; the message is
+      // not the authority here, since the blob may outlive it.
+      const job = await db
+        .selectFrom("jobs")
+        .select("payload")
+        .where("id", "=", request.body.jobId)
+        .where("kind", "=", "voice.forget")
+        .executeTakeFirst();
+      const blobId = (job?.payload as { blobId?: string } | undefined)?.blobId;
+      if (!blobId || blobId !== request.params.id) return reply.code(404).send({ error: "unknown_blob" });
+      await db.updateTable("blobs").set({ provider_ref: null }).where("id", "=", blobId).execute();
+      request.log.info({ blobId }, "voice note forgotten at the provider");
       return reply.code(200).send({ ok: true });
     },
   );

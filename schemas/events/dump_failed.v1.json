@@ -2,8 +2,18 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://offload.club/schemas/events/dump_failed.v1.json",
   "title": "dump_failed",
-  "description": "A dump was not answered after its retry. The reason is an enum rather than the error, because an exception message can carry the dumped text (OFF-1).",
+  "description": "A dump was not answered after its retry. The reason is an enum rather than the error, because an exception message can carry the dumped text (OFF-1). 021 added transcription_failed: the voice note could not be written down after the retry.",
   "type": "object",
   "additionalProperties": false,
-  "properties": {"reason": { "type": "string", "enum": ["model_error", "invalid_output", "timeout"] }}
+  "properties": {
+    "reason": {
+      "type": "string",
+      "enum": [
+        "model_error",
+        "invalid_output",
+        "timeout",
+        "transcription_failed"
+      ]
+    }
+  }
 }

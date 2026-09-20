@@ -551,6 +551,26 @@ const LOCATE_BACKFILL = 200;
 const blobDaily: Handler = async () => {
   await scheduleDaily("blob.daily");
   await enqueue({ kind: "content.purge", payload: {}, priority: PRIORITY.background });
+  // 021. A provider reference still held an hour after submission is one a
+  // dead worker, an undone turn or a parked job left behind; the delete is
+  // asked for again. Keyed on the blob, not the message, since the blob may
+  // outlive it. The idempotency key includes the day so a reference that
+  // survives a day's attempts is asked about again tomorrow.
+  const held = await db
+    .selectFrom("blobs")
+    .select("id")
+    .where("provider_ref", "is not", null)
+    .where("created_at", "<", sql<Date>`now() - interval '1 hour'`)
+    .limit(PURGE_CEILING)
+    .execute();
+  for (const blob of held) {
+    await enqueue({
+      kind: "voice.forget",
+      payload: { blobId: blob.id },
+      priority: PRIORITY.background,
+      idempotencyKey: `voice.forget:${blob.id}:${new Date().toISOString().slice(0, 10)}`,
+    });
+  }
   if (!reverseGeocodingOn()) return;
   const due = await db
     .selectFrom("blobs")
