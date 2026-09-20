@@ -50,16 +50,16 @@ Ordered. Each cites the acceptance criteria it serves and the principles it sati
 
 ## E. Mobile
 
-- [ ] **E1** `expo-audio` and `expo-keep-awake` with their plugins and the permission string; the recording state in `conversation-context.tsx`; `Composer.tsx`: the microphone, the permission line with `openSettings`, the recorder at AAC mono 64 kbps with metering, the row with the words above and the keyboard dropped, keep-awake for the recording, the stop on `AppState` and on interruption, `10:00`, Discard with the toast past a minute, the resample, upload then dump, the bubble at the press, the failed treatment putting the note back, the file deleted on send and discard and swept on launch. *(AC-1 to AC-7, AC-9, AC-10, AC-11)*
+- [~] **E1** `expo-audio` and `expo-keep-awake` with their plugins and the permission string; the recording state in `conversation-context.tsx`; `Composer.tsx`: the microphone, the permission line with `openSettings`, the recorder at AAC mono 64 kbps with metering, the row with the words above and the keyboard dropped, keep-awake for the recording, the stop on `AppState` and on interruption, `10:00`, Discard with the toast past a minute, the resample, upload then dump, the bubble at the press, the failed treatment putting the note back, the file deleted on send and discard and swept on launch. *(AC-1 to AC-7, AC-9, AC-10, AC-11)*
   *Test:* with the recorder mocked, `AppState` to `background` stops the recording and the row stays with both controls; the recordings directory is empty after a send and after a discard; the launch sweep deletes a leftover; `app.json` declares no audio background mode.
-- [ ] **E2** `SentVoice.tsx` in `components/shell`: the bubble as on the web; playback through a cache file fetched with the session, deleted on pause, on unmount and on sign-out, played through the silent switch; the Material pair on Android. *(AC-15, AC-18, AC-24)*
+- [~] **E2** `SentVoice.tsx` in `components/shell`: the bubble as on the web; playback through a cache file fetched with the session, deleted on pause, on unmount and on sign-out, played through the silent switch; the Material pair on Android. *(AC-15, AC-18, AC-24)*
   *Test:* the cache file exists while playing and not after pause; sign-out leaves the cache directory empty.
 - [ ] **E3** `dead-classes`, `dead-icons`, lint, typecheck; an EAS build on both platforms.
 - [ ] **E4** On a device, the feature spec's list: the keyboard drop and the plate, an incoming call, the auto-lock held off, the silent switch, the audio fetch on Android, reduced motion, the largest text size on a 360dp frame, the dark transcript contrast. *(AC-4, AC-24; OFF-7)*
 
 ## F. The home-screen shortcut
 
-- [ ] **F1** `expo-quick-actions` with its plugin: the static `record` item with the platform icons; the root layout handing it to the conversation context; the arrival order from the feature spec. *(AC-8)*
+- [~] **F1** `expo-quick-actions` with its plugin: the static `record` item with the platform icons; the root layout handing it to the conversation context; the arrival order from the feature spec. *(AC-8)*
   *Test:* with the action mocked, a cold arrival puts the plate's composer into the recording row on Today with no sheet; over an open thread the thread stays and is the filing default at send; over a draft the words and chips stay and a pinned + is released; during a locked send the row appears when the send lands; while recording nothing changes; signed out, the gate shows and the action is dropped.
 - [ ] **F2** On both devices: the long press from cold and over an open thread. *(AC-8)*
 

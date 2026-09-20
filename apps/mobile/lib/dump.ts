@@ -122,6 +122,24 @@ export interface Answer {
    *  Resolved by the server on every read, so a row ticked or deleted elsewhere
    *  is never stale inside a reply from last week. */
   found?: FoundResult[];
+  /** 021. The voice note on the message, with its transcript once written.
+   *  The poll reads it every tick, so the bubble draws the words the moment
+   *  they exist, ahead of the reply. */
+  voice?: VoiceOnWire | null;
+}
+
+/** 021. The voice note on a person's message, as the server sends it. The
+ *  bars and the length are there from the send; the transcript once offload
+ *  has listened. `text` on the message stays the typed words. */
+export interface VoiceOnWire {
+  blobId: string;
+  durationMs: number;
+  waveform: number[];
+  transcript: string | null;
+  transcribed: boolean;
+  /** This device only, never from the wire: the recording's file, for the
+   *  moment between the send and the server's copy. */
+  localUri?: string;
 }
 
 export interface TailMessage {
@@ -130,6 +148,8 @@ export interface TailMessage {
   text: string | null;
   /** 020. Empty on every reply. */
   photos?: PhotoOnWire[];
+  /** 021. Null on every reply and on any message without one. */
+  voice?: VoiceOnWire | null;
   state: MessageState;
   turnId: string;
   waiting?: WaitingOn | null;
@@ -272,6 +292,48 @@ export function photoUrl(blobId: string, rendition: "thumb" | "large"): string {
   return `${API_URL}/v1/blobs/${blobId}/${rendition}`;
 }
 
+// ---------------------------------------------------------------- 021, a voice note
+
+/** The recorders stop themselves here, and the server refuses past it. */
+export const MAX_VOICE_MS = 600_000;
+/** Bars over the whole note. The server holds the same number. */
+export const WAVEFORM_BARS = 32;
+
+export class VoiceRefused extends Error {
+  constructor(readonly reason: "too_big" | "not_a_voice_note" | "daily_limit" | "unavailable") {
+    super(reason);
+  }
+}
+
+/** Upload one voice note, ahead of the dump that will claim it. Idempotent
+ *  on the client key, which belongs to the draft until it sends. */
+export async function uploadVoice(
+  uri: string,
+  clientKey: string,
+  durationMs: number,
+  waveform: number[],
+): Promise<{ blobId: string }> {
+  const form = new FormData();
+  form.append("clientKey", clientKey);
+  form.append("durationMs", String(durationMs));
+  form.append("waveform", JSON.stringify(waveform));
+  form.append("file", new File(uri) as unknown as Blob, "voice-note.m4a");
+  const { status, data } = await upload<{ blobId: string }>("/v1/blobs/audio", form);
+  if (status === 413) throw new VoiceRefused("too_big");
+  if (status === 415 || status === 400) throw new VoiceRefused("not_a_voice_note");
+  if (status === 429) throw new VoiceRefused("daily_limit");
+  if (status === 503) throw new VoiceRefused("unavailable");
+  if (!data) throw new Error(`upload failed: ${status}`);
+  return data;
+}
+
+/** Where a voice note is heard from: the bytes as they arrived, to the
+ *  dumper's session. Fetched with the session into a cache file and played
+ *  from there, since a native player carries no header (020's lesson). */
+export function voiceUrl(blobId: string): string {
+  return `${API_URL}/v1/blobs/${blobId}/audio`;
+}
+
 /** Ask once. */
 export async function fetchAnswer(messageId: string): Promise<Answer | null> {
   const { data } = await send<{
@@ -289,6 +351,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     // rows. It looked like the server finding nothing, and it came back after a
     // force quit because the cold start reads `fetchCurrent` instead.
     found?: FoundResult[];
+    voice?: VoiceOnWire | null;
   }>(`/v1/messages/${messageId}`);
   if (!data) return null;
   return {
@@ -301,6 +364,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     waiting: data.waiting ?? null,
     question: data.question ?? null,
     found: data.found ?? [],
+    voice: data.voice ?? null,
   };
 }
 
@@ -349,12 +413,15 @@ export function awaitAnswer(
   onAnswer: (answer: Answer) => void,
   /** 017. What offload is doing, on the ticks before the answer lands. Called
    *  with null when the line is cleared, so a step never outlives the work. */
-  onStep?: (step: string | null) => void
+  onStep?: (step: string | null) => void,
+  /** 021. The transcript, on the tick that first finds it, ahead of the reply. */
+  onTranscript?: (text: string) => void,
 ): { cancel: () => void; now: () => void } {
   let done = false;
   let misses = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let said: string | null = null;
+  let heard = false;
 
   const stop = (): void => {
     done = true;
@@ -379,6 +446,11 @@ export function awaitAnswer(
     if (step !== said) {
       said = step;
       onStep?.(step);
+    }
+    // 021. Once: the words do not change after they are written.
+    if (!heard && answer?.voice?.transcribed) {
+      heard = true;
+      onTranscript?.(answer.voice.transcript ?? "");
     }
 
     misses += 1;

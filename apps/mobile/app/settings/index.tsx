@@ -32,6 +32,7 @@ import { useColors } from "../../lib/colors";
 import { useMe } from "../../lib/me";
 import { useTheme, THEME_LABEL } from "../../lib/appearance";
 import { signOut, SignOutFailed } from "../../lib/auth";
+import { forgetPlayback } from "../../components/shell/SentVoice";
 
 const isAndroid = Platform.OS === "android";
 
@@ -49,6 +50,9 @@ export default function Settings() {
     try {
       await signOut();
       // Only now. Everything before this point could still have failed.
+      // 021. And the device copies of any voice note being heard go with
+      // the session.
+      forgetPlayback();
       router.replace("/");
     } catch (error) {
       setLeaving(false);

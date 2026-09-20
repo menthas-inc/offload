@@ -31,8 +31,12 @@
           "iosActivationRules": {
             "NSExtensionActivationSupportsImageWithMaxCount": 10
           },
-          "androidIntentFilters": ["image/*"],
-          "androidMultiIntentFilters": ["image/*"]
+          "androidIntentFilters": [
+            "image/*"
+          ],
+          "androidMultiIntentFilters": [
+            "image/*"
+          ]
         }
       ],
       [
@@ -86,6 +90,24 @@
               "../../node_modules/@expo-google-fonts/literata/400Regular/Literata_400Regular.ttf"
             ]
           }
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "For voice notes. Nothing is recorded until you tap the microphone."
+        }
+      ],
+      [
+        "expo-quick-actions",
+        {
+          "androidIcons": {
+            "record": {
+              "foregroundImage": "./assets/quick-record.png",
+              "backgroundColor": "#FFFFFF"
+            }
+          },
+          "iosIcons": {}
         }
       ]
     ],

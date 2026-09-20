@@ -9,9 +9,11 @@
 
 import { MAX_VOICE_MS, WAVEFORM_BARS } from "./dump";
 
-/** In preference order. Chrome, Edge and Firefox take the first; Safari
- *  the last. */
-const MIME_TYPES = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/mp4"];
+/** In preference order. AAC in MP4 first wherever the browser offers it,
+ *  Safari and recent Chrome, because that is the one container every phone
+ *  plays back; Opus in WebM or Ogg otherwise, which an iPhone cannot play
+ *  and which its bubble then says with "Not here yet.". */
+const MIME_TYPES = ["audio/mp4", "audio/webm;codecs=opus", "audio/ogg;codecs=opus"];
 
 /** The kit's live window: the last few seconds, as bars. */
 export const LIVE_BARS = 32;
