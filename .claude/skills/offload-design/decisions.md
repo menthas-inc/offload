@@ -20,7 +20,7 @@ the new truth, and the design system is updated to match on the next sync.
 
 **Why:** the name in the scroll left the bar nearly empty, spent the top of every thread on a heading a person had just tapped, and the two-level head was the one place the phones and the web disagreed on what a thread's page is. The controls that were missing were missing because the kit's bar had nowhere to put them and the chips under the heading were not it.
 
-**The checkbox, the tile and the row's tools are centred on the row**, on the phones as `ListRow` centres its leading and trailing on the web. The phone row aligned them to the first line with a two-point nudge, which read as misaligned the moment a row had a second line, and the web's row had centred them since 007.
+**The checkbox, the tile and the row's tools are centred on the row**, on the phones as `ListRow` centres its leading and trailing on the web. The phone row aligned them to the first line with a two-point nudge, which read as misaligned the moment a row had a second line. The 17 September entry below said nothing moves on the phones; the product owner looked at a two-line row on an iPhone and it does.
 
 **Design system impact:** both phone thread kits want the `Standing` heading moved into the `AppBar` as its title and the Share chip replaced by the bar's own share control, with `ellipsis` gaining a menu of Rename thread, Add a note and Calendars in this thread. `Checkbox` keeps its own first-line alignment for a standalone tick with a label; inside a `ListRow` the row's centring wins, which is worth one line in `ListRow`'s contract.
 
