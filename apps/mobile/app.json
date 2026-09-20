@@ -19,7 +19,7 @@
       "package": "club.offload.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0B0B0B"
+        "backgroundColor": "#FFFFFF"
       }
     },
     "plugins": [

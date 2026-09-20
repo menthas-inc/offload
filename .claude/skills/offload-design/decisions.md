@@ -47,6 +47,14 @@ the new truth, and the design system is updated to match on the next sync.
 **Why:** the design read the two lines as two states, and they are not. "Can't search that." is the refused-subject line, said when the whole dump is a question about politics, weapons, self-harm or sex, and it is said whether or not the web switch is on; "Searching the web is off in Settings." would be untrue every time it appeared. "Not sure." covers four states in the prompts: a question that is not about their days, a lookup that did not work, the web switch being off, and a country offload does not know; "That one is not about your days." would be right in one of the four. The one honest version of a second line would have the model say which state it was in, and offload never explains a failure or diagnoses itself: the sentence says what happened and the screen offers the way forward. The rest of the 16 September note is adopted as written.
 **Design system impact:** `readme.md`'s Answering section: the two paragraphs beginning "There are two ways of declining" and "The test is not whether the fact is public" describe a second line the product does not draw; the first is replaced here with the states each line actually covers, and the second stands. `handoff/APPLY-2026-09-16.md` item 9 is withdrawn. The kits' conversation fixtures should draw each line alone.
 
+### 2026-09-20 · The app icon inverts: paper tile, ink mark
+**Surface:** iOS, Android
+**Raised by:** the product owner, for the next build.
+**Was:** `assets/app-icon.svg` as rendered on 2026-09-08: the ink tile with the mark in white, and the mark alone in white over ink as the Android adaptive foreground.
+**Is:** the same mark and the same geometry the other way round: a white tile (`#FFFFFF`, not paper's `#FAF9F7`, since a home screen is not a page) with the mark in ink, and the ink mark alone over white for Android. Rendered at 1024 from the SVG with sharp, never hand drawn. The web favicon keeps the ink tile: it is the one version that reads on both a light and a dark browser chrome, which was its reason on 2026-09-09 and still is.
+**Why:** the owner's call on how the app should sit on a home screen.
+**Design system impact:** `assets/app-icon.svg` becomes the white tile with the ink mark; `readme.md`'s line about the icon, "paper on ink", gains "except the app icon, which is ink on white". `mark.svg` and `mark-inverse.svg` are unchanged.
+
 ### 2026-09-19 · Found on a Pixel: the composer's one line, the move sheet under the keyboard, and the stock dialog
 **Surface:** Android, iOS
 **Raised by:** the codebase, driving 020 on a real phone.
