@@ -18,6 +18,7 @@ import {
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
+  AppState,
   Linking,
   Platform,
   Pressable,
@@ -124,11 +125,29 @@ export function Composer({
 
   // 020. A share from another app: the chips are in, the sheet is open, and
   // the words come next, so the field takes focus and the keyboard comes up.
-  // A tick later, since the sheet may be mounting on the same frame.
+  // A tick later, since the sheet may be mounting on the same frame; and not
+  // before the app is in front, because a share arrives while the sharing
+  // app still is, and a focus given then raises no keyboard.
   useEffect(() => {
     if (focusRequest === 0) return;
-    const timer = setTimeout(() => field.current?.focus(), 50);
-    return () => clearTimeout(timer);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let sub: { remove: () => void } | null = null;
+    const focus = () => {
+      timer = setTimeout(() => field.current?.focus(), 50);
+    };
+    if (AppState.currentState === "active") focus();
+    else {
+      sub = AppState.addEventListener("change", (state) => {
+        if (state !== "active") return;
+        sub?.remove();
+        sub = null;
+        focus();
+      });
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+      sub?.remove();
+    };
   }, [focusRequest]);
 
   useEffect(() => {
