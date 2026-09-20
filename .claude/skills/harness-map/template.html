@@ -278,14 +278,14 @@
 
           <!-- 4 first step -->
           <line x1="718" y1="246" x2="302" y2="246" stroke="currentColor" stroke-width="1.5" marker-end="url(#ah)"/>
-          <text x="510" y="238" font-size="12" text-anchor="middle" fill="currentColor">POST /internal/v1/turn-step  "Looking through your threads" · then "Looking at the photo" with photos</text>
+          <text x="510" y="238" font-size="12" text-anchor="middle" fill="currentColor">POST /internal/v1/turn-step  "Listening" with a voice note, first · "Looking through your threads" · "Looking at the photo" with photos</text>
           <line x1="298" y1="262" x2="92" y2="262" stroke="var(--blue)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ah-blue)"/>
           <text x="194" y="276" font-size="11" text-anchor="middle" fill="var(--blue)">SSE step, drawn from {{SAY_AFTER}} after the press</text>
 
           <!-- 5 classify -->
           <line x1="720" y1="296" x2="928" y2="296" stroke="var(--moss)" stroke-width="1.5" marker-end="url(#ah-moss)"/>
           <text x="824" y="288" font-size="12" text-anchor="middle" fill="var(--moss)">classify (haiku, forced tool "decide")</text>
-          <text x="824" y="310" font-size="11" text-anchor="middle" fill="var(--tertiary)">asking? confident? on the text alone · not run when a photo is on the message</text>
+          <text x="824" y="310" font-size="11" text-anchor="middle" fill="var(--tertiary)">asking? confident? on said(text, transcript) alone · not run when a photo is on the message</text>
 
           <!-- fork box -->
           <rect x="560" y="326" width="440" height="76" rx="10" fill="var(--sunken)" stroke="var(--hairline)"/>
@@ -337,6 +337,7 @@
     <ul class="notes">
       <li><b>Three other job kinds share the worker</b> and are not drawn: <code>thread.quick_add</code> (a row typed straight into a thread, sonnet, two tools), <code>notes.compact</code> (haiku) and the <code>embed.*</code> jobs (Voyage). Only <code>dump.answer</code> talks to a person.</li>
       <li><b>The step before the classifier is the one thing written before any model runs.</b> Everything else the person sees is produced by, or after, a model call.</li>
+      <li><b>A voice note is written down before anything reads the message (021).</b> The audio is a <code>POST /v1/blobs/audio</code> ahead of the dump, encrypted like a photo. At the top of the job, before the classifier and under a shield the cancel waits for, the worker fetches the original, uploads it to AssemblyAI's European endpoint and nowhere else, records the provider's reference so a retry polls rather than re-sends, and posts the words to <code>/internal/v1/messages/:id/transcript</code>. From that write on every reader of the person's words, the classifier included, reads <code>said(text, transcript)</code>, so a spoken order, question or answer to an open question takes the same path a typed one does. The model never receives audio. Nothing to hear settles with "Heard nothing in that one." and no model call; the transcript's delete at the provider is its own job.</li>
       <li><b>A photo is uploaded before the dump and read once, on this turn (020).</b> Each one is a <code>POST /v1/blobs</code> that encrypts and stores the original in R2 before the dump names it by id. Between the claim and the classifier the worker fetches each original over <code>/internal/v1/blobs/:id/original</code>, makes a 400px thumbnail and a 2048px large copy with Pillow, posts them back with the file's own date, place and device, and hands the large copy to the planner as an image block. A message with a photo never takes the answering path, whatever its words. A photo the model does not file is filed by <code>turn-result</code> as "A photo" before any question runs, so nothing dumped is lost to a model that did not mention it.</li>
       <li><b>Stop</b> is a separate route: the client marks the turn cancelled at once, the API cancels the job, the worker's cancel listener abandons the loop, and no result is posted. A stopped turn is not retried.</li>
       <li><b>Finish it</b> is a fresh job against the same message, with what already landed handed to the model as a block, so the resume adds to the turn rather than replaying it.</li>
