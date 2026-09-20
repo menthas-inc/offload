@@ -76,6 +76,9 @@ class DumpContext:
     #: 020. The photos on this message, in order. Outside the text budget:
     #: their cost is bounded by the ten-photo cap per message, not by `fit`.
     photos: list[Photo] = field(default_factory=list)
+    #: 021. The dump holds a transcript: its words were spoken and written
+    #: down, and the label says so.
+    spoken: bool = False
     # The thread that was on screen when this was dumped, if any.
     #
     # A default, not a destination. Somebody typing into the composer from
@@ -178,9 +181,9 @@ _TURNS = text(
     select m.role,
            case when m.derived_from_untrusted
                 then '(picked a calendar shared with them)'
-                else m.text end as text,
+                else said(m.text, m.transcript) end as text,
            (select count(*) from blobs b
-             where b.message_id = m.id and b.deleted_at is null) as photos,
+             where b.message_id = m.id and b.kind = 'image' and b.deleted_at is null) as photos,
            (select string_agg(c.title, ', ' order by c.created_at)
               from content c
              where c.derived_from_message_id = m.id
@@ -191,15 +194,17 @@ _TURNS = text(
     where m.conversation_id = :conversation_id
       and m.account_id = :account_id
       and m.deleted_at is null
-      and (m.text is not null
-           or exists (select 1 from blobs b where b.message_id = m.id and b.deleted_at is null))
+      and (said(m.text, m.transcript) is not null
+           or exists (select 1 from blobs b
+                       where b.message_id = m.id and b.kind = 'image' and b.deleted_at is null))
       and m.id <> :exclude_id
     order by m.created_at desc
     limit :limit
     """
 )
 
-# 020. The photos on the dump, in the order they were attached.
+# 020. The photos on the dump, in the order they were attached. 021: the
+# voice note on the same message is not one of them.
 _PHOTOS = text(
     """
     select b.id
@@ -207,10 +212,47 @@ _PHOTOS = text(
     join messages m on m.id = b.message_id
     where b.message_id = :message_id
       and m.account_id = :account_id
+      and b.kind = 'image'
       and b.deleted_at is null
     order by b.created_at, b.id
     """
 )
+
+# 021. The voice note on the dump, if any: enough to know whether the words
+# exist yet and whether a retry can poll the provider rather than upload.
+_VOICE = text(
+    """
+    select b.id, b.message_id, b.provider_ref, m.transcribed_at is not null as transcribed
+    from blobs b
+    join messages m on m.id = b.message_id
+    where b.message_id = :message_id
+      and b.kind = 'audio'
+      and b.deleted_at is null
+    limit 1
+    """
+)
+
+
+@dataclass(frozen=True)
+class Voice:
+    """021. The voice note a message carries, as the worker needs it."""
+
+    blob_id: str
+    message_id: str
+    provider_ref: str | None
+    transcribed: bool
+
+
+async def voice_of(conn: AsyncConnection, *, message_id: str) -> Voice | None:
+    row = (await conn.execute(_VOICE, {"message_id": message_id})).first()
+    if row is None:
+        return None
+    return Voice(
+        blob_id=str(row.id),
+        message_id=str(row.message_id),
+        provider_ref=row.provider_ref,
+        transcribed=bool(row.transcribed),
+    )
 
 
 def turn_text(text_: str | None, photos: int, photo_titles: str | None) -> str:
@@ -231,7 +273,8 @@ def turn_text(text_: str | None, photos: int, photo_titles: str | None) -> str:
 # name that reaches a prompt should be one they can still see today.
 _DUMP = text(
     """
-    select m.text,
+    select said(m.text, m.transcript) as text,
+           m.transcribed_at is not null as spoken,
            lt.id as looking_at_id,
            lt.name as looking_at_name
     from messages m
@@ -330,6 +373,7 @@ async def load(
             for r in reversed(turn_rows)
         ],
         photos=[Photo(blob_id=str(r.id), index=at + 1) for at, r in enumerate(photo_rows)],
+        spoken=bool(dump_row.spoken),
         threads=threads,
         landed=[Filed(title=r.title, thread_name=r.thread_name) for r in landed_rows],
         default_thread_id=default_id,
@@ -423,6 +467,7 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         # 020. Never dropped and never counted here: the ten-photo cap is the
         # bound, and a photo dropped from the prompt is a photo filed blind.
         photos=ctx.photos,
+        spoken=ctx.spoken,
     )
 
 
@@ -775,7 +820,7 @@ async def load_answer(
 
 _QUESTION = text(
     """
-    select text from messages
+    select said(text, transcript) from messages
     where id = :message_id and role = 'person' and deleted_at is null
     """
 )
@@ -795,7 +840,7 @@ async def question_text(conn: AsyncConnection, *, message_id: str) -> str | None
 _PHOTO_COUNT = text(
     """
     select count(*) from blobs
-    where message_id = :message_id and deleted_at is null
+    where message_id = :message_id and kind = 'image' and deleted_at is null
     """
 )
 
@@ -816,7 +861,7 @@ async def photo_count(conn: AsyncConnection, *, message_id: str) -> int:
 
 _OPEN_QUESTION = text(
     """
-    select q.id, q.field, q.text, q.options, q.state, m.text as asked_about
+    select q.id, q.field, q.text, q.options, q.state, said(m.text, m.transcript) as asked_about
     from questions q
     left join messages m on m.id = q.message_id
     where q.id = :question_id and q.account_id = :account_id

@@ -39,6 +39,13 @@ class Config:
     # Production refuses to start without it, in the deploy config rather than
     # here, the way the vault key does.
     voyage_api_key: str | None = None
+    # 021. Optional the same way: unset, every voice note fails
+    # `transcription_failed` after its retry and the boot line says so. The
+    # rate is what the ledger row is priced from, in micros per second of
+    # audio the provider measured; the default is their published price on
+    # 2026-09-20, $0.15 an hour.
+    assemblyai_api_key: str | None = None
+    assemblyai_micros_per_second: float = 41.67
 
     # The numbers from the impl-spec. Constants, not literals at a call site,
     # because three acceptance criteria are untestable without them.
@@ -79,4 +86,8 @@ class Config:
             internal_token=_required("INTERNAL_SERVICE_TOKEN"),
             anthropic_api_key=_required("ANTHROPIC_API_KEY"),
             voyage_api_key=os.environ.get("VOYAGE_API_KEY") or None,
+            assemblyai_api_key=os.environ.get("ASSEMBLYAI_API_KEY") or None,
+            assemblyai_micros_per_second=float(
+                os.environ.get("ASSEMBLYAI_MICROS_PER_SECOND") or 41.67
+            ),
         )

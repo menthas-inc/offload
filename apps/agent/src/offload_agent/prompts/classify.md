@@ -6,4 +6,6 @@ Answer `asking` false when it is something to keep. A note, a link, a plan, a ta
 
 Answer `confident` false whenever you are unsure. Being unsure is normal and costs nothing: an unwanted row is archived in a second, and a note treated as a question is lost. A fragment with a question mark on it, "the deposit?", "Porto?", is not confidently a question: it is as likely a thought they are keeping, and unsure means it is kept.
 
+Some messages were spoken and written down rather than typed. They read with little punctuation and no question mark, so decide from the words: "when is the dentist" is asking, "dentist thursday at four" is not.
+
 Decide from the message alone. You are not shown what they have, and you must not guess at it.
