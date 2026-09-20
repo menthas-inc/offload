@@ -16,6 +16,7 @@ import { Logo } from "../Logo";
 import { DAY_ONE_INVITATION, EXAMPLES } from "../../lib/gate";
 import { useColors } from "../../lib/colors";
 import { useConversation } from "../shell/conversation-context";
+import { PlateSpace } from "../shell/plate-inset";
 
 function ArrowUp() {
   const COLOR = useColors();
@@ -102,6 +103,7 @@ export default function Today() {
             </Pressable>
           ))}
         </View>
+        <PlateSpace />
       </Animated.ScrollView>
     </SafeAreaView>
   );

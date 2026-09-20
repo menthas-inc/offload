@@ -14,6 +14,7 @@
 
 import { useState } from "react";
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Pressable,
   Text,
@@ -64,6 +65,11 @@ export default function Waitlist() {
           // unreachable. Verified on a Pixel, not reasoned about.
           behavior="padding"
         >
+          {/* A tap anywhere that is not a control puts the keyboard away.
+              iOS has no back button, and with the keyboard up this screen's
+              second button is underneath it: the only way off the field was to
+              submit. */}
+          <Pressable className="flex-1" onPress={Keyboard.dismiss} accessible={false}>
           <GateLockup />
 
           <View
@@ -143,6 +149,7 @@ export default function Waitlist() {
               </>
             )}
           </View>
+          </Pressable>
         </KeyboardAvoidingView>
       </GateBackdrop>
     </SafeAreaView>

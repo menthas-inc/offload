@@ -9,7 +9,8 @@ import { useColorScheme } from "nativewind";
 import { applyTheme, storedTheme } from "../lib/appearance";
 import { useColors } from "../lib/colors";
 import { AccessibilityInfo, Platform } from "react-native";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -17,7 +18,15 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { pinExistingSession } from "../lib/auth";
 import { ConversationProvider } from "../components/shell/conversation-context";
 import { Shell } from "../components/shell/Shell";
+import { PlateInsetProvider } from "../components/shell/plate-inset";
 import { ShareArrival } from "../components/shell/ShareArrival";
+
+// The index route asks the server where to open and draws nothing while it
+// waits, on the stated assumption that the splash is still up behind it. It
+// was not: nothing held it, so a signed-out cold start showed the composer and
+// the tabs over an empty page for as long as `/api/me` took, and only then the
+// gate. Held here and let go once the router has left "/".
+void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
 
@@ -71,6 +80,11 @@ export default function RootLayout() {
     void pinExistingSession();
   }, []);
 
+  const pathname = usePathname();
+  useEffect(() => {
+    if (pathname !== "/") void SplashScreen.hideAsync();
+  }, [pathname]);
+
   // Reduced motion removes the movement rather than shortening it, which the
   // readme states for navigation as much as for anything else: no iOS push, no
   // shared axis. Read once and again whenever the setting changes, because
@@ -115,6 +129,7 @@ export default function RootLayout() {
               the library's near-black `rgb(1, 1, 1)`, so the ground under a
               transition is exactly the colour the screens paint: there is
               nothing to see through to, in either theme. */}
+          <PlateInsetProvider>
           <ThemeProvider value={navigationTheme}>
           <Stack
             key={colorScheme}
@@ -149,6 +164,7 @@ export default function RootLayout() {
               holds. Mounted here so a thread pushing over the tabs does not
               produce a second one. */}
           <Shell />
+          </PlateInsetProvider>
         </SafeAreaProvider>
         </ConversationProvider>
       </KeyboardProvider>

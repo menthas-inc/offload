@@ -18,6 +18,7 @@ import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
 import { prismShift } from "../../lib/prism-scroll";
 import { useConversation } from "./conversation-context";
+import { useSetPlateInset } from "./plate-inset";
 
 const isAndroid = Platform.OS === "android";
 
@@ -56,8 +57,14 @@ export function Plate({
   // is already covering. Both go, so the field sits on the keyboard.
   const writing = useKeyboardState((state) => state.isVisible);
 
+  // Its height, for the pages to end above. Not while writing: the tab row
+  // and the bottom inset go with the keyboard up, and a page that shrank its
+  // room to match would shift under a keyboard nobody can see past.
+  const setInset = useSetPlateInset();
+
   return (
     <View
+      onLayout={writing ? undefined : (event) => setInset(event.nativeEvent.layout.height)}
       // Rounded on top only when it is the top. A raised conversation sits
       // directly on the plate, so the corners cut two notches out of the
       // join and the scrim showed through them.

@@ -76,6 +76,7 @@ import {
 } from "../../lib/threads";
 import { perform, useWrites } from "../../lib/optimistic";
 import { useConversation, useScreenSheet } from "../shell/conversation-context";
+import { PlateSpace } from "../shell/plate-inset";
 import { failed } from "../../lib/log";
 
 const isAndroid = Platform.OS === "android";
@@ -801,6 +802,7 @@ export default function Thread() {
             <Glyph name="chevron-right" size={15} color={COLOR.iconOnWell} />
           </Pressable>
         ) : null}
+        <PlateSpace />
       </ScrollView>
 
       {/* 020. The viewer, over the screen, and the row's tools on the same
