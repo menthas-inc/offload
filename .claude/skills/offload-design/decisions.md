@@ -11,6 +11,17 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-21 · Google first on every platform
+**Surface:** iOS, Android, web
+
+**Was:** the order flipped by platform: Apple then Google on iOS and web, Google then Apple on Android. The iOS and web order rested on the App Store's rule that Sign in with Apple be at least as prominent as any other option.
+
+**Is:** Google first, Apple under it, everywhere. Same two buttons, same treatment: Apple filled, Google outlined, the same height, both on screen without scrolling.
+
+**Why:** more people arrive with a Google account, and the first button is the one most of them want. The App Store's rule is about prominence, which Apple's guidance spells out as size and not having to scroll; the filled button in the second row meets it. First place was our reading, not the rule.
+
+**Design system impact:** `FirstRun.jsx`'s `SignInScreen`, `M3SignInScreen` and `WFirstRunGate` draw the Google button first. The readme's "Two providers" rule is already reworded on `main`.
+
 ### 2026-09-20 · The thread's head is one line on the phones, as it is on the web
 **Surface:** iOS, Android
 

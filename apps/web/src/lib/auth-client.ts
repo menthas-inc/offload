@@ -32,11 +32,10 @@ export const authClient = createAuthClient({
   fetchOptions: { credentials: "include" },
 });
 
-/** Provider order is per platform, from the design: Apple leads on iOS because
- *  the App Store requires it to be at least as prominent as Google's, Google
- *  leads on Android because that account is already on the device, and web
- *  shows Apple first with Google under it. */
-export const WEB_PROVIDER_ORDER = ["apple", "google"] as const;
+/** Google first, on every platform: more people arrive with one. Apple keeps
+ *  the filled button, so the pair still reads as two things rather than one
+ *  and a spare. Product owner, 2026-09-21. */
+export const WEB_PROVIDER_ORDER = ["google", "apple"] as const;
 
 export type Provider = (typeof WEB_PROVIDER_ORDER)[number];
 

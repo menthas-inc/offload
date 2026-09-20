@@ -188,11 +188,12 @@ Decided August 2026, and built into all three kits behind the `first run` contro
 preview bar.
 
 **Two providers, nothing else.** Continue with Apple and Continue with Google. No email
-link, no password, no account type to choose. Order flips by platform: Apple leads on iOS
-because the App Store requires it to be at least as prominent as Google's, Google leads on
-Android because that account is already on the device, and web shows Apple first with
-Google under it. Returning users see the same screen; the provider sheet does the
-remembering, so there is no second sign-in design.
+link, no password, no account type to choose. Google first on every platform, Apple under
+it, because more people arrive with a Google account; Apple keeps the filled button and the
+same height, which is what the App Store's prominence rule asks for, and first place is not
+part of it. (Until 2026-09-21 the order flipped by platform, Apple first on iOS and web.)
+Returning users see the same screen; the provider sheet does the remembering, so there is
+no second sign-in design.
 
 **The gate is absolute.** Nobody sees the app before signing in, because offload is invite
 only. On the phones the screen is a 92px mark with the wordmark under it in the upper half,
