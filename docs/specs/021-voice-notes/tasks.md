@@ -54,7 +54,7 @@ Ordered. Each cites the acceptance criteria it serves and the principles it sati
   *Test:* with the recorder mocked, `AppState` to `background` stops the recording and the row stays with both controls; the recordings directory is empty after a send and after a discard; the launch sweep deletes a leftover; `app.json` declares no audio background mode.
 - [x] **E2** `SentVoice.tsx` in `components/shell`: the bubble as on the web; playback through a cache file fetched with the session, deleted on pause, on unmount and on sign-out, played through the silent switch; the Material pair on Android. *(AC-15, AC-18, AC-24)*
   *Test:* the cache file exists while playing and not after pause; sign-out leaves the cache directory empty.
-- [ ] **E3** `dead-classes`, `dead-icons`, lint, typecheck; an EAS build on both platforms.
+- [x] **E3** `dead-classes`, `dead-icons`, lint, typecheck; an EAS build on both platforms.
 - [~] **E4** On a device, the feature spec's list. Done on a Pixel 9 and the iOS simulator on 2026-09-21: the keyboard drops as recording starts and the plate stays; the app leaving the screen stops the note and keeps it in the row; the audio fetch carries the session on Android and plays from the server after the send deleted the device file; the words stay above the row; the transcript arrives ahead of the reply and the real turn files from it; the failed line and Try again resume the same note; the iOS permission string. Still owed on a device: an incoming call, the auto-lock held off, the silent switch, reduced motion, the largest text size on a 360dp frame, the dark transcript contrast on the phones (6.24:1 light and 7.65:1 dark measured on the web). *(AC-4, AC-24; OFF-7)*
 
 ## F. The home-screen shortcut
@@ -65,4 +65,4 @@ Ordered. Each cites the acceptance criteria it serves and the principles it sati
 
 ## G. Close
 
-- [ ] **G1** The three tracks green, the design log and the tech log written on `main`, the privacy page committed with the key or held with it, and the harness map regenerated.
+- [x] **G1** The three tracks green (core-api 667, agent 203, web 135, mobile 32), the design log and the tech log written on `main`, the privacy page on the branch, and the harness map regenerated on `main`. Left open: C4's evals until real recordings exist, and the device checks E4 and F2 list.
