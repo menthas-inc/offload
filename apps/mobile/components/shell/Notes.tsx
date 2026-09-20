@@ -34,6 +34,7 @@ import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller
 import { reorderPlan, type ReorderWrite } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { atOpacity, useColors } from "../../lib/colors";
+import { perform, type Toaster, type Writes } from "../../lib/optimistic";
 import { useConversation, useScreenSheet } from "./conversation-context";
 import {
   NOTE_BUDGET,
@@ -42,6 +43,7 @@ import {
   deleteNote,
   editNote,
   foldedNotes,
+  isProvisional,
   muteNote,
   restoreNote,
   setNotePriority,
@@ -58,8 +60,13 @@ interface Props {
   /** Active and folded. The second draws the history control and nothing else. */
   counts: { active: number; folded: number };
   members: Member[];
-  onChanged: () => void;
-  onToast: (message: string, action?: { label: string; onPress: () => void }) => void;
+  /** The notes are the thread's. Every change here is drawn through this
+   *  before it is sent, and the thread's own reload settles it. */
+  onNotes: (update: (notes: Note[]) => Note[]) => void;
+  toast: Toaster;
+  /** The thread's count of writes in flight, shared so a note's write holds
+   *  the thread's reload back the same as a row's does. */
+  writes: Writes;
 }
 
 /** The date on a row, derived rather than stored, so a weekday can never
@@ -80,8 +87,9 @@ export function NotesSection({
   notes,
   counts,
   members,
-  onChanged,
-  onToast,
+  onNotes,
+  toast,
+  writes,
 }: Props) {
   const COLOR = useColors();
   const { raiseFor } = useConversation();
@@ -122,47 +130,75 @@ export function NotesSection({
     setBodyDraft(null);
   }
 
-  async function save(): Promise<void> {
+  // ---------------------------------------------------------------- writes
+  //
+  // Drawn first, sent second, through the thread's `perform`: the row changes
+  // at the press and comes back with a word if the server refuses.
+
+  const patch = (noteId: string, fields: Partial<Note>): void =>
+    onNotes((current) => current.map((note) => (note.id === noteId ? { ...note, ...fields } : note)));
+
+  function save(): void {
     const text = draft.trim();
-    if (text.length === 0) return close();
-    if (!editing) return close();
-    const previous = editing.text;
-    const previousBody = editing.body;
-    const noteId = editing.id;
-    const result = await editNote(
-      noteId,
-      text,
-      bodyDraft === previousBody ? undefined : bodyDraft
+    if (text.length === 0 || !editing) return close();
+    const note = editing;
+    const previous = note.text;
+    const previousBody = note.body;
+    const body = bodyDraft === previousBody ? undefined : bodyDraft;
+    close();
+    void perform(
+      {
+        apply: () => patch(note.id, { text, body: body === undefined ? previousBody : body }),
+        revert: () => patch(note.id, { text: previous, body: previousBody }),
+        write: () => editNote(note.id, text, body).then((result) => result !== null),
+        unwrite: () => editNote(note.id, previous, previousBody).then((result) => result !== null),
+        did: "Note changed",
+        failed: "Couldn't change the note",
+        unfailed: "Couldn't put the note back",
+      },
+      toast,
+      writes,
     );
-    close();
-    if (!result) return;
-    onChanged();
-    onToast("Note changed", {
-      label: "Undo",
-      onPress: () => {
-        void editNote(noteId, previous, previousBody).then(onChanged);
-      },
-    });
   }
 
-  async function remove(note: Note): Promise<void> {
+  function remove(note: Note): void {
     close();
-    if (!(await deleteNote(note.id))) return;
-    onChanged();
-    // Never the note's text: a toast is a few words and this runs to 200
-    // characters.
-    onToast("Note deleted", {
-      label: "Undo",
-      onPress: () => {
-        void restoreNote(note.id).then(onChanged);
+    const at = notes.findIndex((one) => one.id === note.id);
+    void perform(
+      {
+        apply: () => onNotes((current) => current.filter((one) => one.id !== note.id)),
+        revert: () =>
+          onNotes((current) =>
+            current.some((one) => one.id === note.id)
+              ? current
+              : [...current.slice(0, at), note, ...current.slice(at)],
+          ),
+        write: () => deleteNote(note.id),
+        unwrite: () => restoreNote(note.id),
+        // Never the note's text: a toast is a few words and this runs to 200
+        // characters.
+        did: "Note deleted",
+        failed: "Couldn't delete the note",
+        unfailed: "Couldn't put the note back",
       },
-    });
+      toast,
+      writes,
+    );
   }
 
-  async function mute(note: Note): Promise<void> {
+  /** No Undo: the same control, pressed again, is the undo. */
+  function mute(note: Note): void {
     close();
-    if (!(await muteNote(note.id, !note.muted))) return;
-    onChanged();
+    void perform(
+      {
+        apply: () => patch(note.id, { muted: !note.muted }),
+        revert: () => patch(note.id, { muted: note.muted }),
+        write: () => muteNote(note.id, !note.muted),
+        failed: note.muted ? "Couldn't unmute the note" : "Couldn't mute the note",
+      },
+      toast,
+      writes,
+    );
   }
 
   async function showFolded(): Promise<void> {
@@ -178,35 +214,50 @@ export function NotesSection({
    *  written, which is what precedence turns on. */
   const layouts = useRef(new Map<string, { y: number; height: number }>());
 
-  async function reorder(writes: ReorderWrite[]): Promise<void> {
-    const results = await Promise.all(
-      writes.map((one) => setNotePriority(one.id, one.priority))
-    );
-    onChanged();
-    if (results.some((result) => result === null)) return;
-    onToast("Moved", {
-      label: "Undo",
-      onPress: () => {
-        void Promise.all(writes.map((one) => setNotePriority(one.id, one.previous))).then(
-          onChanged
-        );
+  function reorder(writes_: ReorderWrite[]): void {
+    close();
+    const set = (pick: (write: ReorderWrite) => number): void =>
+      onNotes((current) =>
+        current.map((note) => {
+          const write = writes_.find((one) => one.id === note.id);
+          return write ? { ...note, priority: pick(write) } : note;
+        }),
+      );
+    const all = async (pick: (write: ReorderWrite) => number): Promise<boolean> => {
+      const results = await Promise.all(writes_.map((one) => setNotePriority(one.id, pick(one))));
+      return results.every((result) => result !== null);
+    };
+    void perform(
+      {
+        apply: () => set((write) => write.priority),
+        revert: () => set((write) => write.previous),
+        write: () => all((write) => write.priority),
+        unwrite: () => all((write) => write.previous),
+        did: "Moved",
+        failed: "Couldn't move that",
+        unfailed: "Couldn't put that back",
       },
-    });
+      toast,
+      writes,
+    );
   }
 
   function drop(id: string, dy: number): void {
+    // Only what the server has can be arranged: a note drawn at the press
+    // has no priority to write yet and is left out of the plan.
+    const settled = notes.filter((note) => !isProvisional(note.id));
     const mine = layouts.current.get(id);
-    const from = notes.findIndex((note) => note.id === id);
+    const from = settled.findIndex((note) => note.id === id);
     if (!mine || from < 0) return;
     const centre = mine.y + mine.height / 2 + dy;
     let to = 0;
-    for (const note of notes) {
+    for (const note of settled) {
       if (note.id === id) continue;
       const theirs = layouts.current.get(note.id);
       if (theirs && theirs.y + theirs.height / 2 < centre) to += 1;
     }
-    const { writes } = reorderPlan(notes, from, to);
-    if (writes.length > 0) void reorder(writes);
+    const { writes: plan } = reorderPlan(settled, from, to);
+    if (plan.length > 0) reorder(plan);
   }
 
   /** One row. `readOnly` is the folded history, which is read and not worked
@@ -217,6 +268,7 @@ export function NotesSection({
       note={note}
       divider={divider}
       readOnly={readOnly}
+      provisional={isProvisional(note.id)}
       name={author(note)}
       date={when(note)}
       instructing={instructing.has(note.id)}
@@ -332,10 +384,10 @@ export function NotesSection({
           bodyDraft={bodyDraft}
           onBodyDraft={setBodyDraft}
           canDelete={editing ? canDelete(editing) : false}
-          onSave={() => void save()}
+          onSave={save}
           onClose={close}
-          onMute={() => editing && void mute(editing)}
-          onDelete={() => editing && void remove(editing)}
+          onMute={() => editing && mute(editing)}
+          onDelete={() => editing && remove(editing)}
         />
       ) : null}
     </>
@@ -353,6 +405,7 @@ function NoteRow({
   note,
   divider,
   readOnly,
+  provisional,
   name,
   date,
   instructing,
@@ -363,6 +416,10 @@ function NoteRow({
   note: Note;
   divider: boolean;
   readOnly: boolean;
+  /** Drawn at the press, before the server has it. Looks like the note it is
+   *  about to be and neither opens nor moves: there is nothing yet to open or
+   *  move. Not `readOnly`, which is the folded history and dims. */
+  provisional: boolean;
   name: string | null;
   date: string | null;
   instructing: boolean;
@@ -410,7 +467,7 @@ function NoteRow({
       }`}
     >
       {/* The move area, leading the row. Always drawn, no container. */}
-      {readOnly ? null : (
+      {readOnly || provisional ? null : (
         <GestureDetector gesture={drag}>
           <View
             className="justify-center self-stretch"
@@ -426,7 +483,7 @@ function NoteRow({
 
       <Pressable
         onPress={() => {
-          if (readOnly) return;
+          if (readOnly || provisional) return;
           onOpen();
         }}
         className="min-h-tap-min flex-1 flex-row items-start gap-space-3 py-space-4"

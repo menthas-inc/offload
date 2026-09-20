@@ -329,7 +329,7 @@ function PinnedTarget({ pin }: { pin: Pin }) {
 }
 
 function Turns() {
-  const { turns, writing, finish, openPhoto } = useConversation();
+  const { turns, writing, finish, openPhoto, retry } = useConversation();
   const scroll = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -385,6 +385,7 @@ function Turns() {
               footer={!replied.has(turn.id) && !turn.question}
               onFinish={() => void finish(turn.id)}
               onOpenPhoto={(index) => openPhoto(turn.id, index)}
+              onRetry={() => retry(turn.id)}
             />
             {/* 018. A turn that filed silently and asked back has no reply
                 bubble to hold the question, so the question gets one of its
@@ -424,11 +425,14 @@ function Yours({
   footer,
   onFinish,
   onOpenPhoto,
+  onRetry,
 }: {
   turn: Turn;
   footer: boolean;
   onOpenPhoto: (index: number) => void;
   onFinish: () => void;
+  /** The send did not land. Puts the words back in the field. */
+  onRetry: () => void;
 }) {
   const COLOR = useColors();
   // **`cancelled` is deliberately not here.** The clay border says something
@@ -478,6 +482,25 @@ function Yours({
           here: this said "Saved what landed. The rest didn't come through."
           and offered Finish, which is a second way of saying the same thing in
           a product with one voice. */}
+      {/* A send that never reached the server. The failed treatment above,
+          with its own words: nothing is saved, and the way forward is the
+          words back in the field. */}
+      {turn.state === "failed" && turn.unsent ? (
+        <View className="mt-space-2 flex-row items-center gap-space-3">
+          <Text className="font-core text-text-danger" style={{ fontSize: 13 }}>
+            That didn't go through.
+          </Text>
+          <Pressable onPress={onRetry} hitSlop={8}>
+            <Text
+              className="font-core font-medium text-text-accent"
+              style={{ fontSize: 13 }}
+            >
+              Try again
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {turn.state === "partial" ? (
         <View className="mt-space-2 flex-row items-center gap-space-3">
           <Text className="font-core text-text-danger" style={{ fontSize: 13 }}>

@@ -25,7 +25,7 @@ import { Icon } from "../Icon";
 import { PhotoThumb } from "../shell/PhotoThumb";
 import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
-import { domainOf, isFiling, type ContentRow } from "../../lib/threads";
+import { domainOf, isFiling, isProvisional, type ContentRow } from "../../lib/threads";
 
 /** Everything the row needs from whoever is holding the page's state. One
  *  object rather than nine props, because both callers pass the same nine and a
@@ -68,6 +68,12 @@ export function ContentRowView({
 }) {
   // Shown on a link row and nowhere else. What says the row goes somewhere.
   const domain = domainOf(row.url);
+  // A row drawn at the press, before the server has it. It looks like the row
+  // it is about to be and offers nothing: there is nothing to open, move or
+  // act on until the write lands and the id is real. The handle and the tools
+  // stay in the layout and are hidden by the stylesheet, so nothing reflows
+  // when the id arrives, which is the readme's own rule for the filing slot.
+  const provisional = isProvisional(row.id);
   if (handlers.asking === row.id) {
     return (
       <div className={styles.confirmRow}>
@@ -105,6 +111,7 @@ export function ContentRowView({
       // exactly what happened. Blue is "this needs you", and a row that was
       // simply filed needs nothing.
       data-arrived={handlers.arrived.has(row.id) ? true : undefined}
+      data-provisional={provisional ? true : undefined}
       // A drop target while a row in the same list is being dragged. The line
       // is drawn on whichever edge the dragged row would land on, and the row
       // under the pointer is what the list reads to decide where.
@@ -189,6 +196,8 @@ export function ContentRowView({
             }}
             aria-label="Title"
           />
+        ) : provisional ? (
+          <span className={styles.rowTitle}>{row.title}</span>
         ) : (
           <Link href={`/content/${row.id}?from=thread`} className={styles.rowTitle}>
             {row.title}

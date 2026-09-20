@@ -52,6 +52,18 @@ export function Shell() {
     toast.show(undoable.message, { label: "Undo", onPress: () => void conversation.undo() });
   }, [conversation, toast]);
 
+  // A word from the conversation that is not an Undo: a `+`'s write that did
+  // not land, a tick inside an answer the server refused. Here for the same
+  // reason the Undo is: the composer belongs to the shell and the screen that
+  // drew the row may already be gone.
+  const shownNotice = useRef<number | null>(null);
+  useEffect(() => {
+    const notice = conversation.notice;
+    if (!notice || shownNotice.current === notice.at) return;
+    shownNotice.current = notice.at;
+    toast.show(notice.message, notice.action);
+  }, [conversation, toast]);
+
   const onTab = TABS.includes(pathname);
   const inThread = pathname.startsWith("/threads/");
   if (!onTab && !inThread) return null;

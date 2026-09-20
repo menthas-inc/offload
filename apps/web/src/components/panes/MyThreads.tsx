@@ -11,6 +11,7 @@ import Link from "next/link";
 import { Icon } from "../Icon";
 import { QuietEmpty } from "./QuietEmpty";
 import { threadIcon } from "../shell/Sidebar";
+import { useToast } from "../shell/Toast";
 import styles from "../../app/(shell)/shell.module.css";
 import { deleteThread, restoreThread, type ThreadGroup, type ThreadRow } from "../../lib/threads";
 
@@ -159,26 +160,20 @@ function Row({
 }
 
 export function MyThreads({ groups, loading, onChanged }: Props) {
-  const [undoable, setUndoable] = useState<{ id: string; message: string } | null>(null);
-  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toast = useToast();
 
   function offerUndo(thread: ThreadRow, deleted: boolean): void {
     // The eight seconds are real: the row is soft-deleted with a `purge_after`
     // and the purge job is what destroys it. Say which thing happened, because
     // leaving a shared thread and deleting one are not the same act and the
     // person is entitled to know which they just did.
-    setUndoable({ id: thread.id, message: deleted ? "Thread deleted" : "You left the thread" });
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    undoTimer.current = setTimeout(() => setUndoable(null), 8000);
-    onChanged?.();
-  }
-
-  async function undo(): Promise<void> {
-    if (!undoable) return;
-    const { id } = undoable;
-    setUndoable(null);
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    await restoreThread(id);
+    toast.show(deleted ? "Thread deleted" : "You left the thread", {
+      label: "Undo",
+      onPress: async () => {
+        await restoreThread(thread.id);
+        onChanged?.();
+      },
+    });
     onChanged?.();
   }
 
@@ -237,17 +232,6 @@ export function MyThreads({ groups, loading, onChanged }: Props) {
             )
           ))}
       </div>
-
-      {undoable ? (
-        <div className={styles.toastRow}>
-          <div className={styles.toast}>
-            <span className={styles.toastMessage}>{undoable.message}</span>
-            <button type="button" className={styles.toastAction} onClick={() => void undo()}>
-              Undo
-            </button>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }

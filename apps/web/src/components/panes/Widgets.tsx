@@ -36,7 +36,7 @@ import {
   type ReorderWrite,
   type Widget,
 } from "../../lib/widgets";
-import { QUICK_ADD_CHARS, quickAdd } from "../../lib/threads";
+import { QUICK_ADD_CHARS } from "../../lib/threads";
 import type { ContentRow } from "../../lib/threads";
 
 const HEADINGS: Record<string, string> = {
@@ -46,16 +46,15 @@ const HEADINGS: Record<string, string> = {
 };
 
 interface Props {
-  threadId: string;
   rows: ContentRow[];
   preference: { widgets?: string[]; groupBy?: Record<string, string>; hideDone?: boolean };
   /** The same object the list below uses, so a row offers the same controls
    *  wherever it is drawn. A task in To do could be ticked and nothing else
    *  until this was shared: renaming it meant finding it again further down. */
   handlers: RowHandlers;
-  /** Something was typed straight in. The page reloads to pick up the row,
-   *  which the server has already written. */
-  onAdded: () => void;
+  /** Something was typed straight into a section. The page owns the rows, so
+   *  it draws the new one and writes it. */
+  onAdd: (text: string, section: string) => void;
   onToggle: (row: ContentRow) => void;
   /** The To do fold moved. The page owns the preference, so it writes it. */
   onFold: (next: boolean) => void;
@@ -65,11 +64,10 @@ interface Props {
 }
 
 export function Widgets({
-  threadId,
   rows,
   preference,
   handlers,
-  onAdded,
+  onAdd,
   onToggle,
   onFold,
   onReorder,
@@ -85,9 +83,8 @@ export function Widgets({
           widget={widget}
           dimension={preference.groupBy?.[widget.kind] ?? null}
           hideDone={preference.hideDone === true}
-          threadId={threadId}
           handlers={handlers}
-          onAdded={onAdded}
+          onAdd={onAdd}
           onToggle={onToggle}
           onFold={onFold}
           onReorder={onReorder}
@@ -101,9 +98,8 @@ function WidgetBlock({
   widget,
   dimension,
   hideDone,
-  threadId,
   handlers,
-  onAdded,
+  onAdd,
   onToggle,
   onFold,
   onReorder,
@@ -111,9 +107,8 @@ function WidgetBlock({
   widget: Widget<ContentRow>;
   dimension: string | null;
   hideDone: boolean;
-  threadId: string;
   handlers: RowHandlers;
-  onAdded: () => void;
+  onAdd: (text: string, section: string) => void;
   onToggle: (row: ContentRow) => void;
   onFold: (next: boolean) => void;
   onReorder: (writes: ReorderWrite[]) => void;
@@ -235,11 +230,9 @@ function WidgetBlock({
 
       {adding ? (
         <QuickAdd
-          threadId={threadId}
-          section={widget.kind}
-          onDone={() => {
+          onAdd={(text) => {
             setAdding(false);
-            onAdded();
+            onAdd(text, widget.kind);
           }}
           onCancel={() => setAdding(false)}
         />
@@ -313,37 +306,18 @@ function WidgetBlock({
 
 /** Typing straight into a section.
  *
- *  One line, enter to save, escape to put it away. It closes the moment the row
- *  is written rather than when offload has read it: the request that matters
- *  has already succeeded, and holding the field open for four seconds would
- *  stop somebody typing the next one.
- *
- *  **It never reports a failure to the model's half of this.** If the row was
- *  written, this is done. If it was not, the field stays open with the text
- *  still in it, which is the only state where anything is at risk. */
-function QuickAdd({
-  threadId,
-  section,
-  onDone,
-  onCancel,
-}: {
-  threadId: string;
-  section: string;
-  onDone: () => void;
-  onCancel: () => void;
-}) {
+ *  One line, enter to add, escape to put it away. It closes at the press: the
+ *  page draws the row there and then and writes it behind, so the field is
+ *  never held open for a round trip, and a write that fails takes the row
+ *  away again and offers the words back through the toast rather than through
+ *  a field that is still sitting here. */
+function QuickAdd({ onAdd, onCancel }: { onAdd: (text: string) => void; onCancel: () => void }) {
   const [text, setText] = useState("");
-  const [saving, setSaving] = useState(false);
 
-  async function save(): Promise<void> {
+  function save(): void {
     const trimmed = text.trim();
     if (trimmed.length === 0) return onCancel();
-    setSaving(true);
-    const written = await quickAdd(threadId, trimmed, section);
-    setSaving(false);
-    if (!written) return;
-    setText("");
-    onDone();
+    onAdd(trimmed);
   }
 
   return (
@@ -352,13 +326,12 @@ function QuickAdd({
         className={styles.quickAddField}
         value={text}
         autoFocus
-        disabled={saving}
         maxLength={QUICK_ADD_CHARS}
         placeholder="Type it, offload will sort it out"
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Escape") onCancel();
-          if (event.key === "Enter") void save();
+          if (event.key === "Enter") save();
         }}
         aria-label="Add to this section"
       />
@@ -368,8 +341,8 @@ function QuickAdd({
       <button
         type="button"
         className={styles.quickAddSave}
-        disabled={text.trim().length === 0 || saving}
-        onClick={() => void save()}
+        disabled={text.trim().length === 0}
+        onClick={save}
       >
         Add
       </button>

@@ -26,6 +26,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "../../components/shell/Sidebar";
 import { ThreadsProvider, type Filed } from "../../components/shell/threads-context";
 import { Composer } from "../../components/shell/Composer";
+import { ToastProvider } from "../../components/shell/Toast";
 import { useMe } from "../../lib/use-me";
 import { fetchThreads, type ThreadGroup } from "../../lib/threads";
 import styles from "./shell.module.css";
@@ -71,6 +72,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
 
   return (
     <ThreadsProvider value={{ groups, ready, reload: () => void loadThreads(), filed }}>
+      <ToastProvider>
       <div className={styles.shell}>
         <Sidebar threads={threads} threadCount={threads.length} />
         <div className={styles.main}>
@@ -84,6 +86,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           />
         </div>
       </div>
+      </ToastProvider>
     </ThreadsProvider>
   );
 }

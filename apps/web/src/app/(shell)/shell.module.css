@@ -592,6 +592,14 @@
   opacity: 1;
 }
 
+/* A row drawn at the press, before the server has it. The controls keep
+   their space and lose their presence, so the row does not reflow when the
+   id arrives and nothing can be pressed before it does. */
+.row[data-provisional] .rowTools,
+.row[data-provisional] .grip {
+  visibility: hidden;
+}
+
 /* A tool that is currently on inverts to ink, the same way a selected chip and
    the current crumb do. Without it the archived view has no signal that it is
    the archived view once the section heading stopped saying so. */
@@ -818,57 +826,6 @@
   .paneLeft { display: none; }
   .crumbBack { display: inline-flex; }
   .crumbBack ~ .crumbTrail { display: none; }
-}
-
-/* Undo, floated over the pane it applies to. The same Toast contract 004 wired
-   for the dump: ink bar, one action, a side gutter. */
-.toastRow {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: var(--space-7);
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
-  z-index: 30;
-}
-
-.toast {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-  margin: 0 var(--space-5);
-  padding: var(--space-5) var(--space-6);
-  border-radius: var(--radius-md);
-  background: var(--surface-inverse);
-  color: var(--text-inverse);
-  box-shadow: var(--shadow-3);
-  animation: toastRise var(--duration-slow) var(--ease-entrance) both;
-}
-
-.toastMessage {
-  font: var(--text-body-sm-role);
-}
-
-.toastAction {
-  border: 0;
-  background: none;
-  padding: 0;
-  color: var(--text-inverse);
-  font: var(--weight-medium) var(--size-body-sm)/1 var(--font-core);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-@keyframes toastRise {
-  from { transform: translateY(8px); opacity: 0; }
-  to { transform: none; opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .toast { animation: none; }
 }
 
 /* ------------------------------------------------------------- widgets */

@@ -383,6 +383,106 @@ export function isFiling(filingAt: string | null): boolean {
   return Date.now() - new Date(filingAt).getTime() < FILING_PATIENCE_MS;
 }
 
+// ------------------------------------------------------- provisional rows
+//
+// A row drawn at the press, before the server has written it. It is the row
+// the server is about to write, with a made-up id: the same words, the same
+// type, the same spinner a typed-in row carries while offload reads it. The
+// screen swaps the id for the real one when the write lands, and takes the
+// row away with a word if it does not.
+
+const PROVISIONAL = "provisional:";
+
+/** An id for a row that only this screen knows about yet. */
+export function provisionalId(): string {
+  return `${PROVISIONAL}${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Whether a row is one this screen made up. Such a row offers nothing: no
+ *  tick, no tools, no link, because there is nothing on the server to act on. */
+export function isProvisional(id: string): boolean {
+  return id.startsWith(PROVISIONAL);
+}
+
+/** What a section's + writes, mirroring the server's own table. A sentence
+ *  with no widget type to start as is a note. */
+export function startsAs(section: string): "task" | "location" | "event" | null {
+  switch (section) {
+    case "todo":
+      return "task";
+    case "map":
+      return "location";
+    case "timeline":
+      return "event";
+    default:
+      return null;
+  }
+}
+
+/** The row a quick add is about to be, drawn from the words alone. */
+export function provisionalRow(
+  text: string,
+  type: "task" | "location" | "event",
+  author: { accountId: string | null; displayName: string },
+  day?: string,
+): ContentRow {
+  const now = new Date().toISOString();
+  return {
+    id: provisionalId(),
+    type,
+    title: text,
+    body: null,
+    url: null,
+    imageUrl: null,
+    createdAt: now,
+    archivedAt: null,
+    doneAt: null,
+    dueAt: null,
+    // Noon UTC, as the server writes a bare day, so it reads back as the same
+    // calendar day almost everywhere.
+    occursAt: day ? `${day}T12:00:00.000Z` : null,
+    occursEndAt: null,
+    repeats: null,
+    repeatsUntil: null,
+    isReminder: false,
+    priority: 0,
+    priorityPinned: false,
+    tags: [],
+    place: null,
+    placeId: null,
+    seriesRef: null,
+    allDay: day !== undefined,
+    photo: null,
+    author: { ...author, isYou: true },
+    canDelete: true,
+    canMove: true,
+    filingAt: now,
+  };
+}
+
+/** The note a typed sentence is about to be. */
+export function provisionalNote(text: string, authorId: string | null): Note {
+  return {
+    id: provisionalId(),
+    text,
+    body: null,
+    origin: "stated",
+    authorId,
+    authorIsMember: true,
+    muted: false,
+    occursAt: null,
+    occursEndAt: null,
+    dueAt: null,
+    placeId: null,
+    priority: 50,
+    allDay: false,
+    repeats: null,
+    repeatsUntil: null,
+    writtenAt: new Date().toISOString(),
+    supersededAt: null,
+  };
+}
+
 /** Type something straight into a thread, without going through the composer.
  *
  *  Resolves as soon as the row is written, which is before offload has read it:

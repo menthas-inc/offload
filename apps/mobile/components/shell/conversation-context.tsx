@@ -21,6 +21,7 @@ import {
 import { AppState, type AppStateStatus } from "react-native";
 import { plainText } from "@offload/markup";
 import {
+  DumpTooLong,
   answerQuestion,
   awaitAnswer,
   cancelTurn,
@@ -43,7 +44,7 @@ import {
   type TouchedThread,
 } from "../../lib/dump";
 import type { ChipError } from "./AttachChip";
-import { addNote, completeContent, quickAdd } from "../../lib/threads";
+import { addNote, completeContent, provisionalId, quickAdd } from "../../lib/threads";
 import { failed } from "../../lib/log";
 
 /** What a `+` pinned the composer to. Set only by a `+`, never chosen from
@@ -108,6 +109,36 @@ export interface Turn {
   found?: FoundResult[];
   /** 020. The photos this message carried. Only ever on a message you sent. */
   photos?: PhotoOnWire[];
+  /** The send itself did not land, so nothing on the server knows this turn.
+   *  Drawn as the failed state with different words: the dump is not saved,
+   *  and Try again puts the words back in the field. Local only, never on the
+   *  wire, which is why it is not a `MessageState`. */
+  unsent?: boolean;
+}
+
+/** A `+`'s write that has left the composer and not yet settled.
+ *
+ *  The composer goes away at the press and the thread screen draws the row
+ *  from this, with the words as its title, before the server has it. Once it
+ *  lands `landedId` is set, and the screen keeps drawing the row under that id
+ *  until its own reload brings the real one, then adopts the entry. If it does
+ *  not land the entry goes and the shell's toast offers the words again. */
+export interface ProvisionalWrite {
+  key: string;
+  threadId: string;
+  write: "quickAdd" | "note";
+  section?: string;
+  day?: string;
+  text: string;
+  landedId?: string;
+}
+
+/** A word for the shell's toast, with at most one way forward. Stamped so the
+ *  shell shows each one once. */
+export interface Notice {
+  at: number;
+  message: string;
+  action?: { label: string; onPress: () => void | Promise<void> };
 }
 
 /** 020. A photo waiting in the composer. The key belongs to the draft until
@@ -177,7 +208,7 @@ export interface Conversation {
   photos: DraftPhoto[];
   addPhotos: (picked: PickedPhoto[], via?: "picker" | "share") => void;
   removePhoto: (key: string) => void;
-  line: { text: string; retry?: boolean } | null;
+  line: { text: string } | null;
   clearLine: () => void;
   /** 020. The photo of a sent message open in the viewer, which the shell
    *  mounts above the sheet. */
@@ -229,6 +260,14 @@ export interface Conversation {
   tickFound: (turnId: string, row: FoundRow) => Promise<void>;
   /** What the turn wrote to, so an open thread can catch up on its own. */
   filed: { threadIds: string[]; at: number } | null;
+  /** A send that did not land: the turn goes and the words come back. */
+  retry: (messageId: string) => void;
+  /** The `+` writes in flight, for the thread screen to draw. */
+  provisional: ProvisionalWrite[];
+  /** The screen's own reload has the real row now, so the entry can go. */
+  adoptProvisional: (key: string) => void;
+  /** Something for the shell's toast to say. */
+  notice: Notice | null;
 }
 
 const UNDO_MS = 8000;
@@ -254,7 +293,7 @@ export function ConversationProvider({
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
   const draftKey = useRef<string | null>(null);
   const viaShare = useRef(false);
-  const [line, setLine] = useState<{ text: string; retry?: boolean } | null>(null);
+  const [line, setLine] = useState<{ text: string } | null>(null);
   const [photoOpen, setPhotoOpen] = useState<{ turnId: string; index: number } | null>(null);
   const [focusRequest, setFocusRequest] = useState(0);
   // 020. A share that lands while a send is out waits for it: the chips
@@ -265,6 +304,12 @@ export function ConversationProvider({
   const [sheets, setSheets] = useState(0);
   const openSheet = useCallback(() => setSheets((open) => open + 1), []);
   const closeSheet = useCallback(() => setSheets((open) => Math.max(0, open - 1)), []);
+
+  const [provisional, setProvisional] = useState<ProvisionalWrite[]>([]);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const notify = useCallback((message: string, action?: Notice["action"]) => {
+    setNotice({ at: Date.now(), message, ...(action ? { action } : {}) });
+  }, []);
 
   const resolveWaiting = useCallback((turnId: string) => {
     setTurns((current) =>
@@ -282,7 +327,7 @@ export function ConversationProvider({
    *  Optimistic, and put back if the server refuses. A checkbox that waits for
    *  a round trip before it moves reads as broken on a slow connection.
    */
-  const tickFound = useCallback(async (turnId: string, row: FoundRow) => {
+  const tickFound = useCallback(async function tickFound(turnId: string, row: FoundRow) {
     const next = !row.done;
     const apply = (done: boolean) =>
       setTurns((current) =>
@@ -309,13 +354,17 @@ export function ConversationProvider({
     const ok = await completeContent(row.contentId, next);
     if (!ok) {
       apply(row.done);
+      notify(next ? "Couldn't tick that off" : "Couldn't put that back", {
+        label: "Retry",
+        onPress: () => tickFound(turnId, row),
+      });
       return;
     }
     // The thread screen behind this sheet is now stale. The same signal a dump
     // fires, for the same reason: a screen already showing that thread updates
     // itself rather than quietly disagreeing with the answer.
     setFiled({ threadIds: [row.threadId], at: Date.now() });
-  }, []);
+  }, [notify]);
 
   const [writing, setWriting] = useState(false);
   // 017. What offload is doing, and which turn is still in flight so it can be
@@ -527,29 +576,53 @@ export function ConversationProvider({
   /** A `+`'s own write. It never leaves the thread it was pinned to and it
    *  never becomes a turn: a section's `+` writing straight in and a note
    *  leave no trace in the conversation today, and pinning the composer to
-   *  them does not change that. */
+   *  them does not change that.
+   *
+   *  **The composer goes away at the press.** The write joins `provisional` and
+   *  the thread screen draws the row from it; the server's id is noted on the
+   *  entry when it lands, and the entry goes once the screen's own reload has
+   *  the real row, or after a while if no screen is there to adopt it. If it
+   *  does not land, the entry goes at once and the shell's toast offers the
+   *  words again. */
   const submitPin = useCallback(
-    async (target: Pin, text: string): Promise<void> => {
+    async function submitPin(target: Pin, text: string): Promise<void> {
       setDraft("");
-      const ok =
+      setPin(null);
+      const key = provisionalId();
+      setProvisional((current) => [
+        ...current,
+        {
+          key,
+          threadId: target.threadId,
+          write: target.write,
+          text,
+          ...(target.section ? { section: target.section } : {}),
+          ...(target.day ? { day: target.day } : {}),
+        },
+      ]);
+
+      const landed =
         target.write === "note"
-          ? await addNote(target.threadId, text).then(
-              (result) => result !== null && !("tooLong" in result),
+          ? await addNote(target.threadId, text).then((result) =>
+              result !== null && !("tooLong" in result) ? result.note.id : null,
             )
           : await quickAdd(target.threadId, text, target.section ?? "", {
               ...(target.day ? { day: target.day } : {}),
-            }).then((written) => written !== null);
+            }).then((written) => written?.id ?? null);
 
-      if (!ok) {
-        // The words go back rather than vanishing into a failed request. The
-        // field's own cap is the only refusal a note or a quick add ever had.
-        setDraft(text);
+      if (!landed) {
+        setProvisional((current) => current.filter((one) => one.key !== key));
+        notify("Couldn't add that", { label: "Retry", onPress: () => submitPin(target, text) });
         return;
       }
+      setProvisional((current) =>
+        current.map((one) => (one.key === key ? { ...one, landedId: landed } : one)),
+      );
       setFiled({ threadIds: [target.threadId], at: Date.now() });
-      setPin(null);
+      // The backstop for a screen that is not there to adopt it.
+      setTimeout(() => setProvisional((current) => current.filter((one) => one.key !== key)), 15000);
     },
-    [],
+    [notify],
   );
 
   // 020. Photos into the draft, from the picker or the share sheet. The
@@ -600,6 +673,21 @@ export function ConversationProvider({
 
   const clearLine = useCallback(() => setLine(null), []);
 
+  const adoptProvisional = useCallback((key: string) => {
+    setProvisional((current) => current.filter((one) => one.key !== key));
+  }, []);
+
+  /** A send that did not land. The turn goes and the words come back, in the
+   *  field, where the next press sends them again. */
+  const retry = useCallback((messageId: string) => {
+    setTurns((current) => {
+      const turn = current.find((one) => one.id === messageId);
+      if (!turn) return current;
+      setDraft(turn.text);
+      return current.filter((one) => one.id !== messageId);
+    });
+  }, []);
+
   const submit = useCallback(async (): Promise<void> => {
     const text = draft.trim();
     const sendable = photos.filter((photo) => !photo.error);
@@ -625,10 +713,51 @@ export function ConversationProvider({
     }
     setFolded(false);
 
+    // **The bubble appears at the press.** The send takes a second or more on
+    // a phone, and for that second the conversation used to show nothing,
+    // which read as a button that had not worked. The turn joins under an id
+    // only this app knows and the server's replaces it when the send lands.
+    // If it does not, the bubble takes the failed state with its own words,
+    // since nothing is saved, and Try again puts the text back.
     const pressed = Date.now();
     // 020. The key belongs to the draft until it sends, and so does each
     // photo's, so a retry finds what the server already made.
     const clientKey = draftKey.current ?? (draftKey.current = `${pressed}`);
+    const provisional = `unsent:${clientKey}`;
+    setDraft("");
+    // The photos as they are drawn until the server's copies exist: the file
+    // itself, under the chip's key until the upload gives it a blob.
+    const shown: PhotoOnWire[] = sendable.map((photo) => ({
+      blobId: photo.uploaded?.blobId ?? photo.key,
+      name: photo.name,
+      width: photo.uploaded?.width ?? 0,
+      height: photo.uploaded?.height ?? 0,
+      ready: false,
+      localUri: photo.uri,
+    }));
+    setTurns((current) => [
+      // 018. Chips leave with the next turn. The server decides whether the
+      // words answered the question; the screen only knows it is no longer
+      // open for a tap.
+      ...current.map((turn) => (turn.question ? { ...turn, question: null } : turn)),
+      { id: provisional, from: "you", text, photos: shown, state: "queued" },
+    ]);
+    /** The bubble goes and the words come back, for a refusal that is fixed
+     *  in the draft. The photos never left their chips. */
+    const takeBack = (): void => {
+      setWriting(false);
+      setTurns((current) => current.filter((turn) => turn.id !== provisional));
+      setDraft(text);
+    };
+    const unsent = (): void => {
+      setWriting(false);
+      setTurns((current) =>
+        current.map((turn) =>
+          turn.id === provisional ? { ...turn, state: "failed" as const, unsent: true } : turn,
+        ),
+      );
+    };
+
     try {
       // Each photo first, on its own, held unclaimed until the message claims
       // it. One that already landed on an earlier try is not sent again.
@@ -654,36 +783,28 @@ export function ConversationProvider({
         onScreen?.id,
         sentPhotos.length ? { blobIds: sentPhotos.map((p) => p.blobId), viaShare: viaShare.current } : undefined,
       );
-      if (!sent) {
-        setWriting(false);
-        setLine({ text: "Did not send.", retry: true });
-        return;
-      }
-      // Only what went: words typed and a photo added while the send was
-      // out stay for the next one.
-      setDraft((current) => (current.trim() === text ? "" : current));
+      if (!sent) return unsent();
+      // Only what went: a photo added while the send was out stays for the
+      // next one.
       const went = new Set(sendable.map((photo) => photo.key));
       setPhotos((current) => current.filter((photo) => !went.has(photo.key)));
       draftKey.current = null;
       viaShare.current = false;
-      setTurns((current) => [
-        // 018. Chips leave with the next turn. The server decides whether the
-        // words answered the question; the screen only knows it is no longer
-        // open for a tap.
-        ...current.map((turn) => (turn.question ? { ...turn, question: null } : turn)),
-        {
-          id: sent.messageId,
-          from: "you",
-          text,
-          photos: sentPhotos,
-          state: sent.state,
-          turnId: sent.turnId,
-        },
-      ]);
+      setTurns((current) =>
+        current.map((turn) =>
+          turn.id === provisional
+            ? { ...turn, id: sent.messageId, photos: sentPhotos, state: sent.state, turnId: sent.turnId }
+            : turn,
+        ),
+      );
       watch(sent.messageId, sent.turnId, pressed);
     } catch (error) {
-      setWriting(false);
-      if (error instanceof PhotoRefused && error.reason === "daily_limit") {
+      if (error instanceof DumpTooLong) {
+        // The server's own refusal, and the words go straight back: there is
+        // nothing to retry until they are shorter.
+        takeBack();
+      } else if (error instanceof PhotoRefused && error.reason === "daily_limit") {
+        takeBack();
         setLine({ text: "Enough for today." });
       } else if (
         error instanceof PhotoRefused &&
@@ -691,6 +812,7 @@ export function ConversationProvider({
       ) {
         // The server disagreed with the device about one of them. Mark the
         // first chip not yet landed; the remove control is the way forward.
+        takeBack();
         const reason: ChipError = error.reason;
         setPhotos((current) => {
           const at = current.findIndex((p) => !p.error && !p.uploaded);
@@ -698,15 +820,15 @@ export function ConversationProvider({
         });
       } else if (error instanceof PhotoRefused && error.reason === "unavailable") {
         // No object store behind the API. A retry cannot help, so none.
+        takeBack();
         setLine({ text: "Not taking photos yet." });
-      } else if (error instanceof UnknownBlob) {
-        // The server no longer has one of the uploads: an hour passed and
-        // the sweep took it. Forget what landed, so Retry uploads again.
-        setPhotos((current) => current.map(({ uploaded: _gone, ...p }) => p));
-        setLine({ text: "Did not send.", retry: true });
       } else {
-        setLine({ text: "Did not send.", retry: true });
-        failed("dump.send", error);
+        if (error instanceof UnknownBlob) {
+          // The server no longer has one of the uploads: an hour passed and
+          // the sweep took it. Forget what landed, so Try again uploads again.
+          setPhotos((current) => current.map(({ uploaded: _gone, ...p }) => p));
+        } else failed("dump.send", error);
+        unsent();
       }
     }
   }, [draft, photos, live, onScreen, pin, submitPin, watch]);
@@ -836,6 +958,10 @@ export function ConversationProvider({
         openQuestion,
         answerOpen,
         tickFound,
+        retry,
+        provisional,
+        adoptProvisional,
+        notice,
       }}
     >
       {children}

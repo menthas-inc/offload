@@ -23,6 +23,8 @@ import { Notes } from "./Notes";
 import { Timeline } from "./Timeline";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import { useThreads } from "../shell/threads-context";
+import { useToast } from "../shell/Toast";
+import { perform, useWrites } from "../../lib/optimistic";
 import { Widgets } from "./Widgets";
 import {
   cadenceLabel,
@@ -37,11 +39,17 @@ import {
   editContent,
   fetchContent,
   fetchThread,
+  isProvisional,
   moveContent,
+  provisionalNote,
+  provisionalRow,
+  quickAdd,
   renameThread,
   setArchived,
   setPriority,
+  startsAs,
   type ContentRow,
+  type Note,
   type ThreadBundle,
   setPreference,
 } from "../../lib/threads";
@@ -50,10 +58,9 @@ import { PhotoViewer, type ViewerPhoto } from "../shell/PhotoViewer";
 interface Props {
   id: string;
   onChanged: () => void;
-  onUndo: (message: string, undo: () => Promise<unknown>) => void;
 }
 
-export function Thread({ id, onChanged, onUndo }: Props) {
+export function Thread({ id, onChanged }: Props) {
   const [thread, setThread] = useState<ThreadBundle | null>(null);
   const [rows, setRows] = useState<ContentRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -81,12 +88,19 @@ export function Thread({ id, onChanged, onUndo }: Props) {
   // 020. The photo open in the viewer, by row id. The set it pages through is
   // every photo row on the page, in the page's order.
   const [viewing, setViewing] = useState<string | null>(null);
+  const toast = useToast();
+  // Every write here is drawn before it is sent. `writes` counts what is in
+  // flight and reloads once nothing is; a reload that lands while something
+  // still is gets dropped, or it would undo the change on screen for the
+  // length of a round trip.
+  const writes = useWrites(load);
 
   async function load(): Promise<void> {
     const [bundle, page] = await Promise.all([
       fetchThread(id),
       fetchContent(id, { archived: showArchived }),
     ]);
+    if (!writes.idle()) return;
     setThread(bundle);
     setRows(page?.rows ?? []);
     setCursor(page?.nextCursor ?? null);
@@ -103,6 +117,7 @@ export function Thread({ id, onChanged, onUndo }: Props) {
       fetchThread(id),
       fetchContent(id, { archived: showArchived }),
     ]);
+    if (!writes.idle()) return;
     const next = page?.rows ?? [];
     setThread(bundle);
     setRows(next);
@@ -168,80 +183,163 @@ export function Thread({ id, onChanged, onUndo }: Props) {
     setCursor(page.nextCursor);
   }
 
-  async function saveTitle(row: ContentRow): Promise<void> {
+  // ---------------------------------------------------------------- writes
+  //
+  // Each one is drawn first and sent second, through `perform`, which offers
+  // Undo the moment it is drawn and puts the screen back with a word if the
+  // server refuses. The rows and the counts are patched by hand here rather
+  // than reloaded, and the reload that follows once every write has settled
+  // is what makes the screen the server's again.
+
+  const patchRow = (rowId: string, fields: Partial<ContentRow>): void =>
+    setRows((current) => current.map((row) => (row.id === rowId ? { ...row, ...fields } : row)));
+  const dropRow = (rowId: string): void =>
+    setRows((current) => current.filter((row) => row.id !== rowId));
+  const putRow = (row: ContentRow, at: number): void =>
+    setRows((current) =>
+      current.some((one) => one.id === row.id)
+        ? current
+        : [...current.slice(0, at), row, ...current.slice(at)],
+    );
+  const count = (fields: Partial<ThreadBundle["counts"]>): void =>
+    setThread((current) =>
+      current ? { ...current, counts: { ...current.counts, ...fields } } : current,
+    );
+  /** The sidebar and the crumb are the route's, and they change with a
+   *  count or a name. */
+  const telling = async (write: Promise<boolean>): Promise<boolean> => {
+    const ok = await write;
+    if (ok) onChanged();
+    return ok;
+  };
+
+  function saveTitle(row: ContentRow): void {
     const title = draft.trim();
     setEditing(null);
-    await rename(row, title);
+    rename(row, title);
   }
 
-  async function rename(row: ContentRow, title: string): Promise<void> {
-    if (!title || title === row.title) return;
-
-    const result = await editContent(row.id, { title });
-    if (!result) return;
-    await load();
-    onChanged();
-    // The value that was there, from the server rather than from what this
-    // component happened to be holding.
-    onUndo("Renamed", async () => {
-      await editContent(row.id, { title: result.previous.title });
-      await load();
-      onChanged();
-    });
+  function rename(row: ContentRow, title: string): void {
+    if (!title || title === row.title || isProvisional(row.id)) return;
+    void perform(
+      {
+        apply: () => patchRow(row.id, { title }),
+        revert: () => patchRow(row.id, { title: row.title }),
+        write: () => telling(editContent(row.id, { title }).then((result) => result !== null)),
+        unwrite: () =>
+          telling(editContent(row.id, { title: row.title }).then((result) => result !== null)),
+        did: "Renamed",
+        failed: "Couldn't rename that",
+        unfailed: "Couldn't put the name back",
+      },
+      toast,
+      writes,
+    );
   }
 
   /** 020. Move, by hand, from the viewer. The author's, like delete, and the
    *  picture goes with the row: the server adjusts its wraps in the same
-   *  transaction. Undo is the same move back. */
-  async function move(row: ContentRow, threadId: string): Promise<void> {
-    const moved = await moveContent(row.id, threadId);
-    if (!moved) return;
+   *  transaction. The row leaves this list at the press and comes back if the
+   *  server refuses; Undo is the same move back. */
+  function move(row: ContentRow, threadId: string): void {
+    if (isProvisional(row.id)) return;
     setViewing(null);
-    await load();
-    onChanged();
-    onUndo("Moved", async () => {
-      await moveContent(row.id, moved.previous.threadId);
-      await load();
-      onChanged();
-    });
+    const at = rows.findIndex((one) => one.id === row.id);
+    void perform(
+      {
+        apply: () => {
+          dropRow(row.id);
+          if (thread) count({ active: thread.counts.active - 1 });
+        },
+        revert: () => {
+          putRow(row, at);
+          if (thread) count({ active: thread.counts.active });
+        },
+        write: () => telling(moveContent(row.id, threadId).then((moved) => moved !== null)),
+        unwrite: () => telling(moveContent(row.id, id).then((moved) => moved !== null)),
+        did: "Moved",
+        failed: "Couldn't move that",
+        unfailed: "Couldn't put that back",
+      },
+      toast,
+      writes,
+    );
   }
 
-  async function archive(row: ContentRow): Promise<void> {
+  /** Out of the list, or back into it. The row leaves this list either way,
+   *  because the live rows and the archived ones are two lists. */
+  function archive(row: ContentRow): void {
+    if (isProvisional(row.id)) return;
     const wasArchived = row.archivedAt !== null;
-    if (!(await setArchived(row.id, !wasArchived))) return;
-    await load();
-    onChanged();
-    onUndo(wasArchived ? "Back in the list" : "Archived", async () => {
-      await setArchived(row.id, wasArchived);
-      await load();
-      onChanged();
-    });
+    const at = rows.findIndex((one) => one.id === row.id);
+    const moved = wasArchived ? -1 : 1;
+    void perform(
+      {
+        apply: () => {
+          dropRow(row.id);
+          if (thread) count({ active: thread.counts.active - moved, archived: thread.counts.archived + moved });
+        },
+        revert: () => {
+          putRow(row, at);
+          if (thread) count({ active: thread.counts.active, archived: thread.counts.archived });
+        },
+        write: () => telling(setArchived(row.id, !wasArchived)),
+        unwrite: () => telling(setArchived(row.id, wasArchived)),
+        did: wasArchived ? "Back in the thread" : "Archived",
+        failed: wasArchived ? "Couldn't put that back" : "Couldn't archive that",
+        unfailed: wasArchived ? "Couldn't archive that" : "Couldn't put that back",
+      },
+      toast,
+      writes,
+    );
   }
 
-  async function remove(row: ContentRow): Promise<void> {
+  function remove(row: ContentRow): void {
     setAsking(null);
-    if (!(await deleteContent(row.id))) return;
-    await load();
-    onChanged();
-    // Restore is the undo for delete as well as for archive: one endpoint
-    // clears `deleted_at`, `purge_after` and `archived_at` together.
-    onUndo("Deleted", async () => {
-      await setArchived(row.id, false);
-      await load();
-      onChanged();
-    });
+    if (isProvisional(row.id)) return;
+    const at = rows.findIndex((one) => one.id === row.id);
+    void perform(
+      {
+        apply: () => {
+          dropRow(row.id);
+          if (thread && !row.archivedAt) count({ active: thread.counts.active - 1 });
+        },
+        revert: () => {
+          putRow(row, at);
+          if (thread) count({ active: thread.counts.active });
+        },
+        write: () => telling(deleteContent(row.id)),
+        // Restore is the undo for delete as well as for archive: one endpoint
+        // clears `deleted_at`, `purge_after` and `archived_at` together.
+        unwrite: () => telling(setArchived(row.id, false)),
+        // The readme's own line, verbatim from the kit.
+        did: "Deleted, gone in a moment",
+        failed: "Couldn't delete that",
+        unfailed: "Couldn't put that back",
+      },
+      toast,
+      writes,
+    );
   }
 
   /** Tick, or put it back. Any member: a thread's contents belong to everybody
-   *  in it and neither direction destroys anything. */
-  async function toggle(row: ContentRow): Promise<void> {
+   *  in it and neither direction destroys anything. The box moves at the
+   *  press; the row sinks or rises with it, since the lists derive that from
+   *  the row. No toast: the kits tick without one, and the box is its own
+   *  undo. */
+  function toggle(row: ContentRow): void {
+    if (isProvisional(row.id)) return;
     const wasDone = row.doneAt !== null;
-    if (!(await completeContent(row.id, !wasDone))) return;
-    await load();
-    onUndo(wasDone ? "Back on the list" : "Ticked off", async () => {
-      await completeContent(row.id, wasDone);
-      await load();
-    });
+    void perform(
+      {
+        apply: () => patchRow(row.id, { doneAt: wasDone ? null : new Date().toISOString() }),
+        revert: () => patchRow(row.id, { doneAt: row.doneAt }),
+        write: () => completeContent(row.id, !wasDone),
+        failed: wasDone ? "Couldn't put that back" : "Couldn't tick that off",
+      },
+      toast,
+      writes,
+    );
   }
 
   /** A row was dragged somewhere else in To do.
@@ -249,25 +347,102 @@ export function Thread({ id, onChanged, onUndo }: Props) {
    *  The writes are priorities, computed by the list from the rows either side
    *  of the drop, and each one goes through the same endpoint a priority has
    *  always gone through, which pins it. Usually one write; a re-spread of the
-   *  list is several, and Undo puts every one of them back.
-   *
-   *  Optimistic, like a tick: the row lands where it was dropped before the
-   *  server answers, and a failed write leaves the screen as the server has it
-   *  on the reload. */
-  async function reorder(writes: ReorderWrite[]): Promise<void> {
-    setRows((current) =>
-      current.map((row) => {
-        const write = writes.find((one) => one.id === row.id);
-        return write ? { ...row, priority: write.priority, priorityPinned: true } : row;
-      })
+   *  list is several, and Undo puts every one of them back. */
+  function reorder(writes_: ReorderWrite[]): void {
+    // A row drawn at the press has no priority to write yet.
+    if (writes_.some((write) => isProvisional(write.id))) return;
+    const set = (pick: (write: ReorderWrite) => number): void =>
+      setRows((current) =>
+        current.map((row) => {
+          const write = writes_.find((one) => one.id === row.id);
+          return write ? { ...row, priority: pick(write), priorityPinned: true } : row;
+        }),
+      );
+    const all = async (pick: (write: ReorderWrite) => number): Promise<boolean> => {
+      const results = await Promise.all(writes_.map((one) => setPriority(one.id, pick(one))));
+      return results.every((result) => result !== null);
+    };
+    void perform(
+      {
+        apply: () => set((write) => write.priority),
+        revert: () => set((write) => write.previous),
+        write: () => all((write) => write.priority),
+        unwrite: () => all((write) => write.previous),
+        did: "Moved",
+        failed: "Couldn't move that",
+        unfailed: "Couldn't put that back",
+      },
+      toast,
+      writes,
     );
-    const results = await Promise.all(writes.map((one) => setPriority(one.id, one.priority)));
-    await load();
-    if (results.some((result) => result === null)) return;
-    onUndo("Moved", async () => {
-      await Promise.all(writes.map((one) => setPriority(one.id, one.previous)));
-      await load();
-    });
+  }
+
+  /** The To do fold. A preference of the thread, so it travels to the next
+   *  device; drawn at the press, and put back with a word if it does not
+   *  stick. No Undo: pressing it again is the undo. */
+  function fold(next: boolean): void {
+    if (!thread) return;
+    const was = thread.preference.hideDone === true;
+    const draw = (hideDone: boolean): void =>
+      setThread((current) =>
+        current ? { ...current, preference: { ...current.preference, hideDone } } : current,
+      );
+    void perform(
+      {
+        apply: () => draw(next),
+        revert: () => draw(was),
+        write: () => setPreference(id, { hideDone: next }),
+        failed: next ? "Couldn't hide those" : "Couldn't show those",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  /** The notes are the thread's, and the section under the widgets draws
+   *  them, so a change it draws early is written here. */
+  const patchNotes = (update: (notes: Note[]) => Note[]): void =>
+    setThread((current) => (current ? { ...current, notes: update(current.notes) } : current));
+
+  /** Something typed straight into a section, or into a day on the rail.
+   *
+   *  **The row is drawn at the press**, with the words as its title and the
+   *  same spinner a typed-in row carries while offload reads it, which is what
+   *  it will be the moment the server has it. The server's id replaces the
+   *  made-up one when the write lands; if it does not, the row goes and the
+   *  toast offers the same words again. A section with no widget type to
+   *  start as, Files, writes a note, so its row is drawn among the notes. */
+  function add(text: string, section: string, day?: string): void {
+    if (!thread) return;
+    const you = thread.members.find((member) => member.isYou) ?? null;
+    const author = { accountId: you?.accountId ?? null, displayName: you?.displayName ?? "you" };
+    const type = startsAs(section);
+    const row = type ? provisionalRow(text, type, author, day) : null;
+    const note = type ? null : provisionalNote(text, author.accountId);
+    void perform(
+      {
+        apply: () => {
+          if (row) setRows((current) => [row, ...current]);
+          if (note) patchNotes((current) => [...current, note]);
+        },
+        revert: () => {
+          if (row) dropRow(row.id);
+          if (note) patchNotes((current) => current.filter((one) => one.id !== note.id));
+        },
+        // The request is made here rather than outside, so Retry sends it
+        // again rather than awaiting the refusal it already has.
+        write: async () => {
+          const landed = await quickAdd(id, text, section, day ? { day } : undefined);
+          if (!landed) return false;
+          if (row) patchRow(row.id, { id: landed.id });
+          if (note) patchNotes((current) => current.map((one) => (one.id === note.id ? { ...one, id: landed.id } : one)));
+          return true;
+        },
+        failed: "Couldn't add that",
+      },
+      toast,
+      writes,
+    );
   }
 
   async function saveName(): Promise<void> {
@@ -279,10 +454,13 @@ export function Thread({ id, onChanged, onUndo }: Props) {
     if (!result) return;
     await load();
     onChanged();
-    onUndo("Renamed", async () => {
-      await renameThread(id, result.previous.name);
-      await load();
-      onChanged();
+    toast.show("Renamed", {
+      label: "Undo",
+      onPress: async () => {
+        await renameThread(id, result.previous.name);
+        await load();
+        onChanged();
+      },
     });
   }
 
@@ -344,14 +522,15 @@ export function Thread({ id, onChanged, onUndo }: Props) {
     arrived,
     onDraft: setDraft,
     onEdit: (row) => {
+      if (isProvisional(row.id)) return;
       setDraft(row.title);
       setEditing(row.id);
     },
-    onSaveTitle: (row) => void saveTitle(row),
+    onSaveTitle: saveTitle,
     onStopEditing: () => setEditing(null),
-    onArchive: (row) => void archive(row),
-    onAsk: setAsking,
-    onDelete: (row) => void remove(row),
+    onArchive: archive,
+    onAsk: (rowId) => setAsking(rowId && isProvisional(rowId) ? null : rowId),
+    onDelete: remove,
     // 020. A photo row's tile, and a tile in Files, open the viewer.
     onOpenPhoto: (row) => setViewing(row.id),
   };
@@ -514,8 +693,8 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             rows={rows}
             notes={thread.notes}
             handlers={handlers}
-            onToggle={(row) => void toggle(row)}
-            onAdded={() => void load()}
+            onToggle={toggle}
+            onAdd={(text, day) => add(text, "timeline", day)}
             calendars={{ anyPicked: thread.calendars?.anyPicked === true, version: calendarsVersion }}
           />
         )}
@@ -544,21 +723,13 @@ export function Thread({ id, onChanged, onUndo }: Props) {
 
         {showArchived ? null : (
           <Widgets
-            threadId={id}
             rows={rows}
             preference={thread.preference}
             handlers={handlers}
-            onAdded={() => void load()}
-            onToggle={(row) => void toggle(row)}
-            onFold={(next) => {
-              // Optimistic, like a tick: the rows fold on the press, and the
-              // thread carries the preference to the next device and the next
-              // load. A failed write leaves the screen as the server has it
-              // next time, which is the same rule every other write here has.
-              setThread({ ...thread, preference: { ...thread.preference, hideDone: next } });
-              void setPreference(id, { hideDone: next });
-            }}
-            onReorder={(writes) => void reorder(writes)}
+            onAdd={add}
+            onToggle={toggle}
+            onFold={fold}
+            onReorder={reorder}
           />
         )}
 
@@ -576,8 +747,8 @@ export function Thread({ id, onChanged, onUndo }: Props) {
             arrived={arrived}
             adding={addingNote}
             onAdding={setAddingNote}
-            onChanged={() => void load()}
-            onUndo={onUndo}
+            onNotes={patchNotes}
+            writes={writes}
           />
         )}
 

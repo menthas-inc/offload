@@ -62,13 +62,19 @@ import {
   editContent,
   fetchContent,
   fetchThread,
+  isProvisional,
   moveContent,
+  provisionalNote,
+  provisionalRow,
   setArchived,
   setPriority,
+  startsAs,
   type ContentRow,
+  type Note,
   type ThreadBundle,
   setPreference,
 } from "../../lib/threads";
+import { perform, useWrites } from "../../lib/optimistic";
 import { useConversation, useScreenSheet } from "../shell/conversation-context";
 import { failed } from "../../lib/log";
 
@@ -96,7 +102,30 @@ export default function Thread() {
   const [calendarsOpen, setCalendarsOpen] = useState(false);
   const [calendarsVersion, setCalendarsVersion] = useState(0);
   const toast = useToast();
-  const { filed, setOnScreen } = useConversation();
+  const { filed, setOnScreen, provisional: inFlight, adoptProvisional } = useConversation();
+
+  // The `+` writes in flight for this thread, drawn from the composer's list
+  // rather than from the server: the row is on screen at the press, with the
+  // words as its title. One that has landed keeps its place under the
+  // server's id until the reload below brings the real row, then the entry is
+  // adopted and goes.
+  const mine = inFlight.filter((one) => one.threadId === id);
+  const landed = mine.filter((one) => one.landedId !== undefined).map((one) => one.landedId as string);
+
+  /** Once a reload has the real rows, the entries they replace can go. Reads
+   *  the list through a ref so `load` keeps its identity: a callback that
+   *  changed with every render would re-run the focus reload forever. */
+  const latestProvisional = useRef(inFlight);
+  latestProvisional.current = inFlight;
+  const adopt = useCallback(
+    (rowIds: readonly string[], noteIds: readonly string[]) => {
+      for (const one of latestProvisional.current) {
+        if (one.threadId !== id || !one.landedId) continue;
+        if (rowIds.includes(one.landedId) || noteIds.includes(one.landedId)) adoptProvisional(one.key);
+      }
+    },
+    [id, adoptProvisional],
+  );
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -105,13 +134,22 @@ export default function Thread() {
         fetchThread(id),
         fetchContent(id, { archived: showArchived }),
       ]);
+      if (!writes.idle()) return;
       setThread(bundle);
       setRows(page?.rows ?? []);
       setCursor(page?.nextCursor ?? null);
+      adopt((page?.rows ?? []).map((row) => row.id), (bundle?.notes ?? []).map((note) => note.id));
     } catch (error) {
       failed("thread.load", error, { threadId: id });
     }
-  }, [id, showArchived]);
+    // `writes` is a ref holder and stable, so it is not a dependency.
+  }, [id, showArchived, adopt]);
+
+  // Every write here is drawn before it is sent. `writes` counts what is in
+  // flight and reloads once nothing is; a reload that lands while something
+  // still is gets dropped, or it would undo the change on screen for the
+  // length of a round trip.
+  const writes = useWrites(load);
 
   useFocusEffect(
     useCallback(() => {
@@ -138,20 +176,27 @@ export default function Thread() {
    *  second source of truth about the same question. */
   const catchUp = useCallback(async (): Promise<void> => {
     if (!id) return;
-    const before = new Set(rows.map((row) => row.id));
-    const [bundle, page] = await Promise.all([
-      fetchThread(id),
-      fetchContent(id, { archived: showArchived }),
-    ]);
-    const next = page?.rows ?? [];
-    setThread(bundle);
-    setRows(next);
-    setCursor(page?.nextCursor ?? null);
-    const fresh = next
-      .filter((row) => !before.has(row.id))
-      .map((row) => row.id);
-    if (fresh.length > 0) setArrived(new Set(fresh));
-  }, [id, rows, showArchived]);
+    // A row typed in here and just landed is not news, so it is not marked.
+    const before = new Set([...rows.map((row) => row.id), ...landed]);
+    try {
+      const [bundle, page] = await Promise.all([
+        fetchThread(id),
+        fetchContent(id, { archived: showArchived }),
+      ]);
+      if (!writes.idle()) return;
+      const next = page?.rows ?? [];
+      setThread(bundle);
+      setRows(next);
+      setCursor(page?.nextCursor ?? null);
+      adopt(next.map((row) => row.id), (bundle?.notes ?? []).map((note) => note.id));
+      const fresh = next
+        .filter((row) => !before.has(row.id))
+        .map((row) => row.id);
+      if (fresh.length > 0) setArrived(new Set(fresh));
+    } catch (error) {
+      failed("thread.catchUp", error, { threadId: id });
+    }
+  }, [id, rows, showArchived, landed.join(","), adopt]);
 
   // offload filed into the thread somebody is looking at. The composer is on
   // this screen, so this is the ordinary case rather than a race, and without
@@ -174,74 +219,215 @@ export default function Thread() {
     return () => clearTimeout(timer);
   }, [arrived]);
 
-  async function tick(row: ContentRow): Promise<void> {
-    await completeContent(row.id, row.doneAt === null);
-    await load();
-  }
+  // ---------------------------------------------------------------- writes
+  //
+  // Each one is drawn first and sent second, through `perform`, which offers
+  // Undo the moment it is drawn and puts the screen back with a word if the
+  // server refuses. The rows and the counts are patched by hand here rather
+  // than reloaded, and the reload that follows once every write has settled
+  // is what makes the screen the server's again.
 
-  async function archive(row: ContentRow): Promise<void> {
-    if (!(await setArchived(row.id, row.archivedAt === null))) return;
-    await load();
-    toast.show(row.archivedAt === null ? "Archived" : "Back in the thread", {
-      label: "Undo",
-      onPress: async () => {
-        await setArchived(row.id, row.archivedAt !== null);
-        await load();
+  const patchRow = (rowId: string, fields: Partial<ContentRow>): void =>
+    setRows((current) => current.map((row) => (row.id === rowId ? { ...row, ...fields } : row)));
+  const dropRow = (rowId: string): void =>
+    setRows((current) => current.filter((row) => row.id !== rowId));
+  const putRow = (row: ContentRow, at: number): void =>
+    setRows((current) =>
+      current.some((one) => one.id === row.id)
+        ? current
+        : [...current.slice(0, at), row, ...current.slice(at)],
+    );
+  const count = (fields: Partial<ThreadBundle["counts"]>): void =>
+    setThread((current) =>
+      current ? { ...current, counts: { ...current.counts, ...fields } } : current,
+    );
+  /** The notes are the thread's, and the section under the widgets draws
+   *  them, so a change it draws early is written here. */
+  const patchNotes = (update: (notes: Note[]) => Note[]): void =>
+    setThread((current) => (current ? { ...current, notes: update(current.notes) } : current));
+
+  /** Tick, or put it back. The box moves at the press; the row sinks or rises
+   *  with it, since the lists derive that from the row. No toast: the kits
+   *  tick without one, and the box is its own undo. */
+  function tick(row: ContentRow): void {
+    if (isProvisional(row.id)) return;
+    const wasDone = row.doneAt !== null;
+    void perform(
+      {
+        apply: () => patchRow(row.id, { doneAt: wasDone ? null : new Date().toISOString() }),
+        revert: () => patchRow(row.id, { doneAt: row.doneAt }),
+        write: () => completeContent(row.id, !wasDone),
+        failed: wasDone ? "Couldn't put that back" : "Couldn't tick that off",
       },
-    });
+      toast,
+      writes,
+    );
   }
 
-  async function remove(row: ContentRow): Promise<void> {
-    if (!(await deleteContent(row.id))) return;
-    // 020. The device's copy goes with the row.
-    if (row.photo) forgetRendition(row.photo.blobId);
+  /** Out of the list, or back into it. The row leaves this list either way,
+   *  because the live rows and the archived ones are two lists. */
+  function archive(row: ContentRow): void {
+    if (isProvisional(row.id)) return;
+    const wasArchived = row.archivedAt !== null;
+    const at = rows.findIndex((one) => one.id === row.id);
+    const moved = wasArchived ? -1 : 1;
+    void perform(
+      {
+        apply: () => {
+          dropRow(row.id);
+          if (thread) count({ active: thread.counts.active - moved, archived: thread.counts.archived + moved });
+        },
+        revert: () => {
+          putRow(row, at);
+          if (thread) count({ active: thread.counts.active, archived: thread.counts.archived });
+        },
+        write: () => setArchived(row.id, !wasArchived),
+        unwrite: () => setArchived(row.id, wasArchived),
+        did: wasArchived ? "Back in the thread" : "Archived",
+        failed: wasArchived ? "Couldn't put that back" : "Couldn't archive that",
+        unfailed: wasArchived ? "Couldn't archive that" : "Couldn't put that back",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  function remove(row: ContentRow): void {
+    if (isProvisional(row.id)) return;
     setViewing(null);
-    await load();
-    // Never the row's title: a toast is a few words and a title is not.
-    toast.show("Deleted");
+    const at = rows.findIndex((one) => one.id === row.id);
+    void perform(
+      {
+        apply: () => {
+          dropRow(row.id);
+          if (thread && !row.archivedAt) count({ active: thread.counts.active - 1 });
+        },
+        revert: () => {
+          putRow(row, at);
+          if (thread) count({ active: thread.counts.active });
+        },
+        write: async () => {
+          const ok = await deleteContent(row.id);
+          // 020. The device's copy goes with the row.
+          if (ok && row.photo) forgetRendition(row.photo.blobId);
+          return ok;
+        },
+        // Restore is the undo for delete as well as for archive: one endpoint
+        // clears `deleted_at`, `purge_after` and `archived_at` together.
+        unwrite: () => setArchived(row.id, false),
+        // The readme's own line, verbatim from the kit. Never the row's
+        // title: a toast is a few words and a title is not.
+        did: "Deleted, gone in a moment",
+        failed: "Couldn't delete that",
+        unfailed: "Couldn't put that back",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  function rename(row: ContentRow, title: string): void {
+    if (isProvisional(row.id)) return;
+    void perform(
+      {
+        apply: () => patchRow(row.id, { title }),
+        revert: () => patchRow(row.id, { title: row.title }),
+        write: () => editContent(row.id, { title }).then((result) => result !== null),
+        unwrite: () => editContent(row.id, { title: row.title }).then((result) => result !== null),
+        did: "Renamed",
+        failed: "Couldn't rename that",
+        unfailed: "Couldn't put the name back",
+      },
+      toast,
+      writes,
+    );
   }
 
   /** 020. Move, by hand, from the row's own sheet. The author's, like delete,
    *  and the picture goes with the row: the server adjusts its wraps in the
-   *  same transaction. Undo is the same move back. */
-  async function move(row: ContentRow, threadId: string): Promise<void> {
+   *  same transaction. The row leaves this list at the press and comes back
+   *  if the server refuses; Undo is the same move back. */
+  function move(row: ContentRow, threadId: string): void {
     setMoving(null);
-    const moved = await moveContent(row.id, threadId);
-    if (!moved) return;
+    if (isProvisional(row.id) || !id) return;
     setViewing(null);
-    await load();
-    toast.show("Moved", {
-      label: "Undo",
-      onPress: async () => {
-        await moveContent(row.id, moved.previous.threadId);
-        await load();
+    const at = rows.findIndex((one) => one.id === row.id);
+    const home = id;
+    void perform(
+      {
+        apply: () => {
+          dropRow(row.id);
+          if (thread) count({ active: thread.counts.active - 1 });
+        },
+        revert: () => {
+          putRow(row, at);
+          if (thread) count({ active: thread.counts.active });
+        },
+        write: () => moveContent(row.id, threadId).then((moved) => moved !== null),
+        unwrite: () => moveContent(row.id, home).then((moved) => moved !== null),
+        did: "Moved",
+        failed: "Couldn't move that",
+        unfailed: "Couldn't put that back",
       },
-    });
+      toast,
+      writes,
+    );
   }
 
   /** A row was dragged somewhere else in To do.
    *
    *  The writes are priorities, computed by the list from the rows either
    *  side of the drop, through the endpoint a priority has always gone
-   *  through, which pins it. Optimistic, like a tick, and Undo writes every
-   *  previous number back. */
-  async function reorder(writes: ReorderWrite[]): Promise<void> {
-    setRows((current) =>
-      current.map((row) => {
-        const write = writes.find((one) => one.id === row.id);
-        return write ? { ...row, priority: write.priority, priorityPinned: true } : row;
-      }),
-    );
-    const results = await Promise.all(writes.map((one) => setPriority(one.id, one.priority)));
-    await load();
-    if (results.some((result) => result === null)) return;
-    toast.show("Moved", {
-      label: "Undo",
-      onPress: async () => {
-        await Promise.all(writes.map((one) => setPriority(one.id, one.previous)));
-        await load();
+   *  through, which pins it. Undo writes every previous number back. */
+  function reorder(writes_: ReorderWrite[]): void {
+    // A row drawn at the press has no priority to write yet.
+    if (writes_.some((write) => isProvisional(write.id))) return;
+    const set = (pick: (write: ReorderWrite) => number): void =>
+      setRows((current) =>
+        current.map((row) => {
+          const write = writes_.find((one) => one.id === row.id);
+          return write ? { ...row, priority: pick(write), priorityPinned: true } : row;
+        }),
+      );
+    const all = async (pick: (write: ReorderWrite) => number): Promise<boolean> => {
+      const results = await Promise.all(writes_.map((one) => setPriority(one.id, pick(one))));
+      return results.every((result) => result !== null);
+    };
+    void perform(
+      {
+        apply: () => set((write) => write.priority),
+        revert: () => set((write) => write.previous),
+        write: () => all((write) => write.priority),
+        unwrite: () => all((write) => write.previous),
+        did: "Moved",
+        failed: "Couldn't move that",
+        unfailed: "Couldn't put that back",
       },
-    });
+      toast,
+      writes,
+    );
+  }
+
+  /** The To do fold. A preference of the thread, so it travels to the next
+   *  device; drawn at the press, and put back with a word if it does not
+   *  stick. No Undo: pressing it again is the undo. */
+  function fold(next: boolean): void {
+    if (!thread || !id) return;
+    const was = thread.preference.hideDone === true;
+    const draw = (hideDone: boolean): void =>
+      setThread((current) =>
+        current ? { ...current, preference: { ...current.preference, hideDone } } : current,
+      );
+    void perform(
+      {
+        apply: () => draw(next),
+        revert: () => draw(was),
+        write: () => setPreference(id, { hideDone: next }),
+        failed: next ? "Couldn't hide those" : "Couldn't show those",
+      },
+      toast,
+      writes,
+    );
   }
 
   if (!thread) {
@@ -258,7 +444,36 @@ export default function Thread() {
     );
   }
 
-  const widgets = widgetsFor(rows, thread.preference.widgets);
+  // What the composer's `+` writes are about to be, in front of what the
+  // server has, unless the server has them already. A section with no widget
+  // type to start as, Files, writes a note, so its words are drawn among the
+  // notes, at the end, where a new note goes.
+  const you = thread.members.find((member) => member.isYou) ?? null;
+  const author = { accountId: you?.accountId ?? null, displayName: you?.displayName ?? "you" };
+  const provisional = mine
+    .filter((one) => !one.landedId || !rows.some((row) => row.id === one.landedId))
+    .filter((one) => !one.landedId || !thread.notes.some((note) => note.id === one.landedId));
+  const allRows = [
+    ...provisional.flatMap((one) => {
+      const type = one.write === "quickAdd" ? startsAs(one.section ?? "") : null;
+      if (!type) return [];
+      // The entry's key is already a provisional id.
+      const row = provisionalRow(one.text, type, author, one.day);
+      return [{ ...row, id: one.landedId ?? one.key }];
+    }),
+    ...rows,
+  ];
+  const allNotes = [
+    ...thread.notes,
+    ...provisional.flatMap((one) => {
+      const isNote = one.write === "note" || startsAs(one.section ?? "") === null;
+      if (!isNote) return [];
+      const note = provisionalNote(one.text, author.accountId);
+      return [{ ...note, id: one.landedId ?? one.key }];
+    }),
+  ];
+
+  const widgets = widgetsFor(allRows, thread.preference.widgets);
   const inWidgets = new Set(widgets.flatMap((w) => w.rows.map((r) => r.id)));
   // **Anything with a date already has a home, so this does not repeat it.**
   // The rail above draws every dated row and its day lists them, which is where
@@ -273,7 +488,7 @@ export default function Thread() {
   // **And the rail is earned.** With nothing dated there is no rail at all,
   // which 015's own opening paragraph said and its AC-1 contradicted. Computed
   // once, so the rail and the list agree about what is on it.
-  const dated = showArchived ? [] : datedFor(rows, thread.notes);
+  const dated = showArchived ? [] : datedFor(allRows, allNotes);
   const onRail = new Set(dated.map((one) => one.rowId));
   // 019. A pick earns the rail on its own: a thread with a calendar and
   // nothing dated shows this week, with the calendar's events on it.
@@ -284,7 +499,7 @@ export default function Thread() {
   // rail draws every occurrence, because a calendar has a cell per day already;
   // a list has no grid, so it collapses and says how often.
   const { once, repeating } = splitRepeating(
-    rows.filter((row) => !inWidgets.has(row.id) && !onRail.has(row.id)),
+    allRows.filter((row) => !inWidgets.has(row.id) && !onRail.has(row.id)),
   );
   const rest = once;
   // "Everything else" once a widget has lifted anything out, per 007's AC-2.
@@ -445,14 +660,14 @@ export default function Thread() {
             key={thread.id}
             threadId={thread.id}
             threadName={thread.name}
-            rows={rows}
-            notes={thread.notes}
+            rows={allRows}
+            notes={allNotes}
             calendars={{ anyPicked: thread.calendars?.anyPicked === true, version: calendarsVersion }}
-            onDelete={(row: ContentRow) => void remove(row)}
+            onDelete={remove}
             onActions={setActing}
             onEdit={setRenaming}
-            onArchive={(row: ContentRow) => void archive(row)}
-            onToggle={(row: ContentRow) => void tick(row)}
+            onArchive={archive}
+            onToggle={tick}
           />
         )}
 
@@ -463,19 +678,14 @@ export default function Thread() {
             widgets={widgets}
             groupBy={thread.preference.groupBy}
             hideDone={thread.preference.hideDone}
-            onFold={(next: boolean) => {
-              // Optimistic, like a tick. A failed write leaves the screen as
-              // the server has it on the next load.
-              setThread({ ...thread, preference: { ...thread.preference, hideDone: next } });
-              void setPreference(id, { hideDone: next });
-            }}
-            onDelete={(row: ContentRow) => void remove(row)}
+            onFold={fold}
+            onDelete={remove}
             onActions={setActing}
             onEdit={setRenaming}
-            onArchive={(row: ContentRow) => void archive(row)}
+            onArchive={archive}
             onOpenPhoto={(row: ContentRow) => setViewing(row.id)}
-            onToggle={(row: ContentRow) => void tick(row)}
-            onReorder={(writes) => void reorder(writes)}
+            onToggle={tick}
+            onReorder={reorder}
             arrived={arrived}
           />
         )}
@@ -484,11 +694,12 @@ export default function Thread() {
           <NotesSection
             threadId={thread.id}
             threadName={thread.name}
-            notes={thread.notes}
+            notes={allNotes}
             counts={thread.noteCounts}
             members={thread.members}
-            onChanged={() => void load()}
-            onToast={toast.show}
+            onNotes={patchNotes}
+            toast={toast}
+            writes={writes}
           />
         )}
 
@@ -532,10 +743,10 @@ export default function Thread() {
             row={series.row}
             border
             arrived={false}
-            onDelete={() => void remove(series.row)}
+            onDelete={() => remove(series.row)}
             onActions={() => setActing(series.row)}
             onEdit={() => setRenaming(series.row)}
-            onArchive={() => void archive(series.row)}
+            onArchive={() => archive(series.row)}
             note={
               cadenceLabel(series.everyDays)
                 ? `${cadenceLabel(series.everyDays)} · ${series.count} held`
@@ -550,10 +761,10 @@ export default function Thread() {
             row={row}
             border={i < rest.length - 1}
             arrived={arrived.has(row.id)}
-            onDelete={() => void remove(row)}
+            onDelete={() => remove(row)}
             onActions={() => setActing(row)}
             onEdit={() => setRenaming(row)}
-            onArchive={() => void archive(row)}
+            onArchive={() => archive(row)}
             onOpenPhoto={() => setViewing(row.id)}
           />
         ))}
@@ -617,13 +828,14 @@ export default function Thread() {
         key={renaming?.id ?? "none"}
         row={renaming}
         onClose={() => setRenaming(null)}
-        onSaved={() => {
+        onSave={(row, title) => {
           setRenaming(null);
-          void load();
+          rename(row, title);
         }}
         onRemove={(row) => {
           setRenaming(null);
-          void (row.canDelete && row.archivedAt === null ? remove(row) : archive(row));
+          if (row.canDelete && row.archivedAt === null) remove(row);
+          else archive(row);
         }}
       />
 
@@ -637,7 +849,7 @@ export default function Thread() {
         exceptThreadId={id}
         onClose={() => setMoving(null)}
         onPick={(thread) => {
-          if (moving) void move(moving, thread.id);
+          if (moving) move(moving, thread.id);
         }}
       />
       <CalendarsSheet
@@ -702,12 +914,14 @@ function Bar({
 function TitleSheet({
   row,
   onClose,
-  onSaved,
+  onSave,
   onRemove,
 }: {
   row: ContentRow | null;
   onClose: () => void;
-  onSaved: () => void;
+  /** The new title. The sheet closes at the press and the screen writes it,
+   *  so the keyboard is never held up for a round trip. */
+  onSave: (row: ContentRow, title: string) => void;
   /** The way out, in the sheet that already has the row open.
    *
    *  The action sheet behind this one offers it too, and this is not a second
@@ -729,11 +943,10 @@ function TitleSheet({
 
   if (!row) return null;
 
-  async function save(): Promise<void> {
+  function save(): void {
     const title = draft.trim();
-    if (title.length === 0 || title === row?.title) return onClose();
-    if (!row || !(await editContent(row.id, { title }))) return onClose();
-    onSaved();
+    if (!row || title.length === 0 || title === row.title) return onClose();
+    onSave(row, title);
   }
 
   return (
@@ -771,7 +984,7 @@ function TitleSheet({
             isAndroid ? "text-a-on" : "text-text-primary"
           }`}
           style={{ fontSize: 15 }}
-          onSubmitEditing={() => void save()}
+          onSubmitEditing={save}
           returnKeyType="done"
         />
 
@@ -824,7 +1037,7 @@ function TitleSheet({
             </Text>
           </Pressable>
           <Pressable
-            onPress={() => void save()}
+            onPress={save}
             disabled={draft.trim().length === 0}
             className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`}
             style={{

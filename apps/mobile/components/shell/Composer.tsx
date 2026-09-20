@@ -341,13 +341,6 @@ export function Composer({
           <Text className="font-core text-text-danger" style={{ fontSize: 13 }}>
             {line.text}
           </Text>
-          {line.retry ? (
-            <Pressable onPress={() => void send()} hitSlop={14} accessibilityRole="button">
-              <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13 }}>
-                Retry
-              </Text>
-            </Pressable>
-          ) : null}
           <Pressable onPress={clearLine} hitSlop={15} accessibilityLabel="Dismiss" className="ml-auto">
             <Glyph name="x" size={14} color={COLOR.iconOnWell} />
           </Pressable>
