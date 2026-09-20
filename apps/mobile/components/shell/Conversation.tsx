@@ -513,7 +513,9 @@ function Yours({
           the audio is on the server and cannot go back in the row. */}
       {turn.state === "failed" && !turn.unsent && turn.voice ? (
         <View className="mt-space-2 flex-row items-center gap-space-3">
-          <Text className="font-core text-text-danger" style={{ fontSize: 13 }}>
+          {/* The line wraps and the control keeps its place beside it; a
+              line that cannot shrink pushed Try again off the screen. */}
+          <Text className="flex-1 font-core text-text-danger" style={{ fontSize: 13 }}>
             {turn.voice.transcribed
               ? "offload could not answer that one. Your dump is saved."
               : "Couldn't write that one down."}

@@ -1264,7 +1264,15 @@ async def handle(
         # The type, never the message. An SDK exception can embed the request
         # body, which is the person's dump, and this line would carry it into a
         # log (OFF-1).
-        log.error("dump failed", job_id=job.id, attempt=job.attempts, error_type=type(exc).__name__)
+        # The type and where it came from, never the message: a NameError
+        # seen once on a device test could not be placed without the module.
+        log.error(
+            "dump failed",
+            job_id=job.id,
+            attempt=job.attempts,
+            error_type=type(exc).__name__,
+            error_module=type(exc).__module__,
+        )
         await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
 
 
