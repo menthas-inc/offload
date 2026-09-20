@@ -274,15 +274,28 @@ _TODAY = text("select to_char(now() at time zone :tz, 'FMDay FMDD FMMonth YYYY')
 UTC = "UTC"
 
 
+def known_zone(time_zone: str | None) -> str:
+    """The zone to read the clock in: theirs when Python's tzdata knows the
+    name, else UTC. Checked here rather than by letting Postgres refuse it,
+    because a refused statement aborts the connection's transaction and every
+    query after it on that connection, the fallback included: the first
+    version of this fell back inside the aborted transaction and would have
+    raised a worse error in place of the one it was catching. Python and
+    Postgres read the same IANA names, so a name that passes here is one
+    Postgres knows too."""
+    if not time_zone or time_zone == UTC:
+        return UTC
+    try:
+        ZoneInfo(time_zone)
+    except (ZoneInfoNotFoundError, ValueError):
+        log.warning("time zone unknown here, reading today in UTC")
+        return UTC
+    return time_zone
+
+
 async def today_in(conn: AsyncConnection, time_zone: str | None) -> str:
     """What day it is where they are, as the prompt says it."""
-    try:
-        return str((await conn.execute(_TODAY, {"tz": time_zone or UTC})).scalar_one())
-    except Exception:  # noqa: BLE001
-        if not time_zone:
-            raise
-        log.warning("time zone unknown to postgres, reading today in UTC", time_zone=time_zone)
-        return str((await conn.execute(_TODAY, {"tz": UTC})).scalar_one())
+    return str((await conn.execute(_TODAY, {"tz": known_zone(time_zone)})).scalar_one())
 
 
 def clock_line(time_zone: str | None) -> str:
@@ -290,14 +303,11 @@ def clock_line(time_zone: str | None) -> str:
     shows there right now, so "3pm" can be written as a moment. The offset on
     another date is the model's arithmetic with the zone's name; the one for
     today keeps it honest about which side of UTC the person is on."""
-    if not time_zone or time_zone == UTC:
+    zone = known_zone(time_zone)
+    if zone == UTC:
         return "in UTC"
-    try:
-        now = datetime.now(ZoneInfo(time_zone))
-    except (ZoneInfoNotFoundError, ValueError):
-        return "in UTC"
-    offset = now.strftime("%z")
-    return f"in {time_zone}, where the clock is UTC{offset[:3]}:{offset[3:]} today"
+    offset = datetime.now(ZoneInfo(zone)).strftime("%z")
+    return f"in {zone}, where the clock is UTC{offset[:3]}:{offset[3:]} today"
 
 
 async def load(

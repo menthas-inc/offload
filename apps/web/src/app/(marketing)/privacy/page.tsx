@@ -230,9 +230,10 @@ export default function Privacy() {
               Never what was in it.
             </li>
             <li>
-              <strong>Your device&apos;s time zone</strong>, sent with each thing you dump and kept
-              with it, so that &quot;tomorrow&quot; and &quot;3pm&quot; mean what they meant where
-              you were. Nothing finer than the zone: no location, no clock.
+              <strong>Your device&apos;s time zone</strong>, sent with each thing you dump, type
+              into a thread or answer, and kept with it, so that &quot;tomorrow&quot; and
+              &quot;3pm&quot; mean what they meant where you were. Nothing finer than the zone: no
+              location, no clock.
             </li>
             <li>
               <strong>Product events</strong>, such as joining the waitlist or finishing first run.

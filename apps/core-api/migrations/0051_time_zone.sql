@@ -11,7 +11,8 @@
 -- An IANA name, never an offset: the offset changes twice a year and the
 -- model has to place "the 2nd of November at 3pm" in the right one.
 
-alter table messages add column time_zone text;
+alter table messages add column time_zone text
+  check (time_zone is null or time_zone ~ '^[A-Za-z0-9_+/-]{1,64}$');
 comment on column messages.time_zone is
   'The device''s IANA time zone when this was sent, for the turn that reads it. Null: read in UTC.';
 

@@ -390,6 +390,9 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
         # (the calendar's, to an account with no calendar) is declined here.
         # Reads the name, resolves nothing.
         "if block.name not in offered:",
+        # Recorded on the list of what was declined. A string appended to a
+        # list, so the log can see a tool the model reached for unoffered.
+        'outcome.declined.append(f"{block.name}: not_offered")',
         "args = SCHEMAS[block.name].model_validate(block.input)",
         # The same, for a call whose arguments would not validate. Field names
         # and error types travel with it; the values never do (OFF-1).
@@ -402,6 +405,10 @@ async def test_no_dynamic_dispatch_on_a_model_supplied_name():
         # name and resolves nothing with it.
         'if block.name == "say":',
         "body = await call_tool(block.name, block.id, args.model_dump())",
+        # Recorded on a list of what the server declined, with its reason: a
+        # tool name and an error code, never a value. A string appended to a
+        # list.
+        "outcome.declined.append(f\"{block.name}: {body.get('error')}\")",
         # Recorded on a list of what failed. A string appended to a list.
         "outcome.failed.append(block.name)",
         # A membership test against a closed set of the tools that change
@@ -979,6 +986,8 @@ async def test_a_known_tool_that_was_not_offered_is_declined_not_failed():
     assert [c[0] for c in caller.calls] == ["add_content"], "never reached the writer"
     assert outcome.failed == []
     assert outcome.refused == []
+    # Recorded, so the log can see it.
+    assert outcome.declined == ["create_event: not_offered"]
     assert outcome.finished
     # And the model was told, as a decline.
     told = model.requests[2]["messages"][-1]["content"][0]

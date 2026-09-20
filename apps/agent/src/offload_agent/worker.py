@@ -662,9 +662,16 @@ def _tool_caller(
                 # A malformed request will be malformed again, so retrying is
                 # pure delay. It comes back as a refusal the planner can read
                 # and act on, which is what it should have been all along.
-                if 400 <= response.status_code < 500:
+                if response.status_code in (400, 422):
                     log.warning("tool call refused", job_id=job_id, status=response.status_code)
                     return {"ok": False, "declined": True, "error": "invalid_arguments"}
+                # A 401, a 403, a 404 or a 429 is not the model's to fix: a
+                # rotated token, a job that is not this one, a rate. Told as
+                # the model's own mistake it would spend every round trip
+                # fixing what it did not break.
+                if 400 <= response.status_code < 500:
+                    log.warning("tool call refused", job_id=job_id, status=response.status_code)
+                    return {"ok": False, "error": "unavailable"}
 
                 response.raise_for_status()
                 return _declined_if_argument(response.json())
@@ -693,6 +700,15 @@ def _tool_caller(
 # refusal as a failed tool, so the reply was built as a partial turn with a
 # Finish control against a turn that had finished. A refusal the model can
 # answer is a decline, the way the lookup bound's are.
+#
+# **Two of these are permanent, and are here on purpose.** `not_yours` and
+# `read_only` cannot be fixed by different arguments, but a failed tool has
+# the worker replace whatever the model said with "That did not finish." and
+# a Finish control that repeats the refusal every time. The prompt scripts
+# both: somebody else's row is refused "and that is correct", said once, and
+# a calendar it may only read is said once. Declined, the sentence reaches
+# the person; failed, it never does. `needs_reconnect` and `unavailable` stay
+# failures: the server could not, and a Finish control is the right offer.
 ARGUMENT_REFUSALS = frozenset(
     {
         "unknown_thread",
@@ -714,7 +730,8 @@ ARGUMENT_REFUSALS = frozenset(
 
 def _declined_if_argument(body: dict) -> dict:
     """Mark a refusal about the arguments as declined, so the loop does not
-    count it as a tool that failed."""
+    count it as a tool that failed. The loop records the name and the reason
+    on `Outcome.declined`, so a refusal the server made is still in the log."""
     if isinstance(body, dict) and not body.get("ok") and body.get("error") in ARGUMENT_REFUSALS:
         return {**body, "declined": True}
     return body
@@ -1229,6 +1246,7 @@ async def handle(
             # round trip on rejected arguments logged as though it had done
             # nothing at all. Field names and error types only (OFF-1).
             refused=outcome.refused,
+            declined=outcome.declined,
             latency_ms=sum(u.latency_ms for u in outcome.usage),
             # 020. How many pictures the turn read, and how many bytes of
             # them. A count and a size, never the pictures (OFF-1).

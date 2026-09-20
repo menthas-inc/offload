@@ -158,6 +158,60 @@ async def test_a_refusal_is_returned_as_data_and_not_retried():
     assert result == {"ok": False, "error": "unknown_thread", "declined": True}
 
 
+async def test_a_refusal_the_server_could_not_help_stays_a_failure():
+    """The other side of the decline: a calendar whose access was taken away
+    is not the model's argument to fix, and the person is owed the Finish
+    control a failed tool brings."""
+    from offload_agent.worker import _tool_caller
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"ok": False, "error": "needs_reconnect"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        call = _tool_caller(client, cfg(), "job-1")
+        result = await call("create_event", "toolu_1", {"content_id": "c1"})
+
+    assert result == {"ok": False, "error": "needs_reconnect"}
+    assert "declined" not in result
+
+
+async def test_a_401_is_not_the_models_mistake():
+    """A rotated token, a job that is not this one, a rate: told as its own
+    invalid arguments the model would spend every round trip fixing what it
+    did not break."""
+    from offload_agent.worker import _tool_caller
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(401, json={"error": "unauthorised"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        call = _tool_caller(client, cfg(), "job-1")
+        result = await call("add_content", "toolu_1", {"thread_id": "t1", "title": "x"})
+
+    assert result == {"ok": False, "error": "unavailable"}
+
+
+def test_the_clock_is_read_in_a_zone_python_knows_and_utc_otherwise():
+    """The zone is checked here rather than by letting Postgres refuse it: a
+    refused statement aborts the connection's transaction and the fallback
+    query after it, so the first version of the fallback could never run."""
+    from offload_agent.context import clock_line, known_zone
+
+    assert known_zone(None) == "UTC"
+    assert known_zone("UTC") == "UTC"
+    assert known_zone("Europe/Lisbon") == "Europe/Lisbon"
+    # ICU accepts the alias and so does tzdata.
+    assert known_zone("Asia/Calcutta") == "Asia/Calcutta"
+    assert known_zone("Mars/Olympus") == "UTC"
+    assert known_zone("Europe/Lisbon; drop table messages") == "UTC"
+
+    assert clock_line(None) == "in UTC"
+    assert clock_line("Mars/Olympus") == "in UTC"
+    assert clock_line("Asia/Tokyo") == "in Asia/Tokyo, where the clock is UTC+09:00 today"
+    lisbon = clock_line("Europe/Lisbon")
+    assert lisbon.startswith("in Europe/Lisbon, where the clock is UTC+0")
+
+
 # --------------------------------------------------------------- the partial reply
 
 

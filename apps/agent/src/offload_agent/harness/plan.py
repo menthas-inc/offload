@@ -24,6 +24,7 @@ What this file is careful about, each of it an acceptance criterion:
 
 import base64
 import json
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -64,10 +65,12 @@ _WITH_CALENDAR = "<!-- with-calendar -->"
 _END_CALENDAR = "<!-- /with-calendar -->"
 if _WITH_CALENDAR not in _PROMPT or _END_CALENDAR not in _PROMPT:
     raise RuntimeError("plan_v2.md has lost its calendar markers")
-_PROMPT_NO_CALENDAR = (
+_PROMPT_NO_CALENDAR = re.sub(
+    r"\n{3,}",
+    "\n\n",
     _PROMPT[: _PROMPT.index(_WITH_CALENDAR)]
-    + _PROMPT[_PROMPT.index(_END_CALENDAR) + len(_END_CALENDAR) :]
-).replace("\n\n\n", "\n\n")
+    + _PROMPT[_PROMPT.index(_END_CALENDAR) + len(_END_CALENDAR) :],
+)
 _PROMPT = _PROMPT.replace(_WITH_CALENDAR + "\n", "").replace(_END_CALENDAR + "\n", "")
 
 
@@ -172,6 +175,12 @@ class Outcome:
     #: finished; a turn cut off mid-work says nothing either, and is not. The
     #: difference is whether the model stopped or the bound did.
     out_of_calls: bool = False
+    #: Tool calls the server declined, as tool names and error codes: a row
+    #: that is not theirs, a calendar it may only read, a time it could not
+    #: parse. Not failures, since the model read the reason and went on, but
+    #: the record of an authorisation refusal firing has to live somewhere a
+    #: log can see, and `failed` no longer holds it.
+    declined: list[str] = field(default_factory=list)
     #: Tool calls the schema refused, as field names and error types.
     #:
     #: **Neither `landed` nor `failed` held these**, because both are written
@@ -723,6 +732,7 @@ async def _run(
             # so, as a decline rather than a failure: the turn is not partial
             # because a tool that does not exist here was not run.
             if block.name not in offered:
+                outcome.declined.append(f"{block.name}: not_offered")
                 results.append(
                     _result(
                         block.id,
@@ -806,7 +816,9 @@ async def _run(
                 # what it has. Counting it here made the turn partial, threw
                 # the model's own answer away for "That did not finish.", and
                 # offered Finish it against a refusal that repeats every time.
-                if not body.get("declined"):
+                if body.get("declined"):
+                    outcome.declined.append(f"{block.name}: {body.get('error')}")
+                else:
                     outcome.failed.append(block.name)
             else:
                 outcome.worked += 1
