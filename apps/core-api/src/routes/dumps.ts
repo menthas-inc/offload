@@ -614,9 +614,11 @@ export type StreamStep =
   | { do: "failed" }
   | { do: "close" }
   /** 017. One line of what offload is doing, on a turn still in flight. The
-   *  stream stays open: this is not a settlement. */
-  | { do: "step"; text: string }
-  | { do: "wait" };
+   *  stream stays open: this is not a settlement. 021: the transcript rides
+   *  on both of the in-flight answers once it exists, so the bubble draws
+   *  what offload heard ahead of the reply. */
+  | { do: "step"; text: string; transcript: string | null }
+  | { do: "wait"; transcript: string | null };
 
 export async function streamStep(
   messageId: string,
@@ -635,13 +637,14 @@ export async function streamStep(
 
   const current = await db
     .selectFrom("messages")
-    .select(["state", "turn_id", "step", "step_at"])
+    .select(["state", "turn_id", "step", "step_at", "transcript", "transcribed_at"])
     .where("id", "=", messageId)
     .where("account_id", "=", accountId)
     .where("deleted_at", "is", null)
     .executeTakeFirst();
 
   if (!current) return { do: "close" };
+  const transcript = current.transcribed_at ? (current.transcript ?? "") : null;
   if (current.state === "answered" || current.state === "partial") {
     const [reply, touched, sources] = await Promise.all([
       replyFor(current.turn_id, accountId),
@@ -665,10 +668,10 @@ export async function streamStep(
   // in preference to the answer it preceded is a progress line that outlives the
   // thing it was describing.
   if (current.step && fresh(current.step_at)) {
-    return { do: "step", text: current.step };
+    return { do: "step", text: current.step, transcript };
   }
 
-  return { do: "wait" };
+  return { do: "wait", transcript };
 }
 
 /** Whether a step is recent enough to draw.
@@ -1424,6 +1427,11 @@ export async function dumpRoutes(app: App): Promise<void> {
             return finish();
           }
           if (step.do === "close") return finish();
+
+          // 021. The transcript, the moment it is written and on every wake
+          // after, for the same reason the step repeats: the client draws it
+          // rather than appending it, and a repeat is a no-op on screen.
+          if (step.transcript !== null) send("transcript", { text: step.transcript });
 
           // 017. The one event that does not end the stream. Sent on every wake
           // that finds a step, which means the same line can be sent twice if

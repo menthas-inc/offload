@@ -709,6 +709,9 @@ export async function blobRoutes(app: App): Promise<void> {
           priority: PRIORITY.background,
           tx: trx,
         });
+        // The stream on this message wakes to draw the words, ahead of the
+        // reply, on the same channel the reply itself uses.
+        await sql`select pg_notify(${"offload_answer"}, ${messageId})`.execute(trx);
         return true;
       });
       if (!written) return reply.code(404).send({ error: "unknown_message" });

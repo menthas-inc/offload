@@ -42,11 +42,11 @@ Ordered. Each cites the acceptance criteria it serves and the principles it sati
 
 ## D. Web
 
-- [ ] **D1** `Composer.tsx`: the live microphone in the kit's order; `getUserMedia` and the refusal line; `MediaRecorder` with the mime preference and 64 kbps; the recording row borrowed from the kit with the scaled waveform window, the words as static text, the stopped state at `10:00`, Discard with the toast past a minute, Escape and Enter; the resample to 32 bars; upload then dump; the bubble at the press and the failed treatment with Try again putting the `Blob` back; Close disabled while recording; a hidden tab keeps recording. *(AC-1 to AC-7, AC-9, AC-10, AC-11)*
+- [x] **D1** `Composer.tsx`: the live microphone in the kit's order; `getUserMedia` and the refusal line; `MediaRecorder` with the mime preference and 64 kbps; the recording row borrowed from the kit with the scaled waveform window, the words as static text, the stopped state at `10:00`, Discard with the toast past a minute, Escape and Enter; the resample to 32 bars; upload then dump; the bubble at the press and the failed treatment with Try again putting the `Blob` back; Close disabled while recording; a hidden tab keeps recording. *(AC-1 to AC-7, AC-9, AC-10, AC-11)*
   *Test:* with a stubbed recorder, the row appears on tap and the field is gone; Discard at 30 s restores the words and chips with no toast, at 61 s shows the toast and Undo restores the row; the upload carries 32 bars and the duration; a refused send keeps the recording in the row; Enter sends and Escape discards.
-- [ ] **D2** `SentVoice.tsx`: the glyph, the 32 bars from the wire, the duration floored, tertiary at rest and primary as played, the countdown, the button name and state, one playing at a time, inert while recording; the transcript beneath with "Show all"; `voice` on the person's bubble above the photos; the failed and unsent treatments on a voice bubble. *(AC-9, AC-15, AC-18, AC-24)*
+- [x] **D2** `SentVoice.tsx`: the glyph, the 32 bars from the wire, the duration floored, tertiary at rest and primary as played, the countdown, the button name and state, one playing at a time, inert while recording; the transcript beneath with "Show all"; `voice` on the person's bubble above the photos; the failed and unsent treatments on a voice bubble. *(AC-9, AC-15, AC-18, AC-24)*
   *Test:* the bubble draws the bars and `0:14` before the transcript and the transcript beneath once `transcribed`; a second bubble's play pauses the first; the button's accessible name and state read as specced; `59.6` renders `0:59`.
-- [ ] **D3** `dead-classes`, `dead-css`, `dead-icons`, lint, typecheck.
+- [x] **D3** `dead-classes`, `dead-css`, `dead-icons`, lint, typecheck.
 
 ## E. Mobile
 

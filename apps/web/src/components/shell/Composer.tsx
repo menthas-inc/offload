@@ -40,10 +40,15 @@ import {
   type QuestionOnWire,
   type Sent,
   type TouchedThread,
+  uploadVoice,
+  VoiceRefused,
+  type VoiceOnWire,
 } from "../../lib/dump";
 import { QuickReplies } from "./QuickReplies";
 import { AttachChip, type ChipError } from "./AttachChip";
 import { SentPhoto } from "./SentPhoto";
+import { SentVoice, mmss } from "./SentVoice";
+import { Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import { Icon } from "../Icon";
 import { TurnFooter, type TurnSource } from "./TurnFooter";
@@ -96,6 +101,8 @@ interface Turn {
   found?: FoundResult[];
   /** 020. The photos this message carried. Only ever on a message you sent. */
   photos?: PhotoOnWire[];
+  /** 021. The voice note it carried, with its transcript once written. */
+  voice?: VoiceOnWire | null;
   /** The send itself did not land, so nothing on the server knows this turn.
    *  Drawn as the failed state, with different words: the dump is not saved,
    *  and Try again puts the words back in the field. Local only, never on the
@@ -141,6 +148,17 @@ export function Composer({
   const [line, setLine] = useState<{ text: string } | null>(null);
   const [viewer, setViewer] = useState<{ turnId: string; index: number } | null>(null);
   const picker = useRef<HTMLInputElement>(null);
+  // 021. The recorder while it records, the live window it draws, and the
+  // note once it has stopped: the same row with no dot, waiting for Send or
+  // Discard. A note that went with a send that never landed comes back here.
+  const [rec, setRec] = useState<Recorder | null>(null);
+  const [recLive, setRecLive] = useState<{ bars: number[]; elapsedMs: number }>({ bars: [], elapsedMs: 0 });
+  const [note, setNote] = useState<Recording | null>(null);
+  const noteUploaded = useRef<{ blobId: string } | null>(null);
+  const sentNotes = useRef<Map<string, Recording>>(new Map());
+  const sendButton = useRef<HTMLButtonElement>(null);
+  const recording = rec !== null;
+  const holdsNote = recording || note !== null;
   // 017. What offload is doing, on the turn in flight.
   const [step, setStep] = useState<string | null>(null);
   const [tooLong, setTooLong] = useState<number | null>(null);
@@ -215,6 +233,7 @@ export function Composer({
           from: message.role === "person" ? "you" : "offload",
           text: message.text ?? "",
           photos: message.photos ?? [],
+          voice: message.voice ?? null,
           state: message.state,
           turnId: message.turnId,
           since: Date.now(),
@@ -286,6 +305,11 @@ export function Composer({
                   // photos, so a settled turn's thumbnails exist; one that
                   // could not be opened draws the glyph when its fetch fails.
                   photos: turn.photos?.map((photo) => ({ ...photo, ready: true })),
+                  // 021. The transcript, when the answer was read rather
+                  // than streamed; the stream delivered it on its own event.
+                  voice: answer.voice
+                    ? { ...turn.voice, ...answer.voice, localUrl: turn.voice?.localUrl }
+                    : turn.voice,
                 }
               : // 018. The next turn closes the last question whatever it says.
                 { ...turn, question: null },
@@ -327,8 +351,54 @@ export function Composer({
           offerUndo(turnId, plainText(answer.reply));
         },
         (text) => setStep(text),
+        // 021. Drawn the moment it is written, ahead of the reply.
+        (transcript) =>
+          setTurns((current) =>
+            current.map((turn) =>
+              turn.id === messageId && turn.voice
+                ? { ...turn, voice: { ...turn.voice, transcript, transcribed: true } }
+                : turn,
+            ),
+          ),
       ),
     );
+  }
+
+  /** 021. Tap the microphone: ask once, then record. The field gives way to
+   *  the row and focus moves to Send, so Enter sends and Escape discards. */
+  async function startRecording(): Promise<void> {
+    if (holdsNote || sending || !recorderSupported()) return;
+    setLine(null);
+    try {
+      const started = await Recorder.start(
+        (bars, elapsedMs) => setRecLive({ bars, elapsedMs }),
+        () => {
+          // Stopped on its own at the cap: the note stays in the row.
+          void started.take().then((taken) => {
+            setNote(taken);
+            setRec(null);
+          });
+        },
+      );
+      setRec(started);
+      setRecLive({ bars: [], elapsedMs: 0 });
+      requestAnimationFrame(() => sendButton.current?.focus());
+    } catch {
+      setLine({ text: "Microphone is off for offload." });
+    }
+  }
+
+  /** Stop and keep nothing. Past a minute the note is parked under the
+   *  toast for eight seconds, because Discard sits a thumb's width from Send. */
+  async function discardRecording(): Promise<void> {
+    const taken = rec ? await rec.take() : note;
+    setRec(null);
+    setNote(null);
+    noteUploaded.current = null;
+    if (taken && taken.durationMs > 60_000) {
+      toast.show("Discarded", { label: "Undo", onPress: () => setNote(taken) });
+    }
+    input.current?.focus();
   }
 
   /** Stop the turn in flight. 017.
@@ -389,7 +459,7 @@ export function Composer({
   }
 
   const sendable = photos.filter((photo) => !photo.error);
-  const hasSomething = draft.trim().length > 0 || sendable.length > 0;
+  const hasSomething = draft.trim().length > 0 || sendable.length > 0 || holdsNote;
 
   /** Send what is in the field.
    *
@@ -410,6 +480,12 @@ export function Composer({
     // A chip the device refused is not sent around: the way forward is its
     // remove control.
     if (photos.some((photo) => photo.error)) return;
+
+    // 021. Send stops the recording and sends it. The note is taken here,
+    // ahead of the bubble, so the bubble draws its final bars.
+    const spoken = rec ? await rec.take() : note;
+    setRec(null);
+    setNote(null);
 
     setSending(true);
     setTooLong(null);
@@ -438,20 +514,33 @@ export function Composer({
       ready: false,
       localUrl: URL.createObjectURL(photo.file),
     }));
+    const shownVoice: VoiceOnWire | null = spoken
+      ? {
+          blobId: noteUploaded.current?.blobId ?? `${clientKey}-voice`,
+          durationMs: spoken.durationMs,
+          waveform: spoken.waveform,
+          transcript: null,
+          transcribed: false,
+          localUrl: URL.createObjectURL(spoken.audio),
+        }
+      : null;
+    if (spoken) sentNotes.current.set(provisional, spoken);
     setTurns((current) => [
       // 018. Chips leave with the next turn. The server decides whether the
       // words answered the question; the screen only knows it is no longer
       // open for a tap.
       ...current.map((turn) => (turn.question ? { ...turn, question: null } : turn)),
-      { id: provisional, from: "you", text, photos: shown, state: "queued", since: pressed },
+      { id: provisional, from: "you", text, photos: shown, voice: shownVoice, state: "queued", since: pressed },
     ]);
     input.current?.focus();
 
     /** The bubble goes and the words come back, for a refusal that is fixed
-     *  in the draft. The photos never left their chips. */
+     *  in the draft. The photos never left their chips; the note comes back
+     *  to its row. */
     const takeBack = (): void => {
       setTurns((current) => current.filter((turn) => turn.id !== provisional));
       setDraft(text);
+      if (spoken) setNote(spoken);
     };
     const unsent = (): void =>
       setTurns((current) =>
@@ -477,24 +566,40 @@ export function Composer({
           localUrl: shown[at]?.localUrl,
         });
       }
-      const sent = await sendDump(
-        text,
-        clientKey,
-        inThread?.id,
-        sentPhotos.length ? { blobIds: sentPhotos.map((p) => p.blobId) } : undefined,
-      );
+      // 021. The voice note the same way, under the draft's own key with a
+      // suffix, so a retry finds the upload the server already made.
+      let sentVoice: VoiceOnWire | null = null;
+      if (spoken) {
+        const uploaded =
+          noteUploaded.current ??
+          (await uploadVoice(spoken.audio, `${clientKey}-voice`, spoken.durationMs, spoken.waveform));
+        noteUploaded.current = uploaded;
+        sentVoice = { ...shownVoice!, blobId: uploaded.blobId };
+      }
+      const blobIds = [...sentPhotos.map((p) => p.blobId), ...(sentVoice ? [sentVoice.blobId] : [])];
+      const sent = await sendDump(text, clientKey, inThread?.id, blobIds.length ? { blobIds } : undefined);
       // Only what went: a photo dropped in while the send was out stays
       // for the next one.
       const went = new Set(sendable.map((photo) => photo.key));
       setPhotos((current) => current.filter((photo) => !went.has(photo.key)));
       draftKey.current = null;
+      noteUploaded.current = null;
+      sentNotes.current.delete(provisional);
       setTurns((current) =>
         current.map((turn) =>
           turn.id === provisional
-            ? { ...turn, id: sent.messageId, photos: sentPhotos, state: sent.state, turnId: sent.turnId }
+            ? {
+                ...turn,
+                id: sent.messageId,
+                photos: sentPhotos,
+                voice: sentVoice,
+                state: sent.state,
+                turnId: sent.turnId,
+              }
             : turn,
         ),
       );
+      if (spoken) sentNotes.current.set(sent.messageId, spoken);
       watch(sent.messageId, sent.turnId);
     } catch (error) {
       if (error instanceof DumpTooLong) {
@@ -522,11 +627,23 @@ export function Composer({
         // No object store behind the API. A retry cannot help, so none.
         takeBack();
         setLine({ text: "Not taking photos yet." });
+      } else if (error instanceof VoiceRefused && error.reason === "daily_limit") {
+        takeBack();
+        setLine({ text: "Enough for today." });
+      } else if (error instanceof VoiceRefused && error.reason === "too_big") {
+        // Our own recorder cannot produce this; the line is for a client
+        // that is not ours, and Discard is the way forward.
+        takeBack();
+        setLine({ text: "Too big to send." });
+      } else if (error instanceof VoiceRefused) {
+        takeBack();
+        setLine({ text: "Not taking voice notes yet." });
       } else {
         if (error instanceof UnknownBlob) {
           // The server no longer has one of the uploads: an hour passed and
           // the sweep took it. Forget what landed, so Try again uploads again.
           setPhotos((current) => current.map(({ uploaded: _gone, ...p }) => p));
+          noteUploaded.current = null;
         }
         unsent();
       }
@@ -602,6 +719,14 @@ export function Composer({
     if (!failed) return;
     setTurns((current) => current.filter((turn) => turn.id !== messageId));
     setDraft(failed.text);
+    // 021. The note comes back to its row, stopped and sendable, beside the
+    // words and the chips. The upload it may already have made is kept
+    // under the draft's key, so the retry does not store it twice.
+    const spoken = sentNotes.current.get(messageId);
+    if (spoken) {
+      sentNotes.current.delete(messageId);
+      setNote(spoken);
+    }
     input.current?.focus();
   }
 
@@ -757,6 +882,7 @@ export function Composer({
             className={styles.quiet}
             aria-label="Close this conversation"
             title="Close"
+            disabled={recording}
             onClick={() => {
               // Closing is a statement, not a tidy-up: this subject is over,
               // so the next dump starts a conversation rather than joining
@@ -789,6 +915,7 @@ export function Composer({
                 }
               >
                 {turn.text}
+                {turn.voice ? <SentVoice voice={turn.voice} inert={recording} /> : null}
                 {turn.photos?.length ? (
                   <span className={styles.sentPhotos}>
                     {turn.photos.map((photo, at) => (
@@ -805,11 +932,22 @@ export function Composer({
                     {/* Two different failures with one treatment. An answer
                         that failed left the dump saved; a send that failed
                         left nothing anywhere, and saying it is saved would be
-                        the one untrue sentence on the screen. */}
+                        the one untrue sentence on the screen. 021: a voice
+                        note that never got written down says so, and its Try
+                        again runs the same turn on the same note, since the
+                        audio is on the server and cannot go back in the row;
+                        a voice note whose words exist resumes for the same
+                        reason. */}
                     {turn.unsent
                       ? "That didn't go through. "
-                      : "offload could not answer that one. Your dump is saved. "}
-                    <button type="button" className={styles.retry} onClick={() => retry(turn.id)}>
+                      : turn.voice && !turn.voice.transcribed
+                        ? "Couldn't write that one down. "
+                        : "offload could not answer that one. Your dump is saved. "}
+                    <button
+                      type="button"
+                      className={styles.retry}
+                      onClick={() => (turn.voice && !turn.unsent ? void finish(turn.id) : retry(turn.id))}
+                    >
                       Try again
                     </button>
                   </p>
@@ -947,7 +1085,21 @@ export function Composer({
       <div
         className={styles.composerInner}
         data-tall={tall ? true : undefined}
-        data-expanded={tall || photos.length > 0 ? true : undefined}
+        // 021. A recording alone keeps the pill, as the kit's does; words
+        // above the row or chips beside it open the box.
+        data-expanded={tall || photos.length > 0 || (holdsNote && draft.trim().length > 0) ? true : undefined}
+        // 021. With the field gone, the keys the row answers to: Enter sends
+        // and Escape discards.
+        onKeyDown={(event) => {
+          if (!holdsNote) return;
+          if (event.key === "Escape") {
+            event.preventDefault();
+            void discardRecording();
+          } else if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            void submit();
+          }
+        }}
         // 020. A photo dropped onto the card attaches, because that is how a
         // screenshot reaches a browser.
         onDragOver={(event) => {
@@ -959,6 +1111,11 @@ export function Composer({
           addFiles(event.dataTransfer.files);
         }}
       >
+        {/* 021. The words typed before the microphone was pressed, drawn
+            above the row as static text and sent with the note. The kit hides
+            them and sends them anyway; text you cannot see being sent is a
+            surprise. */}
+        {holdsNote && draft.trim() ? <div className={styles.recordingWords}>{draft}</div> : null}
         <div className={styles.fieldRow}>
           {/* Said, not enforced. The server passes the same thread to the model
               as a default and the prompt lets the words override it, so this
@@ -966,9 +1123,28 @@ export function Composer({
           {inThread ? (
             <span className={styles.inThread}>in thread {inThread.name}</span>
           ) : null}
-          {/* A textarea, since 2026-09-17: Enter sends, Shift+Enter is a line.
-              The phones keep Enter for a line because the keyboard is on
-              screen and the arrow is the send. */}
+          {holdsNote ? (
+            // 021. The kit's recording row: the dot while it records and not
+            // after, the time, the window of bars growing from the right.
+            <span className={styles.recording} role="group" aria-label="Voice note">
+              {recording ? <span className={styles.recordingDot} aria-hidden="true" /> : null}
+              <span className={styles.recordingTime} aria-live="polite">
+                {mmss(recording ? recLive.elapsedMs : (note?.durationMs ?? 0))}
+              </span>
+              <span className={styles.recordingWave} aria-hidden="true">
+                {(recording ? recLive.bars : (note?.waveform.map((v) => v / 255) ?? [])).map((h, at, all) => (
+                  <span
+                    key={at}
+                    className={styles.recordingBar}
+                    style={{
+                      height: `${Math.max(3, Math.round(h * 24))}px`,
+                      opacity: 0.35 + 0.65 * (at / Math.max(1, all.length)),
+                    }}
+                  />
+                ))}
+              </span>
+            </span>
+          ) : (
           <textarea
             ref={input}
             className={styles.composerInput}
@@ -993,6 +1169,7 @@ export function Composer({
             placeholder={openQuestion ? invitation(openQuestion) : "Dump anything"}
             aria-label="Dump anything"
           />
+          )}
         </div>
         <div className={styles.toolsRow}>
           {/* 020. The chips, in the row with the controls, wrapping, as the
@@ -1025,27 +1202,48 @@ export function Composer({
                 event.target.value = "";
               }}
             />
+            {/* Not drawn while a note is in the row, as the kit's recording
+                state draws Discard and Send alone. */}
+            {holdsNote ? null : (
+              <button
+                type="button"
+                className={styles.quiet}
+                aria-label="Add a photo"
+                title="Add a photo"
+                disabled={sending}
+                onClick={() => picker.current?.click()}
+              >
+                <Icon name="camera" size={17} />
+              </button>
+            )}
+            {/* 021. The microphone, live, in the kit's order. Not drawn while
+                a note is in the row: one voice note per message. Discard takes
+                its place beside Send, the kit's trash. */}
+            {holdsNote ? (
+              <button
+                type="button"
+                className={styles.discard}
+                aria-label="Discard voice note"
+                title="Discard"
+                disabled={sending}
+                onClick={() => void discardRecording()}
+              >
+                <Icon name="trash-2" size={17} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={styles.quiet}
+                aria-label="Voice note"
+                title="Voice note"
+                disabled={sending || !recorderSupported()}
+                onClick={() => void startRecording()}
+              >
+                <Icon name="mic" size={17} />
+              </button>
+            )}
             <button
-              type="button"
-              className={styles.quiet}
-              aria-label="Add a photo"
-              title="Add a photo"
-              disabled={sending}
-              onClick={() => picker.current?.click()}
-            >
-              <Icon name="camera" size={17} />
-            </button>
-            <button
-              type="button"
-              className={styles.quiet}
-              disabled
-              aria-disabled="true"
-              aria-label="Record a voice note"
-              title="Voice notes are not built yet"
-            >
-              <Icon name="mic" size={17} />
-            </button>
-            <button
+              ref={sendButton}
               type="button"
               className={styles.send}
               // A chip the device refused holds the send: the way forward is
@@ -1110,8 +1308,11 @@ const MAX_FIELD_HEIGHT = 380;
 function conversationTitle(turns: Turn[]): string {
   const first = turns.find((turn) => turn.from === "you");
   if (!first) return "This conversation";
-  // One line in the header, whatever the dump's own breaks.
-  const text = first.text.replace(/\s+/g, " ").trim();
+  // One line in the header, whatever the dump's own breaks. 021: a voice
+  // note reads as its words once written down, and as "Voice note, 0:14"
+  // until then.
+  const said = first.voice?.transcribed ? `${first.text} ${first.voice.transcript ?? ""}` : first.text;
+  const text = said.replace(/\s+/g, " ").trim() || (first.voice ? `Voice note, ${mmss(first.voice.durationMs)}` : "");
   return text.length > 70 ? `${text.slice(0, 70)}…` : text;
 }
 
