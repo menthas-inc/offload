@@ -56,10 +56,10 @@ the new truth, and the design system is updated to match on the next sync.
 **Design system impact:** `assets/app-icon.svg` becomes the white tile with the ink mark; `readme.md`'s line about the icon, "paper on ink", gains "except the app icon, which is ink on white". `mark.svg` and `mark-inverse.svg` are unchanged.
 
 ### 2026-09-19 · Found on a Pixel: the composer's one line, the move sheet under the keyboard, and the stock dialog
-**Surface:** Android, iOS
+**Surface:** Android, iOS, web
 **Raised by:** the codebase, driving 020 on a real phone.
 **Was:** the composer opened as a two-line box with nothing in it, because "taller than one line" was a number and Android reports one line as 44.6 with its padding where iOS reports 22; the move sheet, whose search field takes focus on open, sat entirely under the keyboard, the waitlist form's own lesson repeated; the Android "Add a photo" dialog was the stock `Alert`, uppercase teal buttons stacked, with Cancel drawn as the emphasised one.
-**Is:** the composer measures "taller than one line" against the first height the platform reports, so it is a pill until a second line exists on either phone; the move sheet lifts with the keyboard, the same lift Notes uses; the stock dialog stays for now with Cancel first and Choose from library last, which is the platform's quiet and emphasised slots.
+**Is:** the composer measures "taller than one line" against the shortest height it has seen, so it is a pill until a second line exists, on either phone and on the web, where the same number (30, one below what 16px body type with its leading and padding comes to) was opening the box too; the move sheet lifts with the keyboard, the same lift Notes uses; the stock dialog stays for now with Cancel first and Choose from library last, which is the platform's quiet and emphasised slots.
 **Why:** the kits cannot show a keyboard or a platform dialog, and each of these was invisible until a device drew it.
 **Design system impact:** `Composer.jsx` in the M3 kit owes a bottom sheet for "Add a photo" with two rows, Choose from library and Take a photo, and the iOS kit its action sheet; the code takes it the day it is drawn. Nothing else to draw: the composer and the move sheet match the kits once the platform is accounted for.
 

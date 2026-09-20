@@ -151,14 +151,23 @@ export function Composer({
   // The field grows with the text and then scrolls, to the kit's number. A
   // one-line dump keeps the pill; past a line the corners open up and the
   // controls drop to the bottom edge, beside the last line.
+  // "Taller than one line" is measured against the shortest height the field
+  // has reported, which is one line of the type as this browser sets it, and
+  // not against a number: the body size is 16px, or 18px at the larger text
+  // size, and 16 with its leading and padding is 31.2, one past the 30 this
+  // held for a week. That only rounded the corners then; since 020 it opens
+  // the box and drops the controls under the field, and an empty composer was
+  // opening as two rows. The phones had the same bug the same day.
   const [tall, setTall] = useState(false);
+  const oneLine = useRef<number | null>(null);
   useEffect(() => {
     const el = input.current;
     if (!el) return;
     el.style.height = "auto";
     const height = Math.min(el.scrollHeight, MAX_FIELD_HEIGHT);
     el.style.height = `${height}px`;
-    setTall(height > ONE_LINE_HEIGHT);
+    oneLine.current = oneLine.current === null ? height : Math.min(oneLine.current, height);
+    setTall(height > oneLine.current + 4);
   }, [draft]);
   const turnsBox = useRef<HTMLDivElement>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1062,8 +1071,6 @@ export function Composer({
  *  When something names a conversation, this is where that name goes. */
 /** The kit's number, the same one the phones grow to. */
 const MAX_FIELD_HEIGHT = 380;
-/** A single line of body text with its leading; past this the pill opens. */
-const ONE_LINE_HEIGHT = 30;
 
 function conversationTitle(turns: Turn[]): string {
   const first = turns.find((turn) => turn.from === "you");
