@@ -14,7 +14,7 @@
 // Android's shortcut intent can be fired by any app. Accepted: nothing sends
 // without a tap, and the screen shows the recording.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import * as QuickActions from "expo-quick-actions";
 import { useQuickActionCallback } from "expo-quick-actions/hooks";
@@ -43,9 +43,15 @@ export function RecordArrival() {
     });
   }, []);
 
-  useQuickActionCallback((action) => {
+  // Stable on purpose. The hook re-subscribes whenever this callback changes
+  // and hands it the launching action again each time, so a fresh arrow here
+  // turned a cold launch from the shortcut into a recording that started
+  // again on every state change: after the start, after a discard, after a
+  // send. Found on the first production build, 2026-09-21.
+  const onAction = useCallback((action: { id: string }) => {
     if (action.id === "record") setPending(true);
-  });
+  }, []);
+  useQuickActionCallback(onAction);
 
   // Runs on arrival and again as the things it waits on change: the route,
   // for the gate; `writing`, for a send in flight.
