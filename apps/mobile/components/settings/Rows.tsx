@@ -68,8 +68,9 @@ interface RowProps {
   title: string;
   /** A second line under the title, for anything that needs explaining. */
   note?: string | undefined;
-  /** The current state, on the right. Absent rather than invented: no row here
-   *  shows a number nothing computes. */
+  /** The current state, on the right, or under the title when the two do not
+   *  fit on one line. Absent rather than invented: no row here shows a number
+   *  nothing computes. */
   value?: string | undefined;
   /** A Lucide slug for the leading well. The index has them, the detail pages
    *  do not. */
@@ -99,12 +100,30 @@ export function Row({ title, note, value, icon, onPress, last }: RowProps) {
       ) : null}
 
       <View className="flex-1">
-        <Text
-          className={`font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
-          style={{ fontSize: 15, lineHeight: 20 }}
-        >
-          {title}
-        </Text>
+        {/* The value shares a wrapping line with the title. Side by side while
+            both fit, which is every row at the default size; under the title
+            when they do not, which is an email at 200% type, or at 100% on a
+            360dp phone. Before this the value sat beside the column and could
+            not shrink, so an email wide enough took the whole row, the title
+            was measured at zero width and wrapped one letter per line, and a
+            one-row card stood 350dp tall. */}
+        <View className="flex-row flex-wrap items-center justify-between gap-x-space-4 gap-y-space-1">
+          <Text
+            className={`font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+            style={{ fontSize: 15, lineHeight: 20 }}
+          >
+            {title}
+          </Text>
+          {value ? (
+            <Text
+              className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+              style={{ fontSize: 14 }}
+              numberOfLines={1}
+            >
+              {value}
+            </Text>
+          ) : null}
+        </View>
         {note ? (
           <Text
             className={`mt-space-1 font-core ${
@@ -116,16 +135,6 @@ export function Row({ title, note, value, icon, onPress, last }: RowProps) {
           </Text>
         ) : null}
       </View>
-
-      {value ? (
-        <Text
-          className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-          style={{ fontSize: 14 }}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
-      ) : null}
 
       {onPress ? <Glyph name="chevron-right" size={15} color={COLOR.iconOnWell} /> : null}
     </>

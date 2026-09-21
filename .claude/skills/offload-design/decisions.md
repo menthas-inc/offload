@@ -11,6 +11,14 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-21 · A settings value goes under the title when the two do not fit
+**Surface:** iOS, Android
+**Raised by:** the Pixel 9 at 200% type: the You card stood 350dp tall for one row.
+**Was:** `SettingsRow` puts the value beside the title as `flex: 0 0 auto`, and says nothing about a value wider than the space left. In React Native that value took the whole row, the title was laid out at zero width and wrapped one letter per line.
+**Is:** The title and the value share one wrapping line. Side by side while both fit, which is every row at the default size, and the value under the title, left-aligned and still one line with an ellipsis, when they do not: an email at 200%, or at 100% on a 360dp phone. A note stays under the pair. The row is otherwise unchanged.
+**Why:** The value is the thing the kit already truncates. Cutting the title to keep it whole, or splitting the width between them, leaves a title broken mid-word at exactly the type size the person chose in order to read it. Both platforms' own settings move the value under the title at that size.
+**Design system impact:** `SettingsRow` in `SettingsScreen.jsx` and `M3SettingsScreen.jsx`: the title and value in a `flex-wrap` line with `justify-content: space-between`, so the kit shows the stacked state rather than leaving it to the browser.
+
 ### 2026-09-21 · The web composer borrows the phones' recording row and sent voice note
 **Surface:** web
 **Raised by:** 021, building voice notes against `WComposer` and `WTurns`, which draw the microphone inert and text-only turns.
