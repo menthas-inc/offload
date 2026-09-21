@@ -19,9 +19,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
-  ActionSheetIOS,
   ActivityIndicator,
-  Alert,
   AppState,
   Keyboard,
   Linking,
@@ -39,6 +37,7 @@ import { mmss, SAMPLE_MS } from "../../lib/recorder";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { AttachChip } from "./AttachChip";
+import { RowActionSheet } from "./RowActionSheet";
 import { useConversation, type PickedPhoto } from "./conversation-context";
 
 const isAndroid = Platform.OS === "android";
@@ -191,6 +190,7 @@ export function Composer({
     removePhoto,
     line,
     clearLine,
+    sayLine,
     writing,
     focusRequest,
     recording,
@@ -212,6 +212,7 @@ export function Composer({
   // the box, and an empty field on Android was opening it.
   const [oneLine, setOneLine] = useState<number | null>(null);
   const [which, setWhich] = useState(0);
+  const [offering, setOffering] = useState(false);
   const field = useRef<TextInput>(null);
 
   // A `+` raises this with the keyboard down, which is two taps to type one
@@ -281,10 +282,12 @@ export function Composer({
     if (from === "camera") {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Camera is off for offload.", undefined, [
-          { text: "Not now", style: "cancel" },
-          { text: "Open settings", onPress: () => void Linking.openSettings() },
-        ]);
+        // The line under the composer, as the microphone's refusal draws it:
+        // the clause, the way forward beside it, and the dismiss at the end.
+        sayLine({
+          text: "Camera is off for offload.",
+          action: { label: "Open settings", onPress: () => void Linking.openSettings() },
+        });
         return;
       }
       result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 1 });
@@ -309,26 +312,12 @@ export function Composer({
     field.current?.focus();
   }
 
+  // The product's own sheet on both phones, per the 21 September design:
+  // the library first, since most pictures a person dumps already exist,
+  // then the camera, and no Cancel row, since the scrim dismisses it. The
+  // radius is the one divergence and the sheet already carries it.
   function offerPhoto(): void {
-    if (Platform.OS === "ios") {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { options: ["Choose from library", "Take a photo", "Cancel"], cancelButtonIndex: 2 },
-        (index) => {
-          if (index === 0) void pick("library");
-          if (index === 1) void pick("camera");
-        },
-      );
-    } else {
-      // Android draws three buttons as neutral, negative, positive in that
-      // order, so Cancel goes first to be the quiet one and the library, the
-      // commoner choice, last to be the emphasised one. The stock dialog for
-      // now; the M3 kit would draw a bottom sheet, which is logged as owed.
-      Alert.alert("Add a photo", undefined, [
-        { text: "Cancel", style: "cancel" },
-        { text: "Take a photo", onPress: () => void pick("camera") },
-        { text: "Choose from library", onPress: () => void pick("library") },
-      ]);
-    }
+    setOffering(true);
   }
 
   async function send(): Promise<void> {
@@ -342,6 +331,14 @@ export function Composer({
 
   return (
     <View className="px-gutter-screen pb-space-5 pt-space-4">
+      <RowActionSheet
+        open={offering}
+        actions={[
+          { label: "Choose from library", icon: "image", run: () => void pick("library") },
+          { label: "Take a photo", icon: "camera", run: () => void pick("camera") },
+        ]}
+        onClose={() => setOffering(false)}
+      />
       {/* Where an ordinary dump will land, said once, above the field.
           Nothing while pinned: a `+` already says what it is adding to, in its
           own header and its own pill, and a third statement of the same thing

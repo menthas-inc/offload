@@ -111,6 +111,8 @@ export function ContentRowView({
   // goes somewhere. Ours rather than the page's: a title is written by whoever
   // owns the page and a domain is not.
   const domain = domainOf(row.url);
+  // A link with an address is a door: the row opens the page.
+  const door = row.type === "link" && Boolean(row.url) && !row.archivedAt;
   // A row drawn at the press, before the server has it. It looks like the row
   // it is about to be and offers nothing: no swipe, no long press, no tools,
   // because there is nothing to act on until the write lands and the id is
@@ -347,7 +349,19 @@ export function ContentRowView({
             </View>
             )
           )}
-          <View className="flex-1">
+          {/* 21 September design: a link's row is a door. Tapping it opens
+              the page, the one row in the product whose content lives
+              somewhere else; it was a detail screen with the page a second
+              step. The trailing glyph is arrow-up-right rather than the
+              tools, since a chevron promises a screen inside the app, and
+              the row's own tools stay in the long press's sheet. */}
+          <Pressable
+            className="flex-1"
+            disabled={!door}
+            onPress={door ? () => void Linking.openURL(row.url!) : undefined}
+            accessibilityRole={door ? "link" : undefined}
+            accessibilityLabel={door ? `Open ${domain ?? row.title}` : undefined}
+          >
             <Text
               className={`font-core font-medium ${
                 row.doneAt || row.archivedAt
@@ -407,7 +421,7 @@ export function ContentRowView({
                 </Text>
               </Pressable>
             ) : null}
-          </View>
+          </Pressable>
 
           {isFiling(row.filingAt) ? (
             <ActivityIndicator
@@ -434,6 +448,11 @@ export function ContentRowView({
            *  offers Archive instead. An archived row offers the way back,
            *  whoever is looking: putting something back is not destructive and
            *  is not the author's alone. */}
+          {door ? (
+            <View style={hidden} accessibilityElementsHidden>
+              <Glyph name="arrow-up-right" size={17} color={COLOR.iconOnWell} />
+            </View>
+          ) : (
           <View
             className="flex-row items-center gap-space-6"
             style={hidden}
@@ -480,6 +499,7 @@ export function ContentRowView({
               </Pressable>
             )}
           </View>
+          )}
         </Animated.View>
       </GestureDetector>
     </Animated.View>

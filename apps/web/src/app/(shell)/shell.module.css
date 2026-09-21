@@ -534,13 +534,20 @@
   gap: var(--space-2);
   margin-top: var(--space-1);
   font: var(--weight-regular) var(--size-body-sm) / 1.4 var(--font-core);
-  color: var(--text-accent);
-  text-decoration: none;
+  color: var(--text-secondary);
   width: fit-content;
 }
 
-.rowLink:hover {
-  text-decoration: underline;
+/* The glyph after a link row's title: the row is a door out of the app. */
+.rowDoor {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-left: var(--space-1);
+  color: var(--text-tertiary);
+}
+
+.rowTitle:hover .rowDoor {
+  color: var(--text-primary);
 }
 
 .rowTitle {

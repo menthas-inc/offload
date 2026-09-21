@@ -129,26 +129,69 @@
 /* The day list's event line under the rail: the calendar's colour dot with
    its ring, the title, the time or All day, and the calendar's name as its
    note. No checkbox, no tools, no swipe, no sheet: it is the calendar's. */
+/* The day's calendar events, redrawn to the 21 September design as
+   DayAgenda's EventLine: the runway's spine down the left, an 8px anchor on
+   it in the calendar's own colour with a hairline ring, a 112px time column
+   so every title starts at the same x, the title at title-3 and the
+   calendar's name as a caption under it. Nothing on it can be acted on. */
+.runway {
+  position: relative;
+  padding: 0 var(--space-5) 0 calc(var(--space-5) + 19px);
+}
+
+.spine {
+  position: absolute;
+  left: calc(var(--space-5) + 3px);
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: var(--border-hairline);
+}
+
 .eventLine {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  min-height: 46px;
-  padding: var(--space-3) var(--space-5);
-  box-shadow: inset 0 -1px 0 var(--border-hairline);
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding: var(--space-4) 0;
+}
+
+/* Centred on the first line: the pad, half a 22px line, less half the dot. */
+.anchor {
+  position: absolute;
+  left: -19px;
+  top: calc(var(--space-4) + 11px - 4px);
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
 }
 
 .eventTime {
   flex: 0 0 auto;
-  font: var(--text-caption-role);
+  width: 112px;
+  font-size: var(--size-body-sm);
+  line-height: 22px;
+  font-family: var(--font-core);
   font-variant-numeric: tabular-nums;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .eventTitle {
   display: block;
-  font-size: calc(15px * var(--type-scale));
-  line-height: 1.35;
-  font-family: var(--font-core);
+  padding-top: 1px;
+  font: var(--weight-medium) var(--size-title-3)/1.3 var(--font-core);
+  letter-spacing: var(--tracking-title);
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
+}
+
+.eventName {
+  display: block;
+  margin-top: var(--space-1);
+  font: var(--weight-regular) var(--size-caption)/1.4 var(--font-core);
+  color: var(--text-tertiary);
 }

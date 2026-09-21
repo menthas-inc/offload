@@ -109,6 +109,24 @@
           },
           "iosIcons": {}
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-mark.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#FAF9F7",
+          "dark": {
+            "image": "./assets/splash-mark-dark.png",
+            "backgroundColor": "#1C1B19"
+          },
+          "ios": {
+            "imageWidth": 216
+          },
+          "android": {
+            "imageWidth": 192
+          }
+        }
       ]
     ],
     "experiments": {

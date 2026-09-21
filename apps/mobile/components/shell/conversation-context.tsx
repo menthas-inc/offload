@@ -224,6 +224,8 @@ export interface Conversation {
   removePhoto: (key: string) => void;
   line: { text: string; action?: { label: string; onPress: () => void } } | null;
   clearLine: () => void;
+  /** A line under the composer: one clause, and the way forward beside it. */
+  sayLine: (line: { text: string; action?: { label: string; onPress: () => void } }) => void;
   /** 021. The voice note in the composer: recording, or stopped and waiting
    *  for Send or Discard, as the same row with no dot. Lives here beside
    *  `draft` and `photos` so the sheet and the plate share it and folding
@@ -1169,6 +1171,7 @@ export function ConversationProvider({
         removePhoto,
         line,
         clearLine,
+        sayLine: setLine,
         recording,
         note,
         liveSamples,

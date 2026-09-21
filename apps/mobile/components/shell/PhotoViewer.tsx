@@ -15,7 +15,7 @@
 // until a tap. Reduced motion opens it plain.
 
 import { useEffect, useState } from "react";
-import { BackHandler, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { BackHandler, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   FadeIn,
@@ -26,13 +26,13 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { Glyph } from "../Glyph";
 import { atOpacity, useColors } from "../../lib/colors";
 import type { ContentRow } from "../../lib/threads";
 import { useScreenSheet } from "./conversation-context";
 import { PhotoThumb } from "./PhotoThumb";
 
-const isAndroid = Platform.OS === "android";
 
 export interface ViewerPhoto {
   blobId: string;
@@ -161,25 +161,27 @@ export function PhotoViewer({
       style={{ backgroundColor: COLOR.viewerPlane }}
       accessibilityViewIsModal
     >
-      {/* The bar, in the platform's shape: flat on Android, translucent on iOS,
-          and gone in full screen. */}
+      {/* The status bar rides above the plane in white, the way a phone's
+          does when a dark full-screen view opens, in both themes. */}
+      <StatusBar style="light" />
+      {/* The bar: AppBar's geometry over the plane, transparent, starting
+          below the status bar, and gone when a tap hides the chrome. More and
+          Close only; full screen is the web's, a phone has no window to fill. */}
       {full ? null : (
         <View
           className="flex-row items-center justify-end gap-space-2 px-gutter-screen"
           style={{
             paddingTop: insets.top,
             minHeight: barHeight + insets.top,
-            backgroundColor: isAndroid ? COLOR.viewerPlane : atOpacity(COLOR.inverse, 0.6),
           }}
         >
           <Text
             className="flex-1 font-core font-medium"
-            style={{ fontSize: 15, color: COLOR.onSolid }}
+            style={{ fontSize: 15, color: COLOR.onBrand }}
             numberOfLines={1}
           >
             {photos.length > 1 ? `${index + 1} of ${photos.length}` : ""}
           </Text>
-          <Tool icon="maximize-2" label="Full screen" onPress={() => setFull(true)} />
           {photo.row && onMore ? (
             <Tool icon="ellipsis" label="More" onPress={() => onMore(photo.row!)} />
           ) : null}
@@ -200,8 +202,8 @@ export function PhotoViewer({
             accessibilityLabel={photo.body ?? photo.title}
             fallback={
               <View className="items-center gap-space-3">
-                <Glyph name="image" size={28} color={COLOR.onSolid} />
-                <Text className="font-core" style={{ fontSize: 14, color: COLOR.onSolid }}>
+                <Glyph name="image" size={28} color={COLOR.onBrand} />
+                <Text className="font-core" style={{ fontSize: 14, color: COLOR.onBrand }}>
                   Not here yet.
                 </Text>
                 <Pressable
@@ -212,7 +214,7 @@ export function PhotoViewer({
                 >
                   <Text
                     className="font-core font-medium underline"
-                    style={{ fontSize: 14, color: COLOR.onSolid }}
+                    style={{ fontSize: 14, color: COLOR.onBrand }}
                   >
                     Retry
                   </Text>
@@ -255,9 +257,9 @@ function Tool({ icon, label, onPress }: { icon: string; label: string; onPress: 
       accessibilityLabel={label}
       accessibilityRole="button"
       className="items-center justify-center rounded-pill"
-      style={{ width: 40, height: 40, backgroundColor: atOpacity(COLOR.onSolid, 0.12) }}
+      style={{ width: 40, height: 40, backgroundColor: atOpacity(COLOR.onBrand, 0.12) }}
     >
-      <Glyph name={icon} size={18} color={COLOR.onSolid} />
+      <Glyph name={icon} size={18} color={COLOR.onBrand} />
     </Pressable>
   );
 }

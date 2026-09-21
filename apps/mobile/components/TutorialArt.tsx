@@ -42,7 +42,9 @@ export const M3_TONE: ArtTone = {
   rowBorder: "",
   iconWell: "bg-a-c-high",
   name: "text-a-on",
-  meta: "text-a-on-quiet",
+  // Not --a-on-quiet, which measured 3.47:1 on the row. The android scope does
+  // not redefine --text-tertiary, so the line reads the same on both phones.
+  meta: "text-text-tertiary",
   radius: "rounded-a-lg",
 };
 

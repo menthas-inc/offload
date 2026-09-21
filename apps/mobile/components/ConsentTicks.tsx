@@ -24,9 +24,11 @@ export type ConsentTone = "ios" | "android";
 
 const TONE = {
   // Ink on iOS, Material's primary on Android, which is the same pair the two
-  // gates already use for their filled button.
+  // gates already use for their filled button. The box edge is the shared
+  // --border-strong on both: --a-outline is Material's divider, and a control
+  // drawn with it measured 1.29:1 where --border-strong gives 3.2.
   ios: { text: "text-text-primary", box: "border-border-strong", fill: "bg-ink-950", link: "text-text-accent" },
-  android: { text: "text-a-on", box: "border-a-outline", fill: "bg-blue-600", link: "text-blue-700" },
+  android: { text: "text-a-on", box: "border-border-strong", fill: "bg-blue-600", link: "text-blue-700" },
 } as const;
 
 function Box({ tone, on }: { tone: ConsentTone; on: boolean }) {

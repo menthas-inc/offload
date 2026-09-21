@@ -70,6 +70,11 @@ export interface Colors {
    *  and a visibly different grey: the fourth dot kind was that on a phone and
    *  `text-tertiary` on web, which is one legend drawn two ways. */
   quiet: string;
+  /** `text-secondary` on both platforms. Not `iconOnWell`, which is the
+   *  Material on-variant on Android: the android scope does not redefine
+   *  this token, so what the design writes as --text-secondary reads the
+   *  same on both phones. */
+  secondary: string;
   /** A glyph on a control that cannot be pressed right now. */
   disabledText: string;
   borderFocus: string;
@@ -90,6 +95,10 @@ export interface Colors {
    *  dark plane at 1.00:1 against the page: what says a viewer is open there
    *  is that the screen behind it is gone. */
   viewerPlane: string;
+  /** The system's own spinner: a 1.5px ring in `--ink-200` with an
+   *  `--ink-700` head, the two ramp steps the design names for it. */
+  spinnerTrack: string;
+  spinnerHead: string;
   /** 021. `--ink-300`, the design's own value for the unplayed remainder of a
    *  voice note's bars while it plays: a boundary against the attention blue
    *  that the tertiary rest cannot draw. */
@@ -133,6 +142,7 @@ function paletteFor(dark: boolean): Colors {
     attention: base["surface-attention"] ?? light["surface-attention"]!,
     noticed: base["surface-noticed"] ?? light["surface-noticed"]!,
     quiet: base["text-tertiary"] ?? light["text-tertiary"]!,
+    secondary: base["text-secondary"] ?? light["text-secondary"]!,
     disabledText: base["state-disabled-text"] ?? light["state-disabled-text"]!,
     borderFocus: base["border-focus"] ?? light["border-focus"]!,
     borderAttention: base["border-attention"] ?? light["border-attention"]!,
@@ -164,6 +174,8 @@ function paletteFor(dark: boolean): Colors {
       ? (base["surface-plate"] ?? light["surface-plate"]!)
       : atOpacity(base["surface-inverse"] ?? light["surface-inverse"]!, 0.9),
     waveRemainder: base["ink-300"] ?? light["ink-300"]!,
+    spinnerTrack: base["ink-200"] ?? light["ink-200"]!,
+    spinnerHead: base["ink-700"] ?? light["ink-700"]!,
   };
 }
 

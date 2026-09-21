@@ -603,7 +603,6 @@ export default function Thread() {
       ]
     : [];
 
-  const others = thread.members.filter((member) => !member.isYou);
 
   return (
     <SafeAreaView
@@ -622,52 +621,25 @@ export default function Thread() {
       />
 
       <ScrollView contentContainerClassName="pb-space-9">
-        {/* Who else is in, then what offload holds to be true of the thread.
-            The name is in the bar, so with neither there is nothing here and
-            the first section starts at the top. */}
-        {others.length > 0 || thread.standing ? (
-        <View className="px-gutter-screen pb-space-8 pt-space-5">
-          {others.length > 0 ? (
-          <View className="flex-row flex-wrap gap-space-3">
-            {others.map((member) => (
-                <View
-                  key={member.accountId}
-                  className="flex-row items-center gap-space-2 rounded-pill bg-surface-fill px-space-5"
-                  style={{ height: 30 }}
-                >
-                  <Glyph name="users" size={14} color={COLOR.iconOnWell} />
-                  <Text
-                    className="font-core text-text-primary"
-                    style={{ fontSize: 13 }}
-                  >
-                    {member.displayName}
-                  </Text>
-                </View>
-              ))}
-          </View>
-          ) : null}
-
-          {/* Only when there is one. */}
-          {thread.standing ? (
-            <>
-              <Text
-                className={`font-quiet text-text-primary ${others.length > 0 ? "mt-space-7" : ""}`}
-                style={{ fontSize: 18, lineHeight: 27 }}
-              >
-                {thread.standing}
+        {/* What offload holds to be true of the thread, and only when there
+            is one. The people chips went on 21 September: who a thread is
+            shared with is a question you ask by tapping Share, and the answer
+            belongs beside the actions that change it. The name is in the bar,
+            so with no standing the first section starts at the top. Nothing
+            writes a standing yet, and its updated date will join the
+            attribution when something does. */}
+        {thread.standing ? (
+          <View className="px-gutter-screen pb-space-8 pt-space-7">
+            <Text className="font-quiet text-text-primary" style={{ fontSize: 18, lineHeight: 27 }}>
+              {thread.standing}
+            </Text>
+            <View className="mt-space-5 flex-row items-center gap-space-3">
+              <Glyph name="sparkles" size={13} color={COLOR.quiet} />
+              <Text className="font-core text-text-tertiary" style={{ fontSize: 12 }}>
+                offload wrote this
               </Text>
-              <View className="mt-space-5 flex-row items-center gap-space-3">
-                <Glyph name="sparkles" size={13} color={COLOR.iconOnWell} />
-                <Text
-                  className="font-core text-text-tertiary"
-                  style={{ fontSize: 12 }}
-                >
-                  offload wrote this
-                </Text>
-              </View>
-            </>
-          ) : null}
-        </View>
+            </View>
+          </View>
         ) : null}
 
         {/* The rail is above the widgets, and only on a thread with something

@@ -37,12 +37,16 @@ export function MoveSheet({
     };
   }, []);
 
+  const others = useMemo(
+    () => (threads ?? []).filter((thread) => thread.id !== exceptThreadId),
+    [threads, exceptThreadId],
+  );
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return (threads ?? [])
-      .filter((thread) => thread.id !== exceptThreadId)
-      .filter((thread) => !needle || thread.name.toLowerCase().includes(needle));
-  }, [threads, query, exceptThreadId]);
+    return others.filter((thread) => !needle || thread.name.toLowerCase().includes(needle));
+  }, [others, query]);
+  // Move can run out of destinations, which sharing never can.
+  const nowhere = threads !== null && others.length === 0;
 
   return (
     <div
@@ -57,34 +61,45 @@ export function MoveSheet({
         }
       }}
     >
-      <div className={styles.sheetHead}>
-        <Icon name="search" size={15} />
-        <input
-          ref={input}
-          className={styles.sheetSearch}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Which thread?"
-          aria-label="Which thread?"
-        />
-        <button type="button" className={styles.tool} aria-label="Close" onClick={onClose}>
-          <Icon name="x" size={16} />
+      {nowhere ? (
+        <p className={styles.sheetNowhere}>There is no other thread to move it to.</p>
+      ) : (
+        <>
+          <div className={styles.sheetHead}>
+            <Icon name="search" size={15} />
+            <input
+              ref={input}
+              className={styles.sheetSearch}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Which thread?"
+              aria-label="Which thread?"
+            />
+          </div>
+          <ul className={styles.sheetList}>
+            {threads === null ? null : shown.length === 0 ? (
+              <li className={styles.sheetEmpty}>Nothing by that name.</li>
+            ) : (
+              shown.map((thread) => (
+                <li key={thread.id}>
+                  <button type="button" className={styles.sheetRow} onClick={() => onPick(thread)}>
+                    <span className={styles.sheetRowLead} aria-hidden="true">
+                      <Icon name="lasso" size={18} />
+                    </span>
+                    <span className={styles.sheetRowName}>{thread.name}</span>
+                    <span className={styles.sheetRowMeta}>{thread.meta}</span>
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        </>
+      )}
+      <div className={styles.sheetFooter}>
+        <button type="button" className={styles.sheetCancel} onClick={onClose}>
+          Cancel
         </button>
       </div>
-      <ul className={styles.sheetList}>
-        {threads === null ? null : shown.length === 0 ? (
-          <li className={styles.sheetEmpty}>{query.trim() ? "Nothing by that name." : "No other thread."}</li>
-        ) : (
-          shown.map((thread) => (
-            <li key={thread.id}>
-              <button type="button" className={styles.sheetRow} onClick={() => onPick(thread)}>
-                <span className={styles.sheetRowName}>{thread.name}</span>
-                <span className={styles.sheetRowMeta}>{thread.meta}</span>
-              </button>
-            </li>
-          ))
-        )}
-      </ul>
     </div>
   );
 }

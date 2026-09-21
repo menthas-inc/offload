@@ -344,24 +344,39 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
         <p className={styles.railEmpty}>Nothing on this day.</p>
       ) : null}
 
-      {/* 019. A calendar's event: the calendar's colour dot with its ring, the
-          title, the time or All day, and the calendar's name as its note. No
-          checkbox, no tools, no sheet: it is the calendar's, read through the
-          thread, and changing it is changing the calendar. */}
-      {dayEvents.map(({ one, event }) => (
-        <div key={one.id} className={cal.eventLine}>
-          <span
-            className={cal.dot}
-            style={{ background: event.colour ?? "var(--border-strong)" }}
-            aria-hidden="true"
-          />
-          <span className={cal.text}>
-            <span className={cal.eventTitle}>{event.title}</span>
-            <span className={cal.note}>{event.calendarName}</span>
-          </span>
-          <span className={cal.eventTime}>{event.allDay || !event.occursAt ? "All day" : time(event.occursAt)}</span>
+      {/* 019, redrawn to the 21 September design: a calendar's event is
+          DayAgenda's EventLine with two additions, the calendar's colour on
+          the anchor and its name as the caption. Another member's calendar
+          is named by their display name, which the wire already does. No
+          checkbox, no tools, no sheet, no tap: it is the calendar's, read
+          through the thread, and changing it is changing the calendar. */}
+      {dayEvents.length ? (
+        <div className={cal.runway}>
+          <span className={cal.spine} aria-hidden="true" />
+          {dayEvents.map(({ one, event }) => {
+            const when =
+              event.allDay || !event.occursAt
+                ? "All day"
+                : event.occursEndAt
+                  ? `${time(event.occursAt)} to ${time(event.occursEndAt)}`
+                  : time(event.occursAt);
+            return (
+              <div key={one.id} className={cal.eventLine}>
+                <span
+                  className={cal.anchor}
+                  style={{ background: event.colour ?? "var(--border-strong)" }}
+                  aria-hidden="true"
+                />
+                <span className={cal.eventTime}>{when}</span>
+                <span className={cal.text}>
+                  <span className={cal.eventTitle}>{event.title}</span>
+                  <span className={cal.eventName}>{event.calendarName}</span>
+                </span>
+              </div>
+            );
+          })}
         </div>
-      ))}
+      ) : null}
 
       {dayNotes.map(({ one, note }) => (
         <div key={one.id} className={styles.railNote}>

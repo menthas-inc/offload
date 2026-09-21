@@ -156,7 +156,7 @@ export function PhotoViewer({
     >
       <div className={styles.tools}>
         <button type="button" className={styles.tool} aria-label="Full screen" title="Full screen" onClick={fullScreen}>
-          <Icon name="maximize-2" size={16} />
+          <Icon name="maximize-2" size={20} />
         </button>
         {canTools ? (
           <span className={styles.more}>
@@ -168,7 +168,7 @@ export function PhotoViewer({
               aria-expanded={menu}
               onClick={() => setMenu((open) => !open)}
             >
-              <Icon name="ellipsis" size={16} />
+              <Icon name="ellipsis" size={20} />
             </button>
             {menu && row ? (
               <ul className={styles.menu} role="menu">
@@ -209,7 +209,7 @@ export function PhotoViewer({
           </span>
         ) : null}
         <button ref={closeButton} type="button" className={styles.tool} aria-label="Close" title="Close" onClick={onClose}>
-          <Icon name="x" size={16} />
+          <Icon name="x" size={20} />
         </button>
       </div>
 

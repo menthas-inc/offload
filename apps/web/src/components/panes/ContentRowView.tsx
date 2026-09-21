@@ -68,6 +68,8 @@ export function ContentRowView({
 }) {
   // Shown on a link row and nowhere else. What says the row goes somewhere.
   const domain = domainOf(row.url);
+  // A link with an address is a door: the row opens the page.
+  const door = row.type === "link" && Boolean(row.url) && !row.archivedAt;
   // A row drawn at the press, before the server has it. It looks like the row
   // it is about to be and offers nothing: there is nothing to open, move or
   // act on until the write lands and the id is real. The handle and the tools
@@ -198,6 +200,24 @@ export function ContentRowView({
           />
         ) : provisional ? (
           <span className={styles.rowTitle}>{row.title}</span>
+        ) : door ? (
+          // 21 September design: a link's row is a door. The title opens the
+          // page, the one row in the product whose content lives somewhere
+          // else, with arrow-up-right saying so, since a chevron promises a
+          // screen inside the app. A new tab, and `noreferrer` with it, so the
+          // page is not told which thread it was opened from. The row's own
+          // tools stay in the row.
+          <a
+            href={row.url ?? undefined}
+            target="_blank"
+            rel="noreferrer noopener"
+            className={styles.rowTitle}
+          >
+            {row.title}
+            <span className={styles.rowDoor} aria-hidden="true">
+              <Icon name="arrow-up-right" size={14} />
+            </span>
+          </a>
         ) : (
           <Link href={`/content/${row.id}?from=thread`} className={styles.rowTitle}>
             {row.title}
@@ -205,26 +225,14 @@ export function ContentRowView({
         )}
         {meta}
 
-        {/* **The domain is the link, and the title is not.** The title already
-            opens the row's own detail, and the phones have no such pane, so
-            hanging the page on the title would mean the same tap doing
-            different things on different surfaces. The domain is free on both,
-            it is the part that says the row goes somewhere, and it is ours
-            rather than the page's: a title is written by whoever owns the page
-            and a domain is not.
-
-            A new tab, and `noreferrer` with it, so the page is not told which
-            thread it was opened from. */}
+        {/* The domain under the title, as the caption that says where the
+            door goes. Ours rather than the page's: a title is written by
+            whoever owns the page and a domain is not. */}
         {domain ? (
-          <a
-            href={row.url ?? undefined}
-            target="_blank"
-            rel="noreferrer noopener"
-            className={styles.rowLink}
-          >
+          <span className={styles.rowLink}>
             <Icon name="link" size={12} />
             {domain}
-          </a>
+          </span>
         ) : null}
       </span>
 

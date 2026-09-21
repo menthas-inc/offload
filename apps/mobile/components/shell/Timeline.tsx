@@ -471,44 +471,75 @@ export function Timeline({
         </Text>
       ) : null}
 
-      {/* 019. A calendar's event: the calendar's colour dot with its ring, the
-          title, the time or All day, and the calendar's name as its note. No
-          checkbox, no tools, no swipe, no sheet: it is the calendar's, read
-          through the thread, and changing it is changing the calendar. */}
-      {dayEvents.map(({ one, event }) => (
-        <View
-          key={one.id}
-          className="flex-row items-center gap-space-4 border-b border-border-hairline px-gutter-screen py-space-4"
-          style={{ minHeight: 46 }}
-          accessible
-          accessibilityLabel={`${event.title}, ${event.calendarName}, ${event.allDay || !event.occursAt ? "all day" : timeOf(event.occursAt)}`}
-        >
-          <View
-            className="rounded-pill border border-border-hairline"
-            style={{ width: 10, height: 10, backgroundColor: event.colour ?? COLOR.iconOnWell }}
-          />
-          <View className="flex-1">
-            <Text
-              className={`font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`}
-              style={{ fontSize: 15, lineHeight: 20 }}
-            >
-              {event.title}
-            </Text>
-            <Text
-              className={`mt-space-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-              style={{ fontSize: 12.5, lineHeight: 17.5 }}
-            >
-              {event.calendarName}
-            </Text>
+      {/* 019, redrawn to the 21 September design. A calendar's event is
+          DayAgenda's EventLine: the runway's spine, an 8px anchor on it, a
+          112px time column so every title starts at the same x, the title
+          at title-3, with two additions and only two: the dot takes the
+          calendar's own colour with a hairline ring, since Google fixes those
+          colours and a dark one on a dark page needs it, and the calendar's
+          name is a caption under the title. Another member's calendar is
+          named by their display name, which the wire already does. No
+          checkbox, no tools, no swipe, no sheet, no tap: the only line in
+          the product that cannot be acted on. */}
+      {dayEvents.length ? (
+        <View className="px-gutter-screen">
+          <View style={{ position: "relative", paddingLeft: 19 }}>
+            <View
+              style={{ position: "absolute", left: 3, top: 10, bottom: 10, width: 1, backgroundColor: COLOR.hairline }}
+            />
+            {dayEvents.map(({ one, event }) => {
+              const when =
+                event.allDay || !event.occursAt
+                  ? "All day"
+                  : event.occursEndAt
+                    ? `${timeOf(event.occursAt)} to ${timeOf(event.occursEndAt)}`
+                    : timeOf(event.occursAt);
+              return (
+                <View
+                  key={one.id}
+                  className="flex-row items-start gap-space-5 py-space-4"
+                  style={{ position: "relative" }}
+                  accessible
+                  accessibilityLabel={`${event.title}, ${event.calendarName}, ${when}`}
+                >
+                  {/* Centred on the first line: the pad, half a 22px line, less half the dot. */}
+                  <View
+                    style={{
+                      position: "absolute",
+                      left: -19,
+                      top: 8 + 11 - 4,
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      borderWidth: 1,
+                      borderColor: COLOR.hairline,
+                      backgroundColor: event.colour ?? COLOR.iconOnWell,
+                    }}
+                  />
+                  <Text
+                    className="font-core text-text-tertiary"
+                    style={{ width: 112, fontSize: 14, lineHeight: 22, fontVariant: ["tabular-nums"] }}
+                    numberOfLines={1}
+                  >
+                    {when}
+                  </Text>
+                  <View className="flex-1">
+                    <Text
+                      className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+                      style={{ fontSize: 17, lineHeight: 22, paddingTop: 1 }}
+                    >
+                      {event.title}
+                    </Text>
+                    <Text className="mt-space-1 font-core text-text-tertiary" style={{ fontSize: 12, lineHeight: 17 }}>
+                      {event.calendarName}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
           </View>
-          <Text
-            className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-            style={{ fontSize: 12.5, fontVariant: ["tabular-nums"] }}
-          >
-            {event.allDay || !event.occursAt ? "All day" : timeOf(event.occursAt)}
-          </Text>
         </View>
-      ))}
+      ) : null}
 
       {/* A note is drawn as a note: no tick, no tools, nothing to open. */}
       {dayNotes.map(({ one, note }) => (
