@@ -11,6 +11,26 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-21 · The three apply notes, built the same night, and what the code could not do as drawn
+**Surface:** iOS, Android, web
+**Raised by:** `handoff/APPLY-2026-09-21-voice.md`, `-owed.md` and `-people.md`, applied on `main` the evening they arrived. The people note is the next feature's spec and waits for it.
+
+**Was:** the code as 021 left it, and the owed screens as the 18 to 20 September entries built them.
+
+**Is:** the voice note as the note draws it: `SentVoice` is the contract's component, told what to draw, over a `VoiceNotePlayer` that owns the audio on each platform; play then pause; tertiary at rest, attention over `--ink-300` while playing; the failure pattern with the dismiss `x` and the clay border on a blue bubble. The owed screens as drawn: the launch screen from the design's own `mark.svg` through a script that refuses when `app.json` drifts from the tokens, the holding screen with the spinner placed from the screen's centre, `--surface-viewer`, the white bar and white status bar over the plane, the move sheet with its lasso and its Cancel and its one-thread sentence, the link row as a door with `arrow-up-right`, the day's calendar event as `EventLine`, the phones' photo sheet as `RowActionSheet` with no Cancel row, the people chips gone from the thread head, and the two Android overrides back on the shared tokens.
+
+**Three things the code could not do as drawn, each for a fact the drawing could not carry.**
+
+1. **The web viewer's caption stays a raised card.** It holds the row's title as a field, the body and the confirm, and white text on the plane has nowhere to put a field. The phones' caption is white on the plane as drawn.
+2. **The native splash follows the OS, the holding screen follows Settings.** A new account opens light whatever the device says, and the platform splash cannot know that, so on a dark device with the app set to light there is one hop at the handover. The handover only happens past 1000ms, when the spinner is due, so a fast cold start never sees it.
+3. **A derived tag cannot be accent yet.** The wire carries a thread's tag dimension and no fact about which values offload derived, so every chip in Files draws plain until the API says.
+
+**Two facts the wire settles for the drawing:** another member's calendar is already named by their display name on the event, so the caption is one string on every event; and nothing writes a thread's standing yet, so its attribution has no date to carry until something does.
+
+**Design system impact:** none to the components. The web kit's `WThing` is no longer reachable from a link row on the web, since the row opens the page; the kit should show the detail for a link opening from somewhere else or not at all.
+
+---
+
 ### 2026-09-21 · Voice notes, and eleven items logged against the kit
 **Surface:** iOS, Android, web
 **Raised by:** 021 on `main`, whose feature spec logs eleven items against this system. Drawn in `explorations/voice-notes.html` and folded in the same day.
