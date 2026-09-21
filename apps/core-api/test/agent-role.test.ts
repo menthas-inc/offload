@@ -77,7 +77,21 @@ describe("and no more than its job", () => {
   // 0009 and 0010 are both about keeping this role small, and 0015 exists
   // because a grant was added on an assumption that turned out to be wrong. The
   // narrowness is the point, so it is asserted rather than trusted.
-  for (const table of ["sessions", "account_identities", "account_keys", "thread_keys", "staff"]) {
+  // 022's tables stay on this side of the boundary: the share tool resolves
+  // people in core-api, and the mark is not the worker's to read.
+  for (const table of [
+    "sessions",
+    "account_identities",
+    "account_keys",
+    "thread_keys",
+    "staff",
+    "connections",
+    "connection_requests",
+    "blocks",
+    "pending_shares",
+    "people_lookups",
+    "visible_people",
+  ]) {
     it(`cannot read ${table}`, async () => {
       const { allowed, error } = await asAgent(`select 1 from ${table} limit 1`);
       expect(allowed, `it could read ${table}`).toBe(false);
@@ -114,5 +128,7 @@ describe("and no more than its job", () => {
 
     const nope = await asAgent("select email from accounts limit 1");
     expect(nope.allowed, "it could read an email address").toBe(false);
+    const mark = await asAgent("select avatar_png from accounts limit 1");
+    expect(mark.allowed, "it could read a mark").toBe(false);
   });
 });

@@ -16,6 +16,7 @@ import { scheduleFullSyncs, scheduleNextSync, superviseSyncs, syncConnection } f
 import { enqueue, PRIORITY, scheduleDaily } from "./queue.js";
 import { emit } from "../analytics.js";
 import { sweepEmbeds } from "../search/sweep.js";
+import { sweepPeople } from "../people/people.js";
 
 export type Handler = (
   payload: Record<string, unknown>,
@@ -571,6 +572,12 @@ const blobLocate: Handler = async (payload) => {
  *  the provider could not name is in the cache with no town and is not
  *  asked about again. Ids only, in the payload and the log. */
 const LOCATE_BACKFILL = 200;
+/** 022. One sweep a day over the people tables. */
+const peopleDaily: Handler = async () => {
+  await scheduleDaily("people.daily");
+  await sweepPeople();
+};
+
 const blobDaily: Handler = async () => {
   await scheduleDaily("blob.daily");
   await enqueue({ kind: "content.purge", payload: {}, priority: PRIORITY.background });
@@ -643,5 +650,6 @@ export const handlers: Record<string, Handler> = {
   "blob.purge": blobPurge,
   "blob.locate": blobLocate,
   "blob.daily": blobDaily,
+  "people.daily": peopleDaily,
 };
 

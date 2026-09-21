@@ -29,7 +29,16 @@ export type EventName =
   | "calendar_sync_completed"
   | "calendar_event_written"
   // 019. A thread picked or un-picked a calendar: two ids and a boolean.
-  | "calendar_picked";
+  | "calendar_picked"
+  // 022. The actor's pseudonym and nothing about the other person: an event
+  // that named both would be a record of who knows whom.
+  | "connection_requested"
+  | "connection_accepted"
+  | "connection_removed"
+  | "person_blocked"
+  | "thread_shared"
+  | "share_accepted"
+  | "member_removed";
 
 type Source = "core-api" | "agent" | "worker" | "web" | "ios" | "android";
 

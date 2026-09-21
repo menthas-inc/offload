@@ -12,6 +12,7 @@ import { auth } from "../auth/auth.js";
 import { ATTEMPT_COOKIE, readCookie, unseal } from "../auth/attempt.js";
 import { db } from "../db.js";
 import { initialsOf } from "../accounts/initials.js";
+import { requestsWaiting } from "../people/people.js";
 import { cleanName } from "../accounts/name.js";
 import { emit } from "../analytics.js";
 import { env, isProduction } from "../env.js";
@@ -93,6 +94,10 @@ const meResponse = z.object({
    *  Null when the provider sent nothing, which is what Apple does when
    *  somebody declines to share theirs. */
   suggestedName: z.string().nullable(),
+  /** 022. Connection requests waiting for this person's answer: the dot on
+   *  the gear and on the My people row. Their own requests do not count, and
+   *  neither does one they answered Not now. */
+  requestsWaiting: z.number(),
 });
 
 /** The version of the privacy policy the consent on first run is against.
@@ -102,7 +107,7 @@ const meResponse = z.object({
  *  When the policy changes materially this changes with it, and the gap between
  *  a stored version and this one is the query that finds who has to be asked
  *  again. Must match UPDATED in apps/web/src/app/(marketing)/privacy/page.tsx. */
-export const CONSENT_VERSION = "2026-09-01";
+export const CONSENT_VERSION = "2026-09-22";
 
 /** invited -> active, plus the consent record and the event, in one transaction.
  *
@@ -218,6 +223,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     needsFirstRun: account.state === "invited",
     needsName: account.display_name === null,
     suggestedName: account.provider_name,
+    requestsWaiting: await requestsWaiting(accountId),
     // 016. Two switches rather than one, because they are two different
     // promises: a search sends their own words to a third party, and reading a
     // link they pasted opens something they already chose.

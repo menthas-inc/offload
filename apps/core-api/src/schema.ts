@@ -51,6 +51,9 @@ export interface AccountsTable {
   web_links_enabled: Generated<boolean>;
   consent_version: string | null;
   consented_at: Timestamp | null;
+  /** 022. The mark, a 176px PNG drawn once from the id and never rewritten.
+   *  Not content. Null until somebody first asks for it. */
+  avatar_png: Buffer | null;
   created_at: Timestamp;
   updated_at: Timestamp;
   disabled_at: Timestamp | null;
@@ -134,13 +137,82 @@ export interface ThreadMembersTable {
   thread_id: string;
   account_id: string;
   invited_by: string | null;
-  state: Generated<"pending" | "accepted" | "declined" | "expired">;
+  state: Generated<"pending" | "accepted" | "declined" | "expired" | "removed">;
   created_at: Timestamp;
   responded_at: Timestamp | null;
   expires_at: Timestamp | null;
   /** The member's own fold of To do's finished rows. Theirs, not the
    *  thread's, which is why it is here and not in `threads.attrs`. */
   hide_done: Generated<boolean>;
+  /** 022. What the invitation shows of the thread: the count and two of the
+   *  sharer's own titles, taken when the share was made. Null once accepted,
+   *  and the only thing a person who has not accepted ever reads of it. */
+  preview: SharePreview | null;
+  /** 022. Who took this member out, when the state is `removed`. Ids only,
+   *  for a question the product never raises. */
+  removed_by_account_id: string | null;
+  removed_at: Timestamp | null;
+}
+
+/** 022. The invitation's whole view of a thread. */
+export interface SharePreview {
+  count: number;
+  titles: string[];
+}
+
+/** 022. One row per unordered pair, `account_a < account_b`, so mutual is
+ *  structural and removal is one delete. */
+export interface ConnectionsTable {
+  account_a: string;
+  account_b: string;
+  created_at: Timestamp;
+}
+
+export interface ConnectionRequestsTable {
+  id: Generated<string>;
+  from_account_id: string;
+  to_account_id: string;
+  /** False when the recipient had blocked the requester: the row behaves
+   *  identically on the requester's side and nothing on the recipient's side
+   *  reads it. */
+  delivered: Generated<boolean>;
+  created_at: Timestamp;
+  expires_at: Timestamp;
+  dismissed_at: Timestamp | null;
+  withdrawn_at: Timestamp | null;
+  accepted_at: Timestamp | null;
+}
+
+export interface BlocksTable {
+  blocker_account_id: string;
+  blocked_account_id: string;
+  created_at: Timestamp;
+}
+
+/** 022. A said share, proposed by the model and waiting for the tap. */
+export interface PendingSharesTable {
+  id: Generated<string>;
+  account_id: string;
+  message_id: string;
+  thread_id: string;
+  target_account_id: string;
+  created_at: Timestamp;
+  expires_at: Timestamp;
+  confirmed_at: Timestamp | null;
+  declined_at: Timestamp | null;
+}
+
+export interface PeopleLookupsTable {
+  account_id: string;
+  looked_up_at: Timestamp;
+}
+
+/** 022. Who may see whom, before the reader's own state and reverse-block
+ *  filter. `visibleTo` in `people/access.ts` is the only reader. */
+export interface VisiblePeopleView {
+  viewer_account_id: string;
+  account_id: string;
+  relation: "connected" | "asked_you" | "you_asked" | "thread" | "blocked";
 }
 
 export interface AccountKeysTable {
@@ -865,4 +937,11 @@ export interface Database {
   readable_content: ContentTable & { viewer_account_id: string };
   readable_notes: NotesTable & { viewer_account_id: string };
   readable_messages: MessagesTable & { viewer_account_id: string };
+
+  connections: ConnectionsTable;
+  connection_requests: ConnectionRequestsTable;
+  blocks: BlocksTable;
+  pending_shares: PendingSharesTable;
+  people_lookups: PeopleLookupsTable;
+  visible_people: VisiblePeopleView;
 }
