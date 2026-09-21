@@ -531,6 +531,25 @@ function Yours({
         </View>
       ) : null}
 
+      {/* A typed dump whose send landed and whose answer did not. The same
+          words as the voice line above once it was written down, with the
+          other Try again: the words can go back in the field, so they do. */}
+      {turn.state === "failed" && !turn.unsent && !turn.voice ? (
+        <View className="mt-space-2 flex-row items-center gap-space-3">
+          <Text className="flex-1 font-core text-text-danger" style={{ fontSize: 13 }}>
+            offload could not answer that one. Your dump is saved.
+          </Text>
+          <Pressable onPress={onRetry} hitSlop={8}>
+            <Text
+              className="font-core font-medium text-text-accent"
+              style={{ fontSize: 13 }}
+            >
+              Try again
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {turn.state === "partial" ? (
         <View className="mt-space-2 flex-row items-center gap-space-3">
           <Text className="font-core text-text-danger" style={{ fontSize: 13 }}>
