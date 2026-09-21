@@ -576,3 +576,17 @@ export async function foldedNotes(
   return data;
 }
 
+/** A span of the day in the kit's shape: the meridiem once, on the end, so
+ *  the time column stays even, and "to" between, never a dash. */
+export function rangeOf(startIso: string, endIso: string | null): string {
+  const format = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
+  const clock = (iso: string, meridiem: boolean) =>
+    format
+      .formatToParts(new Date(iso))
+      .filter((part) => meridiem || part.type !== "dayPeriod")
+      .map((part) => (part.type === "dayPeriod" ? part.value.toLowerCase() : part.value))
+      .join("")
+      .replace(/\s+(am|pm)$/, "$1")
+      .trim();
+  return endIso ? `${clock(startIso, false)} to ${clock(endIso, true)}` : clock(startIso, true);
+}

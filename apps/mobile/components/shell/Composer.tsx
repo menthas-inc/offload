@@ -22,7 +22,6 @@ import {
   ActivityIndicator,
   AppState,
   Keyboard,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -30,15 +29,13 @@ import {
   TextInput,
   View,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 import { useKeepAwake } from "expo-keep-awake";
 import { invitation, MAX_PHOTOS } from "../../lib/dump";
 import { mmss, SAMPLE_MS } from "../../lib/recorder";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { AttachChip } from "./AttachChip";
-import { RowActionSheet } from "./RowActionSheet";
-import { useConversation, type PickedPhoto } from "./conversation-context";
+import { useConversation } from "./conversation-context";
 
 const isAndroid = Platform.OS === "android";
 
@@ -190,7 +187,7 @@ export function Composer({
     removePhoto,
     line,
     clearLine,
-    sayLine,
+    offerPhoto: offerPhotoSheet,
     writing,
     focusRequest,
     recording,
@@ -212,7 +209,6 @@ export function Composer({
   // the box, and an empty field on Android was opening it.
   const [oneLine, setOneLine] = useState<number | null>(null);
   const [which, setWhich] = useState(0);
-  const [offering, setOffering] = useState(false);
   const field = useRef<TextInput>(null);
 
   // A `+` raises this with the keyboard down, which is two taps to type one
@@ -272,52 +268,13 @@ export function Composer({
   // the row or chips beside it open the box.
   const expanded = tall || chips.length > 0 || (holdsNote && draft.trim().length > 0);
 
-  /** 020. The picker or the camera, in the platform's own sheet. The picker
-   *  needs no permission on either platform; the camera does, and a refusal
-   *  is the one line with the way to the settings beside it. */
-  async function pick(from: "library" | "camera"): Promise<void> {
-    const room = MAX_PHOTOS - photos.length;
-    if (room <= 0) return addPhotos([]);
-    let result: ImagePicker.ImagePickerResult;
-    if (from === "camera") {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        // The line under the composer, as the microphone's refusal draws it:
-        // the clause, the way forward beside it, and the dismiss at the end.
-        sayLine({
-          text: "Camera is off for offload.",
-          action: { label: "Open settings", onPress: () => void Linking.openSettings() },
-        });
-        return;
-      }
-      result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 1 });
-    } else {
-      result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsMultipleSelection: true,
-        selectionLimit: room,
-        quality: 1,
-      });
-    }
-    if (result.canceled) return;
-    const picked: PickedPhoto[] = result.assets.map((asset) => ({
-      uri: asset.uri,
-      // The Android picker names a file by its media id, `64349.jpg`, which
-      // is an identifier and not a name: the chip says "Photo" instead.
-      name: asset.fileName && !/^\d+\.\w+$/.test(asset.fileName) ? asset.fileName : null,
-      type: asset.mimeType ?? null,
-      size: asset.fileSize ?? null,
-    }));
-    addPhotos(picked, "picker");
-    field.current?.focus();
-  }
-
   // The product's own sheet on both phones, per the 21 September design:
   // the library first, since most pictures a person dumps already exist,
-  // then the camera, and no Cancel row, since the scrim dismisses it. The
-  // radius is the one divergence and the sheet already carries it.
+  // then the camera, and no Cancel row, since the scrim dismisses it. Drawn
+  // by the shell, above the plate: raised inside this box it stayed inside
+  // this box.
   function offerPhoto(): void {
-    setOffering(true);
+    offerPhotoSheet();
   }
 
   async function send(): Promise<void> {
@@ -331,14 +288,6 @@ export function Composer({
 
   return (
     <View className="px-gutter-screen pb-space-5 pt-space-4">
-      <RowActionSheet
-        open={offering}
-        actions={[
-          { label: "Choose from library", icon: "image", run: () => void pick("library") },
-          { label: "Take a photo", icon: "camera", run: () => void pick("camera") },
-        ]}
-        onClose={() => setOffering(false)}
-      />
       {/* Where an ordinary dump will land, said once, above the field.
           Nothing while pinned: a `+` already says what it is adding to, in its
           own header and its own pill, and a third statement of the same thing

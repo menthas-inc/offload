@@ -34,7 +34,7 @@ import {
   type RailRow,
 } from "../../lib/widgets";
 import { useAppearance } from "../../lib/appearance";
-import { QUICK_ADD_CHARS, fetchThreadEvents } from "../../lib/threads";
+import { QUICK_ADD_CHARS, fetchThreadEvents, rangeOf } from "../../lib/threads";
 import type { ContentRow, Note, ThreadEvent } from "../../lib/threads";
 
 interface Props {
@@ -354,12 +354,7 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
         <div className={cal.runway}>
           <span className={cal.spine} aria-hidden="true" />
           {dayEvents.map(({ one, event }) => {
-            const when =
-              event.allDay || !event.occursAt
-                ? "All day"
-                : event.occursEndAt
-                  ? `${time(event.occursAt)} to ${time(event.occursEndAt)}`
-                  : time(event.occursAt);
+            const when = event.allDay || !event.occursAt ? "All day" : rangeOf(event.occursAt, event.occursEndAt);
             return (
               <div key={one.id} className={cal.eventLine}>
                 <span

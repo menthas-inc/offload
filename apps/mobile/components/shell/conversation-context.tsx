@@ -20,6 +20,7 @@ import {
 } from "react";
 import { AppState, Linking, type AppStateStatus } from "react-native";
 import { useAudioRecorder } from "expo-audio";
+import * as ImagePicker from "expo-image-picker";
 import { plainText } from "@offload/markup";
 import {
   DumpTooLong,
@@ -222,6 +223,14 @@ export interface Conversation {
   photos: DraftPhoto[];
   addPhotos: (picked: PickedPhoto[], via?: "picker" | "share") => void;
   removePhoto: (key: string) => void;
+  /** 020, per the 21 September design: the product's own sheet, library
+   *  first, no Cancel row. Raised by the composer's camera and drawn by the
+   *  shell, above the plate, where a sheet raised inside the composer's own
+   *  box could not reach. */
+  photoSheet: boolean;
+  offerPhoto: () => void;
+  closePhotoSheet: () => void;
+  pickPhotos: (from: "library" | "camera") => Promise<void>;
   line: { text: string; action?: { label: string; onPress: () => void } } | null;
   clearLine: () => void;
   /** A line under the composer: one clause, and the way forward beside it. */
@@ -756,6 +765,48 @@ export function ConversationProvider({
     addPhotos(held, "share");
   }, [writing, addPhotos]);
 
+  const [photoSheet, setPhotoSheet] = useState(false);
+  /** The picker or the camera. The picker needs no permission on either
+   *  platform; the camera does, and a refusal is the one line with the way
+   *  to the settings beside it. */
+  const pickPhotos = useCallback(
+    async (from: "library" | "camera"): Promise<void> => {
+      const room = MAX_PHOTOS - photos.length;
+      if (room <= 0) return addPhotos([]);
+      let result: ImagePicker.ImagePickerResult;
+      if (from === "camera") {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          setLine({
+            text: "Camera is off for offload.",
+            action: { label: "Open settings", onPress: () => void Linking.openSettings() },
+          });
+          return;
+        }
+        result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 1 });
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          allowsMultipleSelection: true,
+          selectionLimit: room,
+          quality: 1,
+        });
+      }
+      if (result.canceled) return;
+      const picked: PickedPhoto[] = result.assets.map((asset) => ({
+        uri: asset.uri,
+        // The Android picker names a file by its media id, `64349.jpg`, which
+        // is an identifier and not a name: the chip says "Photo" instead.
+        name: asset.fileName && !/^\d+\.\w+$/.test(asset.fileName) ? asset.fileName : null,
+        type: asset.mimeType ?? null,
+        size: asset.fileSize ?? null,
+      }));
+      addPhotos(picked, "picker");
+      setFocusRequest((n) => n + 1);
+    },
+    [photos.length, addPhotos],
+  );
+
   const removePhoto = useCallback((key: string) => {
     setPhotos((current) => current.filter((photo) => photo.key !== key));
   }, []);
@@ -1169,6 +1220,10 @@ export function ConversationProvider({
         photos,
         addPhotos,
         removePhoto,
+        photoSheet,
+        offerPhoto: () => setPhotoSheet(true),
+        closePhotoSheet: () => setPhotoSheet(false),
+        pickPhotos,
         line,
         clearLine,
         sayLine: setLine,

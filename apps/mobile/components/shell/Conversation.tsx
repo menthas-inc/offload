@@ -49,11 +49,28 @@ import { useRouter } from "expo-router";
 import { useConversation, type Pin, type Turn } from "./conversation-context";
 import { SentPhoto } from "./SentPhoto";
 import { VoiceNotePlayer } from "./SentVoice";
+import { RowActionSheet } from "./RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 
 /** 020. The viewer for a sent message's photos, mounted by the shell above
  *  the sheet. No row yet, so no tools: the Files grid is where a photo's row
  *  is. */
+/** 020, per the 21 September design: the composer's photo sheet, drawn here
+ *  above the plate. Library first, then the camera, and no Cancel row. */
+export function ConversationPhotoSheet() {
+  const { photoSheet, closePhotoSheet, pickPhotos } = useConversation();
+  return (
+    <RowActionSheet
+      open={photoSheet}
+      actions={[
+        { label: "Choose from library", icon: "image", run: () => void pickPhotos("library") },
+        { label: "Take a photo", icon: "camera", run: () => void pickPhotos("camera") },
+      ]}
+      onClose={closePhotoSheet}
+    />
+  );
+}
+
 export function ConversationPhotoViewer() {
   const { turns, photoOpen, openPhoto, closePhoto } = useConversation();
   if (!photoOpen) return null;

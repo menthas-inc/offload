@@ -33,13 +33,8 @@ import { useColors } from "../../lib/colors";
 import { useWeekStart } from "../../lib/appearance";
 import { ContentRowView } from "./ContentRow";
 import { useConversation } from "./conversation-context";
-import { QUICK_ADD_CHARS, fetchThreadEvents } from "../../lib/threads";
+import { QUICK_ADD_CHARS, fetchThreadEvents, rangeOf } from "../../lib/threads";
 import type { ContentRow, Note, ThreadEvent } from "../../lib/threads";
-
-/** The hour, for an event that has one, the way a row's meta draws it. */
-function timeOf(at: string): string {
-  return new Date(at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-}
 
 /** 019. A calendar's event as an entry on the rail: kind `event`, never done,
  *  never repeating here since the copy already holds every occurrence. The id
@@ -488,12 +483,7 @@ export function Timeline({
               style={{ position: "absolute", left: 3, top: 10, bottom: 10, width: 1, backgroundColor: COLOR.hairline }}
             />
             {dayEvents.map(({ one, event }) => {
-              const when =
-                event.allDay || !event.occursAt
-                  ? "All day"
-                  : event.occursEndAt
-                    ? `${timeOf(event.occursAt)} to ${timeOf(event.occursEndAt)}`
-                    : timeOf(event.occursAt);
+              const when = event.allDay || !event.occursAt ? "All day" : rangeOf(event.occursAt, event.occursEndAt);
               return (
                 <View
                   key={one.id}

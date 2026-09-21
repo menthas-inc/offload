@@ -20,7 +20,7 @@ import { usePathname, useRouter } from "expo-router";
 import Animated, { FadeIn, FadeOut, useAnimatedStyle } from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Plate, type Tab } from "./Plate";
-import { Conversation, ConversationPhotoViewer, ConversationScrim } from "./Conversation";
+import { Conversation, ConversationPhotoSheet, ConversationPhotoViewer, ConversationScrim } from "./Conversation";
 import { useConversation } from "./conversation-context";
 import { ToastHost, useToast } from "./Toast";
 import { timeOfDay } from "../../lib/sun";
@@ -126,6 +126,11 @@ export function Shell() {
           <Plate tabs={tabs} placeholder={inThread ? "Add to this" : undefined} />
         </Animated.View>
       )}
+      {/* The composer's photo sheet is a screen sheet, so it takes the plate
+          off the screen like any other; it lives outside the plate's block
+          for exactly that reason, since a sheet that unmounts itself on open
+          reopens the plate, which unmounts the sheet, forever. */}
+      <ConversationPhotoSheet />
       <ToastHost state={toast} />
     </>
   );

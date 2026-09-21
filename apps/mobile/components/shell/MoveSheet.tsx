@@ -113,6 +113,9 @@ export function MoveSheet({
               data={shown}
               keyExtractor={(thread) => thread.id}
               keyboardShouldPersistTaps="handled"
+              // The list gives way to the footer: grown to its content it
+              // pushed Cancel off the bottom of the screen.
+              style={{ flexGrow: 0, flexShrink: 1 }}
               ListEmptyComponent={
                 threads === null ? null : (
                   <Text className="px-gutter-screen py-space-5 font-core text-text-tertiary" style={{ fontSize: 13 }}>
