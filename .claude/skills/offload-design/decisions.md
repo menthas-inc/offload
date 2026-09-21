@@ -11,6 +11,35 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-22 · Sharing, planned against the people note, and what the code will do differently
+**Surface:** iOS, Android, web
+**Raised by:** `docs/specs/022-sharing`, planned on `main` from `handoff/APPLY-2026-09-21-people.md`, `explorations/sharing-and-avatars.html`, `Sharing.jsx`, `WSharing.jsx`, `M3Sharing.jsx`, `PersonScreen.jsx`, `SettingsDetail.jsx`'s people page and `components/core/Avatar`. Logged at planning so the kits can move while it is built; the build's own entry follows.
+
+**Was:** the note and the kits as they stand.
+
+**Is:** the note, with these differences, each for a fact the drawing could not carry.
+
+1. **Take out is built as drawn**, and it cost the privacy policy a paragraph and the constitution an amendment. The product owner chose it over the alternative the code recommended, which was an x that only withdraws a waiting share.
+2. **The `people` page's first group is `Connected`, not `Sharing with you`**, and a connection who shares nothing has a row with the note "Nothing shared yet". The note's own owed list asked for the second label; this is it.
+3. **The Pending row's value is `Withdraw`, not `Remove`.** Remove ends a connection and Take out ends a membership; a third destruction needs a third verb, and the row's tap opens a confirmation, since the lead beside it is a door and a mis-tap would cost a week under the seven-day rule.
+4. **`Leave` joins a shared thread's More menu.** The Remove copy says "Leave a thread from its own More menu" and no kit draws it there; the code will, confirmed, only on a thread with more than one member. On a thread you are alone in the swipe's Delete stays the whole story.
+5. **In the share sheet the lead is the door and the row is the tick.** `Sharing.jsx`'s row tap toggles the checkbox; the note's rule says every avatar opens the person. Both hold: a 44px hit on the mark opens, a tap anywhere else ticks.
+6. **Every list inside a confirmation is two rows and a count.** "The 3 threads you already share" lists two and "and 1 more"; "What she added stays" lists her two most recent and "and 12 more". A member with two hundred rows made the drawn sheet unbounded.
+7. **The invitation shows who is already in**, by name, under the count line. The policy now promises you can see who is in a thread before you add anything, and the drawn screen did not say.
+8. **The mark carries no letters.** The PNG is the prism alone; each surface draws the initials over it from the current name, which is what `Avatar.jsx`'s span does and what lets a rename change the letters without touching the picture. Drawn on first read rather than at signup, invisibly, since it is a function of the id.
+9. **A said share is a proposal with no Undo**, the reply carrying "Share Lisbon trip with Sam?" with Share and Not now and the co-ownership line under it. The readme's "answered in offload's voice with an Undo" is an OFF-6 divergence: sharing is a message to a person.
+10. **Not drawn, each for having nothing behind it:** the `people` page's Defaults toggles ("Let people add to my threads" is a second permission; "Tell me when someone opens" is a notification), `WSettings.jsx`'s receiving pick, `WPerson`'s Message tool, and `PersonScreen`'s Waiting on you, Waiting on Ana and What offload knows. They arrive with their features.
+11. **The strip's copy stays as each kit has it**, "Ana shared Lisbon trip" on the phones and "with you" on the web, and the card keeps the kit's `Look` over the exploration's `Open`.
+12. **Marks on the web are 36 and 56** where `WSharing.jsx` draws 34 and 40, which are not sizes the design gives; and the web's faces exclude you, as `WFaces` does and the code's pane head did not.
+13. **The dot is drawn on a bare glyph.** The code's bars draw the gear and the bell as glyphs rather than `IconButton`s, so the 8px clay dot in its paper ring lands on the glyph at the same corner.
+14. **Nobody can decline a waiting share, and three may wait per pair.** Not now waits, as the readme says. The security review asked for a silent decline; the cap bounds the nuisance instead, and `declined` stays in the schema unwritten.
+
+**Two facts for the drawing:** a person with no display name is "Someone" in every sentence and "?" in every mark, which is what a thread member with no name is already called; and the code's `Row` on the phones has no lead slot, so `PersonRow` is the first settings row to need one.
+
+**Design system impact:** `SettingsDetail.jsx`'s people page (the group label, the note, the Withdraw value, no Defaults); `Sharing.jsx`, `WSharing.jsx` and `M3Sharing.jsx` (the lead as a door, marks at 36 and 56, the member names on the invitation, two-and-a-count in every confirmation); the thread screens' More (Leave); `PersonScreen.jsx` and `WPerson` (the relation line under the name for a non-connection, the empty state, More holding Remove, Block or Unblock); the readme's Sharing section (a said share is a proposal). `Avatar`'s contract is unchanged: the picture under the span is the server's rather than CSS, which the contract does not see.
+
+---
+
 ### 2026-09-21 · The three apply notes, built the same night, and what the code could not do as drawn
 **Surface:** iOS, Android, web
 **Raised by:** `handoff/APPLY-2026-09-21-voice.md`, `-owed.md` and `-people.md`, applied on `main` the evening they arrived. The people note is the next feature's spec and waits for it.

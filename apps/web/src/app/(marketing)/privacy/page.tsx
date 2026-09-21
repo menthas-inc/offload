@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "20 September 2026";
+const UPDATED = "22 September 2026";
 
 function Todo({ children }: { children: ReactNode }) {
   return <span className={styles.todo}>{children}</span>;
@@ -651,19 +651,26 @@ export default function Privacy() {
           </p>
           <p>
             <strong>So nobody owns a shared thread, including us.</strong> A thread has members and
-            no owner. There is no role that can throw someone out, take it over, or empty it, and
-            being the person who created it grants nothing beyond having been the first one in it.
-            Nobody, including you, can delete what somebody else wrote while that person is
-            still in the thread. That symmetry is the point: the protection you give up over your
-            own contribution is exactly the protection you get over everybody else's.{" "}
+            no owner, and every member has the same standing: being the person who created it
+            grants nothing beyond having been the first one in it. Anyone in a shared thread can
+            bring one of their connections into it, and anyone in it can take another member out.
+            Nobody, including you, can delete what somebody else wrote while that person is still
+            in the thread. That symmetry is the point: the protection you give up over your own
+            contribution is exactly the protection you get over everybody else&rsquo;s, and the
+            same is true of the power to take somebody out.{" "}
             <strong>
-              When somebody leaves a thread, or deletes their account, what they left in it becomes
-              the thread's.
+              When somebody leaves a thread, is taken out of it, or deletes their account, what
+              they left in it becomes the thread&rsquo;s.
             </strong>{" "}
             Anyone still there can edit or remove it. We think that is the right way round: the
             protection exists so a thread cannot become a place where someone else destroys your
             work, and once you have gone there is no work of yours left to protect, only a thread
-            other people still use carrying things none of them can tidy.
+            other people still use carrying things none of them can tidy. It also means a shared
+            thread is only as safe as the people in it. Somebody in a thread with you can take you
+            out of it, and what you put in stays behind for the others. Everyone in a thread was
+            brought in by somebody already there, from among their own connections, and the sheet
+            shows who is in before anyone new joins; taking somebody out is confirmed on a sheet
+            that shows exactly what stays.
           </p>
           <p>
             <strong>What you keep is the right to leave, and the thread ends with its last
@@ -689,8 +696,16 @@ export default function Privacy() {
               to it, and nobody can delete what they did not write themselves.
             </li>
             <li>
-              <strong>Everyone in a shared thread sees your name</strong> and the initials taken
-              from it, next to what you add. Changing your name in Settings changes what they see.
+              <strong>Everyone in a shared thread sees your name</strong>, the initials taken
+              from it, and the mark offload drew for your account when it was created, which is
+              generated from nothing but the account itself, next to what you add. Changing your
+              name in Settings changes what they see.
+            </li>
+            <li>
+              <strong>Somebody who knows the email you signed up with can find you</strong>, to
+              ask to connect. They see your name and your mark, and that you are on offload; they
+              cannot see anything you have put in, and they cannot search for you by name. You
+              decide whether to accept, nobody is told when you do not, and you can block them.
             </li>
             <li>
               <strong>A photo you put in a shared thread is theirs to see too</strong>, with what
@@ -704,8 +719,9 @@ export default function Privacy() {
             </li>
             <li>
               <strong>There are no public links.</strong> Nothing in offload can be handed to
-              someone who is not in the thread, and nothing is visible to anyone you have not
-              connected to.
+              someone who is not in the thread. The only way into a thread is a member sharing it
+              with one of their own connections, so everyone in a thread was brought in by
+              somebody already there, and you can see who is in it before you add anything.
             </li>
             <li>
               Leaving a shared thread takes you and your access out of it. The other members' view
