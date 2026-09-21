@@ -79,7 +79,7 @@ Unchanged from 020: `undoTurn` soft-deletes the message's blobs; `content.purge`
 
 ### Schema
 
-Migration `0051_voice_notes.sql`. No branch holds 0051 today.
+Migration `0052_voice_notes.sql`: main took 0051 for the time zone while this branch was open.
 
 ```
 -- One function, every reader. Words then transcript, a blank line between, nulls dropped.
