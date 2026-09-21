@@ -15,6 +15,7 @@ import { sql, type Transaction } from "kysely";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
+import { timeZoneOf } from "../time-zone.js";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 import { dropThreadWrapIfUnused, ensureThreadWrap } from "../blobs/keys.js";
@@ -974,7 +975,7 @@ export async function quickAdd(
   threadId: string,
   text: string,
   section: string,
-  options: { day?: string | null | undefined } = {},
+  options: { day?: string | null | undefined; timeZone?: string | null } = {},
 ): Promise<{ id: string; kind: "content" | "note" }> {
   await requireMember(accountId, threadId);
 
@@ -1026,7 +1027,8 @@ export async function quickAdd(
 
     await enqueue({
       kind: "thread.quick_add",
-      payload: { contentId: row.id, threadId },
+      // No message to carry the device's time zone, so the job does.
+      payload: { contentId: row.id, threadId, timeZone: options.timeZone ?? null },
       accountId,
       priority: PRIORITY.interactive,
       // Somebody is looking at the row right now. One retry, the same as a
@@ -1736,6 +1738,7 @@ export async function threadRoutes(app: App): Promise<void> {
         return reply.send(
           await quickAdd(accountId, request.params.id, text, request.body.section ?? "", {
             day: request.body.day,
+            timeZone: timeZoneOf(request),
           })
         );
       })

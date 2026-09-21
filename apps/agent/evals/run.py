@@ -82,6 +82,7 @@ from offload_agent.worker import (
     Lookups,
     _author_the_answer_line,
     _author_the_failure_line,
+    _declined_if_argument,
     _from_the_dump,
     _in_the_dump,
     parse_answer,
@@ -132,6 +133,9 @@ def _cost(model: str, input_tokens: int, output_tokens: int, cache_read: int = 0
 
 
 TODAY = "Friday 11 September 2026"
+#: The fixtures' device zone. Lisbon in September is UTC+1, so 3pm there is
+#: 14:00Z; a case can set `time_zone` to another name, or null for UTC.
+TIME_ZONE = "Europe/Lisbon"
 TODAY_ISO = "2026-09-11"
 
 
@@ -195,6 +199,7 @@ _FIXTURE_KEYS = {
     "history",
     "country",
     "today",
+    "time_zone",
     "has_calendar",
     "may_search",
     "may_read_links",
@@ -362,6 +367,13 @@ class Recorder:
         self.fx = case.fixture
         self.dump = dump
         self.calls: list[tuple[str, dict]] = []
+        #: What each call came back with, in the same order as `calls`. The
+        #: judge reads the ones that change what a sentence may claim: a
+        #: calendar write that was held, asked or refused looks identical to
+        #: one that was written when only the call is shown, and the judge
+        #: failed four true replies for "claiming it is waiting after
+        #: creating it" before this existed.
+        self.results: list[dict] = []
         self.looked: list[dict] = []
         self.refused_bound: list[str] = []
         #: The worker's ledger, so the rules it applies after the model can
@@ -385,6 +397,16 @@ class Recorder:
 
     async def __call__(self, tool: str, tool_call_id: str, args: dict) -> dict:
         self.calls.append((tool, dict(args)))
+        # The stub answers as the Core API would; the worker's own reading of
+        # that answer (a refusal about the arguments is a decline, not a
+        # failure) runs here too, so a case measures the same loop a turn
+        # takes. Without it the no_time case failed as "filed nothing and said
+        # nothing" on a turn that had filed and written.
+        body = _declined_if_argument(await self._answer(tool, args))
+        self.results.append(body)
+        return body
+
+    async def _answer(self, tool: str, args: dict) -> dict:
         fx = self.fx
         # A tool the case says fails: `fail_tools` maps a name, or `name:N`
         # for the Nth call of it, to the error the Core API would report.
@@ -707,6 +729,8 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
     def fits(tool: str, args: dict) -> bool:
         if "type" in matcher and args.get("type") != matcher["type"]:
             return False
+        if "type_any" in matcher and args.get("type") not in matcher["type_any"]:
+            return False
         if "thread" in matcher:
             name = threads.get(str(args.get("thread_id") or ""))
             if name is None and str(args.get("thread_id")) == "new":
@@ -892,11 +916,37 @@ def _call_problems(expect: dict, calls: list[tuple[str, dict]]) -> list[str]:
     return problems
 
 
-def _transcript(calls: list[tuple[str, dict]], reply: str, questions: list[dict]) -> str:
+def _came_back(tool: str, body: dict | None) -> str:
+    """What a call came back as, when that changes what may be said."""
+    if not isinstance(body, dict):
+        return ""
+    if not body.get("ok"):
+        return f"  -> refused: {body.get('error')}"
+    if tool in {"create_event", "edit_event", "delete_event"}:
+        if body.get("waitingForThem"):
+            return f"  -> held for the person's go-ahead, not written: {body.get('because')}"
+        if body.get("asked"):
+            return "  -> not written; the server will ask which calendar"
+        if body.get("noCalendar"):
+            return "  -> not written; no calendar to write to"
+        return "  -> written"
+    if tool == "find_events":
+        titles = [e.get("title") for e in body.get("events", []) if isinstance(e, dict)]
+        return f"  -> events: {titles}"
+    return ""
+
+
+def _transcript(
+    calls: list[tuple[str, dict]],
+    reply: str,
+    questions: list[dict],
+    results: list[dict] | None = None,
+) -> str:
     lines = []
-    for tool, args in calls:
+    for i, (tool, args) in enumerate(calls):
         shown = {k: v for k, v in args.items() if v not in (None, [], "", 50)}
-        lines.append(f"{tool}({json.dumps(shown, ensure_ascii=False)})")
+        back = _came_back(tool, results[i]) if results and i < len(results) else ""
+        lines.append(f"{tool}({json.dumps(shown, ensure_ascii=False)}){back}")
     for q in questions:
         lines.append(
             f"ask(field={q.get('field')}, options={[o.get('value') for o in q.get('options', [])]})"
@@ -920,11 +970,23 @@ def _because_problems(expect: dict, outcome: Any) -> list[str]:
 
 _JUDGE = """You are marking one turn of an assistant called offload against a rubric.
 
-Answer only with a tool call. Be strict: the rubric is the whole standard, and a
-turn that is pleasant but breaks it fails. Do not reward extra helpfulness. Read
-the transcript as the record of what offload actually did: each line is a tool
-it called with the arguments it sent, and the last line is what it said to the
-person, or that it said nothing.
+Answer only with a tool call. The rubric is the whole standard, in both
+directions: a turn that is pleasant but breaks it fails, and a turn is never
+failed for something the rubric does not name. Not the wording, not what you
+would have done, and not the hour in a time stamp unless the rubric names one:
+moments are written in UTC and the person is in Lisbon, where the clock is one
+hour ahead in September, so 3pm there is 14:00Z, and only a rubric that says
+which hour makes an hour a fault. Read the transcript as the record of what
+offload actually did: each line is a tool it called with the arguments it
+sent, and an arrow
+after a call is what the server answered. A calendar write "held for the
+person's go-ahead" has not been written: saying it is waiting is true and
+saying it is done is false. The last line is what it said to the person, or
+that it said nothing. Saying nothing is how this product reports a turn that
+did what was asked: the person's message wears a Done mark and a link to
+every thread written to, so a turn that filed something and said nothing has
+told them everything, and silence is never by itself misleading. "Filed" means
+put in a thread, never put on a calendar.
 
 What the person sent:
 {question}
@@ -1033,6 +1095,7 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         landed=[],
         default_thread_id=default.id if default else None,
         today=fx.get("today") or TODAY,
+        time_zone=fx.get("time_zone", TIME_ZONE),
         has_calendar=bool(fx.get("has_calendar")),
         may_search=fx.get("may_search", True),
         may_read_links=fx.get("may_read_links", True),
@@ -1112,6 +1175,12 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
                     failures.append(problem)
     if "filed_count" in expect and len(filed) != expect["filed_count"]:
         failures.append(f"filed {len(filed)}, wanted {expect['filed_count']}: {filed}")
+    if "filed_max" in expect and len(filed) > expect["filed_max"]:
+        failures.append(f"filed {len(filed)}, wanted at most {expect['filed_max']}: {filed}")
+    # Rows that must not exist, in the same matcher shape as `filed`.
+    for matcher in expect.get("not_filed", []):
+        if _match_filing(matcher, rec.calls, fx) is None:
+            failures.append(f"filed a row that fits {matcher} and should not have: {filed}")
     if expect.get("files_something") and not any(
         t in {"add_content", "add_note"} for t, _ in rec.calls
     ):
@@ -1150,7 +1219,7 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
     if not outcome.finished and not (expect.get("say") or reply) and not fx.get("fail_tools"):
         failures.append("filed nothing and said nothing")
 
-    transcript = _transcript(rec.calls, reply, outcome.questions)
+    transcript = _transcript(rec.calls, reply, outcome.questions, rec.results)
     if outcome.because:
         transcript += f"  (because {outcome.because})"
     judged, note = True, ""
@@ -1174,6 +1243,7 @@ async def _run_answer(client: AsyncAnthropic, case: Case, model: str) -> Result:
         may_read_links=fx.get("may_read_links", True),
         country=rec.country,
         today=fx.get("today") or TODAY,
+        time_zone=fx.get("time_zone", TIME_ZONE),
         turns=[Turn(role=t["role"], text=t["text"]) for t in fx.get("history") or []],
         country_override=fx.get("country_override"),
         looking_at=_thread(fx, looking_at),
@@ -1295,6 +1365,7 @@ async def _run_quick_add(client: AsyncAnthropic, case: Case, model: str) -> Resu
         ],
         pieces=[Piece(title=p["title"], done=bool(p.get("done"))) for p in fx.get("pieces") or []],
         today=fx.get("today") or TODAY,
+        time_zone=fx.get("time_zone", TIME_ZONE),
     )
     try:
         outcome = await plan_quick_add(client, ctx, model, rec)

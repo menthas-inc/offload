@@ -71,6 +71,7 @@ this way the file goes, and the diff says which behaviour was dropped.
 | `has_calendar`, `may_search`, `may_read_links` | the switches | file, answer |
 | `country` | two letters, or `null` for not known | file, answer |
 | `today` | the date line, default Friday 11 September 2026 | all |
+| `time_zone` | the device's IANA zone, default Europe/Lisbon; `null` for UTC | file, answer, quick_add |
 | `history` | `[{role: person or offload, text}]` | file, answer |
 | `answered` | `{field, label}`, the block a typed answer leaves | file |
 | `country_override` | the country picked when asked | answer |
@@ -86,7 +87,9 @@ this way the file goes, and the diff says which behaviour was dropped.
 **file**: `filed` as `"none"`, a count, or a list of matchers each of which
 some filing must satisfy: `tool`, `type`, `thread`, `thread_not`, `thread_id`,
 `has`, `lacks`, `date`, `date_any`, `no_date`, `repeats`, `no_repeats`, `url`,
-`reminder`, `priority_min`, `tags_include`, `no_tags`. Also `filed_count`,
+`reminder`, `priority_min`, `tags_include`, `no_tags`, `type_any`, `photo`,
+`no_photo`, `body_has`, `body_no_digits`. Also `filed_count`, `filed_max`,
+`not_filed` (matchers no filing may satisfy),
 `files_something`, `creates_thread`, `say` as an exact string, `null` for
 nothing, or `{contains, must_not_contain, max_words}`, `say_not`, `asks`,
 `options`, `option_count`, `no_options`, `look_up`, `query_names_country`,

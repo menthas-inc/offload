@@ -170,5 +170,5 @@ Reason 1 changes nothing the privacy page says: an answer is a value applied to 
 - A date picker. Typing carries a specific date; the options carry the two ends.
 - Asking on quick-add rows, in compaction, or on behalf of another member of a shared thread.
 - Remembering an answer as a rule, "always file trips there". The handoff names it as the next thing after this; it is not this.
-- Voice answers. Typing covers the phones until voice does.
+- ~~Voice answers. Typing covers the phones until voice does.~~ *Struck 2026-09-21 by 021: a spoken answer is read as an answer exactly as a typed one is, because the transcript is the message's words to every reader.*
 - Changing what the classifier decides. The fork stays a boolean; a question is something a turn does, not a fourth path.

@@ -162,11 +162,14 @@ def test_fitting_a_context_keeps_every_field_it_was_given():
     nothing recorded and nothing logged.
 
     Written as "every field" rather than "these two", so the next field added to
-    `DumpContext` fails here instead of in production.
+    `DumpContext` fails here instead of in production. Every field is set away
+    from its default, because a dropped field that defaults to the value the
+    test gave it passes: `time_zone` did, for a week, and every fitted dump
+    read its clock in UTC.
     """
     import dataclasses
 
-    from offload_agent.context import DumpContext, Thread, fit
+    from offload_agent.context import DumpContext, Photo, Thread, fit
 
     threads = [Thread(id="00000001-0000-0000-0000-000000000000", name="Misc", is_default=True)]
     ctx = DumpContext(
@@ -175,11 +178,23 @@ def test_fitting_a_context_keeps_every_field_it_was_given():
         threads=threads,
         landed=[],
         default_thread_id=threads[0].id,
+        photos=[Photo(blob_id="00000002-0000-0000-0000-000000000000", index=1)],
+        spoken=True,
+        looking_at=threads[0],
         today="Monday 14 September 2026",
+        time_zone="Europe/Amsterdam",
         has_calendar=True,
         may_search=True,
         may_read_links=True,
+        country="NL",
+        answered={"field": "when", "value": "Friday"},
     )
+    MISSING = dataclasses.MISSING
+    for field in dataclasses.fields(DumpContext):
+        if field.default is MISSING and field.default_factory is MISSING:
+            continue
+        default = field.default if field.default is not MISSING else field.default_factory()
+        assert getattr(ctx, field.name) != default, f"the test leaves {field.name} at its default"
 
     fitted = fit(ctx, ceiling=100_000)
 

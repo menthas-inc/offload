@@ -1,10 +1,10 @@
 // The gate on iOS, from ui_kits/mobile_app/FirstRun.jsx.
 //
 // A big lockup filling the upper half, the claim under it, and the two provider
-// buttons pinned to the bottom. Apple is the filled button and Google the
-// outlined one, in that order, because the App Store requires Apple to be at
-// least as prominent and two identical buttons make the pair read as an
-// arbitrary choice.
+// buttons pinned to the bottom. Google first, since more people arrive with
+// one; Apple is the filled button and Google the outlined one, because two
+// identical buttons make the pair read as an arbitrary choice, and the filled
+// Apple button at the same height is the App Store's prominence rule met.
 
 import { useEffect, useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";

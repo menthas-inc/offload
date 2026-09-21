@@ -92,7 +92,7 @@ The web app is `offload.club` and the API is `api.offload.club`, which are **dif
 
 - **Web** keeps the session in an httpOnly cookie. A token never reaches JavaScript.
 - **Mobile** uses native sign-in on each platform and stores the session in `expo-secure-store`.
-- **Provider order is per platform**, from the design: Apple then Google on iOS, Google then Apple on Android, Apple then Google on web.
+- **Provider order is Google then Apple on every platform** (2026-09-21, the product owner: more people arrive with a Google account). It was per platform before that, Apple first on iOS and web; Apple's prominence rule is met by the filled button at the same height rather than by first place.
 
 ### The invite gate
 

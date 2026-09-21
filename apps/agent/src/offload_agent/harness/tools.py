@@ -351,6 +351,23 @@ AUTHOR_ONLY = frozenset({"edit_content", "move_content"})
 # three were recorded as places it had filed things.
 FILING_TOOLS = frozenset({"add_content", "create_thread", "add_note"})
 
+# The tools that change something without filing anything. Not landed, since
+# nothing new exists to link to; not nothing either, since a turn that moved a
+# row or cancelled an event has done what was asked, and done is silent.
+CHANGING_TOOLS = frozenset(
+    {
+        "edit_content",
+        "move_content",
+        "complete_content",
+        "archive_content",
+        "rename_thread",
+        "set_thread_preference",
+        "create_event",
+        "edit_event",
+        "delete_event",
+    }
+)
+
 
 # 012: the calendar. Five tools, and the three that write do not decide whether
 # they are confirmed.

@@ -66,7 +66,7 @@ comment on column blobs.provider_ref is
 -- `readable_messages` is `select messages.*`, resolved once when the view was
 -- created, so the two new columns are invisible through it until it is
 -- recreated, and it holds `search_text`, which cannot be dropped underneath
--- it. The sixth time; `predicate.test.ts` catches it every time.
+-- it. The seventh time, 0051 being the sixth; `predicate.test.ts` catches it every time.
 drop view if exists readable_messages;
 
 alter table messages

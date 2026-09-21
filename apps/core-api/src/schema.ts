@@ -263,6 +263,10 @@ export interface MessagesTable {
    *  goes through `said(text, transcript)` in SQL. */
   transcript: string | null;
   transcribed_at: Timestamp | null;
+  /** The device's IANA time zone when this was sent, from the request header,
+   *  so the turn that reads the message reads "today" and "3pm" in it. Null
+   *  is read as UTC. Per message until the account carries one. */
+  time_zone: string | null;
   created_at: Timestamp;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;

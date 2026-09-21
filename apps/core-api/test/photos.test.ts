@@ -719,3 +719,66 @@ describe("naming the town", () => {
     expect(jobs.map((job) => (job.payload as { blobId: string }).blobId)).toEqual([blobIds[0]]);
   });
 });
+
+// The device's time zone rides on the request as a header and lands on the
+// message, so the worker reads "today" and "3pm" in it. Here rather than in
+// its own file because the helpers that sign in and post are here.
+describe("the device's time zone on a request", () => {
+  async function postDump(cookie: string, timeZone: string | undefined): Promise<string> {
+    const headers: Record<string, string> = { cookie };
+    if (timeZone !== undefined) headers["x-time-zone"] = timeZone;
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/dumps",
+      headers,
+      payload: { text: "dentist tuesday 3pm", clientKey: uuidv7() },
+    });
+    expect(res.statusCode).toBe(202);
+    return res.json().messageId as string;
+  }
+
+  async function zoneOf(messageId: string): Promise<string | null> {
+    const row = await db.selectFrom("messages").select("time_zone").where("id", "=", messageId).executeTakeFirstOrThrow();
+    return row.time_zone;
+  }
+
+  it("lands on the message as the name ICU resolves it to", async () => {
+    const cookie = await signIn((await person()).id);
+    expect(await zoneOf(await postDump(cookie, "Europe/Lisbon"))).toBe("Europe/Lisbon");
+    // Chrome on some platforms still says Calcutta; ICU accepts it and the
+    // canonical list does not carry it.
+    expect(await zoneOf(await postDump(cookie, "Asia/Calcutta"))).toBe("Asia/Calcutta");
+    expect(await zoneOf(await postDump(cookie, "utc"))).toBe("UTC");
+    // A retired alias is stored as what it is now.
+    expect(await zoneOf(await postDump(cookie, "US/Pacific-New"))).toBe("America/Los_Angeles");
+  });
+
+  it("is dropped, not refused, when the name is not one", async () => {
+    const cookie = await signIn((await person()).id);
+    expect(await zoneOf(await postDump(cookie, "Mars/Olympus"))).toBeNull();
+    expect(await zoneOf(await postDump(cookie, "Europe/Lisbon; drop table messages"))).toBeNull();
+    // ICU accepts an offset and resolves it to +05:00; Postgres reads that
+    // sign the other way, so it never reaches the row.
+    expect(await zoneOf(await postDump(cookie, "+0500"))).toBeNull();
+    expect(await zoneOf(await postDump(cookie, undefined))).toBeNull();
+  });
+
+  it("rides on a typed row's job, which has no message to carry it", async () => {
+    const me = await person();
+    const cookie = await signIn(me.id);
+    const res = await app.inject({
+      method: "POST",
+      url: `/v1/threads/${me.defaultThreadId}/quick-add`,
+      headers: { cookie, "x-time-zone": "America/Sao_Paulo" },
+      payload: { text: "call the plumber tomorrow", section: "todo" },
+    });
+    expect(res.statusCode).toBe(200);
+    const job = await db
+      .selectFrom("jobs")
+      .select("payload")
+      .where("kind", "=", "thread.quick_add")
+      .where("account_id", "=", me.id)
+      .executeTakeFirstOrThrow();
+    expect((job.payload as { timeZone: string }).timeZone).toBe("America/Sao_Paulo");
+  });
+});

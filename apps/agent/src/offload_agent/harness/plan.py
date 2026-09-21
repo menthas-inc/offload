@@ -24,6 +24,7 @@ What this file is careful about, each of it an acceptance criterion:
 
 import base64
 import json
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -33,13 +34,14 @@ import structlog
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel, ValidationError
 
-from offload_agent.context import AnswerContext, DumpContext, QuickAddContext
+from offload_agent.context import AnswerContext, DumpContext, QuickAddContext, clock_line
 from offload_agent.countries import name_of
 from offload_agent.harness.tools import (
     ANSWER_CALENDAR_TOOL_DEFS,
     ANSWER_TOOLS,
     ASK_TOOL,
     CALENDAR_TOOL_DEFS,
+    CHANGING_TOOLS,
     FILING_TOOLS,
     LOOK_UP_TOOL,
     SAY_TOOL,
@@ -52,6 +54,31 @@ from offload_agent.harness.tools import (
 log = structlog.get_logger()
 
 _PROMPT = (Path(__file__).parent.parent / "prompts" / "plan_v2.md").read_text()
+
+# **The calendar paragraphs go only where the calendar tools go.** The prompt
+# described `create_event` to every account, and an account with no calendar
+# read "an appointment goes on their calendar without being asked" and called
+# a tool it had not been offered, on every run of the eval. The block between
+# the markers is what the tools mean; without the tools it is an instruction
+# to do something impossible. Both variants are frozen text, so both cache.
+_WITH_CALENDAR = "<!-- with-calendar -->"
+_END_CALENDAR = "<!-- /with-calendar -->"
+if _WITH_CALENDAR not in _PROMPT or _END_CALENDAR not in _PROMPT:
+    raise RuntimeError("plan_v2.md has lost its calendar markers")
+_PROMPT_NO_CALENDAR = re.sub(
+    r"\n{3,}",
+    "\n\n",
+    _PROMPT[: _PROMPT.index(_WITH_CALENDAR)]
+    + _PROMPT[_PROMPT.index(_END_CALENDAR) + len(_END_CALENDAR) :],
+)
+_PROMPT = _PROMPT.replace(_WITH_CALENDAR + "\n", "").replace(_END_CALENDAR + "\n", "")
+
+
+def filing_prompt(has_calendar: bool) -> str:
+    """The filing prompt as this account is sent it."""
+    return _PROMPT if has_calendar else _PROMPT_NO_CALENDAR
+
+
 _QUICK_ADD_PROMPT = (Path(__file__).parent.parent / "prompts" / "quick_add.md").read_text()
 
 # What a row typed straight into a thread may do. Two tools, because the thread
@@ -73,6 +100,11 @@ QUICK_ADD_TOOLS = [t for t in TOOLS if t["name"] in {"edit_content", "add_conten
 # and a longer list uses more. Six was the number that turned an eleven-item
 # list into a partial turn.
 MAX_MODEL_CALLS = 10
+
+# The output budget per model call, and the one it is raised to when a call
+# ran out. Thinking counts against it, and the model thinks.
+MAX_OUTPUT_TOKENS = 8192
+MAX_OUTPUT_TOKENS_RETRY = 16384
 
 # Filings per turn. Mirrored by the Core API, which is the copy that still holds
 # when this one is wrong.
@@ -143,6 +175,12 @@ class Outcome:
     #: finished; a turn cut off mid-work says nothing either, and is not. The
     #: difference is whether the model stopped or the bound did.
     out_of_calls: bool = False
+    #: Tool calls the server declined, as tool names and error codes: a row
+    #: that is not theirs, a calendar it may only read, a time it could not
+    #: parse. Not failures, since the model read the reason and went on, but
+    #: the record of an authorisation refusal firing has to live somewhere a
+    #: log can see, and `failed` no longer holds it.
+    declined: list[str] = field(default_factory=list)
     #: Tool calls the schema refused, as field names and error types.
     #:
     #: **Neither `landed` nor `failed` held these**, because both are written
@@ -166,6 +204,10 @@ class Outcome:
     #: already happened. A move is never a filing, so that sentence was false
     #: for the one kind of turn it was most likely to be shown on.
     worked: int = 0
+    #: Of those, the ones that changed something without filing: a calendar
+    #: write, a move, a tick, an archive, a rename, an edit. What the
+    #: trailing-text rule counts as done, beside `landed`.
+    changed: int = 0
     #: What an answer showed, one entry per read.
     #:
     #: Ids and one flag, never row content. The reply resolves the rows when it
@@ -209,6 +251,12 @@ class Outcome:
         if self.failed or self.out_of_calls:
             return False
         if self.reply is not None:
+            return True
+        # **A change is a finished turn too.** A cancel, a move, a tick files
+        # nothing and, since 2026-09-20, says nothing either: the trailing
+        # "Done." that used to make such a turn read as finished is dropped
+        # now, so the change has to count on its own.
+        if self.changed:
             return True
         # **A thread with nothing in it is not something filed.** `landed`
         # counts `create_thread`, so a turn that made a thread, stopped, and
@@ -329,7 +377,12 @@ def build_blocks(ctx: DumpContext) -> list[dict]:
         # this year rather than next, which is a wrong date on somebody's
         # calendar and the kind of error nobody reports because it looks like a
         # typo they made.
-        blocks.append({"type": "text", "text": f"Today is {ctx.today}. This is our data."})
+        blocks.append(
+            {
+                "type": "text",
+                "text": f"Today is {ctx.today}, {clock_line(ctx.time_zone)}. This is our data.",
+            }
+        )
 
     # **Where they are, or that nobody knows.** A model has no location either,
     # and a search takes its assumptions from nowhere: asked for the next bank
@@ -447,7 +500,12 @@ def build_quick_add_blocks(ctx: QuickAddContext) -> list[dict]:
         # A model has no clock. Without this "the 3rd" in late December becomes
         # this year rather than next, which is a wrong date on somebody's
         # calendar and the kind of error nobody reports.
-        blocks.append({"type": "text", "text": f"Today is {ctx.today}. This is our data."})
+        blocks.append(
+            {
+                "type": "text",
+                "text": f"Today is {ctx.today}, {clock_line(ctx.time_zone)}. This is our data.",
+            }
+        )
 
     if ctx.notes:
         written = "\n".join(f"- {n}" for n in ctx.notes)
@@ -516,7 +574,7 @@ async def plan(
         client,
         model,
         call_tool,
-        system=_PROMPT,
+        system=filing_prompt(ctx.has_calendar),
         blocks=build_blocks(ctx),
         # The calendar tools only when there is a calendar. An account with
         # none is not offered a tool that can only fail, and the definition
@@ -577,18 +635,45 @@ async def _run(
     so there is one place where a tool result becomes a model turn."""
     messages: list[dict] = [{"role": "user", "content": blocks}]
     outcome = Outcome(reply=None)
+    offered = {t["name"] for t in tools}
+    max_tokens = MAX_OUTPUT_TOKENS
 
     for _ in range(MAX_MODEL_CALLS):
         started = time.monotonic()
         response = await client.messages.create(
             model=model,
-            max_tokens=2048,
+            max_tokens=max_tokens,
             # cache_control on the frozen prompt, the only part of this call
             # that repeats across every dump from every account.
             system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
             tools=tools,
             messages=messages,
         )
+
+        # **A turn that ran out of room is asked again with more, once.** The
+        # model thinks before it answers and the thinking counts against the
+        # budget. At 2,048 a turn weighing where a Lisbon booking goes from a
+        # Porto thread spent the whole budget on the weighing, came back with
+        # a thinking block and nothing else, and the loop read that as a
+        # finished turn that filed nothing: "Nothing saved." on the phone about
+        # a photo it had read perfectly well. Only used tokens are billed, so
+        # the retry costs what the retry uses.
+        if response.stop_reason == "max_tokens":
+            outcome.usage.append(
+                Usage(
+                    model=model,
+                    input_tokens=response.usage.input_tokens,
+                    output_tokens=response.usage.output_tokens,
+                    cache_read_tokens=getattr(response.usage, "cache_read_input_tokens", 0) or 0,
+                    latency_ms=int((time.monotonic() - started) * 1000),
+                )
+            )
+            if max_tokens < MAX_OUTPUT_TOKENS_RETRY:
+                log.info("model ran out of room, asking again", max_tokens=max_tokens)
+                max_tokens = MAX_OUTPUT_TOKENS_RETRY
+                continue
+            outcome.out_of_calls = True
+            return _hold_to_the_reason(outcome)
 
         # Every call, not just the first. A turn that used three calls and
         # billed one understates every turn that used a tool (AC-20).
@@ -628,7 +713,12 @@ async def _run(
             # unusual thing; change what the loop does with what it naturally
             # produces. Found by the 016 eval, where all three refusal cases
             # came back empty and the raw response had the line in it.
-            if reply_from_say and (outcome.reply or outcome.landed):
+            # **Or changed something.** A cancel, a move, a tick, an archive
+            # files nothing, so "All three test events have been removed from
+            # the calendar." reached the person as the reply, which is the
+            # sentence the prompt exists to stop. Done is silent whatever the
+            # tool.
+            if reply_from_say and (outcome.reply or outcome.landed or outcome.changed):
                 return _hold_to_the_reason(outcome)
             outcome.reply = outcome.reply or text or None
             return _hold_to_the_reason(outcome)
@@ -644,6 +734,22 @@ async def _run(
                 outcome.refused.append(f"{block.name}: unknown_tool")
                 results.append(
                     _result(block.id, {"ok": False, "error": "unknown_tool"}, error=True)
+                )
+                continue
+
+            # **A tool it knows and was not offered this turn.** The calendar
+            # tools are sent only to an account with a calendar, and a model
+            # that has read about them elsewhere still reaches for them. Told
+            # so, as a decline rather than a failure: the turn is not partial
+            # because a tool that does not exist here was not run.
+            if block.name not in offered:
+                outcome.declined.append(f"{block.name}: not_offered")
+                results.append(
+                    _result(
+                        block.id,
+                        {"ok": False, "declined": True, "error": "not offered on this turn"},
+                        error=True,
+                    )
                 )
                 continue
 
@@ -721,10 +827,14 @@ async def _run(
                 # what it has. Counting it here made the turn partial, threw
                 # the model's own answer away for "That did not finish.", and
                 # offered Finish it against a refusal that repeats every time.
-                if not body.get("declined"):
+                if body.get("declined"):
+                    outcome.declined.append(f"{block.name}: {body.get('error')}")
+                else:
                     outcome.failed.append(block.name)
             else:
                 outcome.worked += 1
+                if block.name in CHANGING_TOOLS:
+                    outcome.changed += 1
 
             if body.get("ok") and block.name in FILING_TOOLS:
                 filed += 1
@@ -1011,7 +1121,12 @@ def build_answer_blocks(ctx: AnswerContext) -> list[dict]:
     )
 
     if ctx.today:
-        blocks.append({"type": "text", "text": f"Today is {ctx.today}. This is our data."})
+        blocks.append(
+            {
+                "type": "text",
+                "text": f"Today is {ctx.today}, {clock_line(ctx.time_zone)}. This is our data.",
+            }
+        )
 
     if ctx.threads:
         lines = []

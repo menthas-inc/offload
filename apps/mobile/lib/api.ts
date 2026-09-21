@@ -105,6 +105,27 @@ export interface Sent<T> {
   data: T | null;
 }
 
+/** The three requests whose body ends in a model prompt. */
+function reachesTheModel(path: string): boolean {
+  return (
+    path === "/v1/dumps" ||
+    /^\/v1\/questions\/[^/]+\/answer$/.test(path) ||
+    /^\/v1\/threads\/[^/]+\/quick-add$/.test(path)
+  );
+}
+
+/** `{ "x-time-zone": "Europe/Lisbon" }`, or nothing when the runtime will
+ *  not say. Hermes answers on both platforms; the guard is for the day it
+ *  does not. */
+function timeZoneHeader(): Record<string, string> {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return zone ? { "x-time-zone": zone } : {};
+  } catch {
+    return {};
+  }
+}
+
 export async function send<T>(path: string, init: RequestInit = {}): Promise<Sent<T>> {
   const cookie = await within(
     Promise.resolve(authClient.getCookie()).catch(() => ""),
@@ -120,6 +141,10 @@ export async function send<T>(path: string, init: RequestInit = {}): Promise<Sen
     // constants somebody reached for, so the mistake is not available.
     ...(init.body ? { "content-type": "application/json" } : {}),
     ...(cookie ? { cookie } : {}),
+    // The device's time zone, on the requests that reach the model (a dump,
+    // an answer, a typed row), so the turn can say what day it is where they
+    // are. Those three and no others, which is what the privacy page says.
+    ...(reachesTheModel(path) ? timeZoneHeader() : {}),
   };
 
   const response = await within(

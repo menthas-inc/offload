@@ -11,6 +11,118 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-21 · The web composer borrows the phones' recording row and sent voice note
+**Surface:** web
+**Raised by:** 021, building voice notes against `WComposer` and `WTurns`, which draw the microphone inert and text-only turns.
+**Was:** `WComposer` draws a mic that does nothing; `WTurns` draws a person's message as text.
+**Is:** The web takes the mobile kit's recording row whole, in place of the field: the pulsing dot, the running time, the live window of bars growing from the right at the kit's 3px and 2px pitch, and Discard then Send. The window scales with the row's width rather than sitting 160px wide at the right of a 940px card. The person's bubble draws `SentVoice` between the words and the photos. Enter sends and Escape discards while the row is up, focus moves to Send when the field is replaced, and the live head's Close is disabled while recording.
+**Why:** The phones' composer had the whole state designed and the web kit had none; one row on three surfaces beats two designs of it.
+**Design system impact:** `WComposer` gains the recording row and the stopped row; `WTurns` gains `SentVoice` under the person's bubble, as it gained `SentPhoto` on 2026-09-18.
+
+### 2026-09-21 · Typed words stay drawn above the recording row
+**Surface:** iOS, Android, web
+**Raised by:** 021.
+**Was:** The kit's composer hides the typed draft when the microphone is pressed and sends it with the note anyway.
+**Is:** The words stay drawn above the row as static text at the primary colour, three lines at most with the rest clipped, and go with the note. A recording alone keeps the pill; words above the row or chips beside it open the box, as chips already did.
+**Why:** Text you cannot see being sent is a surprise.
+**Design system impact:** `Composer.jsx` and `M3Composer.jsx`: the draft drawn above the recording row while it holds any words.
+
+### 2026-09-21 · A stopped note is the row with no dot
+**Surface:** iOS, Android, web
+**Raised by:** 021's client review: the kit has no stopped state, and a recording that hit ten minutes, a call or the app leaving the screen had nowhere to go.
+**Was:** Recording, or nothing.
+**Is:** A third state: the time and the waveform stand still, the dot is gone, Send and Discard stay. The absence of the dot is the whole signal, so reduced motion changes nothing about it. A stopped row takes no more photos.
+**Why:** "The dot stops pulsing" is signalled by motion alone, and under reduced motion the two states would be identical.
+**Design system impact:** `Composer.jsx` and `M3Composer.jsx` gain the stopped row; the readme's composer states gain a sentence.
+
+### 2026-09-21 · The failure lines a voice note can show
+**Surface:** iOS, Android, web
+**Raised by:** 021.
+**Was:** None drawn.
+**Is:** On the row, from the server, "Too big to send."; under the composer, "Enough for today." and "Microphone is off for offload." (with Open settings on the phones, alone on the web); on the bubble, "Not here yet." when playback could not start, "Couldn't write that one down." with Try again when the note was never written down, and the 20 September unsent line when the send never landed. Try again on a voice note runs the same turn again on the same note rather than putting anything back in the field, since the audio is on the server.
+**Why:** One short clause next to the control that acts on it, and offload never says why.
+**Design system impact:** The kits' conversation fixtures should draw the two voice failure lines on a sent bubble.
+
+### 2026-09-21 · `SentVoice` draws thirty two bars over the whole note, stored with it
+**Surface:** iOS, Android, web
+**Raised by:** 021's reviews: the kit's composer keeps the last 32 samples, 3.2 seconds, and `SentVoice` draws a sine when it is handed nothing.
+**Was:** The live window passed through to the sent bubble, or a drawn sine.
+**Is:** At stop the device resamples everything it heard to 32 bars, 0 to 255, normalised to the note's own peak, and sends them with the upload; the server stores them and every surface draws the same bars after any reload. A bar is a fixed slice of the note. The bars take `--text-primary`, not the `--ink-950` ramp the kit retypes.
+**Why:** A ten-minute note's bubble showed its last three seconds, and bars filling left to right over that would have meant nothing.
+**Design system impact:** `SentVoice` in both mobile kits takes 32 bars from data rather than the composer's window; the `--ink-950` becomes `--text-primary`.
+
+### 2026-09-21 · `SentVoice` plays
+**Surface:** iOS, Android, web
+**Raised by:** 021, the product owner's call that a stored note nobody can hear is a promise with nothing behind it.
+**Was:** The kit's `SentVoice` is a static row: glyph, bars, length.
+**Is:** The row is a button named "Voice note, 0:14, play". At rest every bar is `--text-tertiary`; a played bar is `--text-primary`, the fill runs left to right as it plays, the length counts down, a second tap pauses, one plays at a time across the screen, and the row is inert while the composer records. Neither accent, since nothing was done by offload and nothing needs you. Through the silent switch on the phones. No scrubbing, no speed, no viewer.
+**Why:** The stack said the waveform is part of the product; this is what makes it one.
+**Design system impact:** `SentVoice` gains a playing state and a button contract; the readme's conversation section gains a sentence.
+
+### 2026-09-21 · The transcript draws beneath the waveform
+**Surface:** iOS, Android, web
+**Raised by:** 021, the product owner's call.
+**Was:** The kit draws the waveform alone.
+**Is:** Once written down, the transcript draws beneath the bars inside the person's bubble, in the bubble's own type at the secondary colour, arriving ahead of the reply; past about four lines it folds with the readme's "Show all". Measured on the web at 6.24:1 light and 7.65:1 dark on the bubble.
+**Why:** That is where somebody sees what offload heard, and it is the review a spoken dump gets in place of the one a typed dump gets while being typed.
+**Design system impact:** `SentVoice` in both mobile kits and `WTurns` gain the transcript beneath, with the fold.
+
+### 2026-09-21 · Record, from a long press on the app icon
+**Surface:** iOS, Android
+**Raised by:** 021, the product owner's call that hands-free needs one press.
+**Was:** No home-screen actions.
+**Is:** One static item, Record, a home screen quick action on iOS with the system `mic` symbol and an app shortcut on Android with a drawable of the mic on white. Choosing it puts the plate's composer into the recording row on whatever screen is up, Today from cold, with no conversation sheet raised; after the gate, first run and the name screen; waiting out a send in flight; releasing a pinned +; asking for the microphone first if never asked.
+**Why:** Two taps from the composer is most of hands-free; one press from the home screen is the rest that a screenless intent does not need.
+**Design system impact:** The readme gains a line on the home-screen action; neither platform takes the product's own glyphs there, which the kits should note.
+
+### 2026-09-21 · Discard on a note past a minute offers Undo
+**Surface:** iOS, Android, web
+**Raised by:** 021's project lead review: Discard sits a thumb's width from Send and a nine-minute thought was unrecoverable.
+**Was:** Discard throws the note away at once.
+**Is:** Under a minute, the same. Past a minute the toast says "Discarded · Undo" for eight seconds and the note is kept on the device until the toast clears.
+**Why:** The product's own pattern, rather than a dialog.
+**Design system impact:** The composer spec in both mobile kits: a sentence on the Discard toast.
+
+### 2026-09-21 · The Android recording row on its Material pair
+**Surface:** Android
+**Raised by:** 021.
+**Was:** `M3Composer.jsx` draws the row on `--surface-raised` with `--a-on-var` for the time and `--a-on` for the bars.
+**Is:** Built as the kit draws it, behind the same `isAndroid` split the composer already carries; the bubble's transcript takes the phones' secondary ink on both platforms.
+**Why:** The kit's pair, kept.
+**Design system impact:** none.
+
+### 2026-09-21 · A voice note is never a row
+**Surface:** iOS, Android, web
+**Raised by:** 021, and `decisions.md`'s 2026-08-28 entry on thread wraps.
+**Was:** The kits' Files grid draws a paperclip for a `file` and the readme's kinds list carries `mic` as a kind of dumped thing.
+**Is:** No row, no tile, nothing in Files. The audio lives in the conversation; the words live in threads as rows, as typed words do. `mic` on a row means nothing writes it.
+**Why:** "They are like conversation text essentially." The audio is not what went into the threads; the words were.
+**Design system impact:** The readme's kinds-of-dumped-thing list should say a voice note is a message, not a row; the Files grid never holds one.
+
+### 2026-09-21 · Google first on every platform
+**Surface:** iOS, Android, web
+
+**Was:** the order flipped by platform: Apple then Google on iOS and web, Google then Apple on Android. The iOS and web order rested on the App Store's rule that Sign in with Apple be at least as prominent as any other option.
+
+**Is:** Google first, Apple under it, everywhere. Same two buttons, same treatment: Apple filled, Google outlined, the same height, both on screen without scrolling.
+
+**Why:** more people arrive with a Google account, and the first button is the one most of them want. The App Store's rule is about prominence, which Apple's guidance spells out as size and not having to scroll; the filled button in the second row meets it. First place was our reading, not the rule.
+
+**Design system impact:** `FirstRun.jsx`'s `SignInScreen`, `M3SignInScreen` and `WFirstRunGate` draw the Google button first. The readme's "Two providers" rule is already reworded on `main`.
+
+### 2026-09-20 · The thread's head is one line on the phones, as it is on the web
+**Surface:** iOS, Android
+
+**Was:** `ThreadScreen.jsx` and `M3ThreadScreen.jsx` draw the thread's name as a title-1 heading inside the scroll, with the people chips and a Share chip under it, and a bar above holding back, Share and More. The app followed the kits: the bar carried back and the calendar, the name and the Share chip sat in the scroll and rolled away, and there was no More at all, so nothing on a phone renamed a thread or added a note to one that had none.
+
+**Is:** the bar is the head, one line, the shape `WPaneHead` gives the web: the back chevron, the name, then Share, the calendar when the account has a connection, and More. More holds what the web's ellipsis holds, in its order: Rename thread, Add a note, and Calendars in this thread. Rename opens the same sheet a row's title does; Add a note raises the composer pinned to the thread, which is what the Notes section's `+` already did. The scroll starts at the first section. What stays above it is who else is in and the standing, only when there is either; a thread that is just you with no standing has nothing there.
+
+**Why:** the name in the scroll left the bar nearly empty, spent the top of every thread on a heading a person had just tapped, and the two-level head was the one place the phones and the web disagreed on what a thread's page is. The controls that were missing were missing because the kit's bar had nowhere to put them and the chips under the heading were not it.
+
+**The checkbox, the tile and the row's tools are centred on the row**, on the phones as `ListRow` centres its leading and trailing on the web. The phone row aligned them to the first line with a two-point nudge, which read as misaligned the moment a row had a second line. The 17 September entry below said nothing moves on the phones; the product owner looked at a two-line row on an iPhone and it does.
+
+**Design system impact:** both phone thread kits want the `Standing` heading moved into the `AppBar` as its title and the Share chip replaced by the bar's own share control, with `ellipsis` gaining a menu of Rename thread, Add a note and Calendars in this thread. `Checkbox` keeps its own first-line alignment for a standalone tick with a label; inside a `ListRow` the row's centring wins, which is worth one line in `ListRow`'s contract.
+
 ### 2026-09-20 · A write is drawn before it is sent, and a refused one comes back with a word
 **Surface:** web, iOS, Android
 

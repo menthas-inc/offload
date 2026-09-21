@@ -13,7 +13,7 @@ export function QuietEmpty({ line }: { line: string }) {
   return (
     <View className="flex-1 items-center justify-center px-gutter-screen">
       <View style={{ opacity: 0.22 }}>
-        <Logo size={30} />
+        <Logo variant="mark" size={30} />
       </View>
       <Text
         className={`mt-space-5 text-center font-quiet ${isAndroid ? "text-a-on" : "text-text-primary"}`}

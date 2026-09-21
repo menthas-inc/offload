@@ -6,6 +6,8 @@
 // answer by asking for it. The stream is an optimisation over polling, and the
 // fallback is what makes it safe to be one.
 
+import { timeZoneHeader } from "./time-zone";
+
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
 export type MessageState =
@@ -137,7 +139,7 @@ export async function sendDump(
   const response = await fetch(`${API}/v1/dumps`, {
     method: "POST",
     credentials: "include",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...timeZoneHeader() },
     body: JSON.stringify({
       text,
       clientKey,
@@ -443,7 +445,7 @@ export async function answerQuestion(
     const response = await fetch(`${API}/v1/questions/${id}/answer`, {
       method: "POST",
       credentials: "include",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...timeZoneHeader() },
       body: JSON.stringify({ option }),
     });
     if (!response.ok) return { status: response.status, sent: null };

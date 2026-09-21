@@ -8,9 +8,10 @@
 // claim, because an app icon is not a page someone chose. Both are faithful to
 // their own kit, so do not sync one to the other on sight.
 //
-// Apple is the filled button and Google the outlined one. That is not only the
-// App Store's prominence requirement, it is what stops the pair reading as an
-// arbitrary choice between two identical things.
+// Apple is the filled button and Google the outlined one, and Google is first:
+// more people arrive with a Google account. The treatment is what stops the
+// pair reading as an arbitrary choice between two identical things, and it is
+// also the App Store's prominence requirement met without Apple being first.
 
 import { useEffect, useState } from "react";
 import { AppleMark, GateCard, GateChrome, GoogleMark } from "../../../components/GateChrome";

@@ -81,7 +81,7 @@ const HEADER_MAP = [
   [/nothing to file|refuse|cannot break/i, "refusal"],
   [/look|web|search|url|link/i, "web"],
   [/reply|answer|how to answer|being brief|say/i, "reply"],
-  [/reading|data|what you are given|today/i, "frame"],
+  [/reading|data|what you are given|today|spoken/i, "frame"],
   [/filing|notes|what something is|dates|tags|changing|calendar|row|thread|what it is|doing|rules|photos/i, "work"],
 ];
 

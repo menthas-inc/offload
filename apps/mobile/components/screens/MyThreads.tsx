@@ -36,6 +36,7 @@ import {
   type ThreadGroup,
 } from "../../lib/threads";
 import { useConversation } from "../shell/conversation-context";
+import { PlateSpace } from "../shell/plate-inset";
 import { failed } from "../../lib/log";
 
 const isAndroid = Platform.OS === "android";
@@ -224,6 +225,7 @@ export default function MyThreads() {
               </Text>
             </Pressable>
           ) : null}
+          <PlateSpace />
         </Animated.ScrollView>
       )}
 

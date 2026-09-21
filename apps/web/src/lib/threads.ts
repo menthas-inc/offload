@@ -5,6 +5,8 @@
 // client that guesses the server's shape is a client that finds out it guessed
 // wrong at runtime.
 
+import { timeZoneHeader } from "./time-zone";
+
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
 /** A request with no body.
@@ -573,6 +575,9 @@ export async function quickAdd(
 ): Promise<{ id: string; kind: "content" | "note" } | null> {
   const response = await fetch(`${API}/v1/threads/${threadId}/quick-add`, {
     ...json,
+    // The row is read by the model, which needs to know what day it is where
+    // they are.
+    headers: { ...json.headers, ...timeZoneHeader() },
     method: "POST",
     body: JSON.stringify({ text, section, ...options }),
   });

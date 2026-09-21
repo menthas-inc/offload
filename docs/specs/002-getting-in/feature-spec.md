@@ -12,7 +12,7 @@ Doing it first is deliberate. The alternative, building the dump loop against a 
 
 **Being let in.** An admin opens the panel, sees who is waiting, and invites one person or a selection. Promotion creates the account, its key and its Miscellaneous thread together, and sends the invite email.
 
-**Signing in.** Apple and Google, nothing else. Order flips by platform: Apple leads on iOS, Google on Android, Apple first on web. A valid login for an identity nobody invited gets the no-invite screen, which names the address it checked and offers to join the waitlist reusing it.
+**Signing in.** Apple and Google, nothing else. Google first on every platform, Apple under it (from 2026-09-21; it flipped by platform before that). A valid login for an identity nobody invited gets the no-invite screen, which names the address it checked and offers to join the waitlist reusing it.
 
 **Becoming active.** First run is three screens, once per person and not once per device. Finishing it flips the account from invited to active and lands them on Today, which is empty and says so in offload's own voice.
 
@@ -23,7 +23,7 @@ Doing it first is deliberate. The alternative, building the dump loop against a 
 - **AC-1** A public visitor can join the waitlist with an email address and receives a confirmation email **once, ever**. Submitting twice, or submitting an address that already has an account, produces an identical response, takes indistinguishable time, creates no second account and sends no second email.
 - **AC-2** An admin can see the waitlist and promote one person or a selection. Promotion creates the account, its `account_keys` row, its Miscellaneous thread and its `thread_members` row in one transaction, and sends the invite email.
 - **AC-3** Only an account whose verified email is on the staff allowlist can reach the admin panel. *The support-versus-owner page split is specified here but only testable once owner-only pages exist, so that half is verified in the spec that builds them.*
-- **AC-4** Sign in with Apple and with Google works on iOS, Android and web, with the provider order the design specifies per platform.
+- **AC-4** Sign in with Apple and with Google works on iOS, Android and web, Google first on all three.
 - **AC-5** A valid provider login for an identity that was never invited gets the no-invite screen and can join the waitlist in one tap using that same address. No account is auto-provisioned.
 - **AC-6** Signing in with a second provider whose **verified** email matches an existing account links to that account rather than creating a new one. An unverified email never links.
 - **AC-7** First run shows once per person. Completing it flips `invited` to `active` and records the consent, in one transaction. Signing in later on another device shows no tutorial.

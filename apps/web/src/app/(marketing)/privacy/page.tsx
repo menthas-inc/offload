@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "18 September 2026";
+const UPDATED = "20 September 2026";
 
 function Todo({ children }: { children: ReactNode }) {
   return <span className={styles.todo}>{children}</span>;
@@ -228,6 +228,12 @@ export default function Privacy() {
             <li>
               <strong>Server logs.</strong> Which request, how long it took, whether it worked.
               Never what was in it.
+            </li>
+            <li>
+              <strong>Your device&apos;s time zone</strong>, sent with each thing you dump, type
+              into a thread or answer, and kept with it, so that &quot;tomorrow&quot; and
+              &quot;3pm&quot; mean what they meant where you were. Nothing finer than the zone: no
+              location, no clock.
             </li>
             <li>
               <strong>Product events</strong>, such as joining the waitlist or finishing first run.
@@ -449,7 +455,8 @@ export default function Privacy() {
                   <td>
                     The part of your content a given task needs, including a smaller copy of a
                     photo you dump with its camera details removed, the words of a search when
-                    offload looks something up, and your country when you have set one
+                    offload looks something up, your device&apos;s time zone, and your country
+                    when you have set one
                   </td>
                 </tr>
                 <tr>

@@ -113,11 +113,12 @@ function classify(message: string | undefined): "no-invite" | "failed" {
   return refused.some((needle) => text.includes(needle)) ? "no-invite" : "failed";
 }
 
-/** Apple first on iOS because the App Store requires it to be at least as
- *  prominent as any other option. Google first on Android because that account
- *  is already on the device and asking for an Apple one there is a detour. */
-export const providerOrder: Provider[] =
-  Platform.OS === "ios" ? ["apple", "google"] : ["google", "apple"];
+/** Google first everywhere: more people arrive with one. iOS led with Apple
+ *  on a reading of the App Store's rule that it be at least as prominent as
+ *  any other option; the rule is about size and reach, not order, and the
+ *  second row is the same height and on screen without scrolling, which is
+ *  what it asks. Apple keeps its filled treatment. Product owner, 2026-09-21. */
+export const providerOrder: Provider[] = ["google", "apple"];
 
 export async function signInWithApple(): Promise<SignInResult> {
   // Android gets the browser flow, the same one Google uses there.

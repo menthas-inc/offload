@@ -14,9 +14,14 @@ which is which.
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+import structlog
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
+
+log = structlog.get_logger()
 
 
 @dataclass(frozen=True)
@@ -88,10 +93,13 @@ class DumpContext:
     # choice and nothing may leave it.
     looking_at: Thread | None = None
     # "Friday 3 October 2026", from the database's clock rather than the
-    # worker's, so every worker in every region agrees with the rows it reads.
-    # The account's own timezone is not stored yet; when it is, this is the one
-    # place that changes.
+    # worker's, so every worker in every region agrees with the rows it reads,
+    # in the device's zone when the message carries one.
     today: str | None = None
+    #: The device's IANA zone from the message, or None for UTC. The prompt
+    #: names it beside today so a clock time they give is written as the
+    #: right moment. Per message until the account carries one.
+    time_zone: str | None = None
     # Whether this account has a calendar connected at all, which decides
     # whether the calendar tools are sent. Offering create_event to somebody
     # with no calendar is offering a tool that can only fail, and it costs every
@@ -275,6 +283,7 @@ _DUMP = text(
     """
     select said(m.text, m.transcript) as text,
            m.transcribed_at is not null as spoken,
+           m.time_zone,
            lt.id as looking_at_id,
            lt.name as looking_at_name
     from messages m
@@ -295,10 +304,53 @@ _DUMP = text(
 
 # The database's clock, not the worker's. Two workers in two regions must not
 # disagree about what day it is with each other or with the rows they read.
-# `accounts` has no timezone column yet, so this is UTC and the day boundary is
-# wrong for somebody dumping at 11pm in Lisbon; when a timezone lands, this
-# query is the one place that changes.
-_TODAY = text("select to_char(now(), 'FMDay FMDD FMMonth YYYY')")
+#
+# **In the device's zone, since the message carries one.** `accounts` still
+# has no time zone column; every request that reaches the model sends the
+# device's, the message keeps it, and a message with none (every one before
+# 2026-09-20, and a client that has not updated) is read in UTC, which put a
+# day boundary at 1am for somebody in Lisbon. Postgres knows the same IANA
+# names ICU does, and the API checked the name before storing it, so an
+# unknown one here is a fault worth a fallback rather than a refusal.
+_TODAY = text("select to_char(now() at time zone :tz, 'FMDay FMDD FMMonth YYYY')")
+
+UTC = "UTC"
+
+
+def known_zone(time_zone: str | None) -> str:
+    """The zone to read the clock in: theirs when Python's tzdata knows the
+    name, else UTC. Checked here rather than by letting Postgres refuse it,
+    because a refused statement aborts the connection's transaction and every
+    query after it on that connection, the fallback included: the first
+    version of this fell back inside the aborted transaction and would have
+    raised a worse error in place of the one it was catching. Python and
+    Postgres read the same IANA names, so a name that passes here is one
+    Postgres knows too."""
+    if not time_zone or time_zone == UTC:
+        return UTC
+    try:
+        ZoneInfo(time_zone)
+    except (ZoneInfoNotFoundError, ValueError):
+        log.warning("time zone unknown here, reading today in UTC")
+        return UTC
+    return time_zone
+
+
+async def today_in(conn: AsyncConnection, time_zone: str | None) -> str:
+    """What day it is where they are, as the prompt says it."""
+    return str((await conn.execute(_TODAY, {"tz": known_zone(time_zone)})).scalar_one())
+
+
+def clock_line(time_zone: str | None) -> str:
+    """How the prompt says which zone today is in, with the offset the clock
+    shows there right now, so "3pm" can be written as a moment. The offset on
+    another date is the model's arithmetic with the zone's name; the one for
+    today keeps it honest about which side of UTC the person is on."""
+    zone = known_zone(time_zone)
+    if zone == UTC:
+        return "in UTC"
+    offset = datetime.now(ZoneInfo(zone)).strftime("%z")
+    return f"in {zone}, where the clock is UTC{offset[:3]}:{offset[3:]} today"
 
 
 async def load(
@@ -362,7 +414,7 @@ async def load(
         )
     ).all()
 
-    today = (await conn.execute(_TODAY)).scalar_one()
+    today = await today_in(conn, dump_row.time_zone)
     has_calendar = bool((await conn.execute(_HAS_CALENDAR, {"account_id": account_id})).scalar())
     switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
 
@@ -387,6 +439,7 @@ async def load(
             else None
         ),
         today=today,
+        time_zone=dump_row.time_zone,
         has_calendar=has_calendar,
         may_search=bool(switches and switches.web_search_enabled),
         may_read_links=bool(switches and switches.web_links_enabled),
@@ -447,6 +500,7 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         # that decides where things land.
         looking_at=ctx.looking_at,
         today=ctx.today,
+        time_zone=ctx.time_zone,
         has_calendar=ctx.has_calendar,
         # **Not context, and not trimmable.** These two are permissions, and
         # they were missing here: this function rebuilds the context field by
@@ -539,12 +593,12 @@ class QuickAddContext:
     notes_from_members: list[str]
     pieces: list[Piece]
     today: str | None = None
+    time_zone: str | None = None
 
 
 _TYPED = text(
     """
-    select c.id, c.title, c.thread_id, t.name as thread_name,
-           to_char(now(), 'FMDay FMDD FMMonth YYYY') as today
+    select c.id, c.title, c.thread_id, t.name as thread_name
       from content c
       join threads t on t.id = c.thread_id
      where c.id = :content_id
@@ -635,6 +689,7 @@ async def load_quick_add(
     account_id: str,
     content_id: str,
     max_pieces: int = 30,
+    time_zone: str | None = None,
 ) -> QuickAddContext | None:
     """The one thread, and the row that was typed into it.
 
@@ -668,7 +723,8 @@ async def load_quick_add(
         notes=[n.text for n in reversed(notes) if n.theirs],
         notes_from_members=[n.text for n in reversed(notes) if not n.theirs],
         pieces=[Piece(title=p.title, done=p.done) for p in pieces],
-        today=row.today,
+        today=await today_in(conn, time_zone),
+        time_zone=time_zone,
     )
 
 
@@ -700,6 +756,7 @@ class AnswerContext:
     #: missing here while the worker already read it: a frozen dataclass turns
     #: that into an AttributeError on every answering turn.
     today: str | None = None
+    time_zone: str | None = None
     #: 018. The same tail the filing turn sees, oldest first. A question and
     #: its answer are conversation, and an answer that cannot see them cannot
     #: use them. Bounded by `fit_answer`.
@@ -719,6 +776,21 @@ class AnswerContext:
     @property
     def country_in_effect(self) -> str | None:
         return self.country_override or self.country
+
+
+_MESSAGE_ZONE = text(
+    """
+    select time_zone from messages
+     where id = :message_id and account_id = :account_id
+    """
+)
+
+
+async def message_zone(conn: AsyncConnection, *, message_id: str, account_id: str) -> str | None:
+    """The device's zone the message came with, or None for UTC."""
+    return (
+        await conn.execute(_MESSAGE_ZONE, {"message_id": message_id, "account_id": account_id})
+    ).scalar()
 
 
 async def load_answer(
@@ -761,7 +833,12 @@ async def load_answer(
         threads.append(Thread(id=default_id, name=default_row.name, is_default=True))
 
     switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
-    today = (await conn.execute(_TODAY)).scalar_one()
+    time_zone = (
+        await message_zone(conn, message_id=message_id, account_id=account_id)
+        if message_id
+        else None
+    )
+    today = await today_in(conn, time_zone)
 
     turn_rows = []
     if conversation_id and message_id and max_turns > 0:
@@ -811,6 +888,7 @@ async def load_answer(
         may_read_links=bool(switches and switches.web_links_enabled),
         country=(switches.country if switches else None),
         today=today,
+        time_zone=time_zone,
         turns=[Turn(role=r.role, text=r.text) for r in reversed(turn_rows)],
         country_override=country_override,
         looking_at=looking_at,
@@ -869,9 +947,9 @@ _OPEN_QUESTION = text(
 )
 
 
-async def today_line(conn: AsyncConnection) -> str:
+async def today_line(conn: AsyncConnection, time_zone: str | None = None) -> str:
     """What day it is, as the prompt says it."""
-    return str((await conn.execute(_TODAY)).scalar_one())
+    return await today_in(conn, time_zone)
 
 
 @dataclass(frozen=True)

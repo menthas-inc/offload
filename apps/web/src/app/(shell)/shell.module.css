@@ -562,6 +562,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The row's own words under its title. Clamped where the phones clamp. */
+.rowBody {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 2px;
+  font-size: calc(13px * var(--type-scale));
+  color: var(--text-secondary);
+}
+
 /* Row tools appear on hover and on focus. Focus matters more: without it the
    only way to reach them is a pointer.
 

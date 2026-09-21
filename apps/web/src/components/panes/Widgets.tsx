@@ -518,6 +518,13 @@ function Meta({ row }: { row: ContentRow }) {
   // and repeating the group's own name on every row in it is noise.
   for (const tag of row.tags) if (!tag.includes(":")) parts.push(tag);
 
-  if (parts.length === 0) return null;
-  return <span className={styles.rowMeta}>{parts.join(" · ")}</span>;
+  if (parts.length === 0 && !row.body) return null;
+  return (
+    <>
+      {/* What the row says under its title, as the phones have drawn it since
+          009. Two lines at most; the rest is on the row's own page. */}
+      {row.body ? <span className={styles.rowBody}>{row.body}</span> : null}
+      {parts.length > 0 ? <span className={styles.rowMeta}>{parts.join(" · ")}</span> : null}
+    </>
+  );
 }
