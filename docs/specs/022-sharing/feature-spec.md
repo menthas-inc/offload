@@ -24,7 +24,7 @@ Accounts have no usernames, so an email address is the only handle there is. **A
 
 - Empty: "You need their offload email", and under it, in one sentence, why there is nothing to browse: "Sharing does not invite anyone in, so there is nobody to look up who is not already here. Ask them which email they signed up with."
 - In flight: one spinner in the field. Failed: "That didn't go through." with Try again. Rate limited: the same line, since the screen has nothing else to say.
-- Found: one row, their name over the address **as the account stores it**, not as it was typed, with their mark and a **Request** button. Under it: "Priya decides whether to accept. Until then you cannot share anything with her, and she is not told what you wanted to share."
+- Found: one row, their name over the address **as the account stores it**, not as it was typed, with their mark, which the answer carries with it since a stranger may not fetch it by id, and a **Request** button. Under it: "Priya decides whether to accept. Until then you cannot share anything with her, and she is not told what you wanted to share."
 - Not found: "No offload account for that", and "Check the spelling. If they are not on offload, there is nothing here that can add them." A typo and a non-account look identical and no wording can distinguish them; that is the honest limit of the no-invite rule. A deleted or disabled account, and an account you have blocked or that has blocked you, is not found.
 - Yourself, somebody already connected, somebody you have already asked, somebody who has already asked you: the row says so in place of Request ("That's you", "Already connected", "Pending since 4 Aug", or Accept and Not now as the card has them).
 
@@ -215,7 +215,7 @@ Sharing
 Saying it
 
 - **AC-24** "Share Lisbon trip with Sam" in the composer produces a reply carrying a proposal with Share and Not now and the co-ownership line, and creates no membership; Share at the tap creates the pending membership as the sheet would, after the server re-checks everything AC-19 checks; Not now and an hour's silence leave nothing behind.
-- **AC-25** The tool resolves the name server-side against the sender's accepted connections only; two matches yield 018's question with both as options; none yields a reply saying so; no email lookup runs from a said share, and no list of connections is in the prompt.
+- **AC-25** The tool resolves the name server-side against the sender's accepted connections only; two matches yield 018's question with both as options, raised by the server and worded from the database, and the chip's tap is the share; none yields a reply saying so; no email lookup runs from a said share, and no list of connections is in the prompt.
 - **AC-26** The proposal survives a reload of the conversation and is answerable once.
 - **AC-27** Typing @ opens the connection list, three rows at a time, filtered as typed; picking one inserts the name and the sent message carries the mention as an account id; the server drops a mention that is not an accepted connection of the sender; an unmatched @ sends as plain text.
 

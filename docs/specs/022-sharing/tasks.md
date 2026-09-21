@@ -55,7 +55,7 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 - [x] **G6** The strip on My threads, including over the empty state; `app/invitations/[memberId].tsx` with the preview, the names, Add it and Not now, "Not here any more." (AC-28, AC-29, AC-30)
 - [x] **G7** Composer: the @ list, the mention on the wire, the proposal by kind with the co-ownership line. (AC-24, AC-26, AC-27)
 - [x] **G8** Leave on a shared thread's More, confirmed, with the existing toast. (AC-17)
-- [ ] **G9** Android: the sheet and the rows from the `--a-*` tokens as `M3Sharing.jsx` draws them, no platform switch inside one layout. (AC-36)
+- [x] **G9** Android: the sheet and the rows from the `--a-*` tokens as `M3Sharing.jsx` draws them, no platform switch inside one layout. (AC-36)
 
 ## H. Web
 
@@ -68,7 +68,7 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 ## I. Verification
 
-- [ ] **I1** `pnpm test`, `pnpm lint`, `pnpm typecheck`, `dead-classes.mjs`, `dead-css.mjs`, `dead-icons.mjs`, all green. (QUAL-1)
+- [x] **I1** `pnpm test`, `pnpm lint`, `pnpm typecheck`, `dead-classes.mjs`, `dead-css.mjs`, `dead-icons.mjs`, all green. (QUAL-1)
 - [ ] **I2** Reviews: `code-reviewer` on the diff, `client-reviewer`, `security-reviewer`. Findings closed or logged.
-- [ ] **I3** Devices, restored as found afterwards: the 36px prism at 3x on the Pixel and the simulator, the dot on the gear in both themes, the sheet's field over the keyboard, the @ list over the keyboard, the sheets' insets, one real said share end to end against production. (AC-36)
+- [~] **I3** Devices, restored as found afterwards: the 36px prism at 3x on the Pixel and the simulator, the dot on the gear in both themes, the sheet's field over the keyboard, the @ list over the keyboard, the sheets' insets, one real said share end to end against production. (AC-36) *Done on the iPhone 17 simulator and the web against a local API: the dot, the card, My people, the person page and its two sheets, the strip, the invitation, the share sheet, a share, a withdraw, a take out, and one real said share through the worker on the web. Not yet: the Pixel, which holds the preview APK rather than a dev client; the field over the keyboard and the @ list on a phone, which the simulator's hardware keyboard cannot exercise; dark on the phones.*
 - [ ] **I4** EAS builds for both phones, and the deploy of the API and the web; tasks and specs updated for anything that diverged (DEV-2).
