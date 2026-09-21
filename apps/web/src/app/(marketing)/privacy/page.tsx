@@ -339,9 +339,11 @@ export default function Privacy() {
               AssemblyAI&rsquo;s European servers and nowhere else. Two reasons for the choice of
               servers, both theirs to publish: what is sent to their other servers may be used to
               train their models, and what is sent to the European ones is not; and the audio
-              then stays in the EU. The code checks the address on every call. They delete the
-              audio within two days, by their own statement, and offload deletes the transcript
-              from their side once it has read it.
+              then stays in the EU. The code checks the address on every call, and our account
+              is opted out of their model improvement programme as well, so nothing sent from it
+              trains their models whichever server it reaches. They delete the audio within two
+              days, by their own statement, and offload deletes the transcript from their side
+              once it has read it.
             </li>
             <li>
               <strong>Our own monitoring never sees content.</strong> The tooling we use to watch
