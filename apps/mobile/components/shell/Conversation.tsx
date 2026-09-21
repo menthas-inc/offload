@@ -48,7 +48,7 @@ import { QuickReplies } from "./QuickReplies";
 import { useRouter } from "expo-router";
 import { useConversation, type Pin, type Turn } from "./conversation-context";
 import { SentPhoto } from "./SentPhoto";
-import { SentVoice } from "./SentVoice";
+import { VoiceNotePlayer } from "./SentVoice";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 
 /** 020. The viewer for a sent message's photos, mounted by the shell above
@@ -470,7 +470,7 @@ function Yours({
           </Text>
         ) : null}
         {/* 021. The voice note it carried, between the words and the photos. */}
-        {turn.voice ? <SentVoice voice={turn.voice} inert={recording} /> : null}
+        {turn.voice ? <VoiceNotePlayer voice={turn.voice} inert={recording} /> : null}
         {/* 020. The photos the message carried, shown rather than named. */}
         {(turn.photos ?? []).map((photo, at) => (
           <SentPhoto key={photo.blobId} photo={photo} onOpen={() => onOpenPhoto(at)} />

@@ -47,7 +47,7 @@ import {
 import { QuickReplies } from "./QuickReplies";
 import { AttachChip, type ChipError } from "./AttachChip";
 import { SentPhoto } from "./SentPhoto";
-import { SentVoice, mmss } from "./SentVoice";
+import { VoiceNotePlayer, mmss } from "./SentVoice";
 import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import { Icon } from "../Icon";
@@ -947,7 +947,7 @@ export function Composer({
                 }
               >
                 {turn.text}
-                {turn.voice ? <SentVoice voice={turn.voice} inert={recording} /> : null}
+                {turn.voice ? <VoiceNotePlayer voice={turn.voice} inert={recording} /> : null}
                 {turn.photos?.length ? (
                   <span className={styles.sentPhotos}>
                     {turn.photos.map((photo, at) => (
@@ -1287,6 +1287,7 @@ export function Composer({
               // pressed is worse than one that is off.
               disabled={!hasSomething || sending || photos.some((photo) => photo.error)}
               data-busy={sending ? true : undefined}
+              data-recording={holdsNote ? true : undefined}
               aria-label="Send"
               aria-busy={sending}
               onClick={() => void submit()}
@@ -1300,8 +1301,13 @@ export function Composer({
       {line ? (
         <p className={styles.composerLine} role="alert">
           {line.text}
-          <button type="button" className={styles.retry} onClick={() => setLine(null)}>
-            OK
+          <button
+            type="button"
+            className={styles.composerLineDismiss}
+            aria-label="Dismiss"
+            onClick={() => setLine(null)}
+          >
+            <Icon name="x" size={14} />
           </button>
         </p>
       ) : null}

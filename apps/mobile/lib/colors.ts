@@ -84,11 +84,16 @@ export interface Colors {
    *  does not flip. `onSolid` does flip, which is how a near-black number ends
    *  up on blue. */
   onAttention: string;
-  /** 020. The plane a photo is viewed on: dark in both themes, as the web
-   *  draws it. `surface-inverse` at 90% in light and `surface-page` at 92% in
-   *  dark, mixed here since a phone takes one colour. `ink` was tried and is
-   *  `text-primary`, which is near white in dark, so the plane went light. */
+  /** `--surface-viewer`, the plane a photo is viewed on: `surface-inverse` at
+   *  90% in light, mixed here since a phone takes one colour, and the opaque
+   *  `surface-plate` in dark. The 21 September design measured a translucent
+   *  dark plane at 1.00:1 against the page: what says a viewer is open there
+   *  is that the screen behind it is gone. */
   viewerPlane: string;
+  /** 021. `--ink-300`, the design's own value for the unplayed remainder of a
+   *  voice note's bars while it plays: a boundary against the attention blue
+   *  that the tertiary rest cannot draw. */
+  waveRemainder: string;
   /** `surface-inverse`: the bar over the viewer on iOS, translucent. */
   inverse: string;
 }
@@ -156,8 +161,9 @@ function paletteFor(dark: boolean): Colors {
       : { color: "rgba(11,11,11,0.08)", offsetY: 4, radius: 8 },
     inverse: base["surface-inverse"] ?? light["surface-inverse"]!,
     viewerPlane: dark
-      ? atOpacity(base["surface-page"] ?? light["surface-page"]!, 0.92)
+      ? (base["surface-plate"] ?? light["surface-plate"]!)
       : atOpacity(base["surface-inverse"] ?? light["surface-inverse"]!, 0.9),
+    waveRemainder: base["ink-300"] ?? light["ink-300"]!,
   };
 }
 

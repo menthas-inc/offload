@@ -146,6 +146,14 @@
   color: var(--text-inverse);
 }
 
+/* On the recording row Send is primary with no tone: the attention blue
+   belongs to the idle row, where it means "you have something to send".
+   Recording does not promote Send; it makes it the only thing left to press. */
+.send[data-recording]:not(:disabled) {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
 .send:disabled {
   cursor: default;
 }
@@ -315,16 +323,22 @@
    message you wrote takes a clay border and one clay line beneath it. Tighter
    than a tinted card in the middle of a conversation, and the failure is
    attached to the thing that failed rather than floating under it. */
-/* --text-danger, because there is no --border-danger. The system has
-   --border-accent and --border-attention and no clay counterpart, so this is
-   the one alias that is clay. Logged for the next sync. */
+/* The 21 September design: the bubble keeps its blue fill and only the
+   border goes clay, so a refusal stays a sentence and not an error state.
+   --clay-600 by name, as the design writes it, since the system has no
+   --border-danger alias. */
 .turnYou[data-failed] {
-  border-color: var(--text-danger);
+  border-color: var(--clay-600);
 }
 
+/* One pattern for every failure line: the clause is the state, in danger,
+   and the control beside it is the exit, in accent. Never two dangers in a
+   row, which would make the way out look like the risk. Under a bubble it
+   sits at the bubble's edge. */
 .turnFailed {
+  align-self: flex-end;
   margin: var(--space-3) 0 0;
-  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
+  font: var(--weight-regular) 13px/1.45 var(--font-core);
   color: var(--text-danger);
 }
 
@@ -334,8 +348,7 @@
   padding: 0;
   font: inherit;
   font-weight: var(--weight-medium);
-  color: var(--text-link);
-  text-decoration: underline;
+  color: var(--text-accent);
   cursor: pointer;
 }
 
@@ -887,10 +900,29 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin: var(--space-3) 0 0;
-  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
+  margin: var(--space-2) 0 0;
+  font: var(--weight-regular) 13px/1.45 var(--font-core);
   color: var(--text-danger);
 }
+
+/* The dismiss at the end of every line under the composer: a 14px x, pushed
+   to the far edge. */
+.composerLineDismiss {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+}
+
+.composerLineDismiss:hover { color: var(--text-primary); }
 
 /* A photo sent with a message: the picture, then its name, in the person's
    own bubble. 36px and --radius-sm, the row tile's, so one thumbnail size
@@ -1016,10 +1048,11 @@
   color: var(--text-danger);
 }
 
-/* The sent note, in the person's bubble: the glyph, the bars, the length. A
-   tap plays. At rest every bar is tertiary; a played one is primary, and the
-   fill runs left to right as it plays. Neither accent: nothing was done by
-   offload and nothing needs you. */
+/* The sent note, in the person's bubble: the control, the bars, the length.
+   A tap plays. At rest every bar is tertiary, the whole waveform being the
+   note. While playing the played bars are the attention blue and the rest
+   recede to the ramp's --ink-300, the design's own value: ink on tertiary
+   measures 1.21:1 and the fill edge is the one thing you have to see. */
 .sentVoice {
   display: flex;
   flex-direction: column;
@@ -1061,7 +1094,8 @@
   transition: background var(--duration-base) var(--ease-out);
 }
 
-.sentVoiceBar[data-played] { background: var(--text-primary); }
+.sentVoiceBar[data-fill="played"] { background: var(--text-attention); }
+.sentVoiceBar[data-fill="remainder"] { background: var(--ink-300); }
 
 .sentVoiceTime {
   flex: 0 0 auto;
@@ -1070,8 +1104,11 @@
   color: var(--text-secondary);
 }
 
-/* What offload heard, beneath the bars, in the bubble's own type. */
+/* What offload heard, beneath the bars, in the person's own face: the UI
+   sans at 15/22 in secondary, while the reply under it is Literata. Two faces
+   a line apart is what makes the transcript read as a record. */
 .sentVoiceTranscript {
+  font: var(--weight-regular) 15px/22px var(--font-core);
   color: var(--text-secondary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1082,7 +1119,8 @@
   border: 0;
   background: transparent;
   font: inherit;
-  color: var(--text-link);
+  font-weight: var(--weight-medium);
+  color: var(--text-accent);
   cursor: pointer;
 }
 
