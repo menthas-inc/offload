@@ -333,6 +333,13 @@ export function ConversationProvider({
   // turn they were drawn under, so Try again puts one back in the row.
   const recorder = useAudioRecorder(RECORDING_OPTIONS);
   const session = useRef<Session | null>(null);
+  // Set before the first await of a start and cleared after, so a second
+  // call in that window is a no-op. A cold launch from the Record shortcut
+  // delivers the action twice, once as the launching intent and once to the
+  // listener, and the second start found no session yet, prepared a
+  // recorder that was already recording, and drew the microphone line over
+  // a recording that was running.
+  const starting = useRef(false);
   const [recording, setRecording] = useState(false);
   const liveSamples = useRef({ live: [] as number[], elapsedMs: 0 });
   const [note, setNote] = useState<Recording | null>(null);
@@ -778,7 +785,8 @@ export function ConversationProvider({
   // 021. Tap the microphone. The pinned + is a line of text and does not
   // record; a note in the row already means nothing more happens.
   const startRecording = useCallback(async (): Promise<void> => {
-    if (session.current || note || pinRef.current) return;
+    if (starting.current || session.current || note || pinRef.current) return;
+    starting.current = true;
     setLine(null);
     try {
       const started = await Session.start(
@@ -800,12 +808,20 @@ export function ConversationProvider({
       session.current = started;
       liveSamples.current = { live: [], elapsedMs: 0 };
       setRecording(true);
-    } catch {
-      // The line, with the way forward beside it, as the camera's refusal has.
-      setLine({
-        text: "Microphone is off for offload.",
-        action: { label: "Open settings", onPress: () => void Linking.openSettings() },
-      });
+    } catch (error) {
+      // The line, with the way forward beside it, as the camera's refusal
+      // has. Only a refused microphone names the microphone; anything else
+      // that stopped the start is said without a guess at why.
+      if (error instanceof Error && error.message === "microphone refused") {
+        setLine({
+          text: "Microphone is off for offload.",
+          action: { label: "Open settings", onPress: () => void Linking.openSettings() },
+        });
+      } else {
+        setLine({ text: "Couldn't start recording.", action: { label: "Try again", onPress: () => void startRecording() } });
+      }
+    } finally {
+      starting.current = false;
     }
   }, [note, recorder]);
 
