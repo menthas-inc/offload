@@ -54,15 +54,17 @@ _NOTE = text(
 )
 
 # `state` is filtered here as well as at search time. A queued message has no
-# settled text yet, and embedding one would index a draft.
+# settled text yet, and embedding one would index a draft. 021: the body is
+# what the person said, typed words and transcript through `said()`.
 _MESSAGE = text(
     """
     select null as thread_name, null as title,
-           messages.text as body, messages.account_id::text as owner_id,
+           said(messages.text, messages.transcript) as body,
+           messages.account_id::text as owner_id,
            messages.role as role
     from messages
     where messages.id = :id and messages.deleted_at is null
-      and messages.text is not null
+      and said(messages.text, messages.transcript) is not null
       and messages.state in ('seen', 'answered')
     """
 )

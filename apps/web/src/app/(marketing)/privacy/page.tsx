@@ -341,6 +341,15 @@ export default function Privacy() {
               its name, not when it was taken, not where.
             </li>
             <li>
+              <strong>A voice note goes as its audio, to be written down.</strong> It goes to
+              AssemblyAI&rsquo;s European servers and nowhere else. Two reasons for the choice of
+              servers, both theirs to publish: what is sent to their other servers may be used to
+              train their models, and what is sent to the European ones is not; and the audio
+              then stays in the EU. The code checks the address on every call. They delete the
+              audio within two days, by their own statement, and offload deletes the transcript
+              from their side once it has read it.
+            </li>
+            <li>
               <strong>Our own monitoring never sees content.</strong> The tooling we use to watch
               cost and reliability receives identifiers, model names, token counts, timings and
               outcomes. No prompts, no responses, nothing you wrote.
@@ -358,7 +367,7 @@ export default function Privacy() {
           </p>
           <ul>
             <li>
-              <strong>A search carries words you wrote.</strong> It is built only from the words of
+              <strong>A search carries words you dumped.</strong> It is built only from the words of
               the thing you just dumped, never from your other threads, your notes, or anything
               anyone else put in a thread with you. It goes to Anthropic, who run the search, and
               from there to a search index.
@@ -470,7 +479,7 @@ export default function Privacy() {
                 </tr>
                 <tr>
                   <td>AssemblyAI</td>
-                  <td>Transcribes voice notes</td>
+                  <td>Transcribes voice notes, on their European servers</td>
                   <td>The audio of a voice note</td>
                 </tr>
                 <tr>

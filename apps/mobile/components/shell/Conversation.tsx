@@ -48,6 +48,7 @@ import { QuickReplies } from "./QuickReplies";
 import { useRouter } from "expo-router";
 import { useConversation, type Pin, type Turn } from "./conversation-context";
 import { SentPhoto } from "./SentPhoto";
+import { SentVoice } from "./SentVoice";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 
 /** 020. The viewer for a sent message's photos, mounted by the shell above
@@ -329,7 +330,7 @@ function PinnedTarget({ pin }: { pin: Pin }) {
 }
 
 function Turns() {
-  const { turns, writing, finish, openPhoto, retry } = useConversation();
+  const { turns, writing, finish, openPhoto, retry, recording } = useConversation();
   const scroll = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -386,6 +387,7 @@ function Turns() {
               onFinish={() => void finish(turn.id)}
               onOpenPhoto={(index) => openPhoto(turn.id, index)}
               onRetry={() => retry(turn.id)}
+              recording={recording}
             />
             {/* 018. A turn that filed silently and asked back has no reply
                 bubble to hold the question, so the question gets one of its
@@ -426,6 +428,7 @@ function Yours({
   onFinish,
   onOpenPhoto,
   onRetry,
+  recording,
 }: {
   turn: Turn;
   footer: boolean;
@@ -433,6 +436,8 @@ function Yours({
   onFinish: () => void;
   /** The send did not land. Puts the words back in the field. */
   onRetry: () => void;
+  /** 021. The composer is recording, so a sent note's row is inert. */
+  recording: boolean;
 }) {
   const COLOR = useColors();
   // **`cancelled` is deliberately not here.** The clay border says something
@@ -464,6 +469,8 @@ function Yours({
             {turn.text}
           </Text>
         ) : null}
+        {/* 021. The voice note it carried, between the words and the photos. */}
+        {turn.voice ? <SentVoice voice={turn.voice} inert={recording} /> : null}
         {/* 020. The photos the message carried, shown rather than named. */}
         {(turn.photos ?? []).map((photo, at) => (
           <SentPhoto key={photo.blobId} photo={photo} onOpen={() => onOpenPhoto(at)} />
@@ -491,6 +498,29 @@ function Yours({
             That didn't go through.
           </Text>
           <Pressable onPress={onRetry} hitSlop={8}>
+            <Text
+              className="font-core font-medium text-text-accent"
+              style={{ fontSize: 13 }}
+            >
+              Try again
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {/* 021. A voice note the turn could not write down, or could not answer
+          once it had. Try again runs the same turn on the same note, since
+          the audio is on the server and cannot go back in the row. */}
+      {turn.state === "failed" && !turn.unsent && turn.voice ? (
+        <View className="mt-space-2 flex-row items-center gap-space-3">
+          {/* The line wraps and the control keeps its place beside it; a
+              line that cannot shrink pushed Try again off the screen. */}
+          <Text className="flex-1 font-core text-text-danger" style={{ fontSize: 13 }}>
+            {turn.voice.transcribed
+              ? "offload could not answer that one. Your dump is saved."
+              : "Couldn't write that one down."}
+          </Text>
+          <Pressable onPress={onFinish} hitSlop={8}>
             <Text
               className="font-core font-medium text-text-accent"
               style={{ fontSize: 13 }}

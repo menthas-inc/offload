@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { pinExistingSession } from "../lib/auth";
 import { ConversationProvider } from "../components/shell/conversation-context";
+import { RecordArrival } from "../components/shell/RecordArrival";
 import { Shell } from "../components/shell/Shell";
 import { PlateInsetProvider } from "../components/shell/plate-inset";
 import { ShareArrival } from "../components/shell/ShareArrival";
@@ -118,6 +119,9 @@ export default function RootLayout() {
             the router, like the conversation it lands in, and before the gate
             so a share while signed out waits in the draft behind it. */}
         <ShareArrival />
+        {/* 021. Record, from a long press on the app icon: the recording row
+            on whatever screen is up, once the gate has had its say. */}
+        <RecordArrival />
         <SafeAreaProvider>
           <StatusBar style="auto" />
           {/* The ground every navigator fades through.

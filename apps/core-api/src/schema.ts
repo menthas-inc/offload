@@ -258,6 +258,11 @@ export interface MessagesTable {
   source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
   source_ref: string | null;
   attrs: Generated<unknown>;
+  /** 021. What the voice note was heard as. Beside `text`, never folded into
+   *  it: the bubble draws the two apart. Every reader of the person's words
+   *  goes through `said(text, transcript)` in SQL. */
+  transcript: string | null;
+  transcribed_at: Timestamp | null;
   /** The device's IANA time zone when this was sent, from the request header,
    *  so the turn that reads the message reads "today" and "3pm" in it. Null
    *  is read as UTC. Per message until the account carries one. */
@@ -726,7 +731,8 @@ export interface QuestionsTable {
 
 /** 020. A photo as it arrived, encrypted in R2, and what it knows about
  *  itself. Belongs to its message, held unclaimed between upload and send,
- *  refcounted through `content_blobs`. */
+ *  refcounted through `content_blobs`. 021 gave it a kind: a voice note is
+ *  the same row with no dimensions, a duration and a waveform. */
 export interface BlobsTable {
   id: Generated<string>;
   /** Who handed it over; null once they are gone. */
@@ -741,8 +747,19 @@ export interface BlobsTable {
   /** Sniffed from the bytes. */
   content_type: string;
   byte_size: number;
-  width: number;
-  height: number;
+  /** 021. Every reader of a message's blobs filters on it. */
+  kind: Generated<"image" | "audio">;
+  /** Null for a voice note, set for a photo; the check constraint holds it. */
+  width: number | null;
+  height: number | null;
+  /** 021. The device's count, then the provider's measurement. */
+  duration_ms: number | null;
+  measured_ms: number | null;
+  /** 021. Thirty two values, 0 to 255, over the whole note. */
+  waveform: number[] | null;
+  /** 021. The transcript's id at the provider until the delete after the
+   *  read lands. Never logged. */
+  provider_ref: string | null;
   sha256: Buffer;
   encryption_scheme: Generated<string>;
   taken_at: Timestamp | null;

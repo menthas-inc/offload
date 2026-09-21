@@ -92,18 +92,25 @@ const NOTES = sql<{ id: string; account_id: string | null; version: string }>`
 // has nothing worth finding, and both would be re-swept forever. A message
 // whose text is somebody else's words, a calendar name the person tapped, is
 // not indexed as theirs (019).
+//
+// 021. What is indexed is `said(text, transcript)`, and a voice note's
+// transcript lands after the message was written: a message that has typed
+// words is swept once at send and again when the transcript arrives, which
+// is what the `transcribed_at` clock is for, and one with no words yet has
+// nothing to sweep, which `said()` being null already says.
 const MESSAGES = sql<{ id: string; account_id: string | null; version: string }>`
   select m.id::text as id, m.account_id::text as account_id,
-         extract(epoch from m.created_at)::bigint::text as version
+         extract(epoch from greatest(m.created_at, coalesce(m.transcribed_at, m.created_at)))::bigint::text as version
   from messages m
   where m.deleted_at is null
-    and m.text is not null
+    and said(m.text, m.transcript) is not null
     and m.state in ('seen', 'answered')
     and not m.derived_from_untrusted
     and not exists (
       select 1 from message_chunks ch
       where ch.message_id = m.id
         and ch.model is not distinct from ${EMBED_MODEL}
+        and ch.embedded_at >= coalesce(m.transcribed_at, m.created_at)
     )
   order by m.created_at desc
   limit ${SWEEP_BATCH}

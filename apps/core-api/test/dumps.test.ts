@@ -458,7 +458,8 @@ describe("AC-17 and AC-4 what an open stream does each tick", () => {
   it("waits while the answer is still coming", async () => {
     const id = await account();
     const { messageId } = await dump(id, "hello");
-    expect(await streamStep(messageId, id)).toEqual({ do: "wait" });
+    // 021: the in-flight answers carry the transcript, null until one exists.
+    expect(await streamStep(messageId, id)).toEqual({ do: "wait", transcript: null });
   });
 
   it("delivers the answer once it lands", async () => {
@@ -911,6 +912,7 @@ describe("017 stopping a turn", () => {
       .execute();
     expect(await streamStep(messageId, id)).toEqual({
       do: "step",
+      transcript: null,
       text: "Checking when the tip closes",
     });
 
@@ -938,7 +940,8 @@ describe("017 stopping a turn", () => {
       .where("id", "=", messageId)
       .execute();
 
-    expect(await streamStep(messageId, id)).toEqual({ do: "wait" });
+    // 021: the in-flight answers carry the transcript, null until one exists.
+    expect(await streamStep(messageId, id)).toEqual({ do: "wait", transcript: null });
   });
 });
 

@@ -46,7 +46,11 @@ export type JobKind =
   | "blob.locate"
   // The daily chain: the unclaimed sweep on a quiet day, and the towns for
   // photos uploaded before the geocoding key was set.
-  | "blob.daily";
+  | "blob.daily"
+  // 021. The delete of a transcript at the provider, once we have read it.
+  // Drained by the Python worker, which holds the key; enqueued by the
+  // transcript write and by blob.daily for any reference left behind.
+  | "voice.forget";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */

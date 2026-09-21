@@ -18,7 +18,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { AppState, type AppStateStatus } from "react-native";
+import { AppState, Linking, type AppStateStatus } from "react-native";
+import { useAudioRecorder } from "expo-audio";
 import { plainText } from "@offload/markup";
 import {
   DumpTooLong,
@@ -31,10 +32,13 @@ import {
   sendDump,
   undoTurn,
   uploadPhoto,
+  uploadVoice,
   refusePhoto,
   PhotoRefused,
+  VoiceRefused,
   UnknownBlob,
   MAX_PHOTOS,
+  type VoiceOnWire,
   type FoundResult,
   type FoundRow,
   type MessageState,
@@ -46,6 +50,14 @@ import {
 import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, provisionalId, quickAdd } from "../../lib/threads";
 import { failed } from "../../lib/log";
+import {
+  RECORDING_OPTIONS,
+  Session,
+  deleteRecording,
+  mmss,
+  sweepRecordings,
+  type Recording,
+} from "../../lib/recorder";
 
 /** What a `+` pinned the composer to. Set only by a `+`, never chosen from
  *  inside the field: a section's `+` writes to that section in that thread and
@@ -109,6 +121,8 @@ export interface Turn {
   found?: FoundResult[];
   /** 020. The photos this message carried. Only ever on a message you sent. */
   photos?: PhotoOnWire[];
+  /** 021. The voice note it carried, with its transcript once written. */
+  voice?: VoiceOnWire | null;
   /** The send itself did not land, so nothing on the server knows this turn.
    *  Drawn as the failed state with different words: the dump is not saved,
    *  and Try again puts the words back in the field. Local only, never on the
@@ -208,8 +222,22 @@ export interface Conversation {
   photos: DraftPhoto[];
   addPhotos: (picked: PickedPhoto[], via?: "picker" | "share") => void;
   removePhoto: (key: string) => void;
-  line: { text: string } | null;
+  line: { text: string; action?: { label: string; onPress: () => void } } | null;
   clearLine: () => void;
+  /** 021. The voice note in the composer: recording, or stopped and waiting
+   *  for Send or Discard, as the same row with no dot. Lives here beside
+   *  `draft` and `photos` so the sheet and the plate share it and folding
+   *  mid-recording carries the row. The live window and the running time
+   *  are not state here: they change ten times a second, and every consumer
+   *  of this context would re-render with them, so the row reads them from
+   *  `liveSamples` on its own clock. */
+  recording: boolean;
+  note: Recording | null;
+  liveSamples: { current: { live: number[]; elapsedMs: number } };
+  /** Tap the microphone: ask once, then record. The refusal is the one line. */
+  startRecording: () => Promise<void>;
+  /** Stop and keep nothing; past a minute the note waits under the toast. */
+  discardRecording: () => Promise<void>;
   /** 020. The photo of a sent message open in the viewer, which the shell
    *  mounts above the sheet. */
   photoOpen: { turnId: string; index: number } | null;
@@ -293,13 +321,32 @@ export function ConversationProvider({
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
   const draftKey = useRef<string | null>(null);
   const viaShare = useRef(false);
-  const [line, setLine] = useState<{ text: string } | null>(null);
+  const [line, setLine] = useState<{ text: string; action?: { label: string; onPress: () => void } } | null>(null);
   const [photoOpen, setPhotoOpen] = useState<{ turnId: string; index: number } | null>(null);
   const [focusRequest, setFocusRequest] = useState(0);
   // 020. A share that lands while a send is out waits for it: the chips
   // appear when the send finishes, rather than being wiped by it.
   const heldShare = useRef<PickedPhoto[]>([]);
+  // 021. One recorder for the app's life, driven per note by a `Session`;
+  // the note once stopped; the upload it may already have made under the
+  // draft's key; and the notes of sends that never landed, keyed by the
+  // turn they were drawn under, so Try again puts one back in the row.
+  const recorder = useAudioRecorder(RECORDING_OPTIONS);
+  const session = useRef<Session | null>(null);
+  const [recording, setRecording] = useState(false);
+  const liveSamples = useRef({ live: [] as number[], elapsedMs: 0 });
+  const [note, setNote] = useState<Recording | null>(null);
+
+  const noteUploaded = useRef<{ blobId: string } | null>(null);
+  const sentNotes = useRef<Map<string, Recording>>(new Map());
+  useEffect(() => sweepRecordings(), []);
   const [pin, setPin] = useState<Pin | null>(null);
+  // Read through a ref by the shortcut's arrival, which releases a pin and
+  // records in the same tick, before the closure could see the pin go.
+  const pinRef = useRef<Pin | null>(null);
+  useEffect(() => {
+    pinRef.current = pin;
+  }, [pin]);
   const [onScreen, setOnScreen] = useState<{ id: string; name: string } | null>(null);
   const [sheets, setSheets] = useState(0);
   const openSheet = useCallback(() => setSheets((open) => open + 1), []);
@@ -391,7 +438,12 @@ export function ConversationProvider({
     setPin(next);
   }, []);
 
-  const dismissPin = useCallback(() => setPin(null), []);
+  const dismissPin = useCallback(() => {
+    // Synchronously, so the shortcut's "release the pin, then record" in one
+    // tick sees it gone; the effect above keeps the ref right everywhere else.
+    pinRef.current = null;
+    setPin(null);
+  }, []);
 
   // The conversation as the database has it, so reopening the app does not look
   // like a fresh account.
@@ -406,6 +458,7 @@ export function ConversationProvider({
             from: message.role === "person" ? "you" : "offload",
             text: message.text ?? "",
             photos: message.photos ?? [],
+            voice: message.voice ?? null,
             state: message.state,
             turnId: message.turnId,
             // Survives a reload, which is the point: somebody who backgrounds
@@ -492,6 +545,14 @@ export function ConversationProvider({
                   // photos, so a settled turn's thumbnails exist; one that
                   // could not be opened draws the glyph when its fetch fails.
                   photos: (turn.photos ?? []).map((photo) => ({ ...photo, ready: true })),
+                  // 021. The transcript, as the settled read has it.
+                  voice: answer.voice
+                    ? {
+                        ...turn.voice,
+                        ...answer.voice,
+                        ...(turn.voice?.localUri ? { localUri: turn.voice.localUri } : {}),
+                      }
+                    : (turn.voice ?? null),
                 }
               : // 018. The next turn closes the last question whatever it says.
                 { ...turn, question: null },
@@ -538,6 +599,25 @@ export function ConversationProvider({
           setWorking((current) =>
             current?.messageId === messageId ? { ...current, step } : current,
           ),
+        // 021. Drawn the moment the poll finds it, ahead of the reply. A
+        // conversation that opened with the note takes its words as its
+        // title, as the web's header does.
+        (transcript) => {
+          setTurns((current) =>
+            current.map((turn) =>
+              turn.id === messageId && turn.voice
+                ? { ...turn, voice: { ...turn.voice, transcript, transcribed: true } }
+                : turn,
+            ),
+          );
+          const words = transcript.replace(/\s+/g, " ").trim();
+          if (words)
+            setLive((current) =>
+              current?.title.startsWith("Voice note, ")
+                ? { title: words.length > 40 ? `${words.slice(0, 40)}...` : words }
+                : current,
+            );
+        },
       );
       polls.current.set(messageId, poll);
       setWorking({ messageId, turnId, since, step: null });
@@ -684,14 +764,86 @@ export function ConversationProvider({
       const turn = current.find((one) => one.id === messageId);
       if (!turn) return current;
       setDraft(turn.text);
+      // 021. The note comes back to its row, stopped and sendable, beside
+      // the words and the chips.
+      const spoken = sentNotes.current.get(messageId);
+      if (spoken) {
+        sentNotes.current.delete(messageId);
+        setNote(spoken);
+      }
       return current.filter((one) => one.id !== messageId);
     });
+  }, []);
+
+  // 021. Tap the microphone. The pinned + is a line of text and does not
+  // record; a note in the row already means nothing more happens.
+  const startRecording = useCallback(async (): Promise<void> => {
+    if (session.current || note || pinRef.current) return;
+    setLine(null);
+    try {
+      const started = await Session.start(
+        recorder,
+        (live, elapsedMs) => {
+          liveSamples.current = { live, elapsedMs };
+        },
+        () => {
+          // Stopped on its own: the cap, a call, the app leaving the screen.
+          // The note stays in the row.
+          const ended = session.current;
+          session.current = null;
+          void ended?.take().then((taken) => {
+            setRecording(false);
+            setNote(taken);
+          });
+        },
+      );
+      session.current = started;
+      liveSamples.current = { live: [], elapsedMs: 0 };
+      setRecording(true);
+    } catch {
+      // The line, with the way forward beside it, as the camera's refusal has.
+      setLine({
+        text: "Microphone is off for offload.",
+        action: { label: "Open settings", onPress: () => void Linking.openSettings() },
+      });
+    }
+  }, [note, recorder]);
+
+  const discardRecording = useCallback(async (): Promise<void> => {
+    const current = session.current;
+    session.current = null;
+    const taken = current ? await current.take() : note;
+    setRecording(false);
+    setNote(null);
+    noteUploaded.current = null;
+    if (!taken) return;
+    if (taken.durationMs > 60_000) {
+      // Discard sits a thumb's width from Send. Past a minute the note is
+      // parked under the toast for eight seconds and deleted after.
+      notify("Discarded", { label: "Undo", onPress: () => setNote(taken) });
+      setTimeout(() => {
+        setNote((held) => {
+          if (held?.uri === taken.uri) return held;
+          deleteRecording(taken.uri);
+          return held;
+        });
+      }, 8_500);
+    } else deleteRecording(taken.uri);
+  }, [note, notify]);
+
+  // Never in the background: the app leaving the screen stops the note.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") void session.current?.stop();
+    });
+    return () => sub.remove();
   }, []);
 
   const submit = useCallback(async (): Promise<void> => {
     const text = draft.trim();
     const sendable = photos.filter((photo) => !photo.error);
-    if (text.length === 0 && sendable.length === 0) return;
+    const holdsNote = session.current !== null || note !== null;
+    if (text.length === 0 && sendable.length === 0 && !holdsNote) return;
     // A chip the device refused holds the send: its remove control is the way
     // forward, and a send that quietly skipped it would file half a draft.
     if (photos.some((photo) => photo.error)) return;
@@ -702,11 +854,26 @@ export function ConversationProvider({
       return;
     }
 
+    // 021. Send stops the recording and sends it. Taken ahead of the bubble,
+    // so the bubble draws the note's final bars.
+    const ending = session.current;
+    session.current = null;
+    const spoken = ending ? await ending.take() : note;
+    setRecording(false);
+    setNote(null);
+
     setLine(null);
     setWriting(true);
     if (!live) {
       // One line in the header, whatever the dump's own breaks.
-      const line = (text || (sendable.length === 1 ? "A photo" : `${sendable.length} photos`))
+      const line = (
+        text ||
+        (spoken
+          ? `Voice note, ${mmss(spoken.durationMs)}`
+          : sendable.length === 1
+            ? "A photo"
+            : `${sendable.length} photos`)
+      )
         .replace(/\s+/g, " ")
         .trim();
       setLive({ title: line.length > 40 ? `${line.slice(0, 40)}...` : line });
@@ -735,19 +902,32 @@ export function ConversationProvider({
       ready: false,
       localUri: photo.uri,
     }));
+    const shownVoice: VoiceOnWire | null = spoken
+      ? {
+          blobId: noteUploaded.current?.blobId ?? `${clientKey}-voice`,
+          durationMs: spoken.durationMs,
+          waveform: spoken.waveform,
+          transcript: null,
+          transcribed: false,
+          localUri: spoken.uri,
+        }
+      : null;
+    if (spoken) sentNotes.current.set(provisional, spoken);
     setTurns((current) => [
       // 018. Chips leave with the next turn. The server decides whether the
       // words answered the question; the screen only knows it is no longer
       // open for a tap.
       ...current.map((turn) => (turn.question ? { ...turn, question: null } : turn)),
-      { id: provisional, from: "you", text, photos: shown, state: "queued" },
+      { id: provisional, from: "you", text, photos: shown, voice: shownVoice, state: "queued" },
     ]);
     /** The bubble goes and the words come back, for a refusal that is fixed
-     *  in the draft. The photos never left their chips. */
+     *  in the draft. The photos never left their chips; the note comes back
+     *  to its row. */
     const takeBack = (): void => {
       setWriting(false);
       setTurns((current) => current.filter((turn) => turn.id !== provisional));
       setDraft(text);
+      if (spoken) setNote(spoken);
     };
     const unsent = (): void => {
       setWriting(false);
@@ -777,11 +957,25 @@ export function ConversationProvider({
           localUri: photo.uri,
         });
       }
+      // 021. The voice note the same way, under the draft's own key with a
+      // suffix, so a retry finds the upload the server already made.
+      let sentVoice: VoiceOnWire | null = null;
+      if (spoken) {
+        const uploaded =
+          noteUploaded.current ??
+          (await uploadVoice(spoken.uri, `${clientKey}-voice`, spoken.durationMs, spoken.waveform));
+        noteUploaded.current = uploaded;
+        // Without the device file: once the send lands the bubble plays
+        // from the server, and the file goes below.
+        const { localUri: _local, ...shownWithoutFile } = shownVoice!;
+        sentVoice = { ...shownWithoutFile, blobId: uploaded.blobId };
+      }
+      const blobIds = [...sentPhotos.map((p) => p.blobId), ...(sentVoice ? [sentVoice.blobId] : [])];
       const sent = await sendDump(
         text,
         clientKey,
         onScreen?.id,
-        sentPhotos.length ? { blobIds: sentPhotos.map((p) => p.blobId), viaShare: viaShare.current } : undefined,
+        blobIds.length ? { blobIds, viaShare: viaShare.current } : undefined,
       );
       if (!sent) return unsent();
       // Only what went: a photo added while the send was out stays for the
@@ -790,13 +984,18 @@ export function ConversationProvider({
       setPhotos((current) => current.filter((photo) => !went.has(photo.key)));
       draftKey.current = null;
       viaShare.current = false;
+      noteUploaded.current = null;
+      sentNotes.current.delete(provisional);
       setTurns((current) =>
         current.map((turn) =>
           turn.id === provisional
-            ? { ...turn, id: sent.messageId, photos: sentPhotos, state: sent.state, turnId: sent.turnId }
+            ? { ...turn, id: sent.messageId, photos: sentPhotos, voice: sentVoice, state: sent.state, turnId: sent.turnId }
             : turn,
         ),
       );
+      // The note on the device goes with the send: the settled bubble plays
+      // from the server, and a failed turn resumes rather than re-sends.
+      if (spoken) deleteRecording(spoken.uri);
       watch(sent.messageId, sent.turnId, pressed);
     } catch (error) {
       if (error instanceof DumpTooLong) {
@@ -822,16 +1021,28 @@ export function ConversationProvider({
         // No object store behind the API. A retry cannot help, so none.
         takeBack();
         setLine({ text: "Not taking photos yet." });
+      } else if (error instanceof VoiceRefused && error.reason === "daily_limit") {
+        takeBack();
+        setLine({ text: "Enough for today." });
+      } else if (error instanceof VoiceRefused && error.reason === "too_big") {
+        // Our own recorder cannot produce this; the line is for a client
+        // that is not ours, and Discard is the way forward.
+        takeBack();
+        setLine({ text: "Too big to send." });
+      } else if (error instanceof VoiceRefused) {
+        takeBack();
+        setLine({ text: "Not taking voice notes yet." });
       } else {
         if (error instanceof UnknownBlob) {
           // The server no longer has one of the uploads: an hour passed and
           // the sweep took it. Forget what landed, so Try again uploads again.
           setPhotos((current) => current.map(({ uploaded: _gone, ...p }) => p));
+          noteUploaded.current = null;
         } else failed("dump.send", error);
         unsent();
       }
     }
-  }, [draft, photos, live, onScreen, pin, submitPin, watch]);
+  }, [draft, photos, note, live, onScreen, pin, submitPin, watch]);
 
   // 018. One open question per conversation.
   const openQuestion = useMemo(
@@ -942,6 +1153,11 @@ export function ConversationProvider({
         removePhoto,
         line,
         clearLine,
+        recording,
+        note,
+        liveSamples,
+        startRecording,
+        discardRecording,
         photoOpen,
         openPhoto: (turnId, index) => setPhotoOpen({ turnId, index }),
         closePhoto: () => setPhotoOpen(null),

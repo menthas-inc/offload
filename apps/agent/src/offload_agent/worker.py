@@ -13,6 +13,7 @@ import contextlib
 import dataclasses
 import re
 import signal
+import time
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import date, datetime, timedelta
@@ -44,8 +45,9 @@ from offload_agent.harness.plan import (
     plan_quick_add,
 )
 from offload_agent.og import picture
-from offload_agent.queue import ClaimedJob, claim, release_for_retry
+from offload_agent.queue import ClaimedJob, claim, finish, release_for_retry
 from offload_agent.renditions import prepare
+from offload_agent.transcribe import TranscriptionFailed, forget, poll, submit
 
 log = structlog.get_logger()
 
@@ -61,7 +63,7 @@ class ReportFailed(Exception):
     reported, and this one cannot be."""
 
 
-KINDS = ["dump.answer", "thread.quick_add", *EMBED_KINDS, *COMPACT_KINDS]
+KINDS = ["dump.answer", "thread.quick_add", "voice.forget", *EMBED_KINDS, *COMPACT_KINDS]
 
 
 async def _post_result(
@@ -915,6 +917,23 @@ async def handle(
                 await release_for_retry(conn, job.id, "compact_error", delay_seconds=3600)
         return
 
+    if job.kind == "voice.forget":
+        # 021. No model call and nobody waiting. Its own guard for the same
+        # reason the embed branch has one: it returns before the catch-all.
+        try:
+            await _handle_forget(job, cfg=cfg, engine=engine, http=http)
+            async with engine.begin() as conn:
+                await finish(conn, job.id)
+        except Exception as exc:  # noqa: BLE001
+            # The type only. The reference and the provider's message are
+            # both things a log must not carry.
+            log.error(
+                "forget failed", job_id=job.id, attempt=job.attempts, error_type=type(exc).__name__
+            )
+            async with engine.begin() as conn:
+                await release_for_retry(conn, job.id, "forget_error", delay_seconds=300)
+        return
+
     if job.kind in EMBED_KINDS:
         # No model call and nobody waiting, so it closes its own job rather
         # than reporting an outcome the Core API has no use for.
@@ -958,6 +977,42 @@ async def handle(
         return
 
     try:
+        # 021. **The words first.** A voice note has no words until the
+        # provider has written them down, and everything below, the classifier
+        # included, reads the message's words. So this runs ahead of all of it,
+        # and once the transcript is on the message the message is text to
+        # every path that follows. A retry after the write, and a resume,
+        # find the transcript there and skip this.
+        async with engine.connect() as conn:
+            voice = await ctx_mod.voice_of(conn, message_id=message_id)
+        if voice is not None and not voice.transcribed:
+            await _step_writer(http, cfg, job.id)("Listening")
+            try:
+                await _write_down(http, cfg, job.id, voice)
+            except (TranscriptionFailed, httpx.HTTPError) as exc:
+                log.warning(
+                    "transcription failed",
+                    job_id=job.id,
+                    attempt=job.attempts,
+                    error_type=type(exc).__name__,
+                )
+                await _give_up_or_retry(
+                    job, "transcription_failed", cfg=cfg, engine=engine, http=http
+                )
+                return
+            # Nothing to hear, and nothing else on the message: the turn
+            # settles with our line and no model is called on silence. Words
+            # or photos with it carry on below, and the silence goes unsaid.
+            async with engine.connect() as conn:
+                said = await ctx_mod.question_text(conn, message_id=message_id)
+                photos = await ctx_mod.photo_count(conn, message_id=message_id)
+            if not said and photos == 0:
+                await _post_result(
+                    http, cfg, {"outcome": "answered", "jobId": job.id, "replyText": HEARD_NOTHING}
+                )
+                log.info("dump answered", job_id=job.id, calls=0, filed=0, heard_nothing=True)
+                return
+
         # Question or note, decided on the message alone and before anything is
         # read. Its own call, because the toolset has to be chosen before the
         # model is invoked: a mode the model picks mid-turn is a mode it can be
@@ -1270,7 +1325,15 @@ async def handle(
         # The type, never the message. An SDK exception can embed the request
         # body, which is the person's dump, and this line would carry it into a
         # log (OFF-1).
-        log.error("dump failed", job_id=job.id, attempt=job.attempts, error_type=type(exc).__name__)
+        # The type and where it came from, never the message: a NameError
+        # seen once on a device test could not be placed without the module.
+        log.error(
+            "dump failed",
+            job_id=job.id,
+            attempt=job.attempts,
+            error_type=type(exc).__name__,
+            error_module=type(exc).__module__,
+        )
         await _give_up_or_retry(job, "model_error", cfg=cfg, engine=engine, http=http)
 
 
@@ -1362,6 +1425,107 @@ NOT_SURE = "Not sure."
 #: sentence names what happened and the row is the way forward.
 COULD_NOT_READ_ONE = "Could not make out one of the photos."
 COULD_NOT_READ_ANY = "Could not make out the photos."
+#: 021. A voice note with nothing to hear in it. No question and no retry,
+#: because the same recording gives the same answer.
+HEARD_NOTHING = "Heard nothing in that one."
+
+
+async def _write_down(
+    http: httpx.AsyncClient, cfg: Config, job_id: str, voice: ctx_mod.Voice
+) -> None:
+    """021. The transcript onto the message, as the one thing a cancel waits
+    for.
+
+    The worker's cancel raises at the next await, and a note left half
+    written down would be audio nobody can hear with no control to reach it.
+    So the write runs under a shield: a cancel that lands here is caught,
+    the inner task is awaited to completion, and then the cancel is re-raised,
+    which is 017's "a cancel in the middle of a write waits for that one
+    thing" applied to the first write of the turn.
+
+    A retry finds the provider's reference on the row and polls it rather
+    than sending the audio a second time (AC-16).
+    """
+    headers = {"authorization": f"Bearer {cfg.internal_token}"}
+
+    async def inner() -> None:
+        started = time.monotonic()
+        ref = voice.provider_ref
+        if ref is None:
+            fetched = await http.get(
+                f"{cfg.api_url}/internal/v1/blobs/{voice.blob_id}/original",
+                params={"jobId": job_id},
+                headers=headers,
+                timeout=60.0,
+            )
+            fetched.raise_for_status()
+            ref = await submit(http, cfg, fetched.content)
+            recorded = await http.post(
+                f"{cfg.api_url}/internal/v1/blobs/{voice.blob_id}/submitted",
+                json={"jobId": job_id, "providerRef": ref},
+                headers=headers,
+                timeout=30.0,
+            )
+            recorded.raise_for_status()
+        transcript = await poll(http, cfg, ref, started_at=started)
+        written = await http.post(
+            f"{cfg.api_url}/internal/v1/messages/{voice.message_id}/transcript",
+            json={
+                "jobId": job_id,
+                "text": transcript.text,
+                "durationMs": transcript.duration_ms,
+                "costMicros": transcript.cost_micros,
+                "latencyMs": transcript.latency_ms,
+            },
+            headers=headers,
+            timeout=30.0,
+        )
+        written.raise_for_status()
+        # A length, a cost and whether anything was heard. Never the words.
+        log.info(
+            "voice note written down",
+            blob_id=voice.blob_id,
+            duration_ms=transcript.duration_ms,
+            latency_ms=transcript.latency_ms,
+            empty=not transcript.text,
+        )
+
+    task = asyncio.ensure_future(inner())
+    try:
+        await asyncio.shield(task)
+    except asyncio.CancelledError:
+        try:
+            await task
+        except Exception as exc:  # noqa: BLE001
+            # The type only, as everywhere in this file. The turn settles
+            # as cancelled either way; this keeps the failure visible.
+            log.warning("write-down failed under a cancel", error_type=type(exc).__name__)
+        raise
+
+
+_PROVIDER_REF = text("select provider_ref from blobs where id = :id")
+
+
+async def _handle_forget(job: ClaimedJob, *, cfg: Config, engine, http: httpx.AsyncClient) -> None:
+    """021. Delete the provider's copy of a transcript, then tell the Core
+    API so the reference goes. Gone and never-there are the same; anything
+    else raises and the job retries on its backoff."""
+    blob_id = job.payload.get("blobId")
+    if not blob_id:
+        return
+    headers = {"authorization": f"Bearer {cfg.internal_token}"}
+    async with engine.connect() as conn:
+        ref = (await conn.execute(_PROVIDER_REF, {"id": str(blob_id)})).scalar()
+    if ref:
+        await forget(http, cfg, str(ref))
+    done = await http.post(
+        f"{cfg.api_url}/internal/v1/blobs/{blob_id}/forgotten",
+        json={"jobId": job.id},
+        headers=headers,
+        timeout=30.0,
+    )
+    done.raise_for_status()
+    log.info("voice note forgotten", blob_id=str(blob_id), had_reference=bool(ref))
 
 
 def _photos_land_anyway(outcome: Outcome, ctx: DumpContext) -> bool:
@@ -1543,7 +1707,14 @@ async def run(cfg: Config, stop: asyncio.Event) -> None:
     anthropic = AsyncAnthropic(api_key=cfg.anthropic_api_key)
     worker_id = f"agent-{uuid.uuid4().hex[:8]}"
 
-    log.info("worker started", worker_id=worker_id, kinds=KINDS)
+    log.info(
+        "worker started",
+        worker_id=worker_id,
+        kinds=KINDS,
+        # 021. Which way voice notes will go: written down, or failed after
+        # the retry because nothing can write them down.
+        transcription="assemblyai-eu" if cfg.assemblyai_api_key else "off",
+    )
 
     # 017. One listening connection for the process, alongside the poll rather
     # than instead of it: jobs still arrive by claim, and this is only how a

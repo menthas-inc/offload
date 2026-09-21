@@ -112,6 +112,10 @@ export interface Answer {
    *  Resolved by the server every time it is read, so a row ticked or deleted
    *  elsewhere is never stale inside an old answer. */
   found?: FoundResult[];
+  /** 021. The voice note on the message, with its transcript once written.
+   *  Only ever on a read of the message; the stream carries the transcript
+   *  as its own event. */
+  voice?: VoiceOnWire | null;
 }
 
 export class DumpTooLong extends Error {
@@ -230,6 +234,61 @@ export function photoUrl(blobId: string, rendition: "thumb" | "large"): string {
   return `${API}/v1/blobs/${blobId}/${rendition}`;
 }
 
+// ---------------------------------------------------------------- 021, a voice note
+
+/** The voice note on a person's message, as the server sends it. The bars
+ *  and the length are there from the send; the transcript once offload has
+ *  listened. `text` on the message stays the typed words. */
+export interface VoiceOnWire {
+  blobId: string;
+  durationMs: number;
+  waveform: number[];
+  transcript: string | null;
+  transcribed: boolean;
+  /** This device only, never from the wire: the recording as an object URL,
+   *  for the moment between the send and the server's copy. */
+  localUrl?: string;
+}
+
+/** The recorders stop themselves here, and the server refuses past it. */
+export const MAX_VOICE_MS = 600_000;
+/** Bars over the whole note. The server holds the same number. */
+export const WAVEFORM_BARS = 32;
+
+export class VoiceRefused extends Error {
+  constructor(readonly reason: "too_big" | "not_a_voice_note" | "daily_limit" | "unavailable") {
+    super(reason);
+  }
+}
+
+/** Upload one voice note, ahead of the dump that will claim it. Idempotent
+ *  on the client key, which belongs to the draft until it sends. */
+export async function uploadVoice(
+  audio: Blob,
+  clientKey: string,
+  durationMs: number,
+  waveform: number[],
+): Promise<{ blobId: string }> {
+  const form = new FormData();
+  form.append("clientKey", clientKey);
+  form.append("durationMs", String(durationMs));
+  form.append("waveform", JSON.stringify(waveform));
+  form.append("file", audio, "voice-note");
+  const response = await fetch(`${API}/v1/blobs/audio`, { method: "POST", credentials: "include", body: form });
+  if (response.status === 413) throw new VoiceRefused("too_big");
+  if (response.status === 415 || response.status === 400) throw new VoiceRefused("not_a_voice_note");
+  if (response.status === 429) throw new VoiceRefused("daily_limit");
+  if (response.status === 503) throw new VoiceRefused("unavailable");
+  if (!response.ok) throw new Error(`upload failed: ${response.status}`);
+  return (await response.json()) as { blobId: string };
+}
+
+/** Where a voice note is heard from: the bytes as they arrived, to the
+ *  dumper's session, with Range. An `<audio>` needs `crossOrigin="use-credentials"`. */
+export function voiceUrl(blobId: string): string {
+  return `${API}/v1/blobs/${blobId}/audio`;
+}
+
 /** Ask once. The fallback, and the thing the stream is an optimisation over. */
 export async function fetchAnswer(messageId: string): Promise<Answer | null> {
   const response = await fetch(`${API}/v1/messages/${messageId}`, {
@@ -245,6 +304,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     changed?: string[];
     waiting?: { id: string; because: string } | null;
     found?: FoundResult[];
+    voice?: VoiceOnWire | null;
   };
   return {
     state: body.state,
@@ -255,6 +315,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     changed: body.changed ?? [],
     waiting: body.waiting ?? null,
     found: body.found ?? [],
+    voice: body.voice ?? null,
   };
 }
 
@@ -269,6 +330,8 @@ export function awaitAnswer(
   onAnswer: (answer: Answer) => void,
   /** 017. What offload is doing, on a turn still in flight. */
   onStep?: (step: string | null) => void,
+  /** 021. The transcript, the moment it is written, ahead of the reply. */
+  onTranscript?: (text: string) => void,
 ): () => void {
   let done = false;
 
@@ -287,8 +350,9 @@ export function awaitAnswer(
     settle(JSON.parse((event as MessageEvent).data) as Answer);
   });
 
-  source.addEventListener("failed", () => {
-    settle({ state: "failed", reply: null });
+  source.addEventListener("failed", (event) => {
+    const body = JSON.parse((event as MessageEvent).data) as { voice?: VoiceOnWire | null };
+    settle({ state: "failed", reply: null, voice: body.voice ?? null });
   });
 
   // 017. The one event that does not settle the stream. The server can send the
@@ -298,6 +362,14 @@ export function awaitAnswer(
     if (done) return;
     const { text } = JSON.parse((event as MessageEvent).data) as { text: string };
     onStep?.(text);
+  });
+
+  // 021. Drawn, not appended: the server sends it on every wake after it is
+  // written, so a repeat is a no-op on screen.
+  source.addEventListener("transcript", (event) => {
+    if (done) return;
+    const { text } = JSON.parse((event as MessageEvent).data) as { text: string };
+    onTranscript?.(text);
   });
 
   // A closed stream is not an answer, and it is not a failure either. The
@@ -319,8 +391,11 @@ export function awaitAnswer(
         settle(answer);
       // 017. The reconnect path also catches the current step up, which is what
       // AC-6 asks for: the stream is the fast route and this is the one that
-      // survives a dropped socket.
-      else onStep?.(answer.step ?? null);
+      // survives a dropped socket. 021: and the transcript, the same way.
+      else {
+        onStep?.(answer.step ?? null);
+        if (answer.voice?.transcribed) onTranscript?.(answer.voice.transcript ?? "");
+      }
       // Still thinking: the browser reconnects the EventSource on its own.
     });
   });
@@ -337,6 +412,8 @@ export interface TailMessage {
   text: string | null;
   /** 020. Empty on every reply. */
   photos?: PhotoOnWire[];
+  /** 021. Null on every reply and on any message without one. */
+  voice?: VoiceOnWire | null;
   state: MessageState;
   /** What an Undo would reverse. The whole turn, not this row. */
   turnId: string;

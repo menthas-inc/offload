@@ -256,12 +256,35 @@ async function sweepBlobs(trx: Transaction<Database>, due: ReturnType<typeof sql
 const blobPurge: Handler = async () => {
   const store = objectStore();
   if (!store) return;
+  // 021. A row whose transcript is still held at the provider is not purged
+  // until it is forgotten there: the reference is the only handle we have,
+  // and an Undo inside the forget's own retry window would otherwise destroy
+  // it and leave the words at the provider for their thirty-day default.
+  // The forget is asked for again here; the `forgotten` route nulls the
+  // reference and the next pass takes the row.
+  const held = await db
+    .selectFrom("blobs")
+    .select("id")
+    .where("deleted_at", "is not", null)
+    .where("purge_after", "<", sql<Date>`now()`)
+    .where("provider_ref", "is not", null)
+    .limit(PURGE_CEILING)
+    .execute();
+  for (const blob of held) {
+    await enqueue({
+      kind: "voice.forget",
+      payload: { blobId: blob.id },
+      priority: PRIORITY.background,
+      idempotencyKey: `voice.forget:${blob.id}:purge:${new Date().toISOString().slice(0, 13)}`,
+    });
+  }
   const due = await db
     .selectFrom("blobs")
     .select("id")
     .where("deleted_at", "is not", null)
     .where("purge_after", "is not", null)
     .where("purge_after", "<", sql<Date>`now()`)
+    .where("provider_ref", "is", null)
     .limit(PURGE_CEILING)
     .execute();
   if (due.length === 0) return;
@@ -551,6 +574,26 @@ const LOCATE_BACKFILL = 200;
 const blobDaily: Handler = async () => {
   await scheduleDaily("blob.daily");
   await enqueue({ kind: "content.purge", payload: {}, priority: PRIORITY.background });
+  // 021. A provider reference still held an hour after submission is one a
+  // dead worker, an undone turn or a parked job left behind; the delete is
+  // asked for again. Keyed on the blob, not the message, since the blob may
+  // outlive it. The idempotency key includes the day so a reference that
+  // survives a day's attempts is asked about again tomorrow.
+  const held = await db
+    .selectFrom("blobs")
+    .select("id")
+    .where("provider_ref", "is not", null)
+    .where("created_at", "<", sql<Date>`now() - interval '1 hour'`)
+    .limit(PURGE_CEILING)
+    .execute();
+  for (const blob of held) {
+    await enqueue({
+      kind: "voice.forget",
+      payload: { blobId: blob.id },
+      priority: PRIORITY.background,
+      idempotencyKey: `voice.forget:${blob.id}:${new Date().toISOString().slice(0, 10)}`,
+    });
+  }
   if (!reverseGeocodingOn()) return;
   const due = await db
     .selectFrom("blobs")

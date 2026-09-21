@@ -422,12 +422,12 @@ async function asidesFor(accountId: string, options: SearchOptions): Promise<Asi
   // read for what is NOT in a row, which is mostly offload's own replies and
   // the reasoning around a filing.
   const messages = await sql<{ text: string; role: "person" | "offload" }>`
-    select m.text as text, m.role as role
+    select said(m.text, m.transcript) as text, m.role as role
     from readable_messages m
     where m.viewer_account_id = ${accountId}::uuid
       and m.deleted_at is null
       and m.state in ('seen', 'answered')
-      and m.text is not null
+      and said(m.text, m.transcript) is not null
       -- 019. A tapped label that was somebody else's calendar name is not
       -- the person's words, here any more than in the tail or the index.
       and not m.derived_from_untrusted

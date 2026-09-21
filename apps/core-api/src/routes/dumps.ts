@@ -50,6 +50,14 @@ export class UnknownBlob extends Error {
   }
 }
 
+/** 021. The blobs are all the account's, but not a message's worth: two
+ *  voice notes, or more photos than one message carries. Refused whole. */
+export class BadBlobMix extends Error {
+  constructor(readonly code: "one_voice_note" | "too_many_photos") {
+    super(code);
+  }
+}
+
 /** Longer than anything the composer is designed for, and short enough that a
  *  paste cannot run up a bill. Refused before anything is written, and never
  *  silently truncated: quietly dropping half of what someone dumped is worse
@@ -103,8 +111,10 @@ const dumpBody = z
      *  response must not create the dump twice. */
     clientKey: z.string().max(200).optional(),
     /** 020. Photos uploaded ahead of this message, claimed by it here. Each
-     *  must be this account's and unclaimed, or nothing is written. */
-    blobIds: z.array(z.string().uuid()).max(MAX_PHOTOS).optional(),
+     *  must be this account's and unclaimed, or nothing is written. 021: one
+     *  of them may be a voice note, so the cap is the photos plus one; the
+     *  mix is checked against the rows themselves inside the transaction. */
+    blobIds: z.array(z.string().uuid()).max(MAX_PHOTOS + 1).optional(),
     /** 020. They came through the share sheet. Recorded on the message as its
      *  source and on the event as a boolean, and used for nothing else. */
     viaShare: z.boolean().optional(),
@@ -124,7 +134,7 @@ const dumpBody = z
     threadId: z.string().uuid().optional(),
   })
   .refine((body) => body.text.trim().length > 0 || (body.blobIds?.length ?? 0) > 0, {
-    message: "A dump is words, photos, or both.",
+    message: "A dump is words, photos, a voice note, or any of them together.",
   });
 
 type MessageState = "queued" | "seen" | "answered" | "failed" | "partial" | "cancelled";
@@ -217,6 +227,18 @@ const photoOnWire = z.object({
 });
 type PhotoOnWire = z.infer<typeof photoOnWire>;
 
+/** 021. The voice note on a person's message, as the client draws it: the
+ *  bars and the length at once, the transcript when it exists. `text` on the
+ *  message stays the typed words; the two are drawn apart. */
+const voiceOnWire = z.object({
+  blobId: z.string(),
+  durationMs: z.number(),
+  waveform: z.array(z.number()),
+  transcript: z.string().nullable(),
+  transcribed: z.boolean(),
+});
+type VoiceOnWire = z.infer<typeof voiceOnWire>;
+
 const messageResponse = z.object({
   id: z.string(),
   conversationId: z.string(),
@@ -224,6 +246,8 @@ const messageResponse = z.object({
   text: z.string().nullable(),
   /** 020. The photos the person's message carries. Always empty on a reply. */
   photos: z.array(photoOnWire),
+  /** 021. The voice note it carries, or null. */
+  voice: voiceOnWire.nullable(),
   reply: z.string().nullable(),
   threads: touchedThreads,
   /** Thread ids whose contents this turn changed, a superset of `threads`.
@@ -255,6 +279,8 @@ const currentConversation = z.object({
       text: z.string().nullable(),
       /** 020. Empty on every reply. */
       photos: z.array(photoOnWire),
+      /** 021. Null on every reply and on any message without one. */
+      voice: voiceOnWire.nullable(),
       state: messageState,
       /** What an Undo would reverse. The whole turn, not this row. */
       turnId: z.string(),
@@ -279,8 +305,9 @@ const tooLong = z.object({
 const notFound = z.object({ error: z.literal("not_found") });
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 // 020. A 409 rather than a 400: a 400 schema on this route would also
-// serialise Fastify's own validation errors, and they do not fit it.
-const unknownBlob = z.object({ error: z.literal("unknown_blob") });
+// serialise Fastify's own validation errors, and they do not fit it. 021's
+// two mix refusals ride the same status for the same reason.
+const unknownBlob = z.object({ error: z.enum(["unknown_blob", "one_voice_note", "too_many_photos"]) });
 
 /** The reply to a person's message, if it has been answered.
  *
@@ -345,6 +372,43 @@ export async function sourcesFor(
  *  conversation is private, so every message this returns is theirs. `ready`
  *  is whether the renditions exist yet; until they do the client draws the
  *  glyph. Never the coordinate, never the device. */
+/** 021. The voice note each message carries, with the transcript as the
+ *  message holds it. One per message at most. */
+export async function voiceForAll(
+  messageIds: string[],
+  accountId: string,
+): Promise<Map<string, VoiceOnWire>> {
+  const out = new Map<string, VoiceOnWire>();
+  if (messageIds.length === 0) return out;
+  const rows = await db
+    .selectFrom("blobs")
+    .innerJoin("messages", "messages.id", "blobs.message_id")
+    .select([
+      "blobs.id as id",
+      "blobs.message_id as message_id",
+      "blobs.duration_ms",
+      "blobs.measured_ms",
+      "blobs.waveform",
+      "messages.transcript",
+      "messages.transcribed_at",
+    ])
+    .where("blobs.message_id", "in", messageIds)
+    .where("blobs.kind", "=", "audio")
+    .where("messages.account_id", "=", accountId)
+    .where("blobs.deleted_at", "is", null)
+    .execute();
+  for (const row of rows) {
+    out.set(row.message_id!, {
+      blobId: row.id,
+      durationMs: row.measured_ms ?? row.duration_ms ?? 0,
+      waveform: row.waveform ?? [],
+      transcript: row.transcribed_at ? (row.transcript ?? "") : null,
+      transcribed: row.transcribed_at !== null,
+    });
+  }
+  return out;
+}
+
 export async function photosForAll(
   messageIds: string[],
   accountId: string,
@@ -356,13 +420,15 @@ export async function photosForAll(
     .innerJoin("messages", "messages.id", "blobs.message_id")
     .select(["blobs.id as id", "blobs.message_id as message_id", "blobs.name", "blobs.width", "blobs.height", "blobs.renditions_at", "blobs.created_at"])
     .where("blobs.message_id", "in", messageIds)
+    .where("blobs.kind", "=", "image")
     .where("messages.account_id", "=", accountId)
     .where("blobs.deleted_at", "is", null)
     .orderBy("blobs.created_at", "asc")
     .execute();
   for (const row of rows) {
     const list = out.get(row.message_id!) ?? [];
-    list.push({ blobId: row.id, name: row.name, width: row.width, height: row.height, ready: row.renditions_at !== null });
+    // A photo's dimensions are not null by the kind constraint.
+    list.push({ blobId: row.id, name: row.name, width: row.width!, height: row.height!, ready: row.renditions_at !== null });
     out.set(row.message_id!, list);
   }
   return out;
@@ -549,9 +615,11 @@ export type StreamStep =
   | { do: "failed" }
   | { do: "close" }
   /** 017. One line of what offload is doing, on a turn still in flight. The
-   *  stream stays open: this is not a settlement. */
-  | { do: "step"; text: string }
-  | { do: "wait" };
+   *  stream stays open: this is not a settlement. 021: the transcript rides
+   *  on both of the in-flight answers once it exists, so the bubble draws
+   *  what offload heard ahead of the reply. */
+  | { do: "step"; text: string; transcript: string | null }
+  | { do: "wait"; transcript: string | null };
 
 export async function streamStep(
   messageId: string,
@@ -570,13 +638,14 @@ export async function streamStep(
 
   const current = await db
     .selectFrom("messages")
-    .select(["state", "turn_id", "step", "step_at"])
+    .select(["state", "turn_id", "step", "step_at", "transcript", "transcribed_at"])
     .where("id", "=", messageId)
     .where("account_id", "=", accountId)
     .where("deleted_at", "is", null)
     .executeTakeFirst();
 
   if (!current) return { do: "close" };
+  const transcript = current.transcribed_at ? (current.transcript ?? "") : null;
   if (current.state === "answered" || current.state === "partial") {
     const [reply, touched, sources] = await Promise.all([
       replyFor(current.turn_id, accountId),
@@ -600,10 +669,10 @@ export async function streamStep(
   // in preference to the answer it preceded is a progress line that outlives the
   // thing it was describing.
   if (current.step && fresh(current.step_at)) {
-    return { do: "step", text: current.step };
+    return { do: "step", text: current.step, transcript };
   }
 
-  return { do: "wait" };
+  return { do: "wait", transcript };
 }
 
 /** Whether a step is recent enough to draw.
@@ -741,10 +810,11 @@ export async function takeDump(
     // 020. Every photo must be this account's, unclaimed and live, or the
     // dump is refused whole: a message that claims a photo it cannot have is
     // worse than no message. Locked, so two dumps cannot claim one photo.
+    let voice: { byte_size: number; duration_ms: number | null } | null = null;
     if (blobIds.length > 0) {
       const mine = await trx
         .selectFrom("blobs")
-        .select("id")
+        .select(["id", "kind", "byte_size", "duration_ms"])
         .where("id", "in", blobIds)
         .where("account_id", "=", accountId)
         .where("message_id", "is", null)
@@ -752,6 +822,12 @@ export async function takeDump(
         .forUpdate()
         .execute();
       if (mine.length !== blobIds.length) throw new UnknownBlob();
+      // 021. One voice note, at most ten photos, checked against the rows
+      // rather than the ids, since an id says nothing about its kind.
+      const audio = mine.filter((row) => row.kind === "audio");
+      if (audio.length > 1) throw new BadBlobMix("one_voice_note");
+      if (mine.length - audio.length > MAX_PHOTOS) throw new BadBlobMix("too_many_photos");
+      voice = audio[0] ?? null;
     }
 
     const inserted = await trx
@@ -760,9 +836,11 @@ export async function takeDump(
         conversation_id: conversationId,
         account_id: accountId,
         role: "person",
-        // A photo with no words is an image message; words with or without
-        // photos are text, and the photos ride on the row either way.
-        type: blobIds.length > 0 && text.trim().length === 0 ? "image" : "text",
+        // 021. A message carrying a voice note is voice, whatever else it
+        // carries. Otherwise a photo with no words is an image message and
+        // words with or without photos are text; the blobs ride on the row
+        // either way.
+        type: voice ? "voice" : blobIds.length > 0 && text.trim().length === 0 ? "image" : "text",
         turn_id: turnId,
         text: text.trim().length === 0 ? null : text,
         // seen, not queued: offload has it. queued is internal and never
@@ -811,14 +889,17 @@ export async function takeDump(
 
     // The claim. Checked above, written here, one transaction.
     let photoBytes = 0;
+    let photoCount = 0;
     if (blobIds.length > 0) {
       const claimed = await trx
         .updateTable("blobs")
         .set({ message_id: message.id })
         .where("id", "in", blobIds)
-        .returning("byte_size")
+        .returning(["byte_size", "kind"])
         .execute();
-      photoBytes = claimed.reduce((sum, row) => sum + row.byte_size, 0);
+      const images = claimed.filter((row) => row.kind === "image");
+      photoCount = images.length;
+      photoBytes = images.reduce((sum, row) => sum + row.byte_size, 0);
     }
 
     await trx
@@ -864,8 +945,17 @@ export async function takeDump(
       name: "dump_sent",
       subjectId: subject?.analytics_subject_id ?? null,
       platform: "web",
-      // Counts, a size and a boolean. Never a name (OFF-1).
-      properties: { photos: blobIds.length, photo_bytes: photoBytes, via_share: Boolean(photos?.viaShare) },
+      // Counts, sizes and booleans. Never a name, never a transcript (OFF-1).
+      // The voice note's seconds are the device's own count here; the
+      // provider's measurement lands on the ledger row, not on this event.
+      properties: {
+        photos: photoCount,
+        photo_bytes: photoBytes,
+        via_share: Boolean(photos?.viaShare),
+        ...(voice
+          ? { voice: true, voice_seconds: Math.round((voice.duration_ms ?? 0) / 1000), voice_bytes: voice.byte_size }
+          : {}),
+      },
       tx: trx,
     });
 
@@ -962,6 +1052,10 @@ export async function dumpRoutes(app: App): Promise<void> {
           timed();
           return reply.code(409).send({ error: "unknown_blob" as const });
         }
+        if (error instanceof BadBlobMix) {
+          timed();
+          return reply.code(409).send({ error: error.code });
+        }
         throw error;
       }
       mark("dump");
@@ -1010,6 +1104,7 @@ export async function dumpRoutes(app: App): Promise<void> {
         state: message.state,
         text: message.text,
         photos: (await photosForAll([message.id], accountId)).get(message.id) ?? [],
+        voice: (await voiceForAll([message.id], accountId)).get(message.id) ?? null,
         reply: replyRow?.text ?? null,
         // Where it actually went, and everything it changed. Both empty until
         // the turn settles, which is the honest answer while it is running.
@@ -1105,7 +1200,7 @@ export async function dumpRoutes(app: App): Promise<void> {
       // away, and it is the third time this endpoint has dropped something the
       // rest of the API returns. `waiting` and `found` are the first two, and
       // the comment above them says the same sentence.
-      const [landed, sources, photos] = await Promise.all([
+      const [landed, sources, photos, voices] = await Promise.all([
         threadsForAll(
           rows.map((row) => row.id),
           accountId,
@@ -1118,6 +1213,10 @@ export async function dumpRoutes(app: App): Promise<void> {
           rows.map((row) => row.id),
           accountId,
         ),
+        voiceForAll(
+          rows.map((row) => row.id),
+          accountId,
+        ),
       ]);
 
       return reply.send({
@@ -1127,6 +1226,7 @@ export async function dumpRoutes(app: App): Promise<void> {
           role: row.role,
           text: row.text,
           photos: photos.get(row.id) ?? [],
+          voice: voices.get(row.id) ?? null,
           state: row.state,
           turnId: row.turn_id,
           waiting: waiting.get(row.id) ?? null,
@@ -1316,6 +1416,9 @@ export async function dumpRoutes(app: App): Promise<void> {
               threads: step.threads,
               changed: step.changed,
               sources: step.sources,
+              // 021. The transcript rides the settlement too, for a wake that
+              // sees the write and the reply together.
+              voice: (await voiceForAll([message.id], accountId)).get(message.id) ?? null,
               waiting: (await waitingFor([message.id])).get(message.id) ?? null,
               // 018. The question, with the turn that asked it.
               question: (await questionsFor(accountId, [message.id])).get(message.id) ?? null,
@@ -1328,10 +1431,20 @@ export async function dumpRoutes(app: App): Promise<void> {
             return finish();
           }
           if (step.do === "failed") {
-            send("failed", { state: "failed" });
+            send("failed", {
+              state: "failed",
+              // 021. Whether the words were written before the turn failed
+              // decides which line the bubble draws.
+              voice: (await voiceForAll([message.id], accountId)).get(message.id) ?? null,
+            });
             return finish();
           }
           if (step.do === "close") return finish();
+
+          // 021. The transcript, the moment it is written and on every wake
+          // after, for the same reason the step repeats: the client draws it
+          // rather than appending it, and a repeat is a no-op on screen.
+          if (step.transcript !== null) send("transcript", { text: step.transcript });
 
           // 017. The one event that does not end the stream. Sent on every wake
           // that finds a step, which means the same line can be sent twice if
@@ -1537,6 +1650,10 @@ export async function dumpRoutes(app: App): Promise<void> {
           .where("id", "=", message.id)
           .execute();
 
+        // 021. The open question, as the original enqueue carried it: a
+        // spoken answer whose transcription failed once is still read as an
+        // answer on the retry.
+        const openQuestionId = await openQuestionIn(trx, message.conversation_id);
         await enqueue({
           kind: "dump.answer",
           accountId,
@@ -1544,6 +1661,7 @@ export async function dumpRoutes(app: App): Promise<void> {
             messageId: message.id,
             conversationId: message.conversation_id,
             turnId: message.turn_id,
+            ...(openQuestionId ? { openQuestionId } : {}),
           },
           priority: PRIORITY.interactive,
           maxAttempts: 2,

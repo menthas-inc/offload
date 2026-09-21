@@ -204,7 +204,7 @@ const body = z.discriminatedUnion("outcome", [
     jobId: z.string().uuid(),
     /** An enum, never the exception. An error message can carry the dumped
      *  text, and this value reaches an analytics event (OFF-1). */
-    reason: z.enum(["model_error", "invalid_output", "timeout"]),
+    reason: z.enum(["model_error", "invalid_output", "timeout", "transcription_failed"]),
     usage: usage.optional(),
   }),
   /** 017. Somebody stopped it. No reply and no reason: the reply would be

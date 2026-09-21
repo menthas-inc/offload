@@ -1514,10 +1514,14 @@ export async function threadRoutes(app: App): Promise<void> {
         // Provenance is the dump and the author, never the history of where
         // this has been. Content that moved must not carry its old thread's
         // name to people who were never in it.
+        // 021. The message's words are `said(text, transcript)`: a spoken
+        // dump's words reach provenance exactly as typed ones do, since a row
+        // filed into a shared thread already points members at the words it
+        // came from. The audio never does; it is the dumper's alone.
         const from = row.fromMessageId
           ? await db
               .selectFrom("messages")
-              .select(["id", "text", "created_at"])
+              .select(["id", sql<string | null>`said(text, transcript)`.as("text"), "created_at"])
               .where("id", "=", row.fromMessageId)
               .where("deleted_at", "is", null)
               .executeTakeFirst()
@@ -2197,13 +2201,15 @@ export async function withPhotos<T extends { id: string; photo: unknown }>(rows:
     .innerJoin("blobs", "blobs.id", "content_blobs.blob_id")
     .select(["content_blobs.content_id as content_id", "blobs.id as id", "blobs.width", "blobs.height", "blobs.renditions_at"])
     .where("content_blobs.content_id", "in", rows.map((row) => row.id))
+    .where("blobs.kind", "=", "image")
     .where("blobs.deleted_at", "is", null)
     .orderBy("content_blobs.created_at", "asc")
     .execute();
   const byContent = new Map<string, { blobId: string; width: number; height: number; ready: boolean }>();
   for (const blob of found) {
     if (byContent.has(blob.content_id)) continue;
-    byContent.set(blob.content_id, { blobId: blob.id, width: blob.width, height: blob.height, ready: blob.renditions_at !== null });
+    // A photo's dimensions are not null by the kind constraint.
+    byContent.set(blob.content_id, { blobId: blob.id, width: blob.width!, height: blob.height!, ready: blob.renditions_at !== null });
   }
   return rows.map((row) => ({ ...row, photo: byContent.get(row.id) ?? null }));
 }

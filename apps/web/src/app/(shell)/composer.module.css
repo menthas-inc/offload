@@ -940,3 +940,153 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 021. A voice note.
+
+   The composer's recording row, from ui_kits/mobile_app/Composer.jsx: the
+   field gives way to a pulsing dot, the running time, a live waveform that
+   grows from the right, and Discard and Send. A stopped note is the same row
+   with no dot: the absence of the dot is the whole signal, so reduced motion
+   changes nothing about it. The words typed before the microphone was
+   pressed stay drawn above the row, static, three lines at most. */
+.recording {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+}
+
+.recordingDot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--text-danger);
+  animation: recPulse 1.2s var(--ease-out) infinite;
+}
+
+@keyframes recPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.recordingTime {
+  flex: 0 0 auto;
+  font: var(--text-numeric-role);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+/* The window scales with the row: bars at the kit's 3px and 2px pitch, as
+   many as fit, drawn from the right, so a 940px card is not 160px of bars
+   flush right with nothing beside them. */
+.recordingWave {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  height: 24px;
+  overflow: hidden;
+}
+
+.recordingBar {
+  width: 3px;
+  flex: 0 0 auto;
+  border-radius: 2px;
+  background: var(--text-primary);
+}
+
+.recordingWords {
+  font: var(--text-body-role);
+  letter-spacing: var(--tracking-body);
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding: var(--space-2) 0;
+}
+
+.discard {
+  composes: quiet;
+  color: var(--text-danger);
+}
+
+/* The sent note, in the person's bubble: the glyph, the bars, the length. A
+   tap plays. At rest every bar is tertiary; a played one is primary, and the
+   fill runs left to right as it plays. Neither accent: nothing was done by
+   offload and nothing needs you. */
+.sentVoice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  min-width: 150px;
+}
+
+.sentVoiceRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.sentVoiceRow:disabled { cursor: default; }
+
+.sentVoiceBars {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 20px;
+  overflow: hidden;
+}
+
+.sentVoiceBar {
+  width: 3px;
+  flex: 0 0 auto;
+  border-radius: 2px;
+  background: var(--text-tertiary);
+  transition: background var(--duration-base) var(--ease-out);
+}
+
+.sentVoiceBar[data-played] { background: var(--text-primary); }
+
+.sentVoiceTime {
+  flex: 0 0 auto;
+  font: var(--text-numeric-role);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+/* What offload heard, beneath the bars, in the bubble's own type. */
+.sentVoiceTranscript {
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sentVoiceMore {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--text-link);
+  cursor: pointer;
+}
+
+.sentVoiceLine {
+  font: var(--weight-regular) var(--size-body-sm)/1.45 var(--font-core);
+  color: var(--text-danger);
+}
