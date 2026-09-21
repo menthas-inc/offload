@@ -54,13 +54,22 @@ for (const file of readdirSync(SOURCE).sort()) {
     return { kind: "path", d: `M${points.join("L")}` };
   });
 
-  const all = [...paths, ...circles, ...rects, ...lines, ...polylines];
+  // A polygon is a polyline closed with Z. `play.svg` is the first, and
+  // the generator refused it rather than drawing a blank, as it should.
+  const polygons = [...svg.matchAll(/<polygon[^>]*points="([^"]+)"/g)].map((m) => {
+    const nums = m[1].trim().split(/[\s,]+/).map(Number);
+    const points = [];
+    for (let i = 0; i + 1 < nums.length; i += 2) points.push(`${nums[i]} ${nums[i + 1]}`);
+    return { kind: "path", d: `M${points.join("L")}Z` };
+  });
+
+  const all = [...paths, ...circles, ...rects, ...lines, ...polylines, ...polygons];
   // A generated artifact that fails by doing nothing is the worst kind: an
   // icon silently absent renders as empty space and every gate passes. This
   // refuses instead, and it refuses a partial icon too: every drawable element
   // in the file has to come out as a shape, or the file has something this
   // does not read.
-  const drawable = (svg.match(/<(path|circle|rect|line|polyline)\b/g) ?? []).length;
+  const drawable = (svg.match(/<(path|circle|rect|line|polyline|polygon)\b/g) ?? []).length;
   if (all.length === 0) throw new Error(`icons: ${name}.svg produced no shapes`);
   if (all.length !== drawable) {
     throw new Error(`icons: ${name}.svg has ${drawable} drawable elements and ${all.length} were read`);

@@ -92,8 +92,8 @@ a governed component's.)
 **Each row leads with the provider's 10px colour dot.**
 
 - It is **recognition, never the differentiator.** Measured on `--surface-fill`, four of seven
-  ordinary Google colours are under 3:1 in light, the yellow at **1.51:1**, then 2.31, 2.50 and
-  2.75, and two are under in dark, the purple at 2.23 and the grey at 2.54. They are not the same
+  ordinary Google colours are under 3:1 in light — the yellow at **1.51:1**, then 2.31, 2.50 and
+  2.75 — and two are under in dark, the purple at 2.23 and the grey at 2.54. They are not the same
   ones: a bright hue falls against #F2F2F2 and a dark one against #232323, so **no ground flatters a
   palette we do not control.**
 - **Every swatch gets `inset 0 0 0 1px var(--border-hairline)`** so the pale ones keep an edge. That
@@ -111,7 +111,7 @@ the count, in the same trailing slot.
 ## 3. Settings: the rest of the page, in order
 
 1. The provider block: `<ProviderMark size={34} radius={8}/>`, `Google Calendar`, and
-   `jo@hey.com, connected 4 Aug` in caption. **Pass both props explicitly**: the component defaults
+   `jo@hey.com, connected 4 Aug` in caption. **Pass both props explicitly** — the component defaults
    to the 88px hero, and 8px is a proportional scaling of its own 18 rather than a step on the
    radius scale, which is why it is given rather than left to be inferred.
 2. `Calendars offload can use`, the list above, with its count.
@@ -153,7 +153,7 @@ capability does not get a fourth tool by precedent, it gets the same test.**
 - A dot and a bubble both mean attention in every app anyone has used, so a mark that means "you
   configured this" earns a tap that finds nothing wrong. **A control that punishes a tap is worse
   than a control that says less.**
-- `IconButton` already has a `badge` prop, 8px, `--clay-600`, a 1.5px `--paper` ring, and its own
+- `IconButton` already has a `badge` prop — 8px, `--clay-600`, a 1.5px `--paper` ring — and its own
   comment says it means *something new*. A thread's calendar list is not news. **Do not pass
   `badge` to this button.**
 - Section 5 also leaves nothing to mark: with no calendars in a thread by default there is no
@@ -171,7 +171,7 @@ longest thread name against.
 
 **What sits under the bar is `Standing`, and it is a full block, not a name.** The thread's name at
 `--text-title-1`, the people in it as `Chip`s, an outline **Share** chip beside them, offload's
-standing sentence at 18px, and a `sparkles` caption, all inside `--space-7` over `--space-8`.
+standing sentence at 18px, and a `sparkles` caption — all inside `--space-7` over `--space-8`.
 
 **That block already duplicates a bar control, which is the one real alternative to the bar.** A
 chip in the standing row could say the state in words, "1 calendar", with no mark to misread. It is
@@ -203,7 +203,7 @@ get back to it. Neither is needed now.
 **The sheet is `Sheet` as governed**, and the mock had four things wrong before it was read:
 `--radius-sheet` (24px, which `readme.md` already states as "24px on sheet tops"), a 36×4 handle
 with `--space-6` under it, `padding: var(--space-5) var(--gutter-screen) var(--space-8)`, a 21px
-semibold title with `--space-5` under it, and `--surface-scrim` behind it, **0.32, not the soft
+semibold title with `--space-5` under it, and `--surface-scrim` behind it — **0.32, not the soft
 scrim's 0.16.**
 
 **`Sheet`'s title has no trailing slot, so the count does not go there.** The caption line under the
@@ -230,7 +230,7 @@ and the pane behind it is what the scope is about. Same rows, same ticks.
 | --- | --- |
 | one | that calendar, with nothing to ask |
 | two or more | **offload asks in the conversation**, the thread's calendars as the values |
-| none | nowhere, it stays a thing in the thread |
+| none | nowhere — it stays a thing in the thread |
 
 The asking uses the follow-up control from 018 as it stands: the thread's calendars as `value`
 chips, the question as the group's accessible name, `Not that` as the way out. It is the case that

@@ -1,0 +1,521 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>The launch screen, the viewer, and six owed screens</title>
+<link rel="stylesheet" href="../styles.css?v=20260921-owed">
+<link rel="stylesheet" href="frames.css?v=20260921-owed">
+<script src="image-slot.js"></script>
+<style>
+.ph,.crop,.wframe{color:var(--text-primary)}
+[data-platform="android"]{
+  --a-surface:var(--surface-page);
+  --a-c-low:#F6F5F2;--a-c:#ECEBE7;--a-c-high:#E4E3DE;
+  --a-outline:#DEDDD8;--a-on:#1B1B1A;--a-on-var:#5A5A57;--a-on-quiet:#8A8A86;
+  --radius-xs:4px;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:28px;
+  --radius-card:12px;--radius-sheet:28px;--radius-field:8px;
+  --appbar-height:64px;--row-height:56px;--row-height-lg:72px;
+}
+[data-platform="android"][data-theme="dark"]{
+  --a-c-low:#232220;--a-c:#2A2927;--a-c-high:#333230;
+  --a-outline:#3A3937;--a-on:#EDEDED;--a-on-var:#B3B3B3;--a-on-quiet:#8B8B87;
+}
+[data-platform="android"]{background:var(--a-surface);color:var(--a-on)}
+/* ASection: a regular-weight M3 label over an outline hairline, not a semibold heading
+   over an ink rule. */
+[data-platform="android"] .sh{padding:0;margin:0}
+[data-platform="android"] .sh>div{padding:var(--space-6) 0 var(--space-3);margin:0 var(--gutter-screen) var(--space-5);gap:var(--space-3);box-shadow:inset 0 -1px 0 var(--a-outline);border-bottom:none}
+[data-platform="android"] .sh b{font:var(--weight-regular) 22px/28px var(--font-core);letter-spacing:0;color:var(--a-on)}
+[data-platform="android"] .sh em{min-width:0;height:auto;padding:1px 7px;font:var(--weight-medium) 11px/16px var(--font-core);background:var(--a-c-high);color:var(--a-on-var)}
+/* ARow: 56 min-height at --space-4, an outline hairline, 16/24 title on --a-on. */
+[data-platform="android"] .r{min-height:56px;padding:var(--space-4) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--a-outline)}
+[data-platform="android"] .r.two{min-height:56px}
+[data-platform="android"] .r .t{font:var(--weight-regular) 16px/24px var(--font-core);letter-spacing:.005em;color:var(--a-on)}
+[data-platform="android"] .r.two .t{font-weight:var(--weight-medium)}
+[data-platform="android"] .r .mt,[data-platform="android"] .r .bd{font:var(--weight-regular) 14px/20px var(--font-core);letter-spacing:.015em;color:var(--a-on-var)}
+.ph{width:390px;flex:0 0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);display:flex;flex-direction:column;position:relative}
+.ph.t{height:400px}.ph.m{height:520px}.ph.l{height:620px}
+.sb{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:12px 26px 4px;
+  background:var(--surface-chrome);backdrop-filter:var(--blur-chrome);-webkit-backdrop-filter:var(--blur-chrome);
+  font:var(--weight-semibold) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body)}
+[data-platform="android"] .sb{padding:10px 18px 2px;background:var(--surface-raised);backdrop-filter:none;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--a-on)}
+.ph:has(.plane) .sb{position:relative;z-index:6;color:#FFFFFF;background:transparent;backdrop-filter:none}
+.sb u{text-decoration:none;display:flex;align-items:center;gap:5px;color:var(--ink-900)}
+[data-platform="android"] .sb u{gap:6px;color:var(--a-on)}
+.ph:has(.plane) .sb u{color:#FFFFFF}
+.sb .sig{display:flex;align-items:flex-end;gap:2px;height:10px}
+.sb .sig i{display:block;width:3px;border-radius:1px;background:currentColor}
+.sb .sig i:nth-child(1){height:4px}.sb .sig i:nth-child(2){height:6px}
+.sb .sig i:nth-child(3){height:8px}.sb .sig i:nth-child(4){height:10px}
+.sb .bat{width:22px;height:11px;border:1px solid currentColor;border-radius:3px;padding:1px;display:flex;box-sizing:border-box}
+[data-platform="android"] .sb .bat{width:20px;border-width:1.5px;border-radius:2px}
+.sb .bat i{flex:1;background:currentColor;border-radius:1px;display:block}
+/* Phone.jsx's home indicator, and M3Phone.jsx's gesture bar. */
+.ph:after{content:"";position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:var(--ink-300);z-index:7}
+.ph[data-platform="android"]:after{bottom:7px;width:108px;height:4px;border-radius:2px;background:var(--a-on-var);opacity:.5}
+/* The vendored set has no status-bar glyphs and should not gain three for a mock, so the
+   bars are drawn as shapes: signal bars, an arc, a battery. */
+.sb .sig{width:17px;height:11px;background:linear-gradient(to top,currentColor 34%,transparent 34%) 0/3px 100% no-repeat,linear-gradient(to top,currentColor 56%,transparent 56%) 4.7px/3px 100% no-repeat,linear-gradient(to top,currentColor 78%,transparent 78%) 9.4px/3px 100% no-repeat,linear-gradient(to top,currentColor 100%,transparent 100%) 14.1px/3px 100% no-repeat}
+.sb .bat{width:25px;height:12px;border-radius:3px;background:transparent;box-shadow:inset 0 0 0 1px currentColor;position:relative;opacity:.45}
+.sb .bat:after{content:"";position:absolute;inset:2px;border-radius:1px;background:currentColor;opacity:1}
+.mid{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
+.mk{background:currentColor;-webkit-mask:url(../assets/mark.svg) center/contain no-repeat;mask:url(../assets/mark.svg) center/contain no-repeat}
+.mk.lg{width:216px;height:216px}.mk.sm{width:34px;height:34px}
+.spin{position:absolute;left:50%;top:calc(50% + 172px);transform:translateX(-50%);width:18px;height:18px;box-sizing:border-box;border-radius:var(--radius-pill);border:1.5px solid var(--ink-200);border-top-color:var(--ink-700);animation:offload-spin 720ms linear infinite}
+@keyframes offload-spin{to{transform:rotate(360deg)}}
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:var(--space-4);min-height:var(--appbar-height);box-sizing:border-box;padding:0 var(--gutter-screen);background:var(--surface-chrome-strong);backdrop-filter:var(--blur-chrome);-webkit-backdrop-filter:var(--blur-chrome);border-bottom:1px solid transparent}
+.bar.hl{border-bottom-color:var(--border-hairline)}
+.bar h4{flex:1;min-width:0;margin:0;font:var(--text-title-3);letter-spacing:var(--tracking-title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .lead{display:flex;align-items:center;gap:var(--space-2);margin-left:-8px}
+.bar .tools{display:flex;align-items:center;gap:var(--space-2);margin-right:-8px}
+.bc{width:44px;height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+.bar .bc i,.wh .bc i{width:21px;height:21px}
+.g{background:currentColor;display:block;flex:0 0 auto}
+.g.cv{width:18px;height:18px;color:var(--ink-300)}
+.g.xs{width:13px;height:13px}.g.sm{width:15px;height:15px}.g.md{width:17px;height:17px}.g.lg{width:21px;height:21px}
+.wh .bc i{background:currentColor}
+.i-chev-l{-webkit-mask:url(../assets/icons/chevron-left.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-left.svg) center/contain no-repeat}
+.i-share{-webkit-mask:url(../assets/icons/share-2.svg) center/contain no-repeat;mask:url(../assets/icons/share-2.svg) center/contain no-repeat}
+.i-cal{-webkit-mask:url(../assets/icons/calendar.svg) center/contain no-repeat;mask:url(../assets/icons/calendar.svg) center/contain no-repeat}
+.i-more{-webkit-mask:url(../assets/icons/ellipsis.svg) center/contain no-repeat;mask:url(../assets/icons/ellipsis.svg) center/contain no-repeat}
+.i-x{-webkit-mask:url(../assets/icons/x.svg) center/contain no-repeat;mask:url(../assets/icons/x.svg) center/contain no-repeat}
+.i-max{-webkit-mask:url(../assets/icons/maximize-2.svg) center/contain no-repeat;mask:url(../assets/icons/maximize-2.svg) center/contain no-repeat}
+.i-search{-webkit-mask:url(../assets/icons/search.svg) center/contain no-repeat;mask:url(../assets/icons/search.svg) center/contain no-repeat}
+.i-link{-webkit-mask:url(../assets/icons/link.svg) center/contain no-repeat;mask:url(../assets/icons/link.svg) center/contain no-repeat}
+.i-img{-webkit-mask:url(../assets/icons/image.svg) center/contain no-repeat;mask:url(../assets/icons/image.svg) center/contain no-repeat}
+.i-out{-webkit-mask:url(../assets/icons/arrow-up-right.svg) center/contain no-repeat;mask:url(../assets/icons/arrow-up-right.svg) center/contain no-repeat}
+.i-cam{-webkit-mask:url(../assets/icons/camera.svg) center/contain no-repeat;mask:url(../assets/icons/camera.svg) center/contain no-repeat}
+.thr i{background:currentColor}
+.i-lasso{-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat}
+.i-chev-r{-webkit-mask:url(../assets/icons/chevron-right.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-right.svg) center/contain no-repeat}
+.body{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.who{display:flex;gap:var(--space-3);flex-wrap:wrap;padding:var(--space-5) var(--gutter-screen) 0}
+.pchip{display:inline-flex;align-items:center;height:var(--tap-min);margin:-7px 0}
+.pchip>span{display:inline-flex;align-items:center;gap:var(--space-3);height:30px;box-sizing:border-box;padding:0 var(--space-5);border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-primary);border:1px solid transparent;font:var(--weight-medium) var(--size-label)/1 var(--font-core)}
+.pchip.out>span{background:transparent;border-color:var(--border-strong);color:var(--text-secondary)}
+.pchip i{width:14px;height:14px;background:currentColor;flex:0 0 auto}
+.i-users{-webkit-mask:url(../assets/icons/users.svg) center/contain no-repeat;mask:url(../assets/icons/users.svg) center/contain no-repeat}
+.stand{padding:var(--space-7) var(--gutter-screen) 0;font:var(--text-quiet-role);font-size:18px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.attrib{display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-5);padding:0 var(--gutter-screen) var(--space-8);color:var(--text-tertiary);font-size:var(--size-caption)}
+.attrib i{width:13px;height:13px;background:currentColor;flex:0 0 auto}
+.sh{padding:var(--space-9) var(--gutter-screen) var(--space-5)}
+.sh>div{display:flex;align-items:center;gap:var(--space-4);padding-bottom:var(--space-4);border-bottom:1px solid var(--ink-950)}
+.sh b{font:var(--weight-semibold) var(--size-title-2)/1.15 var(--font-core);letter-spacing:var(--tracking-title);color:var(--text-primary)}
+.sh em{font-style:normal;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 var(--space-3);border-radius:var(--radius-pill);background:var(--surface-fill);font:var(--weight-medium) var(--size-label)/1 var(--font-core);color:var(--text-secondary)}
+.sh s{flex:1}
+/* The real component heights: ListRow is 56 single-line and 72 with a second line, both as
+   min-height. Without them the page claims real size and draws a denser list. */
+.r{display:flex;align-items:center;gap:var(--space-5);min-height:var(--row-height);box-sizing:border-box;padding:var(--space-5) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.r.two{min-height:var(--row-height-lg)}
+/* The move sheet's own row: the share sheet stacks name over meta, which .r does not. */
+.mrow{flex:1;min-width:0}
+.r .box{width:20px;height:20px;flex:0 0 auto;border-radius:var(--radius-xs);border:1px solid var(--border-strong);background:transparent}
+.r .tx{flex:1;min-width:0}
+.r .tx,.mrow{display:flex;flex-direction:column;gap:2px}
+.r .t,.mrow .t{font:var(--weight-medium) var(--size-body)/1.3 var(--font-core);letter-spacing:var(--tracking-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r .bd,.mrow .bd{font:var(--text-body-sm-role);color:var(--text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.r .mt,.mrow .mt{font:var(--text-body-sm-role);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* A 20px lead box so an event row and a task row share one text column: the mark is 9px
+   but the column is the checkbox's, which is what "sits where a checkbox would" has to mean. */
+/* DayAgenda's runway: one spine down the day, the dot an anchor on it at left:-19, and a
+   112px time column so every title starts at the same x. */
+.runway{position:relative;padding:0 var(--gutter-screen) 0 calc(var(--gutter-screen) + 19px)}
+.runway:before{content:"";position:absolute;left:calc(var(--gutter-screen) + 3px);top:10px;bottom:10px;width:1px;background:var(--border-hairline)}
+.ev{position:relative;display:flex;align-items:flex-start;gap:var(--space-5);padding:var(--space-4) 0}
+.ev .dot{position:absolute;left:-19px;top:calc(var(--space-4) + 7px);width:8px;height:8px;border-radius:var(--radius-pill);box-shadow:0 0 0 1px var(--border-hairline)}
+.ev .tm{width:112px;flex:0 0 auto;font-size:var(--size-body-sm);line-height:22px;color:var(--text-tertiary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ev .ti{flex:1;min-width:0;font:var(--weight-medium) var(--size-title-3)/1.3 var(--font-core);letter-spacing:var(--tracking-title);padding-top:1px}
+.ev .ti u{display:block;text-decoration:none;font:var(--weight-regular) var(--size-caption)/1.4 var(--font-core);letter-spacing:0;color:var(--text-tertiary);margin-top:3px}
+/* frames.css declares these inline-flex, but as a direct child of a column .cell they
+   blockify and stretch to the row's width. */
+.rec,.verdict,.ask{align-self:flex-start}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-4);padding:0 var(--gutter-screen) var(--space-6)}
+.tile{aspect-ratio:1;border-radius:var(--radius-sm);border:1px solid var(--border-hairline);overflow:hidden;background:var(--ink-100);position:relative}
+.tile.none{background:var(--surface-page);display:flex;align-items:center;justify-content:center;color:var(--text-tertiary)}
+.tile image-slot{width:100%;height:100%;display:block}
+.chips{display:flex;gap:var(--space-3);padding:0 var(--gutter-screen) var(--space-6);overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.tc{display:inline-flex;align-items:center;gap:var(--space-3);height:30px;flex:0 0 auto;box-sizing:border-box;padding:0 var(--space-5);border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-primary);font:var(--weight-medium) var(--size-label)/1 var(--font-core);white-space:nowrap}
+.tc.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.tc.dv{background:var(--moss-600);color:var(--text-on-solid)}
+.i-plus{-webkit-mask:url(../assets/icons/plus.svg) center/contain no-repeat;mask:url(../assets/icons/plus.svg) center/contain no-repeat}
+.i-spark{-webkit-mask:url(../assets/icons/sparkles.svg) center/contain no-repeat;mask:url(../assets/icons/sparkles.svg) center/contain no-repeat}
+.plane{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;background:var(--surface-viewer,var(--viewer-fallback,rgba(11,11,11,.9)))}
+[data-theme="dark"] .plane{--viewer-fallback:#0F0F11}
+.ptop,.pmid,.pcap{color:var(--text-primary)}
+.ptop{display:flex;justify-content:flex-end;gap:var(--space-2);padding:var(--space-5);flex:0 0 auto}
+.pbar{flex:0 0 auto;margin-top:44px;display:flex;align-items:center;gap:var(--space-4);min-height:var(--appbar-height);box-sizing:border-box;padding:0 var(--gutter-screen);background:transparent}
+.pbar s{flex:1}
+.pbar .tools{display:flex;align-items:center;gap:var(--space-2);margin-right:-8px}
+.pbar .bc{color:#FFFFFF}
+.pbar .bc i{width:21px;height:21px}
+.pbtn{width:44px;height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#FFFFFF}
+.pbtn i{width:20px;height:20px}
+.pbtn:before{content:"";position:absolute;width:40px;height:40px;border-radius:var(--radius-pill);background:rgba(255,255,255,.14)}
+.pbtn{position:relative}
+.pmid{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 var(--space-5)}
+.pmid image-slot{width:100%;max-height:100%;display:block;border-radius:var(--radius-sm)}
+.pcap{flex:0 0 auto;padding:var(--space-5) var(--gutter-screen) var(--space-7);color:#fff}
+.pcap b{display:block;font:var(--weight-medium) 16px/1.35 var(--font-core)}
+.pcap span{display:block;font-size:13.5px;line-height:1.45;opacity:.72;margin-top:4px}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--surface-raised);border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;box-shadow:var(--shadow-sheet);box-sizing:border-box;padding:var(--space-5) var(--gutter-screen) var(--space-8)}
+.grab{width:36px;height:4px;border-radius:var(--radius-pill);background:var(--ink-200);margin:0 auto var(--space-6)}
+.st{margin:0 0 var(--space-5);font:var(--weight-semibold) var(--size-title-1)/var(--leading-title) var(--font-core);font-size:21px;letter-spacing:var(--tracking-title)}
+.sintro{font:var(--text-body-sm-role);color:var(--text-secondary);padding-bottom:var(--space-4)}
+.sfoot{margin-top:var(--space-7);display:flex;gap:var(--space-4)}
+.sbtn{flex:1;display:flex;align-items:center;justify-content:center;height:44px;margin:-2px 0}
+.sbtn>span{display:flex;width:100%;align-items:center;justify-content:center;height:40px;box-sizing:border-box;padding:0 var(--space-6);border-radius:var(--radius-sm);font:var(--weight-medium) var(--size-body-sm)/1 var(--font-core);letter-spacing:var(--tracking-body)}
+.sbtn.sec>span{background:var(--surface-raised);color:var(--text-primary);border:1px solid var(--border-strong)}
+.fld{display:flex;align-items:center;gap:var(--space-3);height:42px;margin:0 0 var(--space-2);padding:0 var(--space-5);border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-tertiary);font:var(--text-body-sm-role);font-size:14.5px;letter-spacing:var(--tracking-body)}
+.av{width:36px;height:36px;flex:0 0 auto;border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;background:var(--surface-fill);font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary)}
+.thr{flex:0 0 auto;display:flex;align-items:center;color:var(--text-secondary)}
+.thr i{width:18px;height:18px}
+.ar{display:flex;align-items:center;gap:var(--space-5);min-height:var(--row-height);box-sizing:border-box;padding:var(--space-5) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.ar:has(.mt){min-height:var(--row-height-lg)}
+.ar:last-of-type{box-shadow:none}
+.cbx{width:20px;height:20px;flex:0 0 auto;border-radius:var(--radius-xs);border:1px solid var(--border-strong)}
+.cbx.on{background:var(--surface-inverse);border-color:transparent}
+.scrim{position:absolute;inset:0;z-index:5;background:var(--surface-scrim)}
+.ras{position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--surface-raised);border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;box-shadow:var(--shadow-sheet);padding:var(--space-5) 0 var(--space-8)}
+.ras .subj{margin:0 0 var(--space-3);padding:0 var(--gutter-screen);font:var(--text-body-sm-role);color:var(--text-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ras .act{display:flex;align-items:center;gap:var(--space-5);min-height:var(--tap-min);padding:0 var(--gutter-screen);font:var(--text-body-role);letter-spacing:var(--tracking-body);color:var(--text-primary)}
+.ras .act i{width:18px;height:18px;color:var(--text-tertiary)}
+.tok{display:flex;gap:10px;align-items:stretch;margin-top:14px}
+.tok .sw{flex:1;height:58px;border-radius:var(--radius-sm);border:1px solid var(--border-hairline);display:flex;align-items:flex-end;padding:7px 9px;font:var(--text-numeric-role);font-size:10.5px;color:#fff}
+.verdict{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px}
+.verdict.no{background:var(--clay-100);color:var(--text-danger)}
+.verdict.yes{background:var(--surface-accent-soft);color:var(--moss-700)}
+.ask{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;background:var(--amber-100);color:var(--amber-700)}
+.crop{width:390px;flex:0 0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);padding:var(--space-5) 0;box-sizing:border-box}
+.wframe{width:560px;flex:0 0 auto;border-radius:12px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);position:relative;height:360px;display:flex;flex-direction:column}
+/* A cell's flex base comes from its widest child, and .spec's 92ch made every cell wider
+   than the phone it wraps, so each comparison row wrapped to one per line. Cap the cell at
+   the mock it holds and let the prose wrap inside it. */
+.row>.cell{max-width:390px}
+.row>.cell:has(.wframe){max-width:560px}
+.cell .spec{max-width:none}
+.wh{flex:0 0 auto;padding:var(--space-6) 0 0}
+.wh>div{display:flex;align-items:flex-start;gap:var(--space-4);max-width:700px;margin:0 auto;padding:0 var(--space-8)}
+.wh h4{flex:1;min-width:0;margin:0;font:var(--weight-semibold) 20px/1.2 var(--font-core);letter-spacing:-.016em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wh h4 u{display:block;text-decoration:none;font:var(--weight-regular) 13.5px/1.4 var(--font-core);letter-spacing:0;color:var(--text-secondary);margin-top:3px}
+.wh .tools{display:flex;gap:var(--space-2);flex:0 0 auto}
+.wh .bc{width:44px;height:44px;margin:-6px;display:flex;align-items:center;justify-content:center}
+.wh .bc:before{content:"";position:absolute;width:32px;height:32px;border-radius:var(--radius-pill);background:var(--surface-fill)}
+.wh .bc{position:relative;color:var(--text-primary)}
+.wh .bc i{position:relative;width:16px;height:16px}
+</style></head><body><div class="wrap">
+
+<h1>The launch screen, the viewer, and six owed screens</h1>
+<p class="lede">Everything the 21 September pull left owed, drawn at real size in both themes. The launch screen is the one with no entry behind it, so it is first and it is the only section that turned up a conflict: <b>neither platform's splash can show a spinner</b>, so the thing you picked is two screens rather than one. The rest are drawings of decisions code has already made, and the only one that needs a new token is the photo viewer's plane, which is hand-mixed in light and an existing token at full opacity in dark.</p>
+<p class="lede"><b>Photos are drop slots.</b> Nothing on this page has a real picture in it: drag your own onto any tile or the viewer and it stays. The tiles are drawn at the real geometry either way.</p>
+
+<div class="sechead"><h2>1. The launch screen</h2><u>the mark, on the app's own ground</u></div>
+<p class="snote">The mark alone, centred, on <code>--surface-page</code>, in both themes. No wordmark: iOS's storyboard allows no text at all, and the wordmark is live type rather than an outlined file, so it could not be in a splash even if the platform allowed one.</p>
+
+<div class="rowlabel">What the platforms actually draw<u>0 to 1 second</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>iOS, light</b><span>storyboard</span></div>
+<div class="ph t"><div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div><div class="mid"><span class="mk lg"></span></div></div>
+</div>
+<div class="cell"><div class="tag i"><b>iOS, dark</b><span>the dark pair</span></div>
+<div class="ph t" data-theme="dark"><div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div><div class="mid"><span class="mk lg"></span></div></div>
+</div>
+<div class="cell"><div class="tag i"><b>Android, light</b><span>icon on a colour</span></div>
+<div class="ph t" data-platform="android"><div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div><div class="mid"><span class="mk lg" style="width:192px;height:192px"></span></div></div>
+</div>
+<div class="cell"><div class="tag i"><b>Android, dark</b><span>same, inverted</span></div>
+<div class="ph t" data-platform="android" data-theme="dark"><div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div><div class="mid"><span class="mk lg" style="width:192px;height:192px"></span></div></div>
+</div>
+</div>
+<ul class="spec">
+<li><b>The ground is <code>--surface-page</code>:</b> #FAF9F7 in light, #1C1B19 in dark. The mark is <code>--ink-950</code> and <code>--paper</code>, which is the one-colour rule the mark has always had.</li>
+<li><b>The mark is 216pt on iOS and 192dp on Android.</b> Android's splash masks the icon to a circle at 240dp with the inner two thirds visible, so 192 is drawn inside that canvas on no background layer: no visible circle, and the system's own reveal has room. iOS has no mask and takes the mark as a plain centred image.</li>
+<li><b>The mark is <code>--text-primary</code> in both themes, not <code>--ink-950</code> and <code>--paper</code>.</b> Both ramps invert in dark, so <code>--paper</code> there is #191919 and a mark set to it measures <b>1.02:1</b> on the page. One token gives ink on light and #EDEDED on dark with nothing to keep in sync, and it is the same one-colour rule the mark has always had.</li>
+<li><b>Neither platform can animate anything here</b>, and Android owns the reveal. Whatever you put in the storyboard is a still frame.</li>
+</ul>
+
+<div class="rowlabel">The conflict, and what it makes this<u>1 second and after</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>The splash</b><span>native, 0 to handover</span></div>
+<div class="ph m"><div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div><div class="mid"><span class="mk lg"></span></div></div>
+<ul class="spec"><li>Held until <code>/api/me</code> answers. Nothing on it but the mark.</li></ul>
+</div>
+<div class="cell"><div class="tag m"><b>The holding screen</b><span>the app draws this</span></div>
+<div class="ph m"><div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div><div class="mid"><span class="mk lg"></span><span class="spin"></span></div></div>
+<ul class="spec"><li>Pixel-identical ground and mark, with the spinner faded in at <b>1000ms</b> over <code>--duration-slow</code>.</li></ul>
+<span class="rec">this is the second screen</span>
+</div>
+<div class="cell"><div class="tag m"><b>Holding, dark</b><span>the same</span></div>
+<div class="ph m" data-theme="dark"><div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div><div class="mid"><span class="mk lg"></span><span class="spin"></span></div></div>
+</div>
+</div>
+<ul class="spec">
+<li><span class="ask">the thing to know</span> <b>A spinner cannot go on the native splash.</b> iOS gives you a background colour and one static image; Android 12 and later gives you a colour, an icon and its own reveal, and neither takes a view of yours. So "a spinner after about a second" is <b>a screen the app draws the instant the splash hands over</b>, identical to it, with the spinner appearing on a timer from launch.</li>
+<li><b>The seam is the whole risk.</b> Two screens meant to look like one will not, unless the mark is at the same size in the same place in both, <b>measured from the screen's centre rather than from a container</b>. The spinner must not be in the centring flow: put it in the column and its box re-centres everything above it, which moves the mark by half the spinner's height plus its gap. In these two frames that would be <b>37px</b>, and it is a blink on every cold start. Here the mark centres on the screen and the spinner is placed under it.</li>
+<li><b>The spinner waits 1000ms and is unlabelled.</b> The readme allows a lowercase label and there is nothing honest to put in it: offload is not looking through your stuff yet, it is finding out who you are. Under a second, nobody sees it and the start reads as instant; over a second, the screen says the app is alive rather than stuck.</li>
+<li><b>It sits 64px under the mark</b>, which is clear space enough that the two never read as one object, and it is the system's own <code>Spinner</code> rather than the platform's.</li>
+</ul>
+<ul class="spec">
+<li><span class="verdict no">two whites, two seconds apart</span> <b>The app icon went ink-on-white on 20 September and this is ink on paper.</b> A person taps a #FFFFFF tile and lands on a #FAF9F7 screen, which is a 1.02:1 step and invisible in isolation but sequential here. Both are right on their own terms: a home screen is not a page, and a launch screen is the app's own ground. <b>Worth knowing rather than fixing</b>, unless you would rather the splash matched the icon, in which case the whole first frame stops being offload's paper.</li>
+</ul>
+
+<div class="sechead"><h2>2. The photo viewer</h2><u>a dark plane, and the token it needs</u></div>
+<p class="snote">A photo opened from a tile, a thumbnail or a row's tile, shown over whatever was on screen. The plane is not <code>--surface-scrim</code>: at its 0.32 a white screenshot on a warm page read as a page behind a page.</p>
+<div class="row">
+<div class="cell"><div class="tag i"><b>iOS, light theme</b><span>the plane over a thread</span></div>
+<div class="ph l">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><h4>Lisbon trip</h4><span class="tools"><span class="bc"><i class="g md i-share"></i></span><span class="bc"><i class="g lg i-more"></i></span></span></div>
+<div class="body"><div class="sh"><div><b>Files</b><em>6</em><s></s></div></div><div class="grid3"><div class="tile"><image-slot id="v1" placeholder="a photo"></image-slot></div><div class="tile"><image-slot id="v2" placeholder="a photo"></image-slot></div><div class="tile"><image-slot id="v3" placeholder="a photo"></image-slot></div></div></div>
+<div class="plane">
+<div class="pbar"><s></s><span class="tools"><span class="bc"><i class="g i-more"></i></span><span class="bc"><i class="g i-x"></i></span></span></div>
+<div class="pmid" data-theme="dark"><image-slot id="v-big" placeholder="drop a photo"></image-slot></div>
+<div class="pcap" data-theme="dark"><b>Alfama flat, the kitchen</b><span>Ana sent it, 4 Aug · 2 of 6</span></div>
+</div>
+</div>
+<ul class="spec"><li>Two controls in the phone's bar: More and Close. <b>Full screen is web only</b>, since a phone has no window to fill.</li><li>The caption is the row's title and what the row says about the picture, with the position in the set after it.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>Dark theme</b><span>opaque, not a mix</span></div>
+<div class="ph l" data-theme="dark">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><h4>Lisbon trip</h4><span class="tools"><span class="bc"><i class="g md i-share"></i></span><span class="bc"><i class="g lg i-more"></i></span></span></div>
+<div class="body"><div class="sh"><div><b>Files</b><em>6</em><s></s></div></div><div class="grid3"><div class="tile"><image-slot id="v4" placeholder="a photo"></image-slot></div><div class="tile"><image-slot id="v5" placeholder="a photo"></image-slot></div><div class="tile"><image-slot id="v6" placeholder="a photo"></image-slot></div></div></div>
+<div class="plane">
+<div class="pbar"><s></s><span class="tools"><span class="bc"><i class="g i-more"></i></span><span class="bc"><i class="g i-x"></i></span></span></div>
+<div class="pmid" data-theme="dark"><image-slot id="v-big-d" placeholder="drop a photo"></image-slot></div>
+<div class="pcap" data-theme="dark"><b>Alfama flat, the kitchen</b><span>Ana sent it, 4 Aug · 2 of 6</span></div>
+</div>
+</div>
+<ul class="spec"><li><b>In dark the plane is opaque</b>, <code>--surface-plate</code> at #0F0F11. It cannot be the inverse, which in dark is lighter than the page, and it cannot be a mix of the page, which measures 1.00:1 against it. The bullets under the swatches have the numbers.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>Web</b><span>three controls</span></div>
+<div class="wframe">
+<div class="wh"><div><h4>Lisbon trip<u>8 things · Ana, Tom</u></h4><span class="tools"><span class="bc"><i class="i-cal"></i></span><span class="bc"><i class="i-more"></i></span></span></div></div>
+<div class="plane">
+<div class="ptop" data-theme="dark"><span class="pbtn"><i class="g i-max"></i></span><span class="pbtn"><i class="g i-more"></i></span><span class="pbtn"><i class="g i-x"></i></span></div>
+<div class="pmid" data-theme="dark"><image-slot id="v-web" placeholder="drop a photo"></image-slot></div>
+<div class="pcap" data-theme="dark"><b>Alfama flat, the kitchen</b><span>Ana sent it, 4 Aug · 2 of 6</span></div>
+</div>
+</div>
+<ul class="spec"><li>Full screen, More, Close, overlaid top right. Arrows and the arrow keys page a set; Esc and the plane close it.</li><li><code>IconButton</code>'s geometry, a 40px visual box inside a 44px hit with a 20px glyph. <b>The translucent circle and the white ink are the one departure</b>, because the ground here is an arbitrary photo rather than a surface, and <code>ghost</code>'s <code>--text-secondary</code> cannot be relied on over one.</li></ul>
+</div>
+</div>
+<div class="rowlabel">The token the plane needs<u>a mix in light, an existing token in dark</u></div>
+<div class="tok">
+<div class="sw" style="background:color-mix(in srgb,#0B0B0B 90%,transparent)">light · --surface-inverse at 90%</div>
+<div class="sw" style="background:#0F0F11">dark · --surface-plate, opaque</div>
+</div>
+<ul class="spec">
+<li><span class="rec">mint --surface-viewer</span> One alias, two scopes: <code>--surface-inverse</code> at 90% in light, <code>--surface-plate</code> opaque in dark. <b>It cannot be <code>--surface-scrim</code></b>, which is 0.32 and is for a sheet's backdrop: this plane is the surface a picture is shown on, not a dimming of what is behind it.</li>
+<li><b>In dark the plane is opaque, and that is the finding.</b> A translucent plane in dark has nowhere to go: <code>--surface-page</code> at 92% over <code>--surface-page</code> measures <b>1.00:1</b>, so there is no plane at all, only 8% of the thread ghosting through, which reads as a bug rather than as a viewer. Even the darkest available value gets to <b>1.09:1</b>. So dark takes <code>--surface-plate</code>, #0F0F11, <b>opaque</b>, the same near-black the prism veil uses, and what says a viewer is open is that the screen behind it is gone.</li>
+<li><b>Light stays at 90% because there the translucency works:</b> ink over a warm page composites to about #232323, which reads as depth. <b>The two are different on purpose and the alias is what stops that reading as a mistake</b> — hand-mixed in two files, somebody will "fix" the inconsistency and put the dark one back to 1.00:1.</li>
+<li><b>The caption and the controls are on <code>#FFFFFF</code>, not <code>--text-inverse</code>.</b> The plane is near-opaque ink in light and an opaque near-black in dark, so ink-inverse would flip to dark text on a dark plane. White is the one value that holds on both.</li>
+</ul>
+
+<div class="sechead"><h2>3. The move sheet</h2><u>the share sheet's shape</u></div>
+<p class="snote">The first move control the product has drawn. It is <code>Sharing.jsx</code>'s sheet with the list swapped: a search field on top, the person's threads beneath minus the one the row is in, and a tap moves.</p>
+<div class="row">
+<div class="cell"><div class="tag i"><b>From the viewer's More</b><span>iOS</span></div>
+<div class="ph l" style="height:560px">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="plane" style="z-index:4"><div class="pbar"><s></s><span class="tools"><span class="bc"><i class="g i-more"></i></span><span class="bc"><i class="g i-x"></i></span></span></div><div class="pmid" data-theme="dark"><image-slot id="mv" placeholder="a photo"></image-slot></div></div>
+<div class="scrim" style="z-index:5"></div>
+<div class="sheet">
+<div class="grab"></div>
+<h2 class="st">Move to</h2>
+<div class="fld"><i class="g sm i-search"></i>Search your threads</div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Bookshelf</b><span class="mt">6 things · just you</span></span><i class="g cv i-chev-r"></i></div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Groceries</b><span class="mt">14 things · just you</span></span><i class="g cv i-chev-r"></i></div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Ana's bbq</b><span class="mt">5 things · Ana</span></span><i class="g cv i-chev-r"></i></div>
+<div class="sfoot"><span class="sbtn sec"><span>Cancel</span></span></div>
+</div>
+</div>
+<ul class="spec"><li><b>What it shares with the share sheet is the sheet</b>: the same 42px <code>FindField</code>, the same row rhythm, the same footer. <b>Not the leading slot</b>, because that list is people and this one is threads.</li><li>So a row leads with an 18px <code>lasso</code> in <code>--text-secondary</code>, as <code>MemoriesScreen.jsx</code> draws a thread and as the thread's mark reads everywhere else, in <code>TurnFooter</code>'s pill and <code>AnswerResult</code>'s chip. <b>The initials circle is <code>Avatar</code> and it means a person</b>, which is what the four rows in the crop beside this one are.</li><li><b>The thread the row is in is not in the list.</b> Not greyed, absent: moving something to where it already is is not a thing to offer. The picture above is in Lisbon trip, so Lisbon trip is not a destination.</li><li>A tap moves and closes. No confirm button, because the move is a write drawn at the press with an Undo in the toast.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>Nothing to move to</b><span>one thread only</span></div>
+<div class="crop" style="padding:var(--space-5) var(--gutter-screen) var(--space-8);background:var(--surface-raised);border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;box-shadow:var(--shadow-sheet)">
+<div class="grab"></div>
+<h2 class="st">Move to</h2>
+<div class="fld"><i class="g sm i-search"></i>Search your threads</div>
+<div style="padding:var(--space-6) 0;font-size:14px;line-height:1.5;color:var(--text-secondary)">This is your only thread, so there is nowhere to move it yet.</div>
+<div class="sfoot"><span class="sbtn sec"><span>Cancel</span></span></div>
+</div>
+<ul class="spec"><li>The case the share sheet never has, because sharing always has somebody to add. <b>Move can run out of destinations</b>, and a search field over an empty list reads as a fault.</li><li><b>It is the one state where the footer is the only thing to press.</b> Everywhere else the exit is redundant, since tapping a destination closes the sheet; here there are no rows at all.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>4. The phones' thread head, one line</h2><u>the shape WPaneHead gives the web</u></div>
+<p class="snote">The name leaves the scroll and becomes the bar's title. The <code>Standing</code> heading and the Share chip under it go; More gains the menu the web's ellipsis has.</p>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Was</b><span>two levels</span></div>
+<div class="ph l">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><span style="flex:1"></span><span class="tools"><span class="bc"><i class="g md i-share"></i></span><span class="bc"><i class="g lg i-more"></i></span></span></div>
+<div class="body">
+<div style="padding:var(--space-7) var(--gutter-screen) 0"><h1 style="margin:0;font:var(--text-title-1);letter-spacing:var(--tracking-title)">Lisbon trip</h1></div>
+<div class="who" style="padding-top:var(--space-5)"><span class="pchip"><span><i class="i-users"></i>Ana</span></span><span class="pchip"><span><i class="i-users"></i>Tom</span></span><span class="pchip out"><span><i class="i-share"></i>Share</span></span></div>
+<div class="stand">Still a few things to book. You fly on Friday, and Ana can only travel the 14th to the 17th, so the dates are settled.</div><div class="attrib"><i class="i-spark"></i>offload wrote this, updated 2m ago</div>
+<div class="sh"><div><b>To do</b><em>1</em><s></s></div></div>
+<div class="r"><span class="box"></span><span class="tx"><b class="t">Book the airport transfer</b></span></div>
+</div>
+</div>
+<ul class="spec"><li>An almost empty bar, and the name a person has just tapped spending the top of the page. It rolls away on the first scroll.</li></ul>
+<span class="verdict no">the name is in the scroll</span>
+</div>
+<div class="cell"><div class="tag m"><b>Is</b><span>one line</span></div>
+<div class="ph l">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><h4>Lisbon trip</h4><span class="tools"><span class="bc"><i class="g md i-share"></i></span><span class="bc"><i class="g md i-cal"></i></span><span class="bc"><i class="g lg i-more"></i></span></span></div>
+<div class="body">
+<div class="stand">Still a few things to book. You fly on Friday, and Ana can only travel the 14th to the 17th, so the dates are settled.</div><div class="attrib"><i class="i-spark"></i>offload wrote this, updated 2m ago</div>
+<div class="sh"><div><b>To do</b><em>2</em><s></s></div></div>
+<div class="r two"><span class="box"></span><span class="tx"><b class="t">Book the airport transfer</b><span class="bd">the 6am one from the flat, Ana says the metro isn't running that early</span></span></div>
+<div class="r two"><span class="box"></span><span class="tx"><b class="t">Pay Ana €214 for the flights</b><span class="mt">Ana · due Thursday</span></span></div>
+</div>
+</div>
+<ul class="spec"><li><b>Three tools, by the criterion:</b> Share and the calendar change what offload reads or shows, More holds what acts on the thread. Rename thread, Add a note and Calendars in this thread, in the web's order.</li><li>The calendar appears only when the account has a connection, so most bars carry two.</li><li><b>The people chips go entirely.</b> Who a thread is shared with is a question you ask by tapping share, and the answer belongs beside the actions that change it, which is the sheet on the right. <b>What stays above the scroll is the standing alone</b>, and only when there is one; a thread with no standing starts at its first section.</li></ul>
+<span class="rec">as code built it</span>
+</div>
+<div class="cell"><div class="tag i"><b>Just you, nothing said yet</b><span>the bare case</span></div>
+<div class="ph l">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><h4>Bookshelf</h4><span class="tools"><span class="bc"><i class="g md i-share"></i></span><span class="bc"><i class="g lg i-more"></i></span></span></div>
+<div class="body">
+<div class="sh"><div><b>To do</b><em>2</em><s></s></div></div>
+<div class="r two"><span class="box"></span><span class="tx"><b class="t">Order the matte black brackets</b><span class="bd">30cm, the ones from the sale that ends Friday</span></span></div>
+<div class="r"><span class="box"></span><span class="tx"><b class="t">Measure the alcove</b></span></div>
+</div>
+</div>
+<ul class="spec"><li>No standing and no calendar. The head is back, the name, Share and More, and the list starts immediately.</li><li><b>A two-line row is why the centring changed.</b> The tick sits on the row, not on the title's first line, which is what the 20 September entry reversed for the phones.</li>
+<li><span class="ask">the kits are behind here</span> <b>A to-do is drawn as a <code>ListRow</code>, and both phone kits still draw it as a standalone <code>Checkbox</code></b> in a <code>--space-6</code> gapped column with no hairlines. Code's 20 September entry settles it the other way twice over: it centres the phones' <code>ListRow</code> leading and trailing, and it says a to-do row draws its body under the title, which <code>Checkbox</code> has no slot for. So the kits' task list is the thing that moves, not this.</li>
+<li>That also keeps <code>ListRow.d.ts</code>'s rule intact rather than breaking it: <code>Checkbox</code> keeps its own first-line alignment <b>for a standalone tick with a label</b>, and inside a <code>ListRow</code> the row's centring wins. A to-do is no longer the standalone case.</li></ul>
+</div>
+<div class="cell"><div class="tag m"><b>Where the people went</b><span>the share sheet</span></div>
+<div class="ph l">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><h4>Lisbon trip</h4><span class="tools"><span class="bc"><i class="g md i-share"></i></span><span class="bc"><i class="g md i-cal"></i></span><span class="bc"><i class="g lg i-more"></i></span></span></div>
+<div class="body"><div class="stand">Still a few things to book. You fly on Friday, and Ana can only travel the 14th to the 17th, so the dates are settled.</div><div class="attrib"><i class="i-spark"></i>offload wrote this, updated 2m ago</div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grab"></div>
+<h2 class="st">Share Lisbon trip</h2>
+<div class="sintro">Everyone in here sees everything in it.</div>
+<div class="ar"><span class="av">AD</span><span class="mrow"><b class="t">Ana Duarte</b><span class="mt">in since 2 Aug</span></span><span class="bc" style="width:34px;height:34px;color:var(--text-tertiary)"><i class="g md i-x"></i></span></div>
+<div class="ar"><span class="av">TR</span><span class="mrow"><b class="t">Tom Reilly</b><span class="mt">in since 4 Aug</span></span><span class="bc" style="width:34px;height:34px;color:var(--text-tertiary)"><i class="g md i-x"></i></span></div>
+<div class="fld" style="margin-top:var(--space-5)"><i class="g sm i-search"></i>Search your connections</div>
+<div class="ar"><span class="av">SM</span><span class="mrow"><b class="t">Sam Okonjo</b><span class="mt">sam@okonjo.dev</span></span><span class="cbx"></span></div>
+<div class="ar"><span class="av"><i class="g md i-plus"></i></span><span class="mrow"><b class="t">New connection</b></span><i class="g cv i-chev-r"></i></div>
+<div style="padding:var(--space-4) 0 0;font-size:12.5px;line-height:1.45;color:var(--text-secondary)">A shared thread belongs to everyone in it. If somebody leaves offload, the thread and everything they added stay with the rest of you.</div>
+<div class="sfoot"><span class="sbtn sec"><span>Done</span></span></div>
+</div>
+</div>
+<ul class="spec"><li><b>Who is in, and what you can do about it, in one place.</b> The pills only ever said who; the sheet says who, since when, and offers the way out beside each name.</li><li>It is <code>Sharing.jsx</code>'s sheet, everything of it: the intro line, the connection rows with their tick, New connection, the permission caption and the footer. <b>The one change is order</b>, the people already in lifted above the search field rather than mixed into the list, so the answer to "who else sees this" is the first thing in it, and their tick becomes the way out.</li><li><b>The thread page keeps no trace of them</b>, which is the trade: on a shared thread you now tap to find out who is in. The share glyph is in the bar on every thread, so it is one tap and always the same one.</li></ul>
+<span class="rec">as asked</span>
+</div>
+</div>
+
+<div class="sechead"><h2>5. Files is a grid, and links leave it</h2><u>earned by a photo, and by nothing else</u></div>
+<div class="row">
+<div class="cell"><div class="tag m"><b>The grid</b><span>three columns, square</span></div>
+<div class="crop">
+<div class="sh" style="padding-top:var(--space-5)"><div><b>Files</b><em>6</em><s></s></div></div>
+<div class="chips"><span class="tc on">All 6</span><span class="tc dv"><i class="g xs i-spark"></i>the flat 3</span><span class="tc dv"><i class="g xs i-spark"></i>receipts 2</span><span class="tc dv"><i class="g xs i-spark"></i>tickets 1</span></div>
+<div class="grid3">
+<div class="tile"><image-slot id="f1" placeholder="a photo"></image-slot></div>
+<div class="tile"><image-slot id="f2" placeholder="a photo"></image-slot></div>
+<div class="tile"><image-slot id="f3" placeholder="a photo"></image-slot></div>
+<div class="tile"><image-slot id="f4" placeholder="a photo"></image-slot></div>
+<div class="tile"><image-slot id="f5" placeholder="a photo"></image-slot></div>
+<div class="tile none"><i class="g lg i-img" style="width:22px;height:22px"></i></div>
+</div>
+</div>
+<ul class="spec"><li><code>--radius-sm</code> with a hairline, the picture cropped to the square with <b>no treatment</b>: no overlay, no gradient, no corner glyph.</li><li><b>The chip row is the thread's tag dimension</b>, as 007 built it, not a filter by kind. There is no "Links" chip any more.</li><li><b>No controls on a tile.</b> A tap opens the viewer, where the row's tools are, and the <code>+</code> does not draw on the Files heading.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>A link is still a row</b><span>in the list, with its picture</span></div>
+<div class="crop">
+<div class="r two"><span style="width:44px;height:44px;flex:0 0 auto;border-radius:var(--radius-sm);border:1px solid var(--border-hairline);background:var(--ink-100)"></span><span class="tx"><b class="t">The 12 best neighbourhoods in Lisbon</b><span class="mt">timeout.com · Ana, 4 Aug</span></span><span class="bc" style="width:34px;height:34px;color:var(--text-tertiary)"><i class="g md i-out"></i></span></div>
+<div class="r two" style="box-shadow:none"><span style="width:44px;height:44px;flex:0 0 auto;border-radius:var(--radius-sm);background:var(--surface-page);border:1px solid var(--border-hairline);display:flex;align-items:center;justify-content:center;color:var(--text-tertiary)"><i class="g md i-link"></i></span><span class="tx"><b class="t">Alfama flat booking</b><span class="mt">airbnb.com · you, 2 Aug</span></span><span class="bc" style="width:34px;height:34px;color:var(--text-tertiary)"><i class="g md i-out"></i></span></div>
+</div>
+<ul class="spec"><li><b>A link in a grid of untitled squares loses the title and the domain that identify it</b>, which is the whole argument. It keeps the page's own picture in a 44px tile, as decided on 14 September, and the glyph tile until the picture is fetched, which is the second row. The tiles are on <code>FileTile</code>’s own two grounds, <code>--ink-100</code> where a picture exists and <code>--surface-page</code> where it does not.</li>
+<li><span class="verdict yes">reversed</span> <b>Tapping the row opens the page.</b> It was the other way round: the tap opened a detail screen and the page was a second step. A link is the one row in the product whose content lives somewhere else, so the row is a door rather than a record of one.</li>
+<li><b>So the trailing glyph is <code>arrow-up-right</code>, not a chevron.</b> A chevron promises a screen inside the app and this leaves it. The glyph is <b>vendored here as the 82nd</b>, the way <code>grip-vertical</code> was vendored on the 16th: a rotated <code>arrow-up</code> would have left an implementer with no slug to call. The row's own tools, rename, move and the way out, are where every other row keeps them: the action sheet, on long press, and behind More on web.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>6. A calendar event in the day's list</h2><u>DayAgenda's own line, with two additions</u></div>
+<p class="snote"><b>Not a new object.</b> <code>DayAgenda.jsx</code> already has <code>EventLine</code>: the runway's spine, an 8px anchor on it at <code>left:-19</code>, a 112px time column so every title starts at the same x, and the title at <code>--size-title-3</code>. A calendar's event is that line with a different source, so it is drawn as that line and gains exactly two things.</p>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Light</b><span>on the runway</span></div>
+<div class="crop">
+<div class="runway">
+<div class="ev"><span class="dot" style="background:#3355D6"></span><span class="tm">6:40 - 8:10am</span><span class="ti">Flight TP1234, LIS<u>Behrooz's calendar</u></span></div>
+<div class="ev"><span class="dot" style="background:#C2410C"></span><span class="tm">All day</span><span class="ti">Alfama flat, check in<u>Travel</u></span></div>
+<div class="ev"><span class="dot" style="background:#7C3AED"></span><span class="tm">8 - 10:30pm</span><span class="ti">Dinner with Ana's parents<u>Ana</u></span></div>
+</div>
+</div>
+<ul class="spec"><li><b>Addition one: the dot takes the calendar's own colour</b>, replacing <code>EventLine</code>'s three product tones. Google fixes those colours and they do not flip, so the anchor gains a hairline ring that the product tones never needed.</li><li><b>Addition two: the calendar's name</b>, a caption under the title. Another member's calendar carries the title and time only, and is named by <b>that member's display name</b>, never the address Google gives it.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>Dark</b><span>the ring earns itself</span></div>
+<div class="crop" data-theme="dark">
+<div class="runway">
+<div class="ev"><span class="dot" style="background:#3355D6"></span><span class="tm">6:40 - 8:10am</span><span class="ti">Flight TP1234, LIS<u>Behrooz's calendar</u></span></div>
+<div class="ev"><span class="dot" style="background:#C2410C"></span><span class="tm">All day</span><span class="ti">Alfama flat, check in<u>Travel</u></span></div>
+<div class="ev"><span class="dot" style="background:#7C3AED"></span><span class="tm">8 - 10:30pm</span><span class="ti">Dinner with Ana's parents<u>Ana</u></span></div>
+</div>
+</div>
+<ul class="spec"><li>A dark calendar colour on a dark page needs the ring more than a light one ever did, which is the whole reason the addition is a ring rather than a bare dot.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>All day, and what it is not</b><span>the two rules</span></div>
+<div class="crop" style="padding:var(--space-6) var(--gutter-screen)">
+<div style="font-size:13.5px;line-height:1.6;color:var(--text-secondary)"><b style="color:var(--text-primary)">All day</b> sits in the time column rather than replacing it, so the titles stay on one x whatever a day holds. The range is <code>range()</code>'s own format, one meridiem per range.<br><br><b style="color:var(--text-primary)">No checkbox, no tools, no swipe, no action sheet, no tap.</b> A calendar event is something offload read, not something the thread holds, and it is the only line in the product that cannot be acted on at all.</div>
+</div>
+<ul class="spec"><li><b>A thread's own dated rows are not on this runway.</b> They are in the sections below it, as <code>ListRow</code>s with their checkboxes. The runway is what offload read about the day; the sections are what the thread holds.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>7. Add a photo, on each platform</h2><u>the stock dialog goes</u></div>
+<p class="snote">Found on a Pixel: the Android dialog was the stock <code>Alert</code>, uppercase teal buttons stacked with Cancel drawn as the emphasised one. <b>The two platforms diverge because their token layers do, not because each gets a bespoke sheet.</b> iOS runs on the design system's tokens, so it takes the governed <code>RowActionSheet</code>; the Android kit's whole layer is Material, so the same sheet lands as M3's. Neither is invented here.</p>
+<div class="row">
+<div class="cell"><div class="tag i"><b>iOS</b><span>RowActionSheet</span></div>
+<div class="ph m" style="height:420px">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="body"><div class="sh"><div><b>To do</b><em>1</em><s></s></div></div><div class="r"><span class="box"></span><span class="tx"><b class="t">Book the airport transfer</b></span></div></div>
+<div class="scrim"></div>
+<div class="ras">
+<div class="grab"></div>
+<p class="subj">Add a photo</p>
+<div class="act"><i class="g md i-img"></i>Choose from library</div>
+<div class="act"><i class="g md i-cam"></i>Take a photo</div>
+</div>
+</div>
+<ul class="spec"><li><b><code>RowActionSheet</code>, the sheet a row already opens</b>, which is what the 18 September entry asks for: the viewer's More opens the same one, so a row's tools live in one place. Sheet's ground, 44px rows paying the gutter themselves, 16px primary ink, 18px tertiary glyphs.</li><li><b>No Cancel row.</b> The scrim dismisses it, as it does every sheet in the product, and the component has never had one.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>Android</b><span>bottom sheet, not a dialog</span></div>
+<div class="ph m" data-platform="android" style="height:420px">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="body"><div class="sh"><div><b>To do</b><em>1</em><s></s></div></div><div class="r"><span class="box"></span><span class="tx"><b class="t">Book the airport transfer</b></span></div></div>
+<div class="scrim"></div>
+<div class="ras">
+<div class="grab"></div>
+<p class="subj">Add a photo</p>
+<div class="act"><i class="g md i-img"></i>Choose from library</div>
+<div class="act"><i class="g md i-cam"></i>Take a photo</div>
+</div>
+</div>
+<ul class="spec"><li><b>The same <code>RowActionSheet</code> as iOS</b>, and it needs no Android variant: <code>--radius-sheet</code> resolves to <b>28</b> under <code>[data-platform="android"]</code>, the ink comes from <code>--a-on</code> and <code>--a-on-var</code>, and the handle from <code>--a-outline</code>. <code>M3Sharing.jsx</code> composes its own sheet from the governed <code>Sheet</code> for exactly this reason.</li><li><b>The heading and the row behind it are <code>ASection</code> and <code>ARow</code></b>, the kit's platform layer, which take the same props as <code>SectionHeader</code> and <code>ListRow</code> so the swap is mechanical: a regular-weight 22px label over an outline hairline rather than a semibold one over an ink rule.</li><li><b>No Cancel row</b>, on either platform. The scrim dismisses it.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>Both, on the order</b><span>library first</span></div>
+<div class="crop" style="padding:var(--space-6) var(--gutter-screen)">
+<div style="font-size:13.5px;line-height:1.6;color:var(--text-secondary)"><b style="color:var(--text-primary)">Choose from library</b> first on both, then <b style="color:var(--text-primary)">Take a photo</b>.<br><br>The order is the same on each platform and it is frequency: most pictures a person dumps already exist. It also matches what code shipped on Android, where the library sat in the emphasised slot.</div>
+</div>
+<ul class="spec"><li>The two sheets differ in their chrome and agree on their order, which is the right way round: the platform owns how a sheet looks and the product owns what is in it.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>What this asks for</h2><u>after the 21 September decisions</u></div>
+<ul class="spec">
+<li><b>One token to mint:</b> <code>--surface-viewer</code>, two scopes. Light is a mix, <code>--surface-inverse</code> at 90%; <b>dark is <code>--surface-plate</code> at full opacity</b>, because a translucent plane in dark measures 1.00:1 against the page.</li>
+<li><b>One glyph vendored:</b> <code>arrow-up-right</code>, the 82nd, for a link row that leaves the app. Already in <code>assets/icons/</code> and in the readme's list.</li>
+<li><b>One conflict to accept:</b> the splash is two screens, because no platform splash takes a spinner. <b>The seam between them is the thing to get right</b>, and it is the only item here that can look broken on every cold start if it is got wrong.</li>
+<li><b>One thing to know:</b> the app icon's #FFFFFF and the splash's #FAF9F7 are one tap apart. Both are right on their own terms, and nothing here proposes changing either.</li>
+<li><b>One trade already taken:</b> the people chips left the thread head, so on a shared thread you now tap share to find out who is in. The sheet gives back more than the chips said.</li>
+<li><b>Not drawn, and nobody has asked for it:</b> what the holding screen does when <code>/api/me</code> never answers. A spinner that spins forever is the state this design does not have.</li>
+</ul>
+
+</div></body></html>

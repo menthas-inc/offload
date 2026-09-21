@@ -8,71 +8,48 @@ path:
 
 ## Last sync
 
-date: 2026-09-17T19:40:00Z
+date: 2026-09-21T16:20:00Z
+commit: 7376a68..main (23 commits, 021 voice notes)
 
-Design-only pass, no commits pulled. The product owner asked for the calendar integration page in
-Settings and a per-thread calendar control; both are drawn in
-`explorations/calendars-options.html` and decided item by item, and all of it is folded in.
+Pulled `main` and read 021's feature spec, which logs **eleven items against this system**. All
+eleven drawn in `explorations/voice-notes.html`, decided with the product owner, and folded in.
 
-**Two levels of consent, and they are different questions.** The account approves which calendars
-offload may use at all; **a thread picks which of those it uses, starting from none.** Approving a
-calendar in Settings adds it to no thread, ever, because inheritance would silently widen what
-offload reads in threads set up months ago, shared ones included.
+**A voice note is words.** Once offload has written it down the message is a text message to every
+reader, so the feature adds a composer state, a bubble and a transcript, and no new screen.
 
-**The thread control carries no mark in any state.** A dot and a bubble both mean attention, so a
-mark meaning "you configured this" earns a tap that finds nothing wrong, and with threads starting
-empty there is no state for a mark to carry. The accessible name does it.
+**Three of the eleven were the kit being wrong rather than behind:** typed words hidden while being
+sent, which is text you cannot see being sent; `SentVoice`'s bars on an opacity ramp over a retyped
+ramp step, with a 26-bar sine fallback where the composer says 32; and a discard control using the
+one noun the vocabulary bans.
 
-**Three governed components were drawn wrong before they were read, and each one changed the design
-rather than only the mock.** `Checkbox` had a moss fill, which this readme reserves for a finished
-row, so every ticked calendar read as something offload had completed; `IconButton` already owns a
-badge dot whose own comment says it means *something new*, which is what disqualified the dot on the
-thread control; and `AppBar` and `Sheet` were drawn at the wrong gutters and the wrong top radius,
-the latter contradicting the readme's own "24px on sheet tops".
+**One new component, `SentVoice`. Two new glyphs, `play` and `pause`, the 83rd and 84th.** No new
+tokens.
 
-**The provider's colour is in as recognition, never as the differentiator.** Four of seven ordinary
-Google colours measure under 3:1 on `--surface-fill` in light, the yellow at 1.51:1, and two are
-under in dark; they are not the same ones, so no ground flatters a palette we do not control. The
-name tells two calendars apart and the dot only helps you find one.
+**Two decisions came out of the drawing**, both on the played state. The glyph became the control,
+`play` at rest and `pause` while playing. And the prominent played colour needed its opposite:
+`--text-attention` measures **1.21:1 against a tertiary remainder**, so the remainder recedes to
+`--ink-300` **only while playing**, and a resting row keeps `--text-tertiary` at 4.76:1.
 
-**There is no "Add events to" setting**, cut by the product owner as a thread question: one calendar
-ticked answers it, two or more and offload asks in the conversation with the thread's calendars as
-the values, using 018's follow-up control as it stands.
-
-**No new design-system component and no new token**, but three things to scope that are neither
-composition nor a component: `Group`'s label gains a trailing slot in `SettingsDetail.jsx`, without
-which the settings list cannot show `4 of 7 in use`; **web's calendar popover is new UI** since the
-web kit has no governed popover; and **one standing rule is amended**, below. Everything else is
-composition over governed `Checkbox`, `Switch`, `Button`, `Chip`, `AppBar`, `Sheet`, `IconButton`
-and `WPaneHead`.
-
-**The amendment is the only thing in this pass that reaches outside calendars.** `readme.md`'s
-behaviour notes said a web pane head carries two tools and that anything a thread gains later goes
-in the More menu, which is exactly what a calendar is. The rule now allows **up to three tools with
-a criterion rather than an exception: a tool earns a head slot only if it changes what offload reads
-or shows, and anything that acts on the thread goes in More.** Rename, add note and Leave fail that
-test and stay in the menu; a scope control passes, because a scope you cannot see is a scope you
-forget. **This governs every web thread pane head, not just this feature.**
+**One thing the spec lists as needing a device that does not:** the dark transcript contrast, 7.65:1,
+with "Show all" at 5.72:1 on the same bubble.
 
 ### Updated in this project
 
-- `readme.md`: a Calendars section, plus **an existing standing rule amended**: the web pane-head
-  tool budget in Behaviour notes for the build, now three with a stated criterion
-- `decisions.md`: one entry dated 17 September, naming the three components read late and the rule
-- `handoff/APPLY-2026-09-17-calendars.md`, six sections, both themes and all three surfaces
-- `explorations/calendars-options.html`, five decisions with the rejected options kept
+- `SentVoice` in `components/conversation/` — 32 stored bars, the play/pause control, the played
+  fill, the transcript and its fold, and the playback failure
+- `play` and `pause` vendored in Lucide's stroke format; 84 glyphs
+- `readme.md` gains a **Voice notes** section; `decisions.md` gains one entry
+- `handoff/APPLY-2026-09-21-voice.md`, all eleven items per surface and per theme
 
 ### What the coding agent should pick up, in order
 
-1. `handoff/APPLY-2026-09-17-calendars.md`, **section 5 first**: it is the model the two screens
-   depend on and the one thing that cannot change later without a migration.
-2. Section 2's checkbox, which is the correction most likely to be got wrong from habit: a
-   selection tick is ink, and the dimming inverts from `Checkbox`'s own label treatment.
-3. Section 4's bar, which carries two rules, not one: the new button never gets `badge`, and **the
-   web pane head is now capped at three tools by a stated criterion**, so the next capability gets
-   the same test rather than a fourth slot.
-4. Three things still owed, listed at the end of the note: whether a thread remembers its write
-   target, two accounts on the settings page, and Android.
+1. `handoff/APPLY-2026-09-21-voice.md`, items 1 to 3. They are corrections to shipped kit code, and
+   item 1 is the one that matters most: the composer currently sends words it has hidden.
+2. Item 2's table, which is the component's contract. **The 1.21:1 figure is the reason the played
+   colour is not ink**, and the rest/playing split is the reason a resting row is not dimmed.
+3. Item 10, Android. **The pill and the sent bubble are shared**, and the two things that genuinely
+   diverge are the platform's own status bar and gesture bar.
+4. Item 11, the web, which is the largest: `WComposer` and `WTurns` gain the row and `SentVoice`.
 
 ## Screen map
 
@@ -82,6 +59,8 @@ forget. **This governs every web thread pane head, not just this feature.**
 | iOS and Android | `ui_kits/mobile_app/`, `ui_kits/android_app/` | `apps/mobile/app/`, `apps/mobile/components/` |
 | Calendars | `explorations/calendars-options.html`, `handoff/APPLY-2026-09-17-calendars.md` | settings: the Connected apps Calendar row on all three surfaces; thread: `ThreadScreen.jsx`, `M3ThreadScreen.jsx`, `WThing.jsx` app bars |
 | Timeline rail | `explorations/rail-blue.html`, `handoff/APPLY-2026-09-14-rail.md` | `apps/web/src/app/(shell)/shell.module.css`, `apps/web/src/components/panes/Timeline.tsx`, `apps/mobile/components/shell/Timeline.tsx` |
+| Voice notes | `explorations/voice-notes.html`, `handoff/APPLY-2026-09-21-voice.md` | `apps/mobile/components/shell/Composer.tsx`, `apps/mobile/components/shell/SentVoice.tsx`, `apps/web/src/components/shell/` |
+| People and connecting | `explorations/sharing-and-avatars.html`, `handoff/APPLY-2026-09-21-people.md` | `apps/mobile/components/settings/`, `apps/mobile/components/shell/Sharing.tsx`, `apps/web/src/components/panes/` |
 | Reaching the web | `components/conversation/`, the kits' conversation files, `explorations/reaching-the-web-options.html` | `docs/specs/016-reaching-the-web/`, `docs/specs/017-saying-what-it-is-doing/`, `apps/mobile/components/shell/Conversation.tsx` |
 | Answering | `components/answering/`, the kits' conversation files, `explorations/answering-options.html` | `apps/core-api/src/search/`, `apps/agent/src/offload_agent/`, `docs/specs/013-answering/` |
 | Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
@@ -93,6 +72,27 @@ forget. **This governs every web thread pane head, not just this feature.**
 | Atmosphere tokens | not carried, the marketing site's | `packages/tokens/atmosphere.css` (keep from the repository) |
 
 ## Sync history
+
+### 2026-09-21T06:05:00Z
+
+Folded in the eight owed screens, then connecting and the prism avatar: `Avatar`,
+`--surface-viewer`, `arrow-up-right`, and readme sections for the launch screen, the photo viewer,
+the move sheet, people and the prism.
+
+### 2026-09-21T04:20:00Z
+
+Folded in `--surface-viewer`, `arrow-up-right`, `ListRow`'s `body`, and readme sections for the
+launch screen, the photo viewer and the move sheet.
+
+### 2026-09-21T00:40:00Z
+
+Folded in the twelve entries from `FROM-CODE-2026-09-21.md`: `Toast`'s failure form, `ListRow`'s
+`body` and centring, `AppBar`'s three tools, and the withdrawal of the declining second line.
+
+### 2026-09-18T00:00:00Z
+
+Drew and folded in the calendars work: the settings page, the thread sheet, and the web pane head's
+tool budget amended from two to three with a stated criterion.
 
 ### 2026-09-16T22:15:00Z
 

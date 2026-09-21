@@ -3,7 +3,7 @@ import { Icon } from "../core/Icon.jsx";
 
 function usePress(){const [h,setH]=React.useState(false),[p,setP]=React.useState(false);return{h,p,bind:{onMouseEnter:()=>setH(true),onMouseLeave:()=>{setH(false);setP(false)},onMouseDown:()=>setP(true),onMouseUp:()=>setP(false),onTouchStart:()=>setP(true),onTouchEnd:()=>setP(false)}}}
 
-export function ListRow({title,meta,leading,trailing,reorder,dragging=false,over=false,chevron=false,selected=false,onClick,border=true,style,...rest}){
+export function ListRow({title,meta,body,leading,trailing,reorder,dragging=false,over=false,chevron=false,selected=false,onClick,border=true,style,...rest}){
   const {h,p,bind}=usePress();
   const interactive=Boolean(onClick);
   /* Held and being moved: the row lifts off the list rather than tinting, so it reads as
@@ -15,7 +15,7 @@ export function ListRow({title,meta,leading,trailing,reorder,dragging=false,over
   const line=over?{boxShadow:(over==="top"?"inset 0 2px 0":"inset 0 -2px 0")+" var(--ink-950)"}:null;
   return (
     <div onClick={onClick} {...(interactive?bind:{})} {...rest}
-      style={{position:"relative",display:"flex",alignItems:"center",gap:"var(--space-5)",minHeight:meta?"var(--row-height-lg)":"var(--row-height)",
+      style={{position:"relative",display:"flex",alignItems:"center",gap:"var(--space-5)",minHeight:meta||body?"var(--row-height-lg)":"var(--row-height)",
         padding:"var(--space-5) var(--gutter-screen)",cursor:interactive?"pointer":undefined,
         background:selected?"var(--state-selected)":p?"var(--state-press)":h&&interactive?"var(--state-hover)":"transparent",
         boxShadow:border?"inset 0 -1px 0 var(--border-hairline)":"none",transition:"background var(--transition-ui)",
@@ -23,6 +23,10 @@ export function ListRow({title,meta,leading,trailing,reorder,dragging=false,over
       {leading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-secondary)",flex:"0 0 auto"}}>{leading}</div>:null}
       <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:2}}>
         <div style={{font:"var(--weight-medium) var(--size-body)/1.3 var(--font-core)",fontVariantNumeric:"tabular-nums",letterSpacing:"var(--tracking-body)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{title}</div>
+        {/* The row's own words, which wrap to two lines and then stop. meta does not wrap,
+            because what offload knows about a row is one line by construction; a body is
+            whatever somebody typed. */}
+        {body?<div style={{font:"var(--text-body-sm-role)",color:"var(--text-secondary)",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{body}</div>:null}
         {meta?<div style={{font:"var(--text-body-sm-role)",fontVariantNumeric:"tabular-nums",color:"var(--text-secondary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{meta}</div>:null}
       </div>
       {/* The handle leads the trailing controls, before the pencil. It does nothing when

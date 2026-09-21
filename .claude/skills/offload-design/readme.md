@@ -10,7 +10,7 @@ No design sources were provided for this system. There was **no codebase, no Fig
 
 That has three consequences worth knowing before you trust this system:
 
-1. **The mark was designed here, with the brand owner, in August 2026.** It is a dot above an open vessel, a thought let go of downwards, into something that catches it. The vessel never gains a lid, the dot never touches it, and the whole thing is one colour: ink on light, paper on ink, no greys and no accent. Clear space equals the dot's diameter; 16px is the floor. Ships as `assets/mark.svg`, `assets/mark-inverse.svg`, `assets/app-icon.svg` and the `Logo` component. The wordmark beside it is live text (Instrument Sans 600, `-0.03em`, always lowercase), not an outlined file, so it depends on the substituted typeface below. `explorations/logo-exploration.html` is the full record of how it was chosen.
+1. **The mark was designed here, with the brand owner, in August 2026.** It is a dot above an open vessel, a thought let go of downwards, into something that catches it. The vessel never gains a lid, the dot never touches it, and the whole thing is one colour: ink on light, paper on ink, no greys and no accent, **except the app icon, which is ink on white**: a white tile, `#FFFFFF` rather than paper's `#FAF9F7`, since a home screen is not a page, with the mark in ink, and the ink mark alone over white as Android's adaptive foreground. Rendered at 1024 from the SVG with `sharp`, never hand drawn. **The web favicon keeps the ink tile**, being the one version that reads on both a light and a dark browser chrome. Clear space equals the dot's diameter; 16px is the floor. Ships as `assets/mark.svg`, `assets/mark-inverse.svg`, `assets/app-icon.svg` and the `Logo` component. The wordmark beside it is live text (Instrument Sans 600, `-0.03em`, always lowercase), not an outlined file, so it depends on the substituted typeface below. `explorations/logo-exploration.html` is the full record of how it was chosen.
 2. **The typefaces were chosen here and confirmed.** No licensed binaries were supplied, so Instrument Sans and Literata are served from the Google CDN, and on 25 August the brand owner confirmed they are the real faces of this system rather than placeholders. `tokens/fonts.css` becomes self-hosted `@font-face` rules whenever hosting matters.
 3. **The mobile app UI kit is a proposal.** `ui_kits/mobile_app/` is a first-principles design, not a recreation of shipped UI. React to it; it is meant to change.
 
@@ -42,9 +42,9 @@ offload's voice is a calm assistant that has already done the work and does not 
 
 **Casing.** Sentence case everywhere, with no exceptions: buttons, titles, section headers, sheet headers, toasts. Nothing in the interface is set in uppercase. The brand name is always lowercase, including at the start of a sentence: "offload keeps it in one place."
 
-**Punctuation.** Never an em dash, anywhere, in any surface: not in UI copy, not in marketing, not in these docs. Use a comma, a colon, or a full stop instead, and a middle dot for metadata. Full stops in body copy and empty states. No full stops on labels, buttons, chips, badges, or row titles. Middle dots separate metadata: `Lisbon trip · from Safari · 2m`. Use en dashes for ranges (14th–17th), curly quotes for captured speech.
+**Punctuation.** Never an em dash, anywhere, in any surface: not in UI copy, not in marketing, not in these docs. Use a comma, a colon, or a full stop instead, and a middle dot for metadata. Full stops in body copy and empty states. No full stops on labels, buttons, chips, badges, or row titles. Middle dots separate metadata: `Lisbon trip · from Safari · 2m`. Use en dashes for ranges (14th to 17th), curly quotes for captured speech.
 
-**Length.** Buttons: 1–3 words. Row titles: one line, truncated with an ellipsis rather than wrapped. Empty state body: one sentence, two at most. Toasts: five words plus one action.
+**Length.** Buttons: 1 to 3 words. Row titles: one line, truncated with an ellipsis rather than wrapped. Empty state body: one sentence, two at most. Toasts: five words plus one action.
 
 **What offload says about its own work.** It states the outcome, never the mechanism. "Saved to Lisbon trip", not "Classified using your prior notes". Every automatic action offers exactly one way back: `Undo`. Confidence is never expressed as a percentage; when offload is unsure it asks with a chip or a badge ("needs a date") rather than a dialog.
 
@@ -69,10 +69,10 @@ offload's voice is a calm assistant that has already done the work and does not 
 - Composer placeholder: `Dump anything`, one of twenty that cycle every ten seconds
 - Toast: `Deleted, gone in a moment` · `Undo`
 - Thread standing blurb: *"Still four things to book, and the flight is in two weeks."*
-- Row and its meta: `Ana needs an answer on the 14th–17th` / `Lisbon trip · asked Tuesday`
+- Row and its meta: `Ana needs an answer on the 14th to 17th` / `Lisbon trip · asked Tuesday`
 - Free time in the agenda: `4:30hrs free`
 
-**Emoji: none.** 👀 marked a message offload had seen but not answered from 003 until 16 September 2026, and it was the only one in the product. It is gone: the writing indicator says the same thing at the same moment a few lines below, so that was two marks for one state, and the one that stayed is the one that also says work is happening. **A seen message has no mark at all.** Meaning is carried by Lucide glyphs and by type weight. Unicode characters are used only as punctuation (`·`, `, `, curly quotes); never a dash.
+**Emoji: none.** 👀 marked a message offload had seen but not answered from 003 until 16 September 2026, and it was the only one in the product. It is gone: the writing indicator says the same thing at the same moment a few lines below, so that was two marks for one state, and the one that stayed is the one that also says work is happening. **A seen message has no mark at all.** Meaning is carried by Lucide glyphs and by type weight. Unicode characters are used only as punctuation (`·`, ` to `, `, `, curly quotes).
 
 ---
 
@@ -115,14 +115,16 @@ Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, labe
 - *Focus*: 2px ink outline offset 2px, or an ink border plus `--shadow-focus` on fields.
 - *Finished*: a ticked task stays in its list, sinks below everything outstanding, and takes tertiary ink with a 1px strike. **No opacity.** Past five finished, a list shows the five most recent and a quiet "Show all" beneath them.
 - *Archived*: secondary ink, a hollow tile with a dashed border, and the date relabelled to say what happened to it, "archived 14 Aug". The only action on an archived thing is putting it back. **No opacity here either**: dimming a row on a warm page reads as a rendering fault and takes the label under the contrast floor.
-- *Filing*: while offload is working out where something goes, the row's thread slot holds the word **filing** in moss, replaced by the thread's name when it lands. Nothing else marks it and nothing reflows: the slot is the same height either way. This is the only per-row progress word in the system; everything else that waits uses the one spinner.
+- *Filing*: while offload is working out where something goes, the row's thread slot holds the word **filing** in moss, replaced by the thread's name when it lands. **It is also what a row looks like before the server has it at all**, since a write is drawn at the press and the request follows: such a row offers nothing to open or move until its id is real. Nothing else marks it and nothing reflows: the slot is the same height either way. This is the only per-row progress word in the system; everything else that waits uses the one spinner.
 - *Disabled*: `--state-disabled-surface` with `--state-disabled-text`, the aliases for `--ink-100` and `--ink-400`. Use the aliases; components do. No opacity fades. This is the one place `--ink-400` still carries type, and it is the one place contrast rules do not apply.
 
-**Motion.** Short and outward. `--ease-out` `cubic-bezier(.22,.85,.24,1)` for interaction, `--ease-entrance` `cubic-bezier(.16,1,.3,1)` for things arriving. 140ms for hover/press/colour, 200ms for toggles, 280ms for toasts and cards, 340ms for sheets. Things translate 8–14px and settle; **nothing bounces, overshoots, springs or spins** except the 720ms hairline spinner. Sheets rise from the bottom edge; toasts rise 8px and fade. No parallax, no scroll-triggered animation.
+**Motion.** Short and outward. `--ease-out` `cubic-bezier(.22,.85,.24,1)` for interaction, `--ease-entrance` `cubic-bezier(.16,1,.3,1)` for things arriving. 140ms for hover/press/colour, 200ms for toggles, 280ms for toasts and cards, 340ms for sheets. Things translate 8 to 14px and settle; **nothing bounces, overshoots, springs or spins** except the 720ms hairline spinner. Sheets rise from the bottom edge; toasts rise 8px and fade. No parallax, no scroll-triggered animation.
 
 **Navigation motion belongs to the platform, not to this system.** Each kit follows its own convention and owns its own numbers: the web kit slides a pane in from the right in 260ms on `--ease-out`; the Android kit uses Material's shared axis X at 300ms on emphasized decelerate `cubic-bezier(.05,.7,.1,1)`, fades through between peers, and slides one navigation indicator in 250ms; the iOS kit pushes the whole screen in 350ms on `cubic-bezier(.32,.72,0,1)` and cuts between tabs, because UIKit does. Inside a screen, the durations above still hold. Each kit's `README.md` lists what it animates.
 
-**Loading.** One spinner, optionally labelled in lowercase ("looking through your stuff"). No skeletons, no progress bars, no shimmer.
+**Loading.** One spinner, optionally labelled in lowercase ("looking through your stuff"). No skeletons, no progress bars, no shimmer. **Asked for as a fading sweep on 20 September and declined:** a row typed in already has a treatment for "the server is still reading this", and drawing that row a second earlier is the whole of the placeholder.
+
+**A write is drawn at the press and the request follows**, on every surface: the tick, archive, delete, rename, the drag, the fold, a note's edit and move, the privacy switches. **Undo is offered the moment the change is drawn**, not when the server answers, because the eight seconds are the person's. When the server refuses, the screen is put back and a failure `Toast` says so in one clause with the same action beside it.
 
 ---
 
@@ -134,7 +136,7 @@ Icons are rendered as a **`currentColor` mask**, so a glyph always inherits the 
 
 Tab glyphs: `sun` / `moon` (Today and Tonight, on real sunset), `lasso` (My threads, a loop drawn round related things), `cloudy` (Notes). Then `sparkles` (anything offload did for you), `map-pin` `link` `image` `mic` `camera` `paperclip` `scan-text` (kinds of dumped thing), `square-check-big` / `check` / `check-check` (tasks and done states), `users` (shared threads and people), `arrow-up` (send), `plus` (new), `ellipsis` (more), `chevron-*` and `maximize-2` (navigation), `bell` `settings` `search` `clock` `calendar` `bookmark` `archive` `trash-2` `pencil` `share-2` `funnel` `lock` `house` `message-circle` `circle` `list`.
 
-All 81 vendored glyphs: `album` `archive` `arrow-up` `bell` `blend` `bookmark` `brain` `calendar` `camera` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `coffee` `compass` `ellipsis` `eye` `folder` `funnel` `gallery-vertical-end` `git-branch` `grip-vertical` `group` `house` `image` `inbox` `lasso` `layers` `library-big` `link` `list` `lock` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `moon` `moon-star` `newspaper` `orbit` `paperclip` `pencil` `plus` `radio` `rewind` `rss` `scan-text` `search` `settings` `share-2` `snowflake` `sparkles` `spline` `square-check-big` `sun` `sunrise` `text-quote` `thermometer-sun` `trash-2` `umbrella` `users` `waypoints` `wind` `x`.
+All 84 vendored glyphs: `album` `archive` `arrow-up` `arrow-up-right` `bell` `blend` `bookmark` `brain` `calendar` `camera` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `coffee` `compass` `ellipsis` `eye` `folder` `funnel` `gallery-vertical-end` `git-branch` `grip-vertical` `group` `house` `image` `inbox` `lasso` `layers` `library-big` `link` `list` `lock` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `moon` `moon-star` `newspaper` `orbit` `paperclip` `pause` `pencil` `play` `plus` `radio` `rewind` `rss` `scan-text` `search` `settings` `share-2` `snowflake` `sparkles` `spline` `square-check-big` `sun` `sunrise` `text-quote` `thermometer-sun` `trash-2` `umbrella` `users` `waypoints` `wind` `x`.
 
 No icon font. No PNG icons. No emoji. No hand-drawn or bespoke SVG illustration, if a screen needs a picture, it uses a real image the user provided, or nothing.
 
@@ -154,7 +156,7 @@ Root manifest:
 | `thumbnail.html` | Homepage tile for this system. |
 | `tokens/` | `fonts` · `colors` · `typography` · `spacing` · `radius` · `elevation` · `motion` · `base`. |
 | `guidelines/` | 18 specimen cards: colours, type, numerals, spacing, radii, elevation, motion, mark, icon set. |
-| `assets/` | `mark.svg`, `mark-inverse.svg`, `app-icon.svg`, and `icons/`, 80 Lucide SVGs. |
+| `assets/` | `mark.svg`, `mark-inverse.svg`, `app-icon.svg`, and `icons/`, 84 Lucide SVGs. |
 | `explorations/` | 43 exploration logs, plus `frames.css`, the shared shell the newer ones link: the mark, the accents, the type, section headers, the calendar, the conversation overlay, dark theme, notifications and the notification templates, settings layouts, swipe-to-delete, the iOS/Android comparison, the web shell, one motion page per platform, and the four that settled the edges: sign in with first run and the landing page, the no-invite screen with the email options and refusals, sharing and invitations, and the day-one empty states. Kept as the record of what was considered and rejected, and of what was picked. |
 | `components/` | 28 primitives in eight groups (below). |
 | `ui_kits/mobile_app/` | Interactive click-through of the iOS app; see its `README.md`. |
@@ -172,7 +174,7 @@ Components, each with `.jsx`, `.d.ts` props contract, `.prompt.md` usage note, a
 - **feedback/**, `Toast`, `EmptyState`, `Spinner`
 - **notifications/**, `NotificationIOS`, `NotificationAndroid`
 - **answering/**, `AnswerResult`, `QuickReplies`
-- **conversation/**, `TurnFooter`
+- **conversation/**, `TurnFooter`, `SentVoice`
 
 **`Icon` is a DOM contract, and React Native needs its own.** It masks an SVG with `currentColor` and takes a `basePath`, which is a URL, and React Native has neither. A component named `Icon` there would be claiming a contract it cannot implement, so the name on that platform is **`Glyph`**, taking the same 80 slugs and the same sizes and resolving them from generated paths rather than from files. The contract itself is not written yet: it is owed by this system, not by a client, and until it exists a phone client should keep `Glyph` narrow and not widen the difference.
 
@@ -188,12 +190,11 @@ Decided August 2026, and built into all three kits behind the `first run` contro
 preview bar.
 
 **Two providers, nothing else.** Continue with Apple and Continue with Google. No email
-link, no password, no account type to choose. Google first on every platform, Apple under
-it, because more people arrive with a Google account; Apple keeps the filled button and the
-same height, which is what the App Store's prominence rule asks for, and first place is not
-part of it. (Until 2026-09-21 the order flipped by platform, Apple first on iOS and web.)
-Returning users see the same screen; the provider sheet does the remembering, so there is
-no second sign-in design.
+link, no password, no account type to choose. Order flips by platform: Apple leads on iOS
+because the App Store requires it to be at least as prominent as Google's, Google leads on
+Android because that account is already on the device, and web shows Apple first with
+Google under it. Returning users see the same screen; the provider sheet does the
+remembering, so there is no second sign-in design.
 
 **The gate is absolute.** Nobody sees the app before signing in, because offload is invite
 only. On the phones the screen is a 92px mark with the wordmark under it in the upper half,
@@ -359,12 +360,18 @@ archive, no rename, and on the phones the row's own pan and long press both come
 conversation is itself a drag-driven sheet. The tick is 21px drawn inside a 44px target and its
 name carries the thread, "Book the airport transfer, Lisbon trip".
 
-**There are two ways of declining, one line each.** "Can't search that." is a refused subject:
-politics, weapons, self-harm, sex, said whether or not the web switch is on. "Not sure." is
-everything else offload does not have: a question that is not about their days, a lookup that did not
-work, the web switch off, a country it does not know. A second line naming the state was drawn on
-16 September and withdrawn on the 18th (see the log): the states do not split the way the two lines
-do, and offload never explains a failure or diagnoses itself.
+**There are two ways of declining and each is one line.** "Can't search that." is the
+refused-subject line, said when the whole dump is a question about politics, weapons, self-harm or
+sex, and it is said whether or not the web switch is on. "Not sure." covers four states: a question
+that is not about their days, a lookup that did not work, the web switch being off, and a country
+offload does not know.
+
+**Neither gains a second line saying which.** This system specified one on 16 September and code
+withdrew it on the 18th, correctly: "Searching the web is off in Settings." would be untrue every
+time it appeared under the refused-subject line, and "That one is not about your days." is right in
+one of the four states the other line covers. **The honest version would have offload diagnose
+itself, which it does not do:** the sentence says what happened and the screen offers the way
+forward.
 
 **The test is not whether the fact is public.** "When do the clocks go forward" is answered, because
 a date is what a day is made of and this product is about their days. "How do you make leek soup"
@@ -469,6 +476,214 @@ note carries the weight instead: **first clause is what leaves, second is the bo
 words you dumped to a search company when offload can't answer from your threads. Your threads and
 notes are never sent." No "On by default" label, because that label's job is explaining why
 something is off.
+
+## Voice notes
+
+021, folded in 21 September 2026 off `explorations/voice-notes.html`. **A voice note is words:**
+once offload has written it down the message is a text message to every reader, and none of them
+has a rule of its own for voice. So the feature adds a composer state, a bubble and a transcript,
+and no new screen.
+
+**The composer's microphone is in the kit's order**, camera then microphone then send, and tapping it
+replaces the field with the recording row: a pulsing dot, a running `m:ss`, and a live window that
+grows from the right with its older bars fading. **No pause and no listen-back**, this is a thing
+you say and let go of. Nothing else in the composer is reachable while it records, and the screen
+stays awake, because an auto-lock would cut the very notes the feature exists for.
+
+**Typed words stay drawn above the row**, static, primary ink, capped at three lines. The kit hid
+them and sent them anyway, which is text you cannot see being sent, and that is the one thing a
+composer must never do. Photos already attached stay as `AttachChip`s in the same row.
+
+**A stopped note is the row with no dot.** The absence of the dot is the whole signal, so reduced
+motion changes nothing about it: at ten minutes, on an incoming call, or when the app leaves the
+screen, the time and the window stand still and the row stays sendable.
+
+**The recording row's Send is `primary` with no tone**, which is ink with a white glyph. The blue
+attention tone belongs to the idle row, where it means "you have something to send", recording does
+not promote Send to an attention control, it makes it the only thing left to press.
+
+**The discard control is "Discard voice note".** The vocabulary bans "recording" as a noun anywhere
+a person reads, and the kit's "Discard recording" was the one place it would have been read aloud.
+
+**`SentVoice` draws the note's own thirty two bars**, resampled over the whole recording and stored
+with it, so every surface and every reload draws the same bars. The kit's opacity ramp over
+`--ink-950` is withdrawn: it made every note appear to fade in from silence and read as a fill that
+was always half played.
+
+**The glyph is the control**, `play` at rest and `pause` while playing. **Played bars are
+`--text-attention` and the remainder recedes to `--ink-300` only while playing**; at rest every bar
+is `--text-tertiary`, because then the whole waveform is the note. `--text-primary` is louder but
+measures 1.21:1 against a tertiary remainder, which makes the fill edge invisible.
+
+**The transcript is beneath the bars, inside the person's own bubble**, in `--font-core` at
+`--text-secondary`, folding to "Show all" past its first lines. **It stays in the UI sans while the
+reply below it is `--font-quiet`**: the transcript is what they said and the reply is offload
+speaking, and two faces a line apart is what makes the transcript read as a record rather than an
+answer. Measured 6.24:1 light and 7.65:1 dark.
+
+**A note with nothing to hear draws no transcript line at all**, rather than an empty one, and
+offload's reply is "Heard nothing in that one." with no question and no retry.
+
+**One failure pattern, and one exception.** The clause is the state and the control is the exit:
+13px `--text-danger` with the way forward in `--text-accent`, under the composer with a dismiss `x`
+on every line, or below the bubble on a failed turn. **The exception is "Not here yet."**, the
+playback failure, which sits inside the note between the row and the transcript with no control at
+all, because the row above it is the retry.
+
+## People, and connecting
+
+Decided 21 September 2026 off `explorations/sharing-and-avatars.html`. The product had this in
+fragments: a share sheet, a `people` settings page, a `PersonScreen`, and no account of how two
+people become connected in the first place.
+
+**A connection is mutual, and it outlives the thing you made it for.** Sharing invites nobody in, so
+the only way in is an account that already exists.
+
+**Email only, exact and case-insensitive.** Accounts have no usernames, so an address is the only
+handle there is, which settles the lookup: one full email returns one account or none. No partial
+match, no name search, no suggestions. **A name search over real people is a directory whether or
+not it is called one**, and an email is something you can only have if they gave it to you. The
+found row shows the address as the account stores it, which is what confirms the match was
+case-insensitive rather than lucky.
+
+**The word is request, not invite.** An invite to somebody who is not on offload cannot be sent, so
+the `people` page's shipped *Invites* group becomes **Pending**, and `Resend` becomes `Remove`. That
+group is the only place your own outstanding requests are listed.
+
+**A request carries no message and no thread.** One that arrived saying "wants to share Lisbon trip"
+would leak the thread's name to somebody who has not accepted yet.
+
+**It is answered on the card, not on a screen.** `PendingInvite` gains a moss **Accept** and an
+outlined **Not now** on their own line, so the sentence keeps its measure and both clear 44px. A
+shared thread still opens instead, because a thread has content to preview and a connection does
+not. **Not now is not No and not a block**: it leaves the request pending, and `Blocked` already
+exists on the `people` page for the escalation.
+
+**A decline looks exactly like silence.** Nothing tells you a request was declined, which is the only
+version that does not turn a no into a notification. Re-requesting is rate limited on the server.
+
+**One dot, in two places: the gear in the `AppBar`, and My people inside Settings.** It is
+`IconButton`'s own `badge`, 8px `--clay-600` inside a 1.5px `--paper` border, which the bell beside
+it already passes. **Only a request needing your answer dots anything**, your own pending requests
+do not, because nothing is waiting on you. There is no notifications page: a third place to read the
+same two facts would be a page that exists to hold a dot.
+
+**Every avatar is a door.** Tapping a person anywhere, a row's meta, the share sheet, a pending
+card, a mention, opens `PersonScreen`. The kit routes there from My people only. That rule is what
+makes the Settings location right rather than merely tidy: you almost never go to the list, because
+you go to the person. **An avatar is never decoration.**
+
+**Removing a connection leaves shared threads untouched.** They are listed in the confirmation, not
+acted on, so you leave knowing what is still shared. A thread with three people in it has nothing to
+do with whether you and one of them are connected, and leaving them is the ordinary Leave, one at a
+time. **The second sentence of that copy is load-bearing**, "removed" does not mean "no longer
+shares things with me", and must not be cut. Removal is mutual and silent, and it is **the one
+place with no Undo**, because the other person's copy changes too.
+
+**Unsharing one person shows what stays, not what goes.** The things they added stay, because a
+shared thread belongs to everyone who was in it, and that is the surprising half. The verb is **Take
+out**, not Remove: two different destructions should not share a word.
+
+**The share sheet has no search field** when every connection fits, which with a handful of people is
+always. A field over a list that already fits is a control asking to be used for nothing.
+
+## The prism avatar
+
+`Avatar`, new on 21 September 2026. The product had no avatar component: the kits hand-rolled an
+initials circle in five places, which at 32px is two grey letters. Nobody uploads a photo, so the
+mark is generated.
+
+**Seeded from the account's immutable id**, never the name or the email, both of which change, and
+never anything a person can pick, the moment it is choosable it stops being a reliable way to find
+them.
+
+**Two constants, and they are the part not to relax.** Every stop lands in OKLCH `L 0.42` to `0.52`
+at `C 0.13`, which keeps white initials above 4.5:1 on every hue the generator can produce. **The
+ceiling is measured, not chosen:** at `L 0.56` the lightest hue put white at 4.16:1, which is one
+person in twelve with a monogram that fails and no way to fix it afterwards.
+
+**Hue comes off a 12-step wheel, not a continuous hash**, so two people are never almost the same
+colour: at 36px a 15 degree difference is no difference.
+
+**The facet is part of the identity, not decoration.** Twelve hues alone is not enough, twelve
+accounts land on **eight** distinct hues, so a third of a list of twelve shares a colour. A hard edge
+at one of **eight** seeded angles is the only structure that survives 36px, which takes that list
+from 8 distinct avatars to 12. 12 × 8 buckets.
+
+**Every avatar in the product is between 28 and 56px**: 28 on a pending card, 32 in `PersonRow`, 36
+in the share sheet, 52 on a person's page, 56 on a request. Three of the five are at or under 36, so
+**the mark is scanned, never studied**. **Below 28 do not draw it**, the edge is marginal at 24 and
+the initials alone are more honest.
+
+**The initials stay.** A prism can be recognised but not read, and you need to find somebody you have
+never seen by name.
+
+## The launch screen
+
+Decided 21 September 2026. Both phones shipped Expo's default splash, and since 20 September it is
+held for a whole `/api/me` round trip on every cold start, so it needed designing.
+
+**The mark alone, centred, on `--surface-page`**, in both themes. No wordmark: iOS's storyboard allows
+no text at all, and the wordmark is live type rather than an outlined file. 216pt on iOS; 192dp on
+Android, drawn inside the 240dp canvas its splash masks to a circle, on no background layer, so no
+circle shows and the system's own reveal has room.
+
+**The mark is `--text-primary`, not `--ink-950` and `--paper`.** Both ramps invert in dark, so `--paper`
+there is #191919 and a mark set to it measures **1.02:1** on the page. One token gives ink on light
+and #EDEDED on dark with nothing to keep in sync, and it is the same one-colour rule the mark has
+always had.
+
+**It is two screens, because no platform splash takes a spinner.** iOS gives a background colour and
+one static image; Android 12 and later gives a colour, an icon and its own reveal. So the app draws
+a **holding screen** the instant the splash hands over, identical to it, and the spinner fades in at
+**1000ms**, 64px under the mark, unlabelled, the readme's lowercase label has nothing honest to say
+yet, since offload is not looking through your stuff, it is finding out who you are.
+
+**The seam is the whole risk.** Two screens meant to look like one will not unless the mark is at the
+same size in the same place in both, **measured from the screen's centre rather than from a
+container**. The spinner must not be in the centring flow: put it in the column and its box
+re-centres everything above it, moving the mark by half the spinner's height plus its gap.
+
+**The app icon's #FFFFFF and this screen's #FAF9F7 are one tap apart.** Both are right on their own
+terms, a home screen is not a page and a launch screen is the app's own ground, and nothing proposes
+changing either.
+
+## The photo viewer
+
+A photo opened from a tile, a thumbnail or a row's tile, shown over whatever was on screen.
+
+**The plane is `--surface-viewer`, not `--surface-scrim`.** The scrim is 0.32 and dims what is behind
+it; this is a surface in its own right, and at the scrim's value a white screenshot on a warm page
+read as a page behind a page.
+
+**In dark the plane is opaque**, `--surface-plate` at #0F0F11. A translucent plane in dark has nowhere
+to go: `--surface-page` at 92% over `--surface-page` measures **1.00:1**, and even the darkest value
+reaches 1.11:1, so what says a viewer is open there is that the screen behind it is gone. Light stays
+at 90%, where the translucency does work and composites to about #232323.
+
+**Everything on the plane is `#FFFFFF`, not `--text-inverse`**, including the status bar, which goes
+white the way a phone's does when a dark full-screen view opens. The plane is near-opaque ink in
+light and an opaque near-black in dark, so ink-inverse would flip to dark text on a dark plane.
+
+**The controls are overlaid top right on the web and in the platform's bar on the phones**, which is
+`AppBar`'s geometry over the plane, transparent, below the status bar. Full screen is web only: a
+phone has no window to fill.
+
+**The plane runs full bleed and the status bar rides above it.** A photo should run under the status
+bar; the bar itself must survive, in both themes.
+
+## The move sheet
+
+The first move control in the product, and it is `Sharing.jsx`'s sheet with the list swapped.
+
+**What it shares with the share sheet is the sheet:** the same 42px `FindField`, the same row rhythm,
+the same footer. **Not the leading slot.** That list is people and takes `Avatar`; this one is threads
+and leads with an 18px `lasso` in `--text-secondary`, as `MemoriesScreen` draws a thread and as the
+thread's mark reads in `TurnFooter`'s pill and `AnswerResult`'s chip.
+
+**The thread the row is in is not in the list.** Not greyed, absent. And **move can run out of
+destinations**, which sharing never can, so a one-thread account gets a sentence rather than a search
+field over an empty list. That is the one state where the footer's way out is the only thing to press.
 
 ## The timeline rail
 
@@ -623,7 +838,7 @@ cheaper model, or stop and tell the person offload is resting. Dumps are always 
 - **Insets are owned by components, not screens.** A row spans the full width and pays the gutter back inside, so its fill and hairline reach the frame edge while its text sits on the gutter. A screen that adds its own horizontal gutter around rows double-insets them; this drifted three times before being fixed at the component.
 - **Swipe to delete** is horizontal-only: pointer capture is taken only once a drag passes 6px, otherwise a tap never reaches the row underneath.
 - **A row's actions are drawn as conditional, never as refused.** Edit and archive sit on the row for any member; delete sits there for the author alone and is simply absent otherwise. Two rows side by side showing a different number of controls is the honest reading of one permission rule. Anything beyond those three goes behind a `RowActionSheet` on a phone, or the row's own `ellipsis` on web.
-- **A fourth control, on a list that can be arranged: the reorder handle.** `grip-vertical`, at the row's leading edge, left of the checkbox or the tile, always drawn, on every surface (the 2026-09-16 entry "The handle leads the row" moved it there from beside the pencil, where it read as a fourth action; the kits still draw it trailing and are what has to catch up). **No container**: no fill, no border, no size of its own, the glyph in `--text-tertiary` with a `grab` cursor and `--text-primary` under the pointer, drawn inside the row's own left padding so the checkbox keeps its place. It is still a button for the keyboard, with the arrow keys, and the focus ring is the only box it ever draws. Its target is the glyph plus 8px of slop rather than a full 44, which sits inside the row's own target and is the compromise the row's other controls already make. **The row being moved lifts** to `--surface-raised` with `--shadow-2`; **the row the drop would land against takes a 2px `--ink-950` line** on that edge, at the row's full width, because every other boundary in the list is full width and this one is a boundary. **The drop is a priority**, the midpoint between the two neighbours on the 0 to 100 scale the reprioritise already used, never a tie.
+- **A fourth control, on a list that can be arranged: the reorder handle.** `grip-vertical`, leading the row's tools and left of the pencil on web, first in the trailing controls on the phones, and alone at the trailing edge of a row that has no pencil. **It is the one row control whose hover does not invert to ink**, because it does nothing when pressed: it keeps `--surface-fill` and takes a `grab` cursor. Its target is the glyph plus 8px of slop rather than a full 44, which sits inside the row's own target and is the compromise the row's other controls already make. **The row being moved lifts** to `--surface-raised` with `--shadow-2`; **the row the drop would land against takes a 2px `--ink-950` line** on that edge, at the row's full width, because every other boundary in the list is full width and this one is a boundary. **The drop is a priority**, the midpoint between the two neighbours on the 0 to 100 scale the reprioritise already used, never a tie.
 - **The way to the archived pile is a row at the foot of the list**, not a tool on the pane: "3 archived" with a chevron, below everything live. The archive is a place you go rather than a mode you toggle into, and the count is readable without hunting for a highlighted icon.
 - **A pane head carries up to three tools and a More menu**, and the third has a criterion, added 17 September 2026 when calendars asked for it. Open full, then `ellipsis`, which holds rename, add note, Leave, and anything a thread gains later. **A tool earns a head slot only if it changes what offload reads or shows; anything that acts on the thread goes in More.** `calendar` is the one scope control so far, so the head is at three and the next capability does not get a fourth by precedent, it gets the same test. The point of the original two-tool rule stands: **the head does not grow every time a thread gains a capability**, because most capabilities are actions.
 - **Theme and text size are named rows at the foot of the nav, and a Settings page as well.** Both read the same stored value. An accessibility control behind an unlabelled glyph is not a control anybody can find.

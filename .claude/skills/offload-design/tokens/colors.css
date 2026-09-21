@@ -98,6 +98,13 @@
      raised surface rather than as a fill: --surface-noticed measures 2.03:1 on paper. Sits
      beside its surface token the way --text-accent sits beside --surface-accent-soft. */
   --text-noticed:var(--amber-700);
+  /* The plane a photo is shown on, over whatever was on screen. Not --surface-scrim, which
+     is 0.32 and dims what is behind it: this is a surface in its own right. Light dims
+     towards ink and reads as depth. Dark is OPAQUE, because a translucent plane in dark has
+     nowhere to go: --surface-page at 92% over --surface-page measures 1.00:1, and even the
+     darkest value reaches only 1.11:1. What says a viewer is open there is that the screen
+     behind it is gone. */
+  --surface-viewer:color-mix(in srgb,var(--surface-inverse) 90%,transparent);
 
   --state-hover:rgba(11,11,11,0.04);
   --state-press:rgba(11,11,11,0.08);
@@ -133,6 +140,7 @@
   --border-hairline:var(--ink-150);--border-strong:#8C8C8C; /* 3:1 on every light surface: fields, checkboxes, outlined buttons */--border-focus:var(--blue-500);
   --border-accent:var(--moss-200);--border-attention:var(--blue-200);--border-danger:var(--clay-200);
   --border-lift:var(--border-hairline);--border-decision:var(--amber-700);--text-noticed:var(--amber-700);
+  --surface-viewer:color-mix(in srgb,var(--surface-inverse) 90%,transparent);
   --state-hover:rgba(11,11,11,0.04);--state-press:rgba(11,11,11,0.08);
   --state-selected:var(--ink-100);--state-disabled-text:var(--ink-400);--state-disabled-surface:var(--ink-100);
   --shadow-1:0 1px 2px rgba(11,11,11,0.04);--shadow-2:0 4px 16px -4px rgba(11,11,11,0.08);
@@ -177,6 +185,7 @@
   /* A step up from the hairline, because dark has no drop shadow: --shadow-1 is none here,
      so the edge is the whole of the lift. 1.94:1 against the page against the hairline's 1.23. */
   --border-lift:var(--ink-300);--border-decision:var(--amber-700);--text-noticed:var(--amber-700);
+  --surface-viewer:var(--surface-plate); /* opaque: a mix of the page measures 1.00:1 against it */
 
   --state-hover:rgba(255,255,255,0.06);--state-press:rgba(255,255,255,0.10);
   --state-selected:var(--ink-100);--state-disabled-text:var(--ink-400);--state-disabled-surface:var(--ink-100);

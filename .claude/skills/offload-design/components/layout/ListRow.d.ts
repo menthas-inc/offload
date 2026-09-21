@@ -1,10 +1,22 @@
 /**
  * One line of captured content: 56px single-line, 72px with meta.
+ *
+ * **Everything in the row centres on the row**, leading and trailing alike, on every
+ * surface. A control aligned to the title's first line sits wrong the moment the row has a
+ * second, which is what a to-do row's body and a two-line title both give it. `Checkbox`
+ * keeps its own first-line alignment for a standalone tick with a label; **inside a
+ * `ListRow` the row's centring wins.**
  */
 export interface ListRowProps {
   title: React.ReactNode;
   /** Second line, 14px secondary. */
   meta?: React.ReactNode;
+  /**
+   * A to-do row's own words under the title, **two lines at most**, then ellipsis. Distinct
+   * from `meta`, which is what offload knows about the row (who, when, which thread); this
+   * is what the row says. A row may carry both, body first.
+   */
+  body?: React.ReactNode;
   /** Leading slot, Icon, Checkbox or a thumbnail. */
   leading?: React.ReactNode;
   /** Trailing slot, timestamps, Badge, IconButton. */

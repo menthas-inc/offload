@@ -1,7 +1,7 @@
 // Generated from the design system. Do not edit: run `pnpm icons`.
 // Source: .claude/skills/offload-design/assets/icons
 
-export type IconName = "album" | "archive" | "arrow-up" | "bell" | "blend" | "bookmark" | "brain" | "calendar" | "camera" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "coffee" | "compass" | "ellipsis" | "eye" | "folder" | "funnel" | "gallery-vertical-end" | "git-branch" | "grip-vertical" | "group" | "house" | "image" | "inbox" | "lasso" | "layers" | "library-big" | "link" | "list" | "lock" | "map-pin" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "moon-star" | "moon" | "newspaper" | "orbit" | "paperclip" | "pencil" | "plus" | "radio" | "rewind" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "snowflake" | "sparkles" | "spline" | "square-check-big" | "sun" | "sunrise" | "text-quote" | "thermometer-sun" | "trash-2" | "umbrella" | "users" | "waypoints" | "wind" | "x";
+export type IconName = "album" | "archive" | "arrow-up-right" | "arrow-up" | "bell" | "blend" | "bookmark" | "brain" | "calendar" | "camera" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "coffee" | "compass" | "ellipsis" | "eye" | "folder" | "funnel" | "gallery-vertical-end" | "git-branch" | "grip-vertical" | "group" | "house" | "image" | "inbox" | "lasso" | "layers" | "library-big" | "link" | "list" | "lock" | "map-pin" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "moon-star" | "moon" | "newspaper" | "orbit" | "paperclip" | "pause" | "pencil" | "play" | "plus" | "radio" | "rewind" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "snowflake" | "sparkles" | "spline" | "square-check-big" | "sun" | "sunrise" | "text-quote" | "thermometer-sun" | "trash-2" | "umbrella" | "users" | "waypoints" | "wind" | "x";
 
 export type Shape =
   | { kind: "path"; d: string }
@@ -40,6 +40,16 @@ export const ICONS: Record<IconName, Shape[]> = {
       "x": 2,
       "y": 3,
       "rx": 1
+    }
+  ],
+  "arrow-up-right": [
+    {
+      "kind": "path",
+      "d": "M7 7h10v10"
+    },
+    {
+      "kind": "path",
+      "d": "M7 17 17 7"
     }
   ],
   "arrow-up": [
@@ -928,6 +938,24 @@ export const ICONS: Record<IconName, Shape[]> = {
       "d": "m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"
     }
   ],
+  "pause": [
+    {
+      "kind": "rect",
+      "width": 4,
+      "height": 16,
+      "x": 14,
+      "y": 4,
+      "rx": 0
+    },
+    {
+      "kind": "rect",
+      "width": 4,
+      "height": 16,
+      "x": 6,
+      "y": 4,
+      "rx": 0
+    }
+  ],
   "pencil": [
     {
       "kind": "path",
@@ -936,6 +964,12 @@ export const ICONS: Record<IconName, Shape[]> = {
     {
       "kind": "path",
       "d": "m15 5 4 4"
+    }
+  ],
+  "play": [
+    {
+      "kind": "path",
+      "d": "M6 3L20 12L6 21Z"
     }
   ],
   "plus": [

@@ -1,0 +1,654 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Sharing, connections and the prism avatar</title>
+<link rel="stylesheet" href="../styles.css?v=20260921-sharing">
+<link rel="stylesheet" href="frames.css?v=20260921-sharing">
+<style>
+
+.ph,.crop,.wframe{color:var(--text-primary)}
+.ph{width:390px;flex:0 0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);display:flex;flex-direction:column;position:relative}
+.ph.t{height:400px}.ph.m{height:520px}.ph.l{height:620px}
+.sb{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:12px 26px 4px;
+  background:var(--surface-chrome);backdrop-filter:var(--blur-chrome);-webkit-backdrop-filter:var(--blur-chrome);
+  font:var(--weight-semibold) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums;letter-spacing:var(--tracking-body)}
+.ph:has(.plane) .sb u{color:#FFFFFF}
+.sb .sig{display:flex;align-items:flex-end;gap:2px;height:10px}
+.sb .sig i{display:block;width:3px;border-radius:1px;background:currentColor}
+.sb .sig i:nth-child(1){height:4px}.sb .sig i:nth-child(2){height:6px}
+.sb .sig i:nth-child(3){height:8px}.sb .sig i:nth-child(4){height:10px}
+.sb .bat{width:22px;height:11px;border:1px solid currentColor;border-radius:3px;padding:1px;display:flex;box-sizing:border-box}
+.sb .bat i{flex:1;background:currentColor;border-radius:1px;display:block}
+/* Phone.jsx's home indicator, and M3Phone.jsx's gesture bar. */
+.ph:after{content:"";position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:var(--ink-300);z-index:7}
+/* The vendored set has no status-bar glyphs and should not gain three for a mock, so the
+   bars are drawn as shapes: signal bars, an arc, a battery. */
+.sb .sig{width:17px;height:11px;background:linear-gradient(to top,currentColor 34%,transparent 34%) 0/3px 100% no-repeat,linear-gradient(to top,currentColor 56%,transparent 56%) 4.7px/3px 100% no-repeat,linear-gradient(to top,currentColor 78%,transparent 78%) 9.4px/3px 100% no-repeat,linear-gradient(to top,currentColor 100%,transparent 100%) 14.1px/3px 100% no-repeat}
+.sb .bat{width:25px;height:12px;border-radius:3px;background:transparent;box-shadow:inset 0 0 0 1px currentColor;position:relative;opacity:.45}
+.sb .bat:after{content:"";position:absolute;inset:2px;border-radius:1px;background:currentColor;opacity:1}
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:var(--space-4);min-height:var(--appbar-height);box-sizing:border-box;padding:0 var(--gutter-screen);background:var(--surface-chrome-strong);backdrop-filter:var(--blur-chrome);-webkit-backdrop-filter:var(--blur-chrome);border-bottom:1px solid transparent}
+.bar.hl{border-bottom-color:var(--border-hairline)}
+.bar h4{flex:1;min-width:0;margin:0;font:var(--text-title-3);letter-spacing:var(--tracking-title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .lead{display:flex;align-items:center;gap:var(--space-2);margin-left:-8px}
+.bar .tools{display:flex;align-items:center;gap:var(--space-2);margin-right:-8px}
+.bc{width:44px;height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+.bar .bc i,.wh .bc i{width:21px;height:21px}
+.g{background:currentColor;display:block;flex:0 0 auto}
+.g.cv{width:18px;height:18px;color:var(--ink-300)}
+.g.xs{width:13px;height:13px}.g.sm{width:15px;height:15px}.g.md{width:17px;height:17px}.g.lg{width:21px;height:21px}
+.i-chev-l{-webkit-mask:url(../assets/icons/chevron-left.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-left.svg) center/contain no-repeat}
+.i-share{-webkit-mask:url(../assets/icons/share-2.svg) center/contain no-repeat;mask:url(../assets/icons/share-2.svg) center/contain no-repeat}
+.i-more{-webkit-mask:url(../assets/icons/ellipsis.svg) center/contain no-repeat;mask:url(../assets/icons/ellipsis.svg) center/contain no-repeat}
+.i-x{-webkit-mask:url(../assets/icons/x.svg) center/contain no-repeat;mask:url(../assets/icons/x.svg) center/contain no-repeat}
+.i-search{-webkit-mask:url(../assets/icons/search.svg) center/contain no-repeat;mask:url(../assets/icons/search.svg) center/contain no-repeat}
+.thr i{background:currentColor}
+.i-lasso{-webkit-mask:url(../assets/icons/lasso.svg) center/contain no-repeat;mask:url(../assets/icons/lasso.svg) center/contain no-repeat}
+.i-chev-r{-webkit-mask:url(../assets/icons/chevron-right.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-right.svg) center/contain no-repeat}
+.body{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.who{display:flex;gap:var(--space-3);flex-wrap:wrap;padding:var(--space-5) var(--gutter-screen) 0}
+.pchip{display:inline-flex;align-items:center;height:var(--tap-min);margin:-7px 0}
+.pchip>span{display:inline-flex;align-items:center;gap:var(--space-3);height:30px;box-sizing:border-box;padding:0 var(--space-5);border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-primary);border:1px solid transparent;font:var(--weight-medium) var(--size-label)/1 var(--font-core)}
+.pchip.out>span{background:transparent;border-color:var(--border-strong);color:var(--text-secondary)}
+.pchip i{width:14px;height:14px;background:currentColor;flex:0 0 auto}
+.i-users{-webkit-mask:url(../assets/icons/users.svg) center/contain no-repeat;mask:url(../assets/icons/users.svg) center/contain no-repeat}
+.stand{padding:var(--space-7) var(--gutter-screen) 0;font:var(--text-quiet-role);font-size:18px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.sh{padding:var(--space-9) var(--gutter-screen) var(--space-5)}
+.sh>div{display:flex;align-items:center;gap:var(--space-4);padding-bottom:var(--space-4);border-bottom:1px solid var(--ink-950)}
+.sh b{font:var(--weight-semibold) var(--size-title-2)/1.15 var(--font-core);letter-spacing:var(--tracking-title);color:var(--text-primary)}
+.sh em{font-style:normal;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 var(--space-3);border-radius:var(--radius-pill);background:var(--surface-fill);font:var(--weight-medium) var(--size-label)/1 var(--font-core);color:var(--text-secondary)}
+.sh s{flex:1}
+/* The real component heights: ListRow is 56 single-line and 72 with a second line, both as
+   min-height. Without them the page claims real size and draws a denser list. */
+.r{display:flex;align-items:center;gap:var(--space-5);min-height:var(--row-height);box-sizing:border-box;padding:var(--space-5) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.r.two{min-height:var(--row-height-lg)}
+/* The move sheet's own row: the share sheet stacks name over meta, which .r does not. */
+.mrow{flex:1;min-width:0}
+.r .tx{flex:1;min-width:0}
+.r .tx,.mrow{display:flex;flex-direction:column;gap:2px}
+.r .t,.mrow .t{font:var(--weight-medium) var(--size-body)/1.3 var(--font-core);letter-spacing:var(--tracking-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r .bd,.mrow .bd{font:var(--text-body-sm-role);color:var(--text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.r .mt,.mrow .mt{font:var(--text-body-sm-role);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* A 20px lead box so an event row and a task row share one text column: the mark is 9px
+   but the column is the checkbox's, which is what "sits where a checkbox would" has to mean. */
+/* frames.css declares these inline-flex, but as a direct child of a column .cell they
+   blockify and stretch to the row's width. */
+.rec,.verdict,.ask{align-self:flex-start}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--surface-raised);border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;box-shadow:var(--shadow-sheet);box-sizing:border-box;padding:var(--space-5) var(--gutter-screen) var(--space-8)}
+.grab{width:36px;height:4px;border-radius:var(--radius-pill);background:var(--ink-200);margin:0 auto var(--space-6)}
+.st{margin:0 0 var(--space-5);font:var(--weight-semibold) var(--size-title-1)/var(--leading-title) var(--font-core);font-size:21px;letter-spacing:var(--tracking-title)}
+.sintro{font:var(--text-body-sm-role);color:var(--text-secondary);padding-bottom:var(--space-4)}
+.sfoot{margin-top:var(--space-7);display:flex;gap:var(--space-4)}
+.sbtn{flex:1;display:flex;align-items:center;justify-content:center;height:44px;margin:-2px 0}
+.sbtn>span{display:flex;width:100%;align-items:center;justify-content:center;height:40px;box-sizing:border-box;padding:0 var(--space-6);border-radius:var(--radius-sm);font:var(--weight-medium) var(--size-body-sm)/1 var(--font-core);letter-spacing:var(--tracking-body)}
+.sbtn.sec>span{background:var(--surface-raised);color:var(--text-primary);border:1px solid var(--border-strong)}
+.sbtn.pri>span{background:var(--surface-inverse);color:var(--text-inverse);border:1px solid transparent}
+.sbtn.dgr>span{background:var(--surface-raised);color:var(--text-danger);border:1px solid var(--border-strong)}
+.sbtn.lg{height:48px;margin:0}
+.sbtn.lg>span{height:48px;padding:0 var(--space-7);font:var(--weight-medium) var(--size-body)/1 var(--font-core)}
+.sbtn.gh>span{background:transparent;color:var(--text-primary);border:1px solid transparent}
+.sfoot.stack{flex-direction:column;gap:var(--space-3)}
+.sfoot.stack .sbtn{flex:0 0 auto}
+.fld{display:flex;align-items:center;gap:var(--space-3);height:42px;margin:0 0 var(--space-2);padding:0 var(--space-5);border-radius:var(--radius-pill);background:var(--surface-fill);color:var(--text-tertiary);font:var(--text-body-sm-role);font-size:14.5px;letter-spacing:var(--tracking-body)}
+.av{width:36px;height:36px;flex:0 0 auto;border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;background:var(--surface-fill);font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary)}
+.thr{flex:0 0 auto;display:flex;align-items:center;color:var(--text-secondary)}
+.thr i{width:18px;height:18px}
+.ar{display:flex;align-items:center;gap:var(--space-5);min-height:var(--row-height);box-sizing:border-box;padding:var(--space-5) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.ar:has(.mt){min-height:var(--row-height-lg)}
+.ar:last-of-type{box-shadow:none}
+.cbx{width:20px;height:20px;flex:0 0 auto;border-radius:var(--radius-xs);border:1px solid var(--border-strong)}
+.scrim{position:absolute;inset:0;z-index:5;background:var(--surface-scrim)}
+.verdict{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px}
+.verdict.no{background:var(--clay-100);color:var(--text-danger)}
+.ask{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;background:var(--amber-100);color:var(--amber-700)}
+.crop{width:390px;flex:0 0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);padding:var(--space-5) 0;box-sizing:border-box}
+
+/* People, and the prism avatar. */
+.per{display:flex;align-items:center;gap:var(--space-5);min-height:var(--row-height-lg);box-sizing:border-box;padding:var(--space-5) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.per:last-of-type{box-shadow:none}
+.per .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.per .t{font:var(--weight-medium) var(--size-body)/1.3 var(--font-core);letter-spacing:var(--tracking-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.per .mt{font:var(--text-body-sm-role);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.av2{width:36px;height:36px;flex:0 0 auto;border-radius:var(--radius-pill);overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+.av2 canvas{position:absolute;inset:0;width:100%;height:100%}
+.av2 span{position:relative;color:#FFFFFF;font:var(--weight-semibold) 13px/1 var(--font-core);letter-spacing:.01em}
+.av2.big{width:52px;height:52px}
+.av2.big span{font-size:18px}
+.av2.sm{width:24px;height:24px}
+.av2.sm span{font-size:9px}
+.strip{display:flex;flex-wrap:wrap;gap:var(--space-4);padding:var(--space-5) 0}
+.strip .one{display:flex;flex-direction:column;align-items:center;gap:6px;width:56px}
+.strip .one u{text-decoration:none;font:var(--text-numeric-role);font-size:9.5px;color:var(--text-tertiary);white-space:nowrap}
+.algo{width:max-content;flex:0 0 auto;border-radius:20px;border:1px solid var(--border-hairline);background:var(--surface-page);padding:var(--space-6) var(--gutter-screen);box-sizing:border-box}
+.pend{display:flex;align-items:center;gap:var(--space-4);width:100%;box-sizing:border-box;text-align:left;padding:var(--space-4) var(--space-5);margin-bottom:var(--space-4);border-radius:var(--radius-lg);background:var(--surface-accent-soft)}
+.pend .pt{flex:1;min-width:0;font:var(--weight-medium) 15px/1.3 var(--font-core);color:var(--text-primary)}
+.pend .pl{font:var(--weight-medium) 14px/1 var(--font-core);color:var(--text-accent);flex:0 0 auto}
+.av2.pa{width:28px;height:28px}.av2.pa span{font-size:10px}
+/* PendingInvite's trailing affordance, which is what a row-level action looks like here. */
+/* PersonRow: Row with a 32px --paper pill lead, name as title, detail as note, badge as value. */
+.av2.pr{width:32px;height:32px}.av2.pr span{font-size:12px;font-weight:var(--weight-medium)}
+.srow .val{flex:0 0 auto;font-size:var(--size-body-sm);color:var(--text-secondary)}
+.srow .lead{flex:0 0 auto;display:flex}
+.srow .lead i{width:17px;height:17px;background:currentColor;color:var(--text-secondary)}
+/* PersonScreen's header: the avatar beside the name, not above it. */
+.phead{display:flex;align-items:center;gap:var(--space-6);padding:var(--space-6) var(--gutter-screen) var(--space-8)}
+.phead h1{margin:0;font:var(--text-title-1);letter-spacing:var(--tracking-title)}
+.phead .pm{font-size:var(--size-body-sm);color:var(--text-secondary);margin-top:2px}
+.wy{width:22px;height:22px;flex:0 0 auto;border-radius:var(--radius-pill);background:var(--surface-attention-soft);color:var(--text-attention);display:flex;align-items:center;justify-content:center}
+.wy i{width:13px;height:13px;background:currentColor}
+.wt{color:var(--text-tertiary);display:flex;flex:0 0 auto}
+.wt i{width:18px;height:18px;background:currentColor}
+.tile36{width:36px;height:36px;flex:0 0 auto;border-radius:var(--radius-sm);background:var(--surface-fill);display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+.tile36 i{width:18px;height:18px;background:currentColor}
+.bdg{display:inline-flex;align-items:center;height:20px;padding:0 var(--space-3);border-radius:var(--radius-xs);background:var(--surface-attention-soft);color:var(--text-on-attention);font:var(--weight-medium) var(--size-caption)/1 var(--font-core);letter-spacing:.01em;flex:0 0 auto}
+.memchip{display:inline-flex;align-items:center;height:var(--tap-min);margin:-7px 0}
+.memchip>span{display:inline-flex;align-items:center;gap:var(--space-3);height:30px;box-sizing:border-box;padding:0 var(--space-5);border-radius:var(--radius-pill);font:var(--weight-medium) var(--size-label)/1 var(--font-core)}
+.memchip.att>span{background:var(--surface-attention);color:var(--text-on-solid)}
+.memchip.acc>span{background:var(--moss-600);color:var(--text-on-solid)}
+.memchip.warn>span{background:var(--amber-600);color:var(--amber-on)}
+.memchip.out>span{background:transparent;border:1px solid var(--border-strong);color:var(--text-secondary)}
+.memchip .dot{width:5px;height:5px;border-radius:var(--radius-pill);background:currentColor;opacity:.45;flex:0 0 auto}
+.i-circle-dot{-webkit-mask:url(../assets/icons/circle-dot.svg) center/contain no-repeat;mask:url(../assets/icons/circle-dot.svg) center/contain no-repeat}
+.i-lock{-webkit-mask:url(../assets/icons/lock.svg) center/contain no-repeat;mask:url(../assets/icons/lock.svg) center/contain no-repeat}
+.i-clock{-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat}
+/* Switch.jsx: a 44x26 track, padding 3, a 20px knob, on = --surface-inverse. Named .tog
+   because .sw is already the token swatch in the lifted stylesheet. */
+.tog{flex:0 0 auto;box-sizing:border-box;width:44px;height:26px;border-radius:var(--radius-pill);padding:3px;display:flex;justify-content:flex-end;background:var(--surface-inverse)}
+.tog i{display:block;width:20px;height:20px;border-radius:var(--radius-pill);background:var(--paper);box-shadow:var(--shadow-1)}
+.tog.off{justify-content:flex-start;background:var(--surface-fill-strong)}
+.glab{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);margin:var(--space-5) 0 var(--space-3) 2px}
+.sgroup{background:var(--surface-fill);border-radius:var(--radius-lg);padding:0 var(--space-4)}
+.srow{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-4);margin:0 calc(-1 * var(--space-4));box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.srow:last-child{box-shadow:none}
+.srow .txt{flex:1;min-width:140px}
+.srow .t{display:block;font:var(--weight-regular) 15px/1.35 var(--font-core);color:var(--text-primary)}
+.srow .n{display:block;font-size:var(--size-caption);line-height:1.4;color:var(--text-secondary);margin-top:3px}
+.srow .cv{flex:0 0 auto;display:flex;color:var(--ink-300)}
+.srow .cv i{width:14px;height:14px}
+.row>.cell{max-width:390px}
+.cell .spec{max-width:none}
+.emptybox{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-5);padding:var(--space-11) var(--space-9)}
+.emptybox b{font:var(--text-title-3);letter-spacing:var(--tracking-title)}
+.emptybox span{margin:0;font:var(--text-quiet-role);font-size:var(--size-body);color:var(--text-secondary);max-width:32ch}
+.mk{background:currentColor;-webkit-mask:url(../assets/mark.svg) center/contain no-repeat;mask:url(../assets/mark.svg) center/contain no-repeat;flex:0 0 auto}
+.ndot{position:absolute;top:-2px;right:-3px;width:8px;height:8px;box-sizing:border-box;border-radius:var(--radius-pill);background:var(--clay-600);border:1.5px solid var(--paper)}
+.bc .ndot{top:5px;right:5px}
+.i-bell{-webkit-mask:url(../assets/icons/bell.svg) center/contain no-repeat;mask:url(../assets/icons/bell.svg) center/contain no-repeat}
+.i-gear{-webkit-mask:url(../assets/icons/settings.svg) center/contain no-repeat;mask:url(../assets/icons/settings.svg) center/contain no-repeat}
+.i-plus{-webkit-mask:url(../assets/icons/plus.svg) center/contain no-repeat;mask:url(../assets/icons/plus.svg) center/contain no-repeat}
+.i-spark{-webkit-mask:url(../assets/icons/sparkles.svg) center/contain no-repeat;mask:url(../assets/icons/sparkles.svg) center/contain no-repeat}
+.i-users2{-webkit-mask:url(../assets/icons/users.svg) center/contain no-repeat;mask:url(../assets/icons/users.svg) center/contain no-repeat}
+.verdict{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px}
+.verdict.no{background:var(--clay-100);color:var(--text-danger)}
+.verdict.yes{background:var(--surface-accent-soft);color:var(--moss-700)}
+.ask{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;background:var(--amber-100);color:var(--amber-700)}
+.rec,.verdict,.ask{align-self:flex-start}
+</style></head><body><div class="wrap">
+
+<h1>Sharing, connections and the prism avatar</h1>
+<p class="lede">A starting point, not a decision. <b>Two halves:</b> how a connection is made, kept and ended, which the product has only ever had in fragments; and a generated prism avatar, so a list of twelve people is scannable when none of them has a photo. Both themes, at real size, on the components as they are.</p>
+<p class="lede">What the product already has, and what I have not changed: <b>a connection is mutual once they accept, and it outlives the thing you made it for</b>; sharing invites nobody in; and a shared thread belongs to everyone in it, so if somebody leaves offload their things stay with the rest of you. Everything below is built on those three.</p>
+
+<div class="sechead"><h2>1. Adding a connection</h2><u>existing accounts only</u></div>
+<p class="snote">There is no invite, so the only way in is an account that already exists. That has one consequence worth designing around rather than hiding: <b>you have to already know their address.</b></p>
+<ul class="spec">
+<li><span class="verdict no">read the kit first</span> <b>The shipped kit assumes invites exist, so the brief breaks it.</b> <code>SettingsDetail.jsx</code>'s <code>people</code> page has a <code>Group label="Invites"</code> holding <i>"Priya Raman &middot; Invited on 4 Aug, not accepted &middot; Resend"</i>. An invite to somebody who is not on offload cannot be resent, because it was never sendable. <b>That group becomes Pending</b>, and <code>Resend</code> becomes <code>Remove</code>.</li>
+<li><b>And blocking is not hypothetical:</b> the same page already ships <code>Row title="Blocked" value="None"</code>. So a decline has somewhere to escalate to and I should not have said otherwise.</li>
+</ul>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Empty</b><span>what to type</span></div>
+<div class="ph l">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><h4>Add a connection</h4></div>
+<div class="body">
+<div class="fld" style="margin:var(--space-5) var(--gutter-screen) 0"><i class="g sm i-search"></i>Their email address</div>
+<div class="emptybox"><b>You need their offload email</b><span>Sharing does not invite anyone in, so there is nobody to look up who is not already here. Ask them which email they signed up with.</span></div>
+</div>
+</div>
+<ul class="spec"><li><b>Email only, and there is no username to fall back on.</b> Accounts have no usernames set, so an address is the only handle that exists, which also settles the lookup question: <b>one full email, matched exactly and case-insensitively</b>, returns one account or none. No partial match, no name search, no suggestions.</li><li>That is not a restriction to apologise for. <b>A name search over real people is a directory whether or not it is called one</b>, and an email is something you can only have if they gave it to you.</li><li>So the empty state says what to type <b>and why there is nothing to browse</b>, which is one sentence.</li></ul>
+</div>
+<div class="cell"><div class="tag m"><b>Found</b><span>one account</span></div>
+<div class="ph l">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><h4>Add a connection</h4></div>
+<div class="body">
+<div class="fld" style="margin:var(--space-5) var(--gutter-screen) 0;color:var(--text-primary)"><i class="g sm i-search"></i>Priya.Raman@gmail.com</div>
+<div class="per"><span class="av2" data-algo="C" data-uid="u_b412"><span>PR</span></span><span class="tx"><b class="t">Priya Raman</b><span class="mt">priya.raman@gmail.com</span></span><span class="sbtn sec" style="flex:0 0 auto;width:auto"><span>Request</span></span></div>
+<div style="padding:var(--space-5) var(--gutter-screen);font:var(--text-body-sm-role);color:var(--text-secondary);line-height:1.5">Priya decides whether to accept. Until then you cannot share anything with her, and she is not told what you wanted to share.</div>
+</div>
+</div>
+<ul class="spec"><li>One row, their real name above the account's own address. <b>The address is shown as the account stores it, not as you typed it</b>, which is what confirms the match was case-insensitive rather than lucky.</li><li><b>The request carries no message and no thread.</b> One that arrived saying "wants to share Lisbon trip" would leak the thread's name to somebody who has not accepted yet.</li></ul>
+<span class="rec">this is the shape</span>
+</div>
+<div class="cell"><div class="tag i"><b>Not found</b><span>the honest dead end</span></div>
+<div class="ph l">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><h4>Add a connection</h4></div>
+<div class="body">
+<div class="fld" style="margin:var(--space-5) var(--gutter-screen) 0;color:var(--text-primary)"><i class="g sm i-search"></i>dad@hotmail.com</div>
+<div class="emptybox"><b>No offload account for that</b><span>Check the spelling. If they are not on offload, there is nothing here that can add them.</span></div>
+</div>
+</div>
+<ul class="spec"><li><span class="ask">a product question, not a design one</span> <b>This is the wall the no-invite rule builds</b>, and it is where somebody gives up. The copy is honest and it is still a dead end. <b>An email makes it worse than a username would:</b> a typo and a non-account look identical, so there is no way to word this that distinguishes them.</li><li>Three ways out, none of them drawn because they are yours to pick: a plain "how do I get them on offload" line, a share-this-link-to-the-app row, or nothing at all.</li></ul>
+</div>
+</div>
+<div class="rowlabel">Where a request arrives, and how it is answered<u>no separate screen</u></div>
+<p class="snote"><b>The accept screen is withdrawn, and so is the notifications page.</b> The answer lives on the card, which already carries the avatar, the name and the sentence a decision needs, and <b>the only new mechanism is a dot</b>: on the gear in the bar, and on My people inside it. Notifications themselves are not built yet, so a request arriving will push once they are.</p>
+<div class="row">
+<div class="cell"><div class="tag m"><b>The card answers itself</b><span>PendingInvite, plus two chips</span></div>
+<div class="crop" style="padding:var(--space-5) var(--gutter-screen)">
+<div class="pend" style="flex-wrap:wrap"><span class="av2 pa" data-algo="C" data-uid="u_0a27"><span>BA</span></span><span class="pt">Behrooz A wants to connect</span>
+<span style="flex-basis:100%;display:flex;gap:var(--space-3);padding-left:calc(28px + var(--space-4))">
+<span class="memchip acc"><span>Accept</span></span><span class="memchip out"><span>Not now</span></span></span></div>
+<div class="pend"><span class="av2 pa" data-algo="C" data-uid="u_8f3a"><span>AD</span></span><span class="pt">Ana shared Lisbon trip</span><span class="pl">Open</span></div>
+</div>
+<ul class="spec"><li><b>A connection request is answered on the card; a shared thread still opens.</b> That is the honest split: a thread has content to look at first, and a connection has nothing to preview beyond what the card already says.</li><li><b>Accept is moss and Not now is outlined</b>, the two chips the product already uses for a decision, on their own line so the sentence keeps its full measure and both clear 44px.</li><li><b>Not now is not No and not a block.</b> It leaves the request pending, and <b>Blocked</b> already exists on the <code>people</code> page for the escalation.</li></ul>
+<span class="rec">as asked</span>
+</div>
+<div class="cell"><div class="tag m"><b>The dot</b><span>the gear, and one row</span></div>
+<div class="ph l">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar"><h4 style="display:flex;align-items:center;gap:7px"><span class="mk" style="width:21px;height:21px"></span><span style="font:var(--weight-semibold) 19px/1 var(--font-core);letter-spacing:-.03em">offload</span></h4><span class="tools"><span class="bc"><i class="g lg i-bell"></i></span><span class="bc" style="position:relative"><i class="g lg i-gear"></i><span class="ndot"></span></span></span></div>
+<div class="body" style="padding:var(--space-5) var(--gutter-screen)">
+<div class="pend" style="flex-wrap:wrap"><span class="av2 pa" data-algo="C" data-uid="u_0a27"><span>BA</span></span><span class="pt">Behrooz A wants to connect</span>
+<span style="flex-basis:100%;display:flex;gap:var(--space-3);padding-left:calc(28px + var(--space-4))">
+<span class="memchip acc"><span>Accept</span></span><span class="memchip out"><span>Not now</span></span></span></div>
+<div class="glab" style="margin-top:var(--space-6)">You</div>
+<div class="sgroup">
+<div class="srow"><span class="lead"><i class="i-circle-dot"></i></span><span class="txt"><b class="t">My account</b></span><span class="val">jo@hey.com</span><span class="cv"><i class="i-chev-r"></i></span></div>
+<div class="srow"><span class="lead" style="position:relative"><i class="i-users2"></i><span class="ndot"></span></span><span class="txt"><b class="t">My people</b></span><span class="val">3</span><span class="cv"><i class="i-chev-r"></i></span></div>
+<div class="srow"><span class="lead"><i class="i-lock"></i></span><span class="txt"><b class="t">Privacy</b></span><span class="cv"><i class="i-chev-r"></i></span></div>
+</div>
+</div>
+</div>
+<ul class="spec"><li><b>There is no Settings tab.</b> Settings is a gear in the <code>AppBar</code>, beside the bell, on every screen that has that bar. So the dot goes there and on <b>My people</b> inside it, which is two places rather than the three I drew.</li>
+<li><b>It reuses <code>IconButton</code>'s <code>badge</code></b>, which the bell beside it already passes as <code>badge={unread}</code>. Nothing new to build for the outer dot.</li>
+<li><b>The dot is <code>IconButton</code>'s own badge, copied rather than re-specified:</b> 8px <code>--clay-600</code> inside a 1.5px <code>--paper</code> border, at <code>top:5 right:5</code> on the glyph. The row's lead takes the same 8px clay dot, because one signal in two colours on one screen would read as two signals.</li><li><b>Clay is the component's choice, not mine.</b> It is the danger hue everywhere else, and here it means "unanswered" — worth knowing, since the badge is shipped and this reuses it rather than diverging.</li>
+<li><b>Only a request needing your answer dots anything.</b> Your own pending requests do not, because nothing is waiting on you, and neither does a shared thread arriving, which the bell already covers.</li>
+<li><b>No notifications page.</b> A request is answered on its card and listed under Pending on the <code>people</code> page, so a third place to read the same two facts would be a page that exists to hold a dot.</li></ul>
+<span class="rec">as asked</span>
+</div>
+</div>
+
+<div class="sechead"><h2>2. Where the list lives</h2><u>already answered by the kit</u></div>
+<p class="snote">I had this down as open and it is not. <code>SettingsScreen.jsx</code> ships <b>My people</b> with a <code>users</code> lead and the count as the row's <code>value</code>, and <code>SettingsDetail.jsx</code> ships the page behind it with three groups. So this section is what exists, the one thing the brief changes, and the one rule I would add.</p>
+<div class="row">
+<div class="cell"><div class="tag i"><b>What ships</b><span>SettingsScreen</span></div>
+<div class="crop" style="padding:var(--space-5) var(--gutter-screen)">
+<div class="glab">You</div>
+<div class="sgroup">
+<div class="srow"><span class="lead"><i class="i-circle-dot"></i></span><span class="txt"><b class="t">My account</b></span><span class="val">jo@hey.com</span><span class="cv"><i class="i-chev-r"></i></span></div>
+<div class="srow"><span class="lead" style="position:relative"><i class="i-users2"></i><span class="ndot"></span></span><span class="txt"><b class="t">My people</b></span><span class="val">3</span><span class="cv"><i class="i-chev-r"></i></span></div>
+<div class="srow"><span class="lead"><i class="i-lock"></i></span><span class="txt"><b class="t">Privacy</b></span><span class="cv"><i class="i-chev-r"></i></span></div>
+</div>
+</div>
+<ul class="spec"><li><b>A <code>users</code> lead and the count as <code>value</code></b>, right aligned, not a note. <code>Row</code> has both slots and the shipped row uses them.</li><li><b>The row gains a dot when a request needs answering</b>, and it is the only row in Settings that carries one. No new row: what would have been a Notifications page is a dot on this one.</li><li>It sits in <b>You</b>, beside My account and Privacy, rather than beside Connected apps as I first drew it. That is the better grouping: your people are yours, not a service you authorised.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>The page behind it</b><span>and what the brief breaks</span></div>
+<div class="crop" style="padding:var(--space-5) var(--gutter-screen)">
+<div class="glab">Sharing with you</div>
+<div class="sgroup">
+<div class="srow"><span class="av2 pr" data-algo="C" data-uid="u_8f3a"><span>AD</span></span><span class="txt"><b class="t">Ana Duarte</b><span class="n">Lisbon trip, Berlin in October</span></span><span class="val">2</span><span class="cv"><i class="i-chev-r"></i></span></div>
+<div class="srow"><span class="av2 pr" data-algo="C" data-uid="u_2c71"><span>TR</span></span><span class="txt"><b class="t">Tom Reilly</b><span class="n">Lisbon trip</span></span><span class="cv"><i class="i-chev-r"></i></span></div>
+<div class="srow"><span class="av2 pr" data-algo="C" data-uid="u_5d09"><span>SO</span></span><span class="txt"><b class="t">Sam Ibekwe</b><span class="n">Flat admin</span></span><span class="cv"><i class="i-chev-r"></i></span></div>
+</div>
+<div class="glab">Pending</div>
+<div class="sgroup">
+<div class="srow"><span class="av2 pr" data-algo="C" data-uid="u_b412"><span>PR</span></span><span class="txt"><b class="t">Priya Raman</b><span class="n">Pending since 4 Aug</span></span><span class="val">Remove</span></div>
+</div>
+<div class="glab">Defaults</div>
+<div class="sgroup">
+<div class="srow"><span class="txt"><b class="t">Let people add to my threads</b><span class="n">They can add, never delete.</span></span><span class="tog"><i></i></span></div>
+<div class="srow"><span class="txt"><b class="t">Tell me when someone opens a shared thread</b></span><span class="tog off"><i></i></span></div>
+<div class="srow"><span class="txt"><b class="t">Blocked</b></span><span class="val">None</span><span class="cv"><i class="i-chev-r"></i></span></div>
+</div>
+</div>
+<ul class="spec"><li><b>The <code>PersonRow</code>s take the prism</b>, which is the only change to that group: the 32px circle is already there, and it goes from two grey letters to a colour and a facet.</li><li><b>A connection who shares nothing has no row here</b>, because the group is labelled <i>Sharing with you</i>. That is a real and common state, since a connection outlives the thing you made it for, so <b>the group needs a second label or a fourth empty one</b> — and it is the same gap as the undrawn empty person page in section 3.</li><li><span class="verdict no">the brief breaks this group</span> <b>Invites becomes Pending.</b> The shipped group says <i>"Invited on 4 Aug, not accepted"</i> with <b>Resend</b>, and an invite to somebody who is not on offload cannot be resent because it was never sendable. <b>Pending</b>, with <b>Remove</b> as a <code>value</code> label rather than a control with its own target, so the tap is the whole row as on every settings row. <b>It gains the 32px prism too</b>, which the shipped row lacks and every other person row here has.</li><li><b>This group is the only place your own requests are listed</b>, which is why Remove lives here. There is no notifications page to duplicate it.</li>
+<li><b>Nothing in that group tells you a request was declined.</b> A decline looks exactly like silence, which is the only version that does not turn a no into a notification, and re-requesting is rate limited on the server rather than in the design.</li><li><span class="verdict no">the kit disagrees with itself</span> <b><code>SettingsDetail.jsx</code>'s Ana row is hardcoded and wrong.</b> It says <i>"Lisbon trip, Berlin in October"</i> with a badge of <b>2</b>, where <code>data.js</code> gives Ana <b>three</b> threads and the month is <b>March</b>. The crop above is faithful to the kit, so it inherits both errors. <b>Wiring this page to real data will surface them</b>, and the fixture is the one to believe.</li>
+<li><b>Defaults and Blocked already exist and I had not accounted for either.</b> "Let people add to my threads" is the per-account half of what the share sheet's copy promises per thread, and Blocked is where a declined request escalates, which is why a decline does not need to become one.</li></ul>
+</div>
+<div class="cell"><div class="tag m"><b>The one rule I would add</b><span>every avatar is a door</span></div>
+<div class="crop" style="padding:var(--space-5) var(--gutter-screen)">
+<div style="padding:0 0 var(--space-5);font:var(--text-body-sm-role);color:var(--text-secondary);line-height:1.5">The list has one home. A person has many doors:</div>
+<div class="who" style="padding:0"><span class="pchip"><span><i class="i-users"></i>Ana</span></span><span class="pchip"><span><i class="i-users"></i>Tom</span></span></div>
+<div class="per" style="margin-top:var(--space-4);padding-left:0;padding-right:0"><span class="av2" data-algo="C" data-uid="u_8f3a"><span>AD</span></span><span class="tx"><b class="t">Pay Ana €214 for the flights</b><span class="mt">Ana · due Thursday</span></span></div>
+<div class="pend" style="margin-top:var(--space-4)"><span class="av2 pa" data-algo="C" data-uid="u_8f3a"><span>AD</span></span><span class="pt">Ana shared Lisbon trip</span><span class="pl">Open</span></div>
+</div>
+<ul class="spec"><li><b>Tapping Ana anywhere opens Ana.</b> Her avatar in a row's meta, in the share sheet, on a pending card, in a mention. The kit routes to <code>PersonScreen</code> from My people only.</li><li>That is what makes the Settings location right rather than merely tidy: you almost never go to the list, because you go to the person.</li><li><b>It is a rule, not a screen:</b> an avatar is never decoration, which is also the argument for making it worth looking at.</li></ul>
+<span class="rec">the only addition</span>
+</div>
+</div>
+<ul class="spec"><li><b>A People tab was on this page and is withdrawn.</b> With three connections a tab is a promise you will come here often, and the kit's own answer, a Settings row plus a person reachable from anywhere, is better than the option I drew to reject.</li></ul>
+
+<div class="sechead"><h2>3. A person</h2><u>PersonScreen, which already exists</u></div>
+<p class="snote">I recreated this before reading it. <code>PersonScreen.jsx</code> ships four sections, and <b>the first two are the best existing answer to "what do I share with them"</b>: not the thread list, but what is outstanding between you. Drawn here from the real fixture, with the prism in place of the initials.</p>
+<div class="row">
+<div class="cell"><div class="tag m"><b>Light</b><span>as the kit has it</span></div>
+<div class="ph l" style="height:700px">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><span style="flex:1"></span><span class="tools"><span class="bc"><i class="g lg i-more"></i></span></span></div>
+<div class="body"><div class="phead">
+<span class="av2 pr" style="width:52px;height:52px" data-algo="C" data-uid="u_8f3a"><span style="font-size:18px">AD</span></span>
+<div style="min-width:0"><h1>Ana Duarte</h1><div class="pm">Shares 3 threads with you</div></div>
+</div>
+<div class="sh"><div><b>Waiting on you</b><em>2</em><s></s></div></div>
+<div class="r two"><span class="wy"><i class="i-clock"></i></span><span class="tx"><b class="t">Ana needs an answer on the 14th to 17th</b><span class="mt">Lisbon trip</span></span><span class="bdg">today</span></div>
+<div class="r two"><span class="wy"><i class="i-clock"></i></span><span class="tx"><b class="t">Split the flight cost, €214 each</b><span class="mt">Lisbon trip</span></span><span class="bdg">2d late</span></div>
+<div class="sh"><div><b>Waiting on Ana</b><em>1</em><s></s></div></div>
+<div class="r two"><span class="wt"><i class="i-clock"></i></span><span class="tx"><b class="t">Ana is booking the Alfama flat</b><span class="mt">Lisbon trip</span></span></div>
+<div class="sh"><div><b>Shared with Ana</b><em>3</em><s></s></div></div>
+<div class="r two"><span class="tile36"><i class="i-lasso"></i></span><span class="tx"><b class="t">Lisbon trip</b><span class="mt">14 things · active</span></span><i class="g cv i-chev-r"></i></div>
+<div class="r two"><span class="tile36"><i class="i-lasso"></i></span><span class="tx"><b class="t">Berlin, March</b><span class="mt">31 things · finished</span></span><i class="g cv i-chev-r"></i></div>
+<div class="r two"><span class="tile36"><i class="i-lasso"></i></span><span class="tx"><b class="t">Sam's wedding</b><span class="mt">44 things · finished</span></span><i class="g cv i-chev-r"></i></div></div>
+</div>
+<ul class="spec"><li><b>The avatar sits beside the name, not above it</b>, at 52px, with the name as an <code>h1</code> in <code>--text-title-1</code> and the meta from the fixture: <i>"Shares 3 threads with you"</i>. I had it centred at 88px with an invented meta.</li><li><b><code>AppBar border={false}</code></b>, so there is no hairline under the bar.</li><li><b>Waiting on you comes first, and it is the point.</b> A 22px <code>--surface-attention-soft</code> clock, the thing itself as the title, the thread as the meta, and a <code>Badge tone="attention"</code> for how late it is. Waiting on Ana is the mirror, quieter: an 18px <code>--text-tertiary</code> clock and no badge.</li><li><b>A shared thread's lead is a 36px <code>--radius-sm</code> tile</b> holding the lasso, not a bare glyph. I cited <code>MemoriesScreen</code> for the bare version, and this is the screen being drawn.</li><li>The heading is <b>"Shared with Ana"</b>, the person's own id, not "Shared".</li></ul>
+<span class="rec">as the kit has it</span>
+</div>
+<div class="cell"><div class="tag i"><b>Dark</b><span>the prism holds</span></div>
+<div class="ph l" style="height:700px" data-theme="dark">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><span style="flex:1"></span><span class="tools"><span class="bc"><i class="g lg i-more"></i></span></span></div>
+<div class="body"><div class="phead">
+<span class="av2 pr" style="width:52px;height:52px" data-algo="C" data-uid="u_8f3a"><span style="font-size:18px">AD</span></span>
+<div style="min-width:0"><h1>Ana Duarte</h1><div class="pm">Shares 3 threads with you</div></div>
+</div>
+<div class="sh"><div><b>Waiting on you</b><em>2</em><s></s></div></div>
+<div class="r two"><span class="wy"><i class="i-clock"></i></span><span class="tx"><b class="t">Ana needs an answer on the 14th to 17th</b><span class="mt">Lisbon trip</span></span><span class="bdg">today</span></div>
+<div class="r two"><span class="wy"><i class="i-clock"></i></span><span class="tx"><b class="t">Split the flight cost, €214 each</b><span class="mt">Lisbon trip</span></span><span class="bdg">2d late</span></div>
+<div class="sh"><div><b>Waiting on Ana</b><em>1</em><s></s></div></div>
+<div class="r two"><span class="wt"><i class="i-clock"></i></span><span class="tx"><b class="t">Ana is booking the Alfama flat</b><span class="mt">Lisbon trip</span></span></div>
+<div class="sh"><div><b>Shared with Ana</b><em>3</em><s></s></div></div>
+<div class="r two"><span class="tile36"><i class="i-lasso"></i></span><span class="tx"><b class="t">Lisbon trip</b><span class="mt">14 things · active</span></span><i class="g cv i-chev-r"></i></div>
+<div class="r two"><span class="tile36"><i class="i-lasso"></i></span><span class="tx"><b class="t">Berlin, March</b><span class="mt">31 things · finished</span></span><i class="g cv i-chev-r"></i></div>
+<div class="r two"><span class="tile36"><i class="i-lasso"></i></span><span class="tx"><b class="t">Sam's wedding</b><span class="mt">44 things · finished</span></span><i class="g cv i-chev-r"></i></div></div>
+</div>
+<ul class="spec"><li><b>The prism is the same in both themes and that is deliberate.</b> It is an identity, not a surface: if it inverted, the thing you learned to recognise would change when the sun went down.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>What offload knows</b><span>the fourth section</span></div>
+<div class="crop" style="padding:0 0 var(--space-6)">
+<div class="sh"><div><b>What offload knows</b><em>1</em><s></s><span style="font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary)">Edit</span></div></div>
+<div style="display:flex;flex-wrap:wrap;gap:var(--space-2);padding:0 var(--gutter-screen)">
+<span class="memchip att"><span>Lisbon in August</span></span>
+</div>
+<div style="padding:var(--space-6) var(--gutter-screen) 0;font:var(--text-body-sm-role);color:var(--text-secondary);line-height:1.5">and the other three tones, for the groups a person can pull in:</div>
+<div style="display:flex;flex-wrap:wrap;gap:var(--space-2);padding:var(--space-4) var(--gutter-screen) 0">
+<span class="memchip acc"><span>metric</span></span>
+<span class="memchip warn"><span>you put things off on Fridays</span></span>
+<span class="memchip out"><span><span class="dot"></span>Sam</span></span>
+</div>
+</div>
+<ul class="spec"><li><b>Derived, and for Ana it derives exactly one.</b> The filter is every memory that names her and is not her own, which in the fixture is <code>lisbon-aug</code> alone. I had drawn three invented ones and a count of 3, under a bullet claiming the set is derived.</li>
+<li><b>The colour is the legend, and that is the whole component.</b> <code>MemoryChip</code>'s tone is the memory's group: <i>Going on</i> is <code>attention</code>, <i>How you like things</i> is <code>accent</code>, <i>Noticed</i> is <code>warning</code>, <i>People</i> is <code>outline</code>. A neutral fill, which is what I drew, is the one thing it never is.</li>
+<li><b>The 5px dot appears only on a memory that has a person</b>, at 0.45 opacity, which is why the one real chip here has no prefix and the <code>People</code> example does. I had put a <code>sparkles</code> on all three.</li>
+<li><b>Nothing about this section changes for sharing</b>, and I had left it out entirely. It is here so the redraw is the whole screen rather than the half I had noticed. The <code>Edit</code> action is right aligned, which is the one place in the product that uses <code>alignAction</code>.</li></ul>
+</div>
+</div>
+<ul class="spec">
+<li><span class="ask">not drawn, and PersonScreen has no state for it</span> <b>A person you share nothing with.</b> All three of <code>PersonScreen</code>'s list sections are conditional on having content, so Nils in the row above opens a screen with a header and then nothing at all: no waiting, no threads, and no memory that names him. <b>It needs an <code>EmptyState</code></b>, and the copy is the honest one, that sharing starts from a thread rather than from a person.</li>
+<li><span class="ask">the one thing PersonScreen has no room for</span> <b>Remove connection.</b> The screen's <code>More</code> is drawn and empty in the kit, and it is where the section below has to live. Nothing else on this page is destructive, which is the argument for keeping it behind the ellipsis rather than at the foot of the list.</li>
+</ul>
+
+<div class="sechead"><h2>4. Ending a connection</h2><u>decide: what happens to the threads</u></div>
+<p class="snote">The hard one. A connection is the permission to share; a thread is a thing you both hold. Removing one does not obviously do anything to the other, and every option here is a different answer to "what did I just agree to".</p>
+<div class="row">
+<div class="cell"><div class="tag m"><b>A. The threads are untouched</b><span>recommended</span></div>
+<div class="crop">
+<div class="sheet" style="position:static">
+<div class="grab"></div>
+<h2 class="st">Remove Ana Duarte?</h2>
+<div class="sintro">You will not be able to share anything new with her, and she will not be able to share with you. <b style="color:var(--text-primary)">The 3 threads you already share stay as they are.</b></div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Lisbon trip</b><span class="mt">14 things · active</span></span></div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Berlin, March</b><span class="mt">31 things · finished</span></span></div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Sam's wedding</b><span class="mt">44 things · finished</span></span></div>
+<div style="padding:var(--space-4) 0 0;font-size:12.5px;line-height:1.45;color:var(--text-secondary)">Leave a thread from its own More menu if you want out of it.</div>
+<div class="sfoot"><span class="sbtn sec"><span>Cancel</span></span><span class="sbtn dgr"><span>Remove</span></span></div>
+</div>
+</div>
+<ul class="spec"><li><b>It is the only option that does not lie.</b> Two of Ana's three threads have other people in them, Tom in Lisbon trip and Sam in his own wedding, so whether you and Ana are connected has nothing to do with them. Leaving Lisbon trip because of Ana is a surprise nobody asked for and it costs you Tom.</li><li>The threads are <b>listed, not acted on</b>, so you leave knowing exactly what is still shared. Leaving them is the ordinary Leave, one at a time, deliberately.</li><li><b>The cost, and it is real:</b> "removed" does not mean "no longer shares things with me", so the word is doing less than it appears to. The second sentence is load-bearing and must not be cut.</li></ul>
+<span class="rec">take this</span>
+</div>
+<div class="cell"><div class="tag i"><b>B. Remove leaves every shared thread</b><span>decisive</span></div>
+<div class="crop">
+<div class="sheet" style="position:static">
+<div class="grab"></div>
+<h2 class="st">Remove Ana Duarte?</h2>
+<div class="sintro"><b style="color:var(--text-primary)">You will leave the 3 threads you share with her.</b> Everything you added to them stays with the others in them, and you will not be able to get back in unless somebody shares them again.</div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Lisbon trip</b><span class="mt">14 things · active</span></span></div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Berlin, March</b><span class="mt">31 things · finished</span></span></div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Sam's wedding</b><span class="mt">44 things · finished</span></span></div>
+<div class="sfoot"><span class="sbtn sec"><span>Cancel</span></span><span class="sbtn dgr"><span>Remove and leave 3</span></span></div>
+</div>
+</div>
+<ul class="spec"><li>"Removed" means removed, with nothing left behind, and the button says the whole truth.</li><li><b>But it destroys things you never chose to give up.</b> Lisbon trip is Tom's too and the wedding is Sam's, and you lose both because of Ana. On a phone, one tap from a face you tapped by accident.</li><li>It also cannot be undone by re-connecting, which makes it the one action in the product that is heavier than Delete.</li></ul>
+<span class="verdict no">too much for one tap</span>
+</div>
+<div class="cell"><div class="tag i"><b>C. Blocked until you leave them</b><span>honest, tedious</span></div>
+<div class="crop">
+<div class="sheet" style="position:static">
+<div class="grab"></div>
+<h2 class="st">Leave these first</h2>
+<div class="sintro">You share 3 threads with Ana Duarte. Leave them, then you can remove her.</div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Lisbon trip</b><span class="mt">14 things · active</span></span><span class="pchip out"><span>Leave</span></span></div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Berlin, March</b><span class="mt">31 things · finished</span></span><span class="pchip out"><span>Leave</span></span></div>
+<div class="ar"><span class="thr"><i class="i-lasso"></i></span><span class="mrow"><b class="t">Sam's wedding</b><span class="mt">44 things · finished</span></span><span class="pchip out"><span>Leave</span></span></div>
+<div class="sfoot"><span class="sbtn sec"><span>Done</span></span></div>
+</div>
+</div>
+<ul class="spec"><li>Nothing is destroyed and nothing is implied. Every loss is a separate decision you made on purpose.</li><li><b>But it makes the product argue with you</b>, and it is the only place in offload that refuses an action outright rather than doing it and offering Undo, which is the standing rule.</li></ul>
+</div>
+</div>
+<ul class="spec">
+<li><b>Whichever wins, removal is mutual and silent.</b> Ana is not told, her copy of the connection goes at the same moment, and what she sees is that you are no longer in her list, which is the same thing a decline looks like.</li>
+<li><b>And it is the one place I would not offer Undo.</b> Everything else in offload draws the write and offers eight seconds; here the other person's copy changes too, so an Undo would have to reach into someone else's account.</li>
+</ul>
+
+<div class="sechead"><h2>5. Sharing and unsharing a thread</h2><u>the sheet, and the one new state</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>The share sheet</b><span>as it stands</span></div>
+<div class="ph l">
+<div class="sb"><span>9:41</span><u><span class="sig"><i></i><i></i><i></i><i></i></span><span class="bat"><i></i></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g lg i-chev-l"></i></span></span><h4>Lisbon trip</h4><span class="tools"><span class="bc"><i class="g md i-share"></i></span><span class="bc"><i class="g lg i-more"></i></span></span></div>
+<div class="body"><div class="stand">Still a few things to book.</div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grab"></div>
+<h2 class="st">Share Lisbon trip</h2>
+<div class="sintro">Everyone in here sees everything in it.</div>
+<div class="ar"><span class="av2" data-algo="C" data-uid="u_8f3a"><span>AD</span></span><span class="mrow"><b class="t">Ana Duarte</b><span class="mt">in since 2 Aug</span></span><span class="bc" style="width:34px;height:34px;color:var(--text-tertiary)"><i class="g md i-x"></i></span></div>
+<div class="ar"><span class="av2" data-algo="C" data-uid="u_2c71"><span>TR</span></span><span class="mrow"><b class="t">Tom Reilly</b><span class="mt">in since 4 Aug</span></span><span class="bc" style="width:34px;height:34px;color:var(--text-tertiary)"><i class="g md i-x"></i></span></div>
+<div class="ar" style="margin-top:var(--space-5)"><span class="av2" data-algo="C" data-uid="u_5d09"><span>SO</span></span><span class="mrow"><b class="t">Sam Ibekwe</b><span class="mt">sam@ibekwe.dev</span></span><span class="cbx"></span></div>
+<div class="ar"><span class="av" style="background:var(--surface-fill)"><i class="g md i-plus" style="background:currentColor;color:var(--text-secondary)"></i></span><span class="mrow"><b class="t">New connection</b></span><i class="g cv i-chev-r"></i></div>
+<div class="sfoot"><span class="sbtn sec"><span>Done</span></span></div>
+</div>
+</div>
+<ul class="spec"><li>Unchanged from the 21 September pass except two things: the avatars are prisms, and <b>the search field is gone</b>. With three connections there is nothing to search that scrolling does not solve, and a field over a list that already fits is a control asking to be used for nothing.</li><li><b>The people already in are lifted to the top</b> so the answer to "who sees this" is the first thing in the sheet, and their <code>x</code> is how a thread is unshared.</li></ul>
+</div>
+<div class="cell"><div class="tag m"><b>Unsharing one person</b><span>the new state</span></div>
+<div class="crop">
+<div class="sheet" style="position:static">
+<div class="grab"></div>
+<h2 class="st">Take Ana out of Lisbon trip?</h2>
+<div class="sintro">She loses the thread. <b style="color:var(--text-primary)">The 3 things she added stay</b>, because a shared thread belongs to everyone who was in it.</div>
+<div class="ar"><span class="cbx"></span><span class="mrow"><b class="t">Book the Alfama flat</b><span class="mt">Ana added it, 4 Aug</span></span></div>
+<div class="ar"><span class="cbx"></span><span class="mrow"><b class="t">Flights, 14th to 17th</b><span class="mt">Ana added it, 4 Aug</span></span></div>
+<div class="sfoot"><span class="sbtn sec"><span>Cancel</span></span><span class="sbtn dgr"><span>Take out</span></span></div>
+</div>
+</div>
+<ul class="spec"><li><b>It shows you what stays, not what goes</b>, because what stays is the surprising half and the product's own rule.</li><li>"Take out" rather than "Remove", so the word is not the one that ends a connection. Two different destructions should not share a verb.</li><li><b>Unsharing does not touch the connection</b>, which is the mirror of option A above and the reason A is coherent.</li></ul>
+<span class="rec">as drawn</span>
+</div>
+<div class="cell"><div class="tag i"><b>No connections yet</b><span>the first share</span></div>
+<div class="crop">
+<div class="sheet" style="position:static">
+<div class="grab"></div>
+<h2 class="st">Share Lisbon trip</h2>
+<div class="sintro">Everyone in here sees everything in it.</div>
+<div class="emptybox"><b>You have no connections yet</b><span>A connection is somebody already on offload. You need the email they signed up with.</span></div>
+<div class="ar"><span class="av" style="background:var(--surface-fill)"><i class="g md i-plus" style="background:currentColor;color:var(--text-secondary)"></i></span><span class="mrow"><b class="t">New connection</b></span><i class="g cv i-chev-r"></i></div>
+<div class="sfoot"><span class="sbtn sec"><span>Done</span></span></div>
+</div>
+</div>
+<ul class="spec"><li>The state everybody hits once, on their first share, and the one where the no-invite rule is most surprising. It says the rule before you go looking for a way around it.</li><li><b>No search field here either</b>, for the same reason and more obviously: there is nothing to search.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>6. Where a person shows up</h2><u>ten places, and why the avatar matters</u></div>
+<p class="snote">The argument for a generated avatar is not decoration. A person appears in <b>ten places</b> and is named by initials in <b>five</b> of them, at five different sizes, and in the other five by name alone in offload's prose.</p>
+<table class="mx">
+<tr><th>Where</th><th>How they appear</th><th>Avatar?</th></tr>
+<tr><td>A row's meta</td><td>"Ana · due Thursday"</td><td>no, text only</td></tr>
+<tr><td>A thread's standing</td><td>"Ana can only travel the 14th to the 17th"</td><td>no, offload's prose</td></tr>
+<tr><td>The share sheet</td><td>a row, in or addable</td><td><b>yes, 36px</b></td></tr>
+<tr><td>A connection request</td><td><code>InviteScreen</code></td><td><b>yes, 56px</b></td></tr>
+<tr><td>Settings, My people</td><td>a <code>PersonRow</code></td><td><b>yes, 32px</b></td></tr>
+<tr><td>A person's page</td><td>beside the name</td><td><b>yes, 52px</b></td></tr>
+<tr><td>@ in the composer</td><td>three rows at a time</td><td>not drawn yet</td></tr>
+<tr><td>A pending invite</td><td>a card at the top of My threads</td><td><b>yes, 28px</b></td></tr>
+<tr><td>A note's byline</td><td>"Ana added this"</td><td>no, text only</td></tr>
+<tr><td>The calendar sheet</td><td>"Ana reads 1 calendar here"</td><td>no, a count</td></tr>
+</table>
+<ul class="spec">
+<li><b>Every avatar in the product is between 28 and 56px</b>, measured off the mocks above: 28 on a pending card, 32 in <code>PersonRow</code>, 36 in the share sheet, 52 on a person's page, 56 on a request. <b>Three of the five are at or under 36.</b></li>
+<li><b>So there is no size at which you would admire one.</b> The largest anything gets is 56px, once, on a screen you see when somebody asks to connect. <b>That is the whole brief for section 7:</b> twelve people, 36px, scanned not studied.</li>
+<li>I had this table at 88px for the person page and 36px for three rows that are 28 and 32. It was written before sections 2 and 3 were rebuilt from the components, and <b>88px is a size the product does not draw anywhere</b>.</li>
+</ul>
+
+<div class="sechead"><h2>7. The prism avatar</h2><u>four algorithms, seeded once, kept forever</u></div>
+<p class="snote">Generated on the server from the account id, stored, never regenerated, and the same for everybody who sees them. Drawn here with the real algorithms rather than mocked, so what you pick is what a server can reimplement exactly.</p>
+<ul class="spec">
+<li><b>One constraint shapes all four: the lightness is locked.</b> Every stop lands in OKLCH <code>L 0.42</code> to <code>0.52</code> at <code>C 0.13</code>, so white initials clear 4.5:1 on every avatar the generator can produce, <b>4.82:1 at the lightest pixel it draws</b>. <b>The ceiling is measured, not chosen:</b> at <code>L 0.56</code> the lightest hue in the wheel put white at <b>4.16:1</b>, which is one person in twelve with a monogram that fails and no way to fix it after the fact. This is the number not to relax later.</li>
+<li><b>Hue comes off a 12-step wheel, not a continuous hash.</b> Two people are then never almost-the-same colour, which is the failure mode of every hash-to-hue avatar: at 36px a 15 degree difference is no difference.</li>
+<li><span class="verdict no">measured, and it decides section 7</span> <b>Twelve hues is not enough on its own.</b> The twelve accounts on this page land on <b>eight distinct hues</b>: four of the twelve share a colour with somebody else, which is what twelve buckets and twelve people gives you every time. So <b>the structural axis has to be part of the identity rather than decoration</b>, and an algorithm whose structure disappears at 36px is an algorithm with twelve buckets.</li>
+<li><b>The initials stay.</b> A prism can be recognised but not read, and you need to be able to find somebody you have never seen before by name.</li>
+</ul>
+
+<div class="rowlabel">A. Thin-film sweep<u>one gradient, three stops</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Twelve people at 36px</b><span>real size</span></div>
+<div class="crop"><div class="strip"><div class="one"><span class="av2" data-algo="A" data-uid="u_8f3a"><span>AD</span></span><u>Ana</u></div><div class="one"><span class="av2" data-algo="A" data-uid="u_2c71"><span>TR</span></span><u>Tom</u></div><div class="one"><span class="av2" data-algo="A" data-uid="u_5d09"><span>SO</span></span><u>Sam</u></div><div class="one"><span class="av2" data-algo="A" data-uid="u_b412"><span>PR</span></span><u>Priya</u></div><div class="one"><span class="av2" data-algo="A" data-uid="u_77ae"><span>JW</span></span><u>Jonas</u></div><div class="one"><span class="av2" data-algo="A" data-uid="u_1e60"><span>ML</span></span><u>Mei</u></div><div class="one"><span class="av2" data-algo="A" data-uid="u_c93f"><span>OH</span></span><u>Omar</u></div><div class="one"><span class="av2" data-algo="A" data-uid="u_04bd"><span>IC</span></span><u>Ines</u></div><div class="one"><span class="av2" data-algo="A" data-uid="u_a5e2"><span>BF</span></span><u>Ben</u></div><div class="one"><span class="av2" data-algo="A" data-uid="u_6f18"><span>LM</span></span><u>Lucia</u></div><div class="one"><span class="av2" data-algo="A" data-uid="u_39d4"><span>NB</span></span><u>Nils</u></div><div class="one"><span class="av2" data-algo="A" data-uid="u_ec85"><span>ZK</span></span><u>Zara</u></div></div></div>
+</div>
+<div class="cell"><div class="tag i"><b>At 52px</b><span>the person page, the largest in a list</span></div>
+<div class="algo" style="display:flex;gap:var(--space-4);justify-content:space-between"><span class="av2 big" data-algo="A" data-uid="u_8f3a"><span>AD</span></span><span class="av2 big" data-algo="A" data-uid="u_2c71"><span>TR</span></span><span class="av2 big" data-algo="A" data-uid="u_5d09"><span>SO</span></span><span class="av2 big" data-algo="A" data-uid="u_b412"><span>PR</span></span></div>
+<ul class="spec"><li>One linear gradient at a seeded angle, hues <code>h</code>, <code>h+38</code>, <code>h+76</code>. The oil-slick shift the prism field already uses, at avatar scale.</li><li><b>Cheapest to generate and the most obviously offload.</b> The cost is the one measured above: at 36px a sweep is close to a flat colour, so <b>hue is doing all the work and the angle adds nothing</b>, which leaves twelve real buckets and <b>8 distinct avatars in this list of 12</b>.</li></ul>
+</div>
+</div>
+
+<div class="rowlabel">B. Interference blooms<u>three soft lobes</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Twelve people at 36px</b><span>real size</span></div>
+<div class="crop"><div class="strip"><div class="one"><span class="av2" data-algo="B" data-uid="u_8f3a"><span>AD</span></span><u>Ana</u></div><div class="one"><span class="av2" data-algo="B" data-uid="u_2c71"><span>TR</span></span><u>Tom</u></div><div class="one"><span class="av2" data-algo="B" data-uid="u_5d09"><span>SO</span></span><u>Sam</u></div><div class="one"><span class="av2" data-algo="B" data-uid="u_b412"><span>PR</span></span><u>Priya</u></div><div class="one"><span class="av2" data-algo="B" data-uid="u_77ae"><span>JW</span></span><u>Jonas</u></div><div class="one"><span class="av2" data-algo="B" data-uid="u_1e60"><span>ML</span></span><u>Mei</u></div><div class="one"><span class="av2" data-algo="B" data-uid="u_c93f"><span>OH</span></span><u>Omar</u></div><div class="one"><span class="av2" data-algo="B" data-uid="u_04bd"><span>IC</span></span><u>Ines</u></div><div class="one"><span class="av2" data-algo="B" data-uid="u_a5e2"><span>BF</span></span><u>Ben</u></div><div class="one"><span class="av2" data-algo="B" data-uid="u_6f18"><span>LM</span></span><u>Lucia</u></div><div class="one"><span class="av2" data-algo="B" data-uid="u_39d4"><span>NB</span></span><u>Nils</u></div><div class="one"><span class="av2" data-algo="B" data-uid="u_ec85"><span>ZK</span></span><u>Zara</u></div></div></div>
+</div>
+<div class="cell"><div class="tag i"><b>At 52px</b><span>the person page, the largest in a list</span></div>
+<div class="algo" style="display:flex;gap:var(--space-4);justify-content:space-between"><span class="av2 big" data-algo="B" data-uid="u_8f3a"><span>AD</span></span><span class="av2 big" data-algo="B" data-uid="u_2c71"><span>TR</span></span><span class="av2 big" data-algo="B" data-uid="u_5d09"><span>SO</span></span><span class="av2 big" data-algo="B" data-uid="u_b412"><span>PR</span></span></div>
+<ul class="spec"><li>A base hue with three radial blooms at seeded positions, hues <code>h+60</code>, <code>h+120</code>, <code>h+180</code>, lightened where they overlap. This is the <code>bloom</code> asset's behaviour.</li><li><b>The most beautiful of the four if you could see it big, and you cannot.</b> At 52px the lobes are already averaging, and at 36px they blur into one colour so two people with the same hue become hard to tell apart, which is the opposite of the brief.</li></ul>
+</div>
+</div>
+
+<div class="rowlabel">C. Facet split<u>a hard edge at a seeded angle</u></div>
+<div class="row">
+<div class="cell"><div class="tag m"><b>Twelve people at 36px</b><span>recommended</span></div>
+<div class="crop"><div class="strip"><div class="one"><span class="av2" data-algo="C" data-uid="u_8f3a"><span>AD</span></span><u>Ana</u></div><div class="one"><span class="av2" data-algo="C" data-uid="u_2c71"><span>TR</span></span><u>Tom</u></div><div class="one"><span class="av2" data-algo="C" data-uid="u_5d09"><span>SO</span></span><u>Sam</u></div><div class="one"><span class="av2" data-algo="C" data-uid="u_b412"><span>PR</span></span><u>Priya</u></div><div class="one"><span class="av2" data-algo="C" data-uid="u_77ae"><span>JW</span></span><u>Jonas</u></div><div class="one"><span class="av2" data-algo="C" data-uid="u_1e60"><span>ML</span></span><u>Mei</u></div><div class="one"><span class="av2" data-algo="C" data-uid="u_c93f"><span>OH</span></span><u>Omar</u></div><div class="one"><span class="av2" data-algo="C" data-uid="u_04bd"><span>IC</span></span><u>Ines</u></div><div class="one"><span class="av2" data-algo="C" data-uid="u_a5e2"><span>BF</span></span><u>Ben</u></div><div class="one"><span class="av2" data-algo="C" data-uid="u_6f18"><span>LM</span></span><u>Lucia</u></div><div class="one"><span class="av2" data-algo="C" data-uid="u_39d4"><span>NB</span></span><u>Nils</u></div><div class="one"><span class="av2" data-algo="C" data-uid="u_ec85"><span>ZK</span></span><u>Zara</u></div></div></div>
+</div>
+<div class="cell"><div class="tag m"><b>At 52px</b><span>the person page, the largest in a list</span></div>
+<div class="algo" style="display:flex;gap:var(--space-4);justify-content:space-between"><span class="av2 big" data-algo="C" data-uid="u_8f3a"><span>AD</span></span><span class="av2 big" data-algo="C" data-uid="u_2c71"><span>TR</span></span><span class="av2 big" data-algo="C" data-uid="u_5d09"><span>SO</span></span><span class="av2 big" data-algo="C" data-uid="u_b412"><span>PR</span></span></div>
+<ul class="spec"><li>Two fields divided by a hard line at one of <b>eight</b> seeded angles, hues <code>h</code> and <code>h+90</code>. <b>Each half keeps to its own end of the lightness range</b>, <code>0.42</code> to <code>0.45</code> against <code>0.49</code> to <code>0.52</code>, so the boundary always carries a step. Letting both halves sweep the whole range made the edge accidental: on four of the twelve above it vanished entirely, wherever the two sides happened to meet at the same lightness. <b>Measured at 36px</b>, the strongest adjacent-pixel step per avatar now runs <b>6 to 23</b> against the sweep's <b>1 to 2</b>, where before four of them sat at 2 to 5, which is the sweep's own baseline.</li><li><b>The only one of the four with a silhouette at 36px</b>, now that the step is guaranteed. A person is <b>a hue and a direction</b>: 12 × 8 buckets against the sweep's effective 12, which on the twelve above is <b>12 distinct avatars rather than 8</b>. And where two people do share a hue, C roughly doubles their separation at 36px over A.</li><li>It is also the most literally prismatic: a facet refracting into two colours is what the field is a photograph of.</li></ul>
+<span class="rec">take this one</span>
+</div>
+</div>
+
+<div class="rowlabel">D. Banded rings<u>concentric interference</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Twelve people at 36px</b><span>real size</span></div>
+<div class="crop"><div class="strip"><div class="one"><span class="av2" data-algo="D" data-uid="u_8f3a"><span>AD</span></span><u>Ana</u></div><div class="one"><span class="av2" data-algo="D" data-uid="u_2c71"><span>TR</span></span><u>Tom</u></div><div class="one"><span class="av2" data-algo="D" data-uid="u_5d09"><span>SO</span></span><u>Sam</u></div><div class="one"><span class="av2" data-algo="D" data-uid="u_b412"><span>PR</span></span><u>Priya</u></div><div class="one"><span class="av2" data-algo="D" data-uid="u_77ae"><span>JW</span></span><u>Jonas</u></div><div class="one"><span class="av2" data-algo="D" data-uid="u_1e60"><span>ML</span></span><u>Mei</u></div><div class="one"><span class="av2" data-algo="D" data-uid="u_c93f"><span>OH</span></span><u>Omar</u></div><div class="one"><span class="av2" data-algo="D" data-uid="u_04bd"><span>IC</span></span><u>Ines</u></div><div class="one"><span class="av2" data-algo="D" data-uid="u_a5e2"><span>BF</span></span><u>Ben</u></div><div class="one"><span class="av2" data-algo="D" data-uid="u_6f18"><span>LM</span></span><u>Lucia</u></div><div class="one"><span class="av2" data-algo="D" data-uid="u_39d4"><span>NB</span></span><u>Nils</u></div><div class="one"><span class="av2" data-algo="D" data-uid="u_ec85"><span>ZK</span></span><u>Zara</u></div></div></div>
+</div>
+<div class="cell"><div class="tag i"><b>At 52px</b><span>the person page, the largest in a list</span></div>
+<div class="algo" style="display:flex;gap:var(--space-4);justify-content:space-between"><span class="av2 big" data-algo="D" data-uid="u_8f3a"><span>AD</span></span><span class="av2 big" data-algo="D" data-uid="u_2c71"><span>TR</span></span><span class="av2 big" data-algo="D" data-uid="u_5d09"><span>SO</span></span><span class="av2 big" data-algo="D" data-uid="u_b412"><span>PR</span></span></div>
+<ul class="spec"><li>Five to nine concentric bands at a seeded spacing and offset, alternating <code>h</code> and <code>h+50</code>.</li><li>The band count is a genuine second axis, and at 52px you can count them. <b>But rings read as a state, not a person</b>: concentric circles are what a loading or recording indicator looks like, and at 36px the narrow bands alias into moiré.</li></ul>
+<span class="verdict no">reads as a control</span>
+</div>
+</div>
+
+<div class="rowlabel">The two that matter, side by side<u>C against A, at 24 and 36</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>A, sweep</b><span>hue only</span></div>
+<div class="crop"><div class="strip" style="align-items:center"><div class="one"><span class="av2 sm" data-algo="A" data-uid="u_8f3a"><span>AD</span></span><span class="av2" data-algo="A" data-uid="u_8f3a"><span>AD</span></span><u>Ana</u></div><div class="one"><span class="av2 sm" data-algo="A" data-uid="u_2c71"><span>TR</span></span><span class="av2" data-algo="A" data-uid="u_2c71"><span>TR</span></span><u>Tom</u></div><div class="one"><span class="av2 sm" data-algo="A" data-uid="u_5d09"><span>SO</span></span><span class="av2" data-algo="A" data-uid="u_5d09"><span>SO</span></span><u>Sam</u></div><div class="one"><span class="av2 sm" data-algo="A" data-uid="u_b412"><span>PR</span></span><span class="av2" data-algo="A" data-uid="u_b412"><span>PR</span></span><u>Priya</u></div><div class="one"><span class="av2 sm" data-algo="A" data-uid="u_77ae"><span>JW</span></span><span class="av2" data-algo="A" data-uid="u_77ae"><span>JW</span></span><u>Jonas</u></div><div class="one"><span class="av2 sm" data-algo="A" data-uid="u_1e60"><span>ML</span></span><span class="av2" data-algo="A" data-uid="u_1e60"><span>ML</span></span><u>Mei</u></div></div></div>
+</div>
+<div class="cell"><div class="tag m"><b>C, facet</b><span>hue and direction</span></div>
+<div class="crop"><div class="strip" style="align-items:center"><div class="one"><span class="av2 sm" data-algo="C" data-uid="u_8f3a"><span>AD</span></span><span class="av2" data-algo="C" data-uid="u_8f3a"><span>AD</span></span><u>Ana</u></div><div class="one"><span class="av2 sm" data-algo="C" data-uid="u_2c71"><span>TR</span></span><span class="av2" data-algo="C" data-uid="u_2c71"><span>TR</span></span><u>Tom</u></div><div class="one"><span class="av2 sm" data-algo="C" data-uid="u_5d09"><span>SO</span></span><span class="av2" data-algo="C" data-uid="u_5d09"><span>SO</span></span><u>Sam</u></div><div class="one"><span class="av2 sm" data-algo="C" data-uid="u_b412"><span>PR</span></span><span class="av2" data-algo="C" data-uid="u_b412"><span>PR</span></span><u>Priya</u></div><div class="one"><span class="av2 sm" data-algo="C" data-uid="u_77ae"><span>JW</span></span><span class="av2" data-algo="C" data-uid="u_77ae"><span>JW</span></span><u>Jonas</u></div><div class="one"><span class="av2 sm" data-algo="C" data-uid="u_1e60"><span>ML</span></span><span class="av2" data-algo="C" data-uid="u_1e60"><span>ML</span></span><u>Mei</u></div></div></div>
+<ul class="spec"><li>At 24px, which nothing in the product currently draws, even the facet edge is marginal. <b>Below 28, the product's smallest, the avatar should not be drawn at all</b> and the initials alone are more honest. Worth knowing before the @ mention list picks a size.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>The algorithm, written out</h2><u>for the server</u></div>
+<ul class="spec">
+<li><b>Seed:</b> FNV-1a over the account's immutable id, not the email or the display name, both of which can change. <code>h = fnv1a(id)</code>, then an xorshift32 stream from it, so every draw below is reproducible anywhere from that one number.</li>
+<li><b>Hue:</b> <code>hue = (h % 12) * 30</code>. Twelve buckets, 30 degrees apart.</li>
+<li><b>Lightness and chroma are constants, not seeded:</b> <code>L</code> between <b>0.42 and 0.52</b>, <code>C = 0.13</code>. This is the part that must not be made "more varied" later: it is what guarantees the monogram. <b>0.56 was the first ceiling and it failed</b>, putting white at 4.16:1 on the lightest hue.</li>
+<li><b>Facet angle:</b> <code>(next() * 8 | 0) * 45</code> degrees. Eight, because a 22.5 degree difference is not one at 36px.</li>
+<li><b>Output:</b> one 176px PNG per account, served at 28, 32, 36, 52 and 56, which is every size the product draws. Generated once at signup, stored with the account, <b>never regenerated</b> — a prism that changes is not an identity, and somebody will notice.</li>
+<li><b>What it is not:</b> not derived from the name, so it does not change when somebody corrects their spelling, and not derived from anything a person could pick, because the moment it is choosable it stops being a reliable way to find them. <b>Every avatar on this page carries the id it was seeded from</b> in its markup, so the mock does the thing the rule asks for rather than describing it.</li>
+</ul>
+<ul class="spec">
+<li><span class="ask">the honest limit</span> <b>Twelve hues times eight angles is 96 buckets, and that is what makes the difference measurable.</b> On the twelve-person list above the sweep gives <b>8 distinct avatars out of 12</b> and the facet gives <b>12 out of 12</b>. Collisions are not graceful either way: the two are identical, not similar. For friends and family 96 is ample; if a list ever runs to hundreds, the fix is a third axis, not more hues.</li>
+<li><b>Nobody has looked at these on a real screen</b>, and a 36px circle at a phone's pixel density is the one thing this page cannot honestly show.</li>
+</ul>
+
+</div>
+<script>
+/* The four generators, real rather than mocked, so what is picked is what the server
+   reimplements. One seed per account id; lightness and chroma are constants. */
+const L_LO=0.42, L_HI=0.52, CH=0.13;
+function fnv1a(s){let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)}return h>>>0}
+function stream(seed){let s=seed||1;return function(){s^=s<<13;s^=s>>>17;s^=s<<5;return (s>>>0)/4294967296}}
+function ok(l,h){return "oklch("+l+" "+CH+" "+((h%360)+360)%360+")"}
+function draw(el){
+  const id=el.dataset.uid, algo=el.dataset.algo;
+  const seed=fnv1a(id), next=stream(seed);
+  const hue=(seed%12)*30;
+  const N=176;
+  const c=document.createElement("canvas");c.width=N;c.height=N;
+  const x=c.getContext("2d");
+  if(algo==="A"){
+    const a=(next()*8|0)*45*Math.PI/180;
+    const dx=Math.cos(a)*N, dy=Math.sin(a)*N;
+    const g=x.createLinearGradient(N/2-dx/2,N/2-dy/2,N/2+dx/2,N/2+dy/2);
+    g.addColorStop(0,ok(L_LO,hue));g.addColorStop(.5,ok((L_LO+L_HI)/2,hue+38));g.addColorStop(1,ok(L_HI,hue+76));
+    x.fillStyle=g;x.fillRect(0,0,N,N);
+  } else if(algo==="B"){
+    x.fillStyle=ok((L_LO+L_HI)/2,hue);x.fillRect(0,0,N,N);
+    for(let i=0;i<3;i++){
+      const px=next()*N, py=next()*N, r=N*(0.45+next()*0.3);
+      const g=x.createRadialGradient(px,py,0,px,py,r);
+      g.addColorStop(0,ok(L_HI,hue+60*(i+1)));g.addColorStop(1,"transparent");
+      x.fillStyle=g;x.globalAlpha=.75;x.fillRect(0,0,N,N);x.globalAlpha=1;
+    }
+  } else if(algo==="C"){
+    const a=(next()*8|0)*45*Math.PI/180;
+    const dx=Math.cos(a), dy=Math.sin(a);
+    /* Each half keeps to its own end of the lightness range, so the boundary always
+       carries a step. Sweeping both halves across the whole range let the edge vanish
+       wherever the two sides happened to meet at the same lightness. */
+    const LO_A=L_LO, LO_B=L_LO+0.03, HI_A=L_HI-0.03, HI_B=L_HI;
+    const g1=x.createLinearGradient(0,0,N*dx||1,N*dy||1);
+    g1.addColorStop(0,ok(LO_A,hue));g1.addColorStop(1,ok(LO_B,hue+30));
+    x.fillStyle=g1;x.fillRect(0,0,N,N);
+    /* the facet: a half plane cut by the seeded angle, filled with the shifted hue */
+    x.save();x.beginPath();
+    const nx=-dy, ny=dx, F=N*2;
+    x.moveTo(N/2+nx*F, N/2+ny*F);
+    x.lineTo(N/2-nx*F, N/2-ny*F);
+    x.lineTo(N/2-nx*F+dx*F, N/2-ny*F+dy*F);
+    x.lineTo(N/2+nx*F+dx*F, N/2+ny*F+dy*F);
+    x.closePath();x.clip();
+    const g2=x.createLinearGradient(0,0,N*dx||1,N*dy||1);
+    g2.addColorStop(0,ok(HI_B,hue+90));g2.addColorStop(1,ok(HI_A,hue+120));
+    x.fillStyle=g2;x.fillRect(0,0,N,N);x.restore();
+  } else {
+    const bands=5+(next()*5|0), off=next();
+    for(let i=bands;i>=0;i--){
+      const r=N*0.75*((i+off)/bands);
+      x.beginPath();x.arc(N/2,N/2,r,0,Math.PI*2);
+      x.fillStyle=ok(i%2?L_LO:L_HI, i%2?hue:hue+50);x.fill();
+    }
+  }
+  el.insertBefore(c, el.firstChild);
+}
+document.querySelectorAll(".av2[data-uid]").forEach(draw);
+</script>
+</body></html>

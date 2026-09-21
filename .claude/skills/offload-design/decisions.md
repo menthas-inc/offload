@@ -11,6 +11,106 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-21 · Voice notes, and eleven items logged against the kit
+**Surface:** iOS, Android, web
+**Raised by:** 021 on `main`, whose feature spec logs eleven items against this system. Drawn in `explorations/voice-notes.html` and folded in the same day.
+
+**A voice note is words, and that is the whole architecture.** Once offload has written it down the message is a text message to the classifier, the filing turn, the tail, 018's judge, search and 013's answering, and none of them has a rule of its own for voice. So the feature adds a composer state, a bubble and a transcript, and no new screen.
+
+**Three of the eleven were the kit being wrong rather than behind.**
+
+1. **Typed words were hidden while being sent.** The kit replaces the whole field when recording starts, so anything already typed vanished from the screen and went with the note anyway. They stay drawn above the row now, static, primary ink, three lines. **Text you cannot see being sent is the one thing a composer must never do.**
+2. **`SentVoice`'s bars were an opacity ramp over a retyped ramp step.** Every bar was `--ink-950` with opacity climbing left to right, so a note appeared to fade in from silence whatever was said, and read as a fill that was always half played. Its fallback drew 26 bars from a sine where the composer's own constant is 32.
+3. **The discard control said "Discard recording"**, the one noun the vocabulary bans, in the one place it would have been read aloud.
+
+**Two decisions the drawing produced, both about the played state.** The product owner asked for a play glyph and a more prominent played colour. **The glyph became the control**, `play` at rest and `pause` while playing, since a microphone there says record. And the prominent colour turned out to need its opposite: `--text-attention` measures **1.21:1 against a tertiary remainder**, so the boundary between played and not was the invisible part. **The remainder recedes to `--ink-300` only while playing**, where there is a fill to read it against, and a resting row keeps `--text-tertiary` at 4.76:1, dimming it there would have cost the default state of every note three points of contrast to buy legibility in a state it is not in.
+
+**The transcript is in the person's own bubble and their own face.** `--font-core` at `--text-secondary`, 6.24:1 light and 7.65:1 dark, with the reply below it in `--font-quiet`. **Two faces a line apart is what makes the transcript read as a record rather than an answer.** The spec listed the dark contrast as needing a device and it did not: it is measurable, and it passes.
+
+**One failure pattern, and one exception worth stating.** The clause is the state and the control is the exit: 13px `--text-danger` with the way forward in `--text-accent`, under the composer with a dismiss `x` on every line, or below the bubble on a failed turn, and the bubble keeps its `--blue-50` fill with only its border going clay, so the readme's "a refusal is a sentence, not an error state, no warning colour" holds. **The exception is "Not here yet."**, the playback failure, which sits inside the note with no control at all because the row above it is the retry.
+
+**And the rule about Android was read the right way round, twice.** Drawing this pass I gave the composer pill and the sent bubble Material tokens, and both were wrong: `M3Composer.jsx` keeps the shared pill and `Conversation.tsx`'s `Yours` has no Android branch at all. **"An Android override that is not an `--a-*` token is almost certainly wrong" does not mean every `--a-*` token is right.** What does diverge is the platform's own chrome, the status bar and the gesture bar, which is not the product's to share.
+
+**Design system impact:** `SentVoice` in `components/conversation/`. `play` and `pause` vendored as the 83rd and 84th glyphs, in Lucide's stroke format. `readme.md` gains a Voice notes section. `handoff/APPLY-2026-09-21-voice.md` carries all eleven items per surface and per theme.
+
+**Owed:** the composer's recording row at the largest text size with three lines of words above it, which is the tallest that pill can get and a layout question rather than a device one; and the composer's own recording state as a component, which is drawn here but lives in three kits.
+
+---
+
+### 2026-09-21 · Connecting, and a person gets a face
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, off `explorations/sharing-and-avatars.html`. Seven items, decided item by item.
+
+**The product had sharing in fragments and no account of connecting at all.** A share sheet, a `people` settings page, a `PersonScreen`, and nothing that said how two people become connected in the first place.
+
+**Email only, exact and case-insensitive, because accounts have no usernames.** That settles a question I had drawn as open: one full email returns one account or none, with no partial match and no name search. **A name search over real people is a directory whether or not it is called one**, and an email is something you can only have if they gave it to you. The found row shows the address as the account stores it rather than as you typed it, which is what confirms the match was case-insensitive rather than lucky.
+
+**Request, not invite**, and that breaks the shipped kit: `SettingsDetail.jsx`'s `people` page has an *Invites* group with **Resend**, and an invite to somebody who is not on offload cannot be resent because it was never sendable. **Pending**, with **Remove**, and it gains the 32px prism every other person row here has.
+
+**A request is answered on the card and there is no notifications page.** The accept screen I drew is withdrawn, and so is the page I drew after it: a request is answered on its `PendingInvite` card and listed under Pending on the `people` page, so a third place to read the same two facts would be **a page that exists to hold a dot**. A shared thread still opens instead of answering inline, because a thread has content to preview and a connection does not.
+
+**One dot, in two places, and it is a prop that already ships.** The gear in the `AppBar` and My people inside Settings, using `IconButton`'s `badge`: 8px `--clay-600` inside a 1.5px `--paper` border, which the bell beside it already passes. **There is no Settings tab**, which is what my first draft assumed. **Only a request needing your answer dots anything**, your own pending requests do not, because nothing is waiting on you.
+
+**Removing a connection leaves shared threads untouched**, of three options drawn. It is the only one that does not lie about what a thread is: a thread with three people in it has nothing to do with whether you and one of them are connected, and the alternative destroys things you never chose to give up. **The cost is in the copy and the copy is load-bearing**, "removed" does not mean "no longer shares things with me", so the second sentence must not be cut. It is also **the one action in the product with no Undo**, because the other person's copy changes at the same moment.
+
+**`Avatar` is new, and the facet is not decoration.** The kits hand-rolled an initials circle in five places. Two measurements decided the algorithm. **The lightness ceiling is 0.52, not the 0.56 I first wrote:** at 0.56 the lightest hue in the wheel put white initials at **4.16:1**, one person in twelve with a monogram that fails and no way to fix it afterwards. And **twelve hues alone is not enough:** twelve accounts land on **eight** distinct hues, so a third of a list of twelve shares a colour. That is what picks the facet split over the sweep, a hard edge at one of eight angles is the only structure that survives 36px, and it takes that list from 8 distinct avatars to 12.
+
+**Every avatar in the product is between 28 and 56px**, three of the five at or under 36, so the mark is scanned and never studied. **88px, which an earlier draft of the exploration used to argue two options were beautiful, is a size the product draws nowhere.**
+
+**Design system impact:** `Avatar` in `components/core/`, with the seed, the two constants and the two wheels in its contract. `readme.md` gains **People, and connecting** and **The prism avatar**. `handoff/APPLY-2026-09-21-people.md` carries it per surface.
+
+**Owed, and larger than this entry:** the kits' five hand-rolled initials circles want replacing with `Avatar`; `SettingsDetail.jsx`'s Ana row is hardcoded and disagrees with `data.js` on both the thread count and the month; the *Sharing with you* group has no row for a connection who shares nothing, which is a common state since a connection outlives the thing you made it for; and nobody has seen a 36px prism at a real phone's pixel density.
+
+---
+
+### 2026-09-21 · The launch screen, the viewer, and six screens the kits owed
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, off `explorations/launch-and-viewer.html`, after the 21 September pull listed them as owed.
+
+**The launch screen had no entry because nobody had designed it**, and since 20 September it is held for a whole `/api/me` round trip on every cold start. **The mark alone on `--surface-page`**, 216pt on iOS and 192dp inside Android's 240dp canvas.
+
+**Two findings came out of drawing it, and both are traps rather than preferences.** First, **the mark is `--text-primary`**: both ramps invert in dark, so `--paper` there is #191919 and a mark set to it measures **1.02:1** on the page. Second, **no platform splash takes a spinner**, iOS gives a colour and one static image, Android gives a colour, an icon and its own reveal, so a spinner after a second is a second screen the app draws on handover, and **the seam is the whole risk**: the spinner must sit outside the centring flow, or its box re-centres the mark and every cold start blinks.
+
+**`--surface-viewer` minted, and dark is opaque.** A translucent plane cannot separate from a near-black page: `--surface-page` at 92% over `--surface-page` measures **1.00:1** and even the darkest value reaches 1.11:1. So light is `--surface-inverse` at 90%, which composites to about #232323 and reads as depth, and **dark is `--surface-plate` at full opacity**, where what says a viewer is open is that the screen behind it is gone. Everything on the plane is `#FFFFFF` rather than `--text-inverse`, the status bar included, because ink-inverse flips to dark text on a dark plane.
+
+**`arrow-up-right` vendored as the 82nd glyph**, for a link row whose primary action is opening the page. A rotated `arrow-up` would have left an implementer with no slug to call, which is the same reason `grip-vertical` was vendored on the 16th.
+
+**A link's row is a door.** Tapping it opens the page; it was opening a detail screen with the page a second step. A link is the one row in the product whose content lives somewhere else.
+
+**One conflict the kits have to resolve, not the designs.** A to-do is drawn as a `ListRow` with a body, and both phone kits still draw it as a standalone `Checkbox` in a gapped column. Code's 20 September entry settles it the other way twice: it centres the phones' `ListRow` leading and trailing, and it says a to-do draws its body under the title, which `Checkbox` has no slot for. **The kits' task list is what moves.**
+
+**What the pass mostly was, though, is components being read rather than recalled.** Sixteen governed components and kit pieces were drawn from memory and then corrected against source: `SectionHeader` was a different object rather than a smaller one; `FilesWidget` lives in `ThreadWidgets.jsx` and its derived tags are accent with `sparkles`; `DayAgenda` already had an `EventLine`, so a calendar event is that line with two additions rather than a second one; both kits ship their own `StatusBar` and they differ on purpose; `RowActionSheet` in the android scope already **is** the M3 sheet, because `--radius-sheet` resolves to 28 there. **The rule this pass earns: an Android override that is not an `--a-*` token is almost certainly wrong**, since that scope redefines only those, the radii and the heights, two invented ones had a divider token doing a control's job at 1.29:1.
+
+**Design system impact:** `--surface-viewer` in three scopes. `arrow-up-right` vendored, 82 glyphs. `ListRow.jsx` renders the `body` its contract documents, which was written last session and never implemented. `readme.md` gains Launch screen, Photo viewer and Move sheet sections. `handoff/APPLY-2026-09-21-owed.md` carries it per surface and per theme.
+
+**Still owed:** the move sheet and viewer as components rather than mocks, and the two states nobody has asked for: what the holding screen does when `/api/me` never answers, and a set of one.
+
+---
+
+### 2026-09-21 · Twelve entries from code, one of them reversing this system
+**Surface:** iOS, Android, web
+**Raised by:** `handoff/FROM-CODE-2026-09-21.md`, the entries written since the 16 September pull.
+
+**The one that matters most is the reversal.** On 16 September this system specified a second line under each of the two declining replies, saying which state it was in. Code withdrew it on the 18th and was right. "Can't search that." is the refused-subject line, said when the dump is about politics, weapons, self-harm or sex, **and it is said whether or not the web switch is on**, so "Searching the web is off in Settings." would have been untrue every time it appeared. "Not sure." covers four states and the proposed line is right in one. **The honest version would have offload diagnose itself, which it does not do.** `handoff/APPLY-2026-09-16.md` item 9 is struck in place with the reason, `readme.md` states the four states instead, and `explorations/asking-and-arranging.html` records that its option A is what shipped.
+
+**A second reversal, of the smaller kind.** The 17 September entry said a row's controls centre on the web and nothing moves on the phones. The 20th reverses it: the product owner looked at a two-line row on an iPhone and the phones' two-point nudge read as misaligned there too. **Everything in a row centres on the row, on every surface.** `Checkbox` keeps its own first-line alignment for a standalone tick with a label; inside a `ListRow` the row's centring wins, which is now a line in the contract.
+
+**`Toast` gains its second form**, the one component change in this pass. The failure: one clause and a Retry, per action rather than one generic line, carrying `role="alert"` because a write that did not land has to interrupt rather than wait its turn. **Not red and not an error state**, since a toast is offload reporting and offload reports a refusal in the same voice as a success. With it, the rule behind it: **a write is drawn at the press and the request follows, and Undo is offered the moment the change is drawn**, not when the server answers, because the eight seconds are the person's.
+
+**The loading rule held under pressure and is worth recording as held.** A fading sweep was asked for and declined: a row typed in already has a treatment for "the server is still reading this", and drawing that row a second earlier is the whole of the placeholder. `readme.md`'s *Filing* state gains the sentence that it is also what a row looks like before the server has it.
+
+**`ListRow` gains `body`**, a to-do row's own words under the title, two lines at most. The contract had only `meta`, which is what offload knows about a row; `body` is what the row says. The phones have drawn it since 009 and the web widget rows gained it on the 20th, so the contract was the last thing to know.
+
+**`AppBar` goes to three tools with the criterion** the web pane head took on 18 September: a tool earns a bar slot only if it changes what offload reads or shows, and anything that acts on the thread goes in More. The phones' thread head becomes one line as a consequence, which is drawing this system owes.
+
+**The app icon inverts:** a white tile at #FFFFFF, not paper, since a home screen is not a page, with the mark in ink. The web favicon keeps the ink tile, being the one version that reads on both a light and a dark browser chrome.
+
+**Design system impact:** `Toast.jsx` and `.d.ts` rewritten with the failure form. `ListRow.d.ts` gains `body` and the centring rule. `AppBar.d.ts` goes to three tools. `readme.md`: the two declining paragraphs replaced, *Filing* and *Loading* amended, the write-at-the-press rule added, and the mark's one-colour line excepted for the app icon. `handoff/APPLY-2026-09-16.md` item 9 struck.
+
+**Owed, and none of it drawn:** a launch screen, which has no entry because nobody has designed it and is now held for a whole round trip on every cold start; `PhotoViewer` and `MoveSheet`, two screens in every kit; the phones' one-line thread head; Files as a grid with links leaving it; the day list's calendar event line; Android's photo bottom sheet and the iOS action sheet; and a semantic token for the viewer's dark plane, which is two hand-mixed values today.
+
+---
+
 ### 2026-09-21 · A settings value goes under the title when the two do not fit
 **Surface:** iOS, Android
 **Raised by:** the Pixel 9 at 200% type: the You card stood 350dp tall for one row.

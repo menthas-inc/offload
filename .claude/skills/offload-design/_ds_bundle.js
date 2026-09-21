@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"26fe2e1d4cf8","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"6980e3a3a7bb","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"ed63ae9f4be7","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"6168aceeb5d8","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"095d97ec62df","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"50bc09c7916d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"ff74cfc9f291","ui_kits/android_app/M3SettingsScreen.jsx":"10bd3bef4213","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"74bb28c09731","ui_kits/android_app/M3TodayScreen.jsx":"5cc65d5723ad","ui_kits/mobile_app/App.jsx":"8b33bbed0476","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"89aeba46db74","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"53511fd714cd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"3538ca7c057e","ui_kits/mobile_app/SettingsScreen.jsx":"6e07d5456b43","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"65f843b08dfa","ui_kits/mobile_app/TodayScreen.jsx":"fca5165004fc","ui_kits/mobile_app/data.js":"01d6d5ac0b68","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"fdac02706b2e","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":4,"namespace":"OffloadDesignSystem_dc4a89","components":[{"name":"AnswerResult","sourcePath":"components/answering/AnswerResult.jsx"},{"name":"QuickReplies","sourcePath":"components/answering/QuickReplies.jsx"},{"name":"Logo","sourcePath":"components/brand/Logo.jsx"},{"name":"SentVoice","sourcePath":"components/conversation/SentVoice.jsx"},{"name":"TurnFooter","sourcePath":"components/conversation/TurnFooter.jsx"},{"name":"Avatar","sourcePath":"components/core/Avatar.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"Chip","sourcePath":"components/core/Chip.jsx"},{"name":"Icon","sourcePath":"components/core/Icon.jsx"},{"name":"IconButton","sourcePath":"components/core/IconButton.jsx"},{"name":"EmptyState","sourcePath":"components/feedback/EmptyState.jsx"},{"name":"Spinner","sourcePath":"components/feedback/Spinner.jsx"},{"name":"Toast","sourcePath":"components/feedback/Toast.jsx"},{"name":"Checkbox","sourcePath":"components/forms/Checkbox.jsx"},{"name":"SegmentedControl","sourcePath":"components/forms/SegmentedControl.jsx"},{"name":"Switch","sourcePath":"components/forms/Switch.jsx"},{"name":"TextField","sourcePath":"components/forms/TextField.jsx"},{"name":"AppBar","sourcePath":"components/layout/AppBar.jsx"},{"name":"ListRow","sourcePath":"components/layout/ListRow.jsx"},{"name":"MemoryRow","sourcePath":"components/layout/MemoryRow.jsx"},{"name":"PrismField","sourcePath":"components/layout/PrismField.jsx"},{"name":"RowActionSheet","sourcePath":"components/layout/RowActionSheet.jsx"},{"name":"SectionHeader","sourcePath":"components/layout/SectionHeader.jsx"},{"name":"Sheet","sourcePath":"components/layout/Sheet.jsx"},{"name":"SwipeRow","sourcePath":"components/layout/SwipeRow.jsx"},{"name":"TabBar","sourcePath":"components/layout/TabBar.jsx"},{"name":"NotificationAndroid","sourcePath":"components/notifications/NotificationAndroid.jsx"},{"name":"NotificationIOS","sourcePath":"components/notifications/NotificationIOS.jsx"}],"sourceHashes":{"components/answering/AnswerResult.jsx":"dd3f70121faa","components/answering/QuickReplies.jsx":"f4841ee2005a","components/brand/Logo.jsx":"62c6fc604a6e","components/conversation/SentVoice.jsx":"08bb27934031","components/conversation/TurnFooter.jsx":"fe3dd39e9523","components/core/Avatar.jsx":"1c8eef696ff5","components/core/Badge.jsx":"068fa1d9fd80","components/core/Button.jsx":"2f73c07cc357","components/core/Card.jsx":"add28c9cbaf7","components/core/Chip.jsx":"26fe2e1d4cf8","components/core/Icon.jsx":"2692a44346c1","components/core/IconButton.jsx":"c037fbfba12d","components/feedback/EmptyState.jsx":"21a739eb3818","components/feedback/Spinner.jsx":"189fec8824f7","components/feedback/Toast.jsx":"7f6290747633","components/forms/Checkbox.jsx":"32fa0d60ffab","components/forms/SegmentedControl.jsx":"a23ef24869cb","components/forms/Switch.jsx":"156a2f07a3d2","components/forms/TextField.jsx":"ffdb9689f1d8","components/layout/AppBar.jsx":"190f58723782","components/layout/ListRow.jsx":"d58108f37e4d","components/layout/MemoryRow.jsx":"4180b7994226","components/layout/PrismField.jsx":"cc7eaf5fc9c5","components/layout/RowActionSheet.jsx":"130be5751b70","components/layout/SectionHeader.jsx":"de3dc059810f","components/layout/Sheet.jsx":"29094911d15c","components/layout/SwipeRow.jsx":"0c9b39a6b114","components/layout/TabBar.jsx":"80e787b3df43","components/notifications/NotificationAndroid.jsx":"484a9d3e85f3","components/notifications/NotificationIOS.jsx":"96f77b796a12","explorations/image-slot.js":"fff26d081c8d","ui_kits/admin_web/A.jsx":"9bf3d23f6c20","ui_kits/admin_web/AdminApp.jsx":"7d40f73e3380","ui_kits/admin_web/AdminData.js":"fbefb01acc61","ui_kits/android_app/M3.jsx":"fd1d0387b4bd","ui_kits/android_app/M3App.jsx":"6168aceeb5d8","ui_kits/android_app/M3Composer.jsx":"382f3e100dc9","ui_kits/android_app/M3DayAgenda.jsx":"0c22d7b9dfec","ui_kits/android_app/M3FirstRun.jsx":"22d52a601ce4","ui_kits/android_app/M3LiveConversation.jsx":"095d97ec62df","ui_kits/android_app/M3MemoriesScreen.jsx":"6b77b28c2077","ui_kits/android_app/M3NotificationSheet.jsx":"50bc09c7916d","ui_kits/android_app/M3PersonScreen.jsx":"ad92b0264b1e","ui_kits/android_app/M3Phone.jsx":"fb4962c0a0d9","ui_kits/android_app/M3SettingsDetail.jsx":"ff74cfc9f291","ui_kits/android_app/M3SettingsScreen.jsx":"10bd3bef4213","ui_kits/android_app/M3Sharing.jsx":"e82e8e419fde","ui_kits/android_app/M3ThreadScreen.jsx":"a0b0517adb43","ui_kits/android_app/M3ThreadWidgets.jsx":"df604d80df2c","ui_kits/android_app/M3ThreadsScreen.jsx":"74bb28c09731","ui_kits/android_app/M3TodayScreen.jsx":"5cc65d5723ad","ui_kits/mobile_app/App.jsx":"8b33bbed0476","ui_kits/mobile_app/Composer.jsx":"8b04c27ca5d4","ui_kits/mobile_app/DayAgenda.jsx":"e60e82edc525","ui_kits/mobile_app/FirstRun.jsx":"25e9dfb34250","ui_kits/mobile_app/LiveConversation.jsx":"89aeba46db74","ui_kits/mobile_app/MemoriesScreen.jsx":"513281384d18","ui_kits/mobile_app/NotificationSheet.jsx":"53511fd714cd","ui_kits/mobile_app/PersonScreen.jsx":"b630fe1f5c62","ui_kits/mobile_app/Phone.jsx":"8fe0a09ca34b","ui_kits/mobile_app/SettingsDetail.jsx":"3538ca7c057e","ui_kits/mobile_app/SettingsScreen.jsx":"6e07d5456b43","ui_kits/mobile_app/Sharing.jsx":"4e0ea2b88c21","ui_kits/mobile_app/ThreadScreen.jsx":"7c64055d1c91","ui_kits/mobile_app/ThreadWidgets.jsx":"37002f762227","ui_kits/mobile_app/ThreadsScreen.jsx":"65f843b08dfa","ui_kits/mobile_app/TodayScreen.jsx":"fca5165004fc","ui_kits/mobile_app/data.js":"01d6d5ac0b68","ui_kits/mobile_app/sun.js":"06e3272c6d0d","ui_kits/web_app/W.jsx":"ef6f2f2cacb0","ui_kits/web_app/WApp.jsx":"fdac02706b2e","ui_kits/web_app/WFirstRunGate.jsx":"dc4b61c29502","ui_kits/web_app/WMemories.jsx":"1bc235a2b491","ui_kits/web_app/WMisc.jsx":"f2cff253fb85","ui_kits/web_app/WSettings.jsx":"3346865d3749","ui_kits/web_app/WSharing.jsx":"b8c30264fc91","ui_kits/web_app/WThing.jsx":"93877dee6ade","ui_kits/web_app/WToday.jsx":"3be4272115e6"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -71,6 +71,112 @@ function Logo({
 }
 Object.assign(__ds_scope, { Logo });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/brand/Logo.jsx", error: String((e && e.message) || e) }); }
+
+// components/core/Avatar.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/* A person, drawn as a prism when they have no photo.
+
+   The product has no Avatar component until now: the kits hand-roll an initials circle in
+   five places, which at 32px is two grey letters. A generated mark gives a person a colour
+   and a direction, so a list is scannable before it is read.
+
+   Two constants and two wheels, and the constants are the part not to relax:
+
+   L 0.42 to 0.52 at C 0.13   every hue the generator can produce keeps white initials
+                              above 4.5:1. At L 0.56 the lightest hue measured 4.16:1.
+   12 hues, 30 degrees apart  a continuous hash puts two people 15 degrees apart, which at
+                              36px is no difference at all.
+   8 facet angles             12 hues alone is not enough: twelve accounts land on eight
+                              distinct hues. The facet edge is what survives 36px, so it is
+                              part of the identity rather than decoration.
+
+   Seeded from the account id, never the name or the email, both of which change. In
+   production the server draws this once at signup and stores it; this component is the
+   same arithmetic so a mock and the real thing agree. */
+
+const L_LO = 0.42,
+  L_HI = 0.52,
+  CH = 0.13;
+const HUES = 12,
+  FACETS = 8;
+function fnv1a(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < String(s).length; i++) {
+    h ^= String(s).charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+function ok(l, h) {
+  return "oklch(" + l + " " + CH + " " + (h % 360 + 360) % 360 + ")";
+}
+function Avatar({
+  uid,
+  initials,
+  name,
+  size = 36,
+  style,
+  ...rest
+}) {
+  const seed = fnv1a(uid || name || "");
+  const hue = seed % HUES * (360 / HUES);
+  /* One draw off the seed, so the angle is reproducible from the id alone. */
+  let s = seed || 1;
+  s ^= s << 13;
+  s ^= s >>> 17;
+  s ^= s << 5;
+  const step = (s >>> 0) % FACETS;
+  const deg = step * (360 / FACETS);
+  const rad = deg * Math.PI / 180,
+    dx = Math.cos(rad),
+    dy = Math.sin(rad);
+  /* The facet is a half plane through the centre along the seeded direction, as a polygon
+     rather than a rotated box, so it clips identically at every size. */
+  const t = 200,
+    nx = -dy,
+    ny = dx;
+  const pt = (a, b) => (50 + a).toFixed(2) + "% " + (50 + b).toFixed(2) + "%";
+  const clip = "polygon(" + [pt(dx * t, dy * t), pt(-dx * t, -dy * t), pt(-dx * t + nx * t, -dy * t + ny * t), pt(dx * t + nx * t, dy * t + ny * t)].join(",") + ")";
+  const label = initials || (name || "").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+  /* The monogram scales with the circle rather than stepping, because the product draws
+     five sizes between 28 and 56 and a per-size table would need editing for a sixth. */
+  const fs = Math.round(size * 0.36);
+  return /*#__PURE__*/React.createElement("span", _extends({}, rest, {
+    "aria-label": name || undefined,
+    style: {
+      position: "relative",
+      flex: "0 0 auto",
+      width: size,
+      height: size,
+      borderRadius: "var(--radius-pill)",
+      overflow: "hidden",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "linear-gradient(" + deg + "deg, " + ok(L_LO, hue) + ", " + ok(L_HI, hue + 30) + ")",
+      ...style
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true",
+    style: {
+      position: "absolute",
+      inset: 0,
+      clipPath: clip,
+      background: "linear-gradient(" + deg + "deg, " + ok(L_HI, hue + 90) + ", " + ok(L_LO, hue + 120) + ")"
+    }
+  }), label ? /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true",
+    style: {
+      position: "relative",
+      color: "#FFFFFF",
+      font: "var(--weight-semibold) " + fs + "px/1 var(--font-core)",
+      letterSpacing: ".01em"
+    }
+  }, label) : null);
+}
+Object.assign(__ds_scope, { Avatar });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/core/Avatar.jsx", error: String((e && e.message) || e) }); }
 
 // components/core/Badge.jsx
 try { (() => {
@@ -649,6 +755,143 @@ function QuickReplies({
 }
 Object.assign(__ds_scope, { QuickReplies });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/answering/QuickReplies.jsx", error: String((e && e.message) || e) }); }
+
+// components/conversation/SentVoice.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/* A voice note on a sent message: the control, the waveform, the length, and the
+   transcript beneath once offload has written it down.
+
+   **The bars are the note's own thirty two**, resampled over the whole recording on the
+   device at stop and stored with it, so every surface and every reload draws the same bars
+   and a bar is a fixed slice of time. The composer's live row keeps a sliding window of the
+   last few seconds; that window is not what a sent note shows, and neither is a drawn sine.
+
+   **The glyph is the control, so it says what pressing it does**: play at rest, pause while
+   playing. A microphone there says record, which is the composer's job.
+
+   **The remainder recedes only while playing.** A played bar is --text-attention and the
+   rest of the bar row drops to --ink-300, which measures 3.53:1 against it; at rest every
+   bar is --text-tertiary at 4.76:1, because then the whole waveform is the note. Dimming a
+   resting row would cost the default state of every note three points of contrast to buy
+   legibility in a state it is not in.
+
+   **--text-attention rather than --text-primary**, which is louder in the absolute but
+   measures 1.21:1 against a tertiary remainder: the boundary between played and not was
+   the one thing you could not see. */
+
+const BARS = 32;
+function SentVoice({
+  durationMs = 0,
+  waveform,
+  transcript,
+  transcribed = false,
+  playing = false,
+  positionMs = 0,
+  failed = false,
+  inert = false,
+  onToggle,
+  onShowAll,
+  folded = false,
+  style,
+  ...rest
+}) {
+  const bars = waveform && waveform.length ? waveform : new Array(BARS).fill(40);
+  const played = playing && durationMs > 0 ? Math.min(1, positionMs / durationMs) : 0;
+  const remaining = playing ? Math.max(0, durationMs - positionMs) : durationMs;
+  const mmss = ms => {
+    const s = Math.floor(ms / 1000);
+    return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  };
+  const words = transcribed ? transcript || "" : null;
+  return /*#__PURE__*/React.createElement("div", _extends({}, rest, {
+    style: {
+      marginTop: "var(--space-2)",
+      minWidth: 150,
+      display: "flex",
+      flexDirection: "column",
+      gap: 6,
+      ...style
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    role: "button",
+    tabIndex: inert ? undefined : 0,
+    "aria-disabled": inert || undefined,
+    "aria-label": "Voice note, " + mmss(durationMs) + ", " + (playing ? "pause" : "play"),
+    "aria-description": playing ? "playing, " + mmss(remaining) + " left" : undefined,
+    onClick: inert ? undefined : onToggle,
+    onKeyDown: inert ? undefined : e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onToggle && onToggle();
+      }
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: "var(--space-3)",
+      minHeight: "var(--tap-min)",
+      cursor: inert ? "default" : "pointer"
+    }
+  }, /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: playing ? "pause" : "play",
+    size: 14,
+    style: {
+      color: "var(--text-secondary)",
+      flex: "0 0 auto"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      alignItems: "center",
+      gap: 2,
+      height: 20,
+      overflow: "hidden"
+    }
+  }, bars.map((value, at) => /*#__PURE__*/React.createElement("span", {
+    key: at,
+    style: {
+      width: 3,
+      flex: "0 0 auto",
+      borderRadius: 2,
+      height: Math.max(3, Math.round(value / 255 * 20)),
+      background: at / bars.length < played ? "var(--text-attention)" : playing ? "var(--ink-300)" : "var(--text-tertiary)"
+    }
+  }))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: "0 0 auto",
+      font: "var(--text-numeric-role)",
+      fontVariantNumeric: "tabular-nums",
+      fontSize: "var(--size-caption)",
+      color: "var(--text-secondary)"
+    }
+  }, mmss(remaining))), failed ? /*#__PURE__*/React.createElement("div", {
+    role: "alert",
+    style: {
+      font: "var(--weight-regular) 13px/18px var(--font-core)",
+      color: "var(--text-danger)"
+    }
+  }, "Not here yet.") : null, words ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--weight-regular) 15px/22px var(--font-core)",
+      color: "var(--text-secondary)"
+    }
+  }, words, folded ? /*#__PURE__*/React.createElement("span", {
+    role: "button",
+    tabIndex: 0,
+    onClick: onShowAll,
+    style: {
+      marginLeft: 6,
+      fontWeight: "var(--weight-medium)",
+      color: "var(--text-accent)",
+      cursor: "pointer"
+    }
+  }, "Show all") : null) : null);
+}
+Object.assign(__ds_scope, { SentVoice });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/conversation/SentVoice.jsx", error: String((e && e.message) || e) }); }
 
 // components/core/Button.jsx
 try { (() => {
@@ -1307,16 +1550,28 @@ Object.assign(__ds_scope, { Spinner });
 // components/feedback/Toast.jsx
 try { (() => {
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/* Two forms, told apart by what they are for rather than by colour.
+
+   The confirmation: what happened, and usually the way back. role="status".
+   The failure: one clause and a Retry. role="alert", because a write that did not
+   land has to interrupt a screen reader rather than wait its turn.
+
+   The failure is not red and not an error state. Same ink bar, same geometry; what
+   changes is the glyph, the live region and the action. A toast is offload reporting,
+   and offload reports a refusal in the same voice it reports a success. */
+
 function Toast({
   message,
   action,
   onAction,
-  icon = "check",
+  icon,
+  failed = false,
   style,
   ...rest
 }) {
+  const glyph = icon === undefined ? failed ? "circle-alert" : "check" : icon;
   return /*#__PURE__*/React.createElement("div", _extends({
-    role: "status"
+    role: failed ? "alert" : "status"
   }, rest, {
     style: {
       display: "flex",
@@ -1330,8 +1585,8 @@ function Toast({
       animation: "offload-toast var(--duration-slow) var(--ease-entrance) both",
       ...style
     }
-  }), icon ? /*#__PURE__*/React.createElement(__ds_scope.Icon, {
-    name: icon,
+  }), glyph ? /*#__PURE__*/React.createElement(__ds_scope.Icon, {
+    name: glyph,
     size: 18,
     style: {
       opacity: 0.8
@@ -1724,6 +1979,7 @@ function usePress() {
 function ListRow({
   title,
   meta,
+  body,
   leading,
   trailing,
   reorder,
@@ -1763,7 +2019,7 @@ function ListRow({
       display: "flex",
       alignItems: "center",
       gap: "var(--space-5)",
-      minHeight: meta ? "var(--row-height-lg)" : "var(--row-height)",
+      minHeight: meta || body ? "var(--row-height-lg)" : "var(--row-height)",
       padding: "var(--space-5) var(--gutter-screen)",
       cursor: interactive ? "pointer" : undefined,
       background: selected ? "var(--state-selected)" : p ? "var(--state-press)" : h && interactive ? "var(--state-hover)" : "transparent",
@@ -1798,7 +2054,16 @@ function ListRow({
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     }
-  }, title), meta ? /*#__PURE__*/React.createElement("div", {
+  }, title), body ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      font: "var(--text-body-sm-role)",
+      color: "var(--text-secondary)",
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden"
+    }
+  }, body) : null, meta ? /*#__PURE__*/React.createElement("div", {
     style: {
       font: "var(--text-body-sm-role)",
       fontVariantNumeric: "tabular-nums",
@@ -25175,7 +25440,11 @@ __ds_ns.QuickReplies = __ds_scope.QuickReplies;
 
 __ds_ns.Logo = __ds_scope.Logo;
 
+__ds_ns.SentVoice = __ds_scope.SentVoice;
+
 __ds_ns.TurnFooter = __ds_scope.TurnFooter;
+
+__ds_ns.Avatar = __ds_scope.Avatar;
 
 __ds_ns.Badge = __ds_scope.Badge;
 
