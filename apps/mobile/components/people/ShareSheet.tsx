@@ -178,6 +178,12 @@ export function ShareSheet({
       <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(140)} className="absolute inset-0" style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}>
         <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
       </Animated.View>
+      {/* Mounted once the list is in hand, so the slide's first layout is
+          its last: a Reanimated entering animation measures the view on
+          mount, and a sheet that grew from three lines to a list once its
+          fetch landed stayed drawn at the height it was born with, half off
+          the bottom of a simulator's screen. */}
+      {sheet || failed ? (
       <Animated.View
         entering={SlideInDown.duration(260)}
         exiting={SlideOutDown.duration(200)}
@@ -363,6 +369,7 @@ export function ShareSheet({
           </Pressable>
         </View>
       </Animated.View>
+      ) : null}
 
       <ConfirmSheet
         open={x !== null}

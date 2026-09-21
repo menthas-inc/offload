@@ -141,10 +141,13 @@ export function PeoplePage() {
       ) : null}
 
       {/* The kit puts Blocked under Defaults, whose toggles are not drawn;
-          alone, the row needs no label over it saying the same. */}
-      <Group>
-        <Row title="Blocked" value={page.blocked.length > 0 ? String(page.blocked.length) : "None"} onPress={() => router.push("/settings/blocked")} last />
-      </Group>
+          alone, the row needs no label over it saying the same, and keeps
+          the label's gap so the two cards never touch. */}
+      <View className="mt-space-5">
+        <Group>
+          <Row title="Blocked" value={page.blocked.length > 0 ? String(page.blocked.length) : "None"} onPress={() => router.push("/settings/blocked")} last />
+        </Group>
+      </View>
 
       <ConfirmSheet
         open={withdrawing !== null}

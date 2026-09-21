@@ -10,8 +10,8 @@ import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { useRouter } from "expo-router";
 import { Glyph } from "../Glyph";
+import { GearDot } from "../people/GearDot";
 import { Logo } from "../Logo";
 import { DAY_ONE_INVITATION, EXAMPLES } from "../../lib/gate";
 import { useColors } from "../../lib/colors";
@@ -45,7 +45,6 @@ export default function Today() {
   // than a second field on this screen, which is what the kit means by
   // "examples that fill the composer rather than submitting".
   const { setDraft } = useConversation();
-  const router = useRouter();
   const COLOR = useColors();
 
   return (
@@ -63,14 +62,8 @@ export default function Today() {
         <Logo size={21} />
         <View className="ml-auto flex-row items-center gap-space-5">
           <Glyph name="bell" size={21} color={COLOR.iconOnWell} />
-          <Pressable
-            onPress={() => router.push("/settings")}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-          >
-            <Glyph name="settings" size={21} color={COLOR.iconOnWell} />
-          </Pressable>
+          {/* 022. The gear carries the one dot. */}
+          <GearDot />
         </View>
       </View>
 
