@@ -10,6 +10,8 @@ import { request, send } from "./api";
 import { failed } from "./log";
 
 export interface Me {
+  /** 022. Their own id, for the mark. */
+  accountId: string;
   state: "invited" | "active";
   displayName: string | null;
   email: string;
@@ -30,6 +32,20 @@ export interface Me {
   /** Where they said they are, ISO 3166-1 alpha-2. Null until they say, and
    *  offload then tells the model it does not know rather than assuming. */
   country: string | null;
+  /** 022. Connection requests waiting for their answer: the dot on the gear
+   *  and on the My people row. */
+  requestsWaiting: number;
+}
+
+/** Ask again, and tell every mounted `useMe`. For after a request is
+ *  answered, so the dot goes on every screen that draws it. */
+export async function refreshMe(): Promise<void> {
+  try {
+    const { data } = await send<Me>("/api/me");
+    if (data) for (const listener of listeners) listener(data);
+  } catch (error) {
+    failed("me.refresh", error);
+  }
 }
 
 /** Every mounted `useMe` hears a change to the identity.

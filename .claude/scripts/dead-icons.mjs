@@ -25,8 +25,10 @@ const known = new Set(
 // Both spellings the codebase uses: a JSX prop and an object literal field.
 const uses = /\bicon(?:Name)?\s*[:=]\s*[{"']([a-z0-9-]+)["'}]/g;
 
+// Tracked and untracked alike: a screen written this session is exactly the
+// one whose icon names nobody has checked yet.
 const files = execSync(
-  `git ls-files 'apps/web/src/**/*.tsx' 'apps/web/src/**/*.ts' 'apps/mobile/**/*.tsx'`,
+  `git ls-files --cached --others --exclude-standard 'apps/web/src/**/*.tsx' 'apps/web/src/**/*.ts' 'apps/mobile/**/*.tsx'`,
   { cwd: root, encoding: "utf8" },
 )
   .split("\n")

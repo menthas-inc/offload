@@ -60,6 +60,9 @@ const nameField = z
   .refine((value): value is string => value !== null);
 
 const meResponse = z.object({
+  /** 022. Their own id, for the mark: every other person arrives with one
+   *  and the settings index draws the viewer's the same way. */
+  accountId: z.string(),
   state: z.enum(["invited", "active"]),
   displayName: z.string().nullable(),
   email: z.string(),
@@ -216,6 +219,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
   if (!account || (account.state !== "invited" && account.state !== "active")) return null;
 
   return {
+    accountId,
     state: account.state,
     displayName: account.display_name,
     email: account.email,

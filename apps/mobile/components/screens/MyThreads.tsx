@@ -31,10 +31,12 @@ import { ThreadRow } from "../shell/ThreadRow";
 import { ToastHost, useToast } from "../shell/Toast";
 import {
   deleteThread,
-  fetchThreads,
+  fetchThreadsAndInvitations,
   restoreThread,
   type ThreadGroup,
 } from "../../lib/threads";
+import type { Invitation } from "../../lib/people";
+import { InvitationStrip } from "../people/InvitationStrip";
 import { useConversation } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { failed } from "../../lib/log";
@@ -58,13 +60,17 @@ export default function MyThreads() {
 
   const router = useRouter();
   const [groups, setGroups] = useState<ThreadGroup[] | null>(null);
+  // 022. Waiting shares, one strip each at the top, from the same read.
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [allOlder, setAllOlder] = useState(false);
   const toast = useToast();
   const { filed } = useConversation();
 
   const load = useCallback(async () => {
     try {
-      setGroups(await fetchThreads());
+      const page = await fetchThreadsAndInvitations();
+      setGroups(page?.groups ?? []);
+      setInvitations(page?.invitations ?? []);
     } catch (error) {
       failed("threads.load", error);
     }
@@ -139,13 +145,27 @@ export default function MyThreads() {
       </View>
 
       {total === 0 ? (
-        <QuietEmpty line="Threads appear here on their own, once there is enough in one place to be one." />
+        <>
+          {/* 022. A strip stays over the empty state: a first thread may well
+              be somebody else's. */}
+          {invitations.length > 0 ? (
+            <View className="pt-space-5">
+              {invitations.map((invitation) => (
+                <InvitationStrip key={invitation.memberId} invitation={invitation} />
+              ))}
+            </View>
+          ) : null}
+          <QuietEmpty line="Threads appear here on their own, once there is enough in one place to be one." />
+        </>
       ) : (
         <Animated.ScrollView
           onScroll={onScroll}
           scrollEventThrottle={16}
           contentContainerClassName="pt-space-5 pb-space-9"
         >
+          {invitations.map((invitation) => (
+            <InvitationStrip key={invitation.memberId} invitation={invitation} />
+          ))}
           {now.map((thread, i) => (
             <ThreadRow
               key={thread.id}

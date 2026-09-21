@@ -47,14 +47,14 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 ## G. Mobile
 
-- [ ] **G1** `components/Avatar.tsx`: fetch and cache, the circle, the initials overlay, "?" and "Someone". (AC-14, AC-32)
-- [ ] **G2** Settings: the My people row with count and dot; the `people` page with cards, Connected, Pending with Withdraw and its confirmation, Blocked; the blocked page; the dot on the gear. (AC-2, AC-6, AC-7, AC-9, AC-10, AC-11)
-- [ ] **G3** `app/people/[accountId].tsx`: PersonScreen, the relation line, the empty state, More with Remove, Block, Unblock and their confirmations listing two and a count; "Not here any more." (AC-12, AC-14, AC-15, AC-16, AC-35)
-- [ ] **G4** `app/people/add.tsx`: the field, empty, in flight, found with the relation states, not found, failed, rate limited, Request. (AC-1, AC-4, AC-5, AC-35)
-- [ ] **G5** The share sheet: lifted rows with x, the two confirmations, checkboxes, the lead as a door, the field past eight lifted with the keyboard, the empty state, New connection, the footer, the failure line; the Share glyph alive except on the default thread. (AC-18, AC-19, AC-20, AC-21, AC-22)
-- [ ] **G6** The strip on My threads, including over the empty state; `app/invitations/[memberId].tsx` with the preview, the names, Add it and Not now, "Not here any more." (AC-28, AC-29, AC-30)
-- [ ] **G7** Composer: the @ list, the mention on the wire, the proposal by kind with the co-ownership line. (AC-24, AC-26, AC-27)
-- [ ] **G8** Leave on a shared thread's More, confirmed, with the existing toast. (AC-17)
+- [x] **G1** `components/Avatar.tsx`: fetch and cache, the circle, the initials overlay, "?" and "Someone". (AC-14, AC-32)
+- [x] **G2** Settings: the My people row with count and dot; the `people` page with cards, Connected, Pending with Withdraw and its confirmation, Blocked; the blocked page; the dot on the gear. (AC-2, AC-6, AC-7, AC-9, AC-10, AC-11)
+- [x] **G3** `app/people/[accountId].tsx`: PersonScreen, the relation line, the empty state, More with Remove, Block, Unblock and their confirmations listing two and a count; "Not here any more." (AC-12, AC-14, AC-15, AC-16, AC-35)
+- [x] **G4** `app/people/add.tsx`: the field, empty, in flight, found with the relation states, not found, failed, rate limited, Request. (AC-1, AC-4, AC-5, AC-35)
+- [x] **G5** The share sheet: lifted rows with x, the two confirmations, checkboxes, the lead as a door, the field past eight lifted with the keyboard, the empty state, New connection, the footer, the failure line; the Share glyph alive except on the default thread. (AC-18, AC-19, AC-20, AC-21, AC-22)
+- [x] **G6** The strip on My threads, including over the empty state; `app/invitations/[memberId].tsx` with the preview, the names, Add it and Not now, "Not here any more." (AC-28, AC-29, AC-30)
+- [x] **G7** Composer: the @ list, the mention on the wire, the proposal by kind with the co-ownership line. (AC-24, AC-26, AC-27)
+- [x] **G8** Leave on a shared thread's More, confirmed, with the existing toast. (AC-17)
 - [ ] **G9** Android: the sheet and the rows from the `--a-*` tokens as `M3Sharing.jsx` draws them, no platform switch inside one layout. (AC-36)
 
 ## H. Web

@@ -57,6 +57,9 @@ export interface WaitingOn {
   id: string;
   /** Who finds out, in the words the screen shows. */
   because: string;
+  /** 019 a calendar write, 022 a share. The control's label and the line
+   *  under it are drawn by kind. */
+  kind: "calendar" | "share";
 }
 
 /** One read from an answer: a thread, and the rows it holds.
@@ -97,7 +100,7 @@ export interface Source {
  *  only: the values stay on the server and an index goes back. */
 export interface QuestionOnWire {
   id: string;
-  field: "date" | "span" | "time" | "tag" | "country" | "thread";
+  field: "date" | "span" | "time" | "tag" | "country" | "thread" | "calendar" | "person";
   text: string;
   options: { label: string; kind: "value" | "plain" }[];
   ordinal: number;
@@ -192,11 +195,14 @@ const isFinal = (state: MessageState): boolean =>
  *  destination: the server checks membership and the prompt lets the words
  *  override it. */
 /** @param photos 020. The photos uploaded ahead of this message, claimed by it. */
+/** @param mentions 022. Who an @ picked. The server keeps only accepted
+ *  connections; the rest are dropped there, words intact. */
 export async function sendDump(
   text: string,
   clientKey: string,
   threadId?: string,
   photos?: { blobIds: string[]; viaShare?: boolean },
+  mentions: { accountId: string; name: string }[] = [],
 ): Promise<Sent | null> {
   const { status, data } = await send<Sent>("/v1/dumps", {
     method: "POST",
@@ -205,6 +211,7 @@ export async function sendDump(
       clientKey,
       ...(threadId ? { threadId } : {}),
       ...(photos?.blobIds.length ? { blobIds: photos.blobIds, viaShare: Boolean(photos.viaShare) } : {}),
+      ...(mentions.length ? { mentions } : {}),
     }),
   });
   if (status === 413) throw new DumpTooLong(0);

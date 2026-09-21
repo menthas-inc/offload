@@ -61,6 +61,8 @@ import { Widgets } from "../shell/Widgets";
 import {
   completeContent,
   deleteContent,
+  deleteThread,
+  restoreThread,
   editContent,
   fetchContent,
   fetchThread,
@@ -82,6 +84,8 @@ import { perform, useWrites } from "../../lib/optimistic";
 import { useConversation, useScreenSheet } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { failed } from "../../lib/log";
+import { ShareSheet } from "../people/ShareSheet";
+import { ConfirmSheet } from "../people/ConfirmSheet";
 
 const isAndroid = Platform.OS === "android";
 
@@ -106,10 +110,34 @@ export default function Thread() {
   // the rail reads the calendars again.
   const [calendarsOpen, setCalendarsOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  // 022. The share sheet, and Leave with its confirmation.
+  const [shareOpen, setShareOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [leaveBusy, setLeaveBusy] = useState(false);
+  const [leaveFailed, setLeaveFailed] = useState(false);
   const [naming, setNaming] = useState(false);
   const [calendarsVersion, setCalendarsVersion] = useState(0);
   const toast = useToast();
-  const { filed, setOnScreen, provisional: inFlight, adoptProvisional, raiseFor } =
+
+  // 022. Leave: what the swipe on My threads does, from the thread's own
+  // More, with the same toast and the same Undo.
+  async function leave() {
+    setLeaveBusy(true);
+    setLeaveFailed(false);
+    const result = await deleteThread(id);
+    setLeaveBusy(false);
+    if (!result) {
+      setLeaveFailed(true);
+      return;
+    }
+    setLeaving(false);
+    router.back();
+    notify(result.deleted ? "Thread deleted" : "You left the thread", {
+      label: "Undo",
+      onPress: () => void restoreThread(id),
+    });
+  }
+  const { filed, setOnScreen, provisional: inFlight, adoptProvisional, raiseFor, notify } =
     useConversation();
 
   // The `+` writes in flight for this thread, drawn from the composer's list
@@ -618,6 +646,7 @@ export default function Thread() {
         calendars={thread.calendars}
         onCalendars={() => setCalendarsOpen(true)}
         onMore={() => setMoreOpen(true)}
+        onShare={thread.shareable ? () => setShareOpen(true) : undefined}
       />
 
       <ScrollView contentContainerClassName="pb-space-9">
@@ -860,8 +889,33 @@ export default function Thread() {
           ...(thread.calendars
             ? [{ label: "Calendars in this thread", icon: "calendar", run: () => setCalendarsOpen(true) }]
             : []),
+          // 022. Leave, on a thread with more than one member, confirmed. It
+          // does what the swipe on My threads does, Undo included; on a
+          // thread you are alone in the swipe's Delete is the whole story.
+          ...(thread.members.length > 1
+            ? [{ label: "Leave this thread", icon: "x", danger: true, run: () => setLeaving(true) }]
+            : []),
         ]}
         onClose={() => setMoreOpen(false)}
+      />
+      <ShareSheet
+        open={shareOpen}
+        threadId={thread.id}
+        threadName={thread.name}
+        viewerId={you?.accountId ?? null}
+        onClose={() => setShareOpen(false)}
+        onChanged={() => void load()}
+      />
+      <ConfirmSheet
+        open={leaving}
+        title={`Leave ${thread.name}?`}
+        body="Your membership and your access go. What you added stays with the others, and the thread is theirs to keep."
+        action="Leave"
+        danger
+        busy={leaveBusy}
+        failed={leaveFailed}
+        onConfirm={() => void leave()}
+        onClose={() => setLeaving(false)}
       />
       {naming ? (
         <EditSheet
@@ -906,6 +960,7 @@ function Bar({
   calendars,
   onCalendars,
   onMore,
+  onShare,
 }: {
   /** Neither while the thread loads: the bar is the back chevron alone. */
   title?: string;
@@ -913,6 +968,8 @@ function Bar({
   calendars: { picked: number; total: number } | null;
   onCalendars: () => void;
   onMore?: () => void;
+  /** 022. Absent on the default thread. */
+  onShare?: (() => void) | undefined;
 }) {
   const COLOR = useColors();
   return (
@@ -933,16 +990,14 @@ function Bar({
           web's aside, tools and ellipsis, in that order. */}
       {onMore ? (
       <View className="flex-row items-center gap-space-5">
-        {/* Inert until inviting exists. Drawn because the bar without it is a
-            different screen from the one designed. */}
-        <View
-          style={{ opacity: 0.55 }}
-          accessibilityRole="button"
-          accessibilityLabel="Share"
-          accessibilityState={{ disabled: true }}
-        >
-          <Glyph name="share-2" size={21} color={COLOR.iconOnWell} />
-        </View>
+        {/* 022. Alive, except on the default thread, where it is not drawn:
+            every dump with no obvious home lands there, so sharing it would
+            share whatever arrives next. */}
+        {onShare ? (
+          <Pressable onPress={onShare} hitSlop={10} accessibilityRole="button" accessibilityLabel="Share">
+            <Glyph name="share-2" size={21} color={COLOR.iconOnWell} />
+          </Pressable>
+        ) : null}
         {calendars ? (
           <Pressable
             onPress={onCalendars}

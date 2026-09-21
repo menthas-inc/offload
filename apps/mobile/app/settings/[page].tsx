@@ -20,6 +20,7 @@ import { approveCalendar, disconnect, setAskFirst, useCalendars } from "../../li
 import { CalendarRow } from "../../components/settings/CalendarRow";
 import { ConnectButton, ConnectStepBody, ProviderMark } from "../../components/ConnectStep";
 import { RowActionSheet } from "../../components/shell/RowActionSheet";
+import { BlockedPage, PeoplePage } from "../../components/people/PeoplePage";
 import { googleCalendarMark } from "../../lib/brands";
 import { CONNECT_STEP } from "../../lib/gate";
 import { API_URL } from "../../lib/auth";
@@ -49,6 +50,8 @@ const TITLES: Record<string, string> = {
   privacy: "Privacy",
   country: "Country",
   help: "Help and about",
+  people: "My people",
+  blocked: "Blocked",
 };
 
 export default function SettingsPage() {
@@ -87,6 +90,8 @@ export default function SettingsPage() {
         {page === "privacy" ? <Privacy toast={toast} /> : null}
         {page === "country" ? <CountryPicker /> : null}
         {page === "help" ? <Help /> : null}
+        {page === "people" ? <PeoplePage /> : null}
+        {page === "blocked" ? <BlockedPage /> : null}
       </ScrollView>
       <ToastHost state={toast} />
     </SafeAreaView>
