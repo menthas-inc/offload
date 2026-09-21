@@ -11,23 +11,23 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 ## B. API: schema and the one predicate
 
-- [ ] **B1** `0053_sharing.sql` as the impl-spec writes it, `schema.ts` to match, the drift test green. (DATA-1)
-- [ ] **B2** `people/access.ts`: `visibleTo(viewer, account, trx)` and `relationOf`, over `visible_people`, with the state and reverse-block filters; tests for every relation, a blocked-you account invisible, a deleted account invisible. (AC-13, SEC-2, QUAL-2)
-- [ ] **B3** `people.daily`: expire requests and waiting shares past `expires_at`, purge dead request rows past seven days, purge `people_lookups` past a day, expire `pending_shares` past an hour; started by `startDaily`. (AC-8, AC-30)
+- [x] **B1** `0053_sharing.sql` as the impl-spec writes it, `schema.ts` to match, the drift test green. (DATA-1)
+- [x] **B2** `people/access.ts`: `visibleTo(viewer, account, trx)` and `relationOf`, over `visible_people`, with the state and reverse-block filters; tests for every relation, a blocked-you account invisible, a deleted account invisible. (AC-13, SEC-2, QUAL-2)
+- [x] **B3** `people.daily`: expire requests and waiting shares past `expires_at`, purge dead request rows past seven days, purge `people_lookups` past a day, expire `pending_shares` past an hour; started by `startDaily`. (AC-8, AC-30)
 
 ## C. API: finding, requesting, answering
 
-- [ ] **C1** `GET /v1/people/lookup`: validation, `people_lookups`, the thirty-an-hour 429, the padded response, the relation on the found row, not found for deleted, disabled and blocked either way. Test: hit, miss, case, partial, self, each relation, the cap, and that hit and miss take the same floor. (AC-1, AC-4, AC-5)
-- [ ] **C2** `POST /v1/people/requests`: every refusal, the undelivered row for a blocked requester, the fifty cap. Test: the seven-day rule against a withdrawn row and an expired one, one open per pair, the undelivered row invisible to the recipient and identical to the requester. (AC-2, AC-3, AC-5, AC-16)
-- [ ] **C3** Accept, dismiss, withdraw; `requestsWaiting` on `/api/me`. Test: accept makes the pair once and withdraws the reverse request; dismiss clears the count and leaves the row; withdraw clears the other side; the count ignores own and dismissed. (AC-6, AC-7, AC-9, AC-10)
+- [x] **C1** `GET /v1/people/lookup`: validation, `people_lookups`, the thirty-an-hour 429, the padded response, the relation on the found row, not found for deleted, disabled and blocked either way. Test: hit, miss, case, partial, self, each relation, the cap, and that hit and miss take the same floor. (AC-1, AC-4, AC-5)
+- [x] **C2** `POST /v1/people/requests`: every refusal, the undelivered row for a blocked requester, the fifty cap. Test: the seven-day rule against a withdrawn row and an expired one, one open per pair, the undelivered row invisible to the recipient and identical to the requester. (AC-2, AC-3, AC-5, AC-16)
+- [x] **C3** Accept, dismiss, withdraw; `requestsWaiting` on `/api/me`. Test: accept makes the pair once and withdraws the reverse request; dismiss clears the count and leaves the row; withdraw clears the other side; the count ignores own and dismissed. (AC-6, AC-7, AC-9, AC-10)
 
 ## D. API: people, removing, blocking, the mark
 
-- [ ] **D1** `GET /v1/people` and `GET /v1/people/:accountId`, with the shared threads and "Nothing shared yet" as an empty list. Test: the four lists, the count, the page for each relation, 404 otherwise. (AC-11, AC-12, AC-13)
-- [ ] **D2** `DELETE /v1/people/connections/:accountId`: the pair, the requests, the waiting shares either way, memberships untouched. Test: a shared thread's two memberships and keys survive; the pending row flips to `expired`. (AC-15)
-- [ ] **D3** Blocks: `POST`, `DELETE`, the undelivered path in C2, Unblock not reconnecting. Test: a blocked person brought in by a third member is still a member. (AC-16)
-- [ ] **D4** `accounts/avatar.ts`: the port of `Avatar.jsx`, OKLCH to sRGB, the supersampled edge, `pngjs`; `GET /v1/avatars/:accountId.png` with the draw-once update and the headers. Test: twelve ids pinned against the browser's corner pixels within two units; a second read returns identical bytes; a renamed account returns identical bytes; 404 alike for unseen and unknown. (AC-13, AC-31)
-- [ ] **D5** The cascade: delete an account row in the suite and assert the six are gone. (AC-34)
+- [x] **D1** `GET /v1/people` and `GET /v1/people/:accountId`, with the shared threads and "Nothing shared yet" as an empty list. Test: the four lists, the count, the page for each relation, 404 otherwise. (AC-11, AC-12, AC-13)
+- [x] **D2** `DELETE /v1/people/connections/:accountId`: the pair, the requests, the waiting shares either way, memberships untouched. Test: a shared thread's two memberships and keys survive; the pending row flips to `expired`. (AC-15)
+- [x] **D3** Blocks: `POST`, `DELETE`, the undelivered path in C2, Unblock not reconnecting. Test: a blocked person brought in by a third member is still a member. (AC-16)
+- [x] **D4** `accounts/avatar.ts`: the port of `Avatar.jsx`, OKLCH to sRGB, the supersampled edge, `pngjs`; `GET /v1/avatars/:accountId.png` with the draw-once update and the headers. Test: twelve ids pinned against the browser's corner pixels within two units; a second read returns identical bytes; a renamed account returns identical bytes; 404 alike for unseen and unknown. (AC-13, AC-31)
+- [x] **D5** The cascade: delete an account row in the suite and assert the six are gone. (AC-34)
 
 ## E. API: sharing, receiving, taking out
 
