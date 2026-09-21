@@ -571,6 +571,14 @@
   color: var(--text-secondary);
 }
 
+/* 022. The line a person reads before sharing, under a share proposal. */
+.waitingShareLine {
+  font: var(--text-caption-role);
+  font-size: calc(12.5px * var(--type-scale));
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
 .waitingFailed {
   font: var(--text-body-sm-role);
   color: var(--text-danger);

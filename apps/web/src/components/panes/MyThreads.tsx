@@ -14,6 +14,9 @@ import { threadIcon } from "../shell/Sidebar";
 import { useToast } from "../shell/Toast";
 import styles from "../../app/(shell)/shell.module.css";
 import { deleteThread, restoreThread, type ThreadGroup, type ThreadRow } from "../../lib/threads";
+import type { Invitation } from "../../lib/people";
+import { InvitationStrip } from "../people/InvitationStrip";
+import { InvitationModal } from "../people/InvitationModal";
 
 const HEADINGS: Record<string, string> = {
   now: "For now",
@@ -34,6 +37,8 @@ const TONE: Record<string, "solid" | "accent"> = {
 
 interface Props {
   groups: ThreadGroup[];
+  /** 022. Waiting shares, one strip each at the top. */
+  invitations?: Invitation[];
   loading: boolean;
   /** Refetch the list. Deleting one is the only thing here that changes it. */
   onChanged?: () => void;
@@ -159,8 +164,22 @@ function Row({
   );
 }
 
-export function MyThreads({ groups, loading, onChanged }: Props) {
+export function MyThreads({ groups, invitations = [], loading, onChanged }: Props) {
   const toast = useToast();
+  const [looking, setLooking] = useState<Invitation | null>(null);
+  const strips = invitations.map((invitation) => (
+    <InvitationStrip key={invitation.memberId} invitation={invitation} onLook={() => setLooking(invitation)} />
+  ));
+  const modal = looking ? (
+    <InvitationModal
+      invitation={looking}
+      onClose={() => {
+        setLooking(null);
+        onChanged?.();
+      }}
+      onGone={() => onChanged?.()}
+    />
+  ) : null;
 
   function offerUndo(thread: ThreadRow, deleted: boolean): void {
     // The eight seconds are real: the row is soft-deleted with a `purge_after`
@@ -185,10 +204,16 @@ export function MyThreads({ groups, loading, onChanged }: Props) {
     // nobody makes a thread, they appear once enough has landed in one place
     // to be one.
     return (
-      <QuietEmpty
-        title="My threads"
-        line="Threads appear here on their own, once there is enough in one place to be one."
-      />
+      <>
+        {/* 022. A strip stays over the empty state: a first thread may well
+            be somebody else's. */}
+        {strips.length > 0 ? <div className={styles.paneBody}>{strips}</div> : null}
+        <QuietEmpty
+          title="My threads"
+          line="Threads appear here on their own, once there is enough in one place to be one."
+        />
+        {modal}
+      </>
     );
   }
 
@@ -206,6 +231,7 @@ export function MyThreads({ groups, loading, onChanged }: Props) {
       </div>
 
       <div className={styles.paneBody}>
+        {strips}
         {loading ? null : (
           groups.map((group) =>
             group.threads.length === 0 ? null : (
@@ -232,6 +258,7 @@ export function MyThreads({ groups, loading, onChanged }: Props) {
             )
           ))}
       </div>
+      {modal}
     </>
   );
 }

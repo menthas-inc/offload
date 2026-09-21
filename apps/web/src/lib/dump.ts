@@ -35,7 +35,7 @@ export interface Sent {
   threads?: TouchedThread[];
   /** 019. On a calendar answer's response: the proposal the tap turned into,
    *  when the calendar needed the person's say-so, drawn on their own turn. */
-  waiting?: { id: string; because: string } | null;
+  waiting?: WaitingOn | null;
 }
 
 /** A thread a turn actually wrote to. From the content rows it produced, not
@@ -102,7 +102,7 @@ export interface Answer {
   /** A calendar write offload proposed and nobody has answered yet. Only ever
    *  set on a write that reaches somebody else: guests, or a calendar marked
    *  shared. A write nobody learns about just happens, with the ordinary Undo. */
-  waiting?: { id: string; because: string } | null;
+  waiting?: WaitingOn | null;
   /** Every thread whose contents the turn changed, a superset of `threads`.
    *  A move's source is here and not there: the screen has to reload it, and a
    *  pill saying the dump went there would be untrue. */
@@ -130,11 +130,20 @@ export class DumpTooLong extends Error {
  *  destination: the server checks membership and the model is told the words
  *  override it. */
 /** @param photos 020. The photos uploaded ahead of this message, claimed by it. */
+/** 019 a calendar write, 022 a share, drawn by kind. */
+export interface WaitingOn {
+  id: string;
+  because: string;
+  kind: "calendar" | "share";
+}
+
+/** @param mentions 022. Who an @ picked; the server keeps only accepted connections. */
 export async function sendDump(
   text: string,
   clientKey: string,
   threadId?: string,
   photos?: { blobIds: string[]; viaShare?: boolean },
+  mentions: { accountId: string; name: string }[] = [],
 ): Promise<Sent> {
   const response = await fetch(`${API}/v1/dumps`, {
     method: "POST",
@@ -145,6 +154,7 @@ export async function sendDump(
       clientKey,
       ...(threadId ? { threadId } : {}),
       ...(photos?.blobIds.length ? { blobIds: photos.blobIds, viaShare: Boolean(photos.viaShare) } : {}),
+      ...(mentions.length ? { mentions } : {}),
     }),
   });
 
@@ -302,7 +312,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     sources?: Source[];
     step?: string | null;
     changed?: string[];
-    waiting?: { id: string; because: string } | null;
+    waiting?: WaitingOn | null;
     found?: FoundResult[];
     voice?: VoiceOnWire | null;
   };
@@ -423,7 +433,7 @@ export interface TailMessage {
    *  nothing to answer it. The phones showed the same answer with its rows,
    *  which is what made it a web bug rather than a server one. */
   found: FoundResult[];
-  waiting: { id: string; because: string } | null;
+  waiting: WaitingOn | null;
   question?: QuestionOnWire | null;
   /** Where the turn filed, and where a fact in it came from: the footer's whole
    *  content. Added the day the footer was, because a reload dropped all three

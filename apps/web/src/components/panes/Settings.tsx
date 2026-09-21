@@ -15,10 +15,13 @@
 //
 // The kit's search field is not here. It has ten rows; three do not need one.
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Group, Row } from "./SettingsRows";
-import { useMe } from "../../lib/use-me";
+import { Avatar } from "../Avatar";
+import { RequestCard } from "../people/RequestCard";
+import { refreshMe, useMe } from "../../lib/use-me";
+import { answerRequest, fetchPeople, type PeoplePage } from "../../lib/people";
 import { useAppearance, THEME_LABEL } from "../../lib/appearance";
 import { signOut } from "../../lib/sign-out";
 import pane from "../../app/(shell)/shell.module.css";
@@ -29,6 +32,22 @@ export function SettingsPane() {
   const { theme } = useAppearance();
   const [leaving, setLeaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  // 022. The cards and the count.
+  const [people, setPeople] = useState<PeoplePage | null>(null);
+  const loadPeople = useCallback(async () => {
+    setPeople(await fetchPeople());
+  }, []);
+  useEffect(() => {
+    void loadPeople();
+  }, [loadPeople]);
+  async function answerCard(requestId: string, answer: "accept" | "dismiss"): Promise<boolean> {
+    const ok = await answerRequest(requestId, answer);
+    if (ok) {
+      await loadPeople();
+      void refreshMe();
+    }
+    return ok;
+  }
 
   async function leave(): Promise<void> {
     if (leaving) return;
@@ -64,7 +83,10 @@ export function SettingsPane() {
             {/* `?` when the field is absent, which is the server's own answer
                 for a name with nothing to derive from. A client deployed ahead
                 of the server would otherwise draw an empty disc. */}
-            <span className={pane.identityAvatar}>{account.initials || "?"}</span>
+            {/* 022. The viewer's own mark, at the person page's 52. `?` when
+                the field is absent, which is the server's own answer for a
+                name with nothing to derive from. */}
+            <Avatar uid={account.accountId} initials={account.initials || "?"} name={account.displayName ?? undefined} size={52} />
             <span className={pane.identityWho}>
               {account.displayName ? (
                 <span className={pane.identityName}>{account.displayName}</span>
@@ -93,12 +115,28 @@ export function SettingsPane() {
           </p>
         ) : null}
 
+        {/* 022. A request waiting for an answer sits above everything, and
+            is answered here. Nowhere else but My people lists it. */}
+        {people?.requestsForYou.map((card) => (
+          <RequestCard key={card.id} card={card} onAnswer={(answer) => answerCard(card.id, answer)} />
+        ))}
+
         <Group label="You">
           <Row
             icon="circle-dot"
             title="My account"
             value={account?.email}
             href="/settings/account"
+          />
+          {/* 022. The count as the value when there is one, none at zero, and
+              the dot when a request needs answering. In You, beside My
+              account: your people are yours, not a service you authorised. */}
+          <Row
+            icon="users"
+            title="My people"
+            value={people && people.count > 0 ? String(people.count) : undefined}
+            badge={(account?.requestsWaiting ?? 0) > 0}
+            href="/settings/people"
             last
           />
         </Group>

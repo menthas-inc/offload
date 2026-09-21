@@ -59,12 +59,12 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 ## H. Web
 
-- [ ] **H1** `components/Avatar.tsx`; faces on the pane head without you, each a door. (AC-12, AC-32)
-- [ ] **H2** Settings index card and dot, sidebar dot, `settings/people` and `settings/people/blocked`. (AC-2, AC-6, AC-7, AC-9, AC-10, AC-11)
-- [ ] **H3** The person pane with the three actions and confirmations. (AC-12, AC-14, AC-15, AC-16, AC-35)
-- [ ] **H4** The share modal with its Add a connection step, the invitation modal, the strip in the threads pane. (AC-1, AC-4, AC-18 to AC-22, AC-28 to AC-30)
-- [ ] **H5** `WMentions`, the mention on the wire, the proposal by kind. (AC-24, AC-26, AC-27)
-- [ ] **H6** Leave on the pane's More. (AC-17)
+- [x] **H1** `components/Avatar.tsx`; faces on the pane head without you, each a door. (AC-12, AC-32)
+- [x] **H2** Settings index card and dot, sidebar dot, `settings/people` and `settings/people/blocked`. (AC-2, AC-6, AC-7, AC-9, AC-10, AC-11)
+- [x] **H3** The person pane with the three actions and confirmations. (AC-12, AC-14, AC-15, AC-16, AC-35)
+- [x] **H4** The share modal with its Add a connection step, the invitation modal, the strip in the threads pane. (AC-1, AC-4, AC-18 to AC-22, AC-28 to AC-30)
+- [x] **H5** `WMentions`, the mention on the wire, the proposal by kind. (AC-24, AC-26, AC-27)
+- [x] **H6** Leave on the pane's More. (AC-17)
 
 ## I. Verification
 
