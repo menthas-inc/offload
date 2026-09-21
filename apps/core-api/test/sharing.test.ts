@@ -28,6 +28,7 @@ import {
   shareSheet,
   shareThread,
   takeOut,
+  writePending,
 } from "../src/threads/sharing.js";
 import { remove } from "../src/people/people.js";
 
@@ -215,6 +216,40 @@ describe("sharing (AC-19, AC-21)", () => {
     await connect(jo.id, ana.id);
     expect((await share(jo.id, lisbon, ana.id)).ok).toBe(true);
     expect(await share(jo.id, lisbon, ana.id)).toEqual({ ok: false, error: "waiting" });
+  });
+
+  it("never writes an accepted or waiting row back to pending, whatever it read a moment ago", async () => {
+    // The state is read before the upsert, and a share or an accept can
+    // commit in between. The guard is on the update itself: a row that is
+    // not ended is left alone and named for what it is.
+    const jo = await person("Jo Martins");
+    const ana = await person("Ana Duarte");
+    await connect(jo.id, ana.id);
+    const lisbon = await thread(jo.id);
+    await join(ana.id, lisbon);
+    const values = {
+      thread_id: lisbon,
+      account_id: ana.id,
+      invited_by: jo.id,
+      state: "pending" as const,
+      created_at: new Date(),
+      responded_at: null,
+      expires_at: new Date(Date.now() + 86_400_000),
+      preview: sql<{ count: number; titles: string[] }>`'{"count":0,"titles":[]}'::jsonb`,
+      removed_by_account_id: null,
+      removed_at: null,
+    };
+    // The write itself, against a row that became accepted after the read.
+    expect(await db.transaction().execute((trx) => writePending(trx, values))).toBeUndefined();
+    expect(await state(lisbon, ana.id)).toBe("accepted");
+    // And against one that ended, it is reused.
+    await db.updateTable("thread_members").set({ state: "removed" }).where("thread_id", "=", lisbon).where("account_id", "=", ana.id).execute();
+    expect(await db.transaction().execute((trx) => writePending(trx, values))).toBeDefined();
+    expect(await state(lisbon, ana.id)).toBe("pending");
+    // Through the whole function, each live state is named.
+    expect(await share(jo.id, lisbon, ana.id)).toEqual({ ok: false, error: "waiting" });
+    await db.updateTable("thread_members").set({ state: "accepted" }).where("thread_id", "=", lisbon).where("account_id", "=", ana.id).execute();
+    expect(await share(jo.id, lisbon, ana.id)).toEqual({ ok: false, error: "already_in" });
   });
 
   it("caps waiting shares at three per pair, across threads", async () => {

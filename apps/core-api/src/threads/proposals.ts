@@ -107,9 +107,14 @@ export async function proposeShare(
  *  savepoint that is always rolled back. One function, two uses. */
 async function checkOnly(trx: Trx, callerId: string, threadId: string, targetId: string): Promise<ShareRefusal | null> {
   await sql`savepoint share_check`.execute(trx);
-  const result = await shareThread(trx, callerId, threadId, targetId);
-  await sql`rollback to savepoint share_check`.execute(trx);
-  return result.ok ? null : result.error;
+  try {
+    const result = await shareThread(trx, callerId, threadId, targetId);
+    return result.ok ? null : result.error;
+  } finally {
+    // Whatever happened inside, the outer transaction goes on: a dry run
+    // that threw must not leave it aborted for a reason of its own.
+    await sql`rollback to savepoint share_check`.execute(trx);
+  }
 }
 
 /** The sentence on the control. Rendered from the rows, never from the

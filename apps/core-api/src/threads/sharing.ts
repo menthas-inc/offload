@@ -80,7 +80,9 @@ export async function shareSheet(accountId: string, threadId: string): Promise<S
     .execute();
 
   // What each other member added, for the Take out sheet: a count and two
-  // titles per author, one query grouped by author.
+  // titles per author. Two queries for the thread, not two per member, and
+  // the titles are the two most recent **per author**, so a quiet member's
+  // are found however loud the others were.
   const added = await db
     .selectFrom("content")
     .select(["account_id", (eb) => eb.fn.countAll<string>().as("n")])
@@ -89,19 +91,19 @@ export async function shareSheet(accountId: string, threadId: string): Promise<S
     .groupBy("account_id")
     .execute();
   const counts = new Map(added.map((row) => [row.account_id, Number(row.n)]));
-  const titles = await db
-    .selectFrom("content")
-    .select(["account_id", "title", "updated_at"])
-    .where("thread_id", "=", threadId)
-    .where("deleted_at", "is", null)
-    .orderBy("updated_at", "desc")
-    .limit(200)
-    .execute();
+  const titles = await sql<{ account_id: string; title: string }>`
+    select account_id, title
+      from (
+        select account_id, title,
+               row_number() over (partition by account_id order by updated_at desc) as n
+          from content
+         where thread_id = ${threadId} and deleted_at is null
+      ) ranked
+     where n <= ${PREVIEW_TITLES}
+     order by account_id, n
+  `.execute(db);
   const twoOf = (author: string) =>
-    titles
-      .filter((row) => row.account_id === author)
-      .slice(0, PREVIEW_TITLES)
-      .map((row) => row.title.slice(0, PREVIEW_CHARS));
+    titles.rows.filter((row) => row.account_id === author).map((row) => row.title.slice(0, PREVIEW_CHARS));
 
   const members = rows
     .filter((row) => row.state === "accepted")
@@ -182,15 +184,50 @@ export async function shareThread(
     removed_by_account_id: null,
     removed_at: null,
   };
-  const row = await trx
+  const row = await writePending(trx, values);
+  if (row) return { ok: true, memberId: row.id };
+  const now = await trx
+    .selectFrom("thread_members")
+    .select("state")
+    .where("thread_id", "=", threadId)
+    .where("account_id", "=", targetId)
+    .executeTakeFirstOrThrow();
+  return { ok: false, error: now.state === "accepted" ? "already_in" : "waiting" };
+}
+
+/** The pending row, written or reused. A row that ended, expired, declined
+ *  or removed, is reused: the unique index is on the pair and the person can
+ *  be shared with again. **Only such a row**: the state was read a moment
+ *  ago, and a share or an accept that committed in between must not be
+ *  written back to pending by an unconditional update. The guard is on the
+ *  update itself; undefined means the row is live and the caller reads it
+ *  again to say which it became. Exported for the test of that guard. */
+export async function writePending(
+  trx: Trx,
+  values: {
+    thread_id: string;
+    account_id: string;
+    invited_by: string;
+    state: "pending";
+    created_at: Date;
+    responded_at: null;
+    expires_at: Date;
+    preview: ReturnType<typeof sql<SharePreview>>;
+    removed_by_account_id: null;
+    removed_at: null;
+  },
+): Promise<{ id: string } | undefined> {
+  return trx
     .insertInto("thread_members")
     .values(values)
-    // A row that ended, expired, declined or removed, is reused: the unique
-    // index is on the pair and the person can be shared with again.
-    .onConflict((oc) => oc.columns(["thread_id", "account_id"]).doUpdateSet(values))
+    .onConflict((oc) =>
+      oc
+        .columns(["thread_id", "account_id"])
+        .doUpdateSet(values)
+        .where("thread_members.state", "in", ["expired", "declined", "removed"]),
+    )
     .returning("id")
-    .executeTakeFirstOrThrow();
-  return { ok: true, memberId: row.id };
+    .executeTakeFirst();
 }
 
 /** The x on a lifted row: withdraw a waiting share, or take a member out. */

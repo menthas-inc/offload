@@ -371,15 +371,36 @@ export async function people(accountId: string): Promise<PeoplePage> {
     .where("accounts.deleted_at", "is", null)
     .orderBy("accounts.display_name")
     .execute();
-  const connections: ConnectionRow[] = [];
-  for (const row of connectionRows) {
-    const threads = await sharedThreads(accountId, row.id, db);
-    connections.push({
-      ...personOf(row),
-      threads: threads.slice(0, 2).map((t) => ({ id: t.id, name: t.name })),
-      threadCount: threads.length,
-    });
+  // The threads shared with each connection, in one query for the page
+  // rather than one per row: every live thread the viewer is in, joined to
+  // the connections who are in it too, most recently active first, then
+  // grouped here into two names and a count per person.
+  const ids = connectionRows.map((row) => row.id);
+  const sharedRows =
+    ids.length === 0
+      ? []
+      : await db
+          .selectFrom("thread_members as mine")
+          .innerJoin("thread_members as theirs", (join) =>
+            join.onRef("theirs.thread_id", "=", "mine.thread_id").on("theirs.state", "=", "accepted").on("theirs.account_id", "in", ids),
+          )
+          .innerJoin("threads", "threads.id", "mine.thread_id")
+          .select(["theirs.account_id as accountId", "threads.id as id", "threads.name as name"])
+          .where("mine.account_id", "=", accountId)
+          .where("mine.state", "=", "accepted")
+          .where("threads.deleted_at", "is", null)
+          .orderBy("threads.last_activity_at", "desc")
+          .execute();
+  const byPerson = new Map<string, { id: string; name: string }[]>();
+  for (const row of sharedRows) {
+    const list = byPerson.get(row.accountId) ?? [];
+    list.push({ id: row.id, name: row.name });
+    byPerson.set(row.accountId, list);
   }
+  const connections: ConnectionRow[] = connectionRows.map((row) => {
+    const threads = byPerson.get(row.id) ?? [];
+    return { ...personOf(row), threads: threads.slice(0, 2), threadCount: threads.length };
+  });
 
   const pending = await db
     .selectFrom("connection_requests")
