@@ -110,6 +110,23 @@ export async function connectionsOf(
     .where((eb) => eb.or([eb("connections.account_a", "=", accountId), eb("connections.account_b", "=", accountId)]))
     .where("accounts.state", "=", "active")
     .where("accounts.deleted_at", "is", null)
+    // A block either way ends the connection for every purpose here: the
+    // pair row may linger for an instant, and a blocked person is never
+    // offered.
+    .where(({ not, exists, selectFrom }) =>
+      not(
+        exists(
+          selectFrom("blocks")
+            .select("blocks.blocker_account_id")
+            .where((eb) =>
+              eb.or([
+                eb.and([eb("blocks.blocker_account_id", "=", accountId), eb("blocks.blocked_account_id", "=", eb.ref("accounts.id"))]),
+                eb.and([eb("blocks.blocked_account_id", "=", accountId), eb("blocks.blocker_account_id", "=", eb.ref("accounts.id"))]),
+              ]),
+            ),
+        ),
+      ),
+    )
     .orderBy("accounts.display_name")
     .execute();
   return rows;

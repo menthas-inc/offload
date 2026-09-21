@@ -25,6 +25,7 @@ import { threadRoutes } from "./routes/threads.js";
 import { wellKnownRoutes } from "./routes/well-known.js";
 import { blobRoutes } from "./routes/blobs.js";
 import { peopleRoutes } from "./routes/people.js";
+import { sharingRoutes } from "./routes/sharing.js";
 import { MAX_PHOTO_BYTES } from "./blobs/photos.js";
 
 /** The app carries the Zod type provider, so routes get their schemas inferred
@@ -86,6 +87,7 @@ export async function buildApp(): Promise<App> {
   await app.register(wellKnownRoutes);
   await app.register(blobRoutes);
   await app.register(peopleRoutes);
+  await app.register(sharingRoutes);
 
   return app;
 }
