@@ -361,6 +361,7 @@ CHANGING_TOOLS = frozenset(
         "complete_content",
         "archive_content",
         "rename_thread",
+        "share_thread",
         "set_thread_preference",
         "create_event",
         "edit_event",
@@ -494,6 +495,37 @@ CALENDAR_TOOL_DEFS = [
     {"name": name, "description": _DESCRIPTIONS[name], "input_schema": _schema_for(SCHEMAS[name])}
     for name in ("list_calendars", "find_events", "create_event", "edit_event", "delete_event")
 ]
+
+
+# 022. Sharing by saying it. **Sent only to somebody with a connection**, for
+# the reason the calendar tools are: with nobody to share with the tool can
+# only fail, and the definition budget stays what it was for everybody else.
+# One tool, measured on top of the base set beside the calendar's.
+
+
+class ShareThread(BaseModel):
+    """Share a thread with one of their connections, once they confirm."""
+
+    thread_id: str = Field(min_length=1)
+    #: The person as they named them, or a mention's id from the dump. The
+    #: server resolves it against their connections; you never see the list.
+    person: str = Field(min_length=1, max_length=80)
+
+
+SCHEMAS["share_thread"] = ShareThread
+_DESCRIPTIONS["share_thread"] = (
+    "Share a thread with a person, when they ask to share it or to add "
+    "somebody to it. Name the person as they did, or by a mention's id. "
+    "offload puts it to them to confirm; nothing is shared until they do, "
+    "and it comes back waiting, which is not something to say. Only a "
+    "connection of theirs can be shared with: unknown_person means nobody "
+    "by that name is one."
+)
+SHARE_TOOL_DEF = {
+    "name": "share_thread",
+    "description": _DESCRIPTIONS["share_thread"],
+    "input_schema": _schema_for(ShareThread),
+}
 
 
 # 013: the reads an answer is built from.

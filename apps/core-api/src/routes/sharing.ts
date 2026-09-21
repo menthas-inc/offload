@@ -13,6 +13,7 @@ import { db } from "../db.js";
 import { emit } from "../analytics.js";
 import { NotYours } from "../threads/access.js";
 import { acceptInvitation, shareSheet, shareThread, takeOut } from "../threads/sharing.js";
+import { confirmShare, declineShare } from "../threads/proposals.js";
 
 function fetchHeaders(request: FastifyRequest): Headers {
   const headers = new Headers();
@@ -134,6 +135,31 @@ export async function sharingRoutes(app: App): Promise<void> {
         if (result.removed) await emit({ name: "member_removed", subjectId: await subjectOf(accountId) });
         return reply.send(result);
       }),
+  );
+
+  // The said share's tap. The calendar route's shape: expired, answered or
+  // somebody else's is one 404, since a caller who could tell them apart
+  // could probe.
+  app.post(
+    "/v1/shares/:id/:answer",
+    {
+      schema: {
+        params: z.object({ id: uuid, answer: z.enum(["confirm", "decline"]) }),
+        response: { 200: z.object({ ok: z.literal(true) }), 401: unauthenticated, 404: notFound },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+      const done =
+        request.params.answer === "confirm"
+          ? await confirmShare(accountId, request.params.id)
+          : await declineShare(accountId, request.params.id);
+      if (done && request.params.answer === "confirm") {
+        await emit({ name: "thread_shared", subjectId: await subjectOf(accountId), properties: { count: 1, said: true } });
+      }
+      return done ? reply.send({ ok: true as const }) : reply.code(404).send({ error: "not_found" as const });
+    },
   );
 
   app.post(

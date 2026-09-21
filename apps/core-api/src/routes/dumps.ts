@@ -24,6 +24,20 @@ import { onAnswer } from "../dumps/answers.js";
 import { emit } from "../analytics.js";
 import { targetFor, undoWrite, type WriteAction } from "../connectors/write.js";
 import { waitingFor, writeThroughTool } from "../connectors/tool-calls.js";
+import { waitingSharesFor } from "../threads/proposals.js";
+import { connectionsOf } from "../people/access.js";
+
+/** 019's calendar proposals and 022's share proposals, one map. A message
+ *  carries at most one control; a share on a message that also proposed a
+ *  calendar write is drawn, since it is the later of the two. */
+async function anyWaitingFor(
+  messageIds: string[],
+): Promise<Map<string, { id: string; because: string; kind: "calendar" | "share" }>> {
+  const found = new Map<string, { id: string; because: string; kind: "calendar" | "share" }>();
+  for (const [id, waiting] of await waitingFor(messageIds)) found.set(id, { ...waiting, kind: "calendar" });
+  for (const [id, waiting] of await waitingSharesFor(messageIds)) found.set(id, waiting);
+  return found;
+}
 import {
   applyAnswer,
   closeOpenQuestions,
@@ -36,6 +50,9 @@ import {
   questionsFor,
   restoreAnswers,
   openQuestionOn,
+  optionValue,
+  FIELDS,
+  type Field,
   type QuestionOnWire,
 } from "../questions.js";
 import { foundFor } from "../search/found.js";
@@ -118,6 +135,10 @@ const dumpBody = z
     /** 020. They came through the share sheet. Recorded on the message as its
      *  source and on the event as a boolean, and used for nothing else. */
     viaShare: z.boolean().optional(),
+    /** 022. Who an @ in the text picked. Kept only where the id is an
+     *  accepted connection of the sender; the rest are dropped on receipt,
+     *  words intact, so the share tool acts on an id the server vouched for. */
+    mentions: z.array(z.object({ accountId: z.string().uuid(), name: z.string().min(1).max(80) })).max(10).optional(),
   /** The thread that was on screen when this was dumped.
    *
    *  **A default, not a destination.** Somebody typing into the composer while
@@ -160,7 +181,7 @@ const dumpResponse = z.object({
   threads: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
   /** 019. On a calendar answer's response: the proposal the tap turned into,
    *  when the calendar needed the person's say-so, drawn on their own turn. */
-  waiting: z.object({ id: z.string(), because: z.string() }).nullable().optional(),
+  waiting: z.object({ id: z.string(), because: z.string(), kind: z.enum(["calendar", "share"]) }).nullable().optional(),
 });
 
 /** The threads a turn actually wrote to.
@@ -179,7 +200,13 @@ const touchedThreads = z.array(z.object({ id: z.string(), name: z.string() }));
  *  has to arrive next to the thing that confirms it. Null is the ordinary case;
  *  a write nobody else learns about just happens. */
 const waitingOn = z
-  .object({ id: z.string(), because: z.string() })
+  .object({
+    id: z.string(),
+    because: z.string(),
+    /** 019 a calendar write, 022 a share. The control's label and the line
+     *  under it are the client's, by kind. */
+    kind: z.enum(["calendar", "share"]),
+  })
   .nullable()
   .optional();
 
@@ -706,6 +733,8 @@ export async function takeDump(
   photos?: { blobIds: string[]; viaShare: boolean },
   /** The device's time zone from the request header, already checked. */
   timeZone: string | null = null,
+  /** 022. Mentions as the client sent them, filtered here. */
+  mentions: { accountId: string; name: string }[] = [],
 ): Promise<{
   messageId: string;
   conversationId: string;
@@ -724,6 +753,14 @@ export async function takeDump(
   // losing what somebody wrote.
   const lookingAt =
     threadId && (await memberOf(accountId, threadId)) ? threadId : null;
+  // 022. A mention is kept only where it names an accepted connection of the
+  // sender. A client's say-so is never an id the share tool acts on.
+  const vouched = await (async () => {
+    if (mentions.length === 0) return [];
+    const known = new Set((await connectionsOf(accountId)).map((c) => c.accountId));
+    const seen = new Set<string>();
+    return mentions.filter((m) => known.has(m.accountId) && !seen.has(m.accountId) && seen.add(m.accountId));
+  })();
 
   return db.transaction().execute(async (trx) => {
     // 020. Two attempts with one client key, in flight together, which is
@@ -850,6 +887,7 @@ export async function takeDump(
         looking_at_thread_id: lookingAt,
         source: photos?.viaShare ? "share" : "person",
         time_zone: timeZone,
+        ...(vouched.length > 0 ? { attrs: JSON.stringify({ mentions: vouched }) } : {}),
       })
       .onConflict((oc) =>
       // The index is partial, on client_key is not null, because most messages
@@ -1006,7 +1044,7 @@ export async function dumpRoutes(app: App): Promise<void> {
       if (!accountId)
         return reply.code(401).send({ error: "unauthenticated" as const });
 
-      const { text, clientKey, threadId, blobIds, viaShare } = request.body;
+      const { text, clientKey, threadId, blobIds, viaShare, mentions } = request.body;
 
       // Before the write, not after. AC-14.
       if (text.length > MAX_DUMP_CHARS) {
@@ -1046,6 +1084,7 @@ export async function dumpRoutes(app: App): Promise<void> {
           threadId,
           blobIds?.length ? { blobIds, viaShare: Boolean(viaShare) } : undefined,
           timeZoneOf(request),
+          mentions ?? [],
         );
       } catch (error) {
         if (error instanceof UnknownBlob) {
@@ -1121,7 +1160,7 @@ export async function dumpRoutes(app: App): Promise<void> {
         // The control arrives with the reply that mentions it, rather than on
         // the next reload. A reply saying offload is waiting, with nothing to
         // answer it, is the dead end this whole change is about.
-        waiting: settled ? ((await waitingFor([message.id])).get(message.id) ?? null) : null,
+        waiting: settled ? ((await anyWaitingFor([message.id])).get(message.id) ?? null) : null,
         // 018. Same reason, same place: the question arrives with the turn
         // that asked it, and survives a reload because it is read here too.
         question: settled ? ((await questionsFor(accountId, [message.id])).get(message.id) ?? null) : null,
@@ -1183,7 +1222,7 @@ export async function dumpRoutes(app: App): Promise<void> {
       // well as returning it with the turn. Somebody who backgrounds the app
       // mid-confirmation comes back to the same question rather than to a reply
       // about a thing that never happened.
-      const waiting = await waitingFor(rows.map((row) => row.id));
+      const waiting = await anyWaitingFor(rows.map((row) => row.id));
       // 018. The open question, one query for the page, same shape.
       const questions = await questionsFor(accountId, rows.map((row) => row.id));
       // One query for the whole page, the same shape `waitingFor` takes. Per
@@ -1419,7 +1458,7 @@ export async function dumpRoutes(app: App): Promise<void> {
               // 021. The transcript rides the settlement too, for a wake that
               // sees the write and the reply together.
               voice: (await voiceForAll([message.id], accountId)).get(message.id) ?? null,
-              waiting: (await waitingFor([message.id])).get(message.id) ?? null,
+              waiting: (await anyWaitingFor([message.id])).get(message.id) ?? null,
               // 018. The question, with the turn that asked it.
               question: (await questionsFor(accountId, [message.id])).get(message.id) ?? null,
               // Arrives with the reply that mentions it, rather than on the
@@ -2121,7 +2160,7 @@ export async function answerCalendarQuestion(
     turnId: string;
     question: QuestionOnWire | null;
     threads: { id: string; name: string }[];
-    waiting: { id: string; because: string } | null;
+    waiting: { id: string; because: string; kind: "calendar" | "share" } | null;
   };
   applied: boolean;
   failed: boolean;
@@ -2244,7 +2283,7 @@ export async function answerCalendarQuestion(
   });
   if (!settled) return null;
 
-  const envelopeFor = async (waiting: { id: string; because: string } | null) =>
+  const envelopeFor = async (waiting: { id: string; because: string; kind: "calendar" | "share" } | null) =>
     db.transaction().execute(async (trx) => ({
       messageId: settled.message.id,
       conversationId: settled.question.conversation_id,
@@ -2334,7 +2373,7 @@ export async function answerCalendarQuestion(
   }
 
   return {
-    envelope: await envelopeFor({ id: outcome.pendingId, because: outcome.line }),
+    envelope: await envelopeFor({ id: outcome.pendingId, because: outcome.line, kind: "calendar" }),
     applied: true,
     failed: false,
   };
@@ -2342,22 +2381,9 @@ export async function answerCalendarQuestion(
 
 /** An option's stored value in the field's wire form. */
 function optionAsValue(field: string, value: string): Record<string, string> | null {
-  switch (field) {
-    case "date":
-      return { day: value };
-    case "span": {
-      const [from, to] = value.split("/");
-      return from ? { from, to: to ?? from } : null;
-    }
-    case "time": {
-      const [day, time] = value.split("T");
-      return day && time ? { day, time } : null;
-    }
-    case "tag":
-      return { tag: value };
-    case "country":
-      return { country: value };
-    default:
-      return null;
-  }
+  // 022. One parser for every field, in `questions.ts`. This used to carry
+  // its own switch over five of them, and a tapped thread chip fell through
+  // to null, closed the question and moved nothing; the photos test never
+  // saw it because it called `applyAnswer` with the value already parsed.
+  return (FIELDS as readonly string[]).includes(field) ? optionValue(field as Field, value) : null;
 }

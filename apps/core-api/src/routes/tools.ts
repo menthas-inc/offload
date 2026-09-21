@@ -22,7 +22,8 @@
 
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { sql } from "kysely";
+import { sql, type Transaction } from "kysely";
+import type { Database } from "../schema.js";
 import type { App } from "../app.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
@@ -56,6 +57,7 @@ import {
 import { calendarOfEvent, findEvents, summarise, writeThroughTool } from "../connectors/tool-calls.js";
 import { approvedWritable, turnScope, writablePicks } from "../threads/calendars.js";
 import { raiseCalendarQuestion } from "../questions.js";
+import { proposeShare } from "../threads/proposals.js";
 import type { WriteAction } from "../connectors/write.js";
 import { linkPhoto, photoForRow, withTaken } from "../blobs/rows.js";
 
@@ -359,6 +361,14 @@ const body = z.discriminatedUnion("tool", [
     guests: z.array(z.string().max(320)).max(50).nullish(),
   }),
   z.strictObject({
+    tool: z.literal("share_thread"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    threadId: z.string().uuid(),
+    /** A name as they said it, or a mention's account id. Resolved here. */
+    person: z.string().min(1).max(80),
+  }),
+  z.strictObject({
     tool: z.literal("edit_event"),
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
@@ -559,6 +569,14 @@ const result = z.union([
       "already_on_calendar",
       "no_time",
       "unknown_event",
+      // 022. Nobody by that name among their connections, or the default
+      // thread, or a share the sheet would refuse.
+      "unknown_person",
+      "default_thread",
+      "not_connected",
+      "already_in",
+      "waiting",
+      "too_many",
     ]),
   }),
 ]);
@@ -657,7 +675,13 @@ type Outcome =
         | "no_time"
         | "unknown_event"
         | "bad_date"
-        | "thread_memory_full";
+        | "thread_memory_full"
+        | "unknown_person"
+        | "default_thread"
+        | "not_connected"
+        | "already_in"
+        | "waiting"
+        | "too_many";
     };
 
 interface JobContext {
@@ -882,6 +906,24 @@ async function existing(
     await requireMember(accountId, call.threadId, trx);
     await renameThread(accountId, call.threadId, call.name);
     return { ok: true, done: true };
+  }
+
+  // 022. A said share: proposed, never done. The name is resolved here
+  // against the person's connections; two matches raise the person question
+  // from this side of the boundary, and the model is told `asked`, as it is
+  // for a calendar. One match writes a proposal the reply draws as its own
+  // control, and the tap re-runs every check.
+  if (call.tool === "share_thread") {
+    if (!messageId) return { ok: false, error: "unknown_thread" };
+    const outcome = await proposeShare(trx as Transaction<Database>, {
+      accountId,
+      messageId,
+      threadId: call.threadId,
+      person: call.person,
+    });
+    if (outcome.kind === "asked") return { ok: true, asked: true };
+    if (outcome.kind === "refused") return { ok: false, error: outcome.error };
+    return { ok: true, waitingForThem: true, because: outcome.line };
   }
 
   if (call.tool === "set_thread_preference") {
@@ -1314,6 +1356,7 @@ export async function toolRoutes(app: App): Promise<void> {
           call.tool === "rename_thread" ||
           call.tool === "add_note" ||
           call.tool === "set_thread_preference" ||
+          call.tool === "share_thread" ||
           ("threadId" in call && call.threadId !== pinned);
         if (refusedHere) return reply.send({ ok: false, error: "unknown_thread" as const });
       }

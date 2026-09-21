@@ -785,7 +785,7 @@ export interface QuestionsTable {
   message_id: string;
   turn_id: string;
   ordinal: number;
-  field: "date" | "span" | "time" | "tag" | "country" | "calendar" | "thread";
+  field: "date" | "span" | "time" | "tag" | "country" | "calendar" | "thread" | "person";
   target_content_id: string | null;
   target_note_id: string | null;
   text: string;

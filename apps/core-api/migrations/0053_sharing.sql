@@ -117,6 +117,13 @@ create index thread_members_pair_pending_idx
 
 alter table accounts add column avatar_png bytea;
 
+-- The worker asks one thing of this table: whether the account has any
+-- connection at all, which decides whether the share tool is sent. Who is
+-- connected to whom it already knows from thread_members, which it reads
+-- whole, so the pair table adds nothing it did not have. Nothing else here
+-- is granted: the requests, the blocks and the mark stay on this side.
+grant select on connections to offload_agent;
+
 create view visible_people as
   select account_a as viewer_account_id, account_b as account_id, 'connected' as relation
     from connections
@@ -140,3 +147,28 @@ create view visible_people as
   union all
   select blocker_account_id, blocked_account_id, 'blocked'
     from blocks;
+
+-- "Which Sam?" A person question, raised by the server from inside the
+-- share tool when a name matches two connections, answered on a chip whose
+-- label is a display name read from the database. Widened the way 0050
+-- widened it, so whatever the set holds today keeps its values.
+do $$
+declare
+  existing text[];
+begin
+  select array_agg(m[1]) into existing
+  from pg_constraint c,
+       regexp_matches(pg_get_constraintdef(c.oid), '''([a-z_]+)''::text', 'g') as m
+  where c.conname = 'questions_field_check' and c.conrelid = 'questions'::regclass;
+  if existing is null then
+    existing := array['date', 'span', 'time', 'tag', 'country', 'calendar', 'thread'];
+  end if;
+  if not ('person' = any(existing)) then
+    existing := array_append(existing, 'person');
+  end if;
+  execute 'alter table questions drop constraint if exists questions_field_check';
+  execute format(
+    'alter table questions add constraint questions_field_check check (field in (%s))',
+    (select string_agg(quote_literal(v), ', ') from unnest(existing) as v)
+  );
+end $$;

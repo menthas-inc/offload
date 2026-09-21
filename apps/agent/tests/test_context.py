@@ -169,7 +169,7 @@ def test_fitting_a_context_keeps_every_field_it_was_given():
     """
     import dataclasses
 
-    from offload_agent.context import DumpContext, Photo, Thread, fit
+    from offload_agent.context import DumpContext, Mention, Photo, Thread, fit
 
     threads = [Thread(id="00000001-0000-0000-0000-000000000000", name="Misc", is_default=True)]
     ctx = DumpContext(
@@ -188,6 +188,8 @@ def test_fitting_a_context_keeps_every_field_it_was_given():
         may_read_links=True,
         country="NL",
         answered={"field": "when", "value": "Friday"},
+        has_connections=True,
+        mentions=[Mention(account_id="00000003-0000-0000-0000-000000000000", name="Sam Ibekwe")],
     )
     MISSING = dataclasses.MISSING
     for field in dataclasses.fields(DumpContext):

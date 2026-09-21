@@ -42,6 +42,9 @@ WRITES = {
     "create_event",
     "edit_event",
     "delete_event",
+    # 022. A proposal, not a write to a row, and still a write: it puts a
+    # share in front of the person, which an answering turn must never do.
+    "share_thread",
 }
 
 

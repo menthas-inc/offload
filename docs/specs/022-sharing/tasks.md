@@ -40,10 +40,10 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 ## F. API and agent: saying it
 
-- [ ] **F1** `POST /v1/dumps` accepts `mentions`, keeps only accepted connections, writes `attrs.mentions`. Test: a forged id is dropped and the text is unchanged. (AC-27, SEC-1)
-- [ ] **F2** `pending_shares`; `share_thread` in `routes/tools.ts`: resolution (id, whole name, first name, initials), the outcomes, the rendered line, the pinned-thread refusal; `waiting` gains `kind` and `waitingFor` reads both tables; `POST /v1/shares/:id/:answer` calling `shareThread` on confirm. Test: each outcome; confirm re-checks; a proposal is answerable once; expiry; the line never contains model text. (AC-24, AC-25, AC-26, SEC-2, OFF-5, OFF-6)
-- [ ] **F3** Agent: `ShareThread` tool, `DumpContext.mentions`, the prompt paragraph, the tool on dump turns only; unit tests for the context and the schema. (AC-24, AC-25, OFF-8)
-- [ ] **F4** Eval cases under the actions principle: propose, not-a-connection, two Sams, a dumped text asking to share does nothing. Written, not run. (AC-24, AC-25)
+- [x] **F1** `POST /v1/dumps` accepts `mentions`, keeps only accepted connections, writes `attrs.mentions`. Test: a forged id is dropped and the text is unchanged. (AC-27, SEC-1)
+- [x] **F2** `pending_shares`; `share_thread` in `routes/tools.ts`: resolution (id, whole name, first name, initials), the outcomes, the rendered line, the pinned-thread refusal; `waiting` gains `kind` and `waitingFor` reads both tables; `POST /v1/shares/:id/:answer` calling `shareThread` on confirm. Test: each outcome; confirm re-checks; a proposal is answerable once; expiry; the line never contains model text. (AC-24, AC-25, AC-26, SEC-2, OFF-5, OFF-6)
+- [x] **F3** Agent: `ShareThread` tool, `DumpContext.mentions`, the prompt paragraph, the tool on dump turns only; unit tests for the context and the schema. (AC-24, AC-25, OFF-8)
+- [x] **F4** Eval cases under the actions principle: propose, not-a-connection, two Sams, a dumped text asking to share does nothing. Written, not run. (AC-24, AC-25)
 
 ## G. Mobile
 

@@ -100,6 +100,9 @@ class DumpContext:
     #: names it beside today so a clock time they give is written as the
     #: right moment. Per message until the account carries one.
     time_zone: str | None = None
+    #: 022. Whether this account has a connection at all, which decides
+    #: whether the share tool is sent, for the reason the calendar tools are.
+    has_connections: bool = False
     # Whether this account has a calendar connected at all, which decides
     # whether the calendar tools are sent. Offering create_event to somebody
     # with no calendar is offering a tool that can only fail, and it costs every
@@ -119,10 +122,19 @@ class DumpContext:
     #: The value is already on the row; the planner files the rest and not
     #: the value again. Never dropped by `fit`.
     answered: dict | None = None
+    #: 022. Who an @ in the dump picked, as the Core API vouched for them:
+    #: accepted connections only, at most ten. The share tool takes the id.
+    mentions: list["Mention"] = field(default_factory=list)
 
     @property
     def may_look_up(self) -> bool:
         return self.may_search or self.may_read_links
+
+
+@dataclass(frozen=True)
+class Mention:
+    account_id: str
+    name: str
 
 
 # Resolved through thread_members, which is the only path there is: `threads`
@@ -284,6 +296,7 @@ _DUMP = text(
     select said(m.text, m.transcript) as text,
            m.transcribed_at is not null as spoken,
            m.time_zone,
+           m.attrs->'mentions' as mentions,
            lt.id as looking_at_id,
            lt.name as looking_at_name
     from messages m
@@ -416,6 +429,9 @@ async def load(
 
     today = await today_in(conn, dump_row.time_zone)
     has_calendar = bool((await conn.execute(_HAS_CALENDAR, {"account_id": account_id})).scalar())
+    has_connections = bool(
+        (await conn.execute(_HAS_CONNECTIONS, {"account_id": account_id})).scalar()
+    )
     switches = (await conn.execute(_MAY_REACH, {"account_id": account_id})).first()
 
     return DumpContext(
@@ -441,9 +457,15 @@ async def load(
         today=today,
         time_zone=dump_row.time_zone,
         has_calendar=has_calendar,
+        has_connections=has_connections,
         may_search=bool(switches and switches.web_search_enabled),
         may_read_links=bool(switches and switches.web_links_enabled),
         country=(switches.country if switches else None),
+        mentions=[
+            Mention(account_id=str(m["accountId"]), name=str(m["name"]))
+            for m in (dump_row.mentions or [])
+            if isinstance(m, dict) and m.get("accountId") and m.get("name")
+        ][:10],
     )
 
 
@@ -502,6 +524,7 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         today=ctx.today,
         time_zone=ctx.time_zone,
         has_calendar=ctx.has_calendar,
+        has_connections=ctx.has_connections,
         # **Not context, and not trimmable.** These two are permissions, and
         # they were missing here: this function rebuilds the context field by
         # field, so anything it does not name silently takes its default, and
@@ -518,6 +541,8 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         may_read_links=ctx.may_read_links,
         country=ctx.country,
         answered=ctx.answered,
+        # 022. Bounded by the ten on the message, never trimmed.
+        mentions=ctx.mentions,
         # 020. Never dropped and never counted here: the ten-photo cap is the
         # bound, and a photo dropped from the prompt is a photo filed blind.
         photos=ctx.photos,
@@ -651,6 +676,17 @@ _MAY_REACH = text(
 # none, and a write from a thread with none is what raises the question that
 # picks one. From Today every approved calendar is in reach. Scoping the tools
 # to the thread's picks would leave a thread with none unable to ask.
+# 022. One row either way is a connection. The worker reads the pair table
+# for this and nothing else; who is connected to whom it already knows from
+# thread_members, which it reads whole.
+_HAS_CONNECTIONS = text(
+    """
+    select 1 from connections
+     where account_a = :account_id or account_b = :account_id
+     limit 1
+    """
+)
+
 _HAS_CALENDAR = text(
     """
     select 1

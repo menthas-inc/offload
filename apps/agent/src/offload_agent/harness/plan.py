@@ -46,6 +46,7 @@ from offload_agent.harness.tools import (
     LOOK_UP_TOOL,
     SAY_TOOL,
     SCHEMAS,
+    SHARE_TOOL_DEF,
     TOOL_NAMES,
     TOOLS,
     _schema_for,
@@ -372,6 +373,18 @@ def build_blocks(ctx: DumpContext) -> list[dict]:
             }
         )
 
+    if ctx.mentions:
+        # 022. Who an @ picked, as ids the Core API vouched for. Inside the
+        # user turn as data, so the share tool can act on an id rather than a
+        # spelling; a name typed with no @ is still a name for it to pass.
+        picked = "\n".join(f"- @{m.name} is a connection, id {m.account_id}" for m in ctx.mentions)
+        blocks.append(
+            {
+                "type": "text",
+                "text": "People they picked with @ in this dump. This is our data:\n" + picked,
+            }
+        )
+
     if ctx.today:
         # A model has no clock. Without this "the 3rd" in late December becomes
         # this year rather than next, which is a wrong date on somebody's
@@ -586,6 +599,7 @@ async def plan(
         # off, rather than sent and refused, so no call is ever spent on
         # something that cannot work: the same reasoning as the calendar tools.
         tools=(TOOLS + CALENDAR_TOOL_DEFS if ctx.has_calendar else TOOLS)
+        + ([SHARE_TOOL_DEF] if ctx.has_connections else [])
         + ([LOOK_UP_TOOL] if ctx.may_look_up else [])
         + [SAY_TOOL, ASK_TOOL],
         # A resume starts with the count the database already holds, so the

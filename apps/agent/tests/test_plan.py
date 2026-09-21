@@ -25,7 +25,7 @@ from offload_agent.harness.plan import (
     filing_prompt,
     plan,
 )
-from offload_agent.harness.tools import CALENDAR_TOOL_DEFS, TOOLS
+from offload_agent.harness.tools import CALENDAR_TOOL_DEFS, SHARE_TOOL_DEF, TOOLS
 
 
 # The shapes the SDK returns, reduced to what the loop actually reads.
@@ -106,7 +106,9 @@ class Recorder:
         }
 
 
-def ctx(dump="dentist after the 20th", landed=0, has_calendar=False) -> DumpContext:
+def ctx(
+    dump="dentist after the 20th", landed=0, has_calendar=False, has_connections=False
+) -> DumpContext:
     return DumpContext(
         dump=dump,
         turns=[Turn(role="person", text="earlier")],
@@ -115,6 +117,7 @@ def ctx(dump="dentist after the 20th", landed=0, has_calendar=False) -> DumpCont
         default_thread_id="t1",
         today="Thursday 3 September 2026",
         has_calendar=has_calendar,
+        has_connections=has_connections,
     )
 
 
@@ -701,6 +704,29 @@ async def test_the_calendar_tools_arrive_with_a_calendar():
     # And the ordinary ten are still all there, in front of them.
     assert names[:10] == [t["name"] for t in TOOLS]
     assert names[-2:] == ["say", "ask"]
+
+
+async def test_the_share_tool_arrives_with_a_connection_and_not_without():
+    # 022. Sent only to somebody with a connection, for the reason the
+    # calendar tools are: with nobody to share with it can only fail.
+    model = StubModel([Response(content=[TextBlock("Done.")], stop_reason="end_turn")])
+    await plan(model, ctx(has_connections=True), "claude-sonnet-5", Recorder())
+    names = [t["name"] for t in model.requests[0]["tools"]]
+    assert "share_thread" in names
+    assert names[:10] == [t["name"] for t in TOOLS]
+    assert names[-2:] == ["say", "ask"]
+
+    model = StubModel([Response(content=[TextBlock("Done.")], stop_reason="end_turn")])
+    await plan(model, ctx(), "claude-sonnet-5", Recorder())
+    assert "share_thread" not in [t["name"] for t in model.requests[0]["tools"]]
+
+
+async def test_the_share_tool_is_measured_on_top():
+    approx = (len(json.dumps(TOOLS + CALENDAR_TOOL_DEFS + [SHARE_TOOL_DEF])) // 4) + 1
+    assert approx < TOOL_DEFINITION_BUDGET * 2, (
+        f"tool definitions with a calendar and a connection are ~{approx} tokens. Past "
+        f"twice the base budget the long tail moves behind defer_loading."
+    )
 
 
 async def test_a_reply_of_only_whitespace_is_no_reply():
