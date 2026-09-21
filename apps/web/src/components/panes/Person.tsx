@@ -93,8 +93,19 @@ export function PersonPane({ id }: { id: string }) {
 
   return (
     <>
+      {/* The kit's `WPerson` head, with the mark at 52 beside the name, as
+          the design draws a person's page. */}
       <PaneHead
-        title={page && page !== "gone" ? nameOf(page) : ""}
+        title={
+          page && page !== "gone" ? (
+            <span className={styles.personTitle}>
+              <Avatar uid={page.accountId} initials={page.initials} name={page.displayName ?? undefined} size={52} />
+              <span>{nameOf(page)}</span>
+            </span>
+          ) : (
+            ""
+          )
+        }
         sub={page && page !== "gone" ? relationLine(page) : undefined}
         more={more.length > 0 ? more : undefined}
       />
@@ -102,13 +113,6 @@ export function PersonPane({ id }: { id: string }) {
         {page === "gone" ? <p className={styles.gone}>Not here any more.</p> : null}
         {page && page !== "gone" ? (
           <>
-            <div className={styles.personHead}>
-              <Avatar uid={page.accountId} initials={page.initials} name={page.displayName ?? undefined} size={52} />
-              <div style={{ minWidth: 0 }}>
-                <h1 className={styles.personTitle}>{nameOf(page)}</h1>
-                <p className={styles.personLine}>{relationLine(page)}</p>
-              </div>
-            </div>
             {page.shared.length === 0 ? (
               <p className={styles.gone} style={{ textAlign: "left", padding: "var(--space-4) 0" }}>
                 {page.relation === "connected" ? `Open a thread and click Share to bring ${first} into it.` : `Nothing shared with ${first} yet.`}

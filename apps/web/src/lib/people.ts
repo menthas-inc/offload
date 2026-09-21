@@ -23,6 +23,13 @@ export function firstNameOf(person: { displayName: string | null }): string {
   return nameOf(person).split(/\s+/)[0] ?? "Someone";
 }
 
+/** "4 Aug", as the design writes a date on a person row and as Connected
+ *  apps already writes one. */
+export function dayMonth(iso: string): string {
+  const at = new Date(iso);
+  return `${at.getDate()} ${at.toLocaleString("en-GB", { month: "short" })}`;
+}
+
 export function avatarUrl(accountId: string): string {
   return `${API}/v1/avatars/${accountId}.png`;
 }
@@ -34,6 +41,22 @@ export interface Found extends Person {
   relation: LookupRelation;
   requestId: string | null;
   since: string | null;
+  /** The mark, inline: a person you have not connected to may not fetch it
+   *  by id, and the found row draws it. */
+  mark: string;
+}
+
+/** Marks handed over inline, for `Avatar` to draw before or instead of a
+ *  fetch. The lookup fills it; the picture never changes, so nothing
+ *  empties it. */
+const remembered = new Map<string, string>();
+
+export function rememberMark(accountId: string, base64Png: string): void {
+  remembered.set(accountId, `data:image/png;base64,${base64Png}`);
+}
+
+export function rememberedMark(accountId: string): string | null {
+  return remembered.get(accountId) ?? null;
 }
 
 export type Lookup = { kind: "found"; found: Found | null } | { kind: "rate_limited" } | { kind: "failed" };
@@ -43,6 +66,7 @@ export async function lookup(email: string): Promise<Lookup> {
   if (response.status === 429) return { kind: "rate_limited" };
   if (!response.ok) return { kind: "failed" };
   const body = (await response.json()) as { found: Found | null };
+  if (body.found) rememberMark(body.found.accountId, body.found.mark);
   return { kind: "found", found: body.found };
 }
 

@@ -440,6 +440,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
+  width: 100%;
   max-width: 60ch;
   margin: 0 0 var(--space-4);
   padding: var(--space-4) var(--space-5);
@@ -464,23 +465,10 @@
 
 /* ------------------------------------------------------------ the person pane */
 
-.personHead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-  padding: var(--space-2) 0 var(--space-6);
-}
-
 .personTitle {
-  margin: 0;
-  font: var(--text-title-1);
-  letter-spacing: var(--tracking-title);
-}
-
-.personLine {
-  margin: 2px 0 0;
-  font-size: var(--size-body-sm);
-  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
 }
 
 .gone {

@@ -10,7 +10,7 @@
 "use client";
 
 import { useState } from "react";
-import { avatarUrl } from "../lib/people";
+import { avatarUrl, rememberedMark } from "../lib/people";
 import styles from "./avatar.module.css";
 
 export type AvatarSize = 28 | 32 | 36 | 52 | 56;
@@ -39,7 +39,7 @@ export function Avatar({
       {failed ? null : (
         <img
           className={styles.mark}
-          src={avatarUrl(uid)}
+          src={rememberedMark(uid) ?? avatarUrl(uid)}
           alt=""
           width={size}
           height={size}

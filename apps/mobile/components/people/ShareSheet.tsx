@@ -25,6 +25,7 @@ import { Avatar } from "../Avatar";
 import { ConfirmSheet } from "./ConfirmSheet";
 import { atOpacity, useColors } from "../../lib/colors";
 import {
+  dayMonth,
   fetchShareSheet,
   firstNameOf,
   nameOf,
@@ -46,7 +47,7 @@ export const SHARE_LINE =
   "A shared thread belongs to everyone in it. If somebody leaves offload, the thread and everything they added stay with the rest of you.";
 
 function sinceLabel(iso: string): string {
-  return `in since ${new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
+  return `in since ${dayMonth(iso)}`;
 }
 
 const REFUSAL: Record<ShareRefusal, string> = {

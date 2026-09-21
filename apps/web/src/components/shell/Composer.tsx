@@ -354,6 +354,10 @@ export function Composer({
                   threads: answer.threads,
                   sources: answer.sources,
                   question: answer.question ?? null,
+                  // 019's proposal, and 022's. It rode the settlement and was
+                  // dropped here, so a calendar proposal only ever appeared
+                  // after a reload; found the night the share's arrived.
+                  waiting: answer.waiting ?? null,
                   // 020. The renditions are made before the model reads the
                   // photos, so a settled turn's thumbnails exist; one that
                   // could not be opened draws the glyph when its fetch fails.

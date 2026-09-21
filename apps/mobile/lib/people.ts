@@ -4,8 +4,8 @@
 // person who removed you a moment ago is a 404 on their page, not an empty
 // one, and the screen says "Not here any more." rather than drawing nothing.
 
-import { API_URL } from "./auth";
 import { send } from "./api";
+import { rememberMark } from "./marks";
 
 export interface Person {
   accountId: string;
@@ -23,10 +23,11 @@ export function firstNameOf(person: { displayName: string | null }): string {
   return nameOf(person).split(/\s+/)[0] ?? "Someone";
 }
 
-/** Where a mark is served from. The phones fetch it with the session and
- *  draw the cached file, since `Image` sends no headers on Android. */
-export function avatarUrl(accountId: string): string {
-  return `${API_URL}/v1/avatars/${accountId}.png`;
+/** "4 Aug", as the design writes a date on a person row and as Connected
+ *  apps already writes one. */
+export function dayMonth(iso: string): string {
+  const at = new Date(iso);
+  return `${at.getDate()} ${at.toLocaleString("en-GB", { month: "short" })}`;
 }
 
 export type LookupRelation = "none" | "you" | "connected" | "you_asked" | "asked_you";
@@ -36,6 +37,9 @@ export interface Found extends Person {
   relation: LookupRelation;
   requestId: string | null;
   since: string | null;
+  /** The mark, inline as base64 PNG: a person you have not connected to
+   *  may not fetch it by id, and the found row draws it. */
+  mark: string;
 }
 
 export type Lookup = { kind: "found"; found: Found | null } | { kind: "rate_limited" } | { kind: "failed" };
@@ -46,6 +50,7 @@ export async function lookup(email: string): Promise<Lookup> {
   );
   if (status === 429) return { kind: "rate_limited" };
   if (status !== 200 || !data) return { kind: "failed" };
+  if (data.found) rememberMark(data.found.accountId, data.found.mark);
   return { kind: "found", found: data.found };
 }
 

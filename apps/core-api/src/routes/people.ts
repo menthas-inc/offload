@@ -12,7 +12,7 @@ import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
 import { emit } from "../analytics.js";
-import { drawAvatar } from "../accounts/avatar.js";
+import { markOf } from "../accounts/avatar.js";
 import { visibleTo } from "../people/access.js";
 import {
   LOOKUP_FLOOR_MS,
@@ -76,6 +76,7 @@ export async function peopleRoutes(app: App): Promise<void> {
                 relation: z.enum(["none", "you", "connected", "you_asked", "asked_you"]),
                 requestId: z.string().nullable(),
                 since: z.coerce.date().nullable(),
+                mark: z.string(),
               })
               .nullable(),
           }),
@@ -259,9 +260,7 @@ export async function peopleRoutes(app: App): Promise<void> {
     },
   );
 
-  // The mark. Drawn on first read and written once: the update is guarded by
-  // `avatar_png is null`, so two first reads at once store one picture and
-  // both serve what the row then holds.
+  // The mark, drawn on first read and written once, in `markOf`.
   app.get(
     "/v1/avatars/:accountId.png",
     // No response schema: the 200 is bytes, as the blob routes serve them.
@@ -273,27 +272,18 @@ export async function peopleRoutes(app: App): Promise<void> {
       if (target !== accountId && !(await visibleTo(accountId, target))) {
         return reply.code(404).send({ error: "not_found" as const });
       }
-      let row = await db
+      const exists = await db
         .selectFrom("accounts")
-        .select("avatar_png")
+        .select("id")
         .where("id", "=", target)
         .where("deleted_at", "is", null)
         .executeTakeFirst();
-      if (!row) return reply.code(404).send({ error: "not_found" as const });
-      if (!row.avatar_png) {
-        await db
-          .updateTable("accounts")
-          .set({ avatar_png: drawAvatar(target) })
-          .where("id", "=", target)
-          .where("avatar_png", "is", null)
-          .execute();
-        row = await db.selectFrom("accounts").select("avatar_png").where("id", "=", target).executeTakeFirstOrThrow();
-      }
+      if (!exists) return reply.code(404).send({ error: "not_found" as const });
       return reply
         .header("Content-Type", "image/png")
         .header("Cache-Control", "private, max-age=31536000, immutable")
         .header("X-Content-Type-Options", "nosniff")
-        .send(Buffer.from(row.avatar_png!));
+        .send(await markOf(target));
     },
   );
 }

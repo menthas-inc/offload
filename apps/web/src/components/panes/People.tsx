@@ -16,6 +16,7 @@ import { RequestCard } from "../people/RequestCard";
 import { ConfirmModal } from "../people/Modal";
 import { refreshMe } from "../../lib/use-me";
 import {
+  dayMonth,
   answerRequest,
   fetchPeople,
   firstNameOf,
@@ -29,7 +30,7 @@ import pane from "../../app/(shell)/shell.module.css";
 import styles from "../people/people.module.css";
 
 export function sinceLabel(iso: string): string {
-  return `Pending since ${new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
+  return `Pending since ${dayMonth(iso)}`;
 }
 
 function sharedNote(row: ConnectionRow): string {
@@ -133,7 +134,9 @@ export function PeoplePane() {
                 ))}
               </Group>
             ) : null}
-            <Group label="Blocked">
+            {/* The kit puts Blocked under Defaults, whose toggles are not
+                drawn; alone, the row needs no label over it saying the same. */}
+            <Group>
               <Row title="Blocked" value={page.blocked.length > 0 ? String(page.blocked.length) : "None"} href="/settings/people/blocked" last />
             </Group>
           </>

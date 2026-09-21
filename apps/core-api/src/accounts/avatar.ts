@@ -20,6 +20,7 @@
 // staircase at 36px.
 
 import { PNG } from "pngjs";
+import { db } from "../db.js";
 
 export const SIZE = 176;
 const L_LO = 0.42;
@@ -151,4 +152,20 @@ export function drawAvatar(accountId: string): Buffer {
     }
   }
   return PNG.sync.write(png, { colorType: 2 });
+}
+
+/** The stored mark, drawn on first read and written once. The update is
+ *  guarded by `avatar_png is null`, so two first reads at once store one
+ *  picture and both serve what the row then holds. */
+export async function markOf(accountId: string): Promise<Buffer> {
+  const row = await db.selectFrom("accounts").select("avatar_png").where("id", "=", accountId).executeTakeFirstOrThrow();
+  if (row.avatar_png) return Buffer.from(row.avatar_png);
+  await db
+    .updateTable("accounts")
+    .set({ avatar_png: drawAvatar(accountId) })
+    .where("id", "=", accountId)
+    .where("avatar_png", "is", null)
+    .execute();
+  const stored = await db.selectFrom("accounts").select("avatar_png").where("id", "=", accountId).executeTakeFirstOrThrow();
+  return Buffer.from(stored.avatar_png!);
 }

@@ -20,7 +20,7 @@ import { Glyph } from "../../components/Glyph";
 import { Avatar } from "../../components/Avatar";
 import { useColors } from "../../lib/colors";
 import { refreshMe } from "../../lib/me";
-import { answerRequest, firstNameOf, lookup, nameOf, requestConnection, type Found } from "../../lib/people";
+import { dayMonth, answerRequest, firstNameOf, lookup, nameOf, requestConnection, type Found } from "../../lib/people";
 
 const isAndroid = Platform.OS === "android";
 
@@ -34,7 +34,7 @@ type State =
 /** "Pending since 4 Aug". */
 function since(iso: string | null): string {
   if (!iso) return "Pending";
-  return `Pending since ${new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
+  return `Pending since ${dayMonth(iso)}`;
 }
 
 export default function AddConnection() {

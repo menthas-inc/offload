@@ -11,6 +11,7 @@ import { sql } from "kysely";
 import { db } from "../db.js";
 import { initialsOf } from "../accounts/initials.js";
 import { blockedEitherWay, connected, pairOf, relationOf, type Executor, type Relation } from "./access.js";
+import { markOf } from "../accounts/avatar.js";
 
 /** Thirty an hour. The lookup answers whether an address has an account,
  *  which is a question worth bounding however honest the answer. */
@@ -52,6 +53,9 @@ export interface Found extends Person {
   relation: LookupRelation;
   requestId: string | null;
   since: Date | null;
+  /** The mark, inline as base64 PNG: the found row draws it, and a person
+   *  you have not connected to may not fetch it by id. */
+  mark: string;
 }
 
 export class RateLimited extends Error {}
@@ -79,18 +83,15 @@ export async function lookup(viewerId: string, email: string): Promise<Found | n
     .where("deleted_at", "is", null)
     .executeTakeFirst();
   if (!row) return null;
-  if (row.id === viewerId) return { ...personOf(row), email: row.email, relation: "you", requestId: null, since: null };
   if (await blockedEitherWay(viewerId, row.id)) return null;
-  if (await connected(viewerId, row.id)) {
-    return { ...personOf(row), email: row.email, relation: "connected", requestId: null, since: null };
-  }
+  const base = { ...personOf(row), email: row.email, mark: (await markOf(row.id)).toString("base64") };
+  if (row.id === viewerId) return { ...base, relation: "you", requestId: null, since: null };
+  if (await connected(viewerId, row.id)) return { ...base, relation: "connected", requestId: null, since: null };
   const asked = await openRequest(viewerId, row.id, db);
-  if (asked) return { ...personOf(row), email: row.email, relation: "you_asked", requestId: asked.id, since: asked.created_at };
+  if (asked) return { ...base, relation: "you_asked", requestId: asked.id, since: asked.created_at };
   const askedYou = await openRequest(row.id, viewerId, db);
-  if (askedYou?.delivered) {
-    return { ...personOf(row), email: row.email, relation: "asked_you", requestId: askedYou.id, since: askedYou.created_at };
-  }
-  return { ...personOf(row), email: row.email, relation: "none", requestId: null, since: null };
+  if (askedYou?.delivered) return { ...base, relation: "asked_you", requestId: askedYou.id, since: askedYou.created_at };
+  return { ...base, relation: "none", requestId: null, since: null };
 }
 
 export type RequestRefusal = "not_found" | "yourself" | "connected" | "pending" | "asked_you" | "too_soon" | "too_many";

@@ -19,6 +19,7 @@ import { RequestCard } from "./RequestCard";
 import { ConfirmSheet } from "./ConfirmSheet";
 import { refreshMe } from "../../lib/me";
 import {
+  dayMonth,
   answerRequest,
   fetchPeople,
   firstNameOf,
@@ -33,8 +34,7 @@ const isAndroid = Platform.OS === "android";
 
 /** "Pending since 4 Aug". */
 export function sinceLabel(iso: string): string {
-  const at = new Date(iso);
-  return `Pending since ${at.toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
+  return `Pending since ${dayMonth(iso)}`;
 }
 
 function sharedNote(row: ConnectionRow): string {
@@ -140,7 +140,9 @@ export function PeoplePage() {
         </Group>
       ) : null}
 
-      <Group label="Blocked">
+      {/* The kit puts Blocked under Defaults, whose toggles are not drawn;
+          alone, the row needs no label over it saying the same. */}
+      <Group>
         <Row title="Blocked" value={page.blocked.length > 0 ? String(page.blocked.length) : "None"} onPress={() => router.push("/settings/blocked")} last />
       </Group>
 

@@ -19,6 +19,7 @@ import { Avatar } from "../Avatar";
 import { Modal, ConfirmModal } from "./Modal";
 import { refreshMe } from "../../lib/use-me";
 import {
+  dayMonth,
   SHARE_LINE,
   answerRequest,
   fetchShareSheet,
@@ -38,7 +39,7 @@ import styles from "./people.module.css";
 const SEARCH_PAST = 8;
 
 function sinceLabel(iso: string): string {
-  return `in since ${new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
+  return `in since ${dayMonth(iso)}`;
 }
 
 const REFUSAL: Record<ShareRefusal, string> = {
@@ -318,7 +319,7 @@ type State = { kind: "empty" } | { kind: "looking" } | { kind: "found"; found: F
 
 function since(iso: string | null): string {
   if (!iso) return "Pending";
-  return `Pending since ${new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
+  return `Pending since ${dayMonth(iso)}`;
 }
 
 /** Add a connection: the modal's second step. */
