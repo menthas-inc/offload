@@ -154,6 +154,7 @@ export async function notificationRoutes(app: App): Promise<void> {
         response: {
           200: done,
           401: unauthenticated,
+          400: z.object({ error: z.literal("bad_date") }),
           404: z.object({ error: z.literal("not_found") }),
           409: z.object({ error: z.literal("on_calendar") }),
         },
@@ -168,7 +169,7 @@ export async function notificationRoutes(app: App): Promise<void> {
         if (!ref) return reply.status(404).send({ error: "not_found" });
         const row = await db
           .selectFrom("content")
-          .select(["title", "type", "due_at", "occurs_at", "attrs"])
+          .select(["title", "type", "due_at", "occurs_at", "occurs_end_at", "attrs"])
           .where("id", "=", ref.id)
           .executeTakeFirstOrThrow();
         if (action === "done") {
@@ -178,16 +179,25 @@ export async function notificationRoutes(app: App): Promise<void> {
           if (!held) return reply.status(404).send({ error: "not_found" });
           const allDay = (row.attrs as Record<string, unknown> | null)?.["all_day"] === true;
           const zone = await zoneOf(accountId);
-          const next = allDay
-            ? addUtcDays(utcDay(held), 1)
-            : `${addUtcDays(dayIn(held, zone), 1)}T${timeHM(held.toISOString(), zone)}:00`;
-          await editContent(accountId, contentId, row.type === "event" ? { occursAt: next } : { dueAt: next });
+          const dayOn = (at: Date): string =>
+            allDay ? addUtcDays(utcDay(at), 1) : `${addUtcDays(dayIn(at, zone), 1)}T${timeHM(at.toISOString(), zone)}:00`;
+          // An event's end moves with its start, so the span is never turned
+          // round and never refused for it.
+          await editContent(
+            accountId,
+            contentId,
+            row.type === "event"
+              ? { occursAt: dayOn(held), ...(row.occurs_end_at ? { occursEndAt: dayOn(row.occurs_end_at) } : {}) }
+              : { dueAt: dayOn(held) },
+          );
         }
         await record(accountId, { ...actedCopy(row.title, action), kind: "acted", sent: true, threadId: ref.threadId, contentId: ref.id });
         return { ok: true as const };
       } catch (error) {
         if (error instanceof NotYours) return reply.status(404).send({ error: "not_found" });
-        if (error instanceof Refused && error.code === "on_calendar") return reply.status(409).send({ error: "on_calendar" });
+        if (error instanceof Refused) {
+          return error.code === "on_calendar" ? reply.status(409).send({ error: "on_calendar" }) : reply.status(400).send({ error: "bad_date" });
+        }
         throw error;
       }
     },
@@ -260,7 +270,9 @@ export async function notificationRoutes(app: App): Promise<void> {
           eb("content.rrule", "is not", null),
         ]),
       )
-      .orderBy("content.id", "desc")
+      // Nearest first, so if the cap is ever reached it drops what is
+      // furthest off rather than what was dumped longest ago.
+      .orderBy(sql`coalesce(content.occurs_at, content.due_at)`, "asc")
       .limit(800)
       .execute();
 

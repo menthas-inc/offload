@@ -20,6 +20,9 @@ type Executor = Kysely<Database> | Transaction<Database>;
 
 export const ACTIVITY_DAYS = 30;
 export const ACTIVITY_PAGE = 50;
+/** A request's record lives as long as its source row: 022 keeps who asked
+ *  whom for seven days and no longer, and this table must not outlive it. */
+export const REQUEST_RECORD_DAYS = 7;
 
 /** What a writer hands in: the words, the kind, and whichever ids the kind
  *  carries. `sent` false needs a reason. */
@@ -35,6 +38,9 @@ export interface ActivityRow {
   aboutAccountId?: string | null;
   memberId?: string | null;
   requestId?: string | null;
+  /** Whose words the row carries and from which thread, beyond the one pair
+   *  the columns hold: a digest names rows across threads and members. */
+  mentions?: { threadId: string; aboutAccountId: string }[];
 }
 
 /** Write one row, inside the caller's transaction where there is one. The
@@ -59,6 +65,13 @@ export async function record(accountId: string, row: ActivityRow, trx: Executor 
     })
     .returning("id")
     .executeTakeFirstOrThrow();
+  const pairs = new Map((row.mentions ?? []).map((one) => [`${one.threadId}:${one.aboutAccountId}`, one]));
+  if (pairs.size > 0) {
+    await trx
+      .insertInto("activity_mentions")
+      .values([...pairs.values()].map((one) => ({ activity_id: inserted.id, thread_id: one.threadId, about_account_id: one.aboutAccountId })))
+      .execute();
+  }
   return inserted.id;
 }
 
@@ -123,7 +136,7 @@ export async function markSeen(accountId: string): Promise<void> {
 
 /** The dot: a row newer than the last opening, of any kind but a connection
  *  request, which keeps 022's gear dot and dots nothing else. */
-export async function activityUnread(accountId: string): Promise<boolean> {
+export async function activityNew(accountId: string): Promise<boolean> {
   const row = await db
     .selectFrom("activity")
     .innerJoin("accounts", "accounts.id", "activity.account_id")
@@ -136,27 +149,68 @@ export async function activityUnread(accountId: string): Promise<boolean> {
   return row !== undefined;
 }
 
-/** The daily purge: thirty days, then gone. */
+/** The daily purge: thirty days, then gone; a request's rows at seven, with
+ *  the request row they were derived from. */
 export async function purgeActivity(): Promise<number> {
   const result = await db
     .deleteFrom("activity")
-    .where("occurred_at", "<", sql<Date>`now() - make_interval(days => ${ACTIVITY_DAYS})`)
+    .where((eb) =>
+      eb.or([
+        eb("occurred_at", "<", sql<Date>`now() - make_interval(days => ${ACTIVITY_DAYS})`),
+        eb.and([
+          eb("kind", "in", ["request", "expired"]),
+          eb("occurred_at", "<", sql<Date>`now() - make_interval(days => ${REQUEST_RECORD_DAYS})`),
+        ]),
+      ]),
+    )
     .executeTakeFirst();
   return Number(result.numDeletedRows);
 }
 
 /** The earlier purges: when a viewer's membership of a thread ends, every row
- *  of theirs that names that thread's words goes; when a member's words are
- *  no longer theirs to have named, every row about them in that thread goes. */
+ *  of theirs that names that thread's words goes, whether the thread is the
+ *  row's own column or one of its mentions; when a member's words are no
+ *  longer theirs to have named, every row about them goes the same way. */
 export async function purgeAbout(
   options: { viewerId: string; threadId: string } | { aboutAccountId: string; threadId?: string },
   trx: Executor = db,
 ): Promise<void> {
   if ("viewerId" in options) {
-    await trx.deleteFrom("activity").where("account_id", "=", options.viewerId).where("thread_id", "=", options.threadId).execute();
+    const { viewerId, threadId } = options;
+    await trx
+      .deleteFrom("activity")
+      .where("account_id", "=", viewerId)
+      .where((eb) =>
+        eb.or([
+          eb("thread_id", "=", threadId),
+          eb.exists(
+            eb.selectFrom("activity_mentions").select("activity_mentions.activity_id").whereRef("activity_mentions.activity_id", "=", "activity.id").where("activity_mentions.thread_id", "=", threadId),
+          ),
+        ]),
+      )
+      .execute();
     return;
   }
-  let query = trx.deleteFrom("activity").where("about_account_id", "=", options.aboutAccountId);
-  if (options.threadId) query = query.where("thread_id", "=", options.threadId);
-  await query.execute();
+  const { aboutAccountId, threadId } = options;
+  await trx
+    .deleteFrom("activity")
+    .where((eb) =>
+      eb.or([
+        threadId
+          ? eb.and([eb("about_account_id", "=", aboutAccountId), eb("thread_id", "=", threadId)])
+          : eb("about_account_id", "=", aboutAccountId),
+        eb.exists(
+          (() => {
+            let mention = eb
+              .selectFrom("activity_mentions")
+              .select("activity_mentions.activity_id")
+              .whereRef("activity_mentions.activity_id", "=", "activity.id")
+              .where("activity_mentions.about_account_id", "=", aboutAccountId);
+            if (threadId) mention = mention.where("activity_mentions.thread_id", "=", threadId);
+            return mention;
+          })(),
+        ),
+      ]),
+    )
+    .execute();
 }

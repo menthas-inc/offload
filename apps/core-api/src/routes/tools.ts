@@ -1120,7 +1120,7 @@ async function existing(
       await noteThread(messageId, call.threadId, true, trx);
       await touchThread(call.threadId, trx);
       // 024. A note added to a thread with other members reaches them, coalesced.
-      await noteAddition(call.threadId, accountId);
+      await noteAddition(call.threadId, accountId, new Date(), trx);
 
       // The name, for the same reason `add_content` returns it: the model has
       // just been handed a thread id it did not choose the name of.
@@ -1696,7 +1696,7 @@ export async function toolRoutes(app: App): Promise<void> {
           .executeTakeFirst();
         // 024. A row filed into a thread with other members reaches them,
         // coalesced over ten minutes and composed at send time.
-        if (inserted) await noteAddition(thread.id, accountId);
+        if (inserted) await noteAddition(thread.id, accountId, new Date(), trx);
 
         if (!inserted) {
           // The first post won. Return its id rather than a new row, and touch

@@ -8,16 +8,20 @@
 // member taken out in those ten minutes is not announced. Nobody is told
 // about their own additions.
 
-import { emit } from "../analytics.js";
+import type { Kysely, Transaction } from "kysely";
+import { CHANNEL_REQUESTS, CHANNEL_SHARED, PEOPLE_CATEGORY } from "@offload/widgets";
+import { emit, subjectOf } from "../analytics.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
+import type { Database } from "../schema.js";
 import { record } from "./activity.js";
 import { additionsCopy, requestCopy, shareCopy, type Copy } from "./copy.js";
 import { GONE, PushFailed, push, type PushMessage } from "./push.js";
 
 export const ADDITIONS_BUCKET_SECONDS = 10 * 60;
-export const CHANNEL_REQUESTS = "people_requests";
-export const CHANNEL_SHARED = "shared_activity";
+export { CHANNEL_REQUESTS, CHANNEL_SHARED };
+
+type Executor = Kysely<Database> | Transaction<Database>;
 
 /** Ten-minute buckets, so somebody tidying a shared list costs one
  *  notification rather than eleven. */
@@ -26,8 +30,10 @@ export function bucketOf(at: Date): string {
 }
 
 /** Somebody added a row or a note to a thread with other members: one job
- *  per thread, author and bucket, run ten minutes ahead. */
-export async function noteAddition(threadId: string, authorId: string, at = new Date()): Promise<void> {
+ *  per thread, author and bucket, run ten minutes ahead. Inside the caller's
+ *  transaction where there is one, so an insert that rolls back leaves no
+ *  job behind it. */
+export async function noteAddition(threadId: string, authorId: string, at = new Date(), trx: Executor = db): Promise<void> {
   const bucket = bucketOf(at);
   await enqueue({
     kind: "shared.activity",
@@ -36,6 +42,7 @@ export async function noteAddition(threadId: string, authorId: string, at = new 
     priority: PRIORITY.scheduled,
     runAfterSeconds: ADDITIONS_BUCKET_SECONDS,
     idempotencyKey: `shared.activity:${threadId}:${authorId}:${bucket}`,
+    tx: trx,
   });
 }
 
@@ -55,21 +62,29 @@ async function sendTo(
     title: copy.title,
     body: copy.body ?? "",
     data,
-    categoryId: "people",
+    categoryId: PEOPLE_CATEGORY,
     channelId,
   }));
+  const subject = await subjectOf(accountId);
   let tickets;
   try {
     tickets = await push().send(messages);
   } catch (error) {
     if (error instanceof PushFailed) {
-      await emit({ name: "notification_failed", subjectId: accountId, properties: { kind, status: error.status, code: error.code } });
+      await emit({ name: "notification_failed", subjectId: subject, properties: { kind, status: error.status, code: error.code } });
     }
     throw error;
   }
   const gone = tickets.filter((ticket) => !ticket.ok && ticket.code === GONE).map((ticket) => ticket.token);
   if (gone.length > 0) await db.deleteFrom("push_tokens").where("token", "in", gone).execute();
-  await emit({ name: "notification_sent", subjectId: accountId, properties: { kind } });
+  // A gone device drops its token; any other refusal fails the job with its
+  // code, so a send the service did not take is never recorded as sent.
+  const refused = tickets.find((ticket) => !ticket.ok && ticket.code !== GONE);
+  if (refused && !refused.ok) {
+    await emit({ name: "notification_failed", subjectId: subject, properties: { kind, status: 200, code: refused.code } });
+    throw new PushFailed(200, refused.code);
+  }
+  await emit({ name: "notification_sent", subjectId: subject, properties: { kind } });
   return tickets.some((ticket) => ticket.ok);
 }
 
@@ -150,20 +165,32 @@ export async function notifySharedActivity(payload: { threadId: string; authorId
     .execute();
   let sent = 0;
   for (const member of members) {
-    // What this member may read now, by the author, since the bucket began.
+    // What this member may read now, by the author, since the bucket began:
+    // the rows, and the notes, which are a table of their own and were the
+    // half of the trigger the send forgot until the review of 2026-09-22.
     const rows = await db
       .selectFrom("readable_content as content")
-      .select("content.title")
+      .select(["content.title as words", "content.created_at"])
       .where("content.viewer_account_id", "=", member.account_id)
       .where("content.thread_id", "=", payload.threadId)
       .where("content.account_id", "=", payload.authorId)
       .where("content.deleted_at", "is", null)
       .where("content.created_at", ">=", since)
       .where("content.created_at", "<", until)
-      .orderBy("content.created_at", "asc")
       .execute();
-    if (rows.length === 0) continue;
-    const copy = additionsCopy(author?.display_name ?? null, thread.name, rows.map((row) => row.title));
+    const notes = await db
+      .selectFrom("readable_notes as note")
+      .select(["note.text as words", "note.created_at"])
+      .where("note.viewer_account_id", "=", member.account_id)
+      .where("note.subject_id", "=", payload.threadId)
+      .where("note.account_id", "=", payload.authorId)
+      .where("note.deleted_at", "is", null)
+      .where("note.created_at", ">=", since)
+      .where("note.created_at", "<", until)
+      .execute();
+    const added = [...rows, ...notes].sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
+    if (added.length === 0) continue;
+    const copy = additionsCopy(author?.display_name ?? null, thread.name, added.map((one) => one.words));
     if (!member.wanted) continue;
     const reached = await sendTo(member.account_id, copy, { kind: "shared_activity", threadId: payload.threadId }, CHANNEL_SHARED, "shared_activity");
     await record(member.account_id, {

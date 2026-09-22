@@ -250,8 +250,14 @@ export async function registerPushToken(token: string, platform: "ios" | "androi
   return result !== null;
 }
 
-export async function deletePushToken(token: string): Promise<void> {
-  await request("/v1/push-tokens", { method: "DELETE", body: JSON.stringify({ token }) }).catch(() => null);
+/** Once, and once more: a token left bound past a sign-out is the last
+ *  account's words on the next person's lock screen. */
+export async function deletePushToken(token: string): Promise<boolean> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = await request("/v1/push-tokens", { method: "DELETE", body: JSON.stringify({ token }) }).catch(() => null);
+    if (result !== null) return true;
+  }
+  return false;
 }
 
 /** A verb from a notification: the session and the row's id, nothing else. */

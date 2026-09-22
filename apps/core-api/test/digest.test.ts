@@ -4,8 +4,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "kysely";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
-import { composeDigest, placements, queuedDigests, readReceipts, runDigest, scheduleDigests } from "../src/notifications/digest.js";
-import { MemoryPush, push } from "../src/notifications/push.js";
+import { composeDigest, placements, queuedDigests, readReceipts, runDigest, RULE_ROWS_CAP, scheduleDigests } from "../src/notifications/digest.js";
+import { MemoryPush, PushFailed, push } from "../src/notifications/push.js";
 import { uuidv7 } from "../src/uuid.js";
 
 await migrate(() => {});
@@ -248,9 +248,12 @@ describe("024 AC-6 and AC-8 what the job decides", () => {
     const kept = await token(me);
     const asked = memory.receipts;
     memory.receipts = async () => ({ r1: { ok: false, code: "DeviceNotRegistered" }, r2: { ok: true } });
+    // The job carries the token's row id, never the token itself.
+    const idOf = async (held: string) =>
+      (await db.selectFrom("push_tokens").select("id").where("token", "=", held).executeTakeFirstOrThrow()).id;
     await readReceipts([
-      { id: "r1", token: gone },
-      { id: "r2", token: kept },
+      { id: "r1", tokenId: await idOf(gone) },
+      { id: "r2", tokenId: await idOf(kept) },
     ]);
     memory.receipts = asked;
     expect((await db.selectFrom("push_tokens").select("token").where("account_id", "=", me).execute()).map((row) => row.token)).toEqual([kept]);
@@ -261,8 +264,96 @@ describe("024 AC-6 and AC-8 what the job decides", () => {
     await reminder(me, await thread([me]), "Pay the rent", TODAY);
     await token(me);
     await runDigest(me, "morning", TODAY, at(`${TODAY}T07:00:00Z`), at(`${TODAY}T07:00:10Z`));
-    const events = await db.selectFrom("analytics_events").select(["name", "properties"]).where("name", "in", ["digest_sent", "digest_skipped"]).execute();
-    expect(events).toEqual([{ name: "digest_sent", properties: { send: "morning", rows: 1, overdue: 0 } }]);
+    const events = await db.selectFrom("analytics_events").select(["name", "properties", "subject_id"]).where("name", "in", ["digest_sent", "digest_skipped"]).execute();
+    expect(events.map((event) => [event.name, event.properties])).toEqual([["digest_sent", { send: "morning", rows: 1, overdue: 0 }]]);
+    // The subject is the pseudonym, never the account id (OFF-1, and the
+    // privacy page's own words).
+    const pseudonym = (await db.selectFrom("accounts").select("analytics_subject_id").where("id", "=", me).executeTakeFirstOrThrow()).analytics_subject_id;
+    expect(events[0]?.subject_id).toBe(pseudonym);
+    expect(events[0]?.subject_id).not.toBe(me);
     await sql`delete from analytics_events`.execute(db);
+  });
+
+  it("puts no token in the receipts job, since the worker may read a job's payload", async () => {
+    const me = await account();
+    await reminder(me, await thread([me]), "Pay the rent", TODAY);
+    const held = await token(me);
+    await runDigest(me, "morning", TODAY, at(`${TODAY}T07:00:00Z`), at(`${TODAY}T07:00:10Z`));
+    const job = await db.selectFrom("jobs").select("payload").where("kind", "=", "push.receipts").executeTakeFirstOrThrow();
+    expect(JSON.stringify(job.payload)).not.toContain(held);
+    expect(JSON.stringify(job.payload)).not.toContain("PushToken");
+  });
+
+  it("never announces a calendar's own row, whatever its flag says", async () => {
+    const me = await account();
+    const th = await thread([me]);
+    await reminder(me, th, "Standup", TODAY, { type: "event", occurs_at: new Date(`${TODAY}T08:00:00Z`), due_at: null, source_ref: "google:evt_1", attrs: { all_day: false } });
+    const composed = await composeDigest(me, "morning", TODAY);
+    expect(composed.rows).toEqual([]);
+  });
+
+  it("names on the sent row which thread and whose words it carried, so the purges can reach it", async () => {
+    const me = await account();
+    const ana = await account({ display_name: "Ana" });
+    const trip = await thread([me, ana], "Lisbon trip");
+    await reminder(ana, trip, "ferry times", TODAY);
+    await token(me);
+    await runDigest(me, "morning", TODAY, at(`${TODAY}T07:00:00Z`), at(`${TODAY}T07:00:10Z`));
+    const row = await db.selectFrom("activity").select("id").where("account_id", "=", me).executeTakeFirstOrThrow();
+    const mentions = await db.selectFrom("activity_mentions").select(["thread_id", "about_account_id"]).where("activity_id", "=", row.id).execute();
+    expect(mentions).toEqual([{ thread_id: trip, about_account_id: ana }]);
+  });
+});
+
+describe("024 review of 2026-09-22: what fails a send, and what a cap drops", () => {
+  it("a ticket the service refuses for any reason but a gone device fails the job with the code, and records nothing as sent", async () => {
+    const me = await account();
+    await reminder(me, await thread([me]), "Pay the rent", TODAY);
+    await token(me);
+    const send = memory.send;
+    memory.send = async (messages) => messages.map((message) => ({ token: message.to, ok: false as const, code: "MessageTooBig" }));
+    try {
+      await expect(runDigest(me, "morning", TODAY, at(`${TODAY}T07:00:00Z`), at(`${TODAY}T07:00:10Z`))).rejects.toBeInstanceOf(PushFailed);
+    } finally {
+      memory.send = send;
+    }
+    expect(await activityOf(me)).toEqual([]);
+    const events = await db.selectFrom("analytics_events").select(["name", "properties"]).where("name", "in", ["digest_sent", "notification_failed"]).execute();
+    expect(events.map((event) => [event.name, event.properties])).toEqual([["notification_failed", { kind: "digest", status: 200, code: "MessageTooBig" }]]);
+    expect(await db.selectFrom("jobs").select("id").where("kind", "=", "push.receipts").execute()).toEqual([]);
+  });
+
+  // A pin, not a change: the overdue sentence counts a row and never names
+  // it, so a verb on a lone overdue row would act on something the
+  // notification never said. The verbs need the row to be the one named.
+  it("a digest whose only row is overdue carries no verbs, because the send counts it and never names it", async () => {
+    const me = await account();
+    await reminder(me, await thread([me]), "Call the clinic", "2026-09-20");
+    await token(me);
+    expect(await runDigest(me, "morning", TODAY, at(`${TODAY}T07:00:00Z`), at(`${TODAY}T07:00:10Z`))).toBe("sent");
+    expect(memory.sent.map((m) => [m.body, m.categoryId, m.data])).toEqual([["One is from Sunday.", "digest", { kind: "digest", send: "morning" }]]);
+  });
+
+  it("past the candidate cap, what is furthest off is dropped first, never what is due today", async () => {
+    const me = await account();
+    const flat = await thread([me]);
+    const tomorrow = "2026-09-23";
+    await db
+      .insertInto("content")
+      .values(
+        Array.from({ length: RULE_ROWS_CAP + 500 }, (_, i) => ({
+          account_id: me,
+          thread_id: flat,
+          title: `Row ${i}`,
+          type: "task",
+          is_reminder: true,
+          due_at: new Date(`${tomorrow}T12:00:00Z`),
+          attrs: { all_day: true },
+        })) as never,
+      )
+      .execute();
+    const rent = await reminder(me, flat, "Pay the rent", TODAY);
+    const composed = await composeDigest(me, "morning", TODAY);
+    expect(composed.rows.map((row) => row.id)).toEqual([rent]);
   });
 });

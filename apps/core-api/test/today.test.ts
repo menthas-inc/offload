@@ -121,3 +121,28 @@ describe("024 AC-22 the three groups", () => {
     expect([...days].sort().reverse()).toEqual(days);
   });
 });
+
+describe("024 review of 2026-09-22: what the read's cap drops", () => {
+  it("past the cap, what is furthest off is dropped first, never what is due today", async () => {
+    const me = await account();
+    const flat = await thread([me], "Flat admin");
+    const rent = await dated(me, flat, "Pay the rent", TODAY);
+    await db
+      .insertInto("content")
+      .values(
+        Array.from({ length: 800 }, (_, i) => ({
+          account_id: me,
+          thread_id: flat,
+          title: `Row ${i}`,
+          type: "task",
+          due_at: new Date(`${addUtcDays(TODAY, 1)}T12:00:00Z`),
+          attrs: { all_day: true },
+        })) as never,
+      )
+      .execute();
+    const response = await app.inject({ method: "GET", url: "/v1/today", headers: { cookie: await signIn(me) } });
+    expect(response.statusCode).toBe(200);
+    const agenda = response.json() as Today;
+    expect(agenda.today.map((row) => row.id)).toEqual([rent]);
+  });
+});

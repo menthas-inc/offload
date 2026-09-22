@@ -5,7 +5,7 @@ import { sql } from "kysely";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { bucketOf, noteAddition, notifyPerson, notifySharedActivity } from "../src/notifications/people.js";
-import { MemoryPush, push } from "../src/notifications/push.js";
+import { MemoryPush, PushFailed, push } from "../src/notifications/push.js";
 import { uuidv7 } from "../src/uuid.js";
 
 await migrate(() => {});
@@ -135,5 +135,63 @@ describe("024 AC-7 a share, and additions to a shared thread", () => {
     expect(await activityOf(sam)).toEqual([{ kind: "shared_activity", sent: true, reason: null, title: "Ana added two to Lisbon trip", body: "Ferry times, and a place in Alfama." }]);
     expect(await activityOf(tom)).toEqual([]);
     expect(await activityOf(ana)).toEqual([]);
+  });
+});
+
+describe("024 review of 2026-09-22: what the send is composed from, and what fails it", () => {
+  it("a note typed into a shared thread reaches the others too, as its text", async () => {
+    const ana = await account({ display_name: "Ana" });
+    const sam = await account({ display_name: "Sam" });
+    await token(sam);
+    const thread = await db.insertInto("threads").values({ name: "Lisbon trip" } as never).returning("id").executeTakeFirstOrThrow();
+    for (const member of [ana, sam]) {
+      await db.insertInto("thread_members").values({ thread_id: thread.id, account_id: member, state: "accepted" } as never).execute();
+    }
+    const now = new Date();
+    await noteAddition(thread.id, ana, now);
+    const job = await db.selectFrom("jobs").select("payload").where("kind", "=", "shared.activity").executeTakeFirstOrThrow();
+    const since = (job.payload as { since: string }).since;
+    await db
+      .insertInto("notes")
+      .values({ account_id: ana, scope: "thread", subject_id: thread.id, kind: "going_on", text: "Ferry leaves at nine", origin: "stated" } as never)
+      .execute();
+    expect(await notifySharedActivity({ threadId: thread.id, authorId: ana, since })).toBe(1);
+    expect(memory.sent.map((m) => [m.title, m.body])).toEqual([["Ana added one to Lisbon trip", "Ferry leaves at nine."]]);
+  });
+
+  it("a ticket the service refuses for any reason but a gone device fails the job with the code, and records nothing as sent", async () => {
+    const ana = await account({ display_name: "Ana" });
+    const sam = await account({ display_name: "Sam" });
+    await token(sam);
+    const request = await db
+      .insertInto("connection_requests")
+      .values({ from_account_id: ana, to_account_id: sam, delivered: true, expires_at: sql`now() + interval '30 days'` } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const send = memory.send;
+    memory.send = async (messages) => messages.map((message) => ({ token: message.to, ok: false as const, code: "InvalidCredentials" }));
+    try {
+      await expect(notifyPerson({ kind: "request", requestId: request.id })).rejects.toBeInstanceOf(PushFailed);
+    } finally {
+      memory.send = send;
+    }
+    expect(await activityOf(sam)).toEqual([]);
+    const events = await db.selectFrom("analytics_events").select(["name", "properties"]).where("name", "in", ["notification_sent", "notification_failed"]).execute();
+    expect(events.map((event) => [event.name, event.properties])).toEqual([["notification_failed", { kind: "request", status: 200, code: "InvalidCredentials" }]]);
+    // The token stays: the service did not say the device is gone.
+    expect(await db.selectFrom("push_tokens").select("id").where("account_id", "=", sam).execute()).toHaveLength(1);
+  });
+
+  it("the addition job is enqueued inside the caller's transaction, so a rolled-back insert leaves no job", async () => {
+    const ana = await account();
+    const thread = await db.insertInto("threads").values({ name: "Lisbon trip" } as never).returning("id").executeTakeFirstOrThrow();
+    await db
+      .transaction()
+      .execute(async (trx) => {
+        await noteAddition(thread.id, ana, new Date(), trx);
+        throw new Error("rolled back");
+      })
+      .catch(() => undefined);
+    expect(await db.selectFrom("jobs").select("id").where("kind", "=", "shared.activity").execute()).toEqual([]);
   });
 });

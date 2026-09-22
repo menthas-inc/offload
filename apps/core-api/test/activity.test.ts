@@ -7,7 +7,7 @@ import { buildApp, type App } from "../src/app.js";
 import { db, closeDb } from "../src/db.js";
 import { env } from "../src/env.js";
 import { migrate } from "../src/migrate.js";
-import { activityUnread, purgeActivity, record } from "../src/notifications/activity.js";
+import { activityNew, purgeActivity, record } from "../src/notifications/activity.js";
 import { uuidv7 } from "../src/uuid.js";
 
 await migrate(() => {});
@@ -97,16 +97,16 @@ describe("024 AC-18 the list, and AC-20 who may read it", () => {
 describe("024 AC-19 the dot", () => {
   it("is a row newer than the last opening, of any kind but a request, and opening clears it", async () => {
     const me = await account();
-    expect(await activityUnread(me)).toBe(false);
+    expect(await activityNew(me)).toBe(false);
     await record(me, { kind: "request", sent: true, title: "Sam wants to connect", body: "Answer in My people." });
-    expect(await activityUnread(me)).toBe(false);
+    expect(await activityNew(me)).toBe(false);
     await record(me, { kind: "share", sent: true, title: "Sam shared Lisbon trip", body: "Waiting in My threads." });
-    expect(await activityUnread(me)).toBe(true);
+    expect(await activityNew(me)).toBe(true);
     const cookie = await signIn(me);
-    expect((await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json()).toMatchObject({ activityUnread: true });
+    expect((await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json()).toMatchObject({ activityNew: true });
     expect((await app.inject({ method: "POST", url: "/v1/activity/seen", headers: { cookie } })).statusCode).toBe(200);
-    expect(await activityUnread(me)).toBe(false);
-    expect((await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json()).toMatchObject({ activityUnread: false });
+    expect(await activityNew(me)).toBe(false);
+    expect((await app.inject({ method: "GET", url: "/api/me", headers: { cookie } })).json()).toMatchObject({ activityNew: false });
   });
 });
 
@@ -119,5 +119,16 @@ describe("024 AC-20 the purges", () => {
     await purgeActivity();
     const titles = (await db.selectFrom("activity").select("title").where("account_id", "=", me).execute()).map((row) => row.title);
     expect(titles).toEqual(["New"]);
+  });
+
+  it("drops a request's rows with the request, at seven days, since 022 keeps who asked whom no longer than that", async () => {
+    const me = await account();
+    await record(me, { kind: "request", sent: true, title: "Sam wants to connect", body: "Answer in My people." });
+    await record(me, { kind: "expired", sent: false, reason: "design", title: "Your request to Sam expired", body: "Thirty days, no answer." });
+    await record(me, { kind: "digest", sent: true, title: "Due today", body: null, send: "morning" });
+    await sql`update activity set occurred_at = now() - interval '8 days'`.execute(db);
+    await purgeActivity();
+    const titles = (await db.selectFrom("activity").select("title").where("account_id", "=", me).execute()).map((row) => row.title);
+    expect(titles).toEqual(["Due today"]);
   });
 });

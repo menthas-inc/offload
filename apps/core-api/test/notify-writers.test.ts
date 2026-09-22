@@ -110,6 +110,9 @@ describe("024 D4 the rows that named a member's words go with the membership", (
     await record(ana, { kind: "shared_activity", sent: true, title: "Sam added one to Lisbon trip", body: "Dinner.", threadId: trip, aboutAccountId: sam });
     await record(ana, { kind: "shared_activity", sent: true, title: "Sam added one to Flat admin", body: "Bins.", threadId: other, aboutAccountId: sam });
     await record(sam, { kind: "digest", sent: true, title: "Due today", body: "Pay the rent.", send: "morning" });
+    // A digest that named Ana's words in the trip, and one that named nobody's.
+    await record(sam, { kind: "digest", sent: true, title: "Tomorrow", body: "Ana's ferry times.", send: "evening", mentions: [{ threadId: trip, aboutAccountId: ana }] });
+    await record(ana, { kind: "digest", sent: true, title: "Tomorrow", body: "Sam's dinner.", send: "evening", mentions: [{ threadId: trip, aboutAccountId: sam }] });
     await takeOut(ana, trip, sam);
     const titles = async (who: string) => (await db.selectFrom("activity").select("title").where("account_id", "=", who).orderBy("title").execute()).map((row) => row.title);
     expect(await titles(sam)).toEqual(["Due today"]);

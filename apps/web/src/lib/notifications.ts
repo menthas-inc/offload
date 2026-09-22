@@ -5,11 +5,12 @@
 // state, and none of the four sends is worth opening it for. It reads the
 // record and the agenda, and holds the same switches.
 
+import { activityGlyph, activityTag, type ActivityKind } from "@offload/widgets";
 import type { ContentRow } from "./threads";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
-export type ActivityKind = "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted";
+export type { ActivityKind };
 
 export interface ActivityEntry {
   id: string;
@@ -68,24 +69,10 @@ export async function fetchToday(): Promise<Agenda | null> {
   }
 }
 
-/** The kind's glyph: the two digests by their hour of day, people by the
- *  faces, a moved date by the calendar, a verb by its tick, an expiry by the
- *  cross, and a switch that silenced something by the bell. */
-export function glyphOf(row: ActivityEntry): string {
-  if (row.kind === "digest") {
-    if (!row.sent && row.reason !== "design") return "bell";
-    return row.send === "evening" ? "moon" : "sunrise";
-  }
-  if (row.kind === "moved") return "calendar";
-  if (row.kind === "acted") return "check";
-  if (row.kind === "expired") return "x";
-  return "users";
-}
-
-export function tagOf(row: ActivityEntry): { label: string; tone: "noticed" | "quiet" } | null {
-  if (row.sent) return null;
-  return { label: "Not sent", tone: row.reason === "design" ? "quiet" : "noticed" };
-}
+/** The glyph and the tag are the shared package's rule, the same one the
+ *  phones draw from, so the two clients cannot drift on what a row looks like. */
+export const glyphOf = activityGlyph;
+export const tagOf = activityTag;
 
 /** Where a row goes, or null for a row that is the record and nothing more. */
 export function doorOf(row: ActivityEntry): string | null {

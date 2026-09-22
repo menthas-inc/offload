@@ -20,7 +20,7 @@ interface Props {
   /** 022. Connection requests waiting for the viewer's answer. */
   requestsWaiting?: number;
   /** 024. Activity holds a row newer than its last opening. */
-  activityUnread?: boolean;
+  activityNew?: boolean;
 }
 
 /** A thread's icon, from its own `icon` column, falling back to the kit's
@@ -29,7 +29,7 @@ interface Props {
  *  own. */
 export const threadIcon = (icon: string | null): string => icon ?? "message-circle";
 
-export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityUnread = false }: Props) {
+export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew = false }: Props) {
   const pathname = usePathname();
 
   const tabs = [
@@ -121,7 +121,7 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityUnr
         <Link href="/activity" className={styles.navItem}>
           <span className={styles.navGlyph}>
             <Icon name="bell" size={17} />
-            {activityUnread ? <span className={styles.navDot} aria-label="Something new" /> : null}
+            {activityNew ? <span className={styles.navDot} aria-label="Something new" /> : null}
           </span>
           <span className={styles.navLabel}>Activity</span>
         </Link>

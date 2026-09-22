@@ -91,6 +91,24 @@ describe("024 AC-6 Done and Tomorrow", () => {
     ]);
   });
 
+  it("Tomorrow moves an event's end with its start, so the span is never turned round", async () => {
+    const me = await account("Europe/Lisbon");
+    const th = await thread(me);
+    const span = await task(me, th, {
+      title: "Drinks",
+      type: "event",
+      occurs_at: new Date("2026-09-25T17:00:00Z"),
+      occurs_end_at: new Date("2026-09-25T19:00:00Z"),
+      due_at: null,
+      attrs: { all_day: false },
+    });
+    const response = await act(await signIn(me), { action: "tomorrow", contentId: span });
+    expect(response.statusCode).toBe(200);
+    const row = await db.selectFrom("content").select(["occurs_at", "occurs_end_at"]).where("id", "=", span).executeTakeFirstOrThrow();
+    expect(row.occurs_at?.toISOString()).toBe("2026-09-26T17:00:00.000Z");
+    expect(row.occurs_end_at?.toISOString()).toBe("2026-09-26T19:00:00.000Z");
+  });
+
   it("refuses Tomorrow on a row that is on a calendar, and answers 404 outside the membership, 401 without a session", async () => {
     const me = await account();
     const th = await thread(me);

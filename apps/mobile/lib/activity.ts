@@ -5,10 +5,11 @@
 // re-rendered. What each row opens, and which glyph and tag it carries, is
 // decided here once so the screen only draws.
 
+import { activityGlyph, activityTag, type ActivityKind, type ActivityReason } from "@offload/widgets";
 import { fetchActivity, markActivitySeen } from "./api";
 
-export type ActivityKind = "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted";
-export type Reason = "setting" | "permission" | "design";
+export type { ActivityKind };
+export type Reason = ActivityReason;
 
 export interface ActivityEntry {
   id: string;
@@ -38,27 +39,10 @@ export async function seen(): Promise<void> {
   await markActivitySeen();
 }
 
-/** The kind's glyph: the two digests by their hour of day, people by the
- *  faces, a moved date by the calendar, a verb by its tick, an expiry by the
- *  cross, and a switch that silenced something by the bell. */
-export function glyphOf(row: ActivityEntry): string {
-  if (row.kind === "digest") {
-    if (!row.sent && row.reason !== "design") return "bell";
-    return row.send === "evening" ? "moon" : "sunrise";
-  }
-  if (row.kind === "moved") return "calendar";
-  if (row.kind === "acted") return "check";
-  if (row.kind === "expired") return "x";
-  return "users";
-}
-
-/** Not sent is a fact, not an apology. Noticed where a setting or the
- *  permission caused it, and that row is a door to the setting; quiet where
- *  the product chose silence by design, and those rows are not doors. */
-export function tagOf(row: ActivityEntry): { label: string; tone: "noticed" | "quiet" } | null {
-  if (row.sent) return null;
-  return { label: "Not sent", tone: row.reason === "design" ? "quiet" : "noticed" };
-}
+/** The glyph and the tag are the shared package's rule, the same one the
+ *  web draws from, so the two clients cannot drift on what a row looks like. */
+export const glyphOf = activityGlyph;
+export const tagOf = activityTag;
 
 export type Door =
   | { pathname: "/settings/notifications" }

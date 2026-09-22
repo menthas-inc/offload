@@ -38,7 +38,7 @@ Two tables, `push_tokens` and `activity`, seven columns on `accounts`, two job k
 ### Activity
 
 1. `activity.ts`: `record(accountId, row)` inside the caller's transaction where there is one. Writers: the digest job (kinds 1 and 4), `people.notify` and `shared.activity` (kind 2), `sweepPeople` for expired requests and shares (kind 3, the sender's record, with `returning` on the updates it already runs), `edit_content` in `routes/tools.ts` when a date changes on a row that had one (kind 3, the turn's account), the verbs route (kind 3).
-2. `GET /v1/activity?cursor` pages fifty newest first; `POST /v1/activity/seen` sets `accounts.activity_seen_at`; `/api/me` gains `activityUnread: boolean` computed as a row newer than `activity_seen_at` of any kind but `request`.
+2. `GET /v1/activity?cursor` pages fifty newest first; `POST /v1/activity/seen` sets `accounts.activity_seen_at`; `/api/me` gains `activityNew: boolean` computed as a row newer than `activity_seen_at` of any kind but `request`.
 3. `jobs.purge` deletes rows past thirty days. `takeOut`, `leave`, the hard purge of content and account deletion delete rows that name the departed member's or the destroyed row's words, by `thread_id` and `about_account_id`, in the same transactions.
 
 ### Today
@@ -130,7 +130,7 @@ The app maps a kind to a route from a switch: digest to `/`, request to `/settin
 
 ### Client
 
-- `GET /api/me` gains the six `notify*` fields and `activityUnread`. `PATCH /api/me` accepts the six, hours as `HH:MM`.
+- `GET /api/me` gains the six `notify*` fields and `activityNew`. `PATCH /api/me` accepts the six, hours as `HH:MM`.
 - `POST /v1/push-tokens`, `DELETE /v1/push-tokens`.
 - `POST /v1/notifications/act`.
 - `GET /v1/activity`, `POST /v1/activity/seen`.
@@ -149,7 +149,7 @@ Unchanged.
 - `lib/notifications.ts`: permission read, `getExpoPushTokenAsync` with the project id, `setNotificationChannelAsync` for the four with `lockscreenVisibility: PRIVATE`, `setNotificationCategoryAsync` for `digest_verbs` (Done, Tomorrow, `opensAppToForeground: false`, `authenticationRequired: true`) and `digest`, the response listener mapping the payload, `getLastNotificationResponseAsync` on launch, the verbs' `act` call.
 - `lib/api.ts`: the routes; `lib/auth.ts` `signOut` deletes the token first.
 - `app/_layout.tsx`: register on launch when the session is active.
-- `components/screens/Today.*.tsx`: the agenda groups, the strip, the bell as a `Pressable` with the dot from `useMe().activityUnread`.
+- `components/screens/Today.*.tsx`: the agenda groups, the strip, the bell as a `Pressable` with the dot from `useMe().activityNew`.
 - `app/activity.tsx` and `components/screens/Activity.tsx`: the list with the lead, the tag and the doors.
 - `app/settings/[page].tsx`: the `notifications` page, reading channel state on Android through `getNotificationChannelAsync`.
 

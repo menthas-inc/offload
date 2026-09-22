@@ -53,7 +53,7 @@ export interface Me {
   notifyPeopleRequests: boolean;
   notifySharedActivity: boolean;
   /** The dot on the bell: Activity holds a row newer than its last opening. */
-  activityUnread: boolean;
+  activityNew: boolean;
 }
 
 /** Ask again, and tell every mounted `useMe`. For after a request is

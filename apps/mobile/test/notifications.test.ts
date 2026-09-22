@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const sent: { path: string; init: RequestInit }[] = [];
 const dismissed: string[] = [];
+let cleared = 0;
 let permission = "granted";
 
 vi.mock("react-native", () => ({ Platform: { OS: "ios", select: (o: Record<string, unknown>) => o["ios"] } }));
@@ -15,6 +16,9 @@ vi.mock("expo-notifications", () => ({
   getExpoPushTokenAsync: async () => ({ data: "ExponentPushToken[phone]" }),
   dismissNotificationAsync: async (id: string) => {
     dismissed.push(id);
+  },
+  clearLastNotificationResponseAsync: async () => {
+    cleared += 1;
   },
   AndroidImportance: { DEFAULT: 3 },
   AndroidNotificationVisibility: { PRIVATE: 0 },
@@ -41,6 +45,7 @@ const { register, registeredToken, respond, routeFor, verbOf } = await import(".
 beforeEach(() => {
   sent.length = 0;
   dismissed.length = 0;
+  cleared = 0;
   permission = "granted";
 });
 
@@ -64,6 +69,22 @@ describe("024 AC-13 the payload maps to a screen from a table", () => {
 });
 
 describe("024 AC-6 the verbs", () => {
+  // The client review of 2026-09-22: the launch response and the listener
+  // both deliver the tap that opened the app, and Tomorrow moves a date by
+  // a day each time it is asked.
+  it("act once on a response delivered twice", async () => {
+    const response = {
+      actionIdentifier: "tomorrow",
+      notification: { request: { identifier: "twice", content: { data: { kind: "digest", send: "morning", contentId: THREAD } } } },
+    } as never;
+    await respond(response, () => undefined);
+    await respond(response, () => undefined);
+    expect(sent).toHaveLength(1);
+    expect(dismissed).toEqual(["twice"]);
+    // And the platform's copy of the last response goes, for the next launch.
+    expect(cleared).toBe(1);
+  });
+
   it("send the session and the row's id only, and dismiss the notification once the server has written", async () => {
     let opened: unknown = null;
     await respond(

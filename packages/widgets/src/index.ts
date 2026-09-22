@@ -543,3 +543,17 @@ export {
   whenValueOf,
 } from "./when.js";
 export type { WhenPatch, WhenValue } from "./when.js";
+
+// 024. The ids a phone creates once, and the record row's glyph and tag.
+export {
+  CHANNELS,
+  CHANNEL_REQUESTS,
+  CHANNEL_SHARED,
+  DIGEST_CHANNEL,
+  PEOPLE_CATEGORY,
+  PLAIN_CATEGORY,
+  VERBS_CATEGORY,
+  activityGlyph,
+  activityTag,
+} from "./notifications.js";
+export type { ActivityKind, ActivityReason, ActivityShape, ChannelId } from "./notifications.js";

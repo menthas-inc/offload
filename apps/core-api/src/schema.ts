@@ -305,6 +305,13 @@ export interface ActivityTable {
   occurred_at: Timestamp;
 }
 
+/** 024. Whose words an Activity row carries, and from which thread. */
+export interface ActivityMentionsTable {
+  activity_id: string;
+  thread_id: string;
+  about_account_id: string;
+}
+
 export interface AnalyticsEventsTable {
   id: Generated<string>;
   name: string;
@@ -961,6 +968,7 @@ export interface Database {
   analytics_events: AnalyticsEventsTable;
   push_tokens: PushTokensTable;
   activity: ActivityTable;
+  activity_mentions: ActivityMentionsTable;
   waitlist_attempts: WaitlistAttemptsTable;
   schema_migrations: SchemaMigrationsTable;
 

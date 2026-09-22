@@ -12,7 +12,7 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 - [x] **B1** `0058_notifications.sql` as the impl-spec writes it; `schema.ts`; the drift test; no agent grant. Red first. (DATA-1)
 - [x] **B2** `POST` and `DELETE /v1/push-tokens`: the pattern, the upsert binding to the session, the re-bind on conflict, delete only the session's. Test `tokens.test.ts`, red first. (AC-11, SEC-2)
-- [x] **B3** `/api/me`: the six `notify*` fields and `activityUnread`; the patch with `HH:MM` hours; a changed hour, switch or zone deletes the account's queued digest jobs. Test. (AC-14, AC-1)
+- [x] **B3** `/api/me`: the six `notify*` fields and `activityNew`; the patch with `HH:MM` hours; a changed hour, switch or zone deletes the account's queued digest jobs. Test. (AC-14, AC-1)
 
 ## C. API: the sends
 

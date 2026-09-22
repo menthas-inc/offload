@@ -19,7 +19,7 @@ import { emit } from "../analytics.js";
 import { env, isProduction } from "../env.js";
 import { resolveTimeZone } from "../time-zone.js";
 import { adoptZone } from "../accounts/zone.js";
-import { activityUnread } from "../notifications/activity.js";
+import { activityNew } from "../notifications/activity.js";
 
 function fetchHeaders(request: FastifyRequest): Headers {
   const headers = new Headers();
@@ -118,7 +118,7 @@ const meResponse = z.object({
   notifyComingTomorrowAt: z.string(),
   notifyPeopleRequests: z.boolean(),
   notifySharedActivity: z.boolean(),
-  activityUnread: z.boolean(),
+  activityNew: z.boolean(),
 });
 
 /** 024. An hour as the page sends it, HH:MM, twenty-four hour. */
@@ -283,7 +283,7 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     notifyComingTomorrowAt: String(account.notify_coming_tomorrow_at).slice(0, 5),
     notifyPeopleRequests: account.notify_people_requests,
     notifySharedActivity: account.notify_shared_activity,
-    activityUnread: await activityUnread(accountId),
+    activityNew: await activityNew(accountId),
   };
 }
 

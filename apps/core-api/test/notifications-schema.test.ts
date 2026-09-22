@@ -78,7 +78,7 @@ describe("024 activity", () => {
 
   it("is nothing the worker may read", async () => {
     const grants = await sql<{ table_name: string }>`
-      select table_name from information_schema.role_table_grants where grantee = 'offload_agent' and table_name in ('activity', 'push_tokens')
+      select table_name from information_schema.role_table_grants where grantee = 'offload_agent' and table_name in ('activity', 'activity_mentions', 'push_tokens')
     `.execute(db);
     expect(grants.rows).toEqual([]);
   });

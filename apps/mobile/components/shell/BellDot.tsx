@@ -24,7 +24,7 @@ export function BellDot() {
       void refreshMe();
     }, []),
   );
-  const dot = me?.activityUnread === true;
+  const dot = me?.activityNew === true;
   return (
     <Pressable
       // The route exists in `app/`; the generated route types catch up on the

@@ -82,6 +82,13 @@ function assertNoContent(name: EventName, properties: Record<string, unknown>): 
   }
 }
 
+/** The subject an event is attributed to: the account's pseudonym, never
+ *  its id. One helper, so the next event cannot reach for the id in scope. */
+export async function subjectOf(accountId: string, executor: Kysely<Database> | Transaction<Database> = db): Promise<string | null> {
+  const row = await executor.selectFrom("accounts").select("analytics_subject_id").where("id", "=", accountId).executeTakeFirst();
+  return row?.analytics_subject_id ?? null;
+}
+
 export async function emit(options: EmitOptions): Promise<void> {
   const properties = options.properties ?? {};
   assertNoContent(options.name, properties);

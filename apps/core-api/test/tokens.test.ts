@@ -116,7 +116,7 @@ describe("024 AC-14 the switches and hours on /api/me", () => {
       notifyComingTomorrowAt: "19:00",
       notifyPeopleRequests: true,
       notifySharedActivity: true,
-      activityUnread: false,
+      activityNew: false,
     });
   });
 

@@ -14,7 +14,8 @@
 
 import { addUtcDays, dayIn, instantIn, occurrencesIn, parseRule, whenDayOf, type Rule } from "@offload/widgets";
 import { sql } from "kysely";
-import { emit } from "../analytics.js";
+import { DIGEST_CHANNEL, PLAIN_CATEGORY, VERBS_CATEGORY } from "@offload/widgets";
+import { emit, subjectOf } from "../analytics.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { record } from "./activity.js";
@@ -32,9 +33,8 @@ export const RULE_ROWS_CAP = 200;
 /** The receipts are read this long after the send. */
 export const RECEIPTS_AFTER_SECONDS = 15 * 60;
 
-export const VERBS_CATEGORY = "digest_verbs";
-export const PLAIN_CATEGORY = "digest";
-export const CHANNELS: Record<Send, string> = { morning: "due_today", evening: "coming_tomorrow" };
+export { PLAIN_CATEGORY, VERBS_CATEGORY };
+export const CHANNELS: Record<Send, string> = DIGEST_CHANNEL;
 
 export interface Placement {
   accountId: string;
@@ -116,10 +116,13 @@ export interface Composed {
   landingToday: string[];
   /** The one task a one-task digest carries verbs for. */
   single: { contentId: string } | null;
+  /** Whose words the send carries, and from which thread, for the record. */
+  mentions: { threadId: string; aboutAccountId: string }[];
 }
 
 interface Candidate {
   id: string;
+  thread_id: string;
   title: string;
   type: string;
   due_at: Date | null;
@@ -191,6 +194,7 @@ export async function composeDigest(accountId: string, send: Send, day: string):
     .leftJoin("accounts as author", "author.id", "content.account_id")
     .select([
       "content.id",
+      "content.thread_id",
       "content.title",
       "content.type",
       "content.due_at",
@@ -206,6 +210,9 @@ export async function composeDigest(accountId: string, send: Send, day: string):
     .where("content.deleted_at", "is", null)
     .where("content.done_at", "is", null)
     .where("content.archived_at", "is", null)
+    // A calendar's own row is never announced, whatever its flag says: its
+    // words are a connected app's, and the calendar already told them.
+    .where("content.source_ref", "is", null)
     .where("threads.deleted_at", "is", null)
     .where((eb) =>
       eb.or([
@@ -214,6 +221,9 @@ export async function composeDigest(accountId: string, send: Send, day: string):
         eb("content.rrule", "is not", null),
       ]),
     )
+    // Nearest first, so if the cap is ever reached it drops what is furthest
+    // off rather than whatever the planner happened to read last.
+    .orderBy(sql`coalesce(content.occurs_at, content.due_at)`, "asc")
     .limit(RULE_ROWS_CAP + 500)
     .execute();
 
@@ -230,9 +240,15 @@ export async function composeDigest(accountId: string, send: Send, day: string):
   }
   const landingToday = candidates.filter((row) => landsOn(row, zone, day)).map((row) => row.id);
   const only = rows.length === 1 && overdue.length === 0 ? rows[0]! : null;
-  const single =
-    only && only.type === "task" && !only.repeating && !candidates.find((row) => row.id === only.id)?.source_ref ? { contentId: only.id } : null;
-  return { zone, today: day, rows, overdue, landingToday, single };
+  const single = only && only.type === "task" && !only.repeating ? { contentId: only.id } : null;
+  // Whose words the send carries, so the record can go when they should.
+  const named = new Map<string, { threadId: string; aboutAccountId: string }>();
+  for (const row of [...rows, ...overdue]) {
+    const source = candidates.find((one) => one.id === row.id);
+    if (!source || !source.account_id || source.account_id === accountId) continue;
+    named.set(`${source.thread_id}:${source.account_id}`, { threadId: source.thread_id, aboutAccountId: source.account_id });
+  }
+  return { zone, today: day, rows, overdue, landingToday, single, mentions: [...named.values()] };
 }
 
 export type Outcome = "sent" | "skipped_setting" | "skipped_permission" | "empty" | "same" | "late";
@@ -263,17 +279,19 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
 
   const copy = digestCopy(send, composed.rows, composed.overdue, composed.zone, day);
   const counts = { send, rows: composed.rows.length, overdue: composed.overdue.length };
+  const subject = await subjectOf(accountId);
+  const mentions = composed.mentions;
   const on = send === "morning" ? account.notify_due_today : account.notify_coming_tomorrow;
   if (!on) {
-    await record(accountId, { kind: "digest", sent: false, reason: "setting", title: skippedTitle(send), body: copy.body, send });
-    await emit({ name: "digest_skipped", subjectId: accountId, properties: { ...counts, reason: "setting" } });
+    await record(accountId, { kind: "digest", sent: false, reason: "setting", title: skippedTitle(send), body: copy.body, send, mentions });
+    await emit({ name: "digest_skipped", subjectId: subject, properties: { ...counts, reason: "setting" } });
     return "skipped_setting";
   }
 
-  const tokens = await db.selectFrom("push_tokens").select(["token", "platform"]).where("account_id", "=", accountId).execute();
+  const tokens = await db.selectFrom("push_tokens").select(["id", "token", "platform"]).where("account_id", "=", accountId).execute();
   if (tokens.length === 0) {
-    await record(accountId, { kind: "digest", sent: false, reason: "permission", title: copy.title, body: copy.body, send });
-    await emit({ name: "digest_skipped", subjectId: accountId, properties: { ...counts, reason: "permission" } });
+    await record(accountId, { kind: "digest", sent: false, reason: "permission", title: copy.title, body: copy.body, send, mentions });
+    await emit({ name: "digest_skipped", subjectId: subject, properties: { ...counts, reason: "permission" } });
     return "skipped_permission";
   }
 
@@ -291,13 +309,23 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
     tickets = await push().send(messages);
   } catch (error) {
     if (error instanceof PushFailed) {
-      await emit({ name: "notification_failed", subjectId: accountId, properties: { kind: "digest", status: error.status, code: error.code } });
+      await emit({ name: "notification_failed", subjectId: subject, properties: { kind: "digest", status: error.status, code: error.code } });
     }
     throw error;
   }
   const gone = tickets.filter((ticket) => !ticket.ok && ticket.code === GONE).map((ticket) => ticket.token);
   if (gone.length > 0) await db.deleteFrom("push_tokens").where("token", "in", gone).execute();
-  const delivered = tickets.flatMap((ticket) => (ticket.ok ? [{ id: ticket.id, token: ticket.token }] : []));
+  // A gone device drops its token; any other refusal fails the job with its
+  // code, so a send the service did not take is never recorded as sent.
+  const refused = tickets.find((ticket) => !ticket.ok && ticket.code !== GONE);
+  if (refused && !refused.ok) {
+    await emit({ name: "notification_failed", subjectId: subject, properties: { kind: "digest", status: 200, code: refused.code } });
+    throw new PushFailed(200, refused.code);
+  }
+  // The receipts job carries the token's row id, never the token: the worker
+  // role may read a job's payload, and a token is a delivery capability.
+  const idOf = new Map(tokens.map((one) => [one.token, one.id]));
+  const delivered = tickets.flatMap((ticket) => (ticket.ok && idOf.has(ticket.token) ? [{ id: ticket.id, tokenId: idOf.get(ticket.token)! }] : []));
   if (delivered.length > 0) {
     await enqueue({
       kind: "push.receipts",
@@ -315,13 +343,15 @@ export async function runDigest(accountId: string, send: Send, day: string, runA
     body: copy.body,
     send,
     contentId: composed.single?.contentId ?? null,
+    mentions,
   });
-  await emit({ name: "digest_sent", subjectId: accountId, properties: counts });
+  await emit({ name: "digest_sent", subjectId: subject, properties: counts });
   return "sent";
 }
 
-/** Fifteen minutes on: a token the service reports gone is dropped. */
-export async function readReceipts(tickets: { id: string; token: string }[]): Promise<void> {
+/** Fifteen minutes on: a token the service reports gone is dropped, by its
+ *  row id. */
+export async function readReceipts(tickets: { id: string; tokenId: string }[]): Promise<void> {
   if (tickets.length === 0) return;
   const receipts = await push().receipts(tickets.map((ticket) => ticket.id));
   const gone = tickets.filter((ticket) => {
@@ -331,7 +361,7 @@ export async function readReceipts(tickets: { id: string; token: string }[]): Pr
   if (gone.length > 0) {
     await db
       .deleteFrom("push_tokens")
-      .where("token", "in", gone.map((ticket) => ticket.token))
+      .where("id", "in", gone.map((ticket) => ticket.tokenId))
       .execute();
   }
 }

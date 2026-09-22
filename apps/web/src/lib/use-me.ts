@@ -46,7 +46,7 @@ export interface Me {
   notifyComingTomorrowAt: string;
   notifyPeopleRequests: boolean;
   notifySharedActivity: boolean;
-  activityUnread: boolean;
+  activityNew: boolean;
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to, and null when the provider sent nothing. */
   suggestedName: string | null;

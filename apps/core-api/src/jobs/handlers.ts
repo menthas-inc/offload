@@ -690,7 +690,7 @@ const accountDigest: Handler = async (payload, _deps, accountId) => {
 };
 
 const pushReceipts: Handler = async (payload) => {
-  const tickets = Array.isArray(payload["tickets"]) ? (payload["tickets"] as { id: string; token: string }[]) : [];
+  const tickets = Array.isArray(payload["tickets"]) ? (payload["tickets"] as { id: string; tokenId: string }[]) : [];
   await readReceipts(tickets);
 };
 

@@ -91,8 +91,11 @@ function weekdayOf(day: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(noonUtc(day));
 }
 
+/** A member's name is a person-written string too, and the one string the
+ *  digest interpolates raw until the review of 2026-09-22 asked why. */
 function possessive(author: string): string {
-  return `${author === "" ? "Someone" : author}'s`;
+  const name = clamp(author);
+  return `${name === "" ? "Someone" : name}'s`;
 }
 
 /** The phrase one row becomes in a list. */

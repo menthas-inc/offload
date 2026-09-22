@@ -1237,7 +1237,7 @@ export async function quickAdd(
       .execute();
     await touchThread(threadId, trx);
     // 024. A row typed into a thread with other members reaches them, coalesced.
-    await noteAddition(threadId, accountId);
+    await noteAddition(threadId, accountId, new Date(), trx);
 
     await enqueue({
       kind: "thread.quick_add",

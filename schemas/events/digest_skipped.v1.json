@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/digest_skipped.v1.json",
+  "title": "digest_skipped",
+  "description": "A digest with something to say was not sent. The send, two counts, and the reason as an enum.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["send", "rows", "overdue", "reason"],
+  "properties": {
+    "send": { "type": "string", "enum": ["morning", "evening"] },
+    "rows": { "type": "integer", "minimum": 0 },
+    "overdue": { "type": "integer", "minimum": 0 },
+    "reason": { "type": "string", "enum": ["setting", "permission"] }
+  }
+}

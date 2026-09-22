@@ -78,7 +78,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     <ThreadsProvider value={{ groups, invitations, ready, reload: () => void loadThreads(), filed }}>
       <ToastProvider>
       <div className={styles.shell}>
-        <Sidebar threads={threads} threadCount={threads.length} requestsWaiting={state.me.requestsWaiting} activityUnread={state.me.activityUnread} />
+        <Sidebar threads={threads} threadCount={threads.length} requestsWaiting={state.me.requestsWaiting} activityNew={state.me.activityNew} />
         <div className={styles.main}>
           {children}
           <Composer

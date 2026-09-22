@@ -13,22 +13,14 @@
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
+import { CHANNELS, PEOPLE_CATEGORY, PLAIN_CATEGORY, VERBS_CATEGORY } from "@offload/widgets";
 import { actOnNotification, deletePushToken, registerPushToken } from "./api";
 import { beforeSignOut } from "./auth";
 import { failed } from "./log";
 
-export const VERBS_CATEGORY = "digest_verbs";
-export const PLAIN_CATEGORY = "digest";
-export const PEOPLE_CATEGORY = "people";
-
-/** The four channels, ids permanent and invisible; the labels are the
- *  notification titles, word for word. */
-export const CHANNELS = [
-  { id: "due_today", name: "Due today" },
-  { id: "coming_tomorrow", name: "Tomorrow" },
-  { id: "people_requests", name: "Connection requests" },
-  { id: "shared_activity", name: "Added to a shared thread" },
-] as const;
+// The ids are the shared package's, the same declaration the server files a
+// send under, so neither side can rename what a shipped phone already made.
+export { CHANNELS, PEOPLE_CATEGORY, PLAIN_CATEGORY, VERBS_CATEGORY };
 
 /** What a send carries, and nothing else. */
 export type Payload =
@@ -131,22 +123,43 @@ export function registeredToken(): string | null {
   return registered;
 }
 
+/** The responses this launch has acted on. The tap that opens the app
+ *  arrives twice, as the launch response and through the listener, and
+ *  Tomorrow moves a date by a day each time it is asked. A refused write is
+ *  taken out again, so tapping the verb once more is a retry. */
+const handled = new Set<string>();
+
+/** The platform keeps the last response across launches; once it has been
+ *  acted on it is cleared, so the next launch does not act on it again. */
+async function clearLast(): Promise<void> {
+  await Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
+}
+
 /** A response: a verb acts without opening the app and dismisses the
  *  notification on success; a tap hands the screen to open to the caller. */
 export async function respond(
   response: Notifications.NotificationResponse,
   open: (route: { pathname: string; params?: Record<string, string> }) => void,
 ): Promise<void> {
+  const id = response.notification.request.identifier;
+  if (handled.has(id)) return;
+  handled.add(id);
   const data: unknown = response.notification.request.content.data;
   const verb = verbOf(response.actionIdentifier);
   if (verb) {
     const contentId = (data as { contentId?: unknown } | null)?.contentId;
     if (typeof contentId !== "string") return;
     if (await actOnNotification(verb, contentId)) {
-      await Notifications.dismissNotificationAsync(response.notification.request.identifier).catch(() => undefined);
+      await Notifications.dismissNotificationAsync(id).catch(() => undefined);
+      await clearLast();
+    } else {
+      handled.delete(id);
     }
     return;
   }
   const route = routeFor(data);
-  if (route) open(route);
+  if (route) {
+    await clearLast();
+    open(route);
+  }
 }
