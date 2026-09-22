@@ -16,6 +16,7 @@ Five surfaces: iOS, Android, web app, admin panel, marketing site. Invite only, 
 - Be concise and direct. Surface real fork-in-the-road decisions, make the trivial calls yourself.
 - **Short, friendly, to the point. Not emphatic, not apologetic.** This applies to your replies to me and to every word the product says. It drifts, so it is written down: no restating what I just said, no preamble, no summarising work I can read in the diff.
 - Prefer the smallest change that satisfies the spec. No speculative abstraction.
+- **Red before green, always.** Write the test for the behaviour, run it, watch it fail for the right reason, then write the code that makes it pass. Every fix, every feature, every batch, every session. A test that was never red proves nothing, and "I'll add the tests after" is how the first batch of the security review went out (QUAL-1).
 - Ground non-trivial decisions in `docs/constitution/principles.md` and `docs/tech/`.
 - When code and spec disagree, the spec wins. Update the code, or flag the spec as wrong.
 - When code and the design system disagree, the **code** wins, and the same change logs one entry in the design system's `decisions.md`. That asymmetry is deliberate, see OFF-7.

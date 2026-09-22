@@ -13,7 +13,7 @@
 
 ## Quality (QUAL)
 
-- **QUAL-1 (MUST):** No feature merges without tests covering its acceptance criteria.
+- **QUAL-1 (MUST):** No feature merges without tests covering its acceptance criteria. **The test comes first and is seen to fail.** Every change to behaviour, a feature, a fix, a hardening, starts with a test that fails for the reason the change exists, run and watched go red, and ends with that test green and nothing else red. A test written after the code is a description of what the code does, not evidence that it does what was asked; the security review of 2026-09-22 shipped its first batch that way and had to prove the tests afterwards by running them against the old source. *Amended 2026-09-22 by the product owner.*
 - **QUAL-2 (SHOULD):** Functions do one thing; side effects are explicit and isolated.
 
 ## Security (SEC)

@@ -13,7 +13,7 @@ Look for:
 - Correctness bugs, missed edge cases, race conditions, error-handling gaps.
 - DEV-1: the smallest change that satisfies the spec. Flag speculative abstraction and unused extensibility.
 - DEV-2: code matches its spec.
-- QUAL-1: tests cover the change's acceptance criteria.
+- QUAL-1: tests cover the change's acceptance criteria, and each one would fail without the change. Read the test against the old code in your head: a test that asserts what the new code happens to do, rather than what was asked, is a description and not evidence. Flag any behaviour change that arrives with no test at all.
 - QUAL-2: functions do one thing, side effects explicit and isolated.
 - OFF-5: a model output crossing a boundary goes through a validated schema, never free-text parsing.
 - Efficiency: obvious performance and query problems such as N+1. Do not micro-optimize.
