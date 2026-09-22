@@ -8,29 +8,52 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
-      "env": { "EXPO_PUBLIC_API_URL": "https://api.offload.club" },
-      "ios": { "simulator": false },
-      "android": { "buildType": "apk" }
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.offload.club",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "174736489489-o97kdgrgo3sh6jho3eqgq0mu1f97fgmj.apps.googleusercontent.com"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      }
     },
     "development-simulator": {
       "extends": "development",
-      "ios": { "simulator": true }
+      "ios": {
+        "simulator": true
+      },
+      "env": {}
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "env": { "EXPO_PUBLIC_API_URL": "https://api.offload.club" },
-      "android": { "buildType": "apk" }
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.offload.club",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "174736489489-o97kdgrgo3sh6jho3eqgq0mu1f97fgmj.apps.googleusercontent.com"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
       "channel": "production",
       "autoIncrement": true,
-      "env": { "EXPO_PUBLIC_API_URL": "https://api.offload.club" }
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.offload.club",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "174736489489-o97kdgrgo3sh6jho3eqgq0mu1f97fgmj.apps.googleusercontent.com"
+      }
     }
   },
   "submit": {
     "production": {
-      "android": { "track": "internal" }
+      "android": {
+        "track": "internal"
+      },
+      "ios": {
+        "ascAppId": "6814795746"
+      }
     }
   }
 }

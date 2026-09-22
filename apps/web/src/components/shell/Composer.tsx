@@ -20,6 +20,7 @@ import {
   answerPending,
   answerQuestion,
   invitation,
+  DailyLimit,
   DumpTooLong,
   endConversation,
   fetchCurrent,
@@ -670,7 +671,7 @@ export function Composer({
         // nothing to retry until they are shorter.
         takeBack();
         setTooLong(error.maxChars);
-      } else if (error instanceof PhotoRefused && error.reason === "daily_limit") {
+      } else if (error instanceof DailyLimit || (error instanceof PhotoRefused && error.reason === "daily_limit")) {
         takeBack();
         setLine({ text: "Enough for today." });
       } else if (

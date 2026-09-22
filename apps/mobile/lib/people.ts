@@ -45,9 +45,12 @@ export interface Found extends Person {
 export type Lookup = { kind: "found"; found: Found | null } | { kind: "rate_limited" } | { kind: "failed" };
 
 export async function lookup(email: string): Promise<Lookup> {
-  const { status, data } = await send<{ found: Found | null }>(
-    `/v1/people/lookup?email=${encodeURIComponent(email.trim())}`,
-  );
+  // In the body, never the path: a query string is what request logs keep,
+  // and this is somebody else's address (security review 2026-09-22, M15).
+  const { status, data } = await send<{ found: Found | null }>("/v1/people/lookup", {
+    method: "POST",
+    body: JSON.stringify({ email: email.trim() }),
+  });
   if (status === 429) return { kind: "rate_limited" };
   if (status !== 200 || !data) return { kind: "failed" };
   if (data.found) rememberMark(data.found.accountId, data.found.mark);

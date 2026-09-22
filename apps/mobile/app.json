@@ -20,7 +20,13 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -136,14 +142,36 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "9b52f487-7c53-4d9d-a389-889ccc79798d"
+        "projectId": "9b52f487-7c53-4d9d-a389-889ccc79798d",
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "ShareExtension",
+                  "bundleIdentifier": "club.offload.app.share-extension",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.club.offload.app"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
       }
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/9b52f487-7c53-4d9d-a389-889ccc79798d"
+      "url": "https://u.expo.dev/9b52f487-7c53-4d9d-a389-889ccc79798d",
+      "codeSigningCertificate": "./certs/certificate.pem",
+      "codeSigningMetadata": {
+        "keyid": "main",
+        "alg": "rsa-v1_5-sha256"
+      }
     },
     "platforms": [
       "ios",

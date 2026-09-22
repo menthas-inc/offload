@@ -19,7 +19,6 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Keyboard,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -45,6 +44,7 @@ import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
 import { answerPending } from "../../lib/calendars";
 import { answerShare } from "../../lib/people";
+import { openLink } from "../../lib/links";
 import { SHARE_LINE } from "../people/ShareSheet";
 import { QuickReplies } from "./QuickReplies";
 import { useRouter } from "expo-router";
@@ -698,7 +698,7 @@ function TurnFooter({ turn }: { turn: Turn }) {
       {shown.map((source) => (
         <Pressable
           key={source.url}
-          onPress={() => void Linking.openURL(source.url)}
+          onPress={() => void openLink(source.url)}
           accessibilityRole="link"
           accessibilityLabel={`Open ${source.domain}`}
           className="flex-row items-center gap-space-2 rounded-pill border border-border-strong px-space-4"

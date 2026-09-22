@@ -26,6 +26,7 @@ import { PhotoThumb } from "../shell/PhotoThumb";
 import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
 import { domainOf, isFiling, isProvisional, type ContentRow } from "../../lib/threads";
+import { webHref } from "../../lib/links";
 
 /** Everything the row needs from whoever is holding the page's state. One
  *  object rather than nine props, because both callers pass the same nine and a
@@ -208,7 +209,7 @@ export function ContentRowView({
           // page is not told which thread it was opened from. The row's own
           // tools stay in the row.
           <a
-            href={row.url ?? undefined}
+            href={webHref(row.url)}
             target="_blank"
             rel="noreferrer noopener"
             className={styles.rowTitle}

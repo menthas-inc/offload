@@ -355,3 +355,6 @@ export function plainText(text: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+// A session's device in words, for the "Signed in on" list on both surfaces.
+export { describeDevice } from "./device.js";

@@ -25,7 +25,6 @@
 import {
   ActivityIndicator,
   Image,
-  Linking,
   Platform,
   Pressable,
   Text,
@@ -46,6 +45,7 @@ import { Glyph } from "../Glyph";
 import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
 import { domainOf, isFiling, isProvisional, type ContentRow } from "../../lib/threads";
+import { openLink } from "../../lib/links";
 
 const REVEAL = 88;
 const isAndroid = Platform.OS === "android";
@@ -358,7 +358,7 @@ export function ContentRowView({
           <Pressable
             className="flex-1"
             disabled={!door}
-            onPress={door ? () => void Linking.openURL(row.url!) : undefined}
+            onPress={door ? () => void openLink(row.url) : undefined}
             accessibilityRole={door ? "link" : undefined}
             accessibilityLabel={door ? `Open ${domain ?? row.title}` : undefined}
           >
@@ -409,7 +409,7 @@ export function ContentRowView({
                 offload is a page whose owner is impossible to see. */}
             {domain && !note ? (
               <Pressable
-                onPress={() => row.url && void Linking.openURL(row.url)}
+                onPress={() => void openLink(row.url)}
                 hitSlop={10}
                 accessibilityRole="link"
                 accessibilityLabel={`Open ${domain}`}

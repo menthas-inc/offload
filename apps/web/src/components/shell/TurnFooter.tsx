@@ -24,6 +24,7 @@
 
 import Link from "next/link";
 import { Icon } from "../Icon";
+import { webHref } from "../../lib/links";
 import styles from "../../app/(shell)/composer.module.css";
 
 export interface TurnRef {
@@ -81,7 +82,7 @@ export function TurnFooter({
       {shown.map((source) => (
         <a
           key={source.url}
-          href={source.url}
+          href={webHref(source.url)}
           target="_blank"
           rel="noreferrer noopener"
           className={styles.sourceChip}
