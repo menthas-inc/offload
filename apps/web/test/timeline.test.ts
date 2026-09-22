@@ -10,6 +10,7 @@
 // AC-10 the day says what it holds in words.
 
 import { describe, expect, it } from "vitest";
+import { parseRule } from "@offload/widgets";
 import {
   MAX_DOTS,
   datedFor,
@@ -37,6 +38,23 @@ function point(id: string, iso: string, kind: Dated["kind"] = "event"): Dated {
 
 function span(id: string, from: string, to: string, kind: Dated["kind"] = "note"): Dated {
   return { id, rowId: id, due: false, kind, from, to, done: false };
+}
+
+// 023 made the rule an RFC 5545 rule; these are the six old values as
+// they migrated, which is what the rail draws now.
+const RULES: Record<string, string> = {
+  day: "FREQ=DAILY",
+  weekday: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
+  week: "FREQ=WEEKLY",
+  two_weeks: "FREQ=WEEKLY;INTERVAL=2",
+  month: "FREQ=MONTHLY",
+  year: "FREQ=YEARLY",
+};
+function parsed(repeats: string, until?: string) {
+  const text = until ? `${RULES[repeats]};UNTIL=${until.replace(/-/g, "")}T235959Z` : RULES[repeats]!;
+  const result = parseRule(text);
+  if (!result.ok) throw new Error(result.reason);
+  return result.rule;
 }
 
 describe("the span", () => {
@@ -265,7 +283,7 @@ describe("one row that repeats, drawn on every matching day", () => {
   // "Yoga every Tuesday" is one thing somebody said, not four things that
   // happen to share a name. The row carries the rule and the calendar expands
   // it over whatever window is on screen, so a list draws it once.
-  function rule(from: string, repeats: Dated["repeats"], until?: string): Dated {
+  function rule(from: string, repeats: string, until?: string): Dated {
     return {
       id: "yoga",
       rowId: "yoga",
@@ -274,8 +292,7 @@ describe("one row that repeats, drawn on every matching day", () => {
       from,
       to: from,
       done: false,
-      repeats: repeats ?? null,
-      until: until ?? null,
+      rule: parsed(repeats, until),
     };
   }
 
@@ -356,7 +373,7 @@ describe("an old rule still draws today", () => {
   // a daily standup set up fourteen months ago ran out of steps before it
   // reached this week and quietly stopped being drawn: still in the database,
   // still repeating, on no screen, with nothing to say why.
-  function old(repeats: Dated["repeats"], from: string): Dated {
+  function old(repeats: string, from: string): Dated {
     return {
       id: "standup",
       rowId: "standup",
@@ -365,8 +382,7 @@ describe("an old rule still draws today", () => {
       from,
       to: from,
       done: false,
-      repeats: repeats ?? null,
-      until: null,
+      rule: parsed(repeats),
     };
   }
 

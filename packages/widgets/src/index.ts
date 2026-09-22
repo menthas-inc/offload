@@ -504,3 +504,21 @@ export * from "./timeline.js";
 // Dragging a row to a new place, as the priorities that hold it there. Its own
 // file because it is arithmetic over one field and every surface drags.
 export * from "./reorder.js";
+
+// 023. The recurrence rule and the day arithmetic it shares with the rail.
+export {
+  RULE_STEP_CAP,
+  WEEKDAYS,
+  anchorDayOf,
+  describeRule,
+  formatRule,
+  isCanonicalRule,
+  nextOnOrAfter,
+  occurrencesIn,
+  parseRule,
+  presetsFor,
+} from "./rrule.js";
+export type { Freq, ParsedRule, Preset, Rule, RuleRefusal, Weekday } from "./rrule.js";
+export { addDays as addUtcDays, dayIn, daysBetween, noonUtc, utcDay } from "./days.js";
+export { SOON_DAYS, chipFor, nearness, timeIn, whenDayOf, whenOf } from "./nearness.js";
+export type { Chip, ChipRow, Nearness } from "./nearness.js";
