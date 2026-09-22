@@ -25,7 +25,7 @@ import { Group, Row } from "./Rows";
 import { Switch } from "./Switch";
 import { setNotify, useMe, type Me } from "../../lib/me";
 import { clockLabel } from "../../lib/when";
-import { CHANNELS } from "../../lib/notifications";
+import { CHANNELS, register } from "../../lib/notifications";
 
 const isAndroid = Platform.OS === "android";
 
@@ -199,6 +199,22 @@ export function NotificationsPage() {
           <Text className={`px-space-1 pt-space-4 font-core ${quiet}`} style={{ fontSize: 13.5, lineHeight: 19 }}>
             Notifications are off for offload on this phone.
           </Text>
+        ) : null}
+        {/* Never asked on this phone: an account from before first run asked,
+            or a reinstall. Not a refusal, so the one ask is offered here; a
+            refusal is never asked again, above. */}
+        {permission === "undetermined" ? (
+          <Row
+            title="Turn on notifications"
+            onPress={() =>
+              void Notifications.requestPermissionsAsync()
+                .then((granted) => {
+                  setPermission(granted.status);
+                  if (granted.status === "granted") void register();
+                })
+                .catch(() => undefined)
+            }
+          />
         ) : null}
         <Row
           title="System settings"
