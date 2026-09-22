@@ -36,6 +36,7 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { AttachChip } from "./AttachChip";
 import { useConversation } from "./conversation-context";
+import { MentionList, mentionQuery } from "../people/MentionList";
 
 const isAndroid = Platform.OS === "android";
 
@@ -195,8 +196,13 @@ export function Composer({
     liveSamples,
     startRecording,
     discardRecording,
+    mentionPeople,
+    pickMention,
   } = useConversation();
   const holdsNote = !pin && (recording || note !== null);
+  // 022. The @ list, while the draft ends in an @ token and not while a +
+  // is pinned: a + is one line into a section, never a person.
+  const mentionAt = pin || holdsNote ? null : mentionQuery(draft);
   const [sending, setSending] = useState(false);
   // 018. Precedence: a pinned `+` field is never taken over, then the open
   // question, then whatever the screen asked for, then the cycling set.
@@ -288,6 +294,9 @@ export function Composer({
 
   return (
     <View className="px-gutter-screen pb-space-5 pt-space-4">
+      {mentionAt !== null && mentionPeople && mentionPeople.length > 0 ? (
+        <MentionList people={mentionPeople} query={mentionAt} onPick={pickMention} />
+      ) : null}
       {/* Where an ordinary dump will land, said once, above the field.
           Nothing while pinned: a `+` already says what it is adding to, in its
           own header and its own pill, and a third statement of the same thing

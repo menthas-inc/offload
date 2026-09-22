@@ -13,6 +13,8 @@ import { useRouter } from "next/navigation";
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 
 export interface Me {
+  /** 022. Their own id, for the mark. */
+  accountId: string;
   state: "invited" | "active";
   displayName: string | null;
   email: string;
@@ -35,6 +37,22 @@ export interface Me {
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to, and null when the provider sent nothing. */
   suggestedName: string | null;
+  /** 022. Connection requests waiting for their answer: the dot on the
+   *  sidebar's Settings and on the My people row. */
+  requestsWaiting: number;
+}
+
+/** 022. Ask again and tell every mounted `useMe`, for after a request is
+ *  answered, so the dot goes everywhere it is drawn. */
+export async function refreshMe(): Promise<void> {
+  try {
+    const response = await fetch(`${API}/api/me`, { credentials: "include" });
+    if (!response.ok) return;
+    const me = (await response.json()) as Me;
+    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
+  } catch {
+    // Nothing to say: the dot is a hint and the next open reads it again.
+  }
 }
 
 /** Whether this account still has something to answer before the shell.

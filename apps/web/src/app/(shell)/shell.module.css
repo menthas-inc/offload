@@ -73,6 +73,42 @@
   background: var(--surface-fill);
 }
 
+/* 022. A glyph that can carry the dot. */
+.navGlyph {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.navDot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--clay-600);
+  border: 1.5px solid var(--paper);
+  box-sizing: content-box;
+}
+
+/* 022. The same dot on a settings row's lead. */
+.settingsIcon {
+  position: relative;
+}
+
+.settingsDot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--clay-600);
+  border: 1.5px solid var(--paper);
+  box-sizing: content-box;
+}
+
 .navItem[data-on="true"] {
   background: var(--blue-50);
   color: var(--text-on-solid);
@@ -741,6 +777,17 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+}
+
+/* 022. A mark is a door. */
+.faceDoor {
+  display: inline-flex;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 0 2px var(--surface-page);
+}
+
+.faceDoor + .faceDoor {
+  margin-left: -8px;
 }
 
 .face {

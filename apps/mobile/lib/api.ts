@@ -8,6 +8,7 @@
 import { authClient, API_URL } from "./auth";
 
 export interface Me {
+  accountId: string;
   state: "invited" | "active";
   displayName: string | null;
   email: string;

@@ -14,6 +14,7 @@ import { normaliseTags, BadTags, MAX_TAGS } from "./threads/tags.js";
 import { COUNTRIES, isCountry } from "./countries.js";
 import { NotYours, touchThread } from "./threads/access.js";
 import { moveContentIn } from "./routes/threads.js";
+import { shareThread } from "./threads/sharing.js";
 
 type Trx = Transaction<Database>;
 /** For the two writers that may run inside a caller's transaction or on the
@@ -25,7 +26,7 @@ type Writer = Trx | Kysely<Database>;
  *  applied through 012's write path rather than by filling a field. 020 added
  *  `thread`: a photo sent alone from Today, asked which thread, applied as a
  *  move. */
-export const FIELDS = ["date", "span", "time", "tag", "country", "calendar", "thread"] as const;
+export const FIELDS = ["date", "span", "time", "tag", "country", "calendar", "thread", "person"] as const;
 export type Field = (typeof FIELDS)[number];
 
 /** The way out, on every question. An answer, not a dismissal. */
@@ -99,6 +100,10 @@ export function renderText(field: Field, title: string, dimension?: string): str
       return `Filed "${name}". Which calendar?`;
     case "thread":
       return `Kept "${name}". Which thread?`;
+    case "person":
+      // 022. The slot is the thread's name and the dimension is the word they
+      // used, so "share Lisbon trip with Sam" with two Sams asks which.
+      return `Share "${name}" with which ${dimension ?? "person"}?`;
   }
 }
 
@@ -161,6 +166,10 @@ export function parseValue(field: Field, raw: unknown): Record<string, string> |
       const thread = str("thread");
       return thread && UUID.test(thread) ? { thread } : null;
     }
+    case "person": {
+      const person = str("person")?.toLowerCase() ?? null;
+      return person && UUID.test(person) ? { person } : null;
+    }
   }
 }
 
@@ -193,6 +202,8 @@ export function optionValue(field: Field, value: string): Record<string, string>
       return parseValue(field, { calendar: value });
     case "thread":
       return parseValue(field, { thread: value });
+    case "person":
+      return parseValue(field, { person: value });
   }
 }
 
@@ -257,6 +268,9 @@ export function labelFor(field: Field, value: string): string {
       // Named from the database in `validateAsked`, which is the only place a
       // thread's name is read; the value alone cannot be worded.
       return value;
+    case "person":
+      // 022. Named from the database in `raisePersonQuestion`. Never reached.
+      return value;
   }
 }
 
@@ -316,7 +330,8 @@ export async function validateAsked(
   for (const q of asked) {
     if (ctx.answering !== (q.field === "country")) return { ok: false, reason: "wrong_path", field: q.field };
     // 019. Only the server raises a calendar question, from inside a write.
-    if (q.field === "calendar") return { ok: false, reason: "wrong_path", field: q.field };
+    // 022. And a person question, from inside the share tool.
+    if (q.field === "calendar" || q.field === "person") return { ok: false, reason: "wrong_path", field: q.field };
 
     let targetContentId: string | null = null;
     let targetNoteId: string | null = null;
@@ -509,6 +524,8 @@ function storedForm(field: Field, parsed: Record<string, string>): string {
       return parsed["calendar"]!;
     case "thread":
       return parsed["thread"]!;
+    case "person":
+      return parsed["person"]!;
   }
 }
 
@@ -561,6 +578,7 @@ async function forbidden(trx: Trx, threadId: string, accountId: string, field: F
     country: ["country"],
     calendar: ["calendar", "calendars"],
     thread: ["thread", "threads", "where"],
+    person: ["person", "people", "who", "share"],
   };
   const notes = await ownNotes(trx, threadId, accountId);
   return notes.some((note) => {
@@ -634,9 +652,70 @@ export async function raiseCalendarQuestion(
   return true;
 }
 
-/** A typed answer to a calendar question: the text, trimmed and lowercased,
- *  equal to or a prefix of exactly one offered label. No model. Anything else
- *  is null, and the caller closes the question. */
+// ---------------------------------------------------------------- the person question
+
+/** 022. Which of two or more connections they meant, raised by the server
+ *  from inside `share_thread` when a name matches more than one. The label is
+ *  a display name read from the database, the value the account's id, and
+ *  the thread rides on `previous_value` so the answer knows what to share.
+ *  Answering is the share: the sentence names the thread and the chip names
+ *  the person, which is the confirmation OFF-6 asks for, and it is the one
+ *  answer with no Undo, because it reaches somebody else. */
+export async function raisePersonQuestion(
+  trx: Writer,
+  input: {
+    accountId: string;
+    messageId: string;
+    threadId: string;
+    threadName: string;
+    /** The word they used, "Sam", for the sentence. */
+    word: string;
+    candidates: Array<{ accountId: string; name: string }>;
+  },
+): Promise<boolean> {
+  const message = await trx
+    .selectFrom("messages")
+    .select(["conversation_id", "turn_id"])
+    .where("id", "=", input.messageId)
+    .where("account_id", "=", input.accountId)
+    .executeTakeFirst();
+  if (!message) return false;
+
+  const options: StoredOption[] = [];
+  for (const candidate of input.candidates.slice(0, MAX_VALUES)) {
+    const value = candidate.accountId.toLowerCase();
+    if (!UUID.test(value) || options.some((o) => o.value === value)) continue;
+    options.push({ label: clip(candidate.name, OPTION_LABEL_CHARS), value });
+  }
+  if (options.length < 2) return false;
+  options.push({ label: ESCAPE_LABEL, value: null });
+
+  const text = renderText("person", input.threadName, clip(input.word, 16));
+  await storeQuestions(
+    trx,
+    [{ field: "person", text, options, targetContentId: null, targetNoteId: null }],
+    {
+      accountId: input.accountId,
+      conversationId: message.conversation_id,
+      messageId: input.messageId,
+      turnId: message.turn_id,
+      derivedFromUntrusted: false,
+    },
+  );
+  await trx
+    .updateTable("questions")
+    .set({ previous_value: JSON.stringify({ share: input.threadId }) })
+    .where("turn_id", "=", message.turn_id)
+    .where("field", "=", "person")
+    .execute();
+  return true;
+}
+
+/** A typed answer to a calendar question, or to a person question: the
+ *  text, trimmed and lowercased, equal to or a prefix of exactly one offered
+ *  label. No model, since a label is a name somebody else wrote and a
+ *  connection's name is never put to one. Anything else is null, and the
+ *  caller closes the question. */
 export function matchCalendarLabel(text: string, options: StoredOption[]): number | null {
   const typed = text.trim().toLowerCase();
   if (!typed) return null;
@@ -842,7 +921,7 @@ export async function applyAnswer(
   // A tag or a country is one of the values offered, checked here as well as
   // in the worker: the internal route is a second writer, and a set enforced
   // in one place is a set until there is a second writer.
-  if (field === "tag" || field === "country" || field === "thread") {
+  if (field === "tag" || field === "country" || field === "thread" || field === "person") {
     const offered = Array.isArray(q.options) ? (q.options as StoredOption[]) : [];
     if (!offered.some((o) => o.value !== null && o.value === storedForm(field, parsed))) {
       return { applied: false, reason: "bad_value" };
@@ -867,6 +946,24 @@ export async function applyAnswer(
     await settle({ previous_value: null });
     await promotePending(trx, q.id, by.answeredMessageId);
     return { applied: true, field, threadId: null };
+  }
+
+  // 022. The person answer is the share, through the one function the sheet
+  // and the said share's confirm run, every check included. A share that can
+  // no longer happen closes the question: they are not connected any more,
+  // the thread went, or the person is already in.
+  if (field === "person") {
+    const threadId = (q.previous_value as { share?: string } | null)?.share;
+    if (!threadId) return { applied: false, reason: "no_target" };
+    const result = await shareThread(trx, accountId, threadId, parsed["person"]!);
+    if (!result.ok) {
+      await trx.updateTable("questions").set({ state: "closed", settled_at: sql`now()` }).where("id", "=", q.id).execute();
+      await promotePending(trx, q.id, by.answeredMessageId);
+      return { applied: false, reason: result.error === "already_in" || result.error === "waiting" ? "already_set" : "gone" };
+    }
+    await settle({ previous_value: JSON.stringify({ share: threadId, member: result.memberId }) });
+    await promotePending(trx, q.id, by.answeredMessageId);
+    return { applied: true, field, threadId };
   }
 
   // 020. The thread answer is a move, through the same function a move by
@@ -1002,6 +1099,7 @@ function contentPatch(
     case "country":
     case "calendar":
     case "thread":
+    case "person":
       // Handled before this is reached: country fills nothing, a calendar
       // writes through 012, a thread moves.
       return null;
@@ -1045,6 +1143,23 @@ export async function restoreAnswers(trx: Trx, accountId: string, answerTurnId: 
       } catch (error) {
         // The row is gone, or the thread it came from is. Nothing to put back.
         if (!(error instanceof NotYours)) throw error;
+      }
+      continue;
+    }
+    // 022. A person answer wrote a share. The clients draw no Undo for it,
+    // sharing being outward facing, but the turn's Undo is one route for
+    // every turn and it must not leave the share standing behind a deleted
+    // message: the row is withdrawn the way the sheet's x withdraws it, and
+    // only while it is still waiting.
+    if (typeof previous["share"] === "string") {
+      if (typeof previous["member"] === "string") {
+        await trx
+          .updateTable("thread_members")
+          .set({ state: "expired", responded_at: sql`now()`, preview: null })
+          .where("id", "=", previous["member"])
+          .where("invited_by", "=", accountId)
+          .where("state", "=", "pending")
+          .execute();
       }
       continue;
     }

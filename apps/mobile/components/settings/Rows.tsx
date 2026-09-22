@@ -79,9 +79,12 @@ interface RowProps {
    *  states something. */
   onPress?: (() => void) | undefined;
   last?: boolean;
+  /** 022. The 8px clay dot in its paper ring on the lead, for a request
+   *  waiting on the viewer. The one row in Settings that carries one. */
+  badge?: boolean;
 }
 
-export function Row({ title, note, value, icon, onPress, last }: RowProps) {
+export function Row({ title, note, value, icon, onPress, last, badge }: RowProps) {
   const COLOR = useColors();
 
   const body = (
@@ -96,6 +99,14 @@ export function Row({ title, note, value, icon, onPress, last }: RowProps) {
           style={isAndroid ? { width: 40, height: 40 } : { width: 30, height: 30 }}
         >
           <Glyph name={icon} size={isAndroid ? 18 : 15} color={COLOR.iconOnWell} />
+          {badge ? (
+            <View
+              className="absolute rounded-pill border-paper bg-clay-600"
+              style={{ top: -2, right: -2, width: 11, height: 11, borderWidth: 1.5 }}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+          ) : null}
         </View>
       ) : null}
 

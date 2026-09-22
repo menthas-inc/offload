@@ -47,10 +47,13 @@ import {
   type QuestionOnWire,
   type Source,
   type TouchedThread,
+  type WaitingOn,
 } from "../../lib/dump";
 import type { ChipError } from "./AttachChip";
 import { addNote, completeContent, provisionalId, quickAdd } from "../../lib/threads";
 import { failed } from "../../lib/log";
+import { fetchPeople, nameOf, type Person } from "../../lib/people";
+import { mentionQuery, withMention } from "../people/MentionList";
 import {
   RECORDING_OPTIONS,
   Session,
@@ -109,7 +112,7 @@ export interface Turn {
    *  **The reply carries its own control.** offload saying it will add
    *  something once you confirm, with nothing to confirm, is the dead end this
    *  exists to close: the proposal expires in an hour having done nothing. */
-  waiting?: { id: string; because: string } | null;
+  waiting?: WaitingOn | null;
   /** 018. The question this turn asked back, on the message that was sent,
    *  while it is open. Drawn inside the reply's bubble when there is one and
    *  in a bubble of its own when the turn filed silently. */
@@ -216,6 +219,11 @@ export interface Conversation {
    *  other way to know where somebody is. */
   onScreen: { id: string; name: string } | null;
   setDraft: (value: string) => void;
+  /** 022. Who an @ in the draft picked, kept while their name is still in
+   *  the text, and the connections the @ list offers, read once. */
+  mentions: { accountId: string; name: string }[];
+  mentionPeople: Person[] | null;
+  pickMention: (person: Person) => void;
   submit: () => Promise<void>;
   /** 020. The photos in the draft, and the ways in and out. `addPhotos` from
    *  the picker or the share sheet; `line` is the one clause under the
@@ -307,6 +315,9 @@ export interface Conversation {
   adoptProvisional: (key: string) => void;
   /** Something for the shell's toast to say. */
   notice: Notice | null;
+  /** 022. Say it from a screen that is about to go: Leave from a thread's
+   *  More pops the screen, and the toast has to outlive it. */
+  notify: (message: string, action?: Notice["action"]) => void;
 }
 
 const UNDO_MS = 8000;
@@ -442,6 +453,25 @@ export function ConversationProvider({
     step: string | null;
   } | null>(null);
   const [draft, setDraft] = useState("");
+  const [mentions, setMentions] = useState<{ accountId: string; name: string }[]>([]);
+  const [mentionPeople, setMentionPeople] = useState<Person[] | null>(null);
+  // 022. The list, read the first time an @ is typed and kept for the
+  // session: three people do not change while somebody is typing.
+  useEffect(() => {
+    if (mentionPeople !== null || mentionQuery(draft) === null) return;
+    let live = true;
+    void fetchPeople().then((page) => {
+      if (live) setMentionPeople(page?.connections ?? []);
+    });
+    return () => {
+      live = false;
+    };
+  }, [draft, mentionPeople]);
+  const pickMention = useCallback((person: Person) => {
+    const name = nameOf(person);
+    setDraft((current) => withMention(current, name));
+    setMentions((current) => [...current.filter((m) => m.accountId !== person.accountId), { accountId: person.accountId, name }]);
+  }, []);
   const [undoable, setUndoable] = useState<Undoable | null>(null);
   const [filed, setFiled] = useState<{
     threadIds: string[];
@@ -1040,11 +1070,15 @@ export function ConversationProvider({
         sentVoice = { ...shownWithoutFile, blobId: uploaded.blobId };
       }
       const blobIds = [...sentPhotos.map((p) => p.blobId), ...(sentVoice ? [sentVoice.blobId] : [])];
+      // 022. A mention whose name is no longer in the text was deleted by
+      // hand and goes with the words.
+      const named = mentions.filter((m) => text.includes(m.name));
       const sent = await sendDump(
         text,
         clientKey,
         onScreen?.id,
         blobIds.length ? { blobIds, viaShare: viaShare.current } : undefined,
+        named,
       );
       if (!sent) return unsent();
       // Only what went: a photo added while the send was out stays for the
@@ -1054,6 +1088,7 @@ export function ConversationProvider({
       draftKey.current = null;
       viaShare.current = false;
       noteUploaded.current = null;
+      setMentions([]);
       sentNotes.current.delete(provisional);
       setTurns((current) =>
         current.map((turn) =>
@@ -1162,7 +1197,9 @@ export function ConversationProvider({
       // changed, work out what", the same signal Undo sends. And the eight
       // seconds: the answer is a turn of its own, and Undo puts the field back.
       setFiled({ threadIds: [], at: Date.now() });
-      if (asked.field !== "country") offerUndo(sent.turnId, picked.label);
+      // 022. Nor for a person: the answer was the share, a message to
+      // somebody, and its way back is the sheet's x rather than an Undo.
+      if (asked.field !== "country" && asked.field !== "person") offerUndo(sent.turnId, picked.label);
       return "answered";
     },
     [turns, watch, offerUndo],
@@ -1252,6 +1289,10 @@ export function ConversationProvider({
         provisional,
         adoptProvisional,
         notice,
+        notify,
+        mentions,
+        mentionPeople,
+        pickMention,
       }}
     >
       {children}

@@ -17,6 +17,8 @@ import type { ThreadRow } from "../../lib/threads";
 interface Props {
   threads: ThreadRow[];
   threadCount: number;
+  /** 022. Connection requests waiting for the viewer's answer. */
+  requestsWaiting?: number;
 }
 
 /** A thread's icon, from its own `icon` column, falling back to the kit's
@@ -25,7 +27,7 @@ interface Props {
  *  own. */
 export const threadIcon = (icon: string | null): string => icon ?? "message-circle";
 
-export function Sidebar({ threads, threadCount }: Props) {
+export function Sidebar({ threads, threadCount, requestsWaiting = 0 }: Props) {
   const pathname = usePathname();
 
   const tabs = [
@@ -126,8 +128,13 @@ export function Sidebar({ threads, threadCount }: Props) {
         </button>
         {/* Settings has an index now. The rows below it are the shortcut to
             the two preferences that page lays out as choices. */}
+        {/* 022. The one dot: a connection request waiting for an answer.
+            `IconButton`'s own badge, 8px clay in a paper ring, on the glyph. */}
         <Link href="/settings" className={styles.navItem}>
-          <Icon name="settings" size={17} />
+          <span className={styles.navGlyph}>
+            <Icon name="settings" size={17} />
+            {requestsWaiting > 0 ? <span className={styles.navDot} aria-label="A request is waiting" /> : null}
+          </span>
           <span className={styles.navLabel}>Settings</span>
         </Link>
         {/* Named rows rather than two glyphs beside Settings. They are about

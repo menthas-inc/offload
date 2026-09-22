@@ -208,6 +208,10 @@ _FIXTURE_KEYS = {
     "country_override",
     "calendar_waits",
     "calendar_write",
+    # 022. Whether the share tool is sent, and what the server would say to
+    # it: pending (the default), asked, or a refusal's error.
+    "has_connections",
+    "share_outcome",
     "lookup_result",
     "landed",
     "pieces",
@@ -481,6 +485,19 @@ class Recorder:
             if because:
                 return {"ok": True, "waitingForThem": True, "because": because}
             return {"ok": True, "written": True, "sourceRef": "evt-1"}
+        if tool == "share_thread":
+            # 022. The server resolves the person and answers one of three
+            # ways; the fixture says which, as it says for a calendar write.
+            outcome = fx.get("share_outcome") or "pending"
+            if outcome == "asked":
+                return {"ok": True, "asked": True}
+            if outcome != "pending":
+                return {"ok": False, "error": outcome}
+            return {
+                "ok": True,
+                "waitingForThem": True,
+                "because": f"Share it with {args.get('person')}?",
+            }
         if tool == "create_thread":
             return {
                 "ok": True,
@@ -933,6 +950,11 @@ def _came_back(tool: str, body: dict | None) -> str:
     if tool == "find_events":
         titles = [e.get("title") for e in body.get("events", []) if isinstance(e, dict)]
         return f"  -> events: {titles}"
+    if tool == "share_thread":
+        if body.get("waitingForThem"):
+            return f"  -> put to the person to confirm, not shared: {body.get('because')}"
+        if body.get("asked"):
+            return "  -> not shared; the server asked which person"
     return ""
 
 
@@ -1097,6 +1119,7 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         today=fx.get("today") or TODAY,
         time_zone=fx.get("time_zone", TIME_ZONE),
         has_calendar=bool(fx.get("has_calendar")),
+        has_connections=bool(fx.get("has_connections")),
         may_search=fx.get("may_search", True),
         may_read_links=fx.get("may_read_links", True),
         country=rec.country,

@@ -8,6 +8,7 @@
 import { timeZoneHeader } from "./time-zone";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
+import type { Invitation } from "./people";
 
 /** A request with no body.
  *
@@ -130,6 +131,8 @@ export interface ThreadBundle {
    *  written and tested now: a branch typed unreachable is a branch nobody
    *  checks, and it would be discovered broken on the day it first fills. */
   standing: string | null;
+  /** 022. False on the account's default thread, where Share is not drawn. */
+  shareable: boolean;
   /** 019. The viewer's picks and approved count, and whether anybody has
    *  picked here, which earns the rail. Null when the account has no calendar
    *  connection at all, which hides the glyph. */
@@ -273,6 +276,10 @@ export async function fetchThreads(): Promise<ThreadGroup[]> {
   const body = await get<{ groups: ThreadGroup[] }>("/v1/threads");
   return body?.groups ?? [];
 }
+
+/** 022. The list and the strips in one read, which is what My threads draws. */
+export const fetchThreadsAndInvitations = (): Promise<{ groups: ThreadGroup[]; invitations: Invitation[] } | null> =>
+  get<{ groups: ThreadGroup[]; invitations: Invitation[] }>("/v1/threads");
 
 export const fetchThread = (id: string): Promise<ThreadBundle | null> =>
   get<ThreadBundle>(`/v1/threads/${id}`);

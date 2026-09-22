@@ -11,6 +11,7 @@
 // can disagree with the server, and the server is the one that enforces it.
 
 import { send } from "./api";
+import type { Invitation } from "./people";
 import type { Sortable } from "@offload/widgets";
 
 export interface ThreadRow {
@@ -85,6 +86,8 @@ export interface ThreadBundle {
   noteCounts: { active: number; folded: number };
   preference: { widgets?: string[]; groupBy?: Record<string, string>; hideDone?: boolean };
   standing: string | null;
+  /** 022. False on the account's default thread, where Share is not drawn. */
+  shareable: boolean;
   /** 019. The viewer's picks and approved count, and whether anybody has
    *  picked here, which earns the rail. Null when the account has no calendar
    *  connection at all, which hides the glyph. */
@@ -216,6 +219,12 @@ const withPlaceId = (row: ContentRow): ContentRow => ({
 export async function fetchThreads(): Promise<ThreadGroup[]> {
   const { data } = await send<{ groups: ThreadGroup[] }>("/v1/threads");
   return data?.groups ?? [];
+}
+
+/** 022. The list and the strips in one read, which is what My threads draws. */
+export async function fetchThreadsAndInvitations(): Promise<{ groups: ThreadGroup[]; invitations: Invitation[] } | null> {
+  const { data } = await send<{ groups: ThreadGroup[]; invitations: Invitation[] }>("/v1/threads");
+  return data;
 }
 
 export async function fetchThread(id: string): Promise<ThreadBundle | null> {

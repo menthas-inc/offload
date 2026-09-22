@@ -44,6 +44,8 @@ import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
 import { answerPending } from "../../lib/calendars";
+import { answerShare } from "../../lib/people";
+import { SHARE_LINE } from "../people/ShareSheet";
 import { QuickReplies } from "./QuickReplies";
 import { useRouter } from "expo-router";
 import { useConversation, type Pin, type Turn } from "./conversation-context";
@@ -988,10 +990,12 @@ function Waiting({ turn }: { turn: Turn }) {
 
   if (!turn.waiting || gone) return null;
 
+  // 022. A share's tap goes to its own route; the calendar's to 019's.
+  const share = turn.waiting.kind === "share";
   const answer = async (choice: "confirm" | "decline") => {
     if (busy) return;
     setBusy(true);
-    const ok = await answerPending(turn.waiting!.id, choice);
+    const ok = share ? await answerShare(turn.waiting!.id, choice) : await answerPending(turn.waiting!.id, choice);
     setBusy(false);
     if (ok) {
       setGone(true);
@@ -1011,6 +1015,13 @@ function Waiting({ turn }: { turn: Turn }) {
       >
         {turn.waiting.because}
       </Text>
+      {/* The line a person reads before sharing, here as on the sheet: the
+          policy promises it at the moment of sharing. */}
+      {share ? (
+        <Text className="font-core text-text-tertiary" style={{ fontSize: 12.5, lineHeight: 18 }}>
+          {SHARE_LINE}
+        </Text>
+      ) : null}
 
       {failedToSend ? (
         <Text
@@ -1039,7 +1050,7 @@ function Waiting({ turn }: { turn: Turn }) {
             className="font-core font-medium text-text-inverse"
             style={{ fontSize: 15 }}
           >
-            Add it
+            {share ? "Share" : "Add it"}
           </Text>
         </Pressable>
 

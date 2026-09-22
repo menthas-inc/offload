@@ -1,0 +1,34 @@
+/* 022. The mark: the server's picture under the initials. */
+.avatar {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+}
+
+.mark {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.initials {
+  position: relative;
+  color: var(--text-on-solid);
+  font-family: var(--font-core);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+/* No picture: the letters read on the fill, as a face did before. */
+.initials[data-plain] {
+  color: var(--text-secondary);
+}

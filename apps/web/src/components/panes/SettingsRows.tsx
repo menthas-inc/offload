@@ -50,14 +50,17 @@ interface RowProps {
   /** A row that goes somewhere. Omit for one that only states something. */
   href?: string | undefined;
   last?: boolean;
+  /** 022. The dot on the lead, for a request waiting on the viewer. */
+  badge?: boolean;
 }
 
-export function Row({ title, note, value, icon, href, last }: RowProps) {
+export function Row({ title, note, value, icon, href, last, badge }: RowProps) {
   const body = (
     <>
       {icon ? (
         <span className={styles.settingsIcon} aria-hidden="true">
           <Icon name={icon} size={15} />
+          {badge ? <span className={styles.settingsDot} /> : null}
         </span>
       ) : null}
 

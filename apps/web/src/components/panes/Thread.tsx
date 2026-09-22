@@ -36,6 +36,8 @@ import {
 import {
   completeContent,
   deleteContent,
+  deleteThread,
+  restoreThread,
   editContent,
   fetchContent,
   fetchThread,
@@ -54,6 +56,10 @@ import {
   setPreference,
 } from "../../lib/threads";
 import { PhotoViewer, type ViewerPhoto } from "../shell/PhotoViewer";
+import { Avatar } from "../Avatar";
+import { ShareModal } from "../people/ShareModal";
+import { ConfirmModal } from "../people/Modal";
+import { useRouter } from "next/navigation";
 
 interface Props {
   id: string;
@@ -89,6 +95,32 @@ export function Thread({ id, onChanged }: Props) {
   // every photo row on the page, in the page's order.
   const [viewing, setViewing] = useState<string | null>(null);
   const toast = useToast();
+  const router = useRouter();
+  // 022. The share modal, and Leave with its confirmation.
+  const [sharing, setSharing] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [leaveBusy, setLeaveBusy] = useState(false);
+  const [leaveFailed, setLeaveFailed] = useState(false);
+  async function leave() {
+    setLeaveBusy(true);
+    setLeaveFailed(false);
+    const result = await deleteThread(id);
+    setLeaveBusy(false);
+    if (!result) {
+      setLeaveFailed(true);
+      return;
+    }
+    setLeaving(false);
+    toast.show(result.deleted ? "Thread deleted" : "You left the thread", {
+      label: "Undo",
+      onPress: async () => {
+        await restoreThread(id);
+        onChanged();
+      },
+    });
+    onChanged();
+    router.push("/threads");
+  }
   // Every write here is drawn before it is sent. `writes` counts what is in
   // flight and reloads once nothing is; a reload that lands while something
   // still is gets dropped, or it would undo the change on screen for the
@@ -587,26 +619,24 @@ export function Thread({ id, onChanged }: Props) {
           <>
             {/* Who is already in, then the share control: the same order as
                 the phones, and the order WPaneHead's `aside` puts them in. */}
+            {/* 022. The others' marks, without you, as `WFaces` draws them,
+                each a door to the person. */}
             <div className={styles.faces}>
-              {thread.members.map((member) => (
-                <span key={member.accountId} className={styles.face} title={member.displayName}>
-                  {member.initials}
-                </span>
+              {others.map((member) => (
+                <Link key={member.accountId} href={`/people/${member.accountId}`} className={styles.faceDoor} title={member.displayName}>
+                  <Avatar uid={member.accountId} initials={member.initials} name={member.displayName} size={36} />
+                </Link>
               ))}
             </div>
 
-            {/* Inert until inviting exists. Drawn because the thread page
-                without it is a different screen from the one designed. */}
-            <button
-              type="button"
-              className={styles.shareButton}
-              disabled
-              aria-disabled="true"
-              title="Sharing is not built yet"
-            >
-              <Icon name="share-2" size={15} />
-              Share
-            </button>
+            {/* 022. Alive, except on the default thread, where it is not
+                drawn: every dump with no obvious home lands there. */}
+            {thread.shareable ? (
+              <button type="button" className={styles.shareButton} onClick={() => setSharing(true)}>
+                <Icon name="share-2" size={15} />
+                Share
+              </button>
+            ) : null}
           </>
         }
         tools={
@@ -656,8 +686,37 @@ export function Thread({ id, onChanged }: Props) {
                 },
               ]
             : []),
+          // 022. Leave, on a thread with more than one member, confirmed. It
+          // does what My threads' Delete does on a shared thread, Undo
+          // included; alone in a thread, that Delete is the whole story.
+          ...(thread.members.length > 1 ? [{ label: "Leave this thread", icon: "x", onSelect: () => setLeaving(true) }] : []),
         ]}
       />
+      {sharing ? (
+        <ShareModal
+          threadId={id}
+          threadName={thread.name}
+          viewerId={thread.members.find((m) => m.isYou)?.accountId ?? null}
+          onClose={() => setSharing(false)}
+          onChanged={() => {
+            void fetchThread(id).then((bundle) => {
+              if (bundle) setThread(bundle);
+            });
+          }}
+        />
+      ) : null}
+      {leaving ? (
+        <ConfirmModal
+          title={`Leave ${thread.name}?`}
+          body="Your membership and your access go. What you added stays with the others, and the thread is theirs to keep."
+          action="Leave"
+          danger
+          busy={leaveBusy}
+          failed={leaveFailed}
+          onConfirm={() => void leave()}
+          onClose={() => setLeaving(false)}
+        />
+      ) : null}
 
       <div className={styles.paneBody}>
         {/* No summary, nothing drawn. `WThing.jsx` has `{st ? ... : null}` and

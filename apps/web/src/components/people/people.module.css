@@ -1,0 +1,547 @@
+/* 022. People and sharing on the web: the card, the row, the modal, the
+   sheet's rows, the strip and the @ list. Tokens throughout; the modal is the
+   web kit's `WModal` and the strip its `WPendingInvite`. */
+
+/* ------------------------------------------------------------ the modal */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--surface-scrim);
+}
+
+.modal {
+  width: min(460px, 100%);
+  max-height: calc(100vh - var(--space-8) * 2);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: var(--space-7);
+  border-radius: var(--radius-xl);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sheet);
+  color: var(--text-primary);
+}
+
+.modalWide {
+  width: min(520px, 100%);
+}
+
+.modalTitle {
+  margin: 0;
+  font: var(--weight-semibold) calc(21px * var(--type-scale)) / 1.2 var(--font-core);
+  letter-spacing: -0.012em;
+}
+
+.modalBody {
+  margin: var(--space-3) 0 0;
+  font: var(--text-body-role);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.modalHint {
+  margin: var(--space-4) 0 0;
+  font: var(--text-caption-role);
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.modalList {
+  margin: var(--space-5) 0 0;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface-fill);
+  list-style: none;
+}
+
+.modalListRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 44px;
+  padding: var(--space-3) 0;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+  font: var(--weight-medium) calc(14.5px * var(--type-scale)) / 1.3 var(--font-core);
+}
+
+.modalListRow:last-child {
+  box-shadow: none;
+}
+
+.modalListLead {
+  display: flex;
+  color: var(--text-secondary);
+}
+
+.modalListName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modalListMeta {
+  font-size: calc(12.5px * var(--type-scale));
+  color: var(--text-tertiary);
+}
+
+.modalListMore {
+  padding: var(--space-3) 0;
+  font: var(--text-caption-role);
+  color: var(--text-tertiary);
+}
+
+.failed {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-core);
+  font-size: calc(13px * var(--type-scale));
+  color: var(--text-danger);
+}
+
+/* ------------------------------------------------------------ buttons */
+
+.primary,
+.ghost,
+.danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 var(--space-6);
+  border: 0;
+  border-radius: var(--radius-pill);
+  font: var(--weight-medium) calc(14.5px * var(--type-scale)) / 1 var(--font-core);
+  cursor: pointer;
+}
+
+.primary {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+.danger {
+  background: var(--clay-600);
+  color: var(--text-on-solid);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.ghost:hover {
+  background: var(--state-hover);
+}
+
+.primary:disabled,
+.ghost:disabled,
+.danger:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.primaryLg {
+  min-height: 44px;
+  width: 100%;
+}
+
+/* ------------------------------------------------------------ the chips */
+
+.chip,
+.chipOutlined {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  margin: 7px 0;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  font: var(--weight-medium) var(--size-label)/1 var(--font-core);
+  cursor: pointer;
+}
+
+.chip {
+  border: 1px solid transparent;
+  background: var(--moss-600);
+  color: var(--text-on-solid);
+}
+
+.chipOutlined {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.chip:disabled,
+.chipOutlined:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------ the card */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 60ch;
+  margin: 0 0 var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-accent-soft);
+}
+
+.cardLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.cardText {
+  flex: 1;
+  min-width: 0;
+  font: var(--weight-medium) calc(15px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-primary);
+}
+
+.cardChips {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.door {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------ rows */
+
+.personRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-3) 0;
+  border: 0;
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+  text-align: left;
+  color: var(--text-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.personRowLast {
+  box-shadow: none;
+}
+
+.personText {
+  flex: 1;
+  min-width: 0;
+}
+
+.personName {
+  display: block;
+  font: var(--weight-medium) calc(14.5px * var(--type-scale)) / 1.3 var(--font-core);
+}
+
+.personNote {
+  display: block;
+  margin-top: 2px;
+  font-size: calc(12.5px * var(--type-scale));
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.personValue {
+  flex: 0 0 auto;
+  font-size: calc(13px * var(--type-scale));
+  color: var(--text-secondary);
+}
+
+.personChevron {
+  display: flex;
+  color: var(--text-tertiary);
+}
+
+/* ------------------------------------------------------------ the sheet's rows */
+
+.pickRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  margin: 0 calc(var(--space-3) * -1);
+  padding: var(--space-3) var(--space-3);
+  box-sizing: content-box;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+  text-align: left;
+  color: var(--text-primary);
+  cursor: default;
+}
+
+.pickRow[data-pick] {
+  cursor: pointer;
+}
+
+.pickRow[data-pick]:hover {
+  background: var(--state-hover);
+}
+
+.pickRowLast {
+  box-shadow: none;
+}
+
+.pickList {
+  flex: 0 1 auto;
+  min-height: 0;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.find {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 42px;
+  margin-top: var(--space-6);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-tertiary);
+}
+
+.findInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: var(--text-body-sm-role);
+  font-size: calc(14.5px * var(--type-scale));
+  color: var(--text-primary);
+}
+
+.tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-xs);
+  border: 1.5px solid var(--border-strong);
+  color: var(--text-on-solid);
+}
+
+.tick[data-on] {
+  border-color: transparent;
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+.x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  margin-right: calc(var(--space-3) * -1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.x:hover {
+  background: var(--state-hover);
+}
+
+.plusLead {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+}
+
+.line {
+  margin: var(--space-5) 0 0;
+  font: var(--text-caption-role);
+  font-size: calc(12.5px * var(--type-scale));
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.emptyTitle {
+  margin: var(--space-6) 0 0;
+  font: var(--weight-medium) calc(15px * var(--type-scale)) / 1.35 var(--font-core);
+}
+
+.emptyBody {
+  margin: var(--space-2) 0 0;
+  font: var(--text-body-sm-role);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------------------------ the field */
+
+.field {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  margin: var(--space-6) 0 var(--space-4);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-page);
+  font: var(--text-body-role);
+  color: var(--text-primary);
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+/* ------------------------------------------------------------ the strip */
+
+.strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 60ch;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--surface-accent-soft);
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.stripText {
+  flex: 1;
+  min-width: 0;
+  font: var(--weight-medium) calc(15px * var(--type-scale)) / 1.3 var(--font-core);
+}
+
+.stripLook {
+  font: var(--weight-medium) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-accent);
+}
+
+/* ------------------------------------------------------------ the person pane */
+
+.personTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.gone {
+  padding: var(--space-8) 0;
+  font: var(--text-quiet-role);
+  font-size: calc(19px * var(--type-scale));
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------ the @ list */
+
+.mentions {
+  flex: 0 0 auto;
+  margin: 0 var(--space-3) var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-page);
+  border: 1px solid var(--border-hairline);
+}
+
+.mentionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  border: 0;
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+  text-align: left;
+  font: var(--weight-medium) calc(14.5px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.mentionRow:last-child {
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------ the preview */
+
+.preview {
+  margin-top: var(--space-5);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface-fill);
+}
+
+.previewRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+  color: var(--text-secondary);
+}
+
+.previewRow:last-child {
+  box-shadow: none;
+}
+
+.previewTitle {
+  flex: 1;
+  min-width: 0;
+  font: var(--weight-medium) calc(14.5px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-primary);
+}
+
+.previewMeta {
+  font-size: calc(12.5px * var(--type-scale));
+  color: var(--text-tertiary);
+}

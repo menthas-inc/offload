@@ -50,7 +50,11 @@ export type JobKind =
   // 021. The delete of a transcript at the provider, once we have read it.
   // Drained by the Python worker, which holds the key; enqueued by the
   // transcript write and by blob.daily for any reference left behind.
-  | "voice.forget";
+  | "voice.forget"
+  // 022. Expiry made explicit for requests, waiting shares and proposals,
+  // and the record of who asked whom kept only as long as the seven-day
+  // rule reads it.
+  | "people.daily";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */

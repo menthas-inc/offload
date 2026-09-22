@@ -13,7 +13,7 @@
 //
 // The kit also draws a search field. It has ten rows; three do not need one.
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -23,13 +23,16 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { Glyph } from "../../components/Glyph";
 import { Group, Row } from "../../components/settings/Rows";
 import { ToastHost, useToast } from "../../components/shell/Toast";
 import { useColors } from "../../lib/colors";
-import { useMe } from "../../lib/me";
+import { refreshMe, useMe } from "../../lib/me";
+import { answerRequest, fetchPeople, type PeoplePage } from "../../lib/people";
+import { Avatar } from "../../components/Avatar";
+import { RequestCard } from "../../components/people/RequestCard";
 import { useTheme, THEME_LABEL } from "../../lib/appearance";
 import { signOut, SignOutFailed } from "../../lib/auth";
 import { forgetPlayback } from "../../components/shell/SentVoice";
@@ -41,6 +44,28 @@ export default function Settings() {
   const router = useRouter();
   const COLOR = useColors();
   const me = useMe();
+  // 022. The cards and the count, read on every focus: a request answered on
+  // My people is gone from here when the screen comes back.
+  const [people, setPeople] = useState<PeoplePage | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+      void fetchPeople().then((page) => {
+        if (live && page) setPeople(page);
+      });
+      return () => {
+        live = false;
+      };
+    }, []),
+  );
+  async function answerCard(requestId: string, answer: "accept" | "dismiss"): Promise<boolean> {
+    const ok = await answerRequest(requestId, answer);
+    if (ok) {
+      setPeople(await fetchPeople());
+      void refreshMe();
+    }
+    return ok;
+  }
   const toast = useToast();
   const [leaving, setLeaving] = useState(false);
 
@@ -95,25 +120,10 @@ export default function Settings() {
             identity block still does its job. */}
         {me ? (
           <View className="flex-row items-center gap-space-4 pb-space-5">
-            <View
-              className={`items-center justify-center rounded-pill ${
-                isAndroid ? "bg-a-c-high" : "bg-surface-fill"
-              }`}
-              style={{ width: 52, height: 52 }}
-            >
-              <Text
-                className={`font-core font-medium ${
-                  isAndroid ? "text-a-on-var" : "text-text-secondary"
-                }`}
-                style={{ fontSize: 17 }}
-              >
-                {/* `?` when the field is absent, which is what the server
-                    itself returns for a name with nothing to derive from. Not
-                    a second copy of the rule: a client that shipped ahead of
-                    the server deploy would otherwise draw an empty disc. */}
-                {me.initials || "?"}
-              </Text>
-            </View>
+            {/* 022. The viewer's own mark, at the person page's 52. `?` when
+                the field is absent, which is what the server itself returns
+                for a name with nothing to derive from. */}
+            <Avatar uid={me.accountId} initials={me.initials || "?"} name={me.displayName ?? undefined} size={52} />
 
             <View className="flex-1">
               {me.displayName ? (
@@ -161,12 +171,28 @@ export default function Settings() {
           </View>
         ) : null}
 
+        {/* 022. A request waiting for an answer sits above everything, and
+            is answered here. Nowhere else but My people lists it. */}
+        {people?.requestsForYou.map((card) => (
+          <RequestCard key={card.id} card={card} onAnswer={(answer) => answerCard(card.id, answer)} />
+        ))}
+
         <Group label="You">
           <Row
             icon="circle-dot"
             title="My account"
             value={me?.email}
             onPress={() => router.push("/settings/account")}
+          />
+          {/* 022. The count as the value when there is one, no value at zero,
+              and the dot when a request needs answering. Sits in You, beside
+              My account: your people are yours, not a service you authorised. */}
+          <Row
+            icon="users"
+            title="My people"
+            value={people && people.count > 0 ? String(people.count) : undefined}
+            badge={(me?.requestsWaiting ?? 0) > 0}
+            onPress={() => router.push("/settings/people")}
             last
           />
         </Group>

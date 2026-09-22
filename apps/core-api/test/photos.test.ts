@@ -32,7 +32,7 @@ import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { uuidv7 } from "../src/uuid.js";
 import { promote } from "../src/admin/promote.js";
-import { takeDump, undoTurn, UnknownBlob } from "../src/routes/dumps.js";
+import { answerQuestion, takeDump, undoTurn, UnknownBlob } from "../src/routes/dumps.js";
 import { moveContent } from "../src/routes/threads.js";
 import { objectKey, objectStore, resetObjectStore } from "../src/blobs/store.js";
 import { objectKeyOf } from "../src/blobs/keys.js";
@@ -567,6 +567,18 @@ describe("the one question", () => {
     await db.insertInto("messages").values({ conversation_id: (await db.selectFrom("conversations").select("id").executeTakeFirstOrThrow()).id, account_id: me.id, role: "person", type: "text", turn_id: answerTurn, text: "Lisbon trip", state: "answered" }).execute();
     await undoTurn(me.id, answerTurn);
     expect((await db.selectFrom("content").select("thread_id").where("id", "=", contentId).executeTakeFirstOrThrow()).thread_id).toBe(me.defaultThreadId);
+  });
+
+  it("moves the row on a tap through the answer route's own parser", async () => {
+    // Found by 022: `optionAsValue` in the answer path carried its own switch
+    // over five fields and no `thread`, so a tapped chip fell through to
+    // null, closed the question and moved nothing. The test above calls
+    // `applyAnswer` with the value already parsed and never saw it.
+    const me = await person();
+    const { question, trip, contentId } = await askThread(me, {});
+    const answered = await answerQuestion(me.id, question!.id, 0);
+    expect(answered?.applied).toBe(true);
+    expect((await db.selectFrom("content").select("thread_id").where("id", "=", contentId).executeTakeFirstOrThrow()).thread_id).toBe(trip);
   });
 });
 

@@ -39,6 +39,7 @@ import { readPreference, type ThreadPreference } from "../threads/widgets.js";
 import { calendarCounts, dropPicksOf, setPick, threadEvents, viewerCalendars } from "../threads/calendars.js";
 import { emit } from "../analytics.js";
 import { isBareDate, parseWhen } from "../threads/dates.js";
+import { invitationsFor } from "../threads/sharing.js";
 import {
   NotYours,
   requireAuthor,
@@ -46,6 +47,12 @@ import {
   requireReadable,
   touchThread,
 } from "../threads/access.js";
+
+/** 022. The account's default thread cannot be shared or deleted. */
+async function isDefaultThreadOf(accountId: string, threadId: string): Promise<boolean> {
+  const account = await db.selectFrom("accounts").select("default_thread_id").where("id", "=", accountId).executeTakeFirst();
+  return account?.default_thread_id === threadId;
+}
 
 /** One screenful. 001's heavy case is 500 rows in one thread and the page draws
  *  a dozen, so fetching them all to show twelve is the thing this prevents. */
@@ -95,6 +102,14 @@ const memberSchema = z.object({
   isYou: z.boolean(),
 });
 
+/** 022. A person as the sharing surfaces draw them: no `isYou`, and the name
+ *  may be null, which every surface draws as "Someone". */
+const memberFace = z.object({
+  accountId: z.string(),
+  displayName: z.string().nullable(),
+  initials: z.string(),
+});
+
 const threadRow = z.object({
   id: z.string(),
   name: z.string(),
@@ -113,6 +128,18 @@ const threadList = z.object({
     z.object({
       key: z.enum(["now", "always", "older"]),
       threads: z.array(threadRow),
+    })
+  ),
+  /** 022. Waiting shares, one strip each at the top of the list. Read here
+   *  rather than on their own route so an open of My threads is one call. */
+  invitations: z.array(
+    z.object({
+      memberId: z.string(),
+      threadId: z.string(),
+      threadName: z.string(),
+      from: memberFace,
+      preview: z.object({ count: z.number(), titles: z.array(z.string()) }),
+      members: z.array(z.string()),
     })
   ),
 });
@@ -190,6 +217,10 @@ const threadBundle = z.object({
   calendars: z
     .object({ picked: z.number(), total: z.number(), anyPicked: z.boolean() })
     .nullable(),
+  /** 022. False on the account's default thread, where the Share control is
+   *  not drawn: every dump with no obvious home lands there, so sharing it
+   *  would share whatever arrives next. The server refuses it too. */
+  shareable: z.boolean(),
 });
 
 const contentRow = z.object({
@@ -852,6 +883,14 @@ export async function deleteThread(
       .execute();
     // 019. A member leaving takes their calendar picks with them.
     await dropPicksOf(accountId, threadId, trx);
+    // 022. And the shares they had waiting on it, which were theirs to make.
+    await trx
+      .updateTable("thread_members")
+      .set({ state: "expired", responded_at: sql`now()`, preview: null })
+      .where("thread_id", "=", threadId)
+      .where("state", "=", "pending")
+      .where("invited_by", "=", accountId)
+      .execute();
 
     const remaining = await trx
       .selectFrom("thread_members")
@@ -860,7 +899,14 @@ export async function deleteThread(
       .where("state", "=", "accepted")
       .executeTakeFirstOrThrow();
 
-    if (Number(remaining.n) > 0) return { left: true, deleted: false };
+    if (Number(remaining.n) > 0) {
+      // 022. Leaving revokes the key, as being taken out does. The eight
+      // second restore puts the membership back and the next read's
+      // `threadKey` wraps a fresh copy from another member's. The last
+      // member's key stays below, for the purge job and the restore.
+      await trx.deleteFrom("thread_keys").where("thread_id", "=", threadId).where("account_id", "=", accountId).execute();
+      return { left: true, deleted: false };
+    }
 
     await trx
       .updateTable("threads")
@@ -1143,6 +1189,7 @@ export async function threadRoutes(app: App): Promise<void> {
       }
 
       return reply.send({
+        invitations: await invitationsFor(accountId),
         groups: [
           { key: "now" as const, threads: groups.now },
           { key: "always" as const, threads: groups.always },
@@ -1223,6 +1270,7 @@ export async function threadRoutes(app: App): Promise<void> {
           },
           standing: null,
           calendars: await calendarCounts(accountId, id),
+          shareable: !(await isDefaultThreadOf(accountId, id)),
         });
       })
   );

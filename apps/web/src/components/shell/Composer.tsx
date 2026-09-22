@@ -39,6 +39,7 @@ import {
   type PhotoOnWire,
   type QuestionOnWire,
   type Sent,
+  type WaitingOn,
   type TouchedThread,
   uploadVoice,
   VoiceRefused,
@@ -49,6 +50,8 @@ import { AttachChip, type ChipError } from "./AttachChip";
 import { SentPhoto } from "./SentPhoto";
 import { VoiceNotePlayer, mmss } from "./SentVoice";
 import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
+import { Mentions, mentionQuery, withMention } from "../people/Mentions";
+import { SHARE_LINE, answerShare, fetchPeople, nameOf, type Person } from "../../lib/people";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import { Icon } from "../Icon";
 import { TurnFooter, type TurnSource } from "./TurnFooter";
@@ -82,7 +85,7 @@ interface Turn {
   /** A calendar write offload proposed and nobody has answered yet. The reply
    *  carries the control that answers it, for the same reason it carries its
    *  own thread links and its own retry: a sentence cannot be clicked. */
-  waiting?: { id: string; because: string } | null;
+  waiting?: WaitingOn | null;
   /** 018. The question this turn asked back, on the message that was sent,
    *  while it is open. Drawn inside the reply's bubble when there is one and
    *  in a bubble of its own when the turn filed silently. */
@@ -137,6 +140,27 @@ export function Composer({
   onFiled: (threadIds: string[]) => void;
 }) {
   const [draft, setDraft] = useState("");
+  // 022. Who an @ picked, kept while the name is still in the text, and the
+  // connections the @ list offers, read the first time an @ is typed.
+  const [mentions, setMentions] = useState<{ accountId: string; name: string }[]>([]);
+  const [mentionPeople, setMentionPeople] = useState<Person[] | null>(null);
+  const mentionAt = mentionQuery(draft);
+  useEffect(() => {
+    if (mentionPeople !== null || mentionAt === null) return;
+    let live = true;
+    void fetchPeople().then((page) => {
+      if (live) setMentionPeople(page?.connections ?? []);
+    });
+    return () => {
+      live = false;
+    };
+  }, [mentionAt, mentionPeople]);
+  function pickMention(person: Person) {
+    const name = nameOf(person);
+    setDraft((current) => withMention(current, name));
+    setMentions((current) => [...current.filter((m) => m.accountId !== person.accountId), { accountId: person.accountId, name }]);
+    input.current?.focus();
+  }
   const [turns, setTurns] = useState<Turn[]>([]);
   // Only while a send is out, and only to hold the photos still: the words
   // leave the field at the press, but a chip removed mid-send would still go.
@@ -330,6 +354,10 @@ export function Composer({
                   threads: answer.threads,
                   sources: answer.sources,
                   question: answer.question ?? null,
+                  // 019's proposal, and 022's. It rode the settlement and was
+                  // dropped here, so a calendar proposal only ever appeared
+                  // after a reload; found the night the share's arrived.
+                  waiting: answer.waiting ?? null,
                   // 020. The renditions are made before the model reads the
                   // photos, so a settled turn's thumbnails exist; one that
                   // could not be opened draws the glyph when its fetch fails.
@@ -610,11 +638,14 @@ export function Composer({
         sentVoice = { ...shownVoice!, blobId: uploaded.blobId };
       }
       const blobIds = [...sentPhotos.map((p) => p.blobId), ...(sentVoice ? [sentVoice.blobId] : [])];
-      const sent = await sendDump(text, clientKey, inThread?.id, blobIds.length ? { blobIds } : undefined);
+      // 022. A mention whose name was deleted by hand goes with the words.
+      const named = mentions.filter((m) => text.includes(m.name));
+      const sent = await sendDump(text, clientKey, inThread?.id, blobIds.length ? { blobIds } : undefined, named);
       // Only what went: a photo dropped in while the send was out stays
       // for the next one.
       const went = new Set(sendable.map((photo) => photo.key));
       setPhotos((current) => current.filter((photo) => !went.has(photo.key)));
+      setMentions([]);
       draftKey.current = null;
       noteUploaded.current = null;
       sentNotes.current.delete(provisional);
@@ -1114,6 +1145,9 @@ export function Composer({
         </div>
       ) : null}
 
+      {mentionAt !== null && !holdsNote && mentionPeople && mentionPeople.length > 0 ? (
+        <Mentions people={mentionPeople} query={mentionAt} onPick={pickMention} />
+      ) : null}
       <div
         className={styles.composerInner}
         data-tall={tall ? true : undefined}
@@ -1421,16 +1455,18 @@ function Waiting({
   waiting,
   onAnswered,
 }: {
-  waiting: { id: string; because: string };
+  waiting: WaitingOn;
   onAnswered: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  // 022. A share's tap goes to its own route; the calendar's to 019's.
+  const share = waiting.kind === "share";
 
   async function answer(choice: "confirm" | "decline") {
     if (busy) return;
     setBusy(true);
-    const ok = await answerPending(waiting.id, choice);
+    const ok = share ? await answerShare(waiting.id, choice) : await answerPending(waiting.id, choice);
     setBusy(false);
     if (ok) onAnswered();
     // What happened, next to the control that retries it. Never why: this
@@ -1441,6 +1477,9 @@ function Waiting({
   return (
     <span className={styles.waiting}>
       <span className={styles.waitingLine}>{waiting.because}</span>
+      {/* The line a person reads before sharing, here as on the sheet: the
+          policy promises it at the moment of sharing. */}
+      {share ? <span className={styles.waitingShareLine}>{SHARE_LINE}</span> : null}
       {failed ? (
         <span className={styles.waitingFailed} role="alert">
           That did not go through. Try again.
@@ -1453,7 +1492,7 @@ function Waiting({
           onClick={() => void answer("confirm")}
           disabled={busy}
         >
-          Add it
+          {share ? "Share" : "Add it"}
         </button>
         <button
           type="button"
