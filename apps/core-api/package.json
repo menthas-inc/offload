@@ -22,6 +22,7 @@
     "@offload/tokens": "workspace:^",
     "@offload/widgets": "workspace:^",
     "better-auth": "^1.7.5",
+    "expo-server-sdk": "^7.2.0",
     "fastify": "^5.2.0",
     "fastify-type-provider-zod": "^6.1.0",
     "image-size": "^2.0.4",

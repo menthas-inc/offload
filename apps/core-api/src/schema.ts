@@ -62,6 +62,16 @@ export interface AccountsTable {
   /** 023. Whether the strip may offer to switch the clock when the phone is
    *  somewhere else. Off means nothing compares. */
   follow_device: Generated<boolean>;
+  /** 024. The four switches, named as the sends are, and the two hours in
+   *  the account's zone, `HH:MM:SS` as Postgres hands a time back. */
+  notify_due_today: Generated<boolean>;
+  notify_due_today_at: Generated<string>;
+  notify_coming_tomorrow: Generated<boolean>;
+  notify_coming_tomorrow_at: Generated<string>;
+  notify_people_requests: Generated<boolean>;
+  notify_shared_activity: Generated<boolean>;
+  /** When Activity was last opened: the dot is a row newer than this. */
+  activity_seen_at: Timestamp | null;
   /** 022. The mark, a 176px PNG drawn once from the id and never rewritten.
    *  Not content. Null until somebody first asks for it. */
   avatar_png: Buffer | null;
@@ -264,6 +274,35 @@ export interface JobsTable {
   last_error: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
+}
+
+/** 024. A phone's push token, bound to the account that registered it last. */
+export interface PushTokensTable {
+  id: Generated<string>;
+  account_id: string;
+  token: string;
+  platform: "ios" | "android";
+  created_at: Timestamp;
+  last_seen_at: Timestamp;
+}
+
+/** 024. What offload told somebody, in the words it used, and what it decided
+ *  not to tell them and why. */
+export interface ActivityTable {
+  id: Generated<string>;
+  account_id: string;
+  kind: "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted";
+  sent: boolean;
+  reason: "setting" | "permission" | "design" | null;
+  title: string;
+  body: string | null;
+  send: "morning" | "evening" | null;
+  thread_id: string | null;
+  content_id: string | null;
+  about_account_id: string | null;
+  member_id: string | null;
+  request_id: string | null;
+  occurred_at: Timestamp;
 }
 
 export interface AnalyticsEventsTable {
@@ -920,6 +959,8 @@ export interface Database {
   lookups: LookupsTable;
   domain_reads: DomainReadsTable;
   analytics_events: AnalyticsEventsTable;
+  push_tokens: PushTokensTable;
+  activity: ActivityTable;
   waitlist_attempts: WaitlistAttemptsTable;
   schema_migrations: SchemaMigrationsTable;
 

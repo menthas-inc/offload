@@ -54,6 +54,8 @@ import {
 } from "../threads/access.js";
 import { TAG_CHARS } from "../threads/tags.js";
 import { OverBudget, requireBudget } from "../budget.js";
+import { purgeAbout } from "../notifications/activity.js";
+import { noteAddition } from "../notifications/people.js";
 
 /** 022. The account's default thread cannot be shared or deleted. */
 async function isDefaultThreadOf(accountId: string, threadId: string): Promise<boolean> {
@@ -239,7 +241,7 @@ const threadBundle = z.object({
   shareable: z.boolean(),
 });
 
-const contentRow = z.object({
+export const contentRow = z.object({
   id: z.string(),
   type: z.string(),
   title: z.string(),
@@ -346,7 +348,7 @@ async function membersOf(threadId: string, viewerId: string) {
 }
 
 /** The row shape both the page and the detail return, so the two cannot drift. */
-interface RawRow {
+export interface RawRow {
   id: string;
   type: string;
   title: string;
@@ -410,7 +412,7 @@ function seriesRefOf(attrs: unknown): string | null {
   return typeof ref === "string" && ref.length > 0 ? ref : null;
 }
 
-function toRow(row: RawRow, viewerId: string) {
+export function toRow(row: RawRow, viewerId: string) {
   // A departed author is nobody, so `mine` is false and the two controls that
   // belong to an author are off for everyone. That is OFF-3 working rather
   // than a gap: nobody may delete what they did not write, and the person who
@@ -1029,6 +1031,9 @@ export async function deleteThread(
       .execute();
     // 019. A member leaving takes their calendar picks with them.
     await dropPicksOf(accountId, threadId, trx);
+    // 024. And the Activity rows that named this thread's words, both ways.
+    await purgeAbout({ viewerId: accountId, threadId }, trx);
+    await purgeAbout({ aboutAccountId: accountId, threadId }, trx);
     // 022. And the shares they had waiting on it, which were theirs to make.
     await trx
       .updateTable("thread_members")
@@ -1194,6 +1199,7 @@ export async function quickAdd(
   if (!startsAs) {
     const note = await addNote({ threadId, accountId, text, origin: "stated" });
     await touchThread(threadId, db);
+    await noteAddition(threadId, accountId);
     return { id: note.id, kind: "note" };
   }
 
@@ -1230,6 +1236,8 @@ export async function quickAdd(
       .where("id", "=", threadId)
       .execute();
     await touchThread(threadId, trx);
+    // 024. A row typed into a thread with other members reaches them, coalesced.
+    await noteAddition(threadId, accountId);
 
     await enqueue({
       kind: "thread.quick_add",
@@ -2032,6 +2040,7 @@ export async function threadRoutes(app: App): Promise<void> {
               origin: "stated",
             });
             await touchThread(id, db);
+            await noteAddition(id, accountId);
             return reply.send({ note });
           } catch (error) {
             if (error instanceof NoteTooLong) {

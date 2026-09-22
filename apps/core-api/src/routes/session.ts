@@ -6,6 +6,7 @@
 
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { sql } from "kysely";
 import type { App } from "../app.js";
 import { COUNTRIES, isCountry } from "../countries.js";
 import { auth } from "../auth/auth.js";
@@ -18,6 +19,7 @@ import { emit } from "../analytics.js";
 import { env, isProduction } from "../env.js";
 import { resolveTimeZone } from "../time-zone.js";
 import { adoptZone } from "../accounts/zone.js";
+import { activityUnread } from "../notifications/activity.js";
 
 function fetchHeaders(request: FastifyRequest): Headers {
   const headers = new Headers();
@@ -107,7 +109,20 @@ const meResponse = z.object({
   timeZone: z.string().nullable(),
   followDevice: z.boolean(),
   keptTimeZone: z.string().nullable(),
+  /** 024. The four switches, named as the sends are, the two hours as HH:MM
+   *  in the account's zone, and whether Activity holds something newer than
+   *  its last opening. */
+  notifyDueToday: z.boolean(),
+  notifyDueTodayAt: z.string(),
+  notifyComingTomorrow: z.boolean(),
+  notifyComingTomorrowAt: z.string(),
+  notifyPeopleRequests: z.boolean(),
+  notifySharedActivity: z.boolean(),
+  activityUnread: z.boolean(),
 });
+
+/** 024. An hour as the page sends it, HH:MM, twenty-four hour. */
+const HOUR = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** The version of the privacy policy the consent on first run is against.
  *
@@ -224,6 +239,12 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
       "time_zone",
       "kept_time_zone",
       "follow_device",
+      "notify_due_today",
+      "notify_due_today_at",
+      "notify_coming_tomorrow",
+      "notify_coming_tomorrow_at",
+      "notify_people_requests",
+      "notify_shared_activity",
     ])
     .where("id", "=", accountId)
     .where("deleted_at", "is", null)
@@ -255,6 +276,14 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     timeZone: account.time_zone,
     followDevice: account.follow_device,
     keptTimeZone: account.kept_time_zone,
+    // 024. Postgres hands a time back as HH:MM:SS; the page shows HH:MM.
+    notifyDueToday: account.notify_due_today,
+    notifyDueTodayAt: String(account.notify_due_today_at).slice(0, 5),
+    notifyComingTomorrow: account.notify_coming_tomorrow,
+    notifyComingTomorrowAt: String(account.notify_coming_tomorrow_at).slice(0, 5),
+    notifyPeopleRequests: account.notify_people_requests,
+    notifySharedActivity: account.notify_shared_activity,
+    activityUnread: await activityUnread(accountId),
   };
 }
 
@@ -311,6 +340,13 @@ export async function sessionRoutes(app: App): Promise<void> {
             .refine((name) => resolveTimeZone(name) !== null, "not a zone")
             .nullable()
             .optional(),
+          /** 024. The switches and the hours, one field at a time. */
+          notifyDueToday: z.boolean().optional(),
+          notifyDueTodayAt: z.string().regex(HOUR, "not an hour").optional(),
+          notifyComingTomorrow: z.boolean().optional(),
+          notifyComingTomorrowAt: z.string().regex(HOUR, "not an hour").optional(),
+          notifyPeopleRequests: z.boolean().optional(),
+          notifySharedActivity: z.boolean().optional(),
         }),
         response: { 200: meResponse, 401: unauthenticated },
       },
@@ -323,8 +359,10 @@ export async function sessionRoutes(app: App): Promise<void> {
       // others, and a name still cannot be cleared: the product draws a
       // nameless account correctly, but that is the state of an account nobody
       // has got to yet rather than somewhere to return to by emptying a field.
-      const { displayName, webSearch, webLinks, calendarAskFirst, country, timeZone, followDevice, keptTimeZone } =
-        request.body;
+      const {
+        displayName, webSearch, webLinks, calendarAskFirst, country, timeZone, followDevice, keptTimeZone,
+        notifyDueToday, notifyDueTodayAt, notifyComingTomorrow, notifyComingTomorrowAt, notifyPeopleRequests, notifySharedActivity,
+      } = request.body;
       // Stored as ICU resolves the name, never as sent: the schema above has
       // already refused anything ICU does not know.
       const zone = timeZone === undefined ? undefined : resolveTimeZone(timeZone);
@@ -340,11 +378,36 @@ export async function sessionRoutes(app: App): Promise<void> {
           ...(webLinks !== undefined ? { web_links_enabled: webLinks } : {}),
           ...(calendarAskFirst !== undefined ? { calendar_ask_first: calendarAskFirst } : {}),
           ...(country !== undefined ? { country } : {}),
+          ...(notifyDueToday !== undefined ? { notify_due_today: notifyDueToday } : {}),
+          ...(notifyDueTodayAt !== undefined ? { notify_due_today_at: notifyDueTodayAt } : {}),
+          ...(notifyComingTomorrow !== undefined ? { notify_coming_tomorrow: notifyComingTomorrow } : {}),
+          ...(notifyComingTomorrowAt !== undefined ? { notify_coming_tomorrow_at: notifyComingTomorrowAt } : {}),
+          ...(notifyPeopleRequests !== undefined ? { notify_people_requests: notifyPeopleRequests } : {}),
+          ...(notifySharedActivity !== undefined ? { notify_shared_activity: notifySharedActivity } : {}),
           updated_at: new Date(),
         })
         .where("id", "=", accountId)
         .where("deleted_at", "is", null)
         .execute();
+
+      // 024. A changed hour, switch or zone deletes the digests queued ahead
+      // for this account; the next hourly pass places whatever now falls in
+      // its hour. One already due stays, since its hour was the old one.
+      if (
+        zone !== undefined ||
+        notifyDueToday !== undefined ||
+        notifyDueTodayAt !== undefined ||
+        notifyComingTomorrow !== undefined ||
+        notifyComingTomorrowAt !== undefined
+      ) {
+        await db
+          .deleteFrom("jobs")
+          .where("kind", "=", "account.digest")
+          .where("account_id", "=", accountId)
+          .where("state", "=", "queued")
+          .where("run_after", ">", sql<Date>`now()`)
+          .execute();
+      }
 
       // No event. OFF-1, and 011 AC-11: `assertNoContent` would not catch a
       // name under sixty characters, since it looks like neither an email nor

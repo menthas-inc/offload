@@ -1,0 +1,112 @@
+{
+  "statement": "A reminder is what they asked to be told about. \"Remind me\" and \"don't let me forget\" set the flag on a task or an event; a fact with a date does not, and a standing fact is a note with no flag.",
+  "why": "A date is not announced; a reminder is. The two digests read the flag and nothing else, so a date filed as a reminder pushes a fact somebody never asked to hear again, and a request filed without it is a reminder that never arrives. The flag is the difference between the calendar and the nagging, and the person chose which by how they said it.",
+  "sources": [
+    "024 AC-4, AC-23",
+    "006: is_reminder on a task or an event",
+    "plan_v2.md: A reminder is not a type"
+  ],
+  "cases": [
+    {
+      "id": "remind-me-task",
+      "why": "asked to be told",
+      "surface": "file",
+      "input": "remind me to pay the rent Friday",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_content",
+            "type": "task",
+            "reminder": true
+          }
+        ],
+        "not_called": [
+          "add_note"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "due-date-fact",
+      "why": "a date, not a request",
+      "surface": "file",
+      "input": "rent is due Friday",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_content",
+            "type": "task",
+            "reminder": false
+          }
+        ],
+        "not_called": [
+          "add_note"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "dont-let-me-forget-event",
+      "why": "asked to be told, about an appointment",
+      "surface": "file",
+      "input": "don't let me forget the dentist Tuesday at 3",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_content",
+            "type": "event",
+            "reminder": true
+          }
+        ],
+        "not_called": [
+          "add_note"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "standing-fact-note",
+      "why": "a standing fact about the flat, not something to do",
+      "surface": "file",
+      "input": "the flat's rent is 900 on the 1st",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_note"
+          }
+        ],
+        "not_called": [
+          "add_content"
+        ],
+        "say": null
+      }
+    },
+    {
+      "id": "remind-me-daily",
+      "why": "asked to be told, every day",
+      "surface": "file",
+      "input": "remind me every day to take the pills",
+      "context": "behrooz",
+      "expect": {
+        "filed": [
+          {
+            "tool": "add_content",
+            "type": "task",
+            "reminder": true,
+            "rrule": [
+              "FREQ=DAILY"
+            ]
+          }
+        ],
+        "not_called": [
+          "add_note"
+        ],
+        "say": null
+      }
+    }
+  ]
+}

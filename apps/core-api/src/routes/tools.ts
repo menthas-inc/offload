@@ -29,6 +29,9 @@ import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { formatRule, parseRule } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
+import { record } from "../notifications/activity.js";
+import { dayLabel, movedCopy } from "../notifications/copy.js";
+import { noteAddition } from "../notifications/people.js";
 import { accountFacts, listAgenda, listContent, search } from "../search/read.js";
 import { env } from "../env.js";
 import { BadTags, MAX_TAGS, normaliseTags, TAG_CHARS } from "../threads/tags.js";
@@ -1116,6 +1119,8 @@ async function existing(
       // reply says a sentence went somewhere and offers nothing to click.
       await noteThread(messageId, call.threadId, true, trx);
       await touchThread(call.threadId, trx);
+      // 024. A note added to a thread with other members reaches them, coalesced.
+      await noteAddition(call.threadId, accountId);
 
       // The name, for the same reason `add_content` returns it: the model has
       // just been handed a thread id it did not choose the name of.
@@ -1344,13 +1349,15 @@ async function existing(
   // Whether the row is a day or a time follows the type's own column, when
   // this call gives it (023).
   let allDayGiven: boolean | undefined;
+  let before: { type: string; title: string; due_at: Date | null; occurs_at: Date | null; attrs: unknown } | null = null;
   if (timed) {
     const held = await trx
       .selectFrom("content")
-      .select(["source_ref", "type", "due_at", "occurs_at"])
+      .select(["source_ref", "type", "title", "due_at", "occurs_at", "attrs"])
       .where("id", "=", ref.id)
       .executeTakeFirstOrThrow();
     if (held.source_ref) return { ok: false, error: "already_on_calendar" };
+    before = held;
     const given = held.type === "event" ? call.occursAt : call.dueAt;
     if (given != null) allDayGiven = isBareDate(given);
     // 023. The rule anchors on the type's column as it stands after this
@@ -1393,6 +1400,29 @@ async function existing(
 
   await touchThread(ref.threadId, trx);
   await noteThread(messageId, ref.threadId, true, trx);
+
+  // 024. A date the model moved on a row that already had one is recorded,
+  // quietly, in this account's Activity, with the two days it moved between.
+  if (before) {
+    const was = before.type === "event" ? before.occurs_at : before.due_at;
+    const now = before.type === "event" ? (call.occursAt == null ? was : when.occursAt) : (call.dueAt == null ? was : when.dueAt);
+    if (was && now && was.getTime() !== now.getTime()) {
+      const zone = await zoneOf(accountId, trx);
+      const wasAllDay = (before.attrs as Record<string, unknown> | null)?.["all_day"] === true;
+      await record(
+        accountId,
+        {
+          kind: "moved",
+          sent: false,
+          reason: "design",
+          ...movedCopy(before.title, dayLabel(was, wasAllDay, zone), dayLabel(now, allDayGiven ?? wasAllDay, zone)),
+          threadId: ref.threadId,
+          contentId: ref.id,
+        },
+        trx,
+      );
+    }
+  }
   return { ok: true, done: true };
 }
 
@@ -1664,6 +1694,9 @@ export async function toolRoutes(app: App): Promise<void> {
           )
           .returning("id")
           .executeTakeFirst();
+        // 024. A row filed into a thread with other members reaches them,
+        // coalesced over ten minutes and composed at send time.
+        if (inserted) await noteAddition(thread.id, accountId);
 
         if (!inserted) {
           // The first post won. Return its id rather than a new row, and touch

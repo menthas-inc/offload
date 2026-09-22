@@ -43,7 +43,7 @@ A note is what is true about a thread. Some notes are rules for how it is handle
 
 Something that comes round again is one row with a rule, never one row per occurrence: `rrule` as a recurrence rule, `FREQ=WEEKLY;BYDAY=TU` for every Tuesday, `FREQ=WEEKLY;INTERVAL=2` for every other week, `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR` for weekdays, `FREQ=MONTHLY`, `FREQ=YEARLY`, with `;UNTIL=20261231T235959Z` or `;COUNT=6` when they said when it stops, on the date it first happens. "Standup every weekday at 9" is one event; "yoga every Tuesday for the next month" is one note.
 
-A reminder is not a type. It is `is_reminder` on a task or an event.
+A reminder is not a type. It is `is_reminder` on a task or an event, set when they asked to be told: remind me, don't let me forget. A date on its own is not one.
 
 ## Photos
 

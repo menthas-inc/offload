@@ -84,7 +84,8 @@ export default function Privacy() {
             <li>
               <strong>A few companies help us run offload.</strong> All of them are named below,
               none of them may use what you upload for their own purposes, and we do not add one
-              quietly. We may also be obliged by a court to hand over your content, and section 7
+              quietly. Three of them carry a notification to your phone: Expo, then Apple or
+              Google, and the words of a notification pass through them on the way. We may also be obliged by a court to hand over your content, and section 7
               describes how we handle that.
             </li>
             <li>
@@ -236,6 +237,14 @@ export default function Privacy() {
               becomes the clock your dates are shown in, until you change it in Settings; and if
               you answer Keep when a phone is somewhere else, that one zone, so it does not ask
               again. Nothing finer than the zone: no location, no clock.
+            </li>
+            <li>
+              <strong>Notifications</strong>, when you have them on: one message in the morning and
+              one in the evening about what you asked to be reminded of, and one when somebody
+              connects with you or shares a thread. Each carries a few words from what you or a
+              member of your thread put in, and those words leave to the companies that deliver
+              it, named in section 6. A record of what was sent, and of what offload decided not
+              to send, is kept for you in Activity.
             </li>
             <li>
               <strong>Product events</strong>, such as joining the waitlist or finishing first run.
@@ -514,11 +523,19 @@ export default function Privacy() {
                   </td>
                 </tr>
                 <tr>
+                  <td>Expo</td>
+                  <td>Sends notifications to your phone</td>
+                  <td>
+                    The words of each notification, held only as long as the send takes, by their
+                    statement, and the token that names your phone
+                  </td>
+                </tr>
+                <tr>
                   <td>Apple and Google</td>
-                  <td>Sign you in</td>
+                  <td>Sign you in, and deliver notifications to your phone, which carry their words</td>
                   <td>
                     They tell us your verified email address and your name. We tell them nothing
-                    about what you upload
+                    about what you upload beyond the words of a notification
                   </td>
                 </tr>
               </tbody>
@@ -631,6 +648,12 @@ export default function Privacy() {
               <strong>Product events:</strong> kept, but detached. Deleting your account destroys
               the identifier that connects them to you.
             </li>
+            <li>
+              <strong>Activity, the record of what offload sent you: 30 days.</strong> A row that
+              carries another member&apos;s words goes sooner, when you leave or are taken out of
+              that thread, when what it names is destroyed, or when the person who wrote them
+              deletes their account.
+            </li>
           </ul>
 
           <h3 className={styles.h3}>Deleting your account, and shared threads</h3>
@@ -703,7 +726,9 @@ export default function Privacy() {
             <li>
               You can share a thread with a <strong>connection</strong>, which is someone you have
               both agreed to be connected to. Everyone in a thread can read everything in it and add
-              to it, and nobody can delete what they did not write themselves.
+              to it, and nobody can delete what they did not write themselves. Inviting somebody
+              puts the thread&apos;s name in front of them before they have accepted, on the
+              invitation and in a notification if they have those on.
             </li>
             <li>
               <strong>Everyone in a shared thread sees your name</strong>, the initials taken
@@ -786,7 +811,8 @@ export default function Privacy() {
             <li>
               Content never leaves in a log, an error report, an analytics event or an AI trace.
               Those carry identifiers, counts and outcomes only, and that rule is enforced in the
-              code rather than remembered.
+              code rather than remembered. A notification is the one channel that carries words,
+              a few of them, and only to your own phone.
             </li>
             <li>
               Only a small number of people can reach production, and they read your content when

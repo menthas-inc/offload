@@ -38,7 +38,13 @@ export type EventName =
   | "person_blocked"
   | "thread_shared"
   | "share_accepted"
-  | "member_removed";
+  | "member_removed"
+  // 024. Counts and enums: the send, the row count, the overdue count, the
+  // reason, the kind, the error code. Never a token, a name or a title.
+  | "digest_sent"
+  | "digest_skipped"
+  | "notification_sent"
+  | "notification_failed";
 
 type Source = "core-api" | "agent" | "worker" | "web" | "ios" | "android";
 
