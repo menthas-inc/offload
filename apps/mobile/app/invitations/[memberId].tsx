@@ -35,19 +35,26 @@ export default function InvitationScreen() {
   const [invitation, setInvitation] = useState<Invitation | "gone" | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       let live = true;
+      setLoadFailed(false);
       void fetchThreadsAndInvitations().then((page) => {
         if (!live) return;
-        const found = page?.invitations.find((i) => i.memberId === memberId);
-        setInvitation(found ?? (page ? "gone" : null));
+        if (!page) {
+          setLoadFailed(true);
+          return;
+        }
+        const found = page.invitations.find((i) => i.memberId === memberId);
+        setInvitation(found ?? "gone");
       });
       return () => {
         live = false;
       };
-    }, [memberId]),
+    }, [memberId, attempt]),
   );
 
   async function add() {
@@ -78,7 +85,14 @@ export default function InvitationScreen() {
         </Text>
       </View>
 
-      {invitation === null ? (
+      {invitation === null && loadFailed ? (
+        <Text className="px-gutter-screen pt-space-5 font-core text-text-danger" style={{ fontSize: 13 }} accessibilityRole="alert">
+          That didn't go through.{" "}
+          <Text className="font-core font-medium text-text-accent" onPress={() => setAttempt((n) => n + 1)}>
+            Try again
+          </Text>
+        </Text>
+      ) : invitation === null ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
@@ -104,7 +118,7 @@ export default function InvitationScreen() {
                 className={`pt-space-3 text-center font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
                 style={{ fontSize: 15, lineHeight: 22 }}
               >
-                {invitation.preview.count} in it. You can add to it, and you cannot delete anything of {firstNameOf(invitation.from)}'s.
+                {invitation.preview.count > 0 ? `${invitation.preview.count} in it. ` : ""}You can add to it, and you cannot delete anything of {firstNameOf(invitation.from)}'s.
                 {invitation.members.length > 0 ? ` ${withNames(invitation.members)}` : ""}
               </Text>
             </View>
@@ -144,7 +158,7 @@ export default function InvitationScreen() {
               disabled={busy}
               accessibilityRole="button"
               className={`items-center justify-center rounded-pill ${isAndroid ? "bg-blue-600" : "bg-surface-inverse"}`}
-              style={{ height: 52, opacity: busy ? 0.55 : 1 }}
+              style={{ minHeight: 52, opacity: busy ? 0.55 : 1 }}
             >
               {busy ? (
                 <ActivityIndicator color={isAndroid ? COLOR.onBrand : COLOR.onSolid} />
@@ -154,7 +168,7 @@ export default function InvitationScreen() {
                 </Text>
               )}
             </Pressable>
-            <Pressable onPress={() => router.back()} accessibilityRole="button" className="items-center justify-center" style={{ height: 44 }}>
+            <Pressable onPress={() => router.back()} accessibilityRole="button" className="items-center justify-center" style={{ minHeight: 44 }}>
               <Text className={`font-core font-medium ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 15 }}>
                 Not now
               </Text>

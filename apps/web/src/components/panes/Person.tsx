@@ -35,6 +35,8 @@ function relationLine(page: PersonPage): string {
       return "Blocked";
     case "thread":
       return page.shared.length === 1 ? `In ${page.shared[0]!.name} with you` : `In ${page.shared.length} threads with you`;
+    case "waiting":
+      return "Waiting on a share";
   }
 }
 
@@ -50,8 +52,12 @@ export function PersonPane({ id }: { id: string }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const load = useCallback(async () => {
-    setPage(await fetchPerson(id));
+    setLoadFailed(false);
+    const next = await fetchPerson(id);
+    if (next === null) setLoadFailed(true);
+    else setPage(next);
   }, [id]);
   useEffect(() => {
     void load();
@@ -65,7 +71,7 @@ export function PersonPane({ id }: { id: string }) {
         label: "Unblock",
         icon: "check",
         onSelect: () => {
-          void unblockPerson(page.accountId).then(() => load());
+          void unblockPerson(page.accountId).then((ok) => (ok ? load() : setLoadFailed(true)));
         },
       });
     } else more.push({ label: "Block", icon: "lock", onSelect: () => setConfirm("block") });
@@ -110,6 +116,14 @@ export function PersonPane({ id }: { id: string }) {
         more={more.length > 0 ? more : undefined}
       />
       <div className={pane.paneBody}>
+        {loadFailed ? (
+          <p className={pane.signOutFailed} role="alert">
+            That didn&rsquo;t go through.{" "}
+            <button type="button" className={pane.retryQuiet} onClick={() => void load()}>
+              Try again
+            </button>
+          </p>
+        ) : null}
         {page === "gone" ? <p className={styles.gone}>Not here any more.</p> : null}
         {page && page !== "gone" ? (
           <>
@@ -151,9 +165,9 @@ export function PersonPane({ id }: { id: string }) {
                   count > 0 ? ` The ${count} ${threads} you already share ${count === 1 ? "stays as it is" : "stay as they are"}.` : ""
                 }`
           }
-          rows={page.shared.map((t) => ({ title: t.name, meta: threadMeta(t), icon: <Icon name="lasso" size={16} /> }))}
-          rowCount={count}
-          hint={count > 0 ? "Leave a thread from its own More menu if you want out of it." : undefined}
+          rows={confirm === "remove" ? page.shared.map((t) => ({ title: t.name, meta: threadMeta(t), icon: <Icon name="lasso" size={16} /> })) : []}
+          rowCount={confirm === "remove" ? count : 0}
+          hint={confirm === "remove" && count > 0 ? "Leave a thread from its own More menu if you want out of it." : undefined}
           action={confirm === "block" ? "Block" : "Remove"}
           danger
           busy={busy}

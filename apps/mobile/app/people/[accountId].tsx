@@ -19,6 +19,7 @@ import { RowActionSheet, type RowAction } from "../../components/shell/RowAction
 import { ConfirmSheet } from "../../components/people/ConfirmSheet";
 import { useColors } from "../../lib/colors";
 import { refreshMe } from "../../lib/me";
+import { useConversation } from "../../components/shell/conversation-context";
 import {
   blockPerson,
   fetchPerson,
@@ -46,6 +47,8 @@ function relationLine(page: PersonPage): string {
       return "Blocked";
     case "thread":
       return page.shared.length === 1 ? `In ${page.shared[0]!.name} with you` : `In ${page.shared.length} threads with you`;
+    case "waiting":
+      return "Waiting on a share";
   }
 }
 
@@ -59,15 +62,20 @@ export default function Person() {
   const { accountId } = useLocalSearchParams<{ accountId: string }>();
   const router = useRouter();
   const COLOR = useColors();
+  const { notify } = useConversation();
   const [page, setPage] = useState<PersonPage | "gone" | null>(null);
   const [more, setMore] = useState(false);
   const [confirm, setConfirm] = useState<"remove" | "block" | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const load = useCallback(async () => {
     if (!accountId) return;
-    setPage(await fetchPerson(accountId));
+    setLoadFailed(false);
+    const next = await fetchPerson(accountId);
+    if (next === null) setLoadFailed(true);
+    else setPage(next);
   }, [accountId]);
   useFocusEffect(
     useCallback(() => {
@@ -86,6 +94,7 @@ export default function Person() {
         icon: "check",
         run: async () => {
           if (await unblockPerson(page.accountId)) await load();
+          else notify("That didn't go through.", { label: "Try again", onPress: () => void unblockPerson(page.accountId).then(() => load()) });
         },
       });
     } else {
@@ -125,7 +134,14 @@ export default function Person() {
         ) : null}
       </View>
 
-      {page === null ? (
+      {page === null && loadFailed ? (
+        <Text className="px-gutter-screen pt-space-5 font-core text-text-danger" style={{ fontSize: 13 }} accessibilityRole="alert">
+          That didn't go through.{" "}
+          <Text className="font-core font-medium text-text-accent" onPress={() => void load()}>
+            Try again
+          </Text>
+        </Text>
+      ) : page === null ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
@@ -222,9 +238,9 @@ export default function Person() {
                     : ""
                 }`
           }
-          rows={threadRows}
-          rowCount={page.shared.length}
-          hint={page.shared.length > 0 ? "Leave a thread from its own More menu if you want out of it." : undefined}
+          rows={confirm === "remove" ? threadRows : []}
+          rowCount={confirm === "remove" ? page.shared.length : 0}
+          hint={confirm === "remove" && page.shared.length > 0 ? "Leave a thread from its own More menu if you want out of it." : undefined}
           action={confirm === "block" ? "Block" : "Remove"}
           danger
           busy={busy}

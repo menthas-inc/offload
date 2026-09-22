@@ -27,7 +27,7 @@ const isAndroid = Platform.OS === "android";
 type State =
   | { kind: "empty" }
   | { kind: "looking" }
-  | { kind: "found"; found: Found }
+  | { kind: "found"; found: Found; line?: string; answered?: "dismissed" }
   | { kind: "none" }
   | { kind: "failed" };
 
@@ -67,7 +67,10 @@ export default function AddConnection() {
     }
     // The server said what the person already is to us; the row says it.
     if (outcome.error === "connected") setState({ kind: "found", found: { ...found, relation: "connected" } });
-    else if (outcome.error === "pending" || outcome.error === "too_soon") setState({ kind: "found", found: { ...found, relation: "you_asked", requestId: outcome.requestId ?? null } });
+    else if (outcome.error === "pending") setState({ kind: "found", found: { ...found, relation: "you_asked", requestId: outcome.requestId ?? null } });
+    // A request to this person ended in the last week. What is refused is
+    // said, and the row keeps its control for when the week is up.
+    else if (outcome.error === "too_soon") setState({ kind: "found", found, line: "You asked recently. Try again in a week." });
     else if (outcome.error === "asked_you") setState({ kind: "found", found: { ...found, relation: "asked_you", requestId: outcome.requestId ?? null } });
     else if (outcome.error === "not_found") setState({ kind: "none" });
     else setSendFailed(true);
@@ -83,7 +86,9 @@ export default function AddConnection() {
       return;
     }
     void refreshMe();
-    setState({ kind: "found", found: { ...found, relation: which === "accept" ? "connected" : "none" } });
+    // Not now leaves the request pending on their side, so the row says so
+    // rather than offering Request, which the server would refuse.
+    setState(which === "accept" ? { kind: "found", found: { ...found, relation: "connected" } } : { kind: "found", found, answered: "dismissed" });
   }
 
   const skin = isAndroid
@@ -169,6 +174,8 @@ export default function AddConnection() {
             found={state.found}
             sending={sending}
             failed={sendFailed}
+            line={state.line}
+            dismissed={state.answered === "dismissed"}
             onRequest={() => void ask(state.found)}
             onAnswer={(which) => void answer(state.found, which)}
           />
@@ -183,18 +190,23 @@ function FoundRow({
   found,
   sending,
   failed,
+  line,
+  dismissed,
   onRequest,
   onAnswer,
 }: {
   found: Found;
   sending: boolean;
   failed: boolean;
+  line?: string | undefined;
+  dismissed: boolean;
   onRequest: () => void;
   onAnswer: (which: "accept" | "dismiss") => void;
 }) {
   const router = useRouter();
   const first = firstNameOf(found);
   const trailing = (() => {
+    if (dismissed) return <Value>Not now</Value>;
     switch (found.relation) {
       case "you":
         return <Value>That's you</Value>;
@@ -235,7 +247,12 @@ function FoundRow({
         </View>
         {trailing}
       </View>
-      {found.relation === "none" || found.relation === "you_asked" ? (
+      {line ? (
+        <Text className="pt-space-3 font-core text-text-danger" style={{ fontSize: 13 }} accessibilityRole="alert">
+          {line}
+        </Text>
+      ) : null}
+      {!dismissed && (found.relation === "none" || found.relation === "you_asked") ? (
         <Text className="pt-space-4 font-core text-text-tertiary" style={{ fontSize: 12.5, lineHeight: 18 }}>
           {first} decides whether to accept. Until then you cannot share anything with them, and they are not told what you wanted to share.
         </Text>
@@ -266,7 +283,7 @@ function AnswerChip({ label, filled, onPress, disabled }: { label: string; fille
       disabled={disabled}
       accessibilityRole="button"
       className={`items-center justify-center rounded-pill px-space-5 ${filled ? "bg-moss-600" : "border border-border-strong"}`}
-      style={{ height: 30, marginVertical: 7, opacity: disabled ? 0.55 : 1 }}
+      style={{ minHeight: 30, marginVertical: 7, opacity: disabled ? 0.55 : 1 }}
     >
       <Text className={`font-core font-medium ${filled ? "text-text-on-solid" : isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13 }}>
         {label}

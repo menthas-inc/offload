@@ -158,8 +158,9 @@ export function PeoplePane() {
 }
 
 export function BlockedPane() {
-  const { page, load } = usePeople();
+  const { page, failed, load } = usePeople();
   const [unblocking, setUnblocking] = useState<string | null>(null);
+  const [unblockFailed, setUnblockFailed] = useState(false);
   return (
     <>
       <div className={pane.paneHead}>
@@ -168,6 +169,19 @@ export function BlockedPane() {
         </div>
       </div>
       <div className={pane.paneBody}>
+        {failed && !page ? (
+          <p className={pane.signOutFailed} role="alert">
+            That didn&rsquo;t go through.{" "}
+            <button type="button" className={pane.retryQuiet} onClick={() => void load()}>
+              Try again
+            </button>
+          </p>
+        ) : null}
+        {unblockFailed ? (
+          <p className={pane.signOutFailed} role="alert">
+            That didn&rsquo;t go through. Click Unblock again.
+          </p>
+        ) : null}
         {page && page.blocked.length === 0 ? <p className={styles.emptyBody}>Nobody is blocked.</p> : null}
         {page && page.blocked.length > 0 ? (
           <Group>
@@ -178,9 +192,11 @@ export function BlockedPane() {
                 value={unblocking === person.accountId ? "Unblocking" : "Unblock"}
                 onClick={() => {
                   setUnblocking(person.accountId);
-                  void unblockPerson(person.accountId).then(async () => {
+                  setUnblockFailed(false);
+                  void unblockPerson(person.accountId).then(async (ok) => {
                     setUnblocking(null);
-                    await load();
+                    if (ok) await load();
+                    else setUnblockFailed(true);
                   });
                 }}
                 last={i === page.blocked.length - 1}

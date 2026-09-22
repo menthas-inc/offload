@@ -164,8 +164,19 @@ export function PeoplePage() {
 }
 
 export function BlockedPage() {
-  const { page, load } = usePeople();
+  const { page, failed, load } = usePeople();
   const [unblocking, setUnblocking] = useState<string | null>(null);
+  const [unblockFailed, setUnblockFailed] = useState(false);
+  if (failed && !page) {
+    return (
+      <Text className="pt-space-5 font-core text-text-danger" style={{ fontSize: 13 }} accessibilityRole="alert">
+        That didn't go through.{" "}
+        <Text className="font-core font-medium text-text-accent" onPress={() => void load()}>
+          Try again
+        </Text>
+      </Text>
+    );
+  }
   if (!page) return null;
   if (page.blocked.length === 0) {
     return (
@@ -183,14 +194,21 @@ export function BlockedPage() {
           value={unblocking === person.accountId ? "Unblocking" : "Unblock"}
           onPress={() => {
             setUnblocking(person.accountId);
-            void unblockPerson(person.accountId).then(async () => {
+            setUnblockFailed(false);
+            void unblockPerson(person.accountId).then(async (ok) => {
               setUnblocking(null);
-              await load();
+              if (ok) await load();
+              else setUnblockFailed(true);
             });
           }}
           last={i === page.blocked.length - 1}
         />
       ))}
+      {unblockFailed ? (
+        <Text className="py-space-3 font-core text-text-danger" style={{ fontSize: 13 }} accessibilityRole="alert">
+          That didn't go through. Tap Unblock again.
+        </Text>
+      ) : null}
     </Group>
   );
 }

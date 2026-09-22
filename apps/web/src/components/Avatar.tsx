@@ -27,6 +27,7 @@ export function Avatar({
   size?: AvatarSize;
 }) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const fontSize = Math.round(size * 0.36);
   return (
     <span
@@ -43,11 +44,14 @@ export function Avatar({
           alt=""
           width={size}
           height={size}
+          onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
           draggable={false}
         />
       )}
-      <span className={styles.initials} data-plain={failed ? "" : undefined} style={{ fontSize }} aria-hidden="true">
+      {/* White only over the picture: until it lands, and when it cannot,
+          the letters read on the fill as a face did before. */}
+      <span className={styles.initials} data-plain={failed || !loaded ? "" : undefined} style={{ fontSize }} aria-hidden="true">
         {initials}
       </span>
     </span>

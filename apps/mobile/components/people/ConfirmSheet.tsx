@@ -77,8 +77,8 @@ export function ConfirmSheet({
       <Animated.View
         entering={SlideInDown.duration(260)}
         exiting={SlideOutDown.duration(200)}
-        className={`absolute inset-x-0 bottom-0 rounded-t-lg px-gutter-screen pt-space-6 ${
-          isAndroid ? "bg-a-c" : "bg-surface-raised"
+        className={`absolute inset-x-0 bottom-0 px-gutter-screen pt-space-6 ${
+          isAndroid ? "rounded-t-a-xl bg-a-c" : "rounded-t-lg bg-surface-raised"
         }`}
         style={{ paddingBottom: insets.bottom + 12 }}
         accessibilityViewIsModal
@@ -148,7 +148,7 @@ export function ConfirmSheet({
             disabled={busy}
             accessibilityRole="button"
             className="flex-1 items-center justify-center rounded-pill border border-border-strong"
-            style={{ height: 44 }}
+            style={{ minHeight: 44 }}
           >
             <Text className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 15 }}>
               Cancel
@@ -161,7 +161,7 @@ export function ConfirmSheet({
             className={`flex-1 items-center justify-center rounded-pill ${
               danger ? "bg-clay-600" : isAndroid ? "bg-blue-600" : "bg-surface-inverse"
             }`}
-            style={{ height: 44, opacity: busy ? 0.55 : 1 }}
+            style={{ minHeight: 44, opacity: busy ? 0.55 : 1 }}
           >
             <Text
               className={`font-core font-medium ${

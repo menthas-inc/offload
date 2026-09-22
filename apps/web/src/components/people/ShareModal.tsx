@@ -315,7 +315,12 @@ export function ShareModal({
   );
 }
 
-type State = { kind: "empty" } | { kind: "looking" } | { kind: "found"; found: Found } | { kind: "none" } | { kind: "failed" };
+type State =
+  | { kind: "empty" }
+  | { kind: "looking" }
+  | { kind: "found"; found: Found; line?: string; answered?: "dismissed" }
+  | { kind: "none" }
+  | { kind: "failed" };
 
 function since(iso: string | null): string {
   if (!iso) return "Pending";
@@ -351,7 +356,10 @@ export function NewConnection({ onBack, onClose, onAsked }: { onBack: () => void
       return;
     }
     if (outcome.error === "connected") setState({ kind: "found", found: { ...found, relation: "connected" } });
-    else if (outcome.error === "pending" || outcome.error === "too_soon") setState({ kind: "found", found: { ...found, relation: "you_asked", requestId: outcome.requestId ?? null } });
+    else if (outcome.error === "pending") setState({ kind: "found", found: { ...found, relation: "you_asked", requestId: outcome.requestId ?? null } });
+    // A request to this person ended in the last week: what is refused is
+    // said, and the row keeps its control for when the week is up.
+    else if (outcome.error === "too_soon") setState({ kind: "found", found, line: "You asked recently. Try again in a week." });
     else if (outcome.error === "asked_you") setState({ kind: "found", found: { ...found, relation: "asked_you", requestId: outcome.requestId ?? null } });
     else if (outcome.error === "not_found") setState({ kind: "none" });
     else setSendFailed(true);
@@ -368,10 +376,14 @@ export function NewConnection({ onBack, onClose, onAsked }: { onBack: () => void
     }
     void refreshMe();
     onAsked?.();
-    setState({ kind: "found", found: { ...found, relation: which === "accept" ? "connected" : "none" } });
+    // Not now leaves their request standing on their side, so the row says
+    // so rather than offering Request, which the server would refuse.
+    setState(which === "accept" ? { kind: "found", found: { ...found, relation: "connected" } } : { kind: "found", found, answered: "dismissed" });
   }
 
   const found = state.kind === "found" ? state.found : null;
+  const dismissed = state.kind === "found" && state.answered === "dismissed";
+  const line = state.kind === "found" ? state.line : undefined;
   const first = found ? firstNameOf(found) : "";
 
   return (
@@ -382,9 +394,6 @@ export function NewConnection({ onBack, onClose, onAsked }: { onBack: () => void
         </button>
         <h2 className={styles.modalTitle}>Add a connection</h2>
       </div>
-      <p className={styles.modalBody} style={{ marginTop: 0 }}>
-        They need an offload account already. Sharing does not invite anyone in.
-      </p>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -446,10 +455,11 @@ export function NewConnection({ onBack, onClose, onAsked }: { onBack: () => void
               <span className={styles.personName}>{nameOf(found)}</span>
               <span className={styles.personNote}>{found.email}</span>
             </span>
-            {found.relation === "you" ? <span className={styles.personValue}>That&rsquo;s you</span> : null}
-            {found.relation === "connected" ? <span className={styles.personValue}>Already connected</span> : null}
-            {found.relation === "you_asked" ? <span className={styles.personValue}>{since(found.since)}</span> : null}
-            {found.relation === "asked_you" ? (
+            {dismissed ? <span className={styles.personValue}>Not now</span> : null}
+            {!dismissed && found.relation === "you" ? <span className={styles.personValue}>That&rsquo;s you</span> : null}
+            {!dismissed && found.relation === "connected" ? <span className={styles.personValue}>Already connected</span> : null}
+            {!dismissed && found.relation === "you_asked" ? <span className={styles.personValue}>{since(found.since)}</span> : null}
+            {!dismissed && found.relation === "asked_you" ? (
               <span className={styles.cardChips}>
                 <button type="button" className={styles.chip} onClick={() => void answer(found, "accept")} disabled={sending}>
                   {sendFailed ? "Try again" : "Accept"}
@@ -465,7 +475,12 @@ export function NewConnection({ onBack, onClose, onAsked }: { onBack: () => void
               </button>
             ) : null}
           </div>
-          {found.relation === "none" || found.relation === "you_asked" ? (
+          {line ? (
+            <p className={styles.failed} role="alert">
+              {line}
+            </p>
+          ) : null}
+          {!dismissed && (found.relation === "none" || found.relation === "you_asked") ? (
             <p className={styles.modalHint}>
               {first} decides whether to accept. Until then you cannot share anything with them, and they are not told what you wanted to share.
             </p>

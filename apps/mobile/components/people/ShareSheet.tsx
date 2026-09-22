@@ -187,7 +187,7 @@ export function ShareSheet({
       <Animated.View
         entering={SlideInDown.duration(260)}
         exiting={SlideOutDown.duration(200)}
-        className={`absolute inset-x-0 bottom-0 rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
+        className={`absolute inset-x-0 bottom-0 ${isAndroid ? "rounded-t-a-xl bg-a-c" : "rounded-t-lg bg-surface-raised"}`}
         style={[{ maxHeight: "82%", paddingBottom: insets.bottom }, lift]}
         accessibilityViewIsModal
       >
@@ -211,8 +211,12 @@ export function ShareSheet({
 
         {sheet ? (
           <>
+            {/* 42 on the pill, 52dp on Material's, as `M3Sharing.jsx` draws it. */}
             {searchable ? (
-              <View className="mx-gutter-screen mt-space-4 flex-row items-center gap-space-3 rounded-pill bg-surface-fill px-space-5" style={{ height: 42 }}>
+              <View
+                className={`mx-gutter-screen mt-space-4 flex-row items-center gap-space-3 rounded-pill px-space-5 ${isAndroid ? "bg-a-c-high" : "bg-surface-fill"}`}
+                style={{ minHeight: isAndroid ? 52 : 42 }}
+              >
                 <Glyph name="search" size={15} color={COLOR.iconOnWell} />
                 <TextInput
                   value={query}
@@ -238,7 +242,8 @@ export function ShareSheet({
               ]}
               keyExtractor={(row) => row.key}
               keyboardShouldPersistTaps="handled"
-              style={{ flexGrow: 0, flexShrink: 1, marginTop: 8 }}
+              className="mt-space-2"
+              style={{ flexGrow: 0, flexShrink: 1 }}
               ListEmptyComponent={
                 sheet.connections.length === 0 && lifted.length === 0 ? (
                   <View className="px-gutter-screen pt-space-4">
@@ -302,7 +307,7 @@ export function ShareSheet({
                           setXFailed(false);
                           setX({ person: item.person, member: item.kind === "member", ...(item.added ? { added: item.added } : {}) });
                         }}
-                        hitSlop={12}
+                        hitSlop={14}
                         accessibilityRole="button"
                         accessibilityLabel={item.kind === "member" ? `Take ${firstNameOf(item.person)} out` : `Withdraw the share with ${firstNameOf(item.person)}`}
                       >
@@ -355,7 +360,7 @@ export function ShareSheet({
             className={`items-center justify-center rounded-pill ${
               chosen.length > 0 ? (isAndroid ? "bg-blue-600" : "bg-surface-inverse") : "border border-border-strong"
             }`}
-            style={{ height: 44, opacity: sending ? 0.55 : 1 }}
+            style={{ minHeight: 44, opacity: sending ? 0.55 : 1 }}
           >
             <Text
               className={`font-core font-medium ${

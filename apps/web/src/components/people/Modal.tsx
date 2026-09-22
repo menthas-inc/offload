@@ -4,7 +4,7 @@
 // a place you navigate to. Escape and the scrim close it; a portal, so it is
 // over the panes and not inside one.
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import styles from "./people.module.css";
 
@@ -27,14 +27,26 @@ export function Modal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // Focus moves into the dialog and back out to whatever opened it, so a
+  // keyboard reaches its controls and lands where it was when it closes.
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const before = document.activeElement as HTMLElement | null;
+    const first = box.current?.querySelector<HTMLElement>("input, button");
+    (first ?? box.current)?.focus();
+    return () => before?.focus();
+  }, []);
+
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className={styles.scrim} onClick={onClose}>
       <div
+        ref={box}
         className={`${styles.modal} ${wide ? styles.modalWide : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label={label}
+        tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
       >
         {children}

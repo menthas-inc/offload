@@ -105,7 +105,7 @@ export async function fetchPeople(): Promise<PeoplePage | null> {
   return data;
 }
 
-export type Relation = "connected" | "asked_you" | "you_asked" | "thread" | "blocked";
+export type Relation = "connected" | "asked_you" | "you_asked" | "thread" | "waiting" | "blocked";
 
 export interface PersonPage extends Person {
   relation: Relation;

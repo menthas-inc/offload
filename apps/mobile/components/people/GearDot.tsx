@@ -6,34 +6,26 @@
 // `/api/me`, read on every focus so a request answered on My people is
 // gone from here when the screen comes back.
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { Pressable, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
-import { useMe } from "../../lib/me";
-import { fetchPeople } from "../../lib/people";
+import { refreshMe, useMe } from "../../lib/me";
 
 export function GearDot() {
   const router = useRouter();
   const COLOR = useColors();
   const me = useMe();
   // `useMe` reads once per mount and hears saves; a request answered on
-  // another screen changes the count without one, so it is asked again on
-  // focus, cheaply, from the same list the cards come from.
-  const [waiting, setWaiting] = useState<number | null>(null);
+  // another screen changes the count without one, so `/api/me` is asked
+  // again on focus, which is the read every screen with a gear makes.
   useFocusEffect(
     useCallback(() => {
-      let live = true;
-      void fetchPeople().then((page) => {
-        if (live && page) setWaiting(page.requestsForYou.length);
-      });
-      return () => {
-        live = false;
-      };
+      void refreshMe();
     }, []),
   );
-  const dot = (waiting ?? me?.requestsWaiting ?? 0) > 0;
+  const dot = (me?.requestsWaiting ?? 0) > 0;
   return (
     <Pressable
       onPress={() => router.push("/settings")}

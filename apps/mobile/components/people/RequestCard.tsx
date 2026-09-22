@@ -63,7 +63,7 @@ export function RequestCard({
           disabled={busy !== null}
           accessibilityRole="button"
           className="items-center justify-center rounded-pill bg-moss-600 px-space-5"
-          style={{ height: 30, marginVertical: 7, opacity: busy === "accept" ? 0.55 : 1 }}
+          style={{ minHeight: 30, marginVertical: 7, opacity: busy === "accept" ? 0.55 : 1 }}
         >
           <Text className="font-core font-medium text-text-on-solid" style={{ fontSize: 13 }}>
             {failed === "accept" ? "Try again" : "Accept"}
@@ -74,7 +74,7 @@ export function RequestCard({
           disabled={busy !== null}
           accessibilityRole="button"
           className="items-center justify-center rounded-pill border border-border-strong px-space-5"
-          style={{ height: 30, marginVertical: 7, opacity: busy === "dismiss" ? 0.55 : 1 }}
+          style={{ minHeight: 30, marginVertical: 7, opacity: busy === "dismiss" ? 0.55 : 1 }}
         >
           <Text className={`font-core font-medium ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`} style={{ fontSize: 13 }}>
             {failed === "dismiss" ? "Try again" : "Not now"}

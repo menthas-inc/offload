@@ -57,7 +57,7 @@ export function InvitationModal({ invitation, onClose, onGone }: { invitation: I
             </h2>
           </div>
           <p className={styles.modalBody} style={{ marginTop: "var(--space-4)" }}>
-            {invitation.preview.count} in it. You can add to it, and you cannot delete anything of {first}&rsquo;s.
+            {invitation.preview.count > 0 ? `${invitation.preview.count} in it. ` : ""}You can add to it, and you cannot delete anything of {first}&rsquo;s.
             {withNames(invitation.members)}
           </p>
           {invitation.preview.titles.length > 0 ? (
