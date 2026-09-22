@@ -232,8 +232,9 @@ export default function Privacy() {
             <li>
               <strong>Your device&apos;s time zone</strong>, sent with each thing you dump, type
               into a thread or answer, and kept with it, so that &quot;tomorrow&quot; and
-              &quot;3pm&quot; mean what they meant where you were. Nothing finer than the zone: no
-              location, no clock.
+              &quot;3pm&quot; mean what they meant where you were, and once at first run, when it
+              becomes the clock your dates are shown in until you change it in Settings. Nothing
+              finer than the zone: no location, no clock.
             </li>
             <li>
               <strong>Product events</strong>, such as joining the waitlist or finishing first run.
