@@ -38,7 +38,7 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 - [x] **F1** `lib/me.ts` and the onboarding call: the three fields and `timeZone`. `lib/zone.ts`. Test the request bodies and the strip's predicate. (AC-1, AC-3)
 - [x] **F2** `Intl.DateTimeFormat` with a zone checked on the simulator, before anything below draws a time.
 - [x] **F3** `DateChip.tsx` and the chip on `ContentRow.tsx` at the trailing edge of the title line, the bell mark, the change token; the rail and Notes read the zone. (AC-12 to AC-16)
-- [ ] **F4** `@react-native-community/datetimepicker` added; the iOS simulator development build made through EAS; the plugin verified.
+- [x] **F4** `@react-native-community/datetimepicker` added; the iOS simulator development build made through EAS; the plugin verified.
 - [x] **F5** `RowEditSheet.tsx` with title, details, When, Repeats, Remind me while set, the one way out, Cancel and Save, one `perform` write with "Saved" and "Couldn't save that". (AC-17, AC-27)
 - [x] **F6** `WhenSheet.tsx`: the grid from `monthFor`, All day and the platform's hour, Ends at on an event, the presets, Clear, Save, the standalone and hand-back modes. `CustomRepeatSheet.tsx`. (AC-18 to AC-22)
 - [x] **F7** `RowActionSheet` gains a value; the When row. A calendar-backed row's sheet. (AC-23, AC-24)
@@ -53,6 +53,6 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 ## H. Verification
 
-- [ ] **H1** `pnpm test`, `pnpm lint`, `pnpm typecheck`, `uv run ruff check .`, the three `dead-*.mjs`, on the isolated database with no server running.
+- [x] **H1** `pnpm test`, `pnpm lint`, `pnpm typecheck`, `uv run ruff check .`, the three `dead-*.mjs`, on the isolated database with no server running.
 - [ ] **H2** On the simulator: the sheets, the wheel, the grid at the turn of a month, the strip and its two answers, the settings pages, the chip at 200% text in both themes, and one real turn that moves a date by saying it. On the web: the modal, the chip, the strip, the page. Screenshots kept. (Done means)
 - [ ] **H3** The three review agents on the diff; one commit per pass.

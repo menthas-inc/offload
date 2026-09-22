@@ -140,7 +140,11 @@ export function RowEditSheet({
           </View>
         ) : null}
 
-        <View className="mt-space-4 flex-row items-center justify-end gap-space-4">
+        {/* Three pills, and at an accessibility text size they do not fit on
+            one line: without the wrap, Save sat past the right edge and could
+            not be reached. Whatever does not fit drops to a second line, kept
+            to the right. Seen on the simulator at accessibility extra large. */}
+        <View className="mt-space-4 flex-row flex-wrap items-center justify-end gap-space-4">
           <Pressable
             onPress={() => onRemove(row)}
             accessibilityLabel={row.archivedAt ? "Put back in the thread" : row.canDelete ? "Delete" : "Archive"}
