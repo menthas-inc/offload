@@ -962,6 +962,10 @@ export async function applyAnswer(
       return { applied: false, reason: result.error === "already_in" || result.error === "waiting" ? "already_set" : "gone" };
     }
     await settle({ previous_value: JSON.stringify({ share: threadId, member: result.memberId }) });
+    // The turn wears the thread's pill, as a date's does: the tap changed
+    // the thread, and the pill is the way to the sheet where the share now
+    // waits. Seen missing on the simulator, a chip answered by nothing.
+    await landedIn(trx, by.answeredMessageId, threadId);
     await promotePending(trx, q.id, by.answeredMessageId);
     return { applied: true, field, threadId };
   }
