@@ -28,6 +28,8 @@ the new truth, and the design system is updated to match on the next sync.
 7. **The relation line gains a sixth value.** The security review found the tell blocking was meant not to have: a co-member who had blocked you was a blank mark on the pane head, and a share waiting on somebody drew a blank face on the sheet. The one rule now sees a blocker exactly as far as what the block left standing, and sees somebody a thread is waiting on, one way; the person page says "Waiting on a share" for the latter.
 8. **Not now leaves a word behind.** In Add a connection, a request answered Not now from the found row says "Not now" in the value slot rather than offering Request, which the server would refuse; and a request refused by the seven-day rule says "You asked recently. Try again in a week." under the row. The Block confirmation lists no threads, since Block touches none.
 
+9. **The answer's turn carries the thread's pill.** Tapping a name on "which Sam?" shared the thread and left the turn bare: no Done mark, no pill, nothing on screen saying where it went. Every answer that changes a thread wears it, and this one now does, which is also the way back to the sheet where the share waits.
+
 **Design system impact:** `Sharing.jsx`, `WSharing.jsx` and `M3Sharing.jsx`: the found row's Not now state and the seven-day line; `SettingsDetail.jsx`'s people page: Blocked as one unlabelled row, dates as "4 Aug"; `PersonScreen.jsx` and `WPerson`: the relation line's sixth value and the mark in the web pane head; the Block confirmation without a thread list. `Avatar`'s contract is unchanged.
 
 ---
