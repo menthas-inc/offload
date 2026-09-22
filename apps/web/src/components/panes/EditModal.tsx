@@ -8,7 +8,7 @@
 // second layer, Time and Repeats as inline blocks, and Custom's fields
 // disclosed under Repeats. Escape is Cancel. Save writes once.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   WEEKDAYS,
   formatRule,
@@ -29,7 +29,7 @@ import people from "../people/people.module.css";
 import { useAppearance } from "../../lib/appearance";
 import { useClock } from "../../lib/clock";
 import type { ContentPatch, ContentRow } from "../../lib/threads";
-import { patchFor, repeatsLabel, sameWhen, whenValueOf, type WhenValue } from "../../lib/when";
+import { anHourAfter, patchFor, repeatsLabel, sameWhen, whenValueOf, type WhenValue } from "../../lib/when";
 
 const UNITS: { freq: Freq; one: string; many: string }[] = [
   { freq: "DAILY", one: "day", many: "days" },
@@ -43,10 +43,6 @@ function weekdayOf(day: string): Weekday {
   return WEEKDAYS[(noonUtc(day).getUTCDay() + 6) % 7]!;
 }
 
-function anHourAfter(time: string): string {
-  const [h, m] = time.split(":").map(Number);
-  return `${String(((h ?? 0) + 1) % 24).padStart(2, "0")}:${String(m ?? 0).padStart(2, "0")}`;
-}
 
 export function EditModal({
   row,
@@ -122,7 +118,7 @@ export function EditModal({
               <Icon name="chevron-right" size={18} />
             </button>
           </div>
-          <div className={styles.editGrid} role="grid" aria-label={grid.label}>
+          <div className={styles.editGrid} aria-label={grid.label}>
             {grid.weeks[0]?.days.map((one) => (
               <span key={one.iso} className={styles.editDow}>
                 {one.dow.slice(0, 1)}
@@ -136,7 +132,7 @@ export function EditModal({
                   className={`${styles.editDay} ${one.iso === when.day ? styles.editDayOn : ""} ${one.today ? styles.editDayToday : ""} ${grid.inMonth(one.iso) ? "" : styles.editDayOut}`}
                   onClick={() => pickDay(one.iso)}
                   aria-pressed={one.iso === when.day}
-                  aria-label={one.iso}
+                  aria-label={dayName(one.iso)}
                 >
                   {one.dom}
                 </button>
@@ -228,7 +224,7 @@ export function EditModal({
       <div className={people.modalActions}>
         {!row.onCalendar && when.day ? (
           <button type="button" className={`${people.ghost} ${styles.editClear}`} onClick={() => setWhen({ day: null, time: null, endTime: null, rrule: null })}>
-            Clear date
+            Clear
           </button>
         ) : null}
         <button type="button" className={people.ghost} onClick={onClose}>
@@ -243,6 +239,11 @@ export function EditModal({
 }
 
 /** Custom's four controls, inline. */
+/** A day's name for a screen reader: "Friday 25 September", not "2026-09-25". */
+function dayName(iso: string): string {
+  return new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(noonUtc(iso));
+}
+
 function CustomRule({ anchorDay, initial, onChange }: { anchorDay: string; initial: string | null; onChange: (rrule: string) => void }) {
   const parsed = initial ? parseRule(initial) : null;
   const start: Rule = parsed?.ok ? parsed.rule : { freq: "WEEKLY", interval: 1, byDay: [weekdayOf(anchorDay)] };
@@ -257,6 +258,13 @@ function CustomRule({ anchorDay, initial, onChange }: { anchorDay: string; initi
     start.until ? `${start.until.slice(0, 4)}-${start.until.slice(4, 6)}-${start.until.slice(6, 8)}` : utcDay(new Date(noonUtc(anchorDay).getTime() + 90 * 86_400_000)),
   );
   const [count, setCount] = useState(start.count ?? 6);
+
+  // Chosen from the select, the block showed a rule and Save sent nothing
+  // until a control was touched (the client review of 2026-09-22): the rule
+  // it opens with goes up once, on mount.
+  useEffect(() => {
+    emit({});
+  }, []);
 
   function emit(next: Partial<{ interval: number; freq: Freq; byDay: Weekday[]; anchor: "dom" | "nth"; ends: "never" | "on" | "after"; until: string; count: number }>): void {
     const state = { interval, freq, byDay, anchor, ends, until, count, ...next };
@@ -335,11 +343,11 @@ function CustomRule({ anchorDay, initial, onChange }: { anchorDay: string; initi
       {freq === "MONTHLY" ? (
         <div className={styles.editRow}>
           <label className={styles.editCheck}>
-            <input type="radio" checked={anchor === "dom"} onChange={() => { setAnchor("dom"); emit({ anchor: "dom" }); }} />
+            <input type="radio" name="anchor" checked={anchor === "dom"} onChange={() => { setAnchor("dom"); emit({ anchor: "dom" }); }} />
             On the {dom}
           </label>
           <label className={styles.editCheck}>
-            <input type="radio" checked={anchor === "nth"} onChange={() => { setAnchor("nth"); emit({ anchor: "nth" }); }} />
+            <input type="radio" name="anchor" checked={anchor === "nth"} onChange={() => { setAnchor("nth"); emit({ anchor: "nth" }); }} />
             On the {ORDINAL_WORDS[String(nth)]} {new Intl.DateTimeFormat(undefined, { weekday: "long", timeZone: "UTC" }).format(noonUtc(anchorDay))}
           </label>
         </div>
@@ -347,11 +355,11 @@ function CustomRule({ anchorDay, initial, onChange }: { anchorDay: string; initi
       <div className={styles.editRow}>
         <span className={styles.editRowLabel}>Ends</span>
         <label className={styles.editCheck}>
-          <input type="radio" checked={ends === "never"} onChange={() => { setEnds("never"); emit({ ends: "never" }); }} />
+          <input type="radio" name="ends" checked={ends === "never"} onChange={() => { setEnds("never"); emit({ ends: "never" }); }} />
           Never
         </label>
         <label className={styles.editCheck}>
-          <input type="radio" checked={ends === "on"} onChange={() => { setEnds("on"); emit({ ends: "on" }); }} />
+          <input type="radio" name="ends" checked={ends === "on"} onChange={() => { setEnds("on"); emit({ ends: "on" }); }} />
           On
         </label>
         <input
@@ -367,7 +375,7 @@ function CustomRule({ anchorDay, initial, onChange }: { anchorDay: string; initi
           aria-label="Ends on"
         />
         <label className={styles.editCheck}>
-          <input type="radio" checked={ends === "after"} onChange={() => { setEnds("after"); emit({ ends: "after" }); }} />
+          <input type="radio" name="ends" checked={ends === "after"} onChange={() => { setEnds("after"); emit({ ends: "after" }); }} />
           After
         </label>
         <input

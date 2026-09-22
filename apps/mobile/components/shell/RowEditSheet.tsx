@@ -7,7 +7,7 @@
 // field in one request, drawn first and sent second by the screen.
 
 import { useState } from "react";
-import { Platform, Pressable, Text, TextInput, View } from "react-native";
+import { Keyboard, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, { FadeIn, FadeInDown, FadeOut, useAnimatedStyle } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
@@ -64,6 +64,14 @@ export function RowEditSheet({
 
   const rowInk = isAndroid ? "text-a-on" : "text-text-primary";
   const quiet = isAndroid ? "text-a-on-var" : "text-text-secondary";
+  const { height: windowHeight } = useWindowDimensions();
+
+  // The keyboard is up from the title field, and the When sheet does not
+  // follow it: its grid, Clear and Save sat underneath.
+  function pick(which: "when" | "repeats"): void {
+    Keyboard.dismiss();
+    setPicking(which);
+  }
 
   return (
     <>
@@ -77,6 +85,10 @@ export function RowEditSheet({
         exiting={FadeOut.duration(140)}
         className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
       >
+        {/* Bounded and scrolling, because at a large text size on a small
+            phone the fields and the pills together outgrow the sheet, and a
+            sheet that clips is one whose Save cannot be reached. */}
+        <ScrollView style={{ maxHeight: windowHeight * 0.8 }} keyboardShouldPersistTaps="handled">
         <Text className={`font-core font-semibold ${rowInk}`} style={{ fontSize: 17 }}>
           Edit
         </Text>
@@ -105,7 +117,7 @@ export function RowEditSheet({
             calendar keeps its time, which is Google's, and offers neither. */}
         {!row.onCalendar ? (
           <>
-            <Pressable onPress={() => setPicking("when")} className="mt-space-2 min-h-tap-min flex-row items-center gap-space-3" accessibilityRole="button">
+            <Pressable onPress={() => pick("when")} className="mt-space-2 min-h-tap-min flex-row items-center gap-space-3" accessibilityRole="button">
               <Glyph name="calendar" size={18} color={COLOR.iconOnWell} />
               <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
                 When
@@ -115,7 +127,7 @@ export function RowEditSheet({
               </Text>
               <Glyph name="chevron-right" size={18} color={COLOR.iconOnWell} />
             </Pressable>
-            <Pressable onPress={() => setPicking(when.day ? "repeats" : "when")} className="min-h-tap-min flex-row items-center gap-space-3" accessibilityRole="button">
+            <Pressable onPress={() => pick(when.day ? "repeats" : "when")} className="min-h-tap-min flex-row items-center gap-space-3" accessibilityRole="button">
               <Glyph name="clock" size={18} color={COLOR.iconOnWell} />
               <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
                 Repeats
@@ -148,6 +160,7 @@ export function RowEditSheet({
           <Pressable
             onPress={() => onRemove(row)}
             accessibilityLabel={row.archivedAt ? "Put back in the thread" : row.canDelete ? "Delete" : "Archive"}
+            hitSlop={8}
             className="mr-auto flex-row items-center gap-space-2 rounded-pill border border-border-hairline px-space-5"
             style={{ minHeight: 30, justifyContent: "center" }}
           >
@@ -156,17 +169,18 @@ export function RowEditSheet({
               {row.archivedAt ? "Put back" : row.canDelete ? "Delete" : "Archive"}
             </Text>
           </Pressable>
-          <Pressable onPress={onClose} className="rounded-pill border border-border-hairline px-space-5" style={{ minHeight: 30, justifyContent: "center" }} accessibilityRole="button">
+          <Pressable onPress={onClose} hitSlop={8} className="rounded-pill border border-border-hairline px-space-5" style={{ minHeight: 30, justifyContent: "center" }} accessibilityRole="button">
             <Text className={`font-core font-medium ${quiet}`} style={{ fontSize: 13 }}>
               Cancel
             </Text>
           </Pressable>
-          <Pressable onPress={save} className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`} style={{ minHeight: 30, justifyContent: "center" }} accessibilityRole="button">
+          <Pressable onPress={save} hitSlop={8} className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`} style={{ minHeight: 30, justifyContent: "center" }} accessibilityRole="button">
             <Text className={`font-core font-medium ${isAndroid ? "text-a-surface" : "text-text-inverse"}`} style={{ fontSize: 13 }}>
               Save
             </Text>
           </Pressable>
         </View>
+        </ScrollView>
       </Animated.View>
 
       {picking ? (

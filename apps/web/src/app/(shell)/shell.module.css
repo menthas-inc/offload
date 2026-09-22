@@ -2383,8 +2383,8 @@ a.settingsRow:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  min-height: 32px;
+  min-width: 44px;
+  min-height: 44px;
   border: none;
   background: none;
   border-radius: var(--radius-pill);
@@ -2413,7 +2413,7 @@ a.settingsRow:hover {
 /* Today is outlined, the pick is filled: two facts, two marks. The days either
    side of the month are quieter and still tappable. */
 .editDay {
-  min-height: 36px;
+  min-height: 40px;
   border: 1.5px solid transparent;
   border-radius: var(--radius-pill);
   background: none;
@@ -2494,8 +2494,8 @@ a.settingsRow:hover {
 }
 
 .editDayChip {
-  min-width: 32px;
-  min-height: 32px;
+  min-width: 44px;
+  min-height: 44px;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-pill);
   background: none;

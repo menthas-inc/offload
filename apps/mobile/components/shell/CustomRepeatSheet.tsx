@@ -27,6 +27,47 @@ function weekdayOf(day: string): Weekday {
   return WEEKDAYS[(noonUtc(day).getUTCDay() + 6) % 7]!;
 }
 
+/** A number typed rather than stepped: the design draws a field, and the
+ *  glyph set has no minus. Clamped to the grammar's range on every change.
+ *
+ *  At module level, not inside the sheet: declared in the body, it was a new
+ *  component type on every render, so the field was unmounted after each
+ *  digit and the keyboard dropped (the client review of 2026-09-22). */
+function Count({ value, onChange, min, max, label, ink }: { value: number; onChange: (n: number) => void; min: number; max: number; label: string; ink: string }) {
+  return (
+    <TextInput
+      value={String(value)}
+      onChangeText={(text) => {
+        const digits = text.replace(/[^0-9]/g, "");
+        if (digits !== "") onChange(Math.min(max, Math.max(min, Number(digits))));
+      }}
+      keyboardType="number-pad"
+      selectTextOnFocus
+      accessibilityLabel={label}
+      className={`rounded-sm border border-border-hairline px-space-3 py-space-2 text-center font-core ${ink}`}
+      style={{ fontSize: 15, minWidth: 56, fontVariant: ["tabular-nums"] }}
+    />
+  );
+}
+
+function Choice({ on, label, note, onPress, ink, quiet, COLOR }: { on: boolean; label: string; note?: string; onPress: () => void; ink: string; quiet: string; COLOR: { ink: string; hairline: string } }) {
+  return (
+    <Pressable onPress={onPress} className="min-h-tap-min flex-row items-center gap-space-3" accessibilityRole="radio" accessibilityState={{ checked: on }}>
+      <View className="items-center justify-center rounded-pill" style={{ width: 20, height: 20, borderWidth: 1.5, borderColor: on ? COLOR.ink : COLOR.hairline }}>
+        {on ? <View className="rounded-pill bg-surface-inverse" style={{ width: 10, height: 10 }} /> : null}
+      </View>
+      <Text className={`font-core ${ink}`} style={{ fontSize: 15 }}>
+        {label}
+      </Text>
+      {note ? (
+        <Text className={`ml-auto font-core ${quiet}`} style={{ fontSize: 15 }}>
+          {note}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
 export function CustomRepeatSheet({
   open,
   anchorDay,
@@ -75,39 +116,6 @@ export function CustomRepeatSheet({
   const quiet = isAndroid ? "text-a-on-var" : "text-text-secondary";
   const unit = UNITS.find((one) => one.freq === freq)!;
 
-  /** A number typed rather than stepped: the design draws a field, and the
-   *  glyph set has no minus. Clamped to the grammar's range on every change. */
-  const Count = ({ value, onChange, min, max, label }: { value: number; onChange: (n: number) => void; min: number; max: number; label: string }) => (
-    <TextInput
-      value={String(value)}
-      onChangeText={(text) => {
-        const digits = text.replace(/[^0-9]/g, "");
-        if (digits !== "") onChange(Math.min(max, Math.max(min, Number(digits))));
-      }}
-      keyboardType="number-pad"
-      selectTextOnFocus
-      accessibilityLabel={label}
-      className={`rounded-sm border border-border-hairline px-space-3 py-space-2 text-center font-core ${rowInk}`}
-      style={{ fontSize: 15, minWidth: 56, fontVariant: ["tabular-nums"] }}
-    />
-  );
-
-  const Choice = ({ on, label, note, onPress }: { on: boolean; label: string; note?: string; onPress: () => void }) => (
-    <Pressable onPress={onPress} className="min-h-tap-min flex-row items-center gap-space-3" accessibilityRole="radio" accessibilityState={{ checked: on }}>
-      <View className="items-center justify-center rounded-pill" style={{ width: 20, height: 20, borderWidth: 1.5, borderColor: on ? COLOR.ink : COLOR.hairline }}>
-        {on ? <View className="rounded-pill bg-surface-inverse" style={{ width: 10, height: 10 }} /> : null}
-      </View>
-      <Text className={`font-core ${rowInk}`} style={{ fontSize: 15 }}>
-        {label}
-      </Text>
-      {note ? (
-        <Text className={`ml-auto font-core ${quiet}`} style={{ fontSize: 15 }}>
-          {note}
-        </Text>
-      ) : null}
-    </Pressable>
-  );
-
   return (
     <>
       <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(140)} className="absolute inset-0" style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}>
@@ -128,7 +136,7 @@ export function CustomRepeatSheet({
             <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
               Repeat every
             </Text>
-            <Count value={interval} onChange={setInterval} min={1} max={99} label={`Every how many ${unit.many}`} />
+            <Count ink={rowInk} value={interval} onChange={setInterval} min={1} max={99} label={`Every how many ${unit.many}`} />
           </View>
           <View className="flex-row gap-space-2">
             {UNITS.map((one) => (
@@ -160,7 +168,8 @@ export function CustomRepeatSheet({
                       key={day}
                       onPress={() => setByDay(on ? byDay.filter((one) => one !== day) : [...byDay, day])}
                       className={`items-center justify-center rounded-pill ${on ? "bg-surface-inverse" : "border border-border-hairline"}`}
-                      style={{ width: 38, height: 38 }}
+                      style={{ minWidth: 38, minHeight: 38 }}
+                      hitSlop={4}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: on }}
                       accessibilityLabel={day}
@@ -177,16 +186,16 @@ export function CustomRepeatSheet({
 
           {freq === "MONTHLY" ? (
             <View className="mt-space-3">
-              <Choice on={anchor === "dom"} label={`On the ${dom}${dom % 10 === 1 && dom !== 11 ? "st" : dom % 10 === 2 && dom !== 12 ? "nd" : dom % 10 === 3 && dom !== 13 ? "rd" : "th"}`} onPress={() => setAnchor("dom")} />
-              <Choice on={anchor === "nth"} label={`On the ${ORDINAL_WORDS[String(nth)]} ${new Intl.DateTimeFormat(undefined, { weekday: "long", timeZone: "UTC" }).format(noonUtc(anchorDay))}`} onPress={() => setAnchor("nth")} />
+              <Choice ink={rowInk} quiet={quiet} COLOR={COLOR} on={anchor === "dom"} label={`On the ${dom}${dom % 10 === 1 && dom !== 11 ? "st" : dom % 10 === 2 && dom !== 12 ? "nd" : dom % 10 === 3 && dom !== 13 ? "rd" : "th"}`} onPress={() => setAnchor("dom")} />
+              <Choice ink={rowInk} quiet={quiet} COLOR={COLOR} on={anchor === "nth"} label={`On the ${ORDINAL_WORDS[String(nth)]} ${new Intl.DateTimeFormat(undefined, { weekday: "long", timeZone: "UTC" }).format(noonUtc(anchorDay))}`} onPress={() => setAnchor("nth")} />
             </View>
           ) : null}
 
           <Text className={`mt-space-4 font-core ${quiet}`} style={{ fontSize: 13 }}>
             Ends
           </Text>
-          <Choice on={ends === "never"} label="Never" onPress={() => setEnds("never")} />
-          <Choice
+          <Choice ink={rowInk} quiet={quiet} COLOR={COLOR} on={ends === "never"} label="Never" onPress={() => setEnds("never")} />
+          <Choice ink={rowInk} quiet={quiet} COLOR={COLOR}
             on={ends === "on"}
             label="On"
             note={new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(noonUtc(until))}
@@ -214,21 +223,21 @@ export function CustomRepeatSheet({
           ) : null}
           <View className="flex-row items-center">
             <View className="flex-1">
-              <Choice on={ends === "after"} label="After" onPress={() => setEnds("after")} />
+              <Choice ink={rowInk} quiet={quiet} COLOR={COLOR} on={ends === "after"} label="After" onPress={() => setEnds("after")} />
             </View>
-            <Count value={count} onChange={(n) => { setCount(n); setEnds("after"); }} min={1} max={999} label="How many times" />
+            <Count ink={rowInk} value={count} onChange={(n) => { setCount(n); setEnds("after"); }} min={1} max={999} label="How many times" />
             <Text className={`ml-space-2 font-core ${quiet}`} style={{ fontSize: 15 }}>
               times
             </Text>
           </View>
 
           <View className="mt-space-4 flex-row items-center justify-end gap-space-4">
-            <Pressable onPress={onClose} className="rounded-pill border border-border-hairline px-space-5" style={{ minHeight: 30, justifyContent: "center" }} accessibilityRole="button">
+            <Pressable onPress={onClose} hitSlop={8} className="rounded-pill border border-border-hairline px-space-5" style={{ minHeight: 30, justifyContent: "center" }} accessibilityRole="button">
               <Text className={`font-core font-medium ${quiet}`} style={{ fontSize: 13 }}>
                 Cancel
               </Text>
             </Pressable>
-            <Pressable onPress={() => onDone(formatRule(rule))} className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`} style={{ minHeight: 30, justifyContent: "center" }} accessibilityRole="button">
+            <Pressable onPress={() => onDone(formatRule(rule))} hitSlop={8} className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`} style={{ minHeight: 30, justifyContent: "center" }} accessibilityRole="button">
               <Text className={`font-core font-medium ${isAndroid ? "text-a-surface" : "text-text-inverse"}`} style={{ fontSize: 13 }}>
                 Done
               </Text>

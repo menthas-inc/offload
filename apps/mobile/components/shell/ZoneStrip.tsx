@@ -80,6 +80,8 @@ export function ZoneStrip() {
           <Text
             className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-danger"}`}
             style={{ fontSize: 13, lineHeight: 18 }}
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
           >
             Couldn&apos;t save that.
           </Text>
@@ -96,10 +98,7 @@ export function ZoneStrip() {
             accessibilityRole="button"
             className="min-h-tap-min justify-center rounded-sm px-space-3"
           >
-            <Text
-              className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-accent"}`}
-              style={{ fontSize: 13.5 }}
-            >
+            <Text className="font-core font-medium text-text-accent" style={{ fontSize: 13.5 }}>
               Use {here}
             </Text>
           </Pressable>

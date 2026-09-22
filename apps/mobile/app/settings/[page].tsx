@@ -86,7 +86,7 @@ export default function SettingsPage() {
         </Text>
       </View>
 
-      <ScrollView contentContainerClassName="px-gutter-screen pb-space-9 pt-space-2">
+      <ScrollView contentContainerClassName="px-gutter-screen pb-space-9 pt-space-2" keyboardShouldPersistTaps="handled">
         {page === "apps" ? <Apps /> : null}
         {page === "calendar" ? <CalendarPage /> : null}
         {page === "account" ? <Account /> : null}
@@ -290,6 +290,7 @@ function DateTime() {
       <Group label="Your clock">
         <Row
           title="Time zone"
+          note="Everything is shown and scheduled in this one."
           value={me?.timeZone ? zoneCity(me.timeZone) : undefined}
           onPress={() => router.push("/settings/timezone")}
         />

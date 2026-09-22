@@ -54,7 +54,11 @@ export function ZoneStrip() {
           Showing times in <b>{clock}</b>. This browser says <b>{here}</b>.
         </p>
       </div>
-      {failed ? <p className={styles.zoneFailed}>Couldn&apos;t save that.</p> : null}
+      {failed ? (
+        <p className={styles.zoneFailed} aria-live="polite">
+          Couldn&apos;t save that.
+        </p>
+      ) : null}
       <div className={styles.zoneAnswers}>
         <button type="button" className={styles.zoneAnswer} onClick={() => void answer({ timeZone: device })}>
           Use {here}

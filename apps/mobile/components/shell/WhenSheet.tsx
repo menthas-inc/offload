@@ -10,7 +10,7 @@
 // or hold it until an edit sheet's Save, which is what "Save writes once"
 // means when this opened from one.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
@@ -20,7 +20,7 @@ import { Switch } from "../settings/Switch";
 import { atOpacity, useColors } from "../../lib/colors";
 import { useWeekStart } from "../../lib/appearance";
 import { useClock } from "../../lib/clock";
-import { clockLabel, repeatsLabel, type WhenValue } from "../../lib/when";
+import { anHourAfter, clockLabel, repeatsLabel, type WhenValue } from "../../lib/when";
 import { useScreenSheet } from "./conversation-context";
 import { CustomRepeatSheet } from "./CustomRepeatSheet";
 
@@ -42,10 +42,6 @@ function fromPicker(date: Date): string {
 }
 
 /** An hour after, on the same day. */
-function anHourAfter(time: string): string {
-  const [h, m] = time.split(":").map(Number);
-  return `${String(((h ?? 0) + 1) % 24).padStart(2, "0")}:${String(m ?? 0).padStart(2, "0")}`;
-}
 
 export function WhenSheet({
   open,
@@ -83,6 +79,14 @@ export function WhenSheet({
   const [block, setBlock] = useState<"time" | "repeats" | null>(focus === "repeats" ? "repeats" : null);
   const [ends, setEnds] = useState(false);
   const [custom, setCustom] = useState(false);
+
+  // Opened for Repeats, the sheet lands on that block rather than the grid:
+  // the row reports where it is and the sheet scrolls there once, unanimated.
+  const scroll = useRef<ScrollView>(null);
+  const [repeatsY, setRepeatsY] = useState<number | null>(null);
+  useEffect(() => {
+    if (focus === "repeats" && repeatsY !== null) scroll.current?.scrollTo({ y: repeatsY, animated: false });
+  }, [focus, repeatsY]);
 
   const grid = useMemo(() => monthFor(month, [], today, weekStart), [month, today, weekStart]);
   const presets: Preset[] = useMemo(() => (day ? presetsFor(day) : []), [day]);
@@ -156,7 +160,7 @@ export function WhenSheet({
         }`}
         style={{ maxHeight: windowHeight * 0.88 }}
       >
-        <ScrollView contentContainerClassName="px-gutter-screen" keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scroll} contentContainerClassName="px-gutter-screen" keyboardShouldPersistTaps="handled">
           <Text className={`font-core font-semibold ${rowInk}`} style={{ fontSize: 17 }}>
             When
           </Text>
@@ -258,7 +262,7 @@ export function WhenSheet({
                   accessibilityLabel="Time"
                 >
                   <Text className={`flex-1 font-core ${rowInk}`} style={{ fontSize: 15 }}>
-                    Starts
+                    {isEvent ? "Starts" : "Time"}
                   </Text>
                   <Text className={`font-core ${quiet}`} style={{ fontSize: 15 }}>
                     {clockLabel(time ?? "09:00")}
@@ -316,6 +320,7 @@ export function WhenSheet({
           {/* Repeats, revealed in place. */}
           <Pressable
             onPress={() => day && setBlock(block === "repeats" ? null : "repeats")}
+            onLayout={(event) => setRepeatsY(event.nativeEvent.layout.y)}
             disabled={!day}
             accessibilityRole="button"
             className="min-h-tap-min flex-row items-center gap-space-3"
@@ -360,6 +365,7 @@ export function WhenSheet({
           <View className="mt-space-4 flex-row items-center justify-end gap-space-4">
             <Pressable
               onPress={() => onSave({ day: null, time: null, endTime: null, rrule: null })}
+              hitSlop={8}
               className="rounded-pill border border-border-hairline px-space-5"
               style={{ minHeight: 30, justifyContent: "center" }}
               accessibilityRole="button"
@@ -370,6 +376,7 @@ export function WhenSheet({
             </Pressable>
             <Pressable
               onPress={() => onSave(current)}
+              hitSlop={8}
               className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`}
               style={{ minHeight: 30, justifyContent: "center" }}
               accessibilityRole="button"

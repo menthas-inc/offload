@@ -64,6 +64,8 @@ import { ShareModal } from "../people/ShareModal";
 import { EditModal } from "./EditModal";
 import { ConfirmModal } from "../people/Modal";
 import { useRouter } from "next/navigation";
+import { useClock } from "../../lib/clock";
+import { drawnWhen } from "../../lib/when";
 
 interface Props {
   id: string;
@@ -101,6 +103,8 @@ export function Thread({ id, onChanged }: Props) {
   const [viewing, setViewing] = useState<string | null>(null);
   const toast = useToast();
   const router = useRouter();
+  // 023. The clock the rail and a freshly saved date are drawn in.
+  const { zone } = useClock();
   // 022. The share modal, and Leave with its confirmation.
   const [sharing, setSharing] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -268,6 +272,9 @@ export function Thread({ id, onChanged }: Props) {
     if (patch.title !== undefined) drawn.title = patch.title;
     if (patch.body !== undefined) drawn.body = patch.body;
     if (patch.isReminder !== undefined) drawn.isReminder = patch.isReminder;
+    // The dates too, read in the account's clock exactly as the route reads
+    // them, so the chip moves with the toast.
+    Object.assign(drawn, drawnWhen(patch, zone));
     const before: Partial<ContentRow> = {
       title: row.title,
       body: row.body,
@@ -580,7 +587,7 @@ export function Thread({ id, onChanged }: Props) {
   // which 015's own opening paragraph said and its AC-1 contradicted; a week of
   // empty cells above a list is a calendar for nothing. Computed once, so the
   // rail and the list agree about what is on it.
-  const dated = showArchived ? [] : datedFor(rows, thread.notes);
+  const dated = showArchived ? [] : datedFor(rows, thread.notes, zone);
   const onRail = new Set(dated.map((one) => one.rowId));
   // 019. A pick earns the rail on its own: a thread with a calendar and
   // nothing dated shows this week, with the calendar's events on it.

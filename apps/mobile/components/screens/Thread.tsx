@@ -85,7 +85,7 @@ import {
 } from "../../lib/threads";
 import { perform, useWrites } from "../../lib/optimistic";
 import { useClock } from "../../lib/clock";
-import { patchFor, sameWhen, whenChipLabel, whenValueOf } from "../../lib/when";
+import { drawnWhen, patchFor, sameWhen, whenLabel, whenValueOf } from "../../lib/when";
 import { RowEditSheet } from "../shell/RowEditSheet";
 import { WhenSheet } from "../shell/WhenSheet";
 import { useConversation, useScreenSheet } from "../shell/conversation-context";
@@ -383,8 +383,10 @@ export default function Thread() {
     if (patch.title !== undefined) drawn.title = patch.title;
     if (patch.body !== undefined) drawn.body = patch.body;
     if (patch.isReminder !== undefined) drawn.isReminder = patch.isReminder;
-    // Dates are drawn from the server's answer rather than guessed: a wall
-    // time is read in the account's clock there, and the chip reads the row.
+    // The dates too, read in the account's clock exactly as the route reads
+    // them, so the chip moves with the toast; the server's answer then
+    // confirms what was drawn.
+    Object.assign(drawn, drawnWhen(patch, zone));
     const before: Partial<ContentRow> = {
       title: row.title,
       body: row.body,
@@ -414,23 +416,7 @@ export default function Thread() {
           }),
         did: "Saved",
         failed: "Couldn't save that",
-      },
-      toast,
-      writes,
-    );
-  }
-
-  function rename(row: ContentRow, title: string): void {
-    if (isProvisional(row.id)) return;
-    void perform(
-      {
-        apply: () => patchRow(row.id, { title }),
-        revert: () => patchRow(row.id, { title: row.title }),
-        write: () => editContent(row.id, { title }).then((result) => result !== null),
-        unwrite: () => editContent(row.id, { title: row.title }).then((result) => result !== null),
-        did: "Renamed",
-        failed: "Couldn't rename that",
-        unfailed: "Couldn't put the name back",
+        unfailed: "Couldn't put it back",
       },
       toast,
       writes,
@@ -604,7 +590,7 @@ export default function Thread() {
   // **And the rail is earned.** With nothing dated there is no rail at all,
   // which 015's own opening paragraph said and its AC-1 contradicted. Computed
   // once, so the rail and the list agree about what is on it.
-  const dated = showArchived ? [] : datedFor(allRows, allNotes);
+  const dated = showArchived ? [] : datedFor(allRows, allNotes, zone);
   const onRail = new Set(dated.map((one) => one.rowId));
   // 019. A pick earns the rail on its own: a thread with a calendar and
   // nothing dated shows this week, with the calendar's events on it.
@@ -645,8 +631,8 @@ export default function Thread() {
         // 023. When sits above Edit and carries its value where the other
         // rows carry nothing; a row on a calendar keeps its time, which is
         // Google's, and does not offer it.
-        ...(acting.canDelete && !acting.onCalendar
-          ? [{ label: "When", icon: "calendar", value: whenChipLabel(acting, zone, today), run: () => setTiming(acting) }]
+        ...(!acting.onCalendar
+          ? [{ label: "When", icon: "calendar", value: whenLabel(whenValueOf(acting, zone)), run: () => setTiming(acting) }]
           : []),
         { label: "Edit", icon: "pencil", run: () => setRenaming(acting) },
         // 020. The first move control the product has drawn, on the row's own

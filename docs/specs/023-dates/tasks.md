@@ -54,5 +54,5 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 ## H. Verification
 
 - [x] **H1** `pnpm test`, `pnpm lint`, `pnpm typecheck`, `uv run ruff check .`, the three `dead-*.mjs`, on the isolated database with no server running.
-- [ ] **H2** On the simulator: the sheets, the wheel, the grid at the turn of a month, the strip and its two answers, the settings pages, the chip at 200% text in both themes, and one real turn that moves a date by saying it. On the web: the modal, the chip, the strip, the page. Screenshots kept. (Done means)
-- [ ] **H3** The three review agents on the diff; one commit per pass.
+- [x] **H2** On the simulator: the sheets, the wheel, the grid at the turn of a month, the strip and its two answers, the settings pages, the chip at 200% text in both themes, and one real turn that moves a date by saying it. On the web: the modal, the chip, the strip, the page. Screenshots kept. (Done means)
+- [x] **H3** The three review agents on the diff; one commit per pass.

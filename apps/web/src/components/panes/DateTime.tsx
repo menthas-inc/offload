@@ -50,7 +50,7 @@ export function DateTimePane() {
           <div className={pane.settingsRow}>
             <span className={pane.settingsText}>
               <span className={pane.settingsTitle}>Time zone</span>
-              <span className={pane.settingsNote}>Times are shown in this zone on every device.</span>
+              <span className={pane.settingsNote}>Everything is shown and scheduled in this one.</span>
             </span>
             <select
               className={pane.settingsValue}

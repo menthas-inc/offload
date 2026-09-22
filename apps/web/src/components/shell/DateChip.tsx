@@ -19,7 +19,7 @@ export function DateChip({ row, isReminder }: { row: ChipRow; isReminder: boolea
   if (!chip) return null;
   const tone = chip.tone === "late" ? styles.chipLate : chip.tone === "soon" ? styles.chipSoon : "";
   return (
-    <span className={`${styles.chip} ${tone}`} aria-label={isReminder ? `${chip.label}, offload will remind you` : chip.label}>
+    <span className={`${styles.chip} ${tone}`} role="img" aria-label={isReminder ? `${chip.label}, offload will remind you` : chip.label}>
       <Icon name="calendar" size={12} />
       {chip.label}
       {isReminder ? <Icon name="bell" size={11} /> : null}
