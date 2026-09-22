@@ -17,6 +17,7 @@ import { sql } from "kysely";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { timeZoneOf } from "../time-zone.js";
+import { adoptZone } from "../accounts/zone.js";
 import { webOrigins } from "../env.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
@@ -916,6 +917,9 @@ export async function takeDump(
         .where("account_id", "=", accountId)
         .where("client_key", "=", clientKey!)
         .executeTakeFirstOrThrow();
+    // 023. The first zone an account hears becomes its clock; a later one
+    // never overwrites, and the strip is where a change is put to them.
+    await adoptZone(accountId, timeZone, trx);
       return {
         messageId: existing.id,
         conversationId: existing.conversation_id,
@@ -2070,6 +2074,7 @@ export async function answerQuestion(
       })
       .returning("id")
       .executeTakeFirstOrThrow();
+    await adoptZone(accountId, timeZone, trx);
 
     let applied = false;
     if (escape) {
@@ -2251,6 +2256,7 @@ export async function answerCalendarQuestion(
           })
           .returning("id")
           .executeTakeFirstOrThrow();
+    await adoptZone(accountId, input.timeZone ?? null, trx);
 
     const writable = calendar && (calendar.accessRole === "owner" || calendar.accessRole === "writer");
     if (!row || !stillMember || !calendar || !writable || !stillPicked || row.source_ref || !row.occurs_at) {

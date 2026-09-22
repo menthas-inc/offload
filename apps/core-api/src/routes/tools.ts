@@ -27,6 +27,8 @@ import type { Database } from "../schema.js";
 import type { App } from "../app.js";
 import { db } from "../db.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
+import { formatRule, parseRule } from "@offload/widgets";
+import { zoneOf } from "../accounts/zone.js";
 import { accountFacts, listAgenda, listContent, search } from "../search/read.js";
 import { env } from "../env.js";
 import { BadTags, MAX_TAGS, normaliseTags, TAG_CHARS } from "../threads/tags.js";
@@ -186,9 +188,10 @@ const body = z.discriminatedUnion("tool", [
     occursAt: z.string().max(40).nullish(),
     occursEndAt: z.string().max(40).nullish(),
     /** That it comes round again, as the rule rather than as occurrences. One
-     *  row, and the calendar draws it on every matching day. */
-    repeats: z.enum(["day", "weekday", "week", "two_weeks", "month", "year"]).nullish(),
-    repeatsUntil: z.string().max(40).nullish(),
+     *  row, and the calendar draws it on every matching day. 023: an RFC 5545
+     *  rule in the closed grammar, refused by name below rather than by the
+     *  schema, so the model reads `bad_rule` and can correct it. */
+    rrule: z.string().max(200).nullish(),
     /** A flag on a task or an event, never a type. Nothing acts on it until
      *  notifications ship. */
     isReminder: z.boolean().default(false),
@@ -279,6 +282,9 @@ const body = z.discriminatedUnion("tool", [
     dueAt: z.string().max(40).nullish(),
     occursAt: z.string().max(40).nullish(),
     occursEndAt: z.string().max(40).nullish(),
+    /** 023. The rule, which this tool never took: a recurrence could be
+     *  created and never changed by anyone. Null is not stated, never remove. */
+    rrule: z.string().max(200).nullish(),
   }),
   z.strictObject({
     tool: z.literal("move_content"),
@@ -331,8 +337,7 @@ const body = z.discriminatedUnion("tool", [
      *  "Yoga every Tuesday" is one note that repeats, not four notes. The
      *  calendar draws a dot on every matching day of whatever window is on
      *  screen, and a list draws the one row. */
-    repeats: z.enum(["day", "weekday", "week", "two_weeks", "month", "year"]).nullish(),
-    repeatsUntil: z.string().max(40).nullish(),
+    rrule: z.string().max(200).nullish(),
   }),
   // 012, the calendar. **No field decides whether a write is confirmed.**
   // That is read from the event and the calendar on this side, because some of
@@ -557,6 +562,7 @@ const result = z.union([
       "unknown_content",
       "not_yours",
       "bad_date",
+      "bad_rule",
       "thread_memory_full",
       // 012. A calendar that is not this account's, or one it may only read.
       "unknown_calendar",
@@ -675,6 +681,7 @@ type Outcome =
         | "no_time"
         | "unknown_event"
         | "bad_date"
+        | "bad_rule"
         | "thread_memory_full"
         | "unknown_person"
         | "default_thread"
@@ -777,11 +784,15 @@ async function markSawApps(jobId: string): Promise<void> {
  *  `../threads/dates.ts` for the production failure that taught us
  *  `z.string().datetime()` is not what a model writes.
  */
-function parseDates(call: {
-  dueAt?: string | null | undefined;
-  occursAt?: string | null | undefined;
-  occursEndAt?: string | null | undefined;
-}): Record<"dueAt" | "occursAt" | "occursEndAt", Date | null> | null {
+function parseDates(
+  call: {
+    dueAt?: string | null | undefined;
+    occursAt?: string | null | undefined;
+    occursEndAt?: string | null | undefined;
+  },
+  /** 023. The account's clock: a wall time with no zone is read in it. */
+  zone: string | null = null,
+): Record<"dueAt" | "occursAt" | "occursEndAt", Date | null> | null {
   const when: Record<"dueAt" | "occursAt" | "occursEndAt", Date | null> = {
     dueAt: null,
     occursAt: null,
@@ -790,13 +801,25 @@ function parseDates(call: {
   for (const field of ["dueAt", "occursAt", "occursEndAt"] as const) {
     const raw = call[field];
     if (raw == null || raw === "") continue;
-    const at = parseWhen(raw);
+    const at = parseWhen(raw, zone);
     // A date a century out is invisible rather than wrong-looking: it sorts to
     // the bottom forever and nobody sees it to fix it.
     if (!at || !plausible(at)) return null;
     when[field] = at;
   }
   return when;
+}
+
+/** The rule a call carries, canonical, or null for none, or false for one
+ *  the grammar refuses or one with nothing to anchor on. The server stores
+ *  only its own serialisation, so the bytes that arrived never reach
+ *  Postgres, a picker or Google (023 AC-8). */
+function ruleFor(text: string | null | undefined, anchor: Date | null): string | null | false {
+  if (text == null || text.trim() === "") return null;
+  const parsed = parseRule(text);
+  if (!parsed.ok) return false;
+  if (anchor === null) return false;
+  return formatRule(parsed.rule);
 }
 
 /** A date with no time in it is a day, and the row says so.
@@ -1032,8 +1055,12 @@ async function existing(
     // as though an earlier call in this turn already carried the thread's set.
     const carried = await notesForTurn(messageId, call.threadId, accountId, call.toolCallId, trx);
 
-    const when = parseDates(call);
+    const when = parseDates(call, await zoneOf(accountId, trx));
     if (when === null) return { ok: false, error: "bad_date" };
+    // A note's rule anchors on its occurrence; a rule with no anchor, or
+    // outside the grammar, is refused by name (023 AC-8).
+    const noteRule = ruleFor(call.rrule, when.occursAt);
+    if (noteRule === false) return { ok: false, error: "bad_rule" };
 
     try {
       const note = await addNote(
@@ -1045,8 +1072,7 @@ async function existing(
           // Corrections beat inference. This is offload working something out,
           // so a person may overwrite it and offload may not overwrite theirs.
           origin: "learned",
-          repeats: call.repeats ?? null,
-          repeatsUntil: call.repeatsUntil ? (parseWhen(call.repeatsUntil) ?? null) : null,
+          rrule: noteRule,
           // **Everything this turn writes after it read a calendar is
           // untrusted.** The model may be summarising an event somebody else
           // wrote into this person's thread, and a note is read as what is true
@@ -1126,7 +1152,7 @@ async function existing(
     if (!row || row.authorId !== accountId) return { ok: false, error: "unknown_content" };
     const detail = await trx
       .selectFrom("content")
-      .select(["title", "occurs_at", "occurs_end_at", "source_ref", "derived_from_message_id"])
+      .select(["title", "occurs_at", "occurs_end_at", "source_ref", "derived_from_message_id", "rrule"])
       .where("id", "=", row.id)
       .executeTakeFirstOrThrow();
     // And filed by this turn, or typed straight into the thread the quick add
@@ -1146,6 +1172,9 @@ async function existing(
         endsAt: detail.occurs_end_at ?? new Date(detail.occurs_at.getTime() + 60 * 60 * 1000),
         location: call.location ?? null,
         attendees: call.guests ?? [],
+        // 023. A repeating row goes up as the series it is, in the rule's
+        // own words: until now the rule was dropped and one event went up.
+        recurrence: detail.rrule ? [`RRULE:${detail.rrule}`] : null,
       },
     };
 
@@ -1289,16 +1318,26 @@ async function existing(
   // parse, the same refusal, and a bare date is a day. A row already on a
   // calendar keeps its time: that change goes through `edit_event`, which
   // is the one that reaches Google.
-  const when = parseDates(call);
+  const when = parseDates(call, await zoneOf(accountId, trx));
   if (when === null) return { ok: false, error: "bad_date" };
-  const timed = call.dueAt != null || call.occursAt != null || call.occursEndAt != null;
+  const timed = call.dueAt != null || call.occursAt != null || call.occursEndAt != null || call.rrule != null;
+  let rule: string | null | undefined;
   if (timed) {
-    const onCalendar = await trx
+    const held = await trx
       .selectFrom("content")
-      .select("source_ref")
+      .select(["source_ref", "type", "due_at", "occurs_at"])
       .where("id", "=", ref.id)
-      .executeTakeFirst();
-    if (onCalendar?.source_ref) return { ok: false, error: "already_on_calendar" };
+      .executeTakeFirstOrThrow();
+    if (held.source_ref) return { ok: false, error: "already_on_calendar" };
+    // 023. The rule anchors on the type's column as it stands after this
+    // edit; a rule with nothing to anchor on, or outside the grammar, is
+    // refused by name. A null leaves the rule alone: not stated, never remove.
+    if (call.rrule != null) {
+      const anchor = held.type === "event" ? (when.occursAt ?? held.occurs_at) : (when.dueAt ?? held.due_at);
+      const canonical = ruleFor(call.rrule, anchor);
+      if (canonical === false) return { ok: false, error: "bad_rule" };
+      rule = canonical;
+    }
   }
 
   await trx
@@ -1313,6 +1352,7 @@ async function existing(
       ...(call.occursAt == null ? {} : { occurs_at: when.occursAt }),
       ...(call.occursEndAt == null ? {} : { occurs_end_at: when.occursEndAt }),
       ...(call.occursAt == null ? {} : { attrs: sql`attrs || ${JSON.stringify(allDayAttrs(call) ?? { all_day: false })}::jsonb` }),
+      ...(rule === undefined ? {} : { rrule: rule }),
       // A priority a person pinned is not the planner's to change. The write
       // is simply skipped rather than refused: the model asked for something
       // reasonable and the answer is that somebody already decided.
@@ -1533,8 +1573,15 @@ export async function toolRoutes(app: App): Promise<void> {
           return { ok: false, error: "bad_place_name" };
         }
 
-        const when = parseDates(call);
+        const when = parseDates(call, await zoneOf(accountId, trx));
         if (when === null) return { ok: false, error: "bad_date" };
+        // A rule anchors on the type's column: an event repeats when it
+        // happens, everything else when it is wanted by. "Pay rent every
+        // month" as a task with no due date is a plausible slip, and the
+        // answer is a refusal the model can read rather than a rule quietly
+        // dropped (023 AC-8).
+        const contentRule = ruleFor(call.rrule, call.type === "event" ? when.occursAt : when.dueAt);
+        if (contentRule === false) return { ok: false, error: "bad_rule" };
 
         // 020. The photo this row is, resolved against the message's own
         // blobs before anything is written. An index on a row that is not a
@@ -1572,9 +1619,7 @@ export async function toolRoutes(app: App): Promise<void> {
             // violation here is a 500 from an endpoint whose whole contract is
             // that a refusal is a 200 the model can read and recover from.
             // `notes.ts` already did this and `add_content` did not.
-            repeats: when.occursAt ? (call.repeats ?? null) : null,
-            repeats_until:
-              when.occursAt && call.repeatsUntil ? (parseWhen(call.repeatsUntil) ?? null) : null,
+            rrule: contentRule,
             is_reminder: call.isReminder,
             priority: call.priority,
             tags,

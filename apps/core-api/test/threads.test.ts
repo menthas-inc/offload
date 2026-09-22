@@ -1275,7 +1275,7 @@ describe("the rail's own quick add, over HTTP", () => {
 
     const row = await db
       .selectFrom("content")
-      .select(["type", "title", "occurs_at", "repeats", "attrs"])
+      .select(["type", "title", "occurs_at", "rrule", "attrs"])
       .where("id", "=", id)
       .executeTakeFirstOrThrow();
     expect(row.type).toBe("event");
@@ -1283,8 +1283,144 @@ describe("the rail's own quick add, over HTTP", () => {
     // Noon, so the day survives being read west of Greenwich, same as
     // everywhere else a bare day is parsed.
     expect(row.occurs_at?.toISOString()).toBe("2026-09-13T12:00:00.000Z");
-    expect(row.repeats).toBeNull();
+    expect(row.rrule).toBeNull();
     expect((row.attrs as Record<string, unknown>)["all_day"]).toBe(true);
   });
 
+});
+
+// ---------------------------------------------------------------- 023
+//
+// AC-25 the person-facing edit takes title, body, the three dates, All day,
+//       the rule and Remind me in one request, absent leaving a field alone
+//       and null clearing it, and returns the previous values so Undo can put
+//       every one of them back, the flag included.
+// AC-26 scoped as the existing edit is, and a row on a calendar is refused.
+
+import { Refused } from "../src/threads/refusals.js";
+
+describe("023 the when field on the edit", () => {
+  async function task(me: string, th: string, over: Record<string, unknown> = {}): Promise<string> {
+    const row = await db
+      .insertInto("content")
+      .values({ account_id: me, thread_id: th, title: "Pay the rent", type: "task", ...over } as never)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    return row.id;
+  }
+  async function held(id: string) {
+    return db
+      .selectFrom("content")
+      .select(["title", "body", "due_at", "occurs_at", "occurs_end_at", "rrule", "is_reminder", "attrs"])
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow();
+  }
+  const allDayOf = (attrs: unknown) => (attrs as Record<string, unknown> | null)?.["all_day"] === true;
+
+  it("a bare day is noon UTC and all day; an hour is an instant in the account's zone", async () => {
+    const me = await account();
+    await db.updateTable("accounts").set({ time_zone: "Europe/Lisbon" } as never).where("id", "=", me).execute();
+    const th = await thread(me, "Flat admin");
+    const id = await task(me, th);
+
+    await editContent(me, id, { dueAt: "2026-09-25" });
+    let row = await held(id);
+    expect(row.due_at?.toISOString()).toBe("2026-09-25T12:00:00.000Z");
+    expect(allDayOf(row.attrs)).toBe(true);
+
+    await editContent(me, id, { dueAt: "2026-09-25T09:00:00", allDay: false });
+    row = await held(id);
+    expect(row.due_at?.toISOString()).toBe("2026-09-25T08:00:00.000Z");
+    expect(allDayOf(row.attrs)).toBe(false);
+  });
+
+  it("absent leaves a field alone and null clears it, and previous carries all of them", async () => {
+    const me = await account();
+    const th = await thread(me, "Flat admin");
+    const id = await task(me, th, { due_at: new Date("2026-09-25T12:00:00Z"), rrule: "FREQ=MONTHLY", is_reminder: true });
+
+    const previous = await editContent(me, id, { title: "Rent" });
+    expect(previous).toMatchObject({
+      title: "Pay the rent",
+      body: null,
+      dueAt: "2026-09-25T12:00:00.000Z",
+      occursAt: null,
+      occursEndAt: null,
+      rrule: "FREQ=MONTHLY",
+      isReminder: true,
+    });
+    let row = await held(id);
+    expect(row.title).toBe("Rent");
+    expect(row.rrule).toBe("FREQ=MONTHLY");
+
+    await editContent(me, id, { isReminder: false });
+    expect((await held(id)).is_reminder).toBe(false);
+
+    // Clearing the anchor clears the rule with it.
+    await editContent(me, id, { dueAt: null });
+    row = await held(id);
+    expect(row.due_at).toBeNull();
+    expect(row.rrule).toBeNull();
+
+    // Undo is the previous values written back in one request.
+    await editContent(me, id, previous);
+    row = await held(id);
+    expect(row.title).toBe("Pay the rent");
+    expect(row.due_at?.toISOString()).toBe("2026-09-25T12:00:00.000Z");
+    expect(row.rrule).toBe("FREQ=MONTHLY");
+    expect(row.is_reminder).toBe(true);
+  });
+
+  it("a rule is stored canonical and refused by name outside the grammar or without its anchor", async () => {
+    const me = await account();
+    const th = await thread(me, "Flat admin");
+    const id = await task(me, th, { due_at: new Date("2026-09-25T12:00:00Z") });
+    await editContent(me, id, { rrule: "byday=fr;freq=weekly" });
+    expect((await held(id)).rrule).toBe("FREQ=WEEKLY;BYDAY=FR");
+    await expect(editContent(me, id, { rrule: "FREQ=HOURLY" })).rejects.toMatchObject({ code: "bad_rule" });
+    await expect(editContent(me, id, { dueAt: null, rrule: "FREQ=WEEKLY" })).rejects.toMatchObject({ code: "bad_rule" });
+    const undated = await task(me, th);
+    await expect(editContent(me, undated, { rrule: "FREQ=WEEKLY" })).rejects.toMatchObject({ code: "bad_rule" });
+  });
+
+  it("an event anchors its rule on its occurrence, and clearing the occurrence clears the end and the rule", async () => {
+    const me = await account();
+    const th = await thread(me, "Flat admin");
+    const id = await task(me, th, { type: "event" });
+    await editContent(me, id, { occursAt: "2026-09-25T18:00:00Z", occursEndAt: "2026-09-25T19:00:00Z", rrule: "FREQ=WEEKLY" });
+    let row = await held(id);
+    expect(row.rrule).toBe("FREQ=WEEKLY");
+    await expect(editContent(me, id, { occursEndAt: "2026-09-25T17:00:00Z" })).rejects.toMatchObject({ code: "bad_date" });
+    await editContent(me, id, { occursAt: null });
+    row = await held(id);
+    expect(row.occurs_at).toBeNull();
+    expect(row.occurs_end_at).toBeNull();
+    expect(row.rrule).toBeNull();
+  });
+
+  it("refuses a date, All day and a rule on a row that is on a calendar", async () => {
+    const me = await account();
+    const th = await thread(me, "Flat admin");
+    const id = await task(me, th, { type: "event", occurs_at: new Date("2026-09-25T18:00:00Z"), source_ref: "google:abc" });
+    await expect(editContent(me, id, { occursAt: "2026-09-26T18:00:00Z" })).rejects.toMatchObject({ code: "on_calendar" });
+    await expect(editContent(me, id, { rrule: "FREQ=WEEKLY" })).rejects.toMatchObject({ code: "on_calendar" });
+    await expect(editContent(me, id, { allDay: true })).rejects.toMatchObject({ code: "on_calendar" });
+    await editContent(me, id, { title: "Dentist" });
+    expect((await held(id)).title).toBe("Dentist");
+    expect(Refused).toBeDefined();
+  });
+
+  it("is scoped per row by membership, so any member may set or clear a date", async () => {
+    const me = await account();
+    const ana = await account("Ana");
+    const th = await thread(me, "Lisbon trip");
+    await join(ana, th);
+    const id = await task(me, th);
+    await editContent(ana, id, { dueAt: "2026-09-25" });
+    expect((await held(id)).due_at).not.toBeNull();
+    await editContent(ana, id, { dueAt: null });
+    expect((await held(id)).due_at).toBeNull();
+    const stranger = await account("Sam");
+    await expect(editContent(stranger, id, { dueAt: "2026-09-25" })).rejects.toBeInstanceOf(NotYours);
+  });
 });

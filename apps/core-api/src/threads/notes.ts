@@ -52,7 +52,6 @@ export const NOTE_TEXT_CHARS = 200;
 export const NOTE_BODY_CHARS = 4000;
 
 /** How often a note comes round. The words `cadenceLabel` already says. */
-export type Repeat = "day" | "weekday" | "week" | "two_weeks" | "month" | "year";
 
 export interface Note {
   id: string;
@@ -77,9 +76,9 @@ export interface Note {
   priority: number;
   /** The date carries no time, so nothing may draw one. */
   allDay: boolean;
-  /** That it repeats, as the rule rather than as occurrences. */
-  repeats: Repeat | null;
-  repeatsUntil: Date | null;
+  /** That it repeats, as the rule rather than as occurrences. 023: an RFC
+   *  5545 rule in the closed grammar, the server's own serialisation. */
+  rrule: string | null;
   /** Set aside by the daily job. Off the prompt, off the section, still here. */
   supersededAt: Date | null;
   createdAt: Date;
@@ -112,8 +111,7 @@ const COLUMNS = [
   "notes.due_at",
   "notes.place_id",
   "notes.priority",
-  "notes.repeats",
-  "notes.repeats_until",
+  "notes.rrule",
   "notes.attrs",
   "notes.superseded_at",
   "notes.created_at",
@@ -153,8 +151,7 @@ type Row = Pick<
   | "due_at"
   | "place_id"
   | "priority"
-  | "repeats"
-  | "repeats_until"
+  | "rrule"
   | "attrs"
   | "superseded_at"
   | "created_at"
@@ -175,8 +172,7 @@ function toNote(row: Row & { authorIsMember?: boolean | number }): Note {
     dueAt: row.due_at,
     placeId: row.place_id,
     priority: row.priority,
-    repeats: row.repeats,
-    repeatsUntil: row.repeats_until,
+    rrule: row.rrule,
     allDay:
       typeof row.attrs === "object" &&
       row.attrs !== null &&
@@ -369,8 +365,7 @@ export interface AddNote {
   placeId?: string | null;
   /** That it repeats. A rule needs a first occurrence, which the database
    *  enforces: a repeat with no `occursAt` is a rule about nothing. */
-  repeats?: Repeat | null;
-  repeatsUntil?: Date | null;
+  rrule?: string | null;
   /** The date had no time in it, so nothing may draw one. Same meaning as
    *  012's all-day calendar event, in the same column. */
   allDay?: boolean;
@@ -417,8 +412,7 @@ export async function addNote(
     occursEndAt = null,
     dueAt = null,
     placeId = null,
-    repeats = null,
-    repeatsUntil = null,
+    rrule = null,
     allDay = false,
     fromMessageId = null,
     toolCallId = null,
@@ -467,8 +461,7 @@ export async function addNote(
       place_id: placeId,
       // A rule about nothing is refused by the database; this keeps the two
       // columns consistent on the way in rather than relying on that.
-      repeats: occursAt ? repeats : null,
-      repeats_until: occursAt ? repeatsUntil : null,
+      rrule: occursAt ? rrule : null,
       derived_from_untrusted: derivedFromUntrusted,
       derived_from_message_id: fromMessageId,
       tool_call_id: toolCallId,

@@ -16,6 +16,9 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { timeZoneOf } from "../time-zone.js";
+import { formatRule, parseRule } from "@offload/widgets";
+import { zoneOf } from "../accounts/zone.js";
+import { Refused } from "../threads/refusals.js";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 import { dropThreadWrapIfUnused, ensureThreadWrap } from "../blobs/keys.js";
@@ -38,7 +41,7 @@ import {
 import { readPreference, type ThreadPreference } from "../threads/widgets.js";
 import { calendarCounts, dropPicksOf, setPick, threadEvents, viewerCalendars } from "../threads/calendars.js";
 import { emit } from "../analytics.js";
-import { isBareDate, parseWhen } from "../threads/dates.js";
+import { isBareDate, parseWhen, plausible } from "../threads/dates.js";
 import { invitationsFor } from "../threads/sharing.js";
 import {
   NotYours,
@@ -91,11 +94,18 @@ function guard<T>(
     if (error instanceof NotYours) {
       return reply.code(404).send({ error: "not_found" as const });
     }
+    // 023. A field that cannot be written as sent: the request was theirs
+    // to make, so it is not a 404, and the client puts the screen back with
+    // one clause. A row on a calendar is a conflict with where its time lives.
+    if (error instanceof Refused) {
+      return reply.code(error.code === "on_calendar" ? 409 : 400).send({ error: error.code });
+    }
     throw error;
   });
 }
 
 const notFound = z.object({ error: z.literal("not_found") });
+const refused = z.object({ error: z.enum(["bad_date", "bad_rule", "on_calendar"]) });
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });
 
 const memberSchema = z.object({
@@ -182,8 +192,7 @@ const noteSchema = z.object({
   allDay: z.boolean(),
   /** That it comes round again, as a rule rather than as occurrences. The
    *  calendar expands it over whatever window is on screen. */
-  repeats: z.enum(["day", "weekday", "week", "two_weeks", "month", "year"]).nullable(),
-  repeatsUntil: z.coerce.date().nullable(),
+  rrule: z.string().nullable(),
   /** Set aside by the daily job. Only ever present on the folded list. */
   supersededAt: z.coerce.date().nullable(),
 });
@@ -251,9 +260,12 @@ const contentRow = z.object({
   occursEndAt: z.string().nullable(),
   /** That it comes round again, as a rule the calendar expands. Distinct from
    *  `seriesRef`, which is occurrences a calendar already sent. */
-  repeats: z.enum(["day", "weekday", "week", "two_weeks", "month", "year"]).nullable(),
-  repeatsUntil: z.string().nullable(),
+  rrule: z.string().nullable(),
   isReminder: z.boolean(),
+  /** 023. Written to a calendar, so its time is Google's: the sheet offers no
+   *  When on it and the route refuses a date or a rule, as the tool layer
+   *  already did. */
+  onCalendar: z.boolean(),
   priority: z.number(),
   priorityPinned: z.boolean(),
   tags: z.array(z.string()),
@@ -356,8 +368,8 @@ interface RawRow {
    *  column was on the row, off the select, and absent from every shape above
    *  it. */
   occurs_end_at: Date | null;
-  repeats: "day" | "weekday" | "week" | "two_weeks" | "month" | "year" | null;
-  repeats_until: Date | null;
+  rrule: string | null;
+  source_ref: string | null;
   is_reminder: boolean;
   priority: number;
   priority_pinned: boolean;
@@ -427,8 +439,8 @@ function toRow(row: RawRow, viewerId: string) {
     dueAt: row.due_at ? row.due_at.toISOString() : null,
     occursAt: row.occurs_at ? row.occurs_at.toISOString() : null,
     occursEndAt: row.occurs_end_at ? row.occurs_end_at.toISOString() : null,
-    repeats: row.repeats,
-    repeatsUntil: row.repeats_until ? row.repeats_until.toISOString() : null,
+    rrule: row.rrule,
+    onCalendar: row.source_ref !== null,
     isReminder: row.is_reminder,
     priority: row.priority,
     priorityPinned: row.priority_pinned,
@@ -468,38 +480,138 @@ function toRow(row: RawRow, viewerId: string) {
 // counts move, what `previous` actually holds, what a second call does. Same
 // shape as `takeDump` and `undoTurn` in dumps.ts.
 
+/** What an edit returns and what Undo sends back: the nine fields as they
+ *  were, so one request restores all of them (023 AC-25). */
 export interface ContentSnapshot {
   title: string;
   body: string | null;
+  dueAt: string | null;
+  occursAt: string | null;
+  occursEndAt: string | null;
+  allDay: boolean;
+  rrule: string | null;
+  isReminder: boolean;
+}
+
+/** The nine fields a sheet may write. Absent leaves a field alone and null
+ *  clears it, which is the one distinction the tool layer cannot make. */
+export interface ContentPatch {
+  title?: string | undefined;
+  body?: string | null | undefined;
+  /** `YYYY-MM-DD` for a day, an ISO instant for a time, a wall time read in
+   *  the account's zone. Null clears. */
+  dueAt?: string | null | undefined;
+  /** Null clears the occurrence, its end and the rule with it. */
+  occursAt?: string | null | undefined;
+  occursEndAt?: string | null | undefined;
+  /** Says which the value is when it could be read either way; true with an
+   *  instant, or false with a bare day, is refused. */
+  allDay?: boolean | undefined;
+  /** The grammar's own string; stored canonical; null clears. */
+  rrule?: string | null | undefined;
+  /** The flag. No screen draws a way to turn it on: the sheet's switch is
+   *  drawn only while it is on, so the only true that arrives is Undo putting
+   *  back what offload decided. */
+  isReminder?: boolean | undefined;
 }
 
 /** Edit. Co-owned: anybody in the thread may fix a title offload got wrong,
- *  which is most of what the page is for. */
+ *  which is most of what the page is for, and since 023 may set, move or
+ *  clear its date the same way. Clear is an edit, not a delete. A row on a
+ *  calendar keeps its time, which is Google's: `on_calendar`. */
 export async function editContent(
   accountId: string,
   contentId: string,
-  patch: { title?: string | undefined; body?: string | null | undefined },
+  patch: ContentPatch,
 ): Promise<ContentSnapshot> {
   const ref = await requireReadable(accountId, contentId);
   return db.transaction().execute(async (trx) => {
     const before = await trx
       .selectFrom("content")
-      .select(["title", "body"])
+      .select(["title", "body", "type", "due_at", "occurs_at", "occurs_end_at", "rrule", "is_reminder", "attrs", "source_ref"])
       .where("id", "=", ref.id)
       .executeTakeFirstOrThrow();
+    const snapshot: ContentSnapshot = {
+      title: before.title,
+      body: before.body,
+      dueAt: before.due_at ? before.due_at.toISOString() : null,
+      occursAt: before.occurs_at ? before.occurs_at.toISOString() : null,
+      occursEndAt: before.occurs_end_at ? before.occurs_end_at.toISOString() : null,
+      allDay: allDayOf(before.attrs),
+      rrule: before.rrule,
+      isReminder: before.is_reminder,
+    };
 
-    await trx
-      .updateTable("content")
-      .set({
-        ...(patch.title === undefined ? {} : { title: patch.title }),
-        ...(patch.body === undefined ? {} : { body: patch.body }),
-        updated_at: sql`now()`,
-      })
-      .where("id", "=", ref.id)
-      .execute();
+    const dated =
+      patch.dueAt !== undefined ||
+      patch.occursAt !== undefined ||
+      patch.occursEndAt !== undefined ||
+      patch.allDay !== undefined ||
+      patch.rrule !== undefined;
+    if (dated && before.source_ref) throw new Refused("on_calendar");
 
+    const set: Record<string, unknown> = {
+      ...(patch.title === undefined ? {} : { title: patch.title }),
+      ...(patch.body === undefined ? {} : { body: patch.body }),
+      ...(patch.isReminder === undefined ? {} : { is_reminder: patch.isReminder }),
+      updated_at: sql`now()`,
+    };
+
+    if (dated) {
+      const zone = await zoneOf(accountId, trx);
+      const read = (value: string | null | undefined, held: Date | null): Date | null => {
+        if (value === undefined) return held;
+        if (value === null) return null;
+        const at = parseWhen(value, zone);
+        if (!at || !plausible(at)) throw new Refused("bad_date");
+        return at;
+      };
+      const dueAt = read(patch.dueAt, before.due_at);
+      const occursAt = read(patch.occursAt, before.occurs_at);
+      // Clearing the occurrence clears its end: an end with no start is a span
+      // from nowhere.
+      const occursEndAt = patch.occursAt === null ? null : read(patch.occursEndAt, before.occurs_end_at);
+      if (occursEndAt && !occursAt) throw new Refused("bad_date");
+      if (occursEndAt && occursAt && occursEndAt < occursAt) throw new Refused("bad_date");
+
+      // Whether the row is a day or a time: said outright, else read off the
+      // value the type's column was given, else left as it was.
+      const given = before.type === "event" ? patch.occursAt : patch.dueAt;
+      let allDay = allDayOf(before.attrs);
+      if (patch.allDay !== undefined) {
+        if (given && patch.allDay !== isBareDate(given)) throw new Refused("bad_date");
+        allDay = patch.allDay;
+      } else if (given) {
+        allDay = isBareDate(given);
+      }
+
+      // A rule anchors on the type's column as it stands after this edit.
+      // Clearing the anchor clears the rule; a rule given with nothing to
+      // anchor on, or outside the grammar, is refused by name.
+      const anchor = before.type === "event" ? occursAt : dueAt;
+      let rule = before.rrule;
+      if (patch.rrule !== undefined) {
+        if (patch.rrule === null) rule = null;
+        else {
+          const parsed = parseRule(patch.rrule);
+          if (!parsed.ok || anchor === null) throw new Refused("bad_rule");
+          rule = formatRule(parsed.rule);
+        }
+      }
+      if (anchor === null) rule = null;
+
+      Object.assign(set, {
+        due_at: dueAt,
+        occurs_at: occursAt,
+        occurs_end_at: occursEndAt,
+        rrule: rule,
+        attrs: sql`attrs || ${JSON.stringify({ all_day: allDay })}::jsonb`,
+      });
+    }
+
+    await trx.updateTable("content").set(set).where("id", "=", ref.id).execute();
     await touchThread(ref.threadId, trx);
-    return before;
+    return snapshot;
   });
 }
 
@@ -1463,8 +1575,8 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.due_at as due_at",
             "content.occurs_at as occurs_at",
             "content.occurs_end_at as occurs_end_at",
-            "content.repeats as repeats",
-            "content.repeats_until as repeats_until",
+            "content.rrule as rrule",
+            "content.source_ref as source_ref",
             "content.is_reminder as is_reminder",
             "content.priority as priority",
             "content.priority_pinned as priority_pinned",
@@ -1558,8 +1670,8 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.due_at as due_at",
             "content.occurs_at as occurs_at",
             "content.occurs_end_at as occurs_end_at",
-            "content.repeats as repeats",
-            "content.repeats_until as repeats_until",
+            "content.rrule as rrule",
+            "content.source_ref as source_ref",
             "content.is_reminder as is_reminder",
             "content.priority as priority",
             "content.priority_pinned as priority_pinned",
@@ -1627,7 +1739,17 @@ export async function threadRoutes(app: App): Promise<void> {
   // more call to the same endpoint with the old value and the client holds
   // nothing across a reload.
 
-  const previousTitle = z.object({ title: z.string(), body: z.string().nullable() });
+  // 023. What the edit returns is what Undo sends back: one request.
+  const previousTitle = z.object({
+    title: z.string(),
+    body: z.string().nullable(),
+    dueAt: z.string().nullable(),
+    occursAt: z.string().nullable(),
+    occursEndAt: z.string().nullable(),
+    allDay: z.boolean(),
+    rrule: z.string().nullable(),
+    isReminder: z.boolean(),
+  });
 
   // Edit. Co-owned: anybody in the thread may fix a title offload got wrong,
   // which is most of what this page is for.
@@ -1639,11 +1761,22 @@ export async function threadRoutes(app: App): Promise<void> {
         body: z.strictObject({
           title: z.string().min(1).max(200).optional(),
           body: z.string().max(4000).nullable().optional(),
+          // 023. The when field. Absent leaves a field alone, null clears it.
+          dueAt: z.string().max(40).nullable().optional(),
+          occursAt: z.string().max(40).nullable().optional(),
+          occursEndAt: z.string().max(40).nullable().optional(),
+          allDay: z.boolean().optional(),
+          rrule: z.string().max(200).nullable().optional(),
+          /** The way out of a reminder. No screen draws a way to turn it on;
+           *  a true here is Undo putting back what offload decided. */
+          isReminder: z.boolean().optional(),
         }),
         response: {
           200: z.object({ content: contentRow, previous: previousTitle }),
+          400: refused,
           401: unauthenticated,
           404: notFound,
+          409: refused,
         },
       },
     },
@@ -2249,8 +2382,8 @@ async function rowById(contentId: string, viewerId: string) {
       "content.due_at as due_at",
       "content.occurs_at as occurs_at",
             "content.occurs_end_at as occurs_end_at",
-            "content.repeats as repeats",
-            "content.repeats_until as repeats_until",
+            "content.rrule as rrule",
+            "content.source_ref as source_ref",
       "content.is_reminder as is_reminder",
       "content.priority as priority",
       "content.priority_pinned as priority_pinned",

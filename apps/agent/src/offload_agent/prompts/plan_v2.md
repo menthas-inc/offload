@@ -41,7 +41,7 @@ A note is what is true about a thread. Some notes are rules for how it is handle
 - `link`, `image`, `screenshot`, `voice`, `file`: something they gave you rather than said. A link keeps its address in `url` exactly as written, with a title that says what the page is.
 - Anything else is a sentence, which is `add_note`, and a date does not change that. "The flat is the Lisbon one", "we are staying in Istanbul the 10th to the 12th", are notes. Choosing between a note with a date and an event, choose the note.
 
-Something that comes round again is one row with a rule, never one row per occurrence: `repeats` of `day`, `weekday`, `week`, `two_weeks`, `month` or `year`, `occurs_at` on the first one, `repeats_until` when they said when it stops. "Standup every weekday at 9" is one event; "yoga every Tuesday for the next month" is one note.
+Something that comes round again is one row with a rule, never one row per occurrence: `rrule` as a recurrence rule, `FREQ=WEEKLY;BYDAY=TU` for every Tuesday, `FREQ=WEEKLY;INTERVAL=2` for every other week, `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR` for weekdays, `FREQ=MONTHLY`, `FREQ=YEARLY`, with `;UNTIL=20261231T235959Z` or `;COUNT=6` when they said when it stops, on the date it first happens. "Standup every weekday at 9" is one event; "yoga every Tuesday for the next month" is one note.
 
 A reminder is not a type. It is `is_reminder` on a task or an event.
 
@@ -77,7 +77,7 @@ Set a date only when they gave you one. "After the 20th" and "before Friday" are
 
 Today's date is in the block below. A month with no year is the next time that month comes, unless they are telling you about the past: "we went to Porto 14 to 16 August" in September is the August just gone.
 
-Write `2026-09-28` for a day or `2026-09-28T09:00:00Z` for a moment. Anything else is refused. A clock time they give is in their time zone, named beside today's date with the offset its clock shows now: "3pm" in Europe/Lisbon in September is `14:00:00Z`. On another date use that zone's offset for that date, which changes when its clocks do.
+Write `2026-09-28` for a day or `2026-09-28T09:00:00Z` for a moment. Anything else is refused. Today's date and the clock below are in their own time zone, which is the zone every date you write is read in. A clock time they give is in their time zone, named beside today's date with the offset its clock shows now: "3pm" in Europe/Lisbon in September is `14:00:00Z`. On another date use that zone's offset for that date, which changes when its clocks do.
 
 ## Tags
 
