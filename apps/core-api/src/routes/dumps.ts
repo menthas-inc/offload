@@ -59,6 +59,7 @@ import {
 import { foundFor } from "../search/found.js";
 import { memberOf } from "../threads/access.js";
 import { MAX_PHOTOS } from "../blobs/photos.js";
+import { OverBudget, requireBudget } from "../budget.js";
 
 /** 020. A blob id that is not this account's, is already claimed, or is
  *  gone. One reason for all three, and the whole dump is refused. */
@@ -325,6 +326,8 @@ const currentConversation = z.object({
 
 const undoResponse = z.object({ undone: z.boolean() });
 const notFinishable = z.object({ error: z.literal("not_finishable") });
+
+const dailyLimit = z.object({ error: z.literal("daily_limit") });
 
 const tooLong = z.object({
   error: z.literal("too_long"),
@@ -745,6 +748,10 @@ export async function takeDump(
   const turnId = randomUUID();
   const blobIds = [...new Set(photos?.blobIds ?? [])];
 
+  // The day's budget, before a word is written: a dump is a model call, and
+  // the cap is on starting the next one (security review 2026-09-22, M6).
+  await requireBudget(accountId);
+
   // Membership, before the id is written into a job payload. A thread id from a
   // client is a claim, and this one ends up naming a thread in a model prompt.
   //
@@ -1018,7 +1025,7 @@ export async function dumpRoutes(app: App): Promise<void> {
         // 400 is deliberately not in this map: a validation failure and an
         // unknown photo both answer 400, with different bodies, and a schema
         // for one turns the other into a 500 at serialisation.
-        response: { 202: dumpResponse, 401: unauthenticated, 409: unknownBlob, 413: tooLong },
+        response: { 202: dumpResponse, 401: unauthenticated, 409: unknownBlob, 413: tooLong, 429: dailyLimit },
       },
     },
     async (request, reply) => {
@@ -1102,6 +1109,10 @@ export async function dumpRoutes(app: App): Promise<void> {
         if (error instanceof BadBlobMix) {
           timed();
           return reply.code(409).send({ error: error.code });
+        }
+        if (error instanceof OverBudget) {
+          timed();
+          return reply.code(429).send({ error: "daily_limit" as const });
         }
         throw error;
       }

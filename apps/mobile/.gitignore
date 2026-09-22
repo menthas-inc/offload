@@ -16,3 +16,6 @@ expo-env.d.ts
 # @import across a workspace package hangs NativeWind's Metro transformer
 # outright: no error, no CPU, forever.
 global.css
+
+# EAS Update code signing. The certificate is public and committed; the key never is.
+keys/

@@ -10,7 +10,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
-import { webOrigins } from "./env.js";
+import { env, webOrigins } from "./env.js";
 import { loggerOptions } from "./logger.js";
 import { healthRoutes } from "./routes/health.js";
 import { waitlistRoutes } from "./routes/waitlist.js";
@@ -38,7 +38,14 @@ export type App = FastifyInstance<
   ZodTypeProvider
 >;
 
-export async function buildApp(): Promise<App> {
+export interface AppOptions {
+  /** See `env.INTERNAL_HOST`. An option rather than only the variable so a
+   *  test can build an app with it set. */
+  internalHost?: string | undefined;
+}
+
+export async function buildApp(options: AppOptions = {}): Promise<App> {
+  const internalHost = options.internalHost ?? env.INTERNAL_HOST;
   const app = Fastify({
     logger: loggerOptions,
     // Trust the proxy so rate limiting sees the real client address rather
@@ -50,6 +57,31 @@ export async function buildApp(): Promise<App> {
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+
+  // The internal routes on the private name only, decided before the token
+  // is read: a request for `/internal/*` by the public name is not found.
+  if (internalHost) {
+    app.addHook("onRequest", async (request, reply) => {
+      if (request.url.startsWith("/internal/") && request.hostname !== internalHost) {
+        // A string, so the matched route's response schema is not consulted:
+        // every internal route declares its own 404 shape and this is none of
+        // them, deliberately.
+        return reply.code(404).type("application/json; charset=utf-8").send('{"error":"not_found"}');
+      }
+    });
+  }
+
+  // On every answer, whatever route wrote it (security review 2026-09-22, M4).
+  // HSTS so a first visit over http is not a downgrade point; nosniff so a
+  // declared type is a fact; no framing, no referrer, and nothing cached
+  // unless a route said otherwise, which the blob routes do.
+  app.addHook("onSend", async (_request, reply) => {
+    reply.header("strict-transport-security", "max-age=31536000; includeSubDomains");
+    reply.header("x-content-type-options", "nosniff");
+    reply.header("x-frame-options", "DENY");
+    reply.header("referrer-policy", "no-referrer");
+    if (!reply.hasHeader("cache-control")) reply.header("cache-control", "no-store");
+  });
 
   // The web app and the API are different origins sharing a session cookie,
   // so this is explicit rather than defaulted. Never a wildcard: a browser

@@ -53,6 +53,7 @@ import {
   unowned,
 } from "../threads/access.js";
 import { TAG_CHARS } from "../threads/tags.js";
+import { OverBudget, requireBudget } from "../budget.js";
 
 /** 022. The account's default thread cannot be shared or deleted. */
 async function isDefaultThreadOf(accountId: string, threadId: string): Promise<boolean> {
@@ -99,6 +100,9 @@ function guard<T>(
     // one clause. A row on a calendar is a conflict with where its time lives.
     if (error instanceof Refused) {
       return reply.code(error.code === "on_calendar" ? 409 : 400).send({ error: error.code });
+    }
+    if (error instanceof OverBudget) {
+      return reply.code(429).send({ error: "daily_limit" as const });
     }
     throw error;
   });
@@ -1164,6 +1168,8 @@ export async function quickAdd(
   options: { day?: string | null | undefined; timeZone?: string | null } = {},
 ): Promise<{ id: string; kind: "content" | "note" }> {
   await requireMember(accountId, threadId);
+  // A typed row is a model call too (security review 2026-09-22, M6).
+  await requireBudget(accountId);
 
   // `hasOwn`, because `section` is a string from the request and a plain
   // object answers `constructor` with a function.
@@ -1936,6 +1942,7 @@ export async function threadRoutes(app: App): Promise<void> {
           401: unauthenticated,
           404: notFound,
           413: z.object({ error: z.literal("too_long"), maxChars: z.number() }),
+          429: z.object({ error: z.literal("daily_limit") }),
         },
       },
     },

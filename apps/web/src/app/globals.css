@@ -1,6 +1,48 @@
 /* The design system's tokens, generated. Never a literal value here (OFF-7). */
 @import "@offload/tokens/tokens.css";
 
+/* The two faces, served from here. They came from the Google CDN, which sent
+   every visitor's address to a company the privacy page did not name
+   (security review 2026-09-22, M16). Static instances of the same families the
+   tokens name, from the packages the phones already ship; Literata's optical
+   size axis is what this gives up, and the design log records it. */
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/InstrumentSans_400Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/InstrumentSans_500Medium.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/InstrumentSans_600SemiBold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/Literata_400Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/Literata_500Medium.ttf") format("truetype");
+}
+
+
 *,
 *::before,
 *::after {

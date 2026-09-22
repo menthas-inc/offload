@@ -164,6 +164,14 @@ export interface TailMessage {
   sources?: Source[];
 }
 
+/** The day's model budget is spent (security review 2026-09-22, M6). The
+ *  words go back to the composer and the line says so. */
+export class DailyLimit extends Error {
+  constructor() {
+    super("daily_limit");
+  }
+}
+
 export class DumpTooLong extends Error {
   constructor(readonly maxChars: number) {
     super("too long");
@@ -216,6 +224,7 @@ export async function sendDump(
   });
   if (status === 413) throw new DumpTooLong(0);
   if (status === 409) throw new UnknownBlob();
+  if (status === 429) throw new DailyLimit();
   return data;
 }
 

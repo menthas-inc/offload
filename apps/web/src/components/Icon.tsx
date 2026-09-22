@@ -21,8 +21,17 @@ export interface IconProps {
   style?: React.CSSProperties;
 }
 
+/** The name as a CSS url(), or `none` when it is not a plain slug.
+ *
+ *  A thread's icon name comes from the server, and a `")` in it would close
+ *  the url() and open another: a fetch to wherever the rest of the string
+ *  says (security review 2026-09-22, L30). */
+export function iconUrl(name: string): string {
+  return /^[a-z0-9-]+$/.test(name) ? `url("${BASE}${name}.svg")` : "none";
+}
+
 export function Icon({ name, size = 20, className, style }: IconProps) {
-  const url = `url("${BASE}${name}.svg")`;
+  const url = iconUrl(name);
   return (
     <span
       aria-hidden="true"

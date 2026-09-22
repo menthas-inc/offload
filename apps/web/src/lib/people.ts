@@ -62,7 +62,13 @@ export function rememberedMark(accountId: string): string | null {
 export type Lookup = { kind: "found"; found: Found | null } | { kind: "rate_limited" } | { kind: "failed" };
 
 export async function lookup(email: string): Promise<Lookup> {
-  const response = await fetch(`${API}/v1/people/lookup?email=${encodeURIComponent(email.trim())}`, send);
+  // In the body, never the path: a query string is what request logs keep,
+  // and this is somebody else's address (security review 2026-09-22, M15).
+  const response = await fetch(`${API}/v1/people/lookup`, {
+    ...json,
+    method: "POST",
+    body: JSON.stringify({ email: email.trim() }),
+  });
   if (response.status === 429) return { kind: "rate_limited" };
   if (!response.ok) return { kind: "failed" };
   const body = (await response.json()) as { found: Found | null };

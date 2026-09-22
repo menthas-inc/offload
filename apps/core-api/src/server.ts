@@ -1,4 +1,3 @@
-import { buildApp } from "./app.js";
 import { migrate } from "./migrate.js";
 import { env, isProduction, port } from "./env.js";
 import { closeDb } from "./db.js";
@@ -6,11 +5,22 @@ import { createJobRunner } from "./jobs/runner.js";
 import { chooseMailer } from "./mail/index.js";
 import { startDaily, enqueue, PRIORITY } from "./jobs/queue.js";
 
-// Migrate before serving. A deploy that starts answering requests against a
-// schema older than its code is the failure this avoids, and the advisory lock
-// inside makes it safe when more than one instance boots at once.
+// Migrate before anything else is even imported. A deploy that starts
+// answering requests against a schema older than its code is the failure this
+// avoids, and the advisory lock inside makes it safe when more than one
+// instance boots at once.
+//
+// **Before the app is built, not merely before it listens.** Building the app
+// imports `auth.ts`, and Better Auth 1.7.5 compares the database to its model
+// as it initialises and keeps the verdict: on 2026-09-22 the first deploy that
+// carried migration 0055 checked the schema a few hundred milliseconds before
+// the migration ran, found a required column its model no longer had, and
+// answered every session read with a 500 until the container was restarted.
+// The log line was "Database schema mismatch". So the app is imported only
+// once the schema is the one this build was written for.
+const applied = await migrate((msg) => console.log(JSON.stringify({ level: "info", msg: "migrate", migration: msg })));
+const { buildApp } = await import("./app.js");
 const app = await buildApp();
-const applied = await migrate((msg) => app.log.info({ migration: msg }, "migrate"));
 app.log.info({ applied }, "migrations up to date");
 
 // The job runner runs in the API process, not a separate service.
@@ -39,6 +49,7 @@ await startDaily("jobs.purge");
 await startDaily("account.daily");
 await startDaily("blob.daily");
 await startDaily("people.daily");
+await startDaily("analytics.ship");
 
 // 013's sweep books its own successor, so this only has to start the chain.
 // Enqueued rather than run inline: boot should not wait on three index scans.

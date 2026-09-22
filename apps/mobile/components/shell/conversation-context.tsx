@@ -23,6 +23,7 @@ import { useAudioRecorder } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
 import { plainText } from "@offload/markup";
 import {
+  DailyLimit,
   DumpTooLong,
   answerQuestion,
   awaitAnswer,
@@ -1106,7 +1107,7 @@ export function ConversationProvider({
         // The server's own refusal, and the words go straight back: there is
         // nothing to retry until they are shorter.
         takeBack();
-      } else if (error instanceof PhotoRefused && error.reason === "daily_limit") {
+      } else if (error instanceof DailyLimit || (error instanceof PhotoRefused && error.reason === "daily_limit")) {
         takeBack();
         setLine({ text: "Enough for today." });
       } else if (

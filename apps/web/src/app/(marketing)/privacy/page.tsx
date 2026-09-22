@@ -398,17 +398,19 @@ export default function Privacy() {
             </li>
             <li>
               <strong>A link can bring its picture, and the picture comes from the site.</strong>{" "}
-              When offload reads a link you pasted, it keeps the address of the image the page
-              publishes about itself, so the row shows the photo instead of a symbol. We do not
-              store the image. Your device loads it from that site each time the row is on screen,
-              which means the site can see your IP address and when you looked, the same as if you
-              had opened the page. In a thread you share, that applies to each person who sees the
-              row. Turn off <strong>Read links I paste</strong> in Settings and no new link keeps
-              one.
+              When offload files a link you pasted, our server asks that page once for the image
+              it publishes about itself, so the row shows the photo instead of a symbol. That one
+              request happens for every link kept, whatever the switches below say: it is part of
+              filing a link, not of reading one, and the page sees a request from us, not from
+              you. We do not store the image. Your device loads it from that site each time the
+              row is on screen, which means the site can see your IP address and when you looked,
+              the same as if you had opened the page. In a thread you share, that applies to each
+              person who sees the row.
             </li>
             <li>
               <strong>Both of these are switches, in Settings, and either can be off.</strong> With
-              both off, nothing about what you dump reaches a search or a site.
+              both off, nothing you dump is searched for and no page is read for an answer. The
+              one request above, for a kept link&apos;s picture, still happens.
             </li>
             <li>
               <strong>We record that a lookup happened, and not what it was.</strong> What kind of
@@ -483,14 +485,20 @@ export default function Privacy() {
                   <td>The audio of a voice note</td>
                 </tr>
                 <tr>
-                  <td>Langfuse</td>
-                  <td>Tells us what our AI calls cost and whether they worked</td>
-                  <td>Identifiers, timings and counts. No content, by rule</td>
-                </tr>
-                <tr>
                   <td>Resend</td>
                   <td>Sends the handful of emails we send</td>
                   <td>Your email address and the email itself</td>
+                </tr>
+                <tr>
+                  <td>Expo</td>
+                  <td>
+                    Builds the phone apps and, each time the app opens, tells it whether a newer
+                    version of its code is ready
+                  </td>
+                  <td>
+                    Your IP address and the app and device version when the app opens. Nothing
+                    you dumped
+                  </td>
                 </tr>
                 <tr>
                   <td>Google Calendar</td>

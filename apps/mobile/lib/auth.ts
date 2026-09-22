@@ -166,7 +166,15 @@ export async function signInWithApple(): Promise<SignInResult> {
   }
 }
 
-export async function signInWithGoogle(): Promise<SignInResult> {
+/** The web client id, which is what the native sheet's id token is issued
+ *  for and what the server checks it against. Public, like every client id;
+ *  set per build profile in eas.json and locally in .env. */
+const GOOGLE_WEB_CLIENT_ID = process.env["EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID"];
+
+/** The browser flow. Kept for iOS, where the system's auth session hands the
+ *  return URL straight to the app that opened it, and as the fallback where
+ *  the native sheet cannot run at all. */
+async function googleThroughTheBrowser(): Promise<SignInResult> {
   const { error } = await authClient.signIn.social({
     provider: "google",
     callbackURL: "offload://welcome",
@@ -176,6 +184,47 @@ export async function signInWithGoogle(): Promise<SignInResult> {
     // from here.
     errorCallbackURL: "offload://no-invite",
   });
+  return error ? { ok: false, reason: classify(error.message) } : { ok: true };
+}
+
+/** Google, native where it has to be.
+ *
+ *  **On Android the browser flow came back as a deep link carrying the
+ *  session.** The Expo plugin rewrites the return URL to
+ *  `offload://welcome?cookie=...`, and on Android a custom scheme is an intent
+ *  any installed app may claim, so an app on the same phone could receive a
+ *  working session (security review 2026-09-22, H1). The native sheet hands
+ *  this app an ID token instead; the server verifies it against the web client
+ *  id and no URL carries a session at any point. iOS keeps the browser flow,
+ *  whose auth session returns the URL to the app that opened it, until an iOS
+ *  client id exists for the native sheet there too. */
+export async function signInWithGoogle(): Promise<SignInResult> {
+  if (Platform.OS !== "android" || !GOOGLE_WEB_CLIENT_ID) return googleThroughTheBrowser();
+
+  let GoogleSignin: typeof import("@react-native-google-signin/google-signin").GoogleSignin;
+  try {
+    ({ GoogleSignin } = await import("@react-native-google-signin/google-signin"));
+    GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
+    await GoogleSignin.hasPlayServices();
+  } catch {
+    // No native module in this build, or no Play services on this device:
+    // the browser flow is the only door left. Rare, and better than no door.
+    return googleThroughTheBrowser();
+  }
+
+  let idToken: string | null = null;
+  try {
+    const result = await GoogleSignin.signIn();
+    if (result.type === "cancelled") return { ok: false, reason: "cancelled" };
+    idToken = result.data?.idToken ?? null;
+  } catch {
+    return { ok: false, reason: "failed" };
+  }
+  if (!idToken) return { ok: false, reason: "failed" };
+
+  // The id token goes to our API, which verifies it against Google's keys and
+  // the web client id. Nothing here decides anything, exactly as with Apple.
+  const { error } = await authClient.signIn.social({ provider: "google", idToken: { token: idToken } });
   return error ? { ok: false, reason: classify(error.message) } : { ok: true };
 }
 
@@ -234,7 +283,19 @@ export async function signOut(): Promise<void> {
   // Only now. This is the one place that knows what a session is made of on
   // this device, so anything added later is added here rather than at a call
   // site that would not know to.
-  await Promise.all(
-    SESSION_KEYS.map((key) => SecureStore.deleteItemAsync(key).catch(() => undefined)),
-  );
+  await Promise.all(SESSION_KEYS.map((key) => forget(key)));
+}
+
+/** A key and, when the plugin split its value, the chunks under it.
+ *
+ *  Values over 1,800 characters are written as `<key>.0..N` beneath a marker,
+ *  `ba-chunks:N`, because the native stores refuse a long value. Deleting the
+ *  marker alone left the chunks, which is where the token would have been
+ *  (security review 2026-09-22, L31). The marker is read first, so the count
+ *  is the plugin's and not a guess. */
+async function forget(key: string): Promise<void> {
+  const stored = await SecureStore.getItemAsync(key).catch(() => null);
+  const count = stored?.startsWith("ba-chunks:") ? Number(stored.slice("ba-chunks:".length)) : 0;
+  const keys = [key, ...Array.from({ length: Number.isInteger(count) && count > 0 ? count : 0 }, (_, i) => `${key}.${i}`)];
+  await Promise.all(keys.map((k) => SecureStore.deleteItemAsync(k).catch(() => undefined)));
 }

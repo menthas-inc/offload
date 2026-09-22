@@ -15,6 +15,7 @@ import { Segmented } from "../../components/settings/Segmented";
 import { Switch } from "../../components/settings/Switch";
 import { ToastHost, useToast, type ToastState } from "../../components/shell/Toast";
 import { useColors } from "../../lib/colors";
+import { endSignedIn, listSignedIn, type SignedIn } from "../../lib/sessions";
 import { fetchCountries, saveName, setCountry, setWebAccess, useMe } from "../../lib/me";
 import { approveCalendar, disconnect, setAskFirst, useCalendars } from "../../lib/calendars";
 import { CalendarRow } from "../../components/settings/CalendarRow";
@@ -109,6 +110,8 @@ export default function SettingsPage() {
  *
  *  The email is not editable here. Changing one is an identity change with a
  *  verification flow behind it, not a text field. The name is, since 011. */
+const since = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+
 function Account() {
   const me = useMe();
   const router = useRouter();
@@ -119,7 +122,15 @@ function Account() {
     void fetchCountries().then(setCountries);
   }, []);
 
+  // Where they are signed in. Read on mount and after every End.
+  const [signedIn, setSignedIn] = useState<SignedIn[] | null>(null);
+  const loadSignedIn = useCallback(() => {
+    void listSignedIn().then(setSignedIn).catch(() => setSignedIn([]));
+  }, []);
+  useEffect(loadSignedIn, [loadSignedIn]);
+
   return (
+    <>
     <Group label="Details">
       {/* `saveName` hands the identity it got back to every mounted `useMe`,
           so the settings index behind this screen moves with it, initials
@@ -147,6 +158,23 @@ function Account() {
         last
       />
     </Group>
+
+    {/* Every live session, this one first. Ending one signs that device out
+        on its next request; this phone leaves through Sign out. */}
+    <Group label="Signed in on">
+      {(signedIn ?? []).map((row, index) => (
+        <Row
+          key={row.token}
+          title={row.device}
+          note={row.current ? "This device" : `Since ${since.format(row.since)}`}
+          value={row.current ? undefined : "End"}
+          onPress={row.current ? undefined : () => void endSignedIn(row.token).then(loadSignedIn)}
+          last={index === (signedIn?.length ?? 0) - 1}
+        />
+      ))}
+      {signedIn !== null && signedIn.length === 0 ? <Row title="Nothing else" last /> : null}
+    </Group>
+    </>
   );
 }
 

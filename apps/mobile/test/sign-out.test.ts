@@ -12,6 +12,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const deleted: string[] = [];
+let stored: Record<string, string> = {};
 let signOutBehaviour: () => Promise<unknown> = () => Promise.resolve();
 
 vi.mock("expo-secure-store", () => ({
@@ -19,7 +20,7 @@ vi.mock("expo-secure-store", () => ({
     deleted.push(key);
     return Promise.resolve();
   },
-  getItemAsync: () => Promise.resolve(null),
+  getItemAsync: (key: string) => Promise.resolve(stored[key] ?? null),
   setItemAsync: () => Promise.resolve(),
   getItem: () => null,
   setItem: () => undefined,
@@ -48,6 +49,7 @@ const { signOut, SignOutFailed } = await import("../lib/auth");
 
 beforeEach(() => {
   deleted.length = 0;
+  stored = {};
   signOutBehaviour = () => Promise.resolve();
 });
 
@@ -55,6 +57,21 @@ describe("AC-3 signing out waits for the server", () => {
   it("clears the device only once the server has agreed", async () => {
     await signOut();
     expect(deleted.sort()).toEqual(["offload_cookie", "offload_session_data"]);
+  });
+
+  // Security review 2026-09-22, L31. The plugin splits a value over 1,800
+  // characters into `<key>.0..N` under a marker, and sign-out deleted the
+  // marker and left the chunks, which is where the token would have been.
+  it("clears the chunks a long value was split into", async () => {
+    stored = { offload_cookie: "ba-chunks:3", "offload_cookie.0": "a", "offload_cookie.1": "b", "offload_cookie.2": "c" };
+    await signOut();
+    expect(deleted.sort()).toEqual([
+      "offload_cookie",
+      "offload_cookie.0",
+      "offload_cookie.1",
+      "offload_cookie.2",
+      "offload_session_data",
+    ]);
   });
 
   it("leaves the session alone when the call fails, and says so", async () => {

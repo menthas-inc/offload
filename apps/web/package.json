@@ -10,13 +10,13 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@offload/markup": "workspace:*",
     "@offload/tokens": "workspace:*",
-    "better-auth": "^1.7.2",
+    "@offload/widgets": "workspace:^",
+    "better-auth": "^1.7.5",
     "next": "^15.1.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "@offload/widgets": "workspace:^",
-    "@offload/markup": "workspace:*"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
