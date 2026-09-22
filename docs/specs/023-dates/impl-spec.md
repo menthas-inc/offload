@@ -170,6 +170,7 @@ The worker's `_DUMP` query selects `a.time_zone as account_time_zone` and `today
 - `components/shell/WhenSheet.tsx`: the grid from `monthFor`, the Time block on `@react-native-community/datetimepicker`, iOS `display="spinner"` with `minuteInterval={5}` inline, Android the row and the dialog; Repeats; Clear and Save; a `standalone` prop deciding whether it writes or hands back.
 - `components/shell/CustomRepeatSheet.tsx`.
 - `components/shell/RowActionSheet.tsx`: `RowAction.value`.
+- `lib/when.ts` is a re-export of the widgets package's `when.ts`, where `WhenValue`, `patchFor`, `whenValueOf`, `anHourAfter` and `drawnWhen` live: the review found the phones and the web holding byte-identical copies and each sheet with its own `anHourAfter`, which wrapped past midnight. `drawnWhen(patch, zone)` is what Save draws before the server answers, read in the account's clock through `instantIn`, which moved to the widgets package for that.
 - `components/shell/ZoneStrip.tsx`, drawn first by both Today screens.
 - `app/settings/[page].tsx`: the `datetime` page and the `timezone` picker it opens, the Country page's shape; Appearance loses Starts on.
 
@@ -206,6 +207,10 @@ The prompt gains one sentence in the Dates block and swaps an enum and a field f
 ## Edge cases
 
 - **A zone ICU does not know** is dropped, as 0051 does; `time_zone` stays what it was, and a settings write of one is a 400.
+- **Undo sends `previous` back whole**, so `previous` is a body the route accepts: a day travels as `YYYY-MM-DD`, not the noon instant it is stored at, and a date change is a value that differs from what the row holds, not a field that was merely sent, so a title put back on a calendar-backed row is not refused as a date change.
+- **An event's end before its start** is refused by the tool layer as well as the route: `parseDates` returns null and the call answers `bad_date`.
+- **The rail and a rule's first day.** A rule's later occurrences fill the span without stretching it, as 015 decided; its first day counts toward the span while it is still ahead, so a task due next Wednesday that gains "every week" keeps its week and its dot. A first day already behind today does not draw the rail back to it.
+- **A repeating task migrated from before 023** loses the occurrence it anchored on once its due date holds the anchor, or the rail drew it twice.
 - **An account with no zone yet** renders timed dates in the device's zone and the prompt reads the message's, which is exactly today's behaviour, until onboarding or its first dump.
 - **DST.** A bare day never moves. An hour on a date across a change is stored as the instant the zone gives that wall time, which is what the person typed.
 - **A rule whose anchor moves.** Changing When on a repeating row moves the anchor and the presets rewrite; the rule string is re-derived from the preset when a preset was chosen, and kept when Custom was.
