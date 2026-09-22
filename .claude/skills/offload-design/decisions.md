@@ -11,6 +11,44 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-22 · Due dates a person can set, and the two digests that read them
+**Surface:** iOS, Android, web
+**Raised by:** the product owner, ahead of the notifications and due-dates feature. Read off `main` at `b494d0e`, drawn in `explorations/due-dates-and-notifications.html`, decided the same day. Handoff: `handoff/APPLY-2026-09-22-dates.md`.
+
+**The schema has carried dates since 001 and no person has ever been able to write one.** Every date in the product was inferred by a model from a dump: there is no field, no picker, no gesture and no way to clear one on any surface. Notifications forced it, because a notification fires off a date and a date nobody can correct is a notification nobody can stop.
+
+**One field called When, and the row's type decides the column.** A task writes `due_at`, an event writes `occurs_at`, everything else writes `due_at`; duration is the existing `occurs_end_at` and is offered only on an event once an hour is set. **A due date may now carry an hour**, which makes `dates.ts`'s comment that a due date has no time anybody expects to see wrong: "call the clinic at 9" and "rent by Friday" are both tasks. No column changes, since `attrs.all_day` already carries the distinction.
+
+**Recurrence becomes an RRULE, and that is the largest thing here.** The picker follows Google Calendar's presets and Custom dialog, because 019 already writes to a real Google calendar and a vocabulary that survives that trip needs no translation. `repeats` is an enum of six values with `repeats_until` beside it, and it holds four of the seven presets and none of Custom: **no interval, no weekday set, no monthly anchor, no occurrence count.** One RFC 5545 column replaces both, the six existing values map into it losslessly, and `add_content` and `add_note` take a rule rather than the enum. **A schema decision that arrived wearing the clothes of a menu.**
+
+**The control lives in the edit sheet and nowhere else.** The row draws its date and does not act on it: the row's own comment says two controls, never three, and adding a calendar icon beside the pencil would have drawn two calendars meaning different things. The dashed "Add a date" slot on undated rows was rejected outright, principle 04 spent real effort making offload not ask for dates nobody gave, and a to-do list wearing a row of unanswered questions undoes it.
+
+**The chip is coloured by nearness:** `--clay-100` with `--text-danger` for late, `--amber-100` with `--amber-700` for today plus three days, the plain fill for everything later. Amber rather than blue for soon, because blue is the attention colour and would read as offload asking for something. **A done row loses the colour entirely.**
+
+**`accounts` gains three fields, not one.** A default `time_zone`, a `last_seen_time_zone` written by any request carrying the device's zone, and a `follow_device` preference. When they differ, a strip on Today states the fact before offering the change, with both answers inside the card as tinted text buttons. Once per zone, not once per day.
+
+**`is_reminder` finally has a reader, and it gates both digests.** The flag has sat unread since 001 with a comment saying nothing acts on it until notifications ship. A date is not announced; a reminder is. **Most dated rows are therefore silent and an empty digest is the normal morning.** Two consequences worth stating: the filing prompt's decision to set the flag is now load bearing where it was free, and wants a principle and eval cases; and **a person can set a date but cannot ask to be reminded of it**, since the flag has no person-facing writer. A read-only `bell` mark on the chip discloses which rows will be announced, because otherwise two identical-looking rows behave differently on Friday.
+
+**Two sends a day and no per-item pushes**: today in the morning at 8:00, tomorrow in the evening at 19:00, both in the account's zone, both skipped when empty. One copy template with three arms, one thing named, two to four listed, five or more counted after the first two. **A digest carries no actions**, because Done is about one thing and a digest is about five; **a digest holding exactly one thing is not a digest** and gets Done and Tomorrow. Tomorrow writes a date, so there is no notification-level snooze anywhere. Another member's row is named with its author, as *Ana's ferry times*.
+
+**The bell becomes Activity, and this reverses 022.** That work refused a notifications page as "a page that exists to hold a dot" and was right at the time. What changed is that there is now content: alongside what was sent sits **what offload decided quietly and never said**, an expired invite, a calendar write waiting on them, a closed question, a declined request, and any digest a switch or a permission suppressed. Some of that exists nowhere else in the product, and it is the only way to read your notifications when notifications are off. **A decline is recorded** and the people rule still holds where it was aimed: nothing is sent, nothing interrupts, re-requesting stays rate limited, and the line is worded flatly with no retry. Thirty days, then it purges. A dot, never a count. **No Due sheet: forward-looking "what is due" is the Timeline's job.**
+
+**Nothing is sticky.** The model may overwrite a date a person set where the dump states a new one, unlike notes, where corrections beat inference. The defence is the existing change mark and an Activity row, both of which already exist.
+
+**Design system impact:** no new components, no new glyphs, no new tokens. The work is a column on every content row, two rows on the edit sheet, one new sheet, one Today strip, one settings page and one Activity list. `readme.md` gains a **Dates and notifications** section.
+
+### 2026-09-22 · The web serves its own faces, as static instances
+**Surface:** web
+**Raised by:** the security review of 2026-09-22, M16. Every page linked the two faces from the Google CDN, which sent every visitor's address to a company the privacy page does not name, on a page that says nothing follows a visitor anywhere.
+
+**Was:** `tokens/fonts.css` imports Instrument Sans 400..700 and Literata `opsz,wght@7..72,400;7..72,500` from `fonts.googleapis.com`, and the web app's layout linked the same stylesheet.
+
+**Is:** the web app serves five files from `/fonts`, `@font-face` in `globals.css`: Instrument Sans 400, 500 and 600, and Literata 400 and 500, the static instances the phones already ship from `@expo-google-fonts`. No request leaves for a font. What this gives up is Literata's optical size axis: the static instances are cut at one size, so a heading in Literata is the text cut scaled rather than the display cut. Variable files from the families' own repositories would restore it and are a download nobody has done yet.
+
+**Design system impact:** `tokens/fonts.css` should carry the same five `@font-face` rules against a `/fonts` path, in place of the CDN import, so the kits and the app declare the faces the same way. Note the optical size loss beside Literata in `readme.md`'s type section until the variable file is in.
+
+---
+
 ### 2026-09-22 · Sharing, built, and what the build found past the planning entry
 **Surface:** iOS, Android, web
 **Raised by:** `docs/specs/022-sharing`, built in a worktree and merged to `main` at `5dfc162`. The planning entry below this one holds the fourteen divergences decided before the build; this is what the build added to them.

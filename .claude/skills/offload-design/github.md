@@ -8,8 +8,78 @@ path:
 
 ## Last sync
 
-date: 2026-09-21T16:20:00Z
-commit: 7376a68..main (23 commits, 021 voice notes)
+date: 2026-09-22T10:41:00Z
+commit: b494d0e..main (50 commits since 7376a68, 021 voice notes and 022 sharing)
+
+Pulled `main` ahead of the dates and notifications work and read the feature from the code rather
+than from the kit. **Nothing was owed back this time**: 021 and 022 are both applied here already,
+and the sync was reconnaissance for a feature that has not been specced yet.
+
+**The finding that shaped the design: the schema has carried dates since 001 and no person has ever
+been able to write one.** `content` and `notes` both hold `due_at`, `occurs_at`, `occurs_end_at`,
+`repeats` and `repeats_until`; `content` also holds `is_reminder`, whose own comment reads
+*nothing acts on it until notifications ship*. Every writer is the model, `add_content`,
+`add_note`, `edit_content` and 018's asking-back question. **There is no field, no picker, no
+gesture and no way to clear a date on any of the three surfaces**, and the thread's own content row
+draws no date at all.
+
+**Two holes the feature cannot be built over.** `accounts` carries no timezone, which `dates.ts`
+names as one of the two places that change when it does; and a bare day is filed at noon UTC, which
+is right from UTC-11 to UTC+11 and wrong in New Zealand. Notifications need an hour, so both had to
+be answered first.
+
+**Notifications were scaffolding only**: `expo-notifications` installed, permission asked on the
+third onboarding screen, a bell on Today that goes nowhere, and no token table, send path or job
+kind. The jobs table already does scheduled and daily work, so the machinery exists.
+
+### Updated in this project
+
+- `explorations/due-dates-and-notifications.html`, fourteen decisions across ten sections, drawn at
+  real size on all three surfaces
+- `handoff/APPLY-2026-09-22-dates.md`, per item and per surface, with the build order
+- `readme.md` gains a **Dates and notifications** section; `decisions.md` gains one entry
+- **No new components, glyphs or tokens.** The set stays at 84 glyphs and 349 tokens
+
+### What the coding agent should pick up, in order
+
+1. **The RRULE migration.** `repeats` is a six-value enum that holds four of the seven presets the
+   picker needs and none of Custom: no interval, no weekday set, no monthly anchor, no occurrence
+   count. One RFC 5545 column replaces it and `repeats_until`, the six values map in losslessly, and
+   **019's connector stops translating**, since it is what Google speaks. Everything else waits on it.
+2. **`accounts.time_zone`, `last_seen_time_zone`, `follow_device`.** Every scheduled thing is wrong
+   without the first, and `dates.ts` and the prompt's *today* are the two readers it already names.
+3. **The content row draws its date**, coloured late / soon / later at a boundary of today plus
+   three days. Smallest item in the handoff and the prerequisite for the sheets and for Activity.
+4. **The person-facing write path**, taking title, body, three dates and the rule in one write, with
+   an explicit clear. Null through the tool layer means "not stated", not "remove it".
+5. **The digests**, gated on `is_reminder`. That flag now decides what is announced, which makes the
+   filing prompt's decision to set it load bearing and worth a principle and eval cases.
+6. **Activity**, the largest new thing and the only one with no existing shape: each silent outcome
+   needs a writer at the point the silence happens, not a reconstruction afterwards.
+
+## Screen map
+
+| Screen | This project | Repo files |
+| --- | --- | --- |
+| Web app | `ui_kits/web_app/` | `apps/web/src/` |
+| iOS and Android | `ui_kits/mobile_app/`, `ui_kits/android_app/` | `apps/mobile/app/`, `apps/mobile/components/` |
+| Calendars | `explorations/calendars-options.html`, `handoff/APPLY-2026-09-17-calendars.md` | settings: the Connected apps Calendar row on all three surfaces; thread: `ThreadScreen.jsx`, `M3ThreadScreen.jsx`, `WThing.jsx` app bars |
+| Timeline rail | `explorations/rail-blue.html`, `handoff/APPLY-2026-09-14-rail.md` | `apps/web/src/app/(shell)/shell.module.css`, `apps/web/src/components/panes/Timeline.tsx`, `apps/mobile/components/shell/Timeline.tsx` |
+| Voice notes | `explorations/voice-notes.html`, `handoff/APPLY-2026-09-21-voice.md` | `apps/mobile/components/shell/Composer.tsx`, `apps/mobile/components/shell/SentVoice.tsx`, `apps/web/src/components/shell/` |
+| People and connecting | `explorations/sharing-and-avatars.html`, `handoff/APPLY-2026-09-21-people.md` | `apps/mobile/components/settings/`, `apps/mobile/components/shell/Sharing.tsx`, `apps/web/src/components/panes/` |
+| Reaching the web | `components/conversation/`, the kits' conversation files, `explorations/reaching-the-web-options.html` | `docs/specs/016-reaching-the-web/`, `docs/specs/017-saying-what-it-is-doing/`, `apps/mobile/components/shell/Conversation.tsx` |
+| Answering | `components/answering/`, the kits' conversation files, `explorations/answering-options.html` | `apps/core-api/src/search/`, `apps/agent/src/offload_agent/`, `docs/specs/013-answering/` |
+| Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
+| Landing page, invite email | `ui_kits/marketing_site/` | `apps/web/src/app/(marketing)/` |
+| Design tokens | `styles.css`, `tokens/` | `packages/tokens/`, generated from `.claude/skills/offload-design/tokens` |
+| Components | `components/` | `packages/widgets/`, `apps/mobile/components/` |
+| Decision log | `decisions.md` | `.claude/skills/offload-design/decisions.md` (shared, append-only both ways) |
+| Adherence lint | `_adherence.oxlintrc.json` | `eslint.config.mjs`, read at run time |
+| Atmosphere tokens | not carried, the marketing site's | `packages/tokens/atmosphere.css` (keep from the repository) |
+
+## Sync history
+
+### 2026-09-21T16:20:00Z
 
 Pulled `main` and read 021's feature spec, which logs **eleven items against this system**. All
 eleven drawn in `explorations/voice-notes.html`, decided with the product owner, and folded in.
@@ -35,7 +105,7 @@ with "Show all" at 5.72:1 on the same bubble.
 
 ### Updated in this project
 
-- `SentVoice` in `components/conversation/` — 32 stored bars, the play/pause control, the played
+- `SentVoice` in `components/conversation/`, 32 stored bars, the play/pause control, the played
   fill, the transcript and its fold, and the playback failure
 - `play` and `pause` vendored in Lucide's stroke format; 84 glyphs
 - `readme.md` gains a **Voice notes** section; `decisions.md` gains one entry
@@ -50,28 +120,6 @@ with "Show all" at 5.72:1 on the same bubble.
 3. Item 10, Android. **The pill and the sent bubble are shared**, and the two things that genuinely
    diverge are the platform's own status bar and gesture bar.
 4. Item 11, the web, which is the largest: `WComposer` and `WTurns` gain the row and `SentVoice`.
-
-## Screen map
-
-| Screen | This project | Repo files |
-| --- | --- | --- |
-| Web app | `ui_kits/web_app/` | `apps/web/src/` |
-| iOS and Android | `ui_kits/mobile_app/`, `ui_kits/android_app/` | `apps/mobile/app/`, `apps/mobile/components/` |
-| Calendars | `explorations/calendars-options.html`, `handoff/APPLY-2026-09-17-calendars.md` | settings: the Connected apps Calendar row on all three surfaces; thread: `ThreadScreen.jsx`, `M3ThreadScreen.jsx`, `WThing.jsx` app bars |
-| Timeline rail | `explorations/rail-blue.html`, `handoff/APPLY-2026-09-14-rail.md` | `apps/web/src/app/(shell)/shell.module.css`, `apps/web/src/components/panes/Timeline.tsx`, `apps/mobile/components/shell/Timeline.tsx` |
-| Voice notes | `explorations/voice-notes.html`, `handoff/APPLY-2026-09-21-voice.md` | `apps/mobile/components/shell/Composer.tsx`, `apps/mobile/components/shell/SentVoice.tsx`, `apps/web/src/components/shell/` |
-| People and connecting | `explorations/sharing-and-avatars.html`, `handoff/APPLY-2026-09-21-people.md` | `apps/mobile/components/settings/`, `apps/mobile/components/shell/Sharing.tsx`, `apps/web/src/components/panes/` |
-| Reaching the web | `components/conversation/`, the kits' conversation files, `explorations/reaching-the-web-options.html` | `docs/specs/016-reaching-the-web/`, `docs/specs/017-saying-what-it-is-doing/`, `apps/mobile/components/shell/Conversation.tsx` |
-| Answering | `components/answering/`, the kits' conversation files, `explorations/answering-options.html` | `apps/core-api/src/search/`, `apps/agent/src/offload_agent/`, `docs/specs/013-answering/` |
-| Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
-| Landing page, invite email | `ui_kits/marketing_site/` | `apps/web/src/app/(marketing)/` |
-| Design tokens | `styles.css`, `tokens/` | `packages/tokens/`, generated from `.claude/skills/offload-design/tokens` |
-| Components | `components/` | `packages/widgets/`, `apps/mobile/components/` |
-| Decision log | `decisions.md` | `.claude/skills/offload-design/decisions.md` (shared, append-only both ways) |
-| Adherence lint | `_adherence.oxlintrc.json` | `eslint.config.mjs`, read at run time |
-| Atmosphere tokens | not carried, the marketing site's | `packages/tokens/atmosphere.css` (keep from the repository) |
-
-## Sync history
 
 ### 2026-09-21T06:05:00Z
 

@@ -1,0 +1,896 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Due dates and notifications</title>
+<link rel="stylesheet" href="../styles.css?v=20260922-due">
+<link rel="stylesheet" href="frames.css?v=20260922-due">
+<style>
+.ph{width:390px;flex:0 0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);display:flex;flex-direction:column;position:relative;color:var(--text-primary)}
+.sb{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:12px 26px 4px;background:var(--surface-chrome);backdrop-filter:var(--blur-chrome);-webkit-backdrop-filter:var(--blur-chrome);font:var(--weight-semibold) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums}
+.sb u{display:flex;align-items:center;gap:5px;text-decoration:none}
+.sb .sig{width:17px;height:11px;background:linear-gradient(to top,currentColor 34%,transparent 34%) 0/3px 100% no-repeat,linear-gradient(to top,currentColor 56%,transparent 56%) 4.7px/3px 100% no-repeat,linear-gradient(to top,currentColor 78%,transparent 78%) 9.4px/3px 100% no-repeat,linear-gradient(to top,currentColor 100%,transparent 100%) 14.1px/3px 100% no-repeat}
+.sb .bat{width:25px;height:12px;border-radius:3px;box-shadow:inset 0 0 0 1px currentColor;position:relative;opacity:.45}
+.sb .bat:after{content:"";position:absolute;inset:2px;border-radius:1px;background:currentColor}
+.ph:after{content:"";position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:var(--ink-300);z-index:7}
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:var(--space-4);min-height:var(--appbar-height);box-sizing:border-box;padding:0 var(--gutter-screen);background:var(--surface-chrome-strong);border-bottom:1px solid transparent}
+.bar.hl{border-bottom-color:var(--border-hairline)}
+.bar h4{flex:1;min-width:0;margin:0;font:var(--text-title-3);letter-spacing:var(--tracking-title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .tools{display:flex;align-items:center;gap:var(--space-2);margin-right:-8px}
+.bar .lead{display:flex;align-items:center;margin-left:-8px}
+.bc{width:44px;height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);position:relative}
+.bc i{width:21px;height:21px}
+.body{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding-bottom:22px}
+i.g{background:currentColor;display:block;flex:0 0 auto}
+.i-cal{-webkit-mask:url(../assets/icons/calendar.svg) center/contain no-repeat;mask:url(../assets/icons/calendar.svg) center/contain no-repeat}
+.i-clock{-webkit-mask:url(../assets/icons/clock.svg) center/contain no-repeat;mask:url(../assets/icons/clock.svg) center/contain no-repeat}
+.i-bell{-webkit-mask:url(../assets/icons/bell.svg) center/contain no-repeat;mask:url(../assets/icons/bell.svg) center/contain no-repeat}
+.i-comp{-webkit-mask:url(../assets/icons/compass.svg) center/contain no-repeat;mask:url(../assets/icons/compass.svg) center/contain no-repeat}
+.i-chev-d{-webkit-mask:url(../assets/icons/chevron-down.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-down.svg) center/contain no-repeat}
+.i-chev-r{-webkit-mask:url(../assets/icons/chevron-right.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-right.svg) center/contain no-repeat}
+.i-chev-l{-webkit-mask:url(../assets/icons/chevron-left.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-left.svg) center/contain no-repeat}
+.i-x{-webkit-mask:url(../assets/icons/x.svg) center/contain no-repeat;mask:url(../assets/icons/x.svg) center/contain no-repeat}
+.i-check{-webkit-mask:url(../assets/icons/check.svg) center/contain no-repeat;mask:url(../assets/icons/check.svg) center/contain no-repeat}
+.i-pencil{-webkit-mask:url(../assets/icons/pencil.svg) center/contain no-repeat;mask:url(../assets/icons/pencil.svg) center/contain no-repeat}
+.i-trash{-webkit-mask:url(../assets/icons/trash-2.svg) center/contain no-repeat;mask:url(../assets/icons/trash-2.svg) center/contain no-repeat}
+.i-grip{-webkit-mask:url(../assets/icons/grip-vertical.svg) center/contain no-repeat;mask:url(../assets/icons/grip-vertical.svg) center/contain no-repeat}
+.i-gear{-webkit-mask:url(../assets/icons/settings.svg) center/contain no-repeat;mask:url(../assets/icons/settings.svg) center/contain no-repeat}
+.i-users{-webkit-mask:url(../assets/icons/users.svg) center/contain no-repeat;mask:url(../assets/icons/users.svg) center/contain no-repeat}
+.i-link{-webkit-mask:url(../assets/icons/link.svg) center/contain no-repeat;mask:url(../assets/icons/link.svg) center/contain no-repeat}
+.i-mic{-webkit-mask:url(../assets/icons/mic.svg) center/contain no-repeat;mask:url(../assets/icons/mic.svg) center/contain no-repeat}
+.i-sun{-webkit-mask:url(../assets/icons/sunrise.svg) center/contain no-repeat;mask:url(../assets/icons/sunrise.svg) center/contain no-repeat}
+.i-moon{-webkit-mask:url(../assets/icons/moon.svg) center/contain no-repeat;mask:url(../assets/icons/moon.svg) center/contain no-repeat}
+.i-list{-webkit-mask:url(../assets/icons/list.svg) center/contain no-repeat;mask:url(../assets/icons/list.svg) center/contain no-repeat}
+.sh{padding:var(--space-8) var(--gutter-screen) var(--space-4)}
+.sh>div{display:flex;align-items:center;gap:var(--space-4);padding-bottom:var(--space-4);border-bottom:1px solid var(--ink-950)}
+.sh b{font:var(--weight-semibold) var(--size-title-2)/1.15 var(--font-core);letter-spacing:var(--tracking-title)}
+.sh s{flex:1}
+.sh em{font-style:normal;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 var(--space-3);border-radius:var(--radius-pill);background:var(--surface-fill);font:var(--weight-medium) var(--size-label)/1 var(--font-core);color:var(--text-secondary)}
+.r{display:flex;align-items:center;gap:var(--space-5);min-height:var(--row-height);box-sizing:border-box;padding:var(--space-5) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.r.two{min-height:var(--row-height-lg)}
+.r .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.r .t{font:var(--weight-medium) var(--size-body)/1.3 var(--font-core);letter-spacing:var(--tracking-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r .mt{font:var(--text-body-sm-role);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r .tools{display:flex;align-items:center;gap:var(--space-6);color:var(--ink-300)}
+.r .tools i{width:17px;height:17px}
+.r.done .t{color:var(--text-tertiary);text-decoration:line-through}
+.cbx{width:21px;height:21px;flex:0 0 auto;border-radius:var(--radius-xs);border:1px solid var(--border-strong);box-sizing:border-box;display:flex;align-items:center;justify-content:center}
+.cbx.on{background:var(--moss-600);border-color:var(--moss-600);color:var(--text-on-solid)}
+.cbx.on i{width:13px;height:13px}
+.tile36{width:36px;height:36px;flex:0 0 auto;border-radius:var(--radius-sm);background:var(--surface-fill);display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+.tile36 i{width:18px;height:18px}
+.grip{display:flex;color:var(--ink-300);margin:0 -6px}
+.grip i{width:17px;height:17px}
+/* The When value as it sits on a row: a date, tappable, in the row's meta line. */
+.wchip{display:inline-flex;align-items:center;gap:5px;height:24px;box-sizing:border-box;padding:0 var(--space-3) 0 var(--space-3);border-radius:var(--radius-xs);background:var(--surface-fill);color:var(--text-secondary);font:var(--weight-medium) var(--size-caption)/1 var(--font-core);font-variant-numeric:tabular-nums;align-self:flex-start;margin-top:3px}
+.wchip i{width:12px;height:12px;background:currentColor}
+.wchip.late{background:var(--clay-100);color:var(--text-danger)}
+.wchip.soon{background:var(--amber-100);color:var(--amber-700)}
+.wchip .bl{width:11px;height:11px;background:currentColor;margin-left:1px}
+.wchip.none{background:transparent;border:1px dashed var(--border-strong);color:var(--text-tertiary)}
+.chipset{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-6) var(--gutter-screen)}
+.chipset>div{display:flex;align-items:center;gap:var(--space-4)}
+.chipset .lb{font:var(--weight-regular) 13px/1.4 var(--font-core);color:var(--text-secondary)}
+.chipset .wchip{margin-top:0}
+.wplain{font:var(--weight-medium) var(--size-body-sm)/1 var(--font-core);font-variant-numeric:tabular-nums;color:var(--text-secondary);flex:0 0 auto}
+.wplain.late{color:var(--text-danger)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--surface-raised);border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;box-shadow:var(--shadow-sheet);box-sizing:border-box;padding:var(--space-5) var(--gutter-screen) var(--space-8)}
+.grab{width:36px;height:4px;border-radius:var(--radius-pill);background:var(--ink-200);margin:0 auto var(--space-6)}
+.st{margin:0 0 var(--space-5);font:var(--weight-semibold) 21px/var(--leading-title) var(--font-core);letter-spacing:var(--tracking-title)}
+.sintro{font:var(--text-body-sm-role);color:var(--text-secondary);margin:-6px 0 var(--space-5)}
+.sfoot{margin-top:var(--space-7);display:flex;gap:var(--space-4)}
+.sbtn{flex:1;display:flex;align-items:center;justify-content:center;height:44px;margin:-2px 0}
+.sbtn>span{display:flex;width:100%;align-items:center;justify-content:center;height:40px;box-sizing:border-box;padding:0 var(--space-6);border-radius:var(--radius-sm);font:var(--weight-medium) var(--size-body-sm)/1 var(--font-core)}
+.sbtn.sec>span{background:var(--surface-raised);color:var(--text-primary);border:1px solid var(--border-strong)}
+.sbtn.pri>span{background:var(--surface-inverse);color:var(--text-inverse);border:1px solid transparent}
+.sbtn.dgr>span{background:var(--surface-raised);color:var(--text-danger);border:1px solid var(--border-strong)}
+.scrim{position:absolute;inset:0;z-index:5;background:var(--surface-scrim)}
+/* The When picker: relative choices as a list, the hour as a revealed row. */
+.prow{display:flex;align-items:center;gap:var(--space-4);min-height:48px;box-sizing:border-box;padding:var(--space-3) 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.prow:last-of-type{box-shadow:none}
+.prow .pl{flex:1;min-width:0;font:var(--weight-regular) 16px/1.3 var(--font-core)}
+.prow .pv{font:var(--weight-regular) 15px/1 var(--font-core);font-variant-numeric:tabular-nums;color:var(--text-secondary);flex:0 0 auto}
+.prow.on .pl{font-weight:var(--weight-medium)}
+.prow.on .pv{color:var(--text-accent)}
+.prow i.g{width:18px;height:18px;color:var(--text-tertiary)}
+.prow.on i.tick{width:17px;height:17px;color:var(--text-accent)}
+.pgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:var(--space-4) 0 0}
+.pgrid u{text-decoration:none;display:flex;align-items:center;justify-content:center;height:22px;font:var(--weight-medium) 11px/1 var(--font-core);color:var(--text-tertiary)}
+.pgrid b{display:flex;align-items:center;justify-content:center;height:40px;border-radius:var(--radius-sm);font:var(--weight-regular) 15px/1 var(--font-core);font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.pgrid b.mute{color:var(--text-tertiary)}
+.pgrid b.on{background:var(--surface-inverse);color:var(--text-inverse);font-weight:var(--weight-medium)}
+.pgrid b.today{box-shadow:inset 0 0 0 1px var(--border-strong)}
+.pstrip{display:flex;gap:var(--space-3);overflow:hidden;margin:var(--space-3) 0 var(--space-2)}
+.pstrip b{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;width:52px;padding:var(--space-4) 0;border-radius:var(--radius-md);background:var(--surface-fill)}
+.pstrip b u{text-decoration:none;font:var(--weight-medium) 10.5px/1 var(--font-core);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.04em}
+.pstrip b s{text-decoration:none;font:var(--weight-medium) 17px/1 var(--font-core);font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.pstrip b.on{background:var(--surface-inverse)}
+.pstrip b.on u{color:rgb(255 255 255 / .62)}
+.pstrip b.on s{color:var(--text-inverse)}
+/* Settings rows, as the kit draws them. */
+.glab{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);margin:var(--space-6) var(--gutter-screen) var(--space-3)}
+.sgroup{background:var(--surface-fill);border-radius:var(--radius-lg);margin:0 var(--gutter-screen);padding:0 var(--space-4)}
+.srow{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-4);margin:0 calc(-1 * var(--space-4));box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.srow:last-child{box-shadow:none}
+.srow .txt{flex:1;min-width:120px}
+.srow .t{display:block;font:var(--weight-regular) 15px/1.35 var(--font-core)}
+.srow .n{display:block;font-size:var(--size-caption);line-height:1.4;color:var(--text-secondary);margin-top:3px}
+.srow .val{flex:0 0 auto;font-size:var(--size-body-sm);color:var(--text-secondary);font-variant-numeric:tabular-nums}
+.srow .cv{flex:0 0 auto;display:flex;color:var(--ink-300)}
+.srow .cv i{width:14px;height:14px}
+.tog{flex:0 0 auto;box-sizing:border-box;width:44px;height:26px;border-radius:var(--radius-pill);padding:3px;display:flex;justify-content:flex-end;background:var(--surface-inverse)}
+.tog i{display:block;width:20px;height:20px;border-radius:var(--radius-pill);background:var(--paper);box-shadow:var(--shadow-1)}
+.tog.off{justify-content:flex-start;background:var(--surface-fill-strong)}
+/* The Today strip, on InvitationStrip's shape. */
+.tstrip{display:flex;flex-direction:column;gap:var(--space-3);margin:var(--space-5) var(--gutter-screen) 0;padding:var(--space-5);border-radius:var(--radius-lg);background:var(--surface-accent-soft)}
+.tstrip .tl{display:flex;align-items:center;gap:var(--space-4)}
+.tstrip .ti{width:28px;height:28px;flex:0 0 auto;border-radius:var(--radius-pill);background:var(--moss-600);color:var(--text-on-solid);display:flex;align-items:center;justify-content:center}
+.tstrip .ti i{width:15px;height:15px}
+.tstrip .tt{flex:1;min-width:0;font:var(--weight-regular) 14px/1.4 var(--font-core);color:var(--text-primary)}
+.tstrip .tt b{font-weight:var(--weight-medium)}
+.tstrip .ta{display:flex;gap:var(--space-2);margin:0 0 -4px 26px}
+.tstrip .ta b{height:34px;display:inline-flex;align-items:center;padding:0 12px;border-radius:var(--radius-sm);font:var(--weight-medium) 13.5px/1 var(--font-core);color:var(--text-accent)}
+.tstrip .ta b.q{color:var(--text-secondary)}
+/* The Activity list. */
+.arow{display:flex;gap:var(--space-4);align-items:flex-start;padding:var(--space-5) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.arow .al{width:28px;height:28px;flex:0 0 auto;border-radius:var(--radius-pill);background:var(--surface-fill);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);margin-top:1px}
+.arow .al i{width:15px;height:15px}
+.arow .al.q{background:transparent;box-shadow:inset 0 0 0 1px var(--border-hairline);color:var(--text-tertiary)}
+.arow .ax{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start}
+.arow .at{font:var(--weight-medium) 15px/1.35 var(--font-core)}
+.arow .ab{font:var(--text-body-sm-role);color:var(--text-secondary);margin-top:2px}
+.arow .aw{flex:0 0 auto;font:var(--text-numeric-role);font-size:11.5px;color:var(--text-tertiary);margin-top:3px;font-variant-numeric:tabular-nums}
+.aquiet{display:inline-flex;align-items:center;height:19px;padding:0 6px;border-radius:4px;background:var(--surface-fill);color:var(--text-tertiary);font:var(--weight-medium) 10.5px/1 var(--font-core);margin-top:7px}
+.aquiet.warn{background:var(--amber-100);color:var(--amber-700)}
+/* A revealed block inside the When sheet. */
+.exp{padding:var(--space-2) 0 var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-3);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.exp.tight{gap:var(--space-2)}
+.exp.tight .opt{min-height:34px}
+.wheel{position:relative;display:flex;justify-content:center;gap:30px;height:132px;overflow:hidden;margin:2px 0}
+.wheel .band{position:absolute;left:0;right:0;top:44px;height:44px;border-radius:var(--radius-sm);background:var(--surface-fill)}
+.wheel .col{position:relative;display:flex;flex-direction:column;align-items:center}
+.wheel .col span{height:44px;display:flex;align-items:center;font:var(--weight-regular) 21px/1 var(--font-core);font-variant-numeric:tabular-nums;color:var(--text-tertiary)}
+.wheel .col span.on{color:var(--text-primary);font-weight:var(--weight-medium)}
+.wheel.off{opacity:.34}
+.cust{display:flex;align-items:center;gap:var(--space-4);padding:var(--space-4) 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.cust .cl{flex:1;min-width:0;font:var(--weight-regular) 15px/1.3 var(--font-core)}
+.numbox{display:inline-flex;align-items:center;justify-content:center;min-width:50px;height:36px;box-sizing:border-box;padding:0 var(--space-4);border-radius:var(--radius-sm);border:1px solid var(--border-strong);font:var(--weight-medium) 15px/1 var(--font-core);font-variant-numeric:tabular-nums}
+.selbox{display:inline-flex;align-items:center;gap:6px;height:36px;box-sizing:border-box;padding:0 var(--space-4);border-radius:var(--radius-sm);border:1px solid var(--border-strong);font:var(--weight-regular) 15px/1 var(--font-core)}
+.selbox i{width:13px;height:13px;background:currentColor;color:var(--text-tertiary)}
+.dows{display:flex;gap:6px;padding:var(--space-4) 0;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.dows b{width:34px;height:34px;flex:0 0 auto;border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;background:var(--surface-fill);font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary)}
+.dows b.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.rad{width:20px;height:20px;box-sizing:border-box;border-radius:var(--radius-pill);border:1px solid var(--border-strong);flex:0 0 auto}
+.rad.on{border-color:var(--moss-600);border-width:6px}
+.exp .hrs{display:flex;gap:var(--space-3);flex-wrap:wrap}
+.exp .hrs b{display:inline-flex;align-items:center;height:32px;padding:0 var(--space-5);border-radius:var(--radius-pill);background:var(--surface-fill);font:var(--weight-medium) 14px/1 var(--font-core);font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.exp .hrs b.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.exp .opt{display:flex;align-items:center;gap:var(--space-4);min-height:38px;font:var(--weight-regular) 15px/1.3 var(--font-core)}
+.exp .opt i{width:16px;height:16px;color:var(--text-accent)}
+.exp .opt.on{font-weight:var(--weight-medium)}
+.exp .opt s{flex:1;text-decoration:none}
+.exp .opt em{font-style:normal;font-size:var(--size-body-sm);color:var(--text-secondary);font-variant-numeric:tabular-nums}
+/* Notification specimens. */
+.stage{border-radius:20px;padding:20px;width:max-content;box-sizing:border-box;background:linear-gradient(160deg,#8E9AA8,#5F6B7A);display:flex;flex-direction:column;gap:11px;flex:0 0 auto}
+.stage.a{background:linear-gradient(160deg,#7C8878,#4E5A4C)}
+.stage.night{background:linear-gradient(160deg,#39414C,#1E242C)}
+.nios{width:390px;border-radius:22px;overflow:hidden;background:rgb(255 255 255 / .84);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);box-shadow:0 10px 24px -10px rgb(0 0 0 / .35);color:#0B0B0B}
+.nios .in{display:flex;gap:11px;padding:13px 15px 14px}
+.nios .mk{width:38px;height:38px;flex:0 0 auto;border-radius:9px;background:#0B0B0B;display:flex;align-items:center;justify-content:center}
+.nios .mk s{width:22px;height:22px;display:block;background:#fff;-webkit-mask:url(../assets/mark.svg) center/contain no-repeat;mask:url(../assets/mark.svg) center/contain no-repeat}
+.nios .cm{flex:1;min-width:0}
+.nios .hd{display:flex;align-items:baseline;gap:8px}
+.nios .hd u{flex:1;min-width:0;text-decoration:none;font:var(--weight-medium) 12px/1.2 var(--font-core);letter-spacing:.04em;text-transform:uppercase;color:rgb(11 11 11 / .55)}
+.nios .hd em{font-style:normal;font:var(--weight-regular) 12px/1.2 var(--font-core);color:rgb(11 11 11 / .5);font-variant-numeric:tabular-nums}
+.nios .ti{font:var(--weight-semibold) 15px/1.3 var(--font-core);margin-top:2px}
+.nios .bd{font:var(--weight-regular) 15px/1.35 var(--font-core);margin-top:1px}
+.nios .acts{border-top:.5px solid rgb(11 11 11 / .14)}
+.nios .acts b{display:flex;min-height:44px;align-items:center;justify-content:center;font:var(--weight-regular) 15px/1 var(--font-core);color:#0B0B0B}
+.nios .acts b+b{border-top:.5px solid rgb(11 11 11 / .14)}
+.nand{width:360px;box-sizing:border-box;border-radius:26px;padding:14px 16px 12px;background:#ECEBE7;color:#1B1B1A;box-shadow:0 1px 2px rgb(0 0 0 / .28),0 4px 10px 2px rgb(0 0 0 / .14)}
+.nand .hd{display:flex;align-items:center;gap:7px}
+.nand .hd s{width:18px;height:18px;flex:0 0 auto;border-radius:99px;background:#3F6B4F;display:flex;align-items:center;justify-content:center}
+.nand .hd s b{width:12px;height:12px;display:block;background:#fff;-webkit-mask:url(../assets/mark.svg) center/contain no-repeat;mask:url(../assets/mark.svg) center/contain no-repeat}
+.nand .hd u{text-decoration:none;font:var(--weight-medium) 12.5px/1 var(--font-core);color:#5A5A57}
+.nand .hd em{font-style:normal;font:var(--weight-regular) 12.5px/1 var(--font-core);color:#5A5A57;font-variant-numeric:tabular-nums}
+.nand .hd .dot{width:3px;height:3px;border-radius:99px;background:#8A8A86}
+.nand .hd .cv{margin-left:auto;width:16px;height:16px;background:#5A5A57;-webkit-mask:url(../assets/icons/chevron-down.svg) center/contain no-repeat;mask:url(../assets/icons/chevron-down.svg) center/contain no-repeat}
+.nand .ti{font:var(--weight-medium) 15px/1.35 var(--font-core);margin-top:7px}
+.nand .bd{font:var(--weight-regular) 14px/1.4 var(--font-core);color:#3A3A38;margin-top:2px}
+.nand .acts{display:flex;gap:4px;margin:8px 0 0 -10px}
+.nand .acts b{height:36px;display:inline-flex;align-items:center;padding:0 10px;border-radius:18px;font:var(--weight-medium) 13.5px/1 var(--font-core);color:#2440A8}
+.ndot{position:absolute;top:5px;right:5px;width:8px;height:8px;box-sizing:border-box;border-radius:var(--radius-pill);background:var(--clay-600);border:1.5px solid var(--paper)}
+.gl{padding:var(--space-6) var(--gutter-screen) var(--space-2);font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.05em}
+.emptybox{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-4);padding:var(--space-11) var(--space-9)}
+.emptybox b{font:var(--text-title-3);letter-spacing:var(--tracking-title)}
+.emptybox span{font:var(--text-quiet-role);font-size:var(--size-body);color:var(--text-secondary);max-width:30ch}
+.crop{width:390px;flex:0 0 auto;display:flex;flex-direction:column;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);padding:var(--space-5) 0;box-sizing:border-box;color:var(--text-primary)}
+.you{align-self:flex-end;max-width:84%;padding:var(--space-4) var(--space-5);border-radius:var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);background:var(--blue-50);border:1px solid var(--blue-100);color:var(--ink-950);font:var(--weight-regular) 15px/1.45 var(--font-core)}
+.ol{align-self:flex-start;max-width:92%;padding:var(--space-4) var(--space-5);border-radius:var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;background:var(--ink-50);font:var(--text-quiet-role);font-size:16px;line-height:24px}
+.turns{display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-5) var(--gutter-screen)}
+.pills{display:flex;gap:var(--space-3);flex-wrap:wrap;margin-top:var(--space-4)}
+.pill2{display:inline-flex;align-items:center;gap:6px;height:30px;box-sizing:border-box;padding:0 var(--space-5);border-radius:var(--radius-pill);background:var(--surface-fill);font:var(--weight-medium) var(--size-label)/1 var(--font-core);color:var(--text-primary)}
+.pill2 i{width:13px;height:13px;background:currentColor;color:var(--text-tertiary)}
+.pill2 em{font-style:normal;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+.rec,.verdict,.ask{align-self:flex-start}
+.verdict{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px}
+.verdict.no{background:var(--clay-100);color:var(--text-danger)}
+.verdict.yes{background:var(--surface-accent-soft);color:var(--moss-700)}
+.ask{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;background:var(--amber-100);color:var(--amber-700)}
+table.mx th{text-align:left;font:var(--weight-semibold) 12px/1.3 var(--font-core);color:var(--text-tertiary);border-bottom:1px solid var(--ink-950);padding:0 18px 7px 0}
+table.mx td{vertical-align:top;padding:9px 18px 9px 0;border-bottom:1px solid var(--border-hairline);color:var(--text-secondary);line-height:1.5}
+table.mx td code{font-size:12px}
+table.mx td.no{color:var(--text-danger)}
+.cell>.spec{max-width:390px}
+</style>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="#3F6B4F"/><rect x="34" y="32" width="52" height="50" rx="7" fill="none" stroke="#FFFFFF" stroke-width="5"/><path d="M34 46h52M48 26v12M72 26v12" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/><circle cx="78" cy="80" r="16" fill="#D98A1F" stroke="#3F6B4F" stroke-width="5"/><circle cx="78" cy="80" r="5" fill="#FFFFFF"/></svg></template>
+</head><body><div class="wrap">
+
+<h1>Due dates, and the notifications that read them</h1>
+<p class="lede">Read off <code>main</code> at <code>b494d0e</code>, after 021 and the sharing work. Three questions in order: what carries a date today and who writes it, how a person sets one, and what offload says when the day comes. <b>Third pass. Every question this page raised has been answered</b> and the answers are folded in and marked <span class="verdict yes" style="vertical-align:middle">settled</span>. What is left is a handoff, not a decision.</p>
+<p class="lede">The finding that shapes the rest: <b>the schema has carried dates since 001 and no person has ever been able to write one.</b> Every date in the product was inferred by a model from something somebody dumped. There is no field, no picker, no gesture and no way to clear one on any of the three surfaces. Notifications are the forcing function, because a notification fires off a date, and a date nobody can correct is a notification nobody can stop.</p>
+
+<div class="sechead"><h2>1. What carries a date now</h2><u>read off the schema, the tools and the clients</u></div>
+<p class="snote">Four columns on <code>content</code>, the same four on <code>notes</code>, and one flag. Nothing here is new work; it is the ground the rest of the page stands on.</p>
+<table class="mx">
+<tr><th>Column</th><th>What it means</th><th>Who writes it</th><th>What draws it</th></tr>
+<tr><td><code>due_at</code></td><td>The day a task is wanted by. Stored as a timestamp, but a bare day is filed at <b>noon UTC</b> and must be drawn as a day.</td><td><code>add_content</code> at filing, <code>edit_content</code> since 019, and 018's asking-back question, which sets it <b>only when it is null</b>.</td><td class="no">The web Timeline, as the bare word <b>due</b>. Widgets. <b>Not the thread's own rows.</b></td></tr>
+<tr><td><code>occurs_at</code><br><code>occurs_end_at</code></td><td>When an event happens, and when it stops. The pair is already a duration.</td><td>Same three writers, plus <code>create_event</code> reading it to write to Google.</td><td>Timeline, as a time or a range. The calendar. Widgets.</td></tr>
+<tr><td><code>attrs.all_day</code></td><td>Set when the model wrote a bare day. 012's own column, reused, so a birthday does not land a day out for half the planet.</td><td>Derived on the server by <code>isBareDate</code>, never sent by a model.</td><td>Timeline, as <b>All day</b>.</td></tr>
+<tr><td><code>repeats</code><br><code>repeats_until</code></td><td>Day, weekday, week, two weeks, month, year. One row, drawn on every matching day. <b>Both are replaced by an RRULE</b>, section 5.</td><td><code>add_content</code>, <code>add_note</code>. Not <code>edit_content</code>.</td><td>A collapsed row's note line, which says how often instead of naming the one date it happens to hold.</td></tr>
+<tr><td><code>is_reminder</code></td><td>A flag on a task or an event, never a type.</td><td><code>add_content</code>, defaulting false. <b>Still only the model.</b></td><td><b>The digest, and nothing else.</b> Its own comment said nothing acts on it until notifications ship. Section 7 is that.</td></tr>
+</table>
+<ul class="spec">
+<li><b>Dates are only set when the dump states or implies one.</b> That is principle 04, carried in the filing prompt, and it is why most rows have no date at all. It is a good rule and this work must not quietly overturn it.</li>
+<li><b>A bare day is noon UTC, and that was a production bug once already.</b> Midnight put Sunday brunch under Saturday for everybody west of Greenwich. <code>dates.ts</code> says plainly that noon is right from UTC-11 to UTC+11 and the complete answer is the account's timezone, <b>which the account does not have</b>.</li>
+<li><b>A date more than ten years out or five years back is refused</b>, because a task due in 2126 is invisible rather than wrong-looking.</li>
+<li><b>The thread's own content row draws no date.</b> Not on the phones, not on web. A task due tomorrow and a task with no date are the same row. Section 4 cannot put a control on a date the row has never shown.</li>
+</ul>
+
+<div class="sechead"><h2>2. One field, called When</h2><u>and the row's type decides what it writes</u></div>
+<p class="snote">A person does not hold three date columns in their head. They hold one question, <i>when</i>, and sometimes a second, <i>for how long</i>. The row already knows which column that means.</p>
+<table class="mx">
+<tr><th>Row type</th><th>When writes</th><th>Duration</th><th>The word on screen</th></tr>
+<tr><td><code>task</code></td><td><code>due_at</code></td><td>None offered.</td><td><b>Due</b> Fri 25, or <b>Due</b> Fri 25, 9:00</td></tr>
+<tr><td><code>event</code></td><td><code>occurs_at</code></td><td><code>occurs_end_at</code>, offered only once an hour is set.</td><td>Fri 25, 7:00 pm</td></tr>
+<tr><td>link, image, file, voice, location</td><td><code>due_at</code></td><td>None offered.</td><td><b>Due</b> Fri 25</td></tr>
+</table>
+<ul class="spec">
+<li><b>Duration already exists and needs no column.</b> <code>occurs_end_at</code> is the pair's other half and <code>create_event</code> already falls back to one hour when it is missing. The field offers Ends at, not a length, so the value written is the value stored.</li>
+<li><b>A date with no hour stays all-day</b>, which is <code>attrs.all_day</code> and the existing <code>isBareDate</code> path. Adding an hour clears it. This is the one part of the model a client can get wrong in a way nobody notices for months.</li>
+<li><span class="verdict yes">settled</span> <b>A due date may carry an hour, and <code>dates.ts</code>'s comment is now wrong.</b> That comment says a due date has no time anybody expects to see. "Call the clinic at 9" and "rent by Friday" are both tasks, and the first one has an hour that matters, so the hour is optional on every type. <b>Code owes an amendment to that comment</b>, not a new column: the value already fits.</li>
+<li><b>The hour is what makes a row sub-day, and nothing else changes.</b> An hour clears <code>attrs.all_day</code>; removing it sets it again. A task with an hour still sorts and reads as a task, and the digest still announces it in the morning rather than at the hour, which is section 7's rule.</li>
+<li><b>Repeats is set in the same sheet</b> and is the one recurrence control there is. It follows Google Calendar's preset list and Custom dialog, which <b>the current <code>repeats</code> column cannot hold</b>, so it becomes an RRULE: see the last cell of section 5.</li>
+<li><b>No new glyphs.</b> Everything here uses <code>calendar</code>, <code>clock</code>, <code>bell</code>, <code>compass</code>, <code>check</code>, <code>chevron-down</code>, <code>chevron-right</code>, <code>x</code>, <code>sunrise</code> and <code>moon</code>, all of them already vendored. The set stays at 84.</li>
+</ul>
+
+<div class="sechead"><h2>3. Which clock</h2><u>a default zone, a last-seen zone, and a strip when they disagree</u></div>
+<p class="snote"><code>accounts</code> carries no timezone. Until it does, "due today" is a guess and a morning digest cannot pick an hour. The shape below is two columns rather than one, because a person who travels still wants rent on the day rent is due at home.</p>
+<table class="mx">
+<tr><th>Field</th><th>Written by</th><th>Read by</th></tr>
+<tr><td><code>time_zone</code>, the default</td><td>Set once at first run from the device. Editable in Settings, and by the strip below.</td><td>Everything that renders or schedules: the digest hour, "due today", <code>dates.ts</code>, and the prompt's <b>today</b>.</td></tr>
+<tr><td><code>last_seen_time_zone</code></td><td>Any authenticated request that carries the device's IANA zone. Written, never acted on.</td><td>Only the comparison. If it equals the default, nothing anywhere changes.</td></tr>
+<tr><td><code>follow_device</code>, a preference</td><td>The Settings toggle. On by default.</td><td>Off means <code>last_seen_time_zone</code> is still recorded and never compared, so the strip can never appear.</td></tr>
+</table>
+<div class="row">
+<div class="cell"><div class="tag m"><b>Today, zones agree</b><span>nothing appears, which is the common case</span></div>
+<div class="ph" style="height:420px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar"><span class="lead"><span class="bc"><i class="g i-list"></i></span></span><h4>Today</h4><span class="tools"><span class="bc"><i class="g i-bell"></i></span><span class="bc"><i class="g i-gear"></i></span></span></div>
+<div class="body">
+<div class="sh"><div><b>To do</b><em>3</em><s></s></div></div>
+<div class="r two"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Pay the rent</span><span class="wchip soon"><i class="g i-cal"></i>Due Fri 25</span></span></div>
+<div class="r two"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Book the Istanbul stay</span><span class="wchip"><i class="g i-cal"></i>Due Mon 28</span></span></div>
+<div class="r"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Ask Tom about the flights</span></span></div>
+</div>
+</div>
+<ul class="spec"><li>A row with no date shows nothing. <b>An empty dashed slot on every undated row would be a to-do list that nags</b>, and principle 04 says a date nobody gave is not a date offload wants.</li></ul>
+</div>
+<div class="cell"><div class="tag m"><b>Landed somewhere else</b><span>the strip, once</span></div>
+<div class="ph" style="height:420px">
+<div class="sb"><span>17:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar"><span class="lead"><span class="bc"><i class="g i-list"></i></span></span><h4>Today</h4><span class="tools"><span class="bc"><i class="g i-bell"></i></span><span class="bc"><i class="g i-gear"></i></span></span></div>
+<div class="body">
+<div class="tstrip"><span class="tl"><span class="ti"><i class="g i-comp"></i></span><span class="tt">Showing times in <b>Lisbon</b>. This phone says <b>Tokyo</b>.</span></span><span class="ta"><b>Use Tokyo</b><b class="q">Keep Lisbon</b></span></div>
+<div class="sh"><div><b>To do</b><em>3</em><s></s></div></div>
+<div class="r two"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Pay the rent</span><span class="wchip soon"><i class="g i-cal"></i>Due Fri 25</span></span></div>
+<div class="r two"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Book the Istanbul stay</span><span class="wchip"><i class="g i-cal"></i>Due Mon 28</span></span></div>
+</div>
+</div>
+<span class="rec">recommended</span>
+<ul class="spec">
+<li><b>The two answers are inside the card, and tinted rather than filled.</b> A pair of full-width buttons under the strip belongs to the screen, not to the sentence; these are the notification's own treatment, text buttons in <code>--text-accent</code> on the strip's ground, so they can only be read as answering the line above them.</li>
+<li><b>Keep Lisbon is the quieter of the two</b>, in <code>--text-secondary</code>, because it is the same as doing nothing and should not look like a decision.</li>
+<li><b>It states the fact before it offers the change.</b> The sentence is what is true right now, not a question, so ignoring it is a complete answer and the dates on the screen already mean what the first line says they mean.</li>
+<li><b>Once per zone, not once per day.</b> Keep Lisbon remembers the pair, so a two-week trip asks on arrival and stays quiet. A different zone asks again.</li>
+<li><b>Use Tokyo rewrites the default</b>, which is the honest reading: a person who says yes has moved, as far as the product is concerned, and they can move back the same way.</li>
+<li><b>Names, not offsets.</b> The IANA zone's city, because UTC+9 is not a thing anybody knows about themselves.</li>
+</ul>
+</div>
+<div class="cell"><div class="tag m"><b>Settings</b><span>the one row that switches it off</span></div>
+<div class="ph" style="height:420px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g i-chev-l"></i></span></span><h4>Date and time</h4></div>
+<div class="body">
+<div class="glab">YOUR CLOCK</div>
+<div class="sgroup">
+<div class="srow"><span class="txt"><span class="t">Time zone</span><span class="n">Everything is shown and scheduled in this one.</span></span><span class="val">Lisbon</span><span class="cv"><i class="g i-chev-r"></i></span></div>
+<div class="srow"><span class="txt"><span class="t">Follow this device</span><span class="n">Offer to switch when the phone is somewhere else.</span></span><span class="tog"><i></i></span></div>
+</div>
+<div class="glab">WEEK</div>
+<div class="sgroup">
+<div class="srow"><span class="txt"><span class="t">Starts on</span></span><span class="val">Monday</span><span class="cv"><i class="g i-chev-r"></i></span></div>
+</div>
+</div>
+</div>
+<ul class="spec">
+<li><b>Follow this device off means the comparison never runs.</b> Not that the strip is suppressed: the value is still recorded, so turning it back on works immediately, but nothing reads it.</li>
+<li><b>Week starts on</b> is here because the month grid in section 5 needs it and there is nowhere else it could live. Default from the device locale.</li>
+<li>Reachable from Settings and from the strip's own long-term home. <b>One page, not a row on My account</b>, because three settings on one subject is a page.</li>
+</ul>
+</div>
+</div>
+
+<div class="sechead"><h2>4. The date on a row</h2><u>what it looks like, and what changes it</u></div>
+<p class="snote">The mobile row's comment is explicit: <b>two controls, never three: edit, and one way out.</b> It argues that Archive and Delete are two answers to one question. Any option that adds a third icon is arguing with a rule written after an evening of tidying a list, so it needs to win on more than convenience.</p>
+<div class="rowlabel">First, the chip itself<u>three states, and the middle one is the useful one</u></div>
+<div class="row">
+<div class="cell"><div class="tag m"><b>Colour by nearness</b><span>today is Tue 22</span></div>
+<div class="crop"><div class="chipset">
+<div><span class="wchip late"><i class="g i-cal"></i>Due Fri 18</span><span class="lb"><b>Late.</b> Anything before today.</span></div>
+<div><span class="wchip soon"><i class="g i-cal"></i>Due today</span><span class="lb"><b>Soon.</b> Today and the next three days.</span></div>
+<div><span class="wchip soon"><i class="g i-cal"></i>Due Fri 25</span><span class="lb">Still soon, at three days out.</span></div>
+<div><span class="wchip"><i class="g i-cal"></i>Due Mon 28</span><span class="lb"><b>Later.</b> Everything past that.</span></div>
+<div><span class="wchip"><i class="g i-cal"></i>12 Nov</span><span class="lb">Far out drops the weekday and gains the month.</span></div>
+<div><span class="wchip soon"><i class="g i-cal"></i>Due Fri 25<i class="g bl i-bell"></i></span><span class="lb"><b>Proposed.</b> This one is going in a digest.</span></div>
+</div></div>
+<ul class="spec">
+<li><b>Late is <code>--clay-100</code> with <code>--text-danger</code></b>, the same pair the product already uses for a failure, because a date that has passed is the one state that wants finding.</li>
+<li><b>Soon is amber, not blue.</b> <code>--amber-100</code> with <code>--amber-700</code>, which is the rail's own decision colour: it lifts off a warm page without claiming anything is wrong. Blue is the product's attention colour and would read as offload asking for something.</li>
+<li><b>Later is the plain fill</b>, <code>--surface-fill</code> with <code>--text-secondary</code>. Most dated rows are here and they should be quiet: a list where every row is coloured has no colour.</li>
+<li><b>Three days, stated.</b> Today plus three, in the account's zone from section 3. A boundary nobody writes down becomes a boundary each surface computes differently.</li>
+<li><b>A done row loses the colour entirely</b> and keeps the plain chip, whatever its date. A ticked task that was late is not late, it is done.</li>
+<li><span class="ask">proposed, not asked for</span> <b>The bell mark is the answer to a gap the <code>is_reminder</code> decision opens.</b> Section 7 gates the digest on a flag only the model writes, so without a mark the first a person hears of it is the notification, and the two rows that look identical on Tuesday behave differently on Friday. <b>Read-only: it reports the flag, it does not set it.</b> A row without the bell is a date; a row with it is a date offload will say out loud.</li>
+</ul>
+</div>
+</div>
+<div class="rowlabel">Then, what makes it changeable<u>three options</u></div>
+<div class="row">
+<div class="cell"><div class="tag m"><b>A</b><span>inside the edit sheet only</span></div>
+<div class="ph" style="height:400px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g i-chev-l"></i></span></span><h4>Lisbon trip</h4></div>
+<div class="body">
+<div class="r two"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Pay the rent</span><span class="wchip soon"><i class="g i-cal"></i>Due Fri 25</span></span><span class="tools"><i class="g i-pencil"></i><i class="g i-trash"></i></span></div>
+<div class="r two"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Book the Istanbul stay</span><span class="wchip"><i class="g i-cal"></i>Due Mon 28</span></span><span class="tools"><i class="g i-pencil"></i><i class="g i-trash"></i></span></div>
+<div class="r"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Ask Tom about the flights</span></span><span class="tools"><i class="g i-pencil"></i><i class="g i-trash"></i></span></div>
+</div>
+</div>
+<span class="rec">recommended</span>
+<ul class="spec"><li><b>Nothing on the row changes except that it now shows its date.</b> The pencil opens a sheet that has gained a When field, beside the title and the note.</li><li>Reaches every row, dated or not, which is the thing B cannot do.</li><li><b>One sheet holds every attribute of a row</b>, so the next thing a row learns to carry has somewhere obvious to go. That is the argument that outlasts this feature.</li><li>Costs a sheet open for a change as small as "push it a day", which is the price.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>B</b><span>the date is the control</span></div>
+<div class="ph" style="height:400px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g i-chev-l"></i></span></span><h4>Lisbon trip</h4></div>
+<div class="body">
+<div class="r two"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Pay the rent</span><span class="wchip soon"><i class="g i-cal"></i>Due Fri 25</span></span><span class="tools"><i class="g i-pencil"></i><i class="g i-trash"></i></span></div>
+<div class="r two"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Book the Istanbul stay</span><span class="wchip"><i class="g i-cal"></i>Due Mon 28</span></span><span class="tools"><i class="g i-pencil"></i><i class="g i-trash"></i></span></div>
+<div class="r two"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Ask Tom about the flights</span><span class="wchip none"><i class="g i-cal"></i>Add a date</span></span><span class="tools"><i class="g i-pencil"></i><i class="g i-trash"></i></span></div>
+</div>
+</div>
+<span class="verdict no">the dashed slot is the problem</span>
+<ul class="spec"><li>One tap to change a date that exists, which is the common case and the nicest version of it.</li><li><b>But an undated row has to grow an empty slot to be tappable</b>, and that is a list of chores wearing a row of unanswered questions. Principle 04 spent real effort making offload not ask.</li><li>The chip is <b>24px</b> tall inside a 72px row, so the tap target has to extend past the ink, which is fine on a phone and cramped beside the web row's hover tools.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>C</b><span>a third icon on the row</span></div>
+<div class="ph" style="height:400px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g i-chev-l"></i></span></span><h4>Lisbon trip</h4></div>
+<div class="body">
+<div class="r two"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Pay the rent</span><span class="wchip soon"><i class="g i-cal"></i>Due Fri 25</span></span><span class="tools"><i class="g i-cal"></i><i class="g i-pencil"></i><i class="g i-trash"></i></span></div>
+<div class="r two"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Book the Istanbul stay</span><span class="wchip"><i class="g i-cal"></i>Due Mon 28</span></span><span class="tools"><i class="g i-cal"></i><i class="g i-pencil"></i><i class="g i-trash"></i></span></div>
+<div class="r"><span class="grip"><i class="g i-grip"></i></span><span class="cbx"></span><span class="tx"><span class="t">Ask Tom about the flights</span></span><span class="tools"><i class="g i-cal"></i><i class="g i-pencil"></i><i class="g i-trash"></i></span></div>
+</div>
+</div>
+<span class="verdict no">breaks the stated rule, and draws the calendar twice</span>
+<ul class="spec"><li>The row now carries a handle, a checkbox, a title, a date with a calendar in it, and a calendar icon that is a different calendar. <b>Two calendars on one row that mean different things.</b></li><li>It is also the only option that pushes the title column narrow enough to clip ordinary titles at 390px.</li></ul>
+</div>
+</div>
+<p class="snote" style="margin-top:26px"><b>A.</b> The row draws its date and does not act on it; the pencil is the single way in, and the sheet behind it holds everything about the row rather than a date field bolted to a rename. Nothing is added to the tool cluster, so the two-controls rule holds, and a row that has never had a date never asks for one.</p>
+<div class="rowlabel">So the edit sheet becomes the row's one sheet<u>title, note, when, repeats</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>As the kit has it</b><span>a rename, and nothing else</span></div>
+<div class="ph" style="height:430px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g i-chev-l"></i></span></span><h4>Lisbon trip</h4></div>
+<div class="body"><div class="r two"><span class="cbx"></span><span class="tx"><span class="t">Pay the rent</span></span></div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grab"></div>
+<div class="st">Edit</div>
+<div class="prow" style="box-shadow:none"><span class="pl">Pay the rent</span></div>
+<div class="sfoot"><span class="sbtn sec"><span>Cancel</span></span><span class="sbtn pri"><span>Save</span></span></div>
+</div>
+</div>
+<ul class="spec"><li>One text field. Every other fact about a row is the model's to write and nobody else's.</li></ul>
+</div>
+<div class="cell"><div class="tag m"><b>Edit</b><span>four rows, and the last two are new</span></div>
+<div class="ph" style="height:430px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g i-chev-l"></i></span></span><h4>Lisbon trip</h4></div>
+<div class="body"><div class="r two"><span class="cbx"></span><span class="tx"><span class="t">Pay the rent</span></span></div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grab"></div>
+<div class="st">Edit</div>
+<div class="prow"><span class="pl">Pay the rent</span></div>
+<div class="prow"><span class="pl" style="color:var(--text-tertiary)">Add a note</span></div>
+<div class="prow"><i class="g i-cal"></i><span class="pl">When</span><span class="pv">Fri 25, 9:00</span><i class="g i-chev-r"></i></div>
+<div class="prow"><i class="g i-clock"></i><span class="pl">Repeats</span><span class="pv">Every month</span><i class="g i-chev-r"></i></div>
+<div class="sfoot"><span class="sbtn sec"><span>Cancel</span></span><span class="sbtn pri"><span>Save</span></span></div>
+</div>
+</div>
+<span class="rec">take this</span>
+<ul class="spec">
+<li><b>The two text fields keep their place at the top</b>, so the sheet a person already knows has grown rather than changed.</li>
+<li><b>When and Repeats carry their values on the row.</b> A row that opens something should say what it currently holds, or the sheet makes you open two things to read one fact.</li>
+<li><b>Both open the same picker</b>, which is section 5: When lands on the grid, Repeats lands on the same sheet scrolled to its own block. One sheet, two doors.</li>
+<li><b>Save writes once.</b> A title change and a date change made together are one write, which matters because the date path and the rename path are otherwise two different routes on the server.</li>
+</ul>
+</div>
+<div class="cell"><div class="tag i"><b>Web</b><span>the same four, in a modal</span></div>
+<div class="crop" style="padding:var(--space-6) var(--gutter-screen)">
+<div style="font-size:13.5px;line-height:1.7;color:var(--text-secondary)">The web row has had an edit control since 007 and the same rule about one way out. It takes the same four fields in the existing modal rather than a sheet.<br><br><b style="color:var(--text-primary)">The difference is the picker.</b> A phone gets a sheet; the desk gets the month grid inline in the modal, because there is room and because a second layer over a modal is the thing the people work already avoided.<br><br><b style="color:var(--text-primary)">Android is the iOS sheet</b> at Material's radii, which the kit already handles. No third drawing.</div>
+</div>
+</div>
+</div>
+
+<div class="sechead"><h2>5. The picker</h2><u>the grid, with the hour and the recurrence inside it</u></div>
+<p class="snote">The grid is the front door. A person reading a month knows where they are and when they are without having to trust the product's arithmetic, and the two things that used to be separate screens, the hour and the recurrence, open inside the same sheet.</p>
+<p class="snote"><b>The recurrence follows Google Calendar.</b> Same presets, same Custom dialog, and the reason is not familiarity: 019 already writes events to a real Google calendar, so a vocabulary that survives that trip is one nobody has to translate. <b>It does not fit the current column</b>, which is the last cell in this section and the biggest item in the handoff.</p>
+<div class="row">
+<div class="cell"><div class="tag m"><b>As it opens</b><span>the month, and two rows that hold their values</span></div>
+<div class="ph" style="height:640px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g i-chev-l"></i></span></span><h4>Lisbon trip</h4></div>
+<div class="body"><div class="r two"><span class="cbx"></span><span class="tx"><span class="t">Pay the rent</span></span></div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grab"></div>
+<div class="st">When</div>
+<p class="sintro">Pay the rent</p>
+<div class="prow" style="box-shadow:none;padding-bottom:0"><span class="pl" style="font-weight:var(--weight-medium)">September 2026</span><i class="g i-chev-l"></i><i class="g i-chev-r"></i></div>
+<div class="pgrid">
+<u>M</u><u>T</u><u>W</u><u>T</u><u>F</u><u>S</u><u>S</u>
+<b class="mute">31</b><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b>
+<b>7</b><b>8</b><b>9</b><b>10</b><b>11</b><b>12</b><b>13</b>
+<b>14</b><b>15</b><b>16</b><b>17</b><b>18</b><b>19</b><b>20</b>
+<b>21</b><b class="today">22</b><b>23</b><b>24</b><b class="on">25</b><b>26</b><b>27</b>
+<b>28</b><b>29</b><b>30</b><b class="mute">1</b><b class="mute">2</b><b class="mute">3</b><b class="mute">4</b>
+</div>
+<div class="prow" style="margin-top:6px"><i class="g i-clock"></i><span class="pl">Time</span><span class="pv">All day</span><i class="g i-chev-d"></i></div>
+<div class="prow"><i class="g i-cal"></i><span class="pl">Repeats</span><span class="pv">Never</span><i class="g i-chev-d"></i></div>
+<div class="sfoot"><span class="sbtn dgr"><span>Clear</span></span><span class="sbtn pri"><span>Save</span></span></div>
+</div>
+</div>
+<span class="rec">recommended</span>
+<ul class="spec">
+<li><b>Today is outlined, the pick is filled.</b> Two different facts, so two different marks: a ring for where you are, ink for what you chose. A single highlight for both is how a picker loses today the moment you tap anything.</li>
+<li><b>The two rows below carry their current values and a chevron that points down</b>, not right, because they open in place. Nothing in this sheet navigates.</li>
+<li><b>Clear is a first-class control.</b> Today there is no way to remove a date at all, so the one thing this must not ship without is the way out. It clears the date, the hour and the recurrence together, which is what a person means by "never mind".</li>
+<li>Leading and trailing days are <code>--text-tertiary</code> and still tappable, so a date at the turn of the month does not need the arrows.</li>
+<li><b>Week starts on</b> comes from section 3, which is why that setting exists.</li>
+</ul>
+</div>
+<div class="cell"><div class="tag m"><b>Time, open</b><span>All day, then the wheel</span></div>
+<div class="ph" style="height:820px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g i-chev-l"></i></span></span><h4>Lisbon trip</h4></div>
+<div class="body"></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grab"></div>
+<div class="st">When</div>
+<div class="prow" style="box-shadow:none;padding-bottom:0"><span class="pl" style="font-weight:var(--weight-medium)">September 2026</span><i class="g i-chev-l"></i><i class="g i-chev-r"></i></div>
+<div class="pgrid">
+<u>M</u><u>T</u><u>W</u><u>T</u><u>F</u><u>S</u><u>S</u>
+<b>21</b><b class="today">22</b><b>23</b><b>24</b><b class="on">25</b><b>26</b><b>27</b>
+<b>28</b><b>29</b><b>30</b><b class="mute">1</b><b class="mute">2</b><b class="mute">3</b><b class="mute">4</b>
+</div>
+<div class="prow" style="margin-top:6px"><i class="g i-clock"></i><span class="pl">Time</span><span class="pv">9:00</span><i class="g i-chev-d"></i></div>
+<div class="exp">
+<span class="opt"><s>All day</s></span>
+<span class="wheel"><span class="band"></span><span class="col"><span>08</span><span class="on">09</span><span>10</span></span><span class="col"><span>55</span><span class="on">00</span><span>05</span></span></span>
+<span class="opt"><s>Ends at</s><em>10:00</em><i class="g i-chev-r"></i></span>
+</div>
+<div class="prow"><i class="g i-cal"></i><span class="pl">Repeats</span><span class="pv">Never</span><i class="g i-chev-d"></i></div>
+<div class="sfoot"><span class="sbtn dgr"><span>Clear</span></span><span class="sbtn pri"><span>Save</span></span></div>
+</div>
+</div>
+<ul class="spec">
+<li><b>All day sits above the wheel and greys it</b> rather than removing it, so the control does not jump and the hour you had is still visible while it is switched off. Tapping the wheel turns All day back off, which means there are two ways to the same state and neither is hidden.</li>
+<li><b>Five-minute steps.</b> Twelve values an hour is enough for anything somebody would put on a task, and a minute wheel with sixty rows is a scroll nobody finishes.</li>
+<li><b>Setting a time opens Ends at.</b> It is not a row you have to find: the moment an hour exists the question of how long becomes askable, and before that it is meaningless. On a task the row is absent entirely, because a due date has no end.</li>
+<li>The platform's own wheel, not one drawn here. It reads the locale, so a 12-hour account gets am and pm and a third column without this design saying anything about it.</li>
+</ul>
+</div>
+<div class="cell"><div class="tag m"><b>Repeats, open</b><span>the presets, on Google's shape</span></div>
+<div class="ph" style="height:850px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g i-chev-l"></i></span></span><h4>Lisbon trip</h4></div>
+<div class="body"></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grab"></div>
+<div class="st">When</div>
+<div class="prow" style="box-shadow:none;padding-bottom:0"><span class="pl" style="font-weight:var(--weight-medium)">September 2026</span><i class="g i-chev-l"></i><i class="g i-chev-r"></i></div>
+<div class="pgrid">
+<u>M</u><u>T</u><u>W</u><u>T</u><u>F</u><u>S</u><u>S</u>
+<b>21</b><b class="today">22</b><b>23</b><b>24</b><b class="on">25</b><b>26</b><b>27</b>
+<b>28</b><b>29</b><b>30</b><b class="mute">1</b><b class="mute">2</b><b class="mute">3</b><b class="mute">4</b>
+</div>
+<div class="prow" style="margin-top:6px"><i class="g i-clock"></i><span class="pl">Time</span><span class="pv">9:00</span><i class="g i-chev-d"></i></div>
+<div class="prow"><i class="g i-cal"></i><span class="pl">Repeats</span><span class="pv">Monthly</span><i class="g i-chev-d"></i></div>
+<div class="exp tight">
+<span class="opt"><s>Never</s></span>
+<span class="opt"><s>Daily</s></span>
+<span class="opt"><s>Weekly on Friday</s></span>
+<span class="opt"><s>Every weekday</s><em>Mon to Fri</em></span>
+<span class="opt on"><s>Monthly on the fourth Friday</s><i class="g i-check"></i></span>
+<span class="opt"><s>Annually on 25 September</s></span>
+<span class="opt"><s>Custom</s><i class="g i-chev-r"></i></span>
+</div>
+<div class="sfoot"><span class="sbtn dgr"><span>Clear</span></span><span class="sbtn pri"><span>Save</span></span></div>
+</div>
+</div>
+<span class="rec">the recurring config</span>
+<ul class="spec">
+<li><b>Google Calendar's own list, because half of these rows are going to Google anyway.</b> 019 already round-trips events to a real calendar, so a set of presets that cannot survive that trip would be a set we have to translate and lose things in.</li>
+<li><b>Every preset names what it inherited from the date above it.</b> Weekly on Friday, monthly on the fourth Friday, annually on 25 September, all read off the 25th being selected in the grid. That is why the block sits under the month rather than on a screen of its own: change the date and every line rewrites.</li>
+<li><b>Monthly means the fourth Friday, not the 25th.</b> Those are different rules and the product has to pick one for the preset; the nth-weekday reading is what Google leads with and what people mean by "the monthly team thing". Day-of-month lives in Custom.</li>
+<li><b>Custom is the last row and opens a second sheet</b>, which is the one place in this design that navigates. It has to: it holds an interval, a set of weekdays and an end condition, and none of that collapses into a row.</li>
+</ul>
+</div>
+</div>
+<div class="rowlabel">Custom<u>and the column it does not fit in</u></div>
+<div class="row">
+<div class="cell"><div class="tag m"><b>Custom</b><span>interval, days, and an end</span></div>
+<div class="ph" style="height:620px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g i-chev-l"></i></span></span><h4>Lisbon trip</h4></div>
+<div class="body"></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grab"></div>
+<div class="st">Custom</div>
+<div class="cust"><span class="cl">Repeat every</span><span class="numbox">2</span><span class="selbox">weeks<i class="g i-chev-d"></i></span></div>
+<div class="cust" style="box-shadow:none;padding-bottom:0"><span class="cl">Repeat on</span></div>
+<div class="dows"><b>M</b><b>T</b><b>W</b><b>T</b><b class="on">F</b><b>S</b><b>S</b></div>
+<div class="cust" style="box-shadow:none;padding-bottom:2px"><span class="cl" style="color:var(--text-tertiary);font-size:13px">ENDS</span></div>
+<div class="cust"><span class="rad on"></span><span class="cl">Never</span></div>
+<div class="cust"><span class="rad"></span><span class="cl">On</span><span class="selbox">25 Dec 2026<i class="g i-chev-d"></i></span></div>
+<div class="cust" style="box-shadow:none"><span class="rad"></span><span class="cl">After</span><span class="numbox">13</span><span style="font-size:13px;color:var(--text-secondary)">times</span></div>
+<div class="sfoot"><span class="sbtn sec"><span>Cancel</span></span><span class="sbtn pri"><span>Done</span></span></div>
+</div>
+</div>
+<ul class="spec">
+<li><b>Four controls and nothing else.</b> Interval, weekdays, and one of three endings. Google's dialog has exactly this and has had for a decade, which is a stronger argument than anything this page could reason out.</li>
+<li><b>Repeat on appears only when the unit is weeks.</b> At months the row is replaced by the anchor choice, day of the month or the nth weekday, which is the pair the presets could not show.</li>
+<li><b>After N times is the one people forget and the one that saves arithmetic</b>: a twelve-week course, a course of antibiotics, six physio sessions. It is also the value the current schema has no room for at all.</li>
+<li>Cancel and Done rather than Clear and Save: this sheet edits a rule and hands it back, it does not write the row.</li>
+</ul>
+</div>
+<div class="cell" style="max-width:520px"><div class="tag m"><b>The cost</b><span>decided: it becomes a rule</span></div>
+<div class="crop" style="width:520px;padding:var(--space-6) var(--gutter-screen)">
+<div style="font-size:13.5px;line-height:1.7;color:var(--text-secondary)"><b style="color:var(--text-primary)">Settled: recurrence becomes an RRULE.</b> This list does not fit the column and the gap is not small. <code>repeats</code> is an enum of day, weekday, week, two_weeks, month and year, with <code>repeats_until</code> beside it. That holds four of the seven presets and none of Custom.<br><br>What has nowhere to go today: <b style="color:var(--text-primary)">an interval</b> (every 2 weeks exists as a value, every 3 does not), <b style="color:var(--text-primary)">a set of weekdays</b> (Monday and Thursday is unsayable), <b style="color:var(--text-primary)">a monthly anchor</b> (the 25th versus the fourth Friday, which is the difference between two real rules), and <b style="color:var(--text-primary)">an occurrence count</b>.<br><br><b style="color:var(--text-primary)">One column holding an RRULE</b>, RFC 5545, rather than four new columns. Three reasons: it is exactly the expressiveness this dialog needs and no more; <b style="color:var(--text-primary)">it is what Google speaks</b>, so 019's connector stops translating and starts passing through; and the six current enum values map into it losslessly, so the migration is a mechanical one-way rewrite with no data to reconcile.<br><br>The existing values, for the migration: <code>day</code> is <code>FREQ=DAILY</code>, <code>weekday</code> is <code>FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR</code>, <code>week</code> is <code>FREQ=WEEKLY</code>, <code>two_weeks</code> is <code>FREQ=WEEKLY;INTERVAL=2</code>, <code>month</code> is <code>FREQ=MONTHLY</code> and <code>year</code> is <code>FREQ=YEARLY</code>. <code>repeats_until</code> becomes <code>UNTIL</code>.<br><br><b style="color:var(--text-primary)">What stays true either way:</b> a repeating row is still one row, the calendar still draws it on every matching day, and this sheet still cannot edit a single occurrence.</div>
+</div>
+<ul class="spec">
+<li><b>This is the largest thing on the page and it came from a preset list.</b> Worth saying plainly: adopting Google's recurrence vocabulary was a schema decision wearing the clothes of a menu, and it has been taken.</li>
+<li><b>The model's tools inherit it too.</b> <code>add_content</code> and <code>add_note</code> take <code>repeats</code> as the enum; they would take a rule string instead, which is a better fit for what a model reads out of "every other Tuesday" and currently has to round to something wrong.</li>
+</ul>
+</div>
+</div>
+<div class="rowlabel">Two shapes that lost<u>kept for the record</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Relatives as the front door</b><span>Today, Tomorrow, This weekend</span></div>
+<div class="ph" style="height:470px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><h4>Lisbon trip</h4></div>
+<div class="body"></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grab"></div>
+<div class="st">When</div>
+<div class="prow"><span class="pl">Today</span><span class="pv">Tue 22</span></div>
+<div class="prow"><span class="pl">Tomorrow</span><span class="pv">Wed 23</span></div>
+<div class="prow on"><span class="pl">This weekend</span><span class="pv">Sat 26</span><i class="g tick i-check"></i></div>
+<div class="prow"><span class="pl">Next week</span><span class="pv">Mon 28</span></div>
+<div class="prow"><span class="pl">Pick a day</span><i class="g i-chev-r"></i></div>
+<div class="sfoot"><span class="sbtn dgr"><span>Clear</span></span><span class="sbtn pri"><span>Save</span></span></div>
+</div>
+</div>
+<ul class="spec"><li>Genuinely faster for the four answers it lists, and the date beside each label is what made it safe.</li><li><b>But it puts the grid one step further away for everything else</b>, and it cannot show a month, which is what you want the moment the answer is not one of four.</li><li>Its best idea survives: the relatives can sit as a strip above the grid later, if the grid alone proves slow.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>A fortnight on a rail</b><span>horizontal, compact</span></div>
+<div class="ph" style="height:470px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><h4>Lisbon trip</h4></div>
+<div class="body"></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grab"></div>
+<div class="st">When</div>
+<div class="pstrip"><b><u>Tue</u><s>22</s></b><b><u>Wed</u><s>23</s></b><b><u>Thu</u><s>24</s></b><b class="on"><u>Fri</u><s>25</s></b><b><u>Sat</u><s>26</s></b><b><u>Sun</u><s>27</s></b><b><u>Mon</u><s>28</s></b></div>
+<div class="prow"><span class="pl">Pick a day</span><span class="pv">Fri 25 Sep</span><i class="g i-chev-r"></i></div>
+<div class="prow"><span class="pl">Add a time</span><i class="g i-chev-r"></i></div>
+<div class="sfoot"><span class="sbtn dgr"><span>Clear</span></span><span class="sbtn pri"><span>Save</span></span></div>
+</div>
+</div>
+<span class="verdict no">a horizontal gesture inside a vertical one</span>
+<ul class="spec"><li>Compact, and it borrows the Timeline's shape, so it costs nothing to learn.</li><li><b>A scrolling rail inside a sheet is the conflict the content row's swipe already fails on</b>, and it shows seven days where the grid shows thirty.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>6. The other ways in</h2><u>the sheet is one door of four</u></div>
+<div class="row">
+<div class="cell"><div class="tag m"><b>Saying it</b><span>already possible, not yet said back</span></div>
+<div class="ph" style="height:400px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><h4>Lisbon trip</h4></div>
+<div class="body"><div class="turns">
+<div class="you">push rent to friday</div>
+<div class="ol">Moved it to Friday.<div class="pills"><span class="pill2"><i class="g i-cal"></i>Pay the rent<em>Fri 25</em></span></div></div>
+</div></div>
+</div>
+<ul class="spec">
+<li><b>The tool already exists.</b> <code>edit_content</code> takes all three dates, added in 019 for exactly this reason: a row filed without a time had no way to get one.</li>
+<li>The reply is verb-first with no subject, as the readme requires. The pill is the existing filed pill with the date as its value, so tapping it opens the same When sheet.</li>
+<li><b>What it cannot do is clear a date.</b> A null through the tool layer reads as "not stated" rather than "remove it", which is the same ambiguity <code>parseDates</code> already navigates. Clearing stays a sheet action.</li>
+<li><b>And it may overwrite a date a person set by hand</b>, where the dump clearly states a new one. There is no stickiness rule, unlike notes, where corrections beat inference.</li>
+<li><b>So the change has to be visible, and the mechanism already exists.</b> A row whose date the model moved takes the change mark: the moss ground settling to transparent over 1400ms, which the content row already draws and whose comment reads <i>offload did this, you didn't</i>. It also lands in Activity, so a date that moved while you were not looking is recoverable rather than merely noticed.</li>
+</ul>
+</div>
+<div class="cell"><div class="tag m"><b>At filing</b><span>on the pill offload already draws</span></div>
+<div class="ph" style="height:400px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><h4>Today</h4></div>
+<div class="body"><div class="turns">
+<div class="you">rent is due friday and I need to book istanbul before the trip</div>
+<div class="ol">Filed both.<div class="pills"><span class="pill2"><i class="g i-cal"></i>Pay the rent<em>Fri 25</em></span><span class="pill2"><i class="g i-cal"></i>Book the Istanbul stay</span></div></div>
+</div></div>
+</div>
+<span class="rec">the restraint is the point</span>
+<ul class="spec">
+<li><b>The dated pill shows its date; the undated one shows nothing and asks nothing.</b> The second row genuinely has no date, and inventing a prompt for one is exactly what principle 04 forbids.</li>
+<li>So this entry point is <b>a correction path, not a capture path</b>: it exists so a wrong inference is one tap from being right, in the seconds when you still remember what you meant.</li>
+<li>Tapping either pill opens the When sheet against that row. <b>No new component</b>: the pill is the filed pill and the value slot already exists.</li>
+</ul>
+</div>
+<div class="cell"><div class="tag m"><b>The action sheet</b><span>one row added</span></div>
+<div class="ph" style="height:400px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><h4>Lisbon trip</h4></div>
+<div class="body"><div class="r two"><span class="cbx"></span><span class="tx"><span class="t">Pay the rent</span></span></div></div>
+<div class="scrim"></div>
+<div class="sheet">
+<div class="grab"></div>
+<div class="st">Pay the rent</div>
+<div class="prow"><i class="g i-cal"></i><span class="pl">When</span><span class="pv">Fri 25</span></div>
+<div class="prow"><i class="g i-pencil"></i><span class="pl">Edit</span></div>
+<div class="prow"><i class="g i-users"></i><span class="pl">Move to another thread</span></div>
+<div class="prow"><i class="g i-trash"></i><span class="pl" style="color:var(--text-danger)">Delete</span></div>
+</div>
+</div>
+<ul class="spec">
+<li><b>When sits above Edit</b>, and it carries its current value where the other rows carry nothing. A row that shows an answer belongs above rows that only open something.</li>
+<li>The long press already opens this sheet and it already lists what this account may do, so authorship is handled: <b>When appears only where the pencil appears</b>, which is <code>canDelete</code>.</li>
+</ul>
+</div>
+</div>
+
+<div class="sechead"><h2>7. The two digests</h2><u>no per-item pushes</u></div>
+<p class="snote">One send in the morning for today, one in the evening for tomorrow. A due date is not an alarm; it is something to plan around, and something that pushes the moment it becomes true teaches people to swipe it away.</p>
+<p class="snote"><b>A date does not get announced. A reminder does.</b> <code>is_reminder</code> gates both sends, so a row is in a digest only where the model read the dump as asking to be told, and <b>most dated rows are silent</b>. "Rent is due Friday" is a fact about rent; "remind me to pay the rent Friday" is a request. The flag is the difference and it has been sitting in the schema unread since 001.</p>
+<p class="snote"><b>Two consequences, and the second is a risk worth naming.</b> Most mornings send nothing at all, which makes an empty digest the normal state rather than an edge case. And <b>a person can set a date but cannot ask to be reminded of it</b>: the flag has no person-facing writer, so the only way to be told about something is to have phrased the original dump as a request. That is a coherent position, and it is also the first thing somebody will write in about.</p>
+<table class="mx">
+<tr><th>Send</th><th>When</th><th>Carries</th><th>Skipped when</th></tr>
+<tr><td><b>Today</b></td><td>The morning hour, in the account's zone. <b>8:00</b> by default, settable.</td><td>Everything due today, and everything still overdue, as one line each.</td><td>Nothing is due and nothing is overdue. <b>No empty digest, ever.</b></td></tr>
+<tr><td><b>Tomorrow</b></td><td>The evening hour. <b>19:00</b> by default, settable.</td><td>What is due tomorrow, and a repeating item coming round.</td><td>Nothing is due tomorrow. Also skipped if tomorrow's list is identical to what this morning already said.</td></tr>
+<tr><td><b>A share, a request</b></td><td>When it happens.</td><td>One person, one thread.</td><td>Never batched. <b>A person waiting is not a digest item</b>, and 022 already decided the answer lives on the card.</td></tr>
+</table>
+<div class="rowlabel">Three voices for the morning send<u>same eight rows underneath each one</u></div>
+<div class="row">
+<div class="cell"><div class="tag i"><b>Voice A</b><span>the list</span></div>
+<div class="stage"><div class="nios"><div class="in"><span class="mk"><s></s></span><div class="cm"><div class="hd"><u>offload</u><em>8:00</em></div><div class="ti">Due today</div><div class="bd">Pay the rent, Tom's birthday, send the deposit.</div></div></div></div></div>
+<ul class="spec"><li><b>Says everything without being opened</b>, which is what the notification rules already ask for.</li><li>Falls apart at eight rows: iOS clamps the body to four lines on a banner and one in the list, so the eighth thing is a truncation.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>Voice B</b><span>the count</span></div>
+<div class="stage"><div class="nios"><div class="in"><span class="mk"><s></s></span><div class="cm"><div class="hd"><u>offload</u><em>8:00</em></div><div class="ti">Three due today</div><div class="bd">Pay the rent, and two more.</div></div></div></div></div>
+<ul class="spec"><li>Scales to any number and never truncates.</li><li><b>But three is not information.</b> It makes you open the app to learn what offload already knows, which the notification guidance names as the failure.</li></ul>
+</div>
+<div class="cell"><div class="tag m"><b>Voice C</b><span>one template, three arms</span></div>
+<div class="stage"><div class="nios"><div class="in"><span class="mk"><s></s></span><div class="cm"><div class="hd"><u>offload</u><em>8:00</em></div><div class="ti">Due today</div><div class="bd">Pay the rent, Ana's ferry times, and three more. One is from last week.</div></div></div></div></div>
+<span class="rec">settled</span>
+<ul class="spec">
+<li><b>One is named. Two to four are listed. Five or more name the first two and count the rest.</b> Stated thresholds, so the copy is testable rather than a judgement made per send.</li>
+<li><b>Overdue is a second sentence, not a second notification.</b> Two pushes in one morning is two pushes.</li>
+<li><b>The sent wording is stored.</b> Section 9 keeps each line verbatim, so what a person reads back a week later is what their phone showed them rather than a re-render from today's rows.</li>
+<li><b>Another member's row is named with its author</b>, as <i>Ana's ferry times</i>. A shared thread's rows reach your digest because <code>listAgenda</code> reads membership, and an unattributed line makes somebody else's errand look like yours. Yours are never possessive, so the possessive itself carries the meaning.</li>
+<li>Title is verb-free and subject-free, which is the readme's rule holding: <b>Due today</b>, never "You have 3 tasks due".</li>
+<li><b>Tapping any digest opens Today</b>, not the record and not a filtered list. Today is where the rows are and where a person was heading anyway.</li>
+</ul>
+</div>
+</div>
+<div class="rowlabel">Both sends, both platforms<u>and the one-item case, which is the only one with actions</u></div>
+<div class="row">
+<div class="cell"><div class="tag m"><b>Morning, several</b><span>no actions</span></div>
+<div class="stage a"><div class="nand"><div class="hd"><s><b></b></s><u>offload</u><span class="dot"></span><em>8:00</em><span class="cv"></span></div><div class="ti">Due today</div><div class="bd">Pay the rent, Tom's birthday, and three more. One is from last week.</div></div></div>
+<ul class="spec"><li><b>A digest carries no action buttons</b>, because Done is about one thing and a digest is about five. An action that has to pick one arbitrarily is worse than no action.</li><li>Tapping it opens the Due sheet in section 9, which is the screen that can act on all five.</li></ul>
+</div>
+<div class="cell"><div class="tag m"><b>Morning, exactly one</b><span>Done and Tomorrow</span></div>
+<div class="stage"><div class="nios"><div class="in"><span class="mk"><s></s></span><div class="cm"><div class="hd"><u>offload</u><em>8:00</em></div><div class="ti">Due today</div><div class="bd">Pay the rent.</div></div></div><div class="acts"><b>Done</b><b>Tomorrow</b></div></div></div>
+<span class="rec">the rule that reconciles both answers</span>
+<ul class="spec">
+<li><b>When the digest holds one thing it is not a digest, and it gets the two verbs.</b> Done ticks it; Tomorrow moves the date by a day. Both are unambiguous because there is only one row they could mean.</li>
+<li>iOS draws these only when the banner is pulled down, as <code>UNNotificationAction</code>s in a registered category. Android draws them in the card. <b>Two categories to register, not one</b>: one with actions, one without.</li>
+<li><b>Tomorrow writes a date, so it is <code>edit_content</code>'s path and not a snooze.</b> There is no notification-level snooze anywhere in this design; moving the date is the only thing that moves the notification.</li>
+</ul>
+</div>
+<div class="cell"><div class="tag m"><b>Evening, tomorrow</b><span>and the repeating item</span></div>
+<div class="stage night"><div class="nios"><div class="in"><span class="mk"><s></s></span><div class="cm"><div class="hd"><u>offload</u><em>19:00</em></div><div class="ti">Tomorrow</div><div class="bd">Dentist at 9:00, and the rent. Yoga is back on Tuesday.</div></div></div></div></div>
+<ul class="spec"><li><b>Tomorrow is the whole title.</b> It reads as a heading over the list, and it does not need the word due because half of what it carries is events rather than tasks.</li><li>An event with an hour says the hour. A task says nothing about time even when it has one, because an hour on a task is when it is wanted by, not when it starts.</li><li><span class="ask">to confirm</span> I have read "a day ahead for tomorrow" as <b>a second send in the evening</b>. The alternative is one morning send carrying both days, which is fewer interruptions and a longer message.</li></ul>
+</div>
+</div>
+<div class="rowlabel">The two that are not about dates<u>they arrive when they happen</u></div>
+<div class="row">
+<div class="cell"><div class="tag m"><b>A share request</b></div>
+<div class="stage"><div class="nios"><div class="in"><span class="mk"><s></s></span><div class="cm"><div class="hd"><u>offload</u><em>now</em></div><div class="ti">Ana wants to connect</div><div class="bd">Answer on her card in My people.</div></div></div><div class="acts"><b>Open</b></div></div></div>
+<ul class="spec"><li><b>Open, and nothing else.</b> 022 decided a request is answered on its card, and accepting a person from a lock screen is the one place that decision should not be one tap.</li><li>Names the person, because a request with no name is a request you have to open to understand.</li></ul>
+</div>
+<div class="cell"><div class="tag m"><b>Added to a shared thread</b></div>
+<div class="stage a"><div class="nand"><div class="hd"><s><b></b></s><u>offload</u><span class="dot"></span><em>now</em><span class="cv"></span></div><div class="ti">Ana added two things to Lisbon trip</div><div class="bd">Ferry times, and a place in Alfama.</div></div></div>
+<ul class="spec"><li><b>Coalesced per thread per person, on a short window.</b> Somebody tidying a shared list should cost one notification, not eleven.</li><li>No actions. Tapping opens the thread, which is where both things are.</li><li>This is the only notification whose body is <b>another person's words</b>, so it is clamped hard and never used as a title.</li></ul>
+</div>
+<div class="cell"><div class="tag i"><b>Not sent</b><span>deliberately</span></div>
+<div class="crop" style="padding:var(--space-6) var(--gutter-screen)">
+<div style="font-size:13.5px;line-height:1.75;color:var(--text-secondary)"><b style="color:var(--text-primary)">A question offload is waiting on.</b> 018's questions sit in the conversation and expire. Pushing one turns a thing offload wondered into a thing you owe it.<br><br><b style="color:var(--text-primary)">A calendar event starting.</b> The calendar app the event came from already did this, and 019 was careful not to become a second one.<br><br><b style="color:var(--text-primary)">Anything at the moment a date passes.</b> A task does not become urgent at midnight.<br><br><b style="color:var(--text-primary)">A declined request.</b> The people work already settled this: a decline looks like silence, which is the only version that does not turn a no into a notification.</div>
+</div>
+</div>
+</div>
+
+<div class="sechead"><h2>8. Switching them off</h2><u>in Settings, and in the OS where the OS allows it</u></div>
+<p class="snote">Every type above is individually refusable. <b>This is a preferences page, not the notifications page 022 ruled out</b>: that decision was about a list of things that happened, which this is not.</p>
+<div class="row">
+<div class="cell"><div class="tag m"><b>Settings</b><span>five switches and an hour</span></div>
+<div class="ph" style="height:560px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar hl"><span class="lead"><span class="bc"><i class="g i-chev-l"></i></span></span><h4>Notifications</h4></div>
+<div class="body">
+<div class="glab">DATES</div>
+<div class="sgroup">
+<div class="srow"><span class="txt"><span class="t">Due today</span><span class="n">One message each morning.</span></span><span class="tog"><i></i></span></div>
+<div class="srow"><span class="txt"><span class="t">In the morning at</span></span><span class="val">8:00</span><span class="cv"><i class="g i-chev-r"></i></span></div>
+<div class="srow"><span class="txt"><span class="t">Coming tomorrow</span><span class="n">One message each evening.</span></span><span class="tog"><i></i></span></div>
+<div class="srow"><span class="txt"><span class="t">In the evening at</span></span><span class="val">19:00</span><span class="cv"><i class="g i-chev-r"></i></span></div>
+</div>
+<div class="glab">PEOPLE</div>
+<div class="sgroup">
+<div class="srow"><span class="txt"><span class="t">Connection requests</span></span><span class="tog"><i></i></span></div>
+<div class="srow"><span class="txt"><span class="t">Added to a shared thread</span></span><span class="tog off"><i></i></span></div>
+</div>
+<div class="glab">ON THIS PHONE</div>
+<div class="sgroup">
+<div class="srow"><span class="txt"><span class="t">System settings</span><span class="n">Sounds, the lock screen, and turning offload off entirely.</span></span><span class="cv"><i class="g i-chev-r"></i></span></div>
+</div>
+</div>
+</div>
+<ul class="spec">
+<li><b>The hour rows sit under the switch they belong to</b> and grey out with it, rather than living in a third group about time.</li>
+<li>Labels match the notification titles word for word, so the switch that stops <b>Due today</b> is called Due today.</li>
+<li><b>The hour is in the account's zone</b>, which is the section 3 default, not the device's. A digest that moves when you fly is a digest that arrives at 3am.</li>
+</ul>
+</div>
+<div class="cell"><div class="tag m"><b>Android</b><span>the same five, as channels</span></div>
+<div class="crop" style="padding:var(--space-6) var(--gutter-screen)">
+<div style="font-size:13.5px;line-height:1.7;color:var(--text-secondary)">Each switch above is a <b style="color:var(--text-primary)">NotificationChannel</b>, so Android's own app settings shows the same four and can turn each off outside the app.<br><br><b style="color:var(--text-primary)">due_today</b> · Due today<br><b style="color:var(--text-primary)">coming_tomorrow</b> · Coming tomorrow<br><b style="color:var(--text-primary)">people_requests</b> · Connection requests<br><b style="color:var(--text-primary)">shared_activity</b> · Added to a shared thread<br><br><b style="color:var(--text-danger)">A channel cannot be renamed or re-enabled by the app once it exists.</b> The ids above are permanent from first install, and a channel the person switched off stays off however the app is updated. Worth getting the names right once.</div>
+</div>
+<ul class="spec"><li>The in-app switch and the channel have to agree in both directions, so the page reads the channel state on open rather than trusting a stored preference.</li></ul>
+</div>
+<div class="cell"><div class="tag m"><b>iOS</b><span>an asymmetry worth stating</span></div>
+<div class="crop" style="padding:var(--space-6) var(--gutter-screen)">
+<div style="font-size:13.5px;line-height:1.7;color:var(--text-secondary)"><b style="color:var(--text-danger)">iOS has no per-category switches in Settings.</b> The system offers allow or do not allow, plus delivery style and scheduled summary. There is no Android-style list.<br><br>So on iOS <b style="color:var(--text-primary)">the in-app page is the only place a person can refuse one kind and keep another</b>, which makes it load-bearing rather than a convenience.<br><br>The existing rule holds underneath: a denied system permission gets nothing, no second ask, and Settings gains one line saying what is off and how to turn it back on.</div>
+</div>
+<ul class="spec"><li>Categories are still registered on iOS, but for <b>actions</b> rather than for switches: the one-item digest and the share request are the two that carry any.</li></ul>
+</div>
+</div>
+
+<div class="sechead"><h2>9. The bell</h2><u>a record of what was sent, and of what was not</u></div>
+<p class="snote">Both Today screens carry a bell with a comment saying it is there for the day notifications land. It opens <b>Activity</b>: everything offload has told you, in order, <b>plus the things it decided quietly and never told you about</b>. That second half is what makes it worth building, because a product whose rule is "a decline looks like silence" accumulates a lot of silence, and none of it is currently recoverable.</p>
+<p class="snote"><b>This is a reversal of a decision from 022 and worth saying so plainly.</b> That work refused a notifications page on the grounds that it would be "a page that exists to hold a dot", and it was right: a request answered on its own card leaves nothing for a list to show. <b>What changes is that there is now a record with content in it</b>, some of which exists nowhere else in the product, and which is the only way to read your notifications when notifications are off.</p>
+<div class="row">
+<div class="cell"><div class="tag m"><b>Activity</b><span>sent and unsent, newest first</span></div>
+<div class="ph" style="height:760px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar"><span class="lead"><span class="bc"><i class="g i-list"></i></span></span><h4>Today</h4><span class="tools"><span class="bc"><i class="g i-bell"></i><span class="ndot"></span></span><span class="bc"><i class="g i-gear"></i></span></span></div>
+<div class="body"></div>
+<div class="scrim"></div>
+<div class="sheet" style="padding-left:0;padding-right:0">
+<div class="grab"></div>
+<div class="st" style="padding:0 var(--gutter-screen)">Activity</div>
+<div class="gl">TODAY</div>
+<div class="arow"><span class="al"><i class="g i-bell"></i></span><span class="ax"><span class="at">Due today</span><span class="ab">Pay the rent, Tom's birthday, and three more. One is from last week.</span></span><span class="aw">8:00</span></div>
+<div class="arow"><span class="al"><i class="g i-users"></i></span><span class="ax"><span class="at">Ana added two things to Lisbon trip</span><span class="ab">Ferry times, and a place in Alfama.</span></span><span class="aw">7:12</span></div>
+<div class="gl">YESTERDAY</div>
+<div class="arow"><span class="al"><i class="g i-bell"></i></span><span class="ax"><span class="at">Tomorrow</span><span class="ab">Dentist at 9:00, and the rent.</span></span><span class="aw">19:00</span></div>
+<div class="arow"><span class="al q"><i class="g i-x"></i></span><span class="ax"><span class="at">Your invite to Sam expired</span><span class="ab">Thirty days, no answer.</span><span class="aquiet">NOT SENT</span></span><span class="aw">16:40</span></div>
+<div class="arow"><span class="al q"><i class="g i-users"></i></span><span class="ax"><span class="at">Ana declined Berlin in October</span><span class="ab">Nothing was sent at the time.</span><span class="aquiet">NOT SENT</span></span><span class="aw">11:05</span></div>
+<div class="gl">EARLIER</div>
+<div class="arow"><span class="al q"><i class="g i-bell"></i></span><span class="ax"><span class="at">Coming tomorrow was off</span><span class="ab">Two things were due on Saturday.</span><span class="aquiet warn">NOT SENT</span></span><span class="aw">Fri</span></div>
+</div>
+</div>
+<span class="rec">recommended</span>
+<ul class="spec">
+<li><b>A sent row and an unsent row are the same row with a different lead.</b> Filled circle for something that reached the phone, hollow for something that did not, plus the mark. One shape, so the list reads as one record rather than two lists stapled together.</li>
+<li><b>NOT SENT is a fact, not an apology.</b> Amber where a setting caused it, plain grey where the product chose silence by design. The amber one is the only row that is arguably actionable, and tapping it opens the setting that suppressed it.</li>
+<li><b>The digest row holds what was said, not what is true now.</b> The wording is stored verbatim, so a digest that named five things still reads that way after three are ticked. <b>The notification itself opens Today</b>; this row is the record of it, and the two are different taps on purpose.</li>
+<li><b>No Due sheet.</b> A forward-looking "what is due" view is the Timeline's job and building a second one was the weaker half of the earlier draft.</li>
+<li><b>A dot, never a count.</b> Something new since you last opened it. A number here would make this an inbox to clear, and nothing in it is a task.</li>
+<li><b>Thirty days, then it purges.</b> The same figure as the invite expiry, which keeps one retention number in the product rather than two. <b>So this is a recent record, not an archive</b>, and the empty state has to be true of an account that has simply been quiet for a month as well as one that is new.</li>
+</ul>
+</div>
+<div class="cell"><div class="tag m"><b>What goes in it</b><span>four kinds, and one of them is new</span></div>
+<div class="crop" style="padding:var(--space-5) 0">
+<div class="arow"><span class="al"><i class="g i-bell"></i></span><span class="ax"><span class="at">Sent, and about dates</span><span class="ab">The morning and evening digests, exactly as they were worded.</span></span></div>
+<div class="arow"><span class="al"><i class="g i-users"></i></span><span class="ax"><span class="at">Sent, and about people</span><span class="ab">A connection request, and somebody adding to a thread you share.</span></span></div>
+<div class="arow"><span class="al q"><i class="g i-x"></i></span><span class="ax"><span class="at">Silent by design</span><span class="ab">An invite that expired. A calendar write still waiting on them. A question that went unanswered and closed.</span></span></div>
+<div class="arow" style="box-shadow:none"><span class="al q"><i class="g i-bell"></i></span><span class="ax"><span class="at">Silent by setting</span><span class="ab">A digest a switch suppressed, or one the system permission refused.</span></span></div>
+</div>
+<ul class="spec">
+<li><b>The third kind is the one that does not exist anywhere today.</b> An expired invite, a calendar write nobody approved, a question that timed out: each was a deliberate silence, and each is currently unrecoverable by the person it concerned.</li>
+<li><b>The fourth kind is why this survives a person turning notifications off.</b> That was the request, and it is also the honest answer to iOS having no per-category switches: whatever the system allows through, the record is complete.</li>
+<li><span class="verdict yes">settled</span> <b>A decline is recorded.</b> The people work made a decline indistinguishable from silence, and that rule holds where it was aimed: nothing is sent, nothing interrupts, and re-requesting stays rate limited on the server. <b>A line in a record somebody opened deliberately is not a notification.</b></li>
+<li><b>So it is worded flatly and offers nothing.</b> "Ana declined Berlin in October", and underneath, that nothing was sent at the time. No retry, no explanation, no softening: a no that arrives with a button is a no the product is arguing with.</li>
+</ul>
+</div>
+<div class="cell"><div class="tag m"><b>Nothing yet</b><span>every account, week one</span></div>
+<div class="ph" style="height:640px">
+<div class="sb"><span>9:41</span><u><span class="sig"></span><span class="bat"></span></u></div>
+<div class="bar"><span class="lead"><span class="bc"><i class="g i-list"></i></span></span><h4>Today</h4><span class="tools"><span class="bc"><i class="g i-bell"></i></span><span class="bc"><i class="g i-gear"></i></span></span></div>
+<div class="body"></div>
+<div class="scrim"></div>
+<div class="sheet" style="padding-left:0;padding-right:0">
+<div class="grab"></div>
+<div class="st" style="padding:0 var(--gutter-screen)">Activity</div>
+<div class="emptybox"><b>Nothing yet</b><span>What offload sends you is kept here, and so is what it decided not to send.</span></div>
+</div>
+</div>
+<ul class="spec">
+<li><b>The second line is the whole pitch for the screen</b>, and it is the only place a person will ever be told that the silences are recorded. It has to be in the empty state, because after the first week nobody reads one.</li>
+<li>No button. There is nothing to do here.</li>
+<li><b>Web gets the same list as a pane</b>, reached from the sidebar rather than a bell, since the web shell has none. Web still sends no notifications in this pass, which makes the record the only thing web has, and that is an argument for it rather than against.</li>
+</ul>
+</div>
+</div>
+
+<div class="sechead"><h2>10. What this asks of code</h2><u>settled above, open below</u></div>
+<table class="mx">
+<tr><th>#</th><th>Item</th><th>Where</th></tr>
+<tr><td>1</td><td><b><code>accounts.time_zone</code>, <code>accounts.last_seen_time_zone</code>, <code>accounts.follow_device</code>.</b> The first is read by <code>dates.ts</code> and by the prompt's <b>today</b>, which that file already names as the two places that change.</td><td>migration, <code>accounts</code>, <code>dates.ts</code>, the filing prompt</td></tr>
+<tr><td>2</td><td><b>A person-facing write path for dates.</b> Everything today goes through the model's tool layer under a job. A sheet tap is neither, so it needs the ordinary authenticated route that <code>edit_content</code>'s internals already back, taking title, body, the three dates, <code>repeats</code> and <code>repeats_until</code> in <b>one write</b>.</td><td><code>routes/threads.ts</code></td></tr>
+<tr><td>3</td><td><b>Clearing a date.</b> Null through the tool layer means "not stated". The person-facing route needs an explicit clear, or a date can be set and never removed.</td><td>same route</td></tr>
+<tr><td>4</td><td><b>Recurrence becomes an RRULE column.</b> The enum holds four of the seven presets and none of Custom: no interval, no weekday set, no monthly anchor, no occurrence count. RFC 5545 is exactly the expressiveness the dialog needs, it is what Google speaks so 019 stops translating, and the six existing values map into it losslessly. <b>Decided. The largest item here, and the one to schedule first</b>, since items 5 and 6 both sit on top of it.</td><td>migration, <code>schema.ts</code>, <code>connectors/write.ts</code></td></tr>
+<tr><td>5</td><td><b><code>edit_content</code> gains the recurrence field</b>, and <code>add_content</code> and <code>add_note</code> take a rule rather than the enum. The edit tool never took <code>repeats</code> at all, so today a recurrence can be created and never changed, by anyone.</td><td><code>routes/tools.ts</code>, <code>harness/tools.py</code></td></tr>
+<tr><td>6</td><td><b>The content row draws its date, colour-coded, on all three surfaces.</b> Prerequisite for sections 4 and 9. The late / soon / later boundary is <b>today plus three days</b>, in the account's zone, computed once and shared.</td><td><code>ContentRow.tsx</code>, <code>ContentRowView.tsx</code>, the Android twin</td></tr>
+<tr><td>7</td><td><b>An hour on a due date is legal.</b> <code>dates.ts</code>'s comment saying a due date has no time anybody expects to see is now wrong and wants amending. No column changes; <code>attrs.all_day</code> already carries the distinction.</td><td><code>threads/dates.ts</code>, a comment</td></tr>
+<tr><td>8</td><td><b>Two scheduled sends per account per day</b>, in the account's zone, skipped when empty. The jobs table already does daily chains with <code>runAfter</code> and a day-keyed idempotency key.</td><td><code>jobs/queue.ts</code>, a new <code>account.digest</code> kind</td></tr>
+<tr><td>9</td><td><b>Push tokens, and two registered categories per platform.</b> One with actions, one without. Android needs the four channel ids fixed before first install, because a channel cannot be renamed once it exists.</td><td>new table, <code>apps/mobile</code></td></tr>
+<tr><td>10</td><td><b>An activity table, written by every send and by four silent outcomes.</b> This is the largest new thing on the list and the only one with no existing shape: an expired invite, a waiting calendar write, a closed question and a suppressed digest each need a writer at the point the silence happens, not a reconstruction afterwards.</td><td>new table, <code>people.daily</code>, <code>connectors/</code>, <code>questions.ts</code>, the digest job</td></tr>
+<tr><td>11</td><td><b>The sent copy is stored verbatim</b> on the activity row, rather than re-rendered from the rows it named. A digest that said five things is still that sentence after two of them are ticked. Purged at <b>thirty days</b>, matching the invite expiry.</td><td>same table</td></tr>
+<tr><td>12</td><td><b>The digest reads <code>is_reminder</code>.</b> The query is the date range and the flag, so the filing prompt's decision to set it is now load bearing and wants a principle and eval cases of its own.</td><td>digest job, <code>prompts/</code>, <code>evals/principles/</code></td></tr>
+<tr><td>13</td><td><b>A model-moved date draws the change mark and writes an activity row.</b> Both mechanisms exist; what is new is that an <code>edit_content</code> touching a date is a thing worth recording, where until now only creation was.</td><td><code>ContentRow.tsx</code>, the activity writer</td></tr>
+</table>
+<ul class="spec">
+<li><span class="verdict yes">everything on this page is now settled</span> Nothing below is a question. The four items are consequences of the calls made, and each one is a thing code has to decide <i>how</i> to do rather than <i>whether</i>.</li>
+<li><b>The gate is the headline.</b> <code>is_reminder</code> decides what is announced, so the digest job's query is <code>due_at</code> in range <b>and</b> <code>is_reminder = true</code>. Everything else in this design works whether that flag is on or off; the volume of notifications does not.</li>
+<li><b>The filing prompt now carries a decision it has never had to make.</b> Marking <code>is_reminder</code> was free when nothing read it. It is now the difference between a person being told and not being told, which makes it worth a principle and an eval case, in the same way principle 04 governs the dates themselves.</li>
+<li><b>A person cannot ask to be reminded.</b> The flag has no person-facing writer by decision, so the bell mark in section 4 reports it and nothing sets it. If that proves wrong it is one switch in a sheet that already exists, which is a cheap thing to be wrong about.</li>
+<li><b>Nothing is sticky.</b> The model may move a date a person set, where the dump states a new one, so the change mark and the Activity row are the whole defence. Both already exist.</li>
+</ul>
+
+</div></body></html>

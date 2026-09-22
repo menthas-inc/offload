@@ -807,6 +807,58 @@ with the thread's own calendars as the values in the existing follow-up control,
 that control was built for. None ticked and there is nothing to ask: anything with a time on it
 stays a thing in the thread. **Read-only calendars are never offered as an answer.**
 
+## Dates and notifications
+
+Decided 22 September 2026 off `explorations/due-dates-and-notifications.html`. **The schema has
+carried dates since 001 and no person could ever write one:** every date in the product was
+inferred by a model from a dump, with no field, no picker and no way to clear one.
+
+**One field, called When, and the row's type decides the column.** A task writes `due_at`, an
+event `occurs_at`, everything else `due_at`. Duration is `occurs_end_at`, offered only on an
+event and only once an hour is set. **A due date may carry an hour**, "call the clinic at 9" is a
+task, and an hour clears `all_day`.
+
+**Recurrence is an RRULE.** The picker follows Google Calendar's presets and Custom dialog, because
+019 writes to a real Google calendar and a vocabulary that survives the trip needs no translating.
+The old six-value enum could not hold an interval, a weekday set, a monthly anchor or an occurrence
+count.
+
+**The control lives in the edit sheet and nowhere else.** The row draws its date and does not act
+on it: a row carries two controls, never three. **An undated row shows nothing and asks nothing**,
+because principle 04 made offload not ask for dates nobody gave.
+
+**The chip is coloured by nearness.** `--clay-100` on `--text-danger` for late, `--amber-100` on
+`--amber-700` for today plus three days, the plain fill after that. Amber rather than blue, since
+blue is the attention colour and would read as offload asking for something. A done row loses the
+colour whatever its date. **A `bell` after the date means the digest will announce this row**, and
+it is read-only.
+
+**The account has a default zone and a last-seen one.** When they differ, a strip on Today states
+the fact before offering the change, *Showing times in Lisbon. This phone says Tokyo.*, with both
+answers inside the card as tinted text buttons. Once per zone, not once per day.
+
+**A date is not announced; a reminder is.** `is_reminder` gates both digests, so most dated rows
+are silent and **an empty digest is the normal morning**. A person can set a date but cannot ask to
+be reminded of it: the flag is the model's alone.
+
+**Two sends a day, and no per-item pushes.** Today at 8:00, tomorrow at 19:00, in the account's
+zone, skipped when empty. One thing is named, two to four listed, five or more counted after the
+first two. Titles are verb-free and subject-free: **Due today**, never "You have 3 tasks due".
+Another member's row is named with its author, as *Ana's ferry times*.
+
+**A digest carries no actions**, because Done is about one thing and a digest is about five; a
+digest holding exactly one thing gets **Done** and **Tomorrow**. Tomorrow writes a date, so there is
+no notification-level snooze anywhere in the product.
+
+**The bell opens Activity**, a record of what offload sent **and of what it decided quietly and
+never said**: an expired invite, a calendar write waiting on them, a closed question, a declined
+request, and anything a switch or a permission suppressed. Sent and unsent are the same row with a
+different lead. A decline is recorded and still never interrupts. Thirty days, then it purges. **A
+dot, never a count**, and no Due sheet: forward-looking "what is due" is the Timeline's job.
+
+**The model may overwrite a date a person set**, where the dump states a new one. Nothing is
+sticky, so the change takes the existing change mark and writes an Activity row.
+
 ## The admin panel
 
 Staff-only, so it optimises for reading columns rather than for calm. Same tokens, same
