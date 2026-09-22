@@ -30,6 +30,11 @@ const schema = z.object({
    *  internal endpoint. Long enough that guessing is not a strategy, and never
    *  compared with ===: a timing-safe compare costs nothing here. */
   INTERNAL_SERVICE_TOKEN: z.string().min(32),
+  /** The one hostname the internal routes answer on, the service's private
+   *  domain on the platform. Unset, they answer on every name behind the token
+   *  alone; set, a request for one of them by any other name is not found
+   *  (security review 2026-09-22, L14). */
+  INTERNAL_HOST: z.string().min(1).optional(),
   /** Google Maps Platform, for turning a place name into a point on a map.
    *
    *  A different Google product from the two below, which are sign-in and see
