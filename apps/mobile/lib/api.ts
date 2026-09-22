@@ -203,12 +203,22 @@ export const getMe = (): Promise<Me | null> => request<Me>("/api/me");
  *  network failure, landed the person on Today with the account still
  *  `invited` and no consent written. The web has always checked; this is the
  *  same contract. */
-export async function completeOnboarding(displayName: string): Promise<boolean> {
+export async function completeOnboarding(
+  displayName: string,
+  /** 023. The device's zone, which becomes the account's clock. Left out
+   *  rather than sent empty when the runtime will not say. */
+  timeZone: string | null = null,
+): Promise<boolean> {
   try {
     const result = await request("/api/onboarding/complete", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true, displayName }),
+      body: JSON.stringify({
+        readPolicy: true,
+        agreeToProcessing: true,
+        displayName,
+        ...(timeZone ? { timeZone } : {}),
+      }),
     });
     return result !== null;
   } catch {

@@ -81,3 +81,85 @@
   line-height: 1.5;
   color: var(--text-primary);
 }
+
+/* ------------------------------------------------------------ 023. The strip
+   The one place the browser's own zone appears. `InvitationStrip`'s shape:
+   the soft accent ground, a compass in a 28px disc, one sentence, and both
+   answers inside the card. The disc is the accent colour, which the tokens
+   name only as text; there is no solid accent surface alias to consume. */
+
+.zoneStrip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 52ch;
+  margin: 0 0 var(--space-7);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-accent-soft);
+}
+
+.zoneLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.zoneDisc {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--text-accent);
+  color: var(--text-on-solid);
+}
+
+.zoneText {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-primary);
+}
+
+.zoneText b {
+  font-weight: var(--weight-medium);
+}
+
+.zoneFailed {
+  margin: 0 0 0 calc(28px + var(--space-4));
+  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-danger);
+}
+
+/* Under the sentence, not under the disc; the first button's own padding is
+   taken back so its text starts where the sentence does. */
+.zoneAnswers {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0 0 0 calc(28px + var(--space-4) - var(--space-3));
+}
+
+.zoneAnswer {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: var(--weight-medium) calc(13.5px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-accent);
+  cursor: pointer;
+}
+
+.zoneAnswer:hover {
+  background: var(--state-hover);
+}
+
+.zoneKeep {
+  color: var(--text-secondary);
+}

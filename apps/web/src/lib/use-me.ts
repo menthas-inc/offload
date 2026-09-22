@@ -153,7 +153,12 @@ export function useMe(expect: "first-run" | "shell"): MeState {
  *  Not void: a network failure or a session that expired mid-onboarding used
  *  to throw out of here, which left the caller's "leaving" flag stuck true and
  *  every button on the screen disabled with no way back but a reload. */
-export async function completeOnboarding(displayName: string): Promise<boolean> {
+export async function completeOnboarding(
+  displayName: string,
+  /** 023. The browser's zone, which becomes the account's clock. Left out
+   *  rather than sent empty when the runtime will not say. */
+  timeZone: string | null = null,
+): Promise<boolean> {
   try {
     const response = await fetch(`${API}/api/onboarding/complete`, {
       method: "POST",
@@ -163,7 +168,12 @@ export async function completeOnboarding(displayName: string): Promise<boolean> 
       // pair rather than one "consented" flag so that adding or changing a
       // consent is a change the server can see, not a boolean that silently
       // starts meaning something else.
-      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true, displayName }),
+      body: JSON.stringify({
+        readPolicy: true,
+        agreeToProcessing: true,
+        displayName,
+        ...(timeZone ? { timeZone } : {}),
+      }),
     });
     return response.ok;
   } catch {
@@ -198,6 +208,34 @@ export async function updateCountry(country: string | null): Promise<Me | null> 
       credentials: "include",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ country }),
+    });
+    if (!response.ok) return null;
+    const me = (await response.json()) as Me;
+    cached = me;
+    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
+    return me;
+  } catch {
+    return null;
+  }
+}
+
+/** The account's clock. 023.
+ *
+ *  One field a call. Use writes `timeZone`, and the server clears
+ *  `keptTimeZone` with it; Keep writes `keptTimeZone`; the switch on Date and
+ *  time writes `followDevice`. No Undo, because each is one tap from its
+ *  reverse. Null on a refusal or a failure, and the strip puts itself back. */
+export async function updateClock(patch: {
+  timeZone?: string;
+  followDevice?: boolean;
+  keptTimeZone?: string | null;
+}): Promise<Me | null> {
+  try {
+    const response = await fetch(`${API}/api/me`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
     });
     if (!response.ok) return null;
     const me = (await response.json()) as Me;

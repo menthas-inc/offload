@@ -522,3 +522,7 @@ export type { Freq, ParsedRule, Preset, Rule, RuleRefusal, Weekday } from "./rru
 export { addDays as addUtcDays, dayIn, daysBetween, noonUtc, utcDay } from "./days.js";
 export { SOON_DAYS, changeToken, chipFor, nearness, timeIn, whenDayOf, whenOf } from "./nearness.js";
 export type { Chip, ChipRow, Nearness } from "./nearness.js";
+
+// 023. The zone list, the city a person reads, and when the strip shows.
+export { KNOWN_ZONES, ZONE_REGIONS, knownZones, modernZoneName, zoneCity, zoneStrip, zonesByRegion } from "./zones.js";
+export type { ZoneClock, ZoneGroup } from "./zones.js";

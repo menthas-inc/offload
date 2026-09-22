@@ -190,6 +190,32 @@ export async function setWebAccess(
   }
 }
 
+/** The account's clock. 023.
+ *
+ *  One field a call. Use writes `timeZone`, and the server clears
+ *  `keptTimeZone` with it; Keep writes `keptTimeZone`; the switch on Date and
+ *  time writes `followDevice`. No Undo, because each is one tap from its
+ *  reverse. Null on a refusal or a failure, and the strip puts itself back. */
+export async function setClock(patch: {
+  timeZone?: string;
+  followDevice?: boolean;
+  keptTimeZone?: string | null;
+}): Promise<Me | null> {
+  try {
+    const updated = await request<Me>("/api/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!updated) return null;
+    announce(updated);
+    return updated;
+  } catch (error) {
+    failed("me.setClock", error);
+    return null;
+  }
+}
+
 /** Setting your name. 011.
  *
  *  Returns the identity the server sent back rather than a boolean, and hands

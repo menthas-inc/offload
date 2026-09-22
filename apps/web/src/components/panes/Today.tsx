@@ -15,6 +15,7 @@
 // anybody's child.
 
 import { Icon } from "../Icon";
+import { ZoneStrip } from "../shell/ZoneStrip";
 import pane from "../../app/(shell)/shell.module.css";
 import styles from "../../app/(shell)/today.module.css";
 
@@ -55,6 +56,8 @@ export function TodayPane() {
 
       <div className={pane.paneBody}>
         <div className={styles.today}>
+          {/* 023. The one place the browser's own zone appears. */}
+          <ZoneStrip />
           <p className={styles.emptyTitle}>{DAY_ONE_INVITATION}</p>
 
           <div className={styles.examples}>

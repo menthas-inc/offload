@@ -16,7 +16,7 @@ import { Switch } from "../../components/settings/Switch";
 import { ToastHost, useToast, type ToastState } from "../../components/shell/Toast";
 import { useColors } from "../../lib/colors";
 import { endSignedIn, listSignedIn, type SignedIn } from "../../lib/sessions";
-import { fetchCountries, saveName, setCountry, setWebAccess, useMe } from "../../lib/me";
+import { fetchCountries, saveName, setClock, setCountry, setWebAccess, useMe } from "../../lib/me";
 import { approveCalendar, disconnect, setAskFirst, useCalendars } from "../../lib/calendars";
 import { CalendarRow } from "../../components/settings/CalendarRow";
 import { ConnectButton, ConnectStepBody, ProviderMark } from "../../components/ConnectStep";
@@ -37,7 +37,8 @@ import {
   type Theme,
   type WeekStart,
 } from "../../lib/appearance";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { modernZoneName, zoneCity, zonesByRegion } from "@offload/widgets";
 
 const isAndroid = Platform.OS === "android";
 
@@ -48,6 +49,8 @@ const TITLES: Record<string, string> = {
   calendar: "Calendar",
   account: "My account",
   appearance: "Appearance",
+  datetime: "Date and time",
+  timezone: "Time zone",
   privacy: "Privacy",
   country: "Country",
   help: "Help and about",
@@ -88,6 +91,8 @@ export default function SettingsPage() {
         {page === "calendar" ? <CalendarPage /> : null}
         {page === "account" ? <Account /> : null}
         {page === "appearance" ? <Appearance /> : null}
+        {page === "datetime" ? <DateTime /> : null}
+        {page === "timezone" ? <TimeZonePicker /> : null}
         {page === "privacy" ? <Privacy toast={toast} /> : null}
         {page === "country" ? <CountryPicker /> : null}
         {page === "help" ? <Help /> : null}
@@ -259,6 +264,137 @@ function CountryPicker() {
   );
 }
 
+/** Your clock, and your week. 023.
+ *
+ *  The clock is the account's and the week is this device's, the split 015
+ *  made and this page keeps: Starts on moved here from Appearance because the
+ *  month grid needs it everywhere, and it kept its store. */
+function DateTime() {
+  const me = useMe();
+  const router = useRouter();
+  const weekStart = useWeekStart();
+
+  // The switch drawn first and written second; back to the server's word
+  // once it answers, either way.
+  const [follow, setFollow] = useState<boolean | null>(null);
+  const following = follow ?? me?.followDevice ?? true;
+
+  async function switchFollow(next: boolean) {
+    setFollow(next);
+    await setClock({ followDevice: next });
+    setFollow(null);
+  }
+
+  return (
+    <>
+      <Group label="Your clock">
+        <Row
+          title="Time zone"
+          value={me?.timeZone ? zoneCity(me.timeZone) : undefined}
+          onPress={() => router.push("/settings/timezone")}
+        />
+        <Toggle
+          title="Follow this device"
+          note="Offer to switch when the phone is somewhere else."
+          value={following}
+          onChange={(next) => void switchFollow(next)}
+          last
+        />
+      </Group>
+
+      <View className="pt-space-7">
+        <Text
+          className={`px-space-1 pb-space-3 font-core font-medium ${
+            isAndroid ? "text-a-on-var" : "text-text-tertiary"
+          }`}
+          style={{ fontSize: 12 }}
+        >
+          Week starts on
+        </Text>
+        <Segmented
+          label="Week starts on"
+          options={WEEK_STARTS.map((value) => ({ value, label: WEEK_START_LABEL[value] }))}
+          value={weekStart}
+          onChange={(next) => setWeekStart(next as WeekStart)}
+        />
+        <Text
+          className={`px-space-1 pt-space-3 font-core ${
+            isAndroid ? "text-a-on-var" : "text-text-secondary"
+          }`}
+          style={{ fontSize: 12.5, lineHeight: 17.5 }}
+        >
+          Which day a thread&apos;s timeline begins its weeks on.
+        </Text>
+      </View>
+    </>
+  );
+}
+
+/** The device's own zones, grouped by region, with a filter. 023.
+ *
+ *  The Country page's shape and no server: the list is the runtime's, or the
+ *  one checked in beside the shared function where the runtime has none,
+ *  which Hermes does. A pick writes and goes back, as a country does. */
+function TimeZonePicker() {
+  const me = useMe();
+  const router = useRouter();
+  const COLOR = useColors();
+  const [find, setFind] = useState("");
+  const groups = useMemo(() => zonesByRegion(), []);
+
+  const needle = find.trim().toLowerCase();
+  const shown = needle
+    ? groups
+        .map((group) => ({
+          region: group.region,
+          zones: group.zones.filter(
+            (zone) =>
+              zone.city.toLowerCase().includes(needle) || zone.name.toLowerCase().includes(needle),
+          ),
+        }))
+        .filter((group) => group.zones.length > 0)
+    : groups;
+  const current = me?.timeZone ? modernZoneName(me.timeZone) : null;
+
+  async function pick(name: string) {
+    await setClock({ timeZone: name });
+    router.back();
+  }
+
+  return (
+    <>
+      <View className="pb-space-4">
+        <TextInput
+          value={find}
+          onChangeText={setFind}
+          placeholder="Find a city"
+          placeholderTextColor={COLOR.quiet}
+          autoCorrect={false}
+          autoCapitalize="none"
+          className={`min-h-tap-min rounded-lg px-space-5 font-core ${
+            isAndroid ? "bg-a-c-low text-a-on" : "bg-surface-fill text-text-primary"
+          }`}
+          style={{ fontSize: 15.5 }}
+        />
+      </View>
+
+      {shown.map((group) => (
+        <Group key={group.region} label={group.region}>
+          {group.zones.map((zone, index) => (
+            <Row
+              key={zone.name}
+              title={zone.city}
+              value={current === zone.name ? "Now" : undefined}
+              onPress={() => void pick(zone.name)}
+              last={index === group.zones.length - 1}
+            />
+          ))}
+        </Group>
+      ))}
+    </>
+  );
+}
+
 /** How it looks.
  *
  *  **A segmented control, not the kit's radio list.** `decisions.md`, "The
@@ -273,7 +409,6 @@ function Appearance() {
   // on a light device changes this and repaints nothing, which is exactly the
   // case a component reading the scheme would miss.
   const theme = useTheme();
-  const weekStart = useWeekStart();
 
   return (
     <>
@@ -302,31 +437,6 @@ function Appearance() {
           style={{ fontSize: 12.5, lineHeight: 17.5 }}
         >
           System follows whatever this device is set to.
-        </Text>
-      </View>
-
-      <View className="pt-space-7">
-        <Text
-          className={`px-space-1 pb-space-3 font-core font-medium ${
-            isAndroid ? "text-a-on-var" : "text-text-tertiary"
-          }`}
-          style={{ fontSize: 12 }}
-        >
-          Week starts on
-        </Text>
-        <Segmented
-          label="Week starts on"
-          options={WEEK_STARTS.map((value) => ({ value, label: WEEK_START_LABEL[value] }))}
-          value={weekStart}
-          onChange={(next) => setWeekStart(next as WeekStart)}
-        />
-        <Text
-          className={`px-space-1 pt-space-3 font-core ${
-            isAndroid ? "text-a-on-var" : "text-text-secondary"
-          }`}
-          style={{ fontSize: 12.5, lineHeight: 17.5 }}
-        >
-          Which day a thread&apos;s timeline begins its weeks on.
         </Text>
       </View>
     </>

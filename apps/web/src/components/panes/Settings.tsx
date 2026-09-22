@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { zoneCity } from "@offload/widgets";
 import { Group, Row } from "./SettingsRows";
 import { Avatar } from "../Avatar";
 import { RequestCard } from "../people/RequestCard";
@@ -155,6 +156,14 @@ export function SettingsPane() {
         </Group>
 
         <Group label="The app">
+          {/* 023. The account's clock, as a city. Nothing until a device has
+              named one. */}
+          <Row
+            icon="clock"
+            title="Date and time"
+            value={account?.timeZone ? zoneCity(account.timeZone) : undefined}
+            href="/settings/datetime"
+          />
           <Row
             icon="blend"
             title="Appearance"

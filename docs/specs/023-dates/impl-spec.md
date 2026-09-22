@@ -11,7 +11,7 @@ Three columns on `accounts` give the product one clock. One column on `content` 
 ### The clock
 
 1. The onboarding-complete request carries `timeZone` in its body; the server resolves it through `resolveTimeZone` and writes `time_zone` when it is null. A dump from an account with no zone does the same from its header, through one helper, `adoptZone(accountId, zone, trx)`. The migration backfills from the latest message's zone.
-2. `/api/me` returns `timeZone`, `followDevice` and `keptTimeZone`. The client compares its own device zone to `timeZone` and draws the strip when they differ, `followDevice` is on and the device zone is not `keptTimeZone`. Use is `PATCH /api/me { timeZone }`, which also clears `keptTimeZone`; Keep is `PATCH /api/me { keptTimeZone }`. Both resolve through ICU and refuse an unknown name with a 400; both are settings writes with no Undo, because each is one tap from its reverse.
+2. `/api/me` returns `timeZone`, `followDevice` and `keptTimeZone`. The client compares its own device zone to `timeZone` and draws the strip when they differ, `followDevice` is on and the device zone is not `keptTimeZone`; the comparison is the widgets package's `zoneStrip`, one function both clients call, and it compares current names, so a clock ICU spelt the old way and a phone saying the new one are one zone. Use is `PATCH /api/me { timeZone }`, which also clears `keptTimeZone`; Keep is `PATCH /api/me { keptTimeZone }`. Both resolve through ICU and refuse an unknown name with a 400; both are settings writes with no Undo, because each is one tap from its reverse.
 3. The worker's dump query joins `accounts` for `time_zone`; `today_in` and `clock_line` take the account's zone, then the message's, then UTC. The grant is one column. The zone reaches the query as the `:tz` bind it already is.
 4. `dates.ts` keeps `parseWhen` as it is for a bare day, noon UTC, and gains `instantIn(dayAndTime, zone)` for a wall time in a zone; callers pass the account's zone read once per request by `zoneOf(accountId, trx)`.
 5. The header stays on the three model-bound requests on both clients. No column records where a device last was.
@@ -66,7 +66,7 @@ update accounts a set time_zone = m.time_zone
 grant select (time_zone) on accounts to offload_agent;
 ```
 
-The alphabet is 0051's, and the value stored is the name ICU resolved, never the header as sent. The worker reads one more column of `accounts`, named.
+The alphabet is 0051's, and the value stored is the name ICU resolved, never the header as sent, under the city's current spelling: Node's ICU still resolves Asia/Kolkata to Asia/Calcutta and Europe/Kyiv to Europe/Kiev while a phone reports the current name, so `resolveTimeZone` maps ICU's answer through the widgets package's `modernZoneName`, a table of renames and nothing else (Oslo stays Oslo, whatever tzdata links it to). Without it the clock a phone set and the phone's own word differed by spelling alone and the strip offered a switch to the zone it was in. The worker reads one more column of `accounts`, named.
 
 `0057_a_rule.sql`
 
@@ -142,7 +142,7 @@ Each part at most once, `UNTIL` and `COUNT` never together, a monthly rule with 
   occursEndAt?: string | null;  // refused without an occursAt on the row, or before it
   allDay?: boolean;             // true with an instant is refused; the sheet says which
   rrule?: string | null;        // the grammar; null clears; refused without its anchor
-  isReminder?: false;           // the way out of a reminder; true is refused
+  isReminder?: boolean;         // no screen sets it; a true is Undo restoring the model's flag
 }
 ```
 
@@ -162,25 +162,25 @@ The worker's `_DUMP` query selects `a.time_zone as account_time_zone` and `today
 
 ### Mobile
 
-- `lib/me.ts`: the three fields; `useMe` exposes `timeZone`. `lib/gate.ts` or the onboarding call sends `timeZone`.
-- `lib/zone.ts`: `deviceZone()`, `dayOf(row, zone)` choosing `utcDay` or `dayIn`, `timeIn(at, zone, locale)`, `zoneCity(name)`, `zonesByRegion()` from `Intl.supportedValuesOf("timeZone")`.
+- `lib/me.ts`: the three fields and `setClock`; `useMe` exposes `timeZone`. `lib/api.ts`'s `completeOnboarding` sends `timeZone` from the Welcome screens.
+- `lib/clock.ts`: `deviceZone()`, `zoneFor(account, device)`, `useClock()`. The day and time helpers, `whenDayOf(row, zone)` choosing `utcDay` or `dayIn` and `timeIn(at, zone, locale)`, live in the widgets package beside the chip, and so do `zoneCity(name)`, `zonesByRegion()`, `zoneStrip(me, device)` and `modernZoneName(name)`, in `packages/widgets/src/zones.ts`. The list comes from `Intl.supportedValuesOf("timeZone")` where the runtime has it; Hermes has not, so `zones-list.ts` is checked in beside it, written by `packages/widgets/scripts/zones.mjs` from Node's ICU, and `apps/core-api/test/zones.test.ts` fails, naming the zones, when the two differ.
 - `components/shell/DateChip.tsx`: the chip, one component both rows and 024's Today use, from the widgets' `nearness(day, today)` and `chipLabel`.
 - `components/shell/ContentRow.tsx`: the chip at the trailing edge of the title line; the change token.
 - `components/shell/RowEditSheet.tsx`: title, details, When, Repeats, Remind me while set, the one way out, Cancel, Save; replaces `TitleSheet`'s use of `EditSheet` for content rows. Thread renames keep `EditSheet`.
 - `components/shell/WhenSheet.tsx`: the grid from `monthFor`, the Time block on `@react-native-community/datetimepicker`, iOS `display="spinner"` with `minuteInterval={5}` inline, Android the row and the dialog; Repeats; Clear and Save; a `standalone` prop deciding whether it writes or hands back.
 - `components/shell/CustomRepeatSheet.tsx`.
 - `components/shell/RowActionSheet.tsx`: `RowAction.value`.
-- `components/screens/Today.*.tsx`: `ZoneStrip.tsx`.
-- `app/settings/[page].tsx`: the `datetime` page; Appearance loses Starts on.
+- `components/shell/ZoneStrip.tsx`, drawn first by both Today screens.
+- `app/settings/[page].tsx`: the `datetime` page and the `timezone` picker it opens, the Country page's shape; Appearance loses Starts on.
 
 ### Web
 
-- `lib/use-me.ts`: the three fields.
-- `lib/zone.ts` as on mobile.
+- `lib/use-me.ts`: the three fields, `updateClock`, and `completeOnboarding` sending `timeZone` from the welcome page.
+- `lib/clock.ts` as on mobile; the zone functions from the widgets package.
 - `components/shell/DateChip.tsx`; `components/panes/ContentRowView.tsx` draws it and `Widgets.tsx` stops drawing a date and "reminder".
 - `components/panes/EditModal.tsx`: the fields, the grid inline, a `<input type="time" step="300">`, Repeats and Custom inline; `Thread.tsx` opens it where it set `editing`, and the inline field stays for the thread name only.
-- `components/panes/Today.tsx`: the strip.
-- `app/(shell)/settings/datetime/page.tsx` and `components/panes/DateTime.tsx`; `Appearance.tsx` loses Starts on; both read the one `offload:week-start` key.
+- `components/shell/ZoneStrip.tsx`, drawn first on `components/panes/Today.tsx`. It says "This browser says", because a browser is not a phone.
+- `app/(shell)/settings/datetime/page.tsx` and `components/panes/DateTime.tsx`, where the Time zone row is a `<select>` grouped by region, the Country row's shape on the web; `Appearance.tsx` loses Starts on and exports its `Segmented`; both read the one `offload:week-start` key.
 
 ### Tokens
 
@@ -198,7 +198,7 @@ The prompt gains one sentence in the Dates block and swaps an enum and a field f
 ## Tests, and what stays a device check
 
 - `packages/widgets`, run under `apps/web/test` where the widgets suite lives: `rrule.test.ts` over the fixture (parse, format, refuse with reason, describe, presets, expansion over fixed anchors including the clamp, the last weekday, `COUNT` and `UNTIL`, the 400 cap) and `nearness.test.ts` (the three states, the boundary, done, repeating never late, the chip words including today, tomorrow and the fourteen-day drop).
-- `apps/core-api/test`: `clock.test.ts` (backfill, onboarding's zone, the first dump's zone, Use and Keep, an unknown name refused, the worker's grant, `instantIn` around a DST change); `rule.test.ts` (the migration's rewrite of the six values and an until as canonical strings, the constraints, every refusal through `add_content`, `add_note`, `edit_content` and the person-facing route, `create_event`'s recurrence line and its all-day until); `threads.test.ts` gains the nine-field edit, absent versus null, `previous`, the calendar refusal, the anchor rule, `isReminder: true` refused, and a wire test that every row-carrying route returns `rrule` and `onCalendar`.
+- `apps/core-api/test`: `clock.test.ts` (backfill, onboarding's zone, the first dump's zone, Use and Keep, an unknown name refused, the worker's grant, `instantIn` around a DST change); `rule.test.ts` (the migration's rewrite of the six values and an until as canonical strings, the constraints, every refusal through `add_content`, `add_note`, `edit_content` and the person-facing route, `create_event`'s recurrence line and its all-day until); `threads.test.ts` gains the nine-field edit, absent versus null, `previous`, the calendar refusal, the anchor rule, Undo restoring the flag, and a wire test that every row-carrying route returns `rrule` and `onCalendar`.
 - `apps/agent`: the Pydantic shape check over the fixture; principle 04's cases rewritten to the rule (not run without permission).
 - `apps/mobile/test` and `apps/web/test`: the client library's request bodies for the edit and the three account writes; the change token; the strip's predicate.
 - On the simulator and the web: the sheets, the wheel, the grid at the turn of a month, the strip, the settings pages, the chip at 200% text in both themes, `Intl` with a zone on Hermes, and a real turn that moves a date by saying it.

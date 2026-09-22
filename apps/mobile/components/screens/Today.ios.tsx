@@ -17,6 +17,7 @@ import { DAY_ONE_INVITATION, EXAMPLES } from "../../lib/gate";
 import { useColors } from "../../lib/colors";
 import { useConversation } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
+import { ZoneStrip } from "../shell/ZoneStrip";
 
 function ArrowUp() {
   const COLOR = useColors();
@@ -72,6 +73,8 @@ export default function Today() {
         scrollEventThrottle={16}
         contentContainerClassName="px-gutter-screen pt-space-6 pb-space-8"
       >
+        {/* 023. The one place this phone's own zone appears. */}
+        <ZoneStrip />
         <Text
           className="font-quiet text-text-primary"
           style={{ fontSize: 17, lineHeight: 25.5 }}

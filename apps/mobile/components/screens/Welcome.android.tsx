@@ -27,6 +27,7 @@ import { ConnectStepBar, ConnectStepBody } from "../ConnectStep";
 import { googleCalendarMark } from "../../lib/brands";
 import * as WebBrowser from "expo-web-browser";
 import { completeOnboarding } from "../../lib/api";
+import { deviceZone } from "../../lib/clock";
 import { saveName } from "../../lib/me";
 import { useMe } from "../../lib/me";
 import { useCalendars } from "../../lib/calendars";
@@ -91,7 +92,7 @@ export default function Welcome() {
     // Today with the account left `invited` and no consent recorded, which is
     // the one thing AC-7a is for. Staying put is also the honest outcome: the
     // next launch would send them back here regardless.
-    if (!(await completeOnboarding(name.trim()))) {
+    if (!(await completeOnboarding(name.trim(), deviceZone()))) {
       setLeaving(false);
       setFailed(true);
       return;
