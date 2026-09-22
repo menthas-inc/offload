@@ -427,6 +427,64 @@ const jobsPurge: Handler = async () => {
   );
 };
 
+/** The product events outbox, out of the database on a clock.
+ *
+ *  Every unshipped event goes to the store as one file of JSON lines, keyed by
+ *  the day and the first event's id, and is marked shipped in the same run.
+ *  Shipped rows are dropped thirty days after they arrived, the window the
+ *  privacy page gives for data that exists for us. Without a store there is
+ *  nowhere to ship to and nothing is dropped, so no event is lost to a
+ *  missing variable. The rows are pseudonymous by construction (`analytics.ts`
+ *  refuses content), which is why the file is written as it is rather than
+ *  through the blob path's sealing. */
+const analyticsShip: Handler = async () => {
+  await scheduleDaily("analytics.ship");
+  const store = objectStore();
+  let shipped = 0;
+  if (store) {
+    const rows = await db
+      .selectFrom("analytics_events")
+      .selectAll()
+      .where("shipped_at", "is", null)
+      .orderBy("id")
+      .limit(10_000)
+      .execute();
+    if (rows.length > 0) {
+      const key = `analytics/${new Date().toISOString().slice(0, 10)}/${rows[0]!.id}.ndjson`;
+      const lines = rows.map((row) =>
+        JSON.stringify({
+          id: row.id,
+          name: row.name,
+          version: row.version,
+          occurred_at: row.occurred_at,
+          received_at: row.received_at,
+          anonymous_id: row.anonymous_id,
+          subject_id: row.subject_id,
+          session_id: row.session_id,
+          source: row.source,
+          platform: row.platform,
+          properties: row.properties,
+        }),
+      );
+      await store.put(key, Buffer.from(`${lines.join("\n")}\n`, "utf8"));
+      await db
+        .updateTable("analytics_events")
+        .set({ shipped_at: sql`now()` })
+        .where("id", "in", rows.map((row) => row.id))
+        .execute();
+      shipped = rows.length;
+    }
+  }
+  const dropped = await db
+    .deleteFrom("analytics_events")
+    .where("shipped_at", "is not", null)
+    .where(sql<boolean>`received_at < now() - interval '30 days'`)
+    .executeTakeFirst();
+  console.log(
+    JSON.stringify({ level: "info", msg: "analytics shipped", shipped, dropped: Number(dropped.numDeletedRows ?? 0) })
+  );
+};
+
 /** Find what still needs embedding and enqueue it, then book the next sweep.
  *
  *  The rows themselves are embedded by the Python worker: the client, the
@@ -682,5 +740,6 @@ export const handlers: Record<string, Handler> = {
   "blob.locate": blobLocate,
   "blob.daily": blobDaily,
   "people.daily": peopleDaily,
+  "analytics.ship": analyticsShip,
 };
 

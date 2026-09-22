@@ -54,7 +54,11 @@ export type JobKind =
   // 022. Expiry made explicit for requests, waiting shares and proposals,
   // and the record of who asked whom kept only as long as the seven-day
   // rule reads it.
-  | "people.daily";
+  | "people.daily"
+  // The product events outbox, shipped to the store daily and dropped from
+  // the database thirty days after. `analytics.ts` said a job did this since
+  // 002; the security review of 2026-09-22 found none (M8).
+  | "analytics.ship";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */

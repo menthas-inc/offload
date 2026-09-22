@@ -118,6 +118,14 @@ export interface Answer {
   voice?: VoiceOnWire | null;
 }
 
+/** The day's model budget is spent (security review 2026-09-22, M6). The
+ *  words go back to the composer and the line says so. */
+export class DailyLimit extends Error {
+  constructor() {
+    super("daily_limit");
+  }
+}
+
 export class DumpTooLong extends Error {
   constructor(readonly maxChars: number) {
     super("too long");
@@ -163,6 +171,7 @@ export async function sendDump(
     throw new DumpTooLong(body.maxChars);
   }
   if (response.status === 409) throw new UnknownBlob();
+  if (response.status === 429) throw new DailyLimit();
   if (!response.ok) throw new Error(`dump failed: ${response.status}`);
   return (await response.json()) as Sent;
 }

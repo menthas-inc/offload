@@ -39,6 +39,7 @@ await startDaily("jobs.purge");
 await startDaily("account.daily");
 await startDaily("blob.daily");
 await startDaily("people.daily");
+await startDaily("analytics.ship");
 
 // 013's sweep books its own successor, so this only has to start the chain.
 // Enqueued rather than run inline: boot should not wait on three index scans.
