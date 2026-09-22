@@ -145,6 +145,15 @@ create view visible_people as
     join threads t on t.id = a.thread_id and t.deleted_at is null
     where a.state = 'accepted' and b.state = 'accepted'
   union all
+  -- The share sheet lists who a thread is waiting on, and a face on that
+  -- list is a person the member can see: their mark, their name. One way
+  -- only, since the one waiting sees nobody in the thread until they accept.
+  select a.account_id, b.account_id, 'waiting'
+    from thread_members a
+    join thread_members b on b.thread_id = a.thread_id and b.account_id <> a.account_id
+    join threads t on t.id = a.thread_id and t.deleted_at is null
+    where a.state = 'accepted' and b.state = 'pending' and (b.expires_at is null or b.expires_at > now())
+  union all
   select blocker_account_id, blocked_account_id, 'blocked'
     from blocks;
 

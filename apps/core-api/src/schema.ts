@@ -212,7 +212,7 @@ export interface PeopleLookupsTable {
 export interface VisiblePeopleView {
   viewer_account_id: string;
   account_id: string;
-  relation: "connected" | "asked_you" | "you_asked" | "thread" | "blocked";
+  relation: "connected" | "asked_you" | "you_asked" | "thread" | "waiting" | "blocked";
 }
 
 export interface AccountKeysTable {

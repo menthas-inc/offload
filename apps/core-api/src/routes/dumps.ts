@@ -754,12 +754,16 @@ export async function takeDump(
   const lookingAt =
     threadId && (await memberOf(accountId, threadId)) ? threadId : null;
   // 022. A mention is kept only where it names an accepted connection of the
-  // sender. A client's say-so is never an id the share tool acts on.
+  // sender, and the name it carries is the account's, read here: a client's
+  // say-so is never an id the share tool acts on nor a name the prompt
+  // repeats.
   const vouched = await (async () => {
     if (mentions.length === 0) return [];
-    const known = new Set((await connectionsOf(accountId)).map((c) => c.accountId));
+    const known = new Map((await connectionsOf(accountId)).map((c) => [c.accountId, c.displayName ?? ""]));
     const seen = new Set<string>();
-    return mentions.filter((m) => known.has(m.accountId) && !seen.has(m.accountId) && seen.add(m.accountId));
+    return mentions
+      .filter((m) => known.has(m.accountId) && !seen.has(m.accountId) && seen.add(m.accountId))
+      .map((m) => ({ accountId: m.accountId, name: known.get(m.accountId) || m.name }));
   })();
 
   return db.transaction().execute(async (trx) => {

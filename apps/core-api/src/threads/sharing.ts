@@ -132,6 +132,9 @@ export async function shareThread(
 ): Promise<{ ok: true; memberId: string } | { ok: false; error: ShareRefusal }> {
   if (!(await memberOf(callerId, threadId, trx))) return { ok: false, error: "unknown_thread" };
   if (await isDefaultThread(callerId, threadId, trx)) return { ok: false, error: "default_thread" };
+  // The pair's lock, for the cap below: three shares fired together are
+  // three and not six. Released with the caller's transaction.
+  await sql`select pg_advisory_xact_lock(hashtext(${callerId}), hashtext(${targetId}))`.execute(trx);
   if (callerId === targetId || !(await connected(callerId, targetId, trx)) || (await blockedEitherWay(callerId, targetId, trx))) {
     return { ok: false, error: "not_connected" };
   }

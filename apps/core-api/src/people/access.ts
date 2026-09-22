@@ -8,8 +8,17 @@
 //
 // Two halves, tested as one. `visible_people` in the database says which
 // relations exist between two accounts; this file adds what the view cannot
-// say per row, that the account is still active and has not blocked the
-// viewer. A view row with a dead account behind it is not a person you can see.
+// say per row, that the account is still active, and that a block the other
+// way hides what it ended. A view row with a dead account behind it is not a
+// person you can see.
+//
+// **A block the other way hides the connection and the request it ended, and
+// nothing else.** The thread you still share stays as it is, so the face on
+// its head stays a person; the request you sent them stays Pending, because
+// it was written undelivered so that nothing on your side would tell. Hiding
+// either would be the tell: a blank mark on a row the screen is drawing. The
+// lookup is the one door that reads a block either way as not found, and it
+// answers the same for an address that is not on offload at all.
 
 import { sql, type Kysely, type Transaction } from "kysely";
 import { db } from "../db.js";
@@ -19,13 +28,17 @@ export type Executor = Kysely<Database> | Transaction<Database>;
 export type Relation = VisiblePeopleView["relation"];
 
 /** Precedence when several rows match: a block you placed outranks the
- *  thread you still share; a connection outranks a request that is now moot. */
-const ORDER: Relation[] = ["blocked", "connected", "asked_you", "you_asked", "thread"];
+ *  thread you still share; a connection outranks a request that is now moot;
+ *  a share still waiting on them comes last. */
+const ORDER: Relation[] = ["blocked", "connected", "asked_you", "you_asked", "thread", "waiting"];
+
+/** What a block by the account takes from the viewer's sight. */
+const ENDED_BY_THEIR_BLOCK = new Set<Relation>(["connected", "asked_you"]);
 
 /** The strongest relation the viewer has with the account, or null when the
  *  viewer may not see them at all: no relation, a deleted or disabled
- *  account, or an account that has blocked the viewer. Never the viewer
- *  themselves, which every caller handles first. */
+ *  account, or only a relation that the account's own block has ended. Never
+ *  the viewer themselves, which every caller handles first. */
 export async function relationOf(
   viewerId: string,
   accountId: string,
@@ -35,24 +48,25 @@ export async function relationOf(
   const rows = await trx
     .selectFrom("visible_people")
     .innerJoin("accounts", "accounts.id", "visible_people.account_id")
-    .select("visible_people.relation")
+    .select((eb) => [
+      "visible_people.relation",
+      eb
+        .exists(
+          eb
+            .selectFrom("blocks")
+            .select("blocks.blocker_account_id")
+            .where("blocks.blocker_account_id", "=", accountId)
+            .where("blocks.blocked_account_id", "=", viewerId),
+        )
+        .as("theirBlock"),
+    ])
     .where("visible_people.viewer_account_id", "=", viewerId)
     .where("visible_people.account_id", "=", accountId)
     .where("accounts.state", "=", "active")
     .where("accounts.deleted_at", "is", null)
-    .where(({ not, exists, selectFrom }) =>
-      not(
-        exists(
-          selectFrom("blocks")
-            .select("blocks.blocker_account_id")
-            .where("blocks.blocker_account_id", "=", accountId)
-            .where("blocks.blocked_account_id", "=", viewerId),
-        ),
-      ),
-    )
     .execute();
-  if (rows.length === 0) return null;
-  const found = new Set(rows.map((row) => row.relation));
+  const found = new Set(rows.filter((row) => !(row.theirBlock && ENDED_BY_THEIR_BLOCK.has(row.relation))).map((row) => row.relation));
+  if (found.size === 0) return null;
   return ORDER.find((relation) => found.has(relation)) ?? null;
 }
 

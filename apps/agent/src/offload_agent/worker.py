@@ -1072,12 +1072,14 @@ async def handle(
                         conn, message_id=str(message_id), account_id=job.account_id
                     ),
                 )
-            if open_q is not None and open_q.field == "calendar":
+            if open_q is not None and open_q.field in ("calendar", "person"):
                 # 019. A calendar's name is matched in the Core API, in code,
                 # against what was typed: no judge, since a label may be a
                 # name somebody else wrote. Applied means the whole message
                 # was the answer and the event is on its way; otherwise the
                 # question is closed there and the dump files as itself.
+                # 022. A person question's labels are connections' names,
+                # which never reach a model, so the same path.
                 result = await _post_result(
                     http,
                     cfg,
@@ -1085,7 +1087,7 @@ async def handle(
                     path="question-answer",
                 )
                 applied = bool(result and result.get("applied"))
-                log.info("question answered", field="calendar", how="typed", applied=applied)
+                log.info("question answered", field=open_q.field, how="typed", applied=applied)
                 if applied:
                     await _post_result(
                         http, cfg, {"outcome": "answered", "jobId": job.id, "usage": []}

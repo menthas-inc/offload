@@ -711,9 +711,11 @@ export async function raisePersonQuestion(
   return true;
 }
 
-/** A typed answer to a calendar question: the text, trimmed and lowercased,
- *  equal to or a prefix of exactly one offered label. No model. Anything else
- *  is null, and the caller closes the question. */
+/** A typed answer to a calendar question, or to a person question: the
+ *  text, trimmed and lowercased, equal to or a prefix of exactly one offered
+ *  label. No model, since a label is a name somebody else wrote and a
+ *  connection's name is never put to one. Anything else is null, and the
+ *  caller closes the question. */
 export function matchCalendarLabel(text: string, options: StoredOption[]): number | null {
   const typed = text.trim().toLowerCase();
   if (!typed) return null;
@@ -1141,6 +1143,23 @@ export async function restoreAnswers(trx: Trx, accountId: string, answerTurnId: 
       } catch (error) {
         // The row is gone, or the thread it came from is. Nothing to put back.
         if (!(error instanceof NotYours)) throw error;
+      }
+      continue;
+    }
+    // 022. A person answer wrote a share. The clients draw no Undo for it,
+    // sharing being outward facing, but the turn's Undo is one route for
+    // every turn and it must not leave the share standing behind a deleted
+    // message: the row is withdrawn the way the sheet's x withdraws it, and
+    // only while it is still waiting.
+    if (typeof previous["share"] === "string") {
+      if (typeof previous["member"] === "string") {
+        await trx
+          .updateTable("thread_members")
+          .set({ state: "expired", responded_at: sql`now()`, preview: null })
+          .where("id", "=", previous["member"])
+          .where("invited_by", "=", accountId)
+          .where("state", "=", "pending")
+          .execute();
       }
       continue;
     }

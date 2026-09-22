@@ -170,7 +170,7 @@ A connection request carries nothing but who asked. A share carries the thread's
 
 **Deleting an account**, which 001 specifies and nothing builds yet, takes its connections, its requests in both directions, its blocks in both directions, its waiting shares and proposals, and its mark with it, by the schema rather than by a list somebody has to remember; a mention of it in somebody else's message keeps its words and points at nothing.
 
-**One rule for who may see whom**, written once and read by the lookup, the share sheet, the @ list, My people, the person's page, the mark and the tool: an active account that is a connection, has a request open in either direction, is in a thread with you, or is blocked by you; never an account that has blocked you, is deleted or is disabled.
+**One rule for who may see whom**, written once and read by the lookup, the share sheet, the @ list, My people, the person's page, the mark and the tool: an active account that is a connection, has a request open in either direction, is in a thread with you, is waiting on a share from a thread you are in, or is blocked by you; never an account that is deleted or disabled. An account that has blocked you is seen exactly as far as what the block left standing: the thread you still share and the request you sent that was written undelivered. Hiding either would be the tell, a blank mark on a row the screen is drawing; the connection and any request of theirs are gone with the block, and the lookup answers not found either way, which is what it answers for an address that is not on offload.
 
 ## Acceptance criteria
 

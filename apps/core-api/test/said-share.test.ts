@@ -15,7 +15,7 @@ import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { uuidv7 } from "../src/uuid.js";
 import { promote } from "../src/admin/promote.js";
-import { answerQuestion, takeDump } from "../src/routes/dumps.js";
+import { answerQuestion, takeDump, undoTurn } from "../src/routes/dumps.js";
 import { waitingSharesFor } from "../src/threads/proposals.js";
 import { memberOf } from "../src/threads/access.js";
 
@@ -98,13 +98,13 @@ async function state(threadId: string, accountId: string) {
 }
 
 describe("the mention (AC-27)", () => {
-  it("keeps a mention that names an accepted connection and drops the rest, words intact", async () => {
+  it("keeps a mention that names an accepted connection and drops the rest, words intact, the name the account's", async () => {
     const jo = await person("Jo Martins");
     const sam = await person("Sam Ibekwe");
     const stranger = await person("Stranger");
     await connect(jo.id, sam.id);
     const { messageId } = await dump(jo.id, "share Lisbon trip with @Sam Ibekwe and @Stranger", [
-      { accountId: sam.id, name: "Sam Ibekwe" },
+      { accountId: sam.id, name: "Samuel, who owes me money" },
       { accountId: stranger.id, name: "Stranger" },
       { accountId: sam.id, name: "Sam Ibekwe" },
     ]);
@@ -193,6 +193,70 @@ describe("the tool (AC-24, AC-25)", () => {
     expect(await state(lisbon, ibekwe.id)).toBe("pending");
     expect(await state(lisbon, lee.id)).toBeNull();
     expect(await answerQuestion(jo.id, q.id, 0)).toBeNull();
+  });
+
+  it("a typed answer is matched to a name in code, never put to a model, and a miss closes the question", async () => {
+    const jo = await person("Jo Martins");
+    const ibekwe = await person("Sam Ibekwe");
+    const lee = await person("Sam Lee");
+    await connect(jo.id, ibekwe.id);
+    await connect(jo.id, lee.id);
+    const lisbon = await thread(jo.id);
+    const first = await dump(jo.id, "share Lisbon trip with Sam");
+    await tool({ tool: "share_thread", jobId: first.jobId, toolCallId: "t1", threadId: lisbon, person: "Sam" });
+    const q = await db.selectFrom("questions").select("id").where("turn_id", "=", first.turnId).executeTakeFirstOrThrow();
+    const typed = (text: string, jobId: string) =>
+      app.inject({
+        method: "POST",
+        url: "/internal/v1/question-answer",
+        headers: { authorization: `Bearer ${env.INTERNAL_SERVICE_TOKEN}` },
+        payload: { jobId, questionId: q.id, value: { text } },
+      });
+    // "Sam" is both of them, so nobody is shared with and the question closes.
+    const miss = await dump(jo.id, "Sam");
+    expect((await typed("Sam", miss.jobId)).json()).toEqual({ applied: false });
+    expect((await db.selectFrom("questions").select("state").where("id", "=", q.id).executeTakeFirstOrThrow()).state).toBe("closed");
+    expect(await state(lisbon, ibekwe.id)).toBeNull();
+    expect(await state(lisbon, lee.id)).toBeNull();
+
+    // Asked again, a prefix of exactly one name is the share.
+    const again = await dump(jo.id, "share Lisbon trip with Sam");
+    await tool({ tool: "share_thread", jobId: again.jobId, toolCallId: "t2", threadId: lisbon, person: "Sam" });
+    const q2 = await db.selectFrom("questions").select("id").where("turn_id", "=", again.turnId).executeTakeFirstOrThrow();
+    const hit = await dump(jo.id, "sam ok");
+    const response = await app.inject({
+      method: "POST",
+      url: "/internal/v1/question-answer",
+      headers: { authorization: `Bearer ${env.INTERNAL_SERVICE_TOKEN}` },
+      payload: { jobId: hit.jobId, questionId: q2.id, value: { text: "sam ok" } },
+    });
+    expect(response.json()).toEqual({ applied: true });
+    expect(await state(lisbon, ibekwe.id)).toBe("pending");
+    expect(await state(lisbon, lee.id)).toBeNull();
+    const settled = await db.selectFrom("questions").select(["state", "answer_turn_id"]).where("id", "=", q2.id).executeTakeFirstOrThrow();
+    expect(settled.state).toBe("answered");
+    expect(settled.answer_turn_id).toBe(hit.turnId);
+  });
+
+  it("Undo of the answer's turn withdraws the share it made", async () => {
+    const jo = await person("Jo Martins");
+    const ibekwe = await person("Sam Ibekwe");
+    const lee = await person("Sam Lee");
+    await connect(jo.id, ibekwe.id);
+    await connect(jo.id, lee.id);
+    const lisbon = await thread(jo.id);
+    const { jobId, turnId } = await dump(jo.id, "share Lisbon trip with Sam");
+    await tool({ tool: "share_thread", jobId, toolCallId: "t1", threadId: lisbon, person: "Sam" });
+    const q = await db.selectFrom("questions").select("id").where("turn_id", "=", turnId).executeTakeFirstOrThrow();
+    const answered = await answerQuestion(jo.id, q.id, 1);
+    if (!answered || !("envelope" in answered)) throw new Error("no envelope");
+    expect(await state(lisbon, ibekwe.id)).toBe("pending");
+    expect(await undoTurn(jo.id, answered.envelope.turnId)).toEqual({ undone: true });
+    expect(await state(lisbon, ibekwe.id)).toBe("expired");
+    // Accepted in between: not theirs to take back any more.
+    await db.updateTable("thread_members").set({ state: "accepted" }).where("thread_id", "=", lisbon).where("account_id", "=", ibekwe.id).execute();
+    await undoTurn(jo.id, answered.envelope.turnId);
+    expect(await state(lisbon, ibekwe.id)).toBe("accepted");
   });
 
   it("the way out shares nobody", async () => {

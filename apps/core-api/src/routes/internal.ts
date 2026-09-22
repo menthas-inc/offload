@@ -964,6 +964,9 @@ export async function internalRoutes(app: App): Promise<void> {
       // name somebody else wrote. A hit reaches Google, so it takes the tapped
       // answer's own path, outside any transaction, with the dump as the
       // person's message. A miss closes the question and the dump files.
+      // 022. A person question's labels are connections' names, matched the
+      // same way and for the same reason; a hit is the share, inside one
+      // transaction like the tap's.
       const typedText = request.body.value?.["text"];
       if (typedText !== undefined) {
         const q = await db
@@ -974,12 +977,26 @@ export async function internalRoutes(app: App): Promise<void> {
           .where("conversation_id", "=", scope.conversationId)
           .where("state", "=", "open")
           .executeTakeFirst();
-        if (!q || q.field !== "calendar") return reply.send({ applied: false });
-        const option = matchCalendarLabel(typedText, Array.isArray(q.options) ? (q.options as StoredOption[]) : []);
+        if (!q || (q.field !== "calendar" && q.field !== "person")) return reply.send({ applied: false });
+        const options = Array.isArray(q.options) ? (q.options as StoredOption[]) : [];
+        const option = matchCalendarLabel(typedText, options);
         if (option === null) {
           await db.transaction().execute((trx) => closeQuestion(trx, q.id, scope.accountId, scope.messageId));
-          request.log.info({ how: "typed", field: "calendar", applied: false }, "question closed");
+          request.log.info({ how: "typed", field: q.field, applied: false }, "question closed");
           return reply.send({ applied: false });
+        }
+        if (q.field === "person") {
+          const applied = await db.transaction().execute(async (trx) => {
+            const outcome = await applyAnswer(trx, q.id, scope.accountId, { person: options[option]!.value ?? "" }, {
+              answeredMessageId: scope.messageId,
+              answerTurnId: scope.turnId,
+              option,
+            });
+            if (!outcome.applied) await closeQuestion(trx, q.id, scope.accountId, scope.messageId);
+            return outcome.applied;
+          });
+          request.log.info({ how: "typed", field: "person", applied }, "question answered");
+          return reply.send({ applied });
         }
         const answered = await answerCalendarQuestion(scope.accountId, {
           questionId: q.id,

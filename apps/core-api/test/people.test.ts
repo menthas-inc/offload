@@ -175,7 +175,7 @@ describe("who may see whom (AC-13)", () => {
     expect(await relationOf(me, ana)).toBe("blocked");
   });
 
-  it("is nothing for somebody who blocked you, a dead account, or yourself", async () => {
+  it("a block the other way hides what it ended and not what it left standing; nothing for a dead account or yourself", async () => {
     const me = await account("Jo Martins");
     const ana = await account("Ana Duarte");
     await connect(me, ana);
@@ -183,9 +183,25 @@ describe("who may see whom (AC-13)", () => {
       .insertInto("blocks")
       .values({ blocker_account_id: ana, blocked_account_id: me })
       .execute();
+    // The connection, and a request of theirs: ended, so unseen.
     expect(await relationOf(me, ana)).toBeNull();
     expect(await relationOf(ana, me)).toBe("blocked");
+    await db.insertInto("connection_requests").values({ from_account_id: ana, to_account_id: me }).execute();
+    expect(await relationOf(me, ana)).toBeNull();
+    // The thread they still share, and the request written undelivered so
+    // that nothing would tell: standing, so seen. A blank mark on a row the
+    // screen draws would be the tell.
+    const t = await thread(me);
+    await join(ana, t);
+    expect(await relationOf(me, ana)).toBe("thread");
+    await db.insertInto("connection_requests").values({ from_account_id: me, to_account_id: ana, delivered: false }).execute();
+    expect(await relationOf(me, ana)).toBe("you_asked");
+    await db.insertInto("blocks").values({ blocker_account_id: me, blocked_account_id: ana }).execute();
+    expect(await relationOf(me, ana)).toBe("blocked");
     await db.deleteFrom("blocks").execute();
+    await db.deleteFrom("connection_requests").execute();
+    await db.deleteFrom("thread_members").where("account_id", "=", ana).execute();
+    expect(await relationOf(me, ana)).toBe("connected");
     await db
       .updateTable("accounts")
       .set({ state: "disabled" })
@@ -199,6 +215,17 @@ describe("who may see whom (AC-13)", () => {
       .execute();
     expect(await visibleTo(me, ana)).toBe(false);
     expect(await relationOf(me, me)).toBeNull();
+  });
+
+  it("sees somebody a thread of yours is waiting on, one way", async () => {
+    const me = await account("Jo Martins");
+    const ana = await account("Ana Duarte");
+    const t = await thread(me);
+    await join(ana, t, "pending", me);
+    expect(await relationOf(me, ana)).toBe("waiting");
+    expect(await relationOf(ana, me)).toBeNull();
+    await db.updateTable("thread_members").set({ expires_at: new Date(Date.now() - 1000) }).where("account_id", "=", ana).execute();
+    expect(await relationOf(me, ana)).toBeNull();
   });
 
   it("does not see somebody through an undelivered request", async () => {
@@ -670,7 +697,9 @@ describe("ending it (AC-15, AC-16)", () => {
     await join(tom, lisbon);
     await join(ana, lisbon);
     expect(await relationOf(me, ana)).toBe("blocked");
-    expect(await relationOf(ana, me)).toBeNull();
+    // And she sees me as what I am to her in that thread, a member, so the
+    // face on its head is a face and not the tell.
+    expect(await relationOf(ana, me)).toBe("thread");
     const rows = await db
       .selectFrom("thread_members")
       .select("state")

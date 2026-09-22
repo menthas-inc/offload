@@ -66,14 +66,20 @@ export class RateLimited extends Error {}
  *  that" is the one answer that tells a blocked person nothing. The lookup is
  *  counted before it is answered, so a refused one still counts. */
 export async function lookup(viewerId: string, email: string): Promise<Found | null> {
-  const recent = await db
-    .selectFrom("people_lookups")
-    .select(({ fn }) => fn.countAll<string>().as("n"))
-    .where("account_id", "=", viewerId)
-    .where("looked_up_at", ">", sql<Date>`now() - interval '1 hour'`)
-    .executeTakeFirstOrThrow();
-  if (Number(recent.n) >= LOOKUPS_PER_HOUR) throw new RateLimited();
-  await db.insertInto("people_lookups").values({ account_id: viewerId }).execute();
+  // The count and the row in one transaction under the account's lock, so
+  // thirty requests fired together are thirty and not sixty. The same lock
+  // serialises the request cap below, which is the same shape.
+  await db.transaction().execute(async (trx) => {
+    await sql`select pg_advisory_xact_lock(hashtext(${viewerId}))`.execute(trx);
+    const recent = await trx
+      .selectFrom("people_lookups")
+      .select(({ fn }) => fn.countAll<string>().as("n"))
+      .where("account_id", "=", viewerId)
+      .where("looked_up_at", ">", sql<Date>`now() - interval '1 hour'`)
+      .executeTakeFirstOrThrow();
+    if (Number(recent.n) >= LOOKUPS_PER_HOUR) throw new RateLimited();
+    await trx.insertInto("people_lookups").values({ account_id: viewerId }).execute();
+  });
 
   const row = await db
     .selectFrom("accounts")
@@ -104,6 +110,9 @@ export async function request(
 ): Promise<{ ok: true; requestId: string; since: Date } | { ok: false; error: RequestRefusal; requestId?: string }> {
   return db.transaction().execute(async (trx) => {
     if (fromId === toId) return { ok: false as const, error: "yourself" as const };
+    // The asker's lock: the counts below are read and the row written under
+    // it, so two requests in flight together cannot both pass a cap.
+    await sql`select pg_advisory_xact_lock(hashtext(${fromId}))`.execute(trx);
     const target = await trx
       .selectFrom("accounts")
       .select("id")
