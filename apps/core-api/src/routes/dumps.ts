@@ -915,6 +915,10 @@ export async function takeDump(
       .returning(["id", "state"])
       .executeTakeFirst();
 
+    // 023. The first zone an account hears becomes its clock; a later one
+    // never overwrites, and the strip is where a change is put to them.
+    await adoptZone(accountId, timeZone, trx);
+
     if (!inserted) {
       // The other request won. Return its message rather than a new one,
       // and enqueue nothing: it already did.
@@ -924,9 +928,6 @@ export async function takeDump(
         .where("account_id", "=", accountId)
         .where("client_key", "=", clientKey!)
         .executeTakeFirstOrThrow();
-    // 023. The first zone an account hears becomes its clock; a later one
-    // never overwrites, and the strip is where a change is put to them.
-    await adoptZone(accountId, timeZone, trx);
       return {
         messageId: existing.id,
         conversationId: existing.conversation_id,

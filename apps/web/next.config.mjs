@@ -14,7 +14,9 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "https://api.offload.club";
 // published them, which is why images allow https.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  // Next's dev server evaluates strings for source maps and fast refresh, so
+  // development alone admits eval; production does not, and never did.
+  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   `img-src 'self' ${API} https: data: blob:`,

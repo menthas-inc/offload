@@ -827,10 +827,17 @@ function ruleFor(text: string | null | undefined, anchor: Date | null): string |
  *  `attrs.all_day`, which is the column 012 already uses for an all-day
  *  calendar event, for the same reason and with the same meaning: a day drawn
  *  as a time is a day drawn wrong, and a client that cannot tell invents an
- *  hour. Only the occurrence is asked: a due date has no time anybody expects
- *  to see. */
-function allDayAttrs(call: { occursAt?: string | null | undefined }): { all_day: true } | null {
-  return isBareDate(call.occursAt) ? { all_day: true } : null;
+ *  hour. **The type's own column is asked** since 023: an event's occurrence,
+ *  everything else's due date. It used to be the occurrence alone, on the
+ *  grounds that a due date has no time anybody expects to see, and a task due
+ *  on a day was then drawn with the hour of noon UTC in the account's clock. */
+function allDayAttrs(call: {
+  type?: string | undefined;
+  occursAt?: string | null | undefined;
+  dueAt?: string | null | undefined;
+}): { all_day: true } | null {
+  const when = call.type === "event" ? call.occursAt : call.dueAt;
+  return isBareDate(when) ? { all_day: true } : null;
 }
 
 /** The three lists, in the shape the tool result carries.
@@ -1322,6 +1329,9 @@ async function existing(
   if (when === null) return { ok: false, error: "bad_date" };
   const timed = call.dueAt != null || call.occursAt != null || call.occursEndAt != null || call.rrule != null;
   let rule: string | null | undefined;
+  // Whether the row is a day or a time follows the type's own column, when
+  // this call gives it (023).
+  let allDayGiven: boolean | undefined;
   if (timed) {
     const held = await trx
       .selectFrom("content")
@@ -1329,6 +1339,8 @@ async function existing(
       .where("id", "=", ref.id)
       .executeTakeFirstOrThrow();
     if (held.source_ref) return { ok: false, error: "already_on_calendar" };
+    const given = held.type === "event" ? call.occursAt : call.dueAt;
+    if (given != null) allDayGiven = isBareDate(given);
     // 023. The rule anchors on the type's column as it stands after this
     // edit; a rule with nothing to anchor on, or outside the grammar, is
     // refused by name. A null leaves the rule alone: not stated, never remove.
@@ -1351,7 +1363,9 @@ async function existing(
       ...(call.dueAt == null ? {} : { due_at: when.dueAt }),
       ...(call.occursAt == null ? {} : { occurs_at: when.occursAt }),
       ...(call.occursEndAt == null ? {} : { occurs_end_at: when.occursEndAt }),
-      ...(call.occursAt == null ? {} : { attrs: sql`attrs || ${JSON.stringify(allDayAttrs(call) ?? { all_day: false })}::jsonb` }),
+      ...(allDayGiven === undefined
+        ? {}
+        : { attrs: sql`attrs || ${JSON.stringify({ all_day: allDayGiven })}::jsonb` }),
       ...(rule === undefined ? {} : { rrule: rule }),
       // A priority a person pinned is not the planner's to change. The write
       // is simply skipped rather than refused: the model asked for something

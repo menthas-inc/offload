@@ -985,6 +985,31 @@ describe("dates a model actually writes", () => {
     expect(row.rrule).toBe("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR");
   });
 
+  it("023: a bare due date is all day, and a due date with an hour is not", async () => {
+    // A due date may carry an hour since 023, so the flag is read off the
+    // type's own column: a task's due date, an event's occurrence. Before this
+    // only the occurrence was asked, and a task due on a day was drawn with
+    // the hour of noon UTC in whatever zone the account keeps.
+    const me = await account();
+    const t = await thread(me, "Flat admin");
+    const { jobId, messageId } = await dump(me);
+
+    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId: t, title: "Pay rent", type: "task", dueAt: "2026-09-25" });
+    await tool({ tool: "add_content", jobId, toolCallId: "t2", threadId: t, title: "Call the clinic", type: "task", dueAt: "2026-09-25T09:00:00Z" });
+    await tool({ tool: "add_content", jobId, toolCallId: "t3", threadId: t, title: "Dentist", type: "event", occursAt: "2026-09-24", dueAt: "2026-09-20T09:00:00Z" });
+
+    const rows = await db
+      .selectFrom("content")
+      .select(["title", "attrs"])
+      .where("derived_from_message_id", "=", messageId)
+      .execute();
+    const allDay = (title: string) =>
+      ((rows.find((row) => row.title === title)?.attrs ?? {}) as Record<string, unknown>)["all_day"] === true;
+    expect(allDay("Pay rent")).toBe(true);
+    expect(allDay("Call the clinic")).toBe(false);
+    expect(allDay("Dentist")).toBe(true);
+  });
+
   it("does not call a real time a day", async () => {
     const me = await account();
     const t = await thread(me, "EU with fam");

@@ -20,6 +20,7 @@
     "@offload/markup": "workspace:*",
     "@offload/tokens": "workspace:^",
     "@offload/widgets": "workspace:^",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-google-signin/google-signin": "16.1.5",
     "@shopify/react-native-skia": "^2.11.2",
     "better-auth": "^1.7.5",

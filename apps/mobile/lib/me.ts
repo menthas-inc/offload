@@ -73,7 +73,7 @@ let asking: Promise<void> | null = null;
 
 function announce(me: Me): void {
   cached = me;
-  announce(me);
+  for (const listener of listeners) listener(me);
 }
 
 export function currentMe(): Me | null {
