@@ -25,9 +25,12 @@
 // cannot be exchanged by anybody who did not start the flow.
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { env } from "../env.js";
+import { derivedKey } from "../crypto/derived.js";
 
 const TTL_MS = 10 * 60 * 1000;
+
+/** Its own key, see `crypto/derived.ts`. */
+const KEY = derivedKey("connector-state");
 
 /** Where somebody lands after connecting.
  *
@@ -47,7 +50,7 @@ export interface ConnectState {
 }
 
 function sign(payload: string): string {
-  return createHmac("sha256", env.BETTER_AUTH_SECRET).update(payload).digest("base64url");
+  return createHmac("sha256", KEY).update(payload).digest("base64url");
 }
 
 /** A fresh PKCE verifier and its S256 challenge. */

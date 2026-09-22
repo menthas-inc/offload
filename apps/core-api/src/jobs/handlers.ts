@@ -32,9 +32,10 @@ export type Handler = (
  *  Rate limiting bounds request rate, not total sends over time or across
  *  addresses, so without this the endpoint mails a stranger's inbox as often as
  *  anyone cares to submit it. */
-const waitlistJoined: Handler = async (payload, { mailer }) => {
-  const accountId = String(payload["accountId"] ?? "");
-  if (!accountId) throw new Error("waitlist_joined job has no accountId");
+const waitlistJoined: Handler = async (_payload, { mailer }, accountId) => {
+  // The row's account, never the payload's: `queue.ts` states the contract
+  // and this handler read the payload for a while against it.
+  if (!accountId) throw new Error("waitlist_joined job has no account");
 
   // Claim the send before making it. If the send then fails the job retries and
   // finds nothing to claim, which loses one email; sending twice to someone who
@@ -68,9 +69,8 @@ const waitlistJoined: Handler = async (payload, { mailer }) => {
  *  the queue's idempotency key prevents a second enqueue, not a second send by
  *  a job that retried after the mailer succeeded and the acknowledgement did
  *  not. */
-const invited: Handler = async (payload, { mailer }) => {
-  const accountId = String(payload["accountId"] ?? "");
-  if (!accountId) throw new Error("invited job has no accountId");
+const invited: Handler = async (_payload, { mailer }, accountId) => {
+  if (!accountId) throw new Error("invited job has no account");
 
   const claimed = await db
     .updateTable("accounts")
@@ -391,8 +391,39 @@ const jobsPurge: Handler = async () => {
     .where("state", "in", ["done", "dead"])
     .where("updated_at", "<", cutoff)
     .executeTakeFirst();
+
+  // The other tables that exist for us and grow with every request, each
+  // kept only as long as something reads it: the waitlist limiter reads a
+  // day, the lookup cap an hour, and a session or a verification past its
+  // expiry is read by nothing. Windows with a margin, so a clock a little
+  // behind never deletes a row a limiter is still counting.
+  const attempts = await db
+    .deleteFrom("waitlist_attempts")
+    .where(sql<boolean>`created_at < now() - interval '2 days'`)
+    .executeTakeFirst();
+  const lookups = await db
+    .deleteFrom("people_lookups")
+    .where(sql<boolean>`looked_up_at < now() - interval '1 day'`)
+    .executeTakeFirst();
+  const sessions = await db
+    .deleteFrom("sessions")
+    .where(sql<boolean>`expires_at < now() - interval '1 day'`)
+    .executeTakeFirst();
+  const verifications = await db
+    .deleteFrom("verifications")
+    .where(sql<boolean>`expires_at < now() - interval '1 day'`)
+    .executeTakeFirst();
+
   console.log(
-    JSON.stringify({ level: "info", msg: "jobs purged", removed: Number(result.numDeletedRows ?? 0) })
+    JSON.stringify({
+      level: "info",
+      msg: "jobs purged",
+      removed: Number(result.numDeletedRows ?? 0),
+      attempts: Number(attempts.numDeletedRows ?? 0),
+      lookups: Number(lookups.numDeletedRows ?? 0),
+      sessions: Number(sessions.numDeletedRows ?? 0),
+      verifications: Number(verifications.numDeletedRows ?? 0),
+    })
   );
 };
 

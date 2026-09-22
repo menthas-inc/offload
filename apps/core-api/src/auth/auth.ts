@@ -166,6 +166,15 @@ export const auth = betterAuth({
   // authenticate successfully and then have nowhere to keep the result.
   plugins: [expo()],
 
+  // Built-in endpoints the product does not use, switched off rather than
+  // left reachable. `update-user` took any `name` for the signed-in account
+  // and wrote it to `display_name` around the one rule `/api/me` enforces, so
+  // a member could give every shared thread a paragraph for a name. Linking
+  // happens on sign-in through the gate, never by a call from a client.
+  // `delete-user` and `change-email` are off by default and stay off; the
+  // sessions endpoints stay on for the sessions page.
+  disabledPaths: ["/update-user", "/link-social", "/unlink-account"],
+
   database: { db, type: "postgres" },
 
   // Where a failure inside the callback lands.

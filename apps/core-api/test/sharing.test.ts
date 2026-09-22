@@ -469,4 +469,72 @@ describe("leave (AC-17)", () => {
     expect(await deleteThread(jo.id, lisbon)).toEqual({ left: true, deleted: true });
     expect(await db.selectFrom("thread_keys").select("account_id").where("thread_id", "=", lisbon).execute()).toEqual([{ account_id: jo.id }]);
   });
+
+  // Security review 2026-09-22, C1. Restore used to insert an accepted row
+  // for whoever called it, so any account holding a thread id could join.
+  it("puts back only the caller's own row, inside the window", async () => {
+    const jo = await person("Jo Martins");
+    const ana = await person("Ana Duarte");
+    const stranger = await person("Sam Ibekwe");
+    const lisbon = await thread(jo.id);
+    await join(ana.id, lisbon);
+
+    // A stranger with the id: no row to put back, the one refusal, no thread revived.
+    await expect(restoreThread(stranger.id, lisbon)).rejects.toBeInstanceOf(NotYours);
+    expect(await state(lisbon, stranger.id)).toBeNull();
+
+    // A member who never left is told yes and nothing changes.
+    expect(await restoreThread(ana.id, lisbon)).toBe(true);
+    expect(await state(lisbon, ana.id)).toBe("accepted");
+
+    // Leaving keeps the row, marked, and restore inside the window puts it back.
+    await deleteThread(ana.id, lisbon);
+    expect(await state(lisbon, ana.id)).toBe("left");
+    expect(await restoreThread(ana.id, lisbon)).toBe(true);
+    expect(await state(lisbon, ana.id)).toBe("accepted");
+    expect(await memberOf(ana.id, lisbon)).toBe(true);
+
+    // Past the window the row is refused, and stays as it was.
+    await deleteThread(ana.id, lisbon);
+    await db.updateTable("thread_members").set({ left_at: sql`now() - interval '1 minute'` }).where("thread_id", "=", lisbon).where("account_id", "=", ana.id).execute();
+    await expect(restoreThread(ana.id, lisbon)).rejects.toBeInstanceOf(NotYours);
+    expect(await state(lisbon, ana.id)).toBe("left");
+    expect(await memberOf(ana.id, lisbon)).toBe(false);
+
+    // Taken out is not left: nothing to put back.
+    const tom = await person("Tom Reilly");
+    await join(tom.id, lisbon);
+    await takeOut(jo.id, lisbon, tom.id);
+    await expect(restoreThread(tom.id, lisbon)).rejects.toBeInstanceOf(NotYours);
+    expect(await state(lisbon, tom.id)).toBe("removed");
+  });
+
+  it("revives a dead thread only for the member whose leaving killed it", async () => {
+    const jo = await person("Jo Martins");
+    const stranger = await person("Sam Ibekwe");
+    const lisbon = await thread(jo.id);
+    expect(await deleteThread(jo.id, lisbon)).toEqual({ left: true, deleted: true });
+
+    await expect(restoreThread(stranger.id, lisbon)).rejects.toBeInstanceOf(NotYours);
+    const dead = await db.selectFrom("threads").select("deleted_at").where("id", "=", lisbon).executeTakeFirstOrThrow();
+    expect(dead.deleted_at).not.toBeNull();
+
+    expect(await restoreThread(jo.id, lisbon)).toBe(true);
+    const alive = await db.selectFrom("threads").select("deleted_at").where("id", "=", lisbon).executeTakeFirstOrThrow();
+    expect(alive.deleted_at).toBeNull();
+    expect(await memberOf(jo.id, lisbon)).toBe(true);
+  });
+
+  it("can be shared with again after leaving", async () => {
+    const jo = await person("Jo Martins");
+    const ana = await person("Ana Duarte");
+    await connect(jo.id, ana.id);
+    const lisbon = await thread(jo.id);
+    await join(ana.id, lisbon);
+    await deleteThread(ana.id, lisbon);
+    await db.updateTable("thread_members").set({ left_at: sql`now() - interval '1 minute'` }).where("thread_id", "=", lisbon).where("account_id", "=", ana.id).execute();
+    const again = await share(jo.id, lisbon, ana.id);
+    expect(again.ok).toBe(true);
+    expect(await state(lisbon, ana.id)).toBe("pending");
+  });
 });

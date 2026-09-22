@@ -71,11 +71,14 @@ export interface ContentRef {
  *  instead is a thread carrying somebody's leftovers that no remaining member
  *  can clear. Archive was the answer while the author was still there to ask.
  *
- *  Deliberately not reachable by removing somebody: nothing in the product can
- *  remove a member, and the privacy page promises in public that no role ever
- *  will. **If that changes, this predicate becomes a privilege escalation**,
- *  remove the person, then delete what they wrote, and it has to be revisited
- *  in the same change. */
+ *  **Reachable by taking somebody out, since 022, and on purpose.** Any member
+ *  may remove any other, and what the removed person left becomes the thread's
+ *  exactly as when they leave. The privacy page says so, and OFF-3's 2026-09-22
+ *  amendment records why the alternatives were worse: a member who cannot be
+ *  removed is a role, and a contribution nobody can tidy is the leftover this
+ *  predicate exists to prevent. What bounds it is that everybody in a thread
+ *  was brought in by a member, and that taking somebody out is confirmed on a
+ *  sheet listing what stays. */
 export function unowned(ref: ContentRef): boolean {
   return ref.authorId === null || !ref.authorIsMember;
 }

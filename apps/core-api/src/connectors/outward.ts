@@ -35,7 +35,18 @@ export interface OutwardVerdict {
   /** Who finds out, for the sentence on the confirmation. Addresses, because
    *  the person is about to be told which of their guests this reaches. */
   audience: string[];
-  reason: "guests" | "shared_calendar" | "asked_for" | "none";
+  reason: "guests" | "shared_calendar" | "asked_for" | "read_calendar" | "none";
+}
+
+/** The verdict for a write proposed by a turn that has read a calendar.
+ *
+ *  Not the outward test, and deliberately beside it rather than inside it:
+ *  what the person's own calendar holds is text other people wrote, an
+ *  invitation is such a title, and a turn that read one and then wants to
+ *  change or remove an event is put to the person whatever the event's
+ *  audience. The read is the fact; the model has no field that changes it. */
+export function readCalendarVerdict(): OutwardVerdict {
+  return { outward: true, notify: false, audience: [], reason: "read_calendar" };
 }
 
 export function outwardTest(input: OutwardInput): OutwardVerdict {
@@ -65,6 +76,7 @@ export function outwardLine(verdict: OutwardVerdict): string | null {
   if (!verdict.outward) return null;
   if (verdict.reason === "shared_calendar") return "Everyone on this calendar will see it.";
   if (verdict.reason === "asked_for") return "You asked to check first.";
+  if (verdict.reason === "read_calendar") return "offload read a calendar this turn.";
   if (verdict.audience.length === 1) return `${verdict.audience[0]} will be told.`;
   return `${verdict.audience.length} guests will be told.`;
 }

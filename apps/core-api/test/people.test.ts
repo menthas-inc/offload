@@ -340,6 +340,27 @@ describe("the lookup (AC-1, AC-4, AC-5)", () => {
     });
     expect(bad.statusCode).toBe(400);
   });
+
+  it("takes the address in a body, so it never travels in a request path", async () => {
+    const me = await account("Jo Martins");
+    await account("Ana Duarte", "ana@example.com");
+    const cookie = await signIn(me);
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/people/lookup",
+      headers: { cookie, "content-type": "application/json" },
+      payload: { email: "Ana@Example.com" },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().found).toMatchObject({ email: "ana@example.com", relation: "none" });
+    const bad = await app.inject({
+      method: "POST",
+      url: "/v1/people/lookup",
+      headers: { cookie, "content-type": "application/json" },
+      payload: { email: "not-an-address" },
+    });
+    expect(bad.statusCode).toBe(400);
+  });
 });
 
 describe("asking (AC-2, AC-3, AC-5)", () => {

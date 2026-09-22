@@ -273,30 +273,40 @@ export async function blobRoutes(app: App): Promise<void> {
 
       const bytes = upload.bytes;
 
-      const blob = await db.transaction().execute(async (trx) => {
-        const inserted = await trx
-          .insertInto("blobs")
-          .values({
-            account_id: accountId,
-            message_id: null,
-            client_key: upload.clientKey!,
-            name: upload.name,
-            content_type: type,
-            byte_size: bytes.length,
-            width: size.width,
-            height: size.height,
-            sha256: sha256(bytes),
-          })
-          .returning(["id"])
-          .executeTakeFirstOrThrow();
+      // The object that was put, so a commit that fails after the put can
+      // take it back rather than leave ciphertext nothing can open sitting in
+      // the bucket for good.
+      let put: string | null = null;
+      const blob = await db
+        .transaction()
+        .execute(async (trx) => {
+          const inserted = await trx
+            .insertInto("blobs")
+            .values({
+              account_id: accountId,
+              message_id: null,
+              client_key: upload.clientKey!,
+              name: upload.name,
+              content_type: type,
+              byte_size: bytes.length,
+              width: size.width,
+              height: size.height,
+              sha256: sha256(bytes),
+            })
+            .returning(["id"])
+            .executeTakeFirstOrThrow();
 
-        // The key, its account wrap, then the object. Inside the transaction
-        // so a store that refuses leaves no row pointing at nothing; the
-        // orphan object a rollback can leave behind is bytes nobody can open.
-        const key = await mintObjectKey(trx, inserted.id, accountId);
-        await storeSealed(inserted.id, "original", key, bytes);
-        return inserted;
-      });
+          // The key, its account wrap, then the object. Inside the transaction
+          // so a store that refuses leaves no row pointing at nothing.
+          const key = await mintObjectKey(trx, inserted.id, accountId);
+          await storeSealed(inserted.id, "original", key, bytes);
+          put = inserted.id;
+          return inserted;
+        })
+        .catch(async (error: unknown) => {
+          if (put) await objectStore()?.remove([objectKey(put, "original")]).catch(() => undefined);
+          throw error;
+        });
 
       request.log.info({ blobId: blob.id, bytes: bytes.length, type }, "photo stored");
       return reply.code(201).send({ blobId: blob.id, width: size.width, height: size.height });
@@ -473,7 +483,10 @@ export async function blobRoutes(app: App): Promise<void> {
       return reply
         .code(200)
         .header("Content-Type", "image/jpeg")
-        .header("Cache-Control", "private, max-age=3600")
+        // Minutes, not an hour: the server refuses on the next uncached read
+        // once somebody is taken out of a thread, and the browser's copy is
+        // the only thing that outlives that.
+        .header("Cache-Control", "private, max-age=300")
         .header("X-Content-Type-Options", "nosniff")
         .header("Content-Disposition", 'inline; filename="photo.jpg"')
         .send(bytes);

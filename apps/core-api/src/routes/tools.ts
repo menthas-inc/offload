@@ -306,10 +306,10 @@ const body = z.discriminatedUnion("tool", [
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
     threadId: z.string().uuid(),
-    /** Which tag dimension each widget groups by. */
-    groupBy: z.record(z.string(), z.string()).nullish(),
+    /** Which tag dimension each widget groups by. Bounded like a tag. */
+    groupBy: z.record(z.string().max(TAG_CHARS), z.string().max(TAG_CHARS)).nullish(),
     /** What order the widgets come in. */
-    widgets: z.array(z.string()).nullish(),
+    widgets: z.array(z.string().max(TAG_CHARS)).max(3).nullish(),
   }),
   z.strictObject({
     tool: z.literal("add_note"),
@@ -1194,7 +1194,13 @@ async function existing(
           }
         : { action: "delete", sourceRef: call.sourceRef, scope: call.scope };
 
-    const outcome = await writeThroughTool(accountId, calendarId, write, messageId);
+    // A turn that has read a calendar confirms every change or removal, since
+    // what it read is text other people wrote and an invitation is such a
+    // title. `sawApps` is the same fact that taints a note written after a
+    // read; here it is the fact that turns a write into a proposal.
+    const outcome = await writeThroughTool(accountId, calendarId, write, messageId, null, {
+      confirm: sawApps,
+    });
     if (outcome.kind === "refused") return { ok: false, error: outcome.reason };
     if (outcome.kind === "written") return { ok: true, written: true, sourceRef: outcome.sourceRef };
     // Nothing has reached Google. The model says what it is waiting for; it
@@ -1350,15 +1356,25 @@ export async function toolRoutes(app: App): Promise<void> {
       // thread. The narrow tool set is in the prompt; this is the enforcement,
       // and the two are deliberately not the same thing.
       if (pinned !== null) {
-        const refusedHere =
-          call.tool === "create_thread" ||
-          call.tool === "move_content" ||
-          call.tool === "rename_thread" ||
-          call.tool === "add_note" ||
-          call.tool === "set_thread_preference" ||
-          call.tool === "share_thread" ||
-          ("threadId" in call && call.threadId !== pinned);
-        if (refusedHere) return reply.send({ ok: false, error: "unknown_thread" as const });
+        // An allow-list, not a deny-list. The deny-list named six tools and
+        // anything carrying a thread id, and let every tool carrying a content
+        // id through: `existing()` then resolved that id against everything
+        // the account can read, so text another member wrote into the shared
+        // thread could steer the model at a row in the person's private one.
+        // Found by the security review of 2026-09-22, M2.
+        const allowed =
+          call.tool === "add_content" || call.tool === "edit_content" || call.tool === "list_thread_content";
+        if (!allowed) return reply.send({ ok: false, error: "unknown_thread" as const });
+        if ("threadId" in call && call.threadId !== pinned) {
+          return reply.send({ ok: false, error: "unknown_thread" as const });
+        }
+        if (call.tool === "edit_content") {
+          // The row has to be in the pinned thread, not merely readable.
+          const target = await readableContent(accountId, call.contentId);
+          if (!target || target.threadId !== pinned) {
+            return reply.send({ ok: false, error: "unknown_content" as const });
+          }
+        }
       }
 
       // A refusal from the access helpers is a refusal, not a crash.

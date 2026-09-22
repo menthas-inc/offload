@@ -142,7 +142,15 @@ const body = z.discriminatedUnion("outcome", [
      *  by whoever owns the page: forwarding either walks attacker-controlled
      *  prose onto somebody's screen in offload's own voice. */
     sources: z
-      .array(z.object({ domain: z.string().max(253), url: z.string().url().max(2000) }))
+      .array(
+        z.object({
+          domain: z.string().max(253),
+          // https and nothing else. The clients open these with the platform's
+          // opener, and a citation is the one URL on a reply the person never
+          // typed; a scheme other than https is not a page to open.
+          url: z.string().url().max(2000).refine((value) => /^https:\/\//i.test(value), "https only"),
+        })
+      )
       // **Twelve, not six.** Six was written for three lookups of two sources
       // each; one real search cites nine, and the first production turn to
       // complete a lookup was refused over the length after doing the work. The
@@ -178,7 +186,15 @@ const body = z.discriminatedUnion("outcome", [
     /** A turn cut off partway still read what it read, and a chip is a record
      *  of that rather than of the turn finishing. Same shape as above. */
     sources: z
-      .array(z.object({ domain: z.string().max(253), url: z.string().url().max(2000) }))
+      .array(
+        z.object({
+          domain: z.string().max(253),
+          // https and nothing else. The clients open these with the platform's
+          // opener, and a citation is the one URL on a reply the person never
+          // typed; a scheme other than https is not a page to open.
+          url: z.string().url().max(2000).refine((value) => /^https:\/\//i.test(value), "https only"),
+        })
+      )
       // **Twelve, not six.** Six was written for three lookups of two sources
       // each; one real search cites nine, and the first production turn to
       // complete a lookup was refused over the length after doing the work. The
@@ -423,6 +439,14 @@ export async function internalRoutes(app: App): Promise<void> {
 
       const accountId = job.account_id;
       const threadId = payload.threadId;
+
+      // The job runs as whichever member's daily run enqueued it, and that
+      // member can have been taken out between the enqueue and now. A fold
+      // applied as somebody no longer in the thread is refused whole; the
+      // next member's daily run books another.
+      if (!(await memberOf(accountId, threadId))) {
+        return reply.send({ superseded: 0, removed: 0, added: 0, ignored: 0 });
+      }
 
       const outcome = await db.transaction().execute(async (trx) => {
         const applied = await applyCompaction(

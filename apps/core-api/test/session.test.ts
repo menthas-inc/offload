@@ -15,7 +15,7 @@ import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { completeFirstRun, CONSENT_VERSION } from "../src/routes/session.js";
-import { seal, unseal } from "../src/auth/attempt.js";
+import { readCookie, seal, unseal } from "../src/auth/attempt.js";
 import { uuidv7 } from "../src/uuid.js";
 
 await migrate(() => {});
@@ -166,6 +166,11 @@ describe("the refused address a no-invite screen shows", () => {
 
   it("expires", () => {
     expect(unseal(seal("ana@example.com", now), now + 11 * 60 * 1000)).toBeNull();
+  });
+
+  it("reads a cookie that is not valid percent-encoding as no cookie, not as a 500", () => {
+    expect(readCookie("offload_attempt=%E0%A4%A", "offload_attempt")).toBeNull();
+    expect(readCookie("other=1; offload_attempt=a%2Eb", "offload_attempt")).toBe("a.b");
   });
 
   it("refuses malformed input rather than throwing", () => {

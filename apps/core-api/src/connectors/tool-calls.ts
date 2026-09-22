@@ -13,7 +13,7 @@
 import { sql } from "kysely";
 import { db } from "../db.js";
 import { GrantRevoked, type EventDraft } from "./google.js";
-import { outwardLine, type OutwardVerdict } from "./outward.js";
+import { outwardLine, readCalendarVerdict, type OutwardVerdict } from "./outward.js";
 import { accessTokenFor, markNeedsReauth } from "./tokens.js";
 import { performWrite, targetFor, verdictFor, writable, type WriteAction } from "./write.js";
 import type { ScopedCalendar } from "../threads/calendars.js";
@@ -116,7 +116,11 @@ export async function writeThroughTool(
   messageId: string | null,
   /** 019. The row a create is putting on the calendar. It remembers the event
    *  it became, on a performed write now and on a confirmed one later. */
-  contentId: string | null = null
+  contentId: string | null = null,
+  /** `confirm`: put it to the person whatever the outward test says. Set by
+   *  the tool endpoint for a turn that has read a calendar, because what it
+   *  read is text other people wrote (security review 2026-09-22, M11). */
+  options: { confirm?: boolean } = {}
 ): Promise<ToolWriteOutcome> {
   const target = await targetFor(calendarId, accountId);
   if (!target) return { kind: "refused", reason: "unknown_calendar" };
@@ -131,6 +135,10 @@ export async function writeThroughTool(
   try {
     token = await accessTokenFor(target.connectionId);
     verdict = await verdictFor(target, write, token);
+    // The outward reasons win when they apply, since their sentence names who
+    // finds out; a write nobody else would notice is still put to the person
+    // when the turn read a calendar first.
+    if (options.confirm && !verdict.outward) verdict = readCalendarVerdict();
   } catch (error) {
     if (error instanceof GrantRevoked) {
       await markNeedsReauth(target.connectionId);

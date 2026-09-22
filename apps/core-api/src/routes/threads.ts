@@ -42,11 +42,14 @@ import { isBareDate, parseWhen } from "../threads/dates.js";
 import { invitationsFor } from "../threads/sharing.js";
 import {
   NotYours,
+  memberOf,
   requireAuthor,
   requireMember,
   requireReadable,
   touchThread,
+  unowned,
 } from "../threads/access.js";
+import { TAG_CHARS } from "../threads/tags.js";
 
 /** 022. The account's default thread cannot be shared or deleted. */
 async function isDefaultThreadOf(accountId: string, threadId: string): Promise<boolean> {
@@ -528,6 +531,15 @@ export async function setArchived(
       .select(["deleted_at", "archived_at"])
       .where("id", "=", ref.id)
       .executeTakeFirstOrThrow();
+
+    // Undoing a delete is the author's, like the delete was. Un-archiving is
+    // co-owned, and this route serves both, so the row says which it is: a
+    // deleted row put back by somebody who did not write it is somebody
+    // else's contribution restored against its author's decision, the
+    // inverse of OFF-3 (security review 2026-09-22, M1).
+    if (!archived && before.deleted_at !== null && ref.authorId !== accountId && !unowned(ref)) {
+      throw new NotYours();
+    }
     // Counted iff live. Both transitions read this once so a second archive of
     // an archived row, or a restore of one already back, moves nothing.
     const wasLive = before.deleted_at === null && before.archived_at === null;
@@ -847,10 +859,10 @@ export async function renameThread(
 /** Leaving a thread, which is also how a thread dies.
  *
  *  **There is no delete-somebody-else's-thread, because there is no owner.**
- *  OFF-3: a thread resolves to its member set, and the privacy policy says in
- *  public that no role can throw someone out, take it over, or empty it. So
- *  this removes the caller and nobody else, and the thread goes when the last
- *  member is out, which is exactly what that page already promises.
+ *  OFF-3: a thread resolves to its member set. This removes the caller and
+ *  nobody else, and the thread goes when the last member is out. Taking
+ *  another member out is 022's `takeOut`, confirmed on a sheet, and is the
+ *  one other way a membership ends.
  *
  *  On a thread nobody else is in, those are the same action, which is why one
  *  endpoint serves both and the screen can call it Delete.
@@ -876,10 +888,16 @@ export async function deleteThread(
       .executeTakeFirst();
     if (account?.default_thread_id === threadId) throw new NotYours();
 
+    // Marked, never deleted. The row is what restore puts back, and it is the
+    // only row restore may put back: with the row gone, the Undo used to
+    // insert a fresh membership for whoever called it, which let any account
+    // holding a thread id join it (security review 2026-09-22, C1).
     await trx
-      .deleteFrom("thread_members")
+      .updateTable("thread_members")
+      .set({ state: "left", left_at: sql`now()`, responded_at: sql`now()` })
       .where("thread_id", "=", threadId)
       .where("account_id", "=", accountId)
+      .where("state", "=", "accepted")
       .execute();
     // 019. A member leaving takes their calendar picks with them.
     await dropPicksOf(accountId, threadId, trx);
@@ -923,34 +941,44 @@ export async function deleteThread(
   });
 }
 
+/** How long after leaving the Undo still works. The toast shows eight
+ *  seconds; the rest is the tap at the end of it reaching the server. */
+const RESTORE_WINDOW = "15 seconds";
+
 /** Undo. Puts the membership back and, if the thread died with it, revives it.
  *
- *  Reachable only inside the eight seconds: after that the purge job has taken
- *  the row and there is nothing to put back. */
+ *  **Only the caller's own `left` row, and only inside the window.** That is
+ *  the whole authorisation: a stranger holding the id has no row to put back,
+ *  a leaver past the window has one the window refuses, a member taken out
+ *  has one in another state, and all three get the one refusal. Somebody
+ *  already back, pressing Undo twice, is told yes rather than refused, since
+ *  they can see the thread either way. The thread is revived only when a row
+ *  was put back, so nobody un-deletes a thread they were never in. */
 export async function restoreThread(
   accountId: string,
   threadId: string,
 ): Promise<boolean> {
   return db.transaction().execute(async (trx) => {
-    const thread = await trx
-      .selectFrom("threads")
-      .select(["id", "deleted_at"])
-      .where("id", "=", threadId)
+    const back = await trx
+      .updateTable("thread_members")
+      .set({ state: "accepted", left_at: null, responded_at: sql`now()` })
+      .where("thread_id", "=", threadId)
+      .where("account_id", "=", accountId)
+      .where("state", "=", "left")
+      .where("left_at", ">", sql<Date>`now() - interval '${sql.raw(RESTORE_WINDOW)}'`)
+      .returning("id")
       .executeTakeFirst();
-    if (!thread) return false;
+
+    if (!back) {
+      if (await memberOf(accountId, threadId, trx)) return true;
+      throw new NotYours();
+    }
 
     await trx
       .updateTable("threads")
       .set({ deleted_at: null, purge_after: null, updated_at: sql`now()` })
       .where("id", "=", threadId)
-      .execute();
-
-    // `on conflict do nothing`: pressing Undo twice must not raise, and the
-    // unique index on (thread_id, account_id) is what makes that free.
-    await trx
-      .insertInto("thread_members")
-      .values({ thread_id: threadId, account_id: accountId, state: "accepted" })
-      .onConflict((oc) => oc.doNothing())
+      .where("deleted_at", "is not", null)
       .execute();
 
     return true;
@@ -1025,7 +1053,9 @@ export async function quickAdd(
 ): Promise<{ id: string; kind: "content" | "note" }> {
   await requireMember(accountId, threadId);
 
-  const startsAs = STARTS_AS[section];
+  // `hasOwn`, because `section` is a string from the request and a plain
+  // object answers `constructor` with a function.
+  const startsAs = Object.hasOwn(STARTS_AS, section) ? STARTS_AS[section] : undefined;
 
   // A sentence with no widget type to start as is a note, and a note needs no
   // job: it is already exactly what it is, in the person's own words. The
@@ -1395,7 +1425,8 @@ export async function threadRoutes(app: App): Promise<void> {
       schema: {
         params: z.object({ id: z.string().uuid() }),
         querystring: z.object({
-          cursor: z.string().optional(),
+          // A uuid, since it is compared to one: anything else was a 500.
+          cursor: z.string().uuid().optional(),
           archived: z.enum(["true", "false"]).default("false"),
         }),
         response: { 200: contentPage, 401: unauthenticated, 404: notFound },
@@ -2150,8 +2181,12 @@ export async function threadRoutes(app: App): Promise<void> {
       schema: {
         params: z.object({ id: z.string().uuid() }),
         body: z.strictObject({
-          widgets: z.array(z.string()).nullish(),
-          groupBy: z.record(z.string(), z.string()).nullish(),
+          // Bounded like a tag, since a grouping value is one: `readPreference`
+          // keeps the three widget kinds and lowercases the value, and an
+          // unbounded value was stored on the thread and served to every
+          // member.
+          widgets: z.array(z.string().max(TAG_CHARS)).max(3).nullish(),
+          groupBy: z.record(z.string().max(TAG_CHARS), z.string().max(TAG_CHARS)).nullish(),
           hideDone: z.boolean().nullish(),
         }),
         response: {

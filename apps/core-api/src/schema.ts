@@ -137,10 +137,13 @@ export interface ThreadMembersTable {
   thread_id: string;
   account_id: string;
   invited_by: string | null;
-  state: Generated<"pending" | "accepted" | "declined" | "expired" | "removed">;
+  state: Generated<"pending" | "accepted" | "declined" | "expired" | "removed" | "left">;
   created_at: Timestamp;
   responded_at: Timestamp | null;
   expires_at: Timestamp | null;
+  /** When they left, for the Undo window and nothing else. The row stays,
+   *  marked `left`, so restore has exactly one row it may put back. */
+  left_at: Timestamp | null;
   /** The member's own fold of To do's finished rows. Theirs, not the
    *  thread's, which is why it is here and not in `threads.attrs`. */
   hide_done: Generated<boolean>;

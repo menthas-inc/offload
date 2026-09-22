@@ -7,7 +7,7 @@
 // caller who could tell them apart could probe for accounts by id.
 
 import { z } from "zod";
-import type { FastifyRequest } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
@@ -62,46 +62,60 @@ const cardSchema = personSchema.extend({ id: z.string(), since: z.coerce.date() 
 
 const uuid = z.string().uuid();
 
+const emailField = z.string().trim().toLowerCase().email().max(254);
+
+const lookupResponse = {
+  200: z.object({
+    found: personSchema
+      .extend({
+        email: z.string(),
+        relation: z.enum(["none", "you", "connected", "you_asked", "asked_you"]),
+        requestId: z.string().nullable(),
+        since: z.coerce.date().nullable(),
+        mark: z.string(),
+      })
+      .nullable(),
+  }),
+  401: unauthenticated,
+  429: z.object({ error: z.literal("rate_limited") }),
+};
+
+/** One address, one answer, whichever door it came through. */
+async function answerLookup(request: FastifyRequest, reply: FastifyReply, email: string) {
+  const accountId = await currentAccountId(request);
+  if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
+  // Hit and miss take the same floor, so the clock says nothing the
+  // answer does not.
+  const started = Date.now();
+  let found;
+  try {
+    found = await lookup(accountId, email);
+  } catch (error) {
+    if (error instanceof RateLimited) return reply.code(429).send({ error: "rate_limited" as const });
+    throw error;
+  }
+  const remaining = LOOKUP_FLOOR_MS - (Date.now() - started);
+  if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
+  return reply.send({ found });
+}
+
 export async function peopleRoutes(app: App): Promise<void> {
+  // The address travels in the body, not the query string. A query string is
+  // what the platform's request logs record, and this one is somebody else's
+  // address typed by a person looking for them; the page says logs never
+  // carry what was in a request (security review 2026-09-22, M15).
+  app.post(
+    "/v1/people/lookup",
+    { schema: { body: z.object({ email: emailField }), response: lookupResponse } },
+    async (request, reply) => answerLookup(request, reply, request.body.email),
+  );
+
+  // The older door, for phone builds that predate the body form. Nothing new
+  // calls it; it goes once those builds are gone.
   app.get(
     "/v1/people/lookup",
-    {
-      schema: {
-        querystring: z.object({ email: z.string().trim().toLowerCase().email().max(254) }),
-        response: {
-          200: z.object({
-            found: personSchema
-              .extend({
-                email: z.string(),
-                relation: z.enum(["none", "you", "connected", "you_asked", "asked_you"]),
-                requestId: z.string().nullable(),
-                since: z.coerce.date().nullable(),
-                mark: z.string(),
-              })
-              .nullable(),
-          }),
-          401: unauthenticated,
-          429: z.object({ error: z.literal("rate_limited") }),
-        },
-      },
-    },
-    async (request, reply) => {
-      const accountId = await currentAccountId(request);
-      if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
-      // Hit and miss take the same floor, so the clock says nothing the
-      // answer does not.
-      const started = Date.now();
-      let found;
-      try {
-        found = await lookup(accountId, request.query.email);
-      } catch (error) {
-        if (error instanceof RateLimited) return reply.code(429).send({ error: "rate_limited" as const });
-        throw error;
-      }
-      const remaining = LOOKUP_FLOOR_MS - (Date.now() - started);
-      if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
-      return reply.send({ found });
-    },
+    { schema: { querystring: z.object({ email: emailField }), response: lookupResponse } },
+    async (request, reply) => answerLookup(request, reply, request.query.email),
   );
 
   app.post(

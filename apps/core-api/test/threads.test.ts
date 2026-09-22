@@ -40,6 +40,7 @@ import {
   deleteContent,
   editContent,
   moveContent,
+  quickAdd,
   renameThread,
   setArchived,
 } from "../src/routes/threads.js";
@@ -578,6 +579,43 @@ describe("the write transactions", () => {
       .selectFrom("threads").select("content_count").where("id", "=", t).executeTakeFirstOrThrow();
     // Not decremented twice, which is what a missing guard would do.
     expect(t2.content_count).toBe(0);
+  });
+
+  // Security review 2026-09-22, M1. Restore is the Undo for delete as well as
+  // for archive, and it let any member put back a row its author had removed.
+  it("restore of a deleted row is the author's, and everyone's once the author is gone", async () => {
+    const me = await account("Ana Duarte");
+    const other = await account("Jo Martins");
+    const t = await thread(me, "Flat admin");
+    await join(other, t);
+    const row = await content(me, t, "Boiler service");
+
+    await deleteContent(me, row);
+    await expect(setArchived(other, row, false)).rejects.toBeInstanceOf(NotYours);
+    const still = await db.selectFrom("content").select("deleted_at").where("id", "=", row).executeTakeFirstOrThrow();
+    expect(still.deleted_at).not.toBeNull();
+
+    // Un-archiving stays co-owned.
+    const theirs = await content(me, t, "Buy a lamp");
+    await setArchived(other, theirs, true);
+    await setArchived(other, theirs, false);
+
+    // The author can, and so can anyone once the author has left the thread.
+    await setArchived(me, row, false);
+    await deleteContent(me, row);
+    await db.updateTable("thread_members").set({ state: "left" }).where("thread_id", "=", t).where("account_id", "=", me).execute();
+    await setArchived(other, row, false);
+    const back = await db.selectFrom("content").select("deleted_at").where("id", "=", row).executeTakeFirstOrThrow();
+    expect(back.deleted_at).toBeNull();
+  });
+
+  it("types a row into a section named after a prototype key as a note, not a 500", async () => {
+    const me = await account("Ana Duarte");
+    const t = await thread(me, "Flat admin");
+    for (const section of ["constructor", "__proto__", "toString"]) {
+      const typed = await quickAdd(me, t, "Todo names in three words", section);
+      expect(typed.kind).toBe("note");
+    }
   });
 
   it("restore brings back a deleted row and its count (AC-14, AC-15)", async () => {

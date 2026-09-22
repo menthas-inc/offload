@@ -12,7 +12,7 @@ import { db } from "./db.js";
 import type { Database } from "./schema.js";
 import { normaliseTags, BadTags, MAX_TAGS } from "./threads/tags.js";
 import { COUNTRIES, isCountry } from "./countries.js";
-import { NotYours, touchThread } from "./threads/access.js";
+import { NotYours, memberOf, touchThread } from "./threads/access.js";
 import { moveContentIn } from "./routes/threads.js";
 import { shareThread } from "./threads/sharing.js";
 
@@ -1026,6 +1026,14 @@ export async function applyAnswer(
       await promotePending(trx, q.id, by.answeredMessageId);
       return { applied: false, reason: "gone" };
     }
+    // Still theirs to answer for: the row was theirs when the question was
+    // asked, and they can have left the thread since. Gone, then, like a row
+    // that was deleted; `answerCalendarQuestion` makes the same check.
+    if (!(await memberOf(accountId, row.thread_id, trx))) {
+      await trx.updateTable("questions").set({ state: "closed", settled_at: sql`now()` }).where("id", "=", q.id).execute();
+      await promotePending(trx, q.id, by.answeredMessageId);
+      return { applied: false, reason: "gone" };
+    }
     const previous = { due_at: row.due_at, occurs_at: row.occurs_at, occurs_end_at: row.occurs_end_at, tags: row.tags };
     const set = contentPatch(field, parsed, row);
     if (set === null) {
@@ -1050,6 +1058,11 @@ export async function applyAnswer(
       .forUpdate()
       .executeTakeFirst();
     if (!row) {
+      await trx.updateTable("questions").set({ state: "closed", settled_at: sql`now()` }).where("id", "=", q.id).execute();
+      await promotePending(trx, q.id, by.answeredMessageId);
+      return { applied: false, reason: "gone" };
+    }
+    if (row.subject_id && !(await memberOf(accountId, row.subject_id, trx))) {
       await trx.updateTable("questions").set({ state: "closed", settled_at: sql`now()` }).where("id", "=", q.id).execute();
       await promotePending(trx, q.id, by.answeredMessageId);
       return { applied: false, reason: "gone" };

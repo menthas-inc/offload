@@ -415,7 +415,7 @@ describe("reading a rendition", () => {
     const mine = await app.inject({ method: "GET", url: `/v1/blobs/${a}/thumb`, headers: { cookie } });
     expect(mine.statusCode).toBe(200);
     expect(mine.headers["content-type"]).toBe("image/jpeg");
-    expect(mine.headers["cache-control"]).toBe("private, max-age=3600");
+    expect(mine.headers["cache-control"]).toBe("private, max-age=300");
     expect(mine.headers["x-content-type-options"]).toBe("nosniff");
     expect(Buffer.from(mine.rawPayload).equals(fixture("plain.jpg"))).toBe(true);
 

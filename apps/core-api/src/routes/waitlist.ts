@@ -19,7 +19,7 @@ import { sql } from "kysely";
 import { z } from "zod";
 import type { App } from "../app.js";
 import { db } from "../db.js";
-import { env } from "../env.js";
+import { derivedKey } from "../crypto/derived.js";
 import { emit } from "../analytics.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 
@@ -76,9 +76,12 @@ async function settle(started: number): Promise<{ status: "ok" }> {
 }
 
 /** HMAC, not a hash. An unsalted digest of an email address is reversible
- *  against any common address list, and this row outlives the request. */
+ *  against any common address list, and this row outlives the request. Keyed
+ *  by a key of its own rather than the auth secret, see `crypto/derived.ts`. */
+const KEY = derivedKey("waitlist-attempts");
+
 function hmac(value: string): Buffer {
-  return createHmac("sha256", env.BETTER_AUTH_SECRET).update(value).digest();
+  return createHmac("sha256", KEY).update(value).digest();
 }
 
 /** Record the attempt and answer whether it is over either limit.

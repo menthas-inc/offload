@@ -1041,6 +1041,33 @@ describe("a row typed straight into a thread", () => {
     expect(second.statusCode).toBe(200);
     expect((second.json() as { ok: boolean }).ok).toBe(true);
   });
+
+  // Security review 2026-09-22, M2. The refusal was a deny-list, and a tool
+  // carrying a content id rather than a thread id walked past it to any row
+  // the account could read.
+  it("may not reach a row outside its thread, and gets no tool that is not on the list", async () => {
+    const accountId = await account();
+    const threadId = await thread(accountId, "Flat admin");
+    const elsewhere = await thread(accountId, "Lisbon trip");
+    const { jobId } = await typed(accountId, threadId, "brackets");
+    const theirs = await db
+      .insertInto("content")
+      .values({ account_id: accountId, thread_id: elsewhere, type: "task", title: "Book the flights", updated_at: new Date() })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    const edited = await tool({ tool: "edit_content", jobId, toolCallId: "e1", contentId: theirs.id, title: "Owes me" });
+    expect(edited.json()).toEqual({ ok: false, error: "unknown_content" });
+
+    const completed = await tool({ tool: "complete_content", jobId, toolCallId: "d1", contentId: theirs.id, done: true });
+    expect(completed.json()).toEqual({ ok: false, error: "unknown_thread" });
+
+    const searched = await tool({ tool: "search", jobId, toolCallId: "s1", query: "flights" });
+    expect(searched.json()).toEqual({ ok: false, error: "unknown_thread" });
+
+    const untouched = await db.selectFrom("content").select(["title", "done_at"]).where("id", "=", theirs.id).executeTakeFirstOrThrow();
+    expect(untouched).toEqual({ title: "Book the flights", done_at: null });
+  });
 });
 
 describe("016 what a turn read", () => {

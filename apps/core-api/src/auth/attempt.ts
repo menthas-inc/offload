@@ -19,7 +19,7 @@
 
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { env } from "../env.js";
+import { derivedKey } from "../crypto/derived.js";
 
 export const ATTEMPT_COOKIE = "offload_attempt";
 const TTL_MS = 10 * 60 * 1000;
@@ -65,8 +65,13 @@ export function providerName(): string | null {
   return storage.getStore()?.providerName ?? null;
 }
 
+/** Its own key, derived from the auth secret rather than the secret itself,
+ *  so this cookie, the waitlist limiter and the connector state cannot be
+ *  forged with one another's material. See `crypto/derived.ts`. */
+const KEY = derivedKey("attempt-cookie");
+
 function sign(payload: string): string {
-  return createHmac("sha256", env.BETTER_AUTH_SECRET).update(payload).digest("base64url");
+  return createHmac("sha256", KEY).update(payload).digest("base64url");
 }
 
 export function seal(email: string, now: number): string {
@@ -95,7 +100,14 @@ export function readCookie(header: string | undefined, name: string): string | n
     const index = pair.indexOf("=");
     if (index === -1) continue;
     if (pair.slice(0, index).trim() !== name) continue;
-    return decodeURIComponent(pair.slice(index + 1).trim());
+    // A value that is not valid percent-encoding is not a cookie we set, so
+    // it reads as no cookie. `decodeURIComponent` throws on one, and unguarded
+    // that was a 500 from a header anybody can send.
+    try {
+      return decodeURIComponent(pair.slice(index + 1).trim());
+    } catch {
+      return null;
+    }
   }
   return null;
 }

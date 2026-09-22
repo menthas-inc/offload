@@ -198,9 +198,9 @@ export async function shareThread(
   return { ok: false, error: now.state === "accepted" ? "already_in" : "waiting" };
 }
 
-/** The pending row, written or reused. A row that ended, expired, declined
- *  or removed, is reused: the unique index is on the pair and the person can
- *  be shared with again. **Only such a row**: the state was read a moment
+/** The pending row, written or reused. A row that ended, expired, declined,
+ *  removed or left, is reused: the unique index is on the pair and the person
+ *  can be shared with again. **Only such a row**: the state was read a moment
  *  ago, and a share or an accept that committed in between must not be
  *  written back to pending by an unconditional update. The guard is on the
  *  update itself; undefined means the row is live and the caller reads it
@@ -227,7 +227,7 @@ export async function writePending(
       oc
         .columns(["thread_id", "account_id"])
         .doUpdateSet(values)
-        .where("thread_members.state", "in", ["expired", "declined", "removed"]),
+        .where("thread_members.state", "in", ["expired", "declined", "removed", "left"]),
     )
     .returning("id")
     .executeTakeFirst();

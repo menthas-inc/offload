@@ -44,7 +44,7 @@ describe("AC-2 the invite email", () => {
     const accountId = await invited();
     const mailer = new MemoryMailer();
 
-    await handlers["email.invited"]!({ accountId }, { mailer });
+    await handlers["email.invited"]!({ accountId }, { mailer }, accountId);
 
     expect(mailer.sent).toHaveLength(1);
     expect(mailer.sent[0]?.to).toBe("ana@example.test");
@@ -59,8 +59,8 @@ describe("AC-2 the invite email", () => {
     // retried by the runner, which is the case the claim exists for. The
     // queue's idempotency key does not cover it: that prevents a second
     // enqueue, not a second run of the same one.
-    await handlers["email.invited"]!({ accountId }, { mailer });
-    await handlers["email.invited"]!({ accountId }, { mailer });
+    await handlers["email.invited"]!({ accountId }, { mailer }, accountId);
+    await handlers["email.invited"]!({ accountId }, { mailer }, accountId);
 
     expect(mailer.sent).toHaveLength(1);
   });
@@ -70,12 +70,12 @@ describe("AC-2 the invite email", () => {
     await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", accountId).execute();
 
     const mailer = new MemoryMailer();
-    await handlers["email.invited"]!({ accountId }, { mailer });
+    await handlers["email.invited"]!({ accountId }, { mailer }, accountId);
     expect(mailer.sent).toHaveLength(0);
   });
 
-  it("refuses a payload with no account rather than mailing nobody", async () => {
-    await expect(handlers["email.invited"]!({}, { mailer: new MemoryMailer() })).rejects.toThrow();
+  it("refuses a job with no account rather than mailing nobody", async () => {
+    await expect(handlers["email.invited"]!({}, { mailer: new MemoryMailer() }, null)).rejects.toThrow();
   });
 });
 
