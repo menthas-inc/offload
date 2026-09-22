@@ -14,8 +14,14 @@
 // rather than through a prop, which is the price of the composer not being
 // anybody's child.
 
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "../Icon";
 import { ZoneStrip } from "../shell/ZoneStrip";
+import { ContentRowView, type RowHandlers } from "./ContentRowView";
+import { rowIcon } from "./Thread";
+import { fetchToday, type Agenda, type AgendaRow } from "../../lib/notifications";
+import { completeContent, deleteContent, setArchived, type ContentRow } from "../../lib/threads";
 import pane from "../../app/(shell)/shell.module.css";
 import styles from "../../app/(shell)/today.module.css";
 
@@ -42,15 +48,60 @@ const DAY_ONE_INVITATION =
  *  moment to build the store, not before. */
 export const FILL_COMPOSER = "offload:fill-composer";
 
+/** 024. The three groups across every thread, from the agenda read: the
+ *  thread page's own row with its chip, its checkbox and its two controls,
+ *  and the thread's name as the row's meta. A tick acts here; the pencil and
+ *  the trash act here too, and the row opens its thread. A repeating row
+ *  appears once, in the first group its rule lands in, never in Overdue. */
 export function TodayPane() {
+  const router = useRouter();
+  const [agenda, setAgenda] = useState<Agenda | null>(null);
+  const [asking, setAsking] = useState<string | null>(null);
+  const reload = useCallback(() => {
+    void fetchToday().then((next) => {
+      if (next) setAgenda(next);
+    });
+  }, []);
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const quiet = agenda !== null && agenda.overdue.length + agenda.today.length + agenda.tomorrow.length === 0;
+
+  const handlers: RowHandlers = {
+    editing: null,
+    draft: "",
+    asking,
+    arrived: new Set(),
+    onDraft: () => undefined,
+    // The modal and Undo live on the thread page; a row here opens it there.
+    onEdit: (row: ContentRow) => router.push(`/threads/${(row as AgendaRow).threadId}`),
+    onSaveTitle: () => undefined,
+    onStopEditing: () => undefined,
+    onArchive: (row: ContentRow) => {
+      void setArchived(row.id, !row.archivedAt).then(reload);
+    },
+    onAsk: setAsking,
+    onDelete: (row: ContentRow) => {
+      setAsking(null);
+      void deleteContent(row.id).then(reload);
+    },
+  };
+
+  const groups = agenda
+    ? [
+        { key: "overdue", label: "Overdue", rows: agenda.overdue },
+        { key: "today", label: "Today", rows: agenda.today },
+        { key: "tomorrow", label: "Tomorrow", rows: agenda.tomorrow },
+      ].filter((group) => group.rows.length > 0)
+    : [];
+
   return (
     <>
       <div className={pane.paneHead}>
         <div style={{ minWidth: 0 }}>
           <h1 className={`${pane.paneTitle} ${pane.paneTitleBig}`}>Today</h1>
-          {/* The kit's own sub for this state, and it stays honest until Today
-              is a view over an agenda and a week rather than an invitation. */}
-          <p className={pane.paneSub}>Nothing in here yet</p>
+          {agenda === null ? <p className={pane.paneSub}>One moment</p> : quiet ? <p className={pane.paneSub}>Nothing in here yet</p> : null}
         </div>
       </div>
 
@@ -58,6 +109,49 @@ export function TodayPane() {
         <div className={styles.today}>
           {/* 023. The one place the browser's own zone appears. */}
           <ZoneStrip />
+          {agenda !== null && !quiet ? (
+            <div className={styles.agenda}>
+              {groups.map((group) => (
+                <section key={group.key} className={styles.agendaGroup}>
+                  <h2 className={styles.agendaTitle}>{group.label}</h2>
+                  <div className={styles.agendaRows}>
+                    {group.rows.map((row) => {
+                      const done = row.doneAt !== null;
+                      return (
+                        <ContentRowView
+                          key={row.id}
+                          row={row}
+                          handlers={handlers}
+                          lead={
+                            row.type === "task" ? (
+                              <input
+                                type="checkbox"
+                                className={pane.rowCheck}
+                                checked={done}
+                                onChange={() => void completeContent(row.id, !done).then(reload)}
+                                aria-label={done ? `Put ${row.title} back on the list` : `Finish ${row.title}`}
+                              />
+                            ) : (
+                              <span className={pane.rowIcon}>
+                                <Icon name={rowIcon(row.type)} size={18} />
+                              </span>
+                            )
+                          }
+                          meta={<span className={pane.rowMeta}>{row.threadName}</span>}
+                        />
+                      );
+                    })}
+                  </div>
+                  {group.key === "overdue" && agenda.overdueMore > 0 ? (
+                    <p className={styles.agendaMore}>{agenda.overdueMore} more before these</p>
+                  ) : null}
+                </section>
+              ))}
+            </div>
+          ) : null}
+          {agenda !== null && quiet && agenda.everDumped ? <p className={styles.emptyTitle}>Nothing due today.</p> : null}
+          {agenda !== null && quiet && !agenda.everDumped ? (
+            <>
           <p className={styles.emptyTitle}>{DAY_ONE_INVITATION}</p>
 
           <div className={styles.examples}>
@@ -75,6 +169,8 @@ export function TodayPane() {
               </button>
             ))}
           </div>
+            </>
+          ) : null}
         </div>
       </div>
     </>

@@ -270,6 +270,13 @@ export class SignOutFailed extends Error {
 export async function signOut(): Promise<void> {
   const expired = Symbol("expired");
 
+  // 024. The push token is deleted on the server first, while the session
+  // can still say whose it is: after sign-out the route would refuse it, and
+  // the next account on this phone would hear this one's words.
+  for (const handler of signingOut) {
+    await handler().catch(() => undefined);
+  }
+
   const outcome = await Promise.race([
     authClient.signOut().then(
       () => "done" as const,
@@ -288,6 +295,13 @@ export async function signOut(): Promise<void> {
 }
 
 const signedOut = new Set<() => void>();
+const signingOut = new Set<() => Promise<void>>();
+
+/** Run before the session ends, with the session still valid, for anything
+ *  the server holds in this session's name. */
+export function beforeSignOut(handler: () => Promise<void>): void {
+  signingOut.add(handler);
+}
 
 /** Hear the session end on this device, for anything holding a copy of who
  *  was signed in: the identity cache kept the last account's clock and name

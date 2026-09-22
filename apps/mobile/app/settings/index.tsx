@@ -199,9 +199,12 @@ export default function Settings() {
         </Group>
 
         <Group label="Reaching you">
-          {/* The kit puts Connected apps here, beside Communication. That row
-              is not built, so this group holds one thing rather than waiting
-              for the other. */}
+          {/* 024. Notifications, where the kit drew Communication. */}
+          <Row
+            icon="bell"
+            title="Notifications"
+            onPress={() => router.push("/settings/notifications")}
+          />
           <Row
             icon="link"
             title="Connected apps"

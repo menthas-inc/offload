@@ -50,7 +50,7 @@ const pushToken = z
 export const TODAY_BACK_DAYS = 30;
 export const OVERDUE_CAP = 100;
 
-const agendaRow = contentRow.extend({ threadName: z.string() });
+const agendaRow = contentRow.extend({ threadId: z.string(), threadName: z.string() });
 const todayResponse = z.object({
   overdue: z.array(agendaRow),
   today: z.array(agendaRow),
@@ -235,6 +235,7 @@ export async function notificationRoutes(app: App): Promise<void> {
         "content.place_id as place_id",
         "content.attrs as attrs",
         "accounts.display_name as authorName",
+        "content.thread_id as threadId",
         "threads.name as threadName",
         sql<boolean>`exists (
           select 1 from thread_members am
@@ -263,7 +264,7 @@ export async function notificationRoutes(app: App): Promise<void> {
       .limit(800)
       .execute();
 
-    type Agenda = RawRow & { threadName: string };
+    type Agenda = RawRow & { threadId: string; threadName: string };
     const overdue: { day: string; row: Agenda }[] = [];
     const todays: Agenda[] = [];
     const tomorrows: Agenda[] = [];
@@ -293,7 +294,7 @@ export async function notificationRoutes(app: App): Promise<void> {
     }
     overdue.sort((a, b) => (a.day === b.day ? (a.row.id < b.row.id ? 1 : -1) : a.day < b.day ? 1 : -1));
     const shape = async (rows: Agenda[]) =>
-      (await withPhotos(rows.map((row) => ({ ...toRow(row, accountId), threadName: row.threadName })))) as unknown as z.infer<typeof agendaRow>[];
+      (await withPhotos(rows.map((row) => ({ ...toRow(row, accountId), threadId: row.threadId, threadName: row.threadName })))) as unknown as z.infer<typeof agendaRow>[];
     const ever = await db
       .selectFrom("readable_content as content")
       .select("content.id")

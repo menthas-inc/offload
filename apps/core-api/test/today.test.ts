@@ -61,7 +61,7 @@ async function signIn(accountId: string): Promise<string> {
 
 interface Today {
   overdue: { id: string; title: string; threadName: string; dueAt: string | null; rrule: string | null }[];
-  today: { id: string; title: string; threadName: string }[];
+  today: { id: string; title: string; threadName: string; threadId: string }[];
   tomorrow: { id: string; title: string; threadName: string }[];
   overdueMore: number;
   everDumped: boolean;
@@ -87,7 +87,7 @@ describe("024 AC-22 the three groups", () => {
     const response = await app.inject({ method: "GET", url: "/v1/today", headers: { cookie: await signIn(me) } });
     expect(response.statusCode).toBe(200);
     const body = response.json() as Today;
-    expect(body.today.map((row) => [row.title, row.threadName])).toEqual([["Pay the rent", "Flat admin"]]);
+    expect(body.today.map((row) => [row.title, row.threadName, row.threadId])).toEqual([["Pay the rent", "Flat admin", flat]]);
     expect(body.tomorrow.map((row) => [row.title, row.threadName])).toEqual([["Ferry times", "Lisbon trip"]]);
     expect(body.overdue.map((row) => row.title)).toEqual(["Call the clinic"]);
     expect(body.overdueMore).toBe(0);

@@ -228,3 +228,34 @@ export async function completeOnboarding(
     return false;
   }
 }
+
+// ---------------------------------------------------------------- 024
+
+/** The account's Activity, a page at a time, and the agenda. Shapes as the
+ *  server sends them; the screens read them through their own libs. */
+export async function fetchActivity<T>(cursor: string | null): Promise<T | null> {
+  return request<T>(`/v1/activity${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`);
+}
+
+export async function markActivitySeen(): Promise<void> {
+  await request("/v1/activity/seen", { method: "POST" }).catch(() => null);
+}
+
+export async function fetchToday<T>(): Promise<T | null> {
+  return request<T>("/v1/today");
+}
+
+export async function registerPushToken(token: string, platform: "ios" | "android"): Promise<boolean> {
+  const result = await request("/v1/push-tokens", { method: "POST", body: JSON.stringify({ token, platform }) }).catch(() => null);
+  return result !== null;
+}
+
+export async function deletePushToken(token: string): Promise<void> {
+  await request("/v1/push-tokens", { method: "DELETE", body: JSON.stringify({ token }) }).catch(() => null);
+}
+
+/** A verb from a notification: the session and the row's id, nothing else. */
+export async function actOnNotification(action: "done" | "tomorrow", contentId: string): Promise<boolean> {
+  const result = await request("/v1/notifications/act", { method: "POST", body: JSON.stringify({ action, contentId }) }).catch(() => null);
+  return result !== null;
+}

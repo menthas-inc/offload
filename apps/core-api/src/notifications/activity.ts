@@ -77,18 +77,23 @@ export interface ActivityEntry {
   occurredAt: string;
 }
 
-/** A page, newest first, the cursor the last row's id. The ids are UUIDv7,
- *  ordered by the moment they were minted, which is the moment the row was
- *  written; a cursor on `occurred_at` lost Postgres's microseconds on the
- *  way through a Date and skipped rows written in the same millisecond. */
+/** A page, newest first by when it happened, the cursor the last row's id.
+ *  The comparison is done in Postgres against that row's own `occurred_at`,
+ *  as a row value, so nothing loses the microseconds on the way through a
+ *  Date and a row written in the same millisecond is never skipped. */
 export async function listActivity(accountId: string, cursor: string | null): Promise<{ rows: ActivityEntry[]; next: string | null }> {
   let query = db
     .selectFrom("activity")
     .selectAll()
     .where("account_id", "=", accountId)
+    .orderBy("occurred_at", "desc")
     .orderBy("id", "desc")
     .limit(ACTIVITY_PAGE + 1);
-  if (cursor && /^[0-9a-f-]{36}$/.test(cursor)) query = query.where("id", "<", cursor);
+  if (cursor && /^[0-9a-f-]{36}$/.test(cursor)) {
+    query = query.where(
+      sql<boolean>`(activity.occurred_at, activity.id) < (select a.occurred_at, a.id from activity a where a.id = ${cursor} and a.account_id = ${accountId})`,
+    );
+  }
   const rows = await query.execute();
   const page = rows.slice(0, ACTIVITY_PAGE);
   const last = page[page.length - 1];

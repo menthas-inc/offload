@@ -83,6 +83,15 @@ describe("024 AC-18 the list, and AC-20 who may read it", () => {
     expect(rest.next).toBeNull();
     expect((await app.inject({ method: "GET", url: "/v1/activity" })).statusCode).toBe(401);
   });
+
+  it("orders by when it happened, not by when the row was written", async () => {
+    const me = await account();
+    await record(me, { kind: "digest", sent: true, title: "Now", body: null, send: "morning" });
+    await record(me, { kind: "expired", sent: false, reason: "design", title: "Then", body: null });
+    await sql`update activity set occurred_at = now() - interval '2 days' where title = 'Then'`.execute(db);
+    const page = (await app.inject({ method: "GET", url: "/v1/activity", headers: { cookie: await signIn(me) } })).json() as { rows: { title: string }[] };
+    expect(page.rows.map((row) => row.title)).toEqual(["Now", "Then"]);
+  });
 });
 
 describe("024 AC-19 the dot", () => {

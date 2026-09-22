@@ -38,6 +38,15 @@ export interface Me {
   timeZone: string | null;
   followDevice: boolean;
   keptTimeZone: string | null;
+  /** 024. The four switches, named as the sends are, the two hours as HH:MM
+   *  in the account's zone, and the dot on Activity. */
+  notifyDueToday: boolean;
+  notifyDueTodayAt: string;
+  notifyComingTomorrow: boolean;
+  notifyComingTomorrowAt: string;
+  notifyPeopleRequests: boolean;
+  notifySharedActivity: boolean;
+  activityUnread: boolean;
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to, and null when the provider sent nothing. */
   suggestedName: string | null;
@@ -236,6 +245,32 @@ export async function updateClock(patch: {
   timeZone?: string;
   followDevice?: boolean;
   keptTimeZone?: string | null;
+}): Promise<Me | null> {
+  try {
+    const response = await fetch(`${API}/api/me`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!response.ok) return null;
+    const me = (await response.json()) as Me;
+    cached = me;
+    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
+    return me;
+  } catch {
+    return null;
+  }
+}
+
+/** The switches and the hours. 024. One field a call. */
+export async function updateNotify(patch: {
+  notifyDueToday?: boolean;
+  notifyDueTodayAt?: string;
+  notifyComingTomorrow?: boolean;
+  notifyComingTomorrowAt?: string;
+  notifyPeopleRequests?: boolean;
+  notifySharedActivity?: boolean;
 }): Promise<Me | null> {
   try {
     const response = await fetch(`${API}/api/me`, {

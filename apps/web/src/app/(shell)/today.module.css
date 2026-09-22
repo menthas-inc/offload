@@ -163,3 +163,34 @@
 .zoneKeep {
   color: var(--text-secondary);
 }
+
+/* ------------------------------------------------------------ 024. The agenda
+   Three groups over the thread page's own rows, in its classes. */
+
+.agenda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.agendaGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.agendaTitle {
+  margin: 0 0 var(--space-2);
+  font: var(--weight-semibold) calc(17px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-primary);
+}
+
+.agendaRows {
+  display: flex;
+  flex-direction: column;
+}
+
+.agendaMore {
+  margin: var(--space-2) 0 0;
+  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-secondary);
+}

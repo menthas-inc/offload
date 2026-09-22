@@ -17,6 +17,7 @@ import { ToastHost, useToast, type ToastState } from "../../components/shell/Toa
 import { useColors } from "../../lib/colors";
 import { endSignedIn, listSignedIn, type SignedIn } from "../../lib/sessions";
 import { fetchCountries, saveName, setClock, setCountry, setWebAccess, useMe } from "../../lib/me";
+import { NotificationsPage } from "../../components/settings/NotificationsPage";
 import { approveCalendar, disconnect, setAskFirst, useCalendars } from "../../lib/calendars";
 import { CalendarRow } from "../../components/settings/CalendarRow";
 import { ConnectButton, ConnectStepBody, ProviderMark } from "../../components/ConnectStep";
@@ -51,6 +52,7 @@ const TITLES: Record<string, string> = {
   appearance: "Appearance",
   datetime: "Date and time",
   timezone: "Time zone",
+  notifications: "Notifications",
   privacy: "Privacy",
   country: "Country",
   help: "Help and about",
@@ -92,6 +94,7 @@ export default function SettingsPage() {
         {page === "account" ? <Account /> : null}
         {page === "appearance" ? <Appearance /> : null}
         {page === "datetime" ? <DateTime /> : null}
+        {page === "notifications" ? <NotificationsPage /> : null}
         {page === "timezone" ? <TimeZonePicker /> : null}
         {page === "privacy" ? <Privacy toast={toast} /> : null}
         {page === "country" ? <CountryPicker /> : null}

@@ -21,6 +21,9 @@ import { RecordArrival } from "../components/shell/RecordArrival";
 import { Shell } from "../components/shell/Shell";
 import { PlateInsetProvider } from "../components/shell/plate-inset";
 import { ShareArrival } from "../components/shell/ShareArrival";
+import * as Notifications from "expo-notifications";
+import { useRouter } from "expo-router";
+import { prepare, register, respond } from "../lib/notifications";
 
 // The index route asks the server where to open and draws nothing while it
 // waits, on the stated assumption that the splash is still up behind it. It
@@ -80,6 +83,24 @@ export default function RootLayout() {
   useEffect(() => {
     void pinExistingSession();
   }, []);
+
+  // 024. The categories and channels once per launch, then the token when
+  // permission was granted, then whatever notification opened the app and
+  // every response while it runs. A verb acts without opening a screen; a
+  // tap opens the screen its kind names, from the table in the lib.
+  const router = useRouter();
+  useEffect(() => {
+    const open = (route: { pathname: string; params?: Record<string, string> }) =>
+      router.push(route as never);
+    void prepare().then(() => register());
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) void respond(response, open);
+    });
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      void respond(response, open);
+    });
+    return () => subscription.remove();
+  }, [router]);
 
   const pathname = usePathname();
   useEffect(() => {

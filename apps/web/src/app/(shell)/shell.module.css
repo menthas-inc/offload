@@ -2514,3 +2514,121 @@ a.settingsRow:hover {
   margin-right: auto;
   color: var(--text-danger);
 }
+
+/* ------------------------------------------------------------ 024. Activity
+   The exploration's lead-and-tag row: a 28px disc, filled for something that
+   reached the phone and hollow on the lift border for something that did not,
+   the kind's glyph in it, the words, the time, and Not sent as a sentence-case
+   tag, noticed where a setting caused it and quiet where the product chose. */
+
+.actList {
+  display: flex;
+  flex-direction: column;
+  max-width: 60ch;
+}
+
+.actGroup {
+  margin: var(--space-6) 0 var(--space-2);
+  font: var(--weight-medium) calc(12px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.actRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  min-height: 44px;
+  padding: var(--space-3) 0;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+a.actRow:hover {
+  background: var(--state-hover);
+}
+
+.actLead {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+.actLeadOff {
+  background: transparent;
+  border: 1.5px solid var(--border-lift);
+  color: var(--text-secondary);
+}
+
+.actText {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.actLine {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.actTitle {
+  flex: 1;
+  min-width: 0;
+  font: var(--weight-medium) calc(15px * var(--type-scale)) / 1.35 var(--font-core);
+}
+
+.actWhen {
+  font: var(--weight-regular) calc(12.5px * var(--type-scale)) / 1.3 var(--font-core);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.actBody {
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-secondary);
+}
+
+.actTag {
+  font: var(--weight-medium) calc(12.5px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-noticed);
+}
+
+.actTagQuiet {
+  color: var(--text-tertiary);
+}
+
+.actMore {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  background: transparent;
+  font: var(--weight-medium) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-accent);
+  cursor: pointer;
+}
+
+.actEmpty {
+  max-width: 40ch;
+  padding: var(--space-8) 0;
+}
+
+.actEmptyTitle {
+  margin: 0;
+  font: var(--weight-semibold) calc(17px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-primary);
+}
+
+.actEmptyLine {
+  margin: var(--space-2) 0 0;
+  font: var(--weight-regular) calc(15px * var(--type-scale)) / 1.45 var(--font-core);
+  color: var(--text-secondary);
+}

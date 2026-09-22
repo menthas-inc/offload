@@ -44,6 +44,16 @@ export interface Me {
   followDevice: boolean;
   /** The one device zone they answered Keep to. */
   keptTimeZone: string | null;
+  /** 024. The four switches, named as the sends are, and the two hours as
+   *  HH:MM in the account's zone. */
+  notifyDueToday: boolean;
+  notifyDueTodayAt: string;
+  notifyComingTomorrow: boolean;
+  notifyComingTomorrowAt: string;
+  notifyPeopleRequests: boolean;
+  notifySharedActivity: boolean;
+  /** The dot on the bell: Activity holds a row newer than its last opening. */
+  activityUnread: boolean;
 }
 
 /** Ask again, and tell every mounted `useMe`. For after a request is
@@ -219,6 +229,30 @@ export async function setClock(patch: {
     return updated;
   } catch (error) {
     failed("me.setClock", error);
+    return null;
+  }
+}
+
+/** The switches and the hours. 024. One field a call, as every setter here. */
+export async function setNotify(patch: {
+  notifyDueToday?: boolean;
+  notifyDueTodayAt?: string;
+  notifyComingTomorrow?: boolean;
+  notifyComingTomorrowAt?: string;
+  notifyPeopleRequests?: boolean;
+  notifySharedActivity?: boolean;
+}): Promise<Me | null> {
+  try {
+    const updated = await request<Me>("/api/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!updated) return null;
+    announce(updated);
+    return updated;
+  } catch (error) {
+    failed("me.setNotify", error);
     return null;
   }
 }

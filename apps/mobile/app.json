@@ -134,7 +134,13 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-notifications",
+        {
+          "color": "#3F6B4F"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

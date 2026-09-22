@@ -19,6 +19,8 @@ interface Props {
   threadCount: number;
   /** 022. Connection requests waiting for the viewer's answer. */
   requestsWaiting?: number;
+  /** 024. Activity holds a row newer than its last opening. */
+  activityUnread?: boolean;
 }
 
 /** A thread's icon, from its own `icon` column, falling back to the kit's
@@ -27,7 +29,7 @@ interface Props {
  *  own. */
 export const threadIcon = (icon: string | null): string => icon ?? "message-circle";
 
-export function Sidebar({ threads, threadCount, requestsWaiting = 0 }: Props) {
+export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityUnread = false }: Props) {
   const pathname = usePathname();
 
   const tabs = [
@@ -112,20 +114,17 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0 }: Props) {
         </>
       ) : null}
 
-      {/* The kit puts these at the bottom. Activity is still inert: it needs
-          notifications. Drawn, because the shape of the nav should not change
-          under somebody as features land. */}
+      {/* The kit puts these at the bottom. 024: Activity is alive, the record
+          of what offload sent and what it decided not to, and carries a dot,
+          never a count, when a row is newer than the last opening. */}
       <div className={styles.sideFoot}>
-        <button
-          type="button"
-          className={styles.navItem}
-          disabled
-          aria-disabled="true"
-          title="Nothing here yet"
-        >
-          <Icon name="bell" size={17} />
+        <Link href="/activity" className={styles.navItem}>
+          <span className={styles.navGlyph}>
+            <Icon name="bell" size={17} />
+            {activityUnread ? <span className={styles.navDot} aria-label="Something new" /> : null}
+          </span>
           <span className={styles.navLabel}>Activity</span>
-        </button>
+        </Link>
         {/* Settings has an index now. The rows below it are the shortcut to
             the two preferences that page lays out as choices. */}
         {/* 022. The one dot: a connection request waiting for an answer.

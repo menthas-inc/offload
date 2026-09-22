@@ -5,19 +5,24 @@
 // The first thing that lands in an account should be something the person
 // meant, not a sample.
 
-import { Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { prismShift, PRISM_SCROLL_FACTOR } from "../../lib/prism-scroll";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { Glyph } from "../Glyph";
 import { GearDot } from "../people/GearDot";
 import { Logo } from "../Logo";
 import { DAY_ONE_INVITATION, EXAMPLES } from "../../lib/gate";
 import { useColors } from "../../lib/colors";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import { useConversation } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { ZoneStrip } from "../shell/ZoneStrip";
+import { BellDot } from "../shell/BellDot";
+import { TodayAgenda } from "./TodayAgenda";
+import { isQuiet, loadAgenda, type Agenda } from "../../lib/agenda";
+import { register } from "../../lib/notifications";
 
 function ArrowUp() {
   const COLOR = useColors();
@@ -48,6 +53,21 @@ export default function Today() {
   const { setDraft } = useConversation();
   const COLOR = useColors();
 
+  // 024. The agenda, asked for on every focus, and the token registered
+  // whenever Today shows: the permission may have been granted since launch.
+  const [agenda, setAgenda] = useState<Agenda | null>(null);
+  const reload = useCallback(() => {
+    void loadAgenda().then((next) => {
+      if (next) setAgenda(next);
+    });
+  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+      void register();
+    }, [reload]),
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-surface-page" edges={["top"]}>
       {/* The bar the kit draws on day one: the wordmark, then notifications
@@ -62,8 +82,9 @@ export default function Today() {
       <View className="h-appbar-height flex-row items-center px-gutter-screen">
         <Logo size={21} />
         <View className="ml-auto flex-row items-center gap-space-5">
-          <Glyph name="bell" size={21} color={COLOR.iconOnWell} />
-          {/* 022. The gear carries the one dot. */}
+          {/* 024. The bell opens Activity and carries its own dot. */}
+          <BellDot />
+          {/* 022. The gear carries a request's dot. */}
           <GearDot />
         </View>
       </View>
@@ -75,30 +96,44 @@ export default function Today() {
       >
         {/* 023. The one place this phone's own zone appears. */}
         <ZoneStrip />
-        <Text
-          className="font-quiet text-text-primary"
-          style={{ fontSize: 17, lineHeight: 25.5 }}
-        >
-          {DAY_ONE_INVITATION}
-        </Text>
+        {agenda === null ? (
+          <View className="items-center py-space-8">
+            <ActivityIndicator color={COLOR.iconOnWell} />
+          </View>
+        ) : !isQuiet(agenda) ? (
+          <TodayAgenda agenda={agenda} onChanged={reload} />
+        ) : agenda.everDumped ? (
+          <Text className="font-quiet text-text-primary" style={{ fontSize: 17, lineHeight: 25.5 }}>
+            Nothing due today.
+          </Text>
+        ) : (
+          <>
+          <Text
+            className="font-quiet text-text-primary"
+            style={{ fontSize: 17, lineHeight: 25.5 }}
+          >
+            {DAY_ONE_INVITATION}
+          </Text>
 
-        <View className="mt-space-7 gap-space-3">
-          {EXAMPLES.map((example) => (
-            <Pressable
-              key={example}
-              onPress={() => setDraft(example)}
-              className="min-h-tap-min flex-row items-center gap-space-4 rounded-md border border-dashed border-border-strong bg-surface-raised px-space-6 py-space-5"
-            >
-              <ArrowUp />
-              <Text
-                className="flex-1 font-core text-text-secondary"
-                style={{ fontSize: 15, lineHeight: 21 }}
+          <View className="mt-space-7 gap-space-3">
+            {EXAMPLES.map((example) => (
+              <Pressable
+                key={example}
+                onPress={() => setDraft(example)}
+                className="min-h-tap-min flex-row items-center gap-space-4 rounded-md border border-dashed border-border-strong bg-surface-raised px-space-6 py-space-5"
               >
-                {example}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+                <ArrowUp />
+                <Text
+                  className="flex-1 font-core text-text-secondary"
+                  style={{ fontSize: 15, lineHeight: 21 }}
+                >
+                  {example}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          </>
+        )}
         <PlateSpace />
       </Animated.ScrollView>
     </SafeAreaView>

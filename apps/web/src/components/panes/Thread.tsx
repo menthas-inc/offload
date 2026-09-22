@@ -1008,7 +1008,7 @@ export function Thread({ id, onChanged }: Props) {
 
 /** The glyph for a piece of content, from its type. The kit's own mapping:
  *  a pin for a place, a link for a link, a picture for a picture. */
-function rowIcon(type: string): string {
+export function rowIcon(type: string): string {
   switch (type) {
     case "location":
       return "map-pin";
