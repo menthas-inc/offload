@@ -11,6 +11,27 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-22 · Sharing, built, and what the build found past the planning entry
+**Surface:** iOS, Android, web
+**Raised by:** `docs/specs/022-sharing`, built in a worktree and merged to `main` at `5dfc162`. The planning entry below this one holds the fourteen divergences decided before the build; this is what the build added to them.
+
+**Was:** the planning entry's list.
+
+**Is:** that list, plus these, each for a fact the drawing could not carry or a review found.
+
+1. **The lookup answers with the mark inline.** A stranger's mark has no route the viewer may read, so the found row on Add a connection drew an empty circle; the lookup now returns the PNG as base64 and the client remembers it until the person becomes visible. No drawn change.
+2. **The dot on the gear is the session's, not a screen's.** `/api/me` carries `requestsWaiting`, refreshed on focus, so Today and the settings row agree and the phones' gear does not need a fetch of its own. Drawn as the planning entry says, an 8px clay dot in a paper ring on the bare glyph.
+3. **The Blocked group has no label.** The people page's third group is the one row "Blocked", a door to the list, since a labelled group with a single row that names itself was two words for one thing. Connected and Pending keep theirs.
+4. **The share sheet's slide mounts once its rows exist.** With Reanimated's entering animation, a sheet mounted on its loading state froze at first layout on the simulator; the code holds the slide until the members or the failure line arrive. Nothing visible changes when it works.
+5. **Dates on the people rows are "4 Aug"**, day then month, no year, matching the timeline's own short form, where the kit wrote "Aug 4".
+6. **The person page's mark is in the pane head's title slot** on the web, 36px beside the name, since `PaneHead` has no lead of its own and the kit's `WPerson` drew the mark above the title with nothing to hold it.
+7. **The relation line gains a sixth value.** The security review found the tell blocking was meant not to have: a co-member who had blocked you was a blank mark on the pane head, and a share waiting on somebody drew a blank face on the sheet. The one rule now sees a blocker exactly as far as what the block left standing, and sees somebody a thread is waiting on, one way; the person page says "Waiting on a share" for the latter.
+8. **Not now leaves a word behind.** In Add a connection, a request answered Not now from the found row says "Not now" in the value slot rather than offering Request, which the server would refuse; and a request refused by the seven-day rule says "You asked recently. Try again in a week." under the row. The Block confirmation lists no threads, since Block touches none.
+
+**Design system impact:** `Sharing.jsx`, `WSharing.jsx` and `M3Sharing.jsx`: the found row's Not now state and the seven-day line; `SettingsDetail.jsx`'s people page: Blocked as one unlabelled row, dates as "4 Aug"; `PersonScreen.jsx` and `WPerson`: the relation line's sixth value and the mark in the web pane head; the Block confirmation without a thread list. `Avatar`'s contract is unchanged.
+
+---
+
 ### 2026-09-22 · Sharing, planned against the people note, and what the code will do differently
 **Surface:** iOS, Android, web
 **Raised by:** `docs/specs/022-sharing`, planned on `main` from `handoff/APPLY-2026-09-21-people.md`, `explorations/sharing-and-avatars.html`, `Sharing.jsx`, `WSharing.jsx`, `M3Sharing.jsx`, `PersonScreen.jsx`, `SettingsDetail.jsx`'s people page and `components/core/Avatar`. Logged at planning so the kits can move while it is built; the build's own entry follows.
