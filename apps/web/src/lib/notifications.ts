@@ -94,7 +94,8 @@ export function doorOf(row: ActivityEntry): string | null {
     case "request":
       return "/settings/people";
     case "share":
-      return row.memberId ? `/people?invitation=${row.memberId}` : null;
+      // The invitation waits at the top of My threads, where its card opens.
+      return "/threads";
     case "shared_activity":
     case "moved":
     case "acted":

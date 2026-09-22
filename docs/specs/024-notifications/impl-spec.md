@@ -175,6 +175,16 @@ One clause on the reminder line. No tool changes.
 - `apps/mobile/test` and `apps/web/test`: the payload mapping table, the settings bodies, the delete-before-sign-out order.
 - On the simulator: `xcrun simctl push` with the payloads the server builds, the categories' verbs, the doors, the channels' creation is Android-only and left for the device; the pages and Activity in both themes. On the web: the page, the pane, the groups.
 
+## What the build settled
+
+- **Today's two controls on the phones open the row's thread.** The tick acts in place; the pencil, the trash and the long press open the thread the row lives in, where the sheets and Undo already are, rather than a second copy of them on Today. The web's row acts in place for the tick, the trash and the archive, and its pencil opens the thread's modal. Logged as a divergence from "the thread page's own row with its two controls".
+- **Activity is ordered by when it happened**, with the cursor compared in Postgres as a row value against the last row's own `occurred_at` and id, since a cursor that went through a Date lost the microseconds and a page skipped rows written in the same millisecond.
+- **The one permission ask is offered once more when the system was never asked.** An account from before first run asked, or a reinstall, has a permission of undetermined, which is not a refusal; the Notifications page carries "Turn on notifications" in that state and nothing after a refusal.
+- **A share's Activity row on the web opens My threads**, where the invitation waits at the top; the phones open the invitation by its member id.
+- **Today says whether anything was ever filed**, `everDumped`, so the client draws the day-one invitation for an account that has never dumped anything and "Nothing due today." for one that has.
+- **The Android small icon is the app's own.** `app.json` carries the plugin with the accent as its colour and no icon asset; a monochrome mark is the owner's to add with the next build.
+- **The verbs on the simulator** could not be exercised: a synthetic long press does not expand a delivered notification there, so Done and Tomorrow are proved by the response test on the phone and the route test on the server, and by a device.
+
 ## Edge cases
 
 - **Two devices, one account:** both tokens get every send; each records once.
