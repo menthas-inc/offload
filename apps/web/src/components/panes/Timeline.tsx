@@ -23,7 +23,6 @@ import {
   WEEKS_BEFORE_MONTHS,
   dayLabel,
   datedFor,
-  localDay,
   monthFor,
   railFor,
   stepMonth,
@@ -33,6 +32,8 @@ import {
   type Day,
   type RailRow,
 } from "../../lib/widgets";
+import { dayIn, utcDay } from "@offload/widgets";
+import { useClock } from "../../lib/clock";
 import { useAppearance } from "../../lib/appearance";
 import { QUICK_ADD_CHARS, fetchThreadEvents, rangeOf } from "../../lib/threads";
 import type { ContentRow, Note, ThreadEvent } from "../../lib/threads";
@@ -54,10 +55,13 @@ interface Props {
 /** 019. A calendar's event as an entry on the rail: kind `event`, never done,
  *  never repeating here since the copy already holds every occurrence. The id
  *  is prefixed so it can never collide with a row's. */
-function eventDated(event: ThreadEvent): Dated | null {
+function eventDated(event: ThreadEvent, zone: string | null): Dated | null {
   if (!event.occursAt) return null;
-  const from = localDay(new Date(event.occursAt));
-  const end = event.occursEndAt ? localDay(new Date(event.occursEndAt)) : from;
+  // 023. An all-day event is a date; a timed one lands on its day in the
+  // account's clock.
+  const day = (at: string) => (event.allDay ? utcDay(new Date(at)) : dayIn(new Date(at), zone));
+  const from = day(event.occursAt);
+  const end = event.occursEndAt ? day(event.occursEndAt) : from;
   return { id: `event:${event.id}`, rowId: `event:${event.id}`, due: false, kind: "event", from, to: end < from ? from : end, done: false };
 }
 
@@ -90,7 +94,7 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
   const { weekStart } = useAppearance();
   // Computed on render rather than held, so the first render after midnight
   // moves today. Nothing polls for it.
-  const today = localDay(new Date());
+  const { zone, today } = useClock();
   // **Thread-scoped only because this is keyed by the thread.** `selected` and
   // `opened` are plain state, and the day somebody was reading would otherwise
   // follow them into the next thread, along with a gap row that reads as
@@ -108,7 +112,7 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
   const [went, setWent] = useState<1 | -1>(1);
 
   // The thread's own dated things: what the span is made of.
-  const own = useMemo(() => datedFor(rows, notes), [rows, notes]);
+  const own = useMemo(() => datedFor(rows, notes, zone), [rows, notes, zone]);
 
   // **A rail past a few weeks stops being a rail.** Weeks read as time passing,
   // which is what the empty days are for; a year of weeks is a scroll. Past the
@@ -153,7 +157,7 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
   }, [threadId, from, to, calendars.anyPicked, calendars.version]);
 
   const dated = useMemo(
-    () => [...own, ...events.map(eventDated).filter((one): one is Dated => one !== null)],
+    () => [...own, ...events.map((event) => eventDated(event, zone)).filter((one): one is Dated => one !== null)],
     [own, events]
   );
   const eventsById = useMemo(() => new Map(events.map((event) => [`event:${event.id}`, event])), [events]);

@@ -42,6 +42,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
+import { DateChip } from "./DateChip";
 import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
 import { domainOf, isFiling, isProvisional, type ContentRow } from "../../lib/threads";
@@ -362,26 +363,31 @@ export function ContentRowView({
             accessibilityRole={door ? "link" : undefined}
             accessibilityLabel={door ? `Open ${domain ?? row.title}` : undefined}
           >
-            <Text
-              className={`font-core font-medium ${
-                row.doneAt || row.archivedAt
-                  ? row.doneAt
-                    ? "text-text-tertiary"
-                    : "text-text-secondary"
-                  : isAndroid
-                    ? "text-a-on"
-                    : "text-text-primary"
-              }`}
-              style={{
-                fontSize: 15.5,
-                lineHeight: 21,
-                // A finished row keeps the tick, the sinking and a 1px strike,
-                // and loses the opacity: tertiary ink already says it.
-                ...(row.doneAt ? { textDecorationLine: "line-through" as const } : {}),
-              }}
-            >
-              {row.title}
-            </Text>
+            {/* 023. The date chip trails the title on its own line, before
+                the tools, and the meta under the title is untouched. */}
+            <View className="flex-row items-start gap-space-2">
+              <Text
+                className={`flex-1 font-core font-medium ${
+                  row.doneAt || row.archivedAt
+                    ? row.doneAt
+                      ? "text-text-tertiary"
+                      : "text-text-secondary"
+                    : isAndroid
+                      ? "text-a-on"
+                      : "text-text-primary"
+                }`}
+                style={{
+                  fontSize: 15.5,
+                  lineHeight: 21,
+                  // A finished row keeps the tick, the sinking and a 1px strike,
+                  // and loses the opacity: tertiary ink already says it.
+                  ...(row.doneAt ? { textDecorationLine: "line-through" as const } : {}),
+                }}
+              >
+                {row.title}
+              </Text>
+              <DateChip row={row} isReminder={row.isReminder} />
+            </View>
             {/* offload is still reading a row somebody typed straight in. The
                 one spinner, not a second progress word: the readme reserves
                 "filing" for a row that does not know where it is going, and

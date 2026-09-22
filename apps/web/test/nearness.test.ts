@@ -93,3 +93,17 @@ describe("AC-14 the words", () => {
     expect(chipFor(task({ dueAt: "2026-10-25T12:00:00Z" }), LISBON, TODAY, "en-GB")?.tone).toBe("later");
   });
 });
+
+// 023 AC-16: the change mark keys on a token of the row's dates and rule, so a
+// row already on screen flashes when offload moves its date.
+describe("AC-16 the change token", () => {
+  it("changes when a date, the rule or the flag does, and not when the title does", async () => {
+    const { changeToken } = await import("@offload/widgets");
+    const row = task({ dueAt: "2026-09-25T12:00:00Z" });
+    const same = changeToken({ ...row, title: "x" } as never);
+    expect(changeToken(row)).toBe(same);
+    expect(changeToken({ ...row, dueAt: "2026-09-26T12:00:00Z" })).not.toBe(same);
+    expect(changeToken({ ...row, rrule: "FREQ=WEEKLY" })).not.toBe(same);
+    expect(changeToken({ ...row, isReminder: true } as never)).not.toBe(same);
+  });
+});

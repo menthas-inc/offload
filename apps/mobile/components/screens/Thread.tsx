@@ -38,6 +38,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import { changeToken } from "@offload/widgets";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   cadenceLabel,
@@ -213,7 +214,10 @@ export default function Thread() {
   const catchUp = useCallback(async (): Promise<void> => {
     if (!id) return;
     // A row typed in here and just landed is not news, so it is not marked.
-    const before = new Set([...rows.map((row) => row.id), ...landed]);
+    // 023. Keyed on the row's change token, not on whether it was here: a row
+    // already on screen whose date offload moved flashes too.
+    const before = new Map(rows.map((row) => [row.id, changeToken(row)]));
+    const typed = new Set(landed);
     try {
       const [bundle, page] = await Promise.all([
         fetchThread(id),
@@ -226,7 +230,7 @@ export default function Thread() {
       setCursor(page?.nextCursor ?? null);
       adopt(next.map((row) => row.id), (bundle?.notes ?? []).map((note) => note.id));
       const fresh = next
-        .filter((row) => !before.has(row.id))
+        .filter((row) => !typed.has(row.id) && before.get(row.id) !== changeToken(row))
         .map((row) => row.id);
       if (fresh.length > 0) setArrived(new Set(fresh));
     } catch (error) {

@@ -53,6 +53,7 @@ export async function refreshMe(): Promise<void> {
     const response = await fetch(`${API}/api/me`, { credentials: "include" });
     if (!response.ok) return;
     const me = (await response.json()) as Me;
+    cached = me;
     window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
   } catch {
     // Nothing to say: the dot is a hint and the next open reads it again.
@@ -78,6 +79,22 @@ export type MeState = { status: "loading" } | { status: "ready"; me: Me };
  *  mechanism `appearance.ts` uses for the theme, and for the same reason. */
 const CHANGED = "offload:me-changed";
 
+/** 023. The last identity heard, so a row can draw its date in the account's
+ *  clock without asking the server. Filled by `useMe` and by every change. */
+let cached: Me | null = null;
+
+export function currentMe(): Me | null {
+  return cached;
+}
+
+/** Hear every change to the identity; returns the way to stop. */
+export function onMe(listener: (me: Me) => void): () => void {
+  const handler = (event: Event) => listener((event as CustomEvent<Me>).detail);
+  window.addEventListener(CHANGED, handler);
+  if (cached) listener(cached);
+  return () => window.removeEventListener(CHANGED, handler);
+}
+
 /** Reads the current account, sending anyone without a session to the gate.
  *  `expect` says which side of first run this screen is for; landing on the
  *  wrong side is a redirect, not an error. */
@@ -96,6 +113,7 @@ export function useMe(expect: "first-run" | "shell"): MeState {
           return;
         }
         const me = (await response.json()) as Me;
+        cached = me;
         if (!live) return;
         if (stillAsking(me) && expect === "shell") router.replace("/welcome");
         else if (!stillAsking(me) && expect === "first-run") router.replace("/today");
@@ -183,6 +201,7 @@ export async function updateCountry(country: string | null): Promise<Me | null> 
     });
     if (!response.ok) return null;
     const me = (await response.json()) as Me;
+    cached = me;
     window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
     return me;
   } catch {
@@ -204,6 +223,7 @@ export async function updateWebAccess(patch: {
     if (!response.ok) return null;
 
     const me = (await response.json()) as Me;
+    cached = me;
     window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
     return me;
   } catch {
@@ -231,6 +251,7 @@ export async function updateName(displayName: string): Promise<Me | null> {
     if (!response.ok) return null;
 
     const me = (await response.json()) as Me;
+    cached = me;
     window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
     return me;
   } catch {

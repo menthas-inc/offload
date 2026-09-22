@@ -50,7 +50,7 @@ export interface Me {
 export async function refreshMe(): Promise<void> {
   try {
     const { data } = await send<Me>("/api/me");
-    if (data) for (const listener of listeners) listener(data);
+    if (data) announce(data);
   } catch (error) {
     failed("me.refresh", error);
   }
@@ -65,6 +65,44 @@ export async function refreshMe(): Promise<void> {
 type Listener = (me: Me) => void;
 const listeners = new Set<Listener>();
 
+/** 023. The last identity heard, so a row can draw its date in the account's
+ *  clock without every row asking the server. Filled by the first `useMe`
+ *  or by `ensureMe`, and kept current by every write that broadcasts. */
+let cached: Me | null = null;
+let asking: Promise<void> | null = null;
+
+function announce(me: Me): void {
+  cached = me;
+  announce(me);
+}
+
+export function currentMe(): Me | null {
+  return cached;
+}
+
+/** Hear every change to the identity; returns the way to stop. */
+export function onMe(listener: Listener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/** Ask once, for whoever needs the identity before a `useMe` has run. Every
+ *  caller shares one request in flight. */
+export function ensureMe(): Promise<void> {
+  if (cached) return Promise.resolve();
+  asking ??= send<Me>("/api/me")
+    .then(({ data }) => {
+      if (data) announce(data);
+    })
+    .catch((error) => failed("me.ensure", error))
+    .finally(() => {
+      asking = null;
+    });
+  return asking;
+}
+
 /** Null while it is being asked, and null if the ask failed.
  *
  *  A settings screen whose identity block did not load still works: the rows
@@ -78,6 +116,7 @@ export function useMe(): Me | null {
     void (async () => {
       try {
         const { data } = await send<Me>("/api/me");
+        if (data) cached = data;
         if (live && data) setMe(data);
       } catch (error) {
         failed("me.fetch", error);
@@ -125,7 +164,7 @@ export async function setCountry(country: string | null): Promise<Me | null> {
       body: JSON.stringify({ country }),
     });
     if (!updated) return null;
-    for (const listener of listeners) listener(updated);
+    announce(updated);
     return updated;
   } catch (error) {
     failed("me.setCountry", error);
@@ -143,7 +182,7 @@ export async function setWebAccess(
       body: JSON.stringify(patch),
     });
     if (!updated) return null;
-    for (const listener of listeners) listener(updated);
+    announce(updated);
     return updated;
   } catch (error) {
     failed("me.setWebAccess", error);
@@ -169,7 +208,7 @@ export async function saveName(displayName: string): Promise<Me | null> {
     });
     if (!updated) return null;
 
-    for (const listener of listeners) listener(updated);
+    announce(updated);
     return updated;
   } catch (error) {
     failed("me.saveName", error);

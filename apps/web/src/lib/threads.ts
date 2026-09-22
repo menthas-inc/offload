@@ -229,6 +229,8 @@ export interface ContentRow {
    *  of `@offload/widgets`, the server's own serialisation. */
   rrule: string | null;
   isReminder: boolean;
+  /** 023. Written to a calendar, so its time is Google's: no When on it. */
+  onCalendar: boolean;
   priority: number;
   priorityPinned: boolean;
   tags: string[];

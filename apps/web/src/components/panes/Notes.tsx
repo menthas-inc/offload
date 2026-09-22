@@ -18,6 +18,7 @@
 // another" but "these ones are not reaching offload", next to the rows that
 // resolve it.
 
+import { useClock } from "../../lib/clock";
 import { useState } from "react";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
@@ -66,13 +67,16 @@ interface Props {
 
 /** The date on a row, derived rather than stored, so a weekday can never
  *  disagree with the calendar. */
-function when(note: Note): string | null {
+function when(note: Note, zone: string | null): string | null {
   const at = note.occursAt ?? note.dueAt;
   if (!at) return null;
+  // 023. A bare day is a date and reads as one everywhere; a timed note lands
+  // on its day in the account's clock.
   return new Date(at).toLocaleDateString(undefined, {
     weekday: "short",
     day: "numeric",
     month: "short",
+    ...(note.allDay ? { timeZone: "UTC" } : zone ? { timeZone: zone } : {}),
   });
 }
 
@@ -87,6 +91,7 @@ export function Notes({
   onNotes,
   writes,
 }: Props) {
+  const { zone } = useClock();
   const toast = useToast();
   // Who is reading, from the member list the bundle already carries. Decides
   // which rows offer delete, because deleting is the author's alone and
@@ -427,7 +432,7 @@ export function Notes({
   // announce. The text keeps the click; the handle keeps the drag.
   const row = (note: Note, index: number, readOnly = false) => {
     const name = author(note);
-    const date = when(note);
+    const date = when(note, zone);
     const tone = note.muted ? "muted" : note.origin === "learned" ? "accent" : "neutral";
     const quietRow = readOnly || !instructing.has(note.id);
     // A note drawn at the press neither opens nor moves until the server has

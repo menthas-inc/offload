@@ -13,6 +13,7 @@
 // author's alone, and no kit draws an archived state though every kit draws an
 // archive control.
 
+import { changeToken } from "@offload/widgets";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "../Icon";
@@ -144,7 +145,9 @@ export function Thread({ id, onChanged }: Props) {
    *  knows what it was showing, and a "what changed since" parameter would be a
    *  second source of truth about the same question. */
   async function catchUp(): Promise<void> {
-    const before = new Set(rows.map((row) => row.id));
+    // 023. Keyed on the row's change token, not on whether it was here: a row
+    // already on screen whose date offload moved flashes too.
+    const before = new Map(rows.map((row) => [row.id, changeToken(row)]));
     const [bundle, page] = await Promise.all([
       fetchThread(id),
       fetchContent(id, { archived: showArchived }),
@@ -155,7 +158,7 @@ export function Thread({ id, onChanged }: Props) {
     setRows(next);
     setCursor(page?.nextCursor ?? null);
 
-    const fresh = next.filter((row) => !before.has(row.id)).map((row) => row.id);
+    const fresh = next.filter((row) => before.get(row.id) !== changeToken(row)).map((row) => row.id);
     if (fresh.length === 0) return;
     setArrived(new Set(fresh));
   }

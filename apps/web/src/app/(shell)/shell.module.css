@@ -2306,3 +2306,46 @@ a.settingsRow:hover {
   background: var(--surface-fill);
   color: var(--text-tertiary);
 }
+
+/* 023. The title line: the title, then the date chip at its trailing edge,
+   before the tools. The meta under it is untouched. */
+.rowLine {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.rowLine > .rowTitle,
+.rowLine > .titleInput {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The date chip. Late is clay, the pair a failure already uses; soon is amber
+   rather than blue, since blue is the attention colour and would read as
+   offload asking for something; later is the plain fill. A done row is plain
+   whatever its date. min-height, never height: the caption scales. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  font: var(--weight-medium) var(--size-caption) / 1 var(--font-core);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+}
+
+.chipLate {
+  background: var(--surface-danger-soft);
+  color: var(--text-danger);
+}
+
+.chipSoon {
+  background: var(--surface-noticed-soft);
+  color: var(--text-noticed);
+}

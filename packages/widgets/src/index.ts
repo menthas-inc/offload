@@ -520,5 +520,5 @@ export {
 } from "./rrule.js";
 export type { Freq, ParsedRule, Preset, Rule, RuleRefusal, Weekday } from "./rrule.js";
 export { addDays as addUtcDays, dayIn, daysBetween, noonUtc, utcDay } from "./days.js";
-export { SOON_DAYS, chipFor, nearness, timeIn, whenDayOf, whenOf } from "./nearness.js";
+export { SOON_DAYS, changeToken, chipFor, nearness, timeIn, whenDayOf, whenOf } from "./nearness.js";
 export type { Chip, ChipRow, Nearness } from "./nearness.js";

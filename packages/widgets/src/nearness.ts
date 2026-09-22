@@ -111,3 +111,10 @@ export function chipFor(
   if (row.rrule && tone === "late") tone = "later";
   return { label, tone, day };
 }
+
+/** What the change mark keys on: a row already on screen flashes when
+ *  offload moves its date or its rule, not only when it is new (023 AC-16).
+ *  The title is left out on purpose: a rename is the person's own. */
+export function changeToken(row: ChipRow & { occursEndAt?: string | null; isReminder?: boolean }): string {
+  return [row.dueAt, row.occursAt, row.occursEndAt ?? null, row.rrule, row.isReminder ?? false].join("|");
+}
