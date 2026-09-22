@@ -54,6 +54,9 @@ class Config:
     max_prompt_tokens: int = 8_000
     per_account_running: int = 2
     poll_seconds: float = 1.0
+    # How long a claimed job may sit untouched before another worker takes it
+    # for gone. See `queue.STALE_AFTER_SECONDS`.
+    stale_after_seconds: int = 900
     # Sonnet, kept on cost (2026-09-17). Opus was measured on the principle
     # evals with the same prompt and did better, 255 of 274 filing cases to
     # 242 and asking back where Sonnet did not, at about 1.7 times the price

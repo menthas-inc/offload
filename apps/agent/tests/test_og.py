@@ -6,10 +6,12 @@ receives a request from us; what it cannot cover is our network being used to
 reach things only our network can see.
 """
 
+import ipaddress
+
 import httpx
 import pytest
 
-from offload_agent.og import _is_public, picture
+from offload_agent.og import MAX_BYTES, _is_public, picture
 
 #: `example.com` throughout, and that matters: the guard resolves the image's
 #: host for real, so a made-up name like `cdn.example.com` fails the check and
@@ -77,7 +79,7 @@ async def test_an_http_image_is_refused():
 
 @pytest.mark.parametrize(
     "host",
-    ["127.0.0.1", "localhost", "169.254.169.254", "10.0.0.1", "192.168.1.1", "::1"],
+    ["127.0.0.1", "localhost", "169.254.169.254", "10.0.0.1", "192.168.1.1", "::1", "100.64.0.1"],
 )
 def test_nothing_on_our_own_network_is_public(host: str):
     """The whole SSRF guard. Without it a dumped
@@ -89,6 +91,49 @@ def test_nothing_on_our_own_network_is_public(host: str):
 
 def test_a_real_name_is_public():
     assert _is_public("example.com") is True
+
+
+async def test_the_request_goes_to_the_address_the_guard_checked():
+    """Security review 2026-09-22, M14. The guard resolved the name once and the
+    client resolved it again to connect, and a name can answer a public address
+    to the first and a private one to the second. So the request goes to the
+    address that passed, with the name carried as the Host and the SNI."""
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return html_response()
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        assert await picture(client, "https://example.com/page") == "https://example.com/a.jpg?x=1&y=2"
+
+    request = seen[0]
+    ipaddress.ip_address(request.url.host)  # an address, never the name
+    assert request.headers["host"] == "example.com"
+    assert request.extensions.get("sni_hostname") == "example.com"
+
+
+async def test_a_site_cannot_leave_a_cookie_for_the_next_person():
+    """Security review 2026-09-22, L29. One client serves every fetch the
+    worker makes, so a cookie a site set on one person's link would have been
+    sent back on another person's. Nothing the worker talks to needs a jar."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        response = html_response()
+        response.headers["set-cookie"] = "tracker=abc; Path=/"
+        return response
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        assert await picture(client, "https://example.com/page") is not None
+        assert len(client.cookies) == 0
+
+
+async def test_a_page_is_read_only_as_far_as_the_cap():
+    """Only the head is wanted. The cap used to be applied after the whole body
+    had been read into memory, which is not a cap."""
+    padding = b"<!--" + b"x" * MAX_BYTES + b"-->"
+    assert await picture_from(padding + HEAD) is None
+    assert await picture_from(HEAD + padding) == "https://example.com/a.jpg?x=1&y=2"
 
 
 async def test_a_page_that_only_answers_through_a_redirect_keeps_its_picture():

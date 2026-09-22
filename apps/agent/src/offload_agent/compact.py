@@ -30,7 +30,7 @@ from sqlalchemy import text
 
 from offload_agent.config import Config
 from offload_agent.context import today_line
-from offload_agent.queue import ClaimedJob, finish, release_for_retry
+from offload_agent.queue import ClaimedJob, finish, retry_or_die
 
 log = structlog.get_logger()
 
@@ -180,7 +180,7 @@ async def handle_compact(
         # released for its one retry and the thread keeps every note it has,
         # which is the floor this feature never goes below.
         async with engine.begin() as conn:
-            await release_for_retry(conn, job.id, "compact_unparseable", delay_seconds=3600)
+            await retry_or_die(conn, job, "compact_unparseable", delay_seconds=3600)
         return
 
     plan = _held_to_the_rules(plan, ordered)

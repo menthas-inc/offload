@@ -350,10 +350,13 @@ async def _shape(
             # product where injected page text sits closest to a log line, and
             # OFF-5's "log the failure" read naively means logging a completion
             # that a hostile page helped write.
-            shape = "; ".join(
-                ".".join(str(p) for p in e["loc"]) + ": " + e["type"] for e in exc.errors()
+            # The first element of each location only: `fields` is keyed by
+            # free text, and a key is page text by another name.
+            complaint = "; ".join(
+                (str(e["loc"][0]) if e["loc"] else "(root)") + ": " + e["type"]
+                for e in exc.errors()
             )
-            log.warning("reader output invalid", attempt=attempt, shape=shape)
+            log.warning("reader output invalid", attempt=attempt, shape=complaint)
             if attempt == 1:
                 return Found(unsure=True)
             # **The correction goes back as a tool result, not as a message.**
@@ -371,23 +374,36 @@ async def _shape(
                             "type": "tool_result",
                             "tool_use_id": block.id,
                             "is_error": True,
-                            "content": f"That did not validate: {shape}. Again.",
+                            "content": f"That did not validate: {complaint}. Again.",
                         }
                     ],
                 },
             ]
             continue
 
-        # Only what was asked for, and the label coerced. Both are the same
-        # rule: a set is closed or it is not a set.
-        found = Found(
-            fields={k: v for k, v in answer.fields.items() if k in asked and v},
-            unsure=answer.unsure,
-            label=answer.label if answer.label in LABELS else "other",
-        )
-        return found
+        return shape(answer, asked)
 
     return Found(unsure=True)
+
+
+#: A field is a value, not a passage. Anything longer, or on more than one
+#: line, is page prose by another name, and page prose does not reach the
+#: planner: the title and the excerpt are withheld for exactly that reason.
+FIELD_CHARS = 120
+
+
+def _plain(value: str) -> bool:
+    return 0 < len(value) <= FIELD_CHARS and "\n" not in value and "\r" not in value
+
+
+def shape(answer: Answer, asked) -> Found:
+    """Only what was asked for, each a short single line, and the label
+    coerced. All three are the same rule: a set is closed or it is not a set."""
+    return Found(
+        fields={k: v for k, v in answer.fields.items() if k in asked and _plain(v)},
+        unsure=answer.unsure,
+        label=answer.label if answer.label in LABELS else "other",
+    )
 
 
 def _usage(response, model: str, started: float) -> dict:

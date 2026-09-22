@@ -45,7 +45,7 @@ from offload_agent.harness.plan import (
     plan_quick_add,
 )
 from offload_agent.og import picture
-from offload_agent.queue import ClaimedJob, claim, finish, release_for_retry
+from offload_agent.queue import ClaimedJob, claim, finish, reap, release_for_retry, retry_or_die
 from offload_agent.renditions import prepare
 from offload_agent.transcribe import TranscriptionFailed, forget, poll, submit
 
@@ -914,7 +914,7 @@ async def handle(
             # prevent and did not. Same shape as `dump failed` below.
             log.error("compaction failed", kind=job.kind, error=type(exc).__name__)
             async with engine.begin() as conn:
-                await release_for_retry(conn, job.id, "compact_error", delay_seconds=3600)
+                await retry_or_die(conn, job, "compact_error", delay_seconds=3600)
         return
 
     if job.kind == "voice.forget":
@@ -1318,8 +1318,11 @@ async def handle(
         # account's concurrency cap forever. Put it back and let it be tried
         # again when the Core API is reachable.
         log.error("result undeliverable", job_id=job.id, error_type=str(exc))
+        # While it has attempts left, and each one later than the last: a
+        # retry here re-runs the whole turn, model calls included.
+        delay = min(600, 30 * 2 ** max(0, job.attempts - 1))
         async with engine.begin() as conn:
-            await release_for_retry(conn, job.id, "undeliverable", delay_seconds=30)
+            await retry_or_die(conn, job, "undeliverable", delay_seconds=delay)
     except InvalidOutput:
         log.warning("model output invalid", job_id=job.id, attempt=job.attempts)
         await _give_up_or_retry(job, "invalid_output", cfg=cfg, engine=engine, http=http)
@@ -1728,7 +1731,14 @@ async def run(cfg: Config, stop: asyncio.Event) -> None:
         while not stop.is_set():
             try:
                 async with engine.begin() as conn:
-                    job = await claim(conn, worker_id, KINDS, cfg.per_account_running)
+                    await reap(conn, KINDS, cfg.stale_after_seconds)
+                    job = await claim(
+                        conn,
+                        worker_id,
+                        KINDS,
+                        cfg.per_account_running,
+                        stale_after_seconds=cfg.stale_after_seconds,
+                    )
 
                 if job is None:
                     # Nothing to do. Wait, but wake immediately on shutdown

@@ -133,8 +133,11 @@ def test_the_thread_on_screen_is_a_default_the_words_can_override():
     assert len(said) == 1
     assert "00000000-0000-0000-0000-000000000009" in said[0]
     assert "unless" in said[0]
-    # Ours, and it says so, because it decides where things land.
-    assert "This is our data." in said[0]
+    # The id is ours and the name is not: any member can rename a thread, so
+    # the block says who wrote it rather than claiming it (security review
+    # 2026-09-22, L26). The thread-list block already labels names that way.
+    assert "a member wrote" in said[0]
+    assert "our data" not in said[0]
     # And it is before the dump, so the dump is still the last thing in the turn.
     assert blocks.index(next(b for b in blocks if b["text"] == said[0])) < len(blocks) - 1
 

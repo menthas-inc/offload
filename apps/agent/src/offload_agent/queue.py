@@ -44,14 +44,25 @@ _CLAIM = text(
       updated_at = now()
     where id = (
       select j.id from jobs j
-      where j.state = 'queued'
-        and j.run_after <= now()
+      where (
+          (j.state = 'queued' and j.run_after <= now())
+          or (
+            j.state = 'running'
+            and j.locked_at < now() - (:stale_seconds * interval '1 second')
+            and j.attempts < j.max_attempts
+          )
+        )
         and j.kind = any(:kinds)
         and (
           j.account_id is null
           or (
             select count(*) from jobs r
-            where r.state = 'running' and r.account_id = j.account_id
+            where r.state = 'running'
+              and r.account_id = j.account_id
+              and (
+                r.locked_at is null
+                or r.locked_at >= now() - (:stale_seconds * interval '1 second')
+              )
           ) < :per_account
         )
       order by j.priority, j.run_after
@@ -62,18 +73,58 @@ _CLAIM = text(
     """
 )
 
+# A `running` row whose worker died: the claim above takes it again while it
+# has attempts left, and this marks it dead once it has none, so a job that
+# kills its worker every time stops at `max_attempts` like a job that fails
+# politely. Without either, a row a killed worker left behind stayed `running`
+# for good, and two of them locked an account out of the worker with nothing
+# that cleared it (security review 2026-09-22, M10).
+_REAP = text(
+    """
+    update jobs set
+      state = 'dead',
+      locked_at = null,
+      locked_by = null,
+      last_error = 'stale',
+      updated_at = now()
+    where state = 'running'
+      and locked_at < now() - (:stale_seconds * interval '1 second')
+      and attempts >= max_attempts
+      and kind = any(:kinds)
+    """
+)
+
+#: How long a worker may hold a job before another may assume it is dead.
+#: Longer than anything a turn legitimately does: the transcription poll
+#: allows six minutes, and a turn with photos and ten model calls is under
+#: that.
+STALE_AFTER_SECONDS = 900
+
 
 async def claim(
-    conn: AsyncConnection, worker_id: str, kinds: list[str], per_account: int
+    conn: AsyncConnection,
+    worker_id: str,
+    kinds: list[str],
+    per_account: int,
+    *,
+    stale_after_seconds: int = STALE_AFTER_SECONDS,
 ) -> ClaimedJob | None:
     """Claim one runnable job, or None.
 
     Scoped by kind so this worker never takes a job the TypeScript runner owns.
-    Both drain the same table and neither should surprise the other.
+    Both drain the same table and neither should surprise the other. A
+    `running` row nobody has touched for `stale_after_seconds` is runnable
+    too: its worker is gone.
     """
     row = (
         await conn.execute(
-            _CLAIM, {"worker_id": worker_id, "kinds": kinds, "per_account": per_account}
+            _CLAIM,
+            {
+                "worker_id": worker_id,
+                "kinds": kinds,
+                "per_account": per_account,
+                "stale_seconds": stale_after_seconds,
+            },
         )
     ).first()
     if row is None:
@@ -117,6 +168,42 @@ async def release_for_retry(
     await conn.execute(
         _RELEASE, {"job_id": job_id, "reason": reason, "delay_seconds": delay_seconds}
     )
+
+
+_DIE = text(
+    """
+    update jobs set
+      state = 'dead',
+      locked_at = null,
+      locked_by = null,
+      last_error = :reason,
+      updated_at = now()
+    where id = :job_id
+    """
+)
+
+
+async def retry_or_die(
+    conn: AsyncConnection, job: ClaimedJob, reason: str, delay_seconds: int = 2
+) -> bool:
+    """Another attempt while the row has one left, else dead.
+
+    Every release used to be unconditional, and `max_attempts` was read on one
+    path only. An outage between here and the Core API re-ran a whole paid turn
+    every thirty seconds for its length, and a fold that kept failing cost two
+    model calls an hour forever (security review 2026-09-22, M13). Returns
+    whether the job was released.
+    """
+    if job.attempts < job.max_attempts:
+        await release_for_retry(conn, job.id, reason, delay_seconds)
+        return True
+    await conn.execute(_DIE, {"job_id": job.id, "reason": reason})
+    return False
+
+
+async def reap(conn: AsyncConnection, kinds: list[str], stale_after_seconds: int) -> None:
+    """Mark dead the `running` rows whose worker is gone and whose attempts are spent."""
+    await conn.execute(_REAP, {"kinds": kinds, "stale_seconds": stale_after_seconds})
 
 
 # Work that finishes here rather than at the Core API.
