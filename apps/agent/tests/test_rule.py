@@ -31,7 +31,8 @@ def _content(**over):
 @pytest.mark.parametrize("case", RULES["accepted"], ids=lambda c: c["in"])
 def test_every_accepted_rule_passes_the_shape_check(case):
     assert _content(rrule=case["in"]).rrule == case["in"].strip()
-    assert AddNote.model_validate({"thread_id": "t", "text": "Yoga", "occurs_at": "2026-09-25", "rrule": case["in"]}).rrule
+    note = {"thread_id": "t", "text": "Yoga", "occurs_at": "2026-09-25", "rrule": case["in"]}
+    assert AddNote.model_validate(note).rrule
     assert EditContent.model_validate({"content_id": "c", "rrule": case["in"]}).rrule
 
 

@@ -10,6 +10,7 @@
 // executes inside the turn and returns a result, so there was no pending state
 // to reuse and this is where it is built.
 
+import { describeRule, parseRule } from "@offload/widgets";
 import { sql } from "kysely";
 import { db } from "../db.js";
 import { GrantRevoked, type EventDraft } from "./google.js";
@@ -191,7 +192,7 @@ export async function writeThroughTool(
     .returning("id")
     .executeTakeFirstOrThrow();
 
-  return { kind: "pending", pendingId: pending.id, line: outwardLine(verdict) ?? "" };
+  return { kind: "pending", pendingId: pending.id, line: outwardLine(verdict, cadenceOf(write)) ?? "" };
 }
 
 /** A person tapped. Re-run the test against live state, because minutes have
@@ -360,5 +361,15 @@ function becauseOf(payload: unknown): string {
     audience: guests,
     reason: guests.length > 0 ? "guests" : reason === "asked_for" ? "asked_for" : "shared_calendar",
   };
-  return outwardLine(verdict) ?? "Everyone on this calendar will see it.";
+  return outwardLine(verdict, cadenceOf(write)) ?? "Everyone on this calendar will see it.";
+}
+
+/** 023. What a series says about itself on the line, read off the draft's
+ *  rule and its first day. Null for a single event. */
+function cadenceOf(write: WriteAction | null | undefined): string | null {
+  if (write?.action !== "create") return null;
+  const line = write.draft.recurrence?.find((one) => one.startsWith("RRULE:"));
+  if (!line) return null;
+  const parsed = parseRule(line.slice("RRULE:".length));
+  return parsed.ok ? describeRule(parsed.rule, write.draft.startsAt.toISOString().slice(0, 10)) : null;
 }

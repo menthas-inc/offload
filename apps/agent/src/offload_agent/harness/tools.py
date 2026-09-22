@@ -42,7 +42,9 @@ PLACE_NAME_CHARS = 120
 # duplicates, anchors and the until-or-count rule are the server's, and it
 # names what it refuses as `bad_rule`. The fixture both suites read is
 # packages/widgets/fixtures/rules.json.
-_RULE_PART = re.compile(r"^(FREQ|INTERVAL|BYDAY|BYMONTHDAY|UNTIL|COUNT|WKST)=[A-Z0-9,+-]+$")
+_RULE_PART = re.compile(
+    r"^(FREQ|INTERVAL|BYDAY|BYMONTHDAY|UNTIL|COUNT|WKST)=[A-Z0-9,+-]+$"
+)
 _RULE_FREQ = re.compile(r"^FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)$")
 
 
@@ -51,7 +53,8 @@ def _rule_shape(v: str | None) -> str | None:
         return None
     text = v.strip()
     parts = text.upper().split(";")
-    if not all(_RULE_PART.match(part) for part in parts) or not any(_RULE_FREQ.match(part) for part in parts):
+    well_formed = all(_RULE_PART.match(part) for part in parts)
+    if not well_formed or not any(_RULE_FREQ.match(part) for part in parts):
         raise ValueError("expected a recurrence rule like FREQ=WEEKLY;BYDAY=TU")
     return text
 

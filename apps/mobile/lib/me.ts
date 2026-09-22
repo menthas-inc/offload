@@ -35,6 +35,14 @@ export interface Me {
   /** 022. Connection requests waiting for their answer: the dot on the gear
    *  and on the My people row. */
   requestsWaiting: number;
+  /** 023. The account's clock, or null until a device names one; every timed
+   *  date is drawn in it. */
+  timeZone: string | null;
+  /** Whether the strip on Today may offer to switch when this phone is
+   *  somewhere else. */
+  followDevice: boolean;
+  /** The one device zone they answered Keep to. */
+  keptTimeZone: string | null;
 }
 
 /** Ask again, and tell every mounted `useMe`. For after a request is

@@ -72,11 +72,19 @@ export function outwardTest(input: OutwardInput): OutwardVerdict {
  *
  *  Names who finds out and nothing else. No explanation of why offload asked,
  *  because the control beside it is the answer. */
-export function outwardLine(verdict: OutwardVerdict): string | null {
+export function outwardLine(verdict: OutwardVerdict, cadence: string | null = null): string | null {
   if (!verdict.outward) return null;
-  if (verdict.reason === "shared_calendar") return "Everyone on this calendar will see it.";
-  if (verdict.reason === "asked_for") return "You asked to check first.";
-  if (verdict.reason === "read_calendar") return "offload read a calendar this turn.";
-  if (verdict.audience.length === 1) return `${verdict.audience[0]} will be told.`;
-  return `${verdict.audience.length} guests will be told.`;
+  const who =
+    verdict.reason === "shared_calendar"
+      ? "Everyone on this calendar will see it."
+      : verdict.reason === "asked_for"
+        ? "You asked to check first."
+        : verdict.reason === "read_calendar"
+          ? "offload read a calendar this turn."
+          : verdict.audience.length === 1
+            ? `${verdict.audience[0]} will be told.`
+            : `${verdict.audience.length} guests will be told.`;
+  // 023. A series is not one event, so the line says how often before
+  // somebody agrees to a year of their calendar.
+  return cadence ? `${who} ${cadence}.` : who;
 }

@@ -34,6 +34,10 @@ export interface Me {
   /** Where they said they are, ISO 3166-1 alpha-2. Null until they say, and
    *  offload then tells the model it does not know rather than assuming. */
   country: string | null;
+  /** 023. The account's clock, or null until a device names one. */
+  timeZone: string | null;
+  followDevice: boolean;
+  keptTimeZone: string | null;
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to, and null when the provider sent nothing. */
   suggestedName: string | null;

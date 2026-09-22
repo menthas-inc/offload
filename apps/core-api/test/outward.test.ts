@@ -146,3 +146,16 @@ describe("AC-9 the model cannot choose whether its write is confirmed", () => {
     expect(bodies).not.toContain("calendarId");
   });
 });
+
+// 023 AC-11: a write that is a series says so in the line the person answers,
+// because a year of somebody's calendar is not one event.
+describe("023 the line names a series", () => {
+  it("appends the cadence after who finds out", () => {
+    const verdict = { outward: true, notify: true, audience: ["Ana"], reason: "guests" } as const;
+    expect(outwardLine(verdict, "Weekly on Friday")).toBe("Ana will be told. Weekly on Friday.");
+    expect(outwardLine({ ...verdict, audience: [], notify: false, reason: "shared_calendar" }, "Monthly on the 1st")).toBe(
+      "Everyone on this calendar will see it. Monthly on the 1st.",
+    );
+    expect(outwardLine(verdict)).toBe("Ana will be told.");
+  });
+});
