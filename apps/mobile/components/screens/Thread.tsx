@@ -80,8 +80,14 @@ import {
   type Note,
   type ThreadBundle,
   setPreference,
+  type ContentPatch,
+  type ContentSnapshot,
 } from "../../lib/threads";
 import { perform, useWrites } from "../../lib/optimistic";
+import { useClock } from "../../lib/clock";
+import { patchFor, sameWhen, whenChipLabel, whenValueOf } from "../../lib/when";
+import { RowEditSheet } from "../shell/RowEditSheet";
+import { WhenSheet } from "../shell/WhenSheet";
 import { useConversation, useScreenSheet } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { failed } from "../../lib/log";
@@ -107,6 +113,9 @@ export default function Thread() {
   // What arrived while this screen was open, marked for a moment rather than
   // appearing silently in the middle of a list.
   const [arrived, setArrived] = useState<Set<string>>(new Set());
+  // 023. The row whose When sheet is open on its own, from the action sheet.
+  const [timing, setTiming] = useState<ContentRow | null>(null);
+  const { zone, today } = useClock();
   // 019. The calendars sheet, and a counter bumped when the picks change so
   // the rail reads the calendars again.
   const [calendarsOpen, setCalendarsOpen] = useState(false);
@@ -366,6 +375,51 @@ export default function Thread() {
     );
   }
 
+  /** 023. The sheet's Save: every changed field in one request, drawn first
+   *  and sent second, with the previous values as the Undo. The words are
+   *  the ones the design gives a save, and never why it did not go through. */
+  function edit(row: ContentRow, patch: ContentPatch): void {
+    const drawn: Partial<ContentRow> = {};
+    if (patch.title !== undefined) drawn.title = patch.title;
+    if (patch.body !== undefined) drawn.body = patch.body;
+    if (patch.isReminder !== undefined) drawn.isReminder = patch.isReminder;
+    // Dates are drawn from the server's answer rather than guessed: a wall
+    // time is read in the account's clock there, and the chip reads the row.
+    const before: Partial<ContentRow> = {
+      title: row.title,
+      body: row.body,
+      isReminder: row.isReminder,
+      dueAt: row.dueAt,
+      occursAt: row.occursAt,
+      occursEndAt: row.occursEndAt,
+      rrule: row.rrule,
+      allDay: row.allDay,
+    };
+    let previous: ContentSnapshot | null = null;
+    void perform(
+      {
+        apply: () => patchRow(row.id, drawn),
+        revert: () => patchRow(row.id, before),
+        write: () =>
+          editContent(row.id, patch).then((result) => {
+            if (!result) return false;
+            previous = result.previous;
+            void catchUp();
+            return true;
+          }),
+        unwrite: () =>
+          (previous ? editContent(row.id, previous) : Promise.resolve(null)).then((result) => {
+            if (result) void catchUp();
+            return result !== null;
+          }),
+        did: "Saved",
+        failed: "Couldn't save that",
+      },
+      toast,
+      writes,
+    );
+  }
+
   function rename(row: ContentRow, title: string): void {
     if (isProvisional(row.id)) return;
     void perform(
@@ -588,6 +642,12 @@ export default function Thread() {
         // Edit leads, because renaming is the commonest thing to want and the
         // one this sheet did not offer: the only way to fix a title was on the
         // web.
+        // 023. When sits above Edit and carries its value where the other
+        // rows carry nothing; a row on a calendar keeps its time, which is
+        // Google's, and does not offer it.
+        ...(acting.canDelete && !acting.onCalendar
+          ? [{ label: "When", icon: "calendar", value: whenChipLabel(acting, zone, today), run: () => setTiming(acting) }]
+          : []),
         { label: "Edit", icon: "pencil", run: () => setRenaming(acting) },
         // 020. The first move control the product has drawn, on the row's own
         // sheet. The author's, like delete, because both change who can see
@@ -844,9 +904,9 @@ export default function Thread() {
         />
       ) : null}
 
-      <TitleSheet
-        // **Keyed by the row, so the field starts out holding its title.**
-        // Filling it from an effect meant the sheet mounted empty and then
+      <RowEditSheet
+        // **Keyed by the row, so the fields start out holding its values.**
+        // Filling them from an effect meant the sheet mounted empty and then
         // caught up, and on a device it stayed empty: a controlled TextInput
         // that takes focus on mount and has its value replaced a tick later is
         // the one case where that race is visible. Mounting per row removes the
@@ -854,9 +914,9 @@ export default function Thread() {
         key={renaming?.id ?? "none"}
         row={renaming}
         onClose={() => setRenaming(null)}
-        onSave={(row, title) => {
+        onSave={(row, patch) => {
           setRenaming(null);
-          rename(row, title);
+          edit(row, patch);
         }}
         onRemove={(row) => {
           setRenaming(null);
@@ -864,6 +924,25 @@ export default function Thread() {
           else archive(row);
         }}
       />
+
+      {/* 023. The When sheet on its own, from the action sheet's row: here it
+          writes on Save and on Clear, since there is no edit sheet to hand
+          back to. */}
+      {timing ? (
+        <WhenSheet
+          key={timing.id}
+          open
+          title={timing.title}
+          isEvent={timing.type === "event"}
+          initial={whenValueOf(timing, zone)}
+          onClose={() => setTiming(null)}
+          onSave={(value) => {
+            const row = timing;
+            setTiming(null);
+            if (!sameWhen(value, whenValueOf(row, zone))) edit(row, patchFor(row, value));
+          }}
+        />
+      ) : null}
 
       <RowActionSheet
         open={acting !== null}
@@ -1021,73 +1100,6 @@ function Bar({
   );
 }
 
-/** Renaming one piece of content, as a sheet.
- *
- *  The same shape the note editor uses and for the same reason: a phone has a
- *  third of the width and the keyboard takes the bottom half of the screen, so
- *  an editor opening in a row halfway down a scrolling list opens underneath
- *  it. The sheet solves the keyboard problem by the pattern rather than
- *  fighting it. */
-function TitleSheet({
-  row,
-  onClose,
-  onSave,
-  onRemove,
-}: {
-  row: ContentRow | null;
-  onClose: () => void;
-  /** The new title. The sheet closes at the press and the screen writes it,
-   *  so the keyboard is never held up for a round trip. */
-  onSave: (row: ContentRow, title: string) => void;
-  /** The way out, in the sheet that already has the row open.
-   *
-   *  The action sheet behind this one offers it too, and this is not a second
-   *  opinion about which one you get: both ask the same question of the row and
-   *  get the same answer. Having opened something to change it, the other thing
-   *  you wanted is to be rid of it, and going back out to a long press to do
-   *  that is a trip through a menu for the second commonest thing there is. */
-  onRemove: (row: ContentRow) => void;
-}) {
-  const COLOR = useColors();
-  if (!row) return null;
-
-  return (
-    <EditSheet
-      initial={row.title}
-      placeholder="What is it?"
-      onClose={onClose}
-      onSave={(title) => (title === row.title ? onClose() : onSave(row, title))}
-      leading={
-        /* One way out, never two, and the same rule the action sheet states:
-           your own content offers Delete, somebody else's offers Archive,
-           because OFF-3 says you may not destroy what another person wrote.
-           An archived row offers the way back instead. */
-        <Pressable
-          onPress={() => onRemove(row)}
-          accessibilityLabel={
-            row.archivedAt ? "Put back in the thread" : row.canDelete ? "Delete" : "Archive"
-          }
-          className="mr-auto flex-row items-center gap-space-2 rounded-pill border border-border-hairline px-space-5"
-          style={{ height: 30 }}
-        >
-          <Glyph
-            name={row.archivedAt ? "rewind" : row.canDelete ? "trash-2" : "archive"}
-            size={14}
-            color={row.archivedAt || !row.canDelete ? COLOR.iconOnWell : COLOR.danger}
-          />
-          <Text
-            className={`font-core font-medium ${
-              row.archivedAt || !row.canDelete ? "text-text-secondary" : "text-text-danger"
-            }`}
-            style={{ fontSize: 13 }}
-          >
-            {row.archivedAt ? "Put back" : row.canDelete ? "Delete" : "Archive"}
-          </Text>
-        </Pressable>
-      }
-    />
-  );
-}
 
 /** One line of text, edited in a sheet: a row's title, the thread's name.
  *

@@ -576,23 +576,11 @@ export function Timeline({
           onEdit={() => onEdit(row)}
           onArchive={() => onArchive(row)}
           onToggle={row.type === "task" ? () => onToggle(row) : undefined}
-          // **The time, which the phone's row has nowhere else to put.** Web
-          // draws it in the meta slot; here the row has one text line and this
-          // is the slot it has, so a day with three timed events says which
-          // order they are in rather than listing them silently.
-          // **Nothing when the date has no time in it.** A bare date is a day,
-          // and drawing an hour it does not have is how "Sunday brunch" read
-          // "8:00 PM".
-          note={
-            one.due
-              ? "due"
-              : row.allDay || !row.occursAt
-                ? undefined
-                : new Date(row.occursAt).toLocaleTimeString(undefined, {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })
-          }
+          // 023. The row's own chip says the day and the hour now, on the
+          // title line; the one thing the day list still has to say is that
+          // a row is here for the day it is wanted by rather than the day it
+          // happens.
+          note={one.due ? "due" : undefined}
         />
       ))}
     </View>

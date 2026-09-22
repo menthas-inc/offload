@@ -2349,3 +2349,168 @@ a.settingsRow:hover {
   background: var(--surface-noticed-soft);
   color: var(--text-noticed);
 }
+
+/* 023. The edit modal: the fields, the month grid inline, Time and Repeats
+   as inline blocks, and Custom disclosed beneath. min-height, never height. */
+.editBody {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-2);
+  resize: vertical;
+  font: var(--weight-regular) var(--size-body) / 1.4 var(--font-core);
+}
+
+.editWhen {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-hairline);
+}
+
+.editMonth {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.editMonthLabel {
+  flex: 1;
+  font-weight: var(--weight-medium);
+  font-size: calc(15px * var(--type-scale));
+  color: var(--text-primary);
+}
+
+.editStep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.editStep:hover {
+  background: var(--state-hover);
+}
+
+.editGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: var(--space-2);
+}
+
+.editDow {
+  text-align: center;
+  font-size: calc(11px * var(--type-scale));
+  color: var(--text-secondary);
+  padding-bottom: var(--space-1);
+}
+
+/* Today is outlined, the pick is filled: two facts, two marks. The days either
+   side of the month are quieter and still tappable. */
+.editDay {
+  min-height: 36px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-pill);
+  background: none;
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.editDay:hover {
+  background: var(--state-hover);
+}
+
+.editDayToday {
+  border-color: var(--border-focus);
+}
+
+.editDayOn,
+.editDayOn:hover {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font-weight: var(--weight-medium);
+}
+
+.editDayOut {
+  color: var(--text-tertiary);
+}
+
+.editRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  min-height: 36px;
+  margin-top: var(--space-2);
+}
+
+.editRowLabel {
+  min-width: 72px;
+  font-size: calc(14px * var(--type-scale));
+  color: var(--text-primary);
+}
+
+.editCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: calc(14px * var(--type-scale));
+  color: var(--text-primary);
+}
+
+.editTime,
+.editSelect,
+.editNumber {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-primary);
+}
+
+.editNumber {
+  width: 64px;
+}
+
+.editCustom {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+}
+
+.editDays {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.editDayChip {
+  min-width: 32px;
+  min-height: 32px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-pill);
+  background: none;
+  font: var(--weight-medium) calc(12px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.editDayChipOn {
+  background: var(--surface-inverse);
+  border-color: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+.editClear {
+  margin-right: auto;
+  color: var(--text-danger);
+}

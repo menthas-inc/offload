@@ -55,10 +55,13 @@ import {
   type Note,
   type ThreadBundle,
   setPreference,
+  type ContentPatch,
+  type ContentSnapshot,
 } from "../../lib/threads";
 import { PhotoViewer, type ViewerPhoto } from "../shell/PhotoViewer";
 import { Avatar } from "../Avatar";
 import { ShareModal } from "../people/ShareModal";
+import { EditModal } from "./EditModal";
 import { ConfirmModal } from "../people/Modal";
 import { useRouter } from "next/navigation";
 
@@ -77,6 +80,7 @@ export function Thread({ id, onChanged }: Props) {
   // notes drew nothing, so there was nowhere to type the first one.
   const [addingNote, setAddingNote] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  const [editRow, setEditRow] = useState<ContentRow | null>(null);
   const [draft, setDraft] = useState("");
   const [renaming, setRenaming] = useState(false);
   // 019. The calendars popover, and a counter bumped when the picks change so
@@ -252,6 +256,56 @@ export function Thread({ id, onChanged }: Props) {
     const title = draft.trim();
     setEditing(null);
     rename(row, title);
+  }
+
+  /** 023. The modal's Save: every changed field in one request, drawn first
+   *  and sent second, with the previous values as the Undo. The dates are
+   *  drawn from the server's answer, which reads a wall time in the account's
+   *  clock, so the page catches up once the write lands. */
+  function edit(row: ContentRow, patch: ContentPatch): void {
+    if (isProvisional(row.id)) return;
+    const drawn: Partial<ContentRow> = {};
+    if (patch.title !== undefined) drawn.title = patch.title;
+    if (patch.body !== undefined) drawn.body = patch.body;
+    if (patch.isReminder !== undefined) drawn.isReminder = patch.isReminder;
+    const before: Partial<ContentRow> = {
+      title: row.title,
+      body: row.body,
+      isReminder: row.isReminder,
+      dueAt: row.dueAt,
+      occursAt: row.occursAt,
+      occursEndAt: row.occursEndAt,
+      rrule: row.rrule,
+      allDay: row.allDay,
+    };
+    let previous: ContentSnapshot | null = null;
+    void perform(
+      {
+        apply: () => patchRow(row.id, drawn),
+        revert: () => patchRow(row.id, before),
+        write: () =>
+          telling(
+            editContent(row.id, patch).then((result) => {
+              if (!result) return false;
+              previous = result.previous;
+              void catchUp();
+              return true;
+            }),
+          ),
+        unwrite: () =>
+          telling(
+            (previous ? editContent(row.id, previous) : Promise.resolve(null)).then((result) => {
+              if (result) void catchUp();
+              return result !== null;
+            }),
+          ),
+        did: "Saved",
+        failed: "Couldn't save that",
+        unfailed: "Couldn't put it back",
+      },
+      toast,
+      writes,
+    );
   }
 
   function rename(row: ContentRow, title: string): void {
@@ -556,10 +610,11 @@ export function Thread({ id, onChanged }: Props) {
     asking,
     arrived,
     onDraft: setDraft,
+    // 023. A content row edits in the modal, which holds the title, the
+    // details and the when field; the inline field stays for a thread's name.
     onEdit: (row) => {
       if (isProvisional(row.id)) return;
-      setDraft(row.title);
-      setEditing(row.id);
+      setEditRow(row);
     },
     onSaveTitle: saveTitle,
     onStopEditing: () => setEditing(null),
@@ -779,6 +834,18 @@ export function Thread({ id, onChanged }: Props) {
                 setViewing(null);
                 return remove(row);
               },
+            }}
+          />
+        ) : null}
+
+        {editRow ? (
+          <EditModal
+            key={editRow.id}
+            row={editRow}
+            onClose={() => setEditRow(null)}
+            onSave={(row, patch) => {
+              setEditRow(null);
+              edit(row, patch);
             }}
           />
         ) : null}
