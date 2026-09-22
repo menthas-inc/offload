@@ -31,6 +31,7 @@ export const threadIcon = (icon: string | null): string => icon ?? "message-circ
 
 export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew = false }: Props) {
   const pathname = usePathname();
+  const activityOn = pathname === "/activity" || pathname.startsWith("/activity/");
 
   const tabs = [
     { href: "/today", label: "Today", icon: "sun", count: undefined as number | undefined },
@@ -67,7 +68,7 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew
         {tabs.map((tab) => {
           const on = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
           return (
-            <Link key={tab.href} href={tab.href} className={styles.navItem} data-on={on}>
+            <Link key={tab.href} href={tab.href} className={styles.navItem} data-on={on} aria-current={on ? "page" : undefined}>
               {on ? <span className={styles.marker} /> : null}
               <Icon name={tab.icon} size={17} />
               <span className={styles.navLabel}>{tab.label}</span>
@@ -118,10 +119,19 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew
           of what offload sent and what it decided not to, and carries a dot,
           never a count, when a row is newer than the last opening. */}
       <div className={styles.sideFoot}>
-        <Link href="/activity" className={styles.navItem}>
+        <Link
+          href="/activity"
+          className={styles.navItem}
+          data-on={activityOn}
+          aria-current={activityOn ? "page" : undefined}
+          // The dot is part of the link's name, as it is on the phones' bell,
+          // rather than a label on a span with no role.
+          aria-label={activityNew ? "Activity, something new" : undefined}
+        >
+          {activityOn ? <span className={styles.marker} /> : null}
           <span className={styles.navGlyph}>
             <Icon name="bell" size={17} />
-            {activityNew ? <span className={styles.navDot} aria-label="Something new" /> : null}
+            {activityNew ? <span className={styles.navDot} aria-hidden="true" /> : null}
           </span>
           <span className={styles.navLabel}>Activity</span>
         </Link>

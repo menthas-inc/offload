@@ -20,7 +20,8 @@ import { useConversation } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { ZoneStrip } from "../shell/ZoneStrip";
 import { BellDot } from "../shell/BellDot";
-import { TodayAgenda } from "./TodayAgenda";
+import { ToastHost, useToast } from "../shell/Toast";
+import { useTodayAgenda } from "./TodayAgenda";
 import { isQuiet, loadAgenda, type Agenda } from "../../lib/agenda";
 import { register } from "../../lib/notifications";
 
@@ -67,18 +68,14 @@ export default function Today() {
       void register();
     }, [reload]),
   );
+  // The rows act here, with the thread page's sheets and Undo.
+  const toast = useToast();
+  const { list, sheets } = useTodayAgenda(agenda, reload, toast);
 
   return (
     <SafeAreaView className="flex-1 bg-surface-page" edges={["top"]}>
       {/* The bar the kit draws on day one: the wordmark, then notifications
-          and settings. `DayOneBar` in `FirstRun.jsx` gives that order.
-
-          **The bell is drawn and does nothing, deliberately.** It is this
-          feature's one exception to its own rule against controls that do not
-          work, and the reason is that the bar's shape should not move under
-          somebody the day notifications land. It carries no unread dot,
-          because there is nothing to be unread, and its accessible name says
-          what it is rather than promising what it does. */}
+          and settings. `DayOneBar` in `FirstRun.jsx` gives that order. */}
       <View className="h-appbar-height flex-row items-center px-gutter-screen">
         <Logo size={21} />
         <View className="ml-auto flex-row items-center gap-space-5">
@@ -101,7 +98,7 @@ export default function Today() {
             <ActivityIndicator color={COLOR.iconOnWell} />
           </View>
         ) : !isQuiet(agenda) ? (
-          <TodayAgenda agenda={agenda} onChanged={reload} />
+          list
         ) : agenda.everDumped ? (
           <Text className="font-quiet text-text-primary" style={{ fontSize: 17, lineHeight: 25.5 }}>
             Nothing due today.
@@ -136,6 +133,8 @@ export default function Today() {
         )}
         <PlateSpace />
       </Animated.ScrollView>
+      {sheets}
+      <ToastHost state={toast} />
     </SafeAreaView>
   );
 }

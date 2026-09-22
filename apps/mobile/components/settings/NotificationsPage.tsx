@@ -16,7 +16,7 @@
 // is the only place a person can refuse one kind and keep another.
 
 import { useCallback, useState } from "react";
-import { Linking, Platform, Text, View } from "react-native";
+import { Linking, Platform, Pressable, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
@@ -55,7 +55,8 @@ export function NotificationsPage() {
   const me = useMe();
   // Drawn first: what was just switched, until the server answers.
   const [drawn, setDrawn] = useState<Patch>({});
-  const [failed, setFailed] = useState(false);
+  // The patch that did not land, so Try again can send the same one.
+  const [failed, setFailed] = useState<Patch | null>(null);
   const [permission, setPermission] = useState<string | null>(null);
   // Which channels the system has switched off, on Android.
   const [blocked, setBlocked] = useState<Set<string>>(new Set());
@@ -65,14 +66,14 @@ export function NotificationsPage() {
 
   const write = useCallback(async (patch: Patch) => {
     setDrawn((held) => ({ ...held, ...patch }));
-    setFailed(false);
+    setFailed(null);
     const ok = await setNotify(patch);
     setDrawn((held) => {
       const next = { ...held };
       for (const key of Object.keys(patch) as (keyof Patch)[]) delete next[key];
       return next;
     });
-    if (!ok) setFailed(true);
+    if (!ok) setFailed(patch);
   }, []);
 
   useFocusEffect(
@@ -125,7 +126,6 @@ export function NotificationsPage() {
     if (isAndroid) {
       DateTimePickerAndroid.open({
         mode: "time",
-        is24Hour: true,
         value: dateOf(held),
         onChange: (event: DateTimePickerEvent, picked?: Date) => {
           if (event.type === "set" && picked) void write({ [key]: hourOf(picked) });
@@ -141,7 +141,7 @@ export function NotificationsPage() {
   const hourRow = (key: Hours, title: string, on: boolean) => {
     const held = value(key) ?? (key === "notifyDueTodayAt" ? "08:00" : "19:00");
     return (
-      <View style={{ opacity: on ? 1 : 0.45 }} pointerEvents={on ? "auto" : "none"}>
+      <View className={on ? "" : "opacity-60"} pointerEvents={on ? "auto" : "none"}>
         <Row title={title} value={clockLabel(held)} onPress={() => pickHour(key)} last={key === "notifyComingTomorrowAt"} />
         {!isAndroid && picking === key ? (
           <DateTimePicker
@@ -177,9 +177,16 @@ export function NotificationsPage() {
   return (
     <>
       {failed ? (
-        <Text className="px-space-1 pt-space-3 font-core text-text-danger" style={{ fontSize: 13 }} accessibilityLiveRegion="polite">
-          Couldn&apos;t save that.
-        </Text>
+        <View className="flex-row items-center gap-space-3 px-space-1 pt-space-3" accessibilityRole="alert">
+          <Text className="font-core text-text-danger" style={{ fontSize: 13 }}>
+            Couldn&apos;t save that.
+          </Text>
+          <Pressable onPress={() => void write(failed)} hitSlop={10} accessibilityRole="button" className="min-h-tap-min justify-center">
+            <Text className={`font-core font-medium ${isAndroid ? "text-a-on-var" : "text-text-accent"}`} style={{ fontSize: 13 }}>
+              Try again
+            </Text>
+          </Pressable>
+        </View>
       ) : null}
 
       <Group label="Dates">

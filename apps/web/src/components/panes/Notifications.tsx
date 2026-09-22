@@ -23,20 +23,21 @@ export function NotificationsPane() {
   const [me, setMe] = useState<Me | null>(currentMe());
   useEffect(() => onMe(setMe), []);
   const [drawn, setDrawn] = useState<Patch>({});
-  const [failed, setFailed] = useState(false);
+  // The patch that did not land, so Try again can send the same one.
+  const [failed, setFailed] = useState<Patch | null>(null);
 
   const value = <K extends keyof Patch>(key: K): Me[K] | undefined => (drawn[key] ?? me?.[key]) as Me[K] | undefined;
 
   async function write(patch: Patch): Promise<void> {
     setDrawn((held) => ({ ...held, ...patch }));
-    setFailed(false);
+    setFailed(null);
     const ok = await updateNotify(patch);
     setDrawn((held) => {
       const next = { ...held };
       for (const key of Object.keys(patch) as (keyof Patch)[]) delete next[key];
       return next;
     });
-    if (!ok) setFailed(true);
+    if (!ok) setFailed(patch);
   }
 
   const toggle = (key: Switches, title: string, note?: string, last?: boolean) => (
@@ -52,14 +53,14 @@ export function NotificationsPane() {
   );
 
   const hour = (key: Hours, title: string, on: boolean, last?: boolean) => (
-    <div className={`${pane.settingsRow} ${last ? pane.settingsRowLast : ""}`} style={{ opacity: on ? 1 : 0.45 }}>
+    <div className={`${pane.settingsRow} ${last ? pane.settingsRowLast : ""} ${on ? "" : pane.settingsRowOff}`}>
       <span className={pane.settingsText}>
         <span className={pane.settingsTitle}>{title}</span>
       </span>
       <input
         type="time"
         step={300}
-        className={pane.settingsValue}
+        className={pane.settingsTime}
         aria-label={title}
         disabled={!on}
         value={value(key) ?? (key === "notifyDueTodayAt" ? "08:00" : "19:00")}
@@ -81,9 +82,12 @@ export function NotificationsPane() {
 
       <div className={pane.paneBody}>
         {failed ? (
-          <p className={pane.settingsRowError} aria-live="polite">
-            Couldn&apos;t save that.
-          </p>
+          <div className={pane.settingsErrorLine} role="alert">
+            <span className={pane.settingsRowError}>Couldn&apos;t save that.</span>
+            <button type="button" className={pane.settingsRetry} onClick={() => void write(failed)}>
+              Try again
+            </button>
+          </div>
         ) : null}
 
         <Group label="Dates">

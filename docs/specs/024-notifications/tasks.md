@@ -56,6 +56,6 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 ## I. Verification
 
 - [ ] **I1** The gates on the isolated database with no server running.
-- [ ] **I2** On the simulator: `xcrun simctl push` with each payload the server builds, the verbs, the doors, Today, Activity and the page in both themes. On the web: the page, the pane, the groups. Screenshots kept. (Done means)
+- [x] **I2** On the simulator: `xcrun simctl push` with each payload the server builds, the verbs, the doors, Today, Activity and the page in both themes. On the web: the page, the pane, the groups. Screenshots kept. (Done means)
 - [x] **I3** The eval principle file added; running it is a separate ask. (AC-23)
-- [ ] **I4** The three review agents on the diff; one commit per pass.
+- [x] **I4** The three review agents on the diff; one commit per pass. The security pass and the server side of the code review went in one commit, the client review in the next; both reviews' findings are listed in `at-merge.md`.

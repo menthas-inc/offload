@@ -2,12 +2,12 @@
 //
 // A pushed screen like Settings, without the plate. Newest first under
 // Today, Yesterday and Earlier. A sent row and an unsent row are the same
-// row with a different lead: a filled disc for something that reached the
-// phone, hollow on the lift border for something that did not, plus the
-// kind's glyph. Not sent is a sentence-case tag, noticed where a setting or
-// the permission caused it and that row opens the setting, quiet where the
-// product chose silence and those rows are not doors. Opening it is what
-// clears the dot.
+// row with a different lead: a disc on the fill for something that reached
+// the phone, hollow on the lift border for something that did not, plus the
+// kind's glyph. Not sent is a sentence-case chip, noticed on its soft ground
+// where a setting or the permission caused it and that row opens the
+// setting, quiet on the fill where the product chose silence and those rows
+// are not doors. Opening it is what clears the dot.
 
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from "react-native";
@@ -97,12 +97,12 @@ export default function Activity() {
             const body = (
               <View className="flex-row items-start gap-space-4 py-space-3">
                 <View
-                  className={`items-center justify-center rounded-pill ${row.sent ? (isAndroid ? "bg-a-on" : "bg-surface-inverse") : "border-border-lift"}`}
+                  className={`items-center justify-center rounded-pill ${row.sent ? (isAndroid ? "bg-a-c-high" : "bg-surface-fill") : "border-border-lift"}`}
                   style={{ width: 28, height: 28, borderWidth: row.sent ? 0 : 1.5 }}
                   accessibilityElementsHidden
                   importantForAccessibility="no"
                 >
-                  <Glyph name={glyphOf(row)} size={14} color={row.sent ? COLOR.onSolid : COLOR.iconOnWell} />
+                  <Glyph name={glyphOf(row)} size={14} color={row.sent ? COLOR.iconOnWell : COLOR.quiet} />
                 </View>
                 <View className="flex-1">
                   <View className="flex-row items-baseline gap-space-3">
@@ -119,12 +119,16 @@ export default function Activity() {
                     </Text>
                   ) : null}
                   {tag ? (
-                    <Text
-                      className={`pt-space-1 font-core font-medium ${tag.tone === "noticed" ? "text-text-noticed" : isAndroid ? "text-a-on-quiet" : "text-text-tertiary"}`}
-                      style={{ fontSize: 12.5 }}
+                    <View
+                      className={`mt-space-2 justify-center self-start rounded-sm px-space-2 ${
+                        tag.tone === "noticed" ? "bg-surface-noticed-soft" : isAndroid ? "bg-a-c-high" : "bg-surface-fill"
+                      }`}
+                      style={{ height: 19 }}
                     >
-                      {tag.label}
-                    </Text>
+                      <Text className={`font-core font-medium ${tag.tone === "noticed" ? "text-text-noticed" : "text-text-tertiary"}`} style={{ fontSize: 10.5 }}>
+                        {tag.label}
+                      </Text>
+                    </View>
                   ) : null}
                 </View>
               </View>

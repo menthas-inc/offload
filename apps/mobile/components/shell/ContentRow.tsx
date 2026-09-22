@@ -86,6 +86,10 @@ interface Props {
    *  A collapsed repeating entry uses it to say how often and how many are
    *  held, because the one date it happens to carry is not what it is about. */
   note?: string | undefined;
+  /** 024. A line under the title that is about where the row lives rather
+   *  than what it says: Today draws the thread's name here. Additive, so the
+   *  body and a link's domain keep their place. */
+  meta?: string | undefined;
   /** The row can be dragged to a new place in its list. Given by To do for
    *  its unfinished rows and by nothing else. `onDrop` gets how far the row
    *  travelled; the list, which measured its rows, works out where that is. */
@@ -105,6 +109,7 @@ export function ContentRowView({
   onArchive,
   onToggle,
   note,
+  meta,
   reorder,
 }: Props) {
   const COLOR = useColors();
@@ -388,6 +393,15 @@ export function ContentRowView({
               </Text>
               <DateChip row={row} isReminder={row.isReminder} />
             </View>
+            {meta ? (
+              <Text
+                className={`mt-space-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+                style={{ fontSize: 13, fontVariant: ["tabular-nums"] }}
+                numberOfLines={1}
+              >
+                {meta}
+              </Text>
+            ) : null}
             {/* offload is still reading a row somebody typed straight in. The
                 one spinner, not a second progress word: the readme reserves
                 "filing" for a row that does not know where it is going, and

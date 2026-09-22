@@ -66,7 +66,7 @@ export function ActivityPane() {
 
       <div className={pane.paneBody}>
         {rows === null ? (
-          <p className={pane.paneSub}>One moment</p>
+          <span className={pane.paneSpinner} role="status" aria-label="loading" />
         ) : rows.length === 0 ? (
           <div className={pane.actEmpty}>
             <p className={pane.actEmptyTitle}>Nothing yet</p>
