@@ -87,6 +87,13 @@ export function currentMe(): Me | null {
   return cached;
 }
 
+/** The cache goes with the session, so the next person in this browser never
+ *  draws a date in the last one's clock. Called by sign-out once the server
+ *  has ended the session. 023, from the security review of 2026-09-22. */
+export function forgetMe(): void {
+  cached = null;
+}
+
 /** Hear every change to the identity; returns the way to stop. */
 export function onMe(listener: (me: Me) => void): () => void {
   const handler = (event: Event) => listener((event as CustomEvent<Me>).detail);

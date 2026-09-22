@@ -634,9 +634,11 @@ class QuickAddContext:
 
 _TYPED = text(
     """
-    select c.id, c.title, c.thread_id, t.name as thread_name
+    select c.id, c.title, c.thread_id, t.name as thread_name,
+           a.time_zone as account_time_zone
       from content c
       join threads t on t.id = c.thread_id
+      join accounts a on a.id = c.account_id
      where c.id = :content_id
        and c.account_id = :account_id
        and c.deleted_at is null
@@ -758,6 +760,8 @@ async def load_quick_add(
         await conn.execute(_THREAD_NOTES, {"thread_id": row.thread_id, "account_id": account_id})
     ).all()
 
+    # The account's clock, else the zone the device sent with the typed row.
+    zone = clock_zone(row.account_time_zone, time_zone)
     return QuickAddContext(
         content_id=str(row.id),
         thread_id=str(row.thread_id),
@@ -770,8 +774,8 @@ async def load_quick_add(
         notes=[n.text for n in reversed(notes) if n.theirs],
         notes_from_members=[n.text for n in reversed(notes) if not n.theirs],
         pieces=[Piece(title=p.title, done=p.done) for p in pieces],
-        today=await today_in(conn, time_zone),
-        time_zone=time_zone,
+        today=await today_in(conn, zone),
+        time_zone=zone,
     )
 
 
@@ -825,16 +829,22 @@ class AnswerContext:
         return self.country_override or self.country
 
 
+# The account's clock first, then the zone the device sent with the message:
+# an answer or a quick add read in the device's zone while the dump was read
+# in the clock filed the wrong hour from a phone that was somewhere else.
 _MESSAGE_ZONE = text(
     """
-    select time_zone from messages
-     where id = :message_id and account_id = :account_id
+    select coalesce(a.time_zone, m.time_zone)
+      from messages m
+      join accounts a on a.id = m.account_id
+     where m.id = :message_id and m.account_id = :account_id
     """
 )
 
 
 async def message_zone(conn: AsyncConnection, *, message_id: str, account_id: str) -> str | None:
-    """The device's zone the message came with, or None for UTC."""
+    """The zone the message is read in: the account's clock, else the device's
+    zone the message came with, else None for UTC."""
     return (
         await conn.execute(_MESSAGE_ZONE, {"message_id": message_id, "account_id": account_id})
     ).scalar()

@@ -132,7 +132,7 @@ One spinner and no skeleton while a page loads. A sheet's Save and Clear and the
 
 ### The privacy page, as it will read
 
-The zone bullet in section 3 gains one clause, so the account's clock is named where the device's zone is: "Your device's time zone, sent with each thing you dump, type into a thread or answer, and kept with it, and once at first run, when it becomes the clock your dates are shown in until you change it in Settings. Nothing finer than the zone: no location, no clock." The product owner reads this before the code is written, per the rule in `CLAUDE.md`.
+The zone bullet in section 3 gains two sentences, so the account's clock and the one zone Keep remembers are named where the device's zone is: "Your device's time zone, sent with each thing you dump, type into a thread or answer, and kept with it, so that "tomorrow" and "3pm" mean what they meant where you were. The first one offload hears becomes the clock your dates are shown in, until you change it in Settings; and if you answer Keep when a phone is somewhere else, that one zone, so it does not ask again. Nothing finer than the zone: no location, no clock." "The first one offload hears" rather than "once at first run", because an account from before this feature takes its clock from the last zone a message carried, or from its next dump, and never sees first run again; and `kept_time_zone` is named because it is a stored fact about where a phone was, one zone deep, and the page lists what is kept. The product owner reads this before the code is written, per the rule in `CLAUDE.md`; the security review of the branch is what added the second sentence and the rewording.
 
 ### On the web
 

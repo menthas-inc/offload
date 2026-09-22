@@ -20,7 +20,10 @@ vi.stubGlobal("window", {
   removeEventListener: () => undefined,
 });
 
-const { completeOnboarding, updateClock } = await import("../src/lib/use-me");
+vi.mock("../src/lib/auth-client", () => ({ authClient: { signOut: async () => ({}) } }));
+
+const { completeOnboarding, currentMe, updateClock } = await import("../src/lib/use-me");
+const { signOut } = await import("../src/lib/sign-out");
 const { zoneFor } = await import("../src/lib/clock");
 
 beforeEach(() => {
@@ -61,6 +64,15 @@ describe("023 AC-3 the clock's writes", () => {
       { keptTimeZone: "Asia/Tokyo" },
       { followDevice: false },
     ]);
+  });
+});
+
+describe("the identity goes with the session", () => {
+  it("forgets who was signed in once sign-out has ended the session", async () => {
+    await updateClock({ timeZone: "Asia/Tokyo" });
+    expect(currentMe()?.timeZone).toBe("Asia/Tokyo");
+    await signOut();
+    expect(currentMe()).toBeNull();
   });
 });
 

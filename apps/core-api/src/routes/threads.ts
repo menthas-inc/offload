@@ -16,7 +16,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { timeZoneOf } from "../time-zone.js";
-import { formatRule, parseRule } from "@offload/widgets";
+import { formatRule, parseRule, utcDay } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
 import { Refused } from "../threads/refusals.js";
 import { db } from "../db.js";
@@ -528,31 +528,31 @@ export async function editContent(
   contentId: string,
   patch: ContentPatch,
 ): Promise<ContentSnapshot> {
-  const ref = await requireReadable(accountId, contentId);
   return db.transaction().execute(async (trx) => {
+    // Inside the transaction, so a member taken out between the check and the
+    // write cannot land one: 022 made removal an ordinary action.
+    const ref = await requireReadable(accountId, contentId, trx);
     const before = await trx
       .selectFrom("content")
       .select(["title", "body", "type", "due_at", "occurs_at", "occurs_end_at", "rrule", "is_reminder", "attrs", "source_ref"])
       .where("id", "=", ref.id)
       .executeTakeFirstOrThrow();
+    const wasAllDay = allDayOf(before.attrs);
+    // The snapshot is what Undo sends back whole, so it has to be a body this
+    // route accepts: a day is carried as a day, not as the noon instant it is
+    // stored at, or the all-day check below refuses its own row.
+    const carry = (held: Date | null): string | null =>
+      held ? (wasAllDay ? utcDay(held) : held.toISOString()) : null;
     const snapshot: ContentSnapshot = {
       title: before.title,
       body: before.body,
-      dueAt: before.due_at ? before.due_at.toISOString() : null,
-      occursAt: before.occurs_at ? before.occurs_at.toISOString() : null,
-      occursEndAt: before.occurs_end_at ? before.occurs_end_at.toISOString() : null,
-      allDay: allDayOf(before.attrs),
+      dueAt: carry(before.due_at),
+      occursAt: carry(before.occurs_at),
+      occursEndAt: carry(before.occurs_end_at),
+      allDay: wasAllDay,
       rrule: before.rrule,
       isReminder: before.is_reminder,
     };
-
-    const dated =
-      patch.dueAt !== undefined ||
-      patch.occursAt !== undefined ||
-      patch.occursEndAt !== undefined ||
-      patch.allDay !== undefined ||
-      patch.rrule !== undefined;
-    if (dated && before.source_ref) throw new Refused("on_calendar");
 
     const set: Record<string, unknown> = {
       ...(patch.title === undefined ? {} : { title: patch.title }),
@@ -561,49 +561,61 @@ export async function editContent(
       updated_at: sql`now()`,
     };
 
+    const zone = await zoneOf(accountId, trx);
+    const read = (value: string | null | undefined, held: Date | null): Date | null => {
+      if (value === undefined) return held;
+      if (value === null) return null;
+      const at = parseWhen(value, zone);
+      if (!at || !plausible(at)) throw new Refused("bad_date");
+      return at;
+    };
+    const dueAt = read(patch.dueAt, before.due_at);
+    const occursAt = read(patch.occursAt, before.occurs_at);
+    // Clearing the occurrence clears its end: an end with no start is a span
+    // from nowhere.
+    const occursEndAt = patch.occursAt === null ? null : read(patch.occursEndAt, before.occurs_end_at);
+    if (occursEndAt && !occursAt) throw new Refused("bad_date");
+    if (occursEndAt && occursAt && occursEndAt < occursAt) throw new Refused("bad_date");
+
+    // Whether the row is a day or a time: said outright, else read off the
+    // value the type's column was given, else left as it was.
+    const given = before.type === "event" ? patch.occursAt : patch.dueAt;
+    let allDay = wasAllDay;
+    if (patch.allDay !== undefined) {
+      if (given && patch.allDay !== isBareDate(given)) throw new Refused("bad_date");
+      allDay = patch.allDay;
+    } else if (given) {
+      allDay = isBareDate(given);
+    }
+
+    // A rule anchors on the type's column as it stands after this edit.
+    // Clearing the anchor clears the rule; a rule given with nothing to
+    // anchor on, or outside the grammar, is refused by name.
+    const anchor = before.type === "event" ? occursAt : dueAt;
+    let rule = before.rrule;
+    if (patch.rrule !== undefined) {
+      if (patch.rrule === null) rule = null;
+      else {
+        const parsed = parseRule(patch.rrule);
+        if (!parsed.ok || anchor === null) throw new Refused("bad_rule");
+        rule = formatRule(parsed.rule);
+      }
+    }
+    if (anchor === null) rule = null;
+
+    // A date change is a value that differs from what the row holds, not a
+    // field that was merely sent: Undo sends every field back, and a title
+    // put back on a calendar-backed row is not a date change.
+    const same = (a: Date | null, b: Date | null): boolean => (a?.getTime() ?? null) === (b?.getTime() ?? null);
+    const dated =
+      !same(dueAt, before.due_at) ||
+      !same(occursAt, before.occurs_at) ||
+      !same(occursEndAt, before.occurs_end_at) ||
+      allDay !== wasAllDay ||
+      rule !== before.rrule;
+    if (dated && before.source_ref) throw new Refused("on_calendar");
+
     if (dated) {
-      const zone = await zoneOf(accountId, trx);
-      const read = (value: string | null | undefined, held: Date | null): Date | null => {
-        if (value === undefined) return held;
-        if (value === null) return null;
-        const at = parseWhen(value, zone);
-        if (!at || !plausible(at)) throw new Refused("bad_date");
-        return at;
-      };
-      const dueAt = read(patch.dueAt, before.due_at);
-      const occursAt = read(patch.occursAt, before.occurs_at);
-      // Clearing the occurrence clears its end: an end with no start is a span
-      // from nowhere.
-      const occursEndAt = patch.occursAt === null ? null : read(patch.occursEndAt, before.occurs_end_at);
-      if (occursEndAt && !occursAt) throw new Refused("bad_date");
-      if (occursEndAt && occursAt && occursEndAt < occursAt) throw new Refused("bad_date");
-
-      // Whether the row is a day or a time: said outright, else read off the
-      // value the type's column was given, else left as it was.
-      const given = before.type === "event" ? patch.occursAt : patch.dueAt;
-      let allDay = allDayOf(before.attrs);
-      if (patch.allDay !== undefined) {
-        if (given && patch.allDay !== isBareDate(given)) throw new Refused("bad_date");
-        allDay = patch.allDay;
-      } else if (given) {
-        allDay = isBareDate(given);
-      }
-
-      // A rule anchors on the type's column as it stands after this edit.
-      // Clearing the anchor clears the rule; a rule given with nothing to
-      // anchor on, or outside the grammar, is refused by name.
-      const anchor = before.type === "event" ? occursAt : dueAt;
-      let rule = before.rrule;
-      if (patch.rrule !== undefined) {
-        if (patch.rrule === null) rule = null;
-        else {
-          const parsed = parseRule(patch.rrule);
-          if (!parsed.ok || anchor === null) throw new Refused("bad_rule");
-          rule = formatRule(parsed.rule);
-        }
-      }
-      if (anchor === null) rule = null;
-
       Object.assign(set, {
         due_at: dueAt,
         occurs_at: occursAt,

@@ -1371,6 +1371,43 @@ describe("023 the when field on the edit", () => {
     expect(row.is_reminder).toBe(true);
   });
 
+  it("Undo puts back an all-day date that Clear removed, because previous carries the day as a day", async () => {
+    // The security review of 2026-09-22: the snapshot carried the stored
+    // instant with allDay true, and the route's own consistency check refused
+    // it, so Clear then Undo lost the date for good on the commonest row.
+    const me = await account();
+    const th = await thread(me, "Flat admin");
+    const id = await task(me, th, { due_at: new Date("2026-09-25T12:00:00Z"), attrs: { all_day: true } });
+
+    const previous = await editContent(me, id, { dueAt: null });
+    expect(previous.dueAt).toBe("2026-09-25");
+    expect(previous.allDay).toBe(true);
+    expect((await held(id)).due_at).toBeNull();
+
+    await editContent(me, id, previous);
+    const row = await held(id);
+    expect(row.due_at?.toISOString()).toBe("2026-09-25T12:00:00.000Z");
+    expect(allDayOf(row.attrs)).toBe(true);
+  });
+
+  it("Undo of a title change is not refused on a row that is on a calendar", async () => {
+    // Same review: previous carries every date field, and a date field merely
+    // present read as a date change, which a calendar-backed row refuses.
+    const me = await account();
+    const th = await thread(me, "Flat admin");
+    const id = await task(me, th, {
+      type: "event",
+      occurs_at: new Date("2026-09-25T08:00:00Z"),
+      source_ref: { provider: "google", eventId: "evt_1" },
+    });
+
+    const previous = await editContent(me, id, { title: "Rent day" });
+    expect((await held(id)).title).toBe("Rent day");
+    await editContent(me, id, previous);
+    expect((await held(id)).title).toBe("Pay the rent");
+    expect((await held(id)).occurs_at?.toISOString()).toBe("2026-09-25T08:00:00.000Z");
+  });
+
   it("a rule is stored canonical and refused by name outside the grammar or without its anchor", async () => {
     const me = await account();
     const th = await thread(me, "Flat admin");
@@ -1407,7 +1444,6 @@ describe("023 the when field on the edit", () => {
     await expect(editContent(me, id, { allDay: true })).rejects.toMatchObject({ code: "on_calendar" });
     await editContent(me, id, { title: "Dentist" });
     expect((await held(id)).title).toBe("Dentist");
-    expect(Refused).toBeDefined();
   });
 
   it("is scoped per row by membership, so any member may set or clear a date", async () => {

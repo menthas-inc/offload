@@ -17,8 +17,10 @@ vi.mock("../lib/api", () => ({
   send: async () => ({ status: 200, data: null }),
 }));
 vi.mock("../lib/log", () => ({ failed: () => undefined }));
+const signedOut: (() => void)[] = [];
+vi.mock("../lib/auth", () => ({ onSignedOut: (listener: () => void) => signedOut.push(listener) }));
 
-const { setClock } = await import("../lib/me");
+const { currentMe, setClock } = await import("../lib/me");
 const { zoneFor } = await import("../lib/clock");
 
 beforeEach(() => {
@@ -42,6 +44,15 @@ describe("023 AC-3 the clock's writes", () => {
       { keptTimeZone: "Asia/Tokyo" },
       { followDevice: false },
     ]);
+  });
+});
+
+describe("the identity goes with the session", () => {
+  it("forgets who was signed in once sign-out has ended the session", async () => {
+    await setClock({ timeZone: "Asia/Tokyo" });
+    expect(currentMe()?.timeZone).toBe("Asia/Tokyo");
+    for (const listener of signedOut) listener();
+    expect(currentMe()).toBeNull();
   });
 });
 

@@ -284,6 +284,17 @@ export async function signOut(): Promise<void> {
   // this device, so anything added later is added here rather than at a call
   // site that would not know to.
   await Promise.all(SESSION_KEYS.map((key) => forget(key)));
+  for (const listener of signedOut) listener();
+}
+
+const signedOut = new Set<() => void>();
+
+/** Hear the session end on this device, for anything holding a copy of who
+ *  was signed in: the identity cache kept the last account's clock and name
+ *  in memory for the next person on a shared phone until a screen asked
+ *  again. 023, from the security review of 2026-09-22. */
+export function onSignedOut(listener: () => void): void {
+  signedOut.add(listener);
 }
 
 /** A key and, when the plugin split its value, the chunks under it.

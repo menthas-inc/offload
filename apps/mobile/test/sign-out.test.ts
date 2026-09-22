@@ -45,7 +45,7 @@ vi.mock("better-auth/react", () => ({
   }),
 }));
 
-const { signOut, SignOutFailed } = await import("../lib/auth");
+const { onSignedOut, signOut, SignOutFailed } = await import("../lib/auth");
 
 beforeEach(() => {
   deleted.length = 0;
@@ -72,6 +72,15 @@ describe("AC-3 signing out waits for the server", () => {
       "offload_cookie.2",
       "offload_session_data",
     ]);
+  });
+
+  it("tells whoever holds a copy of the session once it has ended, and not before", async () => {
+    let told = 0;
+    onSignedOut(() => {
+      told += 1;
+    });
+    await signOut();
+    expect(told).toBe(1);
   });
 
   it("leaves the session alone when the call fails, and says so", async () => {

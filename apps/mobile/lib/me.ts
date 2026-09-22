@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { request, send } from "./api";
+import { onSignedOut } from "./auth";
 import { failed } from "./log";
 
 export interface Me {
@@ -70,6 +71,12 @@ const listeners = new Set<Listener>();
  *  or by `ensureMe`, and kept current by every write that broadcasts. */
 let cached: Me | null = null;
 let asking: Promise<void> | null = null;
+
+// The cache goes with the session, so the next person on this phone never
+// draws a date in the last one's clock.
+onSignedOut(() => {
+  cached = null;
+});
 
 function announce(me: Me): void {
   cached = me;
