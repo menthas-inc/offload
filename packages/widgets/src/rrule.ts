@@ -71,7 +71,9 @@ const KEYS = ["FREQ", "INTERVAL", "BYDAY", "BYMONTHDAY", "UNTIL", "COUNT", "WKST
 type Key = (typeof KEYS)[number];
 const BYTES = /^[A-Z0-9;=,+-]+$/;
 const UNTIL = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/;
-const ORDINAL = /^([+-]?[1-4]|-1)(MO|TU|WE|TH|FR|SA|SU)$/;
+// 1 to 4 or -1, and nothing else: [+-]?[1-4] once let -2 through, which the
+// monthly step then placed in the previous month.
+const ORDINAL = /^(\+?[1-4]|-1)(MO|TU|WE|TH|FR|SA|SU)$/;
 
 function isWeekday(value: string): value is Weekday {
   return (WEEKDAYS as readonly string[]).includes(value);
@@ -249,7 +251,11 @@ function take(rule: Rule, anchor: string, from: string, end: string | null, limi
     const wkst = rule.wkst ?? "MO";
     const base = startOfWeek(anchor, wkst);
     const span = 7 * rule.interval;
-    const offsets = rule.byDay!.map((day) => (WEEKDAYS.indexOf(day) - WEEKDAYS.indexOf(wkst) + 7) % 7);
+    // In the week's own order, not BYDAY's: with WKST=WE a Thursday comes
+    // before the next Monday, and the earliest day has to be pushed first.
+    const offsets = rule
+      .byDay!.map((day) => (WEEKDAYS.indexOf(day) - WEEKDAYS.indexOf(wkst) + 7) % 7)
+      .sort((a, b) => a - b);
     let k = Math.max(0, Math.floor(daysBetween(base, start) / span) - 1);
     for (let steps = 0; steps < RULE_STEP_CAP; steps += 1, k += 1) {
       const weekStart = addDays(base, k * span);

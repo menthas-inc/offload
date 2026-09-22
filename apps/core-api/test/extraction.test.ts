@@ -928,6 +928,20 @@ describe("dates a model actually writes", () => {
     expect((row.attrs as Record<string, unknown>)["all_day"]).toBe(true);
   });
 
+  it("refuses an event whose end comes before its start, as the sheet's route does", async () => {
+    // The code review of 2026-09-22: the model-facing writers stored a
+    // reversed span where the person-facing route refuses one.
+    const me = await account();
+    const t = await thread(me, "Flat admin");
+    const { jobId } = await dump(me);
+    const reversed = await tool({
+      tool: "add_content", jobId, toolCallId: "t1", threadId: t,
+      title: "Drinks", type: "event", occursAt: "2026-10-01T18:00:00", occursEndAt: "2026-10-01T17:00:00",
+    });
+    expect(reversed.statusCode).toBe(200);
+    expect(reversed.json()).toMatchObject({ ok: false, error: "bad_date" });
+  });
+
   it("anchors a task's rule on its due date, and refuses a rule with nothing to anchor on by name", async () => {
     // "Pay rent every month" as a task with a due date is a repeating task
     // since 023: the rule anchors on the type's column. A rule with no date

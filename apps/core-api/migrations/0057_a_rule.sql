@@ -64,11 +64,17 @@ update notes set rrule =
   || coalesce(';UNTIL=' || to_char(repeats_until at time zone 'UTC', 'YYYYMMDD"T"HH24MISS"Z"'), '')
   where repeats is not null;
 
--- A repeating task from before this anchored on its occurrence. It keeps
--- that and gains it as the day it is wanted by, which is where its rule
--- anchors now.
+-- A repeating task from before this anchored on its occurrence, which 0036
+-- required of every repeating row. That day becomes the day it is wanted by,
+-- where its rule anchors now, and the occurrence goes: left in place, the
+-- rail drew the series once from the rule and the old anchor once more as a
+-- stray point on its day.
+-- anchor:begin
 update content set due_at = occurs_at
   where rrule is not null and type <> 'event' and due_at is null;
+update content set occurs_at = null
+  where rrule is not null and type <> 'event' and occurs_at is not null;
+-- anchor:end
 
 alter table content drop constraint content_repeats_needs_a_date;
 alter table content drop constraint content_repeats_or_series;

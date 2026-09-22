@@ -9,7 +9,7 @@
 import { readFileSync } from "node:fs";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "kysely";
-import { isCanonicalRule } from "@offload/widgets";
+import { isCanonicalRule, nextOnOrAfter, occurrencesIn, parseRule } from "@offload/widgets";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { uuidv7 } from "../src/uuid.js";
@@ -96,6 +96,58 @@ describe("AC-7 the migration", () => {
     expect(byInput.get("year")).toBe("FREQ=YEARLY");
     expect(rows[6]?.rrule).toBe("FREQ=WEEKLY;UNTIL=20261006T085959Z");
     for (const row of rows) expect(isCanonicalRule(row.rrule), row.rrule).toBe(true);
+  });
+});
+
+describe("AC-7 the migration's anchors", () => {
+  it("moves a repeating task's anchor to the day it is wanted by and drops the occurrence it anchored on", async () => {
+    // The code review of 2026-09-22: the backfill copied the occurrence into
+    // the due date and left it in place, so every migrated repeating task
+    // drew twice on the rail, once as its series and once as a stray point.
+    const statements = marked("anchor")
+      .split(";")
+      .map((statement) => statement.replace(/--[^\n]*/g, "").trim())
+      .filter(Boolean)
+      .map((statement) => statement.replace(/\bcontent\b/g, "legacy_content"));
+    expect(statements).toHaveLength(2);
+    const rows = await db.transaction().execute(async (trx) => {
+      await sql`create temp table legacy_content (id int, type text, rrule text, due_at timestamptz, occurs_at timestamptz) on commit drop`.execute(trx);
+      await sql`insert into legacy_content values
+        (1, 'task', 'FREQ=WEEKLY', null, '2026-09-29T12:00:00Z'),
+        (2, 'task', 'FREQ=WEEKLY', '2026-09-25T12:00:00Z', '2026-09-29T12:00:00Z'),
+        (3, 'event', 'FREQ=WEEKLY', null, '2026-09-29T12:00:00Z'),
+        (4, 'task', null, null, '2026-09-29T12:00:00Z')`.execute(trx);
+      for (const statement of statements) await sql.raw(statement).execute(trx);
+      const result = await sql<{ id: number; due_at: Date | null; occurs_at: Date | null }>`
+        select id, due_at, occurs_at from legacy_content order by id
+      `.execute(trx);
+      return result.rows;
+    });
+    // The anchor moves and the occurrence goes.
+    expect(rows[0]?.due_at?.toISOString()).toBe("2026-09-29T12:00:00.000Z");
+    expect(rows[0]?.occurs_at).toBeNull();
+    // A due date already set is kept; the occurrence still goes.
+    expect(rows[1]?.due_at?.toISOString()).toBe("2026-09-25T12:00:00.000Z");
+    expect(rows[1]?.occurs_at).toBeNull();
+    // An event's occurrence is its anchor and stays; a row with no rule is untouched.
+    expect(rows[2]?.occurs_at?.toISOString()).toBe("2026-09-29T12:00:00.000Z");
+    expect(rows[3]?.occurs_at?.toISOString()).toBe("2026-09-29T12:00:00.000Z");
+    expect(rows[3]?.due_at).toBeNull();
+  });
+});
+
+describe("AC-3 a week that starts elsewhere", () => {
+  it("names the earliest day on or after the window's start, whatever order BYDAY was written in", () => {
+    // The code review of 2026-09-22: the weekly step walked BYDAY in its
+    // Monday-first order, so with WKST=WE a Thursday came after the next
+    // Monday and the first occurrence in a window was a later one.
+    const parsed = parseRule("FREQ=WEEKLY;BYDAY=MO,TU,TH;WKST=WE");
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(occurrencesIn(parsed.rule, "2026-09-28", "2026-10-01", "2026-10-07")).toEqual([
+      "2026-10-01", "2026-10-05", "2026-10-06",
+    ]);
+    expect(nextOnOrAfter(parsed.rule, "2026-09-28", "2026-10-01")).toBe("2026-10-01");
   });
 });
 

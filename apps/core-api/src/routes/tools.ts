@@ -807,7 +807,19 @@ function parseDates(
     if (!at || !plausible(at)) return null;
     when[field] = at;
   }
+  // A span that ends before it starts is refused here as the person-facing
+  // route refuses it, rather than stored and drawn as a point.
+  if (when.occursEndAt && when.occursAt && when.occursEndAt < when.occursAt) return null;
   return when;
+}
+
+/** The series a calendar is told about: the stored rule, parsed and
+ *  re-serialised once more rather than concatenated as it lies in the column,
+ *  which the check constraint bounds more loosely than the grammar does. */
+function seriesFor(stored: string | null): string[] | null {
+  if (!stored) return null;
+  const parsed = parseRule(stored);
+  return parsed.ok ? [`RRULE:${formatRule(parsed.rule)}`] : null;
 }
 
 /** The rule a call carries, canonical, or null for none, or false for one
@@ -1181,7 +1193,7 @@ async function existing(
         attendees: call.guests ?? [],
         // 023. A repeating row goes up as the series it is, in the rule's
         // own words: until now the rule was dropped and one event went up.
-        recurrence: detail.rrule ? [`RRULE:${detail.rrule}`] : null,
+        recurrence: seriesFor(detail.rrule),
       },
     };
 

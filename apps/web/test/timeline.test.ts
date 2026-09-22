@@ -97,6 +97,26 @@ describe("the span", () => {
   });
 });
 
+describe("a rule's first day is a date like any other", () => {
+  it("keeps the span it had before the rule was added, and its dot (023)", () => {
+    // Found on the web on 2026-09-22: a task due next Wednesday drew its dot
+    // and its week; given "every week" it lost both, because a rule did not
+    // count toward the span at all. Its later occurrences fill the span; its
+    // first day is a real date and makes it.
+    const once = railFor([point("a", "2026-09-30", "task")], TODAY, "monday");
+    const ruled = railFor([{ ...point("a", "2026-09-30", "task"), rule: parsed("week") }], TODAY, "monday");
+    expect(ruled).toHaveLength(once.length);
+    expect(weeksSpanned([{ ...point("a", "2026-09-30", "task"), rule: parsed("week") }], TODAY, "monday")).toBe(3);
+    const day = weeks(ruled).flatMap((week) => week.days).find((d) => d.iso === "2026-09-30");
+    expect(day?.dots).toHaveLength(1);
+  });
+
+  it("still does not stretch the span with its later occurrences", () => {
+    const rail = railFor([{ ...point("a", "2026-09-16", "task"), rule: parsed("week") }], TODAY, "monday");
+    expect(rail).toHaveLength(1);
+  });
+});
+
 describe("past a few weeks it is a month, not a rail", () => {
   it("counts the weeks a thread spans", () => {
     expect(weeksSpanned([], TODAY, "monday")).toBe(1);

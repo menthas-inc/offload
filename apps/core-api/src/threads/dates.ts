@@ -1,3 +1,9 @@
+import { instantIn } from "@offload/widgets";
+
+// 023. A wall time in the account's zone lives in the widgets package now, so a
+// client can draw the instant it asked for exactly as this module reads it.
+export { instantIn };
+
 // Reading a date a model wrote.
 //
 // **This file exists because of a production failure.** The schema accepted
@@ -105,50 +111,3 @@ export function plausible(at: Date, now = new Date()): boolean {
   return years < MAX_YEARS_AHEAD && years > -MAX_YEARS_BEHIND;
 }
 
-/** A wall time in a zone, as the instant it names.
- *
- *  `2026-09-25T09:00` in Europe/Lisbon is 08:00Z in September and 09:00Z in
- *  November, and this is the only place that arithmetic lives. Two passes
- *  through the zone's offset, because the offset at the naive guess and the
- *  offset at the answer differ across a clock change; a time inside a missing
- *  hour lands on the instant after it, which is what every calendar does.
- *  With no zone the wall time is UTC, as before 023. */
-export function instantIn(naive: string, zone: string | null): Date | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/.exec(naive.trim());
-  if (!match) return null;
-  const [y, mo, d, h, mi, s] = match.slice(1).map((part) => Number(part ?? 0));
-  const guess = Date.UTC(y!, mo! - 1, d!, h!, mi!, s ?? 0);
-  if (Number.isNaN(guess)) return null;
-  if (!zone) return new Date(guess);
-
-  let format: Intl.DateTimeFormat;
-  try {
-    format = new Intl.DateTimeFormat("en-CA", {
-      timeZone: zone,
-      hourCycle: "h23",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  } catch {
-    return new Date(guess);
-  }
-  const offsetAt = (at: number): number => {
-    const parts = Object.fromEntries(format.formatToParts(new Date(at)).map((part) => [part.type, part.value]));
-    const wall = Date.UTC(
-      Number(parts["year"]),
-      Number(parts["month"]) - 1,
-      Number(parts["day"]),
-      Number(parts["hour"]) % 24,
-      Number(parts["minute"]),
-      Number(parts["second"]),
-    );
-    return wall - at;
-  };
-  let at = guess - offsetAt(guess);
-  at = guess - offsetAt(at);
-  return new Date(at);
-}

@@ -330,6 +330,17 @@ function dayAtIso(
   };
 }
 
+/** What the span is made of: everything that happens once as it is, and a
+ *  repeating thing as its first day alone, and only while that day is still
+ *  ahead. A rule that began two years ago has nothing left to reach; the days
+ *  it has already filled are not a span to draw back to. */
+function firstDays(dated: readonly Dated[], today: string): Dated[] {
+  return dated.flatMap((one) => {
+    if (!one.rule) return [one];
+    return one.from >= today ? [{ ...one, rule: null, to: one.from }] : [];
+  });
+}
+
 /** How many whole weeks the thread's dates span, today included.
  *
  *  What decides whether the rail draws weeks or a month. */
@@ -341,8 +352,11 @@ export function weeksSpanned(
   // **A rule does not stretch the span.** "Every Tuesday" with no end would
   // otherwise make every thread a year long and push it into the month view
   // forever. The span comes from things that happen once, and the rule fills
-  // whatever that span turns out to be.
-  const known = [...dotsByDay(dated.filter((one) => !one.rule)).keys()].sort();
+  // whatever that span turns out to be. Its first day counts, though: a task
+  // due next Wednesday that gains "every week" is still due next Wednesday,
+  // and it lost its week and its dot until 023 said so; a first day already
+  // behind today does not draw the rail back to it.
+  const known = [...dotsByDay(firstDays(dated, today)).keys()].sort();
   const first = startOfWeek(known[0] && known[0] < today ? known[0] : today, weekStart);
   const lastKnown = known[known.length - 1];
   const last = startOfWeek(lastKnown && lastKnown > today ? lastKnown : today, weekStart);
@@ -364,9 +378,10 @@ export function railFor(
   weekStart: WeekStart = "monday",
   locale?: string,
 ): RailRow[] {
-  // The span comes from what happens once; a rule fills it rather than
-  // stretching it. See `weeksSpanned`.
-  const once = [...dotsByDay(dated.filter((one) => !one.rule)).keys()].sort();
+  // The span comes from what happens once, and from a rule's first day; a
+  // rule's later occurrences fill it rather than stretching it. See
+  // `weeksSpanned`.
+  const once = [...dotsByDay(firstDays(dated, today)).keys()].sort();
   const first = startOfWeek(once[0] && once[0] < today ? once[0] : today, weekStart);
   const lastOnce = once[once.length - 1];
   const lastDay = lastOnce && lastOnce > today ? lastOnce : today;

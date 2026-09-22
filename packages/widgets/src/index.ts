@@ -519,10 +519,27 @@ export {
   presetsFor,
 } from "./rrule.js";
 export type { Freq, ParsedRule, Preset, Rule, RuleRefusal, Weekday } from "./rrule.js";
-export { addDays as addUtcDays, dayIn, daysBetween, noonUtc, utcDay } from "./days.js";
+export { addDays as addUtcDays, dayIn, daysBetween, instantIn, noonUtc, utcDay } from "./days.js";
 export { SOON_DAYS, changeToken, chipFor, nearness, timeIn, whenDayOf, whenOf } from "./nearness.js";
 export type { Chip, ChipRow, Nearness } from "./nearness.js";
 
 // 023. The zone list, the city a person reads, and when the strip shows.
 export { KNOWN_ZONES, ZONE_REGIONS, knownZones, modernZoneName, zoneCity, zoneStrip, zonesByRegion } from "./zones.js";
 export type { ZoneClock, ZoneGroup } from "./zones.js";
+
+// 023. The when field as the sheets hold it, and what a row draws before the
+// server answers.
+export {
+  NOTHING,
+  anHourAfter,
+  clockLabel,
+  drawnWhen,
+  patchFor,
+  repeatsLabel,
+  sameWhen,
+  timeHM,
+  whenChipLabel,
+  whenLabel,
+  whenValueOf,
+} from "./when.js";
+export type { WhenPatch, WhenValue } from "./when.js";
