@@ -24,6 +24,12 @@ export RCLONE_CONFIG_R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
 export RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
 export RCLONE_CONFIG_R2_ENDPOINT="${RCLONE_CONFIG_R2_ENDPOINT:-https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com}"
 export RCLONE_CONFIG_R2_ACL="private"
+# The token can read and write objects in this one bucket and nothing else,
+# so rclone must not go looking for the bucket: without this it asks whether
+# the bucket exists, is refused, assumes it does not, and tries to create it,
+# which the first run in production did. Found there, not locally, because the
+# local check stands a directory in for R2.
+export RCLONE_CONFIG_R2_NO_CHECK_BUCKET="true"
 
 STAMP="$(date -u +%Y-%m-%dT%H%M%SZ)"
 TARGET="r2:${R2_BUCKET}/${PREFIX}/${STAMP}.dump.age"

@@ -75,6 +75,13 @@
      nothing to point at. 015's rail is the second surface to need it, so the
      alias is the fix rather than a third literal. */
   --surface-noticed:var(--amber-600);
+  /* 023's date chip: the two soft grounds a row's nearness is drawn on. Amber
+     rather than blue for soon, because blue is the attention colour and would
+     read as offload asking for something; clay for late, the pair a failure
+     already uses. Minted because the ramps had no alias and code may not
+     consume a ramp. */
+  --surface-noticed-soft:var(--amber-100);
+  --surface-danger-soft:var(--clay-100);
   --surface-scrim:rgba(11,11,11,0.32);
   --surface-scrim-soft:rgba(11,11,11,0.16);
   --surface-chrome:var(--surface-raised);
@@ -133,7 +140,7 @@
   --surface-card:var(--paper);--surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);
   --surface-inverse:var(--ink-950);--surface-accent-soft:var(--moss-50);
   --surface-attention-soft:var(--blue-100);--surface-attention:var(--blue-600);
-  --surface-noticed:var(--amber-600);
+  --surface-noticed:var(--amber-600);--surface-noticed-soft:var(--amber-100);--surface-danger-soft:var(--clay-100);
   --surface-scrim:rgba(11,11,11,0.32);--surface-scrim-soft:rgba(11,11,11,0.16);
   --surface-chrome:var(--surface-raised);--surface-chrome-strong:var(--surface-raised);
   --surface-input:var(--ink-100);
@@ -175,7 +182,8 @@
   --surface-card:#212121;--surface-sunken:#101010;
   --surface-fill:var(--ink-100);--surface-fill-strong:var(--ink-150);--surface-inverse:var(--ink-950);
   --surface-accent-soft:var(--moss-50);--surface-attention-soft:var(--blue-100);
-  --surface-attention:var(--blue-600);--surface-noticed:var(--amber-600);--surface-scrim:rgba(0,0,0,0.55);
+  --surface-attention:var(--blue-600);--surface-noticed:var(--amber-600);--surface-noticed-soft:var(--amber-100);
+  --surface-danger-soft:var(--clay-100);--surface-scrim:rgba(0,0,0,0.55);
   --surface-scrim-soft:rgba(0,0,0,0.50);
   --surface-chrome:var(--surface-raised);--surface-chrome-strong:var(--surface-raised);
   --surface-input:#2E2E2E;

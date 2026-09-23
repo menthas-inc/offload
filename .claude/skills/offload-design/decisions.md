@@ -11,6 +11,16 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-22 · Two soft grounds for the date chip
+**Surface:** iOS, Android, web
+**Raised by:** 023, building the date chip the apply note of the same day specifies.
+
+**Is:** `--surface-danger-soft` over `--clay-100` and `--surface-noticed-soft` over `--amber-100`, in all three scopes, for the chip's late and soon grounds.
+
+**The apply note said no new tokens, and named two ramps.** `--clay-100` and `--amber-100` had no alias: `--surface-noticed` is the solid amber and `--text-noticed` its ink, and nothing sat beside them as the soft fill. Code may not consume a ramp, `pnpm lint` reads the generated rule file to make sure of it, so the choice was a third literal or an alias. An alias, as the rail's lift and the two dangers before it.
+
+**Design system impact:** two tokens, 351 in all. The kits' chip, when it is drawn, reads these rather than the ramps.
+
 ### 2026-09-22 · Due dates a person can set, and the two digests that read them
 **Surface:** iOS, Android, web
 **Raised by:** the product owner, ahead of the notifications and due-dates feature. Read off `main` at `b494d0e`, drawn in `explorations/due-dates-and-notifications.html`, decided the same day. Handoff: `handoff/APPLY-2026-09-22-dates.md`.
