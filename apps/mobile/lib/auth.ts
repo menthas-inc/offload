@@ -270,6 +270,13 @@ export class SignOutFailed extends Error {
 export async function signOut(): Promise<void> {
   const expired = Symbol("expired");
 
+  // Read before the call. The plugin clears the stored cookie and session data
+  // as it *prepares* the sign-out request, before the server has answered
+  // anything (`clearSessionCache` in its request hook), so without this a call
+  // that failed left the device with nothing to retry with and no gate in
+  // sight: a toast, then every screen empty, on the Pixel on 2026-09-23.
+  const held = await Promise.all(SESSION_KEYS.map((key) => snapshot(key)));
+
   const outcome = await Promise.race([
     authClient.signOut().then(
       () => "done" as const,
@@ -278,12 +285,44 @@ export async function signOut(): Promise<void> {
     new Promise<typeof expired>((resolve) => setTimeout(() => resolve(expired), PATIENCE_MS)),
   ]);
 
-  if (outcome !== "done") throw new SignOutFailed();
+  if (outcome !== "done") {
+    await Promise.all(held.map((entries) => restore(entries)));
+    throw new SignOutFailed();
+  }
 
   // Only now. This is the one place that knows what a session is made of on
   // this device, so anything added later is added here rather than at a call
   // site that would not know to.
   await Promise.all(SESSION_KEYS.map((key) => forget(key)));
+}
+
+/** Who to tell when the server refuses the session this device holds. The
+ *  shell subscribes and shows the gate; nothing under `lib/` knows the router. */
+const refusedListeners = new Set<() => void>();
+
+export function onSessionRefused(listener: () => void): () => void {
+  refusedListeners.add(listener);
+  return () => {
+    refusedListeners.delete(listener);
+  };
+}
+
+let refusing: Promise<void> | null = null;
+
+/** The server answered 401 to a request that carried the cookie.
+ *
+ *  Expired, ended from another device under "Signed in on", or a sign-out the
+ *  server did process and this device never heard the answer to. Whichever it
+ *  was, the keys stand for nothing now: forgotten, once for a burst rather
+ *  than once per screen that asked, and then the shell is told. */
+export function sessionRefused(): Promise<void> {
+  refusing ??= (async () => {
+    await Promise.all(SESSION_KEYS.map((key) => forget(key)));
+    for (const listener of refusedListeners) listener();
+  })().finally(() => {
+    refusing = null;
+  });
+  return refusing;
 }
 
 /** A key and, when the plugin split its value, the chunks under it.
@@ -293,9 +332,33 @@ export async function signOut(): Promise<void> {
  *  marker alone left the chunks, which is where the token would have been
  *  (security review 2026-09-22, L31). The marker is read first, so the count
  *  is the plugin's and not a guess. */
-async function forget(key: string): Promise<void> {
+async function chunked(key: string): Promise<string[]> {
   const stored = await SecureStore.getItemAsync(key).catch(() => null);
   const count = stored?.startsWith("ba-chunks:") ? Number(stored.slice("ba-chunks:".length)) : 0;
-  const keys = [key, ...Array.from({ length: Number.isInteger(count) && count > 0 ? count : 0 }, (_, i) => `${key}.${i}`)];
+  return [key, ...Array.from({ length: Number.isInteger(count) && count > 0 ? count : 0 }, (_, i) => `${key}.${i}`)];
+}
+
+async function forget(key: string): Promise<void> {
+  const keys = await chunked(key);
   await Promise.all(keys.map((k) => SecureStore.deleteItemAsync(k).catch(() => undefined)));
+}
+
+/** What is stored under a key and its chunks, to be put back exactly. */
+async function snapshot(key: string): Promise<Array<[string, string]>> {
+  const entries: Array<[string, string]> = [];
+  for (const k of await chunked(key)) {
+    const value = await SecureStore.getItemAsync(k).catch(() => null);
+    if (value !== null) entries.push([k, value]);
+  }
+  return entries;
+}
+
+async function restore(entries: Array<[string, string]>): Promise<void> {
+  await Promise.all(
+    entries.map(([k, value]) =>
+      SecureStore.setItemAsync(k, value, {
+        keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+      }).catch(() => undefined),
+    ),
+  );
 }

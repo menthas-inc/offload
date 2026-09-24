@@ -9,13 +9,13 @@ import { useColorScheme } from "nativewind";
 import { applyTheme, storedTheme } from "../lib/appearance";
 import { useColors } from "../lib/colors";
 import { AccessibilityInfo, Platform } from "react-native";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { pinExistingSession } from "../lib/auth";
+import { onSessionRefused, pinExistingSession } from "../lib/auth";
 import { ConversationProvider } from "../components/shell/conversation-context";
 import { RecordArrival } from "../components/shell/RecordArrival";
 import { Shell } from "../components/shell/Shell";
@@ -80,6 +80,10 @@ export default function RootLayout() {
   useEffect(() => {
     void pinExistingSession();
   }, []);
+
+  // A session the server refused. The keys are already gone by the time this
+  // fires; the shell's part is to show the gate, which decides the rest.
+  useEffect(() => onSessionRefused(() => router.replace("/")), []);
 
   const pathname = usePathname();
   useEffect(() => {

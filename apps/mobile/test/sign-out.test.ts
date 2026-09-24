@@ -21,7 +21,10 @@ vi.mock("expo-secure-store", () => ({
     return Promise.resolve();
   },
   getItemAsync: (key: string) => Promise.resolve(stored[key] ?? null),
-  setItemAsync: () => Promise.resolve(),
+  setItemAsync: (key: string, value: string) => {
+    stored[key] = value;
+    return Promise.resolve();
+  },
   getItem: () => null,
   setItem: () => undefined,
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: "afu",
@@ -95,5 +98,68 @@ describe("AC-3 signing out waits for the server", () => {
 
     expect(deleted).toEqual([]);
     vi.useRealTimers();
+  });
+});
+
+// What the plugin actually does, read out of `@better-auth/expo/dist/client.js`:
+// its request hook clears the stored cookie and session data *as it prepares
+// the sign-out request*, before the server has answered anything. So the
+// stub above passed for the wrong reason: a call that fails leaves the device
+// with nothing, whatever this module deletes or keeps. Found on the Pixel on
+// 2026-09-23 as a toast saying the sign-out did not go through, above an app
+// with every screen empty and no way back to the gate.
+describe("the plugin clears the device before the server answers", () => {
+  const cookie = '{"offload.session_token":{"value":"abc"}}';
+  const data = '{"session":{"token":"abc"}}';
+
+  const clearsThenFails = () => {
+    stored["offload_cookie"] = "{}";
+    stored["offload_session_data"] = "{}";
+    return Promise.reject(new Error("network"));
+  };
+
+  it("puts the session back when the call fails, so Try again has something to send", async () => {
+    stored = { offload_cookie: cookie, offload_session_data: data };
+    signOutBehaviour = clearsThenFails;
+
+    await expect(signOut()).rejects.toBeInstanceOf(SignOutFailed);
+
+    expect(stored["offload_cookie"]).toBe(cookie);
+    expect(stored["offload_session_data"]).toBe(data);
+    expect(deleted).toEqual([]);
+  });
+
+  it("puts the session back when the call never settles", async () => {
+    vi.useFakeTimers();
+    stored = { offload_cookie: cookie, offload_session_data: data };
+    signOutBehaviour = () => {
+      stored["offload_cookie"] = "{}";
+      stored["offload_session_data"] = "{}";
+      return new Promise(() => undefined);
+    };
+
+    const attempt = signOut();
+    const assertion = expect(attempt).rejects.toBeInstanceOf(SignOutFailed);
+    await vi.advanceTimersByTimeAsync(9_000);
+    await assertion;
+
+    expect(stored["offload_cookie"]).toBe(cookie);
+    expect(stored["offload_session_data"]).toBe(data);
+    vi.useRealTimers();
+  });
+
+  it("puts a chunked value back whole", async () => {
+    stored = { offload_cookie: "ba-chunks:2", "offload_cookie.0": "ab", "offload_cookie.1": "cd", offload_session_data: data };
+    signOutBehaviour = () => {
+      stored["offload_cookie"] = "{}";
+      stored["offload_cookie.0"] = "";
+      stored["offload_cookie.1"] = "";
+      stored["offload_session_data"] = "{}";
+      return Promise.reject(new Error("network"));
+    };
+
+    await expect(signOut()).rejects.toBeInstanceOf(SignOutFailed);
+
+    expect(stored).toEqual({ offload_cookie: "ba-chunks:2", "offload_cookie.0": "ab", "offload_cookie.1": "cd", offload_session_data: data });
   });
 });

@@ -5,7 +5,7 @@
 // copy of "am I signed in" beyond the token itself, because a client-side
 // answer to that question is one that can disagree with the server's.
 
-import { authClient, API_URL } from "./auth";
+import { authClient, API_URL, sessionRefused } from "./auth";
 
 export interface Me {
   accountId: string;
@@ -88,8 +88,20 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     15000,
     null as unknown as Response
   );
-  if (!response || !response.ok) return null;
+  if (!response || !response.ok) {
+    refused(response, cookie);
+    return null;
+  }
   return (await response.json()) as T;
+}
+
+/** A 401 on a request that carried the cookie is the server ending the
+ *  session this device holds. Forgotten and reported, so the shell shows the
+ *  gate rather than an app with every screen empty, which is what the Pixel
+ *  showed on 2026-09-23 after a sign-out the device never heard back from.
+ *  Without a cookie a 401 is the gate asking, which is not news. */
+function refused(response: Response | null, cookie: string): void {
+  if (response?.status === 401 && cookie) void sessionRefused();
 }
 
 /** A call whose status matters.
@@ -154,7 +166,10 @@ export async function send<T>(path: string, init: RequestInit = {}): Promise<Sen
     null as unknown as Response
   );
   if (!response) return { status: 0, data: null };
-  if (!response.ok) return { status: response.status, data: null };
+  if (!response.ok) {
+    refused(response, cookie);
+    return { status: response.status, data: null };
+  }
 
   // 204 and an empty body are legitimate answers, not parse failures.
   const text = await response.text();
@@ -184,7 +199,10 @@ export async function upload<T>(path: string, form: FormData): Promise<Sent<T>> 
     null as unknown as Response,
   );
   if (!response) return { status: 0, data: null };
-  if (!response.ok) return { status: response.status, data: null };
+  if (!response.ok) {
+    refused(response, headers["cookie"] ?? "");
+    return { status: response.status, data: null };
+  }
   const text = await response.text();
   return { status: response.status, data: text.length > 0 ? (JSON.parse(text) as T) : null };
 }
