@@ -5,8 +5,14 @@ set -euo pipefail
 payload="$(cat)"
 cmd="$(printf '%s' "$payload" | grep -oE '"command"\s*:\s*"[^"]*"' | head -1 || true)"
 
-case "$cmd" in
-  *"git commit"*)
+# Any git invocation that commits, not only the literal "git commit": a
+# `git -c user.name=x commit` walked past the old pattern on 2026-09-25 and
+# committed without the gate.
+commits="no"
+if printf '%s' "$cmd" | grep -qE '(^|[^[:alnum:]_])git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]]+)?)*[[:space:]]+commit([^[:alnum:]_]|$)'; then commits="yes"; fi
+
+case "$commits" in
+  yes)
     cd "${CLAUDE_PROJECT_DIR:-.}"
 
     # Em dashes are a design-system non-negotiable and this is the only gate that
