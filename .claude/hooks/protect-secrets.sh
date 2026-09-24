@@ -103,6 +103,10 @@ if "--kv" in cmd.split():
     print("print"); sys.exit(0)
 
 for segment in re.split(r"[;&|\n]+", cmd):
+    # A redirect target is written to, not read: `cat >> .env` appends and
+    # stays allowed, as the clobber rule above already decided.
+    segment = re.sub(r"\d?>>?\s*[^\s;&|]+", " ", segment)
+    segment = re.sub(r"(?<!<)<(?!<)\s*[^\s;&|]+", " ", segment)
     words = [w.strip("\"'") for w in segment.split()]
     # Leading assignments are not the verb: FOO=1 cmd.
     while words and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", words[0]):
