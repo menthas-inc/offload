@@ -4,8 +4,10 @@
 // registers its token whenever permission is granted and it launches, through
 // a route that takes no account id, and deletes it on the server before the
 // session ends. Four channels on Android with private lock-screen
-// visibility, never renamed once they exist; two categories on both, one with
-// the verbs. The payload is not an instruction: it carries a closed kind and
+// visibility, never renamed once they exist; the verbs category and the
+// people category on both phones, the plain digest's on iOS alone, since
+// Android refuses a category without an action. The payload is not an
+// instruction: it carries a closed kind and
 // the ids the kind needs, the app maps a kind to a screen from the table
 // below, re-reads every id from the server on arrival, and ignores anything
 // else.

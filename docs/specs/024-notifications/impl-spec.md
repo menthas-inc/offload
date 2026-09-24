@@ -146,7 +146,7 @@ Unchanged.
 
 ### Mobile
 
-- `lib/notifications.ts`: permission read, `getExpoPushTokenAsync` with the project id, `setNotificationChannelAsync` for the four with `lockscreenVisibility: PRIVATE`, `setNotificationCategoryAsync` for `digest_verbs` (Done, Tomorrow, `opensAppToForeground: false`, `authenticationRequired: true`) and `digest`, the response listener mapping the payload, `getLastNotificationResponseAsync` on launch, the verbs' `act` call.
+- `lib/notifications.ts`: permission read, `getExpoPushTokenAsync` with the project id, `setNotificationChannelAsync` for the four with `lockscreenVisibility: PRIVATE`, `setNotificationCategoryAsync` for `digest_verbs` (Done, Tomorrow, `opensAppToForeground: false`, `authenticationRequired: true`), `people`, and on iOS alone `digest`, since Android refuses a category without an action and a send with no verbs needs none there, the channels in a try of their own; the response listener mapping the payload, `getLastNotificationResponseAsync` on launch, the verbs' `act` call.
 - `lib/api.ts`: the routes; `lib/auth.ts` `signOut` deletes the token first.
 - `app/_layout.tsx`: register on launch when the session is active.
 - `components/screens/Today.*.tsx`: the agenda groups, the strip, the bell as a `Pressable` with the dot from `useMe().activityNew`.

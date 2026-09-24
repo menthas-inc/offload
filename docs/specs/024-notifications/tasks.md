@@ -49,13 +49,19 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 ## H. Owner steps, batched
 
-- [ ] **H1** In EAS: an APNs key and FCM credentials for the project; enhanced push security on; the access token into the API's environment as `EXPO_ACCESS_TOKEN` on Railway and in `.env`.
-- [ ] **H2** New EAS development builds for both phones after F1, and the production build when the feature merges.
-- [ ] **H3** The ship-time account count; the email if it is not one.
+- [x] **H1** In EAS: the APNs key was already on the project from an earlier iOS build; the FCM V1 service account key uploaded on 2026-09-24 after the Google Cloud organisation policy on key creation was overridden for project `offload-42787`; `apps/mobile/google-services.json` committed and named in `app.json`; a robot user with the Developer role holds the access token, enhanced push security is on, and `EXPO_ACCESS_TOKEN` is on Railway's `core-api` and in `.env`. A real digest reached the Pixel's shade through Expo and FCM the same day.
+- [x] **H2** Android development build: the free plan's cloud builds for the month were used up, so `eas build --local` with the project's EAS keystore, installed over the Pixel's app with the sign-in kept. iOS: the development-simulator build of 2026-09-22 already carries the native module and was used for I2; a device build is not needed before TestFlight. Still to do at merge: the production builds from `main`, iOS in the cloud and Android locally until 1 October, then the submits.
+- [x] **H3** Run on 2026-09-24 inside the API's container: one active account, the owner's, and five waitlist rows with no name and nothing dumped. No email.
 
 ## I. Verification
 
 - [x] **I1** The gates on the isolated database with no server running. Core API 875, web 244, mobile 57, agent 268 with 52 skipped, ruff, lint, typecheck, and the three dead-name checks, on 2026-09-22.
-- [x] **I2** On the simulator: `xcrun simctl push` with each payload the server builds, the verbs, the doors, Today, Activity and the page in both themes. On the web: the page, the pane, the groups. Screenshots kept. (Done means)
+- [x] **I2** On the simulator: `xcrun simctl push` with each payload the server builds, the verbs, the doors, Today, Activity and the page in both themes. On the web: the page, the pane, the groups. Screenshots kept. (Done means) On the Pixel, 2026-09-24: the new build installed, native Google sign-in, Today with its row and controls, Activity, the Notifications page and the hour picker, the four channels created, the FCM token registered, one real digest through Expo and FCM into the shade, and its tap opening Today with the bell's dot. One bug found and fixed: Android refuses a category without an action.
 - [x] **I3** The eval principle file added; running it is a separate ask. (AC-23)
 - [x] **I4** The three review agents on the diff; one commit per pass. The security pass and the server side of the code review went in one commit, the client review in the next; both reviews' findings are listed in `at-merge.md`.
+
+
+## J. Raised by the device pass, for later
+
+- [ ] **J1** The hour rows' label follows the locale while the Android picker follows the device's 24-hour setting, so a phone set to 24 hours reads "8:00 AM" and opens a 24-hour dial. Matching them needs `expo-localization`, a native module, so it waits for a build that carries it.
+- [ ] **J2** A send that arrives while the app is in front is delivered and recorded but not shown, the platform default on both phones since the app sets no notification handler. Decide whether a digest should show a banner over an open app.
