@@ -8,6 +8,8 @@
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$root/apps/core-api"
+# ENV_FILE=path reads another env file, such as apps/mobile/.env. Names only, as ever.
+file="${ENV_FILE:-$root/.env}"
 NAME="${1:-}" node -e '
 const { parse } = require("dotenv");
 const parsed = parse(require("fs").readFileSync(process.argv[1], "utf8"));
@@ -18,4 +20,4 @@ if (name) {
 } else {
   console.log(Object.keys(parsed).sort().join("\n"));
 }
-' "$root/.env"
+' "$file"

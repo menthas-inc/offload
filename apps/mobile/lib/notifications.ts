@@ -64,28 +64,35 @@ export function verbOf(actionIdentifier: string): "done" | "tomorrow" | null {
 let registered: string | null = null;
 
 /** The categories and, on Android, the channels. Once per launch; the
- *  platform keeps them. */
+ *  platform keeps them. Two separate tries, because the first Pixel run
+ *  (2026-09-24) lost every channel to a category that Android refused: it
+ *  throws for a category with no actions, which is what the plain digest
+ *  asked for. iOS takes that category; a send with no verbs needs none on
+ *  Android, where the channel alone files it. */
 export async function prepare(): Promise<void> {
   try {
     await Notifications.setNotificationCategoryAsync(VERBS_CATEGORY, [
       { identifier: "done", buttonTitle: "Done", options: { opensAppToForeground: false, isAuthenticationRequired: true } },
       { identifier: "tomorrow", buttonTitle: "Tomorrow", options: { opensAppToForeground: false, isAuthenticationRequired: true } },
     ]);
-    await Notifications.setNotificationCategoryAsync(PLAIN_CATEGORY, []);
+    if (Platform.OS === "ios") await Notifications.setNotificationCategoryAsync(PLAIN_CATEGORY, []);
     await Notifications.setNotificationCategoryAsync(PEOPLE_CATEGORY, [
       { identifier: "open", buttonTitle: "Open", options: { opensAppToForeground: true } },
     ]);
-    if (Platform.OS === "android") {
-      for (const channel of CHANNELS) {
-        await Notifications.setNotificationChannelAsync(channel.id, {
-          name: channel.name,
-          importance: Notifications.AndroidImportance.DEFAULT,
-          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE,
-        });
-      }
+  } catch (error) {
+    failed("notifications.prepare", error, { step: "categories" });
+  }
+  if (Platform.OS !== "android") return;
+  try {
+    for (const channel of CHANNELS) {
+      await Notifications.setNotificationChannelAsync(channel.id, {
+        name: channel.name,
+        importance: Notifications.AndroidImportance.DEFAULT,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE,
+      });
     }
   } catch (error) {
-    failed("notifications.prepare", error);
+    failed("notifications.prepare", error, { step: "channels" });
   }
 }
 
