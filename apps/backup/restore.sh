@@ -6,20 +6,31 @@
 # both, or nothing.
 #
 # The key is only ever a shell variable. It reaches age through a pipe, so it is
-# never on a command line, in the environment, in a file or in the history, and
-# no message prints it. The R2 credentials and the default target come from the
-# repository's .env through dotenv, the loader the API uses, and none is printed.
+# never on a command line, in the environment, in a file, in the history or in a
+# shell trace, and no message prints it. The R2 credentials and the default
+# target come from the repository's .env through dotenv, the loader the API
+# uses, and none is printed.
 #
 # Asks for anything the options do not give, so a run can also be unattended:
-#   --file PATH    open this .dump.age instead of fetching one from R2
-#   --pick N       the Nth newest backup in R2, 1 being the newest
-#   --key-fd N     read the key from file descriptor N instead of asking
-#   --do WHAT      verify, save, restore or both
-#   --save PATH    where the decrypted dump goes
-#   --target URL   the database to create and restore into; it must not exist
+#   --file PATH        open this .dump.age instead of fetching one from R2
+#   --pick N           the Nth newest backup in R2, 1 being the newest
+#   --key-fd N         read the key from file descriptor N instead of asking
+#   --do WHAT          verify, save, restore or both
+#   --save PATH        where the decrypted dump goes
+#   --target URL       the database to create and restore into, which must not
+#                      exist yet, in a URL without its password
+#   --password-fd N    read that database's password from file descriptor N,
+#                      where otherwise PGPASSWORD or a hidden question gives it
 #
 # ENV_FILE=path reads another .env, such as the main checkout's from a worktree.
 # BACKUP_PREFIX is read as backup.sh reads it.
+
+# A shell trace prints every value it touches, the key among them, and bash -x,
+# SHELLOPTS=xtrace and a BASH_ENV that runs set -x all start one before the
+# first line. So this is the first line. SHELLOPTS is read-only and follows it,
+# and BASH_XTRACEFD stays, since unsetting it closes stderr when it was 2. Each
+# function that touches a secret turns the trace off again for itself.
+set +x
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -33,9 +44,10 @@ for d in /opt/homebrew/opt/libpq/bin /usr/local/opt/libpq/bin; do
   if [ -d "$d" ]; then PATH="$d:$PATH"; fi
 done
 # Anything inherited under these names could arrive exported, and an exported
-# key would reach every child's environment. Start them clean and unexported.
-unset age_key u_pass u_fresh u_url u_admin
-age_key="" u_pass="" answer=""
+# secret would reach every child's environment. Start them clean and unexported,
+# and drop BASH_ENV so no bash started from here runs a startup file.
+unset age_key u_pass u_fresh u_url u_admin BASH_ENV
+age_key="" u_pass="" answer="" deadline=""
 
 say() { printf '%s\n' "$@"; }
 die() { printf '%s\n' "$@" >&2; exit 1; }
@@ -59,15 +71,16 @@ ask() {
   [ -t 0 ] || printf '\n' >&2
 }
 
-file="" pick="" key_fd="" action="" save="" target=""
+file="" pick="" key_fd="" password_fd="" action="" save="" target=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --file|--pick|--key-fd|--do|--save|--target)
+    --file|--pick|--key-fd|--password-fd|--do|--save|--target)
       [ $# -ge 2 ] || die "$1 needs a value."
       case "$1" in
         --file) file="$2" ;;
         --pick) pick="$2" ;;
         --key-fd) key_fd="$2" ;;
+        --password-fd) password_fd="$2" ;;
         --do) action="$2" ;;
         --save) save="$2" ;;
         --target) target="$2" ;;
@@ -78,20 +91,25 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -z "$file" ] || [ -z "$pick" ] || die "Use --file or --pick, not both."
-case "$pick" in *[![:digit:]]*) die "--pick takes a number, 1 being the newest." ;; esac
-case "$key_fd" in *[![:digit:]]*) die "--key-fd takes a file descriptor number." ;; esac
+# Three digits at most, so the arithmetic below never wraps a long number round.
+case "$pick" in *[![:digit:]]*|????*) die "--pick takes a small number, 1 being the newest." ;; esac
+case "$key_fd$password_fd" in *[![:digit:]]*) die "--key-fd and --password-fd take a file descriptor number." ;; esac
 case "$action" in ""|verify|save|restore|both) ;; *) die "--do takes verify, save, restore or both." ;; esac
 
 need="age pg_restore psql node"
 [ -n "$file" ] || need="rclone $need"
-missing="" formulas=""
+missing="" formulas="" node_hint=""
 for t in $need; do
   if command -v "$t" >/dev/null 2>&1; then continue; fi
   missing="$missing $t"
-  case "$t" in pg_restore|psql) f=libpq ;; *) f="$t" ;; esac
+  case "$t" in
+    node) node_hint="  node, from nvm or Homebrew"; continue ;;
+    pg_restore|psql) f=libpq ;;
+    *) f="$t" ;;
+  esac
   case " $formulas " in *" $f "*) ;; *) formulas="$formulas $f" ;; esac
 done
-[ -z "$missing" ] || die "Not installed:$missing" "  brew install$formulas"
+[ -z "$missing" ] || die "Not installed:$missing" ${formulas:+"  brew install$formulas"} ${node_hint:+"$node_hint"}
 
 umask 077
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/offload-restore.XXXXXX")"
@@ -111,6 +129,7 @@ trap 'exit 129' HUP
 # as shell assignments on descriptor 3, which is read into a variable and never
 # printed; anything the loader says on stdout goes to stderr instead.
 load_env() {
+  set +x
   local n need="" out
   for n in "$@"; do
     [ -n "${!n:-}" ] || need="$need $n"
@@ -181,7 +200,7 @@ fetch() {
   while [ -z "$n" ]; do
     ask "Which one? [1] " || die "No answer. --pick N chooses without asking."
     n="${answer:-1}"
-    case "$n" in *[![:digit:]]*) n="" ;; *) n="$((10#$n))" ;; esac
+    case "$n" in *[![:digit:]]*|????*) n="" ;; *) n="$((10#$n))" ;; esac
     if [ -z "$n" ] || [ "$n" -lt 1 ] || [ "$n" -gt "$count" ]; then
       say "A number from 1 to $count."
       n=""
@@ -202,6 +221,7 @@ fetch() {
 # The key, from the terminal without echo or from --key-fd. Comment and blank
 # lines are skipped, so the whole key file pasted from the password manager works.
 read_key() {
+  set +x
   local line="" fd="${key_fd:-0}"
   [ -n "$key_fd" ] || printf 'Paste the private key (it will not show): ' >&2
   while IFS= read -rs line <&"$fd" || [ -n "$line" ]; do
@@ -227,7 +247,7 @@ read_key() {
 # The backup's plaintext on stdout. The key goes to age through a pipe that
 # only this shell writes to, never as an argument or an environment variable.
 decrypt() {
-  age --decrypt -i <(printf '%s\n' "$age_key") "$src"
+  age --decrypt -i <(set +x; printf '%s\n' "$age_key") "$src"
 }
 
 # What to say when age fails. Never age's own words, which can quote the key.
@@ -272,10 +292,26 @@ verify() {
   by="$(sed -n 's/^;[[:space:]]*Dumped by pg_dump version: //p' "$tmp/toc")"
   tables="$(awk '$4 == "TABLE" && $5 != "DATA" { n++ } END { print n + 0 }' "$tmp/toc")"
   entries="$(grep -c '^[0-9]' "$tmp/toc" || true)"
+  # The privacy page promises that the backups roll over within 30 days. A
+  # copy taken out of one does not, so it gets the same deadline, counted from
+  # the day the backup was made.
+  deadline="$(node -e '
+    const [y, m, d] = process.argv[1].split("-").map(Number);
+    process.stdout.write(new Date(Date.UTC(y, m - 1, d + 30)).toISOString().slice(0, 10));
+  ' "${made%% *}" 2>/dev/null)" || deadline=""
   say "" "It opens and reads to the end." \
     "  made      $made" \
     "  postgres  ${from%% (*}, dumped by pg_dump ${by%% (*}" \
     "  holds     $tables tables, $entries entries in its table of contents"
+}
+
+# Said after a save and after a restore, since the copy outlives the backups.
+kept() {
+  if [ -n "$deadline" ]; then
+    say "This copy does not expire with the backups. Delete it by $deadline."
+  else
+    say "This copy does not expire with the backups. Delete it within 30 days of the backup."
+  fi
 }
 
 choose() {
@@ -297,15 +333,18 @@ choose() {
   done
 }
 
-# Why a path will not do for the plaintext dump, or nothing when it will.
+# Why a path will not do for the plaintext dump, or nothing when it will. Any
+# git work tree is refused, not only this repository, since a sibling
+# worktree commits just as easily.
 unsuitable() {
-  local dir
+  local dir inside="That is inside a git work tree, where it could be committed. Choose a path outside it."
   [ -n "$1" ] || { echo "It needs a path."; return; }
   [ ! -e "$1" ] || { echo "$1 exists already. Choose a new file."; return; }
   dir="$(cd "$(dirname "$1")" 2>/dev/null && pwd -P)" || { echo "$(dirname "$1") is not a directory."; return; }
-  case "$dir/" in
-    "$(cd "$root" && pwd -P)/"*) echo "That is inside the repository, where it could be committed. Choose a path outside it." ;;
-  esac
+  case "$dir/" in "$(cd "$root" && pwd -P)/"*) echo "$inside"; return ;; esac
+  if command -v git >/dev/null 2>&1 && git -C "$dir" rev-parse --show-toplevel >/dev/null 2>&1; then
+    echo "$inside"
+  fi
 }
 
 save_dump() {
@@ -330,20 +369,23 @@ save_dump() {
     rm -f "$path"
     die "Could not write $path."
   fi
-  say "Saved $path, $(human "$(wc -c <"$path")"). Delete it when you are done with it."
+  say "Saved $path, $(human "$(wc -c <"$path")")."
+  kept
 }
 
-# Take a Postgres URL apart without it reaching a command line: in through the
-# environment, out as shell assignments on descriptor 3.
-#   url_parts URL        sets u_db, u_host, u_local, u_pass, u_url (no password), u_admin
+# Take a Postgres URL apart without it reaching a command line or an
+# environment: into node on stdin, out as shell assignments on descriptor 3.
+#   url_parts URL        sets u_db, u_host, u_hostport, u_local, u_pass,
+#                        u_url (no password) and u_admin
 #   url_parts URL NAME   sets u_fresh, URL with its database swapped for NAME, when URL is local
 url_parts() {
+  set +x
   local out
-  out="$(U="$1" node -e '
+  out="$(printf '%s' "$1" | node -e '
     const fs = require("fs");
     const q = (v) => "\x27" + String(v).replace(/\x27/g, "\x27\\\x27\x27") + "\x27";
     let u;
-    try { u = new URL(process.env.U); } catch { process.exit(1); }
+    try { u = new URL(fs.readFileSync(0, "utf8")); } catch { process.exit(1); }
     if (!["postgres:", "postgresql:"].includes(u.protocol) || !u.hostname) process.exit(1);
     const local = ["localhost", "127.0.0.1", "[::1]"].includes(u.hostname)
       && !["host", "hostaddr", "service"].some((k) => u.searchParams.has(k));
@@ -356,6 +398,7 @@ url_parts() {
     } else {
       out.u_db = decodeURIComponent(u.pathname.slice(1));
       out.u_host = u.hostname;
+      out.u_hostport = `${u.hostname}:${u.port || "5432"}`;
       out.u_local = local ? "yes" : "";
       out.u_pass = decodeURIComponent(u.password);
       u.password = "";
@@ -370,6 +413,19 @@ url_parts() {
 
 new_db_name() { case "$1" in ""|[[:digit:]]*|*[![:lower:][:digit:]_]*) return 1 ;; esac; [ "${#1}" -le 63 ]; }
 
+# The target's password when its URL has none: from --password-fd, else from
+# PGPASSWORD as libpq reads it, else asked for without echo. Enter means none.
+read_password() {
+  set +x
+  if [ -n "$password_fd" ]; then
+    IFS= read -r u_pass <&"$password_fd" || true
+  elif [ -z "${PGPASSWORD:-}" ]; then
+    printf 'Database password (it will not show, Enter if none): ' >&2
+    IFS= read -rs u_pass || true
+    printf '\n' >&2
+  fi
+}
+
 # A Postgres tool with the target's password in its own environment, not on
 # its command line.
 pg() {
@@ -377,19 +433,22 @@ pg() {
 }
 
 restore_dump() {
-  local url="$target" shown="" st
+  local url="$target" shown="" st env_db=""
   local bad="It needs a postgres:// URL with a host and a new database name of lowercase letters, digits and underscores."
-  if [ -n "$url" ]; then
-    { url_parts "$url" && new_db_name "$u_db"; } || die "--target: $bad"
-  else
-    # The default is a fresh database beside the local one in .env, and only
-    # when that one is on this machine, so it can never be production.
-    load_env DATABASE_URL
-    u_fresh=""
-    if [ -n "${DATABASE_URL:-}" ] && url_parts "$DATABASE_URL" "offload_restore_$(date -u +%Y%m%d_%H%M%S)"; then
+  # The local database in .env, if there is one. The default target is a fresh
+  # database beside it, and a target anywhere else takes a typed yes, even on
+  # localhost, since a tunnel to production is on localhost too.
+  load_env DATABASE_URL
+  if [ -n "${DATABASE_URL:-}" ] && url_parts "$DATABASE_URL" && [ -n "$u_local" ]; then
+    env_db="$u_hostport"
+    if [ -z "$url" ] && url_parts "$DATABASE_URL" "offload_restore_$(date -u +%Y%m%d_%H%M%S)"; then
       url_parts "$u_fresh"
       shown="$u_url"
     fi
+  fi
+  if [ -n "$url" ]; then
+    url_parts "$url" || die "--target: $bad"
+  else
     say ""
     while :; do
       if [ -n "$shown" ]; then
@@ -403,25 +462,33 @@ restore_dump() {
       say "$bad"
     done
   fi
-  if [ -z "$u_local" ]; then
-    say "" "$u_host is not this machine, and it could be production." \
+  if [ -z "$u_local" ] || [ "$u_hostport" != "$env_db" ]; then
+    say "" "$u_hostport is not the local database in .env, and it could be production." \
       "This creates the database $u_db there and fills it from the backup."
     ask "Type yes to go ahead: " || true
     [ "$answer" = yes ] || die "Nothing was restored."
   fi
+  [ -n "$u_pass" ] || read_password
   pg psql -X -q -v ON_ERROR_STOP=1 -v db="$u_db" "$u_admin" <<'SQL' || die "Could not create $u_db, so nothing was restored."
 CREATE DATABASE :"db" TEMPLATE template0;
 SQL
   say "Created $u_db. Restoring into it."
   set +e
-  decrypt 2>"$tmp/age.err" | pg pg_restore --no-owner --no-privileges --exit-on-error --single-transaction --dbname="$u_url"
+  decrypt 2>"$tmp/age.err" \
+    | pg pg_restore --no-owner --no-privileges --exit-on-error --single-transaction --dbname="$u_url" 2>"$tmp/restore.err"
   st="${PIPESTATUS[1]}"
   set -e
   if [ "$st" != 0 ]; then
-    pg psql -X -q -v db="$u_db" "$u_admin" >/dev/null 2>&1 <<'SQL' || true
+    # The first error alone: the lines after it can quote a row of the dump.
+    grep -m 1 'error:' "$tmp/restore.err" | sed 's/^/  /' >&2 || true
+    # ON_ERROR_STOP, or psql answers 0 for a DROP that failed.
+    if pg psql -X -q -v ON_ERROR_STOP=1 -v db="$u_db" "$u_admin" >/dev/null 2>&1 <<'SQL'
 DROP DATABASE :"db";
 SQL
-    die "The restore stopped at its first error, so $u_db was dropped again."
+    then
+      die "The restore stopped at its first error, and $u_db was dropped."
+    fi
+    die "The restore stopped at its first error, and dropping $u_db failed, so it is still there."
   fi
   say "Restored. Rows in some of its tables:"
   pg psql -X -q -A -t -F '|' -v ON_ERROR_STOP=1 -v tables="$counted_tables" "$u_url" <<'SQL' \
@@ -432,8 +499,16 @@ where to_regclass(format('public.%I', t)) is not null
 order by i;
 SQL
   say "" "It is at $u_url"
+  kept
 }
 
+# A --target is checked before anything is fetched or asked: it must not
+# carry a password, which would sit on a command line and in shell history.
+if [ -n "$target" ]; then
+  { url_parts "$target" && new_db_name "$u_db"; } \
+    || die "--target needs a postgres:// URL with a host and a new database name of lowercase letters, digits and underscores."
+  [ -z "$u_pass" ] || die "--target takes a URL without its password, which comes from PGPASSWORD, --password-fd or a question."
+fi
 if [ -n "$file" ]; then
   { [ -f "$file" ] && [ -r "$file" ]; } || die "Cannot read $file."
   src="$file"

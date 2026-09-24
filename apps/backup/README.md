@@ -41,14 +41,24 @@ Pick the newest, paste the key, choose 4, verify only.
 
 The private key lives in the owner's password manager and nowhere else. The
 script hands it to `age` through a pipe, never on a command line, in the
-environment, in a file or in the shell history. The R2 credentials come from
-`.env` through dotenv, as the API loads them, and nothing prints them.
+environment, in a file, in the shell history or in a shell trace. The R2
+credentials come from `.env` through dotenv, as the API loads them, and
+nothing prints them.
 
 A restore creates its own database and never writes into one that exists. The
-default is a fresh `offload_restore_<time>` beside the local Postgres in `.env`,
-and a server that is not this machine takes a typed yes. The saved dump is
-plaintext, so the script keeps it out of the repository.
+default is a fresh `offload_restore_<time>` beside the local Postgres in `.env`.
+Any other target takes a typed yes, even on localhost, since a tunnel to
+production is on localhost too. `--target` takes a URL without its password,
+which comes from `PGPASSWORD`, `--password-fd` or a hidden question.
 
-It needs `brew install age rclone libpq`. `restore-check.sh` proves it against
-the local Docker Postgres with a throwaway key and a directory standing in for
-R2, inside the backup image. It cannot prove R2, or the Mac's own tools.
+A saved dump and a restored database do not expire with the backups, which the
+privacy page promises roll over within 30 days. The script names the day to
+delete them by, 30 days after the backup was made. The saved dump is plaintext,
+so the script keeps it out of every git work tree.
+
+It needs `age`, `rclone` and libpq's `pg_restore` and `psql`
+(`brew install age rclone libpq`), and node, from nvm or Homebrew.
+`restore-check.sh` proves it against the local Docker Postgres with a throwaway
+key and a directory standing in for R2, inside the backup image, and borrows the
+repository's dotenv, so it needs `pnpm install` first. It cannot prove R2, or
+the Mac's own tools.
