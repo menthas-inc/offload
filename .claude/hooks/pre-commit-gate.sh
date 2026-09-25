@@ -2,11 +2,24 @@
 # PreToolUse hook for Bash. If the command is a `git commit`, run the project's
 # test and lint gate and block the commit (exit 2) on failure. QUAL-1.
 set -euo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
 payload="$(cat)"
-cmd="$(printf '%s' "$payload" | grep -oE '"command"\s*:\s*"[^"]*"' | head -1 || true)"
+# The whole command, parsed as JSON. A grep for the "command" field stopped at
+# the first quote inside the command, so anything with a quoted value before
+# "commit" walked past the gate (2026-09-25, twice in one day).
+cmd="$(printf '%s' "$payload" | python3 "$here/_extract.py" command 2>/dev/null || true)"
 
-case "$cmd" in
-  *"git commit"*)
+# Any git invocation that commits, not only the literal "git commit": a
+# `git -c user.name=x commit` walked past the old pattern on 2026-09-25 and
+# committed without the gate.
+commits="no"
+# Loose on purpose: "git" and later the word "commit". A stricter pattern that
+# modelled git's options broke on a quoted value with a space in it, and the
+# cost of a false match is one extra run of the suites.
+if printf '%s' "$cmd" | grep -qE '(^|[^[:alnum:]_])git[[:space:]]+([^[:space:]].*[[:space:]]+)?commit([^[:alnum:]_]|$)'; then commits="yes"; fi
+
+case "$commits" in
+  yes)
     cd "${CLAUDE_PROJECT_DIR:-.}"
 
     # Em dashes are a design-system non-negotiable and this is the only gate that
