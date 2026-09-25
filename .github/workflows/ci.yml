@@ -117,3 +117,11 @@ jobs:
         working-directory: apps/agent
 
       - run: pnpm build
+
+      # The web's content security policy, against the built app: every script
+      # in every page carries the nonce its header names. `pnpm test` skips it
+      # because it builds and starts the app. A page that ships prerendered
+      # passes every other gate here and runs none of its scripts in a browser.
+      - run: pnpm -C apps/web exec vitest run test/csp-built.test.ts
+        env:
+          WEB_CSP_TEST: "1"
