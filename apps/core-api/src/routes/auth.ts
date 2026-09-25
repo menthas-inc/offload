@@ -42,6 +42,13 @@ export async function authRoutes(app: App): Promise<void> {
         if (value === undefined) continue;
         headers.append(key, Array.isArray(value) ? value.join(",") : String(value));
       }
+      // The one address Fastify trusts, and nothing else. Better Auth reads
+      // this header itself and, with no trusted proxies configured, accepts
+      // it only when it holds exactly one address; a chain or a missing header
+      // sent the request to a bucket shared by everyone it could not place,
+      // which is the warning the API log carried on 2026-09-23. Fastify has
+      // already resolved the client under trustProxy, so that is what it gets.
+      headers.set("x-forwarded-for", request.ip);
 
       // The store is opened here so the gate's refusal, several layers down
       // inside Better Auth, can hand the attempted address back out.
