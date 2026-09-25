@@ -113,7 +113,7 @@ describe("AC-5 a filtered list answers with however many there are", () => {
     const result = await listContent(ana, { threadId: lisbon });
     // A row is drawn by the same component wherever it came from, so a row that
     // knows its thread in one result and not in another is two shapes.
-    expect(result?.rows[0].threadName).toBe("Lisbon trip");
+    expect(result?.rows[0]!.threadName).toBe("Lisbon trip");
   });
 
   it("refuses a thread you are not in the same way as one that does not exist", async () => {
@@ -165,7 +165,7 @@ describe("AC-4b a truncated read cannot support a no", () => {
     await add(groceries, ana, "buy butter", { type: "task", done: true });
     const found = await listContent(ana, { threadId: groceries, matching: "butter" });
     expect(found?.rows).toHaveLength(1);
-    expect(found?.rows[0].doneAt).not.toBeNull();
+    expect(found?.rows[0]!.doneAt).not.toBeNull();
   });
 });
 
@@ -261,7 +261,7 @@ describe("AC-8 what leaves is bounded by named constants", () => {
     const lisbon = await thread(ana, "Lisbon trip");
     await add(lisbon, ana, "Long one", { body: "x".repeat(ANSWER_ROW_CHARS * 3) });
     const result = await listContent(ana, { threadId: lisbon });
-    expect(result?.rows[0].body).toHaveLength(ANSWER_ROW_CHARS);
+    expect(result?.rows[0]!.body).toHaveLength(ANSWER_ROW_CHARS);
   });
 
   it("has an OFF-8 ceiling that is a constant, not a function of account age", async () => {
@@ -372,8 +372,8 @@ describe("search reads notes and conversations, and does not draw them", () => {
     // A note has no checkbox, so it informs the sentence and is not a row.
     expect(found.rows).toEqual([]);
     expect(found.asides?.map((a) => a.kind)).toEqual(["note"]);
-    expect(found.asides?.[0].text).toContain("aisle seats");
-    expect(found.asides?.[0].threadName).toBe("Lisbon trip");
+    expect(found.asides?.[0]!.text).toContain("aisle seats");
+    expect(found.asides?.[0]!.threadName).toBe("Lisbon trip");
   });
 
   it("says whether offload or the person said a message", async () => {

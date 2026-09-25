@@ -36,7 +36,7 @@ beforeEach(async () => {
   await db.deleteFrom("accounts").execute();
 });
 
-async function invited(subjectId: string | null = uuidv7()): Promise<string> {
+async function invited(subjectId: string = uuidv7()): Promise<string> {
   const row = await db
     .insertInto("accounts")
     .values({

@@ -7,6 +7,7 @@
 //       links to it. An unverified email never links.
 
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import type { BetterAuthOptions } from "better-auth";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { decideLink } from "../src/auth/gate.js";
@@ -144,7 +145,9 @@ describe("linking a provider onto a staff account", () => {
 // invited person can sign in and whether an unverified address can claim an
 // account, and all three are easy to change without noticing either effect.
 describe("AC-6 the account linking configuration", () => {
-  const linking = auth.options.account?.accountLinking;
+  // Read through the library's option type rather than the literal passed in,
+  // so a setting the literal never names can still be asserted absent.
+  const linking: NonNullable<BetterAuthOptions["account"]>["accountLinking"] = auth.options.account?.accountLinking;
 
   it("is enabled, because a first identity is attached by linking", () => {
     expect(linking?.enabled).toBe(true);
