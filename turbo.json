@@ -49,6 +49,12 @@
         "^build"
       ]
     },
+    "@offload/tokens#typecheck": {
+      "dependsOn": [
+        "build",
+        "^build"
+      ]
+    },
     "test": {
       "dependsOn": [
         "^build"
