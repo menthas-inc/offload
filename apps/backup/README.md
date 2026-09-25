@@ -15,11 +15,50 @@ to the Postgres service), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
 `BACKUP_RECIPIENT`, the `age1...` public key. A change to `backup.sh` or the
 Dockerfile is deployed by running that upload again.
 The private half is the owner's alone: it is not on Railway, not in the
-repository, and losing it loses every backup. Restoring is
-`age --decrypt -i backup.key < file.dump.age | pg_restore --dbname=...`.
+repository, and losing it loses every backup. Restoring is `restore.sh`, below.
 
 To try it locally against the Docker Postgres, with a directory standing in
 for the bucket, see `check.sh`. It proves the pipe and the round trip and not
 R2: the first production run failed because rclone, refused a look at the
 bucket by a token scoped to objects, tried to create it. `no_check_bucket` is
 the setting, and it is in `backup.sh` now.
+
+## Restoring
+
+`restore.sh` is the restore drill and the tool for a real restore. It lists the
+backups in R2 newest first, fetches the one you pick into a private temporary
+directory, asks for the private key without showing it, and reads the backup
+end to end, since a listing alone passes a dump cut short inside a whole age
+file. It says when the backup was made, by which Postgres, and how many tables
+it holds, then saves the decrypted dump, restores it into a new database, both,
+or nothing. `--help` lists the options that answer each question up front.
+
+The drill:
+
+    apps/backup/restore.sh
+
+Pick the newest, paste the key, choose 4, verify only.
+
+The private key lives in the owner's password manager and nowhere else. The
+script hands it to `age` through a pipe, never on a command line, in the
+environment, in a file, in the shell history or in a shell trace. The R2
+credentials come from `.env` through dotenv, as the API loads them, and
+nothing prints them.
+
+A restore creates its own database and never writes into one that exists. The
+default is a fresh `offload_restore_<time>` beside the local Postgres in `.env`.
+Any other target takes a typed yes, even on localhost, since a tunnel to
+production is on localhost too. `--target` takes a URL without its password,
+which comes from `PGPASSWORD`, `--password-fd` or a hidden question.
+
+A saved dump and a restored database do not expire with the backups, which the
+privacy page promises roll over within 30 days. The script names the day to
+delete them by, 30 days after the backup was made. The saved dump is plaintext,
+so the script keeps it out of every git work tree.
+
+It needs `age`, `rclone` and libpq's `pg_restore` and `psql`
+(`brew install age rclone libpq`), and node, from nvm or Homebrew.
+`restore-check.sh` proves it against the local Docker Postgres with a throwaway
+key and a directory standing in for R2, inside the backup image, and borrows the
+repository's dotenv, so it needs `pnpm install` first. It cannot prove R2, or
+the Mac's own tools.
