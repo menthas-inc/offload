@@ -31,9 +31,9 @@ export default function SignInPage() {
     // string. Showing the banner is the whole point of being bounced somewhere
     // real rather than to a 404 on the API.
     //
-    // Read off location rather than through useSearchParams, which opts the
-    // page out of static prerendering unless it is wrapped in Suspense. This
-    // page has one query parameter and no reason to stop being static.
+    // Read off location rather than through useSearchParams, which wanted a
+    // Suspense boundary while this page was prerendered. Every page renders
+    // per request now (src/middleware.ts); location is still the simpler read.
     if (new URLSearchParams(window.location.search).has("error")) setRefused(true);
   }, []);
 
