@@ -187,15 +187,34 @@ describe.skipIf(!RUN)("the built app (WEB_CSP_TEST=1; builds and starts the app)
     expect(scripts(second.html)[0]?.nonce).toBe(nonceOf(second.csp));
   }, 30_000);
 
-  it("leaves build output, the faces and the icons without a policy", async (ctx) => {
+  it("leaves build output without a policy, and nothing else", async (ctx) => {
     ready(ctx);
     const chunk = scripts((await get("/privacy")).html).find((tag) => tag.src?.startsWith("/_next/static/"))?.src;
     expect(chunk).toBeTruthy();
-    for (const path of [chunk!, "/fonts/InstrumentSans_400Regular.ttf", "/icons/inbox.svg", "/icon.svg"]) {
+    const built = await fetch(base + chunk!);
+    expect(built.status).toBe(200);
+    // No policy on a chunk means the middleware never ran for it, which is the
+    // one exclusion: build output is the same for everyone and never HTML.
+    expect(built.headers.get("content-security-policy")).toBeNull();
+    // A face or an icon carries the policy, harmlessly, because the middleware
+    // has to run for those paths: a file that is not there is answered with
+    // the not-found page, which is HTML with scripts of its own, and a page
+    // with no policy at all is the state the review closed.
+    for (const path of ["/fonts/InstrumentSans_400Regular.ttf", "/icons/inbox.svg", "/icon.svg"]) {
       const response = await fetch(base + path);
       expect(response.status, path).toBe(200);
-      // No policy on a font or a chunk means the middleware never ran for it.
-      expect(response.headers.get("content-security-policy"), path).toBeNull();
+      expect(nonceOf(response.headers.get("content-security-policy") ?? ""), path).toBeTruthy();
     }
+  }, 30_000);
+
+  it("answers a missing file under a static path with a page that carries the policy", async (ctx) => {
+    ready(ctx);
+    const response = await fetch(base + "/fonts/does-not-exist.ttf");
+    expect(response.status).toBe(404);
+    const csp = response.headers.get("content-security-policy") ?? "";
+    expect(nonceOf(csp)).toBeTruthy();
+    const tags = scripts(await response.text());
+    expect(tags.length).toBeGreaterThan(0);
+    for (const tag of tags) expect(tag.nonce, tag.tag).toBe(nonceOf(csp));
   }, 30_000);
 });

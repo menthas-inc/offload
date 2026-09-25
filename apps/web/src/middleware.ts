@@ -29,7 +29,10 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Not the files that are the same for everyone: build output, the faces, the
-  // icons and the favicon. None of them runs a script.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|fonts/|icons/|brands/).*)"],
+  // Everything but build output, which is the same for everyone and never
+  // HTML. The faces and the icons used to be skipped too, until the review of
+  // this change pointed out what a skipped path answers when the file is not
+  // there: the not-found page, HTML with scripts of its own and no policy at
+  // all. A font that carries a policy costs nothing.
+  matcher: ["/((?!_next/static|_next/image).*)"],
 };
