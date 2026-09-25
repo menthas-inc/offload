@@ -654,9 +654,9 @@ describe("013 an answering turn carries rows and files nothing", () => {
       .executeTakeFirstOrThrow();
     const found = (await foundFor([reply.id], ana)).get(reply.id) ?? [];
     expect(found).toHaveLength(1);
-    expect(found[0].threadName).toBe("Lisbon trip");
-    expect(found[0].truncated).toBe(false);
-    expect(found[0].rows.map((r) => r.title)).toEqual(["Book the flat", "Find a restaurant"]);
+    expect(found[0]!.threadName).toBe("Lisbon trip");
+    expect(found[0]!.truncated).toBe(false);
+    expect(found[0]!.rows.map((r) => r.title)).toEqual(["Book the flat", "Find a restaurant"]);
   });
 
   it("resolves the rows against the reply, not the message being watched", async () => {
@@ -731,7 +731,7 @@ describe("013 an answering turn carries rows and files nothing", () => {
       .where("role", "=", "offload")
       .executeTakeFirstOrThrow();
     // Without this the reply offers to expand into rows nobody fetched.
-    expect((await foundFor([reply.id], ana)).get(reply.id)?.[0].truncated).toBe(true);
+    expect((await foundFor([reply.id], ana)).get(reply.id)?.[0]!.truncated).toBe(true);
   });
 
   it("refuses to show a row the asker cannot read", async () => {

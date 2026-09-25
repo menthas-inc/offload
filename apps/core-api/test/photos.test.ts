@@ -156,7 +156,7 @@ const turnResult = (payload: Record<string, unknown>) =>
 const goodUsage = [{ model: "claude-sonnet-5", inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, costMicros: 1, latencyMs: 1 }];
 
 /** A photo uploaded, claimed by a dump, renditions posted. The common start. */
-async function dumped(me: { id: string; defaultThreadId: string }, text = "", opts: { threadId?: string; files?: string[] } = {}) {
+async function dumped(me: { id: string; defaultThreadId: string }, text = "", opts: { threadId?: string | undefined; files?: string[] } = {}) {
   const cookie = await signIn(me.id);
   const blobIds: string[] = [];
   for (const file of opts.files ?? ["receipt.jpg"]) {
@@ -577,7 +577,8 @@ describe("the one question", () => {
     const me = await person();
     const { question, trip, contentId } = await askThread(me, {});
     const answered = await answerQuestion(me.id, question!.id, 0);
-    expect(answered?.applied).toBe(true);
+    if (!answered || !("envelope" in answered)) throw new Error("no envelope");
+    expect(answered.applied).toBe(true);
     expect((await db.selectFrom("content").select("thread_id").where("id", "=", contentId).executeTakeFirstOrThrow()).thread_id).toBe(trip);
   });
 });
@@ -713,7 +714,7 @@ describe("naming the town", () => {
     expect(await db.selectFrom("jobs").select("id").where("kind", "=", "content.purge").execute()).toHaveLength(1);
 
     const before = { key: env.GOOGLE_MAPS_API_KEY, towns: env.PHOTO_TOWNS };
-    const mutable = env as { GOOGLE_MAPS_API_KEY?: string; PHOTO_TOWNS: "on" | "off" };
+    const mutable = env as { GOOGLE_MAPS_API_KEY?: string | undefined; PHOTO_TOWNS: "on" | "off" };
     try {
       // The key alone is 006's place names, and starts nothing here.
       mutable.GOOGLE_MAPS_API_KEY = "test-key";

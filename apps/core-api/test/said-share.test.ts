@@ -189,8 +189,8 @@ describe("the tool (AC-24, AC-25)", () => {
     expect(await db.selectFrom("pending_shares").select("id").execute()).toHaveLength(0);
 
     const answered = await answerQuestion(jo.id, q.id, 1);
-    expect(answered?.applied).toBe(true);
     if (!answered || !("envelope" in answered)) throw new Error("no envelope");
+    expect(answered.applied).toBe(true);
     // The answer's turn wears the thread's pill, the way to the sheet.
     expect(answered.envelope.threads).toEqual([{ id: lisbon, name: "Lisbon trip" }]);
     expect(await state(lisbon, ibekwe.id)).toBe("pending");
@@ -274,7 +274,8 @@ describe("the tool (AC-24, AC-25)", () => {
     const q = await db.selectFrom("questions").select(["id", "options"]).where("turn_id", "=", turnId).executeTakeFirstOrThrow();
     const last = (q.options as unknown[]).length - 1;
     const out = await answerQuestion(jo.id, q.id, last);
-    expect(out?.applied).toBe(false);
+    if (!out || !("envelope" in out)) throw new Error("no envelope");
+    expect(out.applied).toBe(false);
     expect(await state(lisbon, ibekwe.id)).toBeNull();
     expect(await state(lisbon, lee.id)).toBeNull();
   });

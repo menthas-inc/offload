@@ -178,9 +178,12 @@ describe("AC-2c a thread note has no account_id and still resolves", () => {
     // account_id null is the case the obvious predicate gets wrong: filtering
     // `where account_id = :viewer` returns nothing at all, and the obvious fix
     // for returning nothing is to drop the filter.
+    //
+    // Null on purpose: only `on delete set null` writes one, so the insert type refuses it.
+    const noAuthor: unknown = null;
     await db
       .insertInto("notes")
-      .values({ scope: "thread", subject_id: trip, account_id: null, kind: "going_on", text: "Three nights in Alfama", origin: "learned" })
+      .values({ scope: "thread", subject_id: trip, account_id: noAuthor as string, kind: "going_on", text: "Three nights in Alfama", origin: "learned" })
       .execute();
 
     const readable = async (accountId: string) =>
