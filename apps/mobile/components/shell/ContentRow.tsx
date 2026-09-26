@@ -368,11 +368,15 @@ export function ContentRowView({
             accessibilityRole={door ? "link" : undefined}
             accessibilityLabel={door ? `Open ${domain ?? row.title}` : undefined}
           >
-            {/* 023. The date chip trails the title on its own line, before
-                the tools, and the meta under the title is untouched. */}
-            <View className="flex-row items-start gap-space-2">
+            {/* 023, moved on 2026-09-26. The date chip sits on its own line
+                under the title, above the meta. It trailed the title on one
+                line, and beside a chip a long title was squeezed to a word or
+                two a line, which the owner saw on the Pixel. A wrapping row
+                would keep short titles on one line, and Yoga would not wrap
+                it, so the rule is one line each, on every surface. */}
+            <View className="items-start gap-space-1">
               <Text
-                className={`flex-1 font-core font-medium ${
+                className={`self-stretch font-core font-medium ${
                   row.doneAt || row.archivedAt
                     ? row.doneAt
                       ? "text-text-tertiary"

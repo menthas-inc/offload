@@ -71,6 +71,19 @@ export interface Chip {
  *  chip names the month and drops both. */
 const NEAR_DAYS = 14;
 
+/** How late, in the fewest words: days under a week, weeks under four,
+ *  then months at thirty days each. */
+function lateWords(daysLate: number): string {
+  if (daysLate === 1) return "yesterday";
+  if (daysLate < 7) return `${daysLate} days ago`;
+  if (daysLate < 28) {
+    const weeks = Math.floor(daysLate / 7);
+    return weeks === 1 ? "a week ago" : `${weeks} weeks ago`;
+  }
+  const months = Math.max(1, Math.round(daysLate / 30));
+  return months === 1 ? "a month ago" : `${months} months ago`;
+}
+
 /** The chip, or null for a row with no date, which draws nothing and asks
  *  nothing. `today` is the account's own day. */
 export function chipFor(
@@ -91,20 +104,27 @@ export function chipFor(
   const distance = daysBetween(today, day);
   const near = Math.abs(distance) <= NEAR_DAYS;
   const prefix = row.type === "event" ? "" : "Due ";
-  let words: string;
-  if (distance === 0) words = "today";
-  else if (distance === 1) words = "tomorrow";
-  else if (near) {
-    const weekday = new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(noonUtc(day));
-    words = `${weekday} ${partsOf(day).dom}`;
+  let label: string;
+  if (distance < 0) {
+    // A late row says how late, not which day, and carries no time: once a
+    // date has passed, the distance is the fact, and it stays short beside
+    // a long title (2026-09-26).
+    label = `${prefix}${lateWords(-distance)}`;
   } else {
-    words = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(noonUtc(day));
+    let words: string;
+    if (distance === 0) words = "today";
+    else if (distance === 1) words = "tomorrow";
+    else if (near) {
+      const weekday = new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(noonUtc(day));
+      words = `${weekday} ${partsOf(day).dom}`;
+    } else {
+      words = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(noonUtc(day));
+    }
+    label = near ? `${prefix}${words}` : words;
+    const at = whenOf(row);
+    if (!row.allDay && at) label += `, ${timeIn(new Date(at), zone, locale)}`;
   }
-  let label = near ? `${prefix}${words}` : words;
   if (!prefix) label = label.charAt(0).toUpperCase() + label.slice(1);
-
-  const at = whenOf(row);
-  if (!row.allDay && at) label += `, ${timeIn(new Date(at), zone, locale)}`;
 
   let tone: Chip["tone"] = row.doneAt ? "done" : nearness(day, today);
   // A repeating row has no occurrence to have missed: it is never late.
