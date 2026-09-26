@@ -279,7 +279,6 @@ describe("what the review found", () => {
         id: "c1",
         type: "task",
         priority: 50,
-        tags: [],
         doneAt: null,
         placeId: null,
         occursEndAt: null,

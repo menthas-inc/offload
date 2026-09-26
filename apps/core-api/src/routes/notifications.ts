@@ -241,7 +241,6 @@ export async function notificationRoutes(app: App): Promise<void> {
         "content.is_reminder as is_reminder",
         "content.priority as priority",
         "content.priority_pinned as priority_pinned",
-        "content.tags as tags",
         "content.place_id as place_id",
         "content.attrs as attrs",
         "accounts.display_name as authorName",

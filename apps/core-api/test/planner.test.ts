@@ -1583,17 +1583,18 @@ describe("018 asking back", () => {
     expect(person.state).toBe("answered");
   });
 
-  it("refuses a tag question with one value, a country question on a filing turn, and a repeated post does not double", async () => {
+  it("refuses a tag question outright (025), a country question on a filing turn, and a repeated post does not double", async () => {
     const accountId = await account();
     const threadId = await thread(accountId, "Music");
     const { jobId, turnId } = await dump(accountId, "a song");
     const contentId = await filedTask(accountId, threadId, jobId, "A song");
 
+    // Labels replaced tags, and the tag question went with them.
     await turnResult({
       outcome: "answered",
       jobId,
       usage: [usage],
-      questions: [{ field: "tag", title: "A song", contentId, options: [{ label: "Jazz", value: "genre:jazz" }] }],
+      questions: [{ field: "tag", title: "A song", contentId, options: [{ label: "Jazz", value: "genre:jazz" }, { label: "Folk", value: "genre:folk" }] }],
     });
     expect(await question(accountId, turnId)).toEqual([]);
 
@@ -1607,24 +1608,20 @@ describe("018 asking back", () => {
     });
     expect(await question(accountId, again.turnId)).toEqual([]);
 
-    // The dimension has to be the thread's: a note of theirs names it.
-    await db
-      .insertInto("notes")
-      .values({ account_id: accountId, scope: "thread", subject_id: threadId, kind: "standing", origin: "stated", text: "Organised by genre" })
-      .execute();
     const third = await dump(accountId, "a third song");
     const row = await filedTask(accountId, threadId, third.jobId, "A third song");
+    const soon = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
     const body = {
       outcome: "answered",
       jobId: third.jobId,
       usage: [usage],
-      questions: [{ field: "tag", title: "A third song", contentId: row, options: [{ label: "Jazz", value: "genre:jazz" }, { label: "Folk", value: "genre:folk" }] }],
+      questions: [{ field: "date", title: "A third song", contentId: row, options: [{ value: soon(3) }, { value: soon(9) }] }],
     };
     await turnResult(body);
     await turnResult(body);
     const rows = await question(accountId, third.turnId);
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.text).toBe('Filed "A third song". Which genre?');
+    expect(rows[0]!.text).toBe('Filed "A third song". By when?');
     expect(second).toBeTruthy();
   });
 

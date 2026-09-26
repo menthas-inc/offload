@@ -120,7 +120,7 @@ export interface ThreadBundle {
   counts: { active: number; archived: number };
   members: Member[];
   /** How this thread wants to look. Absent fields mean derived from content. */
-  preference: { widgets?: string[]; groupBy?: Record<string, string>; hideDone?: boolean };
+  preference: { widgets?: string[]; hideDone?: boolean };
   /** What this thread holds about itself. Active only. */
   notes: Note[];
   /** Active and folded. The folded count is what the history control shows,
@@ -233,7 +233,6 @@ export interface ContentRow {
   onCalendar: boolean;
   priority: number;
   priorityPinned: boolean;
-  tags: string[];
   place: Place | null;
   /** The same place, as the id the shared widget rule takes. Derived in
    *  `fetchContent` rather than sent twice, so nothing above has to know that
@@ -559,7 +558,6 @@ export function provisionalRow(
     isReminder: false,
     priority: 0,
     priorityPinned: false,
-    tags: [],
     place: null,
     placeId: null,
     seriesRef: null,
@@ -713,7 +711,6 @@ export async function setPreference(
   threadId: string,
   patch: {
     widgets?: string[] | null;
-    groupBy?: Record<string, string> | null;
     hideDone?: boolean | null;
   },
 ): Promise<boolean> {

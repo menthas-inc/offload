@@ -357,8 +357,7 @@
           "threadName": "Porto weekend",
           "title": "Photo of the beach from the Porto trip",
           "body": "Kept as a photo from the Porto trip. A plain shot of the beach, no writing or other detail visible.",
-          "type": "image",
-          "tags": []
+          "type": "image"
         }
       ],
       "expect": {

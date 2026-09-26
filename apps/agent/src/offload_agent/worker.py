@@ -693,7 +693,7 @@ def _tool_caller(
 
 # The Core API's refusals that are about the arguments the model sent, as
 # against the server being unable: a row with no time, a thread it cannot see,
-# a date it cannot parse, a tag too many. The model reads the reason and
+# a date it cannot parse. The model reads the reason and
 # fixes the call, and the turn is not partial for it.
 #
 # **Refused `no_time`, the model did the right thing and the person still saw
@@ -714,7 +714,6 @@ def _tool_caller(
 ARGUMENT_REFUSALS = frozenset(
     {
         "unknown_thread",
-        "bad_tags",
         "unknown_photo",
         "bad_place_name",
         "unknown_content",
@@ -788,8 +787,6 @@ def _today_date(today: str | None) -> date | None:
         return None
 
 
-_TAG_SHAPE = re.compile(r"^[a-z0-9][a-z0-9 _-]{0,46}(:[a-z0-9][a-z0-9 _-]{0,46})?$")
-
 
 def parse_answer(
     field: str, verdict: Judgement, options: list[dict], today: str | None
@@ -797,7 +794,7 @@ def parse_answer(
     """018. The judge's value, checked for shape and sense in code.
 
     A value that fails is not an answer, whatever the model said. Dates within a
-    year, a span in order, a tag or a country among the values offered.
+    year, a span in order, a country among the values offered.
     """
     if not verdict.answers:
         return None
@@ -824,20 +821,6 @@ def parse_answer(
             return None
         return {"day": day, "time": clock}
     offered = {str(o.get("value")) for o in options if o.get("value") is not None}
-    if field == "tag":
-        # A typed tag may be a value the thread has not used yet (decided
-        # 2026-09-17): "classical" when jazz and rock were offered is a new
-        # genre, not a refusal. It takes the dimension the options share, so
-        # what lands groups with them. The Core API normalises it.
-        tag = (verdict.tag or "").strip().lower()
-        if not tag:
-            return None
-        if tag in offered:
-            return {"tag": tag}
-        dimensions = {v.split(":", 1)[0] for v in offered if ":" in v}
-        if ":" not in tag and len(dimensions) == 1:
-            tag = f"{next(iter(dimensions))}:{tag}"
-        return {"tag": tag} if _TAG_SHAPE.match(tag) else None
     if field == "country":
         code = (verdict.country or "").upper()
         return {"country": code} if code and code in offered else None

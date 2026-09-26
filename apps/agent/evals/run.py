@@ -518,7 +518,6 @@ class Recorder:
                         "body": r.get("body"),
                         "done": r.get("done", False),
                         "yours": r.get("yours", True),
-                        "tags": r.get("tags", []),
                     }
                     for r in _rows_for(fx, args.get("thread_id"))
                 ],
@@ -792,10 +791,6 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
         for key in ("priority",):
             if key in matcher and args.get(key) != matcher[key]:
                 return False
-        if "tags_include" in matcher:
-            tags = [str(t).lower() for t in (args.get("tags") or [])]
-            if any(t.lower() not in tags for t in matcher["tags_include"]):
-                return False
         # 020. Which photo the row is, by its number.
         if "photo" in matcher and args.get("photo") != matcher["photo"]:
             return False
@@ -807,9 +802,7 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
         for needle in matcher.get("body_has", []):
             if needle.lower() not in body.lower():
                 return False
-        if matcher.get("body_no_digits") and re.search(r"\d{4,}", body):
-            return False
-        return not (matcher.get("no_tags") and args.get("tags"))
+        return not (matcher.get("body_no_digits") and re.search(r"\d{4,}", body))
 
     for tool, args in candidates:
         if fits(tool, args):
@@ -1426,7 +1419,7 @@ async def _run_quick_add(client: AsyncAnthropic, case: Case, model: str) -> Resu
         if t == "edit_content"
         and not (
             args.get("title") == typed
-            and not any(args.get(k) for k in ("body", "url", "image_url", "tags"))
+            and not any(args.get(k) for k in ("body", "url", "image_url"))
         )
     ]
     adds = [args for t, args in rec.calls if t == "add_content"]

@@ -316,59 +316,6 @@
       }
     },
     {
-      "id": "tag-in-options",
-      "why": "one of the offered values",
-      "surface": "judge",
-      "input": "jazz",
-      "question_asked": {
-        "field": "tag",
-        "text": "Filed \"Kind of Blue\". Which genre?",
-        "options": [
-          {
-            "label": "jazz",
-            "value": "genre:jazz"
-          },
-          {
-            "label": "rock",
-            "value": "genre:rock"
-          }
-        ]
-      },
-      "expect": {
-        "answers": true,
-        "whole": true,
-        "value": {
-          "tag": "genre:jazz"
-        }
-      }
-    },
-    {
-      "id": "tag-not-offered",
-      "why": "a typed tag that was not offered is a new value (labelled 2026-09-17; parse_answer refuses it today)",
-      "surface": "judge",
-      "input": "classical",
-      "question_asked": {
-        "field": "tag",
-        "text": "Filed \"Kind of Blue\". Which genre?",
-        "options": [
-          {
-            "label": "jazz",
-            "value": "genre:jazz"
-          },
-          {
-            "label": "rock",
-            "value": "genre:rock"
-          }
-        ]
-      },
-      "expect": {
-        "answers": true,
-        "value": {
-          "tag": "genre:classical"
-        }
-      }
-    },
-    {
       "id": "country-named",
       "why": "the country by name",
       "surface": "judge",

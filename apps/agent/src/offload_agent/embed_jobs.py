@@ -102,7 +102,7 @@ async def handle_embed(job: ClaimedJob, *, cfg: Config, engine, http: httpx.Asyn
         # **Nothing to do if the text did not change.**
         #
         # The sweep finds work by comparing `updated_at`, and almost everything
-        # touches that: ticking a task, editing tags, changing priority,
+        # touches that: ticking a task, changing priority,
         # archiving, moving. None of them change a word of the text. Replacing
         # the chunks anyway pays Voyage for a vector we already have and leaves
         # the old entries dead in the HNSW graph, where an iterative scan walks

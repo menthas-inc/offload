@@ -1007,7 +1007,6 @@ class Judgement(BaseModel):
     day: str | None = None
     to: str | None = None
     time: str | None = None
-    tag: str | None = None
     country: str | None = None
     #: 020. A thread, by the id of one of the options offered.
     thread: str | None = None
@@ -1026,8 +1025,8 @@ _JUDGE_PROMPT = (
     "message about something else is not an answer, and neither is a vague "
     'one: "sometime in autumn" is not a date. When it answers, fill only the '
     "slot the field needs: `day` for a date; `day` and `to` for a span; `day` "
-    "and `time` for a time; `tag` with one of the options' values for a tag; "
-    "`country` with one of the two codes for a country; `thread` with the value "
+    "and `time` for a time; `country` with one of the two codes for a country; "
+    "`thread` with the value "
     "of the option whose label the message names, for a thread. Set `whole` true when "
     "the message is nothing but the answer, and false when it also says "
     "something else worth keeping.\n\n"

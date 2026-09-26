@@ -84,7 +84,7 @@ export interface ThreadBundle {
   members: Member[];
   notes: Note[];
   noteCounts: { active: number; folded: number };
-  preference: { widgets?: string[]; groupBy?: Record<string, string>; hideDone?: boolean };
+  preference: { widgets?: string[]; hideDone?: boolean };
   standing: string | null;
   /** 022. False on the account's default thread, where Share is not drawn. */
   shareable: boolean;
@@ -189,7 +189,6 @@ export interface ContentRow extends Sortable {
   onCalendar: boolean;
   priority: number;
   priorityPinned: boolean;
-  tags: string[];
   place: Place | null;
   placeId: string | null;
   /** The repeating series this occurrence belongs to, or null for a one off.
@@ -379,7 +378,7 @@ export async function renameThread(
  *  server, so sending one field leaves the others as they were. */
 export async function setPreference(
   threadId: string,
-  patch: { widgets?: string[] | null; groupBy?: Record<string, string> | null; hideDone?: boolean | null }
+  patch: { widgets?: string[] | null; hideDone?: boolean | null }
 ): Promise<boolean> {
   const { data } = await send<unknown>(`/v1/threads/${threadId}/preference`, {
     method: "PATCH",
@@ -487,7 +486,6 @@ export function provisionalRow(
     onCalendar: false,
     priority: 0,
     priorityPinned: false,
-    tags: [],
     place: null,
     placeId: null,
     seriesRef: null,

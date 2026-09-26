@@ -38,7 +38,7 @@ import {
   restoreNote,
   setMuted,
 } from "../threads/notes.js";
-import { readPreference, type ThreadPreference } from "../threads/widgets.js";
+import { WIDGET_KIND_CHARS, readPreference, type ThreadPreference } from "../threads/widgets.js";
 import { calendarCounts, dropPicksOf, setPick, threadEvents, viewerCalendars } from "../threads/calendars.js";
 import { emit } from "../analytics.js";
 import { isBareDate, parseWhen, plausible } from "../threads/dates.js";
@@ -52,7 +52,6 @@ import {
   touchThread,
   unowned,
 } from "../threads/access.js";
-import { TAG_CHARS } from "../threads/tags.js";
 import { OverBudget, requireBudget } from "../budget.js";
 import { purgeAbout } from "../notifications/activity.js";
 import { noteAddition } from "../notifications/people.js";
@@ -219,7 +218,6 @@ const threadBundle = z.object({
   /** How this thread wants to look. Absent fields mean derived from content. */
   preference: z.object({
     widgets: z.array(z.string()).optional(),
-    groupBy: z.record(z.string(), z.string()).optional(),
     hideDone: z.boolean().optional(),
   }),
   /** Always null. offload does not summarise a thread yet and nothing writes a
@@ -274,7 +272,6 @@ export const contentRow = z.object({
   onCalendar: z.boolean(),
   priority: z.number(),
   priorityPinned: z.boolean(),
-  tags: z.array(z.string()),
   /** The repeating series this occurrence belongs to, or null for a one off.
    *
    *  Derived from `attrs`, which is never sent whole, exactly as `place` is
@@ -379,7 +376,6 @@ export interface RawRow {
   is_reminder: boolean;
   priority: number;
   priority_pinned: boolean;
-  tags: string[];
   place_id: string | null;
   /** Whatever the source put on the row. Only `series_ref` is read here, and
    *  only to say whether an occurrence belongs to something that repeats.
@@ -450,7 +446,6 @@ export function toRow(row: RawRow, viewerId: string) {
     isReminder: row.is_reminder,
     priority: row.priority,
     priorityPinned: row.priority_pinned,
-    tags: row.tags,
     // Derived rather than sending `attrs` whole, exactly as `placeId` is: the
     // client needs to know an occurrence repeats and has no business with the
     // rest of what a calendar sync wrote.
@@ -889,7 +884,6 @@ export async function setPreference(
   threadId: string,
   patch: {
     widgets?: string[] | null;
-    groupBy?: Record<string, string> | null;
     hideDone?: boolean | null;
   },
 ): Promise<ThreadPreference> {
@@ -913,11 +907,8 @@ export async function setPreference(
 
     const before = { ...readPreference(row.attrs), ...(member.hide_done ? { hideDone: true } : {}) };
 
-    if (patch.widgets !== undefined || patch.groupBy !== undefined) {
-      const merged = readPreference({
-        widgets: patch.widgets === undefined ? before.widgets : patch.widgets,
-        groupBy: patch.groupBy === undefined ? before.groupBy : patch.groupBy,
-      });
+    if (patch.widgets !== undefined) {
+      const merged = readPreference({ widgets: patch.widgets });
       await trx
         .updateTable("threads")
         .set({ attrs: JSON.stringify(merged), updated_at: sql`now()` })
@@ -1606,7 +1597,6 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.is_reminder as is_reminder",
             "content.priority as priority",
             "content.priority_pinned as priority_pinned",
-            "content.tags as tags",
             "content.place_id as place_id",
             "content.attrs as attrs",
             "accounts.display_name as authorName",
@@ -1701,7 +1691,6 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.is_reminder as is_reminder",
             "content.priority as priority",
             "content.priority_pinned as priority_pinned",
-            "content.tags as tags",
             "content.place_id as place_id",
             "content.attrs as attrs",
             "content.derived_from_message_id as fromMessageId",
@@ -2342,24 +2331,19 @@ export async function threadRoutes(app: App): Promise<void> {
       schema: {
         params: z.object({ id: z.string().uuid() }),
         body: z.strictObject({
-          // Bounded like a tag, since a grouping value is one: `readPreference`
-          // keeps the three widget kinds and lowercases the value, and an
-          // unbounded value was stored on the thread and served to every
-          // member.
-          widgets: z.array(z.string().max(TAG_CHARS)).max(3).nullish(),
-          groupBy: z.record(z.string().max(TAG_CHARS), z.string().max(TAG_CHARS)).nullish(),
+          // Bounded, since an unbounded value would be stored on the thread
+          // and served to every member; `readPreference` keeps the three kinds.
+          widgets: z.array(z.string().max(WIDGET_KIND_CHARS)).max(3).nullish(),
           hideDone: z.boolean().nullish(),
         }),
         response: {
           200: z.object({
             preference: z.object({
               widgets: z.array(z.string()).optional(),
-              groupBy: z.record(z.string(), z.string()).optional(),
               hideDone: z.boolean().optional(),
             }),
             previous: z.object({
               widgets: z.array(z.string()).optional(),
-              groupBy: z.record(z.string(), z.string()).optional(),
               hideDone: z.boolean().optional(),
             }),
           }),
@@ -2375,7 +2359,6 @@ export async function threadRoutes(app: App): Promise<void> {
 
         const previous = await setPreference(accountId, request.params.id, {
           ...(request.body.widgets === undefined ? {} : { widgets: request.body.widgets }),
-          ...(request.body.groupBy === undefined ? {} : { groupBy: request.body.groupBy }),
           ...(request.body.hideDone === undefined ? {} : { hideDone: request.body.hideDone }),
         });
 
@@ -2415,7 +2398,6 @@ async function rowById(contentId: string, viewerId: string) {
       "content.is_reminder as is_reminder",
       "content.priority as priority",
       "content.priority_pinned as priority_pinned",
-      "content.tags as tags",
       "content.place_id as place_id",
             "content.attrs as attrs",
       "accounts.display_name as authorName",

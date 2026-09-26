@@ -511,7 +511,6 @@ export interface ContentTable {
    *  `due_at` for everything else. Replaced the six-value `repeats`. */
   rrule: string | null;
   /** `dimension:value`, or a bare value whose dimension is implicitly `tag`. */
-  tags: Generated<string[]>;
   /** Null forever is a normal state: a location with a name and no pin. */
   place_id: string | null;
   source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
@@ -838,7 +837,7 @@ export interface QuestionsTable {
   message_id: string;
   turn_id: string;
   ordinal: number;
-  field: "date" | "span" | "time" | "tag" | "country" | "calendar" | "thread" | "person";
+  field: "date" | "span" | "time" | "country" | "calendar" | "thread" | "person";
   target_content_id: string | null;
   target_note_id: string | null;
   text: string;

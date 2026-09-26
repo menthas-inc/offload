@@ -9,7 +9,7 @@
 //
 // Two things differ between the places it appears and both are slots: the
 // **lead** is a type tile in the list and a checkbox in To do, and the **meta**
-// line is who and when in the list and dates, tags and places in a widget.
+// line is who and when in the list and places in a widget.
 // Everything else, the title, the inline rename, the tools and the delete
 // confirmation, belongs to the row and is therefore written once.
 //

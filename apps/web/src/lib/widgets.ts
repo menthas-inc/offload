@@ -1,4 +1,4 @@
-// Which widgets a thread earns, and how their contents are filtered.
+// Which widgets a thread earns.
 //
 // **This moved to `@offload/widgets`.** It was a deliberate copy of the
 // server's, and its old header said so; two phones would have made four copies
@@ -15,12 +15,7 @@
 export {
   WIDGET_KINDS,
   DONE_SHOWN,
-  dimensionsIn,
-  filtersFor,
-  groupBy,
   liveCount,
-  matching,
-  parseTag,
   readPreference,
   sinkDone,
   splitDone,
@@ -29,13 +24,10 @@ export {
   cadenceLabel,
   reorderPlan,
   respread,
-  type Filter,
   type Ordered,
   type ReorderWrite,
-  type Group,
   type Series,
   type Sortable,
-  type Tag,
   type ThreadPreference,
   type Widget,
   type WidgetKind,

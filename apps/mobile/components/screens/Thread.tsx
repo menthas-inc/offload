@@ -747,7 +747,6 @@ export default function Thread() {
             threadId={id}
             threadName={thread.name}
             widgets={widgets}
-            groupBy={thread.preference.groupBy}
             hideDone={thread.preference.hideDone}
             onFold={fold}
             onDelete={remove}

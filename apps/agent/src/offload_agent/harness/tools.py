@@ -24,11 +24,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-# Mirrors apps/core-api/src/threads/tags.ts. Six is generous for one piece of
-# content and finite.
-MAX_TAGS = 6
-TAG_CHARS = 48
-
 # A location's title is the one string that ever reaches a geocoder, so it is
 # held to a tighter shape than any other title. Enforced again server-side,
 # because the agent plane is not the enforcement point for anything.
@@ -130,8 +125,6 @@ class AddContent(BaseModel):
     # 0 to 100, higher first. Orders content inside a thread.
     priority: int = Field(default=50, ge=0, le=100)
 
-    tags: list[str] = Field(default_factory=list, max_length=MAX_TAGS)
-
     # 020. Which of the message's photos this row is, by its number in the
     # order they were shown, one-based. An index rather than an id, so a
     # photo can only be named on the message it arrived with; the Core API
@@ -191,7 +184,6 @@ class EditContent(BaseModel):
     body: str | None = Field(default=None, max_length=4000)
     url: str | None = Field(default=None, max_length=2000)
     image_url: str | None = Field(default=None, max_length=2000)
-    tags: list[str] | None = Field(default=None, max_length=MAX_TAGS)
     priority: int | None = Field(default=None, ge=0, le=100)
     # 019. The same three as add_content, so a row filed without a time can be
     # given one on the same row rather than filed again.
@@ -243,8 +235,6 @@ class SetThreadPreference(BaseModel):
     """Say how a thread should be arranged."""
 
     thread_id: str = Field(min_length=1)
-    # Which tag dimension each widget groups by, e.g. {"todo": "city"}.
-    group_by: dict[str, str] | None = None
     # What order the widgets come in, e.g. ["map", "todo"].
     widgets: list[str] | None = None
 
@@ -329,7 +319,7 @@ _DESCRIPTIONS = {
         "contradict what is there. Returns one page, newest first."
     ),
     "edit_content": (
-        "Change something you filed for them: its title, body, tags, priority, "
+        "Change something you filed for them: its title, body, priority, "
         "or its time. Only content this account wrote. A row that `create_event` "
         "refused as `no_time` gets its time here and is then put on the "
         "calendar with the same id: never file it a second time. A row already "
@@ -345,9 +335,8 @@ _DESCRIPTIONS = {
         "is what to use when they say to get rid of something. You cannot delete."
     ),
     "set_thread_preference": (
-        "Say how a thread should be arranged: which tag dimension a widget groups "
-        "by, and what order the widgets come in. Use it when they ask for one, not "
-        "on your own initiative."
+        "Say what order a thread's widgets come in. Use it when they ask, not on "
+        "your own initiative."
     ),
     "rename_thread": "Rename a thread.",
     "add_note": (
@@ -830,7 +819,7 @@ class AskOption(BaseModel):
 class Ask(BaseModel):
     """Ask them for one field the row you just filed needs."""
 
-    field: Literal["date", "span", "time", "tag", "country", "thread"]
+    field: Literal["date", "span", "time", "country", "thread"]
     #: The row's own title, echoed into the template. Never a sentence.
     title: str = Field(min_length=1, max_length=60)
     #: The row the answer fills, from the contentId a filing returned.
@@ -844,8 +833,8 @@ class Ask(BaseModel):
 SCHEMAS["ask"] = Ask
 _DESCRIPTIONS["ask"] = (
     "Ask them for one field the row you just filed needs and nothing gave "
-    "you: its dates, its by-when, its day and time, or the tag this thread "
-    "groups by. Name the row by the contentId the filing returned. Offer up "
+    "you: its dates, its by-when, or its day and time. Name the row by the "
+    "contentId the filing returned. Offer up "
     "to four values as options, or none when nothing can offer one; the "
     "wording of each option is written for you from its value. Never a "
     "question about what they meant or what kind of row it is. Where it goes "

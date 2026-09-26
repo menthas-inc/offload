@@ -20,6 +20,7 @@
 //   somebody else's return byte-identical bodies. Two reasons would make this
 //   endpoint a membership oracle for any thread id a caller could guess.
 
+import { WIDGET_KIND_CHARS } from "../threads/widgets.js";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { sql, type Transaction } from "kysely";
@@ -34,7 +35,6 @@ import { dayLabel, movedCopy } from "../notifications/copy.js";
 import { noteAddition } from "../notifications/people.js";
 import { accountFacts, listAgenda, listContent, search } from "../search/read.js";
 import { env } from "../env.js";
-import { BadTags, MAX_TAGS, normaliseTags, TAG_CHARS } from "../threads/tags.js";
 import { isBareDate, parseWhen, plausible } from "../threads/dates.js";
 import {
   NOTE_BODY_CHARS,
@@ -201,7 +201,6 @@ const body = z.discriminatedUnion("tool", [
     /** 0 to 100, higher first. Orders content inside a thread; it is not
      *  `needs_attention`, which decides what leaves one. */
     priority: z.number().int().min(0).max(100).default(50),
-    tags: z.array(z.string().max(TAG_CHARS)).max(MAX_TAGS).default([]),
   }),
   z.strictObject({
     tool: z.literal("list_thread_content"),
@@ -276,7 +275,6 @@ const body = z.discriminatedUnion("tool", [
       .max(2000)
       .refine((value) => /^https:\/\//i.test(value), "https only")
       .nullish(),
-    tags: z.array(z.string().max(TAG_CHARS)).max(MAX_TAGS).nullish(),
     priority: z.number().int().min(0).max(100).nullish(),
     /** 019. The same three as `add_content`, so a row filed without a time
      *  can be given one. On a device the model, refused `no_time` by
@@ -315,10 +313,8 @@ const body = z.discriminatedUnion("tool", [
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
     threadId: z.string().uuid(),
-    /** Which tag dimension each widget groups by. Bounded like a tag. */
-    groupBy: z.record(z.string().max(TAG_CHARS), z.string().max(TAG_CHARS)).nullish(),
     /** What order the widgets come in. */
-    widgets: z.array(z.string().max(TAG_CHARS)).max(3).nullish(),
+    widgets: z.array(z.string().max(WIDGET_KIND_CHARS)).max(3).nullish(),
   }),
   z.strictObject({
     tool: z.literal("add_note"),
@@ -557,7 +553,6 @@ const result = z.union([
     error: z.enum([
       "unknown_thread",
       "limit_reached",
-      "bad_tags",
       // 020. A photo index that names nothing on this message, or a photo
       // this turn already filed, or an index on a row that is not a picture.
       "unknown_photo",
@@ -672,7 +667,6 @@ type Outcome =
       error:
         | "unknown_thread"
         | "limit_reached"
-        | "bad_tags"
         | "unknown_photo"
         | "bad_place_name"
         | "unknown_content"
@@ -974,12 +968,9 @@ async function existing(
   if (call.tool === "set_thread_preference") {
     // Co-owned, like the name. `readPreference` drops anything it does not
     // recognise, so a widget kind the model invented is ignored rather than
-    // stored and rendered as nothing later. A dimension nothing carries is
-    // kept, because "group this by city" said before anything has a city is a
-    // reasonable thing to say and it starts working when something does.
+    // stored and rendered as nothing later.
     await setPreference(accountId, call.threadId, {
       ...(call.widgets === undefined ? {} : { widgets: call.widgets }),
-      ...(call.groupBy === undefined ? {} : { groupBy: call.groupBy }),
     });
     return { ok: true, done: true };
   }
@@ -1329,15 +1320,6 @@ async function existing(
   }
 
   // edit_content.
-  let tags: string[] | undefined;
-  if (call.tags != null) {
-    try {
-      tags = normaliseTags(call.tags);
-    } catch (error) {
-      if (error instanceof BadTags) return { ok: false, error: "bad_tags" };
-      throw error;
-    }
-  }
   // A time given here is written as add_content would write it: the same
   // parse, the same refusal, and a bare date is a day. A row already on a
   // calendar keeps its time: that change goes through `edit_event`, which
@@ -1378,7 +1360,6 @@ async function existing(
       ...(call.body === undefined ? {} : { body: call.body }),
       ...(call.url === undefined ? {} : { url: call.url }),
       ...(call.imageUrl === undefined ? {} : { image_url: call.imageUrl }),
-      ...(tags === undefined ? {} : { tags }),
       ...(call.dueAt == null ? {} : { due_at: when.dueAt }),
       ...(call.occursAt == null ? {} : { occurs_at: when.occursAt }),
       ...(call.occursEndAt == null ? {} : { occurs_end_at: when.occursEndAt }),
@@ -1604,20 +1585,6 @@ export async function toolRoutes(app: App): Promise<void> {
         // after the insert would make every call look like a repeat of itself.
         const carried = await notesForTurn(messageId, thread.id, accountId, call.toolCallId, trx);
 
-        // Tags are normalised here, not in the prompt. A model producing
-        // `City:Alfama` on Monday and `city: alfama` on Tuesday makes two
-        // groups out of one place, and a row carrying two cities has to be
-        // reconciled by eye every time somebody reads the list. Refused rather
-        // than silently repaired, so the model gets the complaint back and can
-        // fix it.
-        let tags: string[];
-        try {
-          tags = normaliseTags(call.tags);
-        } catch (error) {
-          if (error instanceof BadTags) return { ok: false, error: "bad_tags" };
-          throw error;
-        }
-
         // A location's title is the string that will reach a geocoder, so it
         // is held to a stricter shape than any other title. Refused rather than
         // truncated: a truncated place name resolves to the wrong place, which
@@ -1678,7 +1645,6 @@ export async function toolRoutes(app: App): Promise<void> {
             rrule: contentRule,
             is_reminder: call.isReminder,
             priority: call.priority,
-            tags,
             ...(allDayAttrs(call) ? { attrs: allDayAttrs(call) } : {}),
             updated_at: sql`now()`,
           })
