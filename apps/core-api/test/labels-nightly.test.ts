@@ -168,6 +168,19 @@ describe("the sort's plan (AC-25, AC-26, AC-27)", () => {
     expect(await labelsOfThread(t)).toEqual([]);
   });
 
+  it("does nothing for a job already done", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const [ferry] = await sixRows(me, t);
+    const job = await sortJob(me, t);
+    const plan = { jobId: job.id, create: [{ name: "Istanbul", contentIds: [ferry] }], apply: [] };
+    await sorted(plan);
+    const again = await sorted(plan);
+    expect(again.json()).toEqual({ created: 0, applied: 0 });
+    expect(await db.selectFrom("label_runs").select("id").execute()).toHaveLength(1);
+    expect(await db.selectFrom("activity").select("id").where("kind", "=", "labelled").execute()).toHaveLength(1);
+  });
+
   it("refuses a row from another thread in the plan", async () => {
     const me = await account();
     const t = await thread(me);

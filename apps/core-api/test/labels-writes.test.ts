@@ -24,6 +24,7 @@ import {
   purgeLabelRuns,
   purgeLabels,
   restoreLabel,
+  undoRun,
   updateLabel,
   type Actor,
 } from "../src/threads/labels.js";
@@ -276,6 +277,27 @@ describe("deleting and restoring (AC-7)", () => {
     await createLabel(db, person(me), t, { name: "Paris" });
     const back = await restoreLabel(db, person(me), l.id);
     expect(back.colour).toBe(2);
+  });
+
+  it("restores only for the member who deleted it, inside their Undo", async () => {
+    const me = await account();
+    const sam = await account("Sam");
+    const t = await thread(me);
+    await join(t, sam);
+    const l = await createLabel(db, person(me), t, { name: "Istanbul" });
+    await deleteLabel(db, person(me), l.id);
+    expect(await refusal(restoreLabel(db, person(sam), l.id))).toBe("label_gone");
+    await db.updateTable("labels").set({ deleted_at: sql`now() - interval '1 minute'` }).where("id", "=", l.id).execute();
+    expect(await refusal(restoreLabel(db, person(me), l.id))).toBe("label_gone");
+  });
+
+  it("does not restore a label a sort's Undo took back", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const run = await db.insertInto("label_runs").values({ thread_id: t, kind: "nightly", set_by: "offload" }).returning("id").executeTakeFirstOrThrow();
+    const l = await createLabel(db, offload(me, run.id), t, { name: "Istanbul" });
+    await undoRun(db, run.id);
+    expect(await refusal(restoreLabel(db, person(me), l.id))).toBe("label_gone");
   });
 
   it("purges past thirty days, with its joins, and a restore after is label_gone", async () => {

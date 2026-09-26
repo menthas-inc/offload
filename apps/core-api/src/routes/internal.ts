@@ -552,6 +552,10 @@ export async function internalRoutes(app: App): Promise<void> {
       const threadId = payload.threadId;
 
       const outcome = await db.transaction().execute(async (trx) => {
+        // A retry after the plan landed changes nothing: the job is closed in
+        // this same transaction, so done means written.
+        const open = await trx.selectFrom("jobs").select("state").where("id", "=", result.jobId).forUpdate().executeTakeFirstOrThrow();
+        if (open.state === "done") return { created: 0, applied: 0 };
         const landed = (await memberOf(accountId, threadId, trx))
           ? await applyNightlyPlan(trx, accountId, threadId, { create: result.create, apply: result.apply }, labelledNightlyCopy)
           : { created: 0, applied: 0 };

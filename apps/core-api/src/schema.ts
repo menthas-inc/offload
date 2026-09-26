@@ -141,10 +141,9 @@ export interface ThreadsTable {
   always_on: Generated<boolean>;
   icon: string | null;
   content_count: Generated<number>;
-  /** How this thread wants to look: which tag dimension each widget groups by,
-   *  and what order the widgets come in. Read whole with the thread and never
-   *  in a WHERE clause, which is the test 001's "attrs holds what no screen
-   *  queries" rule is really a proxy for. */
+  /** How this thread wants to look: what order the widgets come in. Read
+   *  whole with the thread and never in a WHERE clause, which is the test
+   *  001's "attrs holds what no screen queries" rule is really a proxy for. */
   attrs: Generated<unknown>;
   last_activity_at: Timestamp;
   created_at: Timestamp;
@@ -516,7 +515,6 @@ export interface ContentTable {
    *  the server's own serialisation, anchored on `occurs_at` for an event and
    *  `due_at` for everything else. Replaced the six-value `repeats`. */
   rrule: string | null;
-  /** `dimension:value`, or a bare value whose dimension is implicitly `tag`. */
   /** Null forever is a normal state: a location with a name and no pin. */
   place_id: string | null;
   source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
@@ -958,6 +956,7 @@ export interface LabelsTable {
   updated_at: Generated<Timestamp>;
   deleted_at: Timestamp | null;
   deleted_by_person: Generated<boolean>;
+  deleted_by: string | null;
   purge_after: Timestamp | null;
 }
 

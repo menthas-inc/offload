@@ -125,7 +125,7 @@ All under `requireMember` for the thread the label or row resolves to; all retur
 | `POST /v1/threads/:id/labels` | `{ name, colour? }` | the label |
 | `PATCH /v1/labels/:id` | `{ name?, colour? }` (absent unchanged) | the label and its previous name and colour, plus the other label's id if a colour swapped |
 | `DELETE /v1/labels/:id` | none | `{ deleted: true }` |
-| `POST /v1/labels/:id/restore` | none | the label; refused as `label_gone` past purge |
+| `POST /v1/labels/:id/restore` | none | the label; only for the member who deleted it and within thirty seconds of the delete (the eight-second Undo plus the round trip), otherwise `label_gone`; a label a sort's Undo took back is never restored by id |
 | `POST /v1/labels/:id/rows` | `{ add: {content: [], notes: []}, remove: {content: [], notes: []}, name?, colour? }` | the previous name, colour and the rows whose state changed, which Undo sends back reversed |
 | `PATCH /v1/content/:id` | gains `labels?: string[]` (absent unchanged), the full set for that row, diffed server-side into add and remove | 023's previous values plus `labels` |
 | `PATCH` note edit | the same `labels?` | the same |

@@ -38,6 +38,8 @@ export const LABEL_COLOURS = 10;
 /** How long a deleted label is kept: the privacy page's window for anything
  *  deleted, and the span offload will not re-create its name in. */
 export const LABEL_KEPT_DAYS = 30;
+/** The eight-second Undo, and the round trip after it. */
+export const RESTORE_WINDOW_SECONDS = 30;
 /** The nightly sort looks at a thread of this many live rows or more, the
  *  same six that draw Group with labels. */
 export const LABEL_SORT_MIN_ROWS = 6;
@@ -277,6 +279,7 @@ export async function deleteLabel(executor: Executor, actor: Actor, labelId: str
       .set({
         deleted_at: sql`now()`,
         deleted_by_person: true,
+        deleted_by: actor.accountId,
         purge_after: sql`now() + make_interval(days => ${LABEL_KEPT_DAYS})`,
         updated_at: sql`now()`,
       })
@@ -286,9 +289,11 @@ export async function deleteLabel(executor: Executor, actor: Actor, labelId: str
   });
 }
 
-/** Undo of a delete, by id alone, from what the server kept. The name must
- *  still be free; the colour is its own if nobody took it, the lowest free if
- *  somebody did, and a thread that filled to ten meanwhile refuses. */
+/** Undo of a delete, by id alone, from what the server kept. Only the
+ *  member who deleted it, and only while their Undo is up, with slack for the
+ *  round trip: anyone else re-creates it instead. The name must still be
+ *  free; the colour is its own if nobody took it, the lowest free if somebody
+ *  did, and a thread that filled to ten meanwhile refuses. */
 export async function restoreLabel(executor: Executor, actor: Actor, labelId: string): Promise<Label> {
   if (actor.via === "offload") throw new LabelRefused("person_set");
   return inTransaction(executor, async (trx) => {
@@ -297,6 +302,8 @@ export async function restoreLabel(executor: Executor, actor: Actor, labelId: st
       .selectAll()
       .where("id", "=", labelId)
       .where("deleted_at", "is not", null)
+      .where("deleted_by", "=", actor.accountId)
+      .where("deleted_at", ">", sql<Date>`now() - make_interval(secs => ${RESTORE_WINDOW_SECONDS})`)
       .forUpdate()
       .executeTakeFirst();
     if (!row) throw new LabelRefused("label_gone");
@@ -309,7 +316,7 @@ export async function restoreLabel(executor: Executor, actor: Actor, labelId: st
     const colour = taken.includes(row.colour) ? lowestFree(taken)! : row.colour;
     const back = await trx
       .updateTable("labels")
-      .set({ deleted_at: null, deleted_by_person: false, purge_after: null, colour, updated_at: sql`now()` })
+      .set({ deleted_at: null, deleted_by_person: false, deleted_by: null, purge_after: null, colour, updated_at: sql`now()` })
       .where("id", "=", labelId)
       .returning(["id", "thread_id", "name", "colour"])
       .executeTakeFirstOrThrow();
