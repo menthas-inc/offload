@@ -201,13 +201,6 @@ function FoldedHeader() {
         </Text>
       </Pressable>
       <Pressable
-        onPress={conversation.raise}
-        hitSlop={10}
-        accessibilityLabel="Open conversation"
-      >
-        <Glyph name="chevron-up" size={18} color={COLOR.iconOnWell} />
-      </Pressable>
-      <Pressable
         onPress={conversation.close}
         hitSlop={10}
         accessibilityLabel="Close conversation"
