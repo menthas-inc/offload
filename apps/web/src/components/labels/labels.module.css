@@ -31,7 +31,17 @@
 }
 
 button.mark {
+  position: relative;
   cursor: pointer;
+}
+
+/* A pressed mark opens its label's list, so it takes the 44px rule by a hit
+   area with no paint: tall enough, and only as wide as the gap to the next
+   mark allows, so two never overlap. */
+button.mark::after {
+  content: "";
+  position: absolute;
+  inset: calc((44px - 100%) / -2) -2px;
 }
 
 button.mark:focus-visible {
@@ -223,6 +233,15 @@ button.mark:focus-visible {
   background: var(--label);
   color: var(--text-on-solid);
   cursor: pointer;
+  position: relative;
+}
+
+/* 44px tall with no paint; not over the chip it edits, and short of the next
+   one. */
+.chipEdit::after {
+  content: "";
+  position: absolute;
+  inset: -7px -3px -7px 0;
 }
 
 .chipEdit:focus-visible {
@@ -444,42 +463,20 @@ button.mark:focus-visible {
   outline-offset: 3px;
 }
 
-.swatchTaken {
-  position: absolute;
-  right: -2px;
-  bottom: -2px;
-  max-width: 64px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-xs);
-  background: var(--surface-raised);
-  color: var(--text-secondary);
-  font: var(--weight-medium) var(--size-caption) / 1.4 var(--font-core);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.swatchInitial {
+  font: var(--weight-medium) var(--size-caption) / 1 var(--font-core);
 }
 
-.spinner {
-  width: 18px;
-  height: 18px;
-  margin: var(--space-6) auto;
-  border: 2px solid var(--border-hairline);
-  border-top-color: var(--text-secondary);
-  border-radius: var(--radius-pill);
-  animation: spin 800ms linear infinite;
+/* A read that did not finish: the clause and the way forward, where the
+   list would have been. */
+.unread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: 2400ms;
-  }
-  .chip {
-    transition: none;
-  }
+.unread .line {
+  margin: 0;
 }

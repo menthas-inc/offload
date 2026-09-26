@@ -686,9 +686,10 @@
   color: var(--text-inverse);
 }
 
-/* 025. Drawn 32px, and a 44px target by a hit area with no paint, so the row's
+/* 025. Drawn 32px, and 44px tall by a hit area with no paint, so the row's
    tools meet the rule without the row growing: the tag tool made a third and
-   was the one the rule was checked against. */
+   was the one the rule was checked against. Across, the tools sit 4px apart,
+   so each reaches 2px into the gap: touching, never overlapping. */
 .rowTools .tool,
 .rowTools .toolDanger {
   position: relative;
@@ -698,7 +699,7 @@
 .rowTools .toolDanger::after {
   content: "";
   position: absolute;
-  inset: -6px;
+  inset: -6px -2px;
 }
 
 /* The one red control in the product, and it only turns red once you are on
@@ -2724,6 +2725,13 @@ a.actRow:hover {
 .actBody {
   font: var(--weight-regular) calc(14px * var(--type-scale)) / 1.4 var(--font-core);
   color: var(--text-secondary);
+}
+
+/* 025. An Undo that did not land: its own line, never in the row's stored
+   words. */
+.actFailed {
+  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-danger);
 }
 
 /* Not sent, as a chip with a ground: noticed on its soft ground where a

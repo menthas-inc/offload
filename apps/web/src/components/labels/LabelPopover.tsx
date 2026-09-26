@@ -125,7 +125,7 @@ export function LabelPopover({
               >
                 <LabelDot colour={label.colour} />
                 <span className={styles.optionName}>{label.name}</span>
-                <span className={styles.optionCount}>{label.count}</span>
+                {label.count > 0 ? <span className={styles.optionCount}>{label.count}</span> : null}
                 <span className={styles.tick} data-on={on ? true : undefined}>
                   {on ? <Icon name="check" size={13} /> : null}
                 </span>

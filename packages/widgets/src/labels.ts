@@ -91,3 +91,26 @@ export function rowLabelledCopy(title: string, names: readonly string[]): string
 export function listLabelledCopy(count: number, name: string): string {
   return count === 0 ? `${name} saved` : `${sentenceCount(count)} under ${name}`;
 }
+
+/** The label's list ticks across the whole thread, so it reads every page.
+ *  Each page hands over everything so far; a page that does not arrive ends
+ *  the read as false, so the list can say so beside a retry rather than
+ *  spin; a page that threw is one that did not arrive. Nobody looking any
+ *  more is not a failure. */
+export async function readEveryPage<T>(
+  page: (cursor: string | undefined) => Promise<{ rows: T[]; nextCursor: string | null } | null>,
+  onRows: (rows: T[]) => void,
+  alive: () => boolean,
+): Promise<boolean> {
+  const all: T[] = [];
+  let cursor: string | undefined;
+  do {
+    const next = await page(cursor).catch(() => null);
+    if (!alive()) return true;
+    if (!next) return false;
+    all.push(...next.rows);
+    onRows([...all]);
+    cursor = next.nextCursor ?? undefined;
+  } while (cursor);
+  return true;
+}

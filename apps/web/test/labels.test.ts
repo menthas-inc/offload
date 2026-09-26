@@ -102,11 +102,68 @@ describe("a labelled row in Activity (AC-27, AC-28)", () => {
     }) as typeof fetch;
     try {
       const { undoActivity } = await import("../src/lib/notifications");
-      expect(await undoActivity("a1")).toBe(true);
+      expect(await undoActivity("a1")).toBe("undone");
       expect(calls[0]).toMatch(/^POST .*\/v1\/activity\/a1\/undo$/);
     } finally {
       globalThis.fetch = real;
     }
+  });
+});
+
+describe("the label's list reads every page, and says when one fails", () => {
+  it("delivers what arrived and reports a page that did not", async () => {
+    const { readEveryPage } = await import("@offload/widgets");
+    const seen: number[][] = [];
+    const pages = [{ rows: [1, 2], nextCursor: "b" }, null];
+    const ok = await readEveryPage(async () => pages.shift() ?? null, (rows) => seen.push(rows), () => true);
+    expect(ok).toBe(false);
+    expect(seen).toEqual([[1, 2]]);
+  });
+
+  it("counts a page that threw as one that did not arrive", async () => {
+    const { readEveryPage } = await import("@offload/widgets");
+    const ok = await readEveryPage(() => Promise.reject(new TypeError("offline")), () => {}, () => true);
+    expect(ok).toBe(false);
+  });
+
+  it("reads to the end, and stops quietly once nobody is looking", async () => {
+    const { readEveryPage } = await import("@offload/widgets");
+    const seen: number[][] = [];
+    const cursors: (string | undefined)[] = [];
+    const pages = [{ rows: [1], nextCursor: "b" }, { rows: [2], nextCursor: null }];
+    const ok = await readEveryPage(
+      async (cursor) => (cursors.push(cursor), pages.shift() ?? null),
+      (rows) => seen.push(rows),
+      () => true,
+    );
+    expect(ok).toBe(true);
+    expect(seen).toEqual([[1], [1, 2]]);
+    expect(cursors).toEqual([undefined, "b"]);
+    expect(await readEveryPage(async () => null, () => {}, () => false)).toBe(true);
+  });
+});
+
+describe("an Undo that cannot happen", () => {
+  it("reads a 409 as already undone and anything else as a failure", async () => {
+    const real = globalThis.fetch;
+    let status = 409;
+    globalThis.fetch = (async () => new Response(JSON.stringify({ error: "not_undoable" }), { status })) as typeof fetch;
+    try {
+      const { undoActivity } = await import("../src/lib/notifications");
+      expect(await undoActivity("a1")).toBe("refused");
+      status = 500;
+      expect(await undoActivity("a1")).toBe("failed");
+    } finally {
+      globalThis.fetch = real;
+    }
+  });
+});
+
+describe("a refused label says why, beside the control", () => {
+  it("names a bad name", async () => {
+    const { refusalLine } = await import("../src/lib/labels");
+    expect(refusalLine("bad_label_name")).toBe("A label is 24 characters at most.");
+    expect(refusalLine(null)).toBe("Couldn't save that.");
   });
 });
 

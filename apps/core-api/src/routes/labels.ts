@@ -57,8 +57,14 @@ function guard<T>(reply: FastifyReply, run: () => Promise<T>): Promise<T | Fasti
     if (error instanceof LabelRefused) {
       // A person's route never meets offload's refusals; one that did is a bug
       // and is left to fail loudly rather than dressed as a 409.
-      if (error.reason === "bad_label_name") return reply.code(400).send({ error: error.reason });
-      if (error.reason === "label_taken" || error.reason === "label_limit" || error.reason === "label_gone") {
+      // 409 rather than 400, as 020 decided: a 400 schema would also have to
+      // serialise Fastify's own validation errors, and they do not fit it.
+      if (
+        error.reason === "bad_label_name" ||
+        error.reason === "label_taken" ||
+        error.reason === "label_limit" ||
+        error.reason === "label_gone"
+      ) {
         return reply.code(409).send({ error: error.reason });
       }
     }

@@ -121,7 +121,18 @@ describe("a labelled row in Activity (AC-27, AC-28)", () => {
     expect(activity.tagOf(row)).toBeNull();
     expect(activity.tagOf({ ...row, undone: true })).toEqual({ label: "Undone", tone: "quiet" });
     reply = { status: 200, data: { undone: true } };
-    expect(await activity.undoActivity("a1")).toBe(true);
+    expect(await activity.undoActivity("a1")).toBe("undone");
     expect(calls.at(-1)).toMatchObject({ path: "/v1/activity/a1/undo", init: { method: "POST" } });
+    reply = { status: 409, data: null, error: "not_undoable" };
+    expect(await activity.undoActivity("a1")).toBe("refused");
+    reply = { status: 0, data: null };
+    expect(await activity.undoActivity("a1")).toBe("failed");
+  });
+});
+
+describe("a refused label says why, beside the control", () => {
+  it("names a bad name", () => {
+    expect(labels.refusalLine("bad_label_name")).toBe("A label is 24 characters at most.");
+    expect(labels.refusalLine(null)).toBe("Couldn't save that.");
   });
 });

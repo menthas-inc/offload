@@ -89,8 +89,14 @@ export function whenOf(occurredAt: string, section: "Today" | "Yesterday" | "Ear
   return new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", timeZone: zone ?? undefined }).format(at);
 }
 
-/** 025. Undo on a labelled row: the sort taken back, for every member. */
-export async function undoActivity(id: string): Promise<boolean> {
+export type UndoOutcome = "undone" | "refused" | "failed";
+
+/** 025. Undo on a labelled row: the sort taken back, for every member.
+ *  Refused means it cannot happen, because another member undid it or its
+ *  thirty days are over, so the row is drawn Undone rather than offered
+ *  again. */
+export async function undoActivity(id: string): Promise<UndoOutcome> {
   const { status } = await send<{ undone: true }>(`/v1/activity/${id}/undo`, { method: "POST" });
-  return status >= 200 && status < 300;
+  if (status >= 200 && status < 300) return "undone";
+  return status === 409 ? "refused" : "failed";
 }

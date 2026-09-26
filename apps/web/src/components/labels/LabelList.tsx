@@ -12,9 +12,10 @@
 // nothing itself: the page makes the one write and offers the one Undo.
 
 import { useEffect, useRef, useState } from "react";
-import { countWord, widgetsFor } from "@offload/widgets";
+import { countWord, readEveryPage, widgetsFor } from "@offload/widgets";
 import styles from "./labels.module.css";
 import people from "../people/people.module.css";
+import pane from "../../app/(shell)/shell.module.css";
 import { Modal } from "../people/Modal";
 import { Icon } from "../Icon";
 import { LabelDot, LabelMark } from "./LabelMark";
@@ -66,28 +67,24 @@ export function LabelList({
   const [colouring, setColouring] = useState(false);
   const [asking, setAsking] = useState(false);
   const [tooLong, setTooLong] = useState(false);
+  const [unread, setUnread] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const live = useRef(true);
 
   useEffect(() => {
     live.current = true;
-    void (async () => {
-      let cursor: string | undefined;
-      const all: (ContentRow & { ticked?: boolean })[] = [];
-      do {
-        const page = await fetchContent(threadId, {
-          ...(cursor ? { cursor } : {}),
-          ...(label ? { ticksFor: label.id } : {}),
-        });
-        if (!live.current || !page) break;
-        all.push(...page.rows);
-        setRows([...all]);
-        cursor = page.nextCursor ?? undefined;
-      } while (cursor);
-    })();
+    setUnread(false);
+    void readEveryPage<ContentRow & { ticked?: boolean }>(
+      (cursor) => fetchContent(threadId, { ...(cursor ? { cursor } : {}), ...(label ? { ticksFor: label.id } : {}) }),
+      setRows,
+      () => live.current,
+    ).then((read) => {
+      if (!read) setUnread(true);
+    });
     return () => {
       live.current = false;
     };
-  }, [threadId, label]);
+  }, [threadId, label, attempt]);
 
   const noteTicked = (note: Note) => (label ? note.labels.includes(label.id) : false);
   const isOn = (key: string, initial: boolean) => changed.get(key) ?? initial;
@@ -175,7 +172,10 @@ export function LabelList({
             setTooLong(false);
           }}
           onKeyDown={(event) => {
-            if (event.key === "Enter") event.preventDefault();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              save();
+            }
           }}
         />
       </div>
@@ -183,14 +183,22 @@ export function LabelList({
       {line ? <p className={styles.line}>{line}</p> : null}
       <p className={styles.hint}>Tick what goes under it.</p>
 
+      {unread ? (
+        <p className={styles.unread}>
+          <span className={styles.line}>Couldn&apos;t load everything</span>
+          <button type="button" className={people.ghost} onClick={() => setAttempt((n) => n + 1)}>
+            Try again
+          </button>
+        </p>
+      ) : null}
       <div className={styles.list}>
         {rows === null ? (
-          <div className={styles.spinner} role="status" aria-label="Loading" />
+          unread ? null : <span className={pane.paneSpinner} role="status" aria-label="loading" />
         ) : (
           <>
             {sections.map((section) => (
               <section key={section.kind}>
-                <h3 className={styles.section}>{HEADINGS[section.kind]}</h3>
+                <h3 className={styles.section}>{HEADINGS[section.kind] ?? "Everything else"}</h3>
                 <ul className={styles.options}>{section.rows.map((row) => option(`c:${row.id}`, row.ticked === true, row.title, row.labels))}</ul>
               </section>
             ))}
@@ -241,8 +249,7 @@ export function LabelList({
                 data-on={colour === c ? true : undefined}
                 onClick={() => setColour(c)}
               >
-                {colour === c ? <Icon name="check" size={16} /> : null}
-                {holder ? <span className={styles.swatchTaken}>{holder.name}</span> : null}
+                {colour === c ? <Icon name="check" size={16} /> : holder ? <span className={styles.swatchInitial}>{[...holder.name][0]}</span> : null}
               </button>
             );
           })}
@@ -250,7 +257,7 @@ export function LabelList({
       ) : null}
 
       {asking && label ? (
-        <div className={styles.foot} role="alert">
+        <div className={styles.foot} role="alertdialog" aria-label={`Delete ${label.name}`}>
           <span className={styles.optionName}>
             Delete {label.name}? It comes off {countWord(label.count)}. Nothing else is deleted.
           </span>

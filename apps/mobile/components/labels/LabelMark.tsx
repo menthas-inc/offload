@@ -39,14 +39,17 @@ export function LabelMark({
       className={`flex-row items-center rounded-xs ${labelBg(color)}`}
       style={{ minHeight: size, paddingHorizontal: size === 20 ? 7 : size === 24 ? 8 : 12 }}
     >
-      <Text className="font-core font-medium text-text-on-solid" style={{ fontSize: size === 30 ? 13 : 12 }} numberOfLines={1}>
+      <Text className={`font-core font-medium text-text-on-solid ${size === 30 ? "text-label" : "text-caption"}`} numberOfLines={1}>
         {children}
       </Text>
     </View>
   );
   if (!onClick) return body;
+  // The 44px rule, reached by slop: tall enough, and only 2 either side, so
+  // two marks in a line never overlap.
+  const reach = Math.max(0, (44 - size) / 2);
   return (
-    <Pressable onPress={onClick} hitSlop={8} accessibilityRole="button" accessibilityLabel={`${children}, open its list`}>
+    <Pressable onPress={onClick} hitSlop={{ top: reach, bottom: reach, left: 2, right: 2 }} accessibilityRole="button" accessibilityLabel={`${children}, open its list`}>
       {body}
     </Pressable>
   );

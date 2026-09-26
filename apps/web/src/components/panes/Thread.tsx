@@ -691,7 +691,7 @@ export function Thread({ id, onChanged }: Props) {
     if (!result.ok) {
       if (result.error === "label_gone") {
         setListing(null);
-        toast.show("That label was deleted.");
+        toast.show("That label was deleted");
         relabelled();
         return;
       }

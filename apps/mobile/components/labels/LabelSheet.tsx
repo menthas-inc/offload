@@ -101,10 +101,10 @@ export function LabelSheet({
           <View className="rounded-pill bg-border-strong" style={{ width: 36, height: 4 }} />
         </View>
         <View className="px-gutter-screen pb-space-3 pt-space-5">
-          <Text className="font-core font-semibold text-text-primary" style={{ fontSize: 21 }}>
+          <Text className="font-core font-semibold text-text-primary text-title-2">
             Labels
           </Text>
-          <Text className="mt-space-1 font-core text-text-secondary" style={{ fontSize: 14 }} numberOfLines={1}>
+          <Text className="mt-space-1 font-core text-text-secondary text-body-sm" numberOfLines={1}>
             {title}
           </Text>
         </View>
@@ -120,10 +120,10 @@ export function LabelSheet({
                 accessibilityState={{ checked: on }}
               >
                 <LabelDot colour={label.colour} />
-                <Text className="flex-1 font-core text-text-primary" style={{ fontSize: 16 }} numberOfLines={1}>
+                <Text className="flex-1 font-core text-text-primary text-body" numberOfLines={1}>
                   {label.name}
                 </Text>
-                <Text className="font-core text-text-tertiary" style={{ fontSize: 13, fontVariant: ["tabular-nums"] }}>
+                <Text className="font-core text-label text-text-tertiary" style={{ fontVariant: ["tabular-nums"] }}>
                   {label.count}
                 </Text>
                 {tick(on)}
@@ -139,7 +139,7 @@ export function LabelSheet({
               accessibilityState={{ checked: true }}
             >
               <Glyph name="plus" size={14} color={COLOR.iconOnWell} />
-              <Text className="flex-1 font-core text-text-primary" style={{ fontSize: 16 }} numberOfLines={1}>
+              <Text className="flex-1 font-core text-text-primary text-body" numberOfLines={1}>
                 {name}
               </Text>
               {tick(true)}
@@ -162,8 +162,7 @@ export function LabelSheet({
                 placeholderTextColor={COLOR.quiet}
                 maxLength={NAME_CHARS + 4}
                 accessibilityLabel="New label's name"
-                className="flex-1 font-core text-text-primary"
-                style={{ fontSize: 16 }}
+                className="flex-1 font-core text-text-primary text-body"
               />
             </View>
           ) : (
@@ -175,18 +174,18 @@ export function LabelSheet({
               accessibilityState={{ disabled: full }}
             >
               <Glyph name="plus" size={16} color={full ? COLOR.disabledText : COLOR.iconOnWell} />
-              <Text className={`font-core ${full ? "text-state-disabled-text" : "text-text-secondary"}`} style={{ fontSize: 16 }}>
+              <Text className={`font-core ${full ? "text-state-disabled-text" : "text-text-secondary"} text-body`}>
                 New label
               </Text>
             </Pressable>
           )}
           {full && !naming ? (
-            <Text className="px-gutter-screen font-core text-text-secondary" style={{ fontSize: 13 }}>
+            <Text className="px-gutter-screen font-core text-text-secondary text-label">
               A thread holds ten labels.
             </Text>
           ) : null}
           {line ? (
-            <Text className="px-gutter-screen pt-space-3 font-core text-text-danger" style={{ fontSize: 13 }}>
+            <Text className="px-gutter-screen pt-space-3 font-core text-text-danger text-label">
               {line}
             </Text>
           ) : null}

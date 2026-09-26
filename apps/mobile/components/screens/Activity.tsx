@@ -35,7 +35,7 @@ export default function Activity() {
       setRows((held) => (held ?? []).map((one) => (one.id === row.id ? { ...one, undone, undoable: !undone } : one)));
     setFailedUndo(null);
     draw(true);
-    if (!(await undoActivity(row.id))) {
+    if ((await undoActivity(row.id)) === "failed") {
       draw(false);
       setFailedUndo(row.id);
     }

@@ -68,7 +68,8 @@ describe("making and changing a label (AC-4, AC-6, AC-7)", () => {
     const full = await client.post(`/v1/threads/${t}/labels`, { name: "Eleven" });
     expect(full.json()).toEqual({ error: "label_limit" });
     const bad = await client.post(`/v1/threads/${t}/labels`, { name: "x".repeat(40) });
-    expect(bad.statusCode).toBe(400);
+    expect(bad.statusCode).toBe(409);
+    expect(bad.json()).toEqual({ error: "bad_label_name" });
   });
 
   it("refuses a body that says who set it", async () => {

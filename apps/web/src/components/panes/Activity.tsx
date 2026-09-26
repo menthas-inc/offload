@@ -51,7 +51,7 @@ export function ActivityPane() {
     const draw = (undone: boolean) =>
       setRows((held) => (held ?? []).map((one) => (one.id === row.id ? { ...one, undone, undoable: !undone } : one)));
     draw(true);
-    if (!(await undoActivity(row.id))) {
+    if ((await undoActivity(row.id)) === "failed") {
       draw(false);
       setLine(row.id);
     }
@@ -109,7 +109,7 @@ export function ActivityPane() {
                     </span>
                     {row.body ? <span className={pane.actBody}>{row.body}</span> : null}
                     {tag ? <span className={`${pane.actTag} ${tag.tone === "quiet" ? pane.actTagQuiet : ""}`}>{tag.label}</span> : null}
-                    {line === row.id ? <span className={pane.actBody}>Couldn&apos;t undo that</span> : null}
+                    {line === row.id ? <span className={pane.actFailed}>Couldn&apos;t undo that</span> : null}
                   </span>
                 </>
               );

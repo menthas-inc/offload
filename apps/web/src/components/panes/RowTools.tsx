@@ -116,7 +116,6 @@ export function RowTools({
           type="button"
           className={styles.tool}
           aria-label={`Label ${title}`}
-          title="Labels"
           onClick={(event) => onLabel(event.currentTarget)}
         >
           <Icon name="tag" size={15} />

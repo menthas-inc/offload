@@ -13,7 +13,7 @@ import { ActivityIndicator, FlatList, Platform, Pressable, Text, TextInput, View
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, { FadeIn, FadeOut, ReduceMotion, SlideInDown, SlideOutDown, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { countWord, widgetsFor } from "@offload/widgets";
+import { countWord, readEveryPage, widgetsFor } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { atOpacity, useColors } from "../../lib/colors";
 import { fetchContent, type ContentRow, type Note } from "../../lib/threads";
@@ -32,7 +32,7 @@ export interface ListSave {
   remove: Required<Rows>;
 }
 
-type Item =
+type Line =
   | { kind: "heading"; key: string; title: string }
   | { kind: "row"; key: string; title: string; initial: boolean; carried: string[] };
 
@@ -70,27 +70,26 @@ export function LabelList({
   const [colouring, setColouring] = useState(false);
   const [asking, setAsking] = useState(false);
   const [tooLong, setTooLong] = useState(false);
+  const [unread, setUnread] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const live = useRef(true);
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
 
   useEffect(() => {
     live.current = true;
-    void (async () => {
-      let cursor: string | undefined;
-      const all: (ContentRow & { ticked?: boolean })[] = [];
-      do {
-        const page = await fetchContent(threadId, { ...(cursor ? { cursor } : {}), ...(label ? { ticksFor: label.id } : {}) });
-        if (!live.current || !page) break;
-        all.push(...page.rows);
-        setRows([...all]);
-        cursor = page.nextCursor ?? undefined;
-      } while (cursor);
-    })();
+    setUnread(false);
+    void readEveryPage<ContentRow & { ticked?: boolean }>(
+      (cursor) => fetchContent(threadId, { ...(cursor ? { cursor } : {}), ...(label ? { ticksFor: label.id } : {}) }),
+      setRows,
+      () => live.current,
+    ).then((read) => {
+      if (!read) setUnread(true);
+    });
     return () => {
       live.current = false;
     };
-  }, [threadId, label]);
+  }, [threadId, label, attempt]);
 
   const noteTicked = (note: Note) => (label ? note.labels.includes(label.id) : false);
   const isOn = (key: string, initial: boolean) => changed.get(key) ?? initial;
@@ -103,14 +102,14 @@ export function LabelList({
       return next;
     });
 
-  const items = useMemo<Item[]>(() => {
+  const lines = useMemo<Line[]>(() => {
     const content = rows ?? [];
     const sections = widgetsFor(content, widgets);
     const inSections = new Set(sections.flatMap((s) => s.rows.map((r) => r.id)));
     const rest = content.filter((row) => !inSections.has(row.id));
-    const out: Item[] = [];
+    const out: Line[] = [];
     for (const section of sections) {
-      out.push({ kind: "heading", key: `h:${section.kind}`, title: HEADINGS[section.kind] ?? section.kind });
+      out.push({ kind: "heading", key: `h:${section.kind}`, title: HEADINGS[section.kind] ?? "Everything else" });
       for (const row of section.rows) out.push({ kind: "row", key: `c:${row.id}`, title: row.title, initial: row.ticked === true, carried: row.labels });
     }
     if (notes.length > 0) {
@@ -124,7 +123,7 @@ export function LabelList({
     return out;
   }, [rows, notes, widgets, label]);
 
-  const count = items.filter((item) => item.kind === "row" && isOn(item.key, item.initial)).length;
+  const count = lines.filter((line) => line.kind === "row" && isOn(line.key, line.initial)).length;
 
   function save(): void {
     const clean = name.trim().replace(/^#+/, "").replace(/\s+/g, " ").trim();
@@ -165,7 +164,7 @@ export function LabelList({
           <View className="rounded-pill bg-border-strong" style={{ width: 36, height: 4 }} />
         </View>
         <View className="px-gutter-screen pt-space-5">
-          <Text className="font-core font-semibold text-text-primary" style={{ fontSize: 21 }}>
+          <Text className="font-core font-semibold text-text-primary text-title-2">
             {label ? label.name : "New label"}
           </Text>
           <View className="mt-space-5 flex-row items-center gap-space-4 rounded-sm border border-border-strong px-space-5" style={{ minHeight: 48 }}>
@@ -183,32 +182,46 @@ export function LabelList({
               maxLength={NAME_CHARS + 4}
               returnKeyType="done"
               accessibilityLabel="Label name"
-              className="flex-1 font-core text-text-primary"
-              style={{ fontSize: 16 }}
+              className="flex-1 font-core text-text-primary text-body"
             />
           </View>
           {tooLong ? (
-            <Text className="mt-space-3 font-core text-text-danger" style={{ fontSize: 13 }}>
+            <Text className="mt-space-3 font-core text-text-danger text-label">
               A label is {NAME_CHARS} characters at most.
             </Text>
           ) : null}
           {line ? (
-            <Text className="mt-space-3 font-core text-text-danger" style={{ fontSize: 13 }}>
+            <Text className="mt-space-3 font-core text-text-danger text-label">
               {line}
             </Text>
           ) : null}
-          <Text className="mb-space-3 mt-space-4 font-core text-text-secondary" style={{ fontSize: 14 }}>
+          <Text className="mb-space-3 mt-space-4 font-core text-text-secondary text-body-sm">
             Tick what goes under it.
           </Text>
         </View>
 
         <FlatList
-          data={rows === null ? [] : items}
+          data={rows === null ? [] : lines}
           keyExtractor={(item) => item.key}
           style={{ flex: 1 }}
           keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={
+            unread ? (
+              <View className="flex-row items-center justify-between gap-space-4 px-gutter-screen pb-space-3">
+                <Text className="flex-1 font-core text-body-sm text-text-danger">Couldn&apos;t load everything</Text>
+                <Pressable
+                  onPress={() => setAttempt((n) => n + 1)}
+                  className={`${pill} border border-border-strong`}
+                  style={{ minHeight: 44 }}
+                  accessibilityRole="button"
+                >
+                  <Text className="font-core font-medium text-body-sm text-text-primary">Try again</Text>
+                </Pressable>
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
-            rows === null ? (
+            rows === null && !unread ? (
               <View className="items-center py-space-8">
                 <ActivityIndicator color={COLOR.spinnerHead} accessibilityLabel="Loading" />
               </View>
@@ -216,7 +229,7 @@ export function LabelList({
           }
           renderItem={({ item }) =>
             item.kind === "heading" ? (
-              <Text className="px-gutter-screen pb-space-2 pt-space-5 font-core font-medium text-text-tertiary" style={{ fontSize: 12 }}>
+              <Text className="px-gutter-screen pb-space-2 pt-space-5 font-core font-medium text-text-tertiary text-caption">
                 {item.title}
               </Text>
             ) : (
@@ -227,7 +240,7 @@ export function LabelList({
                 accessibilityState={{ checked: isOn(item.key, item.initial) }}
               >
                 <View className="flex-1 flex-row flex-wrap items-center gap-space-3">
-                  <Text className="font-core text-text-primary" style={{ fontSize: 16 }} numberOfLines={2}>
+                  <Text className="font-core text-text-primary text-body" numberOfLines={2}>
                     {item.title}
                   </Text>
                   {item.carried
@@ -262,10 +275,10 @@ export function LabelList({
                 key={text as string}
                 onPress={press as () => void}
                 className={`${pill} border border-border-strong`}
-                style={{ minHeight: 40 }}
+                style={{ minHeight: 44 }}
                 accessibilityRole="button"
               >
-                <Text className="font-core font-medium text-text-primary" style={{ fontSize: 14 }}>
+                <Text className="font-core font-medium text-text-primary text-body-sm">
                   {text as string}
                 </Text>
               </Pressable>
@@ -286,7 +299,7 @@ export function LabelList({
                   className={`items-center justify-center rounded-pill ${labelBg(c)}`}
                   style={{ width: 44, height: 44, borderWidth: colour === c ? 3 : 0, borderColor: COLOR.raised }}
                 >
-                  {colour === c ? <Glyph name="check" size={16} color={COLOR.onBrand} /> : holder ? <Text className="font-core text-text-on-solid" style={{ fontSize: 12 }}>{holder.name.slice(0, 1)}</Text> : null}
+                  {colour === c ? <Glyph name="check" size={16} color={COLOR.onBrand} /> : holder ? <Text className="font-core text-text-on-solid text-caption">{holder.name.slice(0, 1)}</Text> : null}
                 </Pressable>
               );
             })}

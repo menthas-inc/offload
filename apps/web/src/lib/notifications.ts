@@ -99,12 +99,18 @@ export function doorOf(row: ActivityEntry): string | null {
   }
 }
 
-/** 025. Undo on a labelled row: the sort taken back, for every member. */
-export async function undoActivity(id: string): Promise<boolean> {
+export type UndoOutcome = "undone" | "refused" | "failed";
+
+/** 025. Undo on a labelled row: the sort taken back, for every member.
+ *  Refused means it cannot happen, because another member undid it or its
+ *  thirty days are over, so the row is drawn Undone rather than offered
+ *  again. */
+export async function undoActivity(id: string): Promise<UndoOutcome> {
   try {
     const response = await fetch(`${API}/v1/activity/${id}/undo`, { method: "POST", credentials: "include" });
-    return response.ok;
+    if (response.ok) return "undone";
+    return response.status === 409 ? "refused" : "failed";
   } catch {
-    return false;
+    return "failed";
   }
 }

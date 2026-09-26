@@ -90,7 +90,7 @@ export function ChipFace({
       {label ? <LabelDot colour={label} onSolid={selected} /> : null}
       {glyph ? <Glyph name={glyph} size={14} color={selected ? COLOR.onSolid : COLOR.iconOnWell} /> : null}
       {children ? (
-        <Text className={`font-core font-medium ${ink}`} style={{ fontSize: 13, fontVariant: ["tabular-nums"] }}>
+        <Text className={`font-core font-medium text-label ${ink}`} style={{ fontVariant: ["tabular-nums"] }}>
           {children}
         </Text>
       ) : null}

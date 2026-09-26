@@ -655,7 +655,7 @@ export default function Thread() {
     if (!result.ok) {
       if (result.error === "label_gone") {
         setListing(null);
-        toast.show("That label was deleted.");
+        toast.show("That label was deleted");
         relabelled();
         return;
       }
