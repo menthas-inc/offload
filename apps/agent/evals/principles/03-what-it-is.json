@@ -225,8 +225,10 @@
         "filed": [
           {
             "tool": "add_note",
-            "repeats": "week",
-            "date": "2026-09-15"
+            "date": "2026-09-15",
+            "rrule": [
+              "FREQ=WEEKLY"
+            ]
           }
         ],
         "say": null
@@ -243,7 +245,10 @@
         "filed": [
           {
             "type": "event",
-            "repeats": "weekday"
+            "rrule": [
+              "FREQ=WEEKLY",
+              "BYDAY=MO,TU,WE,TH,FR"
+            ]
           }
         ],
         "say": null
@@ -259,8 +264,8 @@
         "filed_count": 1,
         "filed": [
           {
-            "no_repeats": true,
-            "date": "2026-09-15"
+            "date": "2026-09-15",
+            "no_rrule": true
           }
         ],
         "say": null
@@ -308,8 +313,10 @@
         "filed_count": 1,
         "filed": [
           {
-            "repeats": "month",
-            "date": "2026-10-01"
+            "date": "2026-10-01",
+            "rrule": [
+              "FREQ=MONTHLY"
+            ]
           }
         ],
         "say": null

@@ -776,9 +776,14 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
             return False
         if matcher.get("no_date") and when:
             return False
-        if "repeats" in matcher and args.get("repeats") != matcher["repeats"]:
-            return False
-        if matcher.get("no_repeats") and args.get("repeats"):
+        # 023. A rule is matched by its parts: every part the case names must
+        # be in the rule the model wrote, so "every Tuesday" may arrive as
+        # FREQ=WEEKLY or FREQ=WEEKLY;BYDAY=TU and both are the weekly rule.
+        if "rrule" in matcher:
+            parts = set((args.get("rrule") or "").upper().split(";"))
+            if not all(part.upper() in parts for part in matcher["rrule"]):
+                return False
+        if matcher.get("no_rrule") and args.get("rrule"):
             return False
         if "url" in matcher and args.get("url") != matcher["url"]:
             return False
@@ -821,7 +826,7 @@ def _filed_summary(calls: list[tuple[str, dict]], fx: dict) -> list[str]:
             when = args.get("occurs_at") or args.get("due_at") or ""
             where = threads.get(str(args.get("thread_id") or ""), args.get("thread_id"))
             kind = args.get("type") or ("note" if tool == "add_note" else "thread")
-            rep = f" every {args['repeats']}" if args.get("repeats") else ""
+            rep = f" {args['rrule']}" if args.get("rrule") else ""
             out.append(f"{kind}({what!r} in {where}{' @' + str(when) if when else ''}{rep})")
     return out
 

@@ -17,6 +17,7 @@
     },
     "android": {
       "package": "club.offload.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
@@ -132,6 +133,13 @@
           "android": {
             "imageWidth": 192
           }
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "expo-notifications",
+        {
+          "color": "#3F6B4F"
         }
       ]
     ],

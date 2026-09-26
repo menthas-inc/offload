@@ -21,6 +21,7 @@
 // accepts and the canonical list does not carry.
 
 import type { FastifyRequest } from "fastify";
+import { modernZoneName } from "@offload/widgets";
 
 export const TIME_ZONE_HEADER = "x-time-zone";
 
@@ -38,7 +39,10 @@ export function resolveTimeZone(value: string): string | null {
   if (name === undefined) {
     try {
       const found = new Intl.DateTimeFormat("en", { timeZone: value }).resolvedOptions().timeZone;
-      name = SHAPE.test(found) ? found : null;
+      // ICU's spelling is sometimes the one tzdata renamed years ago, Calcutta
+      // for Kolkata, and a phone reports the current name. Stored as ICU spelt
+      // it, the clock and the phone that set it would differ by spelling alone.
+      name = SHAPE.test(found) ? modernZoneName(found) : null;
     } catch {
       name = null;
     }

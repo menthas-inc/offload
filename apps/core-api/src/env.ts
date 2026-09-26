@@ -82,6 +82,12 @@ const schema = z.object({
   // and nothing else turns it on.
   RESEND_API_KEY: z.string().min(1).optional(),
   MAIL_LIVE: z.enum(["1"]).optional(),
+
+  // 024. Expo's push service, with enhanced push security on, so a send needs
+  // the project's access token. Required in production; locally a send is an
+  // opt-in per shell, PUSH_LIVE=1, for the same reason as MAIL_LIVE.
+  EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
+  PUSH_LIVE: z.enum(["1"]).optional(),
   EMAIL_FROM: z.string().email().default("offload@offload.club"),
 
   // The root of the key hierarchy, 32 bytes base64. Required in production and

@@ -10,6 +10,7 @@
 // AC-10 the day says what it holds in words.
 
 import { describe, expect, it } from "vitest";
+import { parseRule } from "@offload/widgets";
 import {
   MAX_DOTS,
   datedFor,
@@ -37,6 +38,23 @@ function point(id: string, iso: string, kind: Dated["kind"] = "event"): Dated {
 
 function span(id: string, from: string, to: string, kind: Dated["kind"] = "note"): Dated {
   return { id, rowId: id, due: false, kind, from, to, done: false };
+}
+
+// 023 made the rule an RFC 5545 rule; these are the six old values as
+// they migrated, which is what the rail draws now.
+const RULES: Record<string, string> = {
+  day: "FREQ=DAILY",
+  weekday: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
+  week: "FREQ=WEEKLY",
+  two_weeks: "FREQ=WEEKLY;INTERVAL=2",
+  month: "FREQ=MONTHLY",
+  year: "FREQ=YEARLY",
+};
+function parsed(repeats: string, until?: string) {
+  const text = until ? `${RULES[repeats]};UNTIL=${until.replace(/-/g, "")}T235959Z` : RULES[repeats]!;
+  const result = parseRule(text);
+  if (!result.ok) throw new Error(result.reason);
+  return result.rule;
 }
 
 describe("the span", () => {
@@ -76,6 +94,26 @@ describe("the span", () => {
     expect(rail[0]?.days).toHaveLength(7);
     expect(rail[rail.length - 1]?.days).toHaveLength(7);
     expect(rail[rail.length - 1]?.days[6]?.iso).toBe("2026-10-04");
+  });
+});
+
+describe("a rule's first day is a date like any other", () => {
+  it("keeps the span it had before the rule was added, and its dot (023)", () => {
+    // Found on the web on 2026-09-22: a task due next Wednesday drew its dot
+    // and its week; given "every week" it lost both, because a rule did not
+    // count toward the span at all. Its later occurrences fill the span; its
+    // first day is a real date and makes it.
+    const once = railFor([point("a", "2026-09-30", "task")], TODAY, "monday");
+    const ruled = railFor([{ ...point("a", "2026-09-30", "task"), rule: parsed("week") }], TODAY, "monday");
+    expect(ruled).toHaveLength(once.length);
+    expect(weeksSpanned([{ ...point("a", "2026-09-30", "task"), rule: parsed("week") }], TODAY, "monday")).toBe(3);
+    const day = weeks(ruled).flatMap((week) => week.days).find((d) => d.iso === "2026-09-30");
+    expect(day?.dots).toHaveLength(1);
+  });
+
+  it("still does not stretch the span with its later occurrences", () => {
+    const rail = railFor([{ ...point("a", "2026-09-16", "task"), rule: parsed("week") }], TODAY, "monday");
+    expect(rail).toHaveLength(1);
   });
 });
 
@@ -265,7 +303,7 @@ describe("one row that repeats, drawn on every matching day", () => {
   // "Yoga every Tuesday" is one thing somebody said, not four things that
   // happen to share a name. The row carries the rule and the calendar expands
   // it over whatever window is on screen, so a list draws it once.
-  function rule(from: string, repeats: Dated["repeats"], until?: string): Dated {
+  function rule(from: string, repeats: string, until?: string): Dated {
     return {
       id: "yoga",
       rowId: "yoga",
@@ -274,8 +312,7 @@ describe("one row that repeats, drawn on every matching day", () => {
       from,
       to: from,
       done: false,
-      repeats: repeats ?? null,
-      until: until ?? null,
+      rule: parsed(repeats, until),
     };
   }
 
@@ -356,7 +393,7 @@ describe("an old rule still draws today", () => {
   // a daily standup set up fourteen months ago ran out of steps before it
   // reached this week and quietly stopped being drawn: still in the database,
   // still repeating, on no screen, with nothing to say why.
-  function old(repeats: Dated["repeats"], from: string): Dated {
+  function old(repeats: string, from: string): Dated {
     return {
       id: "standup",
       rowId: "standup",
@@ -365,8 +402,7 @@ describe("an old rule still draws today", () => {
       from,
       to: from,
       done: false,
-      repeats: repeats ?? null,
-      until: null,
+      rule: parsed(repeats),
     };
   }
 

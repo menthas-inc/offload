@@ -6,6 +6,7 @@
 
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { sql } from "kysely";
 import type { App } from "../app.js";
 import { COUNTRIES, isCountry } from "../countries.js";
 import { auth } from "../auth/auth.js";
@@ -16,6 +17,9 @@ import { requestsWaiting } from "../people/people.js";
 import { cleanName } from "../accounts/name.js";
 import { emit } from "../analytics.js";
 import { env, isProduction } from "../env.js";
+import { resolveTimeZone } from "../time-zone.js";
+import { adoptZone } from "../accounts/zone.js";
+import { activityNew } from "../notifications/activity.js";
 
 function fetchHeaders(request: FastifyRequest): Headers {
   const headers = new Headers();
@@ -101,7 +105,24 @@ const meResponse = z.object({
    *  the gear and on the My people row. Their own requests do not count, and
    *  neither does one they answered Not now. */
   requestsWaiting: z.number(),
+  /** 023. The account's clock, or null until a device names one. */
+  timeZone: z.string().nullable(),
+  followDevice: z.boolean(),
+  keptTimeZone: z.string().nullable(),
+  /** 024. The four switches, named as the sends are, the two hours as HH:MM
+   *  in the account's zone, and whether Activity holds something newer than
+   *  its last opening. */
+  notifyDueToday: z.boolean(),
+  notifyDueTodayAt: z.string(),
+  notifyComingTomorrow: z.boolean(),
+  notifyComingTomorrowAt: z.string(),
+  notifyPeopleRequests: z.boolean(),
+  notifySharedActivity: z.boolean(),
+  activityNew: z.boolean(),
 });
+
+/** 024. An hour as the page sends it, HH:MM, twenty-four hour. */
+const HOUR = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** The version of the privacy policy the consent on first run is against.
  *
@@ -125,9 +146,11 @@ export const CONSENT_VERSION = "2026-09-22";
  *  transaction means it cannot exist. */
 export async function completeFirstRun(
   accountId: string,
-  displayName: string | null
+  displayName: string | null,
+  timeZone: string | null = null,
 ): Promise<void> {
   await db.transaction().execute(async (tx) => {
+    await adoptZone(accountId, timeZone, tx);
     const flipped = await tx
       .updateTable("accounts")
       .set({
@@ -187,6 +210,11 @@ const consentBody = z.object({
    *  force to update, with no way forward. The screen is what requires a name;
    *  the endpoint accepts the older contract and leaves the column alone. */
   displayName: nameField.optional(),
+  /** 023. The device's zone, once, at first run: it becomes the account's
+   *  clock until they change it in Settings. Optional on the wire for the
+   *  same reason the name is, and an unknown name is dropped rather than
+   *  refused, because first run must not fail over it. */
+  timeZone: z.string().max(64).optional(),
 });
 
 /** The identity, or null when there is nothing to render.
@@ -208,6 +236,15 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
       "web_links_enabled",
       "calendar_ask_first",
       "country",
+      "time_zone",
+      "kept_time_zone",
+      "follow_device",
+      "notify_due_today",
+      "notify_due_today_at",
+      "notify_coming_tomorrow",
+      "notify_coming_tomorrow_at",
+      "notify_people_requests",
+      "notify_shared_activity",
     ])
     .where("id", "=", accountId)
     .where("deleted_at", "is", null)
@@ -235,6 +272,18 @@ async function meFor(accountId: string): Promise<z.infer<typeof meResponse> | nu
     webLinks: account.web_links_enabled,
     calendarAskFirst: account.calendar_ask_first,
     country: account.country,
+    // 023. The clock, and the two facts the strip on Today reads beside it.
+    timeZone: account.time_zone,
+    followDevice: account.follow_device,
+    keptTimeZone: account.kept_time_zone,
+    // 024. Postgres hands a time back as HH:MM:SS; the page shows HH:MM.
+    notifyDueToday: account.notify_due_today,
+    notifyDueTodayAt: String(account.notify_due_today_at).slice(0, 5),
+    notifyComingTomorrow: account.notify_coming_tomorrow,
+    notifyComingTomorrowAt: String(account.notify_coming_tomorrow_at).slice(0, 5),
+    notifyPeopleRequests: account.notify_people_requests,
+    notifySharedActivity: account.notify_shared_activity,
+    activityNew: await activityNew(accountId),
   };
 }
 
@@ -275,6 +324,29 @@ export async function sessionRoutes(app: App): Promise<void> {
             .refine((code) => isCountry(code), "not a country")
             .nullable()
             .optional(),
+          /** 023. The clock. Resolved through ICU and refused when unknown,
+           *  because it reaches a prompt and a query; setting it clears the
+           *  zone that was kept, since the person has moved. */
+          timeZone: z
+            .string()
+            .max(64)
+            .refine((name) => resolveTimeZone(name) !== null, "not a zone")
+            .optional(),
+          followDevice: z.boolean().optional(),
+          /** The device zone they answered Keep to, or null to forget it. */
+          keptTimeZone: z
+            .string()
+            .max(64)
+            .refine((name) => resolveTimeZone(name) !== null, "not a zone")
+            .nullable()
+            .optional(),
+          /** 024. The switches and the hours, one field at a time. */
+          notifyDueToday: z.boolean().optional(),
+          notifyDueTodayAt: z.string().regex(HOUR, "not an hour").optional(),
+          notifyComingTomorrow: z.boolean().optional(),
+          notifyComingTomorrowAt: z.string().regex(HOUR, "not an hour").optional(),
+          notifyPeopleRequests: z.boolean().optional(),
+          notifySharedActivity: z.boolean().optional(),
         }),
         response: { 200: meResponse, 401: unauthenticated },
       },
@@ -287,20 +359,55 @@ export async function sessionRoutes(app: App): Promise<void> {
       // others, and a name still cannot be cleared: the product draws a
       // nameless account correctly, but that is the state of an account nobody
       // has got to yet rather than somewhere to return to by emptying a field.
-      const { displayName, webSearch, webLinks, calendarAskFirst, country } = request.body;
+      const {
+        displayName, webSearch, webLinks, calendarAskFirst, country, timeZone, followDevice, keptTimeZone,
+        notifyDueToday, notifyDueTodayAt, notifyComingTomorrow, notifyComingTomorrowAt, notifyPeopleRequests, notifySharedActivity,
+      } = request.body;
+      // Stored as ICU resolves the name, never as sent: the schema above has
+      // already refused anything ICU does not know.
+      const zone = timeZone === undefined ? undefined : resolveTimeZone(timeZone);
+      const kept = keptTimeZone == null ? keptTimeZone : resolveTimeZone(keptTimeZone);
       await db
         .updateTable("accounts")
         .set({
           ...(displayName !== undefined ? { display_name: displayName } : {}),
+          ...(zone !== undefined ? { time_zone: zone, kept_time_zone: null } : {}),
+          ...(followDevice !== undefined ? { follow_device: followDevice } : {}),
+          ...(kept !== undefined && zone === undefined ? { kept_time_zone: kept } : {}),
           ...(webSearch !== undefined ? { web_search_enabled: webSearch } : {}),
           ...(webLinks !== undefined ? { web_links_enabled: webLinks } : {}),
           ...(calendarAskFirst !== undefined ? { calendar_ask_first: calendarAskFirst } : {}),
           ...(country !== undefined ? { country } : {}),
+          ...(notifyDueToday !== undefined ? { notify_due_today: notifyDueToday } : {}),
+          ...(notifyDueTodayAt !== undefined ? { notify_due_today_at: notifyDueTodayAt } : {}),
+          ...(notifyComingTomorrow !== undefined ? { notify_coming_tomorrow: notifyComingTomorrow } : {}),
+          ...(notifyComingTomorrowAt !== undefined ? { notify_coming_tomorrow_at: notifyComingTomorrowAt } : {}),
+          ...(notifyPeopleRequests !== undefined ? { notify_people_requests: notifyPeopleRequests } : {}),
+          ...(notifySharedActivity !== undefined ? { notify_shared_activity: notifySharedActivity } : {}),
           updated_at: new Date(),
         })
         .where("id", "=", accountId)
         .where("deleted_at", "is", null)
         .execute();
+
+      // 024. A changed hour, switch or zone deletes the digests queued ahead
+      // for this account; the next hourly pass places whatever now falls in
+      // its hour. One already due stays, since its hour was the old one.
+      if (
+        zone !== undefined ||
+        notifyDueToday !== undefined ||
+        notifyDueTodayAt !== undefined ||
+        notifyComingTomorrow !== undefined ||
+        notifyComingTomorrowAt !== undefined
+      ) {
+        await db
+          .deleteFrom("jobs")
+          .where("kind", "=", "account.digest")
+          .where("account_id", "=", accountId)
+          .where("state", "=", "queued")
+          .where("run_after", ">", sql<Date>`now()`)
+          .execute();
+      }
 
       // No event. OFF-1, and 011 AC-11: `assertNoContent` would not catch a
       // name under sixty characters, since it looks like neither an email nor
@@ -378,7 +485,7 @@ export async function sessionRoutes(app: App): Promise<void> {
       const accountId = await currentAccountId(request);
       if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
 
-      await completeFirstRun(accountId, request.body.displayName ?? null);
+      await completeFirstRun(accountId, request.body.displayName ?? null, request.body.timeZone ?? null);
       return reply.send({ state: "active" as const });
     }
   );

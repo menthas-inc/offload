@@ -504,3 +504,56 @@ export * from "./timeline.js";
 // Dragging a row to a new place, as the priorities that hold it there. Its own
 // file because it is arithmetic over one field and every surface drags.
 export * from "./reorder.js";
+
+// 023. The recurrence rule and the day arithmetic it shares with the rail.
+export {
+  RULE_STEP_CAP,
+  WEEKDAYS,
+  anchorDayOf,
+  describeRule,
+  formatRule,
+  isCanonicalRule,
+  nextOnOrAfter,
+  occurrencesIn,
+  parseRule,
+  presetsFor,
+} from "./rrule.js";
+export type { Freq, ParsedRule, Preset, Rule, RuleRefusal, Weekday } from "./rrule.js";
+export { addDays as addUtcDays, dayIn, daysBetween, instantIn, noonUtc, utcDay } from "./days.js";
+export { SOON_DAYS, changeToken, chipFor, nearness, timeIn, whenDayOf, whenOf } from "./nearness.js";
+export type { Chip, ChipRow, Nearness } from "./nearness.js";
+
+// 023. The zone list, the city a person reads, and when the strip shows.
+export { KNOWN_ZONES, ZONE_REGIONS, knownZones, modernZoneName, zoneCity, zoneStrip, zonesByRegion } from "./zones.js";
+export type { ZoneClock, ZoneGroup } from "./zones.js";
+
+// 023. The when field as the sheets hold it, and what a row draws before the
+// server answers.
+export {
+  NOTHING,
+  anHourAfter,
+  clockLabel,
+  drawnWhen,
+  patchFor,
+  repeatsLabel,
+  sameWhen,
+  timeHM,
+  whenChipLabel,
+  whenLabel,
+  whenValueOf,
+} from "./when.js";
+export type { WhenPatch, WhenValue } from "./when.js";
+
+// 024. The ids a phone creates once, and the record row's glyph and tag.
+export {
+  CHANNELS,
+  CHANNEL_REQUESTS,
+  CHANNEL_SHARED,
+  DIGEST_CHANNEL,
+  PEOPLE_CATEGORY,
+  PLAIN_CATEGORY,
+  VERBS_CATEGORY,
+  activityGlyph,
+  activityTag,
+} from "./notifications.js";
+export type { ActivityKind, ActivityReason, ActivityShape, ChannelId } from "./notifications.js";

@@ -34,6 +34,10 @@ export interface RowAction {
   icon?: string;
   /** Clay label and glyph. One per sheet at most. */
   danger?: boolean;
+  /** 023. What the row holds for this action, trailing the label: the When
+   *  row carries its date where the other rows carry nothing. A row that
+   *  shows an answer belongs above rows that only open something. */
+  value?: string | undefined;
   run: () => void | Promise<void>;
 }
 
@@ -112,6 +116,15 @@ export function RowActionSheet({
             >
               {action.label}
             </Text>
+            {action.value ? (
+              <Text
+                className={`ml-auto font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+                style={{ fontSize: 15 }}
+                numberOfLines={1}
+              >
+                {action.value}
+              </Text>
+            ) : null}
           </Pressable>
         ))}
       </Animated.View>

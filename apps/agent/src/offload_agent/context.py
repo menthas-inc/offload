@@ -296,10 +296,12 @@ _DUMP = text(
     select said(m.text, m.transcript) as text,
            m.transcribed_at is not null as spoken,
            m.time_zone,
+           a.time_zone as account_time_zone,
            m.attrs->'mentions' as mentions,
            lt.id as looking_at_id,
            lt.name as looking_at_name
     from messages m
+    join accounts a on a.id = m.account_id
     left join threads lt
       on lt.id = m.looking_at_thread_id
      and lt.deleted_at is null
@@ -318,16 +320,24 @@ _DUMP = text(
 # The database's clock, not the worker's. Two workers in two regions must not
 # disagree about what day it is with each other or with the rows they read.
 #
-# **In the device's zone, since the message carries one.** `accounts` still
-# has no time zone column; every request that reaches the model sends the
-# device's, the message keeps it, and a message with none (every one before
-# 2026-09-20, and a client that has not updated) is read in UTC, which put a
-# day boundary at 1am for somebody in Lisbon. Postgres knows the same IANA
-# names ICU does, and the API checked the name before storing it, so an
-# unknown one here is a fault worth a fallback rather than a refusal.
+# **In the account's clock since 023, and the device's before it.** The
+# account has one zone, set at first run and changed only by the person, and
+# every timed date is drawn in it; reading "3pm" in the same zone it is drawn
+# in is what keeps what somebody typed and what they see the same. A message
+# from an account with no clock yet is read in the zone the device named,
+# and one with neither is read in UTC, which put a day boundary at 1am for
+# somebody in Lisbon and is what every message before 2026-09-20 was. Postgres
+# knows the same IANA names ICU does, and the API checked the name before
+# storing it, so an unknown one here is a fault worth a fallback rather than
+# a refusal.
 _TODAY = text("select to_char(now() at time zone :tz, 'FMDay FMDD FMMonth YYYY')")
 
 UTC = "UTC"
+
+
+def clock_zone(account_zone: str | None, message_zone: str | None) -> str | None:
+    """The zone a dump is read in: the account's clock, else the device's word."""
+    return account_zone or message_zone or None
 
 
 def known_zone(time_zone: str | None) -> str:
@@ -427,7 +437,8 @@ async def load(
         )
     ).all()
 
-    today = await today_in(conn, dump_row.time_zone)
+    zone = clock_zone(dump_row.account_time_zone, dump_row.time_zone)
+    today = await today_in(conn, zone)
     has_calendar = bool((await conn.execute(_HAS_CALENDAR, {"account_id": account_id})).scalar())
     has_connections = bool(
         (await conn.execute(_HAS_CONNECTIONS, {"account_id": account_id})).scalar()
@@ -455,7 +466,7 @@ async def load(
             else None
         ),
         today=today,
-        time_zone=dump_row.time_zone,
+        time_zone=zone,
         has_calendar=has_calendar,
         has_connections=has_connections,
         may_search=bool(switches and switches.web_search_enabled),
@@ -623,9 +634,11 @@ class QuickAddContext:
 
 _TYPED = text(
     """
-    select c.id, c.title, c.thread_id, t.name as thread_name
+    select c.id, c.title, c.thread_id, t.name as thread_name,
+           a.time_zone as account_time_zone
       from content c
       join threads t on t.id = c.thread_id
+      join accounts a on a.id = c.account_id
      where c.id = :content_id
        and c.account_id = :account_id
        and c.deleted_at is null
@@ -747,6 +760,8 @@ async def load_quick_add(
         await conn.execute(_THREAD_NOTES, {"thread_id": row.thread_id, "account_id": account_id})
     ).all()
 
+    # The account's clock, else the zone the device sent with the typed row.
+    zone = clock_zone(row.account_time_zone, time_zone)
     return QuickAddContext(
         content_id=str(row.id),
         thread_id=str(row.thread_id),
@@ -759,8 +774,8 @@ async def load_quick_add(
         notes=[n.text for n in reversed(notes) if n.theirs],
         notes_from_members=[n.text for n in reversed(notes) if not n.theirs],
         pieces=[Piece(title=p.title, done=p.done) for p in pieces],
-        today=await today_in(conn, time_zone),
-        time_zone=time_zone,
+        today=await today_in(conn, zone),
+        time_zone=zone,
     )
 
 
@@ -814,16 +829,22 @@ class AnswerContext:
         return self.country_override or self.country
 
 
+# The account's clock first, then the zone the device sent with the message:
+# an answer or a quick add read in the device's zone while the dump was read
+# in the clock filed the wrong hour from a phone that was somewhere else.
 _MESSAGE_ZONE = text(
     """
-    select time_zone from messages
-     where id = :message_id and account_id = :account_id
+    select coalesce(a.time_zone, m.time_zone)
+      from messages m
+      join accounts a on a.id = m.account_id
+     where m.id = :message_id and m.account_id = :account_id
     """
 )
 
 
 async def message_zone(conn: AsyncConnection, *, message_id: str, account_id: str) -> str | None:
-    """The device's zone the message came with, or None for UTC."""
+    """The zone the message is read in: the account's clock, else the device's
+    zone the message came with, else None for UTC."""
     return (
         await conn.execute(_MESSAGE_ZONE, {"message_id": message_id, "account_id": account_id})
     ).scalar()

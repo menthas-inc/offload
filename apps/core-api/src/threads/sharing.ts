@@ -20,6 +20,8 @@
 
 import { sql, type Transaction } from "kysely";
 import { db } from "../db.js";
+import { enqueue, PRIORITY } from "../jobs/queue.js";
+import { purgeAbout } from "../notifications/activity.js";
 import type { Database, SharePreview } from "../schema.js";
 import { initialsOf } from "../accounts/initials.js";
 import { threadKey } from "../blobs/keys.js";
@@ -188,7 +190,18 @@ export async function shareThread(
     removed_at: null,
   };
   const row = await writePending(trx, values);
-  if (row) return { ok: true, memberId: row.id };
+  if (row) {
+    // 024. Announced once pending; the job checks it still is at send time.
+    await enqueue({
+      kind: "people.notify",
+      accountId: targetId,
+      payload: { kind: "share", memberId: row.id },
+      priority: PRIORITY.interactive,
+      idempotencyKey: `people.notify:share:${row.id}`,
+      tx: trx,
+    });
+    return { ok: true, memberId: row.id };
+  }
   const now = await trx
     .selectFrom("thread_members")
     .select("state")
@@ -274,6 +287,10 @@ export async function takeOut(
       .execute();
     await trx.deleteFrom("thread_keys").where("thread_id", "=", threadId).where("account_id", "=", targetId).execute();
     await dropPicksOf(targetId, threadId, trx);
+    // 024. Their Activity rows that named this thread's words go with their
+    // membership, and the other members' rows about them go too.
+    await purgeAbout({ viewerId: targetId, threadId }, trx);
+    await purgeAbout({ aboutAccountId: targetId, threadId }, trx);
     // Their own waiting shares on this thread were theirs to make.
     await trx
       .updateTable("thread_members")

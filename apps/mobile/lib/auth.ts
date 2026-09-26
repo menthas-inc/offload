@@ -277,6 +277,13 @@ export async function signOut(): Promise<void> {
   // sight: a toast, then every screen empty, on the Pixel on 2026-09-23.
   const held = await Promise.all(SESSION_KEYS.map((key) => snapshot(key)));
 
+  // 024. The push token is deleted on the server first, while the session
+  // can still say whose it is: after sign-out the route would refuse it, and
+  // the next account on this phone would hear this one's words.
+  for (const handler of signingOut) {
+    await handler().catch(() => undefined);
+  }
+
   const outcome = await Promise.race([
     authClient.signOut().then(
       () => "done" as const,
@@ -294,6 +301,24 @@ export async function signOut(): Promise<void> {
   // this device, so anything added later is added here rather than at a call
   // site that would not know to.
   await Promise.all(SESSION_KEYS.map((key) => forget(key)));
+  for (const listener of signedOut) listener();
+}
+
+const signedOut = new Set<() => void>();
+const signingOut = new Set<() => Promise<void>>();
+
+/** Run before the session ends, with the session still valid, for anything
+ *  the server holds in this session's name. */
+export function beforeSignOut(handler: () => Promise<void>): void {
+  signingOut.add(handler);
+}
+
+/** Hear the session end on this device, for anything holding a copy of who
+ *  was signed in: the identity cache kept the last account's clock and name
+ *  in memory for the next person on a shared phone until a screen asked
+ *  again. 023, from the security review of 2026-09-22. */
+export function onSignedOut(listener: () => void): void {
+  signedOut.add(listener);
 }
 
 /** Who to tell when the server refuses the session this device holds. The

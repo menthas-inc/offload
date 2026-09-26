@@ -758,9 +758,12 @@ describe("the device's time zone on a request", () => {
   it("lands on the message as the name ICU resolves it to", async () => {
     const cookie = await signIn((await person()).id);
     expect(await zoneOf(await postDump(cookie, "Europe/Lisbon"))).toBe("Europe/Lisbon");
-    // Chrome on some platforms still says Calcutta; ICU accepts it and the
-    // canonical list does not carry it.
-    expect(await zoneOf(await postDump(cookie, "Asia/Calcutta"))).toBe("Asia/Calcutta");
+    // Chrome on some platforms still says Calcutta and ICU itself resolves
+    // Kolkata to it; since 023 both are stored under the city's current name,
+    // so the clock a phone sets and the phone's own word cannot differ by
+    // spelling alone.
+    expect(await zoneOf(await postDump(cookie, "Asia/Calcutta"))).toBe("Asia/Kolkata");
+    expect(await zoneOf(await postDump(cookie, "Asia/Kolkata"))).toBe("Asia/Kolkata");
     expect(await zoneOf(await postDump(cookie, "utc"))).toBe("UTC");
     // A retired alias is stored as what it is now.
     expect(await zoneOf(await postDump(cookie, "US/Pacific-New"))).toBe("America/Los_Angeles");

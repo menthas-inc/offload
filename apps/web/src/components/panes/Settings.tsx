@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { zoneCity } from "@offload/widgets";
 import { Group, Row } from "./SettingsRows";
 import { Avatar } from "../Avatar";
 import { RequestCard } from "../people/RequestCard";
@@ -142,9 +143,8 @@ export function SettingsPane() {
         </Group>
 
         <Group label="Reaching you">
-          {/* The kit puts Connected apps here, beside Communication. That row
-              is not built, so this group holds one thing rather than waiting
-              for the other. */}
+          {/* 024. Notifications, where the kit drew Communication. */}
+          <Row icon="bell" title="Notifications" href="/settings/notifications" />
           <Row icon="link" title="Connected apps" href="/settings/apps" last />
         </Group>
 
@@ -155,6 +155,14 @@ export function SettingsPane() {
         </Group>
 
         <Group label="The app">
+          {/* 023. The account's clock, as a city. Nothing until a device has
+              named one. */}
+          <Row
+            icon="clock"
+            title="Date and time"
+            value={account?.timeZone ? zoneCity(account.timeZone) : undefined}
+            href="/settings/datetime"
+          />
           <Row
             icon="blend"
             title="Appearance"

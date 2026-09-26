@@ -1,0 +1,251 @@
+{
+  "why": "One fixture, read by the TypeScript grammar's suite and by the agent's shape check, so the two cannot disagree about what a rule is. Accepted rules carry the canonical form the server stores; refused rules carry the reason the server names.",
+  "accepted": [
+    {
+      "in": "FREQ=DAILY",
+      "canonical": "FREQ=DAILY"
+    },
+    {
+      "in": "FREQ=DAILY;INTERVAL=1",
+      "canonical": "FREQ=DAILY"
+    },
+    {
+      "in": "FREQ=DAILY;INTERVAL=3",
+      "canonical": "FREQ=DAILY;INTERVAL=3"
+    },
+    {
+      "in": "FREQ=WEEKLY",
+      "canonical": "FREQ=WEEKLY"
+    },
+    {
+      "in": "FREQ=WEEKLY;BYDAY=FR",
+      "canonical": "FREQ=WEEKLY;BYDAY=FR"
+    },
+    {
+      "in": "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
+      "canonical": "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR"
+    },
+    {
+      "in": "FREQ=WEEKLY;INTERVAL=2",
+      "canonical": "FREQ=WEEKLY;INTERVAL=2"
+    },
+    {
+      "in": "FREQ=WEEKLY;INTERVAL=2;BYDAY=TH,MO",
+      "canonical": "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,TH"
+    },
+    {
+      "in": "BYDAY=TU;FREQ=WEEKLY",
+      "canonical": "FREQ=WEEKLY;BYDAY=TU"
+    },
+    {
+      "in": "FREQ=MONTHLY",
+      "canonical": "FREQ=MONTHLY"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYDAY=4FR",
+      "canonical": "FREQ=MONTHLY;BYDAY=4FR"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYDAY=+1MO",
+      "canonical": "FREQ=MONTHLY;BYDAY=1MO"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYDAY=-1FR",
+      "canonical": "FREQ=MONTHLY;BYDAY=-1FR"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYMONTHDAY=25",
+      "canonical": "FREQ=MONTHLY;BYMONTHDAY=25"
+    },
+    {
+      "in": "FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=1",
+      "canonical": "FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=1"
+    },
+    {
+      "in": "FREQ=YEARLY",
+      "canonical": "FREQ=YEARLY"
+    },
+    {
+      "in": "FREQ=YEARLY;INTERVAL=2",
+      "canonical": "FREQ=YEARLY;INTERVAL=2"
+    },
+    {
+      "in": "FREQ=WEEKLY;BYDAY=TU;UNTIL=20261231T235959Z",
+      "canonical": "FREQ=WEEKLY;BYDAY=TU;UNTIL=20261231T235959Z"
+    },
+    {
+      "in": "FREQ=WEEKLY;UNTIL=20261006T085959Z;BYDAY=TU",
+      "canonical": "FREQ=WEEKLY;BYDAY=TU;UNTIL=20261006T085959Z"
+    },
+    {
+      "in": "FREQ=DAILY;COUNT=13",
+      "canonical": "FREQ=DAILY;COUNT=13"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYDAY=2WE;COUNT=6",
+      "canonical": "FREQ=MONTHLY;BYDAY=2WE;COUNT=6"
+    },
+    {
+      "in": "FREQ=WEEKLY;BYDAY=MO,WE;WKST=SU",
+      "canonical": "FREQ=WEEKLY;BYDAY=MO,WE;WKST=SU"
+    },
+    {
+      "in": "FREQ=WEEKLY;BYDAY=SU,SA",
+      "canonical": "FREQ=WEEKLY;BYDAY=SA,SU"
+    },
+    {
+      "in": "FREQ=WEEKLY;BYDAY=MO,MO",
+      "canonical": "FREQ=WEEKLY;BYDAY=MO"
+    },
+    {
+      "in": "FREQ=DAILY;INTERVAL=99",
+      "canonical": "FREQ=DAILY;INTERVAL=99"
+    },
+    {
+      "in": "FREQ=DAILY;COUNT=999",
+      "canonical": "FREQ=DAILY;COUNT=999"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYMONTHDAY=31",
+      "canonical": "FREQ=MONTHLY;BYMONTHDAY=31"
+    },
+    {
+      "in": "freq=weekly;byday=fr",
+      "canonical": "FREQ=WEEKLY;BYDAY=FR"
+    },
+    {
+      "in": "FREQ=DAILY;WKST=MO",
+      "canonical": "FREQ=DAILY;WKST=MO"
+    }
+  ],
+  "refused": [
+    {
+      "in": "",
+      "reason": "empty"
+    },
+    {
+      "in": "   ",
+      "reason": "empty"
+    },
+    {
+      "in": "FREQ=HOURLY",
+      "reason": "bad_freq"
+    },
+    {
+      "in": "INTERVAL=2",
+      "reason": "no_freq"
+    },
+    {
+      "in": "FREQ=DAILY;FREQ=WEEKLY",
+      "reason": "duplicate"
+    },
+    {
+      "in": "FREQ=DAILY;INTERVAL=0",
+      "reason": "bad_interval"
+    },
+    {
+      "in": "FREQ=DAILY;INTERVAL=100",
+      "reason": "bad_interval"
+    },
+    {
+      "in": "FREQ=DAILY;BYDAY=MO",
+      "reason": "part_not_allowed"
+    },
+    {
+      "in": "FREQ=YEARLY;BYMONTHDAY=3",
+      "reason": "part_not_allowed"
+    },
+    {
+      "in": "FREQ=WEEKLY;BYDAY=1MO",
+      "reason": "bad_byday"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYDAY=MO",
+      "reason": "bad_byday"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYDAY=5FR",
+      "reason": "bad_byday"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYDAY=1MO,2TU",
+      "reason": "bad_byday"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYDAY=1MO;BYMONTHDAY=3",
+      "reason": "two_anchors"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYMONTHDAY=32",
+      "reason": "bad_bymonthday"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYMONTHDAY=0",
+      "reason": "bad_bymonthday"
+    },
+    {
+      "in": "FREQ=DAILY;UNTIL=20261231T235959Z;COUNT=3",
+      "reason": "until_and_count"
+    },
+    {
+      "in": "FREQ=DAILY;UNTIL=2026-12-31",
+      "reason": "bad_until"
+    },
+    {
+      "in": "FREQ=DAILY;UNTIL=20261301T000000Z",
+      "reason": "bad_until"
+    },
+    {
+      "in": "FREQ=DAILY;COUNT=0",
+      "reason": "bad_count"
+    },
+    {
+      "in": "FREQ=DAILY;COUNT=1000",
+      "reason": "bad_count"
+    },
+    {
+      "in": "FREQ=DAILY;BYHOUR=9",
+      "reason": "unknown_part"
+    },
+    {
+      "in": "FREQ=DAILY;",
+      "reason": "unknown_part"
+    },
+    {
+      "in": "FREQ=DAILY;INTERVAL",
+      "reason": "unknown_part"
+    },
+    {
+      "in": "FREQ=DAILY\nFREQ=WEEKLY",
+      "reason": "bytes"
+    },
+    {
+      "in": "FREQ=DAILY extra",
+      "reason": "bytes"
+    },
+    {
+      "in": "RRULE:FREQ=DAILY",
+      "reason": "bytes"
+    },
+    {
+      "in": "FREQ=DAILY;WKST=XX",
+      "reason": "bad_wkst"
+    },
+    {
+      "in": "FREQ=WEEKLY;BYDAY=",
+      "reason": "bad_byday"
+    },
+    {
+      "in": "FREQ=WEEKLY;BYDAY=MO,XX",
+      "reason": "bad_byday"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYDAY=-2FR",
+      "reason": "bad_byday"
+    },
+    {
+      "in": "FREQ=MONTHLY;BYDAY=-4MO",
+      "reason": "bad_byday"
+    }
+  ]
+}

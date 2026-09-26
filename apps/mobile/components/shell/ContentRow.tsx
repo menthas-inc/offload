@@ -42,6 +42,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
+import { DateChip } from "./DateChip";
 import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
 import { domainOf, isFiling, isProvisional, type ContentRow } from "../../lib/threads";
@@ -85,6 +86,10 @@ interface Props {
    *  A collapsed repeating entry uses it to say how often and how many are
    *  held, because the one date it happens to carry is not what it is about. */
   note?: string | undefined;
+  /** 024. A line under the title that is about where the row lives rather
+   *  than what it says: Today draws the thread's name here. Additive, so the
+   *  body and a link's domain keep their place. */
+  meta?: string | undefined;
   /** The row can be dragged to a new place in its list. Given by To do for
    *  its unfinished rows and by nothing else. `onDrop` gets how far the row
    *  travelled; the list, which measured its rows, works out where that is. */
@@ -104,6 +109,7 @@ export function ContentRowView({
   onArchive,
   onToggle,
   note,
+  meta,
   reorder,
 }: Props) {
   const COLOR = useColors();
@@ -362,26 +368,40 @@ export function ContentRowView({
             accessibilityRole={door ? "link" : undefined}
             accessibilityLabel={door ? `Open ${domain ?? row.title}` : undefined}
           >
-            <Text
-              className={`font-core font-medium ${
-                row.doneAt || row.archivedAt
-                  ? row.doneAt
-                    ? "text-text-tertiary"
-                    : "text-text-secondary"
-                  : isAndroid
-                    ? "text-a-on"
-                    : "text-text-primary"
-              }`}
-              style={{
-                fontSize: 15.5,
-                lineHeight: 21,
-                // A finished row keeps the tick, the sinking and a 1px strike,
-                // and loses the opacity: tertiary ink already says it.
-                ...(row.doneAt ? { textDecorationLine: "line-through" as const } : {}),
-              }}
-            >
-              {row.title}
-            </Text>
+            {/* 023. The date chip trails the title on its own line, before
+                the tools, and the meta under the title is untouched. */}
+            <View className="flex-row items-start gap-space-2">
+              <Text
+                className={`flex-1 font-core font-medium ${
+                  row.doneAt || row.archivedAt
+                    ? row.doneAt
+                      ? "text-text-tertiary"
+                      : "text-text-secondary"
+                    : isAndroid
+                      ? "text-a-on"
+                      : "text-text-primary"
+                }`}
+                style={{
+                  fontSize: 15.5,
+                  lineHeight: 21,
+                  // A finished row keeps the tick, the sinking and a 1px strike,
+                  // and loses the opacity: tertiary ink already says it.
+                  ...(row.doneAt ? { textDecorationLine: "line-through" as const } : {}),
+                }}
+              >
+                {row.title}
+              </Text>
+              <DateChip row={row} isReminder={row.isReminder} />
+            </View>
+            {meta ? (
+              <Text
+                className={`mt-space-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+                style={{ fontSize: 13, fontVariant: ["tabular-nums"] }}
+                numberOfLines={1}
+              >
+                {meta}
+              </Text>
+            ) : null}
             {/* offload is still reading a row somebody typed straight in. The
                 one spinner, not a second progress word: the readme reserves
                 "filing" for a row that does not know where it is going, and

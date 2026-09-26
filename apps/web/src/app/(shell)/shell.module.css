@@ -1332,7 +1332,19 @@
 
 @media (prefers-reduced-motion: reduce) {
   /* Still says "not finished", without the movement. */
-  .rowFiling { animation: none; border-top-color: var(--text-accent); opacity: 0.7; }
+  .rowFiling, .paneSpinner { animation: none; border-top-color: var(--text-accent); opacity: 0.7; }
+}
+
+/* The same ring, alone in a pane that has not read yet. */
+.paneSpinner {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: var(--space-7) auto;
+  border-radius: 99px;
+  border: 1.5px solid var(--border-hairline);
+  border-top-color: var(--text-accent);
+  animation: spin 700ms linear infinite;
 }
 
 /* ------------------------------------------------------------- settings */
@@ -1595,6 +1607,60 @@ a.settingsRow:hover {
   padding: 0 0 var(--space-3);
   font: var(--text-body-sm-role);
   color: var(--text-danger);
+}
+
+/* 024. The failure line with its retry beside it, one clause and a control. */
+.settingsErrorLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.settingsErrorLine .settingsRowError {
+  padding: 0;
+}
+
+.settingsRetry {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: var(--weight-medium) calc(13.5px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-accent);
+  cursor: pointer;
+}
+
+.settingsRetry:hover {
+  background: var(--state-hover);
+}
+
+/* 024. A row greyed with the switch above it. */
+.settingsRowOff {
+  opacity: 0.6;
+}
+
+/* 024. The hour, as a field the row's own height, in the row's own type. */
+.settingsTime {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: var(--weight-regular) calc(13.5px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-secondary);
+  color-scheme: light dark;
+  cursor: pointer;
+}
+
+.settingsTime:hover:not(:disabled) {
+  background: var(--state-hover);
+}
+
+.settingsTime:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
 }
 
 .settingsChevron {
@@ -2305,4 +2371,345 @@ a.settingsRow:hover {
   border-radius: var(--radius-sm);
   background: var(--surface-fill);
   color: var(--text-tertiary);
+}
+
+/* 023. The title line: the title, then the date chip at its trailing edge,
+   before the tools. The meta under it is untouched. */
+.rowLine {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.rowLine > .rowTitle,
+.rowLine > .titleInput {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The date chip. Late is clay, the pair a failure already uses; soon is amber
+   rather than blue, since blue is the attention colour and would read as
+   offload asking for something; later is the plain fill. A done row is plain
+   whatever its date. min-height, never height: the caption scales. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  font: var(--weight-medium) var(--size-caption) / 1 var(--font-core);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+}
+
+.chipLate {
+  background: var(--surface-danger-soft);
+  color: var(--text-danger);
+}
+
+.chipSoon {
+  background: var(--surface-noticed-soft);
+  color: var(--text-noticed);
+}
+
+/* 023. The edit modal: the fields, the month grid inline, Time and Repeats
+   as inline blocks, and Custom disclosed beneath. min-height, never height. */
+.editBody {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-2);
+  resize: vertical;
+  font: var(--weight-regular) var(--size-body) / 1.4 var(--font-core);
+}
+
+.editWhen {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-hairline);
+}
+
+.editMonth {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.editMonthLabel {
+  flex: 1;
+  font-weight: var(--weight-medium);
+  font-size: calc(15px * var(--type-scale));
+  color: var(--text-primary);
+}
+
+.editStep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.editStep:hover {
+  background: var(--state-hover);
+}
+
+.editGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: var(--space-2);
+}
+
+.editDow {
+  text-align: center;
+  font-size: calc(11px * var(--type-scale));
+  color: var(--text-secondary);
+  padding-bottom: var(--space-1);
+}
+
+/* Today is outlined, the pick is filled: two facts, two marks. The days either
+   side of the month are quieter and still tappable. */
+.editDay {
+  min-height: 40px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-pill);
+  background: none;
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.editDay:hover {
+  background: var(--state-hover);
+}
+
+.editDayToday {
+  border-color: var(--border-focus);
+}
+
+.editDayOn,
+.editDayOn:hover {
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  font-weight: var(--weight-medium);
+}
+
+.editDayOut {
+  color: var(--text-tertiary);
+}
+
+.editRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  min-height: 36px;
+  margin-top: var(--space-2);
+}
+
+.editRowLabel {
+  min-width: 72px;
+  font-size: calc(14px * var(--type-scale));
+  color: var(--text-primary);
+}
+
+.editCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: calc(14px * var(--type-scale));
+  color: var(--text-primary);
+}
+
+.editTime,
+.editSelect,
+.editNumber {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-primary);
+}
+
+.editNumber {
+  width: 64px;
+}
+
+.editCustom {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+}
+
+.editDays {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.editDayChip {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-pill);
+  background: none;
+  font: var(--weight-medium) calc(12px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.editDayChipOn {
+  background: var(--surface-inverse);
+  border-color: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+.editClear {
+  margin-right: auto;
+  color: var(--text-danger);
+}
+
+/* ------------------------------------------------------------ 024. Activity
+   The exploration's lead-and-tag row: a 28px disc, filled for something that
+   reached the phone and hollow on the lift border for something that did not,
+   the kind's glyph in it, the words, the time, and Not sent as a sentence-case
+   tag, noticed where a setting caused it and quiet where the product chose. */
+
+.actList {
+  display: flex;
+  flex-direction: column;
+  max-width: 60ch;
+}
+
+.actGroup {
+  margin: var(--space-6) 0 var(--space-2);
+  font: var(--weight-medium) calc(12px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.actRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  min-height: 44px;
+  padding: var(--space-3) 0;
+  color: var(--text-primary);
+  text-decoration: none;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+}
+
+a.actRow:hover {
+  background: var(--state-hover);
+}
+
+.actLead {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+}
+
+/* Hollow for a row that never reached a phone. */
+.actLeadOff {
+  background: transparent;
+  border: 1.5px solid var(--border-lift);
+  color: var(--text-tertiary);
+}
+
+.actText {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.actLine {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.actTitle {
+  flex: 1;
+  min-width: 0;
+  font: var(--weight-medium) calc(15px * var(--type-scale)) / 1.35 var(--font-core);
+}
+
+.actWhen {
+  font: var(--text-numeric-role);
+  font-size: calc(11.5px * var(--type-scale));
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.actBody {
+  font: var(--weight-regular) calc(14px * var(--type-scale)) / 1.4 var(--font-core);
+  color: var(--text-secondary);
+}
+
+/* Not sent, as a chip with a ground: noticed on its soft ground where a
+   setting or the permission caused it, quiet on the fill where the product
+   chose silence. */
+.actTag {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  height: 19px;
+  margin-top: var(--space-1);
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--surface-noticed-soft);
+  font: var(--weight-medium) calc(10.5px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-noticed);
+}
+
+.actTagQuiet {
+  background: var(--surface-fill);
+  color: var(--text-tertiary);
+}
+
+.actMore {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 0;
+  background: transparent;
+  font: var(--weight-medium) calc(14px * var(--type-scale)) / 1 var(--font-core);
+  color: var(--text-accent);
+  cursor: pointer;
+}
+
+.actEmpty {
+  max-width: 40ch;
+  padding: var(--space-8) 0;
+}
+
+.actEmptyTitle {
+  margin: 0;
+  font: var(--weight-semibold) calc(17px * var(--type-scale)) / 1.3 var(--font-core);
+  color: var(--text-primary);
+}
+
+.actEmptyLine {
+  margin: var(--space-2) 0 0;
+  font: var(--weight-regular) calc(15px * var(--type-scale)) / 1.45 var(--font-core);
+  color: var(--text-secondary);
 }

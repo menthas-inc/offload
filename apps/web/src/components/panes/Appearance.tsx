@@ -20,8 +20,6 @@ import {
   THEME_LABEL,
   TYPE_SIZES,
   TYPE_SIZE_LABEL,
-  WEEK_STARTS,
-  WEEK_START_LABEL,
   useAppearance,
   type Theme,
   type TypeSize,
@@ -29,7 +27,7 @@ import {
 import pane from "../../app/(shell)/shell.module.css";
 
 export function AppearancePane() {
-  const { theme, size, weekStart, setTheme, setSize, setWeekStart } = useAppearance();
+  const { theme, size, setTheme, setSize } = useAppearance();
 
   return (
     <>
@@ -66,28 +64,15 @@ export function AppearancePane() {
             onChange={setSize}
           />
         </section>
-
-        <section className={pane.settingsBlock}>
-          <h2 className={pane.settingsBlockTitle}>Week starts on</h2>
-          <p className={pane.settingsNote}>
-            Which day a thread&apos;s timeline begins its weeks on.
-          </p>
-          <Segmented<"monday" | "sunday">
-            label="Week starts on"
-            options={[...WEEK_STARTS]}
-            labelFor={(value) => WEEK_START_LABEL[value] ?? value}
-            value={weekStart}
-            onChange={setWeekStart}
-          />
-        </section>
       </div>
     </>
   );
 }
 
 /** The `SegmentedControl` contract: two to four mutually exclusive views, one
- *  raised out of the track. offload's only tab-like control. */
-function Segmented<T extends string>({
+ *  raised out of the track. offload's only tab-like control. Date and time
+ *  draws Starts on with it since 023, which is why it is exported. */
+export function Segmented<T extends string>({
   label,
   options,
   labelFor,

@@ -38,7 +38,13 @@ export type EventName =
   | "person_blocked"
   | "thread_shared"
   | "share_accepted"
-  | "member_removed";
+  | "member_removed"
+  // 024. Counts and enums: the send, the row count, the overdue count, the
+  // reason, the kind, the error code. Never a token, a name or a title.
+  | "digest_sent"
+  | "digest_skipped"
+  | "notification_sent"
+  | "notification_failed";
 
 type Source = "core-api" | "agent" | "worker" | "web" | "ios" | "android";
 
@@ -74,6 +80,13 @@ function assertNoContent(name: EventName, properties: Record<string, unknown>): 
       );
     }
   }
+}
+
+/** The subject an event is attributed to: the account's pseudonym, never
+ *  its id. One helper, so the next event cannot reach for the id in scope. */
+export async function subjectOf(accountId: string, executor: Kysely<Database> | Transaction<Database> = db): Promise<string | null> {
+  const row = await executor.selectFrom("accounts").select("analytics_subject_id").where("id", "=", accountId).executeTakeFirst();
+  return row?.analytics_subject_id ?? null;
 }
 
 export async function emit(options: EmitOptions): Promise<void> {

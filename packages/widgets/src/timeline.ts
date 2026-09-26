@@ -24,9 +24,6 @@ export type DatedKind = "task" | "event" | "note" | "other";
  *
  *  A range rather than a point, because a thing that spans days has a dot on
  *  every day it covers and the loop that draws them needs both ends. */
-/** How often a thing comes round. The words `cadenceLabel` already says. */
-export type Repeat = "day" | "weekday" | "week" | "two_weeks" | "month" | "year";
-
 export interface Dated {
   /** The row's own id, or `<id>:due` for the day it is wanted by.
    *
@@ -50,10 +47,9 @@ export interface Dated {
    *  expands it over whatever window is on screen, so a weekly class is one
    *  line in a list and a mark on every Tuesday. A calendar's own repeats come
    *  the other way, as rows that already exist sharing a `seriesRef`, and those
-   *  are collapsed by a list rather than expanded by this. */
-  repeats?: Repeat | null;
-  /** When the rule stops, or null for no end stated. */
-  until?: string | null;
+   *  are collapsed by a list rather than expanded by this. Parsed once here,
+   *  since 023 made it an RFC 5545 rule, and its end is inside it. */
+  rule?: Rule | null;
 }
 
 export interface Dot {
@@ -95,6 +91,9 @@ export const MAX_DOTS = 4;
  *  which was a device for making a year of nothing short rather than for making
  *  it navigable. */
 export const WEEKS_BEFORE_MONTHS = 6;
+
+import { dayIn, utcDay } from "./days.js";
+import { occurrencesIn, parseRule, type Rule } from "./rrule.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -144,8 +143,9 @@ export interface DatedNote {
   occursAt: string | null;
   occursEndAt: string | null;
   dueAt: string | null;
-  repeats?: Repeat | null;
-  repeatsUntil?: string | null;
+  rrule?: string | null;
+  /** The date carries no time, so it is read as a date in no zone at all. */
+  allDay?: boolean;
 }
 
 /** Everything on this thread that has a date, in one shape.
@@ -162,24 +162,36 @@ export function datedFor(
   rows: readonly (Sortable & {
     occursEndAt?: string | null;
     dueAt?: string | null;
-    repeats?: Repeat | null;
-    repeatsUntil?: string | null;
+    rrule?: string | null;
+    allDay?: boolean;
   })[],
   notes: readonly DatedNote[] = [],
+  /** The account's clock. A timed row lands on the day it happens in this
+   *  zone; a bare day is a date and lands on itself wherever it is read. */
+  zone: string | null = null,
 ): Dated[] {
   const out: Dated[] = [];
+  const day = (at: string, allDay: boolean | undefined): string =>
+    allDay ? utcDay(new Date(at)) : dayIn(new Date(at), zone);
+  const ruleOf = (text: string | null | undefined): Rule | null => {
+    if (!text) return null;
+    const parsed = parseRule(text);
+    return parsed.ok ? parsed.rule : null;
+  };
 
   for (const row of rows) {
     const done = row.doneAt !== null;
+    // A rule anchors on the type's column: an event when it happens,
+    // everything else when it is wanted by (023).
+    const rule = ruleOf(row.rrule);
     if (row.occursAt) {
-      const from = localDay(new Date(row.occursAt));
-      const end = row.occursEndAt ? localDay(new Date(row.occursEndAt)) : from;
+      const from = day(row.occursAt, row.allDay);
+      const end = row.occursEndAt ? day(row.occursEndAt, row.allDay) : from;
       out.push({
         id: row.id,
         rowId: row.id,
         due: false,
-        repeats: row.repeats ?? null,
-        until: row.repeatsUntil ? localDay(new Date(row.repeatsUntil)) : null,
+        rule: row.type === "event" ? rule : null,
         kind: kindOf(row.type),
         from,
         // An end before its start is somebody else's bug, and a rail is not
@@ -189,14 +201,15 @@ export function datedFor(
       });
     }
     if (row.dueAt) {
-      const day = localDay(new Date(row.dueAt));
+      const when = day(row.dueAt, row.allDay);
       out.push({
         id: `${row.id}:due`,
         rowId: row.id,
         due: true,
+        rule: row.type === "event" ? null : rule,
         kind: kindOf(row.type),
-        from: day,
-        to: day,
+        from: when,
+        to: when,
         done,
       });
     }
@@ -204,14 +217,13 @@ export function datedFor(
 
   for (const note of notes) {
     if (note.occursAt) {
-      const from = localDay(new Date(note.occursAt));
-      const end = note.occursEndAt ? localDay(new Date(note.occursEndAt)) : from;
+      const from = day(note.occursAt, note.allDay);
+      const end = note.occursEndAt ? day(note.occursEndAt, note.allDay) : from;
       out.push({
         id: note.id,
         rowId: note.id,
         due: false,
-        repeats: note.repeats ?? null,
-        until: note.repeatsUntil ? localDay(new Date(note.repeatsUntil)) : null,
+        rule: ruleOf(note.rrule),
         kind: "note",
         from,
         to: end < from ? from : end,
@@ -219,14 +231,14 @@ export function datedFor(
       });
     }
     if (note.dueAt) {
-      const day = localDay(new Date(note.dueAt));
+      const when = day(note.dueAt, note.allDay);
       out.push({
         id: `${note.id}:due`,
         rowId: note.id,
         due: true,
         kind: "note",
-        from: day,
-        to: day,
+        from: when,
+        to: when,
         done: false,
       });
     }
@@ -242,19 +254,14 @@ export function datedFor(
  *  because it happens and once because it is wanted by then. */
 export function thingsOn(dated: readonly Dated[], iso: string): Dated[] {
   return dated.filter((one) => {
-    if (!one.repeats) return one.from <= iso && iso <= one.to;
+    if (!one.rule) return one.from <= iso && iso <= one.to;
     if (iso < one.from) return false;
-    if (one.until && iso > addDays(one.until, spanOf(one))) return false;
     // Straight to the day in question rather than walking there from whenever
     // the rule began, so an old rule still answers for today.
     const length = spanOf(one);
-    let at = firstOnOrAfter(one.from, one.repeats, addDays(iso, -length));
-    for (let step = 0; step < REPEAT_LIMIT; step += 1) {
-      if (iso >= at && iso <= addDays(at, length)) return true;
-      if (at > iso) return false;
-      at = nextOccurrence(at, one.repeats, dayAt(one.from).getDate());
-    }
-    return false;
+    return occurrencesIn(one.rule, one.from, addDays(iso, -length), iso).some(
+      (at) => iso >= at && iso <= addDays(at, length),
+    );
   });
 }
 
@@ -287,98 +294,21 @@ function dotsByDay(
       (dayAt(one.to).getTime() - dayAt(one.from).getTime()) / DAY_MS,
     );
 
-    if (!one.repeats) {
+    if (!one.rule) {
       for (let day = one.from; day <= one.to; day = addDays(day, 1)) put(day, one);
       continue;
     }
 
     // Every occurrence the window can see, starting at the window rather than
-    // walking to it from whenever the rule began.
+    // walking to it from whenever the rule began. The expander bounds the
+    // walk at 400 per call, which bounds the window and never the rule's age.
     const stop = window ? window.to : addDays(one.from, 366);
     const start = window ? window.from : one.from;
-    let at = firstOnOrAfter(one.from, one.repeats, addDays(start, -length));
-    for (let step = 0; step < REPEAT_LIMIT && at <= stop; step += 1) {
-      if (one.until && at > one.until) break;
-      // Skip the ones behind the window rather than drawing them.
-      if (addDays(at, length) >= start) {
-        for (let i = 0; i <= length; i += 1) put(addDays(at, i), one);
-      }
-      at = nextOccurrence(at, one.repeats, dayAt(one.from).getDate());
+    for (const at of occurrencesIn(one.rule, one.from, addDays(start, -length), stop)) {
+      for (let i = 0; i <= length; i += 1) put(addDays(at, i), one);
     }
   }
   return days;
-}
-
-/** The next time a rule comes round.
- *
- *  **Month and year clamp rather than roll, and they count from the first
- *  occurrence rather than from the last one.** Monthly from the 31st is the
- *  30th in September and the 31st again in October; letting `Date` roll it
- *  gives 1 October and then every later occurrence is on the 1st, which is a
- *  rule quietly rewriting itself. Clamping is what every calendar does, and
- *  keeping the anchor is what stops February eating the rest of the year.
- */
-function nextOccurrence(iso: string, repeats: Repeat, anchorDom: number): string {
-  const at = dayAt(iso);
-  if (repeats === "day") return addDays(iso, 1);
-  if (repeats === "weekday") {
-    // Monday to Friday. "Standup every weekday" said `day` before this
-    // existed, which put a standup on Sunday.
-    let next = addDays(iso, 1);
-    while (dayAt(next).getDay() === 0 || dayAt(next).getDay() === 6) next = addDays(next, 1);
-    return next;
-  }
-  if (repeats === "week") return addDays(iso, 7);
-  if (repeats === "two_weeks") return addDays(iso, 14);
-
-  const months = repeats === "month" ? 1 : 12;
-  const year = at.getFullYear() + (repeats === "year" ? 1 : 0);
-  const month = at.getMonth() + (repeats === "month" ? months : 0);
-  // Day 0 of the month after is the last day of the month in question.
-  const lastDay = new Date(year, month + 1, 0, 12).getDate();
-  return localDay(new Date(year, month, Math.min(anchorDom, lastDay), 12));
-}
-
-/** How many occurrences one rule may draw **inside one window**. A year of
- *  daily is 365, and a window wider than that is not a calendar anybody reads.
- *
- *  **It bounds the window, never the age of the rule.** It used to be counted
- *  from the rule's own first occurrence, which meant a daily standup set up
- *  fourteen months ago ran out of steps before it reached today and quietly
- *  stopped being drawn: still in the database, still repeating, on no screen,
- *  with nothing to say why. `firstOnOrAfter` skips to the window instead of
- *  walking to it. */
-const REPEAT_LIMIT = 400;
-
-function isWeekend(iso: string): boolean {
-  const day = dayAt(iso).getDay();
-  return day === 0 || day === 6;
-}
-
-/** The first occurrence of a rule on or after a day, without walking there.
- *
- *  Arithmetic for the cadences that are a fixed number of days, and a calendar
- *  step for the two that are not, which is at most a couple of hundred steps
- *  for a decade-old monthly rule. */
-function firstOnOrAfter(from: string, repeats: Repeat, target: string): string {
-  if (target <= from) return from;
-  const days = Math.round((dayAt(target).getTime() - dayAt(from).getTime()) / DAY_MS);
-
-  if (repeats === "day") return addDays(from, days);
-  if (repeats === "week") return addDays(from, Math.ceil(days / 7) * 7);
-  if (repeats === "two_weeks") return addDays(from, Math.ceil(days / 14) * 14);
-  if (repeats === "weekday") {
-    // Every weekday from the first one is an occurrence, so the answer is the
-    // target itself unless it landed on a weekend.
-    let at = addDays(from, days);
-    while (isWeekend(at)) at = addDays(at, 1);
-    return at;
-  }
-
-  const anchorDom = dayAt(from).getDate();
-  let at = from;
-  while (at < target) at = nextOccurrence(at, repeats, anchorDom);
-  return at;
 }
 
 function dayAtIso(
@@ -400,6 +330,17 @@ function dayAtIso(
   };
 }
 
+/** What the span is made of: everything that happens once as it is, and a
+ *  repeating thing as its first day alone, and only while that day is still
+ *  ahead. A rule that began two years ago has nothing left to reach; the days
+ *  it has already filled are not a span to draw back to. */
+function firstDays(dated: readonly Dated[], today: string): Dated[] {
+  return dated.flatMap((one) => {
+    if (!one.rule) return [one];
+    return one.from >= today ? [{ ...one, rule: null, to: one.from }] : [];
+  });
+}
+
 /** How many whole weeks the thread's dates span, today included.
  *
  *  What decides whether the rail draws weeks or a month. */
@@ -411,8 +352,11 @@ export function weeksSpanned(
   // **A rule does not stretch the span.** "Every Tuesday" with no end would
   // otherwise make every thread a year long and push it into the month view
   // forever. The span comes from things that happen once, and the rule fills
-  // whatever that span turns out to be.
-  const known = [...dotsByDay(dated.filter((one) => !one.repeats)).keys()].sort();
+  // whatever that span turns out to be. Its first day counts, though: a task
+  // due next Wednesday that gains "every week" is still due next Wednesday,
+  // and it lost its week and its dot until 023 said so; a first day already
+  // behind today does not draw the rail back to it.
+  const known = [...dotsByDay(firstDays(dated, today)).keys()].sort();
   const first = startOfWeek(known[0] && known[0] < today ? known[0] : today, weekStart);
   const lastKnown = known[known.length - 1];
   const last = startOfWeek(lastKnown && lastKnown > today ? lastKnown : today, weekStart);
@@ -434,9 +378,10 @@ export function railFor(
   weekStart: WeekStart = "monday",
   locale?: string,
 ): RailRow[] {
-  // The span comes from what happens once; a rule fills it rather than
-  // stretching it. See `weeksSpanned`.
-  const once = [...dotsByDay(dated.filter((one) => !one.repeats)).keys()].sort();
+  // The span comes from what happens once, and from a rule's first day; a
+  // rule's later occurrences fill it rather than stretching it. See
+  // `weeksSpanned`.
+  const once = [...dotsByDay(firstDays(dated, today)).keys()].sort();
   const first = startOfWeek(once[0] && once[0] < today ? once[0] : today, weekStart);
   const lastOnce = once[once.length - 1];
   const lastDay = lastOnce && lastOnce > today ? lastOnce : today;

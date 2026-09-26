@@ -86,9 +86,9 @@ export interface Note {
   priority: number;
   /** The date carries no time, so nothing may draw one. */
   allDay: boolean;
-  /** That it comes round again. One note, a mark on every matching day. */
-  repeats: "day" | "weekday" | "week" | "two_weeks" | "month" | "year" | null;
-  repeatsUntil: string | null;
+  /** That it comes round again. One note, a mark on every matching day. 023:
+   *  an RFC 5545 rule, anchored on the occurrence. */
+  rrule: string | null;
   /** When it was last written. What decides which notes reach offload when a
    *  thread holds more than the budget, and what the row shows. */
   writtenAt: string;
@@ -225,10 +225,12 @@ export interface ContentRow {
    *  covers. Written since 0011 and read by nothing until 015. */
   occursEndAt: string | null;
   /** That it comes round again, as a rule the calendar expands. One row, a
-   *  mark on every matching day. */
-  repeats: "day" | "weekday" | "week" | "two_weeks" | "month" | "year" | null;
-  repeatsUntil: string | null;
+   *  mark on every matching day. 023: an RFC 5545 rule in the closed grammar
+   *  of `@offload/widgets`, the server's own serialisation. */
+  rrule: string | null;
   isReminder: boolean;
+  /** 023. Written to a calendar, so its time is Google's: no When on it. */
+  onCalendar: boolean;
   priority: number;
   priorityPinned: boolean;
   tags: string[];
@@ -343,14 +345,43 @@ export async function fetchOne(id: string): Promise<ContentDetail | null> {
 // Each returns what the row was, so Undo is one more call with the old value
 // and nothing has to be held across a reload.
 
+/** 023. Every previous value, so Undo is one request with it as the body. */
+export interface ContentSnapshot {
+  title: string;
+  body: string | null;
+  dueAt: string | null;
+  occursAt: string | null;
+  occursEndAt: string | null;
+  allDay: boolean;
+  rrule: string | null;
+  isReminder: boolean;
+}
+
+/** The refusals the route names; the screen is put back with one clause. */
+export type EditRefusal = "bad_date" | "bad_rule" | "on_calendar";
+
 export interface Edited {
   content: ContentRow;
-  previous: { title: string; body: string | null };
+  previous: ContentSnapshot;
+}
+
+/** 023. The nine fields a sheet may write. Absent leaves a field alone and
+ *  null clears it; what comes back is every previous value, so Undo is one
+ *  request. */
+export interface ContentPatch {
+  title?: string;
+  body?: string | null;
+  dueAt?: string | null;
+  occursAt?: string | null;
+  occursEndAt?: string | null;
+  allDay?: boolean;
+  rrule?: string | null;
+  isReminder?: boolean;
 }
 
 export async function editContent(
   id: string,
-  patch: { title?: string; body?: string | null },
+  patch: ContentPatch,
 ): Promise<Edited | null> {
   const response = await fetch(`${API}/v1/content/${id}`, {
     ...json,
@@ -523,8 +554,8 @@ export function provisionalRow(
     // calendar day almost everywhere.
     occursAt: day ? `${day}T12:00:00.000Z` : null,
     occursEndAt: null,
-    repeats: null,
-    repeatsUntil: null,
+    rrule: null,
+    onCalendar: false,
     isReminder: false,
     priority: 0,
     priorityPinned: false,
@@ -557,8 +588,7 @@ export function provisionalNote(text: string, authorId: string | null): Note {
     placeId: null,
     priority: 50,
     allDay: false,
-    repeats: null,
-    repeatsUntil: null,
+    rrule: null,
     writtenAt: new Date().toISOString(),
     supersededAt: null,
   };

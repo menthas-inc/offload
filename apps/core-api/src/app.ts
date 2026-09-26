@@ -25,6 +25,7 @@ import { threadRoutes } from "./routes/threads.js";
 import { wellKnownRoutes } from "./routes/well-known.js";
 import { blobRoutes } from "./routes/blobs.js";
 import { peopleRoutes } from "./routes/people.js";
+import { notificationRoutes } from "./routes/notifications.js";
 import { sharingRoutes } from "./routes/sharing.js";
 import { MAX_PHOTO_BYTES } from "./blobs/photos.js";
 
@@ -119,6 +120,7 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   await app.register(wellKnownRoutes);
   await app.register(blobRoutes);
   await app.register(peopleRoutes);
+  await app.register(notificationRoutes);
   await app.register(sharingRoutes);
 
   return app;

@@ -9,6 +9,9 @@
 
 import { sql } from "kysely";
 import { db } from "../db.js";
+import { enqueue, PRIORITY } from "../jobs/queue.js";
+import { record } from "../notifications/activity.js";
+import { expiredCopy } from "../notifications/copy.js";
 import { initialsOf } from "../accounts/initials.js";
 import { blockedEitherWay, connected, pairOf, relationOf, type Executor, type Relation } from "./access.js";
 import { markOf } from "../accounts/avatar.js";
@@ -169,6 +172,18 @@ export async function request(
       })
       .returning(["id", "created_at"])
       .executeTakeFirstOrThrow();
+    // 024. Announced once delivered; the job checks it is still open and
+    // still delivered at send time, and the recipient's switch.
+    if (blockedByTarget === undefined) {
+      await enqueue({
+        kind: "people.notify",
+        accountId: toId,
+        payload: { kind: "request", requestId: row.id },
+        priority: PRIORITY.interactive,
+        idempotencyKey: `people.notify:request:${row.id}`,
+        tx: trx,
+      });
+    }
     return { ok: true as const, requestId: row.id, since: row.created_at };
   });
 }
@@ -466,6 +481,17 @@ export async function person(viewerId: string, accountId: string): Promise<Perso
 /** The daily sweep: expiry made explicit, and the record of who asked whom
  *  kept exactly as long as the seven-day rule needs it. */
 export async function sweepPeople(): Promise<void> {
+  // 024. What expires unanswered is recorded in the sender's Activity at the
+  // moment it expires, with the words it would have used, by the code that
+  // decides it: read before the update, written after.
+  const expiringRequests = await db
+    .selectFrom("connection_requests")
+    .innerJoin("accounts as recipient", "recipient.id", "connection_requests.to_account_id")
+    .select(["connection_requests.id", "connection_requests.from_account_id", "recipient.display_name as recipient_name"])
+    .where("connection_requests.accepted_at", "is", null)
+    .where("connection_requests.withdrawn_at", "is", null)
+    .where("connection_requests.expires_at", "<=", sql<Date>`now()`)
+    .execute();
   await db
     .updateTable("connection_requests")
     .set({ withdrawn_at: sql`expires_at` })
@@ -473,6 +499,9 @@ export async function sweepPeople(): Promise<void> {
     .where("withdrawn_at", "is", null)
     .where("expires_at", "<=", sql<Date>`now()`)
     .execute();
+  for (const one of expiringRequests) {
+    await record(one.from_account_id, { kind: "expired", sent: false, reason: "design", ...expiredCopy("request", one.recipient_name), requestId: one.id });
+  }
   await db
     .deleteFrom("connection_requests")
     .where((eb) =>
@@ -483,12 +512,30 @@ export async function sweepPeople(): Promise<void> {
     )
     .where("created_at", "<", sql<Date>`now() - make_interval(days => ${REASK_DAYS})`)
     .execute();
+  const expiringShares = await db
+    .selectFrom("thread_members")
+    .innerJoin("accounts as invitee", "invitee.id", "thread_members.account_id")
+    .select(["thread_members.id", "thread_members.thread_id", "thread_members.invited_by", "invitee.display_name as invitee_name"])
+    .where("thread_members.state", "=", "pending")
+    .where("thread_members.expires_at", "<=", sql<Date>`now()`)
+    .execute();
   await db
     .updateTable("thread_members")
     .set({ state: "expired", responded_at: sql`now()`, preview: null })
     .where("state", "=", "pending")
     .where("expires_at", "<=", sql<Date>`now()`)
     .execute();
+  for (const one of expiringShares) {
+    if (!one.invited_by) continue;
+    await record(one.invited_by, {
+      kind: "expired",
+      sent: false,
+      reason: "design",
+      ...expiredCopy("share", one.invitee_name),
+      threadId: one.thread_id,
+      memberId: one.id,
+    });
+  }
   await db
     .deleteFrom("people_lookups")
     .where("looked_up_at", "<", sql<Date>`now() - interval '1 day'`)

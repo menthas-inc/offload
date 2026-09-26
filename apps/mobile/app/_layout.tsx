@@ -9,7 +9,7 @@ import { useColorScheme } from "nativewind";
 import { applyTheme, storedTheme } from "../lib/appearance";
 import { useColors } from "../lib/colors";
 import { AccessibilityInfo, Platform } from "react-native";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router, usePathname } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -21,6 +21,8 @@ import { RecordArrival } from "../components/shell/RecordArrival";
 import { Shell } from "../components/shell/Shell";
 import { PlateInsetProvider } from "../components/shell/plate-inset";
 import { ShareArrival } from "../components/shell/ShareArrival";
+import * as Notifications from "expo-notifications";
+import { prepare, register, respond } from "../lib/notifications";
 
 // The index route asks the server where to open and draws nothing while it
 // waits, on the stated assumption that the splash is still up behind it. It
@@ -81,9 +83,28 @@ export default function RootLayout() {
     void pinExistingSession();
   }, []);
 
+  const router = useRouter();
+
   // A session the server refused. The keys are already gone by the time this
   // fires; the shell's part is to show the gate, which decides the rest.
-  useEffect(() => onSessionRefused(() => router.replace("/")), []);
+  useEffect(() => onSessionRefused(() => router.replace("/")), [router]);
+
+  // 024. The categories and channels once per launch, then the token when
+  // permission was granted, then whatever notification opened the app and
+  // every response while it runs. A verb acts without opening a screen; a
+  // tap opens the screen its kind names, from the table in the lib.
+  useEffect(() => {
+    const open = (route: { pathname: string; params?: Record<string, string> }) =>
+      router.push(route as never);
+    void prepare().then(() => register());
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) void respond(response, open);
+    });
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      void respond(response, open);
+    });
+    return () => subscription.remove();
+  }, [router]);
 
   const pathname = usePathname();
   useEffect(() => {

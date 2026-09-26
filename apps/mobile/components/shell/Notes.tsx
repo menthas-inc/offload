@@ -33,6 +33,7 @@ import Animated, {
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { reorderPlan, type ReorderWrite } from "@offload/widgets";
 import { Glyph } from "../Glyph";
+import { useClock } from "../../lib/clock";
 import { atOpacity, useColors } from "../../lib/colors";
 import { perform, type Toaster, type Writes } from "../../lib/optimistic";
 import { useConversation, useScreenSheet } from "./conversation-context";
@@ -71,13 +72,16 @@ interface Props {
 
 /** The date on a row, derived rather than stored, so a weekday can never
  *  disagree with the calendar. */
-function when(note: Note): string | null {
+function when(note: Note, zone: string | null): string | null {
   const at = note.occursAt ?? note.dueAt;
   if (!at) return null;
+  // 023. A bare day is a date and reads as one everywhere; a timed note lands
+  // on its day in the account's clock.
   return new Date(at).toLocaleDateString(undefined, {
     weekday: "short",
     day: "numeric",
     month: "short",
+    ...(note.allDay ? { timeZone: "UTC" } : zone ? { timeZone: zone } : {}),
   });
 }
 
@@ -91,6 +95,7 @@ export function NotesSection({
   toast,
   writes,
 }: Props) {
+  const { zone } = useClock();
   const COLOR = useColors();
   const { raiseFor } = useConversation();
   const [editing, setEditing] = useState<Note | null>(null);
@@ -270,7 +275,7 @@ export function NotesSection({
       readOnly={readOnly}
       provisional={isProvisional(note.id)}
       name={author(note)}
-      date={when(note)}
+      date={when(note, zone)}
       instructing={instructing.has(note.id)}
       onLayout={(layout) => layouts.current.set(note.id, layout)}
       onOpen={() => {

@@ -25,6 +25,15 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/protect-secrets.sh"
           }
         ]
+      },
+      {
+        "matcher": "Read|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/protect-secrets-read.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -43,4 +52,4 @@
       }
     ]
   }
-}
+}\n

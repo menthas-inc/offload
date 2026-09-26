@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { Logo } from "../../../components/Logo";
 import { RunArt } from "../../../components/RunArt";
 import { completeOnboarding, updateName, useMe } from "../../../lib/use-me";
+import { deviceZone } from "../../../lib/clock";
 import { connectUrl, useCalendars } from "../../../lib/use-calendars";
 import {
   CONNECT_BUTTON,
@@ -112,7 +113,7 @@ export default function WelcomePage() {
     // its own.
     const recorded = nameOnly
       ? (await updateName(name.trim())) !== null
-      : await completeOnboarding(name.trim());
+      : await completeOnboarding(name.trim(), deviceZone());
     if (!recorded) {
       // Stay put and let them try again. Going on to Today would show a screen
       // the server still thinks belongs to someone mid-onboarding, and the
