@@ -51,7 +51,9 @@ import {
   type WaitingOn,
 } from "../../lib/dump";
 import type { ChipError } from "./AttachChip";
-import { addNote, completeContent, provisionalId, quickAdd } from "../../lib/threads";
+import { addNote, completeContent, fetchThread, provisionalId, quickAdd } from "../../lib/threads";
+import { labelQuery } from "@offload/widgets";
+import type { Label } from "../../lib/labels";
 import { failed } from "../../lib/log";
 import { fetchPeople, nameOf, type Person } from "../../lib/people";
 import { mentionQuery, withMention } from "../people/MentionList";
@@ -225,6 +227,10 @@ export interface Conversation {
   mentions: { accountId: string; name: string }[];
   mentionPeople: Person[] | null;
   pickMention: (person: Person) => void;
+  /** 025. The labels of the thread on screen, read the first time a # is
+   *  typed there, and a pick, kept while its #Name is in the text. */
+  hashLabels: Label[] | null;
+  pickHash: (name: string, id?: string) => void;
   submit: () => Promise<void>;
   /** 020. The photos in the draft, and the ways in and out. `addPhotos` from
    *  the picker or the share sheet; `line` is the one clause under the
@@ -468,6 +474,27 @@ export function ConversationProvider({
       live = false;
     };
   }, [draft, mentionPeople]);
+  // 025. What a # picked, and the labels of the thread on screen.
+  const [hashPicks, setHashPicks] = useState<({ id: string; name: string } | { name: string })[]>([]);
+  const [hashFor, setHashFor] = useState<{ threadId: string; labels: Label[] } | null>(null);
+  useEffect(() => {
+    if (!onScreen || labelQuery(draft) === null || hashFor?.threadId === onScreen.id) return;
+    let live = true;
+    const threadId = onScreen.id;
+    void fetchThread(threadId).then((bundle) => {
+      if (live && bundle) setHashFor({ threadId, labels: bundle.labels });
+    });
+    return () => {
+      live = false;
+    };
+  }, [draft, onScreen, hashFor]);
+  const pickHash = useCallback((name: string, id?: string) => {
+    setDraft((current) => current.replace(/(^|\s)#([\p{L}\p{N}_-]*)$/u, (_, lead: string) => `${lead}#${name.replace(/\s+/g, "")} `));
+    setHashPicks((current) => [
+      ...current.filter((one) => one.name.toLowerCase() !== name.toLowerCase()),
+      id ? { id, name } : { name },
+    ]);
+  }, []);
   const pickMention = useCallback((person: Person) => {
     const name = nameOf(person);
     setDraft((current) => withMention(current, name));
@@ -1074,12 +1101,17 @@ export function ConversationProvider({
       // 022. A mention whose name is no longer in the text was deleted by
       // hand and goes with the words.
       const named = mentions.filter((m) => text.includes(m.name));
+      // 025. A # pick whose #Name was deleted by hand goes with the words.
+      const hashed = hashPicks
+        .filter((one) => text.toLowerCase().includes(`#${one.name.replace(/\s+/g, "").toLowerCase()}`))
+        .map((one) => ("id" in one ? { id: one.id } : { name: one.name }));
       const sent = await sendDump(
         text,
         clientKey,
         onScreen?.id,
         blobIds.length ? { blobIds, viaShare: viaShare.current } : undefined,
         named,
+        hashed,
       );
       if (!sent) return unsent();
       // Only what went: a photo added while the send was out stays for the
@@ -1090,6 +1122,8 @@ export function ConversationProvider({
       viaShare.current = false;
       noteUploaded.current = null;
       setMentions([]);
+      setHashPicks([]);
+      setHashFor(null);
       sentNotes.current.delete(provisional);
       setTurns((current) =>
         current.map((turn) =>
@@ -1294,6 +1328,8 @@ export function ConversationProvider({
         mentions,
         mentionPeople,
         pickMention,
+        hashLabels: hashFor && onScreen && hashFor.threadId === onScreen.id ? hashFor.labels : null,
+        pickHash,
       }}
     >
       {children}

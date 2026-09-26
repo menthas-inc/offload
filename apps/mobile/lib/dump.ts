@@ -211,6 +211,8 @@ export async function sendDump(
   threadId?: string,
   photos?: { blobIds: string[]; viaShare?: boolean },
   mentions: { accountId: string; name: string }[] = [],
+  /** 025. What a # picked on a thread: a label by id, or a name to make. */
+  labels: ({ id: string } | { name: string })[] = [],
 ): Promise<Sent | null> {
   const { status, data } = await send<Sent>("/v1/dumps", {
     method: "POST",
@@ -220,6 +222,7 @@ export async function sendDump(
       ...(threadId ? { threadId } : {}),
       ...(photos?.blobIds.length ? { blobIds: photos.blobIds, viaShare: Boolean(photos.viaShare) } : {}),
       ...(mentions.length ? { mentions } : {}),
+      ...(threadId && labels.length ? { labels } : {}),
     }),
   });
   if (status === 413) throw new DumpTooLong(0);

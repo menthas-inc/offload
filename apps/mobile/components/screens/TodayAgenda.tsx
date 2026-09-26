@@ -182,6 +182,7 @@ export function useTodayAgenda(agenda: Agenda | null, onChanged: () => void, toa
                     row={row}
                     border={index < rows.length - 1}
                     meta={row.threadName}
+                    metaMarks={row.labels.flatMap((labelId) => agenda.threadLabels.filter((label) => label.id === labelId))}
                     onToggle={row.type === "task" ? () => tick(row) : undefined}
                     onEdit={() => setRenaming(row)}
                     onActions={() => setActing(row)}

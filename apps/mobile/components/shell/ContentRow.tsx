@@ -47,8 +47,15 @@ import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
 import { domainOf, isFiling, isProvisional, type ContentRow } from "../../lib/threads";
 import { openLink } from "../../lib/links";
+import { LabelMark } from "../labels/LabelMark";
+import { useRowLabels } from "../labels/labels-context";
 
 const REVEAL = 88;
+/** 45 tall by 33 wide around a 17px tool. The tools sit 16 apart, so 8 either
+ *  side is where two targets meet without overlapping; above and below there
+ *  is nothing to meet, and 14 makes the height the rule's 44. They were 33 by
+ *  33 until the tag tool made a third. */
+const TOOL_SLOP = { top: 14, bottom: 14, left: 8, right: 8 };
 const isAndroid = Platform.OS === "android";
 
 const ICON: Record<string, string> = {
@@ -95,6 +102,9 @@ interface Props {
    *  than what it says: Today draws the thread's name here. Additive, so the
    *  body and a link's domain keep their place. */
   meta?: string | undefined;
+  /** 025. Today's marks, drawn after `meta` on its line: a label away from
+   *  its thread always travels with the thread's name. */
+  metaMarks?: { id: string; name: string; colour: number }[] | undefined;
   /** The row can be dragged to a new place in its list. Given by To do for
    *  its unfinished rows and by nothing else. `onDrop` gets how far the row
    *  travelled; the list, which measured its rows, works out where that is. */
@@ -115,9 +125,20 @@ export function ContentRowView({
   onToggle,
   note,
   meta,
+  metaMarks,
   reorder,
 }: Props) {
   const COLOR = useColors();
+  // 025. The thread's labels, from the screen that holds the thread, and the
+  // marks this row carries. Absent on Today, which passes `metaMarks`.
+  const threadLabels = useRowLabels();
+  const marks = threadLabels
+    ? row.labels.flatMap((id) => {
+        const label = threadLabels.labels.get(id);
+        return label ? [label] : [];
+      })
+    : [];
+  const tagTool = threadLabels !== null && row.labels.length === 0 && !isProvisional(row.id);
   // Shown instead of an absent body on a link row, and it is what says the row
   // goes somewhere. Ours rather than the page's: a title is written by whoever
   // owns the page and a domain is not.
@@ -410,16 +431,38 @@ export function ContentRowView({
               >
                 {row.title}
               </Text>
-              <DateChip row={row} isReminder={row.isReminder} />
+              {/* 025. The marks line: the date chip, then the row's labels,
+                  wrapping. A row with neither draws nothing. Chips of a
+                  fixed size wrap on Yoga, which a growing title beside a
+                  chip did not. */}
+              {marks.length > 0 ? (
+                <View className="flex-row flex-wrap items-center gap-space-2">
+                  <DateChip row={row} isReminder={row.isReminder} />
+                  {marks.map((label) => (
+                    <LabelMark key={label.id} color={label.colour} onClick={() => threadLabels?.onOpenLabel(label.id)}>
+                      {label.name}
+                    </LabelMark>
+                  ))}
+                </View>
+              ) : (
+                <DateChip row={row} isReminder={row.isReminder} />
+              )}
             </View>
             {meta ? (
-              <Text
-                className={`mt-space-1 font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
-                style={{ fontSize: 13, fontVariant: ["tabular-nums"] }}
-                numberOfLines={1}
-              >
-                {meta}
-              </Text>
+              <View className="mt-space-1 flex-row flex-wrap items-center gap-space-2">
+                <Text
+                  className={`font-core ${isAndroid ? "text-a-on-var" : "text-text-secondary"}`}
+                  style={{ fontSize: 13, fontVariant: ["tabular-nums"] }}
+                  numberOfLines={1}
+                >
+                  {meta}
+                </Text>
+                {(metaMarks ?? []).map((label) => (
+                  <LabelMark key={label.id} color={label.colour}>
+                    {label.name}
+                  </LabelMark>
+                ))}
+              </View>
             ) : null}
             {/* offload is still reading a row somebody typed straight in. The
                 one spinner, not a second progress word: the readme reserves
@@ -488,8 +531,11 @@ export function ContentRowView({
            *  whoever is looking: putting something back is not destructive and
            *  is not the author's alone. */}
           {door ? (
-            <View style={[hidden, { marginTop: (TITLE_LINE - 17) / 2 }]} accessibilityElementsHidden>
-              <Glyph name="arrow-up-right" size={17} color={COLOR.iconOnWell} />
+            <View className="flex-row items-center gap-space-6" style={[hidden, { marginTop: (TITLE_LINE - 17) / 2 }]}>
+              {tagTool ? <TagTool title={row.title} color={COLOR.iconOnWell} onPress={() => threadLabels?.onLabel(row)} /> : null}
+              <View accessibilityElementsHidden>
+                <Glyph name="arrow-up-right" size={17} color={COLOR.iconOnWell} />
+              </View>
             </View>
           ) : (
           <View
@@ -498,10 +544,16 @@ export function ContentRowView({
             pointerEvents={provisional ? "none" : "auto"}
             accessibilityElementsHidden={provisional}
           >
+            {/* 025. **The stated exception to "two controls, never three"**,
+                and the only one: a row carrying no label draws `tag` first,
+                whoever wrote it, because it is the one control that says
+                labels exist. A labelled row draws its marks and the usual
+                two. */}
+            {tagTool ? <TagTool title={row.title} color={COLOR.iconOnWell} onPress={() => threadLabels?.onLabel(row)} /> : null}
             {row.canDelete ? (
               <Pressable
                 onPress={onEdit}
-                hitSlop={8}
+                hitSlop={TOOL_SLOP}
                 accessibilityRole="button"
                 accessibilityLabel={`Edit ${row.title}`}
               >
@@ -512,7 +564,7 @@ export function ContentRowView({
             {row.archivedAt ? (
               <Pressable
                 onPress={onArchive}
-                hitSlop={8}
+                hitSlop={TOOL_SLOP}
                 accessibilityRole="button"
                 accessibilityLabel={`Put ${row.title} back in the thread`}
               >
@@ -521,7 +573,7 @@ export function ContentRowView({
             ) : row.canDelete ? (
               <Pressable
                 onPress={onDelete}
-                hitSlop={8}
+                hitSlop={TOOL_SLOP}
                 accessibilityRole="button"
                 accessibilityLabel={`Delete ${row.title}`}
               >
@@ -530,7 +582,7 @@ export function ContentRowView({
             ) : (
               <Pressable
                 onPress={onArchive}
-                hitSlop={8}
+                hitSlop={TOOL_SLOP}
                 accessibilityRole="button"
                 accessibilityLabel={`Archive ${row.title}`}
               >
@@ -542,5 +594,14 @@ export function ContentRowView({
         </Animated.View>
       </GestureDetector>
     </Animated.View>
+  );
+}
+
+/** 025. The tag tool: the label sheet for a row that carries no label. */
+function TagTool({ title, color, onPress }: { title: string; color: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} hitSlop={TOOL_SLOP} accessibilityRole="button" accessibilityLabel={`Label ${title}`}>
+      <Glyph name="tag" size={17} color={color} />
+    </Pressable>
   );
 }

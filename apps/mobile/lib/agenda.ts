@@ -25,6 +25,8 @@ export interface Agenda {
    *  account that has never dumped anything, and "Nothing due today." for
    *  one that has. */
   everDumped: boolean;
+  /** 025. The labels the rows above carry, and only those. */
+  threadLabels: { id: string; name: string; colour: number }[];
 }
 
 export async function loadAgenda(): Promise<Agenda | null> {

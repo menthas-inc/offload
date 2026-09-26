@@ -38,7 +38,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import { changeToken } from "@offload/widgets";
+import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, type LabelPick } from "@offload/widgets";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   cadenceLabel,
@@ -93,6 +93,23 @@ import { PlateSpace } from "../shell/plate-inset";
 import { failed } from "../../lib/log";
 import { ShareSheet } from "../people/ShareSheet";
 import { ConfirmSheet } from "../people/ConfirmSheet";
+import { FilterBar } from "../labels/FilterBar";
+import { LabelSheet, type LabelChoice } from "../labels/LabelSheet";
+import { LabelList, type ListSave } from "../labels/LabelList";
+import { RowLabelsContext, type RowLabels } from "../labels/labels-context";
+import {
+  createLabel,
+  deleteLabel,
+  labelRows,
+  readPick,
+  refusalLine,
+  restoreLabel,
+  writePick,
+  type Label,
+} from "../../lib/labels";
+
+/** 025. The six rows a thread needs before it offers labels unasked. */
+const GROUP_PROMPT_ROWS = 6;
 
 const isAndroid = Platform.OS === "android";
 
@@ -128,6 +145,20 @@ export default function Thread() {
   const [naming, setNaming] = useState(false);
   const [calendarsVersion, setCalendarsVersion] = useState(0);
   const toast = useToast();
+  // 025. The filter bar's pick, kept per thread on this phone; the label sheet
+  // open on a row; the label's list open for a label, or for a new one.
+  const [pick, setPickState] = useState<LabelPick>(() => (id ? readPick(id) : ALL_LABELS));
+  const [labelling, setLabelling] = useState<ContentRow | null>(null);
+  const [listing, setListing] = useState<{ label: Label | null } | null>(null);
+  const [listLine, setListLine] = useState<string | null>(null);
+  const filterOf = (current: LabelPick): { labels?: string[]; unlabelled?: boolean } => ({
+    ...(current.labels.length > 0 ? { labels: current.labels } : {}),
+    ...(current.none ? { unlabelled: true } : {}),
+  });
+  function setPick(next: LabelPick): void {
+    setPickState(next);
+    if (id) writePick(id, next);
+  }
 
   // 022. Leave: what the swipe on My threads does, from the thread's own
   // More, with the same toast and the same Undo.
@@ -178,7 +209,7 @@ export default function Thread() {
     try {
       const [bundle, page] = await Promise.all([
         fetchThread(id),
-        fetchContent(id, { archived: showArchived }),
+        fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
       ]);
       if (!writes.idle()) return;
       setThread(bundle);
@@ -189,7 +220,7 @@ export default function Thread() {
       failed("thread.load", error, { threadId: id });
     }
     // `writes` is a ref holder and stable, so it is not a dependency.
-  }, [id, showArchived, adopt]);
+  }, [id, showArchived, adopt, pick]);
 
   // Every write here is drawn before it is sent. `writes` counts what is in
   // flight and reloads once nothing is; a reload that lands while something
@@ -230,7 +261,7 @@ export default function Thread() {
     try {
       const [bundle, page] = await Promise.all([
         fetchThread(id),
-        fetchContent(id, { archived: showArchived }),
+        fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
       ]);
       if (!writes.idle()) return;
       const next = page?.rows ?? [];
@@ -245,7 +276,7 @@ export default function Thread() {
     } catch (error) {
       failed("thread.catchUp", error, { threadId: id });
     }
-  }, [id, rows, showArchived, landed.join(","), adopt]);
+  }, [id, rows, showArchived, landed.join(","), adopt, pick]);
 
   // offload filed into the thread somebody is looking at. The composer is on
   // this screen, so this is the ordinary case rather than a race, and without
@@ -532,6 +563,138 @@ export default function Thread() {
     );
   }
 
+  // ------------------------------------------------------------- 025 labels
+
+  // The kept pick, less any label that has since been deleted.
+  useEffect(() => {
+    if (!thread) return;
+    const live = keepLive(pick, thread.labels.map((label) => label.id));
+    if (live.labels.length !== pick.labels.length) setPick(live);
+  }, [thread]);
+
+  const relabelled = (): void => {
+    void catchUp();
+  };
+
+  /** The label sheet's Done: the row's labels as a full set, any typed names
+   *  made first with this row under them, one toast, one Undo. */
+  function labelRow(row: ContentRow, choice: LabelChoice): void {
+    setLabelling(null);
+    if (!thread || isProvisional(row.id)) return;
+    const same = choice.made.length === 0 && choice.ids.length === row.labels.length && choice.ids.every((one) => row.labels.includes(one));
+    if (same) return;
+    const before = row.labels;
+    const made: string[] = [];
+    const names = [
+      ...thread.labels.filter((label) => choice.ids.includes(label.id)).map((label) => label.name),
+      ...choice.made,
+    ];
+    void perform(
+      {
+        apply: () => patchRow(row.id, { labels: choice.ids }),
+        revert: () => patchRow(row.id, { labels: before }),
+        write: async () => {
+          for (const name of choice.made) {
+            const result = await createLabel(thread.id, { name });
+            if (!result.ok) return false;
+            made.push(result.value.label.id);
+          }
+          const edited = await editContent(row.id, { labels: [...choice.ids, ...made] });
+          if (edited) relabelled();
+          return edited !== null;
+        },
+        unwrite: async () => {
+          const edited = await editContent(row.id, { labels: before });
+          for (const labelId of made) await deleteLabel(labelId);
+          if (edited) relabelled();
+          return edited !== null;
+        },
+        did: rowLabelledCopy(row.title, names),
+        failed: "Couldn't save that",
+        unfailed: "Couldn't put it back",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  /** The label's list's Save or Label N: one write, one Undo. A refusal keeps
+   *  the list open with its line under the name. */
+  async function saveList(label: Label | null, save: ListSave): Promise<void> {
+    if (!thread) return;
+    setListLine(null);
+    if (label === null) {
+      const result = await createLabel(thread.id, {
+        name: save.name,
+        ...(save.colour ? { colour: save.colour } : {}),
+        rows: { content: save.add.content, notes: save.add.notes },
+      });
+      if (!result.ok) {
+        setListLine(refusalLine(result.error, save.name));
+        return;
+      }
+      const made = result.value.label;
+      setListing(null);
+      relabelled();
+      toast.show(listLabelledCopy(made.count, made.name), {
+        label: "Undo",
+        onPress: async () => {
+          await deleteLabel(made.id);
+          relabelled();
+        },
+      });
+      return;
+    }
+    const renamed = save.name !== label.name;
+    const result = await labelRows(label.id, {
+      add: save.add,
+      remove: save.remove,
+      ...(renamed ? { name: save.name } : {}),
+      ...(save.colour !== undefined ? { colour: save.colour } : {}),
+    });
+    if (!result.ok) {
+      if (result.error === "label_gone") {
+        setListing(null);
+        toast.show("That label was deleted.");
+        relabelled();
+        return;
+      }
+      setListLine(refusalLine(result.error, save.name));
+      return;
+    }
+    const { changed, previous, label: saved } = result.value;
+    setListing(null);
+    relabelled();
+    toast.show(listLabelledCopy(saved.count, saved.name), {
+      label: "Undo",
+      onPress: async () => {
+        await labelRows(label.id, {
+          add: changed.removed,
+          remove: changed.added,
+          ...(previous ? { name: previous.name, colour: previous.colour } : {}),
+        });
+        relabelled();
+      },
+    });
+  }
+
+  async function removeLabel(label: Label): Promise<void> {
+    const result = await deleteLabel(label.id);
+    setListing(null);
+    if (!result.ok) {
+      toast.show("Couldn't save that", { label: "Try again", onPress: () => void removeLabel(label) });
+      return;
+    }
+    relabelled();
+    toast.show(`${label.name} deleted`, {
+      label: "Undo",
+      onPress: async () => {
+        await restoreLabel(label.id);
+        relabelled();
+      },
+    });
+  }
+
   if (!thread) {
     return (
       <SafeAreaView
@@ -590,11 +753,32 @@ export default function Thread() {
   // **And the rail is earned.** With nothing dated there is no rail at all,
   // which 015's own opening paragraph said and its AC-1 contradicted. Computed
   // once, so the rail and the list agree about what is on it.
-  const dated = showArchived ? [] : datedFor(allRows, allNotes, zone);
+  // 025. The notes are all in the bundle, so they are narrowed here; the rows
+  // came narrowed from the server.
+  const filtering = !isAll(pick);
+  const shownNotes = filtering
+    ? allNotes.filter((note) =>
+        note.labels.length === 0 ? pick.none : note.labels.some((labelId) => pick.labels.includes(labelId)),
+      )
+    : allNotes;
+  const pickedNames = thread.labels.filter((label) => pick.labels.includes(label.id)).map((label) => label.name);
+  const rowLabels: RowLabels = {
+    labels: new Map(thread.labels.map((label) => [label.id, label])),
+    onLabel: (row) => setLabelling(row),
+    onOpenLabel: (labelId) => {
+      const label = thread.labels.find((one) => one.id === labelId);
+      if (label) {
+        setListLine(null);
+        setListing({ label });
+      }
+    },
+  };
+  const dated = showArchived ? [] : datedFor(allRows, shownNotes, zone);
   const onRail = new Set(dated.map((one) => one.rowId));
   // 019. A pick earns the rail on its own: a thread with a calendar and
   // nothing dated shows this week, with the calendar's events on it.
-  const railEarned = dated.length > 0 || thread.calendars?.anyPicked === true;
+  // A calendar's events carry no labels, so under a filter they are not shown.
+  const railEarned = dated.length > 0 || (!filtering && thread.calendars?.anyPicked === true);
 
   // **A repeating thing is one row here, not thirty.** A weekly class filed as
   // thirty occurrences spends thirty rows saying what the row above said. The
@@ -699,7 +883,29 @@ export default function Thread() {
         onShare={thread.shareable ? () => setShareOpen(true) : undefined}
       />
 
+      {/* 025. The filter bar, under the app bar and outside the scroll, so it
+          stays while the page moves under it. Not on the archived view. */}
+      {showArchived ? null : (
+        <FilterBar
+          labels={thread.labels}
+          unlabelled={thread.counts.unlabelled}
+          pick={pick}
+          prompt={thread.counts.active + thread.notes.length >= GROUP_PROMPT_ROWS}
+          onPick={setPick}
+          onNew={() => {
+            setListLine(null);
+            setListing({ label: null });
+          }}
+          onOpen={(labelId) => rowLabels.onOpenLabel(labelId)}
+        />
+      )}
+      <RowLabelsContext.Provider value={rowLabels}>
       <ScrollView contentContainerClassName="pb-space-9">
+        {filtering && !showArchived && rows.length === 0 && shownNotes.length === 0 ? (
+          <Text className="px-gutter-screen py-space-6 font-core text-text-secondary" style={{ fontSize: 15 }}>
+            {pickedNames.length > 0 ? `Nothing under ${nameList(pickedNames)} yet.` : "Nothing without a label yet."}
+          </Text>
+        ) : null}
         {/* What offload holds to be true of the thread, and only when there
             is one. The people chips went on 21 September: who a thread is
             shared with is a question you ask by tapping Share, and the answer
@@ -732,8 +938,8 @@ export default function Thread() {
             threadId={thread.id}
             threadName={thread.name}
             rows={allRows}
-            notes={allNotes}
-            calendars={{ anyPicked: thread.calendars?.anyPicked === true, version: calendarsVersion }}
+            notes={shownNotes}
+            calendars={{ anyPicked: !filtering && thread.calendars?.anyPicked === true, version: calendarsVersion }}
             onDelete={remove}
             onActions={setActing}
             onEdit={setRenaming}
@@ -764,7 +970,7 @@ export default function Thread() {
           <NotesSection
             threadId={thread.id}
             threadName={thread.name}
-            notes={allNotes}
+            notes={shownNotes}
             counts={thread.noteCounts}
             members={thread.members}
             onNotes={patchNotes}
@@ -794,7 +1000,7 @@ export default function Thread() {
           </View>
         ) : null}
 
-        {rest.length === 0 && !showArchived && inWidgets.size === 0 ? (
+        {rest.length === 0 && !showArchived && inWidgets.size === 0 && !filtering ? (
           <Text
             className="px-gutter-screen py-space-8 font-core text-text-tertiary"
             style={{ fontSize: 14 }}
@@ -873,6 +1079,7 @@ export default function Thread() {
         ) : null}
         <PlateSpace />
       </ScrollView>
+      </RowLabelsContext.Provider>
 
       {/* 020. The viewer, over the screen, and the row's tools on the same
           sheet a row opens from its list. The set is every photo row on the
@@ -1017,6 +1224,33 @@ export default function Thread() {
           });
         }}
       />
+      {labelling ? (
+        <LabelSheet
+          key={labelling.id}
+          title={labelling.title}
+          labels={thread.labels}
+          carried={labelling.labels}
+          onDone={(choice) => labelRow(labelling, choice)}
+          onClose={() => setLabelling(null)}
+        />
+      ) : null}
+      {listing ? (
+        <LabelList
+          key={listing.label?.id ?? "new"}
+          threadId={thread.id}
+          label={listing.label}
+          labels={thread.labels}
+          notes={thread.notes}
+          widgets={thread.preference.widgets}
+          freeColour={Array.from({ length: 10 }, (_, i) => i + 1).find((c) => !thread.labels.some((l) => l.colour === c)) ?? 1}
+          line={listLine}
+          onSave={(save) => void saveList(listing.label, save)}
+          onDelete={() => {
+            if (listing.label) void removeLabel(listing.label);
+          }}
+          onClose={() => setListing(null)}
+        />
+      ) : null}
       <ToastHost state={toast} />
     </SafeAreaView>
   );

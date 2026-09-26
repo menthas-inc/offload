@@ -39,14 +39,14 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ### Mobile
 
-- [ ] **T2.14** `LabelMark` (20, 24, 30) and `Chip` with the iOS and Android branches, `min-height`, `label` as colour. Component tests and a dark-theme snapshot. *(AC-9, AC-17, OFF-7)*
-- [ ] **T2.15** `ContentRow`: `labels` prop, the marks line after the date chip, the `tag` tool first on every unlabelled row including door, archived and another member's, every tool at a 44px target. Tests on the rendered tree; then on-device check at 200% text on both phones. *(AC-9, AC-10)*
-- [ ] **T2.16** `LabelSheet`: lists, ticks, New label in place, Done one write with the toast and Undo, Cancel writes nothing, the field above the keyboard. Tests, then a device check with the keyboard up. *(AC-11, AC-32)*
-- [ ] **T2.17** `LabelList`: `FlatList` paged from `ticksFor`, ticks kept across pages, Label N and Save, Rename, Colour with the swap, Delete asking once in place, Undo; edge to edge keyboard handling on Android. Tests, then device check with a 300-row fixture thread. *(AC-12, AC-13, AC-3)*
-- [ ] **T2.18** `FilterBar`: sticky, All, label chips with counts (none at zero), No label, pinned `plus` on an opaque ground, *+ Group with labels* at six or more with no labels, the pick kept per thread on the device, the read narrowed through `/content`, notes filtered client-side, calendar events hidden under any filter, the empty line, reduced motion. Tests. *(AC-15 to AC-21)*
-- [ ] **T2.19** Composer `#` list: end-of-draft token, three rows, unmatched New label row, suppressed as `@` is, sends `labels`. Tests. *(AC-14)*
-- [ ] **T2.20** Today rows draw their labels from `threadLabels`; the timeline's anchor dot rule; the rail narrows. Tests. *(AC-22, AC-23)*
-- [ ] **T2.21** `tag` through `scripts/icons.mjs`; run `dead-icons.mjs`, `dead-classes.mjs`, `dead-css.mjs`. *(AC-10)*
+- [x] **T2.14** `LabelMark` (20, 24, 30) and `Chip` with the iOS and Android branches, `min-height`, `label` as colour. Component tests and a dark-theme snapshot. *(AC-9, AC-17, OFF-7)*
+- [x] **T2.15** `ContentRow`: `labels` prop, the marks line after the date chip, the `tag` tool first on every unlabelled row including door, archived and another member's, every tool at a 44px target. Tests on the rendered tree; then on-device check at 200% text on both phones. *(AC-9, AC-10)*
+- [x] **T2.16** `LabelSheet`: lists, ticks, New label in place, Done one write with the toast and Undo, Cancel writes nothing, the field above the keyboard. Tests, then a device check with the keyboard up. *(AC-11, AC-32)*
+- [x] **T2.17** `LabelList`: `FlatList` paged from `ticksFor`, ticks kept across pages, Label N and Save, Rename, Colour with the swap, Delete asking once in place, Undo; edge to edge keyboard handling on Android. Tests, then device check with a 300-row fixture thread. *(AC-12, AC-13, AC-3)*
+- [x] **T2.18** `FilterBar`: sticky, All, label chips with counts (none at zero), No label, pinned `plus` on an opaque ground, *+ Group with labels* at six or more with no labels, the pick kept per thread on the device, the read narrowed through `/content`, notes filtered client-side, calendar events hidden under any filter, the empty line, reduced motion. Tests. *(AC-15 to AC-21)*
+- [x] **T2.19** Composer `#` list: end-of-draft token, three rows, unmatched New label row, suppressed as `@` is, sends `labels`. Tests. *(AC-14)*
+- [x] **T2.20** Today rows draw their labels from `threadLabels`; the timeline's anchor dot rule; the rail narrows. Tests. *(AC-22, AC-23)*
+- [x] **T2.21** `tag` through `scripts/icons.mjs`; run `dead-icons.mjs`, `dead-classes.mjs`, `dead-css.mjs`. *(AC-10)*
 
 ### Web
 
