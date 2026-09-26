@@ -43,7 +43,7 @@ So the app draws a **holding screen** the instant the native splash hands over:
   offload is not looking through your stuff yet, it is finding out who you are
 
 **The one trap.** The spinner must not be in the centring flow. Put it in a centred column and its
-box re-centres everything above it, moving the mark by **half the spinner's height plus its gap**,
+box re-centres everything above it, moving the mark by **half the spinner's height plus its gap** —
 37px in these frames, and a blink on every cold start. Centre the mark on the screen and place the
 spinner from the screen's centre, not from a container.
 
@@ -61,7 +61,7 @@ answers. A spinner that spins forever is the state this design does not have.
 right, and at the scrim's value a white screenshot on a warm page read as a page behind a page.
 
 **Dark is opaque because a translucent plane there has nowhere to go.** `--surface-page` at 92% over
-`--surface-page` measures **1.00:1**, no plane at all, just 8% of the thread ghosting through, which
+`--surface-page` measures **1.00:1** — no plane at all, just 8% of the thread ghosting through, which
 reads as a bug. Even the darkest value reaches 1.11:1. What says a viewer is open in dark is that the
 screen behind it is gone. Light stays at 90%, composites to about #232323, and reads as depth.
 
@@ -71,7 +71,7 @@ caption, the controls **and the status bar**.
 
 ## 4. The photo viewer
 
-**The plane runs full bleed**, a photo should run under the status bar, **and the status bar rides
+**The plane runs full bleed** — a photo should run under the status bar — **and the status bar rides
 above it**, in white, the way a phone's does when a dark full-screen view opens. Raising it alone is
 not enough: `--text-primary` on the light plane's composite measures 1.25:1.
 
@@ -106,7 +106,7 @@ to press.
 ## 6. The phones' thread head
 
 One line: back, the name, Share, the calendar when the account has a connection, More. **Three tools
-by the criterion**, a tool earns a bar slot only if it changes what offload reads or shows.
+by the criterion** — a tool earns a bar slot only if it changes what offload reads or shows.
 
 **The people chips go entirely.** Who a thread is shared with is a question you ask by tapping share,
 and the answer belongs beside the actions that change it. **What stays above the scroll is the
@@ -139,7 +139,7 @@ promises a screen inside the app. Its own tools stay in the action sheet.
 Two additions, and only two:
 
 1. **The dot takes the calendar's own colour**, replacing `EventLine`'s three product tones, and
-   gains a hairline ring, Google fixes those colours and they do not flip, so a dark calendar colour
+   gains a hairline ring — Google fixes those colours and they do not flip, so a dark calendar colour
    on a dark page needs it.
 2. **The calendar's name** as a caption under the title. Another member's calendar carries the title
    and time only and is named by **that member's display name**, never the address Google gives it.
@@ -169,7 +169,7 @@ does **not** redefine `--text-primary`, `--text-tertiary`, `--border-strong` or 
 component using those renders identically on both platforms.
 
 Two invented overrides were caught by this: a subject line on `--a-on-quiet` at **3.47:1**, and a
-checkbox edge on `--a-outline`, the divider token, at **1.29:1** where `--border-strong` gives 3.2.
+checkbox edge on `--a-outline` — the divider token — at **1.29:1** where `--border-strong` gives 3.2.
 
 ---
 

@@ -74,8 +74,8 @@ the dot goes there and on **My people** inside Settings.
 <IconButton icon="settings" label="Settings" badge={pendingRequests > 0} onClick={onOpenSettings} />
 ```
 
-**That is `IconButton`'s own badge**, 8px `--clay-600` inside a 1.5px `--paper` border at
-`top:5 right:5`, which the bell beside it already passes as `badge={unread}`. The My people row's
+**That is `IconButton`'s own badge** — 8px `--clay-600` inside a 1.5px `--paper` border at
+`top:5 right:5` — which the bell beside it already passes as `badge={unread}`. The My people row's
 lead takes the same 8px clay dot. **One signal in two colours on one screen would read as two
 signals.** Clay is the component's choice, not a new decision: it is the danger hue elsewhere and
 here it means unanswered.
@@ -90,7 +90,7 @@ here it means unanswered.
 **Tapping a person anywhere opens `PersonScreen`**: their avatar in a row's meta, in the share sheet,
 on a pending card, in a mention. The kit routes there from My people only.
 
-That rule is what makes the Settings location right rather than merely tidy, you almost never go to
+That rule is what makes the Settings location right rather than merely tidy — you almost never go to
 the list, because you go to the person. **An avatar is never decoration.**
 
 ## 6. `Avatar`, and the two numbers not to relax
@@ -103,7 +103,7 @@ L     = 0.42 … 0.52   C = 0.13     // constants, not seeded
 ```
 
 **The lightness ceiling is measured, not chosen.** At `L 0.56` the lightest hue in the wheel put
-white initials at **4.16:1**, one person in twelve with a monogram that fails and no way to fix it
+white initials at **4.16:1** — one person in twelve with a monogram that fails and no way to fix it
 after the fact. At 0.52 the worst case is **4.88:1**.
 
 **Hue off a 12-step wheel, never a continuous hash.** At 36px a 15° difference is no difference,
@@ -112,12 +112,12 @@ which is the failure mode of every hash-to-hue avatar.
 **The facet is part of the identity.** Twelve hues alone is not enough: **twelve accounts land on
 eight distinct hues**, so a third of a list of twelve shares a colour. The hard edge is the only
 structure that survives 36px, and it takes that list from **8 distinct avatars to 12**. 12 × 8
-buckets before two people collide, and the collision is not graceful, they are identical, not
+buckets before two people collide, and the collision is not graceful — they are identical, not
 similar.
 
 **Sizes: 28, 32, 36, 52, 56**, which is every size the product draws: a pending card, `PersonRow`,
 the share sheet, a person's page, a request. **Three of the five are at or under 36, so the mark is
-scanned and never studied.** **Below 28 do not draw it**, the edge is marginal at 24 and the
+scanned and never studied.** **Below 28 do not draw it** — the edge is marginal at 24 and the
 initials alone are more honest.
 
 **Server side:** generate one 176px PNG at signup, store it with the account, **never regenerate**.
@@ -148,7 +148,7 @@ Leave a thread from its own More menu if you want out of it.
   somebody else's account.
 
 **Rejected:** removing and leaving every shared thread, which destroys things you never chose to give
-up, a three-person thread lost because of one of them, one tap from a face you tapped by accident,
+up — a three-person thread lost because of one of them, one tap from a face you tapped by accident,
 and not undoable by re-connecting. And blocking removal until you leave them yourself, which is the
 only place in offload that would refuse an action outright rather than doing it and offering Undo.
 

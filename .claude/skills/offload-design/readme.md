@@ -11,7 +11,7 @@ No design sources were provided for this system. There was **no codebase, no Fig
 That has three consequences worth knowing before you trust this system:
 
 1. **The mark was designed here, with the brand owner, in August 2026.** It is a dot above an open vessel, a thought let go of downwards, into something that catches it. The vessel never gains a lid, the dot never touches it, and the whole thing is one colour: ink on light, paper on ink, no greys and no accent, **except the app icon, which is ink on white**: a white tile, `#FFFFFF` rather than paper's `#FAF9F7`, since a home screen is not a page, with the mark in ink, and the ink mark alone over white as Android's adaptive foreground. Rendered at 1024 from the SVG with `sharp`, never hand drawn. **The web favicon keeps the ink tile**, being the one version that reads on both a light and a dark browser chrome. Clear space equals the dot's diameter; 16px is the floor. Ships as `assets/mark.svg`, `assets/mark-inverse.svg`, `assets/app-icon.svg` and the `Logo` component. The wordmark beside it is live text (Instrument Sans 600, `-0.03em`, always lowercase), not an outlined file, so it depends on the substituted typeface below. `explorations/logo-exploration.html` is the full record of how it was chosen.
-2. **The typefaces were chosen here and confirmed.** No licensed binaries were supplied, so Instrument Sans and Literata are served from the Google CDN, and on 25 August the brand owner confirmed they are the real faces of this system rather than placeholders. `tokens/fonts.css` becomes self-hosted `@font-face` rules whenever hosting matters.
+2. **The typefaces were chosen here and confirmed.** No licensed binaries were supplied, so Instrument Sans and Literata were first served from the Google CDN and are now self-hosted from `assets/fonts/`, and on 25 August the brand owner confirmed they are the real faces of this system rather than placeholders. `tokens/fonts.css` becomes self-hosted `@font-face` rules whenever hosting matters.
 3. **The mobile app UI kit is a proposal.** `ui_kits/mobile_app/` is a first-principles design, not a recreation of shipped UI. React to it; it is meant to change.
 
 If a Figma file, repo or design doc does exist, attach it and this system should be re-derived from it, the attached source always wins over what is written here.
@@ -59,6 +59,7 @@ offload's voice is a calm assistant that has already done the work and does not 
 | note / notes | memory, profile, knowledge base, facts |
 | learns, learned | works out, worked out, figures out, infers |
 | sorted | classified, auto-tagged, processed |
+| label (a group inside a thread) | tag, category, folder |
 | Undo | Revert, Discard changes |
 | Leave (a thread other people are in) | Delete, Remove, Exit |
 | Delete (a thread only you are in) | Leave |
@@ -94,7 +95,7 @@ Use the semantic aliases, not the ramps: `--text-accent` / `--surface-accent-sof
 - **Literata** (`--font-quiet`), confirmed 11 August. offload's own voice, upright: the answer in Ask, empty states, occasional asides. Never a UI label, never more than two sentences. Deliberately not italic, italic is slower to read and gets tiring in a chat.
 - **Numerals** use Instrument Sans with `font-variant-numeric: tabular-nums`, set on `body`. Timestamps and counts hold their column without a monospace face. One trap worth knowing: the CSS `font:` shorthand resets `font-variant-numeric`, so any rule that sets `font: var(--text-numeric-role)` (or any other composite role) must restate `font-variant-numeric: tabular-nums` after it, or carry `data-numeric`.
 
-Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, label 13, caption 12. Title-2 carries section headers. Mobile minimum is 12px; body is 16px. Both faces are served from the Google CDN and confirmed, not placeholders.
+Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, label 13, caption 12. Title-2 carries section headers. Mobile minimum is 12px; body is 16px. Both faces are served as static instances from `assets/fonts/`, the same five files the web app ships (22 September 2026): Instrument Sans at 400, 500 and 600, with 700 resolving to 600, and Literata at 400 and 500 without its optical size axis, so the serif's display sizes come from the text master until the variable file is in.
 
 **Spacing and layout.** A 2/4/6/8/12/16/20/24/32/40/56/72 scale, it has a 2px and 6px step because 44px tap targets and 30px chips do not sit on a strict 8px grid. Every screen has a 20px gutter (`--gutter-screen`); the top bar is 52px, the bottom nav 64px, list rows 56px (72px with a meta line), and nothing tappable is under 44px. That rule is about the touch target, not the drawn one: `Button` and `IconButton` can paint a 32px control while still accepting a 44px hit, via their `hitArea` prop and a compensating negative margin. Small chrome may look small; it may never be hard to hit. Fixed elements: the AppBar sits at the top, the composer and TabBar at the bottom; content scrolls between them. On wide screens content is capped at `--content-max` 520px rather than stretched. Breakpoints are tokens: `--breakpoint-sm` 600, `--breakpoint-md` 900, `--breakpoint-lg` 1180, `--breakpoint-xl` 1440. 1180 is the one that matters, it is where the web shell's second pane becomes possible.
 
@@ -130,13 +131,13 @@ Roles: display 34, title-1 26, title-2 21, title-3 17, body 16, body-sm 14, labe
 
 ## Iconography
 
-**Lucide, and only Lucide.** Outline, 2px stroke, 24px grid, no fills, no duotone, no colour. 80 glyphs are vendored in `assets/icons/` as SVG so this system works offline; `Icon` reads from the jsDelivr copy of `lucide-static` by default and accepts `basePath="./assets/icons/"` to use the local set.
+**Lucide, and only Lucide.** Outline, 2px stroke, 24px grid, no fills, no duotone, no colour. 85 glyphs are vendored in `assets/icons/` as SVG so this system works offline; `Icon` reads from the jsDelivr copy of `lucide-static` by default and accepts `basePath="./assets/icons/"` to use the local set.
 
 Icons are rendered as a **`currentColor` mask**, so a glyph always inherits the colour of the text it sits beside, that is why there is no coloured-icon rule to remember. Sizes: 14 (inside chips), 16 (metadata, small buttons), 18 (list rows, fields), 20 (bars, buttons), 22 (tab bar), 28 (empty states, in `--ink-300`).
 
 Tab glyphs: `sun` / `moon` (Today and Tonight, on real sunset), `lasso` (My threads, a loop drawn round related things), `cloudy` (Notes). Then `sparkles` (anything offload did for you), `map-pin` `link` `image` `mic` `camera` `paperclip` `scan-text` (kinds of dumped thing), `square-check-big` / `check` / `check-check` (tasks and done states), `users` (shared threads and people), `arrow-up` (send), `plus` (new), `ellipsis` (more), `chevron-*` and `maximize-2` (navigation), `bell` `settings` `search` `clock` `calendar` `bookmark` `archive` `trash-2` `pencil` `share-2` `funnel` `lock` `house` `message-circle` `circle` `list`.
 
-All 84 vendored glyphs: `album` `archive` `arrow-up` `arrow-up-right` `bell` `blend` `bookmark` `brain` `calendar` `camera` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `coffee` `compass` `ellipsis` `eye` `folder` `funnel` `gallery-vertical-end` `git-branch` `grip-vertical` `group` `house` `image` `inbox` `lasso` `layers` `library-big` `link` `list` `lock` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `moon` `moon-star` `newspaper` `orbit` `paperclip` `pause` `pencil` `play` `plus` `radio` `rewind` `rss` `scan-text` `search` `settings` `share-2` `snowflake` `sparkles` `spline` `square-check-big` `sun` `sunrise` `text-quote` `thermometer-sun` `trash-2` `umbrella` `users` `waypoints` `wind` `x`.
+All 85 vendored glyphs: `album` `archive` `arrow-up` `arrow-up-right` `bell` `blend` `bookmark` `brain` `calendar` `camera` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `circle` `circle-dashed` `circle-dot` `clock` `clock-fading` `cloud` `cloud-cog` `cloud-download` `cloud-drizzle` `cloud-lightning` `cloud-moon` `cloud-off` `cloud-rain` `cloud-sun` `cloudy` `coffee` `compass` `ellipsis` `eye` `folder` `funnel` `gallery-vertical-end` `git-branch` `grip-vertical` `group` `house` `image` `inbox` `lasso` `layers` `library-big` `link` `list` `lock` `map-pin` `maximize-2` `message-circle` `message-circle-more` `mic` `moon` `moon-star` `newspaper` `orbit` `paperclip` `pause` `pencil` `play` `plus` `radio` `rewind` `rss` `scan-text` `search` `settings` `share-2` `snowflake` `sparkles` `spline` `square-check-big` `sun` `sunrise` `tag` `text-quote` `thermometer-sun` `trash-2` `umbrella` `users` `waypoints` `wind` `x`.
 
 No icon font. No PNG icons. No emoji. No hand-drawn or bespoke SVG illustration, if a screen needs a picture, it uses a real image the user provided, or nothing.
 
@@ -156,9 +157,9 @@ Root manifest:
 | `thumbnail.html` | Homepage tile for this system. |
 | `tokens/` | `fonts` · `colors` · `typography` · `spacing` · `radius` · `elevation` · `motion` · `base`. |
 | `guidelines/` | 18 specimen cards: colours, type, numerals, spacing, radii, elevation, motion, mark, icon set. |
-| `assets/` | `mark.svg`, `mark-inverse.svg`, `app-icon.svg`, and `icons/`, 84 Lucide SVGs. |
+| `assets/` | `mark.svg`, `mark-inverse.svg`, `app-icon.svg`, and `icons/`, 85 Lucide SVGs, and `fonts/`, the five static faces. |
 | `explorations/` | 43 exploration logs, plus `frames.css`, the shared shell the newer ones link: the mark, the accents, the type, section headers, the calendar, the conversation overlay, dark theme, notifications and the notification templates, settings layouts, swipe-to-delete, the iOS/Android comparison, the web shell, one motion page per platform, and the four that settled the edges: sign in with first run and the landing page, the no-invite screen with the email options and refusals, sharing and invitations, and the day-one empty states. Kept as the record of what was considered and rejected, and of what was picked. |
-| `components/` | 28 primitives in eight groups (below). |
+| `components/` | 29 primitives in eight groups (below). |
 | `ui_kits/mobile_app/` | Interactive click-through of the iOS app; see its `README.md`. |
 | `ui_kits/android_app/` | The same product on Material 3, sharing the iOS kit's data and flows; its `README.md` lists every difference. |
 | `ui_kits/web_app/` | The same product on a desktop browser: sidebar, a stack of panes, one composer. Reads the phones' `data.js`; see its `README.md`. |
@@ -168,7 +169,7 @@ Root manifest:
 Components, each with `.jsx`, `.d.ts` props contract, `.prompt.md` usage note, and one `@dsCard` per group:
 
 - **brand/**, `Logo`
-- **core/**, `Icon`, `Button`, `IconButton`, `Chip`, `Badge`, `Card`
+- **core/**, `Icon`, `Button`, `IconButton`, `Chip`, `LabelMark`, `Badge`, `Card`, `Avatar`
 - **forms/**, `TextField`, `Switch`, `Checkbox`, `SegmentedControl`
 - **layout/**, `AppBar`, `TabBar`, `ListRow`, `SwipeRow`, `RowActionSheet`, `MemoryRow`, `SectionHeader`, `Sheet`, `PrismField`
 - **feedback/**, `Toast`, `EmptyState`, `Spinner`
@@ -176,9 +177,9 @@ Components, each with `.jsx`, `.d.ts` props contract, `.prompt.md` usage note, a
 - **answering/**, `AnswerResult`, `QuickReplies`
 - **conversation/**, `TurnFooter`, `SentVoice`
 
-**`Icon` is a DOM contract, and React Native needs its own.** It masks an SVG with `currentColor` and takes a `basePath`, which is a URL, and React Native has neither. A component named `Icon` there would be claiming a contract it cannot implement, so the name on that platform is **`Glyph`**, taking the same 80 slugs and the same sizes and resolving them from generated paths rather than from files. The contract itself is not written yet: it is owed by this system, not by a client, and until it exists a phone client should keep `Glyph` narrow and not widen the difference.
+**`Icon` is a DOM contract, and React Native needs its own.** It masks an SVG with `currentColor` and takes a `basePath`, which is a URL, and React Native has neither. A component named `Icon` there would be claiming a contract it cannot implement, so the name on that platform is **`Glyph`**, taking the same 85 slugs and the same sizes and resolving them from generated paths rather than from files. The contract itself is not written yet: it is owed by this system, not by a client, and until it exists a phone client should keep `Glyph` narrow and not widen the difference.
 
-That is 28 components across eight groups.
+That is 29 components across eight groups.
 
 Import them from the compiled bundle: `const { Button, ListRow } = window.OffloadDesignSystem_dc4a89`.
 
@@ -827,6 +828,8 @@ count.
 on it: a row carries two controls, never three. **An undated row shows nothing and asks nothing**,
 because principle 04 made offload not ask for dates nobody gave.
 
+**The chip has a line of its own under the title**, above the meta, on every surface (26 September): beside a long title it had a third of a phone row. The line is the row's **marks line**, and a row's labels follow the chip on it. **A late chip says how late, not which day**, and drops the hour: "Due yesterday", "Due 4 days ago", "Due a week ago", "Due a month ago"; an event without the prefix, "3 days ago". Today, tomorrow, the coming fortnight and the far future name the day as before. The hour row is labelled **Time** on a task and **Starts** on an event.
+
 **The chip is coloured by nearness.** `--clay-100` on `--text-danger` for late, `--amber-100` on
 `--amber-700` for today plus three days, the plain fill after that. Amber rather than blue, since
 blue is the attention colour and would read as offload asking for something. A done row loses the
@@ -835,7 +838,8 @@ it is read-only.
 
 **The account has a default zone and a last-seen one.** When they differ, a strip on Today states
 the fact before offering the change, *Showing times in Lisbon. This phone says Tokyo.*, with both
-answers inside the card as tinted text buttons. Once per zone, not once per day.
+answers inside the card as tinted text buttons. Once per zone, not once per day. The web says
+*This browser says*.
 
 **A date is not announced; a reminder is.** `is_reminder` gates both digests, so most dated rows
 are silent and **an empty digest is the normal morning**. A person can set a date but cannot ask to
@@ -844,20 +848,75 @@ be reminded of it: the flag is the model's alone.
 **Two sends a day, and no per-item pushes.** Today at 8:00, tomorrow at 19:00, in the account's
 zone, skipped when empty. One thing is named, two to four listed, five or more counted after the
 first two. Titles are verb-free and subject-free: **Due today**, never "You have 3 tasks due".
-Another member's row is named with its author, as *Ana's ferry times*.
+Another member's row is named with its author, as *Ana's ferry times*. A share reads *Ana added two to Lisbon trip*, and a request ends *Answer in My people.*
 
 **A digest carries no actions**, because Done is about one thing and a digest is about five; a
 digest holding exactly one thing gets **Done** and **Tomorrow**. Tomorrow writes a date, so there is
 no notification-level snooze anywhere in the product.
 
-**The bell opens Activity**, a record of what offload sent **and of what it decided quietly and
-never said**: an expired invite, a calendar write waiting on them, a closed question, a declined
-request, and anything a switch or a permission suppressed. Sent and unsent are the same row with a
-different lead. A decline is recorded and still never interrupts. Thirty days, then it purges. **A
+**The bell opens Activity**, a pushed screen without the plate, newest first under Today, Yesterday and Earlier. It is a record of what offload sent **and of what it decided quietly and
+never said**: an expired invite, a calendar write waiting on them, a closed question, labels offload applied,
+and anything a switch or a permission suppressed. Sent and unsent are the same row with a
+different lead: a 28px disc filled for what reached the phone, hollow on `--border-lift` for what
+did not, and a *Not sent* mark that is a door to the setting when a setting caused it. **A decline
+writes nothing**, by 022's rule that it interrupts nothing. Thirty days, then it purges. **A
 dot, never a count**, and no Due sheet: forward-looking "what is due" is the Timeline's job.
+
+**Notifications is its own page** in Reaching you, replacing Communication: Due today, its hour,
+Tomorrow, its hour, Connection requests, Added to a shared thread, and System settings. When the
+system was never asked, the page offers the one permission ask; after a refusal it opens System
+settings instead. **Today** is three groups over the thread page's own row, with the thread's name
+as a meta line and the row's own controls acting in place. **A sheet's action row wraps** at an
+accessibility text size rather than clipping.
 
 **The model may overwrite a date a person set**, where the dump states a new one. Nothing is
 sticky, so the change takes the existing change mark and writes an Activity row.
+
+## Labels
+
+Decided 26 September 2026 off `explorations/labels.html`. A thread can hold more than one
+subject, and a long trip keeps Lisbon, Paris and Istanbul in one flat list. **A label is a named,
+coloured group inside one thread.** Several per thing, shared with every member of the thread, ten
+per thread at most, names up to 24 characters.
+
+**Two shapes, one family.** A **mark** says something about a row and sits inside it: the date
+chip, a label, Activity's *Not sent*, all at `--radius-xs` and 20 or 24 tall. A **chip** is
+something you press: `Chip`'s 30px pill. So a label is `LabelMark` on the row and `Chip label`
+in the filter bar, the way a date is a chip on the row and a preset in the When sheet. The thread
+pill stays a chip, because a thread is a place, and the type glyph stays the type.
+
+**The colour is the label's solid with white words**, `--label-1` to `--label-10`, the same in
+both themes. A new label takes the lowest number its thread is not using, so the first three are
+cerulean, rose and leaf. The hues keep clear of moss, blue, amber and clay, and **a label is never
+moss**, whoever applied it.
+
+**Applying.** Every row draws its labels on the marks line under the title. **A row with none
+draws a `tag` tool beside edit**, a stated exception to "two controls, never three", because it is
+the one control that says labels exist. Either opens the label sheet: the thread's labels with
+counts, ticks for this row, New label. **Many at once starts from the label**: the filter bar ends
+in a `plus` chip pinned to its edge, and naming a label opens every thing in the thread with a tick
+each; holding a label chip, or tapping a mark, opens the same list for that label with Rename,
+Colour and Delete. Done is one write and one Undo. **#** in the composer lists the thread's labels
+as **@** lists people, and saying it to offload works too; the turn footer shows the label mark
+after the thread pill.
+
+**Filtering.** A chip bar under the app bar: All, each label with its count, No label, and the
+`plus`. **Either logic**: two picked shows anything carrying one or both. A picked chip fills with
+its label's colour. Sections keep their headings with narrowed counts and fold when empty. Kept per
+thread on the device. **A thread with no labels and six or more things** draws the bar as one
+chip, *+ Group with labels*; under six there is no bar.
+
+**Outside the thread a label always travels with its thread's name.** Today: the meta line, then
+the mark. The map: the solid as the pin, split between two colours when a place has two, ink with
+none. The calendar: **every event is the same neutral block, and a labelled one leads with its
+dot**, because a week in one city would otherwise turn the whole view one colour; a Google event
+has no dot. The rail: up to three dots under a day.
+
+**What offload does.** It creates and applies labels in the nightly compaction job, when it judges
+a thread holds more than one subject, and while filing a dump live. **Nothing in the thread
+announces it**; Activity records it, with Undo. **A person's change is final**: a label the person
+set, removed, renamed or recoloured is never touched by offload again. Deleting a label takes it
+off every row and deletes nothing else.
 
 ## The admin panel
 

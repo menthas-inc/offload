@@ -1,4 +1,4 @@
-<!-- @dsCard group="Components" viewport="920x660" name="Core" subtitle="Button, IconButton, Chip, Badge, Card, Icon, Avatar" -->
+<!-- @dsCard group="Components" viewport="920x660" name="Core" subtitle="Button, IconButton, Chip, LabelMark, Badge, Card, Icon, Avatar" -->
 <!doctype html><html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css?v=1786472643305"><style>body{margin:0;padding:0;font:var(--text-body-role);background:var(--surface-page)}#root{display:flex;flex-direction:column;gap:18px}.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.lbl{font:var(--text-caption-role);color:var(--text-tertiary);letter-spacing:var(--tracking-caps);text-transform:uppercase}</style>
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -7,13 +7,15 @@
 <button type="button" data-set="dark" aria-pressed="false" style="border:none;cursor:pointer;height:24px;padding:0 12px;font:var(--weight-medium) 11px/1 var(--font-core);background:transparent;color:var(--text-secondary)">Dark</button>
 </div><div id="root"></div><script src="../../_ds_bundle.js?v=20260921-avatar"></script>
 <script type="text/babel">
-const {Button,IconButton,Chip,Badge,Card,Icon,Avatar}=window.OffloadDesignSystem_dc4a89;
-function Demo(){const [sel,setSel]=React.useState("All");return <>
+const {Button,IconButton,Chip,LabelMark,Badge,Card,Icon,Avatar}=window.OffloadDesignSystem_dc4a89;
+function Demo(){const [sel,setSel]=React.useState("All");const [lab,setLab]=React.useState([1,2]);const tg=n=>setLab(l=>l.includes(n)?l.filter(x=>x!==n):[...l,n]);return <>
 <div className="row"><Button variant="primary">Save</Button><Button variant="secondary" icon="users">Share</Button><Button variant="quiet">Later</Button><Button variant="ghost" iconAfter="chevron-right">See all</Button><Button variant="primary" disabled>Disabled</Button></div>
 <div className="row"><Button size="sm">Small</Button><Button size="md">Medium</Button><Button size="lg" shape="pill" icon="plus">Capture</Button></div>
 <div className="row"><IconButton icon="ellipsis" label="More"/><IconButton icon="mic" label="Record" variant="quiet"/><IconButton icon="arrow-up" label="Send" variant="primary"/><IconButton icon="bookmark" label="Save" variant="secondary" shape="rounded"/>
 <span style={{color:"var(--text-secondary)",display:"flex",gap:12,marginLeft:8}}><Icon name="search"/><Icon name="calendar"/><Icon name="map-pin"/><Icon name="sparkles"/></span></div>
 <div className="row">{["All","Threads","Done"].map(o=><Chip key={o} selected={sel===o} onClick={()=>setSel(o)}>{o}</Chip>)}<Chip icon="sparkles" tone="accent">Lisbon trip</Chip><Chip icon="sparkles" tone="accent" selected onClick={()=>{}}>Food 3</Chip><Chip tone="attention">Ana is waiting</Chip><Chip tone="outline" onRemove={()=>{}}>bookshelf</Chip><Chip icon="plus" tone="outline" disabled>Add</Chip></div>
+<div className="row"><span className="lbl" style={{width:44}}>labels</span><Chip selected={lab.length===0} onClick={()=>setLab([])}>All</Chip>{[[1,"Lisbon",3],[2,"Paris",3],[3,"Istanbul",2]].map(([n,t,k])=><Chip key={n} label={n} selected={lab.includes(n)} onClick={()=>tg(n)}>{t} {k}</Chip>)}<Chip tone="outline">No label 2</Chip><Chip tone="outline" icon="plus"></Chip><Chip tone="outline" icon="plus">Group with labels</Chip></div>
+<div className="row"><span className="lbl" style={{width:44}}>marks</span>{["Cerulean","Rose","Leaf","Grape","Copper","Teal","Fuchsia","Olive","Iris","Jade"].map((t,i)=><LabelMark key={t} color={i+1}>{t}</LabelMark>)}<LabelMark color={3} size={24}>Istanbul</LabelMark></div>
 <div className="row"><span className="lbl" style={{width:44}}>soft</span><Badge>4</Badge><Badge tone="accent">sorted</Badge><Badge tone="attention">waiting</Badge><Badge tone="warning">needs a date</Badge><Badge tone="danger">couldn&rsquo;t save</Badge>
 <span className="lbl" style={{width:44,marginLeft:16}}>solid</span><Badge variant="solid">4</Badge><Badge tone="accent" variant="solid">sorted</Badge><Badge tone="attention" variant="solid">waiting</Badge><Badge tone="warning" variant="solid">needs a date</Badge><Badge tone="danger" variant="solid">couldn&rsquo;t save</Badge></div>
 <div className="row" style={{alignItems:"stretch"}}>

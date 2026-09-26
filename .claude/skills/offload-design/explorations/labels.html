@@ -1,0 +1,383 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Labels</title>
+<link rel="stylesheet" href="../styles.css?v=20260926-lab">
+<link rel="stylesheet" href="frames.css?v=20260926-lab">
+<style>
+:root{--i-tag:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1" fill="black"/></svg>')}
+/* The ten label colours: one solid each, carrying white text and glyphs, the same in both themes. */
+.L-cer{--l:#0C7BB0;--ls:#E3F3FE;--li:#006C9D}.L-rose{--l:#C6467B;--ls:#FEEAF0;--li:#B3346B}.L-leaf{--l:#5D7F00;--ls:#EAF5DC;--li:#516F03}.L-grape{--l:#8D5CC5;--ls:#F3ECFE;--li:#7E4DB5}.L-cop{--l:#B25D25;--ls:#FFECE2;--li:#A24E10}.L-teal{--l:#088285;--ls:#D6F8F9;--li:#057274}.L-fuch{--l:#AD4EAC;--ls:#FEE8FC;--li:#9D3F9C}.L-olive{--l:#7D7616;--ls:#F3F2D7;--li:#706901}.L-iris{--l:#6F67CB;--ls:#EEEFFE;--li:#6158BB}.L-jade{--l:#06855A;--ls:#DCF8E9;--li:#02744E}
+[data-theme="dark"] .L-cer,.dk .L-cer{--ls:#123144;--li:#61A7D3}.dk .L-rose{--ls:#42232E;--li:#E47BA1}.dk .L-leaf{--ls:#273215;--li:#8DAB5B}.dk .L-grape{--ls:#332742;--li:#B08BE1}.dk .L-cop{--ls:#422616;--li:#D38B62}.dk .L-teal{--ls:#023537;--li:#5CAEB0}.dk .L-fuch{--ls:#3B243A;--li:#CF81CC}.dk .L-olive{--ls:#322F0E;--li:#A6A25F}.dk .L-iris{--ls:#2B2A46;--li:#9693E6}.dk .L-jade{--ls:#123626;--li:#63B18C}
+.ph{width:390px;height:800px;flex:0 0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);display:flex;flex-direction:column;position:relative;color:var(--text-primary)}
+.ph.and{width:412px}
+.ph>.sb{padding:12px 26px 4px;background:var(--surface-chrome);font:var(--weight-semibold) var(--size-label)/1 var(--font-core);font-variant-numeric:tabular-nums}
+.ph.and>.sb{padding:10px 20px 6px;font-weight:500}
+.ph:after{content:"";position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:var(--ink-300);z-index:9}
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:var(--space-4);min-height:var(--appbar-height);box-sizing:border-box;padding:0 var(--gutter-screen);background:var(--surface-chrome-strong)}
+.bar h4{flex:1;min-width:0;margin:0;font:var(--text-title-3);letter-spacing:var(--tracking-title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar h4 small{display:block;font:var(--weight-regular) 12.5px/1.3 var(--font-core);color:var(--text-secondary);letter-spacing:0}
+.and .bar{min-height:64px}.and .bar h4{font:var(--weight-regular) 22px/1.2 var(--font-core)}
+.bar .tools{display:flex;align-items:center;margin-right:-10px}.bar .lead{display:flex;margin-left:-12px}
+.bc{width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);position:relative}
+.bc .g{width:21px;height:21px}
+.bc.on:after{content:"";position:absolute;top:10px;right:10px;width:7px;height:7px;border-radius:9px;background:var(--text-primary);box-shadow:0 0 0 2px var(--surface-chrome-strong)}
+.body{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.sh{padding:var(--space-7) var(--gutter-screen) var(--space-3)}
+.sh>div{display:flex;align-items:center;gap:var(--space-4);padding-bottom:var(--space-4);border-bottom:1px solid var(--ink-950)}
+.sh b{font:var(--weight-semibold) var(--size-title-2)/1.15 var(--font-core);letter-spacing:var(--tracking-title)}
+.sh.small b{font-size:17px}
+.sh s{flex:1}
+.sh em{font-style:normal;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 var(--space-3);border-radius:var(--radius-pill);background:var(--surface-fill);font:var(--weight-medium) var(--size-label)/1 var(--font-core);color:var(--text-secondary)}
+.sh .dot{width:10px;height:10px}
+.sh .more{font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-tertiary)}
+.r{display:flex;align-items:center;gap:var(--space-5);box-sizing:border-box;padding:var(--space-4) var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline);background:var(--surface-page);position:relative}
+.r .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.r .tl{display:flex;align-items:flex-start;gap:var(--space-2)}
+.r .t{flex:1;min-width:0;font:var(--weight-medium) 15.5px/21px var(--font-core);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r .bd{font:var(--weight-regular) 13px/1.35 var(--font-core);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r .dm{font:var(--weight-regular) 13px/1.35 var(--font-core);color:var(--text-accent);display:flex;align-items:center;gap:5px}
+.r .dm .g{width:12px;height:12px}
+.r .tools{display:flex;align-items:center;gap:var(--space-6);color:var(--ink-300)}
+.r .tools .g{width:17px;height:17px}
+.r .tools .tg{display:flex;color:var(--text-secondary)}
+.r.sel{background:var(--ink-100)}
+.r.lift{background:var(--surface-raised);box-shadow:var(--shadow-2);z-index:4;border-radius:10px;margin:0 8px}
+.r.ghost{opacity:.0}
+.r.mark{background:var(--surface-accent-soft)}
+.cbx{width:21px;height:21px;flex:0 0 auto;border-radius:var(--radius-xs);border:1px solid var(--border-strong);box-sizing:border-box}
+.tile{width:36px;height:36px;flex:0 0 auto;border-radius:var(--radius-sm);background:var(--surface-fill);display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+.tile .g{width:18px;height:18px}
+.pick{width:22px;height:22px;flex:0 0 auto;border-radius:99px;border:1.5px solid var(--border-strong);box-sizing:border-box;display:flex;align-items:center;justify-content:center}
+.pick.on{background:var(--surface-inverse);border-color:var(--surface-inverse);color:var(--text-inverse)}
+.pick .g{width:13px;height:13px}
+.grip{display:flex;color:var(--ink-300);margin:0 -6px}.grip .g{width:17px;height:17px}
+.dc{display:inline-flex;align-items:center;gap:4px;height:24px;flex:0 0 auto;box-sizing:border-box;padding:0 var(--space-3);border-radius:var(--radius-xs);background:var(--surface-fill);color:var(--text-secondary);font:var(--weight-medium) var(--size-caption)/1 var(--font-core);font-variant-numeric:tabular-nums}
+.dc .g{width:12px;height:12px}
+.dc.soon{background:var(--amber-100);color:var(--amber-700)}.dc.late{background:var(--clay-100);color:var(--text-danger)}
+/* The label mark: the date chip's geometry, the label's solid with white on it. */
+.lbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:1px}
+.lb{display:inline-flex;align-items:center;gap:5px;height:20px;box-sizing:border-box;padding:0 7px;border-radius:var(--radius-xs);background:var(--l);color:#fff;font:var(--weight-medium) 12px/1 var(--font-core);white-space:nowrap}
+.lb.lg{height:24px;font-size:var(--size-caption)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:99px;background:var(--l);flex:0 0 auto}
+/* Filter chips: Chip as it is, 30 tall in a 44 target; the dot is the only colour. */
+.cbar{flex:0 0 auto;display:flex;gap:6px;padding:7px var(--gutter-screen) 7px;overflow:hidden;background:var(--surface-chrome-strong);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.ch{display:inline-flex;align-items:center;gap:6px;height:30px;box-sizing:border-box;padding:0 12px;border-radius:99px;background:var(--surface-fill);color:var(--text-primary);font:var(--weight-medium) var(--size-label)/1 var(--font-core);white-space:nowrap;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.ch u{text-decoration:none;color:var(--text-tertiary);font-weight:400}
+.ch.on{background:var(--surface-inverse);color:var(--text-inverse)}.ch.on u{color:rgb(255 255 255 / .6)}
+.ch.on[class*="L-"]{background:var(--l);color:#fff}.ch.on[class*="L-"] u{color:rgb(255 255 255 / .8)}.ch.on .dot{background:#fff}
+.ch.hint{gap:6px;padding:0 12px 0 10px}
+.ch.out{background:transparent;box-shadow:inset 0 0 0 1px var(--border-strong);color:var(--text-secondary)}
+.ch.drop{background:var(--l);color:#fff;box-shadow:0 0 0 2px var(--surface-page),0 0 0 4px var(--l);transform:scale(1.08)}.ch.drop u{color:rgb(255 255 255 / .8)}.ch.drop .dot{background:#fff}
+.ch .g{width:14px;height:14px}
+.and .ch{border-radius:8px;height:32px}
+.and .ch.on:not([class*="L-"]){background:var(--ink-800)}
+/* Sheets and bars */
+.scrim{position:absolute;inset:0;z-index:5;background:var(--surface-scrim)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--surface-raised);border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;box-shadow:var(--shadow-sheet);box-sizing:border-box;padding:var(--space-5) var(--gutter-screen) 34px}
+.grab{width:36px;height:4px;border-radius:99px;background:var(--ink-200);margin:0 auto var(--space-6)}
+.st{margin:0;font:var(--weight-semibold) 21px/1.2 var(--font-core);letter-spacing:var(--tracking-title)}
+.sintro{font:var(--text-body-sm-role);color:var(--text-secondary);margin:4px 0 var(--space-5)}
+.prow{display:flex;align-items:center;gap:var(--space-5);min-height:48px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.prow .pl{flex:1;font:var(--weight-regular) 16px/1.3 var(--font-core)}
+.prow .pv{font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.prow .dot{width:12px;height:12px}
+.prow .ck{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border-strong);box-sizing:border-box;display:flex;align-items:center;justify-content:center}
+.prow .ck.on{background:var(--surface-inverse);border-color:var(--surface-inverse);color:var(--text-inverse)}
+.prow .ck.part{background:var(--surface-inverse);border-color:var(--surface-inverse)}
+.prow .ck.part:after{content:"";width:10px;height:2px;border-radius:2px;background:var(--text-inverse)}
+.prow .ck .g{width:14px;height:14px}
+.prow.new .pl{color:var(--text-secondary)}.prow.new .g{width:18px;height:18px;color:var(--text-tertiary)}
+.sfoot{margin-top:var(--space-7);display:flex;gap:var(--space-4)}
+.sbtn{flex:1;display:flex;align-items:center;justify-content:center;height:44px;border-radius:var(--radius-sm);font:var(--weight-medium) var(--size-body-sm)/1 var(--font-core);box-sizing:border-box}
+.sbtn.pri{background:var(--surface-inverse);color:var(--text-inverse)}.sbtn.sec{border:1px solid var(--border-strong);background:var(--surface-raised)}
+.abar{position:absolute;left:12px;right:12px;bottom:26px;z-index:6;display:flex;justify-content:space-around;padding:8px 6px;border-radius:18px;background:var(--surface-raised);box-shadow:var(--shadow-2);border:1px solid var(--border-hairline)}
+.abar span{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:72px;font:var(--weight-medium) 11.5px/1 var(--font-core);color:var(--text-secondary);padding:6px 0}
+.abar span.pri{color:var(--text-primary)}
+.abar .g{width:20px;height:20px}
+.strip{flex:0 0 auto;display:flex;align-items:center;gap:var(--space-4);padding:10px var(--gutter-screen);background:var(--surface-fill);font:var(--weight-regular) 13.5px/1.35 var(--font-core);color:var(--text-secondary)}
+.strip b{flex:1;font-weight:400;color:var(--text-primary)}
+.strip u{text-decoration:none;font-weight:500;color:var(--text-primary)}
+.strip.moss{background:var(--surface-accent-soft)}.strip.moss b{color:var(--text-primary)}.strip.moss .g{width:16px;height:16px;color:var(--text-accent)}
+.comp{position:absolute;left:12px;right:12px;bottom:26px;z-index:6;display:flex;align-items:center;gap:10px;min-height:48px;padding:0 6px 0 18px;border-radius:99px;background:var(--surface-raised);border:1px solid var(--border-strong);font:var(--text-body-role)}
+.comp .hs{color:#fff;background:var(--l);border-radius:4px;padding:1px 4px}
+.comp .caret{width:1.5px;height:20px;background:var(--text-primary);margin-left:-8px}
+.comp s{flex:1}
+.comp .send{width:36px;height:36px;border-radius:99px;background:var(--surface-inverse);color:var(--text-inverse);display:flex;align-items:center;justify-content:center}.comp .send .g{width:18px;height:18px}
+.sugg{position:absolute;left:12px;right:12px;bottom:84px;z-index:6;border-radius:16px;background:var(--surface-raised);box-shadow:var(--shadow-2);border:1px solid var(--border-hairline);padding:4px 0}
+.sugg>div{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 16px;font:var(--weight-regular) 15px/1.2 var(--font-core)}
+.sugg>div.hi{background:var(--ink-100)}
+.sugg>div u{text-decoration:none;margin-left:auto;font-size:12.5px;color:var(--text-tertiary)}
+.sugg .dot{width:10px;height:10px}
+.toast{position:absolute;left:12px;right:12px;bottom:26px;z-index:7;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:var(--surface-inverse);color:var(--text-inverse);font:var(--weight-regular) 14px/1.3 var(--font-core)}
+.toast b{flex:1;font-weight:400}.toast u{text-decoration:none;font-weight:500;color:var(--moss-200)}
+.trace{position:absolute;z-index:8;width:34px;border-radius:99px;background:rgb(11 11 11 / .08);border:1.5px dashed var(--ink-400);box-sizing:border-box}
+.trace:after{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);width:30px;height:30px;border-radius:99px;background:rgb(11 11 11 / .16)}
+.note{font:var(--weight-regular) 12.5px/1.5 var(--font-core);color:var(--text-tertiary);max-width:390px;margin-top:6px}
+.note b{color:var(--text-secondary);font-weight:500}
+/* Palette */
+.pal{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;max-width:1100px}
+.sw{border-radius:14px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-raised)}
+.sw .top{height:64px;background:var(--l);display:flex;align-items:flex-end;justify-content:space-between;padding:10px 12px;box-sizing:border-box;color:#fff;font:var(--weight-semibold) 14px/1 var(--font-core)}
+.sw .top u{text-decoration:none;font:var(--text-numeric-role);font-size:11px;opacity:.9}
+.sw .mid{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.sw .mid div{display:flex;align-items:center;justify-content:space-between;font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+.sw .dkrow{background:#1C1B19;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;font:var(--text-numeric-role);font-size:11px;color:#959595}
+.sw .dkrow .lb{background:var(--l);color:#fff}
+.num{font:var(--text-numeric-role);font-size:11px;color:var(--text-tertiary)}
+/* Map, calendar, rail */
+.map{flex:1;position:relative;background:var(--ink-100);overflow:hidden}
+.map .road{position:absolute;background:var(--paper);border-radius:4px}
+.map .water{position:absolute;background:#DCE6EC;border-radius:40px}
+.pin{position:absolute;width:30px;height:30px;border-radius:99px 99px 99px 4px;transform:rotate(-45deg);background:var(--l);box-shadow:0 0 0 2px var(--paper),0 2px 6px rgb(0 0 0 / .18);display:flex;align-items:center;justify-content:center}
+.pin .g{width:15px;height:15px;color:#fff;transform:rotate(45deg)}
+.cal{display:grid;grid-template-columns:44px 1fr;padding:0 var(--gutter-screen)}
+.cal .d{padding:14px 0;font:var(--weight-medium) 12px/1.2 var(--font-core);color:var(--text-tertiary);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.cal .d b{display:block;font:var(--weight-semibold) 20px/1.1 var(--font-core);color:var(--text-primary);font-variant-numeric:tabular-nums}
+.cal .ev{padding:10px 0;display:flex;flex-direction:column;gap:6px;box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.cal .ev>div{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--surface-fill);color:var(--text-primary);font:var(--weight-medium) 14px/1.25 var(--font-core)}
+.cal .ev>div .dot{width:10px;height:10px}
+.cal .ev>div.gcal{background:var(--surface-fill);color:var(--text-primary)}
+.cal .ev>div u{text-decoration:none;margin-left:auto;font:var(--text-numeric-role);font-size:12px}
+.rail{display:flex;gap:4px;padding:10px var(--gutter-screen) 12px;box-shadow:inset 0 -1px 0 var(--border-hairline);background:var(--surface-chrome-strong)}
+.rail>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px 0 8px;border-radius:10px;font:var(--weight-medium) 10.5px/1 var(--font-core);color:var(--text-tertiary)}
+.rail>div b{font:var(--weight-medium) 16px/1 var(--font-core);color:var(--text-primary);font-variant-numeric:tabular-nums}
+.rail>div.lift{background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-hairline)}
+.rail>div.now b{color:var(--text-attention)}
+.rail .dots{display:flex;gap:2px;height:6px}.rail .dots i{width:6px;height:6px;border-radius:9px;background:var(--l)}
+/* Activity row */
+.act{display:flex;gap:12px;padding:14px var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline)}
+.act .ld{width:28px;height:28px;border-radius:99px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px var(--border-lift);color:var(--text-tertiary)}
+.act .ld .g{width:15px;height:15px}
+.act .w{flex:1;font:var(--weight-regular) 15px/1.4 var(--font-core)}
+.act .w small{display:flex;gap:8px;align-items:center;margin-top:6px;font:var(--weight-regular) 12.5px/1 var(--font-core);color:var(--text-tertiary)}
+.act .w small u{text-decoration:none;font-weight:500;color:var(--text-primary)}
+/* Web */
+.wshell{display:flex;height:100%;background:var(--surface-page)}
+.wside{width:248px;flex:0 0 auto;border-right:1px solid var(--border-hairline);padding:20px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:2px;font:var(--weight-regular) 14.5px/1 var(--font-core);color:var(--text-secondary)}
+.wside div{padding:10px 12px;border-radius:8px;display:flex;align-items:center;gap:10px}
+.wside div.on{background:var(--ink-100);color:var(--text-primary);font-weight:500}
+.wside .g{width:17px;height:17px}
+.wpane{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+.whead{display:flex;align-items:center;gap:12px;padding:22px 32px 14px}
+.whead h3{margin:0;flex:1;font:var(--weight-semibold) 26px/1.1 var(--font-core);letter-spacing:var(--tracking-title)}
+.wpane .cbar{padding:10px 32px;background:transparent}
+.wpane .r{padding-left:32px;padding-right:32px}
+.wpane .r .tx{flex-direction:row;align-items:center;gap:12px}
+.wpane .r .tl{flex:0 1 auto;min-width:0}
+.wpane .r .bd{flex:1}
+.cursor{position:absolute;z-index:9;width:14px;height:20px;background:var(--ink-950);clip-path:polygon(0 0,0 16px,4px 12px,7px 19px,10px 18px,7px 11px,13px 11px)}
+.slab{font:var(--weight-medium) 12px/1 var(--font-core);color:var(--text-tertiary);margin:16px 0 2px}
+.rep{display:inline-flex;align-items:center;gap:5px;height:24px;box-sizing:border-box;padding:0 8px;border-radius:var(--radius-xs);border:1.5px dashed var(--l);color:var(--text-primary);font:var(--weight-medium) 12px/1 var(--font-core);white-space:nowrap}
+.cbar{position:relative}.plusch{position:absolute;right:0;top:0;bottom:1px;display:flex;align-items:center;padding:0 var(--gutter-screen) 0 28px;background:linear-gradient(to right,transparent,var(--surface-chrome-strong) 22px)}
+.sheet .prow{min-height:44px}
+.recmark{display:inline-flex;align-items:center;gap:6px;font:var(--weight-medium) 11px/1 var(--font-core);padding:5px 8px;border-radius:6px;background:var(--surface-accent-soft);color:var(--moss-700)}
+</style></head><body><div class="wrap">
+
+<h1>Labels</h1>
+<p class="lede">A thread can hold more than one subject. A trip across Lisbon, Paris and Istanbul keeps all three cities in one flat list today. This page draws labels: named, coloured groups inside a thread that a person makes and applies, and that offload also applies when it tidies a thread overnight. It covers the ten colours, a label slot on every row, the + list for labelling many at once, three ways to filter, where the colour appears outside the thread, and how labels fit with the marks the system already has. Each open question has its recommendation marked.</p>
+
+<div class="sechead"><h2>What you decided</h2><u>form, 26 Sep</u></div>
+<table class="mx">
+<tr><th>Question</th><th>Answer</th></tr>
+<tr><td><b>Who applies them</b></td><td>The person, fully: create, rename, recolour, apply, remove. offload also applies them in its daily compaction job.</td></tr>
+<tr><td><b>Scope</b></td><td>Per thread. Lisbon in the trip thread and Lisbon in a work thread are two labels.</td></tr>
+<tr><td><b>How many</b></td><td>Several per item. The flight to Paris is both Lisbon and Paris.</td></tr>
+<tr><td><b>Noun</b></td><td>Label. The vocabulary already bans "auto-tagged", and "tag" goes with it.</td></tr>
+<tr><td><b>Filter logic</b></td><td>Either: Lisbon and Paris together shows anything carrying one or both.</td></tr>
+<tr><td><b>Shared threads</b></td><td>Labels belong to the thread, so every member sees and can use them.</td></tr>
+<tr><td><b>Colour appears</b></td><td>On the row, map pins, Today's meta line, the calendar, and the timeline rail.</td></tr>
+</table>
+
+<div class="sechead"><h2>1. One family of marks</h2><u>unifying what exists</u></div>
+<p class="snote">The system already has six things that work like labels. They split into two shapes, and a label belongs to the first. <b>A mark says something about the row</b> and sits inside it: 24px tall (20 in a dense line), square corners at <code>--radius-xs</code>, a filled ground with white or its own ink on it. <b>A chip is something you press</b>: <code>Chip</code>'s 30px pill in a 44px target, neutral fill, ink when selected. A label is drawn as a mark on the row and as a chip in the filter bar, the same way a date is a mark on the row and a preset in the When sheet.</p>
+<table class="mx">
+<tr><th>Today</th><th>What it is</th><th>With labels</th></tr>
+<tr><td><b>DateChip</b> (023)</td><td>A mark: late, soon, later, on the title line</td><td>Since 26 September the chip has its own line under the title. That line becomes the row's <b>marks line</b>: the date chip first, then the labels at the same 20px height.</td></tr>
+<tr><td><b>Activity's Not sent</b> (024)</td><td>A mark: noticed or tertiary</td><td>Unchanged, same family.</td></tr>
+<tr><td><b>Chip tone="accent"</b></td><td>Doc says "inferred tags" in moss</td><td><b>Retired for labels.</b> A label offload applied is the label's own colour, not moss. What offload did is recorded in Activity and nowhere else. The doc line changes to "filters and threads".</td></tr>
+<tr><td><b>Thread pill</b> in <code>TurnFooter</code></td><td>A chip: where a dump was filed, and a link</td><td>Stays a chip. A thread is a place, not a label. When a dump is filed with a label, the footer gets the label mark after the thread pill: <span class="lb L-leaf" style="vertical-align:middle">Istanbul</span></td></tr>
+<tr><td><b>Type glyph</b> and widget sections</td><td>What the row is: to do, event, place, link</td><td>Stays the type. Types are fixed and nobody names them. Labels cut across types, so filtering by Paris narrows every section at once.</td></tr>
+<tr><td><b>Google calendar colour</b>, <b>avatar prism</b></td><td>Colour from outside, and colour per person</td><td>Not reused. Label colours avoid the calendar's reserved use (a Google event keeps a neutral block) and never appear on an avatar.</td></tr>
+</table>
+<ul class="spec">
+<li><b>One new component, <code>LabelMark</code></b>, props <code>label</code>, <code>size</code> (20 or 24), optional <code>onRemove</code> for the sheet. <code>Chip</code> gains a <code>dot</code> prop for the filter bar, not a new tone.</li>
+<li><b>One new glyph, <code>tag</code></b>, the 85th, vendored in Lucide's stroke format. <code>tags</code> is not needed.</li>
+<li><b>Ten colours</b>, one token each, below. They go in <code>tokens/colors.css</code> as <code>--label-1</code> to <code>--label-10</code>, identical in both themes, with <code>--text-on-solid</code> as the text on every one.</li>
+</ul>
+
+<div class="sechead"><h2>2. Ten colours</h2><u>OKLCH, measured</u></div>
+<p class="snote">Each colour is one solid, used everywhere a label appears: the mark on a row, the pin, the calendar block, the dot. White text sits on every one at 4.6:1 or better, and like moss and blue the solids do not change with the theme. On the dark page they measure about 3.7:1, which clears the 3:1 a shape needs. The hues keep clear of moss (offload did this), blue (this needs you), amber (soon) and clay (late). Iris is the closest to blue and sits 20° purpler; Jade is lighter and far more saturated than moss. A new label takes the next colour in the order below that the thread is not using, so the first three labels in any thread are blue, pink and green, the three furthest apart. The person can change it from the label's sheet.</p>
+<div class="pal" id="pal"></div>
+
+<div class="sechead"><h2>3. Applying a label</h2><u>a slot on every row, and the + list for many at once</u></div>
+<p class="snote">The thread below is the one used throughout: Europe, October, three cities, and a few things with no label yet.</p>
+
+<div class="rowlabel">3A · A label slot on every row <span class="recmark">chosen</span> <u>tap the labels, or the tag tool on a row with none</u></div>
+<div class="row">
+<div class="cell"><div class="ph" id="p3a1"></div><p class="note">Labels follow the date chip on the marks line under the title. A row with none draws a <code>tag</code> tool beside edit. <b>Decided: always drawn on a row with no label</b>, a stated exception to the row's "two controls, never three" rule, because it is the one control that says labels exist.</p></div>
+<div class="cell"><div class="ph" id="p3a2"></div><p class="note">Tapping either opens the label sheet: the thread's labels with their counts, ticks for this row, and New label at the bottom. Tapping a label mark on a row opens the same sheet with Rename, Colour and Delete for that label.</p></div>
+</div>
+
+<div class="rowlabel">Many at once · Start from the label <span class="recmark">chosen</span> <u>the + at the end of the chip bar: one label, many rows</u></div>
+<div class="row">
+<div class="cell"><div class="ph" id="p3a0"></div><p class="note"><b>Before any label exists.</b> A thread with six or more things draws the bar holding one chip, <b>+ Group with labels</b>, so the feature can be found. Under six, no bar. Once a label exists the chip shrinks to a plain + at the end.</p></div>
+<div class="cell"><div class="ph" id="p3a3"></div><p class="note">The chip bar ends in a <b>+</b>, pinned to the right edge while the chips scroll under it. It opens New label, and naming the label goes straight to this list: every thing in the thread, grouped as the thread is, with a tick each. Holding an existing chip, or tapping a mark on a row, opens the same list for that label, with Rename, Colour and Delete at the foot.</p></div>
+<div class="cell"><div class="ph" id="p3a3b"></div><p class="note">Done labels all of them in one write with one Undo. <b>This is the answer to sorting a thread after the fact</b>: think of the label once, then tick down the list. It needs no mode, no gesture to learn, and it reads the same on all three surfaces.</p></div>
+</div>
+
+<div class="rowlabel">Alongside the slot · #label in the composer, and telling offload</div>
+<div class="row">
+<div class="cell"><div class="ph" id="p3d1"></div><p class="note">Typing <b>#</b> opens the thread's labels, filtered as you type, three at a time, as <b>@</b> already does for people. Picking one resolves it to the label. A # that matches nothing offers to create one. On a dump from Today, offload files the thread first and then matches the label inside it.</p></div>
+<div class="cell"><div class="ph" id="p3d2"></div><p class="note">Saying it works too: "put the ferry and the palace under Istanbul". The turn footer shows the thread pill, then the label marks it applied, in the order they happened.</p></div>
+</div>
+
+<div class="sechead"><h2>4. Filtering a thread</h2><u>4A chosen; 4B and 4C kept for the record</u></div>
+<p class="snote">Either logic throughout: two labels picked shows everything carrying one or both. A row with no label has its own filter, No label, so a person tidying a thread can find what is left.</p>
+<div class="rowlabel">4A · A chip bar under the app bar <span class="recmark">chosen</span></div>
+<div class="row">
+<div class="cell"><div class="ph" id="p4a1"></div><p class="note">Drawn once a thread has a label, or has six or more things (then as + Group with labels, see 3). All, then each label with its count, then No label. It scrolls sideways past four.</p></div>
+<div class="cell"><div class="ph" id="p4a2"></div><p class="note">Lisbon and Paris picked, each chip filled with its own colour. The rows' own marks stay drawn, so the flight reads as both. Every section keeps its heading and shows its narrowed count; a section left empty folds away. The filter is kept per thread per device, and cleared by tapping All.</p></div>
+</div>
+<div class="rowlabel">4B · The thread splits into label sections</div>
+<div class="row">
+<div class="cell"><div class="ph" id="p4b1"></div><p class="note">Labels become the headings and types become the order inside them. A row with two labels appears under the first and says so. <b>This replaces the type sections rather than sitting beside them</b>, which costs To do's own ordering and the widget layout.</p></div>
+<div class="cell"><div class="ph" id="p4b2"></div><p class="note">Tapping a heading folds it; folding all but one is the filter. Readable on a thread with three labels, long on one with eight.</p></div>
+</div>
+<div class="rowlabel">4C · A picker in the app bar</div>
+<div class="row">
+<div class="cell"><div class="ph" id="p4c1"></div><p class="note">A <code>tag</code> tool in the app bar, the third of the three tools the budget allows, opening a sheet of ticks. Quiet until needed, but a filter nobody can see is a filter nobody remembers is on.</p></div>
+<div class="cell"><div class="ph" id="p4c2"></div><p class="note">With a filter on, the title gains a second line naming it and the tool carries a dot. The strip above the list says how many things are hidden and clears it.</p></div>
+</div>
+
+<div class="sechead"><h2>5. The colour outside the thread</h2><u>Today, maps, calendar, rail</u></div>
+<p class="snote">Outside the thread a label is always seen with its thread, because Lisbon on its own could belong to any of them. Colour is the label's solid wherever it appears, with white on it where there are words or a glyph.</p>
+<div class="row">
+<div class="cell"><div class="ph" id="p5a"></div><p class="note"><b>Today.</b> The meta line under the title says the thread's name, and the label mark follows it. No label, no mark.</p></div>
+<div class="cell"><div class="ph" id="p5b"></div><p class="note"><b>Map.</b> A place with a label takes the solid as its pin; one with two splits the pin between both. A place with none is ink. The chip bar filters the map exactly as it filters the list. Map tiles here are a flat placeholder.</p></div>
+<div class="cell"><div class="ph" id="p5c"></div><p class="note"><b>Calendar and rail.</b> Every event is the same neutral block; a labelled one leads with the label's dot, so a week in one city does not turn the whole view one colour. A Google event has no dot, since its own calendar colour belongs to Google. The rail draws up to three dots under a day, one per label with something on it. Rail geometry here is approximate to 015.</p></div>
+</div>
+
+<div class="sechead"><h2>6. What offload does</h2><u>compaction and live filing</u></div>
+<p class="snote">offload creates and applies labels in two places: the nightly compaction job, when it judges a thread holds more than one subject, and while filing a dump live, when the dump fits a label the thread already has or names one. No fixed size triggers it. <b>Nothing in the thread announces it</b>: compaction does many things, and a notice for each would be noise. The record is Activity. <b>A person's change is final</b>: a label the person set, removed, renamed or recoloured is never touched by offload again, which is the rule dates already follow.</p>
+<div class="row">
+<div class="cell"><div class="ph" id="p6b"></div><p class="note">Activity, as a record rather than a send: hollow lead, what was labelled, the time, and Undo for as long as the row exists (30 days). Tapping the row opens the thread. Anything the person then changes stays as they left it.</p></div>
+</div>
+
+<div class="sechead"><h2>7. Android and web</h2><u>3A with Start from the label, and 4A</u></div>
+<div class="row">
+<div class="cell"><div class="ph and" id="p7a"></div><p class="note"><b>Android.</b> Filter chips take Material's 8px radius and 32px height, as the kit's other chips do. The tag tool and the + chip are the same as on iOS; the label-first list is a full-height Material bottom sheet.</p></div>
+<div class="cell"><div class="f web" style="width:832px"><div class="in" id="p7b"></div></div><p class="note" style="max-width:820px"><b>Web.</b> The chip bar sits under the pane head, ending in +. A row's tag tool opens the labels as a popover beside it rather than a sheet, and the label-first list opens as a modal. Typing # in the composer works as on the phones.</p></div>
+</div>
+
+<div class="sechead"><h2>8. Decided</h2><u>form, 26 Sep</u></div>
+<ul class="spec">
+<li><b>Applying.</b> The slot on every row, the + list for many at once, # in the composer, and telling offload. Suggesting more from a row's sheet, and the eight-second repeat, are dropped.</li>
+<li><b>Tag tool.</b> Always drawn on a row with no label, an exception to the two-controls rule.</li>
+<li><b>Empty thread.</b> Six or more things and no labels draws + Group with labels. Under six, no bar.</li>
+<li><b>Managing.</b> Hold a chip, or tap a mark on a row: both open the label's list with Rename, Colour and Delete. <b>Deleting a label</b> takes it off every row and deletes nothing else.</li>
+<li><b>Limits.</b> Ten labels per thread, one per colour. Names up to 24 characters.</li>
+<li><b>offload.</b> Nightly and while filing live, with no fixed threshold. Reported in Activity only. A person's change is never overridden.</li>
+<li><b>Filtering.</b> Chip bar, either logic, selected chips in the label's colour, kept per thread on this device.</li>
+<li><b>Map.</b> A place with two labels gets a split pin.</li>
+<li><b>Schema, for the build.</b> A <code>labels</code> table keyed on thread with a name, a colour index and who last set it, and a join table to <code>content</code> and <code>notes</code> carrying the same person-set mark dates use. Sharing's membership rules apply unchanged.</li>
+</ul>
+
+</div>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0C7BB0"/><path d="M52 30H34a4 4 0 0 0-4 4v18l22 22a4 4 0 0 0 6 0l16-16a4 4 0 0 0 0-6z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><circle cx="41" cy="41" r="3.5" fill="#fff"/></svg></template>
+<script>
+const I=n=>`url(../assets/icons/${n}.svg)`;
+const g=(n,c='')=>`<i class="g ${c}" style="--ic:${n==='tag'?'var(--i-tag)':I(n)}"></i>`;
+const LB={lis:['Lisbon','cer'],par:['Paris','rose'],ist:['Istanbul','leaf']};
+const mk=(k,cls='')=>`<span class="lb ${cls} L-${LB[k][1]}">${LB[k][0]}</span>`;
+const TY={task:null,event:'calendar',location:'map-pin',link:'link',note:'text-quote'};
+const R={
+1:{t:'Flight to Paris',ty:'event',d:'Thu 9, 10:40',lb:['lis','par'],bd:'TP 432 · 10:40 from Lisbon'},
+2:{t:'Pastéis de Belém',ty:'location',lb:['lis'],bd:'Rua de Belém 84'},
+3:{t:'Buy Viva Viagem cards',ty:'task',d:'Due tomorrow',tone:'soon',lb:['lis']},
+4:{t:"Musée d'Orsay tickets",ty:'task',d:'Due Fri 10',lb:['par']},
+5:{t:'Hotel near Canal Saint-Martin',ty:'link',lb:['par'],dm:'booking.com'},
+6:{t:'Topkapı Palace',ty:'location',lb:['ist'],bd:'Closed on Tuesdays'},
+7:{t:'Ferry across the Bosphorus',ty:'note',lb:['ist'],bd:'Eminönü to Kadıköy, at sunset'},
+8:{t:'Travel insurance',ty:'task',d:'Due yesterday',tone:'late',lb:[]},
+9:{t:'Packing list',ty:'note',lb:[],bd:'Adapter, the good shoes'},
+10:{t:'Hammam near Sultanahmet',ty:'location',lb:[],bd:'Çemberlitaş, book ahead'},
+11:{t:'Grand Bazaar',ty:'location',lb:[],bd:'Closed on Sundays'}};
+function row(id,o={}){const r={...R[id],...(o.over||{})};const lbs=o.nolab?[]:r.lb;
+let lead=r.ty==='task'?'<span class="cbx"></span>':`<span class="tile">${g(TY[r.ty])}</span>`;
+if(o.pick!==undefined)lead=`<span class="pick ${o.pick?'on':''}">${o.pick?g('check'):''}</span>`;
+const grip=o.grip?`<span class="grip">${g('grip-vertical')}</span>`:'';
+const date=r.d?`<span class="dc ${r.tone||''}" style="height:20px">${g('calendar')}${r.d}</span>`:'';
+const labs=(lbs.length||date)?`<div class="lbs">${date}${lbs.map(k=>mk(k)).join('')}${o.also?`<span class="lb" style="background:transparent;color:var(--text-tertiary);padding:0 2px">${o.also}</span>`:''}</div>`:'';
+const sub=r.dm?`<div class="dm">${g('link')}${r.dm}</div>`:(r.bd?`<div class="bd">${r.bd}</div>`:'');
+const meta=o.meta?`${date?`<div class="lbs">${date}</div>`:''}<div class="bd" style="display:flex;align-items:center;gap:6px">${o.meta}${lbs.map(k=>mk(k)).join('')}</div>`:'';
+let tools=o.rep?`<span class="tools"><span class="rep L-${LB[o.rep][1]}"><span class="dot"></span>+ ${LB[o.rep][0]}</span>${g('pencil')}</span>`:o.notools?'':`<span class="tools">${o.tagtool&&!lbs.length?`<span class="tg">${g('tag')}</span>`:''}${g('pencil')}${g('trash-2')}</span>`;
+if(r.ty==='link'&&!o.notools)tools=`<span class="tools">${g('arrow-up-right')}</span>`;
+return `<div class="r ${o.cls||''}" ${o.st?`style="${o.st}"`:''}>${grip}${lead}<div class="tx"><div class="tl"><span class="t">${r.t}</span></div>${o.meta?meta:labs+sub}</div>${tools}</div>`}
+const sb=(and)=>`<div class="sb" style="display:flex;justify-content:space-between"><span>9:41</span><span style="display:flex;gap:5px;opacity:.7">▮▮▮ ▭</span></div>`;
+const bar=(title,tools='',lead='chevron-left',sub='')=>`<div class="bar"><span class="lead"><span class="bc">${g(lead)}</span></span><h4>${title}${sub?`<small>${sub}</small>`:''}</h4><span class="tools">${tools}</span></div>`;
+const bc=(n,on)=>`<span class="bc ${on?'on':''}">${g(n)}</span>`;
+const tbar=bc('users')+bc('ellipsis');
+const sh=(t,n,extra='')=>`<div class="sh small"><div>${extra}<b>${t}</b><s></s><em>${n}</em></div></div>`;
+const chips=(on=[],o={})=>{if(o.empty)return `<div class="cbar"><span class="ch out hint">${g('plus')}Group with labels</span></div>`;const c=(k,n)=>`<span class="ch ${on.includes(k)?'on':''} ${o.drop===k?'drop '+'L-'+LB[k][1]:''} L-${LB[k][1]}"><span class="dot"></span>${LB[k][0]} <u>${n}</u></span>`;
+return `<div class="cbar"><span class="ch ${on.length?'':'on'}">All</span>${c('lis',3)}${c('par',3)}${c('ist',o.ist||2)}<span class="ch out">No label <u>${o.ist?3:2}</u></span>${o.plus?`<span class="plusch"><span class="ch out" style="padding:0 8px;background:var(--surface-chrome-strong)">${g('plus')}</span></span>`:''}</div>`};
+const thread=(o={})=>sh('To do',3)+row(3,o)+row(4,o)+row(8,o)+sh('Plans',1)+row(1,o)+sh('Places',2)+row(2,o)+row(6,o)+sh('Saved',3)+row(5,o)+row(7,o)+row(9,o);
+const put=(id,h)=>{document.getElementById(id).innerHTML=h};
+const PH=(title,body,tools=tbar,lead,sub)=>sb()+bar(title,tools,lead,sub)+body;
+const labelSheet=(ticks,sub,more)=>`<div class="scrim"></div><div class="sheet"><div class="grab"></div><h3 class="st">Labels</h3><p class="sintro">${sub}</p>
+${[['lis',3],['par',3],['ist',2]].map(([k,n])=>`<div class="prow L-${LB[k][1]}"><span class="dot"></span><span class="pl">${LB[k][0]}</span><span class="pv">${n}</span><span class="ck ${ticks[k]||''}">${ticks[k]==='on'?g('check'):''}</span></div>`).join('')}
+<div class="prow new" style="box-shadow:none">${g('plus')}<span class="pl">New label</span></div>
+${more?`<div class="slab">These look like Istanbul too</div>${[10,11].map(i=>`<div class="prow"><span class="pl">${R[i].t}</span><span class="ck"></span></div>`).join('')}`:''}
+<div class="sfoot"><span class="sbtn sec">Cancel</span><span class="sbtn pri">Done</span></div></div>`;
+
+const firstSheet=(on)=>{const it=(i)=>`<div class="prow" style="min-height:44px"><span class="pl" style="font-size:15px;display:flex;flex-direction:column;gap:3px">${R[i].t}${R[i].lb.filter(k=>k!=='ist').length?`<span class="lbs">${R[i].lb.filter(k=>k!=='ist').map(k=>mk(k)).join('')}</span>`:''}</span><span class="ck ${on[i]?'on':''}">${on[i]?g('check'):''}</span></div>`;const grp=(t,ids)=>`<div class="slab">${t}</div>`+ids.map(it).join('');
+return `<div class="scrim"></div><div class="sheet" style="top:70px;display:flex;flex-direction:column"><div class="grab"></div><div style="display:flex;align-items:center;gap:10px"><h3 class="st">New label</h3></div><div class="field L-leaf" style="margin:14px 0 4px;height:44px;border-radius:10px;padding:0 12px;gap:10px;color:var(--text-primary)"><span class="dot" style="width:12px;height:12px"></span>Istanbul</div><p class="sintro" style="margin-top:8px">Tick what goes under it.</p><div style="flex:1;overflow:hidden">${grp('To do',[3,8])}${grp('Places',[2,6,10,11])}${grp('Saved',[7,9])}</div><div class="sfoot" style="margin-top:12px"><span class="sbtn sec">Cancel</span><span class="sbtn pri">Label 4</span></div></div>`};
+// palette
+const PAL=[['cer','Cerulean','#0C7BB0','#E3F3FE','#006C9D','#123144','#61A7D3','4.67','5.08','5.15'],['rose','Rose','#C6467B','#FEEAF0','#B3346B','#42232E','#E47BA1','4.60','5.05','5.07'],['leaf','Leaf','#5D7F00','#EAF5DC','#516F03','#273215','#8DAB5B','4.66','5.12','5.20'],['grape','Grape','#8D5CC5','#F3ECFE','#7E4DB5','#332742','#B08BE1','4.69','5.07','5.05'],['cop','Copper','#B25D25','#FFECE2','#A24E10','#422616','#D38B62','4.68','5.05','5.01'],['teal','Teal','#088285','#D6F8F9','#057274','#023537','#5CAEB0','4.65','5.11','5.18'],['fuch','Fuchsia','#AD4EAC','#FEE8FC','#9D3F9C','#3B243A','#CF81CC','4.69','5.02','5.08'],['olive','Olive','#7D7616','#F3F2D7','#706901','#322F0E','#A6A25F','4.70','5.01','5.13'],['iris','Iris','#6F67CB','#EEEFFE','#6158BB','#2B2A46','#9693E6','4.68','5.07','5.01'],['jade','Jade','#06855A','#DCF8E9','#02744E','#123626','#63B18C','4.67','5.15','5.22']];
+put('pal',PAL.map((p,i)=>`<div class="sw L-${p[0]}"><div class="top"><span>${i+1} · ${p[1]}</span><u>${p[2]}</u></div><div class="mid"><div><span class="lb lg">${p[1]}</span><span>white ${p[7]}:1</span></div></div><div class="dkrow"><span class="lb lg">${p[1]}</span><span>dark theme</span></div></div>`).join(''));
+
+put('p3a1',PH('Europe, October',`<div class="body">${chips()}${thread({tagtool:1})}</div>`));
+put('p3a2',PH('Europe, October',`<div class="body">${chips()}${thread({tagtool:1})}${labelSheet({lis:'on'},'Buy Viva Viagem cards')}</div>`));
+put('p3a0',PH('Europe, October',`<div class="body">${chips([],{empty:1})}${thread({tagtool:1,nolab:1})}</div>`));
+put('p3a3',PH('Europe, October',`<div class="body">${chips([],{plus:1})}${thread({tagtool:1})}${firstSheet({6:1,7:1,10:1,11:1})}</div>`));
+put('p3a3b',PH('Europe, October',`<div class="body">${chips([],{plus:1,ist:4})}${sh('To do',3)}${row(3,{tagtool:1})}${row(4,{tagtool:1})}${row(8,{tagtool:1})}${sh('Places',4)}${row(2,{tagtool:1})}${row(6,{tagtool:1})}${row(10,{over:{lb:['ist']}})}${row(11,{over:{lb:['ist']}})}${sh('Saved',3)}${row(7,{tagtool:1})}${row(9,{tagtool:1})}<div class="toast"><b>Two more are Istanbul</b><u>Undo</u></div></div>`));
+put('p3d1',PH('Europe, October',`<div class="body">${chips()}${thread()}<div class="scrim" style="background:rgb(250 249 247 / .6)"></div>
+<div class="sugg"><div class="hi L-leaf"><span class="dot"></span>Istanbul<u>2 things</u></div><div>${g('plus')}New label “ist”</div></div>
+<div class="comp L-leaf"><span>Hammam near Sultanahmet <span class="hs">#ist</span></span><span class="caret"></span><s></s><span class="send">${g('arrow-up')}</span></div></div>`));
+put('p3d2',PH('Europe, October',`<div class="body" style="padding:14px 16px;gap:12px;background:var(--surface-page)">
+<div style="align-self:flex-end;max-width:78%;padding:10px 14px;border-radius:18px 18px 6px 18px;background:var(--surface-inverse);color:var(--text-inverse);font:var(--text-body-role)">put the ferry and the palace under Istanbul</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span class="ch" style="background:var(--surface-accent-soft);color:var(--moss-700)">${g('check')}Done</span><span class="ch">${g('lasso')}Europe, October</span>${mk('ist','lg')}</div>
+<div style="align-self:flex-end;max-width:78%;padding:10px 14px;border-radius:18px 18px 6px 18px;background:var(--surface-inverse);color:var(--text-inverse);font:var(--text-body-role)">Hammam near Sultanahmet #Istanbul</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span class="ch" style="background:var(--surface-accent-soft);color:var(--moss-700)">${g('check')}Done</span><span class="ch">${g('lasso')}Europe, October</span>${mk('ist','lg')}</div>
+</div>`,bc('ellipsis'),'x'));
+
+put('p4a1',PH('Europe, October',`<div class="body">${chips()}${thread()}</div>`));
+const f=(ids)=>ids.map(i=>row(i)).join('');
+put('p4a2',PH('Europe, October',`<div class="body">${chips(['lis','par'])}${sh('To do',2)}${f([3,4])}${sh('Plans',1)}${f([1])}${sh('Places',1)}${f([2])}${sh('Saved',1)}${f([5])}</div>`));
+const lsh=(k,n,t)=>`<div class="sh small L-${LB[k][1]}"><div><span class="dot"></span><b>${t||LB[k][0]}</b><s></s><em>${n}</em>${g('chevron-down','more')}</div></div>`;
+put('p4b1',PH('Europe, October',`<div class="body">${lsh('lis',3)}${row(3,{nolab:1})}${row(1,{nolab:1,also:'Also Paris'})}${row(2,{nolab:1})}${lsh('par',2)}${row(4,{nolab:1})}${row(5,{nolab:1})}${lsh('ist',2)}${row(6,{nolab:1})}${row(7,{nolab:1})}<div class="sh small"><div><b>No label</b><s></s><em>2</em></div></div>${row(8)}</div>`));
+const fold=(k,n)=>`<div class="sh small L-${LB[k][1]}" style="opacity:1"><div style="border-bottom-color:var(--border-hairline)"><span class="dot"></span><b style="color:var(--text-secondary)">${LB[k][0]}</b><s></s><em>${n}</em>${g('chevron-right','more')}</div></div>`;
+put('p4b2',PH('Europe, October',`<div class="body">${fold('lis',3)}${lsh('par',3)}${row(4,{nolab:1})}${row(5,{nolab:1})}${row(1,{nolab:1,also:'Also Lisbon'})}${fold('ist',2)}<div class="sh small"><div style="border-bottom-color:var(--border-hairline)"><b style="color:var(--text-secondary)">No label</b><s></s><em>2</em>${g('chevron-right','more')}</div></div></div>`));
+put('p4c1',PH('Europe, October',`<div class="body">${thread()}<div class="scrim"></div><div class="sheet"><div class="grab"></div><h3 class="st">Show</h3><p class="sintro">Things with any of these labels.</p>
+${[['lis',3,'on'],['par',3,'on'],['ist',2,'']].map(([k,n,t])=>`<div class="prow L-${LB[k][1]}"><span class="dot"></span><span class="pl">${LB[k][0]}</span><span class="pv">${n}</span><span class="ck ${t}">${t?g('check'):''}</span></div>`).join('')}<div class="prow" style="box-shadow:none"><span style="width:12px"></span><span class="pl">No label</span><span class="pv">2</span><span class="ck"></span></div>
+<div class="sfoot"><span class="sbtn sec">Show all</span><span class="sbtn pri">Show 6</span></div></div></div>`,bc('tag')+bc('users')+bc('ellipsis')));
+put('p4c2',PH('Europe, October',`<div class="strip"><b>Showing 6 of 9</b><u>Show all</u></div><div class="body">${sh('To do',2)}${f([3,4])}${sh('Plans',1)}${f([1])}${sh('Places',1)}${f([2])}${sh('Saved',1)}${f([5])}</div>`,bc('tag',1)+bc('users')+bc('ellipsis'),'chevron-left','Lisbon, Paris'));
+
+put('p5a',sb()+`<div class="bar" style="min-height:96px;align-items:flex-end;padding-bottom:10px"><h4 style="font:var(--text-title-1);letter-spacing:var(--tracking-title)">Today</h4><span class="tools">${bc('bell')}</span></div><div class="body">${sh('Due today',2)}${row(3,{over:{d:'Due today'},meta:'Europe, October'})}${row(8,{meta:'Europe, October'})}${sh('Tomorrow',2)}${row(4,{over:{d:'Due tomorrow',tone:'soon'},meta:'Europe, October'})}<div class="r"><span class="cbx"></span><div class="tx"><div class="tl"><span class="t">Return the drill to Tom</span></div><div class="bd">Flat, weekend</div></div><span class="tools">${g('pencil')}${g('trash-2')}</span></div>${sh('Coming up',1)}${row(1,{meta:'Europe, October'})}</div>`);
+put('p5b',PH('Europe, October',`<div class="body">${chips()}<div class="map"><div class="water" style="left:-40px;top:360px;width:520px;height:140px;transform:rotate(-12deg)"></div><div class="road" style="left:40px;top:0;width:10px;height:800px;transform:rotate(18deg)"></div><div class="road" style="left:0;top:210px;width:420px;height:10px;transform:rotate(-6deg)"></div><div class="road" style="left:230px;top:0;width:8px;height:800px;transform:rotate(-8deg)"></div>
+<div class="pin L-cer" style="left:80px;top:120px">${g('map-pin')}</div><div class="pin L-rose" style="left:250px;top:170px">${g('calendar')}</div><div class="pin" style="left:150px;top:300px;background:linear-gradient(45deg,#0C7BB0 50%,#5D7F00 50%)">${g('map-pin')}</div><div class="pin L-leaf" style="left:300px;top:430px">${g('text-quote')}</div><div class="pin" style="left:200px;top:540px;background:var(--ink-950)">${g('map-pin')}</div>
+<div style="position:absolute;left:12px;right:12px;bottom:30px;background:var(--surface-raised);border-radius:16px;box-shadow:var(--shadow-2);padding:4px 0">${row(6,{notools:1,st:'background:transparent;box-shadow:none'})}</div></div></div>`,bc('list')+bc('ellipsis')));
+put('p5c',sb()+bar('October','','chevron-left')+`<div class="rail"><div><span>M</span><b>6</b><span class="dots"></span></div><div><span>T</span><b>7</b><span class="dots"></span></div><div class="lift"><span>W</span><b>8</b><span class="dots"><i class="L-cer"></i></span></div><div class="lift"><span>T</span><b>9</b><span class="dots"><i class="L-cer"></i><i class="L-rose"></i></span></div><div class="lift"><span>F</span><b>10</b><span class="dots"><i class="L-rose"></i></span></div><div><span>S</span><b>11</b><span class="dots"></span></div><div class="lift"><span>S</span><b>12</b><span class="dots"><i class="L-leaf"></i></span></div></div>
+<div class="body"><div class="cal"><div class="d">Wed<b>8</b></div><div class="ev"><div class="L-cer"><span class="dot"></span>Dinner at Taberna da Rua<u>20:00</u></div><div class="gcal">Standup<u>09:30</u></div></div>
+<div class="d">Thu<b>9</b></div><div class="ev"><div class="L-cer"><span class="dot"></span>Flight to Paris<u>10:40</u></div></div>
+<div class="d">Fri<b>10</b></div><div class="ev"><div class="L-rose"><span class="dot"></span>Musée d'Orsay<u>11:00</u></div><div class="gcal">Call with Ana<u>16:00</u></div></div>
+<div class="d">Sun<b>12</b></div><div class="ev"><div class="L-leaf"><span class="dot"></span>Flight to Istanbul<u>08:15</u></div></div></div></div>`);
+put('p6b',sb()+bar('Activity','')+`<div class="body"><div class="glab" style="font:500 12px/1 var(--font-core);color:var(--text-tertiary);margin:18px var(--gutter-screen) 4px">Today</div>
+<div class="act"><span class="ld">${g('tag')}</span><div class="w">Sorted Europe, October into Lisbon, Paris and Istanbul. Seven things labelled.<small><span>06:10</span><u>Undo</u></small></div></div>
+<div class="act"><span class="ld" style="background:var(--surface-fill);box-shadow:none;color:var(--text-secondary)">${g('sunrise')}</span><div class="w">Due today: Buy Viva Viagem cards, and Travel insurance is late.<small><span>08:00</span></small></div></div>
+<div class="glab" style="font:500 12px/1 var(--font-core);color:var(--text-tertiary);margin:18px var(--gutter-screen) 4px">Yesterday</div>
+<div class="act"><span class="ld" style="background:var(--surface-fill);box-shadow:none;color:var(--text-secondary)">${g('users')}</span><div class="w">Ana added two to Europe, October<small><span>19:42</span></small></div></div></div>`);
+put('p7a',sb()+`<div class="bar"><span class="lead"><span class="bc">${g('chevron-left')}</span></span><h4>Europe, October</h4><span class="tools">${bc('users')}${bc('ellipsis')}</span></div><div class="body">${chips([],{plus:1})}${thread({tagtool:1})}</div>`);
+put('p7b',`<div class="wshell"><div class="wside"><div style="padding:6px 12px 18px"><span class="mark"><i class="lm"></i>offload</span></div><div>${g('sun')}Today</div><div class="on">${g('lasso')}My threads</div><div>${g('cloudy')}Notes</div><div>${g('bell')}Activity</div></div>
+<div class="wpane"><div class="whead"><h3>Europe, October</h3><span class="ch out">${g('users')}Ana, Tom</span><span class="ch">${g('ellipsis')}</span></div>${chips([],{plus:1})}
+${sh('To do',3)}${row(3,{tagtool:1})}${row(4,{tagtool:1})}${row(8,{tagtool:1,cls:'sel'})}${sh('Places',4)}${row(2,{tagtool:1})}${row(6,{tagtool:1})}${row(10,{tagtool:1})}${row(11,{tagtool:1})}
+<div style="position:absolute;right:92px;top:318px;width:300px;z-index:6;background:var(--surface-raised);border:1px solid var(--border-hairline);border-radius:14px;box-shadow:var(--shadow-2);padding:6px 16px 12px">${[['lis',3,''],['par',3,''],['ist',2,'']].map(([k,n,t])=>`<div class="prow L-${LB[k][1]}"><span class="dot"></span><span class="pl" style="font-size:15px">${LB[k][0]}</span><span class="pv">${n}</span><span class="ck"></span></div>`).join('')}<div class="prow new" style="box-shadow:none">${g('plus')}<span class="pl" style="font-size:15px">New label</span></div></div></div></div>`);
+</script>
+</body></html>

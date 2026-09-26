@@ -1,7 +1,12 @@
-/* offload webfonts. Two faces only.
-   NOTE: no licensed binaries were provided, so these are Google Fonts substitutes
-   served from the Google CDN. Instrument Sans = the whole interface; Literata =
-   the voice offload speaks in. Numerals use Instrument Sans with tabular figures,
-   so there is no third face. Replace with self-hosted @font-face rules +
-   /assets/fonts binaries when the real files arrive. */
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap");
+/* offload webfonts. Two faces only, served as static instances from assets/fonts, the same
+   five files and the same five rules the web app declares (22 September 2026). Instrument Sans
+   is the whole interface; Literata is the voice offload speaks in. Numerals use Instrument Sans
+   with tabular figures, so there is no third face.
+   Static instances lose two things the variable CDN files had: Instrument Sans has no 700, so
+   anything asking for bold resolves to 600; and Literata has no optical size axis, so the
+   display sizes of the serif are drawn from the text master until the variable file is in. */
+@font-face{font-family:"Instrument Sans";src:url("../assets/fonts/InstrumentSans_400Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Instrument Sans";src:url("../assets/fonts/InstrumentSans_500Medium.ttf") format("truetype");font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:"Instrument Sans";src:url("../assets/fonts/InstrumentSans_600SemiBold.ttf") format("truetype");font-weight:600 700;font-style:normal;font-display:swap}
+@font-face{font-family:"Literata";src:url("../assets/fonts/Literata_400Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Literata";src:url("../assets/fonts/Literata_500Medium.ttf") format("truetype");font-weight:500 700;font-style:normal;font-display:swap}

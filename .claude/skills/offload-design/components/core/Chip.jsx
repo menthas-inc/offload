@@ -3,7 +3,7 @@ import { Icon } from "./Icon.jsx";
 
 function usePress(){const [h,setH]=React.useState(false),[p,setP]=React.useState(false);return{h,p,bind:{onMouseEnter:()=>setH(true),onMouseLeave:()=>{setH(false);setP(false)},onMouseDown:()=>setP(true),onMouseUp:()=>setP(false),onTouchStart:()=>setP(true),onTouchEnd:()=>setP(false)}}}
 
-export function Chip({children,icon,selected=false,tone="neutral",disabled=false,onClick,onRemove,hitArea=44,style,...rest}){
+export function Chip({children,icon,label,selected=false,tone="neutral",disabled=false,onClick,onRemove,hitArea=44,style,...rest}){
   const {h,p,bind}=usePress();
   const interactive=Boolean(onClick)&&!disabled;
   /* Selection has to read on every tone, not just neutral: each one has a filled
@@ -11,7 +11,7 @@ export function Chip({children,icon,selected=false,tone="neutral",disabled=false
      tints sat too close to paper to read as colour at chip size and were retired;
      a tone is a fill. */
   const fill=(base,deep,fg)=>({bg:selected||(h&&interactive)?deep:base,fg,bd:"transparent"});
-  const tones={
+  let tones={
     neutral:{bg:selected?"var(--surface-inverse)":h&&interactive?"var(--surface-fill-strong)":"var(--surface-fill)",fg:selected?"var(--text-inverse)":"var(--text-primary)",bd:"transparent"},
     accent:fill("var(--moss-600)","var(--moss-700)","var(--text-on-solid)"),
     attention:fill("var(--blue-600)","var(--blue-700)","var(--text-on-solid)"),
@@ -19,6 +19,10 @@ export function Chip({children,icon,selected=false,tone="neutral",disabled=false
     danger:fill("var(--clay-600)","var(--clay-700)","var(--text-on-solid)"),
     outline:selected?{bg:"var(--surface-inverse)",fg:"var(--text-inverse)",bd:"transparent"}:{bg:h&&interactive?"var(--ink-50)":"transparent",fg:"var(--text-secondary)",bd:"var(--border-strong)"}
   }[tone]||{};
+  /* A label chip in the filter bar: neutral at rest with the label's dot, and the label's own
+     solid when selected rather than ink, so two picked labels read as the two they are. */
+  const lab=label?Math.min(10,Math.max(1,Math.round(label))):0;
+  if(lab&&selected&&!disabled){tones.bg="var(--label-"+lab+")";tones.fg="var(--text-on-solid)";tones.bd="transparent"}
   /* Unavailable, and it has to look unavailable rather than faded: a fill and a
      text colour, no opacity, because opacity on a chip over a warm page reads as
      a rendering artefact and takes the label under the contrast floor with it. */
@@ -38,6 +42,7 @@ export function Chip({children,icon,selected=false,tone="neutral",disabled=false
         letterSpacing:"var(--tracking-body)",whiteSpace:"nowrap",
         transition:"background var(--transition-ui),color var(--transition-ui),transform var(--duration-instant) var(--ease-out)",
         transform:p&&interactive?"scale(var(--press-scale))":"none"}}>
+        {lab?<span aria-hidden="true" style={{width:8,height:8,borderRadius:"var(--radius-pill)",flex:"0 0 auto",background:selected&&!disabled?"var(--text-on-solid)":"var(--label-"+lab+")"}}/>:null}
         {icon?<Icon name={icon} size={14}/>:null}
         {children}
         {onRemove&&!disabled?<Icon name="x" size={13} style={{opacity:0.55,cursor:"pointer"}} onClick={(e)=>{e.stopPropagation();onRemove()}}/>:null}

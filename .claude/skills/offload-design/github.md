@@ -2,14 +2,64 @@ repo: menthas-inc/offload_app
 branch: main
 path:
 
-repo: menthas-inc/offload_app
-branch: main
-path:
-
 ## Last sync
 
-date: 2026-09-22T10:41:00Z
-commit: b494d0e..main (50 commits since 7376a68, 021 voice notes and 022 sharing)
+date: 2026-09-26T16:52:00Z
+commit: 089949d
+
+Pulled `main` from `b494d0e`: 98 commits, with 023 dates and 024 notifications both shipped on all
+three surfaces, and a 26 September entry moving the date chip to its own line. **The shared log was
+behind by 47 entries** and has been adopted from the repository whole, since it already held every
+one of ours. `tokens/colors.css` and `readme.md` were taken from the repository too (the two soft
+grounds, and an em dash pass), then amended here.
+
+**Every open design impact from the four newest code entries is closed before the labels handoff**,
+so both sides start from one state: see the table at the foot of `handoff/APPLY-2026-09-26-labels.md`.
+Code wins where the entries offered a choice. The kit screens are not redrawn; the readme says what
+the code does.
+
+### Updated in this project
+
+- **Labels**: `LabelMark`, `Chip label`, the `tag` glyph (85), ten `--label-N` tokens and
+  `--surface-accent` (366 tokens), a readme section, and `explorations/labels.html`
+- `tokens/fonts.css` self-hosts the web app's five static faces from `assets/fonts/`
+- `readme.md` Dates and notifications brought to the code as built; two log entries
+- `handoff/APPLY-2026-09-26-labels.md` and `handoff/labels-standalone.html`
+
+### What the coding agent should pick up, in order
+
+1. **The schema** (item 1): `labels`, the two join tables, and the person-set stamp and tombstone.
+   Everything else, including offload's rule never to undo a person, reads that stamp.
+2. **The write path** (item 2), with the one-write list and its Undo.
+3. **The marks line** (item 3): the date chip and labels share the line 26 September gave the chip.
+4. Sheets, filter bar, the outside-the-thread surfaces, then the composer, the model tools and
+   compaction, and last Activity's row.
+
+## Screen map
+
+| Screen | This project | Repo files |
+| --- | --- | --- |
+| Web app | `ui_kits/web_app/` | `apps/web/src/` |
+| iOS and Android | `ui_kits/mobile_app/`, `ui_kits/android_app/` | `apps/mobile/app/`, `apps/mobile/components/` |
+| Calendars | `explorations/calendars-options.html`, `handoff/APPLY-2026-09-17-calendars.md` | settings: the Connected apps Calendar row on all three surfaces; thread: `ThreadScreen.jsx`, `M3ThreadScreen.jsx`, `WThing.jsx` app bars |
+| Timeline rail | `explorations/rail-blue.html`, `handoff/APPLY-2026-09-14-rail.md` | `apps/web/src/app/(shell)/shell.module.css`, `apps/web/src/components/panes/Timeline.tsx`, `apps/mobile/components/shell/Timeline.tsx` |
+| Voice notes | `explorations/voice-notes.html`, `handoff/APPLY-2026-09-21-voice.md` | `apps/mobile/components/shell/Composer.tsx`, `apps/mobile/components/shell/SentVoice.tsx`, `apps/web/src/components/shell/` |
+| People and connecting | `explorations/sharing-and-avatars.html`, `handoff/APPLY-2026-09-21-people.md` | `apps/mobile/components/settings/`, `apps/mobile/components/shell/Sharing.tsx`, `apps/web/src/components/panes/` |
+| Reaching the web | `components/conversation/`, the kits' conversation files, `explorations/reaching-the-web-options.html` | `docs/specs/016-reaching-the-web/`, `docs/specs/017-saying-what-it-is-doing/`, `apps/mobile/components/shell/Conversation.tsx` |
+| Answering | `components/answering/`, the kits' conversation files, `explorations/answering-options.html` | `apps/core-api/src/search/`, `apps/agent/src/offload_agent/`, `docs/specs/013-answering/` |
+| Labels | `explorations/labels.html`, `handoff/APPLY-2026-09-26-labels.md`, `components/core/LabelMark*`, `Chip` | `apps/mobile/components/shell/ContentRow.tsx`, `apps/web/src/components/panes/ContentRowView.tsx`, `apps/mobile/components/screens/Thread.tsx`, `apps/web/src/components/panes/Thread.tsx`, `TodayAgenda.tsx`, `Activity.tsx`, `Composer.tsx` |
+| Dates and notifications | `explorations/due-dates-and-notifications.html`, `handoff/APPLY-2026-09-22-dates.md` | `DateChip.tsx`, `WhenSheet.tsx`, `CustomRepeatSheet.tsx`, `ZoneStrip.tsx`, `Activity.tsx`, `NotificationsPage.tsx`, `packages/widgets/src/rrule.ts` |
+| Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
+| Landing page, invite email | `ui_kits/marketing_site/` | `apps/web/src/app/(marketing)/` |
+| Design tokens | `styles.css`, `tokens/` | `packages/tokens/`, generated from `.claude/skills/offload-design/tokens` |
+| Components | `components/` | `packages/widgets/`, `apps/mobile/components/` |
+| Decision log | `decisions.md` | `.claude/skills/offload-design/decisions.md` (shared, append-only both ways) |
+| Adherence lint | `_adherence.oxlintrc.json` | `eslint.config.mjs`, read at run time |
+| Atmosphere tokens | not carried, the marketing site's | `packages/tokens/atmosphere.css` (keep from the repository) |
+
+## Sync history
+
+### 2026-09-22T10:41:00Z
 
 Pulled `main` ahead of the dates and notifications work and read the feature from the code rather
 than from the kit. **Nothing was owed back this time**: 021 and 022 are both applied here already,
@@ -18,7 +68,7 @@ and the sync was reconnaissance for a feature that has not been specced yet.
 **The finding that shaped the design: the schema has carried dates since 001 and no person has ever
 been able to write one.** `content` and `notes` both hold `due_at`, `occurs_at`, `occurs_end_at`,
 `repeats` and `repeats_until`; `content` also holds `is_reminder`, whose own comment reads
-*nothing acts on it until notifications ship*. Every writer is the model, `add_content`,
+*nothing acts on it until notifications ship*. Every writer is the model — `add_content`,
 `add_note`, `edit_content` and 018's asking-back question. **There is no field, no picker, no
 gesture and no way to clear a date on any of the three surfaces**, and the thread's own content row
 draws no date at all.
@@ -57,28 +107,6 @@ kind. The jobs table already does scheduled and daily work, so the machinery exi
 6. **Activity**, the largest new thing and the only one with no existing shape: each silent outcome
    needs a writer at the point the silence happens, not a reconstruction afterwards.
 
-## Screen map
-
-| Screen | This project | Repo files |
-| --- | --- | --- |
-| Web app | `ui_kits/web_app/` | `apps/web/src/` |
-| iOS and Android | `ui_kits/mobile_app/`, `ui_kits/android_app/` | `apps/mobile/app/`, `apps/mobile/components/` |
-| Calendars | `explorations/calendars-options.html`, `handoff/APPLY-2026-09-17-calendars.md` | settings: the Connected apps Calendar row on all three surfaces; thread: `ThreadScreen.jsx`, `M3ThreadScreen.jsx`, `WThing.jsx` app bars |
-| Timeline rail | `explorations/rail-blue.html`, `handoff/APPLY-2026-09-14-rail.md` | `apps/web/src/app/(shell)/shell.module.css`, `apps/web/src/components/panes/Timeline.tsx`, `apps/mobile/components/shell/Timeline.tsx` |
-| Voice notes | `explorations/voice-notes.html`, `handoff/APPLY-2026-09-21-voice.md` | `apps/mobile/components/shell/Composer.tsx`, `apps/mobile/components/shell/SentVoice.tsx`, `apps/web/src/components/shell/` |
-| People and connecting | `explorations/sharing-and-avatars.html`, `handoff/APPLY-2026-09-21-people.md` | `apps/mobile/components/settings/`, `apps/mobile/components/shell/Sharing.tsx`, `apps/web/src/components/panes/` |
-| Reaching the web | `components/conversation/`, the kits' conversation files, `explorations/reaching-the-web-options.html` | `docs/specs/016-reaching-the-web/`, `docs/specs/017-saying-what-it-is-doing/`, `apps/mobile/components/shell/Conversation.tsx` |
-| Answering | `components/answering/`, the kits' conversation files, `explorations/answering-options.html` | `apps/core-api/src/search/`, `apps/agent/src/offload_agent/`, `docs/specs/013-answering/` |
-| Admin panel | `ui_kits/admin_web/` | `apps/web/src/app/(admin)/` |
-| Landing page, invite email | `ui_kits/marketing_site/` | `apps/web/src/app/(marketing)/` |
-| Design tokens | `styles.css`, `tokens/` | `packages/tokens/`, generated from `.claude/skills/offload-design/tokens` |
-| Components | `components/` | `packages/widgets/`, `apps/mobile/components/` |
-| Decision log | `decisions.md` | `.claude/skills/offload-design/decisions.md` (shared, append-only both ways) |
-| Adherence lint | `_adherence.oxlintrc.json` | `eslint.config.mjs`, read at run time |
-| Atmosphere tokens | not carried, the marketing site's | `packages/tokens/atmosphere.css` (keep from the repository) |
-
-## Sync history
-
 ### 2026-09-21T16:20:00Z
 
 Pulled `main` and read 021's feature spec, which logs **eleven items against this system**. All
@@ -105,7 +133,7 @@ with "Show all" at 5.72:1 on the same bubble.
 
 ### Updated in this project
 
-- `SentVoice` in `components/conversation/`, 32 stored bars, the play/pause control, the played
+- `SentVoice` in `components/conversation/` — 32 stored bars, the play/pause control, the played
   fill, the transcript and its fold, and the playback failure
 - `play` and `pause` vendored in Lucide's stroke format; 84 glyphs
 - `readme.md` gains a **Voice notes** section; `decisions.md` gains one entry
