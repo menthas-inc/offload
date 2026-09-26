@@ -82,6 +82,8 @@ interface Turn {
   /** 016. Where a fact in this turn came from, for the chips in its footer.
    *  Empty on every turn that read nothing, which is nearly all of them. */
   sources?: TurnSource[];
+  /** 025. The labels the turn applied, for the footer's marks. */
+  labels?: { id: string; name: string; colour: number }[];
   /** 017. When this turn started waiting, for the two thresholds. On a turn
    *  loaded from the tail it is when the page loaded rather than when the dump
    *  was sent, which is the conservative reading: the turn has been in flight at
@@ -333,6 +335,7 @@ export function Composer({
           // record the pills come from, never from the reply.
           threads: message.threads,
           sources: message.sources,
+          labels: message.labels,
           did: message.threads.length > 0,
         })),
       );
@@ -381,6 +384,7 @@ export function Composer({
                   // said anything, and the reply no longer draws them.
                   threads: answer.threads,
                   sources: answer.sources,
+                  labels: answer.labels ?? [],
                   question: answer.question ?? null,
                   // 019's proposal, and 022's. It rode the settlement and was
                   // dropped here, so a calendar proposal only ever appeared
@@ -945,6 +949,7 @@ export function Composer({
     state: turn.state === "answered" && turn.did ? ("done" as const) : null,
     refs: turn.threads ?? [],
     sources: turn.sources ?? [],
+    labels: turn.labels ?? [],
   });
 
   return (

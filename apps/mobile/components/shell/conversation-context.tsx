@@ -107,6 +107,8 @@ export interface Turn {
   /** 016. Where a fact in this turn came from, for the chips in its footer.
    *  Empty on every turn that read nothing, which is nearly all of them. */
   sources?: Source[];
+  /** 025. The labels the turn applied, for the footer's marks. */
+  labels?: { id: string; name: string; colour: number }[];
   /** Whether the turn actually did something, from the record rather than the
    *  reply. A tick that means "the turn ended" says Done about a refusal. */
   did?: boolean;
@@ -553,6 +555,7 @@ export function ConversationProvider({
             // the reply.
             threads: message.threads ?? [],
             sources: message.sources ?? [],
+            labels: message.labels ?? [],
             did: (message.threads?.length ?? 0) > 0,
           })),
         );
@@ -616,6 +619,7 @@ export function ConversationProvider({
                   // anything, and the reply no longer draws them.
                   threads: answer.threads,
                   sources: answer.sources,
+                  labels: answer.labels ?? [],
                   question: answer.question ?? null,
                   // 020. The renditions are made before the model reads the
                   // photos, so a settled turn's thumbnails exist; one that

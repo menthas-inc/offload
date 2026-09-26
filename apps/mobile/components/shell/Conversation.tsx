@@ -36,6 +36,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
+import { LabelMark } from "../labels/LabelMark";
 import { AnswerResults } from "./AnswerResult";
 import { Reply } from "./Reply";
 import { isRich } from "@offload/markup";
@@ -639,9 +640,14 @@ function TurnFooter({ turn }: { turn: Turn }) {
   // time, which is the screen contradicting itself.
   const state = turn.state === "answered" && turn.did ? "done" : null;
   const refs = turn.threads ?? [];
+  // 025. What the turn applied, after the thread pill at the footer's own
+  // height, three and then a count as the sources are.
+  const labels = turn.labels ?? [];
+  const marks = labels.slice(0, 3);
+  const unmarked = labels.length - marks.length;
 
   // An empty footer is no footer, never a 26px gap.
-  if (!state && refs.length === 0 && sources.length === 0) return null;
+  if (!state && refs.length === 0 && sources.length === 0 && labels.length === 0) return null;
 
   return (
     <View className="mt-space-3 flex-row flex-wrap items-center gap-space-2">
@@ -688,6 +694,17 @@ function TurnFooter({ turn }: { turn: Turn }) {
           </Text>
         </Pressable>
       ))}
+
+      {marks.map((label) => (
+        <LabelMark key={label.id} color={label.colour} size={30}>
+          {label.name}
+        </LabelMark>
+      ))}
+      {unmarked > 0 ? (
+        <Text className="font-core text-text-tertiary" style={{ fontSize: 12.5 }}>
+          and {unmarked} more
+        </Text>
+      ) : null}
 
       {/* **Outline, never moss.** Moss means "offload did this, you didn't"
           everywhere in this system, and a citation is the opposite: evidence of

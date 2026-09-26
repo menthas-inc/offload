@@ -841,6 +841,9 @@ export async function undoRun(trx: Executor, runId: string): Promise<{ joins: nu
     .executeTakeFirst();
 
   await trx.updateTable("label_runs").set({ undone_at: sql`now()` }).where("id", "=", runId).execute();
+  // Every member's record of the sort reads Undone, from the column; the
+  // words stay as they were written.
+  await trx.updateTable("activity").set({ undone_at: sql`now()` }).where("label_run_id", "=", runId).execute();
   return { joins, labels: Number(made.numUpdatedRows) };
 }
 
@@ -849,4 +852,122 @@ export async function undoRun(trx: Executor, runId: string): Promise<{ joins: nu
 export async function undoTurnLabels(trx: Executor, turnId: string): Promise<void> {
   const runs = await trx.selectFrom("label_runs").select("id").where("turn_id", "=", turnId).where("undone_at", "is", null).execute();
   for (const run of runs) await undoRun(trx, run.id);
+}
+
+// ---------------------------------------------------------------- live filing
+
+const LINK = /\b(?:https?:\/\/|www\.)\S+/giu;
+const WORD = /[\p{L}\p{N}]+/gu;
+
+/** Every word of the name is a word of the message. 016's idea applied to a
+ *  name: a live turn may make a label only out of what the person wrote, so
+ *  a sentence another member put in a shared thread, or a page's text, cannot
+ *  make labels nobody asked for. A link's words do not count: an address is
+ *  not something somebody said. Case and accents are compared as written,
+ *  lowercased. */
+export function nameInDump(name: string, dump: string): boolean {
+  const said = new Set((dump.replace(LINK, " ").toLowerCase().match(WORD) ?? []));
+  const words = name.toLowerCase().match(WORD) ?? [];
+  return words.length > 0 && words.every((word) => said.has(word));
+}
+
+/** One Activity row per accepted member for a sort that labelled anything:
+ *  never sent, carrying its thread and its sort, the words composed now from
+ *  what the sort holds. A second call for the same sort rewrites the words
+ *  rather than adding a row, since one turn is one record. */
+export async function recordSortActivity(
+  trx: Executor,
+  runId: string,
+  words: (facts: { threadName: string; rows: number; labels: string[] }) => string,
+): Promise<void> {
+  const run = await trx.selectFrom("label_runs").selectAll().where("id", "=", runId).executeTakeFirst();
+  if (!run) return;
+  const rowsSet = await trx
+    .selectFrom("content_labels")
+    .select("content_id")
+    .where("run_id", "=", runId)
+    .where("removed_at", "is", null)
+    .execute();
+  const noteRows = await trx
+    .selectFrom("note_labels")
+    .select("note_id")
+    .where("run_id", "=", runId)
+    .where("removed_at", "is", null)
+    .execute();
+  const rows = new Set(rowsSet.map((r) => r.content_id)).size + new Set(noteRows.map((r) => r.note_id)).size;
+  if (rows === 0) return;
+  const labels = await trx
+    .selectFrom("labels")
+    .select("name")
+    .where("deleted_at", "is", null)
+    .where((eb) =>
+      eb.or([
+        eb("id", "in", eb.selectFrom("content_labels").select("label_id").where("run_id", "=", runId).where("removed_at", "is", null)),
+        eb("id", "in", eb.selectFrom("note_labels").select("label_id").where("run_id", "=", runId).where("removed_at", "is", null)),
+      ]),
+    )
+    .orderBy("created_at")
+    .execute();
+  const thread = await trx.selectFrom("threads").select("name").where("id", "=", run.thread_id).executeTakeFirstOrThrow();
+  const title = words({ threadName: thread.name, rows, labels: labels.map((l) => l.name) }).slice(0, 200);
+
+  const existing = await trx.selectFrom("activity").select("id").where("label_run_id", "=", runId).execute();
+  if (existing.length > 0) {
+    await trx.updateTable("activity").set({ title }).where("label_run_id", "=", runId).execute();
+    return;
+  }
+  const members = await trx
+    .selectFrom("thread_members")
+    .select("account_id")
+    .where("thread_id", "=", run.thread_id)
+    .where("state", "=", "accepted")
+    .execute();
+  if (members.length === 0) return;
+  await trx
+    .insertInto("activity")
+    .values(
+      members.map((m) => ({
+        account_id: m.account_id,
+        kind: "labelled" as const,
+        sent: false,
+        reason: "design" as const,
+        title,
+        body: null,
+        send: null,
+        thread_id: run.thread_id,
+        content_id: null,
+        about_account_id: null,
+        member_id: null,
+        request_id: null,
+        label_run_id: runId,
+      })),
+    )
+    .execute();
+}
+
+/** What each turn applied, for its footer: the labels its sorts set that are
+ *  still on and still live, in the order they were set, and only in threads
+ *  the viewer is in. An undone turn has none. */
+export async function labelsForTurns(
+  turnIds: readonly string[],
+  viewerId: string,
+  executor: Executor = db,
+): Promise<Map<string, { id: string; name: string; colour: number }[]>> {
+  const out = new Map<string, { id: string; name: string; colour: number }[]>();
+  if (turnIds.length === 0) return out;
+  const rows = await sql<{ turn_id: string; id: string; name: string; colour: number; at: Date }>`
+    select lr.turn_id, l.id, l.name, l.colour, min(j.created_at) as at
+      from label_runs lr
+      join (
+        select run_id, label_id, created_at from content_labels where removed_at is null
+        union all
+        select run_id, label_id, created_at from note_labels where removed_at is null
+      ) j on j.run_id = lr.id
+      join labels l on l.id = j.label_id and l.deleted_at is null
+      join thread_members m on m.thread_id = l.thread_id and m.account_id = ${viewerId} and m.state = 'accepted'
+     where lr.turn_id in (${sql.join([...turnIds])}) and lr.undone_at is null
+     group by lr.turn_id, l.id, l.name, l.colour
+     order by at, l.id`.execute(executor);
+  for (const r of rows.rows) out.set(r.turn_id, [...(out.get(r.turn_id) ?? []), { id: r.id, name: r.name, colour: r.colour }]);
+  return out;
 }

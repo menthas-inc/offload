@@ -217,6 +217,17 @@ class MoveContent(BaseModel):
     thread_id: str = Field(min_length=1)
 
 
+class LabelContent(BaseModel):
+    """025. Put rows under labels, or take one off."""
+
+    content_ids: list[str] = Field(min_length=1, max_length=30)
+    #: Label ids, from the labels in the turn.
+    add: list[str] = Field(default_factory=list, max_length=10)
+    #: A label to make, only when they named it.
+    new: list[str] = Field(default_factory=list, max_length=5)
+    remove: list[str] = Field(default_factory=list, max_length=10)
+
+
 class CompleteContent(BaseModel):
     """Tick something off, or put it back."""
 
@@ -281,6 +292,7 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "list_thread_content": ListThreadContent,
     "edit_content": EditContent,
     "move_content": MoveContent,
+    "label_content": LabelContent,
     "complete_content": CompleteContent,
     "archive_content": ArchiveContent,
     "set_thread_preference": SetThreadPreference,
@@ -328,6 +340,10 @@ _DESCRIPTIONS = {
     "move_content": (
         "Put a piece of content in a different thread. Only content this account "
         "wrote, and only into a thread they are in."
+    ),
+    "label_content": (
+        "Put rows of one thread under that thread's labels by id, or take one off "
+        "when they ask. new makes a label, only one they named."
     ),
     "complete_content": "Tick a task off, or put it back if they say it is not done.",
     "archive_content": (

@@ -480,6 +480,7 @@ describe("AC-17 and AC-4 what an open stream does each tick", () => {
       changed: [],
       // 016. Empty on a turn that read nothing, which is nearly every turn.
       sources: [],
+      labels: [],
     });
     expect(step.do === "answered" ? step.replyId : null).not.toBe(messageId);
   });

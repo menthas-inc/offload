@@ -26,6 +26,8 @@ import { sql, type Transaction } from "kysely";
 import type { Database } from "../schema.js";
 import type { App } from "../app.js";
 import { db } from "../db.js";
+import { LabelRefused, applyLabels, createLabel, nameInDump, normaliseLabelName, recordSortActivity, runForTurn } from "../threads/labels.js";
+import { labelledLiveCopy } from "../notifications/copy.js";
 import { WIDGET_KIND_CHARS } from "../threads/widgets.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { formatRule, parseRule } from "@offload/widgets";
@@ -46,6 +48,7 @@ import {
 } from "../threads/notes.js";
 import {
   NotYours,
+  memberOf,
   unowned,
   readableContent,
   requireMember,
@@ -308,6 +311,18 @@ const body = z.discriminatedUnion("tool", [
     contentId: z.string().uuid(),
     archived: z.boolean().default(true),
   }),
+  // 025. Labels on rows, in one call: apply existing ones by id, make one the
+  // dump names, take one off. Resolved against the rows' own thread.
+  z.strictObject({
+    tool: z.literal("label_content"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    contentIds: z.array(z.string().uuid()).min(1).max(30),
+    add: z.array(z.string().uuid()).max(10).default([]),
+    /** Names to make, each only when the dump names it. */
+    new: z.array(z.string().min(1).max(60)).max(5).default([]),
+    remove: z.array(z.string().uuid()).max(10).default([]),
+  }),
   z.strictObject({
     tool: z.literal("set_thread_preference"),
     jobId: z.string().uuid(),
@@ -553,6 +568,11 @@ const result = z.union([
     error: z.enum([
       "unknown_thread",
       "limit_reached",
+      // 025. What label_content can be told.
+      "not_in_the_dump",
+      "label_limit",
+      "person_set",
+      "person_deleted",
       // 020. A photo index that names nothing on this message, or a photo
       // this turn already filed, or an index on a row that is not a picture.
       "unknown_photo",
@@ -667,6 +687,10 @@ type Outcome =
       error:
         | "unknown_thread"
         | "limit_reached"
+        | "not_in_the_dump"
+        | "label_limit"
+        | "person_set"
+        | "person_deleted"
         | "unknown_photo"
         | "bad_place_name"
         | "unknown_content"
@@ -923,7 +947,7 @@ async function noteThread(
  *  you are not in are the same answer, for the reason the header states.
  */
 async function existing(
-  call: Extract<z.infer<typeof body>, { tool: Exclude<ToolName, "create_thread" | "add_content"> }>,
+  call: Extract<z.infer<typeof body>, { tool: Exclude<ToolName, "create_thread" | "add_content" | "label_content"> }>,
   accountId: string,
   trx: Executor,
   /** The turn's own message, for provenance on anything this writes. A memory
@@ -1407,6 +1431,71 @@ async function existing(
   return { ok: true, done: true };
 }
 
+/** 025. The model's label tool. Every id is resolved against the rows' one
+ *  thread by `applyLabels`, which also refuses anything a person set; a new
+ *  name has to be in the words of the message being filed, and offload makes
+ *  a label only below six. Refusals are the model's to read and correct. */
+async function labelContent(
+  trx: Transaction<Database>,
+  accountId: string,
+  messageId: string | null,
+  call: Extract<z.infer<typeof body>, { tool: "label_content" }>,
+): Promise<Outcome> {
+  if (!messageId) return { ok: false, error: "unknown_content" };
+  const message = await trx
+    .selectFrom("messages")
+    .select(["text", "turn_id"])
+    .where("id", "=", messageId)
+    .executeTakeFirstOrThrow();
+  const threads = await trx
+    .selectFrom("content")
+    .select("thread_id")
+    .distinct()
+    .where("id", "in", call.contentIds)
+    .where("deleted_at", "is", null)
+    .execute();
+  if (threads.length !== 1) return { ok: false, error: "unknown_content" };
+  const threadId = threads[0]!.thread_id;
+  if (!(await memberOf(accountId, threadId, trx))) return { ok: false, error: "unknown_content" };
+
+  const runId = await runForTurn(trx, threadId, message.turn_id, "offload");
+  const actor = { accountId, via: "offload" as const, runId };
+  const ids: string[] = [];
+  try {
+    const live = await trx
+      .selectFrom("labels")
+      .select(["id", "name"])
+      .where("thread_id", "=", threadId)
+      .where("deleted_at", "is", null)
+      .execute();
+    ids.push(...call.add);
+    for (const raw of call.new) {
+      const name = normaliseLabelName(raw);
+      const found = live.find((label) => label.name.toLowerCase() === name.toLowerCase());
+      if (found) {
+        ids.push(found.id);
+        continue;
+      }
+      if (!nameInDump(name, message.text ?? "")) return { ok: false, error: "not_in_the_dump" };
+      const made = await createLabel(trx, actor, threadId, { name });
+      live.push({ id: made.id, name: made.name });
+      ids.push(made.id);
+    }
+    await applyLabels(trx, actor, threadId, { content: call.contentIds }, ids, call.remove);
+  } catch (error) {
+    if (error instanceof NotYours) return { ok: false, error: "unknown_content" };
+    if (error instanceof LabelRefused) {
+      if (error.reason === "bad_label_name" || error.reason === "label_taken" || error.reason === "label_gone") {
+        return { ok: false, error: "unknown_content" };
+      }
+      return { ok: false, error: error.reason };
+    }
+    throw error;
+  }
+  await recordSortActivity(trx, runId, labelledLiveCopy);
+  return { ok: true, done: true };
+}
+
 export async function toolRoutes(app: App): Promise<void> {
   app.post(
     "/internal/v1/tool-call",
@@ -1497,6 +1586,12 @@ export async function toolRoutes(app: App): Promise<void> {
               .where("filing_at", "is not", null)
               .where("deleted_at", "is", null)
               .executeTakeFirstOrThrow();
+
+        // 025. Labelling files nothing, so it is not held to the filing
+        // bound above.
+        if (call.tool === "label_content") {
+          return labelContent(trx, accountId, messageId, call);
+        }
 
         if (Number(filed.n) >= MAX_TOOL_CALLS) {
           return { ok: false, error: "limit_reached" };

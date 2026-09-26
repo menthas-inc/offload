@@ -63,6 +63,7 @@ from offload_agent.config import Config
 from offload_agent.context import (
     AnswerContext,
     DumpContext,
+    LabelRef,
     Photo,
     Piece,
     QuickAddContext,
@@ -188,6 +189,8 @@ def _merge(base: dict, over: dict) -> dict:
 
 _FIXTURE_KEYS = {
     "threads",
+    # 025. The labels in the fixture's threads: [{id, threadId, name}].
+    "labels",
     "looking_at",
     "notes",
     "notes_from_members",
@@ -545,6 +548,16 @@ class Recorder:
             else:
                 out["noteId"] = f"n{self.filed_ids}"
             return out
+        # 025. The provenance bound the Core API runs, run here too: a label may
+        # be made only out of the words of the dump. A stub that made any name
+        # would pass a model that invents labels.
+        if tool == "label_content":
+            said = set(re.findall(r"\w+", re.sub(r"https?://\S+|www\.\S+", " ", self.dump.lower())))
+            for name in args.get("new") or []:
+                words = re.findall(r"\w+", str(name).lower())
+                if not words or not all(w in said for w in words):
+                    return {"ok": False, "error": "not_in_the_dump"}
+            return {"ok": True, "done": True}
         if tool == "edit_content" and args.get("occurs_at"):
             self.content_timed[str(args.get("content_id"))] = True
         if tool in {
@@ -1122,6 +1135,10 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         may_read_links=fx.get("may_read_links", True),
         country=rec.country,
         looking_at=_thread(fx, fx.get("looking_at")),
+        labels=[
+            LabelRef(id=str(one["id"]), thread_id=str(one["threadId"]), name=str(one["name"]))
+            for one in fx.get("labels") or []
+        ],
         answered=fx.get("answered"),
         # 020. The photos, as the worker would hand them over: the large
         # rendition of each fixture, made by the real rendition code.

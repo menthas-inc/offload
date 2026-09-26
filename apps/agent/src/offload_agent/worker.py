@@ -714,6 +714,11 @@ def _tool_caller(
 ARGUMENT_REFUSALS = frozenset(
     {
         "unknown_thread",
+        # 025. label_content's, each answerable by a different call.
+        "not_in_the_dump",
+        "label_limit",
+        "person_set",
+        "person_deleted",
         "unknown_photo",
         "bad_place_name",
         "unknown_content",

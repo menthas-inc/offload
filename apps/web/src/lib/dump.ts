@@ -95,6 +95,8 @@ export interface Answer {
   reply: string | null;
   threads?: TouchedThread[];
   sources?: Source[];
+  /** 025. The labels the turn applied, in order, for the footer's marks. */
+  labels?: { id: string; name: string; colour: number }[];
   /** 017. What offload is doing, on a turn still in flight. Null once settled. */
   step?: string | null;
   /** 018. The question this turn asked back, while it is open. */
@@ -322,6 +324,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     reply: string | null;
     threads?: TouchedThread[];
     sources?: Source[];
+    labels?: { id: string; name: string; colour: number }[];
     step?: string | null;
     changed?: string[];
     waiting?: WaitingOn | null;
@@ -333,6 +336,7 @@ export async function fetchAnswer(messageId: string): Promise<Answer | null> {
     reply: body.reply,
     threads: body.threads ?? [],
     sources: body.sources ?? [],
+    labels: body.labels ?? [],
     step: body.step ?? null,
     changed: body.changed ?? [],
     waiting: body.waiting ?? null,
@@ -453,6 +457,8 @@ export interface TailMessage {
    *  times. */
   threads: TouchedThread[];
   sources: Source[];
+  /** 025. On the person's message: what the turn applied. */
+  labels: { id: string; name: string; colour: number }[];
 }
 
 /** 018. Answer a question by option. Null when the server refused it: the
