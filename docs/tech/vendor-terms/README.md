@@ -37,7 +37,7 @@ account, forward-looking only. It must be on. Record here the date it was
 turned on and by whom; until that line exists, treat the vendor as training
 on what it receives.
 
-- Opt-out turned on: _not yet recorded_.
+- Opt-out turned on: 2026-09-26, by the owner, in the Voyage dashboard. Data sent before that date stays under the old licence.
 
 ## Anthropic (the model)
 
