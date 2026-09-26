@@ -738,7 +738,7 @@ export interface ConnectorEventsTable {
   organizer_is_me: Generated<boolean>;
   /** Text somebody else wrote. Defaults true so a path that forgets errs safe. */
   untrusted: Generated<boolean>;
-  attendees: ColumnType<unknown, string, string>;
+  attendees: ColumnType<unknown, string | undefined, string>;
   created_at: Timestamp;
   updated_at: Timestamp;
   deleted_at: Timestamp | null;

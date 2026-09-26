@@ -791,7 +791,7 @@ describe("the purge job", () => {
       .where("derived_from_message_id", "=", messageId)
       .execute();
 
-    await purge({}, deps);
+    await purge({}, deps, null);
     expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(1);
 
     await db
@@ -799,7 +799,7 @@ describe("the purge job", () => {
       .set({ purge_after: new Date(Date.now() - 1_000) })
       .execute();
 
-    await purge({}, deps);
+    await purge({}, deps, null);
     expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(0);
   });
 
@@ -816,7 +816,7 @@ describe("the purge job", () => {
       .set({ deleted_at: null, purge_after: new Date(Date.now() - 60_000) })
       .execute();
 
-    await purge({}, deps);
+    await purge({}, deps, null);
     expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(1);
   });
 
@@ -838,7 +838,7 @@ describe("the purge job", () => {
     }));
     await db.insertInto("content").values(rows).execute();
 
-    await expect(purge({}, deps)).rejects.toThrow(/ceiling/);
+    await expect(purge({}, deps, null)).rejects.toThrow(/ceiling/);
 
     // Nothing deleted. A run that wants to destroy an absurd number of rows is
     // a bug, and the right response to a bug in a delete is to stop.
@@ -1086,7 +1086,7 @@ describe("016 what a turn read", () => {
       .selectFrom("domain_reads")
       .select("count")
       .where("domain", "=", "timeanddate.com")
-      .where("day", "=", sql`current_date`)
+      .where("day", "=", sql<string>`current_date`)
       .executeTakeFirst();
     const before = existing?.count ?? 0;
 
@@ -1147,7 +1147,7 @@ describe("016 what a turn read", () => {
       .selectFrom("domain_reads")
       .selectAll()
       .where("domain", "=", "timeanddate.com")
-      .where("day", "=", sql`current_date`)
+      .where("day", "=", sql<string>`current_date`)
       .executeTakeFirstOrThrow();
     expect(tally.count).toBe(before + 1);
     expect(Object.keys(tally)).toEqual(["domain", "day", "count"]);
@@ -1643,23 +1643,24 @@ describe("018 asking back", () => {
     const [q] = await question(accountId, turnId);
 
     const first = await answerQuestion(accountId, q!.id, 1);
-    expect(first?.applied).toBe(true);
-    expect(first?.envelope.state).toBe("answered");
-    expect(first?.envelope.conversationId).toBe(conversationId);
-    expect(first?.envelope.threads.map((t) => t.id)).toEqual([threadId]);
+    if (!first || !("envelope" in first)) throw new Error("no envelope");
+    expect(first.applied).toBe(true);
+    expect(first.envelope.state).toBe("answered");
+    expect(first.envelope.conversationId).toBe(conversationId);
+    expect(first.envelope.threads.map((t) => t.id)).toEqual([threadId]);
 
     const row = await db.selectFrom("content").select(["due_at", "occurs_at", "title"]).where("id", "=", contentId).executeTakeFirstOrThrow();
     expect(row.due_at?.toISOString().slice(0, 10)).toBe("2026-09-30");
     expect(row.occurs_at).toBeNull();
     expect(row.title).toBe("Buy a birthday gift for Ana");
 
-    const words = await db.selectFrom("messages").select(["text", "role", "state"]).where("id", "=", first!.envelope.messageId).executeTakeFirstOrThrow();
+    const words = await db.selectFrom("messages").select(["text", "role", "state"]).where("id", "=", first.envelope.messageId).executeTakeFirstOrThrow();
     expect(words).toEqual({ text: "30 September", role: "person", state: "answered" });
     // The answer's turn wears the thread it changed, so the screen shows Done.
     const landed = await db
       .selectFrom("message_threads")
       .select(["thread_id", "landed"])
-      .where("message_id", "=", first!.envelope.messageId)
+      .where("message_id", "=", first.envelope.messageId)
       .execute();
     expect(landed).toEqual([{ thread_id: threadId, landed: true }]);
 
@@ -1669,7 +1670,7 @@ describe("018 asking back", () => {
     expect(after.answered_option).toBe(1);
 
     // Undo of the answer's turn puts the previous value back; the question stays answered.
-    const undone = await undoTurn(accountId, first!.envelope.turnId);
+    const undone = await undoTurn(accountId, first.envelope.turnId);
     expect(undone).toEqual({ undone: true });
     const restored = await db.selectFrom("content").select("due_at").where("id", "=", contentId).executeTakeFirstOrThrow();
     expect(restored.due_at).toBeNull();
@@ -1695,8 +1696,9 @@ describe("018 asking back", () => {
     expect(rows.map((r) => r.state)).toEqual(["open", "pending"]);
 
     const escaped = await answerQuestion(accountId, rows[0]!.id, 2);
-    expect(escaped?.escape).toBe(true);
-    expect(escaped?.applied).toBe(false);
+    if (!escaped || !("envelope" in escaped)) throw new Error("no envelope");
+    expect(escaped.escape).toBe(true);
+    expect(escaped.applied).toBe(false);
     const row = await db.selectFrom("content").select("occurs_at").where("id", "=", contentId).executeTakeFirstOrThrow();
     expect(row.occurs_at).toBeNull();
 
@@ -1707,7 +1709,8 @@ describe("018 asking back", () => {
     // A field set by hand since: the tap closes and changes nothing.
     await db.updateTable("content").set({ due_at: new Date("2026-10-01T00:00:00Z") }).where("id", "=", contentId).execute();
     const late = await answerQuestion(accountId, after[1]!.id, 0);
-    expect(late?.applied).toBe(false);
+    if (!late || !("envelope" in late)) throw new Error("no envelope");
+    expect(late.applied).toBe(false);
     const kept = await db.selectFrom("content").select("due_at").where("id", "=", contentId).executeTakeFirstOrThrow();
     expect(kept.due_at?.toISOString().slice(0, 10)).toBe("2026-10-01");
   });

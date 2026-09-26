@@ -63,13 +63,13 @@ describe("AC-5 nothing provisions an account", () => {
   it("refuses to create a user, whatever the provider asserts", async () => {
     const before = hooks.user!.create!.before!;
     await expect(
-      before({ email: "stranger@example.com", emailVerified: true, name: "A" } as any, undefined as never)
+      before({ email: "stranger@example.com", emailVerified: true, name: "A" } as any)
     ).resolves.toBe(false);
   });
 
   it("leaves no account behind after a refused sign-in", async () => {
     const before = hooks.user!.create!.before!;
-    await before({ email: "stranger@example.com", emailVerified: true } as any, undefined as never);
+    await before({ email: "stranger@example.com", emailVerified: true } as any);
     const rows = await db.selectFrom("accounts").selectAll().execute();
     expect(rows).toHaveLength(0);
   });
@@ -80,18 +80,18 @@ describe("AC-5 a refusal creates no identity row", () => {
 
   it("refuses an account still on the waitlist", async () => {
     const id = await account("waiting@example.com", "waitlist");
-    await expect(before()(identity(id) as any, undefined as never)).resolves.toBe(false);
+    await expect(before()(identity(id) as any)).resolves.toBe(false);
     expect(await db.selectFrom("account_identities").selectAll().execute()).toHaveLength(0);
   });
 
   it("refuses a disabled account", async () => {
     const id = await account("gone@example.com", "disabled");
-    await expect(before()(identity(id) as any, undefined as never)).resolves.toBe(false);
+    await expect(before()(identity(id) as any)).resolves.toBe(false);
   });
 
   it("allows an invited one, which is the whole point of the gate", async () => {
     const id = await account("invited@example.com", "invited");
-    const verdict = await before()(identity(id) as any, undefined as never);
+    const verdict = await before()(identity(id) as any);
     expect(verdict).not.toBe(false);
   });
 });
@@ -102,33 +102,33 @@ describe("AC-9 a session is not issued or extended for an account that may not h
 
   it("refuses to issue one for a waitlisted account", async () => {
     const id = await account("waiting@example.com", "waitlist");
-    await expect(create()(session(id) as any, undefined as never)).resolves.toBe(false);
+    await expect(create()(session(id) as any)).resolves.toBe(false);
   });
 
   it("issues one for an invited account, so first sign-in works", async () => {
     const id = await account("invited@example.com", "invited");
-    await expect(create()(session(id) as any, undefined as never)).resolves.not.toBe(false);
+    await expect(create()(session(id) as any)).resolves.not.toBe(false);
   });
 
   it("refuses to extend a live session once the account is disabled", async () => {
     const id = await account("live@example.com", "active");
     const live = session(id);
 
-    await expect(update()(live as any, undefined as never)).resolves.not.toBe(false);
+    await expect(update()(live as any)).resolves.not.toBe(false);
 
     await db.updateTable("accounts").set({ state: "disabled" }).where("id", "=", id).execute();
 
     // The refresh is where a session that should have died gets its extension,
     // so refusing here is what makes disabling take effect in minutes rather
     // than at the end of a thirty day cookie.
-    await expect(update()(live as any, undefined as never)).resolves.toBe(false);
+    await expect(update()(live as any)).resolves.toBe(false);
   });
 
   it("refuses to extend a session whose account was deleted", async () => {
     const id = await account("erased@example.com", "active");
     const live = session(id);
     await db.updateTable("accounts").set({ deleted_at: new Date() }).where("id", "=", id).execute();
-    await expect(update()(live as any, undefined as never)).resolves.toBe(false);
+    await expect(update()(live as any)).resolves.toBe(false);
   });
 });
 
@@ -153,7 +153,7 @@ describe("provider tokens never reach the database", () => {
 
   it("strips them on the way in, not after the row is written", async () => {
     const id = await account("invited@example.com", "invited");
-    const verdict = await create()(withTokens(id) as any, undefined as never);
+    const verdict = await create()(withTokens(id) as any);
 
     expect(verdict).not.toBe(false);
     const data = (verdict as { data: Record<string, unknown> }).data;
@@ -171,7 +171,7 @@ describe("provider tokens never reach the database", () => {
 
   it("strips them again on a second sign-in, which updates rather than creates", async () => {
     const id = await account("returning@example.com", "active");
-    const verdict = await update()(withTokens(id) as any, undefined as never);
+    const verdict = await update()(withTokens(id) as any);
 
     const data = (verdict as { data: Record<string, unknown> }).data;
     expect(data["accessToken"]).toBeNull();
@@ -182,7 +182,7 @@ describe("provider tokens never reach the database", () => {
   it("keeps the parts of the identity that are not credentials", async () => {
     const id = await account("keeps@example.com", "invited");
     const row = withTokens(id);
-    const verdict = await create()(row as any, undefined as never);
+    const verdict = await create()(row as any);
 
     const data = (verdict as { data: Record<string, unknown> }).data;
     // The provider and its subject are how the identity is found again, so

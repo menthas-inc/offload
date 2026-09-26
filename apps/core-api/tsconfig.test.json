@@ -1,0 +1,7 @@
+{
+  // The build's config stops at src because it emits from there. This one adds
+  // the tests, so the typecheck covers everything vitest runs.
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "rootDir": ".", "noEmit": true },
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
+}

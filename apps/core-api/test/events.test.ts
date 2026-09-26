@@ -15,7 +15,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 // The 2020-12 build, because that is the dialect the schema files declare.
 // Ajv's default export speaks draft-07 and refuses them by $schema.
-import Ajv from "ajv/dist/2020.js";
+//
+// Both packages are CommonJS, and under NodeNext a default import of one is
+// its whole module object: the class is taken by name, the plugin by `.default`.
+import { Ajv2020 } from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
@@ -31,8 +34,8 @@ afterAll(async () => {
 
 const SCHEMAS = join(dirname(fileURLToPath(import.meta.url)), "../../../schemas/events");
 
-const ajv = new Ajv({ allErrors: true, strict: false });
-addFormats(ajv);
+const ajv = new Ajv2020({ allErrors: true, strict: false });
+addFormats.default(ajv);
 
 const envelope = ajv.compile(JSON.parse(readFileSync(join(SCHEMAS, "envelope.schema.json"), "utf8")));
 

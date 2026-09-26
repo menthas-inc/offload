@@ -53,7 +53,7 @@ beforeAll(async () => {
       .executeTakeFirstOrThrow();
     accounts.push(row.id);
   }
-  mine = accounts[0];
+  mine = accounts[0]!;
 
   const threads: string[] = [];
   for (const accountId of accounts) {
@@ -68,7 +68,7 @@ beforeAll(async () => {
       .execute();
     threads.push(thread.id);
   }
-  myThread = threads[0];
+  myThread = threads[0]!;
 
   // 60 rows in mine, 1,200 across the others. Built entirely server-side.
   for (let i = 0; i < threads.length; i++) {
@@ -206,7 +206,7 @@ describe("AC-13 pgvector filters after the index scan", () => {
     // `current_setting`, not `show`: show names its column after the setting,
     // dots and all, which is not a shape a typed row reads cleanly.
     const row = await sql<{ s: string }>`select current_setting('hnsw.iterative_scan', true) as s`.execute(db);
-    expect(row.rows[0].s).toBe("relaxed_order");
+    expect(row.rows[0]!.s).toBe("relaxed_order");
   });
 });
 
@@ -215,8 +215,8 @@ describe("AC-12 the corpus tables exist and keep chunks apart from vectors", () 
     const row = await sql<{ text: string; has_vector: boolean }>`
       select text, embedding is not null as has_vector from content_chunks limit 1
     `.execute(db);
-    expect(row.rows[0].text).toBe("chunk");
-    expect(row.rows[0].has_vector).toBe(true);
+    expect(row.rows[0]!.text).toBe("chunk");
+    expect(row.rows[0]!.has_vector).toBe(true);
   });
 
   it("has a chunk table per corpus", async () => {
@@ -255,7 +255,7 @@ describe("AC-12 the corpus tables exist and keep chunks apart from vectors", () 
       where thread_id = ${myThread}::uuid
         and search_text @@ websearch_to_tsquery('simple', 'row')
     `.execute(db);
-    expect(rows.rows[0].n).toBe(60);
+    expect(rows.rows[0]!.n).toBe(60);
   });
 });
 

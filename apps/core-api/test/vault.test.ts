@@ -53,7 +53,7 @@ describe("AC-2 a ciphertext is bound to where it lives", () => {
 
   it("refuses a tampered value", () => {
     const sealed = seal("ya29.a0-token", CONNECTION, "access_token");
-    sealed[sealed.length - 1] ^= 0xff;
+    sealed[sealed.length - 1]! ^= 0xff;
     expect(() => open(sealed, CONNECTION, "access_token")).toThrow();
   });
 });

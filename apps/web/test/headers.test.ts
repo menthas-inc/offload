@@ -33,24 +33,13 @@ describe("every page", () => {
     expect(valueOf(all!, "permissions-policy")).toContain("geolocation=()");
   });
 
-  it("carries a content security policy that frames nobody and talks only to the API", async () => {
+  it("leaves the content security policy to the middleware, which builds one per request", async () => {
+    // One source of the policy. A second one here would be enforced beside the
+    // middleware's, and a browser applies every policy it is sent. The policy
+    // itself is test/csp.test.ts.
     const all = (await rules()).find((rule) => rule.source === "/:path*")!;
-    const csp = valueOf(all, "content-security-policy") ?? valueOf(all, "content-security-policy-report-only");
-    expect(csp).toBeDefined();
-    expect(csp).toContain("frame-ancestors 'none'");
-    expect(csp).toContain("default-src 'self'");
-    expect(csp).toContain("object-src 'none'");
-    expect(csp).toContain("base-uri 'self'");
-    expect(csp).toContain("connect-src 'self' https://api.offload.club");
-    // Pictures a link brought with it come from the site that published them.
-    expect(csp).toContain("img-src 'self' https://api.offload.club https: data: blob:");
-    // The faces are served from here, so no page asks Google for them: the
-    // privacy page names every company that receives a request, and a font
-    // host on every visit was not on it (security review 2026-09-22, M16).
-    expect(csp).not.toContain("googleapis");
-    expect(csp).not.toContain("gstatic");
-    expect(csp).toContain("font-src 'self' data:");
-    expect(csp).toContain("style-src 'self' 'unsafe-inline';");
+    expect(valueOf(all, "content-security-policy")).toBeUndefined();
+    expect(valueOf(all, "content-security-policy-report-only")).toBeUndefined();
   });
 
   it("does not name the framework", () => {

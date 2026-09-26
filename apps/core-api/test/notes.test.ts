@@ -798,7 +798,7 @@ describe("leaving a thread, and the thread dying with the last member", () => {
       .where("id", "=", flat)
       .execute();
 
-    await handlers["content.purge"]?.({ id: "x", kind: "content.purge", payload: {} } as never);
+    await handlers["content.purge"]?.({}, { mailer: null as never }, null);
 
     const left = await db
       .selectFrom("notes")
