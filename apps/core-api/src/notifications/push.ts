@@ -64,7 +64,7 @@ export class MemoryPush implements PushTransport {
     return messages.map((message, i) => ({ token: message.to, ok: true, id: `memory:${this.sent.length - messages.length + i}` }));
   }
 
-  async receipts(): Promise<Record<string, Receipt>> {
+  async receipts(_ids: string[]): Promise<Record<string, Receipt>> {
     return {};
   }
 }

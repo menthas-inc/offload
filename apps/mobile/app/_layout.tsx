@@ -9,7 +9,7 @@ import { useColorScheme } from "nativewind";
 import { applyTheme, storedTheme } from "../lib/appearance";
 import { useColors } from "../lib/colors";
 import { AccessibilityInfo, Platform } from "react-native";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router, usePathname } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -22,7 +22,6 @@ import { Shell } from "../components/shell/Shell";
 import { PlateInsetProvider } from "../components/shell/plate-inset";
 import { ShareArrival } from "../components/shell/ShareArrival";
 import * as Notifications from "expo-notifications";
-import { useRouter } from "expo-router";
 import { prepare, register, respond } from "../lib/notifications";
 
 // The index route asks the server where to open and draws nothing while it
