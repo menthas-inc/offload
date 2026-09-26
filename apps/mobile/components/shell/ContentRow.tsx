@@ -63,6 +63,11 @@ const ICON: Record<string, string> = {
   note: "align-left",
 };
 
+/** The title's line height, which every lead and tool is centred on. */
+const TITLE_LINE = 21;
+/** A 36px tile centred on that line: the top padding is 8, so it fits. */
+const ON_TITLE_LINE = (TITLE_LINE - 36) / 2;
+
 interface Props {
   row: ContentRow;
   border: boolean;
@@ -254,15 +259,20 @@ export function ContentRowView({
       <GestureDetector gesture={Gesture.Simultaneous(pan, long)}>
         <Animated.View
           style={sliding}
-          className={`flex-row items-center gap-space-5 px-gutter-screen py-space-4 ${
+          // 2026-09-26. Top-aligned, and every lead and tool is centred on the
+          // title's 21px line by its own margin, so the chip, the meta and
+          // the body under the title read as the row's detail. Centred on
+          // the whole row, a checkbox beside a three-line row floated
+          // between lines that were not its own.
+          className={`flex-row items-start gap-space-5 px-gutter-screen py-space-4 ${
             border ? "border-b border-border-hairline" : ""
           }`}
         >
           {reorder ? (
             <GestureDetector gesture={drag}>
               <View
-                className="justify-center self-stretch"
-                style={[{ marginLeft: -6, marginRight: -6, marginBlock: -8 }, hidden]}
+                className="justify-start self-stretch"
+                style={[{ marginLeft: -6, marginRight: -6, marginBlock: -8, paddingTop: 10 }, hidden]}
                 pointerEvents={provisional ? "none" : "auto"}
                 accessibilityRole="button"
                 accessibilityLabel={`Move ${row.title}`}
@@ -275,22 +285,27 @@ export function ContentRowView({
           ) : null}
 
           {onToggle ? (
-            <Pressable
-              onPress={onToggle}
-              disabled={provisional}
-              hitSlop={12}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: row.doneAt !== null }}
-              className="items-center justify-center rounded-xs border"
-              style={{
-                width: 21,
-                height: 21,
-                borderColor: row.doneAt ? COLOR.accent : COLOR.iconOnWell,
-                backgroundColor: row.doneAt ? COLOR.accent : "transparent",
-              }}
-            >
-              {row.doneAt ? <Glyph name="check" size={13} color={COLOR.onSolid} /> : null}
-            </Pressable>
+            // In the tile's 36px slot, so a task's title starts where an
+            // event's does: the owner saw the two indented apart on Today.
+            <View className="items-center" style={{ width: 36 }}>
+              <Pressable
+                onPress={onToggle}
+                disabled={provisional}
+                hitSlop={12}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: row.doneAt !== null }}
+                className="items-center justify-center rounded-xs border"
+                style={{
+                  // The title line is 21 tall, so the box sits on it as it is.
+                  width: 21,
+                  height: 21,
+                  borderColor: row.doneAt ? COLOR.accent : COLOR.iconOnWell,
+                  backgroundColor: row.doneAt ? COLOR.accent : "transparent",
+                }}
+              >
+                {row.doneAt ? <Glyph name="check" size={13} color={COLOR.onSolid} /> : null}
+              </Pressable>
+            </View>
           ) : (
             // **The page's own picture, where the type glyph would be.** A
             // listing is recognised by its photo long before its title, and the
@@ -314,7 +329,7 @@ export function ContentRowView({
                 <PhotoThumb
                   blobId={row.photo.blobId}
                   ready={row.photo.ready}
-                  style={{ width: 36, height: 36 }}
+                  style={{ width: 36, height: 36, marginTop: ON_TITLE_LINE }}
                   className="rounded-sm"
                   fallback={
                     <View
@@ -349,7 +364,7 @@ export function ContentRowView({
                     ? "bg-a-c-low"
                     : "bg-surface-fill"
               }`}
-              style={{ width: 36, height: 36 }}
+              style={{ width: 36, height: 36, marginTop: ON_TITLE_LINE }}
             >
               <Glyph name={ICON[row.type] ?? "align-left"} size={18} color={COLOR.iconOnWell} />
             </View>
@@ -473,13 +488,13 @@ export function ContentRowView({
            *  whoever is looking: putting something back is not destructive and
            *  is not the author's alone. */}
           {door ? (
-            <View style={hidden} accessibilityElementsHidden>
+            <View style={[hidden, { marginTop: (TITLE_LINE - 17) / 2 }]} accessibilityElementsHidden>
               <Glyph name="arrow-up-right" size={17} color={COLOR.iconOnWell} />
             </View>
           ) : (
           <View
             className="flex-row items-center gap-space-6"
-            style={hidden}
+            style={[hidden, { marginTop: (TITLE_LINE - 17) / 2 }]}
             pointerEvents={provisional ? "none" : "auto"}
             accessibilityElementsHidden={provisional}
           >

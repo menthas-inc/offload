@@ -49,7 +49,8 @@ for (const file of files) {
     }
     const have = defined(cssPath);
     const used = new Set(
-      [...src.matchAll(new RegExp(`\\b${local}\\.([A-Za-z][\\w]*)`, "g"))].map((m) => m[1])
+      // Not the import line itself: `people.module.css` is a path, not a class.
+      [...src.replace(/^import\s.*$/gm, "").matchAll(new RegExp(`\\b${local}\\.([A-Za-z][\\w]*)`, "g"))].map((m) => m[1])
     );
     for (const name of used) {
       if (!have.has(name)) {
