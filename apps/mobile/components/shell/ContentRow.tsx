@@ -52,15 +52,15 @@ const REVEAL = 88;
 const isAndroid = Platform.OS === "android";
 
 const ICON: Record<string, string> = {
-  task: "circle-check",
+  task: "square-check-big",
   event: "calendar",
   location: "map-pin",
   link: "link",
   image: "image",
   screenshot: "image",
-  file: "file",
+  file: "paperclip",
   voice: "mic",
-  note: "align-left",
+  note: "text-quote",
 };
 
 /** The title's line height, which every lead and tool is centred on. */
@@ -366,7 +366,7 @@ export function ContentRowView({
               }`}
               style={{ width: 36, height: 36, marginTop: ON_TITLE_LINE }}
             >
-              <Glyph name={ICON[row.type] ?? "align-left"} size={18} color={COLOR.iconOnWell} />
+              <Glyph name={ICON[row.type] ?? "text-quote"} size={18} color={COLOR.iconOnWell} />
             </View>
             )
           )}
