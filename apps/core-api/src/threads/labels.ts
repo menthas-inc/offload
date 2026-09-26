@@ -290,6 +290,7 @@ export async function deleteLabel(executor: Executor, actor: Actor, labelId: str
  *  still be free; the colour is its own if nobody took it, the lowest free if
  *  somebody did, and a thread that filled to ten meanwhile refuses. */
 export async function restoreLabel(executor: Executor, actor: Actor, labelId: string): Promise<Label> {
+  if (actor.via === "offload") throw new LabelRefused("person_set");
   return inTransaction(executor, async (trx) => {
     const row = await trx
       .selectFrom("labels")
@@ -789,9 +790,10 @@ export async function applyTurnLabels(
 // ---------------------------------------------------------------- undoing a sort
 
 /** Take back one sort. Joins it set that are still as it left them are
- *  removed; joins it took off come back; a label it made goes when nothing
- *  a person set is under it and nobody renamed or recoloured it. What a person
- *  has touched since is theirs and stays. Returns what it took back. */
+ *  removed; joins it took off come back; a label it made goes when no live
+ *  join from anyone else, a person or a later sort, is under it and nobody
+ *  renamed or recoloured it. What anyone has touched since stays. Returns
+ *  what it took back. */
 export async function undoRun(trx: Executor, runId: string): Promise<{ joins: number; labels: number }> {
   const run = await trx.selectFrom("label_runs").selectAll().where("id", "=", runId).forUpdate().executeTakeFirst();
   if (!run || run.undone_at !== null) return { joins: 0, labels: 0 };
@@ -826,7 +828,6 @@ export async function undoRun(trx: Executor, runId: string): Promise<{ joins: nu
             .select("content_labels.label_id")
             .whereRef("content_labels.label_id", "=", "labels.id")
             .where("content_labels.removed_at", "is", null)
-            .where((eb) => (run.set_by === "offload" ? eb("content_labels.set_by", "=", "person") : eb.lit(true))),
         ),
       ),
     )
@@ -837,7 +838,6 @@ export async function undoRun(trx: Executor, runId: string): Promise<{ joins: nu
             .select("note_labels.label_id")
             .whereRef("note_labels.label_id", "=", "labels.id")
             .where("note_labels.removed_at", "is", null)
-            .where((eb) => (run.set_by === "offload" ? eb("note_labels.set_by", "=", "person") : eb.lit(true))),
         ),
       ),
     )

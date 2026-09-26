@@ -152,12 +152,14 @@ describe("renaming and recolouring (AC-2, AC-3, AC-26)", () => {
     expect(rows.find((r) => r.id === b.id)).toMatchObject({ colour: 1, deleted_at: null });
   });
 
-  it("refuses offload renaming or recolouring anything", async () => {
+  it("refuses offload renaming, recolouring, deleting or restoring anything", async () => {
     const me = await account();
     const t = await thread(me);
     const l = await createLabel(db, offload(me), t, { name: "Lisbon" });
     expect(await refusal(updateLabel(db, offload(me), l.id, { name: "Lisboa" }))).toBe("person_set");
     expect(await refusal(deleteLabel(db, offload(me), l.id))).toBe("person_set");
+    await deleteLabel(db, person(me), l.id);
+    expect(await refusal(restoreLabel(db, offload(me), l.id))).toBe("person_set");
   });
 });
 

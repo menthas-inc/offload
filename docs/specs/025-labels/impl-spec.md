@@ -28,7 +28,7 @@ Parts 3 and 4 are the offload track the owner put last; part 2 ships without the
 **Pagination.** The thread's content stays server-side, cursor on id, 30 per page (`PAGE`), and gains the filter as a parameter, so a narrowed list pages exactly as an unnarrowed one. The label's list reads through the same endpoint with `ticksFor` set (below). Labels per thread are at most ten and return whole. Notes stay in the bundle, whole, as today, and are filtered client-side, which is correct because the bundle holds every active note.
 
 **Indexes.**
-- `labels (thread_id, created_at) where deleted_at is null`, and a unique index on `(thread_id, lower(name)) where deleted_at is null`, and a unique index on `(thread_id, colour) where deleted_at is null`. The two uniques are the enforcement of AC-2 and AC-3; a race loses at the database, not in a check.
+- `labels (thread_id, created_at) where deleted_at is null`, and a unique index on `(thread_id, lower(name)) where deleted_at is null`, and a unique index on `(thread_id, colour) where deleted_at is null`. Every label write takes the thread's row `for update` first, so two writes to one thread run one after the other and the second sees the first. The two uniques are the backstop for AC-2 and AC-3: a write that ever skipped the lock still loses at the database, and `takenOnConflict` turns that into `label_taken`.
 - `content_labels (content_id, label_id)` primary key, which serves the marks per row; `content_labels (label_id, content_id) where removed_at is null` for the list, the counts and the filter's `exists`.
 - `note_labels` the same two.
 - `label_runs (thread_id, created_at)` and `label_runs (turn_id) where turn_id is not null`.
@@ -195,8 +195,8 @@ The label's list saves through `POST /v1/labels/:id/rows` for an existing label 
 ## Edge cases
 
 - **A label deleted between a list open and its save:** `label_gone`, the client closes the sheet and toasts.
-- **Two members creating the same name at once:** the partial unique index refuses the second as `label_taken`.
-- **Colour swap under a race:** the swap is one statement with the unique index deferred to the end of the statement; a concurrent create taking the target colour fails on the index and is retried once by the server with the next free colour.
+- **Two members creating the same name at once:** the thread lock runs them in turn and the second is refused as `label_taken`; the unique index is the backstop.
+- **Colour swap under a race:** the swap runs under the thread lock, parking one label with a temporary `deleted_at` while the other takes its colour, so no concurrent write sees two labels on one colour.
 - **An eleventh label from a `#` pick on the phone that thought there was room:** `label_limit` on send; the dump itself still files; the footer shows no mark; the composer's list is refreshed next time the thread loads.
 - **A row moved while its label sheet is open:** the save's resolution finds the row in another thread and refuses `not_found`; the client toasts *Couldn't save that* and closes.
 - **A note folded while labelled:** `applyCompaction` inserts the new note, then copies the union of the superseded notes' live joins with `set_by = 'offload'` unless any source join was `person`, in which case that label's join is `person` (AC-29).

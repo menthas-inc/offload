@@ -227,9 +227,6 @@ export async function labelRoutes(app: App): Promise<void> {
             name !== undefined || colour !== undefined ? (await updateLabel(trx, actor, labelId, { name: name ?? null, colour: colour ?? null })).previous : null;
           const added = await applyLabels(trx, actor, threadId, add, [labelId], []);
           const removed = await applyLabels(trx, actor, threadId, remove, [], [labelId]);
-          // Resolve the label even when nothing was ticked, so a label from a
-          // thread the person is not in is a 404 rather than an empty success.
-          await applyLabels(trx, actor, threadId, {}, [labelId], []);
           return { previous, added: added.applied, removed: removed.removed };
         });
         return reply.send({

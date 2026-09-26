@@ -221,6 +221,19 @@ describe("Undo from Activity (AC-28)", () => {
     expect((await labelsOfThread(t)).map((l) => l.name)).toEqual(["Istanbul"]);
   });
 
+  it("keeps a label a later sort still uses", async () => {
+    const { me, t, ferry, activityId } = await sortedThread();
+    const istanbul = (await labelsOfThread(t))[0]!;
+    const hammam = await row(me, t, "Hammam two");
+    const job = await sortJob(me, t);
+    await sorted({ jobId: job.id, create: [], apply: [{ labelId: istanbul.id, contentIds: [hammam] }] });
+
+    await as(app, await signIn(me)).post(`/v1/activity/${activityId}/undo`);
+    expect((await contentLabelsFor([ferry])).get(ferry)).toBeUndefined();
+    expect((await contentLabelsFor([hammam])).get(hammam)).toEqual([istanbul.id]);
+    expect((await labelsOfThread(t)).map((l) => l.name)).toEqual(["Istanbul"]);
+  });
+
   it("refuses somebody else's row, a member who left, and a row past thirty days", async () => {
     const { me, sam, t, activityId } = await sortedThread();
     const stranger = await account("Stranger");
