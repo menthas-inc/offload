@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/notification_sent.v1.json",
+  "title": "notification_sent",
+  "description": "A people send reached a phone. The kind alone.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind"],
+  "properties": {
+    "kind": { "type": "string", "enum": ["request", "share", "shared_activity"] }
+  }
+}

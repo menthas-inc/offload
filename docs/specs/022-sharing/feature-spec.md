@@ -46,7 +46,7 @@ A request arrives as a card, the kit's `PendingInvite` with two chips on their o
 
 One signal, in two places: the gear in the app bar, beside the bell, on the screens that draw that bar, and the My people row inside Settings. It is the 8px clay dot the design gives `IconButton`, inside its 1.5px paper ring, at the top right of the glyph; the code's bar draws bare glyphs and gains the dot on the gear glyph in the same place. The My people row's lead takes the same dot. On the web it is the sidebar's Settings item and the same row.
 
-**Only a request needing your answer dots anything.** Your own pending requests do not, because nothing is waiting on you, and a waiting share is the strip's job. A request you answered Not now to does not dot anything either. There is no notifications page.
+**Only a request needing your answer dots the gear.** Your own pending requests do not, because nothing is waiting on you, and a waiting share is the strip's job. A request you answered Not now to does not dot anything either. *Amended 2026-09-22 by 024: the gear owns a request and the bell owns the record. Everything offload sends or decides not to send lands in Activity, which the bell opens, and dots the bell; a connection request keeps the gear's dot and dots nothing else. There is no notifications page in 022's sense, a list of things that happened; Activity is that list, and 024 says why it survives this argument.*
 
 ### My people
 

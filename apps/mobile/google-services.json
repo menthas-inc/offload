@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "127565396398",
+    "project_id": "offload-42787",
+    "storage_bucket": "offload-42787.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:127565396398:android:604716a13f1efeeec7b03f",
+        "android_client_info": {
+          "package_name": "club.offload.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGR75PW6tfxozEi1TuTSAmy2Ap-Sl_jtI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -221,12 +221,22 @@ export const getMe = (): Promise<Me | null> => request<Me>("/api/me");
  *  network failure, landed the person on Today with the account still
  *  `invited` and no consent written. The web has always checked; this is the
  *  same contract. */
-export async function completeOnboarding(displayName: string): Promise<boolean> {
+export async function completeOnboarding(
+  displayName: string,
+  /** 023. The device's zone, which becomes the account's clock. Left out
+   *  rather than sent empty when the runtime will not say. */
+  timeZone: string | null = null,
+): Promise<boolean> {
   try {
     const result = await request("/api/onboarding/complete", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true, displayName }),
+      body: JSON.stringify({
+        readPolicy: true,
+        agreeToProcessing: true,
+        displayName,
+        ...(timeZone ? { timeZone } : {}),
+      }),
     });
     return result !== null;
   } catch {
@@ -235,4 +245,41 @@ export async function completeOnboarding(displayName: string): Promise<boolean> 
     // forever with nothing on screen to say why.
     return false;
   }
+}
+
+// ---------------------------------------------------------------- 024
+
+/** The account's Activity, a page at a time, and the agenda. Shapes as the
+ *  server sends them; the screens read them through their own libs. */
+export async function fetchActivity<T>(cursor: string | null): Promise<T | null> {
+  return request<T>(`/v1/activity${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`);
+}
+
+export async function markActivitySeen(): Promise<void> {
+  await request("/v1/activity/seen", { method: "POST" }).catch(() => null);
+}
+
+export async function fetchToday<T>(): Promise<T | null> {
+  return request<T>("/v1/today");
+}
+
+export async function registerPushToken(token: string, platform: "ios" | "android"): Promise<boolean> {
+  const result = await request("/v1/push-tokens", { method: "POST", body: JSON.stringify({ token, platform }) }).catch(() => null);
+  return result !== null;
+}
+
+/** Once, and once more: a token left bound past a sign-out is the last
+ *  account's words on the next person's lock screen. */
+export async function deletePushToken(token: string): Promise<boolean> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = await request("/v1/push-tokens", { method: "DELETE", body: JSON.stringify({ token }) }).catch(() => null);
+    if (result !== null) return true;
+  }
+  return false;
+}
+
+/** A verb from a notification: the session and the row's id, nothing else. */
+export async function actOnNotification(action: "done" | "tomorrow", contentId: string): Promise<boolean> {
+  const result = await request("/v1/notifications/act", { method: "POST", body: JSON.stringify({ action, contentId }) }).catch(() => null);
+  return result !== null;
 }

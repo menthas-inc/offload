@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { request, send } from "./api";
+import { onSignedOut } from "./auth";
 import { failed } from "./log";
 
 export interface Me {
@@ -35,6 +36,24 @@ export interface Me {
   /** 022. Connection requests waiting for their answer: the dot on the gear
    *  and on the My people row. */
   requestsWaiting: number;
+  /** 023. The account's clock, or null until a device names one; every timed
+   *  date is drawn in it. */
+  timeZone: string | null;
+  /** Whether the strip on Today may offer to switch when this phone is
+   *  somewhere else. */
+  followDevice: boolean;
+  /** The one device zone they answered Keep to. */
+  keptTimeZone: string | null;
+  /** 024. The four switches, named as the sends are, and the two hours as
+   *  HH:MM in the account's zone. */
+  notifyDueToday: boolean;
+  notifyDueTodayAt: string;
+  notifyComingTomorrow: boolean;
+  notifyComingTomorrowAt: string;
+  notifyPeopleRequests: boolean;
+  notifySharedActivity: boolean;
+  /** The dot on the bell: Activity holds a row newer than its last opening. */
+  activityNew: boolean;
 }
 
 /** Ask again, and tell every mounted `useMe`. For after a request is
@@ -42,7 +61,7 @@ export interface Me {
 export async function refreshMe(): Promise<void> {
   try {
     const { data } = await send<Me>("/api/me");
-    if (data) for (const listener of listeners) listener(data);
+    if (data) announce(data);
   } catch (error) {
     failed("me.refresh", error);
   }
@@ -57,6 +76,50 @@ export async function refreshMe(): Promise<void> {
 type Listener = (me: Me) => void;
 const listeners = new Set<Listener>();
 
+/** 023. The last identity heard, so a row can draw its date in the account's
+ *  clock without every row asking the server. Filled by the first `useMe`
+ *  or by `ensureMe`, and kept current by every write that broadcasts. */
+let cached: Me | null = null;
+let asking: Promise<void> | null = null;
+
+// The cache goes with the session, so the next person on this phone never
+// draws a date in the last one's clock.
+onSignedOut(() => {
+  cached = null;
+});
+
+function announce(me: Me): void {
+  cached = me;
+  for (const listener of listeners) listener(me);
+}
+
+export function currentMe(): Me | null {
+  return cached;
+}
+
+/** Hear every change to the identity; returns the way to stop. */
+export function onMe(listener: Listener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/** Ask once, for whoever needs the identity before a `useMe` has run. Every
+ *  caller shares one request in flight. */
+export function ensureMe(): Promise<void> {
+  if (cached) return Promise.resolve();
+  asking ??= send<Me>("/api/me")
+    .then(({ data }) => {
+      if (data) announce(data);
+    })
+    .catch((error) => failed("me.ensure", error))
+    .finally(() => {
+      asking = null;
+    });
+  return asking;
+}
+
 /** Null while it is being asked, and null if the ask failed.
  *
  *  A settings screen whose identity block did not load still works: the rows
@@ -70,6 +133,7 @@ export function useMe(): Me | null {
     void (async () => {
       try {
         const { data } = await send<Me>("/api/me");
+        if (data) cached = data;
         if (live && data) setMe(data);
       } catch (error) {
         failed("me.fetch", error);
@@ -117,7 +181,7 @@ export async function setCountry(country: string | null): Promise<Me | null> {
       body: JSON.stringify({ country }),
     });
     if (!updated) return null;
-    for (const listener of listeners) listener(updated);
+    announce(updated);
     return updated;
   } catch (error) {
     failed("me.setCountry", error);
@@ -135,10 +199,60 @@ export async function setWebAccess(
       body: JSON.stringify(patch),
     });
     if (!updated) return null;
-    for (const listener of listeners) listener(updated);
+    announce(updated);
     return updated;
   } catch (error) {
     failed("me.setWebAccess", error);
+    return null;
+  }
+}
+
+/** The account's clock. 023.
+ *
+ *  One field a call. Use writes `timeZone`, and the server clears
+ *  `keptTimeZone` with it; Keep writes `keptTimeZone`; the switch on Date and
+ *  time writes `followDevice`. No Undo, because each is one tap from its
+ *  reverse. Null on a refusal or a failure, and the strip puts itself back. */
+export async function setClock(patch: {
+  timeZone?: string;
+  followDevice?: boolean;
+  keptTimeZone?: string | null;
+}): Promise<Me | null> {
+  try {
+    const updated = await request<Me>("/api/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!updated) return null;
+    announce(updated);
+    return updated;
+  } catch (error) {
+    failed("me.setClock", error);
+    return null;
+  }
+}
+
+/** The switches and the hours. 024. One field a call, as every setter here. */
+export async function setNotify(patch: {
+  notifyDueToday?: boolean;
+  notifyDueTodayAt?: string;
+  notifyComingTomorrow?: boolean;
+  notifyComingTomorrowAt?: string;
+  notifyPeopleRequests?: boolean;
+  notifySharedActivity?: boolean;
+}): Promise<Me | null> {
+  try {
+    const updated = await request<Me>("/api/me", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!updated) return null;
+    announce(updated);
+    return updated;
+  } catch (error) {
+    failed("me.setNotify", error);
     return null;
   }
 }
@@ -161,7 +275,7 @@ export async function saveName(displayName: string): Promise<Me | null> {
     });
     if (!updated) return null;
 
-    for (const listener of listeners) listener(updated);
+    announce(updated);
     return updated;
   } catch (error) {
     failed("me.saveName", error);

@@ -34,6 +34,19 @@ export interface Me {
   /** Where they said they are, ISO 3166-1 alpha-2. Null until they say, and
    *  offload then tells the model it does not know rather than assuming. */
   country: string | null;
+  /** 023. The account's clock, or null until a device names one. */
+  timeZone: string | null;
+  followDevice: boolean;
+  keptTimeZone: string | null;
+  /** 024. The four switches, named as the sends are, the two hours as HH:MM
+   *  in the account's zone, and the dot on Activity. */
+  notifyDueToday: boolean;
+  notifyDueTodayAt: string;
+  notifyComingTomorrow: boolean;
+  notifyComingTomorrowAt: string;
+  notifyPeopleRequests: boolean;
+  notifySharedActivity: boolean;
+  activityNew: boolean;
   /** What Apple or Google called them, to fill the field in. Only ever sent to
    *  the account it belongs to, and null when the provider sent nothing. */
   suggestedName: string | null;
@@ -49,6 +62,7 @@ export async function refreshMe(): Promise<void> {
     const response = await fetch(`${API}/api/me`, { credentials: "include" });
     if (!response.ok) return;
     const me = (await response.json()) as Me;
+    cached = me;
     window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
   } catch {
     // Nothing to say: the dot is a hint and the next open reads it again.
@@ -74,6 +88,29 @@ export type MeState = { status: "loading" } | { status: "ready"; me: Me };
  *  mechanism `appearance.ts` uses for the theme, and for the same reason. */
 const CHANGED = "offload:me-changed";
 
+/** 023. The last identity heard, so a row can draw its date in the account's
+ *  clock without asking the server. Filled by `useMe` and by every change. */
+let cached: Me | null = null;
+
+export function currentMe(): Me | null {
+  return cached;
+}
+
+/** The cache goes with the session, so the next person in this browser never
+ *  draws a date in the last one's clock. Called by sign-out once the server
+ *  has ended the session. 023, from the security review of 2026-09-22. */
+export function forgetMe(): void {
+  cached = null;
+}
+
+/** Hear every change to the identity; returns the way to stop. */
+export function onMe(listener: (me: Me) => void): () => void {
+  const handler = (event: Event) => listener((event as CustomEvent<Me>).detail);
+  window.addEventListener(CHANGED, handler);
+  if (cached) listener(cached);
+  return () => window.removeEventListener(CHANGED, handler);
+}
+
 /** Reads the current account, sending anyone without a session to the gate.
  *  `expect` says which side of first run this screen is for; landing on the
  *  wrong side is a redirect, not an error. */
@@ -92,6 +129,7 @@ export function useMe(expect: "first-run" | "shell"): MeState {
           return;
         }
         const me = (await response.json()) as Me;
+        cached = me;
         if (!live) return;
         if (stillAsking(me) && expect === "shell") router.replace("/welcome");
         else if (!stillAsking(me) && expect === "first-run") router.replace("/today");
@@ -131,7 +169,12 @@ export function useMe(expect: "first-run" | "shell"): MeState {
  *  Not void: a network failure or a session that expired mid-onboarding used
  *  to throw out of here, which left the caller's "leaving" flag stuck true and
  *  every button on the screen disabled with no way back but a reload. */
-export async function completeOnboarding(displayName: string): Promise<boolean> {
+export async function completeOnboarding(
+  displayName: string,
+  /** 023. The browser's zone, which becomes the account's clock. Left out
+   *  rather than sent empty when the runtime will not say. */
+  timeZone: string | null = null,
+): Promise<boolean> {
   try {
     const response = await fetch(`${API}/api/onboarding/complete`, {
       method: "POST",
@@ -141,7 +184,12 @@ export async function completeOnboarding(displayName: string): Promise<boolean> 
       // pair rather than one "consented" flag so that adding or changing a
       // consent is a change the server can see, not a boolean that silently
       // starts meaning something else.
-      body: JSON.stringify({ readPolicy: true, agreeToProcessing: true, displayName }),
+      body: JSON.stringify({
+        readPolicy: true,
+        agreeToProcessing: true,
+        displayName,
+        ...(timeZone ? { timeZone } : {}),
+      }),
     });
     return response.ok;
   } catch {
@@ -179,6 +227,61 @@ export async function updateCountry(country: string | null): Promise<Me | null> 
     });
     if (!response.ok) return null;
     const me = (await response.json()) as Me;
+    cached = me;
+    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
+    return me;
+  } catch {
+    return null;
+  }
+}
+
+/** The account's clock. 023.
+ *
+ *  One field a call. Use writes `timeZone`, and the server clears
+ *  `keptTimeZone` with it; Keep writes `keptTimeZone`; the switch on Date and
+ *  time writes `followDevice`. No Undo, because each is one tap from its
+ *  reverse. Null on a refusal or a failure, and the strip puts itself back. */
+export async function updateClock(patch: {
+  timeZone?: string;
+  followDevice?: boolean;
+  keptTimeZone?: string | null;
+}): Promise<Me | null> {
+  try {
+    const response = await fetch(`${API}/api/me`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!response.ok) return null;
+    const me = (await response.json()) as Me;
+    cached = me;
+    window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
+    return me;
+  } catch {
+    return null;
+  }
+}
+
+/** The switches and the hours. 024. One field a call. */
+export async function updateNotify(patch: {
+  notifyDueToday?: boolean;
+  notifyDueTodayAt?: string;
+  notifyComingTomorrow?: boolean;
+  notifyComingTomorrowAt?: string;
+  notifyPeopleRequests?: boolean;
+  notifySharedActivity?: boolean;
+}): Promise<Me | null> {
+  try {
+    const response = await fetch(`${API}/api/me`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!response.ok) return null;
+    const me = (await response.json()) as Me;
+    cached = me;
     window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
     return me;
   } catch {
@@ -200,6 +303,7 @@ export async function updateWebAccess(patch: {
     if (!response.ok) return null;
 
     const me = (await response.json()) as Me;
+    cached = me;
     window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
     return me;
   } catch {
@@ -227,6 +331,7 @@ export async function updateName(displayName: string): Promise<Me | null> {
     if (!response.ok) return null;
 
     const me = (await response.json()) as Me;
+    cached = me;
     window.dispatchEvent(new CustomEvent<Me>(CHANGED, { detail: me }));
     return me;
   } catch {

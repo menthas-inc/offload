@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/digest_sent.v1.json",
+  "title": "digest_sent",
+  "description": "A digest reached the account's phones. The send, and two counts. Never a title, a name or a token.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["send", "rows", "overdue"],
+  "properties": {
+    "send": { "type": "string", "enum": ["morning", "evening"] },
+    "rows": { "type": "integer", "minimum": 0 },
+    "overdue": { "type": "integer", "minimum": 0 }
+  }
+}

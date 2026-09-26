@@ -928,33 +928,59 @@ describe("dates a model actually writes", () => {
     expect((row.attrs as Record<string, unknown>)["all_day"]).toBe(true);
   });
 
-  it("drops a repeat that has no first occurrence rather than raising", async () => {
-    // "Pay rent every month" as a task with only a due date is a plausible
-    // slip, and the database refuses a rule with nothing to start from. This
-    // endpoint's contract is that a refusal is a 200 the model can read, so an
-    // unhandled check violation would be a 500 from the one route that must
-    // never produce one.
+  it("refuses an event whose end comes before its start, as the sheet's route does", async () => {
+    // The code review of 2026-09-22: the model-facing writers stored a
+    // reversed span where the person-facing route refuses one.
+    const me = await account();
+    const t = await thread(me, "Flat admin");
+    const { jobId } = await dump(me);
+    const reversed = await tool({
+      tool: "add_content", jobId, toolCallId: "t1", threadId: t,
+      title: "Drinks", type: "event", occursAt: "2026-10-01T18:00:00", occursEndAt: "2026-10-01T17:00:00",
+    });
+    expect(reversed.statusCode).toBe(200);
+    expect(reversed.json()).toMatchObject({ ok: false, error: "bad_date" });
+  });
+
+  it("anchors a task's rule on its due date, and refuses a rule with nothing to anchor on by name", async () => {
+    // "Pay rent every month" as a task with a due date is a repeating task
+    // since 023: the rule anchors on the type's column. A rule with no date
+    // at all is refused as `bad_rule`, a 200 the model can read and correct,
+    // never a check violation from the one route that must not 500.
     const me = await account();
     const t = await thread(me, "Flat admin");
     const { jobId, messageId } = await dump(me);
 
     const response = await tool({
       tool: "add_content", jobId, toolCallId: "t1", threadId: t,
-      title: "Pay rent", type: "task", dueAt: "2026-10-01", repeats: "month",
+      title: "Pay rent", type: "task", dueAt: "2026-10-01", rrule: "FREQ=MONTHLY",
     });
     expect(response.statusCode).toBe(200);
     expect(response.json().ok).toBe(true);
 
     const row = await db
       .selectFrom("content")
-      .select(["repeats", "occurs_at", "due_at"])
+      .select(["rrule", "occurs_at", "due_at"])
       .where("derived_from_message_id", "=", messageId)
       .executeTakeFirstOrThrow();
-    expect(row.repeats).toBeNull();
+    expect(row.rrule).toBe("FREQ=MONTHLY");
     expect(row.due_at).not.toBeNull();
+
+    const unanchored = await tool({
+      tool: "add_content", jobId, toolCallId: "t2", threadId: t,
+      title: "Water the plants", type: "task", rrule: "FREQ=WEEKLY",
+    });
+    expect(unanchored.statusCode).toBe(200);
+    expect(unanchored.json()).toMatchObject({ ok: false, error: "bad_rule" });
+
+    const outside = await tool({
+      tool: "add_content", jobId, toolCallId: "t3", threadId: t,
+      title: "Water the plants", type: "task", dueAt: "2026-10-01", rrule: "FREQ=HOURLY",
+    });
+    expect(outside.json()).toMatchObject({ ok: false, error: "bad_rule" });
   });
 
-  it("keeps a repeat that does have one", async () => {
+  it("keeps a rule that does have an anchor, canonical", async () => {
     const me = await account();
     const t = await thread(me, "Flat admin");
     const { jobId, messageId } = await dump(me);
@@ -962,15 +988,40 @@ describe("dates a model actually writes", () => {
     await tool({
       tool: "add_content", jobId, toolCallId: "t1", threadId: t,
       title: "Standup", type: "event", occursAt: "2026-09-28T09:00:00Z",
-      repeats: "weekday",
+      rrule: "byday=mo,tu,we,th,fr;freq=weekly",
     });
 
     const row = await db
       .selectFrom("content")
-      .select(["repeats"])
+      .select(["rrule"])
       .where("derived_from_message_id", "=", messageId)
       .executeTakeFirstOrThrow();
-    expect(row.repeats).toBe("weekday");
+    expect(row.rrule).toBe("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR");
+  });
+
+  it("023: a bare due date is all day, and a due date with an hour is not", async () => {
+    // A due date may carry an hour since 023, so the flag is read off the
+    // type's own column: a task's due date, an event's occurrence. Before this
+    // only the occurrence was asked, and a task due on a day was drawn with
+    // the hour of noon UTC in whatever zone the account keeps.
+    const me = await account();
+    const t = await thread(me, "Flat admin");
+    const { jobId, messageId } = await dump(me);
+
+    await tool({ tool: "add_content", jobId, toolCallId: "t1", threadId: t, title: "Pay rent", type: "task", dueAt: "2026-09-25" });
+    await tool({ tool: "add_content", jobId, toolCallId: "t2", threadId: t, title: "Call the clinic", type: "task", dueAt: "2026-09-25T09:00:00Z" });
+    await tool({ tool: "add_content", jobId, toolCallId: "t3", threadId: t, title: "Dentist", type: "event", occursAt: "2026-09-24", dueAt: "2026-09-20T09:00:00Z" });
+
+    const rows = await db
+      .selectFrom("content")
+      .select(["title", "attrs"])
+      .where("derived_from_message_id", "=", messageId)
+      .execute();
+    const allDay = (title: string) =>
+      ((rows.find((row) => row.title === title)?.attrs ?? {}) as Record<string, unknown>)["all_day"] === true;
+    expect(allDay("Pay rent")).toBe(true);
+    expect(allDay("Call the clinic")).toBe(false);
+    expect(allDay("Dentist")).toBe(true);
   });
 
   it("does not call a real time a day", async () => {

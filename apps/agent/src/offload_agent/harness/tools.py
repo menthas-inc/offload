@@ -37,6 +37,28 @@ PLACE_NAME_CHARS = 120
 # A day, or a timestamp with or without a zone. Mirrors what
 # apps/core-api/src/threads/dates.ts accepts, and exists so a model writing
 # "2026-09-28" is corrected here rather than by a 400 it cannot read.
+# 023. What a shape check can see of the rule's grammar: parts as KEY=VALUE in
+# any order, one of them FREQ with one of four values, nothing else. Ranges,
+# duplicates, anchors and the until-or-count rule are the server's, and it
+# names what it refuses as `bad_rule`. The fixture both suites read is
+# packages/widgets/fixtures/rules.json.
+_RULE_PART = re.compile(
+    r"^(FREQ|INTERVAL|BYDAY|BYMONTHDAY|UNTIL|COUNT|WKST)=[A-Z0-9,+-]+$"
+)
+_RULE_FREQ = re.compile(r"^FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)$")
+
+
+def _rule_shape(v: str | None) -> str | None:
+    if v is None or v.strip() == "":
+        return None
+    text = v.strip()
+    parts = text.upper().split(";")
+    well_formed = all(_RULE_PART.match(part) for part in parts)
+    if not well_formed or not any(_RULE_FREQ.match(part) for part in parts):
+        raise ValueError("expected a recurrence rule like FREQ=WEEKLY;BYDAY=TU")
+    return text
+
+
 _DATE_ISH = re.compile(
     r"^\d{4}-\d{2}-\d{2}"
     r"([T ]\d{2}:\d{2}(:\d{2})?(\.\d+)?)?"
@@ -95,9 +117,11 @@ class AddContent(BaseModel):
 
     # That it comes round again. One row carrying the rule, never one row per
     # occurrence: the calendar draws it on every matching day and a list draws
-    # it once.
-    repeats: Literal["day", "weekday", "week", "two_weeks", "month", "year"] | None = None
-    repeats_until: str | None = None
+    # it once. 023: an RFC 5545 rule, FREQ=WEEKLY;BYDAY=TU for every Tuesday,
+    # INTERVAL=2 for every other, UNTIL= or COUNT= when they said when it
+    # stops. The shape is checked here; the grammar is the server's, which
+    # refuses by name as `bad_rule`.
+    rrule: str | None = None
 
     # A flag on a task or an event, never a type of its own. A task that becomes
     # a reminder must not change type.
@@ -129,6 +153,11 @@ class AddContent(BaseModel):
         if self.photo is not None and not 1 <= self.photo <= 10:
             raise ValueError("photo is a number from 1 to 10")
         return self
+
+    @field_validator("rrule")
+    @classmethod
+    def looks_like_a_rule(cls, v: str | None) -> str | None:
+        return _rule_shape(v)
 
     @field_validator("due_at", "occurs_at", "occurs_end_at")
     @classmethod
@@ -169,6 +198,14 @@ class EditContent(BaseModel):
     due_at: str | None = None
     occurs_at: str | None = None
     occurs_end_at: str | None = None
+    # 023. The rule, which this tool never took: a recurrence could be created
+    # and never changed by anyone. None is not stated, never remove.
+    rrule: str | None = None
+
+    @field_validator("rrule")
+    @classmethod
+    def looks_like_a_rule(cls, v: str | None) -> str | None:
+        return _rule_shape(v)
 
     @field_validator("due_at", "occurs_at", "occurs_end_at")
     @classmethod
@@ -238,10 +275,14 @@ class AddNote(BaseModel):
 
     # That it comes round again. One note that repeats, never one note per
     # occurrence: the calendar draws a dot on every matching day and a list
-    # draws the one row. `occurs_at` is the first one and the day of the week
-    # comes from it.
-    repeats: Literal["day", "weekday", "week", "two_weeks", "month", "year"] | None = None
-    repeats_until: str | None = None
+    # draws the one row. `occurs_at` is the first one. 023: an RFC 5545 rule,
+    # as add_content takes it.
+    rrule: str | None = None
+
+    @field_validator("rrule")
+    @classmethod
+    def looks_like_a_rule(cls, v: str | None) -> str | None:
+        return _rule_shape(v)
 
 
 SCHEMAS: dict[str, type[BaseModel]] = {

@@ -502,17 +502,8 @@ function Row({
 function Meta({ row }: { row: ContentRow }) {
   const parts: string[] = [];
 
-  const when = row.occursAt ?? row.dueAt;
-  if (when) {
-    parts.push(
-      new Date(when).toLocaleDateString(undefined, {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-      })
-    );
-  }
-  if (row.isReminder) parts.push("reminder");
+  // 023. The date and the reminder are the chip's and the bell's now, on the
+  // title line; saying them here again would be two marks for one fact.
   if (row.place?.address) parts.push(row.place.address);
   // Bare tags only. A namespaced one is probably what the list is grouped by,
   // and repeating the group's own name on every row in it is noise.

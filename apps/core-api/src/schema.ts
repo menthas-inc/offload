@@ -51,6 +51,27 @@ export interface AccountsTable {
   web_links_enabled: Generated<boolean>;
   consent_version: string | null;
   consented_at: Timestamp | null;
+  /** 023. The account's clock, an IANA name ICU resolved. Set at first run
+   *  from the device, editable in Settings and by the strip on Today. Every
+   *  timed date is drawn and every digest is scheduled in it. Null until the
+   *  device says, and then everything reads as it did before: UTC. */
+  time_zone: string | null;
+  /** 023. The one device zone the person answered Keep to, so a trip asks
+   *  once. Cleared when the clock changes. */
+  kept_time_zone: string | null;
+  /** 023. Whether the strip may offer to switch the clock when the phone is
+   *  somewhere else. Off means nothing compares. */
+  follow_device: Generated<boolean>;
+  /** 024. The four switches, named as the sends are, and the two hours in
+   *  the account's zone, `HH:MM:SS` as Postgres hands a time back. */
+  notify_due_today: Generated<boolean>;
+  notify_due_today_at: Generated<string>;
+  notify_coming_tomorrow: Generated<boolean>;
+  notify_coming_tomorrow_at: Generated<string>;
+  notify_people_requests: Generated<boolean>;
+  notify_shared_activity: Generated<boolean>;
+  /** When Activity was last opened: the dot is a row newer than this. */
+  activity_seen_at: Timestamp | null;
   /** 022. The mark, a 176px PNG drawn once from the id and never rewritten.
    *  Not content. Null until somebody first asks for it. */
   avatar_png: Buffer | null;
@@ -255,6 +276,42 @@ export interface JobsTable {
   updated_at: Timestamp;
 }
 
+/** 024. A phone's push token, bound to the account that registered it last. */
+export interface PushTokensTable {
+  id: Generated<string>;
+  account_id: string;
+  token: string;
+  platform: "ios" | "android";
+  created_at: Timestamp;
+  last_seen_at: Timestamp;
+}
+
+/** 024. What offload told somebody, in the words it used, and what it decided
+ *  not to tell them and why. */
+export interface ActivityTable {
+  id: Generated<string>;
+  account_id: string;
+  kind: "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted";
+  sent: boolean;
+  reason: "setting" | "permission" | "design" | null;
+  title: string;
+  body: string | null;
+  send: "morning" | "evening" | null;
+  thread_id: string | null;
+  content_id: string | null;
+  about_account_id: string | null;
+  member_id: string | null;
+  request_id: string | null;
+  occurred_at: Timestamp;
+}
+
+/** 024. Whose words an Activity row carries, and from which thread. */
+export interface ActivityMentionsTable {
+  activity_id: string;
+  thread_id: string;
+  about_account_id: string;
+}
+
 export interface AnalyticsEventsTable {
   id: Generated<string>;
   name: string;
@@ -449,8 +506,10 @@ export interface ContentTable {
    *  calendar already sent and offload mirrors. A rule is what somebody said in
    *  words when there was nothing to mirror, and the two never describe one row:
    *  the database refuses it. */
-  repeats: "day" | "weekday" | "week" | "two_weeks" | "month" | "year" | null;
-  repeats_until: Timestamp | null;
+  /** 023. An RFC 5545 rule in the closed grammar of `@offload/widgets`, in
+   *  the server's own serialisation, anchored on `occurs_at` for an event and
+   *  `due_at` for everything else. Replaced the six-value `repeats`. */
+  rrule: string | null;
   /** `dimension:value`, or a bare value whose dimension is implicitly `tag`. */
   tags: Generated<string[]>;
   /** Null forever is a normal state: a location with a name and no pin. */
@@ -582,17 +641,8 @@ export interface NotesTable {
    *  **Not precedence.** Which of two disagreeing notes is true turns on
    *  `updated_at`, and moving a note leaves that alone. */
   priority: Generated<number>;
-  /** That this note repeats, in the words `cadenceLabel` already says out loud.
-   *
-   *  **The rule rather than the occurrences.** A calendar sends occurrences and
-   *  they become `content` rows sharing a `series_ref`; somebody who types
-   *  "yoga every Tuesday" is stating a rule, and expanding it into rows would
-   *  put the thirty identical lines back that `splitRepeating` exists to
-   *  collapse. One row, and the calendar draws a dot on every matching day of
-   *  whatever window is on screen. */
-  repeats: "day" | "weekday" | "week" | "two_weeks" | "month" | "year" | null;
-  /** When it stops. Null is "no end stated", which is what people mean. */
-  repeats_until: Timestamp | null;
+  /** 023. The rule, as `content.rrule`, anchored on `occurs_at`. */
+  rrule: string | null;
   attrs: Generated<unknown>;
   created_at: Timestamp;
   updated_at: Timestamp;
@@ -916,6 +966,9 @@ export interface Database {
   lookups: LookupsTable;
   domain_reads: DomainReadsTable;
   analytics_events: AnalyticsEventsTable;
+  push_tokens: PushTokensTable;
+  activity: ActivityTable;
+  activity_mentions: ActivityMentionsTable;
   waitlist_attempts: WaitlistAttemptsTable;
   schema_migrations: SchemaMigrationsTable;
 

@@ -3,7 +3,7 @@ import { env, isProduction, port } from "./env.js";
 import { closeDb } from "./db.js";
 import { createJobRunner } from "./jobs/runner.js";
 import { chooseMailer } from "./mail/index.js";
-import { startDaily, enqueue, PRIORITY } from "./jobs/queue.js";
+import { startDaily, startHourly, enqueue, PRIORITY } from "./jobs/queue.js";
 
 // Migrate before anything else is even imported. A deploy that starts
 // answering requests against a schema older than its code is the failure this
@@ -49,6 +49,8 @@ await startDaily("jobs.purge");
 await startDaily("account.daily");
 await startDaily("blob.daily");
 await startDaily("people.daily");
+// 024. The hourly placer of the two digests.
+await startHourly("digest.schedule");
 await startDaily("analytics.ship");
 
 // 013's sweep books its own successor, so this only has to start the chain.

@@ -13,6 +13,7 @@
 // does not guess why, because it cannot see.
 
 import { authClient } from "./auth-client";
+import { forgetMe } from "./use-me";
 
 /** Bounded, and the bound is not the interesting part.
  *
@@ -44,4 +45,5 @@ export async function signOut(): Promise<void> {
   ]);
 
   if (outcome !== "done") throw new SignOutFailed();
+  forgetMe();
 }

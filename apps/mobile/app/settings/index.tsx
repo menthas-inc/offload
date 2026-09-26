@@ -25,6 +25,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import Constants from "expo-constants";
+import { zoneCity } from "@offload/widgets";
 import { Glyph } from "../../components/Glyph";
 import { Group, Row } from "../../components/settings/Rows";
 import { ToastHost, useToast } from "../../components/shell/Toast";
@@ -198,9 +199,12 @@ export default function Settings() {
         </Group>
 
         <Group label="Reaching you">
-          {/* The kit puts Connected apps here, beside Communication. That row
-              is not built, so this group holds one thing rather than waiting
-              for the other. */}
+          {/* 024. Notifications, where the kit drew Communication. */}
+          <Row
+            icon="bell"
+            title="Notifications"
+            onPress={() => router.push("/settings/notifications")}
+          />
           <Row
             icon="link"
             title="Connected apps"
@@ -221,6 +225,14 @@ export default function Settings() {
         </Group>
 
         <Group label="The app">
+          {/* 023. The account's clock, as a city. Nothing until a device has
+              named one. */}
+          <Row
+            icon="clock"
+            title="Date and time"
+            value={me?.timeZone ? zoneCity(me.timeZone) : undefined}
+            onPress={() => router.push("/settings/datetime")}
+          />
           <Row
             icon="blend"
             title="Appearance"

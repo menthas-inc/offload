@@ -18,7 +18,6 @@ import {
   WEEKS_BEFORE_MONTHS,
   dayLabel,
   datedFor,
-  localDay,
   monthFor,
   railFor,
   stepMonth,
@@ -27,7 +26,10 @@ import {
   type Dated,
   type Day,
   type RailRow,
+  dayIn,
+  utcDay,
 } from "@offload/widgets";
+import { useClock } from "../../lib/clock";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { useWeekStart } from "../../lib/appearance";
@@ -39,10 +41,13 @@ import type { ContentRow, Note, ThreadEvent } from "../../lib/threads";
 /** 019. A calendar's event as an entry on the rail: kind `event`, never done,
  *  never repeating here since the copy already holds every occurrence. The id
  *  is prefixed so it can never collide with a row's. */
-function eventDated(event: ThreadEvent): Dated | null {
+function eventDated(event: ThreadEvent, zone: string | null): Dated | null {
   if (!event.occursAt) return null;
-  const from = localDay(new Date(event.occursAt));
-  const end = event.occursEndAt ? localDay(new Date(event.occursEndAt)) : from;
+  // 023. An all-day event is a date; a timed one lands on its day in the
+  // account's clock.
+  const day = (at: string) => (event.allDay ? utcDay(new Date(at)) : dayIn(new Date(at), zone));
+  const from = day(event.occursAt);
+  const end = event.occursEndAt ? day(event.occursEndAt) : from;
   return { id: `event:${event.id}`, rowId: `event:${event.id}`, due: false, kind: "event", from, to: end < from ? from : end, done: false };
 }
 
@@ -80,7 +85,7 @@ export function Timeline({
   const weekStart = useWeekStart();
   // Computed on render, so the first render after midnight moves today and
   // nothing polls for it.
-  const today = localDay(new Date());
+  const { zone, today } = useClock();
   // **Thread-scoped only because this is keyed by the thread.** `selected` and
   // `opened` are plain state, and the day somebody was reading would otherwise
   // follow them into the next thread, along with a gap row that reads as
@@ -105,7 +110,7 @@ export function Timeline({
   };
 
   // The thread's own dated things: what the span is made of.
-  const own = useMemo(() => datedFor(rows, notes), [rows, notes]);
+  const own = useMemo(() => datedFor(rows, notes, zone), [rows, notes, zone]);
 
   // **A rail past a few weeks stops being a rail.** Weeks read as time passing,
   // which is what the empty days are for; a year of weeks is a scroll. Past the
@@ -149,7 +154,7 @@ export function Timeline({
   }, [threadId, from, to, calendars.anyPicked, calendars.version]);
 
   const dated = useMemo(
-    () => [...own, ...events.map(eventDated).filter((one): one is Dated => one !== null)],
+    () => [...own, ...events.map((event) => eventDated(event, zone)).filter((one): one is Dated => one !== null)],
     [own, events],
   );
   const eventsById = useMemo(() => new Map(events.map((event) => [`event:${event.id}`, event])), [events]);
@@ -571,23 +576,11 @@ export function Timeline({
           onEdit={() => onEdit(row)}
           onArchive={() => onArchive(row)}
           onToggle={row.type === "task" ? () => onToggle(row) : undefined}
-          // **The time, which the phone's row has nowhere else to put.** Web
-          // draws it in the meta slot; here the row has one text line and this
-          // is the slot it has, so a day with three timed events says which
-          // order they are in rather than listing them silently.
-          // **Nothing when the date has no time in it.** A bare date is a day,
-          // and drawing an hour it does not have is how "Sunday brunch" read
-          // "8:00 PM".
-          note={
-            one.due
-              ? "due"
-              : row.allDay || !row.occursAt
-                ? undefined
-                : new Date(row.occursAt).toLocaleTimeString(undefined, {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })
-          }
+          // 023. The row's own chip says the day and the hour now, on the
+          // title line; the one thing the day list still has to say is that
+          // a row is here for the day it is wanted by rather than the day it
+          // happens.
+          note={one.due ? "due" : undefined}
         />
       ))}
     </View>

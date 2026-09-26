@@ -13,7 +13,10 @@ import { objectKey, objectStore, RENDITIONS } from "../blobs/store.js";
 import type { Mailer } from "../mail/index.js";
 import { env } from "../env.js";
 import { scheduleFullSyncs, scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
-import { enqueue, PRIORITY, scheduleDaily } from "./queue.js";
+import { enqueue, PRIORITY, scheduleDaily, scheduleHourly } from "./queue.js";
+import { purgeActivity } from "../notifications/activity.js";
+import { runDigest, scheduleDigests, readReceipts, type Send } from "../notifications/digest.js";
+import { notifyPerson, notifySharedActivity } from "../notifications/people.js";
 import { emit } from "../analytics.js";
 import { sweepEmbeds } from "../search/sweep.js";
 import { sweepPeople } from "../people/people.js";
@@ -385,6 +388,8 @@ const calendarSupervise: Handler = async () => {
  *  that runs forever. */
 const jobsPurge: Handler = async () => {
   await scheduleDaily("jobs.purge");
+  // 024. Activity keeps thirty days, the invite expiry's figure.
+  await purgeActivity();
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const result = await db
     .deleteFrom("jobs")
@@ -667,6 +672,36 @@ const peopleDaily: Handler = async () => {
   await sweepPeople();
 };
 
+// 024. The hourly placer, and the digest it places.
+const digestSchedule: Handler = async () => {
+  await scheduleHourly("digest.schedule");
+  const placed = await scheduleDigests();
+  console.log(JSON.stringify({ level: "info", msg: "digests placed", placed }));
+};
+
+const accountDigest: Handler = async (payload, _deps, accountId) => {
+  if (!accountId) return;
+  const send = payload["send"] === "evening" ? "evening" : ("morning" as Send);
+  const day = String(payload["day"] ?? "");
+  const at = new Date(String(payload["at"] ?? ""));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(at.getTime())) return;
+  const outcome = await runDigest(accountId, send, day, at);
+  console.log(JSON.stringify({ level: "info", msg: "digest", send, outcome }));
+};
+
+const pushReceipts: Handler = async (payload) => {
+  const tickets = Array.isArray(payload["tickets"]) ? (payload["tickets"] as { id: string; tokenId: string }[]) : [];
+  await readReceipts(tickets);
+};
+
+const peopleNotify: Handler = async (payload) => {
+  await notifyPerson(payload as { kind: "request"; requestId: string } | { kind: "share"; memberId: string });
+};
+
+const sharedActivity: Handler = async (payload) => {
+  await notifySharedActivity(payload as { threadId: string; authorId: string; since: string });
+};
+
 const blobDaily: Handler = async () => {
   await scheduleDaily("blob.daily");
   await enqueue({ kind: "content.purge", payload: {}, priority: PRIORITY.background });
@@ -741,5 +776,10 @@ export const handlers: Record<string, Handler> = {
   "blob.daily": blobDaily,
   "people.daily": peopleDaily,
   "analytics.ship": analyticsShip,
+  "digest.schedule": digestSchedule,
+  "account.digest": accountDigest,
+  "push.receipts": pushReceipts,
+  "people.notify": peopleNotify,
+  "shared.activity": sharedActivity,
 };
 

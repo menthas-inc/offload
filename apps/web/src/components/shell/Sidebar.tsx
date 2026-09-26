@@ -19,6 +19,8 @@ interface Props {
   threadCount: number;
   /** 022. Connection requests waiting for the viewer's answer. */
   requestsWaiting?: number;
+  /** 024. Activity holds a row newer than its last opening. */
+  activityNew?: boolean;
 }
 
 /** A thread's icon, from its own `icon` column, falling back to the kit's
@@ -27,8 +29,9 @@ interface Props {
  *  own. */
 export const threadIcon = (icon: string | null): string => icon ?? "message-circle";
 
-export function Sidebar({ threads, threadCount, requestsWaiting = 0 }: Props) {
+export function Sidebar({ threads, threadCount, requestsWaiting = 0, activityNew = false }: Props) {
   const pathname = usePathname();
+  const activityOn = pathname === "/activity" || pathname.startsWith("/activity/");
 
   const tabs = [
     { href: "/today", label: "Today", icon: "sun", count: undefined as number | undefined },
@@ -65,7 +68,7 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0 }: Props) {
         {tabs.map((tab) => {
           const on = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
           return (
-            <Link key={tab.href} href={tab.href} className={styles.navItem} data-on={on}>
+            <Link key={tab.href} href={tab.href} className={styles.navItem} data-on={on} aria-current={on ? "page" : undefined}>
               {on ? <span className={styles.marker} /> : null}
               <Icon name={tab.icon} size={17} />
               <span className={styles.navLabel}>{tab.label}</span>
@@ -112,20 +115,26 @@ export function Sidebar({ threads, threadCount, requestsWaiting = 0 }: Props) {
         </>
       ) : null}
 
-      {/* The kit puts these at the bottom. Activity is still inert: it needs
-          notifications. Drawn, because the shape of the nav should not change
-          under somebody as features land. */}
+      {/* The kit puts these at the bottom. 024: Activity is alive, the record
+          of what offload sent and what it decided not to, and carries a dot,
+          never a count, when a row is newer than the last opening. */}
       <div className={styles.sideFoot}>
-        <button
-          type="button"
+        <Link
+          href="/activity"
           className={styles.navItem}
-          disabled
-          aria-disabled="true"
-          title="Nothing here yet"
+          data-on={activityOn}
+          aria-current={activityOn ? "page" : undefined}
+          // The dot is part of the link's name, as it is on the phones' bell,
+          // rather than a label on a span with no role.
+          aria-label={activityNew ? "Activity, something new" : undefined}
         >
-          <Icon name="bell" size={17} />
+          {activityOn ? <span className={styles.marker} /> : null}
+          <span className={styles.navGlyph}>
+            <Icon name="bell" size={17} />
+            {activityNew ? <span className={styles.navDot} aria-hidden="true" /> : null}
+          </span>
           <span className={styles.navLabel}>Activity</span>
-        </button>
+        </Link>
         {/* Settings has an index now. The rows below it are the shortcut to
             the two preferences that page lays out as choices. */}
         {/* 022. The one dot: a connection request waiting for an answer.

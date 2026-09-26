@@ -58,7 +58,14 @@ export type JobKind =
   // The product events outbox, shipped to the store daily and dropped from
   // the database thirty days after. `analytics.ts` said a job did this since
   // 002; the security review of 2026-09-22 found none (M8).
-  | "analytics.ship";
+  | "analytics.ship"
+  // 024. The hourly placer, the two digests it places, the people sends, the
+  // coalesced additions, and the receipts read a quarter of an hour later.
+  | "digest.schedule"
+  | "account.digest"
+  | "people.notify"
+  | "shared.activity"
+  | "push.receipts";
 
 /** Interactive work outranks scheduled work. Lower number wins, which is how
  *  a nightly sweep is stopped from starving something a person is waiting on. */
@@ -234,6 +241,31 @@ export async function scheduleDaily(kind: JobKind, at = new Date()): Promise<voi
 /** Kick the daily chain off at boot, for today rather than tomorrow.
  *
  *  Safe to call on every instance and every restart: the key is the day. */
+/** 024. The hourly placer re-arms itself on the hour, keyed on the hour so a
+ *  second instance or a restart collapses into the row that exists. */
+export async function scheduleHourly(kind: JobKind, at = new Date()): Promise<void> {
+  const next = new Date(Math.floor(at.getTime() / 3_600_000) * 3_600_000 + 3_600_000);
+  await enqueue({
+    kind,
+    payload: {},
+    priority: PRIORITY.background,
+    runAfter: next,
+    idempotencyKey: `${kind}:${next.toISOString().slice(0, 13)}`,
+    maxAttempts: 3,
+  });
+}
+
+/** The first hourly run, at boot, for this hour. */
+export async function startHourly(kind: JobKind, at = new Date()): Promise<void> {
+  await enqueue({
+    kind,
+    payload: {},
+    priority: PRIORITY.background,
+    idempotencyKey: `${kind}:${at.toISOString().slice(0, 13)}`,
+    maxAttempts: 3,
+  });
+}
+
 export async function startDaily(kind: JobKind, at = new Date()): Promise<void> {
   await enqueue({
     kind,

@@ -11,7 +11,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import type { App } from "../app.js";
 import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
-import { emit } from "../analytics.js";
+import { emit, subjectOf } from "../analytics.js";
 import { markOf } from "../accounts/avatar.js";
 import { visibleTo } from "../people/access.js";
 import {
@@ -41,11 +41,6 @@ function fetchHeaders(request: FastifyRequest): Headers {
 async function currentAccountId(request: FastifyRequest): Promise<string | null> {
   const result = await auth.api.getSession({ headers: fetchHeaders(request) });
   return result?.session.userId ?? null;
-}
-
-async function subjectOf(accountId: string): Promise<string | null> {
-  const row = await db.selectFrom("accounts").select("analytics_subject_id").where("id", "=", accountId).executeTakeFirst();
-  return row?.analytics_subject_id ?? null;
 }
 
 const unauthenticated = z.object({ error: z.literal("unauthenticated") });

@@ -22,6 +22,7 @@
 
 import Link from "next/link";
 import { Icon } from "../Icon";
+import { DateChip } from "../shell/DateChip";
 import { PhotoThumb } from "../shell/PhotoThumb";
 import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
@@ -186,6 +187,8 @@ export function ContentRowView({
       )}
 
       <span className={styles.rowText}>
+        {/* 023. The title line carries the date chip at its trailing edge. */}
+        <span className={styles.rowLine}>
         {handlers.editing === row.id ? (
           <input
             className={styles.titleInput}
@@ -224,6 +227,8 @@ export function ContentRowView({
             {row.title}
           </Link>
         )}
+          <DateChip row={row} isReminder={row.isReminder} />
+        </span>
         {meta}
 
         {/* The domain under the title, as the caption that says where the

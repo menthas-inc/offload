@@ -13,6 +13,7 @@
 // author's alone, and no kit draws an archived state though every kit draws an
 // archive control.
 
+import { changeToken } from "@offload/widgets";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "../Icon";
@@ -54,12 +55,17 @@ import {
   type Note,
   type ThreadBundle,
   setPreference,
+  type ContentPatch,
+  type ContentSnapshot,
 } from "../../lib/threads";
 import { PhotoViewer, type ViewerPhoto } from "../shell/PhotoViewer";
 import { Avatar } from "../Avatar";
 import { ShareModal } from "../people/ShareModal";
+import { EditModal } from "./EditModal";
 import { ConfirmModal } from "../people/Modal";
 import { useRouter } from "next/navigation";
+import { useClock } from "../../lib/clock";
+import { drawnWhen } from "../../lib/when";
 
 interface Props {
   id: string;
@@ -76,6 +82,7 @@ export function Thread({ id, onChanged }: Props) {
   // notes drew nothing, so there was nowhere to type the first one.
   const [addingNote, setAddingNote] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  const [editRow, setEditRow] = useState<ContentRow | null>(null);
   const [draft, setDraft] = useState("");
   const [renaming, setRenaming] = useState(false);
   // 019. The calendars popover, and a counter bumped when the picks change so
@@ -96,6 +103,8 @@ export function Thread({ id, onChanged }: Props) {
   const [viewing, setViewing] = useState<string | null>(null);
   const toast = useToast();
   const router = useRouter();
+  // 023. The clock the rail and a freshly saved date are drawn in.
+  const { zone } = useClock();
   // 022. The share modal, and Leave with its confirmation.
   const [sharing, setSharing] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -144,7 +153,9 @@ export function Thread({ id, onChanged }: Props) {
    *  knows what it was showing, and a "what changed since" parameter would be a
    *  second source of truth about the same question. */
   async function catchUp(): Promise<void> {
-    const before = new Set(rows.map((row) => row.id));
+    // 023. Keyed on the row's change token, not on whether it was here: a row
+    // already on screen whose date offload moved flashes too.
+    const before = new Map(rows.map((row) => [row.id, changeToken(row)]));
     const [bundle, page] = await Promise.all([
       fetchThread(id),
       fetchContent(id, { archived: showArchived }),
@@ -155,7 +166,7 @@ export function Thread({ id, onChanged }: Props) {
     setRows(next);
     setCursor(page?.nextCursor ?? null);
 
-    const fresh = next.filter((row) => !before.has(row.id)).map((row) => row.id);
+    const fresh = next.filter((row) => before.get(row.id) !== changeToken(row)).map((row) => row.id);
     if (fresh.length === 0) return;
     setArrived(new Set(fresh));
   }
@@ -249,6 +260,59 @@ export function Thread({ id, onChanged }: Props) {
     const title = draft.trim();
     setEditing(null);
     rename(row, title);
+  }
+
+  /** 023. The modal's Save: every changed field in one request, drawn first
+   *  and sent second, with the previous values as the Undo. The dates are
+   *  drawn from the server's answer, which reads a wall time in the account's
+   *  clock, so the page catches up once the write lands. */
+  function edit(row: ContentRow, patch: ContentPatch): void {
+    if (isProvisional(row.id)) return;
+    const drawn: Partial<ContentRow> = {};
+    if (patch.title !== undefined) drawn.title = patch.title;
+    if (patch.body !== undefined) drawn.body = patch.body;
+    if (patch.isReminder !== undefined) drawn.isReminder = patch.isReminder;
+    // The dates too, read in the account's clock exactly as the route reads
+    // them, so the chip moves with the toast.
+    Object.assign(drawn, drawnWhen(patch, zone));
+    const before: Partial<ContentRow> = {
+      title: row.title,
+      body: row.body,
+      isReminder: row.isReminder,
+      dueAt: row.dueAt,
+      occursAt: row.occursAt,
+      occursEndAt: row.occursEndAt,
+      rrule: row.rrule,
+      allDay: row.allDay,
+    };
+    let previous: ContentSnapshot | null = null;
+    void perform(
+      {
+        apply: () => patchRow(row.id, drawn),
+        revert: () => patchRow(row.id, before),
+        write: () =>
+          telling(
+            editContent(row.id, patch).then((result) => {
+              if (!result) return false;
+              previous = result.previous;
+              void catchUp();
+              return true;
+            }),
+          ),
+        unwrite: () =>
+          telling(
+            (previous ? editContent(row.id, previous) : Promise.resolve(null)).then((result) => {
+              if (result) void catchUp();
+              return result !== null;
+            }),
+          ),
+        did: "Saved",
+        failed: "Couldn't save that",
+        unfailed: "Couldn't put it back",
+      },
+      toast,
+      writes,
+    );
   }
 
   function rename(row: ContentRow, title: string): void {
@@ -523,7 +587,7 @@ export function Thread({ id, onChanged }: Props) {
   // which 015's own opening paragraph said and its AC-1 contradicted; a week of
   // empty cells above a list is a calendar for nothing. Computed once, so the
   // rail and the list agree about what is on it.
-  const dated = showArchived ? [] : datedFor(rows, thread.notes);
+  const dated = showArchived ? [] : datedFor(rows, thread.notes, zone);
   const onRail = new Set(dated.map((one) => one.rowId));
   // 019. A pick earns the rail on its own: a thread with a calendar and
   // nothing dated shows this week, with the calendar's events on it.
@@ -553,10 +617,11 @@ export function Thread({ id, onChanged }: Props) {
     asking,
     arrived,
     onDraft: setDraft,
+    // 023. A content row edits in the modal, which holds the title, the
+    // details and the when field; the inline field stays for a thread's name.
     onEdit: (row) => {
       if (isProvisional(row.id)) return;
-      setDraft(row.title);
-      setEditing(row.id);
+      setEditRow(row);
     },
     onSaveTitle: saveTitle,
     onStopEditing: () => setEditing(null),
@@ -780,6 +845,18 @@ export function Thread({ id, onChanged }: Props) {
           />
         ) : null}
 
+        {editRow ? (
+          <EditModal
+            key={editRow.id}
+            row={editRow}
+            onClose={() => setEditRow(null)}
+            onSave={(row, patch) => {
+              setEditRow(null);
+              edit(row, patch);
+            }}
+          />
+        ) : null}
+
         {showArchived ? null : (
           <Widgets
             rows={rows}
@@ -931,7 +1008,7 @@ export function Thread({ id, onChanged }: Props) {
 
 /** The glyph for a piece of content, from its type. The kit's own mapping:
  *  a pin for a place, a link for a link, a picture for a picture. */
-function rowIcon(type: string): string {
+export function rowIcon(type: string): string {
   switch (type) {
     case "location":
       return "map-pin";
