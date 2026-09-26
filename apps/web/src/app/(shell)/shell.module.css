@@ -274,10 +274,13 @@
      white slabs on a paper page and made the composer band beneath them look
      like a different surface. */
   background: var(--surface-page);
+  /* 025. What a sticky bar inside the pane paints, so it matches the pane. */
+  --pane-ground: var(--surface-page);
 }
 
 .pane[data-depth="1"] {
   background: var(--surface-raised);
+  --pane-ground: var(--surface-raised);
 }
 
 /* The seam, on the pane that arrived rather than the one that was already
@@ -681,6 +684,21 @@
 .tool:hover {
   background: var(--surface-inverse);
   color: var(--text-inverse);
+}
+
+/* 025. Drawn 32px, and a 44px target by a hit area with no paint, so the row's
+   tools meet the rule without the row growing: the tag tool made a third and
+   was the one the rule was checked against. */
+.rowTools .tool,
+.rowTools .toolDanger {
+  position: relative;
+}
+
+.rowTools .tool::after,
+.rowTools .toolDanger::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
 }
 
 /* The one red control in the product, and it only turns red once you are on

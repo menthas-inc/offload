@@ -50,13 +50,13 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ### Web
 
-- [ ] **T2.22** `LabelMark` and `Chip label` from the design contract, passing `pnpm lint`'s prop rules. *(AC-9, AC-17)*
-- [ ] **T2.23** `ContentRowView` and `RowTools`: `labels` prop, marks line, the `tag` tool first on every unlabelled row, 44px targets. Tests. *(AC-9, AC-10)*
-- [ ] **T2.24** The label popover: focus in, Escape, focus returned, one write, toast with Undo. Tests. *(AC-11)*
-- [ ] **T2.25** The label's list modal: paged, focus trapped, Rename, Colour swap, Delete, Undo. Tests. *(AC-12, AC-13)*
-- [ ] **T2.26** The filter bar under `PaneHead`, sticky, the chip context menu and picked chip `pencil`, the pick in `localStorage` in try/catch, the narrowed read, the empty line, reduced motion. Tests. *(AC-12, AC-15 to AC-21)*
-- [ ] **T2.27** The composer's `#` list; Today's marks; the timeline's anchor dot; the rail narrowing. Tests. *(AC-14, AC-22, AC-23)*
-- [ ] **T2.28** Browser check of the whole path on the dev server, both themes; `dead-classes.mjs`, `dead-css.mjs`, `dead-icons.mjs`. *(AC-9 to AC-23)*
+- [x] **T2.22** `LabelMark` and `Chip label` from the design contract, passing `pnpm lint`'s prop rules. *(AC-9, AC-17)*
+- [x] **T2.23** `ContentRowView` and `RowTools`: `labels` prop, marks line, the `tag` tool first on every unlabelled row, 44px targets. Tests. *(AC-9, AC-10)*
+- [x] **T2.24** The label popover: focus in, Escape, focus returned, one write, toast with Undo. Tests. *(AC-11)*
+- [x] **T2.25** The label's list modal: paged, focus trapped, Rename, Colour swap, Delete, Undo. Tests. *(AC-12, AC-13)*
+- [x] **T2.26** The filter bar under `PaneHead`, sticky, the chip context menu and picked chip `pencil`, the pick in `localStorage` in try/catch, the narrowed read, the empty line, reduced motion. Tests. *(AC-12, AC-15 to AC-21)*
+- [x] **T2.27** The composer's `#` list; Today's marks; the timeline's anchor dot; the rail narrowing. Tests. *(AC-14, AC-22, AC-23)*
+- [x] **T2.28** Browser check of the whole path on the dev server, both themes; `dead-classes.mjs`, `dead-css.mjs`, `dead-icons.mjs`. *(AC-9 to AC-23)*
 
 ### Close of part 2
 

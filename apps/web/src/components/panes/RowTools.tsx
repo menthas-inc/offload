@@ -90,6 +90,7 @@ export function RowTools({
   title,
   archived,
   canDelete,
+  onLabel,
   onEdit,
   onArchive,
   onDelete,
@@ -98,12 +99,29 @@ export function RowTools({
   archived: boolean;
   /** Yours, or nobody's. Decides which of the two ways out is drawn. */
   canDelete: boolean;
+  /** 025. A row with no label draws the tag tool, whoever wrote it. */
+  onLabel?: ((anchor: HTMLElement) => void) | undefined;
   onEdit: () => void;
   onArchive: () => void;
   onDelete: () => void;
 }) {
   return (
     <span className={styles.rowTools}>
+      {/* 025. **The stated exception to "two controls, never three"**, and the
+          only one: a row carrying no label draws `tag` first, because it is
+          the one control that says labels exist. A labelled row draws its
+          marks and the usual two. */}
+      {onLabel ? (
+        <button
+          type="button"
+          className={styles.tool}
+          aria-label={`Label ${title}`}
+          title="Labels"
+          onClick={(event) => onLabel(event.currentTarget)}
+        >
+          <Icon name="tag" size={15} />
+        </button>
+      ) : null}
       <button
         type="button"
         className={styles.tool}

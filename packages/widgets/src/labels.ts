@@ -60,3 +60,34 @@ export function toggleUnlabelled(pick: LabelPick): LabelPick {
 export function keepLive(pick: LabelPick, live: readonly string[]): LabelPick {
   return { labels: pick.labels.filter((id) => live.includes(id)), none: pick.none };
 }
+
+const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+
+/** A count in words up to nine, capitalised for the start of a sentence, and a
+ *  number past that. A count stands on its own; nothing a person reads names
+ *  what is being counted. */
+function sentenceCount(n: number): string {
+  const word = WORDS[n];
+  return word ? word.charAt(0).toUpperCase() + word.slice(1) : String(n);
+}
+
+/** A count in words up to nine, a number past that, for mid-sentence. */
+export function countWord(n: number): string {
+  return WORDS[n] ?? String(n);
+}
+
+/** "A, B and C". */
+export function nameList(names: readonly string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/** The label sheet's toast: what the row is under now. */
+export function rowLabelledCopy(title: string, names: readonly string[]): string {
+  return names.length === 0 ? `${title} has no label` : `${title} is under ${nameList(names)}`;
+}
+
+/** The label's list's toast: how many are under it now. */
+export function listLabelledCopy(count: number, name: string): string {
+  return count === 0 ? `${name} saved` : `${sentenceCount(count)} under ${name}`;
+}

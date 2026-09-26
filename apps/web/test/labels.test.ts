@@ -61,3 +61,21 @@ describe("the filter bar's pick (AC-17, AC-19)", () => {
     expect(keepLive({ labels: ["gone"], none: true }, ["a"])).toEqual({ labels: [], none: true });
   });
 });
+
+describe("what a toast says (the feature spec's words)", () => {
+  it("names one row's labels, or that it has none", async () => {
+    const { rowLabelledCopy } = await import("@offload/widgets");
+    expect(rowLabelledCopy("Packing list", ["Istanbul"])).toBe("Packing list is under Istanbul");
+    expect(rowLabelledCopy("Packing list", ["Istanbul", "Paris"])).toBe("Packing list is under Istanbul and Paris");
+    expect(rowLabelledCopy("Packing list", ["A", "B", "C"])).toBe("Packing list is under A, B and C");
+    expect(rowLabelledCopy("Packing list", [])).toBe("Packing list has no label");
+  });
+
+  it("counts the label's list with no noun, in words under ten", async () => {
+    const { listLabelledCopy } = await import("@offload/widgets");
+    expect(listLabelledCopy(7, "Istanbul")).toBe("Seven under Istanbul");
+    expect(listLabelledCopy(1, "Istanbul")).toBe("One under Istanbul");
+    expect(listLabelledCopy(12, "Istanbul")).toBe("12 under Istanbul");
+    expect(listLabelledCopy(0, "Istanbul")).toBe("Istanbul saved");
+  });
+});

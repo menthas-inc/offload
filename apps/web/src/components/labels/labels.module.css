@@ -1,0 +1,485 @@
+/* 025. Labels on the web: the mark, the filter chip, the bar, the popover and
+   the list. Every colour is a token; a label's solid is --label-N, chosen by
+   a data attribute so no value is retyped here. min-height, never height. */
+
+/* ------------------------------------------------------------- the mark */
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 20px;
+  box-sizing: border-box;
+  padding: 0 7px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  color: var(--text-on-solid);
+  font: var(--weight-medium) var(--size-caption) / 1 var(--font-core);
+  white-space: nowrap;
+}
+
+.mark[data-size="24"] {
+  min-height: 24px;
+  padding: 0 var(--space-4);
+}
+
+/* The turn footer's size, the footer's own 30px, so the row keeps one height. */
+.mark[data-size="30"] {
+  min-height: 30px;
+  padding: 0 var(--space-5);
+  font-size: var(--size-label);
+}
+
+button.mark {
+  cursor: pointer;
+}
+
+button.mark:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.markRemove {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+:is(.mark, .dot, .chip, .chipEdit, .swatch)[data-colour="1"] { --label: var(--label-1); }
+:is(.mark, .dot, .chip, .chipEdit, .swatch)[data-colour="2"] { --label: var(--label-2); }
+:is(.mark, .dot, .chip, .chipEdit, .swatch)[data-colour="3"] { --label: var(--label-3); }
+:is(.mark, .dot, .chip, .chipEdit, .swatch)[data-colour="4"] { --label: var(--label-4); }
+:is(.mark, .dot, .chip, .chipEdit, .swatch)[data-colour="5"] { --label: var(--label-5); }
+:is(.mark, .dot, .chip, .chipEdit, .swatch)[data-colour="6"] { --label: var(--label-6); }
+:is(.mark, .dot, .chip, .chipEdit, .swatch)[data-colour="7"] { --label: var(--label-7); }
+:is(.mark, .dot, .chip, .chipEdit, .swatch)[data-colour="8"] { --label: var(--label-8); }
+:is(.mark, .dot, .chip, .chipEdit, .swatch)[data-colour="9"] { --label: var(--label-9); }
+:is(.mark, .dot, .chip, .chipEdit, .swatch)[data-colour="10"] { --label: var(--label-10); }
+
+.mark[data-colour] {
+  background: var(--label);
+}
+
+.dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--label);
+}
+
+.dot[data-size="10"] {
+  width: 10px;
+  height: 10px;
+}
+
+/* The row's marks line: the date chip first, then the labels, wrapping. A
+   row with neither draws nothing. */
+.marks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.marks:empty {
+  display: none;
+}
+
+/* ------------------------------------------------------------- the chip */
+
+/* Chip's contract: 30px drawn, a 44px target by a hit area with no paint. */
+.chipHit {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -7px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.chipHit:disabled {
+  cursor: default;
+}
+
+.chipHit:focus-visible > .chip {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 30px;
+  box-sizing: border-box;
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--surface-fill);
+  color: var(--text-primary);
+  font: var(--weight-medium) var(--size-label) / 1 var(--font-core);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: background var(--transition-ui), color var(--transition-ui);
+}
+
+.chipHit:hover:not(:disabled) > .chip {
+  background: var(--surface-fill-strong);
+}
+
+.chip[data-tone="outline"] {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.chip[data-selected] {
+  background: var(--surface-inverse);
+  border-color: transparent;
+  color: var(--text-inverse);
+}
+
+/* A picked label chip fills with its own solid, so two picked read as two. */
+.chip[data-selected][data-colour] {
+  background: var(--label);
+  color: var(--text-on-solid);
+}
+
+.chip[data-selected][data-colour] .dot {
+  background: var(--text-on-solid);
+}
+
+.chipHit:hover:not(:disabled) > .chip[data-selected] {
+  background: var(--surface-inverse);
+}
+
+.chipHit:hover:not(:disabled) > .chip[data-selected][data-colour] {
+  background: var(--label);
+}
+
+.chip[data-disabled] {
+  background: var(--state-disabled-surface);
+  color: var(--state-disabled-text);
+  border-color: transparent;
+}
+
+.chipCount {
+  color: inherit;
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------- the bar */
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 calc(var(--space-8) * -1) var(--space-4);
+  padding: var(--space-3) var(--space-8);
+  background: var(--pane-ground, var(--surface-page));
+}
+
+.barScroll {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.barScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.barScroll > * {
+  flex: 0 0 auto;
+}
+
+/* The plus, pinned to the trailing edge on an opaque ground: the chips scroll
+   under it and it never scrolls away. */
+.barPlus {
+  flex: 0 0 auto;
+  margin-left: auto;
+  background: var(--pane-ground, var(--surface-page));
+}
+
+.chipEdit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  min-height: 30px;
+  margin-left: calc(var(--space-2) * -1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--label);
+  color: var(--text-on-solid);
+  cursor: pointer;
+}
+
+.chipEdit:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.nothing {
+  margin: var(--space-6) 0;
+  font: var(--text-body-role);
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------------------------- the popover */
+
+.popover {
+  position: fixed;
+  z-index: 70;
+  width: 300px;
+  max-width: calc(100vw - var(--space-8));
+  box-sizing: border-box;
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sheet);
+  color: var(--text-primary);
+}
+
+.popoverTitle {
+  margin: 0;
+  font: var(--weight-semibold) var(--size-title-3) / 1.2 var(--font-core);
+}
+
+.popoverSub {
+  margin: var(--space-2) 0 var(--space-4);
+  font: var(--text-body-sm-role);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-bottom: 1px solid var(--border-hairline);
+  background: none;
+  color: var(--text-primary);
+  font: var(--text-body-role);
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+.optionName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionCount {
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  color: var(--text-inverse);
+}
+
+.tick[data-on] {
+  border-color: transparent;
+  background: var(--surface-inverse);
+}
+
+.newLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: var(--text-body-role);
+  cursor: pointer;
+}
+
+.newLabel:disabled {
+  cursor: default;
+  color: var(--state-disabled-text);
+}
+
+.nameField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-page);
+}
+
+.nameField input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--text-primary);
+  font: var(--text-body-role);
+}
+
+.line {
+  margin: var(--space-3) 0 0;
+  font: var(--text-body-sm-role);
+  color: var(--text-danger);
+}
+
+.hint {
+  margin: var(--space-3) 0 var(--space-4);
+  font: var(--text-body-sm-role);
+  color: var(--text-secondary);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+/* ------------------------------------------------------------- the list */
+
+.list {
+  flex: 1 1 auto;
+  min-height: 120px;
+  max-height: 52vh;
+  margin: 0 calc(var(--space-7) * -1);
+  padding: 0 var(--space-7);
+  overflow-y: auto;
+}
+
+.section {
+  margin: var(--space-5) 0 var(--space-2);
+  font: var(--weight-medium) var(--size-caption) / 1.2 var(--font-core);
+  color: var(--text-tertiary);
+}
+
+.others {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: var(--space-4);
+  vertical-align: middle;
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-hairline);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+}
+
+.swatch {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--label);
+  color: var(--text-on-solid);
+  cursor: pointer;
+}
+
+.swatch[data-on] {
+  box-shadow: 0 0 0 3px var(--surface-raised), 0 0 0 5px var(--label);
+}
+
+.swatch:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 3px;
+}
+
+.swatchTaken {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  max-width: 64px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font: var(--weight-medium) var(--size-caption) / 1.4 var(--font-core);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  margin: var(--space-6) auto;
+  border: 2px solid var(--border-hairline);
+  border-top-color: var(--text-secondary);
+  border-radius: var(--radius-pill);
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2400ms;
+  }
+  .chip {
+    transition: none;
+  }
+}

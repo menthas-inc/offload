@@ -401,11 +401,15 @@ export type { ActivityKind, ActivityReason, ActivityShape, ChannelId } from "./n
 // 025. Labels: the # token, the #words a message carries, the filter's pick.
 export {
   ALL_LABELS,
+  countWord,
   hashtagsIn,
   isAll,
   keepLive,
   labelQuery,
+  listLabelledCopy,
+  nameList,
   pickAll,
+  rowLabelledCopy,
   toggleLabel,
   toggleUnlabelled,
 } from "./labels.js";

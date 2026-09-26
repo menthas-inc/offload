@@ -28,6 +28,9 @@ import { ReorderHandle, RowTools, type RowReorder } from "./RowTools";
 import styles from "../../app/(shell)/shell.module.css";
 import { domainOf, isFiling, isProvisional, type ContentRow } from "../../lib/threads";
 import { webHref } from "../../lib/links";
+import type { Label } from "../../lib/labels";
+import { LabelMark } from "../labels/LabelMark";
+import labelStyles from "../labels/labels.module.css";
 
 /** Everything the row needs from whoever is holding the page's state. One
  *  object rather than nine props, because both callers pass the same nine and a
@@ -49,6 +52,13 @@ export interface RowHandlers {
   onDelete: (row: ContentRow) => void;
   /** 020. A photo row's tile opens the viewer; the row itself opens as a row. */
   onOpenPhoto?: (row: ContentRow) => void;
+  /** 025. The thread's labels by id, so a row can draw its marks. Absent where
+   *  the page draws them itself (Today, beside the thread's name). */
+  labels?: Map<string, Label>;
+  /** 025. The tag tool and a mark: the label sheet for this row, and a
+   *  label's list. Absent where the page offers neither. */
+  onLabel?: (row: ContentRow, anchor: HTMLElement) => void;
+  onOpenLabel?: (labelId: string) => void;
 }
 
 export function ContentRowView({
@@ -227,7 +237,23 @@ export function ContentRowView({
             {row.title}
           </Link>
         )}
-          <DateChip row={row} isReminder={row.isReminder} />
+          {/* 025. The marks line: the date chip, then the row's labels,
+              wrapping. A row with neither draws nothing. */}
+          <span className={labelStyles.marks}>
+            <DateChip row={row} isReminder={row.isReminder} />
+            {handlers.labels
+              ? row.labels.map((id) => {
+                  const label = handlers.labels!.get(id);
+                  if (!label) return null;
+                  const open = handlers.onOpenLabel;
+                  return (
+                    <LabelMark key={id} color={label.colour} onClick={open && !provisional ? () => open(id) : undefined}>
+                      {label.name}
+                    </LabelMark>
+                  );
+                })
+              : null}
+          </span>
         </span>
         {meta}
 
@@ -255,6 +281,11 @@ export function ContentRowView({
         title={row.title}
         archived={row.archivedAt !== null}
         canDelete={row.canDelete}
+        onLabel={
+          handlers.onLabel && row.labels.length === 0 && !provisional
+            ? (anchor) => handlers.onLabel!(row, anchor)
+            : undefined
+        }
         onEdit={() => handlers.onEdit(row)}
         onArchive={() => handlers.onArchive(row)}
         onDelete={() => handlers.onAsk(row.id)}

@@ -52,6 +52,10 @@ import { SentPhoto } from "./SentPhoto";
 import { VoiceNotePlayer, mmss } from "./SentVoice";
 import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { Mentions, mentionQuery, withMention } from "../people/Mentions";
+import { HashList } from "../labels/HashList";
+import { labelQuery } from "@offload/widgets";
+import { fetchThread } from "../../lib/threads";
+import type { Label } from "../../lib/labels";
 import { SHARE_LINE, answerShare, fetchPeople, nameOf, type Person } from "../../lib/people";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
 import { Icon } from "../Icon";
@@ -156,6 +160,29 @@ export function Composer({
       live = false;
     };
   }, [mentionAt, mentionPeople]);
+  // 025. What a # picked, kept while its #Name is still in the text, and the
+  // labels of the thread on screen, read the first time a # is typed there.
+  const [hashPicks, setHashPicks] = useState<({ id: string; name: string } | { name: string })[]>([]);
+  const [threadLabels, setThreadLabels] = useState<{ threadId: string; labels: Label[] } | null>(null);
+  const hashAt = inThread ? labelQuery(draft) : null;
+  useEffect(() => {
+    if (!inThread || hashAt === null || threadLabels?.threadId === inThread.id) return;
+    let live = true;
+    void fetchThread(inThread.id).then((bundle) => {
+      if (live && bundle) setThreadLabels({ threadId: inThread.id, labels: bundle.labels });
+    });
+    return () => {
+      live = false;
+    };
+  }, [hashAt, inThread, threadLabels]);
+  function pickHash(pickedName: string, id?: string) {
+    setDraft((current) => current.replace(/(^|\s)#([\p{L}\p{N}_-]*)$/u, (_, lead: string) => `${lead}#${pickedName.replace(/\s+/g, "")} `));
+    setHashPicks((current) => [
+      ...current.filter((one) => one.name.toLowerCase() !== pickedName.toLowerCase()),
+      id ? { id, name: pickedName } : { name: pickedName },
+    ]);
+    input.current?.focus();
+  }
   function pickMention(person: Person) {
     const name = nameOf(person);
     setDraft((current) => withMention(current, name));
@@ -641,12 +668,18 @@ export function Composer({
       const blobIds = [...sentPhotos.map((p) => p.blobId), ...(sentVoice ? [sentVoice.blobId] : [])];
       // 022. A mention whose name was deleted by hand goes with the words.
       const named = mentions.filter((m) => text.includes(m.name));
-      const sent = await sendDump(text, clientKey, inThread?.id, blobIds.length ? { blobIds } : undefined, named);
+      // 025. A # pick whose #Name was deleted by hand goes with the words.
+      const hashed = hashPicks
+        .filter((one) => text.toLowerCase().includes(`#${one.name.replace(/\s+/g, "").toLowerCase()}`))
+        .map((one) => ("id" in one ? { id: one.id } : { name: one.name }));
+      const sent = await sendDump(text, clientKey, inThread?.id, blobIds.length ? { blobIds } : undefined, named, hashed);
       // Only what went: a photo dropped in while the send was out stays
       // for the next one.
       const went = new Set(sendable.map((photo) => photo.key));
       setPhotos((current) => current.filter((photo) => !went.has(photo.key)));
       setMentions([]);
+      setHashPicks([]);
+      setThreadLabels(null);
       draftKey.current = null;
       noteUploaded.current = null;
       sentNotes.current.delete(provisional);
@@ -1148,6 +1181,14 @@ export function Composer({
 
       {mentionAt !== null && !holdsNote && mentionPeople && mentionPeople.length > 0 ? (
         <Mentions people={mentionPeople} query={mentionAt} onPick={pickMention} />
+      ) : null}
+      {hashAt !== null && !holdsNote && threadLabels && threadLabels.threadId === inThread?.id ? (
+        <HashList
+          labels={threadLabels.labels}
+          query={hashAt}
+          onPick={(label) => pickHash(label.name, label.id)}
+          onNew={(name) => pickHash(name)}
+        />
       ) : null}
       <div
         className={styles.composerInner}
