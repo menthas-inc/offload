@@ -64,4 +64,4 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 ## J. Raised by the device pass, for later
 
 - [x] **J1** Accepted as is by the owner on 2026-09-26. The hour rows' label follows the locale while the Android picker follows the device's 24-hour setting, so a phone set to 24 hours reads "8:00 AM" and opens a 24-hour dial. Matching them needs `expo-localization`, a native module, so it waits for a build that carries it.
-- [ ] **J2** A send that arrives while the app is in front is delivered and recorded but not shown, the platform default on both phones since the app sets no notification handler. Decide whether a digest should show a banner over an open app.
+- [x] **J2** Closed with the feature on 2026-09-26: the platform default stands. A send that arrives while the app is in front is delivered and recorded but not shown, the platform default on both phones since the app sets no notification handler. Decide whether a digest should show a banner over an open app.

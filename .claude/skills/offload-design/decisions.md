@@ -11,6 +11,17 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-26 · The lead and the tools sit on the title line
+**Surface:** iOS, Android, web
+
+**Was:** the checkbox, the type glyph, the picture and the pencil and trash centred on the whole row, from the kits' one-line rows.
+
+**Is:** the row aligns at the top and each of them is centred on the title's line, 21px on the phones and 15.5px at 1.35 on the web, by its own margin: the checkbox is that height already, a 36px tile reaches into the row's 8px of top padding, the 17px tools sit two down. With the chip, the meta and the body under the title, what sits on the title line is the row and what sits below it is its detail; centred on three lines, a checkbox floated between lines that were not its own.
+
+The checkbox sits in the tile's slot, 36px on the phones and 32px on the web, so a task's title starts where an event's does; they were indented 15px apart on Today.
+
+**Design system impact:** the kits' `ContentRow` wants top alignment with the lead and the tools on the title line, the checkbox in the tile's slot, and the same for any row that gains a second line.
+
 ### 2026-09-26 · The date chip takes its own line, and a late one says how late
 **Surface:** iOS, Android, web
 

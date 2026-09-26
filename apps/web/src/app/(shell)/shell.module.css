@@ -534,7 +534,7 @@
 .rowIcon {
   width: 32px;
   height: 32px;
-  margin-top: 1px;
+  margin-top: calc((15.5px * var(--type-scale) * 1.35 - 32px) / 2);
   flex: 0 0 auto;
   border-radius: var(--radius-sm);
   background: var(--surface-fill);
@@ -555,6 +555,7 @@
 .rowThumb {
   width: 36px;
   height: 36px;
+  margin-top: calc((15.5px * var(--type-scale) * 1.35 - 36px) / 2);
   flex: 0 0 auto;
   border-radius: var(--radius-sm);
   object-fit: cover;
@@ -625,7 +626,8 @@
    keeps it off the edge of the highlight, which runs past the content. */
 .rowTools {
   flex: 0 0 auto;
-  align-self: center;
+  align-self: flex-start;
+  margin-top: calc((15.5px * var(--type-scale) * 1.35 - 28px) / 2);
   margin-right: var(--space-3);
   /* **The tools do not set the row's height.** They are 32px and a one-line
      title is 21, so without this every row was 48px tall with the tick and
@@ -969,8 +971,16 @@
    The row around it is `.row` now, the same one every other piece of content
    uses. It had its own `.check` wrapper, which is how the To do list ended up
    the one place in the product where a row had no controls on it. */
+/* 2026-09-26. Every lead and tool is centred on the title's line, not the
+   row: with the chip, the meta and the body under the title, what sits on
+   the title line is the row and what sits below it is its detail. The
+   title is 15.5px at 1.35, scaled with the type, and each margin is half
+   the difference between that line and the element. */
 .rowCheck {
-  align-self: center;
+  align-self: flex-start;
+  /* Centred in the icon tile's 32px slot, so a task's title starts where
+     the other rows' do. */
+  margin: calc((15.5px * var(--type-scale) * 1.35 - 17px) / 2) 7.5px 0;
   width: 17px;
   height: 17px;
   border-radius: 5px;
@@ -2289,7 +2299,12 @@ a.settingsRow:hover {
 /* A photo row's tile is a button: the one part of the row that opens the
    viewer, while the title opens the row. No box of its own, the picture is
    the box. */
+.rowThumbButton > .rowThumb {
+  margin-top: 0;
+}
+
 .rowThumbButton {
+  margin-top: calc((15.5px * var(--type-scale) * 1.35 - 36px) / 2);
   display: inline-flex;
   flex: 0 0 auto;
   padding: 0;
