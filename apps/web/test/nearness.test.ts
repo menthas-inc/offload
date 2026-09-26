@@ -68,8 +68,15 @@ describe("AC-14 the words", () => {
     expect(at("2026-10-06")).toBe("Due Tue 6");
     expect(at("2026-10-07")).toBe("7 Oct");
     expect(at("2026-11-12")).toBe("12 Nov");
-    expect(at("2026-09-18")).toBe("Due Fri 18");
-    expect(at("2026-08-12")).toBe("12 Aug");
+    // 2026-09-26: a late row says how late, not which day, and drops the
+    // time: the full date beside a long title squeezed it to a word a line.
+    expect(at("2026-09-21")).toBe("Due yesterday");
+    expect(at("2026-09-21", "08:00")).toBe("Due yesterday");
+    expect(at("2026-09-18")).toBe("Due 4 days ago");
+    expect(at("2026-09-15")).toBe("Due a week ago");
+    expect(at("2026-09-08")).toBe("Due 2 weeks ago");
+    expect(at("2026-08-12")).toBe("Due a month ago");
+    expect(at("2026-06-12")).toBe("Due 3 months ago");
     // 08:00Z is 9:00 in Lisbon in September.
     expect(at("2026-09-25", "08:00")).toBe("Due Fri 25, 9:00");
     expect(at("2026-09-22", "08:00")).toBe("Due today, 9:00");
@@ -78,6 +85,8 @@ describe("AC-14 the words", () => {
     const at = (day: string, hour?: string) =>
       chipFor(task({ type: "event", occursAt: hour ? `${day}T${hour}:00Z` : `${day}T12:00:00Z`, allDay: !hour }), LISBON, TODAY, "en-GB")?.label;
     expect(at("2026-09-25", "18:00")).toBe("Fri 25, 19:00");
+    expect(at("2026-09-21", "18:00")).toBe("Yesterday");
+    expect(at("2026-09-19", "18:00")).toBe("3 days ago");
     expect(at("2026-09-22", "18:00")).toBe("Today, 19:00");
     expect(at("2026-09-25")).toBe("Fri 25");
     // Lisbon is back on standard time in November, so 18:00Z is 18:00 there.

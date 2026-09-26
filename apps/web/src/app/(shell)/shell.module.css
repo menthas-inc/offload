@@ -2375,15 +2375,19 @@ a.settingsRow:hover {
 
 /* 023. The title line: the title, then the date chip at its trailing edge,
    before the tools. The meta under it is untouched. */
+/* The date chip sits on its own line under the title, above the meta, on
+   every surface since 2026-09-26: beside a chip a long title was squeezed
+   to a word or two a line on a phone. */
 .rowLine {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-2);
+  gap: 2px;
 }
 
 .rowLine > .rowTitle,
 .rowLine > .titleInput {
-  flex: 1;
+  align-self: stretch;
   min-width: 0;
 }
 

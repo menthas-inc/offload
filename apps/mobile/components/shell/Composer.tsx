@@ -37,6 +37,7 @@ import { useColors } from "../../lib/colors";
 import { AttachChip } from "./AttachChip";
 import { useConversation } from "./conversation-context";
 import { MentionList, mentionQuery } from "../people/MentionList";
+import { staysOpen } from "../../lib/composer";
 
 const isAndroid = Platform.OS === "android";
 
@@ -269,7 +270,17 @@ export function Composer({
   const chips = pin ? [] : photos;
   const has = draft.trim().length > 0 || chips.some((photo) => !photo.error) || holdsNote;
   const held = chips.some((photo) => photo.error);
-  const tall = oneLine !== null && height > oneLine + 8;
+  // Once the words are taller than one line the box opens, and it stays
+  // open until the draft is cleared: measured height alone made it jitter
+  // between the pill and the column while a second line was being typed
+  // on the Pixel (2026-09-26), since the wide box fits on one line what the
+  // narrow one wrapped. The rule is in lib/composer.ts, pinned by a test.
+  const tallNow = oneLine !== null && height > oneLine + 8;
+  const [openForHeight, setOpenForHeight] = useState(false);
+  useEffect(() => {
+    setOpenForHeight((open) => staysOpen({ open, tallNow, draft }));
+  }, [tallNow, draft]);
+  const tall = openForHeight || (tallNow && draft.trim().length > 0);
   // 021. A recording alone keeps the pill, as the kit's does; words above
   // the row or chips beside it open the box.
   const expanded = tall || chips.length > 0 || (holdsNote && draft.trim().length > 0);

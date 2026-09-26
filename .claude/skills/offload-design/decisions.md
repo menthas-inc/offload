@@ -11,6 +11,15 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-26 · The date chip takes its own line, and a late one says how late
+**Surface:** iOS, Android, web
+
+**Was:** the chip at the trailing edge of the title line, always, from the 023 entry, naming the day: "Due Thu 24, 3:00 PM". Beside that a long title had a third of the row on a phone and wrapped into five lines of a word or two, which the owner saw on the Pixel's Today.
+
+**Is:** the chip sits on its own line under the title, above the meta, on every surface. A late row says how late rather than which day and drops the time: "Due yesterday", "Due 4 days ago", "Due a week ago", "Due 2 weeks ago", "Due a month ago", "Due 3 months ago"; an event without the prefix and capitalised, "3 days ago". Today, tomorrow, the coming fortnight and the far future read as before. A wrapping row that kept a short title's chip beside it was tried first; Yoga on the phones would not wrap it, so the rule is one line each, everywhere.
+
+**Design system impact:** the kits' row wants the chip under the title, and the 023 entry's line about the chip trailing the title is superseded; the late wording joins the chip's copy.
+
 ### 2026-09-22 · Notifications: Activity as a pushed screen, the Notifications page, and Today's agenda, as built
 **Surface:** iOS, Android, web
 
