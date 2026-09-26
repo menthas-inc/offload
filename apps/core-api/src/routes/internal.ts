@@ -18,6 +18,8 @@ import { z } from "zod";
 import { sql } from "kysely";
 import type { App } from "../app.js";
 import { db } from "../db.js";
+import { applyTurnLabels } from "../threads/labels.js";
+import { hashtagsIn } from "@offload/widgets";
 import { emit } from "../analytics.js";
 import { env } from "../env.js";
 import { NOTE_TEXT_CHARS, applyCompaction } from "../threads/notes.js";
@@ -631,6 +633,14 @@ export async function internalRoutes(app: App): Promise<void> {
         if (!person || (person.state !== "seen" && person.state !== "partial")) return false;
 
         if (result.outcome === "answered" || result.outcome === "partial") {
+          // 025. A # picked in the composer, applied once the rows exist.
+          const sent = await trx
+            .selectFrom("messages")
+            .select(["id", "turn_id", "text", "attrs"])
+            .where("id", "=", payload.messageId!)
+            .executeTakeFirstOrThrow();
+          await applyTurnLabels(trx, accountId, { id: sent.id, turnId: sent.turn_id, text: sent.text, attrs: sent.attrs }, hashtagsIn);
+
           // **No row when there was nothing to say.** A dump that was simply
           // filed writes no offload message at all: the Done mark and the pill
           // naming the thread carry it, and `reply` on the wire is already

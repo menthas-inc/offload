@@ -15,6 +15,7 @@ import { env } from "../env.js";
 import { scheduleFullSyncs, scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
 import { enqueue, PRIORITY, scheduleDaily, scheduleHourly } from "./queue.js";
 import { purgeActivity } from "../notifications/activity.js";
+import { purgeLabelRuns, purgeLabels } from "../threads/labels.js";
 import { runDigest, scheduleDigests, readReceipts, type Send } from "../notifications/digest.js";
 import { notifyPerson, notifySharedActivity } from "../notifications/people.js";
 import { emit } from "../analytics.js";
@@ -390,6 +391,9 @@ const jobsPurge: Handler = async () => {
   await scheduleDaily("jobs.purge");
   // 024. Activity keeps thirty days, the invite expiry's figure.
   await purgeActivity();
+  // 025. A deleted label and a sort's record keep the same thirty.
+  await purgeLabels();
+  await purgeLabelRuns();
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const result = await db
     .deleteFrom("jobs")

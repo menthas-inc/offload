@@ -874,7 +874,7 @@ export async function applyCompaction(
       continue;
     }
 
-    await addNote(
+    const fresh = await addNote(
       {
         threadId,
         accountId: author,
@@ -886,6 +886,17 @@ export async function applyCompaction(
       },
       trx,
     );
+    // 025. A fold never quietly unlabels anything: the new note carries every
+    // live label the folded ones did, a person's as a person's.
+    await sql`
+      insert into note_labels (note_id, label_id, set_by)
+      select ${fresh.id}, nl.label_id,
+             case when bool_or(nl.set_by = 'person') then 'person' else 'offload' end
+        from note_labels nl join labels l on l.id = nl.label_id
+       where nl.note_id in (${sql.join(sources)}) and nl.removed_at is null
+         and l.deleted_at is null and l.thread_id = ${threadId}
+       group by nl.label_id
+      on conflict do nothing`.execute(trx);
     added += 1;
     for (const id of sources) folded.add(id);
   }

@@ -397,3 +397,16 @@ export {
   activityTag,
 } from "./notifications.js";
 export type { ActivityKind, ActivityReason, ActivityShape, ChannelId } from "./notifications.js";
+
+// 025. Labels: the # token, the #words a message carries, the filter's pick.
+export {
+  ALL_LABELS,
+  hashtagsIn,
+  isAll,
+  keepLive,
+  labelQuery,
+  pickAll,
+  toggleLabel,
+  toggleUnlabelled,
+} from "./labels.js";
+export type { LabelPick } from "./labels.js";

@@ -754,7 +754,7 @@ describe("the routes, with a real session", () => {
       standing: null;
     };
     expect(body.name).toBe("Flat admin");
-    expect(body.counts).toEqual({ active: 1, archived: 1 });
+    expect(body.counts).toEqual({ active: 1, archived: 1, unlabelled: 1 });
     expect(body.members).toEqual([
       { accountId: me, displayName: "Ana Duarte", initials: "AD", isYou: true },
     ]);

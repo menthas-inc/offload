@@ -20,6 +20,7 @@ import { timeZoneOf } from "../time-zone.js";
 import { adoptZone } from "../accounts/zone.js";
 import { webOrigins } from "../env.js";
 import { db } from "../db.js";
+import { undoTurnLabels, type LabelPickOnWire } from "../threads/labels.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { onAnswer } from "../dumps/answers.js";
 import { emit } from "../analytics.js";
@@ -141,6 +142,13 @@ const dumpBody = z
      *  accepted connection of the sender; the rest are dropped on receipt,
      *  words intact, so the share tool acts on an id the server vouched for. */
     mentions: z.array(z.object({ accountId: z.string().uuid(), name: z.string().min(1).max(80) })).max(10).optional(),
+    /** 025. What a # in the composer picked on a thread: a label by id, or a
+     *  name to make. Stored as sent and resolved only once the turn has filed,
+     *  against the thread each row landed in; the words stay in the text. */
+    labels: z
+      .array(z.union([z.strictObject({ id: z.string().uuid() }), z.strictObject({ name: z.string().min(1).max(60) })]))
+      .max(10)
+      .optional(),
   /** The thread that was on screen when this was dumped.
    *
    *  **A default, not a destination.** Somebody typing into the composer while
@@ -739,6 +747,8 @@ export async function takeDump(
   timeZone: string | null = null,
   /** 022. Mentions as the client sent them, filtered here. */
   mentions: { accountId: string; name: string }[] = [],
+  /** 025. A thread dump's # picks, kept for the turn to resolve. */
+  labels: LabelPickOnWire[] = [],
 ): Promise<{
   messageId: string;
   conversationId: string;
@@ -899,7 +909,16 @@ export async function takeDump(
         looking_at_thread_id: lookingAt,
         source: photos?.viaShare ? "share" : "person",
         time_zone: timeZone,
-        ...(vouched.length > 0 ? { attrs: JSON.stringify({ mentions: vouched }) } : {}),
+        ...(vouched.length > 0 || (lookingAt && labels.length > 0)
+          ? {
+              attrs: JSON.stringify({
+                ...(vouched.length > 0 ? { mentions: vouched } : {}),
+                // Only for a dump made on a thread: from Today nothing was
+                // known to pick from, and the #words in the text stand in.
+                ...(lookingAt && labels.length > 0 ? { labels } : {}),
+              }),
+            }
+          : {}),
       })
       .onConflict((oc) =>
       // The index is partial, on client_key is not null, because most messages
@@ -1060,7 +1079,7 @@ export async function dumpRoutes(app: App): Promise<void> {
       if (!accountId)
         return reply.code(401).send({ error: "unauthenticated" as const });
 
-      const { text, clientKey, threadId, blobIds, viaShare, mentions } = request.body;
+      const { text, clientKey, threadId, blobIds, viaShare, mentions, labels } = request.body;
 
       // Before the write, not after. AC-14.
       if (text.length > MAX_DUMP_CHARS) {
@@ -1101,6 +1120,7 @@ export async function dumpRoutes(app: App): Promise<void> {
           blobIds?.length ? { blobIds, viaShare: Boolean(viaShare) } : undefined,
           timeZoneOf(request),
           mentions ?? [],
+          labels ?? [],
         );
       } catch (error) {
         if (error instanceof UnknownBlob) {
@@ -1894,6 +1914,9 @@ export async function undoTurn(
       .where("deleted_at", "is", null)
       .where("source_ref", "is", null)
       .execute();
+
+    // 025. What the turn labelled, the person's # and the model's alike.
+    await undoTurnLabels(trx, turnId);
 
     // Notes the turn wrote, on the same clock and by the same predicate.
     //

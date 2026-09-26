@@ -151,6 +151,8 @@ export interface ThreadsTable {
   updated_at: Timestamp;
   deleted_at: Timestamp | null;
   purge_after: Timestamp | null;
+  /** 025. When the nightly sort last read this thread. */
+  labels_sorted_at: Timestamp | null;
 }
 
 export interface ThreadMembersTable {
@@ -291,7 +293,7 @@ export interface PushTokensTable {
 export interface ActivityTable {
   id: Generated<string>;
   account_id: string;
-  kind: "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted";
+  kind: "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled";
   sent: boolean;
   reason: "setting" | "permission" | "design" | null;
   title: string;
@@ -302,6 +304,10 @@ export interface ActivityTable {
   about_account_id: string | null;
   member_id: string | null;
   request_id: string | null;
+  /** 025. The sort a `labelled` row records, which its Undo takes back. */
+  label_run_id: string | null;
+  /** 025. Somebody pressed Undo; every member's copy carries it. */
+  undone_at: Timestamp | null;
   occurred_at: Timestamp;
 }
 
@@ -936,6 +942,59 @@ export interface MessageContentTable {
 }
 
 
+/** 025. A named, coloured group inside one thread. The thread's, not its
+ *  creator's: every accepted member reads and writes it. */
+export interface LabelsTable {
+  id: Generated<string>;
+  thread_id: string;
+  name: string;
+  /** 1 to 10, reading `--label-N`. Never derived from the name. */
+  colour: number;
+  set_by: "person" | "offload";
+  created_by: string | null;
+  run_id: string | null;
+  touched_by_person_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
+  updated_at: Generated<Timestamp>;
+  deleted_at: Timestamp | null;
+  deleted_by_person: Generated<boolean>;
+  purge_after: Timestamp | null;
+}
+
+/** 025. One row per (row, label), ever: a person's removal is a tombstone. */
+export interface ContentLabelsTable {
+  content_id: string;
+  label_id: string;
+  set_by: "person" | "offload";
+  run_id: string | null;
+  removed_at: Timestamp | null;
+  removed_by: "person" | "offload" | null;
+  removed_run_id: string | null;
+  created_at: Generated<Timestamp>;
+}
+
+export interface NoteLabelsTable {
+  note_id: string;
+  label_id: string;
+  set_by: "person" | "offload";
+  run_id: string | null;
+  removed_at: Timestamp | null;
+  removed_by: "person" | "offload" | null;
+  removed_run_id: string | null;
+  created_at: Generated<Timestamp>;
+}
+
+/** 025. One sort: a nightly pass over a thread, or a turn that labelled. */
+export interface LabelRunsTable {
+  id: Generated<string>;
+  thread_id: string;
+  kind: "nightly" | "live";
+  set_by: "person" | "offload";
+  turn_id: string | null;
+  undone_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
+}
+
 export interface Database {
   connector_connections: ConnectorConnectionsTable;
   connector_secrets: ConnectorSecretsTable;
@@ -968,6 +1027,10 @@ export interface Database {
   push_tokens: PushTokensTable;
   activity: ActivityTable;
   activity_mentions: ActivityMentionsTable;
+  labels: LabelsTable;
+  content_labels: ContentLabelsTable;
+  note_labels: NoteLabelsTable;
+  label_runs: LabelRunsTable;
   waitlist_attempts: WaitlistAttemptsTable;
   schema_migrations: SchemaMigrationsTable;
 

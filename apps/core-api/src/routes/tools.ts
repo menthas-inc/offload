@@ -20,13 +20,13 @@
 //   somebody else's return byte-identical bodies. Two reasons would make this
 //   endpoint a membership oracle for any thread id a caller could guess.
 
-import { WIDGET_KIND_CHARS } from "../threads/widgets.js";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { sql, type Transaction } from "kysely";
 import type { Database } from "../schema.js";
 import type { App } from "../app.js";
 import { db } from "../db.js";
+import { WIDGET_KIND_CHARS } from "../threads/widgets.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { formatRule, parseRule } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";

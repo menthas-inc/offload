@@ -60,11 +60,14 @@ const todayResponse = z.object({
    *  account that has never dumped anything, and the quiet line for one that
    *  has. */
   everDumped: z.boolean(),
+  /** 025. The labels the rows above carry, and only those: Today has no
+   *  thread bundle to look a label up in. */
+  threadLabels: z.array(z.object({ id: z.string(), name: z.string(), colour: z.number() })),
 });
 
 const activityEntry = z.object({
   id: z.string(),
-  kind: z.enum(["digest", "request", "share", "shared_activity", "expired", "moved", "acted"]),
+  kind: z.enum(["digest", "request", "share", "shared_activity", "expired", "moved", "acted", "labelled"]),
   sent: z.boolean(),
   reason: z.enum(["setting", "permission", "design"]).nullable(),
   title: z.string(),
@@ -74,6 +77,9 @@ const activityEntry = z.object({
   contentId: z.string().nullable(),
   memberId: z.string().nullable(),
   requestId: z.string().nullable(),
+  /** 025. A labelled row's Undo is offered while this is true. */
+  undoable: z.boolean(),
+  undone: z.boolean(),
   occurredAt: z.string(),
 });
 
@@ -313,12 +319,27 @@ export async function notificationRoutes(app: App): Promise<void> {
       .where("content.deleted_at", "is", null)
       .limit(1)
       .executeTakeFirst();
-    return {
+    const shaped = {
       overdue: await shape(overdue.slice(0, OVERDUE_CAP).map((one) => one.row)),
       today: await shape(todays),
       tomorrow: await shape(tomorrows),
+    };
+    const named = [...new Set([...shaped.overdue, ...shaped.today, ...shaped.tomorrow].flatMap((row) => row.labels))];
+    const threadLabels =
+      named.length === 0
+        ? []
+        : await db
+            .selectFrom("labels")
+            .select(["id", "name", "colour"])
+            .where("id", "in", named)
+            .where("deleted_at", "is", null)
+            .orderBy("created_at")
+            .execute();
+    return {
+      ...shaped,
       overdueMore: Math.max(0, overdue.length - OVERDUE_CAP),
       everDumped: ever !== undefined,
+      threadLabels,
     };
   });
 }
