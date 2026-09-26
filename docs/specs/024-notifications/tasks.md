@@ -6,7 +6,7 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 - [x] **A1** The six privacy page edits in `feature-spec.md`, "The privacy page", into `apps/web/src/app/(marketing)/privacy/page.tsx` in the worktree, with `UPDATED` and `CONSENT_VERSION` moved; the product owner reads them before the send code is written. (AC-9, OFF-1, the `CLAUDE.md` policy rule)
 - [x] **A2** `docs/specs/022-sharing/feature-spec.md`, "The dot": the gear owns a request, the bell owns the record, and the page sentence is amended. (AC-19, DEV-2)
-- [ ] **A3** At merge, on `main`: the three `docs/tech/decisions.md` entries and the design log entry with every line under "Design system impact". (OFF-7, DATA-1)
+- [x] **A3** Landed on main with the merge, 2026-09-26. At merge, on `main`: the three `docs/tech/decisions.md` entries and the design log entry with every line under "Design system impact". (OFF-7, DATA-1)
 
 ## B. API: schema and tokens
 

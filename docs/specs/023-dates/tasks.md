@@ -6,7 +6,7 @@ Ordered. Each cites the acceptance criteria and principles it serves. `[ ]` open
 
 - [x] **A1** The product owner reads the privacy page clause in `feature-spec.md`, "The privacy page, as it will read", before the zone code is written; the clause goes into `apps/web/src/app/(marketing)/privacy/page.tsx` in the worktree, to land with the feature. (the `CLAUDE.md` policy rule)
 - [x] **A2** On `main`: the two aliases `--surface-danger-soft` and `--surface-noticed-soft` in all three scopes of `.claude/skills/offload-design/tokens/colors.css`, one design log entry, `pnpm tokens`, fast-forwarded into the worktree before F3 and G2. (OFF-7)
-- [ ] **A3** At merge, on `main`: the three `docs/tech/decisions.md` entries and the design log entry with every line under "Design system impact" in `feature-spec.md`. (OFF-7, DATA-1)
+- [x] **A3** Landed on main with the merge, 2026-09-26. At merge, on `main`: the three `docs/tech/decisions.md` entries and the design log entry with every line under "Design system impact" in `feature-spec.md`. (OFF-7, DATA-1)
 
 ## B. Shared: the rule and the day
 

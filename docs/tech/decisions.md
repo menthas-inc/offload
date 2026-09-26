@@ -836,6 +836,48 @@ Three reviewers over the whole branch. Two findings would have shipped a feature
 
 **Design system impact:** none. The client findings are logged separately in the design system's own `decisions.md`.
 
+### 2026-09-22 · Two digests gated on the reminder flag, no per-item push, and Expo carries the words
+
+A date is not announced; a reminder is. Two sends a day, Due today in the morning and Tomorrow in the evening, at the account's hours in the account's zone, placed by an hourly job keyed on the account, the local day and the send, run through the membership predicate at send time, composed by one copy module with three arms and a clamp on every person-written string, and sent through Expo's push service behind the project's access token with enhanced push security on. Locally the memory transport stands in unless `PUSH_LIVE=1`, as the mailer's does. A job more than two hours late is dropped. A push failure carries a status and a code and never the body. The words leave to Expo, then Apple or Google, and the privacy page says so in six places.
+
+**A push token is a delivery capability bound to a session.** One row per token, unique, re-bound to whichever account registered it last, deleted by the server on sign-out before the session ends, dropped when the service reports the device gone, and the phone tries the delete once more before the session goes. No read returns one, no log line carries one, and the receipts job carries the token's row id rather than the token.
+
+**What the reviews of 2026-09-22 changed before merge.** Events are attributed to the pseudonym through one `subjectOf`, and the four events have schemas. An `activity_mentions` table records whose words a digest carried and from which thread, so the purges that end a membership reach the digests that named its words and not only the rows whose one column did. A calendar's own row is never in a digest. A request's record goes at seven days with the request row it came from. A ticket the push service refuses for any reason but a gone device fails the job with its code and is never recorded as sent, which the impl spec said and the first cut did not do. A note typed into a shared thread reaches the others, as the trigger always promised. The addition job is enqueued inside the caller's transaction. Both capped reads order nearest first. The channel ids, the category ids and the record row's glyph and tag live once, in `@offload/widgets`, read by the server and both clients. A response the phone receives twice, as the launch response and through the listener, acts once, and the platform's copy is cleared after it. The wire says `activityNew`, not the retired word. From the Pixel pass of 2026-09-24: Android refuses a notification category without an action, so the plain digest has a category on iOS alone and the four channels are created in their own try; and a send that arrives while the app is in front is delivered and recorded but not shown, the platform default, since the app sets no notification handler.
+
+**Design system impact:** none here.
+
+### 2026-09-22 · Activity reverses 022's refusal of a notifications page, and why it survives
+
+022 refused a page that existed to hold a dot. What changed is that there is now a record with content in it, some of which exists nowhere else: what was sent, in the words it was sent in, and what offload decided quietly not to send and why. Every silent outcome is written at the moment it happens by the code that decides it: the digest job for a switch or a missing phone, the sweep for an expired request or share in the sender's record, the edit tool for a date the model moved. Readable by the account alone, thirty days then purged, and sooner where a membership ends or the words' author deletes their account. Ordered by when it happened, paged with the cursor compared in Postgres as a row value.
+
+**Design system impact:** none here.
+
+### 2026-09-22 · The gear owns a request, the bell owns the record
+
+022's dot rule is amended in its own spec: a connection request keeps the gear's dot and dots nothing else; everything else offload sends or declines to send dots the bell, and the web sidebar's Activity item carries the same dot. A dot, never a count.
+
+**Design system impact:** none here.
+
+### 2026-09-22 · One clock per account, under the city's current name
+
+`accounts.time_zone` is the clock every timed date is drawn and scheduled in, set at first run from the device, backfilled for an older account from the last zone a message carried or its next dump, and changed by the person alone: in Settings, or by the strip on Today when the phone is somewhere else. `follow_device` gates the strip and `kept_time_zone` holds the one device zone answered Keep to, so a two-week trip asks once. No travel signal beside it: the 0051 header stays on the three model-bound routes and is never widened, because the privacy page says the zone is kept with a message and once at first run, and nothing else.
+
+**The stored name is the city's current one.** Node's ICU still resolves Asia/Kolkata to Asia/Calcutta and Europe/Kyiv to Europe/Kiev while a phone reports the current name; stored as ICU spelt it, the clock a phone set and the phone's own word differed by spelling alone and the strip offered a switch to the zone it was in. Every writer and every comparison goes through one table of renames in the widgets package, renames only, never the merges tzdata made in 2022. Hermes has no `Intl.supportedValuesOf`, so the zone list is checked in beside the function and held to Node's own list by a test.
+
+**Design system impact:** none here; the visual side is in the design log.
+
+### 2026-09-22 · Recurrence is an RFC 5545 rule in a closed grammar, and the server is canonical
+
+`rrule` replaces the six-value enum on `content` and `notes`. The grammar is closed to what the sheet can draw: FREQ of the four, INTERVAL 1 to 99, BYDAY as a weekly set or a monthly ordinal of 1 to 4 or -1, BYMONTHDAY, UNTIL or COUNT, WKST. One parser and one serialiser in the widgets package; the server stores only its own serialisation, refuses the rest by name, and the same shape check runs in Python before a call reaches the API. A rule anchors on the type's own column, an event's occurrence and everything else's due date, and clearing the anchor clears the rule. Migration 0057 rewrote the enum and moved a repeating task's anchor to its due date, dropping the occurrence it anchored on, which the rail had drawn twice.
+
+**Design system impact:** none here.
+
+### 2026-09-22 · A person-facing edit route with a snapshot for Undo
+
+`PATCH /v1/content/:id` takes title, body, the three dates, all day, the rule and the reminder flag in one write, distinguishing absent from null so Clear is an edit, refuses by name (`bad_date`, `bad_rule`, `on_calendar`), and returns the previous values so Undo is one request. Two things the review found are now rules: the snapshot is a body the route accepts, so a day travels as a day and not the noon instant it is stored at; and a date change is a value that differs from what the row holds, not a field that was merely sent. The membership check runs inside the transaction that writes. The route takes `isReminder` either way because Undo has to restore it, while no screen draws a way to set it: a reminder stays the model's, and Remind me is only the way out of one.
+
+**Design system impact:** none here.
+
 ### 2026-09-20 · The first run of the 019 and 020 evals, and what moved into code
 
 **Decision:** the 36 cases added since the 17 September baseline ran for the first time, twice each. 08 the calendar went 13/26; 23 photos went 13/22. After repairing the cases that were the case rather than the model (a Friday said on a Friday, flat fixtures that read as screenshots, a beach that was two rectangles), 18/26 and 18/21. What was left agreed across cases and each became code rather than a prompt line:
