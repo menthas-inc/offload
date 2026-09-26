@@ -18,7 +18,8 @@ import { z } from "zod";
 import { sql } from "kysely";
 import type { App } from "../app.js";
 import { db } from "../db.js";
-import { applyTurnLabels } from "../threads/labels.js";
+import { applyNightlyPlan, applyTurnLabels } from "../threads/labels.js";
+import { labelledNightlyCopy } from "../notifications/copy.js";
 import { hashtagsIn } from "@offload/widgets";
 import { emit } from "../analytics.js";
 import { env } from "../env.js";
@@ -510,6 +511,78 @@ export async function internalRoutes(app: App): Promise<void> {
       // here to an OFF-1 breach is a helpful log line.
       return reply.send(outcome);
     }
+  );
+
+  // 025. The nightly sort's plan. The worker read one thread's recent titles
+  // and asked a model which of them group; this is where every rule is kept:
+  // the thread and the account come from the job row, the account must still
+  // be in the thread, every row and label must be the thread's, nothing a
+  // person set is touched, and the plan cannot say remove.
+  const sortBody = z.strictObject({
+    jobId: z.string().uuid(),
+    create: z.array(z.strictObject({ name: z.string().min(1).max(60), contentIds: z.array(z.string().uuid()).max(200) })).max(6),
+    apply: z.array(z.strictObject({ labelId: z.string().uuid(), contentIds: z.array(z.string().uuid()).max(200) })).max(10),
+    usage: z.array(usageEntry).max(4).optional(),
+  });
+  app.post(
+    "/internal/v1/labels-sorted",
+    {
+      schema: {
+        body: sortBody,
+        response: { 200: z.object({ created: z.number(), applied: z.number() }), 401: refused, 404: refused },
+      },
+    },
+    async (request, reply) => {
+      const header = request.headers.authorization;
+      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+      if (!tokenMatches(presented)) {
+        return reply.code(401).send({ error: "unauthorised" as const });
+      }
+      const result = request.body;
+      const job = await db
+        .selectFrom("jobs")
+        .select(["id", "account_id", "payload"])
+        .where("id", "=", result.jobId)
+        .where("kind", "=", "labels.sort")
+        .executeTakeFirst();
+      if (!job?.account_id) return reply.code(404).send({ error: "unknown_job" as const });
+      const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as { threadId?: string };
+      if (!payload.threadId) return reply.code(404).send({ error: "unknown_job" as const });
+      const accountId = job.account_id;
+      const threadId = payload.threadId;
+
+      const outcome = await db.transaction().execute(async (trx) => {
+        const landed = (await memberOf(accountId, threadId, trx))
+          ? await applyNightlyPlan(trx, accountId, threadId, { create: result.create, apply: result.apply }, labelledNightlyCopy)
+          : { created: 0, applied: 0 };
+        if (result.usage && result.usage.length > 0) {
+          await trx
+            .insertInto("llm_usage")
+            .values(
+              result.usage.map((entry) => ({
+                account_id: accountId,
+                job_kind: "labels.sort",
+                category: "scheduled" as const,
+                model: entry.model,
+                input_tokens: entry.inputTokens,
+                output_tokens: entry.outputTokens,
+                cache_read_tokens: entry.cacheReadTokens,
+                cost_micros: entry.costMicros,
+                latency_ms: entry.latencyMs,
+              })),
+            )
+            .execute();
+        }
+        await trx
+          .updateTable("jobs")
+          .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
+          .where("id", "=", result.jobId)
+          .execute();
+        return landed;
+      });
+      // Counts, never a name or a title.
+      return reply.send(outcome);
+    },
   );
 
   // 017. What offload is doing, on its way out.

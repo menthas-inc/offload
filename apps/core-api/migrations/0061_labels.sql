@@ -21,7 +21,9 @@ create table labels (
   run_id               uuid,
   -- A person renamed or recoloured it, after which offload never touches it.
   touched_by_person_at timestamptz,
-  created_at           timestamptz not null default now(),
+  -- clock_timestamp, not now(): several labels are made in one transaction by
+  -- a sort, and their order is the order a person reads them in everywhere.
+  created_at           timestamptz not null default clock_timestamp(),
   updated_at           timestamptz not null default now(),
   deleted_at           timestamptz,
   deleted_by_person    boolean not null default false,
@@ -47,7 +49,7 @@ create table content_labels (
   removed_at     timestamptz,
   removed_by     text check (removed_by in ('person', 'offload')),
   removed_run_id uuid,
-  created_at     timestamptz not null default now(),
+  created_at     timestamptz not null default clock_timestamp(),
   primary key (content_id, label_id)
 );
 create index content_labels_label_idx on content_labels (label_id, content_id) where removed_at is null;
@@ -60,7 +62,7 @@ create table note_labels (
   removed_at     timestamptz,
   removed_by     text check (removed_by in ('person', 'offload')),
   removed_run_id uuid,
-  created_at     timestamptz not null default now(),
+  created_at     timestamptz not null default clock_timestamp(),
   primary key (note_id, label_id)
 );
 create index note_labels_label_idx on note_labels (label_id, note_id) where removed_at is null;

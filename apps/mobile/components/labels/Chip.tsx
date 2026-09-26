@@ -40,7 +40,7 @@ export function Chip({
       accessibilityRole="button"
       accessibilityState={{ selected, disabled }}
     >
-      <ChipFace icon={icon} label={label} selected={selected} tone={tone}>
+      <ChipFace glyph={icon} label={label} selected={selected} tone={tone}>
         {children}
       </ChipFace>
     </Pressable>
@@ -52,13 +52,13 @@ export function Chip({
  *  under that contract's props. One drawing, two controls. */
 export function ChipFace({
   children,
-  icon,
+  glyph,
   label,
   selected = false,
   tone = "neutral",
 }: {
   children?: string | undefined;
-  icon?: string | undefined;
+  glyph?: string | undefined;
   label?: number | undefined;
   selected?: boolean;
   tone?: "neutral" | "outline";
@@ -88,7 +88,7 @@ export function ChipFace({
       style={{ minHeight: isAndroid ? 32 : 30 }}
     >
       {label ? <LabelDot colour={label} onSolid={selected} /> : null}
-      {icon ? <Glyph name={icon} size={14} color={selected ? COLOR.onSolid : COLOR.iconOnWell} /> : null}
+      {glyph ? <Glyph name={glyph} size={14} color={selected ? COLOR.onSolid : COLOR.iconOnWell} /> : null}
       {children ? (
         <Text className={`font-core font-medium ${ink}`} style={{ fontSize: 13, fontVariant: ["tabular-nums"] }}>
           {children}

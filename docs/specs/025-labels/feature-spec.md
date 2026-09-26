@@ -27,14 +27,14 @@ A **label** is a named, coloured group inside one thread. A row **carries** labe
 - **Name:** 1 to 24 characters after trimming, inner whitespace collapsed to one space, a leading `#` dropped, no control characters. Unique per thread ignoring case among labels that are not deleted: creating or renaming to a name the thread already has is refused as `label_taken`. Case is kept as typed. Enforced by the server on every path, person and model.
 - **Colour:** one of ten, `--label-1` to `--label-10`, stored as the number, never derived from the name. A new label takes the lowest number its thread is not using, so a thread's first three are cerulean, rose and leaf. **One label per colour.** The Colour picker shows all ten with the taken ones marked by the label that holds them; **picking a taken colour swaps** the two labels' colours in one write, so the picker is never inert, even at ten. The same solid in both themes, words always `--text-on-solid`, never moss whoever applied it.
 - **Ten per thread.** An eleventh is refused as `label_limit`, and every surface draws New label disabled at ten with the line *A thread holds ten labels.*
-- **Several per row.** The flight to Paris is both Lisbon and Paris. Content rows and thread notes both carry labels. A note that is superseded, muted or folded is not listed, not counted and not filtered; an account-scope note can never carry one.
+- **Several per row.** The flight to Paris is both Lisbon and Paris. Content rows and thread notes both carry labels. A note that is superseded or folded is not listed, not counted and not filtered (a muted note is listed, as the thread page lists it); an account-scope note can never carry one.
 - **Order:** a thread's labels are listed in the order they were created, everywhere.
 - **Deleted, then gone.** A deleted label is kept, with its joins, for thirty days, which is what Undo restores from and what stops offload re-creating it; then it is purged. That is the window the privacy page already states for anything deleted.
 
 ### Applying one row: the marks line, the tag tool, the label sheet
 
 - **The marks line.** 023's chip line under the title becomes the marks line: the date chip first, then each label the row carries as `LabelMark` at 20px, wrapping. A row with neither has no line. The meta and the body follow unchanged. The row draws it from a `labels` prop of its own on both clients, never through the caller's meta slot, so the thread page and Today draw the same line. On iOS and Android (`ContentRow.tsx`) and the web (`ContentRowView.tsx`), in the thread's list, in every widget, in the archived list and on Today.
-- **The tag tool.** A row carrying **no** label draws `tag` as its first tool, before the pencil and the way out, **on every such row regardless of who wrote it**, including another member's row that has no pencil, an archived row, and a link row, where it sits before `arrow-up-right`. It opens the label sheet. On the phones it is 17px in `--icon-on-well`; on the web it is the web row tool's own treatment, 15px in `--text-secondary`. **A stated exception to "two controls, never three"**, and the only one: a labelled row draws its marks and its usual tools. The target is 44px on every surface, and the row's other tools are raised to 44 in the same change, since the tag tool would otherwise be the only one that meets the rule.
+- **The tag tool.** A row carrying **no** label draws `tag` as its first tool, before the pencil and the way out, **on every such row regardless of who wrote it**, including another member's row that has no pencil, an archived row, and a link row, where it sits before `arrow-up-right`. It opens the label sheet. Today draws none, having no thread to label under. On the phones it is 17px in `--icon-on-well`; on the web it is the web row tool's own treatment, 15px in `--text-secondary`. **A stated exception to "two controls, never three"**, and the only one: a labelled row draws its marks and its usual tools. On the web the row's tools stay 32px and take a 44px hit area with no paint; on the phones the tools sit 16px apart, so their slop is 8 either side, where two targets meet without overlapping, and 14 above and below, 45 tall by 33 wide (they were 33 by 33).
 - **Tapping a mark** opens that label's list (below).
 - **The label sheet.** Title *Labels*, the row's title as the sub, each of the thread's labels with its dot, name, count and a tick for whether this row carries it, then *New label*, which opens a name field in place and adds the new label ticked. Cancel and Done. Done is one write; the toast names the result, *Packing list is under Istanbul*, or for several *Packing list is under Istanbul and Paris*, or for none *Packing list has no label*, with Undo. Cancel writes nothing, including a label made with New label inside it. On the phones a sheet that rises above the keyboard while the name field is focused; on the web a popover anchored to the tag tool or the mark, with focus moved into it, Escape to close and focus returned to the control that opened it.
 
@@ -72,7 +72,7 @@ A **label** is a named, coloured group inside one thread. A row **carries** labe
 A label outside its thread always travels with the thread's name, because Lisbon alone could belong to any thread.
 
 - **Today:** the row's meta line is the thread's name, and the row's own marks line carries its labels, as on the thread page.
-- **The timeline:** an event row is `EventLine`, led by an 8px anchor dot. **A labelled row's anchor dot becomes its first label's colour at 10px**, and a second and third label follow as 10px dots after it; the line itself is never filled with a label colour. A calendar's own events (019) keep their anchor in the calendar's colour and carry no labels.
+- **The timeline:** offload's own dated rows are drawn on the timeline's day as the thread's rows, so they carry their marks. A calendar's own events (019) keep their anchor in the calendar's colour and carry no labels, and are hidden while a filter is on. Nothing is ever filled with a label colour. (Changed during the build: the spec described an anchor dot on offload's rows, which are not drawn as `EventLine`.)
 - **The rail keeps what its dots mean today**, the type of what lands on a day, and its `+N` overflow. It does not draw label dots: one dot meaning two things is worse than either. What labels do for the rail is narrow it: with Lisbon picked, only Lisbon's days carry dots. This is a divergence from the exploration's "up to three dots under a day", logged.
 - **The map** is not built in this spec; there is no map on any surface. When one is, its pin rule is already decided: a place with one label is that label's solid with a white glyph, a place with two splits the pin, a place with none is ink, and the filter bar filters it.
 
@@ -135,7 +135,7 @@ Labels
 The row
 
 - **AC-9** Every row on the thread page, in the widgets, in the archived list and on Today draws its labels as 20px `LabelMark`s after the date chip on the marks line, from the row's own `labels` prop, wrapping; a row with neither draws no line; on iOS, Android and the web, both themes, 200% text.
-- **AC-10** Every row with no label draws the `tag` tool first among its tools, whoever wrote it, including archived and link rows; a labelled row does not; the tag tool and the row's other tools have 44px targets; tapping a mark opens that label's list.
+- **AC-10** Every row on the thread page with no label draws the `tag` tool first among its tools, whoever wrote it, including archived and link rows; a labelled row does not; the web's tools have 44px hit areas and the phones' are 45 by 33; tapping a mark opens that label's list.
 - **AC-11** The label sheet lists the thread's labels in creation order with dot, name, count and tick, and New label; Done writes the row's labels in one request and toasts the result with Undo; Cancel writes nothing, including a label made inside it; on the web it is a popover with focus in, Escape out and focus returned; on the phones the name field stays above the keyboard.
 
 The label's list
@@ -159,8 +159,8 @@ Filtering
 
 Outside the thread
 
-- **AC-22** Today's rows draw their marks line with labels, and the meta line keeps the thread's name.
-- **AC-23** On the timeline a labelled row's anchor is its first label's 10px dot with a second and third after it; a calendar's own event keeps its calendar colour; the rail's dots and `+N` are unchanged apart from narrowing with the filter.
+- **AC-22** Today's rows draw their labels as marks after the thread's name on the meta line, as the design draws it, and no tag tool.
+- **AC-23** On the timeline offload's dated rows carry their marks; a calendar's own event keeps its calendar colour, carries no labels and is hidden under a filter; the rail's dots and `+N` are unchanged apart from narrowing with the filter.
 
 offload
 

@@ -79,3 +79,47 @@ describe("what a toast says (the feature spec's words)", () => {
     expect(listLabelledCopy(0, "Istanbul")).toBe("Istanbul saved");
   });
 });
+
+describe("a labelled row in Activity (AC-27, AC-28)", () => {
+  it("opens its thread and says Undone once undone", async () => {
+    const { doorOf, tagOf } = await import("../src/lib/notifications");
+    const row = {
+      id: "a1", kind: "labelled" as const, sent: false, reason: "design" as const, title: "Sorted", body: null,
+      send: null, threadId: "t1", contentId: null, memberId: null, requestId: null, occurredAt: "2026-09-27T00:00:00Z",
+      undoable: true, undone: false,
+    };
+    expect(doorOf(row)).toBe("/threads/t1");
+    expect(tagOf(row)).toBeNull();
+    expect(tagOf({ ...row, undone: true })).toEqual({ label: "Undone", tone: "quiet" });
+  });
+
+  it("undoes through its own route", async () => {
+    const calls: string[] = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = (async (url: string, init?: RequestInit) => {
+      calls.push(`${init?.method ?? "GET"} ${url}`);
+      return new Response(JSON.stringify({ undone: true }), { status: 200 });
+    }) as typeof fetch;
+    try {
+      const { undoActivity } = await import("../src/lib/notifications");
+      expect(await undoActivity("a1")).toBe(true);
+      expect(calls[0]).toMatch(/^POST .*\/v1\/activity\/a1\/undo$/);
+    } finally {
+      globalThis.fetch = real;
+    }
+  });
+});
+
+describe("the privacy page says labels (AC-34)", () => {
+  it("names the labels, drops the tags, and moves its date with the consent version", async () => {
+    const { readFileSync } = await import("node:fs");
+    const page = readFileSync(new URL("../src/app/(marketing)/privacy/page.tsx", import.meta.url), "utf8");
+    const session = readFileSync(new URL("../../core-api/src/routes/session.ts", import.meta.url), "utf8");
+    expect(page).toMatch(/the <strong>labels<\/strong> it is grouped under/);
+    expect(page).not.toMatch(/the tags, dates and/);
+    const updated = /const UPDATED = "(\d+) September 2026"/.exec(page)?.[1];
+    const version = /CONSENT_VERSION = "2026-09-(\d+)"/.exec(session)?.[1];
+    expect(updated).toBe("27");
+    expect(version).toBe("27");
+  });
+});

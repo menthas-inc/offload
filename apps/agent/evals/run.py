@@ -12,6 +12,7 @@ Six surfaces, one per model call the product makes:
 - ``quick_add``  a row typed into a thread (``plan_quick_add``)
 - ``judge``      does a typed message answer the open question (``judge_answer``)
 - ``compact``    one thread's notes, folded (``compact._ask``)
+- ``label_sort`` one thread's rows, grouped overnight (``label_sort._ask``)
 
 Each runs the real prompt assembly and the real loop, with every tool answered
 from the case's fixture. The Core API is the one thing not exercised: what a
@@ -59,6 +60,7 @@ from typing import Any
 from anthropic import AsyncAnthropic
 
 from offload_agent import compact as compact_mod
+from offload_agent import label_sort as label_sort_mod
 from offload_agent.config import Config
 from offload_agent.context import (
     AnswerContext,
@@ -109,6 +111,7 @@ MODELS = {
     "classify": _DEFAULTS["sort_model"],
     "judge": _DEFAULTS["sort_model"],
     "compact": _DEFAULTS["sort_model"],
+    "label_sort": _DEFAULTS["sort_model"],
 }
 # The eval's own judge is a different tier from the answerer on purpose: a
 # model marking its own work is the failure this file exists to avoid.
@@ -1602,6 +1605,64 @@ async def _run_compact(client: AsyncAnthropic, case: Case, model: str) -> Result
     return Result(case, "", transcript, failures, judged, note, cost=cost)
 
 
+async def _run_label_sort(client: AsyncAnthropic, case: Case, model: str) -> Result:
+    """025. One thread's rows and labels, asked how they group.
+
+    The input is {thread, rows: [{id, type, title}], labels: [{id, name}]}. The
+    structural rules are the ones the Core API enforces: a label for a single
+    row, a name over 24 characters, or a row that is not the thread's are
+    failures here too. What counts as a sensible grouping is the case's."""
+    fx = case.input
+    rows = fx.get("rows") or []
+    labels = fx.get("labels") or []
+    listing = label_sort_mod._listing(str(fx.get("thread") or ""), rows, labels)
+    cfg = Config(
+        database_url="", api_url="", internal_token="", anthropic_api_key="", sort_model=model
+    )
+    try:
+        plan_, usage = await label_sort_mod._ask(client, cfg, listing)
+    except Exception as exc:  # noqa: BLE001
+        return Result(case, "", "", [f"raised {type(exc).__name__}: {exc}"], False, "")
+    if plan_ is None:
+        return Result(case, "", "", ["no parseable plan"], False, "")
+    ids = {r["id"] for r in rows}
+    label_ids = {one["id"] for one in labels}
+    transcript = json.dumps(plan_.model_dump(), ensure_ascii=False)
+    failures: list[str] = []
+    for one in plan_.create:
+        if len(one.content_ids) < 2:
+            failures.append(f"made {one.name!r} for one row")
+        if any(i not in ids for i in one.content_ids):
+            failures.append(f"named a row the thread does not have under {one.name!r}")
+        failures.extend(_copy_problems(one.name))
+    for one in plan_.apply:
+        if one.label_id not in label_ids:
+            failures.append(f"applied a label the thread does not have: {one.label_id}")
+    expect = case.expect
+    names = {one.name.lower() for one in plan_.create}
+    if expect.get("no_change") and (plan_.create or plan_.apply):
+        failures.append(f"sorted a thread about one thing: {transcript}")
+    for want in expect.get("creates", []):
+        if want.lower() not in names:
+            failures.append(f"did not make {want!r}: {transcript}")
+    for group in expect.get("together", []):
+        if not any(set(group) <= set(one.content_ids) for one in [*plan_.create, *plan_.apply]):
+            failures.append(f"did not put {group} under one label: {transcript}")
+    for i in expect.get("left_alone", []):
+        if any(i in one.content_ids for one in [*plan_.create, *plan_.apply]):
+            failures.append(f"labelled {i}, which belongs to no group")
+    cost = sum(
+        _cost(
+            u.get("model", model),
+            u.get("inputTokens", 0),
+            u.get("outputTokens", 0),
+            u.get("cacheReadTokens", 0),
+        )
+        for u in usage
+    )
+    return Result(case, "", transcript, failures, True, "", cost=cost)
+
+
 _SURFACES = {
     "file": _run_file,
     "answer": _run_answer,
@@ -1609,6 +1670,7 @@ _SURFACES = {
     "quick_add": _run_quick_add,
     "judge": _run_judge,
     "compact": _run_compact,
+    "label_sort": _run_label_sort,
 }
 
 

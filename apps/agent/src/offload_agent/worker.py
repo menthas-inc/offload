@@ -44,6 +44,8 @@ from offload_agent.harness.plan import (
     plan_answer,
     plan_quick_add,
 )
+from offload_agent.label_sort import KINDS as LABEL_SORT_KINDS
+from offload_agent.label_sort import handle_label_sort
 from offload_agent.og import picture
 from offload_agent.queue import ClaimedJob, claim, finish, reap, release_for_retry, retry_or_die
 from offload_agent.renditions import prepare
@@ -63,7 +65,14 @@ class ReportFailed(Exception):
     reported, and this one cannot be."""
 
 
-KINDS = ["dump.answer", "thread.quick_add", "voice.forget", *EMBED_KINDS, *COMPACT_KINDS]
+KINDS = [
+    "dump.answer",
+    "thread.quick_add",
+    "voice.forget",
+    *EMBED_KINDS,
+    *COMPACT_KINDS,
+    *LABEL_SORT_KINDS,
+]
 
 
 async def _post_result(
@@ -903,6 +912,17 @@ async def handle(
             log.error("compaction failed", kind=job.kind, error=type(exc).__name__)
             async with engine.begin() as conn:
                 await retry_or_die(conn, job, "compact_error", delay_seconds=3600)
+        return
+
+    if job.kind in LABEL_SORT_KINDS:
+        # 025. Nobody is waiting on a sort either, and the same guard: the type,
+        # never the value, since the request here is a thread's titles.
+        try:
+            await handle_label_sort(job, cfg=cfg, engine=engine, http=http, client=anthropic)
+        except Exception as exc:
+            log.error("label sort failed", kind=job.kind, error=type(exc).__name__)
+            async with engine.begin() as conn:
+                await retry_or_die(conn, job, "label_sort_error", delay_seconds=3600)
         return
 
     if job.kind == "voice.forget":

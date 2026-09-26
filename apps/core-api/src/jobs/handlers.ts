@@ -15,7 +15,7 @@ import { env } from "../env.js";
 import { scheduleFullSyncs, scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
 import { enqueue, PRIORITY, scheduleDaily, scheduleHourly } from "./queue.js";
 import { purgeActivity } from "../notifications/activity.js";
-import { purgeLabelRuns, purgeLabels } from "../threads/labels.js";
+import { LABEL_SORT_MIN_ROWS, purgeLabelRuns, purgeLabels } from "../threads/labels.js";
 import { runDigest, scheduleDigests, readReceipts, type Send } from "../notifications/digest.js";
 import { notifyPerson, notifySharedActivity } from "../notifications/people.js";
 import { emit } from "../analytics.js";
@@ -640,10 +640,39 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
     });
   }
 
+  // 025. The nightly sort, once per thread per day whichever member's run
+  // books it first (the idempotency key is the thread's), and only for a
+  // thread of six or more live rows that changed since it was last sorted.
+  const sortable = await db
+    .selectFrom("threads")
+    .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
+    .select(["threads.id as id"])
+    .where("thread_members.account_id", "=", accountId)
+    .where("thread_members.state", "=", "accepted")
+    .where("threads.deleted_at", "is", null)
+    .where(
+      sql<boolean>`(select count(*) from content c where c.thread_id = threads.id and c.deleted_at is null and c.archived_at is null) >= ${LABEL_SORT_MIN_ROWS}`,
+    )
+    .where(
+      sql<boolean>`exists (select 1 from content c where c.thread_id = threads.id and c.deleted_at is null
+        and c.updated_at > coalesce(threads.labels_sorted_at, '-infinity'::timestamptz))`,
+    )
+    .execute();
+  for (const thread of sortable) {
+    await enqueue({
+      kind: "labels.sort",
+      accountId,
+      payload: { threadId: thread.id },
+      priority: PRIORITY.background,
+      idempotencyKey: `labels.sort:${thread.id}:${day}`,
+      maxAttempts: 2,
+    });
+  }
+
   // Counts, never text. This job is about a hundred sentences of dumped text
   // and it is the first one in the product that holds that many at once.
   console.log(
-    JSON.stringify({ level: "info", msg: "daily run", threads: threads.length })
+    JSON.stringify({ level: "info", msg: "daily run", threads: threads.length, sortable: sortable.length })
   );
 };
 

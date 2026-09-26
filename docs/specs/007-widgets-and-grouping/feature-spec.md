@@ -1,5 +1,7 @@
 # 007 Widgets and grouping, feature spec
 
+> **Amended 2026-09-27 by 025:** grouping and the in-widget filter are retired. A widget is one flat list; `groupBy` is gone from the preference and from `set_thread_preference`; AC-4 to AC-6 no longer hold. Labels group a thread, `docs/specs/025-labels/`.
+
 > The what and the why. No tech choices; those are in `impl-spec.md`.
 >
 > Sketched during the 005 review and built on 2026-09-03, once 006 gave it something to arrange.

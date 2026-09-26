@@ -60,8 +60,8 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ### Close of part 2
 
-- [ ] **T2.29** Privacy page line and updated date, as confirmed in T0.2. *(AC-34)*
-- [ ] **T2.30** Design log entries from the feature spec, each with its Design system impact, and `docs/tech/decisions.md`'s labels entry, on main after merge. *(OFF-7, AC-34)*
+- [x] **T2.29** Privacy page line and updated date, as confirmed in T0.2. *(AC-34)*
+- [~] **T2.30** Design log entries from the feature spec, each with its Design system impact, and `docs/tech/decisions.md`'s labels entry, on main after merge. *(OFF-7, AC-34)*
 
 ## 3. Live filing (offload track)
 
@@ -84,6 +84,8 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [ ] **T4.6 API.** Purge `label_runs` with Activity's sweep; a row whose run is gone cannot be undone. Tests. *(AC-28)*
 - [ ] **T4.7 Mobile and Web.** The `labelled` Activity row: hollow lead, `tag`, Undo as its own 44px control outside the row's press, *Undone* in the tag slot from `undone_at`. Tests on both. *(AC-27, AC-28)*
 - [ ] **T4.8 Docs, on main after merge.** The OFF-6 allowlist entry for labels beside the 2026-09-10 compaction entry; 024's AC-18 narrowed in its feature spec. *(OFF-6, DEV-2, AC-34)*
+
+*T1.6, T2.30 and T4.8 are written in `at-merge.md` and land on `main` with the merge, since both decision logs are shared state.*
 
 ## Done means
 

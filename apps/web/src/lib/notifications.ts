@@ -24,6 +24,9 @@ export interface ActivityEntry {
   contentId: string | null;
   memberId: string | null;
   requestId: string | null;
+  /** 025. A labelled row's Undo is offered while this is true. */
+  undoable: boolean;
+  undone: boolean;
   occurredAt: string;
 }
 
@@ -88,8 +91,20 @@ export function doorOf(row: ActivityEntry): string | null {
     case "shared_activity":
     case "moved":
     case "acted":
+    // 025. A sort opens the thread it sorted.
+    case "labelled":
       return row.threadId ? `/threads/${row.threadId}` : null;
     default:
       return null;
+  }
+}
+
+/** 025. Undo on a labelled row: the sort taken back, for every member. */
+export async function undoActivity(id: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API}/v1/activity/${id}/undo`, { method: "POST", credentials: "include" });
+    return response.ok;
+  } catch {
+    return false;
   }
 }

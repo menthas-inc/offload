@@ -108,3 +108,20 @@ describe("a # pick travels with the dump (AC-14)", () => {
     expect(JSON.parse(String(calls[1]?.init.body)).labels).toBeUndefined();
   });
 });
+
+describe("a labelled row in Activity (AC-27, AC-28)", () => {
+  it("opens its thread, says Undone once undone, and undoes through its route", async () => {
+    const activity = await import("../lib/activity");
+    const row = {
+      id: "a1", kind: "labelled" as const, sent: false, reason: "design" as const, title: "Sorted", body: null,
+      send: null, threadId: "t1", contentId: null, memberId: null, requestId: null, occurredAt: "2026-09-27T00:00:00Z",
+      undoable: true, undone: false,
+    };
+    expect(activity.doorOf(row)).toEqual({ pathname: "/threads/[id]", params: { id: "t1" } });
+    expect(activity.tagOf(row)).toBeNull();
+    expect(activity.tagOf({ ...row, undone: true })).toEqual({ label: "Undone", tone: "quiet" });
+    reply = { status: 200, data: { undone: true } };
+    expect(await activity.undoActivity("a1")).toBe(true);
+    expect(calls.at(-1)).toMatchObject({ path: "/v1/activity/a1/undo", init: { method: "POST" } });
+  });
+});

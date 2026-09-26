@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "22 September 2026";
+const UPDATED = "27 September 2026";
 
 function Todo({ children }: { children: ReactNode }) {
   return <span className={styles.todo}>{children}</span>;
@@ -149,8 +149,8 @@ export default function Privacy() {
           <h3 className={styles.h3}>What offload makes from it</h3>
           <ul>
             <li>
-              The <strong>threads</strong> what you upload is sorted into, and the tags, dates and
-              amounts pulled out of it.
+              The <strong>threads</strong> what you upload is sorted into, the <strong>labels</strong> it is grouped under,
+              and the dates and amounts pulled out of it.
             </li>
             <li>
               <strong>Transcripts</strong> of your voice notes, and <strong>what a photo or a
