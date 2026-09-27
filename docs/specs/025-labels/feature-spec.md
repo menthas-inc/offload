@@ -117,7 +117,7 @@ Labels are the one way a thread is grouped.
 
 ### The privacy page, as it will read
 
-"The **threads** what you upload is sorted into, and the tags, dates and amounts pulled out of it" becomes "The **threads** what you upload is sorted into, the **labels** it is grouped under, and the dates and amounts pulled out of it." The updated date moves. No new company receives anything, no retention window moves (a deleted label goes on the page's existing thirty days), Activity's label rows are never pushed, and label names stay out of every event, trace, log, error report and job error as titles do. This is flagged to the product owner before any code, as `CLAUDE.md` asks.
+"The **threads** what you upload is sorted into, and the tags, dates and amounts pulled out of it" becomes "The **threads** what you upload is sorted into, the **labels** it is grouped under, and the dates and amounts pulled out of it." The updated date moves. No new company receives anything, no retention window moves, but the retention list gains a line of its own, after review: a deleted label is kept hidden for thirty days rather than leaving the live database at once, and taking a label off leaves a record with no name in it until the label or the row is deleted, so offload never puts it back; the plain delete line becomes "Anything else you delete", Activity's label rows are never pushed, and label names stay out of every event, trace, log, error report and job error as titles do. This is flagged to the product owner before any code, as `CLAUDE.md` asks.
 
 ## Acceptance criteria
 

@@ -639,7 +639,15 @@ export default function Privacy() {
               rule below holds here too, and nobody deletes what somebody else wrote.
             </li>
             <li>
-              <strong>Anything you delete: immediately, then 30 days.</strong> It goes from the live
+              <strong>Labels: a deleted one for 30 days, and a record of what you took off.</strong>{" "}
+              A label you delete is hidden straight away and kept for 30 days, so Undo can bring it
+              back and offload does not make it again, then it is gone. When you take a label off
+              something, offload keeps a record that you did, with no name or words in it, so it
+              never puts that label back. The record goes when the label, or what it was on, is
+              deleted.
+            </li>
+            <li>
+              <strong>Anything else you delete: immediately, then 30 days.</strong> It goes from the live
               database and from file storage as soon as you ask. Our backups, which exist so a bad
               day is recoverable, roll over within 30 days, and after that it is gone from those
               too.

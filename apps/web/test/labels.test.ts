@@ -174,6 +174,11 @@ describe("the privacy page says labels (AC-34)", () => {
     const session = readFileSync(new URL("../../core-api/src/routes/session.ts", import.meta.url), "utf8");
     expect(page).toMatch(/the <strong>labels<\/strong> it is grouped under/);
     expect(page).not.toMatch(/the tags, dates and/);
+    // A deleted label is kept hidden for its Undo, and taking one off leaves
+    // a record with no name in it; the page says both, and the plain delete
+    // line no longer claims everything.
+    expect(page).toMatch(/<strong>Labels: a deleted one for 30 days/);
+    expect(page).toMatch(/Anything else you delete: immediately, then 30 days\./);
     const updated = /const UPDATED = "(\d+) September 2026"/.exec(page)?.[1];
     const version = /CONSENT_VERSION = "2026-09-(\d+)"/.exec(session)?.[1];
     expect(updated).toBe("27");
