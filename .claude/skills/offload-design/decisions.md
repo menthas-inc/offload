@@ -11,6 +11,15 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-27 · The edit sheet has no heading; the title and details differ by size and ink
+**Surface:** iOS, Android, web
+
+**Was:** "Edit" over two fields drawn alike, from 023's sketch. On the web the details were larger than the title, 16px regular under 14.5px medium, so the row's own words read as the lesser field.
+
+**Is:** no heading; the title field is 17px semibold in the primary ink, the details 14px regular in the secondary ink, on all three. The fields say which is which, and "Edit" said nothing the pencil had not. The dialog keeps "Edit" as its accessible name.
+
+**Design system impact:** the edit sheet in the kits drops its "Edit" heading; its title field is `title-3` semibold in `--text-primary` and its details field `body-sm` in `--text-secondary`.
+
 ### 2026-09-26 · The lead and the tools sit on the title line
 **Surface:** iOS, Android, web
 

@@ -89,9 +89,8 @@ export function EditModal({
 
   return (
     <Modal label="Edit" wide onClose={onClose}>
-      <h2 className={people.modalTitle}>Edit</h2>
       <input
-        className={styles.titleInput}
+        className={`${styles.titleInput} ${styles.editTitle}`}
         value={title}
         onChange={(event) => setTitle(event.target.value)}
         aria-label="Title"
