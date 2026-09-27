@@ -17,7 +17,7 @@ import { db, closeDb } from "../src/db.js";
 import { env } from "../src/env.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
-import { handlers } from "../src/jobs/handlers.js";
+import { handlers, NIGHTLY_LABEL_SORT, sortableThreads } from "../src/jobs/handlers.js";
 import { MemoryMailer } from "../src/mail/mailer.js";
 import { applyLabels, contentLabelsFor, createLabel, deleteLabel, labelsOfThread } from "../src/threads/labels.js";
 import { account, as, join, row, signIn, thread, wipe } from "./labels-kit.js";
@@ -73,23 +73,25 @@ const sorted = (payload: unknown) =>
   });
 
 describe("booking the sort (AC-25)", () => {
-  it("books a changed thread of six once, and not a small or an unchanged one", async () => {
+  it("picks a changed thread of six, and not a small or an unchanged one", async () => {
     const me = await account();
-    const sam = await account("Sam");
     const big = await thread(me, "Europe");
-    await join(big, sam);
     await sixRows(me, big);
     const small = await thread(me, "Small");
     await row(me, small, "One");
     const quiet = await thread(me, "Quiet");
     await sixRows(me, quiet);
     await db.updateTable("threads").set({ labels_sorted_at: sql`now() + interval '1 minute'` }).where("id", "=", quiet).execute();
+    expect(await sortableThreads(me)).toEqual([big]);
+  });
 
+  it("books nothing while the nightly sort is off", async () => {
+    const me = await account();
+    const big = await thread(me, "Europe");
+    await sixRows(me, big);
+    expect(NIGHTLY_LABEL_SORT).toBe(false);
     await handlers["account.daily.run"]!({}, { mailer: new MemoryMailer() }, me);
-    await handlers["account.daily.run"]!({}, { mailer: new MemoryMailer() }, sam);
-    const jobs = await sortJobs();
-    expect(jobs).toHaveLength(1);
-    expect((jobs[0]!.payload as { threadId: string }).threadId).toBe(big);
+    expect(await sortJobs()).toHaveLength(0);
   });
 });
 

@@ -222,6 +222,8 @@ The label's list saves through `POST /v1/labels/:id/rows` for an existing label 
 
 ## As built
 
+**Off for now (owner, 2026-09-27).** The nightly sort is built and tested but not booked: `NIGHTLY_LABEL_SORT` in `apps/core-api/src/jobs/handlers.ts` is false, so labels come from people and from live turns only until the sort is reworked. The worker, `/internal/v1/labels-sorted`, the `labelled` Activity row with Undo, and the evals in `26-labels-overnight.json` all stay; Activity's Undo still serves a live turn's labels.
+
 Divergences found during the build, each folded into the sections above or recorded here, and the decision-log entries they need are in `at-merge.md`.
 
 - **Migrations** are `0060_tags_retire.sql` and `0061_labels.sql`; `readable_content` is dropped and recreated around the column drop, since it is `select content.*`.

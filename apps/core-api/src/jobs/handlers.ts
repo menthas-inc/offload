@@ -641,30 +641,18 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
   }
 
   // 025. The nightly sort, once per thread per day whichever member's run
-  // books it first (the idempotency key is the thread's), and only for a
-  // thread of six or more live rows that changed since it was last sorted.
-  const sortable = await db
-    .selectFrom("threads")
-    .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
-    .select(["threads.id as id"])
-    .where("thread_members.account_id", "=", accountId)
-    .where("thread_members.state", "=", "accepted")
-    .where("threads.deleted_at", "is", null)
-    .where(
-      sql<boolean>`(select count(*) from content c where c.thread_id = threads.id and c.deleted_at is null and c.archived_at is null) >= ${LABEL_SORT_MIN_ROWS}`,
-    )
-    .where(
-      sql<boolean>`exists (select 1 from content c where c.thread_id = threads.id and c.deleted_at is null
-        and c.updated_at > coalesce(threads.labels_sorted_at, '-infinity'::timestamptz))`,
-    )
-    .execute();
-  for (const thread of sortable) {
+  // books it first (the idempotency key is the thread's). Off for now, by the
+  // owner's call on 2026-09-27: labels come from people and from live turns
+  // only until the sort is reworked. The worker, the endpoint and Activity's
+  // Undo stay, so turning it on is this one constant.
+  const sortable = NIGHTLY_LABEL_SORT ? await sortableThreads(accountId) : [];
+  for (const threadId of sortable) {
     await enqueue({
       kind: "labels.sort",
       accountId,
-      payload: { threadId: thread.id },
+      payload: { threadId },
       priority: PRIORITY.background,
-      idempotencyKey: `labels.sort:${thread.id}:${day}`,
+      idempotencyKey: `labels.sort:${threadId}:${day}`,
       maxAttempts: 2,
     });
   }
@@ -816,3 +804,25 @@ export const handlers: Record<string, Handler> = {
   "shared.activity": sharedActivity,
 };
 
+export const NIGHTLY_LABEL_SORT = false;
+
+/** Threads the account is in with six or more live rows that changed since
+ *  they were last sorted. */
+export async function sortableThreads(accountId: string): Promise<string[]> {
+  const sortable = await db
+    .selectFrom("threads")
+    .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
+    .select(["threads.id as id"])
+    .where("thread_members.account_id", "=", accountId)
+    .where("thread_members.state", "=", "accepted")
+    .where("threads.deleted_at", "is", null)
+    .where(
+      sql<boolean>`(select count(*) from content c where c.thread_id = threads.id and c.deleted_at is null and c.archived_at is null) >= ${LABEL_SORT_MIN_ROWS}`,
+    )
+    .where(
+      sql<boolean>`exists (select 1 from content c where c.thread_id = threads.id and c.deleted_at is null
+        and c.updated_at > coalesce(threads.labels_sorted_at, '-infinity'::timestamptz))`,
+    )
+    .execute();
+  return sortable.map((thread) => thread.id);
+}

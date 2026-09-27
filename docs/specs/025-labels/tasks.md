@@ -76,6 +76,8 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ## 4. The nightly sort (offload track)
 
+**Off for now (owner, 2026-09-27).** The nightly sort is built and tested but not booked: `NIGHTLY_LABEL_SORT` in `apps/core-api/src/jobs/handlers.ts` is false, so labels come from people and from live turns only until the sort is reworked. The worker, `/internal/v1/labels-sorted`, the `labelled` Activity row with Undo, and the evals in `26-labels-overnight.json` all stay; Activity's Undo still serves a live turn's labels.
+
 - [ ] **T4.1 API.** Enqueue `labels.sort` per changed thread of six or more rows, once per thread per day. Tests: unchanged threads are not enqueued; a shared thread is enqueued once. *(AC-25)*
 - [ ] **T4.2 API.** `POST /internal/threads/:id/labels/sort`: validated plan, a `nightly` run, `applyLabels` per entry dropping refusals, no `remove` in the schema, `labels_sorted_at` set, Activity per member if anything applied. Tests. *(AC-25, AC-26, AC-27, OFF-5)*
 - [ ] **T4.3 Agent.** `label_sort.py`: claim-time membership check (a removed account reads nothing), the 200-row budget, titles and types only, forced tool, one repair retry, counts-only logging. Tests with a stub that runs the real validation and can fail. *(AC-25, AC-33, OFF-1, OFF-8)*
