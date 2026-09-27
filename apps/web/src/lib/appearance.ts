@@ -102,12 +102,17 @@ export function useAppearance(): Appearance {
   const [theme, setThemeState] = useState<Theme>("light");
   const [size, setSizeState] = useState<TypeSize>("normal");
   const [weekStart, setWeekStartState] = useState<"monday" | "sunday">("monday");
+  // Nothing is painted until the stored choice has been read. Every screen
+  // that asks for the week start mounts this hook, and painting its light
+  // default on mount turned a dark page white for a frame whenever one opened.
+  const [read, setRead] = useState(false);
 
   useEffect(() => {
     const read = (): void => {
       setThemeState(storedTheme());
       setSizeState(storedSize());
       setWeekStartState(storedWeekStart());
+      setRead(true);
     };
     read();
 
@@ -130,8 +135,8 @@ export function useAppearance(): Appearance {
   }, []);
 
   useEffect(() => {
-    paint(theme, size);
-  }, [theme, size]);
+    if (read) paint(theme, size);
+  }, [read, theme, size]);
 
   const setTheme = useCallback((next: Theme) => {
     window.localStorage.setItem(THEME_KEY, next);
