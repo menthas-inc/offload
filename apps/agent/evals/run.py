@@ -365,6 +365,19 @@ _STUB_FIELD = {
 }
 
 
+# 025. The Core API's nameInDump, word for word: letters and digits only (an
+# underscore splits, as it does there), and a link's words do not count.
+# tests/test_label_names.py holds both to evals/fixtures/label-names.json.
+_LABEL_LINK = re.compile(r"\b(?:https?://|www\.)\S+", re.IGNORECASE)
+_LABEL_WORD = re.compile(r"[^\W_]+")
+
+
+def _label_name_in_dump(name: str, dump: str) -> bool:
+    said = set(_LABEL_WORD.findall(_LABEL_LINK.sub(" ", dump).lower()))
+    words = _LABEL_WORD.findall(name.lower())
+    return bool(words) and all(word in said for word in words)
+
+
 class Recorder:
     """Every tool call, answered from the fixture and written down.
 
@@ -555,10 +568,8 @@ class Recorder:
         # be made only out of the words of the dump. A stub that made any name
         # would pass a model that invents labels.
         if tool == "label_content":
-            said = set(re.findall(r"\w+", re.sub(r"https?://\S+|www\.\S+", " ", self.dump.lower())))
             for name in args.get("new") or []:
-                words = re.findall(r"\w+", str(name).lower())
-                if not words or not all(w in said for w in words):
+                if not _label_name_in_dump(str(name), self.dump):
                     return {"ok": False, "error": "not_in_the_dump"}
             return {"ok": True, "done": True}
         if tool == "edit_content" and args.get("occurs_at"):

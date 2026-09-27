@@ -1,0 +1,16 @@
+{
+  "why": "025. What a live turn may name a new label: every word of the name is a word of the message, a link's words do not count. The Core API's nameInDump and the eval stub's rule both read these, so the two cannot drift.",
+  "cases": [
+    { "name": "Istanbul", "text": "ferry across the bosphorus, istanbul day two", "ok": true },
+    { "name": "Old town", "text": "tram through the old town", "ok": true },
+    { "name": "Kadıköy", "text": "lunch in Kadıköy", "ok": true },
+    { "name": "Musée d'Orsay", "text": "tickets for the musée d'orsay on friday", "ok": true },
+    { "name": "Boats", "text": "ferry on tuesday, file it under Boats", "ok": true },
+    { "name": "Istanbul", "text": "ferry across the bosphorus", "ok": false },
+    { "name": "Old town", "text": "tram through town", "ok": false },
+    { "name": "Istanbul", "text": "see https://example.com/istanbul/ferry", "ok": false },
+    { "name": "Istanbul", "text": "see www.istanbul.example/ferry", "ok": false },
+    { "name": "old_town", "text": "tram through the old town", "ok": true },
+    { "name": "", "text": "anything", "ok": false }
+  ]
+}

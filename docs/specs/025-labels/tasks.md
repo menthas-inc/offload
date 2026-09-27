@@ -65,26 +65,26 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ## 3. Live filing (offload track)
 
-- [ ] **T3.1 API.** The provenance check in TypeScript beside a shared fixture file that the agent's `_from_the_dump` tests also read. Tests: a name in the message's words passes; one absent, one in another message, and one only in a URL are refused `not_in_the_dump`. *(AC-24, SEC-1)*
-- [ ] **T3.2 API.** The `label_content` tool route through `applyLabels(via: 'offload', runId)`. Tests, each red first: apply an existing label; create only below six; refuse `person_set` on a join a person set or removed; refuse `person_deleted` for a kept person-deleted name; refuse a label or row from another thread; refusals carry `declined: true`. *(AC-24, AC-26, AC-5)*
-- [ ] **T3.3 API.** `#word` from Today applied by name after filing, `via: 'person'`, creating under ten; a person `live` run recorded. Tests. *(AC-15)*
-- [ ] **T3.4 API.** `undoTurn` reverses every run of the turn: joins set, joins removed, labels created with nothing else carrying them. Tests. *(AC-14, OFF-6)*
-- [ ] **T3.5 API.** The turn result's `labels`, and the live Activity row per member, unsent, with thread and run. Tests. *(AC-16, AC-27)*
-- [ ] **T3.6 Agent.** `LabelContent` tool model; the thread's labels in the user block under the data marker in `context.py`; the tool schema lists no names; the guard test passes at 1,800, or the tool moves behind `defer_loading`. Tests. *(AC-24, AC-30, SEC-1, OFF-8)*
-- [ ] **T3.7 Agent.** Filing prompt lines; eval cases for the live principle written, not run. *(AC-24, QUAL-1)*
-- [ ] **T3.8 Mobile and Web.** The footer's 30px marks after the thread pill, three plus a count. Tests on both. *(AC-16)*
+- [x] **T3.1 API.** The provenance check in TypeScript, `nameInDump`, held with the eval stub's rule to one fixture, `apps/agent/evals/fixtures/label-names.json` (added after review; its first run found the two disagreeing on an underscore). Tests: a name in the message's words passes; one absent, one in another message, and one only in a URL are refused `not_in_the_dump`. *(AC-24, SEC-1)*
+- [x] **T3.2 API.** The `label_content` tool route through `applyLabels(via: 'offload', runId)`. Tests, each red first: apply an existing label; create only below six; refuse `person_set` on a join a person set or removed; refuse `person_deleted` for a kept person-deleted name; refuse a label or row from another thread; refusals carry `declined: true`. *(AC-24, AC-26, AC-5)*
+- [x] **T3.3 API.** `#word` from Today applied by name after filing, `via: 'person'`, creating under ten; a person `live` run recorded. Tests. *(AC-15)*
+- [x] **T3.4 API.** `undoTurn` reverses every run of the turn: joins set, joins removed, labels created with nothing else carrying them. Tests. *(AC-14, OFF-6)*
+- [x] **T3.5 API.** The turn result's `labels`, and the live Activity row per member, unsent, with thread and run. Tests. *(AC-16, AC-27)*
+- [x] **T3.6 Agent.** `LabelContent` tool model; the thread's labels in the user block under the data marker in `context.py`; the tool schema lists no names; the guard test passes at 1,800, or the tool moves behind `defer_loading`. Tests. *(AC-24, AC-30, SEC-1, OFF-8)*
+- [x] **T3.7 Agent.** Filing prompt lines; eval cases for the live principle written, not run. *(AC-24, QUAL-1)*
+- [x] **T3.8 Mobile and Web.** The footer's 30px marks after the thread pill, three plus a count. Tests on both. *(AC-16)*
 
 ## 4. The nightly sort (offload track)
 
 **Off for now (owner, 2026-09-27).** The nightly sort is built and tested but not booked: `NIGHTLY_LABEL_SORT` in `apps/core-api/src/jobs/handlers.ts` is false, so labels come from people and from live turns only until the sort is reworked. The worker, `/internal/v1/labels-sorted`, the `labelled` Activity row with Undo, and the evals in `26-labels-overnight.json` all stay; Activity's Undo still serves a live turn's labels.
 
-- [ ] **T4.1 API.** Enqueue `labels.sort` per changed thread of six or more rows, once per thread per day. Tests: unchanged threads are not enqueued; a shared thread is enqueued once. *(AC-25)*
-- [ ] **T4.2 API.** `POST /internal/threads/:id/labels/sort`: validated plan, a `nightly` run, `applyLabels` per entry dropping refusals, no `remove` in the schema, `labels_sorted_at` set, Activity per member if anything applied. Tests. *(AC-25, AC-26, AC-27, OFF-5)*
-- [ ] **T4.3 Agent.** `label_sort.py`: claim-time membership check (a removed account reads nothing), the 200-row budget, titles and types only, forced tool, one repair retry, counts-only logging. Tests with a stub that runs the real validation and can fail. *(AC-25, AC-33, OFF-1, OFF-8)*
-- [ ] **T4.4 Agent.** `prompts/label_sort.md`; eval cases for the nightly principle written, not run. *(AC-25)*
-- [ ] **T4.5 API.** `POST /v1/activity/:id/undo`: own row, `labelled`, under thirty days, not undone, caller still a member; reverts only untouched joins and labels; sets `undone_at` on every member's row. Tests including a person's later edit surviving the Undo and a removed member being refused. *(AC-28, SEC-2)*
-- [ ] **T4.6 API.** Purge `label_runs` with Activity's sweep; a row whose run is gone cannot be undone. Tests. *(AC-28)*
-- [ ] **T4.7 Mobile and Web.** The `labelled` Activity row: hollow lead, `tag`, Undo as its own 44px control outside the row's press, *Undone* in the tag slot from `undone_at`. Tests on both. *(AC-27, AC-28)*
+- [x] **T4.1 API.** (Built, then switched off by the owner on 2026-09-27: `NIGHTLY_LABEL_SORT` is false.) Enqueue `labels.sort` per changed thread of six or more rows, once per thread per day. Tests: unchanged threads are not enqueued; a shared thread is enqueued once. *(AC-25)*
+- [x] **T4.2 API.** `POST /internal/threads/:id/labels/sort`: validated plan, a `nightly` run, `applyLabels` per entry dropping refusals, no `remove` in the schema, `labels_sorted_at` set, Activity per member if anything applied. Tests. *(AC-25, AC-26, AC-27, OFF-5)*
+- [x] **T4.3 Agent.** `label_sort.py`: claim-time membership check (a removed account reads nothing), the 200-row budget, titles and types only, forced tool, one repair retry, counts-only logging. Tests with a stub that runs the real validation and can fail. *(AC-25, AC-33, OFF-1, OFF-8)*
+- [x] **T4.4 Agent.** `prompts/label_sort.md`; eval cases for the nightly principle written, not run. *(AC-25)*
+- [x] **T4.5 API.** `POST /v1/activity/:id/undo`: own row, `labelled`, under thirty days, not undone, caller still a member; reverts only untouched joins and labels; sets `undone_at` on every member's row. Tests including a person's later edit surviving the Undo and a removed member being refused. *(AC-28, SEC-2)*
+- [x] **T4.6 API.** Purge `label_runs` with Activity's sweep; a row whose run is gone cannot be undone. Tests. *(AC-28)*
+- [x] **T4.7 Mobile and Web.** The `labelled` Activity row: hollow lead, `tag`, Undo as its own 44px control outside the row's press, *Undone* in the tag slot from `undone_at`. Tests on both. *(AC-27, AC-28)*
 - [ ] **T4.8 Docs, on main after merge.** The OFF-6 allowlist entry for labels beside the 2026-09-10 compaction entry; 024's AC-18 narrowed in its feature spec. *(OFF-6, DEV-2, AC-34)*
 
 *T1.6, T2.30 and T4.8 are written in `at-merge.md` and land on `main` with the merge, since both decision logs are shared state.*

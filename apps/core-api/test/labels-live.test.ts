@@ -160,3 +160,13 @@ describe("the turn footer's marks (AC-16)", () => {
     expect((await labelsForTurns([turnId], me)).get(turnId)).toBeUndefined();
   });
 });
+
+describe("the shared cases the eval stub reads too (AC-24)", () => {
+  it("agrees with every case in the fixture", async () => {
+    const { readFileSync } = await import("node:fs");
+    const fixture = JSON.parse(
+      readFileSync(new URL("../../agent/evals/fixtures/label-names.json", import.meta.url), "utf8"),
+    ) as { cases: { name: string; text: string; ok: boolean }[] };
+    for (const c of fixture.cases) expect([c.name, c.text, nameInDump(c.name, c.text)]).toEqual([c.name, c.text, c.ok]);
+  });
+});
