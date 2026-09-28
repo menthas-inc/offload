@@ -102,17 +102,22 @@ export function useAppearance(): Appearance {
   const [theme, setThemeState] = useState<Theme>("light");
   const [size, setSizeState] = useState<TypeSize>("normal");
   const [weekStart, setWeekStartState] = useState<"monday" | "sunday">("monday");
+  // Nothing is painted until the stored choice has been read. Every screen
+  // that asks for the week start mounts this hook, and painting its light
+  // default on mount turned a dark page white for a frame whenever one opened.
+  const [read, setRead] = useState(false);
 
   useEffect(() => {
-    const read = (): void => {
+    const sync = (): void => {
       setThemeState(storedTheme());
       setSizeState(storedSize());
       setWeekStartState(storedWeekStart());
+      setRead(true);
     };
-    read();
+    sync();
 
-    window.addEventListener(CHANGED, read);
-    window.addEventListener("storage", read);
+    window.addEventListener(CHANGED, sync);
+    window.addEventListener("storage", sync);
 
     // Following the device means following it while the app is open, not only
     // at load: somebody whose phone turns dark at sunset should see this do it.
@@ -123,15 +128,15 @@ export function useAppearance(): Appearance {
     media.addEventListener("change", repaint);
 
     return () => {
-      window.removeEventListener(CHANGED, read);
-      window.removeEventListener("storage", read);
+      window.removeEventListener(CHANGED, sync);
+      window.removeEventListener("storage", sync);
       media.removeEventListener("change", repaint);
     };
   }, []);
 
   useEffect(() => {
-    paint(theme, size);
-  }, [theme, size]);
+    if (read) paint(theme, size);
+  }, [read, theme, size]);
 
   const setTheme = useCallback((next: Theme) => {
     window.localStorage.setItem(THEME_KEY, next);

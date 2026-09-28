@@ -2456,12 +2456,20 @@ a.settingsRow:hover {
 
 /* 023. The edit modal: the fields, the month grid inline, Time and Repeats
    as inline blocks, and Custom disclosed beneath. min-height, never height. */
+/* The edit's two fields say which is which by size and ink, with no heading
+   over them: the title larger and in the primary ink, the details a step
+   smaller and quieter. */
+.editTitle {
+  font: var(--weight-semibold) var(--size-title-3) / var(--leading-tight) var(--font-core);
+}
+
 .editBody {
   display: block;
   width: 100%;
   margin-top: var(--space-2);
   resize: vertical;
-  font: var(--weight-regular) var(--size-body) / 1.4 var(--font-core);
+  font: var(--weight-regular) var(--size-body-sm) / 1.4 var(--font-core);
+  color: var(--text-secondary);
 }
 
 .editWhen {
