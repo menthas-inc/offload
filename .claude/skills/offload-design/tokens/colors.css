@@ -203,3 +203,16 @@
   --shadow-sheet:0 -10px 34px -10px rgba(0,0,0,0.65);
   color-scheme:dark;
 }
+
+/* Labels, 26 September 2026. Ten solids a person's label is drawn in, with --text-on-solid on
+   every one at 4.6:1 or better. Identical in both themes, as moss and blue are: on the dark page
+   they measure about 3.7:1, which clears the 3:1 a shape needs, and a label's words always sit on
+   the solid, never on the page. The hues keep clear of moss, blue, amber and clay. The number is
+   the order a new label takes the next free one in, spaced so the first three are far apart:
+   cerulean, rose, leaf, grape, copper, teal, fuchsia, olive, iris, jade.
+   --surface-accent is the solid accent as a surface, which two components paint (023). */
+:root,[data-theme="light"],[data-theme="dark"]{
+  --label-1:#0C7BB0;--label-2:#C6467B;--label-3:#5D7F00;--label-4:#8D5CC5;--label-5:#B25D25;
+  --label-6:#088285;--label-7:#AD4EAC;--label-8:#7D7616;--label-9:#6F67CB;--label-10:#06855A;
+  --surface-accent:var(--moss-600);
+}

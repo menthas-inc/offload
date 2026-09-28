@@ -22,6 +22,26 @@ The checkbox sits in the tile's slot, 36px on the phones and 32px on the web, so
 
 **Design system impact:** the kits' `ContentRow` wants top alignment with the lead and the tools on the title line, the checkbox in the tile's slot, and the same for any row that gains a second line.
 
+### 2026-09-26 · Labels: named, coloured groups inside a thread
+**Surface:** iOS, Android, web
+**Raised by:** the product owner. Drawn in `explorations/labels.html` against `main` at `089949d` and decided over three rounds the same day. Handoff: `handoff/APPLY-2026-09-26-labels.md`.
+
+**Was:** a thread was one flat list. Nothing in the schema or any surface could group things inside it, and `Chip`'s contract mentioned "inferred tags" in moss that nothing drew.
+
+**Is:** a **label** belongs to one thread, is shared with its members, and a thing can carry several; ten per thread, one per colour, 24 characters. It is drawn as `LabelMark` on the row's marks line after the date chip, and as `Chip label` in a filter bar under the app bar with either logic and the picked chip filled in its own colour. Every unlabelled row draws a `tag` tool, a stated exception to "two controls, never three". Many at once starts from the label: a pinned `plus` chip, or holding a chip, opens every thing in the thread with a tick. # in the composer works as @ does. A thread of six or more things with no labels draws *+ Group with labels*. Outside the thread: the mark after the thread's name on Today, the solid as a map pin (split for two), a dot leading a neutral calendar block, dots on the rail. offload applies labels nightly and while filing, says so only in Activity with Undo, and never touches anything a person set, removed, renamed or recoloured. Deleting a label takes it off rows only.
+
+**Considered and not taken:** select mode with a painted selection, dragging a row onto a chip, a paint mode, suggestions in the row sheet, an eight-second repeat, label sections replacing the type sections, a picker in the app bar, a moss strip announcing offload's sort, and label-coloured calendar blocks.
+
+**Design system impact:** `LabelMark` in `components/core/`; `Chip` gains `label`; `tag` vendored, 85 glyphs; `--label-1` to `--label-10` and `--surface-accent` in `tokens/colors.css`, 366 tokens; `readme.md` gains **Labels** and the vocabulary row *label, not tag*.
+
+### 2026-09-26 · Four code entries' design impacts, folded in
+**Surface:** iOS, Android, web
+**Raised by:** the open impacts on the 26 September chip entry and the 22 September dates, notifications and web-faces entries, closed before the labels handoff so both sides start from one state.
+
+**Is:** `readme.md`'s Dates and notifications section carries the chip's own line and the late wording, Time and Starts, *This browser says*, the digest copy, Activity as a pushed screen with its two leads, the Notifications page with the one permission ask, Today over the thread's row, the wrapping action row, and **a decline writes nothing**, correcting the 22 September design entry. Code wins on Starts on as a Segmented and on Custom's unit as pills. `--surface-accent` is minted. `tokens/fonts.css` declares the web app's five static faces from `assets/fonts/`.
+
+**Design system impact:** the kits' thread row, Activity, Notifications and Today screens are superseded by the code as built and are not redrawn in this pass; `NotificationSheet` and `NotifRow` in the kits are retired.
+
 ### 2026-09-26 · The date chip takes its own line, and a late one says how late
 **Surface:** iOS, Android, web
 

@@ -60,7 +60,7 @@ the other is the prompt's **today**.
 ## 4. A person-facing write path
 
 Everything today goes through the model's tool layer under a job. A sheet tap is neither. The
-ordinary authenticated route takes **title, body, the three dates, and the rule, in one write** , 
+ordinary authenticated route takes **title, body, the three dates, and the rule, in one write** —
 a title change and a date change made together must not be two requests.
 
 **And it needs an explicit clear.** Null through the tool layer means "not stated", not "remove
@@ -236,7 +236,7 @@ announced; a reminder is. "Rent is due Friday" is a fact; "remind me to pay the 
 request.
 
 Two consequences. **Most mornings send nothing**, so an empty digest is the normal state. And **a
-person cannot ask to be reminded**, the flag has no person-facing writer, by decision. If that
+person cannot ask to be reminded** — the flag has no person-facing writer, by decision. If that
 proves wrong it is one switch in a sheet that already exists.
 
 **This makes the filing prompt's decision to set the flag load bearing**, where it was free while
@@ -284,7 +284,7 @@ it, **Tomorrow** moves the date by a day. Both unambiguous because there is one 
 notification-level snooze anywhere in this design.
 
 So: **two categories to register per platform**, one with actions and one without. A share request
-carries **Open** and nothing else, 022 decided a request is answered on its card, and accepting a
+carries **Open** and nothing else — 022 decided a request is answered on its card, and accepting a
 person from a lock screen is the one place that should not be one tap.
 
 **Never sent:** a question offload is waiting on, a calendar event starting, anything at the moment
@@ -312,7 +312,7 @@ Hour rows sit under the switch they belong to and grey out with it. **Labels mat
 titles word for word.** The hour is in the account's zone, not the device's: a digest that moves
 when you fly arrives at 3am.
 
-**Android: each is a `NotificationChannel`**, `due_today`, `coming_tomorrow`, `people_requests`,
+**Android: each is a `NotificationChannel`** — `due_today`, `coming_tomorrow`, `people_requests`,
 `shared_activity`. **A channel cannot be renamed or re-enabled by the app once it exists**, so the
 ids are permanent from first install. The page reads channel state on open rather than trusting a
 stored preference.
@@ -335,11 +335,11 @@ to read your notifications when notifications are off.
 
 Four kinds:
 
-1. **Sent, about dates**, the digests, in the words they were sent in.
-2. **Sent, about people**, a request, somebody adding to a shared thread.
-3. **Silent by design**, an expired invite, a calendar write waiting on them, a question that
+1. **Sent, about dates** — the digests, in the words they were sent in.
+2. **Sent, about people** — a request, somebody adding to a shared thread.
+3. **Silent by design** — an expired invite, a calendar write waiting on them, a question that
    closed, **a declined request**.
-4. **Silent by setting**, a digest a switch suppressed, or one the permission refused.
+4. **Silent by setting** — a digest a switch suppressed, or one the permission refused.
 
 ```
 TODAY
@@ -361,7 +361,7 @@ setting. Plain grey where the product chose silence by design.
 
 **A decline is recorded, and the people rule still holds where it was aimed:** nothing is sent,
 nothing interrupts, re-requesting stays rate limited. A line in a record somebody opened
-deliberately is not a notification. **It is worded flatly and offers nothing**, no retry, no
+deliberately is not a notification. **It is worded flatly and offers nothing** — no retry, no
 explanation. A no that arrives with a button is a no the product is arguing with.
 
 **A dot, never a count.** Something new since you last opened it. **Thirty days, then it purges**,
@@ -376,7 +376,7 @@ What offload sends you is kept here, and so is what it decided not to send.
 **No Due sheet.** A forward-looking "what is due" view is the Timeline's job.
 
 **Web gets the same list as a pane**, from the sidebar, since the web shell has no bell. **Web sends
-no notifications in this pass**, browser push is a separate permission, transport and refusal
+no notifications in this pass** — browser push is a separate permission, transport and refusal
 state, and none of the four sends is worth opening that. Which makes the record the only thing web
 has, and that is an argument for it.
 
