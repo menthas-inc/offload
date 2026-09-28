@@ -84,6 +84,10 @@ export function RowEditSheet({
         entering={FadeInDown.duration(220)}
         exiting={FadeOut.duration(140)}
         className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
+        // The heading is gone, so the sheet carries the name a screen reader
+        // announces, and keeps it from reaching the screen behind.
+        accessibilityViewIsModal
+        accessibilityLabel="Edit"
       >
         {/* Bounded and scrolling, because at a large text size on a small
             phone the fields and the pills together outgrow the sheet, and a
