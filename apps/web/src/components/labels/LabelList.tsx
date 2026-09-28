@@ -12,7 +12,7 @@
 // nothing itself: the page makes the one write and offers the one Undo.
 
 import { useEffect, useRef, useState } from "react";
-import { countWord, readEveryPage, widgetsFor } from "@offload/widgets";
+import { countWord, readEveryPage, widgetsFor, type WidgetKind } from "@offload/widgets";
 import styles from "./labels.module.css";
 import people from "../people/people.module.css";
 import pane from "../../app/(shell)/shell.module.css";
@@ -23,7 +23,7 @@ import { fetchContent, type ContentRow, type Note } from "../../lib/threads";
 import type { Label, Rows } from "../../lib/labels";
 
 const NAME_CHARS = 24;
-const HEADINGS: Record<string, string> = { todo: "To do", map: "Places", files: "Files" };
+const HEADINGS: Record<WidgetKind, string> = { todo: "To do", map: "Places", files: "Files" };
 
 export interface ListSave {
   name: string;
@@ -184,7 +184,7 @@ export function LabelList({
       <p className={styles.hint}>Tick what goes under it.</p>
 
       {unread ? (
-        <p className={styles.unread}>
+        <p className={styles.unread} role="alert">
           <span className={styles.line}>Couldn&apos;t load everything</span>
           <button type="button" className={people.ghost} onClick={() => setAttempt((n) => n + 1)}>
             Try again
@@ -198,7 +198,7 @@ export function LabelList({
           <>
             {sections.map((section) => (
               <section key={section.kind}>
-                <h3 className={styles.section}>{HEADINGS[section.kind] ?? "Everything else"}</h3>
+                <h3 className={styles.section}>{HEADINGS[section.kind]}</h3>
                 <ul className={styles.options}>{section.rows.map((row) => option(`c:${row.id}`, row.ticked === true, row.title, row.labels))}</ul>
               </section>
             ))}
@@ -257,7 +257,7 @@ export function LabelList({
       ) : null}
 
       {asking && label ? (
-        <div className={styles.foot} role="alertdialog" aria-label={`Delete ${label.name}`}>
+        <div className={styles.foot} role="alert">
           <span className={styles.optionName}>
             Delete {label.name}? It comes off {countWord(label.count)}. Nothing else is deleted.
           </span>

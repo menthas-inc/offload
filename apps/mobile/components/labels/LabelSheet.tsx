@@ -123,9 +123,11 @@ export function LabelSheet({
                 <Text className="flex-1 font-core text-text-primary text-body" numberOfLines={1}>
                   {label.name}
                 </Text>
-                <Text className="font-core text-label text-text-tertiary" style={{ fontVariant: ["tabular-nums"] }}>
-                  {label.count}
-                </Text>
+                {label.count > 0 ? (
+                  <Text className="font-core text-label text-text-tertiary" style={{ fontVariant: ["tabular-nums"] }}>
+                    {label.count}
+                  </Text>
+                ) : null}
                 {tick(on)}
               </Pressable>
             );

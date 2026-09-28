@@ -2730,7 +2730,7 @@ a.actRow:hover {
 /* 025. An Undo that did not land: its own line, never in the row's stored
    words. */
 .actFailed {
-  font: var(--weight-regular) calc(13px * var(--type-scale)) / 1.4 var(--font-core);
+  font: var(--weight-regular) var(--size-label) / 1.4 var(--font-core);
   color: var(--text-danger);
 }
 

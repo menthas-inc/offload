@@ -160,9 +160,9 @@ describe("an Undo that cannot happen", () => {
 });
 
 describe("a refused label says why, beside the control", () => {
-  it("names a bad name", async () => {
+  it("says no more than it knows about a refused name", async () => {
     const { refusalLine } = await import("../src/lib/labels");
-    expect(refusalLine("bad_label_name")).toBe("A label is 24 characters at most.");
+    expect(refusalLine("bad_label_name")).toBe("Couldn't save that.");
     expect(refusalLine(null)).toBe("Couldn't save that.");
   });
 });

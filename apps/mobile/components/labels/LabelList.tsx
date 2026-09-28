@@ -13,7 +13,7 @@ import { ActivityIndicator, FlatList, Platform, Pressable, Text, TextInput, View
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import Animated, { FadeIn, FadeOut, ReduceMotion, SlideInDown, SlideOutDown, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { countWord, readEveryPage, widgetsFor } from "@offload/widgets";
+import { countWord, readEveryPage, widgetsFor, type WidgetKind } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { atOpacity, useColors } from "../../lib/colors";
 import { fetchContent, type ContentRow, type Note } from "../../lib/threads";
@@ -23,7 +23,7 @@ import { LabelDot, LabelMark, labelBg } from "./LabelMark";
 
 const isAndroid = Platform.OS === "android";
 const NAME_CHARS = 24;
-const HEADINGS: Record<string, string> = { todo: "To do", map: "Places", files: "Files" };
+const HEADINGS: Record<WidgetKind, string> = { todo: "To do", map: "Places", files: "Files" };
 
 export interface ListSave {
   name: string;
@@ -109,7 +109,7 @@ export function LabelList({
     const rest = content.filter((row) => !inSections.has(row.id));
     const out: Line[] = [];
     for (const section of sections) {
-      out.push({ kind: "heading", key: `h:${section.kind}`, title: HEADINGS[section.kind] ?? "Everything else" });
+      out.push({ kind: "heading", key: `h:${section.kind}`, title: HEADINGS[section.kind] });
       for (const row of section.rows) out.push({ kind: "row", key: `c:${row.id}`, title: row.title, initial: row.ticked === true, carried: row.labels });
     }
     if (notes.length > 0) {
@@ -181,6 +181,7 @@ export function LabelList({
               placeholderTextColor={COLOR.quiet}
               maxLength={NAME_CHARS + 4}
               returnKeyType="done"
+              onSubmitEditing={save}
               accessibilityLabel="Label name"
               className="flex-1 font-core text-text-primary text-body"
             />
@@ -208,7 +209,9 @@ export function LabelList({
           ListHeaderComponent={
             unread ? (
               <View className="flex-row items-center justify-between gap-space-4 px-gutter-screen pb-space-3">
-                <Text className="flex-1 font-core text-body-sm text-text-danger">Couldn&apos;t load everything</Text>
+                <Text className="flex-1 font-core text-body-sm text-text-danger" accessibilityLiveRegion="polite" accessibilityRole="alert">
+                  Couldn&apos;t load everything
+                </Text>
                 <Pressable
                   onPress={() => setAttempt((n) => n + 1)}
                   className={`${pill} border border-border-strong`}
@@ -299,7 +302,7 @@ export function LabelList({
                   className={`items-center justify-center rounded-pill ${labelBg(c)}`}
                   style={{ width: 44, height: 44, borderWidth: colour === c ? 3 : 0, borderColor: COLOR.raised }}
                 >
-                  {colour === c ? <Glyph name="check" size={16} color={COLOR.onBrand} /> : holder ? <Text className="font-core text-text-on-solid text-caption">{holder.name.slice(0, 1)}</Text> : null}
+                  {colour === c ? <Glyph name="check" size={16} color={COLOR.onBrand} /> : holder ? <Text className="font-core text-text-on-solid text-caption">{[...holder.name][0]}</Text> : null}
                 </Pressable>
               );
             })}

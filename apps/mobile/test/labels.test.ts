@@ -131,8 +131,8 @@ describe("a labelled row in Activity (AC-27, AC-28)", () => {
 });
 
 describe("a refused label says why, beside the control", () => {
-  it("names a bad name", () => {
-    expect(labels.refusalLine("bad_label_name")).toBe("A label is 24 characters at most.");
+  it("says no more than it knows about a refused name", () => {
+    expect(labels.refusalLine("bad_label_name")).toBe("Couldn't save that.");
     expect(labels.refusalLine(null)).toBe("Couldn't save that.");
   });
 });

@@ -55,9 +55,11 @@ export function HashList({
           <Text className={`flex-1 font-core ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 15 }} numberOfLines={1}>
             {label.name}
           </Text>
-          <Text className="font-core text-label text-text-tertiary" style={{ fontVariant: ["tabular-nums"] }}>
-            {label.count}
-          </Text>
+          {label.count > 0 ? (
+            <Text className="font-core text-label text-text-tertiary" style={{ fontVariant: ["tabular-nums"] }}>
+              {label.count}
+            </Text>
+          ) : null}
         </Pressable>
       ))}
       {offerNew ? (

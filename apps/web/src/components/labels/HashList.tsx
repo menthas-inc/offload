@@ -43,7 +43,7 @@ export function HashList({
         >
           <LabelDot colour={label.colour} />
           <span style={{ flex: "1 1 auto" }}>{label.name}</span>
-          <span style={{ color: "var(--text-tertiary)" }}>{label.count}</span>
+          {label.count > 0 ? <span style={{ color: "var(--text-tertiary)" }}>{label.count}</span> : null}
         </button>
       ))}
       {offerNew ? (
