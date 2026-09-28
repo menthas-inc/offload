@@ -26,6 +26,9 @@ import { sql, type Transaction } from "kysely";
 import type { Database } from "../schema.js";
 import type { App } from "../app.js";
 import { db } from "../db.js";
+import { LabelRefused, applyLabels, createLabel, nameInDump, normaliseLabelName, recordSortActivity, runForTurn } from "../threads/labels.js";
+import { labelledLiveCopy } from "../notifications/copy.js";
+import { WIDGET_KIND_CHARS } from "../threads/widgets.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { formatRule, parseRule } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
@@ -34,7 +37,6 @@ import { dayLabel, movedCopy } from "../notifications/copy.js";
 import { noteAddition } from "../notifications/people.js";
 import { accountFacts, listAgenda, listContent, search } from "../search/read.js";
 import { env } from "../env.js";
-import { BadTags, MAX_TAGS, normaliseTags, TAG_CHARS } from "../threads/tags.js";
 import { isBareDate, parseWhen, plausible } from "../threads/dates.js";
 import {
   NOTE_BODY_CHARS,
@@ -46,6 +48,7 @@ import {
 } from "../threads/notes.js";
 import {
   NotYours,
+  memberOf,
   unowned,
   readableContent,
   requireMember,
@@ -201,7 +204,6 @@ const body = z.discriminatedUnion("tool", [
     /** 0 to 100, higher first. Orders content inside a thread; it is not
      *  `needs_attention`, which decides what leaves one. */
     priority: z.number().int().min(0).max(100).default(50),
-    tags: z.array(z.string().max(TAG_CHARS)).max(MAX_TAGS).default([]),
   }),
   z.strictObject({
     tool: z.literal("list_thread_content"),
@@ -276,7 +278,6 @@ const body = z.discriminatedUnion("tool", [
       .max(2000)
       .refine((value) => /^https:\/\//i.test(value), "https only")
       .nullish(),
-    tags: z.array(z.string().max(TAG_CHARS)).max(MAX_TAGS).nullish(),
     priority: z.number().int().min(0).max(100).nullish(),
     /** 019. The same three as `add_content`, so a row filed without a time
      *  can be given one. On a device the model, refused `no_time` by
@@ -310,15 +311,25 @@ const body = z.discriminatedUnion("tool", [
     contentId: z.string().uuid(),
     archived: z.boolean().default(true),
   }),
+  // 025. Labels on rows, in one call: apply existing ones by id, make one the
+  // dump names, take one off. Resolved against the rows' own thread.
+  z.strictObject({
+    tool: z.literal("label_content"),
+    jobId: z.string().uuid(),
+    toolCallId: z.string().min(1).max(120),
+    contentIds: z.array(z.string().uuid()).min(1).max(30),
+    add: z.array(z.string().uuid()).max(10).default([]),
+    /** Names to make, each only when the dump names it. */
+    new: z.array(z.string().min(1).max(60)).max(5).default([]),
+    remove: z.array(z.string().uuid()).max(10).default([]),
+  }),
   z.strictObject({
     tool: z.literal("set_thread_preference"),
     jobId: z.string().uuid(),
     toolCallId: z.string().min(1).max(120),
     threadId: z.string().uuid(),
-    /** Which tag dimension each widget groups by. Bounded like a tag. */
-    groupBy: z.record(z.string().max(TAG_CHARS), z.string().max(TAG_CHARS)).nullish(),
     /** What order the widgets come in. */
-    widgets: z.array(z.string().max(TAG_CHARS)).max(3).nullish(),
+    widgets: z.array(z.string().max(WIDGET_KIND_CHARS)).max(3).nullish(),
   }),
   z.strictObject({
     tool: z.literal("add_note"),
@@ -557,7 +568,11 @@ const result = z.union([
     error: z.enum([
       "unknown_thread",
       "limit_reached",
-      "bad_tags",
+      // 025. What label_content can be told.
+      "not_in_the_dump",
+      "label_limit",
+      "person_set",
+      "person_deleted",
       // 020. A photo index that names nothing on this message, or a photo
       // this turn already filed, or an index on a row that is not a picture.
       "unknown_photo",
@@ -672,7 +687,10 @@ type Outcome =
       error:
         | "unknown_thread"
         | "limit_reached"
-        | "bad_tags"
+        | "not_in_the_dump"
+        | "label_limit"
+        | "person_set"
+        | "person_deleted"
         | "unknown_photo"
         | "bad_place_name"
         | "unknown_content"
@@ -929,7 +947,7 @@ async function noteThread(
  *  you are not in are the same answer, for the reason the header states.
  */
 async function existing(
-  call: Extract<z.infer<typeof body>, { tool: Exclude<ToolName, "create_thread" | "add_content"> }>,
+  call: Extract<z.infer<typeof body>, { tool: Exclude<ToolName, "create_thread" | "add_content" | "label_content"> }>,
   accountId: string,
   trx: Executor,
   /** The turn's own message, for provenance on anything this writes. A memory
@@ -974,12 +992,9 @@ async function existing(
   if (call.tool === "set_thread_preference") {
     // Co-owned, like the name. `readPreference` drops anything it does not
     // recognise, so a widget kind the model invented is ignored rather than
-    // stored and rendered as nothing later. A dimension nothing carries is
-    // kept, because "group this by city" said before anything has a city is a
-    // reasonable thing to say and it starts working when something does.
+    // stored and rendered as nothing later.
     await setPreference(accountId, call.threadId, {
       ...(call.widgets === undefined ? {} : { widgets: call.widgets }),
-      ...(call.groupBy === undefined ? {} : { groupBy: call.groupBy }),
     });
     return { ok: true, done: true };
   }
@@ -1329,15 +1344,6 @@ async function existing(
   }
 
   // edit_content.
-  let tags: string[] | undefined;
-  if (call.tags != null) {
-    try {
-      tags = normaliseTags(call.tags);
-    } catch (error) {
-      if (error instanceof BadTags) return { ok: false, error: "bad_tags" };
-      throw error;
-    }
-  }
   // A time given here is written as add_content would write it: the same
   // parse, the same refusal, and a bare date is a day. A row already on a
   // calendar keeps its time: that change goes through `edit_event`, which
@@ -1378,7 +1384,6 @@ async function existing(
       ...(call.body === undefined ? {} : { body: call.body }),
       ...(call.url === undefined ? {} : { url: call.url }),
       ...(call.imageUrl === undefined ? {} : { image_url: call.imageUrl }),
-      ...(tags === undefined ? {} : { tags }),
       ...(call.dueAt == null ? {} : { due_at: when.dueAt }),
       ...(call.occursAt == null ? {} : { occurs_at: when.occursAt }),
       ...(call.occursEndAt == null ? {} : { occurs_end_at: when.occursEndAt }),
@@ -1423,6 +1428,71 @@ async function existing(
       );
     }
   }
+  return { ok: true, done: true };
+}
+
+/** 025. The model's label tool. Every id is resolved against the rows' one
+ *  thread by `applyLabels`, which also refuses anything a person set; a new
+ *  name has to be in the words of the message being filed, and offload makes
+ *  a label only below six. Refusals are the model's to read and correct. */
+async function labelContent(
+  trx: Transaction<Database>,
+  accountId: string,
+  messageId: string | null,
+  call: Extract<z.infer<typeof body>, { tool: "label_content" }>,
+): Promise<Outcome> {
+  if (!messageId) return { ok: false, error: "unknown_content" };
+  const message = await trx
+    .selectFrom("messages")
+    .select(["text", "turn_id"])
+    .where("id", "=", messageId)
+    .executeTakeFirstOrThrow();
+  const threads = await trx
+    .selectFrom("content")
+    .select("thread_id")
+    .distinct()
+    .where("id", "in", call.contentIds)
+    .where("deleted_at", "is", null)
+    .execute();
+  if (threads.length !== 1) return { ok: false, error: "unknown_content" };
+  const threadId = threads[0]!.thread_id;
+  if (!(await memberOf(accountId, threadId, trx))) return { ok: false, error: "unknown_content" };
+
+  const runId = await runForTurn(trx, threadId, message.turn_id, "offload");
+  const actor = { accountId, via: "offload" as const, runId };
+  const ids: string[] = [];
+  try {
+    const live = await trx
+      .selectFrom("labels")
+      .select(["id", "name"])
+      .where("thread_id", "=", threadId)
+      .where("deleted_at", "is", null)
+      .execute();
+    ids.push(...call.add);
+    for (const raw of call.new) {
+      const name = normaliseLabelName(raw);
+      const found = live.find((label) => label.name.toLowerCase() === name.toLowerCase());
+      if (found) {
+        ids.push(found.id);
+        continue;
+      }
+      if (!nameInDump(name, message.text ?? "")) return { ok: false, error: "not_in_the_dump" };
+      const made = await createLabel(trx, actor, threadId, { name });
+      live.push({ id: made.id, name: made.name });
+      ids.push(made.id);
+    }
+    await applyLabels(trx, actor, threadId, { content: call.contentIds }, ids, call.remove);
+  } catch (error) {
+    if (error instanceof NotYours) return { ok: false, error: "unknown_content" };
+    if (error instanceof LabelRefused) {
+      if (error.reason === "bad_label_name" || error.reason === "label_taken" || error.reason === "label_gone") {
+        return { ok: false, error: "unknown_content" };
+      }
+      return { ok: false, error: error.reason };
+    }
+    throw error;
+  }
+  await recordSortActivity(trx, runId, labelledLiveCopy);
   return { ok: true, done: true };
 }
 
@@ -1517,6 +1587,12 @@ export async function toolRoutes(app: App): Promise<void> {
               .where("deleted_at", "is", null)
               .executeTakeFirstOrThrow();
 
+        // 025. Labelling files nothing, so it is not held to the filing
+        // bound above.
+        if (call.tool === "label_content") {
+          return labelContent(trx, accountId, messageId, call);
+        }
+
         if (Number(filed.n) >= MAX_TOOL_CALLS) {
           return { ok: false, error: "limit_reached" };
         }
@@ -1604,20 +1680,6 @@ export async function toolRoutes(app: App): Promise<void> {
         // after the insert would make every call look like a repeat of itself.
         const carried = await notesForTurn(messageId, thread.id, accountId, call.toolCallId, trx);
 
-        // Tags are normalised here, not in the prompt. A model producing
-        // `City:Alfama` on Monday and `city: alfama` on Tuesday makes two
-        // groups out of one place, and a row carrying two cities has to be
-        // reconciled by eye every time somebody reads the list. Refused rather
-        // than silently repaired, so the model gets the complaint back and can
-        // fix it.
-        let tags: string[];
-        try {
-          tags = normaliseTags(call.tags);
-        } catch (error) {
-          if (error instanceof BadTags) return { ok: false, error: "bad_tags" };
-          throw error;
-        }
-
         // A location's title is the string that will reach a geocoder, so it
         // is held to a stricter shape than any other title. Refused rather than
         // truncated: a truncated place name resolves to the wrong place, which
@@ -1678,7 +1740,6 @@ export async function toolRoutes(app: App): Promise<void> {
             rrule: contentRule,
             is_reminder: call.isReminder,
             priority: call.priority,
-            tags,
             ...(allDayAttrs(call) ? { attrs: allDayAttrs(call) } : {}),
             updated_at: sql`now()`,
           })

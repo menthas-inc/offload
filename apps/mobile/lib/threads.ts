@@ -10,6 +10,7 @@
 // deriving one. A client that decides who may delete something is a client that
 // can disagree with the server, and the server is the one that enforces it.
 
+import type { Label } from "./labels";
 import { send } from "./api";
 import type { Invitation } from "./people";
 import type { Sortable } from "@offload/widgets";
@@ -41,6 +42,8 @@ export interface Member {
  *  sometimes how it is handled. */
 export interface Note {
   id: string;
+  /** 025. The note's live labels, by id, in the thread's label order. */
+  labels: string[];
   text: string;
   /** What was dumped when it did not fit in 200 characters. Never in a prompt,
    *  and never on the row. */
@@ -80,11 +83,14 @@ export interface ThreadBundle {
   name: string;
   icon: string | null;
   alwaysOn: boolean;
-  counts: { active: number; archived: number };
+  /** `unlabelled` is 025's No label count. */
+  counts: { active: number; archived: number; unlabelled: number };
   members: Member[];
+  /** 025. The thread's labels in the order they were made, with counts. */
+  labels: Label[];
   notes: Note[];
   noteCounts: { active: number; folded: number };
-  preference: { widgets?: string[]; groupBy?: Record<string, string>; hideDone?: boolean };
+  preference: { widgets?: string[]; hideDone?: boolean };
   standing: string | null;
   /** 022. False on the account's default thread, where Share is not drawn. */
   shareable: boolean;
@@ -189,7 +195,8 @@ export interface ContentRow extends Sortable {
   onCalendar: boolean;
   priority: number;
   priorityPinned: boolean;
-  tags: string[];
+  /** 025. The row's live labels, by id, in the thread's label order. */
+  labels: string[];
   place: Place | null;
   placeId: string | null;
   /** The repeating series this occurrence belongs to, or null for a one off.
@@ -205,7 +212,8 @@ export interface ContentRow extends Sortable {
 }
 
 export interface ContentPage {
-  rows: ContentRow[];
+  /** `ticked` only when the label's list asked, with `ticksFor`. */
+  rows: (ContentRow & { ticked?: boolean })[];
   nextCursor: string | null;
 }
 
@@ -259,11 +267,15 @@ export async function fetchThreadEvents(threadId: string, from: string, to: stri
 
 export async function fetchContent(
   threadId: string,
-  options: { cursor?: string; archived?: boolean } = {}
+  options: { cursor?: string; archived?: boolean; labels?: string[]; unlabelled?: boolean; ticksFor?: string } = {}
 ): Promise<ContentPage | null> {
   const query = new URLSearchParams();
   if (options.cursor) query.set("cursor", options.cursor);
   if (options.archived) query.set("archived", "true");
+  // 025. The filter bar's pick, read on the server because the list is paged.
+  if (options.labels?.length) query.set("labels", options.labels.join(","));
+  if (options.unlabelled) query.set("unlabelled", "true");
+  if (options.ticksFor) query.set("ticksFor", options.ticksFor);
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const { data } = await send<ContentPage>(`/v1/threads/${threadId}/content${suffix}`);
   if (!data) return null;
@@ -318,6 +330,8 @@ export interface ContentPatch {
   allDay?: boolean;
   rrule?: string | null;
   isReminder?: boolean;
+  /** 025. The row's labels as a full set. */
+  labels?: string[];
 }
 
 export interface ContentSnapshot {
@@ -329,6 +343,7 @@ export interface ContentSnapshot {
   allDay: boolean;
   rrule: string | null;
   isReminder: boolean;
+  labels: string[];
 }
 
 /** The refusals the route names; the screen is put back with one clause and
@@ -379,7 +394,7 @@ export async function renameThread(
  *  server, so sending one field leaves the others as they were. */
 export async function setPreference(
   threadId: string,
-  patch: { widgets?: string[] | null; groupBy?: Record<string, string> | null; hideDone?: boolean | null }
+  patch: { widgets?: string[] | null; hideDone?: boolean | null }
 ): Promise<boolean> {
   const { data } = await send<unknown>(`/v1/threads/${threadId}/preference`, {
     method: "PATCH",
@@ -487,7 +502,7 @@ export function provisionalRow(
     onCalendar: false,
     priority: 0,
     priorityPinned: false,
-    tags: [],
+    labels: [],
     place: null,
     placeId: null,
     seriesRef: null,
@@ -504,6 +519,7 @@ export function provisionalRow(
 export function provisionalNote(text: string, authorId: string | null): Note {
   return {
     id: provisionalId(),
+    labels: [],
     text,
     body: null,
     origin: "stated",

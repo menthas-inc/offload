@@ -1,5 +1,7 @@
 # 006 What offload extracts, feature spec
 
+> **Amended 2026-09-27 by 025:** tags are retired. `content.tags` is dropped and the model no longer writes them; AC-6 and AC-8 on tags no longer hold. A thread is grouped by labels, `docs/specs/025-labels/`.
+
 > The what and the why. No tech choices; those are in `impl-spec.md`.
 >
 > Revised after the review panel. What changed is at the bottom.

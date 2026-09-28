@@ -17,9 +17,10 @@ import { auth } from "../auth/auth.js";
 import { db } from "../db.js";
 import { zoneOf } from "../accounts/zone.js";
 import { actedCopy } from "../notifications/copy.js";
-import { listActivity, markSeen, record } from "../notifications/activity.js";
+import { ACTIVITY_DAYS, listActivity, markSeen, record } from "../notifications/activity.js";
 import { isPushToken } from "../notifications/push.js";
-import { NotYours, readableContent } from "../threads/access.js";
+import { NotYours, memberOf, readableContent } from "../threads/access.js";
+import { undoRun } from "../threads/labels.js";
 import { Refused } from "../threads/refusals.js";
 import { completeContent, contentRow, editContent, toRow, withPhotos, type RawRow } from "./threads.js";
 
@@ -60,11 +61,14 @@ const todayResponse = z.object({
    *  account that has never dumped anything, and the quiet line for one that
    *  has. */
   everDumped: z.boolean(),
+  /** 025. The labels the rows above carry, and only those: Today has no
+   *  thread bundle to look a label up in. */
+  threadLabels: z.array(z.object({ id: z.string(), name: z.string(), colour: z.number() })),
 });
 
 const activityEntry = z.object({
   id: z.string(),
-  kind: z.enum(["digest", "request", "share", "shared_activity", "expired", "moved", "acted"]),
+  kind: z.enum(["digest", "request", "share", "shared_activity", "expired", "moved", "acted", "labelled"]),
   sent: z.boolean(),
   reason: z.enum(["setting", "permission", "design"]).nullable(),
   title: z.string(),
@@ -74,6 +78,9 @@ const activityEntry = z.object({
   contentId: z.string().nullable(),
   memberId: z.string().nullable(),
   requestId: z.string().nullable(),
+  /** 025. A labelled row's Undo is offered while this is true. */
+  undoable: z.boolean(),
+  undone: z.boolean(),
   occurredAt: z.string(),
 });
 
@@ -116,6 +123,53 @@ export async function notificationRoutes(app: App): Promise<void> {
       // to remove, and the answer is the same either way.
       await db.deleteFrom("push_tokens").where("token", "=", request.body.token).where("account_id", "=", accountId).execute();
       return { ok: true as const };
+    },
+  );
+
+  // 025. Undo on a labelled row: the sort it records, taken back as far as
+  // nobody has touched it since, for every member at once. The caller must
+  // own the row and still be in its thread; the row must be under thirty days
+  // and not already undone.
+  app.post(
+    "/v1/activity/:id/undo",
+    {
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        response: {
+          200: z.object({ undone: z.literal(true) }),
+          401: unauthenticated,
+          404: z.object({ error: z.literal("not_found") }),
+          409: z.object({ error: z.literal("not_undoable") }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const accountId = await currentAccountId(request);
+      if (!accountId) return reply.status(401).send({ error: "unauthenticated" });
+      const outcome = await db.transaction().execute(async (trx) => {
+        const row = await trx
+          .selectFrom("activity")
+          .select(["id", "label_run_id", "undone_at", "occurred_at"])
+          .where("id", "=", request.params.id)
+          .where("account_id", "=", accountId)
+          .where("kind", "=", "labelled")
+          .executeTakeFirst();
+        if (!row) return "not_found" as const;
+        const run = row.label_run_id
+          ? await trx.selectFrom("label_runs").select(["id", "thread_id"]).where("id", "=", row.label_run_id).executeTakeFirst()
+          : undefined;
+        if (!run || !(await memberOf(accountId, run.thread_id, trx))) {
+          // A member who left, or a sort already purged: not theirs to undo.
+          return run ? ("not_found" as const) : ("not_undoable" as const);
+        }
+        const tooOld = row.occurred_at.getTime() < Date.now() - ACTIVITY_DAYS * 24 * 60 * 60 * 1000;
+        if (row.undone_at !== null || tooOld) return "not_undoable" as const;
+        await undoRun(trx, run.id);
+        return "undone" as const;
+      });
+      if (outcome === "not_found") return reply.status(404).send({ error: "not_found" as const });
+      if (outcome === "not_undoable") return reply.status(409).send({ error: "not_undoable" as const });
+      return { undone: true as const };
     },
   );
 
@@ -241,7 +295,6 @@ export async function notificationRoutes(app: App): Promise<void> {
         "content.is_reminder as is_reminder",
         "content.priority as priority",
         "content.priority_pinned as priority_pinned",
-        "content.tags as tags",
         "content.place_id as place_id",
         "content.attrs as attrs",
         "accounts.display_name as authorName",
@@ -314,12 +367,27 @@ export async function notificationRoutes(app: App): Promise<void> {
       .where("content.deleted_at", "is", null)
       .limit(1)
       .executeTakeFirst();
-    return {
+    const shaped = {
       overdue: await shape(overdue.slice(0, OVERDUE_CAP).map((one) => one.row)),
       today: await shape(todays),
       tomorrow: await shape(tomorrows),
+    };
+    const named = [...new Set([...shaped.overdue, ...shaped.today, ...shaped.tomorrow].flatMap((row) => row.labels))];
+    const threadLabels =
+      named.length === 0
+        ? []
+        : await db
+            .selectFrom("labels")
+            .select(["id", "name", "colour"])
+            .where("id", "in", named)
+            .where("deleted_at", "is", null)
+            .orderBy("created_at")
+            .execute();
+    return {
+      ...shaped,
       overdueMore: Math.max(0, overdue.length - OVERDUE_CAP),
       everDumped: ever !== undefined,
+      threadLabels,
     };
   });
 }

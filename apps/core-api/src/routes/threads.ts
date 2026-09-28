@@ -35,10 +35,12 @@ import {
   foldedNotes,
   noteCounts,
   readableNotes,
+  requireReadableNote,
   restoreNote,
   setMuted,
+  type Note,
 } from "../threads/notes.js";
-import { readPreference, type ThreadPreference } from "../threads/widgets.js";
+import { WIDGET_KIND_CHARS, readPreference, type ThreadPreference } from "../threads/widgets.js";
 import { calendarCounts, dropPicksOf, setPick, threadEvents, viewerCalendars } from "../threads/calendars.js";
 import { emit } from "../analytics.js";
 import { isBareDate, parseWhen, plausible } from "../threads/dates.js";
@@ -52,9 +54,9 @@ import {
   touchThread,
   unowned,
 } from "../threads/access.js";
-import { TAG_CHARS } from "../threads/tags.js";
 import { OverBudget, requireBudget } from "../budget.js";
 import { purgeAbout } from "../notifications/activity.js";
+import { LabelRefused, carriesAny, contentLabelsFor, labelsOfThread, setRowLabels, unlabelledCount, withContentLabels, withNoteLabels } from "../threads/labels.js";
 import { noteAddition } from "../notifications/people.js";
 
 /** 022. The account's default thread cannot be shared or deleted. */
@@ -201,6 +203,8 @@ const noteSchema = z.object({
   rrule: z.string().nullable(),
   /** Set aside by the daily job. Only ever present on the folded list. */
   supersededAt: z.coerce.date().nullable(),
+  /** 025. The note's live labels, in the thread's label order. */
+  labels: z.array(z.string()),
 });
 
 const threadBundle = z.object({
@@ -208,8 +212,13 @@ const threadBundle = z.object({
   name: z.string(),
   icon: z.string().nullable(),
   alwaysOn: z.boolean(),
-  counts: z.object({ active: z.number(), archived: z.number() }),
+  /** `unlabelled` is 025's No label count: live, unarchived rows carrying no
+   *  label. */
+  counts: z.object({ active: z.number(), archived: z.number(), unlabelled: z.number() }),
   members: z.array(memberSchema),
+  /** 025. The thread's labels in the order they were made, each with how many
+   *  live rows and notes carry it. At most ten. */
+  labels: z.array(z.object({ id: z.string(), name: z.string(), colour: z.number(), count: z.number() })),
   /** What this thread holds about itself. Active only: what the daily job
    *  folded is its own paginated read, because that list has no ceiling. */
   notes: z.array(noteSchema),
@@ -219,7 +228,6 @@ const threadBundle = z.object({
   /** How this thread wants to look. Absent fields mean derived from content. */
   preference: z.object({
     widgets: z.array(z.string()).optional(),
-    groupBy: z.record(z.string(), z.string()).optional(),
     hideDone: z.boolean().optional(),
   }),
   /** Always null. offload does not summarise a thread yet and nothing writes a
@@ -243,6 +251,8 @@ const threadBundle = z.object({
 
 export const contentRow = z.object({
   id: z.string(),
+  /** 025. The row's live labels, in the thread's label order. */
+  labels: z.array(z.string()),
   type: z.string(),
   title: z.string(),
   body: z.string().nullable(),
@@ -274,7 +284,6 @@ export const contentRow = z.object({
   onCalendar: z.boolean(),
   priority: z.number(),
   priorityPinned: z.boolean(),
-  tags: z.array(z.string()),
   /** The repeating series this occurrence belongs to, or null for a one off.
    *
    *  Derived from `attrs`, which is never sent whole, exactly as `place` is
@@ -313,7 +322,8 @@ export const contentRow = z.object({
 });
 
 const contentPage = z.object({
-  rows: z.array(contentRow),
+  /** `ticked` only when the label's list asked, with `ticksFor`. */
+  rows: z.array(contentRow.extend({ ticked: z.boolean().optional() })),
   nextCursor: z.string().nullable(),
 });
 
@@ -379,7 +389,6 @@ export interface RawRow {
   is_reminder: boolean;
   priority: number;
   priority_pinned: boolean;
-  tags: string[];
   place_id: string | null;
   /** Whatever the source put on the row. Only `series_ref` is read here, and
    *  only to say whether an occurrence belongs to something that repeats.
@@ -450,7 +459,6 @@ export function toRow(row: RawRow, viewerId: string) {
     isReminder: row.is_reminder,
     priority: row.priority,
     priorityPinned: row.priority_pinned,
-    tags: row.tags,
     // Derived rather than sending `attrs` whole, exactly as `placeId` is: the
     // client needs to know an occurrence repeats and has no business with the
     // rest of what a calendar sync wrote.
@@ -497,6 +505,8 @@ export interface ContentSnapshot {
   allDay: boolean;
   rrule: string | null;
   isReminder: boolean;
+  /** 025. The row's labels before the write, in the thread's label order. */
+  labels: string[];
 }
 
 /** The nine fields a sheet may write. Absent leaves a field alone and null
@@ -519,6 +529,8 @@ export interface ContentPatch {
    *  drawn only while it is on, so the only true that arrives is Undo putting
    *  back what offload decided. */
   isReminder?: boolean | undefined;
+  /** 025. The row's labels as a full set; absent leaves them alone. */
+  labels?: string[] | undefined;
 }
 
 /** Edit. Co-owned: anybody in the thread may fix a title offload got wrong,
@@ -554,6 +566,7 @@ export async function editContent(
       allDay: wasAllDay,
       rrule: before.rrule,
       isReminder: before.is_reminder,
+      labels: (await contentLabelsFor([ref.id], trx)).get(ref.id) ?? [],
     };
 
     const set: Record<string, unknown> = {
@@ -627,8 +640,17 @@ export async function editContent(
       });
     }
 
-    await trx.updateTable("content").set(set).where("id", "=", ref.id).execute();
-    await touchThread(ref.threadId, trx);
+    // 025. Labels only, and the row itself is not rewritten: `updated_at` is
+    // what the nightly sort and the embedder read as the row having changed,
+    // and a label is not a word of it.
+    const onlyLabels = Object.keys(patch).every((key) => key === "labels" || (patch as Record<string, unknown>)[key] === undefined);
+    if (patch.labels !== undefined) {
+      await setRowLabels(trx, { accountId, via: "person" }, { kind: "content", id: ref.id, threadId: ref.threadId }, patch.labels);
+    }
+    if (!onlyLabels) {
+      await trx.updateTable("content").set(set).where("id", "=", ref.id).execute();
+      await touchThread(ref.threadId, trx);
+    }
     return snapshot;
   });
 }
@@ -889,7 +911,6 @@ export async function setPreference(
   threadId: string,
   patch: {
     widgets?: string[] | null;
-    groupBy?: Record<string, string> | null;
     hideDone?: boolean | null;
   },
 ): Promise<ThreadPreference> {
@@ -913,11 +934,8 @@ export async function setPreference(
 
     const before = { ...readPreference(row.attrs), ...(member.hide_done ? { hideDone: true } : {}) };
 
-    if (patch.widgets !== undefined || patch.groupBy !== undefined) {
-      const merged = readPreference({
-        widgets: patch.widgets === undefined ? before.widgets : patch.widgets,
-        groupBy: patch.groupBy === undefined ? before.groupBy : patch.groupBy,
-      });
+    if (patch.widgets !== undefined) {
+      const merged = readPreference({ widgets: patch.widgets });
       await trx
         .updateTable("threads")
         .set({ attrs: JSON.stringify(merged), updated_at: sql`now()` })
@@ -1424,13 +1442,14 @@ export async function threadRoutes(app: App): Promise<void> {
           name: thread.name,
           icon: thread.icon,
           alwaysOn: thread.always_on,
-          counts: { active: Number(counts.active), archived: Number(counts.archived) },
+          counts: { active: Number(counts.active), archived: Number(counts.archived), unlabelled: await unlabelledCount(id) },
           members: await membersOf(id, accountId),
+          labels: await labelsOfThread(id),
           // Validated on the way out as well as on the way in. A preference
           // naming a widget that no longer exists renders as though it were
           // absent, because a thread whose contents changed under a preference
           // is the normal case rather than an edge one.
-          notes: await readableNotes(accountId, id),
+          notes: await withNoteLabels(await readableNotes(accountId, id)),
           noteCounts: await noteCounts(accountId, id),
           preference: {
             ...readPreference(thread.attrs),
@@ -1566,6 +1585,18 @@ export async function threadRoutes(app: App): Promise<void> {
           // A uuid, since it is compared to one: anything else was a 500.
           cursor: z.string().uuid().optional(),
           archived: z.enum(["true", "false"]).default("false"),
+          // 025. The filter bar's pick, read on the server because the list is
+          // paged: either of these labels, or none, or both together.
+          labels: z
+            .string()
+            .max(10 * 37)
+            .transform((raw) => raw.split(",").filter(Boolean))
+            .pipe(z.array(z.string().uuid()).max(10))
+            .optional(),
+          unlabelled: z.enum(["true", "false"]).default("false"),
+          // The label's list: every row, the filter ignored, each marked with
+          // whether it carries this label.
+          ticksFor: z.string().uuid().optional(),
         }),
         response: { 200: contentPage, 401: unauthenticated, 404: notFound },
       },
@@ -1606,7 +1637,6 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.is_reminder as is_reminder",
             "content.priority as priority",
             "content.priority_pinned as priority_pinned",
-            "content.tags as tags",
             "content.place_id as place_id",
             "content.attrs as attrs",
             "accounts.display_name as authorName",
@@ -1633,6 +1663,14 @@ export async function threadRoutes(app: App): Promise<void> {
           .orderBy("content.id", "desc")
           .limit(PAGE + 1);
 
+        const picked = request.query.ticksFor ? [] : (request.query.labels ?? []);
+        const none = !request.query.ticksFor && request.query.unlabelled === "true";
+        if (picked.length > 0 || none) {
+          const carrying = picked.length > 0 ? sql<boolean>`exists (${carriesAny(sql.ref("content.id"), picked)})` : null;
+          const bare = none ? sql<boolean>`not exists (${carriesAny(sql.ref("content.id"), null)})` : null;
+          query = query.where(carrying && bare ? sql<boolean>`(${carrying} or ${bare})` : (carrying ?? bare)!);
+        }
+
         // The cursor is the id alone, and the ordering is by id alone.
         //
         // 001 specifies "(created_at, id), which UUIDv7 makes monotonic", and
@@ -1653,8 +1691,10 @@ export async function threadRoutes(app: App): Promise<void> {
         const page = rows.slice(0, PAGE);
         const last = page.at(-1);
 
+        const finished = await withPhotos(page.map((row) => toRow(row, accountId)));
+        const ticksFor = request.query.ticksFor;
         return reply.send({
-          rows: await withPhotos(page.map((row) => toRow(row, accountId))),
+          rows: ticksFor ? finished.map((row) => ({ ...row, ticked: row.labels.includes(ticksFor) })) : finished,
           nextCursor: rows.length > PAGE && last ? last.id : null,
         });
       })
@@ -1701,7 +1741,6 @@ export async function threadRoutes(app: App): Promise<void> {
             "content.is_reminder as is_reminder",
             "content.priority as priority",
             "content.priority_pinned as priority_pinned",
-            "content.tags as tags",
             "content.place_id as place_id",
             "content.attrs as attrs",
             "content.derived_from_message_id as fromMessageId",
@@ -1775,6 +1814,7 @@ export async function threadRoutes(app: App): Promise<void> {
     allDay: z.boolean(),
     rrule: z.string().nullable(),
     isReminder: z.boolean(),
+    labels: z.array(z.string()),
   });
 
   // Edit. Co-owned: anybody in the thread may fix a title offload got wrong,
@@ -1796,6 +1836,8 @@ export async function threadRoutes(app: App): Promise<void> {
           /** The way out of a reminder. No screen draws a way to turn it on;
            *  a true here is Undo putting back what offload decided. */
           isReminder: z.boolean().optional(),
+          // 025. The row's labels as a full set.
+          labels: z.array(z.string().uuid()).max(10).optional(),
         }),
         response: {
           200: z.object({ content: contentRow, previous: previousTitle }),
@@ -2041,7 +2083,7 @@ export async function threadRoutes(app: App): Promise<void> {
             });
             await touchThread(id, db);
             await noteAddition(id, accountId);
-            return reply.send({ note });
+            return reply.send({ note: { ...note, labels: [] } });
           } catch (error) {
             if (error instanceof NoteTooLong) {
               return reply
@@ -2085,7 +2127,7 @@ export async function threadRoutes(app: App): Promise<void> {
         const page = rows.slice(0, FOLDED_PAGE);
         const last = page[page.length - 1];
         return reply.send({
-          notes: page,
+          notes: await withNoteLabels(page),
           cursor:
             rows.length > FOLDED_PAGE && last?.supersededAt
               ? last.supersededAt.toISOString()
@@ -2103,11 +2145,14 @@ export async function threadRoutes(app: App): Promise<void> {
         schema: {
           params: z.object({ id: z.string().uuid() }),
           body: z.strictObject({
-            text: z.string().min(1).max(NOTE_TEXT_CHARS),
+            // Optional since 025, so the label sheet can write a note's labels
+            // alone; one of the two is required.
+            text: z.string().min(1).max(NOTE_TEXT_CHARS).optional(),
             body: z.string().max(NOTE_BODY_CHARS).nullish(),
+            labels: z.array(z.string().uuid()).max(10).optional(),
           }),
           response: {
-            200: z.object({ note: noteSchema, previous: z.string() }),
+            200: z.object({ note: noteSchema, previous: z.string(), previousLabels: z.array(z.string()) }),
             401: unauthenticated,
             404: notFound,
             // Only reachable for a note offload wrote: the unique index covers
@@ -2123,18 +2168,31 @@ export async function threadRoutes(app: App): Promise<void> {
           const accountId = await currentAccountId(request);
           if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
+          const { text, labels } = request.body;
+          if (text === undefined && labels === undefined) return reply.code(404).send({ error: "not_found" as const });
           try {
-            const result = await db.transaction().execute((trx) =>
-              editNote(
-                {
-                  noteId: request.params.id,
-                  accountId,
-                  text: request.body.text,
-                  ...(request.body.body === undefined ? {} : { body: request.body.body }),
-                },
-                trx,
-              ),
-            );
+            const result = await db.transaction().execute(async (trx) => {
+              const current = await requireReadableNote(accountId, request.params.id, trx);
+              const previousLabels = (await withNoteLabels([current], trx))[0]!.labels;
+              if (labels !== undefined) {
+                await setRowLabels(trx, { accountId, via: "person" }, { kind: "note", id: current.id, threadId: current.threadId }, labels);
+              }
+              const edited =
+                text === undefined
+                  ? { note: current as Note, previous: current.text }
+                  : await editNote(
+                      {
+                        noteId: request.params.id,
+                        accountId,
+                        text,
+                        ...(request.body.body === undefined ? {} : { body: request.body.body }),
+                      },
+                      trx,
+                    );
+              if (!edited) return null;
+              const [note] = await withNoteLabels([edited.note], trx);
+              return { note: note!, previous: edited.previous, previousLabels };
+            });
             if (!result) return reply.code(409).send({ error: "duplicate" as const });
             return reply.send(result);
           } catch (error) {
@@ -2198,7 +2256,7 @@ export async function threadRoutes(app: App): Promise<void> {
           const note = await db
             .transaction()
             .execute((trx) => restoreNote(request.params.id, accountId, trx));
-          return reply.send({ note });
+          return reply.send({ note: (await withNoteLabels([note]))[0]! });
         })
     );
   }
@@ -2225,7 +2283,7 @@ export async function threadRoutes(app: App): Promise<void> {
         const accountId = await currentAccountId(request);
         if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
         const result = await reprioritiseNote(accountId, request.params.id, request.body.priority);
-        return reply.send(result);
+        return reply.send({ ...result, note: (await withNoteLabels([result.note]))[0]! });
       })
   );
 
@@ -2251,7 +2309,7 @@ export async function threadRoutes(app: App): Promise<void> {
           if (!accountId) return reply.code(401).send({ error: "unauthenticated" as const });
 
           const note = await setMuted(request.params.id, accountId, request.body.muted);
-          return reply.send({ note });
+          return reply.send({ note: (await withNoteLabels([note]))[0]! });
         })
     );
   }
@@ -2342,24 +2400,19 @@ export async function threadRoutes(app: App): Promise<void> {
       schema: {
         params: z.object({ id: z.string().uuid() }),
         body: z.strictObject({
-          // Bounded like a tag, since a grouping value is one: `readPreference`
-          // keeps the three widget kinds and lowercases the value, and an
-          // unbounded value was stored on the thread and served to every
-          // member.
-          widgets: z.array(z.string().max(TAG_CHARS)).max(3).nullish(),
-          groupBy: z.record(z.string().max(TAG_CHARS), z.string().max(TAG_CHARS)).nullish(),
+          // Bounded, since an unbounded value would be stored on the thread
+          // and served to every member; `readPreference` keeps the three kinds.
+          widgets: z.array(z.string().max(WIDGET_KIND_CHARS)).max(3).nullish(),
           hideDone: z.boolean().nullish(),
         }),
         response: {
           200: z.object({
             preference: z.object({
               widgets: z.array(z.string()).optional(),
-              groupBy: z.record(z.string(), z.string()).optional(),
               hideDone: z.boolean().optional(),
             }),
             previous: z.object({
               widgets: z.array(z.string()).optional(),
-              groupBy: z.record(z.string(), z.string()).optional(),
               hideDone: z.boolean().optional(),
             }),
           }),
@@ -2375,7 +2428,6 @@ export async function threadRoutes(app: App): Promise<void> {
 
         const previous = await setPreference(accountId, request.params.id, {
           ...(request.body.widgets === undefined ? {} : { widgets: request.body.widgets }),
-          ...(request.body.groupBy === undefined ? {} : { groupBy: request.body.groupBy }),
           ...(request.body.hideDone === undefined ? {} : { hideDone: request.body.hideDone }),
         });
 
@@ -2415,7 +2467,6 @@ async function rowById(contentId: string, viewerId: string) {
       "content.is_reminder as is_reminder",
       "content.priority as priority",
       "content.priority_pinned as priority_pinned",
-      "content.tags as tags",
       "content.place_id as place_id",
             "content.attrs as attrs",
       "accounts.display_name as authorName",
@@ -2438,8 +2489,8 @@ async function rowById(contentId: string, viewerId: string) {
 /** 020. Attach each row's photo, one query for the page. A row carries at most
  *  one photo today, since a photo row is one photo; the first live blob wins
  *  if that ever changes. */
-export async function withPhotos<T extends { id: string; photo: unknown }>(rows: T[]): Promise<T[]> {
-  if (rows.length === 0) return rows;
+export async function withPhotos<T extends { id: string; photo: unknown }>(rows: T[]): Promise<(T & { labels: string[] })[]> {
+  if (rows.length === 0) return [];
   const found = await db
     .selectFrom("content_blobs")
     .innerJoin("blobs", "blobs.id", "content_blobs.blob_id")
@@ -2455,7 +2506,9 @@ export async function withPhotos<T extends { id: string; photo: unknown }>(rows:
     // A photo's dimensions are not null by the kind constraint.
     byContent.set(blob.content_id, { blobId: blob.id, width: blob.width!, height: blob.height!, ready: blob.renditions_at !== null });
   }
-  return rows.map((row) => ({ ...row, photo: byContent.get(row.id) ?? null }));
+  // 025. Every row a client reads passes through here, so this is the one
+  // place a row gains its labels.
+  return withContentLabels(rows.map((row) => ({ ...row, photo: byContent.get(row.id) ?? null })));
 }
 
 export const THREAD_LIMITS = { PAGE, STALE_DAYS } as const;

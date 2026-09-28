@@ -1,5 +1,5 @@
 {
-  "statement": "offload files first and then may ask for one field the row genuinely needs and nothing gave it: the dates of a stay, the by-when of a reminder, a deadline, a gift or a renewal, the time of a meeting or call, or the tag a thread's notes say rows carry. It never asks what they meant, what kind of row it is or where it goes; never a field already given; at most two in a turn, dates before tags; options are values it already holds; and a note can require or forbid a question.",
+  "statement": "offload files first and then may ask for one field the row genuinely needs and nothing gave it: the dates of a stay, the by-when of a reminder, a deadline, a gift or a renewal, the time of a meeting or call. It never asks what they meant, what kind of row it is or where it goes; never a field already given; at most two in a turn; options are values it already holds; and a note can require or forbid a question.",
   "why": "An unanswered question costs nothing, so a question is only worth asking about a field the row needs. A wrong home is one move away and a wrong kind is corrected by the way out, so neither is asked. Where the notes give the answer, asking is filing by another name.",
   "sources": [
     "018 AC-1 to AC-9, AC-11",
@@ -129,148 +129,6 @@
       "expect": {
         "asks": "none",
         "files_something": true,
-        "say": null
-      }
-    },
-    {
-      "id": "note-requires-tag-with-values",
-      "why": "a thread organised by room offers the rooms it has",
-      "surface": "file",
-      "input": "new towels",
-      "context": "behrooz",
-      "notes": {
-        "00000013-0000-0000-0000-000000000000": [
-          "Organised by room"
-        ]
-      },
-      "rows": {
-        "00000013-0000-0000-0000-000000000000": [
-          {
-            "contentId": "r1",
-            "threadId": "00000013-0000-0000-0000-000000000000",
-            "threadName": "Flat admin",
-            "type": "task",
-            "title": "new tap",
-            "body": null,
-            "done": false,
-            "tags": [
-              "room:kitchen"
-            ],
-            "dueAt": null,
-            "occursAt": null
-          },
-          {
-            "contentId": "r2",
-            "threadId": "00000013-0000-0000-0000-000000000000",
-            "threadName": "Flat admin",
-            "type": "task",
-            "title": "regrout",
-            "body": null,
-            "done": false,
-            "tags": [
-              "room:bathroom"
-            ],
-            "dueAt": null,
-            "occursAt": null
-          }
-        ]
-      },
-      "looking_at": "00000013-0000-0000-0000-000000000000",
-      "expect": {
-        "asks": "tag",
-        "options": [
-          "room:kitchen"
-        ]
-      }
-    },
-    {
-      "id": "tag-with-one-value-not-asked",
-      "why": "fewer than two values means nothing to offer, so no question",
-      "surface": "file",
-      "input": "new towels",
-      "context": "behrooz",
-      "notes": {
-        "00000013-0000-0000-0000-000000000000": [
-          "Organised by room"
-        ]
-      },
-      "rows": {
-        "00000013-0000-0000-0000-000000000000": [
-          {
-            "contentId": "r1",
-            "threadId": "00000013-0000-0000-0000-000000000000",
-            "threadName": "Flat admin",
-            "type": "task",
-            "title": "new tap",
-            "body": null,
-            "done": false,
-            "tags": [
-              "room:kitchen"
-            ],
-            "dueAt": null,
-            "occursAt": null
-          }
-        ]
-      },
-      "looking_at": "00000013-0000-0000-0000-000000000000",
-      "expect": {
-        "asks": "none",
-        "say": null
-      }
-    },
-    {
-      "id": "tag-given-in-dump",
-      "why": "the dump names the genre, so no question",
-      "surface": "file",
-      "input": "jazz: https://www.youtube.com/watch?v=abc123xyz",
-      "context": "behrooz",
-      "notes": {
-        "00000012-0000-0000-0000-000000000000": [
-          "Organised by genre"
-        ]
-      },
-      "rows": {
-        "00000012-0000-0000-0000-000000000000": [
-          {
-            "contentId": "m1",
-            "threadId": "00000012-0000-0000-0000-000000000000",
-            "threadName": "Music",
-            "type": "link",
-            "title": "Kind of Blue",
-            "body": null,
-            "done": false,
-            "tags": [
-              "genre:jazz"
-            ],
-            "dueAt": null,
-            "occursAt": null
-          },
-          {
-            "contentId": "m2",
-            "threadId": "00000012-0000-0000-0000-000000000000",
-            "threadName": "Music",
-            "type": "link",
-            "title": "Nevermind",
-            "body": null,
-            "done": false,
-            "tags": [
-              "genre:rock"
-            ],
-            "dueAt": null,
-            "occursAt": null
-          }
-        ]
-      },
-      "looking_at": "00000012-0000-0000-0000-000000000000",
-      "expect": {
-        "asks": "none",
-        "filed": [
-          {
-            "tags_include": [
-              "genre:jazz"
-            ]
-          }
-        ],
         "say": null
       }
     },
@@ -506,8 +364,7 @@
           "threadId": "00000010-0000-0000-0000-000000000000",
           "threadName": "App fixes",
           "title": "photos",
-          "type": "task",
-          "tags": []
+          "type": "task"
         }
       ],
       "may_search": false,
@@ -531,8 +388,7 @@
           "threadId": "00000010-0000-0000-0000-000000000000",
           "threadName": "App fixes",
           "title": "photos",
-          "type": "task",
-          "tags": []
+          "type": "task"
         }
       ],
       "may_search": false,
@@ -565,8 +421,8 @@
       }
     },
     {
-      "id": "ask-span-then-city",
-      "why": "33: a stay in a thread grouped by city asks the dates first and the city second",
+      "id": "ask-span-in-a-city-thread",
+      "why": "33, narrowed by 025: a stay in a thread with cities in it asks the dates and nothing else, now that the tag question is gone",
       "surface": "file",
       "input": "https://www.airbnb.com/rooms/12345678",
       "context": "behrooz",
@@ -582,24 +438,18 @@
           "threadId": "00000015-0000-0000-0000-000000000000",
           "threadName": "Porto weekend",
           "title": "Tram museum",
-          "type": "note",
-          "tags": [
-            "city:porto"
-          ]
+          "type": "note"
         },
         {
           "id": "p2",
           "threadId": "00000015-0000-0000-0000-000000000000",
           "threadName": "Porto weekend",
           "title": "Lunch at the market",
-          "type": "note",
-          "tags": [
-            "city:braga"
-          ]
+          "type": "note"
         }
       ],
       "expect": {
-        "asks": "span,tag"
+        "asks": "span"
       }
     },
     {
@@ -699,16 +549,14 @@
           "threadId": "00000002-0000-0000-0000-000000000000",
           "threadName": "Groceries",
           "title": "milk",
-          "type": "task",
-          "tags": []
+          "type": "task"
         },
         {
           "id": "g2",
           "threadId": "00000002-0000-0000-0000-000000000000",
           "threadName": "Groceries",
           "title": "basil",
-          "type": "task",
-          "tags": []
+          "type": "task"
         }
       ],
       "may_search": false,
@@ -748,44 +596,6 @@
       "looking_at": "00000014-0000-0000-0000-000000000000",
       "expect": {
         "asks": "span"
-      }
-    },
-    {
-      "id": "ask-genre-2",
-      "why": "a link in a thread organised by genre",
-      "surface": "file",
-      "input": "https://www.youtube.com/watch?v=3JZ_D3ELwOQ",
-      "context": "behrooz",
-      "looking_at": "00000012-0000-0000-0000-000000000000",
-      "notes": {
-        "00000012-0000-0000-0000-000000000000": [
-          "Organised by genre"
-        ]
-      },
-      "rows": [
-        {
-          "id": "r1",
-          "threadId": "00000012-0000-0000-0000-000000000000",
-          "threadName": "Music",
-          "title": "Kind of Blue",
-          "type": "link",
-          "tags": [
-            "genre:jazz"
-          ]
-        },
-        {
-          "id": "r2",
-          "threadId": "00000012-0000-0000-0000-000000000000",
-          "threadName": "Music",
-          "title": "Selected Ambient Works",
-          "type": "link",
-          "tags": [
-            "genre:ambient"
-          ]
-        }
-      ],
-      "expect": {
-        "asks": "tag"
       }
     },
     {
@@ -898,8 +708,7 @@
           "threadId": "00000014-0000-0000-0000-000000000000",
           "threadName": "Istanbul trip",
           "title": "Kadikoy flat",
-          "type": "note",
-          "tags": []
+          "type": "note"
         }
       ],
       "may_search": false,
@@ -923,8 +732,7 @@
           "threadName": "Flat admin",
           "title": "Deposit paid",
           "type": "task",
-          "done": true,
-          "tags": []
+          "done": true
         }
       ],
       "may_search": false,
@@ -943,54 +751,6 @@
       "context": "behrooz",
       "expect": {
         "asks": "date"
-      }
-    },
-    {
-      "id": "ask-genre",
-      "why": "27: a link in a thread whose note says it is organised by genre",
-      "surface": "file",
-      "input": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      "context": "behrooz",
-      "looking_at": "00000012-0000-0000-0000-000000000000",
-      "notes": {
-        "00000012-0000-0000-0000-000000000000": [
-          "Organised by genre"
-        ]
-      },
-      "rows": [
-        {
-          "id": "r1",
-          "threadId": "00000012-0000-0000-0000-000000000000",
-          "threadName": "Music",
-          "title": "Kind of Blue",
-          "type": "link",
-          "tags": [
-            "genre:jazz"
-          ]
-        },
-        {
-          "id": "r2",
-          "threadId": "00000012-0000-0000-0000-000000000000",
-          "threadName": "Music",
-          "title": "Selected Ambient Works",
-          "type": "link",
-          "tags": [
-            "genre:ambient"
-          ]
-        },
-        {
-          "id": "r3",
-          "threadId": "00000012-0000-0000-0000-000000000000",
-          "threadName": "Music",
-          "title": "Nevermind",
-          "type": "link",
-          "tags": [
-            "genre:rock"
-          ]
-        }
-      ],
-      "expect": {
-        "asks": "tag"
       }
     },
     {

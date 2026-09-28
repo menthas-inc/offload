@@ -31,6 +31,16 @@ class Turn:
 
 
 @dataclass(frozen=True)
+class LabelRef:
+    """025. A label in one of their threads, by id. The name was written by a
+    person or by offload, and the prompt carries it as data."""
+
+    id: str
+    thread_id: str
+    name: str
+
+
+@dataclass(frozen=True)
 class Thread:
     """A thread the planner may file into.
 
@@ -92,6 +102,8 @@ class DumpContext:
     # pin a quick add carries, where the section they pressed + in is the
     # choice and nothing may leave it.
     looking_at: Thread | None = None
+    #: 025. The labels in the threads above, at most `LABELS_IN_PROMPT`.
+    labels: list[LabelRef] = field(default_factory=list)
     # "Friday 3 October 2026", from the database's clock rather than the
     # worker's, so every worker in every region agrees with the rows it reads,
     # in the device's zone when the message carries one.
@@ -141,6 +153,24 @@ class Mention:
 # has no owner column at all, by design, because a thread has members and the
 # creator is simply the first one. Filtering by anything else would either hide
 # a shared thread from a member or show one to somebody who is not (OFF-3).
+#: 025. Labels offered to a filing turn, across the threads it is shown: ten
+#: per thread at most, so this bounds the block rather than any one thread,
+#: and it does not grow with the age of the account (OFF-8).
+LABELS_IN_PROMPT = 60
+
+# The labels of the threads a turn is shown, the one on screen first, then in
+# the order the threads are listed. The threads are already the account's own.
+_LABELS = text(
+    """
+    select l.id::text as id, l.thread_id::text as thread_id, l.name as name
+      from labels l
+     where l.thread_id = any(cast(:thread_ids as uuid[]))
+       and l.deleted_at is null
+     order by array_position(cast(:thread_ids as uuid[]), l.thread_id), l.created_at
+     limit :limit
+    """
+)
+
 _THREADS = text(
     """
     select t.id, t.name
@@ -439,6 +469,14 @@ async def load(
 
     zone = clock_zone(dump_row.account_time_zone, dump_row.time_zone)
     today = await today_in(conn, zone)
+    shown = ([str(dump_row.looking_at_id)] if dump_row.looking_at_id else []) + [
+        t.id for t in threads if not dump_row.looking_at_id or t.id != str(dump_row.looking_at_id)
+    ]
+    label_rows = (
+        (await conn.execute(_LABELS, {"thread_ids": shown, "limit": LABELS_IN_PROMPT})).all()
+        if shown
+        else []
+    )
     has_calendar = bool((await conn.execute(_HAS_CALENDAR, {"account_id": account_id})).scalar())
     has_connections = bool(
         (await conn.execute(_HAS_CONNECTIONS, {"account_id": account_id})).scalar()
@@ -456,6 +494,7 @@ async def load(
         threads=threads,
         landed=[Filed(title=r.title, thread_name=r.thread_name) for r in landed_rows],
         default_thread_id=default_id,
+        labels=[LabelRef(id=r.id, thread_id=r.thread_id, name=r.name) for r in label_rows],
         looking_at=(
             Thread(
                 id=str(dump_row.looking_at_id),
@@ -554,6 +593,15 @@ def fit(ctx: DumpContext, ceiling: int) -> DumpContext:
         answered=ctx.answered,
         # 022. Bounded by the ten on the message, never trimmed.
         mentions=ctx.mentions,
+        # 025. Bounded by LABELS_IN_PROMPT, and they follow their threads: a
+        # thread trimmed out takes its labels with it, the one on screen keeps
+        # its own.
+        labels=[
+            label
+            for label in ctx.labels
+            if any(t.id == label.thread_id for t in threads)
+            or (ctx.looking_at is not None and ctx.looking_at.id == label.thread_id)
+        ],
         # 020. Never dropped and never counted here: the ten-photo cap is the
         # bound, and a photo dropped from the prompt is a photo filed blind.
         photos=ctx.photos,

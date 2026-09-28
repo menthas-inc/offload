@@ -47,7 +47,7 @@ def test_the_schema_is_values_and_a_title_and_nothing_free():
     with pytest.raises(ValidationError):
         Ask.model_validate(
             {
-                "field": "tag",
+                "field": "date",
                 "title": "x",
                 "content_id": "c1",
                 "options": [{"label": "a", "value": "a"}] * 5,
@@ -56,7 +56,7 @@ def test_the_schema_is_values_and_a_title_and_nothing_free():
     with pytest.raises(ValidationError):
         Ask.model_validate(
             {
-                "field": "tag",
+                "field": "date",
                 "title": "x",
                 "content_id": "c1",
                 "options": [{"label": "l" * 25, "value": "a"}],
@@ -84,7 +84,7 @@ async def test_two_questions_are_kept_and_the_third_is_refused():
                         input={"thread_id": "t1", "title": "Alfama flat", "type": "link"},
                     ),
                     ask("a", field="span"),
-                    ask("b", field="tag", options=[{"label": "Lisbon", "value": "city:lisbon"}]),
+                    ask("b", field="date"),
                     ask("c", field="date"),
                 ],
                 stop_reason="tool_use",
@@ -96,7 +96,7 @@ async def test_two_questions_are_kept_and_the_third_is_refused():
     outcome = await plan(model, ctx(), "claude-sonnet-5", tools)
 
     assert len(outcome.questions) == MAX_QUESTIONS
-    assert [q["field"] for q in outcome.questions] == ["span", "tag"]
+    assert [q["field"] for q in outcome.questions] == ["span", "date"]
     # The third came back refused, in the tool result the model reads.
     refused = [r for r in model.requests[1]["messages"][-1]["content"] if r["tool_use_id"] == "c"]
     assert refused and refused[0]["is_error"]
@@ -158,21 +158,7 @@ def test_a_time_needs_a_day_and_a_clock_that_exists():
     assert parse_answer("time", Judgement(answers=True, day="2026-09-18"), [], TODAY) is None
 
 
-def test_a_tag_and_a_country_must_be_among_the_values_offered():
-    tags = [{"label": "Lisbon", "value": "city:lisbon"}, {"label": "Porto", "value": "city:porto"}]
-    assert parse_answer("tag", Judgement(answers=True, tag="city:porto"), tags, TODAY) == {
-        "tag": "city:porto"
-    }
-    # A tag they typed that was not offered is a new value in the same
-    # dimension (2026-09-17), not a refusal.
-    assert parse_answer("tag", Judgement(answers=True, tag="city:paris"), tags, TODAY) == {
-        "tag": "city:paris"
-    }
-    assert parse_answer("tag", Judgement(answers=True, tag="paris"), tags, TODAY) == {
-        "tag": "city:paris"
-    }
-    assert parse_answer("tag", Judgement(answers=True, tag="a" * 60), tags, TODAY) is None
-
+def test_a_country_must_be_among_the_values_offered():
     countries = [{"label": "United States", "value": "US"}, {"label": "Turkey", "value": "TR"}]
     assert parse_answer("country", Judgement(answers=True, country="tr"), countries, TODAY) == {
         "country": "TR"

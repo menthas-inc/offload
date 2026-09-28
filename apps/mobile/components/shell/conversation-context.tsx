@@ -51,7 +51,9 @@ import {
   type WaitingOn,
 } from "../../lib/dump";
 import type { ChipError } from "./AttachChip";
-import { addNote, completeContent, provisionalId, quickAdd } from "../../lib/threads";
+import { addNote, completeContent, fetchThread, provisionalId, quickAdd } from "../../lib/threads";
+import { labelQuery } from "@offload/widgets";
+import type { Label } from "../../lib/labels";
 import { failed } from "../../lib/log";
 import { fetchPeople, nameOf, type Person } from "../../lib/people";
 import { mentionQuery, withMention } from "../people/MentionList";
@@ -105,6 +107,8 @@ export interface Turn {
   /** 016. Where a fact in this turn came from, for the chips in its footer.
    *  Empty on every turn that read nothing, which is nearly all of them. */
   sources?: Source[];
+  /** 025. The labels the turn applied, for the footer's marks. */
+  labels?: { id: string; name: string; colour: number }[];
   /** Whether the turn actually did something, from the record rather than the
    *  reply. A tick that means "the turn ended" says Done about a refusal. */
   did?: boolean;
@@ -225,6 +229,10 @@ export interface Conversation {
   mentions: { accountId: string; name: string }[];
   mentionPeople: Person[] | null;
   pickMention: (person: Person) => void;
+  /** 025. The labels of the thread on screen, read the first time a # is
+   *  typed there, and a pick, kept while its #Name is in the text. */
+  hashLabels: Label[] | null;
+  pickHash: (name: string, id?: string) => void;
   submit: () => Promise<void>;
   /** 020. The photos in the draft, and the ways in and out. `addPhotos` from
    *  the picker or the share sheet; `line` is the one clause under the
@@ -468,6 +476,27 @@ export function ConversationProvider({
       live = false;
     };
   }, [draft, mentionPeople]);
+  // 025. What a # picked, and the labels of the thread on screen.
+  const [hashPicks, setHashPicks] = useState<({ id: string; name: string } | { name: string })[]>([]);
+  const [hashFor, setHashFor] = useState<{ threadId: string; labels: Label[] } | null>(null);
+  useEffect(() => {
+    if (!onScreen || labelQuery(draft) === null || hashFor?.threadId === onScreen.id) return;
+    let live = true;
+    const threadId = onScreen.id;
+    void fetchThread(threadId).then((bundle) => {
+      if (live && bundle) setHashFor({ threadId, labels: bundle.labels });
+    });
+    return () => {
+      live = false;
+    };
+  }, [draft, onScreen, hashFor]);
+  const pickHash = useCallback((name: string, id?: string) => {
+    setDraft((current) => current.replace(/(^|\s)#([\p{L}\p{N}_-]*)$/u, (_, lead: string) => `${lead}#${name.replace(/\s+/g, "")} `));
+    setHashPicks((current) => [
+      ...current.filter((one) => one.name.toLowerCase() !== name.toLowerCase()),
+      id ? { id, name } : { name },
+    ]);
+  }, []);
   const pickMention = useCallback((person: Person) => {
     const name = nameOf(person);
     setDraft((current) => withMention(current, name));
@@ -526,6 +555,7 @@ export function ConversationProvider({
             // the reply.
             threads: message.threads ?? [],
             sources: message.sources ?? [],
+            labels: message.labels ?? [],
             did: (message.threads?.length ?? 0) > 0,
           })),
         );
@@ -589,6 +619,7 @@ export function ConversationProvider({
                   // anything, and the reply no longer draws them.
                   threads: answer.threads,
                   sources: answer.sources,
+                  labels: answer.labels ?? [],
                   question: answer.question ?? null,
                   // 020. The renditions are made before the model reads the
                   // photos, so a settled turn's thumbnails exist; one that
@@ -1074,12 +1105,17 @@ export function ConversationProvider({
       // 022. A mention whose name is no longer in the text was deleted by
       // hand and goes with the words.
       const named = mentions.filter((m) => text.includes(m.name));
+      // 025. A # pick whose #Name was deleted by hand goes with the words.
+      const hashed = hashPicks
+        .filter((one) => text.toLowerCase().includes(`#${one.name.replace(/\s+/g, "").toLowerCase()}`))
+        .map((one) => ("id" in one ? { id: one.id } : { name: one.name }));
       const sent = await sendDump(
         text,
         clientKey,
         onScreen?.id,
         blobIds.length ? { blobIds, viaShare: viaShare.current } : undefined,
         named,
+        hashed,
       );
       if (!sent) return unsent();
       // Only what went: a photo added while the send was out stays for the
@@ -1090,6 +1126,8 @@ export function ConversationProvider({
       viaShare.current = false;
       noteUploaded.current = null;
       setMentions([]);
+      setHashPicks([]);
+      setHashFor(null);
       sentNotes.current.delete(provisional);
       setTurns((current) =>
         current.map((turn) =>
@@ -1294,6 +1332,8 @@ export function ConversationProvider({
         mentions,
         mentionPeople,
         pickMention,
+        hashLabels: hashFor && onScreen && hashFor.threadId === onScreen.id ? hashFor.labels : null,
+        pickHash,
       }}
     >
       {children}

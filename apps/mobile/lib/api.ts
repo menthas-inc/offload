@@ -116,6 +116,9 @@ function refused(response: Response | null, cookie: string): void {
 export interface Sent<T> {
   status: number;
   data: T | null;
+  /** The refusal's code when the server named one, `{ "error": "..." }`. 025:
+   *  a label sheet says the one clause that code names. */
+  error?: string;
 }
 
 /** The three requests whose body ends in a model prompt. */
@@ -168,7 +171,11 @@ export async function send<T>(path: string, init: RequestInit = {}): Promise<Sen
   if (!response) return { status: 0, data: null };
   if (!response.ok) {
     refused(response, cookie);
-    return { status: response.status, data: null };
+    const error = await response
+      .json()
+      .then((body: unknown) => (body && typeof body === "object" && typeof (body as { error?: unknown }).error === "string" ? (body as { error: string }).error : undefined))
+      .catch(() => undefined);
+    return { status: response.status, data: null, ...(error ? { error } : {}) };
   }
 
   // 204 and an empty body are legitimate answers, not parse failures.

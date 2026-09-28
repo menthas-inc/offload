@@ -44,6 +44,8 @@ from offload_agent.harness.plan import (
     plan_answer,
     plan_quick_add,
 )
+from offload_agent.label_sort import KINDS as LABEL_SORT_KINDS
+from offload_agent.label_sort import handle_label_sort
 from offload_agent.og import picture
 from offload_agent.queue import ClaimedJob, claim, finish, reap, release_for_retry, retry_or_die
 from offload_agent.renditions import prepare
@@ -63,7 +65,14 @@ class ReportFailed(Exception):
     reported, and this one cannot be."""
 
 
-KINDS = ["dump.answer", "thread.quick_add", "voice.forget", *EMBED_KINDS, *COMPACT_KINDS]
+KINDS = [
+    "dump.answer",
+    "thread.quick_add",
+    "voice.forget",
+    *EMBED_KINDS,
+    *COMPACT_KINDS,
+    *LABEL_SORT_KINDS,
+]
 
 
 async def _post_result(
@@ -693,7 +702,7 @@ def _tool_caller(
 
 # The Core API's refusals that are about the arguments the model sent, as
 # against the server being unable: a row with no time, a thread it cannot see,
-# a date it cannot parse, a tag too many. The model reads the reason and
+# a date it cannot parse. The model reads the reason and
 # fixes the call, and the turn is not partial for it.
 #
 # **Refused `no_time`, the model did the right thing and the person still saw
@@ -714,7 +723,11 @@ def _tool_caller(
 ARGUMENT_REFUSALS = frozenset(
     {
         "unknown_thread",
-        "bad_tags",
+        # 025. label_content's, each answerable by a different call.
+        "not_in_the_dump",
+        "label_limit",
+        "person_set",
+        "person_deleted",
         "unknown_photo",
         "bad_place_name",
         "unknown_content",
@@ -788,8 +801,6 @@ def _today_date(today: str | None) -> date | None:
         return None
 
 
-_TAG_SHAPE = re.compile(r"^[a-z0-9][a-z0-9 _-]{0,46}(:[a-z0-9][a-z0-9 _-]{0,46})?$")
-
 
 def parse_answer(
     field: str, verdict: Judgement, options: list[dict], today: str | None
@@ -797,7 +808,7 @@ def parse_answer(
     """018. The judge's value, checked for shape and sense in code.
 
     A value that fails is not an answer, whatever the model said. Dates within a
-    year, a span in order, a tag or a country among the values offered.
+    year, a span in order, a country among the values offered.
     """
     if not verdict.answers:
         return None
@@ -824,20 +835,6 @@ def parse_answer(
             return None
         return {"day": day, "time": clock}
     offered = {str(o.get("value")) for o in options if o.get("value") is not None}
-    if field == "tag":
-        # A typed tag may be a value the thread has not used yet (decided
-        # 2026-09-17): "classical" when jazz and rock were offered is a new
-        # genre, not a refusal. It takes the dimension the options share, so
-        # what lands groups with them. The Core API normalises it.
-        tag = (verdict.tag or "").strip().lower()
-        if not tag:
-            return None
-        if tag in offered:
-            return {"tag": tag}
-        dimensions = {v.split(":", 1)[0] for v in offered if ":" in v}
-        if ":" not in tag and len(dimensions) == 1:
-            tag = f"{next(iter(dimensions))}:{tag}"
-        return {"tag": tag} if _TAG_SHAPE.match(tag) else None
     if field == "country":
         code = (verdict.country or "").upper()
         return {"country": code} if code and code in offered else None
@@ -915,6 +912,17 @@ async def handle(
             log.error("compaction failed", kind=job.kind, error=type(exc).__name__)
             async with engine.begin() as conn:
                 await retry_or_die(conn, job, "compact_error", delay_seconds=3600)
+        return
+
+    if job.kind in LABEL_SORT_KINDS:
+        # 025. Nobody is waiting on a sort either, and the same guard: the type,
+        # never the value, since the request here is a thread's titles.
+        try:
+            await handle_label_sort(job, cfg=cfg, engine=engine, http=http, client=anthropic)
+        except Exception as exc:
+            log.error("label sort failed", kind=job.kind, error=type(exc).__name__)
+            async with engine.begin() as conn:
+                await retry_or_die(conn, job, "label_sort_error", delay_seconds=3600)
         return
 
     if job.kind == "voice.forget":

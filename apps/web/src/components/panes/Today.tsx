@@ -22,6 +22,8 @@ import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import { EditModal } from "./EditModal";
 import { rowIcon } from "./Thread";
 import { fetchToday, type Agenda, type AgendaRow } from "../../lib/notifications";
+import { LabelMark } from "../labels/LabelMark";
+import labelStyles from "../labels/labels.module.css";
 import {
   completeContent,
   deleteContent,
@@ -265,7 +267,21 @@ export function TodayPane() {
                               </span>
                             )
                           }
-                          meta={<span className={pane.rowMeta}>{row.threadName}</span>}
+                          meta={
+                            // 025. A label away from its thread always travels
+                            // with the thread's name: the name, then the marks.
+                            <span className={labelStyles.marks}>
+                              <span className={pane.rowMeta}>{row.threadName}</span>
+                              {row.labels.map((labelId) => {
+                                const label = agenda.threadLabels.find((one) => one.id === labelId);
+                                return label ? (
+                                  <LabelMark key={labelId} color={label.colour}>
+                                    {label.name}
+                                  </LabelMark>
+                                ) : null;
+                              })}
+                            </span>
+                          }
                         />
                       );
                     })}

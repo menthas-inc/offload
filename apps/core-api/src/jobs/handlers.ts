@@ -15,6 +15,7 @@ import { env } from "../env.js";
 import { scheduleFullSyncs, scheduleNextSync, superviseSyncs, syncConnection } from "../connectors/sync.js";
 import { enqueue, PRIORITY, scheduleDaily, scheduleHourly } from "./queue.js";
 import { purgeActivity } from "../notifications/activity.js";
+import { LABEL_SORT_MIN_ROWS, purgeLabelRuns, purgeLabels } from "../threads/labels.js";
 import { runDigest, scheduleDigests, readReceipts, type Send } from "../notifications/digest.js";
 import { notifyPerson, notifySharedActivity } from "../notifications/people.js";
 import { emit } from "../analytics.js";
@@ -390,6 +391,9 @@ const jobsPurge: Handler = async () => {
   await scheduleDaily("jobs.purge");
   // 024. Activity keeps thirty days, the invite expiry's figure.
   await purgeActivity();
+  // 025. A deleted label and a sort's record keep the same thirty.
+  await purgeLabels();
+  await purgeLabelRuns();
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const result = await db
     .deleteFrom("jobs")
@@ -636,10 +640,27 @@ const accountDailyRun: Handler = async (_payload, _deps, accountId) => {
     });
   }
 
+  // 025. The nightly sort, once per thread per day whichever member's run
+  // books it first (the idempotency key is the thread's). Off for now, by the
+  // owner's call on 2026-09-27: labels come from people and from live turns
+  // only until the sort is reworked. The worker, the endpoint and Activity's
+  // Undo stay, so turning it on is this one constant.
+  const sortable = NIGHTLY_LABEL_SORT ? await sortableThreads(accountId) : [];
+  for (const threadId of sortable) {
+    await enqueue({
+      kind: "labels.sort",
+      accountId,
+      payload: { threadId },
+      priority: PRIORITY.background,
+      idempotencyKey: `labels.sort:${threadId}:${day}`,
+      maxAttempts: 2,
+    });
+  }
+
   // Counts, never text. This job is about a hundred sentences of dumped text
   // and it is the first one in the product that holds that many at once.
   console.log(
-    JSON.stringify({ level: "info", msg: "daily run", threads: threads.length })
+    JSON.stringify({ level: "info", msg: "daily run", threads: threads.length, sortable: sortable.length })
   );
 };
 
@@ -783,3 +804,25 @@ export const handlers: Record<string, Handler> = {
   "shared.activity": sharedActivity,
 };
 
+export const NIGHTLY_LABEL_SORT = false;
+
+/** Threads the account is in with six or more live rows that changed since
+ *  they were last sorted. */
+export async function sortableThreads(accountId: string): Promise<string[]> {
+  const sortable = await db
+    .selectFrom("threads")
+    .innerJoin("thread_members", "thread_members.thread_id", "threads.id")
+    .select(["threads.id as id"])
+    .where("thread_members.account_id", "=", accountId)
+    .where("thread_members.state", "=", "accepted")
+    .where("threads.deleted_at", "is", null)
+    .where(
+      sql<boolean>`(select count(*) from content c where c.thread_id = threads.id and c.deleted_at is null and c.archived_at is null) >= ${LABEL_SORT_MIN_ROWS}`,
+    )
+    .where(
+      sql<boolean>`exists (select 1 from content c where c.thread_id = threads.id and c.deleted_at is null
+        and c.updated_at > coalesce(threads.labels_sorted_at, '-infinity'::timestamptz))`,
+    )
+    .execute();
+  return sortable.map((thread) => thread.id);
+}

@@ -1,24 +1,21 @@
-// The widgets a thread earns, and the filter inside them.
+// The widgets a thread earns.
 //
 // Every row here is a row in the list below, filtered. Nothing is fetched per
 // widget: the screen has one page of content and these are `filter` calls over
 // it, which is what keeps the thread read a fixed number of queries however
 // many widgets it earns.
 //
-// **It filters, it does not group.** `ThreadWidgets.jsx` always put a
-// single-select `ChipRow` above a flat list, and this grouped into headed
-// sections instead until 5 September 2026, when the divergence was put back to
-// the product owner and answered the kit's way: a screen whose promise is that
-// nothing needs filing should not lead with structure somebody has to read.
-// The group heading and the bare "Everything else" heading went with it.
+// **A widget neither groups nor filters.** It grouped into headed sections by
+// a tag dimension until 5 September 2026 and filtered by one until 025, when
+// labels became the one way a thread is sorted: the filter bar under the app
+// bar narrows every section at once, so a chip row inside each would be a
+// second way to do the same thing.
 
 import { useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import {
   DONE_SHOWN,
-  filtersFor,
   liveCount,
-  matching,
   reorderPlan,
   splitDone,
   type ReorderWrite,
@@ -46,7 +43,6 @@ export function Widgets({
   threadId,
   threadName,
   widgets,
-  groupBy: dimensions,
   hideDone,
   onFold,
   onDelete,
@@ -61,7 +57,6 @@ export function Widgets({
   threadId: string;
   threadName: string;
   widgets: Widget<ContentRow>[];
-  groupBy?: Record<string, string> | undefined;
   /** The thread's own fold, so the list opens the way it was left. The
    *  screen owns the preference, so it writes it. */
   hideDone?: boolean | undefined;
@@ -86,7 +81,6 @@ export function Widgets({
         <WidgetBlock
           key={widget.kind}
           widget={widget}
-          dimension={dimensions?.[widget.kind] ?? null}
           hideDone={hideDone === true}
           onFold={onFold}
           threadId={threadId}
@@ -107,7 +101,6 @@ export function Widgets({
 
 function WidgetBlock({
   widget,
-  dimension,
   hideDone,
   onFold,
   threadId,
@@ -122,7 +115,6 @@ function WidgetBlock({
   onReorder,
 }: {
   widget: Widget<ContentRow>;
-  dimension: string | null;
   hideDone: boolean;
   onFold: (next: boolean) => void;
   threadId: string;
@@ -138,9 +130,6 @@ function WidgetBlock({
 }) {
   const COLOR = useColors();
   const { raiseFor } = useConversation();
-  // Null is All, which is also where a row carrying no tag in this dimension
-  // lives. Local rather than stored: a filter is what you are looking at now.
-  const [only, setOnly] = useState<string | null>(null);
   const [allDone, setAllDone] = useState(false);
   // Only To do earns the fold: `doneAt` is only ever set on a task, so a map
   // or a files section has nothing to hide and never draws the control.
@@ -149,8 +138,7 @@ function WidgetBlock({
   // as a prop and leaves through `onFold`, and a list folded on web is folded
   // here.
 
-  const filters = filtersFor(widget.rows as readonly Sortable[], dimension);
-  const { left, done } = splitDone(matching(widget.rows, dimension, only));
+  const { left, done } = splitDone(widget.rows);
   const shown = [...left, ...(hideDone ? [] : allDone ? done : done.slice(0, DONE_SHOWN))];
 
   // **Dragging, on To do and nowhere else**, and only the rows still to do: a
@@ -278,34 +266,6 @@ function WidgetBlock({
         </View>
       </View>
 
-      {/* One row of chips, single select, All first. It scrolls sideways rather
-          than wrapping: a filter that reflows to two lines moves the list under
-          it every time you pick something. Below two values there is nothing to
-          choose between, so it does not draw. */}
-      {filters.length > 1 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="gap-space-3 px-gutter-screen pb-space-4"
-        >
-          <FilterChip
-            label="All"
-            count={widget.rows.length}
-            on={only === null}
-            onPick={() => setOnly(null)}
-          />
-          {filters.map((filter) => (
-            <FilterChip
-              key={filter.value}
-              label={filter.value}
-              count={filter.count}
-              on={only === filter.value}
-              onPick={() => setOnly(filter.value)}
-            />
-          ))}
-        </ScrollView>
-      ) : null}
-
       {/* 020. Files is the kit's grid: three columns of square tiles, each
           the photo itself with no treatment, or the type glyph until the
           renditions exist. A tap opens the viewer, which is where the row's
@@ -399,40 +359,6 @@ function FileTile({ row, onOpen }: { row: ContentRow; onOpen: () => void }) {
       ) : (
         glyph
       )}
-    </Pressable>
-  );
-}
-
-/** A chip from the contract: 30px pill, selection inverts to ink. */
-function FilterChip({
-  label,
-  count,
-  on,
-  onPick,
-}: {
-  label: string;
-  count: number;
-  on: boolean;
-  onPick: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPick}
-      accessibilityRole="button"
-      accessibilityState={{ selected: on }}
-      className={`flex-row items-center rounded-pill px-space-5 ${
-        on ? "bg-surface-inverse" : isAndroid ? "bg-a-c" : "bg-surface-fill"
-      }`}
-      style={{ height: 30 }}
-    >
-      <Text
-        className={`font-core font-medium ${
-          on ? "text-text-inverse" : isAndroid ? "text-a-on" : "text-text-primary"
-        }`}
-        style={{ fontSize: 13 }}
-      >
-        {label} {count}
-      </Text>
     </Pressable>
   );
 }

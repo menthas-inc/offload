@@ -30,6 +30,7 @@ from offload_agent.harness.tools import (
 # Everything that changes anything, named here rather than derived, so adding a
 # writing tool and forgetting it cannot quietly widen the answering turn.
 WRITES = {
+    "label_content",
     "add_content",
     "create_thread",
     "edit_content",

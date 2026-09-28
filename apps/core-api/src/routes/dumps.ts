@@ -20,6 +20,7 @@ import { timeZoneOf } from "../time-zone.js";
 import { adoptZone } from "../accounts/zone.js";
 import { webOrigins } from "../env.js";
 import { db } from "../db.js";
+import { labelsForTurns, undoTurnLabels, type LabelPickOnWire } from "../threads/labels.js";
 import { enqueue, PRIORITY } from "../jobs/queue.js";
 import { onAnswer } from "../dumps/answers.js";
 import { emit } from "../analytics.js";
@@ -141,6 +142,13 @@ const dumpBody = z
      *  accepted connection of the sender; the rest are dropped on receipt,
      *  words intact, so the share tool acts on an id the server vouched for. */
     mentions: z.array(z.object({ accountId: z.string().uuid(), name: z.string().min(1).max(80) })).max(10).optional(),
+    /** 025. What a # in the composer picked on a thread: a label by id, or a
+     *  name to make. Stored as sent and resolved only once the turn has filed,
+     *  against the thread each row landed in; the words stay in the text. */
+    labels: z
+      .array(z.union([z.strictObject({ id: z.string().uuid() }), z.strictObject({ name: z.string().min(1).max(60) })]))
+      .max(10)
+      .optional(),
   /** The thread that was on screen when this was dumped.
    *
    *  **A default, not a destination.** Somebody typing into the composer while
@@ -286,6 +294,8 @@ const messageResponse = z.object({
   /** 016. Where this turn got something from, for the chips under it. Empty on
    *  every turn that read nothing, which is nearly all of them. */
   sources: z.array(z.object({ domain: z.string(), url: z.string() })),
+  /** 025. What the turn applied, in order, for the footer's marks. */
+  labels: z.array(z.object({ id: z.string(), name: z.string(), colour: z.number() })),
   /** 017. What offload is doing, on a turn still in flight. Null on anything
    *  settled and on a step old enough to be a dead worker's. */
   step: z.string().nullable(),
@@ -320,6 +330,8 @@ const currentConversation = z.object({
        *  offload message and on any turn that read nothing. */
       threads: z.array(z.object({ id: z.string(), name: z.string() })),
       sources: z.array(z.object({ domain: z.string(), url: z.string() })),
+      /** 025. What the turn applied, in order, for the footer's marks. */
+      labels: z.array(z.object({ id: z.string(), name: z.string(), colour: z.number() })),
     })
   ),
 });
@@ -634,6 +646,8 @@ export type StreamStep =
       threads: TouchedThread[];
       changed: string[];
       sources: { domain: string; url: string }[];
+      /** 025. What the turn applied, for the footer's marks. */
+      labels: { id: string; name: string; colour: number }[];
     }
   | {
       do: "partial";
@@ -642,6 +656,8 @@ export type StreamStep =
       threads: TouchedThread[];
       changed: string[];
       sources: { domain: string; url: string }[];
+      /** 025. What the turn applied, for the footer's marks. */
+      labels: { id: string; name: string; colour: number }[];
     }
   | { do: "failed" }
   | { do: "close" }
@@ -678,10 +694,11 @@ export async function streamStep(
   if (!current) return { do: "close" };
   const transcript = current.transcribed_at ? (current.transcript ?? "") : null;
   if (current.state === "answered" || current.state === "partial") {
-    const [reply, touched, sources] = await Promise.all([
+    const [reply, touched, sources, labelled] = await Promise.all([
       replyFor(current.turn_id, accountId),
       threadsFor(messageId, accountId),
       sourcesFor(current.turn_id, accountId),
+      labelsForTurns([current.turn_id], accountId),
     ]);
     return {
       do: current.state === "answered" ? "answered" : "partial",
@@ -691,6 +708,8 @@ export async function streamStep(
       threads: touched.landed,
       changed: touched.changed,
       sources,
+      // 025. The labels the turn applied, for the footer's marks.
+      labels: labelled.get(current.turn_id) ?? [],
     };
   }
   if (current.state === "failed") return { do: "failed" };
@@ -739,6 +758,8 @@ export async function takeDump(
   timeZone: string | null = null,
   /** 022. Mentions as the client sent them, filtered here. */
   mentions: { accountId: string; name: string }[] = [],
+  /** 025. A thread dump's # picks, kept for the turn to resolve. */
+  labels: LabelPickOnWire[] = [],
 ): Promise<{
   messageId: string;
   conversationId: string;
@@ -899,7 +920,16 @@ export async function takeDump(
         looking_at_thread_id: lookingAt,
         source: photos?.viaShare ? "share" : "person",
         time_zone: timeZone,
-        ...(vouched.length > 0 ? { attrs: JSON.stringify({ mentions: vouched }) } : {}),
+        ...(vouched.length > 0 || (lookingAt && labels.length > 0)
+          ? {
+              attrs: JSON.stringify({
+                ...(vouched.length > 0 ? { mentions: vouched } : {}),
+                // Only for a dump made on a thread: from Today nothing was
+                // known to pick from, and the #words in the text stand in.
+                ...(lookingAt && labels.length > 0 ? { labels } : {}),
+              }),
+            }
+          : {}),
       })
       .onConflict((oc) =>
       // The index is partial, on client_key is not null, because most messages
@@ -1060,7 +1090,7 @@ export async function dumpRoutes(app: App): Promise<void> {
       if (!accountId)
         return reply.code(401).send({ error: "unauthenticated" as const });
 
-      const { text, clientKey, threadId, blobIds, viaShare, mentions } = request.body;
+      const { text, clientKey, threadId, blobIds, viaShare, mentions, labels } = request.body;
 
       // Before the write, not after. AC-14.
       if (text.length > MAX_DUMP_CHARS) {
@@ -1101,6 +1131,7 @@ export async function dumpRoutes(app: App): Promise<void> {
           blobIds?.length ? { blobIds, viaShare: Boolean(viaShare) } : undefined,
           timeZoneOf(request),
           mentions ?? [],
+          labels ?? [],
         );
       } catch (error) {
         if (error instanceof UnknownBlob) {
@@ -1172,6 +1203,8 @@ export async function dumpRoutes(app: App): Promise<void> {
         // Read at the turn rather than at the reply: a filing turn writes no
         // reply and may still have read something.
         sources: settled ? await sourcesFor(message.turn_id, accountId) : [],
+        // 025. What the turn applied, once it has settled.
+        labels: settled ? ((await labelsForTurns([message.turn_id], accountId)).get(message.turn_id) ?? []) : [],
         // 017. Null on anything settled, so a client polling after the answer
         // is never handed a progress line for work that is over. This is the
         // reconnect path: the stream is the fast one and this is the one that
@@ -1259,7 +1292,7 @@ export async function dumpRoutes(app: App): Promise<void> {
       // away, and it is the third time this endpoint has dropped something the
       // rest of the API returns. `waiting` and `found` are the first two, and
       // the comment above them says the same sentence.
-      const [landed, sources, photos, voices] = await Promise.all([
+      const [landed, sources, photos, voices, labelled] = await Promise.all([
         threadsForAll(
           rows.map((row) => row.id),
           accountId,
@@ -1274,6 +1307,10 @@ export async function dumpRoutes(app: App): Promise<void> {
         ),
         voiceForAll(
           rows.map((row) => row.id),
+          accountId,
+        ),
+        labelsForTurns(
+          [...new Set(rows.map((row) => row.turn_id))],
           accountId,
         ),
       ]);
@@ -1295,6 +1332,8 @@ export async function dumpRoutes(app: App): Promise<void> {
           // what was written rather than from anything the reply said.
           threads: landed.get(row.id) ?? [],
           sources: sources.get(row.turn_id) ?? [],
+          // 025. On the person's message only, where the footer is drawn.
+          labels: row.role === "person" ? (labelled.get(row.turn_id) ?? []) : [],
         })),
       });
     }
@@ -1475,6 +1514,8 @@ export async function dumpRoutes(app: App): Promise<void> {
               threads: step.threads,
               changed: step.changed,
               sources: step.sources,
+              // 025. The labels the turn applied, for the footer's marks.
+              labels: step.labels,
               // 021. The transcript rides the settlement too, for a wake that
               // sees the write and the reply together.
               voice: (await voiceForAll([message.id], accountId)).get(message.id) ?? null,
@@ -1894,6 +1935,9 @@ export async function undoTurn(
       .where("deleted_at", "is", null)
       .where("source_ref", "is", null)
       .execute();
+
+    // 025. What the turn labelled, the person's # and the model's alike.
+    await undoTurnLabels(trx, turnId);
 
     // Notes the turn wrote, on the same clock and by the same predicate.
     //

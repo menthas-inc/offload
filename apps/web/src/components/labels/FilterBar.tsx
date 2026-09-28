@@ -1,0 +1,141 @@
+"use client";
+
+// 025. The filter bar under the pane head: All, each label with its count,
+// No label, and a plus pinned to the trailing edge. Either logic: two picked
+// shows anything carrying one or both. The pick is the device's and lives
+// with the page; this draws it and reports presses.
+//
+// **Holding a chip opens its list** on the phones. The web has three ways to
+// the same place: the chip's context menu (a right click, the context menu
+// key or Shift+F10), a long press for a touch screen, and on a picked chip a
+// trailing pencil, so a keyboard and a mouse both reach Rename and Delete.
+
+import { useRef } from "react";
+import { isAll, toggleLabel, toggleUnlabelled, pickAll, type LabelPick } from "@offload/widgets";
+import styles from "./labels.module.css";
+import { Chip } from "./Chip";
+import { Icon } from "../Icon";
+import type { Label } from "../../lib/labels";
+
+const HOLD_MS = 500;
+
+export function FilterBar({
+  labels,
+  unlabelled,
+  pick,
+  prompt,
+  onPick,
+  onNew,
+  onOpen,
+}: {
+  labels: Label[];
+  unlabelled: number;
+  pick: LabelPick;
+  /** No labels yet and six or more rows: the one outline chip. */
+  prompt: boolean;
+  onPick: (pick: LabelPick) => void;
+  onNew: () => void;
+  onOpen: (labelId: string) => void;
+}) {
+  if (labels.length === 0) {
+    if (!prompt) return null;
+    return (
+      <div className={styles.bar}>
+        <Chip tone="outline" icon="plus" onClick={onNew}>
+          Group with labels
+        </Chip>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.bar} role="group" aria-label="Filter by label">
+      <div className={styles.barScroll}>
+        <Chip selected={isAll(pick)} onClick={() => onPick(pickAll())}>
+          All
+        </Chip>
+        {labels.map((label) => (
+          <LabelChip
+            key={label.id}
+            label={label}
+            picked={pick.labels.includes(label.id)}
+            onPress={() => onPick(toggleLabel(pick, label.id))}
+            onOpen={() => onOpen(label.id)}
+          />
+        ))}
+        <Chip tone="outline" selected={pick.none} onClick={() => onPick(toggleUnlabelled(pick))}>
+          No label{unlabelled > 0 ? ` ${unlabelled}` : ""}
+        </Chip>
+      </div>
+      {/* The plus is an icon with a name, so it is a button with a label
+          rather than a Chip with words. */}
+      <button type="button" className={`${styles.chipHit} ${styles.barPlus}`} aria-label="New label" onClick={onNew}>
+        <span className={styles.chip}>
+          <Icon name="plus" size={14} />
+        </span>
+      </button>
+    </div>
+  );
+}
+
+function LabelChip({
+  label,
+  picked,
+  onPress,
+  onOpen,
+}: {
+  label: Label;
+  picked: boolean;
+  onPress: () => void;
+  onOpen: () => void;
+}) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const held = useRef(false);
+  const clear = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  return (
+    <span
+      style={{ display: "inline-flex", alignItems: "center" }}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        onOpen();
+      }}
+      onPointerDown={(event) => {
+        if (event.pointerType === "mouse") return;
+        held.current = false;
+        timer.current = setTimeout(() => {
+          held.current = true;
+          onOpen();
+        }, HOLD_MS);
+      }}
+      onPointerUp={clear}
+      onPointerLeave={clear}
+      onClickCapture={(event) => {
+        // A hold that opened the list is not also a press.
+        if (held.current) {
+          event.stopPropagation();
+          held.current = false;
+        }
+      }}
+    >
+      <Chip label={label.colour} selected={picked} onClick={onPress}>
+        {label.name}
+        {label.count > 0 ? ` ${label.count}` : ""}
+      </Chip>
+      {picked ? (
+        <button
+          type="button"
+          className={styles.chipEdit}
+          data-colour={label.colour}
+          aria-label={`Edit ${label.name}`}
+          title="Rename, colour, or delete"
+          onClick={onOpen}
+        >
+          <Icon name="pencil" size={13} />
+        </button>
+      ) : null}
+    </span>
+  );
+}

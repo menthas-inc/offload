@@ -8,23 +8,20 @@
 // this file holding the same assertions.** If a third caller ever wants it,
 // that is the moment for a package.
 //
-// Which widgets a thread earns, and how their contents group.
+// Which widgets a thread earns.
 //
 // AC-1 a widget only when the content justifies one, never drawn empty.
 // AC-3 preference order overrides the derived one, with one mechanism.
-// AC-4 grouping by the dimension the thread names.
-// AC-5 rows with no tag in that dimension are still shown, in one group, last.
-// AC-6 enumerating dimensions is a scan over the page.
+// 007's grouping by a tag dimension was retired by 025: labels group a thread.
 //
 // Pure functions over rows, so these are fast and exhaustive rather than
 // database-bound. What they assert is the arithmetic the screen depends on.
 
 import { beforeEach, describe, expect, it } from "vitest";
+import * as widgets from "../src/lib/widgets";
 import {
   cadenceLabel,
   splitRepeating,
-  dimensionsIn,
-  groupBy,
   liveCount,
   readPreference,
   reorderPlan,
@@ -46,7 +43,6 @@ function row(over: Partial<Sortable> = {}): Sortable {
     id: `r${n++}`,
     type: "note",
     priority: 50,
-    tags: [],
     doneAt: null,
     occursAt: null,
     placeId: null,
@@ -147,73 +143,6 @@ describe("a stated order", () => {
   });
 });
 
-describe("grouping", () => {
-  it("is one flat list when the thread names no dimension (AC-4)", () => {
-    const rows = [row({ tags: ["city:alfama"] }), row()];
-    expect(groupBy(rows, null)).toEqual([{ value: null, rows }]);
-  });
-
-  it("buckets by the named dimension (AC-4)", () => {
-    const a = row({ tags: ["city:alfama"], priority: 80 });
-    const b = row({ tags: ["city:porto"], priority: 20 });
-    const c = row({ tags: ["city:alfama"], priority: 10 });
-
-    expect(groupBy([a, b, c], "city")).toEqual([
-      // The group holding the highest-priority row leads.
-      { value: "alfama", rows: [a, c] },
-      { value: "porto", rows: [b] },
-    ]);
-  });
-
-  it("shows an untagged row, in one group, last (AC-5)", () => {
-    // Nothing is ever invisible for not having been tagged, which would be the
-    // worst possible failure of a feature whose pitch is that you never file.
-    const tagged = row({ tags: ["city:alfama"], priority: 10 });
-    const bare = row({ priority: 99 });
-    const other = row({ tags: ["receipt"], priority: 99 });
-
-    const groups = groupBy([tagged, bare, other], "city");
-    expect(groups).toHaveLength(2);
-    // Last, despite holding the highest priority rows.
-    expect(groups.at(-1)).toEqual({ value: null, rows: [bare, other] });
-    expect(groups[0]!.value).toBe("alfama");
-  });
-
-  it("puts everything in one unnamed group when nothing carries the dimension (AC-5)", () => {
-    const rows = [row({ tags: ["receipt"] }), row()];
-    // Reads as ungrouped, which is honest: somebody asked to group by city
-    // before anything had one.
-    expect(groupBy(rows, "city")).toEqual([{ value: null, rows }]);
-  });
-
-  it("uses only the named dimension when a row carries two (AC-4)", () => {
-    const both = row({ tags: ["city:alfama", "room:kitchen"] });
-    expect(groupBy([both], "city")[0]!.value).toBe("alfama");
-    expect(groupBy([both], "room")[0]!.value).toBe("kitchen");
-  });
-
-  it("puts every row in exactly one group", () => {
-    const rows = [
-      row({ tags: ["city:alfama"] }),
-      row({ tags: ["city:porto"] }),
-      row(),
-      row({ tags: ["receipt"] }),
-    ];
-    const total = groupBy(rows, "city").reduce((n, g) => n + g.rows.length, 0);
-    expect(total).toBe(rows.length);
-  });
-
-  it("enumerates the dimensions a page uses, over the page (AC-6)", () => {
-    expect(
-      dimensionsIn([
-        { tags: ["city:alfama", "receipt"] },
-        { tags: ["room:kitchen"] },
-        { tags: [] },
-      ])
-    ).toEqual(["city", "room"]);
-  });
-});
-
 describe("a ticked item sinks rather than vanishing", () => {
   it("keeps the to-do list when every task is done (AC-1)", () => {
     // The list is a record of a finished job, not an empty widget. Something
@@ -234,20 +163,13 @@ describe("a ticked item sinks rather than vanishing", () => {
     expect(todo.rows.map((r) => r.priority)).toEqual([50, 1, 99]);
   });
 
-  it("sinks done rows inside a group too", () => {
-    const done = row({ type: "task", tags: ["city:alfama"], priority: 90, doneAt: "2026-09-01T00:00:00Z" });
-    const open = row({ type: "task", tags: ["city:alfama"], priority: 10 });
-    const group = groupBy([done, open], "city")[0]!;
-    expect(group.rows.map((r) => r.priority)).toEqual([10, 90]);
-  });
+});
 
-  it("ranks a group of finished work below one with anything left", () => {
-    const finished = row({ type: "task", tags: ["city:porto"], priority: 99, doneAt: "2026-09-01T00:00:00Z" });
-    const outstanding = row({ type: "task", tags: ["city:alfama"], priority: 5 });
-    expect(groupBy([finished, outstanding], "city").map((g) => g.value)).toEqual([
-      "alfama",
-      "porto",
-    ]);
+describe("tags and grouping are gone (025, AC-30)", () => {
+  it("exports nothing that groups or filters by a tag", () => {
+    for (const name of ["groupBy", "dimensionsIn", "parseTag", "filtersFor", "matching"]) {
+      expect(name in widgets, name).toBe(false);
+    }
   });
 });
 
@@ -258,14 +180,13 @@ describe("reading a stored preference", () => {
     expect(readPreference(null)).toEqual({});
     expect(readPreference("nope")).toEqual({});
     expect(readPreference({ widgets: ["nonsense"] })).toEqual({});
-    expect(readPreference({ groupBy: { nonsense: "city" } })).toEqual({});
-    expect(readPreference({ groupBy: { todo: 7 } })).toEqual({});
+    expect(readPreference({ groupBy: { todo: "city" } })).toEqual({});
   });
 
   it("keeps what it recognises", () => {
     expect(
-      readPreference({ widgets: ["todo", "nonsense", "map"], groupBy: { todo: "City" } })
-    ).toEqual({ widgets: ["todo", "map"], groupBy: { todo: "city" } });
+      readPreference({ widgets: ["todo", "nonsense", "map"] })
+    ).toEqual({ widgets: ["todo", "map"] });
   });
 
   it("never reads the fold from the thread", () => {

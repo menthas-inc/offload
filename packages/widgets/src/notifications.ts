@@ -29,7 +29,7 @@ export const VERBS_CATEGORY = "digest_verbs";
 export const PLAIN_CATEGORY = "digest";
 export const PEOPLE_CATEGORY = "people";
 
-export type ActivityKind = "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted";
+export type ActivityKind = "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled";
 export type ActivityReason = "setting" | "permission" | "design";
 
 /** The least a row of the record has to carry to be drawn. */
@@ -38,6 +38,8 @@ export interface ActivityShape {
   sent: boolean;
   reason: ActivityReason | null;
   send: "morning" | "evening" | null;
+  /** 025. A labelled row somebody undid. */
+  undone?: boolean;
 }
 
 /** The kind's glyph: the two digests by their hour of day, people by the
@@ -51,13 +53,17 @@ export function activityGlyph(row: ActivityShape): string {
   if (row.kind === "moved") return "calendar";
   if (row.kind === "acted") return "check";
   if (row.kind === "expired") return "x";
+  if (row.kind === "labelled") return "tag";
   return "users";
 }
 
 /** Not sent is a fact, not an apology. Noticed where a setting or the
  *  permission caused it, and that row is a door to the setting; quiet where
  *  the product chose silence by design, and those rows are not doors. */
-export function activityTag(row: ActivityShape): { label: "Not sent"; tone: "noticed" | "quiet" } | null {
+export function activityTag(row: ActivityShape): { label: "Not sent" | "Undone"; tone: "noticed" | "quiet" } | null {
+  // 025. A labelled row records what offload decided and never sends, so Not
+  // sent would say nothing; its tag slot says Undone once somebody undid it.
+  if (row.kind === "labelled") return row.undone ? { label: "Undone", tone: "quiet" } : null;
   if (row.sent) return null;
   return { label: "Not sent", tone: row.reason === "design" ? "quiet" : "noticed" };
 }

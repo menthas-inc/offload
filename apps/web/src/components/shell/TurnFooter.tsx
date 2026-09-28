@@ -25,6 +25,7 @@
 import Link from "next/link";
 import { Icon } from "../Icon";
 import { webHref } from "../../lib/links";
+import { LabelMark } from "../labels/LabelMark";
 import styles from "../../app/(shell)/composer.module.css";
 
 export interface TurnRef {
@@ -46,16 +47,22 @@ export function TurnFooter({
   state,
   refs = [],
   sources = [],
+  labels = [],
 }: {
   state?: "done" | null;
   refs?: TurnRef[];
   sources?: TurnSource[];
+  /** 025. What the turn applied, drawn after the thread pill at the footer's
+   *  own 30px, three and then a count, as the sources are. */
+  labels?: { id: string; name: string; colour: number }[];
 }) {
   const shown = sources.slice(0, MAX_SOURCES);
   const hidden = sources.length - shown.length;
+  const marks = labels.slice(0, MAX_SOURCES);
+  const unmarked = labels.length - marks.length;
 
   // An empty footer is no footer, never a 26px gap.
-  if (!state && refs.length === 0 && sources.length === 0) return null;
+  if (!state && refs.length === 0 && sources.length === 0 && labels.length === 0) return null;
 
   return (
     <div className={styles.turnFooter}>
@@ -72,6 +79,13 @@ export function TurnFooter({
           {ref.name}
         </Link>
       ))}
+
+      {marks.map((label) => (
+        <LabelMark key={label.id} color={label.colour} size={30}>
+          {label.name}
+        </LabelMark>
+      ))}
+      {unmarked > 0 ? <span className={styles.sourceMore}>and {unmarked} more</span> : null}
 
       {/* An anchor rather than a chip, because this one leaves the app.
           **The only external link in the conversation**, and the reason it is

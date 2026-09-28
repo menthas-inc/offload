@@ -22,6 +22,7 @@ import { internalRoutes } from "./routes/internal.js";
 import { toolRoutes } from "./routes/tools.js";
 import { connectorRoutes } from "./routes/connectors.js";
 import { threadRoutes } from "./routes/threads.js";
+import { labelRoutes } from "./routes/labels.js";
 import { wellKnownRoutes } from "./routes/well-known.js";
 import { blobRoutes } from "./routes/blobs.js";
 import { peopleRoutes } from "./routes/people.js";
@@ -116,6 +117,7 @@ export async function buildApp(options: AppOptions = {}): Promise<App> {
   await app.register(internalRoutes);
   await app.register(toolRoutes);
   await app.register(threadRoutes);
+  await app.register(labelRoutes);
   await app.register(connectorRoutes);
   await app.register(wellKnownRoutes);
   await app.register(blobRoutes);

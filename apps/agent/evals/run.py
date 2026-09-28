@@ -12,6 +12,7 @@ Six surfaces, one per model call the product makes:
 - ``quick_add``  a row typed into a thread (``plan_quick_add``)
 - ``judge``      does a typed message answer the open question (``judge_answer``)
 - ``compact``    one thread's notes, folded (``compact._ask``)
+- ``label_sort`` one thread's rows, grouped overnight (``label_sort._ask``)
 
 Each runs the real prompt assembly and the real loop, with every tool answered
 from the case's fixture. The Core API is the one thing not exercised: what a
@@ -59,10 +60,12 @@ from typing import Any
 from anthropic import AsyncAnthropic
 
 from offload_agent import compact as compact_mod
+from offload_agent import label_sort as label_sort_mod
 from offload_agent.config import Config
 from offload_agent.context import (
     AnswerContext,
     DumpContext,
+    LabelRef,
     Photo,
     Piece,
     QuickAddContext,
@@ -108,6 +111,7 @@ MODELS = {
     "classify": _DEFAULTS["sort_model"],
     "judge": _DEFAULTS["sort_model"],
     "compact": _DEFAULTS["sort_model"],
+    "label_sort": _DEFAULTS["sort_model"],
 }
 # The eval's own judge is a different tier from the answerer on purpose: a
 # model marking its own work is the failure this file exists to avoid.
@@ -188,6 +192,8 @@ def _merge(base: dict, over: dict) -> dict:
 
 _FIXTURE_KEYS = {
     "threads",
+    # 025. The labels in the fixture's threads: [{id, threadId, name}].
+    "labels",
     "looking_at",
     "notes",
     "notes_from_members",
@@ -359,6 +365,19 @@ _STUB_FIELD = {
 }
 
 
+# 025. The Core API's nameInDump, word for word: letters and digits only (an
+# underscore splits, as it does there), and a link's words do not count.
+# tests/test_label_names.py holds both to evals/fixtures/label-names.json.
+_LABEL_LINK = re.compile(r"\b(?:https?://|www\.)\S+", re.IGNORECASE)
+_LABEL_WORD = re.compile(r"[^\W_]+")
+
+
+def _label_name_in_dump(name: str, dump: str) -> bool:
+    said = set(_LABEL_WORD.findall(_LABEL_LINK.sub(" ", dump).lower()))
+    words = _LABEL_WORD.findall(name.lower())
+    return bool(words) and all(word in said for word in words)
+
+
 class Recorder:
     """Every tool call, answered from the fixture and written down.
 
@@ -518,7 +537,6 @@ class Recorder:
                         "body": r.get("body"),
                         "done": r.get("done", False),
                         "yours": r.get("yours", True),
-                        "tags": r.get("tags", []),
                     }
                     for r in _rows_for(fx, args.get("thread_id"))
                 ],
@@ -546,6 +564,14 @@ class Recorder:
             else:
                 out["noteId"] = f"n{self.filed_ids}"
             return out
+        # 025. The provenance bound the Core API runs, run here too: a label may
+        # be made only out of the words of the dump. A stub that made any name
+        # would pass a model that invents labels.
+        if tool == "label_content":
+            for name in args.get("new") or []:
+                if not _label_name_in_dump(str(name), self.dump):
+                    return {"ok": False, "error": "not_in_the_dump"}
+            return {"ok": True, "done": True}
         if tool == "edit_content" and args.get("occurs_at"):
             self.content_timed[str(args.get("content_id"))] = True
         if tool in {
@@ -792,10 +818,6 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
         for key in ("priority",):
             if key in matcher and args.get(key) != matcher[key]:
                 return False
-        if "tags_include" in matcher:
-            tags = [str(t).lower() for t in (args.get("tags") or [])]
-            if any(t.lower() not in tags for t in matcher["tags_include"]):
-                return False
         # 020. Which photo the row is, by its number.
         if "photo" in matcher and args.get("photo") != matcher["photo"]:
             return False
@@ -807,9 +829,7 @@ def _match_filing(matcher: dict, calls: list[tuple[str, dict]], fx: dict) -> str
         for needle in matcher.get("body_has", []):
             if needle.lower() not in body.lower():
                 return False
-        if matcher.get("body_no_digits") and re.search(r"\d{4,}", body):
-            return False
-        return not (matcher.get("no_tags") and args.get("tags"))
+        return not (matcher.get("body_no_digits") and re.search(r"\d{4,}", body))
 
     for tool, args in candidates:
         if fits(tool, args):
@@ -1129,6 +1149,10 @@ async def _run_file(client: AsyncAnthropic, case: Case, model: str) -> Result:
         may_read_links=fx.get("may_read_links", True),
         country=rec.country,
         looking_at=_thread(fx, fx.get("looking_at")),
+        labels=[
+            LabelRef(id=str(one["id"]), thread_id=str(one["threadId"]), name=str(one["name"]))
+            for one in fx.get("labels") or []
+        ],
         answered=fx.get("answered"),
         # 020. The photos, as the worker would hand them over: the large
         # rendition of each fixture, made by the real rendition code.
@@ -1426,7 +1450,7 @@ async def _run_quick_add(client: AsyncAnthropic, case: Case, model: str) -> Resu
         if t == "edit_content"
         and not (
             args.get("title") == typed
-            and not any(args.get(k) for k in ("body", "url", "image_url", "tags"))
+            and not any(args.get(k) for k in ("body", "url", "image_url"))
         )
     ]
     adds = [args for t, args in rec.calls if t == "add_content"]
@@ -1592,6 +1616,64 @@ async def _run_compact(client: AsyncAnthropic, case: Case, model: str) -> Result
     return Result(case, "", transcript, failures, judged, note, cost=cost)
 
 
+async def _run_label_sort(client: AsyncAnthropic, case: Case, model: str) -> Result:
+    """025. One thread's rows and labels, asked how they group.
+
+    The input is {thread, rows: [{id, type, title}], labels: [{id, name}]}. The
+    structural rules are the ones the Core API enforces: a label for a single
+    row, a name over 24 characters, or a row that is not the thread's are
+    failures here too. What counts as a sensible grouping is the case's."""
+    fx = case.input
+    rows = fx.get("rows") or []
+    labels = fx.get("labels") or []
+    listing = label_sort_mod._listing(str(fx.get("thread") or ""), rows, labels)
+    cfg = Config(
+        database_url="", api_url="", internal_token="", anthropic_api_key="", sort_model=model
+    )
+    try:
+        plan_, usage = await label_sort_mod._ask(client, cfg, listing)
+    except Exception as exc:  # noqa: BLE001
+        return Result(case, "", "", [f"raised {type(exc).__name__}: {exc}"], False, "")
+    if plan_ is None:
+        return Result(case, "", "", ["no parseable plan"], False, "")
+    ids = {r["id"] for r in rows}
+    label_ids = {one["id"] for one in labels}
+    transcript = json.dumps(plan_.model_dump(), ensure_ascii=False)
+    failures: list[str] = []
+    for one in plan_.create:
+        if len(one.content_ids) < 2:
+            failures.append(f"made {one.name!r} for one row")
+        if any(i not in ids for i in one.content_ids):
+            failures.append(f"named a row the thread does not have under {one.name!r}")
+        failures.extend(_copy_problems(one.name))
+    for one in plan_.apply:
+        if one.label_id not in label_ids:
+            failures.append(f"applied a label the thread does not have: {one.label_id}")
+    expect = case.expect
+    names = {one.name.lower() for one in plan_.create}
+    if expect.get("no_change") and (plan_.create or plan_.apply):
+        failures.append(f"sorted a thread about one thing: {transcript}")
+    for want in expect.get("creates", []):
+        if want.lower() not in names:
+            failures.append(f"did not make {want!r}: {transcript}")
+    for group in expect.get("together", []):
+        if not any(set(group) <= set(one.content_ids) for one in [*plan_.create, *plan_.apply]):
+            failures.append(f"did not put {group} under one label: {transcript}")
+    for i in expect.get("left_alone", []):
+        if any(i in one.content_ids for one in [*plan_.create, *plan_.apply]):
+            failures.append(f"labelled {i}, which belongs to no group")
+    cost = sum(
+        _cost(
+            u.get("model", model),
+            u.get("inputTokens", 0),
+            u.get("outputTokens", 0),
+            u.get("cacheReadTokens", 0),
+        )
+        for u in usage
+    )
+    return Result(case, "", transcript, failures, True, "", cost=cost)
+
+
 _SURFACES = {
     "file": _run_file,
     "answer": _run_answer,
@@ -1599,6 +1681,7 @@ _SURFACES = {
     "quick_add": _run_quick_add,
     "judge": _run_judge,
     "compact": _run_compact,
+    "label_sort": _run_label_sort,
 }
 
 

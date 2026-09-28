@@ -18,7 +18,7 @@ import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
 import { refreshMe } from "../../lib/me";
-import { doorOf, glyphOf, loadActivity, sectionOf, seen, tagOf, whenOf, type ActivityEntry } from "../../lib/activity";
+import { doorOf, glyphOf, loadActivity, sectionOf, seen, tagOf, undoActivity, whenOf, type ActivityEntry } from "../../lib/activity";
 
 const isAndroid = Platform.OS === "android";
 
@@ -27,6 +27,19 @@ export default function Activity() {
   const COLOR = useColors();
   const { zone, today } = useClock();
   const [rows, setRows] = useState<ActivityEntry[] | null>(null);
+  // 025. A sort taken back: drawn first, written second, put back with the
+  // one clause if the server refuses.
+  const [failedUndo, setFailedUndo] = useState<string | null>(null);
+  async function undo(row: ActivityEntry): Promise<void> {
+    const draw = (undone: boolean) =>
+      setRows((held) => (held ?? []).map((one) => (one.id === row.id ? { ...one, undone, undoable: !undone } : one)));
+    setFailedUndo(null);
+    draw(true);
+    if ((await undoActivity(row.id)) === "failed") {
+      draw(false);
+      setFailedUndo(row.id);
+    }
+  }
   const [next, setNext] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -143,13 +156,36 @@ export default function Activity() {
                     {here}
                   </Text>
                 ) : null}
-                {door ? (
-                  <Pressable onPress={() => router.push(door as never)} accessibilityRole="button" className="min-h-tap-min">
-                    {body}
-                  </Pressable>
-                ) : (
-                  body
-                )}
+                <View className="flex-row items-start">
+                  <View className="flex-1">
+                    {door ? (
+                      <Pressable onPress={() => router.push(door as never)} accessibilityRole="button" className="min-h-tap-min">
+                        {body}
+                      </Pressable>
+                    ) : (
+                      body
+                    )}
+                  </View>
+                  {/* 025. Undo is its own control beside the row, never inside
+                      the row's press, which opens the thread. */}
+                  {row.undoable ? (
+                    <Pressable
+                      onPress={() => void undo(row)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Undo ${row.title}`}
+                      className="min-h-tap-min justify-center pl-space-4"
+                    >
+                      <Text className="font-core font-medium text-text-accent" style={{ fontSize: 14 }}>
+                        Undo
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+                {failedUndo === row.id ? (
+                  <Text className="pb-space-2 font-core text-text-danger" style={{ fontSize: 13 }}>
+                    Couldn&apos;t undo that
+                  </Text>
+                ) : null}
               </View>
             );
           })}

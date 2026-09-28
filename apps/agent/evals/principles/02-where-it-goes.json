@@ -311,8 +311,7 @@
           "threadId": "00000003-0000-0000-0000-000000000000",
           "threadName": "Miscellaneous",
           "title": "yoga every Tuesday",
-          "type": "note",
-          "tags": []
+          "type": "note"
         }
       ],
       "expect": {
@@ -331,8 +330,7 @@
           "threadId": "00000003-0000-0000-0000-000000000000",
           "threadName": "Miscellaneous",
           "title": "oak brackets 30cm matte black",
-          "type": "task",
-          "tags": []
+          "type": "task"
         }
       ],
       "expect": {

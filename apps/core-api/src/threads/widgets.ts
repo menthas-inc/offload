@@ -1,4 +1,4 @@
-// Which widgets a thread earns, and how their contents are grouped.
+// Which widgets a thread earns.
 //
 // **This moved to `@offload/widgets`.** It lived here and in
 // `apps/web/src/lib/widgets.ts` as a deliberate copy; two phones would have
@@ -11,21 +11,20 @@
 
 export {
   WIDGET_KINDS,
-  dimensionsIn,
-  groupBy,
   liveCount,
-  parseTag,
   readPreference,
   reorderPlan,
   respread,
   sinkDone,
   widgetsFor,
-  type Group,
   type Ordered,
   type ReorderWrite,
   type Sortable,
-  type Tag,
   type ThreadPreference,
   type Widget,
   type WidgetKind,
 } from "@offload/widgets";
+
+/** A widget kind is one of three short words; this bounds what a request may
+ *  send before `readPreference` drops anything it does not recognise. */
+export const WIDGET_KIND_CHARS = 24;

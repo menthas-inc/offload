@@ -18,6 +18,9 @@ import { z } from "zod";
 import { sql } from "kysely";
 import type { App } from "../app.js";
 import { db } from "../db.js";
+import { applyNightlyPlan, applyTurnLabels } from "../threads/labels.js";
+import { labelledNightlyCopy } from "../notifications/copy.js";
+import { hashtagsIn } from "@offload/widgets";
 import { emit } from "../analytics.js";
 import { env } from "../env.js";
 import { NOTE_TEXT_CHARS, applyCompaction } from "../threads/notes.js";
@@ -510,6 +513,83 @@ export async function internalRoutes(app: App): Promise<void> {
     }
   );
 
+  // 025. The nightly sort's plan. The worker read one thread's recent titles
+  // and asked a model which of them group; this is where every rule is kept:
+  // the thread and the account come from the job row, the account must still
+  // be in the thread, every row and label must be the thread's, nothing a
+  // person set is touched, and the plan cannot say remove.
+  const sortBody = z.strictObject({
+    jobId: z.string().uuid(),
+    create: z.array(z.strictObject({ name: z.string().min(1).max(60), contentIds: z.array(z.string().uuid()).max(200) })).max(6),
+    apply: z.array(z.strictObject({ labelId: z.string().uuid(), contentIds: z.array(z.string().uuid()).max(200) })).max(10),
+    usage: z.array(usageEntry).max(4).optional(),
+  });
+  app.post(
+    "/internal/v1/labels-sorted",
+    {
+      schema: {
+        body: sortBody,
+        response: { 200: z.object({ created: z.number(), applied: z.number() }), 401: refused, 404: refused },
+      },
+    },
+    async (request, reply) => {
+      const header = request.headers.authorization;
+      const presented = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+      if (!tokenMatches(presented)) {
+        return reply.code(401).send({ error: "unauthorised" as const });
+      }
+      const result = request.body;
+      const job = await db
+        .selectFrom("jobs")
+        .select(["id", "account_id", "payload"])
+        .where("id", "=", result.jobId)
+        .where("kind", "=", "labels.sort")
+        .executeTakeFirst();
+      if (!job?.account_id) return reply.code(404).send({ error: "unknown_job" as const });
+      const payload = (typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload) as { threadId?: string };
+      if (!payload.threadId) return reply.code(404).send({ error: "unknown_job" as const });
+      const accountId = job.account_id;
+      const threadId = payload.threadId;
+
+      const outcome = await db.transaction().execute(async (trx) => {
+        // Only a job a worker holds may write. A retry after the plan landed
+        // changes nothing: the job is closed in this same transaction, so done
+        // means written; pending, failed and dead were never handed out.
+        const open = await trx.selectFrom("jobs").select("state").where("id", "=", result.jobId).forUpdate().executeTakeFirstOrThrow();
+        if (open.state !== "running") return { created: 0, applied: 0 };
+        const landed = (await memberOf(accountId, threadId, trx))
+          ? await applyNightlyPlan(trx, accountId, threadId, { create: result.create, apply: result.apply }, labelledNightlyCopy)
+          : { created: 0, applied: 0 };
+        if (result.usage && result.usage.length > 0) {
+          await trx
+            .insertInto("llm_usage")
+            .values(
+              result.usage.map((entry) => ({
+                account_id: accountId,
+                job_kind: "labels.sort",
+                category: "scheduled" as const,
+                model: entry.model,
+                input_tokens: entry.inputTokens,
+                output_tokens: entry.outputTokens,
+                cache_read_tokens: entry.cacheReadTokens,
+                cost_micros: entry.costMicros,
+                latency_ms: entry.latencyMs,
+              })),
+            )
+            .execute();
+        }
+        await trx
+          .updateTable("jobs")
+          .set({ state: "done", locked_at: null, locked_by: null, updated_at: sql`now()` })
+          .where("id", "=", result.jobId)
+          .execute();
+        return landed;
+      });
+      // Counts, never a name or a title.
+      return reply.send(outcome);
+    },
+  );
+
   // 017. What offload is doing, on its way out.
   //
   // **Deliberately not idempotent and deliberately unversioned.** A step is the
@@ -631,6 +711,14 @@ export async function internalRoutes(app: App): Promise<void> {
         if (!person || (person.state !== "seen" && person.state !== "partial")) return false;
 
         if (result.outcome === "answered" || result.outcome === "partial") {
+          // 025. A # picked in the composer, applied once the rows exist.
+          const sent = await trx
+            .selectFrom("messages")
+            .select(["id", "turn_id", "text", "attrs"])
+            .where("id", "=", payload.messageId!)
+            .executeTakeFirstOrThrow();
+          await applyTurnLabels(trx, accountId, { id: sent.id, turnId: sent.turn_id, text: sent.text, attrs: sent.attrs }, hashtagsIn);
+
           // **No row when there was nothing to say.** A dump that was simply
           // filed writes no offload message at all: the Done mark and the pill
           // naming the thread carry it, and `reply` on the wire is already

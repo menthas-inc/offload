@@ -56,8 +56,8 @@ describe("the place id the shared widget rule needs", () => {
       status: 200,
       data: {
         rows: [
-          { id: "c1", place: { id: "p1" }, tags: [] },
-          { id: "c2", place: null, tags: [] },
+          { id: "c1", place: { id: "p1" } },
+          { id: "c2", place: null },
         ],
         nextCursor: null,
       },

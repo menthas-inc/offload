@@ -9,6 +9,7 @@ import { timeZoneHeader } from "./time-zone";
 
 const API = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:4701";
 import type { Invitation } from "./people";
+import type { Label } from "./labels";
 
 /** A request with no body.
  *
@@ -62,6 +63,8 @@ export interface Member {
  *  12th". "Chase the electrician" is a task. */
 export interface Note {
   id: string;
+  /** 025. The note's live labels, by id, in the thread's label order. */
+  labels: string[];
   text: string;
   /** What was dumped when it did not fit in 200 characters. Never in a prompt,
    *  and never on the row: opening the note is what shows it. */
@@ -117,10 +120,13 @@ export interface ThreadBundle {
   name: string;
   icon: string | null;
   alwaysOn: boolean;
-  counts: { active: number; archived: number };
+  /** `unlabelled` is 025's No label count. */
+  counts: { active: number; archived: number; unlabelled: number };
   members: Member[];
+  /** 025. The thread's labels in the order they were made, with counts. */
+  labels: Label[];
   /** How this thread wants to look. Absent fields mean derived from content. */
-  preference: { widgets?: string[]; groupBy?: Record<string, string>; hideDone?: boolean };
+  preference: { widgets?: string[]; hideDone?: boolean };
   /** What this thread holds about itself. Active only. */
   notes: Note[];
   /** Active and folded. The folded count is what the history control shows,
@@ -233,7 +239,8 @@ export interface ContentRow {
   onCalendar: boolean;
   priority: number;
   priorityPinned: boolean;
-  tags: string[];
+  /** 025. The row's live labels, by id, in the thread's label order. */
+  labels: string[];
   place: Place | null;
   /** The same place, as the id the shared widget rule takes. Derived in
    *  `fetchContent` rather than sent twice, so nothing above has to know that
@@ -264,7 +271,8 @@ export interface ContentDetail extends ContentRow {
 }
 
 export interface ContentPage {
-  rows: ContentRow[];
+  /** `ticked` only when the label's list asked, with `ticksFor`. */
+  rows: (ContentRow & { ticked?: boolean })[];
   nextCursor: string | null;
 }
 
@@ -317,11 +325,15 @@ export async function fetchThreadEvents(threadId: string, from: string, to: stri
 
 export async function fetchContent(
   threadId: string,
-  options: { cursor?: string; archived?: boolean } = {},
+  options: { cursor?: string; archived?: boolean; labels?: string[]; unlabelled?: boolean; ticksFor?: string } = {},
 ): Promise<ContentPage | null> {
   const query = new URLSearchParams();
   if (options.cursor) query.set("cursor", options.cursor);
   if (options.archived) query.set("archived", "true");
+  // 025. The filter bar's pick, read on the server because the list is paged.
+  if (options.labels?.length) query.set("labels", options.labels.join(","));
+  if (options.unlabelled) query.set("unlabelled", "true");
+  if (options.ticksFor) query.set("ticksFor", options.ticksFor);
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const page = await get<ContentPage>(`/v1/threads/${threadId}/content${suffix}`);
   if (!page) return null;
@@ -355,6 +367,7 @@ export interface ContentSnapshot {
   allDay: boolean;
   rrule: string | null;
   isReminder: boolean;
+  labels: string[];
 }
 
 /** The refusals the route names; the screen is put back with one clause. */
@@ -377,6 +390,8 @@ export interface ContentPatch {
   allDay?: boolean;
   rrule?: string | null;
   isReminder?: boolean;
+  /** 025. The row's labels as a full set. */
+  labels?: string[];
 }
 
 export async function editContent(
@@ -559,7 +574,7 @@ export function provisionalRow(
     isReminder: false,
     priority: 0,
     priorityPinned: false,
-    tags: [],
+    labels: [],
     place: null,
     placeId: null,
     seriesRef: null,
@@ -575,6 +590,7 @@ export function provisionalRow(
 /** The note a typed sentence is about to be. */
 export function provisionalNote(text: string, authorId: string | null): Note {
   return {
+    labels: [],
     id: provisionalId(),
     text,
     body: null,
@@ -713,7 +729,6 @@ export async function setPreference(
   threadId: string,
   patch: {
     widgets?: string[] | null;
-    groupBy?: Record<string, string> | null;
     hideDone?: boolean | null;
   },
 ): Promise<boolean> {

@@ -37,6 +37,8 @@ import { useColors } from "../../lib/colors";
 import { AttachChip } from "./AttachChip";
 import { useConversation } from "./conversation-context";
 import { MentionList, mentionQuery } from "../people/MentionList";
+import { HashList } from "../labels/HashList";
+import { labelQuery } from "@offload/widgets";
 import { staysOpen } from "../../lib/composer";
 
 const isAndroid = Platform.OS === "android";
@@ -199,11 +201,15 @@ export function Composer({
     discardRecording,
     mentionPeople,
     pickMention,
+    hashLabels,
+    pickHash,
   } = useConversation();
   const holdsNote = !pin && (recording || note !== null);
   // 022. The @ list, while the draft ends in an @ token and not while a +
   // is pinned: a + is one line into a section, never a person.
   const mentionAt = pin || holdsNote ? null : mentionQuery(draft);
+  // 025. The # list, on the same terms as @, and only on a thread.
+  const hashAt = pin || holdsNote || !onScreen ? null : labelQuery(draft);
   const [sending, setSending] = useState(false);
   // 018. Precedence: a pinned `+` field is never taken over, then the open
   // question, then whatever the screen asked for, then the cycling set.
@@ -307,6 +313,9 @@ export function Composer({
     <View className="px-gutter-screen pb-space-5 pt-space-4">
       {mentionAt !== null && mentionPeople && mentionPeople.length > 0 ? (
         <MentionList people={mentionPeople} query={mentionAt} onPick={pickMention} />
+      ) : null}
+      {hashAt !== null && hashLabels ? (
+        <HashList labels={hashLabels} query={hashAt} onPick={(label) => pickHash(label.name, label.id)} onNew={(name) => pickHash(name)} />
       ) : null}
       {/* Where an ordinary dump will land, said once, above the field.
           Nothing while pinned: a `+` already says what it is adding to, in its

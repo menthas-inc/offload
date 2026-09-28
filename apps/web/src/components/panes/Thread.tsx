@@ -13,7 +13,7 @@
 // author's alone, and no kit draws an archived state though every kit draws an
 // archive control.
 
-import { changeToken } from "@offload/widgets";
+import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, type LabelPick } from "@offload/widgets";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "../Icon";
@@ -66,6 +66,45 @@ import { ConfirmModal } from "../people/Modal";
 import { useRouter } from "next/navigation";
 import { useClock } from "../../lib/clock";
 import { drawnWhen } from "../../lib/when";
+import { FilterBar } from "../labels/FilterBar";
+import { LabelPopover, type LabelChoice } from "../labels/LabelPopover";
+import { LabelList, type ListSave } from "../labels/LabelList";
+import labelStyles from "../labels/labels.module.css";
+import {
+  createLabel,
+  deleteLabel,
+  labelRows,
+  refusalLine,
+  restoreLabel,
+  type Label,
+} from "../../lib/labels";
+
+/** 025. The filter bar's pick, kept per thread on this device and nowhere
+ *  else. Storage can be missing or refuse, and then the pick is All. */
+const pickKey = (threadId: string) => `offload.labels.${threadId}`;
+function readPick(threadId: string): LabelPick {
+  try {
+    const raw = window.localStorage.getItem(pickKey(threadId));
+    if (!raw) return ALL_LABELS;
+    const parsed = JSON.parse(raw) as Partial<LabelPick>;
+    return {
+      labels: Array.isArray(parsed.labels) ? parsed.labels.filter((id): id is string => typeof id === "string") : [],
+      none: parsed.none === true,
+    };
+  } catch {
+    return ALL_LABELS;
+  }
+}
+function writePick(threadId: string, pick: LabelPick): void {
+  try {
+    if (isAll(pick)) window.localStorage.removeItem(pickKey(threadId));
+    else window.localStorage.setItem(pickKey(threadId), JSON.stringify(pick));
+  } catch {
+    // A pick that is not kept is still the pick on screen.
+  }
+}
+/** The six rows a thread needs before it offers labels unasked. */
+const GROUP_PROMPT_ROWS = 6;
 
 interface Props {
   id: string;
@@ -74,6 +113,12 @@ interface Props {
 
 export function Thread({ id, onChanged }: Props) {
   const [thread, setThread] = useState<ThreadBundle | null>(null);
+  // 025. The filter bar's pick, the label sheet open on a row, and the label's
+  // list open for a label (or for a new one, `null`).
+  const [pick, setPickState] = useState<LabelPick>(ALL_LABELS);
+  const [labelling, setLabelling] = useState<{ row: ContentRow; anchor: HTMLElement } | null>(null);
+  const [listing, setListing] = useState<{ label: Label | null } | null>(null);
+  const [listLine, setListLine] = useState<string | null>(null);
   const [rows, setRows] = useState<ContentRow[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -136,10 +181,16 @@ export function Thread({ id, onChanged }: Props) {
   // length of a round trip.
   const writes = useWrites(load);
 
+  /** The pick as the content read takes it. */
+  const filterOf = (current: LabelPick): { labels?: string[]; unlabelled?: boolean } => ({
+    ...(current.labels.length > 0 ? { labels: current.labels } : {}),
+    ...(current.none ? { unlabelled: true } : {}),
+  });
+
   async function load(): Promise<void> {
     const [bundle, page] = await Promise.all([
       fetchThread(id),
-      fetchContent(id, { archived: showArchived }),
+      fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
     ]);
     if (!writes.idle()) return;
     setThread(bundle);
@@ -158,7 +209,7 @@ export function Thread({ id, onChanged }: Props) {
     const before = new Map(rows.map((row) => [row.id, changeToken(row)]));
     const [bundle, page] = await Promise.all([
       fetchThread(id),
-      fetchContent(id, { archived: showArchived }),
+      fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
     ]);
     if (!writes.idle()) return;
     const next = page?.rows ?? [];
@@ -206,7 +257,7 @@ export function Thread({ id, onChanged }: Props) {
     void (async () => {
       const [bundle, page] = await Promise.all([
         fetchThread(id),
-        fetchContent(id, { archived: showArchived }),
+        fetchContent(id, { archived: showArchived, ...filterOf(pick) }),
       ]);
       if (!live) return;
       setThread(bundle);
@@ -216,11 +267,27 @@ export function Thread({ id, onChanged }: Props) {
     return () => {
       live = false;
     };
-  }, [id, showArchived]);
+  }, [id, showArchived, pick]);
+
+  // 025. The kept pick, read once per thread, and less any label that has
+  // since been deleted once the thread's labels are known.
+  useEffect(() => {
+    setPickState(readPick(id));
+  }, [id]);
+  useEffect(() => {
+    if (!thread) return;
+    const live = keepLive(pick, thread.labels.map((label) => label.id));
+    if (live.labels.length !== pick.labels.length) setPick(live);
+  }, [thread]);
+
+  function setPick(next: LabelPick): void {
+    setPickState(next);
+    writePick(id, next);
+  }
 
   async function more(): Promise<void> {
     if (!cursor) return;
-    const page = await fetchContent(id, { cursor, archived: showArchived });
+    const page = await fetchContent(id, { cursor, archived: showArchived, ...filterOf(pick) });
     if (!page) return;
     setRows((current) => [...current, ...page.rows]);
     setCursor(page.nextCursor);
@@ -541,6 +608,129 @@ export function Thread({ id, onChanged }: Props) {
     );
   }
 
+  // ------------------------------------------------------------- 025 labels
+
+  /** Reread the bundle and the page, for the labels' counts and the filter,
+   *  once a label write has landed. */
+  const relabelled = (): void => {
+    void catchUp();
+  };
+
+  /** The label sheet's Done: the row's labels as a full set, any typed names
+   *  made first with this row under them, one toast, one Undo. */
+  function labelRow(row: ContentRow, choice: LabelChoice): void {
+    setLabelling(null);
+    if (!thread || isProvisional(row.id)) return;
+    const same = choice.made.length === 0 && choice.ids.length === row.labels.length && choice.ids.every((one) => row.labels.includes(one));
+    if (same) return;
+    const before = row.labels;
+    const made: string[] = [];
+    const names = [
+      ...thread.labels.filter((label) => choice.ids.includes(label.id)).map((label) => label.name),
+      ...choice.made,
+    ];
+    void perform(
+      {
+        apply: () => patchRow(row.id, { labels: choice.ids }),
+        revert: () => patchRow(row.id, { labels: before }),
+        write: async () => {
+          for (const name of choice.made) {
+            const result = await createLabel(id, { name });
+            if (!result.ok) return false;
+            made.push(result.value.label.id);
+          }
+          const edited = await editContent(row.id, { labels: [...choice.ids, ...made] });
+          if (edited) relabelled();
+          return edited !== null;
+        },
+        unwrite: async () => {
+          const edited = await editContent(row.id, { labels: before });
+          for (const labelId of made) await deleteLabel(labelId);
+          if (edited) relabelled();
+          return edited !== null;
+        },
+        did: rowLabelledCopy(row.title, names),
+        failed: "Couldn't save that",
+        unfailed: "Couldn't put it back",
+      },
+      toast,
+      writes,
+    );
+  }
+
+  /** The label's list's Save or Label N: one write, one Undo. A refusal keeps
+   *  the list open with its line under the name. */
+  async function saveList(label: Label | null, save: ListSave): Promise<void> {
+    setListLine(null);
+    if (label === null) {
+      const rows = { content: save.add.content, notes: save.add.notes };
+      const result = await createLabel(id, { name: save.name, ...(save.colour ? { colour: save.colour } : {}), rows });
+      if (!result.ok) {
+        setListLine(refusalLine(result.error, save.name));
+        return;
+      }
+      const made = result.value.label;
+      setListing(null);
+      relabelled();
+      toast.show(listLabelledCopy(made.count, made.name), {
+        label: "Undo",
+        onPress: async () => {
+          await deleteLabel(made.id);
+          relabelled();
+        },
+      });
+      return;
+    }
+    const renamed = save.name !== label.name;
+    const result = await labelRows(label.id, {
+      add: save.add,
+      remove: save.remove,
+      ...(renamed ? { name: save.name } : {}),
+      ...(save.colour !== undefined ? { colour: save.colour } : {}),
+    });
+    if (!result.ok) {
+      if (result.error === "label_gone") {
+        setListing(null);
+        toast.show("That label was deleted");
+        relabelled();
+        return;
+      }
+      setListLine(refusalLine(result.error, save.name));
+      return;
+    }
+    const { changed, previous, label: saved } = result.value;
+    setListing(null);
+    relabelled();
+    toast.show(listLabelledCopy(saved.count, saved.name), {
+      label: "Undo",
+      onPress: async () => {
+        await labelRows(label.id, {
+          add: changed.removed,
+          remove: changed.added,
+          ...(previous ? { name: previous.name, colour: previous.colour } : {}),
+        });
+        relabelled();
+      },
+    });
+  }
+
+  async function removeLabel(label: Label): Promise<void> {
+    const result = await deleteLabel(label.id);
+    setListing(null);
+    if (!result.ok) {
+      toast.show("Couldn't save that", { label: "Try again", onPress: () => void removeLabel(label) });
+      return;
+    }
+    relabelled();
+    toast.show(`${label.name} deleted`, {
+      label: "Undo",
+      onPress: async () => {
+        await restoreLabel(label.id);
+        relabelled();
+      },
+    });
+  }
+
   async function saveName(): Promise<void> {
     const name = nameDraft.trim();
     setRenaming(false);
@@ -587,11 +777,21 @@ export function Thread({ id, onChanged }: Props) {
   // which 015's own opening paragraph said and its AC-1 contradicted; a week of
   // empty cells above a list is a calendar for nothing. Computed once, so the
   // rail and the list agree about what is on it.
-  const dated = showArchived ? [] : datedFor(rows, thread.notes, zone);
+  // 025. The notes are all in the bundle, so they are narrowed here; the rows
+  // came narrowed from the server.
+  const filtering = !isAll(pick);
+  const notes = filtering
+    ? thread.notes.filter((note) =>
+        note.labels.length === 0 ? pick.none : note.labels.some((labelId) => pick.labels.includes(labelId)),
+      )
+    : thread.notes;
+  const pickedNames = thread.labels.filter((label) => pick.labels.includes(label.id)).map((label) => label.name);
+  const dated = showArchived ? [] : datedFor(rows, notes, zone);
   const onRail = new Set(dated.map((one) => one.rowId));
   // 019. A pick earns the rail on its own: a thread with a calendar and
   // nothing dated shows this week, with the calendar's events on it.
-  const railEarned = dated.length > 0 || thread.calendars?.anyPicked === true;
+  // A calendar's events carry no labels, so under a filter they are not shown.
+  const railEarned = dated.length > 0 || (!filtering && thread.calendars?.anyPicked === true);
 
   // **A repeating thing is one row here, not thirty.** A weekly class filed as
   // thirty occurrences spends thirty rows saying what the row above said, and
@@ -630,6 +830,16 @@ export function Thread({ id, onChanged }: Props) {
     onDelete: remove,
     // 020. A photo row's tile, and a tile in Files, open the viewer.
     onOpenPhoto: (row) => setViewing(row.id),
+    // 025. The marks, the tag tool and a mark's list.
+    labels: new Map(thread.labels.map((label) => [label.id, label])),
+    onLabel: (row, anchor) => setLabelling({ row, anchor }),
+    onOpenLabel: (labelId) => {
+      const label = thread.labels.find((one) => one.id === labelId);
+      if (label) {
+        setListLine(null);
+        setListing({ label });
+      }
+    },
   };
 
   // 020. What the viewer pages through: every photo row on the page, in the
@@ -784,6 +994,52 @@ export function Thread({ id, onChanged }: Props) {
       ) : null}
 
       <div className={styles.paneBody}>
+        {/* 025. The filter bar, sticky under the pane head. Not on the
+            archived view, which is its own list. */}
+        {showArchived ? null : (
+          <FilterBar
+            labels={thread.labels}
+            unlabelled={thread.counts.unlabelled}
+            pick={pick}
+            prompt={thread.counts.active + thread.notes.length >= GROUP_PROMPT_ROWS}
+            onPick={setPick}
+            onNew={() => {
+              setListLine(null);
+              setListing({ label: null });
+            }}
+            onOpen={(labelId) => handlers.onOpenLabel?.(labelId)}
+          />
+        )}
+        {filtering && !showArchived && rows.length === 0 && notes.length === 0 ? (
+          <p className={labelStyles.nothing}>
+            {pickedNames.length > 0 ? `Nothing under ${nameList(pickedNames)} yet.` : "Nothing without a label yet."}
+          </p>
+        ) : null}
+        {labelling ? (
+          <LabelPopover
+            anchor={labelling.anchor}
+            title={labelling.row.title}
+            labels={thread.labels}
+            carried={labelling.row.labels}
+            onDone={(choice) => labelRow(labelling.row, choice)}
+            onClose={() => setLabelling(null)}
+          />
+        ) : null}
+        {listing ? (
+          <LabelList
+            key={listing.label?.id ?? "new"}
+            threadId={id}
+            label={listing.label}
+            labels={thread.labels}
+            notes={thread.notes}
+            widgets={thread.preference.widgets}
+            freeColour={Array.from({ length: 10 }, (_, i) => i + 1).find((c) => !thread.labels.some((l) => l.colour === c)) ?? 1}
+            line={listLine}
+            onSave={(save) => void saveList(listing.label, save)}
+            onDelete={() => listing.label && void removeLabel(listing.label)}
+            onClose={() => setListing(null)}
+          />
+        ) : null}
         {/* No summary, nothing drawn. `WThing.jsx` has `{st ? ... : null}` and
             it is right: a line saying offload has not done something is not
             information, it is an apology taking up the most prominent space on
@@ -815,11 +1071,11 @@ export function Thread({ id, onChanged }: Props) {
             key={id}
             threadId={id}
             rows={rows}
-            notes={thread.notes}
+            notes={notes}
             handlers={handlers}
             onToggle={toggle}
             onAdd={(text, day) => add(text, "timeline", day)}
-            calendars={{ anyPicked: thread.calendars?.anyPicked === true, version: calendarsVersion }}
+            calendars={{ anyPicked: !filtering && thread.calendars?.anyPicked === true, version: calendarsVersion }}
           />
         )}
 
@@ -877,7 +1133,7 @@ export function Thread({ id, onChanged }: Props) {
         {showArchived ? null : (
           <Notes
             threadId={id}
-            notes={thread.notes}
+            notes={notes}
             counts={thread.noteCounts}
             members={thread.members}
             arrived={arrived}
@@ -913,7 +1169,7 @@ export function Thread({ id, onChanged }: Props) {
             stays is the genuinely empty thread, which has nothing else on the
             screen and does need telling. */}
         {rest.length === 0 && (showArchived || inWidgets.size === 0) ? (
-          <p className={styles.empty}>
+          filtering && !showArchived ? null : <p className={styles.empty}>
             {showArchived
               ? "Nothing archived here."
               : "Nothing in this one yet. Dump something on Today and offload will file it."}

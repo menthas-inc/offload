@@ -87,6 +87,9 @@ export interface ActivityEntry {
   contentId: string | null;
   memberId: string | null;
   requestId: string | null;
+  /** 025. Offered on a labelled row whose sort can still be taken back. */
+  undoable: boolean;
+  undone: boolean;
   occurredAt: string;
 }
 
@@ -123,6 +126,8 @@ export async function listActivity(accountId: string, cursor: string | null): Pr
       contentId: row.content_id,
       memberId: row.member_id,
       requestId: row.request_id,
+      undoable: row.kind === "labelled" && row.label_run_id !== null && row.undone_at === null,
+      undone: row.undone_at !== null,
       occurredAt: row.occurred_at.toISOString(),
     })),
     next: rows.length > ACTIVITY_PAGE && last ? last.id : null,

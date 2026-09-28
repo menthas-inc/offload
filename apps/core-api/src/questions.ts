@@ -10,7 +10,6 @@ import { z } from "zod";
 import { sql, type Kysely, type Transaction } from "kysely";
 import { db } from "./db.js";
 import type { Database } from "./schema.js";
-import { normaliseTags, BadTags, MAX_TAGS } from "./threads/tags.js";
 import { COUNTRIES, isCountry } from "./countries.js";
 import { NotYours, memberOf, touchThread } from "./threads/access.js";
 import { moveContentIn } from "./routes/threads.js";
@@ -26,7 +25,7 @@ type Writer = Trx | Kysely<Database>;
  *  applied through 012's write path rather than by filling a field. 020 added
  *  `thread`: a photo sent alone from Today, asked which thread, applied as a
  *  move. */
-export const FIELDS = ["date", "span", "time", "tag", "country", "calendar", "thread", "person"] as const;
+export const FIELDS = ["date", "span", "time", "country", "calendar", "thread", "person"] as const;
 export type Field = (typeof FIELDS)[number];
 
 /** The way out, on every question. An answer, not a dismissal. */
@@ -92,8 +91,6 @@ export function renderText(field: Field, title: string, dimension?: string): str
       return `Filed "${name}" as a stay. Which dates?`;
     case "time":
       return `Filed "${name}". Which day and time?`;
-    case "tag":
-      return `Filed "${name}". Which ${dimension ?? "tag"}?`;
     case "country":
       return "For which country?";
     case "calendar":
@@ -143,17 +140,6 @@ export function parseValue(field: Field, raw: unknown): Record<string, string> |
       const time = str("time");
       return day && time && DAY.test(day) && plausibleDay(day) && CLOCK.test(time) ? { day, time } : null;
     }
-    case "tag": {
-      const tag = str("tag");
-      if (!tag) return null;
-      try {
-        const [one] = normaliseTags([tag]);
-        return one ? { tag: one } : null;
-      } catch (error) {
-        if (error instanceof BadTags) return null;
-        throw error;
-      }
-    }
     case "country": {
       const country = str("country")?.toUpperCase() ?? null;
       return country && ISO.test(country) ? { country } : null;
@@ -194,8 +180,6 @@ export function optionValue(field: Field, value: string): Record<string, string>
       const [day, time] = value.split("T");
       return parseValue(field, { day, time });
     }
-    case "tag":
-      return parseValue(field, { tag: value });
     case "country":
       return parseValue(field, { country: value });
     case "calendar":
@@ -205,11 +189,6 @@ export function optionValue(field: Field, value: string): Record<string, string>
     case "person":
       return parseValue(field, { person: value });
   }
-}
-
-function dimensionOf(tag: string): string | null {
-  const i = tag.indexOf(":");
-  return i > 0 ? tag.slice(0, i) : null;
 }
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -250,11 +229,6 @@ export function labelFor(field: Field, value: string): string {
       const { d, m, dow } = dayParts(parsed["day"]!);
       return `${DAYS[dow]} ${d} ${MONTHS[m - 1]!.slice(0, 3)} ${parsed["time"]}`;
     }
-    case "tag": {
-      const tag = parsed["tag"]!;
-      const word = tag.includes(":") ? tag.slice(tag.indexOf(":") + 1) : tag;
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    }
     case "country": {
       const code = parsed["country"]!;
       const name = COUNTRIES.find((c) => c.code === code)?.name ?? code;
@@ -285,7 +259,6 @@ export type Refusal =
   | "wrong_path"
   | "forbidden_by_note"
   | "duplicate_field"
-  | "bad_dimension"
   | "not_their_country"
   // 020. The one condition under which where a row goes may be asked did
   // not hold: the dump had words, a thread was on screen, the turn wrote
@@ -348,7 +321,7 @@ export async function validateAsked(
         targetContentId = content.id;
         threadId = content.thread_id;
         title = content.title;
-      } else if (note && q.field !== "tag") {
+      } else if (note) {
         targetNoteId = note.id;
         threadId = note.subject_id;
         title = note.text;
@@ -388,7 +361,6 @@ export async function validateAsked(
       options.length = 0;
       options.push(...named);
     }
-    if (q.field === "tag" && options.length < 2) return { ok: false, reason: "too_few_values", field: q.field };
     if (q.field === "thread" && options.length < 1) return { ok: false, reason: "too_few_values", field: q.field };
     if (q.field === "country") {
       if (options.length !== 2) return { ok: false, reason: "too_few_values", field: q.field };
@@ -407,25 +379,11 @@ export async function validateAsked(
     }
     options.push({ label: ESCAPE_LABEL, value: null });
 
-    let dimension: string | undefined;
-    if (q.field === "tag") {
-      // The dimension is the thread's: one its rows already use, or one its
-      // own notes name. Anything else is a word from somewhere else landing in
-      // offload's sentence.
-      dimension = dimensionOf(options[0]!.value!) ?? undefined;
-      if (!dimension || !options.every((o) => o.value === null || dimensionOf(o.value) === dimension)) {
-        return { ok: false, reason: "bad_dimension", field: q.field };
-      }
-      if (!threadId || !(await threadHasDimension(trx, threadId, ctx.accountId, dimension))) {
-        return { ok: false, reason: "bad_dimension", field: q.field };
-      }
-    }
-
     if (threadId && (await forbidden(trx, threadId, ctx.accountId, q.field))) {
       return { ok: false, reason: "forbidden_by_note", field: q.field };
     }
 
-    const text = renderText(q.field, title, dimension);
+    const text = renderText(q.field, title);
     if (text.length > QUESTION_TEXT_CHARS) return { ok: false, reason: "bad_value", field: q.field };
     rows.push({ field: q.field, text, options, targetContentId, targetNoteId });
   }
@@ -516,8 +474,6 @@ function storedForm(field: Field, parsed: Record<string, string>): string {
       return `${parsed["from"]}/${parsed["to"]}`;
     case "time":
       return `${parsed["day"]}T${parsed["time"]}`;
-    case "tag":
-      return parsed["tag"]!;
     case "country":
       return parsed["country"]!;
     case "calendar":
@@ -527,26 +483,6 @@ function storedForm(field: Field, parsed: Record<string, string>): string {
     case "person":
       return parsed["person"]!;
   }
-}
-
-const DIMENSION = /^[a-z][a-z0-9_-]{0,23}$/;
-
-/** Whether a dimension is one the thread already groups by: on its rows, or
- *  named as a word in a note of the person's own. */
-async function threadHasDimension(trx: Trx, threadId: string, accountId: string, dimension: string): Promise<boolean> {
-  if (!DIMENSION.test(dimension)) return false;
-  const rows = await trx
-    .selectFrom("content")
-    .select("tags")
-    .where("thread_id", "=", threadId)
-    .where("deleted_at", "is", null)
-    .where(sql<boolean>`exists (select 1 from unnest(tags) t where t like ${dimension + ":%"})`)
-    .limit(1)
-    .execute();
-  if (rows.length > 0) return true;
-  const notes = await ownNotes(trx, threadId, accountId);
-  const word = new RegExp(`(^|[^a-z0-9])${dimension}s?([^a-z0-9]|$)`, "i");
-  return notes.some((note) => word.test(note));
 }
 
 /** The thread's notes as the planner sees them: the person's own, not another
@@ -574,7 +510,6 @@ async function forbidden(trx: Trx, threadId: string, accountId: string, field: F
     date: ["date", "dates", "when", "by when"],
     span: ["date", "dates"],
     time: ["time", "times", "when"],
-    tag: ["tag", "tags", "genre", "city", "room"],
     country: ["country"],
     calendar: ["calendar", "calendars"],
     thread: ["thread", "threads", "where"],
@@ -918,10 +853,10 @@ export async function applyAnswer(
   if (field === "calendar") return { applied: false, reason: "bad_value" };
   const parsed = parseValue(field, value);
   if (!parsed) return { applied: false, reason: "bad_value" };
-  // A tag or a country is one of the values offered, checked here as well as
+  // A country, a thread or a person is one of the values offered, checked here as well as
   // in the worker: the internal route is a second writer, and a set enforced
   // in one place is a set until there is a second writer.
-  if (field === "tag" || field === "country" || field === "thread" || field === "person") {
+  if (field === "country" || field === "thread" || field === "person") {
     const offered = Array.isArray(q.options) ? (q.options as StoredOption[]) : [];
     if (!offered.some((o) => o.value !== null && o.value === storedForm(field, parsed))) {
       return { applied: false, reason: "bad_value" };
@@ -1016,7 +951,7 @@ export async function applyAnswer(
   if (q.target_content_id) {
     const row = await trx
       .selectFrom("content")
-      .select(["id", "thread_id", "type", "due_at", "occurs_at", "occurs_end_at", "tags", "updated_at"])
+      .select(["id", "thread_id", "type", "due_at", "occurs_at", "occurs_end_at", "updated_at"])
       .where("id", "=", q.target_content_id)
       .where("deleted_at", "is", null)
       .forUpdate()
@@ -1034,7 +969,7 @@ export async function applyAnswer(
       await promotePending(trx, q.id, by.answeredMessageId);
       return { applied: false, reason: "gone" };
     }
-    const previous = { due_at: row.due_at, occurs_at: row.occurs_at, occurs_end_at: row.occurs_end_at, tags: row.tags };
+    const previous = { due_at: row.due_at, occurs_at: row.occurs_at, occurs_end_at: row.occurs_end_at };
     const set = contentPatch(field, parsed, row);
     if (set === null) {
       await trx.updateTable("questions").set({ state: "closed", settled_at: sql`now()` }).where("id", "=", q.id).execute();
@@ -1095,7 +1030,7 @@ const moment = (d: string, t: string) => new Date(`${d}T${t}:00Z`);
 function contentPatch(
   field: Field,
   v: Record<string, string>,
-  row: { type: string; due_at: Date | null; occurs_at: Date | null; occurs_end_at: Date | null; tags: string[] },
+  row: { type: string; due_at: Date | null; occurs_at: Date | null; occurs_end_at: Date | null },
 ): Record<string, unknown> | null {
   switch (field) {
     case "date":
@@ -1105,14 +1040,6 @@ function contentPatch(
       return row.occurs_at ? null : { occurs_at: day(v["from"]!), occurs_end_at: day(v["to"]!) };
     case "time":
       return row.occurs_at ? null : { occurs_at: moment(v["day"]!, v["time"]!) };
-    case "tag": {
-      const tag = v["tag"]!;
-      const dim = dimensionOf(tag);
-      if (dim && row.tags.some((t) => t.startsWith(`${dim}:`))) return null;
-      if (row.tags.includes(tag)) return null;
-      if (row.tags.length >= MAX_TAGS) return null;
-      return { tags: [...row.tags, tag] };
-    }
     case "country":
     case "calendar":
     case "thread":
@@ -1207,7 +1134,7 @@ export async function restoreAnswers(trx: Trx, accountId: string, answerTurnId: 
     if (q.target_content_id) {
       await trx
         .updateTable("content")
-        .set({ ...back, ...(Array.isArray(previous["tags"]) ? { tags: previous["tags"] as string[] } : {}), updated_at: sql`now()` })
+        .set({ ...back, updated_at: sql`now()` })
         .where("id", "=", q.target_content_id)
         .execute();
     } else if (q.target_note_id) {

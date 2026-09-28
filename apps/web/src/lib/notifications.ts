@@ -24,6 +24,9 @@ export interface ActivityEntry {
   contentId: string | null;
   memberId: string | null;
   requestId: string | null;
+  /** 025. A labelled row's Undo is offered while this is true. */
+  undoable: boolean;
+  undone: boolean;
   occurredAt: string;
 }
 
@@ -57,6 +60,8 @@ export interface Agenda {
   tomorrow: AgendaRow[];
   overdueMore: number;
   everDumped: boolean;
+  /** 025. The labels the rows above carry, and only those. */
+  threadLabels: { id: string; name: string; colour: number }[];
 }
 
 export async function fetchToday(): Promise<Agenda | null> {
@@ -86,8 +91,26 @@ export function doorOf(row: ActivityEntry): string | null {
     case "shared_activity":
     case "moved":
     case "acted":
+    // 025. A sort opens the thread it sorted.
+    case "labelled":
       return row.threadId ? `/threads/${row.threadId}` : null;
     default:
       return null;
+  }
+}
+
+export type UndoOutcome = "undone" | "refused" | "failed";
+
+/** 025. Undo on a labelled row: the sort taken back, for every member.
+ *  Refused means it cannot happen, because another member undid it or its
+ *  thirty days are over, so the row is drawn Undone rather than offered
+ *  again. */
+export async function undoActivity(id: string): Promise<UndoOutcome> {
+  try {
+    const response = await fetch(`${API}/v1/activity/${id}/undo`, { method: "POST", credentials: "include" });
+    if (response.ok) return "undone";
+    return response.status === 409 ? "refused" : "failed";
+  } catch {
+    return "failed";
   }
 }

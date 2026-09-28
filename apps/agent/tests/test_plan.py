@@ -683,6 +683,7 @@ async def test_the_tools_are_sent_on_every_call():
             "list_thread_content",
             "edit_content",
             "move_content",
+            "label_content",
             "complete_content",
             "archive_content",
             "set_thread_preference",
@@ -705,7 +706,7 @@ async def test_the_calendar_tools_arrive_with_a_calendar():
     assert "create_event" in names
     assert "list_calendars" in names
     # And the ordinary ten are still all there, in front of them.
-    assert names[:10] == [t["name"] for t in TOOLS]
+    assert names[: len(TOOLS)] == [t["name"] for t in TOOLS]
     assert names[-2:] == ["say", "ask"]
 
 
@@ -716,7 +717,7 @@ async def test_the_share_tool_arrives_with_a_connection_and_not_without():
     await plan(model, ctx(has_connections=True), "claude-sonnet-5", Recorder())
     names = [t["name"] for t in model.requests[0]["tools"]]
     assert "share_thread" in names
-    assert names[:10] == [t["name"] for t in TOOLS]
+    assert names[: len(TOOLS)] == [t["name"] for t in TOOLS]
     assert names[-2:] == ["say", "ask"]
 
     model = StubModel([Response(content=[TextBlock("Done.")], stop_reason="end_turn")])

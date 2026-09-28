@@ -1,6 +1,6 @@
 "use client";
 
-// The widgets a thread earns, and the filter inside them.
+// The widgets a thread earns.
 //
 // From ui_kits/android_app/M3ThreadWidgets.jsx, whose own comment is the rule
 // this implements: "widgets a thread earns from its own contents: a map when it
@@ -12,12 +12,11 @@
 // page and these are `filter` calls over it, which is what keeps the thread
 // read a fixed number of queries however many widgets a thread earns.
 //
-// **It filters, it does not group.** This grouped into headed sections until 5
-// September 2026, when the divergence was put back to the product owner and
-// answered the other way: a screen whose promise is that nothing needs filing
-// should not lead with structure somebody has to read, and a filter answers
-// "show me the receipts" in one tap. The group heading and the bare "Everything
-// else" heading went with it.
+// **A widget neither groups nor filters.** It grouped into headed sections by
+// a tag dimension until 5 September 2026 and filtered by one until 025, when
+// labels became the one way a thread is sorted: the filter bar above the page
+// narrows every section at once, so a chip row inside each would be a second
+// way to do the same thing.
 
 import { useState } from "react";
 import styles from "../../app/(shell)/shell.module.css";
@@ -27,9 +26,7 @@ import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import type { RowReorder } from "./RowTools";
 import {
   DONE_SHOWN,
-  filtersFor,
   liveCount,
-  matching,
   reorderPlan,
   splitDone,
   widgetsFor,
@@ -47,7 +44,7 @@ const HEADINGS: Record<string, string> = {
 
 interface Props {
   rows: ContentRow[];
-  preference: { widgets?: string[]; groupBy?: Record<string, string>; hideDone?: boolean };
+  preference: { widgets?: string[]; hideDone?: boolean };
   /** The same object the list below uses, so a row offers the same controls
    *  wherever it is drawn. A task in To do could be ticked and nothing else
    *  until this was shared: renaming it meant finding it again further down. */
@@ -81,7 +78,6 @@ export function Widgets({
         <WidgetBlock
           key={widget.kind}
           widget={widget}
-          dimension={preference.groupBy?.[widget.kind] ?? null}
           hideDone={preference.hideDone === true}
           handlers={handlers}
           onAdd={onAdd}
@@ -96,7 +92,6 @@ export function Widgets({
 
 function WidgetBlock({
   widget,
-  dimension,
   hideDone,
   handlers,
   onAdd,
@@ -105,7 +100,6 @@ function WidgetBlock({
   onReorder,
 }: {
   widget: Widget<ContentRow>;
-  dimension: string | null;
   hideDone: boolean;
   handlers: RowHandlers;
   onAdd: (text: string, section: string) => void;
@@ -113,10 +107,6 @@ function WidgetBlock({
   onFold: (next: boolean) => void;
   onReorder: (writes: ReorderWrite[]) => void;
 }) {
-  // Null is All, which is also where a row carrying no tag in this dimension
-  // lives. Local rather than stored: a filter is what you are looking at now,
-  // not a preference about the thread.
-  const [only, setOnly] = useState<string | null>(null);
   const [allDone, setAllDone] = useState(false);
   const [adding, setAdding] = useState(false);
   // Only To do earns the fold: `doneAt` is only ever set on a task, so a map
@@ -126,8 +116,7 @@ function WidgetBlock({
   // as a prop and leaves through `onFold`. It was local state seeded from the
   // prop for an hour, and a thread that loaded after the first render kept
   // the seed: folded on the server, open on the screen.
-  const filters = filtersFor(widget.rows, dimension);
-  const { left, done } = splitDone(matching(widget.rows, dimension, only));
+  const { left, done } = splitDone(widget.rows);
 
   // **Dragging, on To do and nowhere else.** It is the one list a person
   // arranges: a map is ordered by the map and a file grid by nothing anybody
@@ -240,23 +229,6 @@ function WidgetBlock({
 
       {widget.kind === "map" ? <Pins rows={[...left, ...done]} /> : null}
 
-      {/* One row of chips, single select, All first. Below two values there is
-          nothing to choose between, so it does not draw. */}
-      {filters.length > 1 ? (
-        <div className={styles.filterRow} role="group" aria-label={`Filter ${HEADINGS[widget.kind]}`}>
-          <FilterChip label="All" count={widget.rows.length} on={only === null} onPick={() => setOnly(null)} />
-          {filters.map((filter) => (
-            <FilterChip
-              key={filter.value}
-              label={filter.value}
-              count={filter.count}
-              on={only === filter.value}
-              onPick={() => setOnly(filter.value)}
-            />
-          ))}
-        </div>
-      ) : null}
-
       {/* 020. Files is the kit's grid, three columns of square tiles, each
           the photo itself with no treatment, or the type glyph until the
           renditions exist. A tap opens the viewer, which is where the row's
@@ -352,29 +324,6 @@ function QuickAdd({ onAdd, onCancel }: { onAdd: (text: string) => void; onCancel
 
 /** A chip from the contract: 30px pill, selection inverts to ink, and the count
  *  rides inside the label rather than in a second element. */
-function FilterChip({
-  label,
-  count,
-  on,
-  onPick,
-}: {
-  label: string;
-  count: number;
-  on: boolean;
-  onPick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={`${styles.chip} ${on ? styles.chipOn : ""}`}
-      aria-pressed={on}
-      onClick={onPick}
-    >
-      {label} {count}
-    </button>
-  );
-}
-
 /** Pins on a plain surface, exactly as the kit draws it: "map surface, drawn
  *  from real coordinates". No tiles and no provider, so nothing about where
  *  somebody has been leaves for a map company to render a background. */
@@ -505,9 +454,6 @@ function Meta({ row }: { row: ContentRow }) {
   // 023. The date and the reminder are the chip's and the bell's now, on the
   // title line; saying them here again would be two marks for one fact.
   if (row.place?.address) parts.push(row.place.address);
-  // Bare tags only. A namespaced one is probably what the list is grouped by,
-  // and repeating the group's own name on every row in it is noise.
-  for (const tag of row.tags) if (!tag.includes(":")) parts.push(tag);
 
   if (parts.length === 0 && !row.body) return null;
   return (

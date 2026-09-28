@@ -274,10 +274,13 @@
      white slabs on a paper page and made the composer band beneath them look
      like a different surface. */
   background: var(--surface-page);
+  /* 025. What a sticky bar inside the pane paints, so it matches the pane. */
+  --pane-ground: var(--surface-page);
 }
 
 .pane[data-depth="1"] {
   background: var(--surface-raised);
+  --pane-ground: var(--surface-raised);
 }
 
 /* The seam, on the pane that arrived rather than the one that was already
@@ -681,6 +684,22 @@
 .tool:hover {
   background: var(--surface-inverse);
   color: var(--text-inverse);
+}
+
+/* 025. Drawn 32px, and 44px tall by a hit area with no paint, so the row's
+   tools meet the rule without the row growing: the tag tool made a third and
+   was the one the rule was checked against. Across, the tools sit 4px apart,
+   so each reaches 2px into the gap: touching, never overlapping. */
+.rowTools .tool,
+.rowTools .toolDanger {
+  position: relative;
+}
+
+.rowTools .tool::after,
+.rowTools .toolDanger::after {
+  content: "";
+  position: absolute;
+  inset: -6px -2px;
 }
 
 /* The one red control in the product, and it only turns red once you are on
@@ -2637,6 +2656,30 @@ a.settingsRow:hover {
   box-shadow: inset 0 -1px 0 var(--border-hairline);
 }
 
+/* 025. A labelled row carries Undo beside it, outside the row's own press. */
+.actWithUndo {
+  display: flex;
+  align-items: flex-start;
+  box-shadow: inset 0 -1px 0 var(--border-hairline);
+}
+
+.actWithUndo > .actRow {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-shadow: none;
+}
+
+.actUndo {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  border: 0;
+  background: none;
+  color: var(--text-accent);
+  font: var(--weight-medium) var(--size-label) / 1 var(--font-core);
+  cursor: pointer;
+}
+
 a.actRow:hover {
   background: var(--state-hover);
 }
@@ -2690,6 +2733,13 @@ a.actRow:hover {
 .actBody {
   font: var(--weight-regular) calc(14px * var(--type-scale)) / 1.4 var(--font-core);
   color: var(--text-secondary);
+}
+
+/* 025. An Undo that did not land: its own line, never in the row's stored
+   words. */
+.actFailed {
+  font: var(--weight-regular) var(--size-label) / 1.4 var(--font-core);
+  color: var(--text-danger);
 }
 
 /* Not sent, as a chip with a ground: noticed on its soft ground where a

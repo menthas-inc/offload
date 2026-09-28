@@ -2,7 +2,6 @@
 //
 // AC-1  a type from the closed set, defaulting to note.
 // AC-2  a task carries a priority, an event a start, a location a name.
-// AC-6  tags are namespaced or bare, and a bare one is groupable.
 // AC-8  bounded in count and length.
 // AC-8a normalised at write, so two spellings cannot become two groups.
 // AC-8b one value per dimension, refused rather than appended.
@@ -20,7 +19,6 @@ import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
 import { env } from "../src/env.js";
 import { uuidv7 } from "../src/uuid.js";
-import { BadTags, dimensionsIn, normaliseTags } from "../src/threads/tags.js";
 import { queryHash, resolvePlace, type Geocoder } from "../src/places/resolve.js";
 import { isBareDate, parseWhen, plausible } from "../src/threads/dates.js";
 import { LIST_PAGE } from "../src/routes/tools.js";
@@ -111,52 +109,8 @@ const tool = (payload: unknown) =>
     payload: payload as Record<string, unknown>,
   });
 
-describe("tags", () => {
-  it("normalises both halves, so two spellings are one group (AC-8a)", () => {
-    expect(normaliseTags(["City:Alfama"])).toEqual(["city:alfama"]);
-    expect(normaliseTags(["city: Alfama "])).toEqual(["city:alfama"]);
-    expect(normaliseTags(["  RECEIPT "])).toEqual(["receipt"]);
-  });
-
-  it("keeps a bare tag bare and reads it under the implicit dimension (AC-6)", () => {
-    expect(normaliseTags(["receipt", "urgent"])).toEqual(["receipt", "urgent"]);
-    // Both are dimension `tag`, so both may coexist. Only a real dimension is
-    // single-valued.
-    expect(dimensionsIn([{ tags: ["receipt", "urgent"] }])).toEqual([]);
-  });
-
-  it("refuses two values in one dimension rather than appending (AC-8b)", () => {
-    // A row under two headings has to be reconciled by eye every time somebody
-    // reads the list, which is the whole thing grouping exists to avoid.
-    expect(() => normaliseTags(["city:alfama", "city:porto"])).toThrow(BadTags);
-    // The same value twice is not a conflict, it is a duplicate.
-    expect(normaliseTags(["city:alfama", "city:Alfama"])).toEqual(["city:alfama"]);
-    // Different dimensions are fine.
-    expect(normaliseTags(["city:alfama", "room:kitchen"])).toEqual([
-      "city:alfama",
-      "room:kitchen",
-    ]);
-  });
-
-  it("bounds count and length (AC-8)", () => {
-    expect(() => normaliseTags(Array.from({ length: 7 }, (_, i) => `t${i}`))).toThrow(BadTags);
-    expect(() => normaliseTags([`city:${"x".repeat(60)}`])).toThrow(BadTags);
-    expect(() => normaliseTags(["city:"])).toThrow(BadTags);
-  });
-
-  it("enumerates the dimensions a page actually uses, in first-seen order", () => {
-    expect(
-      dimensionsIn([
-        { tags: ["city:alfama", "receipt"] },
-        { tags: ["room:kitchen"] },
-        { tags: ["city:porto"] },
-      ])
-    ).toEqual(["city", "room"]);
-  });
-});
-
 describe("what the tool endpoint accepts", () => {
-  it("writes type, dates, priority, reminder and tags (AC-1, AC-2)", async () => {
+  it("writes type, dates, priority and reminder (AC-1, AC-2)", async () => {
     const me = await account();
     const t = await thread(me, "Flat admin");
     const { jobId, messageId } = await dump(me);
@@ -171,7 +125,6 @@ describe("what the tool endpoint accepts", () => {
       dueAt: "2026-09-20T09:00:00.000Z",
       isReminder: true,
       priority: 80,
-      tags: ["City:Alfama", "urgent"],
     });
 
     expect(response.json().ok).toBe(true);
@@ -185,8 +138,6 @@ describe("what the tool endpoint accepts", () => {
     expect(row.due_at?.toISOString()).toBe("2026-09-20T09:00:00.000Z");
     expect(row.is_reminder).toBe(true);
     expect(row.priority).toBe(80);
-    // Normalised on the way in, not on the way out.
-    expect(row.tags).toEqual(["city:alfama", "urgent"]);
     // A person has not touched it, so offload may still change it.
     expect(row.priority_pinned).toBe(false);
   });
@@ -218,28 +169,12 @@ describe("what the tool endpoint accepts", () => {
     });
 
     const row = await db
-      .selectFrom("content").select(["type", "priority", "tags", "is_reminder"])
+      .selectFrom("content").select(["type", "priority", "is_reminder"])
       .where("derived_from_message_id", "=", messageId)
       .executeTakeFirstOrThrow();
     expect(row.type).toBe("task");
     expect(row.priority).toBe(50);
-    expect(row.tags).toEqual([]);
     expect(row.is_reminder).toBe(false);
-  });
-
-  it("refuses bad tags without writing a row (AC-8b)", async () => {
-    const me = await account();
-    const t = await thread(me, "Lisbon trip");
-    const { jobId } = await dump(me);
-
-    const response = await tool({
-      tool: "add_content", type: "task", jobId, toolCallId: "t1", threadId: t,
-      title: "Two cities", tags: ["city:alfama", "city:porto"],
-    });
-
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ ok: false, error: "bad_tags" });
-    expect(await db.selectFrom("content").selectAll().execute()).toHaveLength(0);
   });
 
   it("holds a location's title to the geocoder's shape (AC-15)", async () => {
@@ -569,7 +504,7 @@ describe("the tools that touch what already exists", () => {
 
     expect((await tool({
       tool: "edit_content", jobId, toolCallId: "t1", contentId: his,
-      title: "Tram 28 tickets", tags: ["City:Alfama"],
+      title: "Tram 28 tickets",
     })).json()).toEqual({ ok: true, done: true });
 
     expect((await tool({
@@ -577,10 +512,9 @@ describe("the tools that touch what already exists", () => {
     })).json()).toEqual({ ok: true, done: true });
 
     const after = await db
-      .selectFrom("content").select(["title", "tags", "thread_id"]).where("id", "=", his)
+      .selectFrom("content").select(["title", "thread_id"]).where("id", "=", his)
       .executeTakeFirstOrThrow();
     expect(after.title).toBe("Tram 28 tickets");
-    expect(after.tags).toEqual(["city:alfama"]);
     expect(after.thread_id).toBe(mine);
   });
 
@@ -682,13 +616,12 @@ describe("arranging a thread", () => {
   }
 
   it("merges a preference rather than replacing it", async () => {
-    // Setting the grouping must not silently clear the widget order, which is
+    // Setting the fold must not silently clear the widget order, which is
     // what a straight overwrite would do the second time somebody asks for
     // something.
     const { me, thread: t } = await own();
 
     await setPreference(me, t, { widgets: ["map", "todo"] });
-    await setPreference(me, t, { groupBy: { todo: "city" } });
     // The fold is the member's: it lands on the membership row and never in
     // the thread's attrs, so a shared list folded by one member is folded for
     // nobody else.
@@ -698,7 +631,6 @@ describe("arranging a thread", () => {
       .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
     expect(readPreference(row.attrs)).toEqual({
       widgets: ["map", "todo"],
-      groupBy: { todo: "city" },
     });
     expect((row.attrs as Record<string, unknown>)["hideDone"]).toBeUndefined();
 
@@ -727,31 +659,6 @@ describe("arranging a thread", () => {
     const row = await db
       .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
     expect(readPreference(row.attrs)).toEqual({ widgets: ["todo"] });
-  });
-
-  it("keeps a dimension nothing carries yet", async () => {
-    // "Group this by city" said before anything has a city is a reasonable
-    // thing to say, and the answer is that it starts working when something
-    // does.
-    const { me, thread: t } = await own();
-    await setPreference(me, t, { groupBy: { todo: "city" } });
-    const row = await db
-      .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
-    expect(readPreference(row.attrs)).toEqual({ groupBy: { todo: "city" } });
-  });
-
-  it("lets the planner set it too, through the tool", async () => {
-    const { me, thread: t } = await own();
-    const { jobId } = await dumpFor(me);
-
-    expect((await tool({
-      tool: "set_thread_preference", jobId, toolCallId: "t1",
-      threadId: t, groupBy: { todo: "city" },
-    })).json()).toEqual({ ok: true, done: true });
-
-    const row = await db
-      .selectFrom("threads").select("attrs").where("id", "=", t).executeTakeFirstOrThrow();
-    expect(readPreference(row.attrs)).toEqual({ groupBy: { todo: "city" } });
   });
 
   it("refuses a thread the account is not in", async () => {

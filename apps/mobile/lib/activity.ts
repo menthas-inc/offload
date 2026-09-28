@@ -6,7 +6,7 @@
 // decided here once so the screen only draws.
 
 import { activityGlyph, activityTag, type ActivityKind, type ActivityReason } from "@offload/widgets";
-import { fetchActivity, markActivitySeen } from "./api";
+import { fetchActivity, markActivitySeen, send } from "./api";
 
 export type { ActivityKind };
 export type Reason = ActivityReason;
@@ -23,6 +23,9 @@ export interface ActivityEntry {
   contentId: string | null;
   memberId: string | null;
   requestId: string | null;
+  /** 025. A labelled row's Undo is offered while this is true. */
+  undoable: boolean;
+  undone: boolean;
   occurredAt: string;
 }
 
@@ -62,6 +65,8 @@ export function doorOf(row: ActivityEntry): Door | null {
     case "shared_activity":
     case "moved":
     case "acted":
+    // 025. A sort opens the thread it sorted.
+    case "labelled":
       return row.threadId ? { pathname: "/threads/[id]", params: { id: row.threadId } } : null;
     default:
       return null;
@@ -82,4 +87,16 @@ export function whenOf(occurredAt: string, section: "Today" | "Yesterday" | "Ear
   const at = new Date(occurredAt);
   if (section === "Earlier") return new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: zone ?? undefined }).format(at);
   return new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", timeZone: zone ?? undefined }).format(at);
+}
+
+export type UndoOutcome = "undone" | "refused" | "failed";
+
+/** 025. Undo on a labelled row: the sort taken back, for every member.
+ *  Refused means it cannot happen, because another member undid it or its
+ *  thirty days are over, so the row is drawn Undone rather than offered
+ *  again. */
+export async function undoActivity(id: string): Promise<UndoOutcome> {
+  const { status } = await send<{ undone: true }>(`/v1/activity/${id}/undo`, { method: "POST" });
+  if (status >= 200 && status < 300) return "undone";
+  return status === 409 ? "refused" : "failed";
 }

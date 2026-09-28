@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "22 September 2026";
+const UPDATED = "28 September 2026";
 
 function Todo({ children }: { children: ReactNode }) {
   return <span className={styles.todo}>{children}</span>;
@@ -149,8 +149,8 @@ export default function Privacy() {
           <h3 className={styles.h3}>What offload makes from it</h3>
           <ul>
             <li>
-              The <strong>threads</strong> what you upload is sorted into, and the tags, dates and
-              amounts pulled out of it.
+              The <strong>threads</strong> what you upload is sorted into, the <strong>labels</strong> it is grouped under,
+              and the dates and amounts pulled out of it.
             </li>
             <li>
               <strong>Transcripts</strong> of your voice notes, and <strong>what a photo or a
@@ -639,7 +639,15 @@ export default function Privacy() {
               rule below holds here too, and nobody deletes what somebody else wrote.
             </li>
             <li>
-              <strong>Anything you delete: immediately, then 30 days.</strong> It goes from the live
+              <strong>Labels: a deleted one for 30 days, and a record of what you took off.</strong>{" "}
+              A label you delete is hidden straight away and kept for 30 days so offload does not
+              make it again, then it is gone; Undo brings it back in the moment you delete it. When
+              you take a label off something, offload keeps a record that you did, with no name or
+              words in it, so it never puts that label back. The record goes when the label, or what
+              it was on, is gone for good, inside the 30 days above.
+            </li>
+            <li>
+              <strong>Anything else you delete: immediately, then 30 days.</strong> It goes from the live
               database and from file storage as soon as you ask. Our backups, which exist so a bad
               day is recoverable, roll over within 30 days, and after that it is gone from those
               too.
@@ -688,7 +696,8 @@ export default function Privacy() {
             grants nothing beyond having been the first one in it. Anyone in a shared thread can
             bring one of their connections into it, and anyone in it can take another member out.
             Nobody, including you, can delete what somebody else wrote while that person is still
-            in the thread. That symmetry is the point: the protection you give up over your own
+            in the thread, with one exception: a label belongs to the thread, so any member can
+            rename or delete one. That symmetry is the point: the protection you give up over your own
             contribution is exactly the protection you get over everybody else&rsquo;s, and the
             same is true of the power to take somebody out.{" "}
             <strong>

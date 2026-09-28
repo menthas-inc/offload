@@ -1,0 +1,200 @@
+{
+  "statement": "offload puts a row under a label only when the row plainly belongs there: a label the thread already has, by id, or one they name, made from their own words. It never invents a label, never labels what belongs to none, and never uses one thread's label in another.",
+  "why": "025. A label a person did not ask for, or a wrong one, is a correction they have to make; an unlabelled row costs nothing and the nightly sort gets another look.",
+  "sources": [
+    "apps/agent/src/offload_agent/prompts/plan_v2.md",
+    "apps/agent/src/offload_agent/harness/tools.py"
+  ],
+  "cases": [
+    {
+      "surface": "file",
+      "context": "behrooz",
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "labels": [
+        {
+          "id": "000000a1-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Lisbon"
+        },
+        {
+          "id": "000000a2-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Paris"
+        },
+        {
+          "id": "000000a3-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Istanbul"
+        }
+      ],
+      "id": "files-under-the-city-it-names",
+      "why": "a dump that names a city the thread has a label for goes under it",
+      "input": "hammam near sultanahmet in istanbul, book ahead",
+      "expect": {
+        "called": [
+          "add_content",
+          "label_content"
+        ],
+        "before": [
+          [
+            "add_content",
+            "label_content"
+          ]
+        ],
+        "calls_with": [
+          {
+            "tool": "label_content",
+            "args": {
+              "add": [
+                "000000a3-0000-0000-0000-000000000000"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "surface": "file",
+      "context": "behrooz",
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "labels": [
+        {
+          "id": "000000a1-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Lisbon"
+        },
+        {
+          "id": "000000a2-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Paris"
+        },
+        {
+          "id": "000000a3-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Istanbul"
+        }
+      ],
+      "id": "files-under-the-city-it-plainly-belongs-to",
+      "why": "the Louvre is Paris even when the dump does not say Paris",
+      "input": "louvre tickets for the thursday",
+      "expect": {
+        "called": [
+          "label_content"
+        ],
+        "calls_with": [
+          {
+            "tool": "label_content",
+            "args": {
+              "add": [
+                "000000a2-0000-0000-0000-000000000000"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "surface": "file",
+      "context": "behrooz",
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "labels": [
+        {
+          "id": "000000a1-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Lisbon"
+        },
+        {
+          "id": "000000a2-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Paris"
+        },
+        {
+          "id": "000000a3-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Istanbul"
+        }
+      ],
+      "id": "nothing-to-label",
+      "why": "a dump that belongs to none of the labels is filed and left unlabelled",
+      "input": "check the travel insurance covers all three countries",
+      "expect": {
+        "not_called": [
+          "label_content"
+        ]
+      }
+    },
+    {
+      "surface": "file",
+      "context": "behrooz",
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "labels": [
+        {
+          "id": "000000a1-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Lisbon"
+        },
+        {
+          "id": "000000a2-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Paris"
+        },
+        {
+          "id": "000000a3-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Istanbul"
+        }
+      ],
+      "id": "makes-the-label-they-name",
+      "why": "a label they name that does not exist yet is made with new",
+      "input": "ferry to the islands on tuesday, put it under Boats",
+      "expect": {
+        "called": [
+          "label_content"
+        ]
+      }
+    },
+    {
+      "surface": "file",
+      "context": "behrooz",
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "id": "never-invents-a-label",
+      "why": "with no labels in the thread, nothing is made that they did not name",
+      "input": "hammam near sultanahmet, book ahead",
+      "expect": {
+        "not_called": [
+          "label_content"
+        ]
+      }
+    },
+    {
+      "surface": "file",
+      "context": "behrooz",
+      "looking_at": "00000011-0000-0000-0000-000000000000",
+      "labels": [
+        {
+          "id": "000000a1-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Lisbon"
+        },
+        {
+          "id": "000000a2-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Paris"
+        },
+        {
+          "id": "000000a3-0000-0000-0000-000000000000",
+          "threadId": "00000011-0000-0000-0000-000000000000",
+          "name": "Istanbul"
+        }
+      ],
+      "id": "no-label-for-another-thread",
+      "why": "a dump filed elsewhere carries none of this thread's labels",
+      "input": "add oat milk to groceries",
+      "expect": {
+        "not_called": [
+          "label_content"
+        ]
+      }
+    }
+  ]
+}

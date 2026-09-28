@@ -17,7 +17,7 @@ import { addUtcDays, dayIn } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { useClock } from "../../lib/clock";
 import { refreshMe } from "../../lib/use-me";
-import { doorOf, fetchActivity, glyphOf, markActivitySeen, tagOf, type ActivityEntry } from "../../lib/notifications";
+import { doorOf, fetchActivity, glyphOf, markActivitySeen, tagOf, undoActivity, type ActivityEntry } from "../../lib/notifications";
 import pane from "../../app/(shell)/shell.module.css";
 
 function sectionOf(day: string, today: string, yesterday: string): "Today" | "Yesterday" | "Earlier" {
@@ -44,6 +44,19 @@ export function ActivityPane() {
       live = false;
     };
   }, []);
+
+  /** 025. A sort taken back. Drawn first, written second, put back with the
+   *  one clause if the server refuses. */
+  async function undo(row: ActivityEntry): Promise<void> {
+    const draw = (undone: boolean) =>
+      setRows((held) => (held ?? []).map((one) => (one.id === row.id ? { ...one, undone, undoable: !undone } : one)));
+    draw(true);
+    if ((await undoActivity(row.id)) === "failed") {
+      draw(false);
+      setLine(row.id);
+    }
+  }
+  const [line, setLine] = useState<string | null>(null);
 
   async function more(): Promise<void> {
     if (!next) return;
@@ -96,19 +109,30 @@ export function ActivityPane() {
                     </span>
                     {row.body ? <span className={pane.actBody}>{row.body}</span> : null}
                     {tag ? <span className={`${pane.actTag} ${tag.tone === "quiet" ? pane.actTagQuiet : ""}`}>{tag.label}</span> : null}
+                    {line === row.id ? <span className={pane.actFailed}>Couldn&apos;t undo that</span> : null}
                   </span>
                 </>
               );
+              // 025. Undo is its own control beside the row, never inside the
+              // row's press, which opens the thread.
+              const undoControl = row.undoable ? (
+                <button type="button" className={pane.actUndo} onClick={() => void undo(row)}>
+                  Undo
+                </button>
+              ) : null;
               return (
                 <div key={row.id}>
                   {heading ? <h2 className={pane.actGroup}>{here}</h2> : null}
-                  {door ? (
-                    <Link href={door} className={pane.actRow}>
-                      {body}
-                    </Link>
-                  ) : (
-                    <div className={pane.actRow}>{body}</div>
-                  )}
+                  <div className={undoControl ? pane.actWithUndo : undefined}>
+                    {door ? (
+                      <Link href={door} className={pane.actRow}>
+                        {body}
+                      </Link>
+                    ) : (
+                      <div className={pane.actRow}>{body}</div>
+                    )}
+                    {undoControl}
+                  </div>
                 </div>
               );
             })}
