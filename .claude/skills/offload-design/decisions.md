@@ -11,6 +11,26 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-27 · Labels, as built
+**Surface:** iOS, Android, web
+
+**Is:** the handoff of 26 September built on all three surfaces: `LabelMark` on the row's marks line after the date chip; the `tag` tool on every unlabelled row; the label sheet (a popover on the web); the label's list (a full-height sheet on iOS, a Material bottom sheet on Android, a modal on the web) with Rename, Colour and Delete; the filter bar with either logic, a picked chip in its own colour, No label, the pinned `plus`, and *Group with labels* at six rows; `#` in the composer; the turn footer's marks; Today's marks after the thread's name; the `labelled` row in Activity with Undo.
+
+**Where the code diverged, and why.**
+- **The copy says no noun.** *Seven things labelled.* is *Seven labelled.*, *Packing list is Istanbul* is *Packing list is under Istanbul*, and the composer's list shows a label's count without "things": "thing" is retired from anything a person reads, and "is Istanbul" read as a rename.
+- **The tag tool sits first among a row's tools**, on every unlabelled row including another member's and a link's (before `arrow-up-right`), where the handoff said "beside the pencil": the phones draw no pencil on another member's row, which would have left labels unreachable there. It is not drawn on Today, which has no thread to label under.
+- **Targets.** Every label control reaches 44px tall by a hit area with no paint, and across only as far as the gap to its neighbour allows, touching and never overlapping. The web's row tools stay 32px and sit 4px apart: 44 tall by 36 wide. The phones' tools sit 16px apart, so their slop is 8 either side and 14 above and below: 45 tall by 33 wide; they were 33 by 33. A pressed `LabelMark` is 44 tall on both, 2px of reach either side; the web's `pencil` on a picked chip is 44 by 33. The phones' Rename, Colour and Delete are 44. Neither platform reaches 44 across on the row tools without the row's tools spreading apart, which the kit does not draw; that is the open call.
+- **The turn footer's mark is 30px**, the footer's own height, where the handoff said 24, and is capped at three and a count as the sources are. `LabelMark` gains `size={30}`.
+- **Timeline.** offload's own dated rows are drawn on the timeline as the thread's rows, so they carry their marks; a calendar's events keep their anchor in the calendar's colour and carry no labels. There is no neutral block for a dot to lead, so nothing else changed there. The rail keeps its type dots and narrows with the filter rather than drawing up to three label dots: one dot meaning two things is worse than either.
+- **The map is not built**; there is no map provider. The web's Places widget draws its pins as before, not in label colours.
+- **Holding a chip** opens its list on the phones; the web has three equivalents: the chip's context menu (right click, the context menu key, Shift+F10), a long press on a touch screen, and on a picked chip a small `pencil` beside it in the chip's colour.
+- **No fade under the pinned `plus`**; it sits on the page's ground (`--pane-ground` on the web, so it matches whichever pane it is in).
+- **A taken colour swaps.** The Colour picker marks a taken colour with its label's initial and picking it swaps the two, so the picker is never inert at ten. A new label's list shows no colour picker; it takes the lowest free colour.
+- **Empty filter line**: *Nothing under Lisbon yet.*, or *Nothing without a label yet.* for No label alone.
+- **The phone chip** is one face (`ChipFace`) shared by `Chip` and the filter bar's label chip, because holding needs a prop outside `Chip`'s contract.
+
+**Design system impact:** `LabelMark` gains `size={30}` for the turn footer. The readme's Labels section wants: the no-noun copy above; "first among the tools" for the tag tool and the note that Today draws none; the timeline and rail sentences replaced by what is written above; the pin rule marked as waiting on a map; the web's three ways to hold; no fade; the colour swap; the empty filter line. The `Chip` prompt's filter bar line drops the fade and gains the web's `pencil` on a picked label chip. The kits' `ContentRow`, `TurnFooter`, Activity row and Today row want the marks, the tool order and the footer's 30px mark drawn.
+
 ### 2026-09-26 · The lead and the tools sit on the title line
 **Surface:** iOS, Android, web
 

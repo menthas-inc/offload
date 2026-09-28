@@ -14,7 +14,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [x] **T1.3 Agent.** Tests: `AddContent`/`EditContent`/`SetThreadPreference` have no `tags`/`group_by`; the tool definition guard still passes and prints the new total. Then remove them, the filing prompt's tag lines, and rewrite or remove the eval cases asserting tags (not run). Correct `embed_jobs.py:105`'s comment. *(AC-30, OFF-8)*
 - [x] **T1.4 Web.** Test: a widget row's meta carries no bare tags. Then remove it and `groupBy` from `Widgets.tsx` and `lib/threads.ts`. *(AC-30)*
 - [x] **T1.5 Mobile.** Test: `Widgets.tsx` takes no `groupBy`. Then remove it from `Widgets.tsx`, `screens/Thread.tsx`, `lib/threads.ts`. *(AC-30)*
-- [ ] **T1.6 Docs, on main after merge.** `docs/tech/decisions.md`: the entry retiring 007's grouping and 006's tags. 006 AC-8, 007 and 018 feature specs get a dated "retired by 025" line. *(DEV-2, AC-34)*
+- [x] **T1.6 Docs, on main after merge.** `docs/tech/decisions.md`: the entry retiring 007's grouping and 006's tags. 006 AC-8, 007 and 018 feature specs get a dated "retired by 025" line. *(DEV-2, AC-34)*
 
 ## 2. The person's labels
 
@@ -61,7 +61,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 ### Close of part 2
 
 - [x] **T2.29** Privacy page line and updated date, as confirmed in T0.2. *(AC-34)*
-- [~] **T2.30** Design log entries from the feature spec, each with its Design system impact, and `docs/tech/decisions.md`'s labels entry, on main after merge. *(OFF-7, AC-34)*
+- [x] **T2.30** Design log entries from the feature spec, each with its Design system impact, and `docs/tech/decisions.md`'s labels entry, on main after merge. *(OFF-7, AC-34)*
 
 ## 3. Live filing (offload track)
 
@@ -85,7 +85,7 @@ Every task starts with its failing test, run and seen red for the reason the tas
 - [x] **T4.5 API.** `POST /v1/activity/:id/undo`: own row, `labelled`, under thirty days, not undone, caller still a member; reverts only untouched joins and labels; sets `undone_at` on every member's row. Tests including a person's later edit surviving the Undo and a removed member being refused. *(AC-28, SEC-2)*
 - [x] **T4.6 API.** Purge `label_runs` with Activity's sweep; a row whose run is gone cannot be undone. Tests. *(AC-28)*
 - [x] **T4.7 Mobile and Web.** The `labelled` Activity row: hollow lead, `tag`, Undo as its own 44px control outside the row's press, *Undone* in the tag slot from `undone_at`. Tests on both. *(AC-27, AC-28)*
-- [ ] **T4.8 Docs, on main after merge.** The OFF-6 allowlist entry for labels beside the 2026-09-10 compaction entry; 024's AC-18 narrowed in its feature spec. *(OFF-6, DEV-2, AC-34)*
+- [x] **T4.8 Docs, on main after merge.** The OFF-6 allowlist entry for labels beside the 2026-09-10 compaction entry; 024's AC-18 narrowed in its feature spec. *(OFF-6, DEV-2, AC-34)*
 
 *T1.6, T2.30 and T4.8 are written in `at-merge.md` and land on `main` with the merge, since both decision logs are shared state.*
 

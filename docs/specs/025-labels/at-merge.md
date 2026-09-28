@@ -1,5 +1,7 @@
 # 025, at merge
 
+**Landed 2026-09-28 in the labels PR itself**, as the last commit before merge.
+
 The entries below go on `main` in the same change as the merge, per tasks T1.6, T2.30 and T4.8: four in `docs/tech/decisions.md`, one in `.claude/skills/offload-design/decisions.md`. Written here because both logs are shared state edited on `main` only.
 
 ## docs/tech/decisions.md
