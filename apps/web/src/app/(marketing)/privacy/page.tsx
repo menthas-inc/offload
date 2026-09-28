@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "27 September 2026";
+const UPDATED = "28 September 2026";
 
 function Todo({ children }: { children: ReactNode }) {
   return <span className={styles.todo}>{children}</span>;
@@ -640,11 +640,11 @@ export default function Privacy() {
             </li>
             <li>
               <strong>Labels: a deleted one for 30 days, and a record of what you took off.</strong>{" "}
-              A label you delete is hidden straight away and kept for 30 days, so Undo can bring it
-              back and offload does not make it again, then it is gone. When you take a label off
-              something, offload keeps a record that you did, with no name or words in it, so it
-              never puts that label back. The record goes when the label, or what it was on, is
-              deleted.
+              A label you delete is hidden straight away and kept for 30 days so offload does not
+              make it again, then it is gone; Undo brings it back in the moment you delete it. When
+              you take a label off something, offload keeps a record that you did, with no name or
+              words in it, so it never puts that label back. The record goes when the label, or what
+              it was on, is gone for good, inside the 30 days above.
             </li>
             <li>
               <strong>Anything else you delete: immediately, then 30 days.</strong> It goes from the live
@@ -696,7 +696,8 @@ export default function Privacy() {
             grants nothing beyond having been the first one in it. Anyone in a shared thread can
             bring one of their connections into it, and anyone in it can take another member out.
             Nobody, including you, can delete what somebody else wrote while that person is still
-            in the thread. That symmetry is the point: the protection you give up over your own
+            in the thread, with one exception: a label belongs to the thread, so any member can
+            rename or delete one. That symmetry is the point: the protection you give up over your own
             contribution is exactly the protection you get over everybody else&rsquo;s, and the
             same is true of the power to take somebody out.{" "}
             <strong>

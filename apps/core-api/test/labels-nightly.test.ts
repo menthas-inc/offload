@@ -20,7 +20,7 @@ import { buildApp, type App } from "../src/app.js";
 import { handlers, NIGHTLY_LABEL_SORT, sortableThreads } from "../src/jobs/handlers.js";
 import { MemoryMailer } from "../src/mail/mailer.js";
 import { applyLabels, contentLabelsFor, createLabel, deleteLabel, labelsOfThread } from "../src/threads/labels.js";
-import { account, as, join, row, signIn, thread, wipe } from "./labels-kit.js";
+import { account, as, dump, join, row, signIn, thread, tool, wipe } from "./labels-kit.js";
 
 await migrate(() => {});
 
@@ -170,6 +170,17 @@ describe("the sort's plan (AC-25, AC-26, AC-27)", () => {
     expect(await labelsOfThread(t)).toEqual([]);
   });
 
+  it("writes nothing for a job that is not running", async () => {
+    const me = await account();
+    const t = await thread(me);
+    const [ferry] = await sixRows(me, t);
+    const job = await sortJob(me, t);
+    await db.updateTable("jobs").set({ state: "dead" }).where("id", "=", job.id).execute();
+    const response = await sorted({ jobId: job.id, create: [{ name: "Istanbul", contentIds: [ferry] }], apply: [] });
+    expect(response.json()).toEqual({ created: 0, applied: 0 });
+    expect(await db.selectFrom("label_runs").select("id").execute()).toHaveLength(0);
+  });
+
   it("does nothing for a job already done", async () => {
     const me = await account();
     const t = await thread(me);
@@ -247,6 +258,15 @@ describe("Undo from Activity (AC-28)", () => {
     expect((await contentLabelsFor([ferry])).get(ferry)).toBeUndefined();
     expect((await contentLabelsFor([hammam])).get(hammam)).toEqual([istanbul.id]);
     expect((await labelsOfThread(t)).map((l) => l.name)).toEqual(["Istanbul"]);
+  });
+
+  it("keeps offload from making a label its Undo took back", async () => {
+    const { me, t, ferry, activityId } = await sortedThread();
+    await as(app, await signIn(me)).post(`/v1/activity/${activityId}/undo`);
+    const { jobId } = await dump(me, "ferry, istanbul");
+    const again = await tool(app, { tool: "label_content", jobId, toolCallId: "l1", contentIds: [ferry], add: [], new: ["Istanbul"], remove: [] });
+    expect(again.json()).toEqual({ ok: false, error: "person_deleted" });
+    expect(await labelsOfThread(t)).toEqual([]);
   });
 
   it("refuses somebody else's row, a member who left, and a row past thirty days", async () => {

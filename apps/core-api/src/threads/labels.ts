@@ -822,9 +822,11 @@ export async function undoRun(trx: Executor, runId: string): Promise<{ joins: nu
     joins += Number(set.numDeletedRows) + Number(back.numUpdatedRows);
   }
 
+  // deleted_by_person, because pressing Undo is a person taking it back:
+  // offload does not make the name again for the thirty days it is kept.
   const made = await trx
     .updateTable("labels")
-    .set({ deleted_at: sql`now()`, purge_after: sql`now() + make_interval(days => ${LABEL_KEPT_DAYS})`, updated_at: sql`now()` })
+    .set({ deleted_at: sql`now()`, deleted_by_person: run.set_by === "offload", purge_after: sql`now() + make_interval(days => ${LABEL_KEPT_DAYS})`, updated_at: sql`now()` })
     .where("run_id", "=", runId)
     .where("deleted_at", "is", null)
     .where("touched_by_person_at", "is", null)

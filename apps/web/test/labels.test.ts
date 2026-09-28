@@ -179,9 +179,16 @@ describe("the privacy page says labels (AC-34)", () => {
     // line no longer claims everything.
     expect(page).toMatch(/<strong>Labels: a deleted one for 30 days/);
     expect(page).toMatch(/Anything else you delete: immediately, then 30 days\./);
+    // A label is the thread's: the page's rule about what somebody else wrote
+    // says so rather than being quietly untrue for a label's name. Undo is the
+    // moment of the delete; the thirty days are the keeping.
+    const said = page.replace(/\s+/g, " ");
+    expect(said).toMatch(/a label belongs to the thread, so any member can rename or delete one/);
+    expect(said).toMatch(/Undo brings it back in the moment you delete it/);
+    expect(said).toMatch(/is gone for good, inside the 30 days above/);
     const updated = /const UPDATED = "(\d+) September 2026"/.exec(page)?.[1];
     const version = /CONSENT_VERSION = "2026-09-(\d+)"/.exec(session)?.[1];
-    expect(updated).toBe("27");
-    expect(version).toBe("27");
+    expect(updated).toBe("28");
+    expect(version).toBe("28");
   });
 });
