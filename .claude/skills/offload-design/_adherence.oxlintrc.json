@@ -114,8 +114,8 @@
         "message": "<Checkbox> shape must be one of 'rounded' | 'circle'."
       },
       {
-        "selector": "JSXOpeningElement[name.name='Chip'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|icon|selected|tone|disabled|onClick|hitArea|onRemove|style|key|ref|className|style|children)$/]",
-        "message": "<Chip> doesn't accept that prop. Declared props: children, icon, selected, tone, disabled, onClick, hitArea, onRemove, style."
+        "selector": "JSXOpeningElement[name.name='Chip'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|icon|label|selected|tone|disabled|onClick|hitArea|onRemove|style|key|ref|className|style|children)$/]",
+        "message": "<Chip> doesn't accept that prop. Declared props: children, icon, label, selected, tone, disabled, onClick, hitArea, onRemove, style."
       },
       {
         "selector": "JSXOpeningElement[name.name='Chip'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:neutral|accent|attention|warning|danger|outline)$/]",
@@ -148,6 +148,10 @@
       {
         "selector": "JSXOpeningElement[name.name='IconButton'] > JSXAttribute[name.name='shape'] > Literal[value!=/^(?:circle|rounded)$/]",
         "message": "<IconButton> shape must be one of 'circle' | 'rounded'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='LabelMark'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|color|size|onClick|onRemove|style|key|ref|className|style|children)$/]",
+        "message": "<LabelMark> doesn't accept that prop. Declared props: children, color, size, onClick, onRemove, style."
       },
       {
         "selector": "JSXOpeningElement[name.name='ListRow'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|meta|body|leading|trailing|reorder|dragging|over|chevron|selected|onClick|border|style|key|ref|className|style|children)$/]",
@@ -308,6 +312,9 @@
       "IconButton": {
         "replaces": []
       },
+      "LabelMark": {
+        "replaces": []
+      },
       "ListRow": {
         "replaces": []
       },
@@ -424,6 +431,16 @@
       "--ink-800",
       "--ink-900",
       "--ink-950",
+      "--label-1",
+      "--label-10",
+      "--label-2",
+      "--label-3",
+      "--label-4",
+      "--label-5",
+      "--label-6",
+      "--label-7",
+      "--label-8",
+      "--label-9",
       "--leading-body",
       "--leading-display",
       "--leading-tight",
@@ -492,17 +509,20 @@
       "--state-hover",
       "--state-press",
       "--state-selected",
+      "--surface-accent",
       "--surface-accent-soft",
       "--surface-attention",
       "--surface-attention-soft",
       "--surface-card",
       "--surface-chrome",
       "--surface-chrome-strong",
+      "--surface-danger-soft",
       "--surface-fill",
       "--surface-fill-strong",
       "--surface-input",
       "--surface-inverse",
       "--surface-noticed",
+      "--surface-noticed-soft",
       "--surface-page",
       "--surface-plate",
       "--surface-raised",
@@ -600,6 +620,8 @@
       "--surface-attention-soft": "color",
       "--surface-attention": "color",
       "--surface-noticed": "color",
+      "--surface-noticed-soft": "color",
+      "--surface-danger-soft": "color",
       "--surface-scrim": "color",
       "--surface-scrim-soft": "color",
       "--surface-chrome": "color",
@@ -624,6 +646,17 @@
       "--shadow-2": "shadow",
       "--shadow-3": "shadow",
       "--shadow-sheet": "shadow",
+      "--label-1": "color",
+      "--label-2": "color",
+      "--label-3": "color",
+      "--label-4": "color",
+      "--label-5": "color",
+      "--label-6": "color",
+      "--label-7": "color",
+      "--label-8": "color",
+      "--label-9": "color",
+      "--label-10": "color",
+      "--surface-accent": "color",
       "--font-core": "font",
       "--font-quiet": "font",
       "--weight-regular": "font",

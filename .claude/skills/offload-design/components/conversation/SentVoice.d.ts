@@ -7,7 +7,7 @@
  * and a bar is a fixed slice of time. Never the composer's live window, and never a drawn
  * sine: a sine is a picture of a different recording.
  *
- * **The glyph says what pressing it does**, `play` at rest, `pause` while playing. A
+ * **The glyph says what pressing it does** — `play` at rest, `pause` while playing. A
  * microphone there says record, which is the composer's job and not this row's.
  *
  * **The remainder recedes only while playing.** Played bars are `--text-attention` and the
@@ -24,7 +24,7 @@ export interface SentVoiceProps {
   waveform?: number[];
   /** What offload heard. Empty string when there was nothing to hear. */
   transcript?: string;
-  /** Whether offload has listened yet. Until then no transcript line is drawn at all, an
+  /** Whether offload has listened yet. Until then no transcript line is drawn at all — an
    *  empty line under the bars reads as a transcript that lost its words. */
   transcribed?: boolean;
   playing?: boolean;
