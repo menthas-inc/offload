@@ -108,16 +108,16 @@ export function useAppearance(): Appearance {
   const [read, setRead] = useState(false);
 
   useEffect(() => {
-    const read = (): void => {
+    const sync = (): void => {
       setThemeState(storedTheme());
       setSizeState(storedSize());
       setWeekStartState(storedWeekStart());
       setRead(true);
     };
-    read();
+    sync();
 
-    window.addEventListener(CHANGED, read);
-    window.addEventListener("storage", read);
+    window.addEventListener(CHANGED, sync);
+    window.addEventListener("storage", sync);
 
     // Following the device means following it while the app is open, not only
     // at load: somebody whose phone turns dark at sunset should see this do it.
@@ -128,8 +128,8 @@ export function useAppearance(): Appearance {
     media.addEventListener("change", repaint);
 
     return () => {
-      window.removeEventListener(CHANGED, read);
-      window.removeEventListener("storage", read);
+      window.removeEventListener(CHANGED, sync);
+      window.removeEventListener("storage", sync);
       media.removeEventListener("change", repaint);
     };
   }, []);
