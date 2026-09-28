@@ -84,22 +84,25 @@ export function RowEditSheet({
         entering={FadeInDown.duration(220)}
         exiting={FadeOut.duration(140)}
         className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
+        // The heading is gone, so the sheet carries the name a screen reader
+        // announces, and keeps it from reaching the screen behind.
+        accessibilityViewIsModal
+        accessibilityLabel="Edit"
       >
         {/* Bounded and scrolling, because at a large text size on a small
             phone the fields and the pills together outgrow the sheet, and a
             sheet that clips is one whose Save cannot be reached. */}
         <ScrollView style={{ maxHeight: windowHeight * 0.8 }} keyboardShouldPersistTaps="handled">
-        <Text className={`font-core font-semibold ${rowInk}`} style={{ fontSize: 17 }}>
-          Edit
-        </Text>
+        {/* No heading: the title field is larger and in the primary ink, the
+            details a step smaller and quieter, so the two say which is which. */}
         <TextInput
           value={title}
           onChangeText={setTitle}
           autoFocus
           placeholder="What is it?"
           placeholderTextColor={COLOR.iconOnWell}
-          className={`mt-space-3 rounded-sm border border-border-hairline px-space-4 py-space-3 font-core ${rowInk}`}
-          style={{ fontSize: 15 }}
+          accessibilityLabel="Title"
+          className={`rounded-sm border border-border-hairline px-space-4 py-space-3 font-core font-semibold text-title-3 ${rowInk}`}
           returnKeyType="done"
         />
         <TextInput
@@ -108,8 +111,9 @@ export function RowEditSheet({
           placeholder="Add details"
           placeholderTextColor={COLOR.iconOnWell}
           multiline
-          className={`mt-space-2 rounded-sm border border-border-hairline px-space-4 py-space-3 font-core ${rowInk}`}
-          style={{ fontSize: 15, minHeight: 44, maxHeight: 96 }}
+          accessibilityLabel="Details"
+          className={`mt-space-2 rounded-sm border border-border-hairline px-space-4 py-space-3 font-core text-body-sm ${quiet}`}
+          style={{ minHeight: 44, maxHeight: 96 }}
         />
 
         {/* When and Repeats carry their values and open the same sheet, which
