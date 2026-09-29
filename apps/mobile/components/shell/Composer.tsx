@@ -167,6 +167,7 @@ export function Composer({
   maxLength,
   showCounter,
   submitLabel = "Send",
+  inSheet = false,
 }: {
   placeholder?: string | undefined;
   /** A `+`'s own cap, e.g. a note's 200. Absent for an ordinary dump, which
@@ -177,6 +178,11 @@ export function Composer({
   /** What the control that submits actually does. "Send" describes a dump;
    *  a `+`'s own write earns its own word. */
   submitLabel?: string;
+  /** The conversation sheet's composer rather than the plate's. Both are
+   *  mounted at once since 30 September, one covering the other, so the
+   *  things only one of them should do (focus for a pin or a share, ride the
+   *  plate's keyboard lift) key on this. */
+  inSheet?: boolean;
 }) {
   const COLOR = useColors();
   const {
@@ -205,7 +211,14 @@ export function Composer({
     pickHash,
     composerFocused,
     sheetClosedAt,
+    raised,
+    live,
+    raise,
   } = useConversation();
+  // The field that is on screen: the sheet's while it is up, the plate's
+  // while it is not.
+  const onTop = inSheet === raised;
+  const redirect = !inSheet && !raised && !pin && live !== null;
   const holdsNote = !pin && (recording || note !== null);
   // 022. The @ list, while the draft ends in an @ token and not while a +
   // is pinned: a + is one line into a section, never a person.
@@ -233,20 +246,23 @@ export function Composer({
   // keyboard that opens itself takes the page away from somebody who was
   // reading it.
   useEffect(() => {
+    if (!inSheet) return;
     if (pin) field.current?.focus();
     // And put the keyboard away when the pin goes, whether it was written or
     // dismissed. A + is one line and then you are done; leaving the keyboard up
     // over the ordinary composer invites a dump nobody meant to send.
     else field.current?.blur();
-  }, [pin]);
+  }, [pin, inSheet]);
 
   // 020. A share from another app: the chips are in, the sheet is open, and
   // the words come next, so the field takes focus and the keyboard comes up.
   // A tick later, since the sheet may be mounting on the same frame; and not
   // before the app is in front, because a share arrives while the sharing
   // app still is, and a focus given then raises no keyboard.
+  const onTopNow = useRef(onTop);
+  onTopNow.current = onTop;
   useEffect(() => {
-    if (focusRequest === 0) return;
+    if (focusRequest === 0 || !onTopNow.current) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let sub: { remove: () => void } | null = null;
     const focus = () => {
@@ -368,10 +384,12 @@ export function Composer({
               field.current?.blur();
               return;
             }
-            composerFocused.value = 1;
+            // The plate rides its own field's keyboard; the sheet's composer
+            // rides the keyboard inside the sheet.
+            if (!inSheet) composerFocused.value = 1;
           }}
           onBlur={() => {
-            composerFocused.value = 0;
+            if (!inSheet) composerFocused.value = 0;
           }}
           multiline
           maxLength={maxLength}
@@ -481,6 +499,22 @@ export function Composer({
             </Pressable>
           </View>
         </View>
+
+        {/* A conversation put away is brought back by the composer (30
+            September 2026): a tap anywhere in the plate's pill raises the
+            sheet with the keyboard, into the same turns and the same draft.
+            One put away for thirty minutes has ended by then, and the tap
+            lands in this field instead. */}
+        {redirect ? (
+          <Pressable
+            style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
+            onPress={() => {
+              if (!raise({ focus: true })) field.current?.focus();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Back to the conversation"
+          />
+        ) : null}
       </View>
 
       {line ? (

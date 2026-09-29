@@ -19,7 +19,7 @@ import { useShareIntent } from "expo-share-intent";
 import { useConversation } from "./conversation-context";
 
 export function ShareArrival() {
-  const { addPhotos, raise } = useConversation();
+  const { addPhotos } = useConversation();
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntent({
     // A share that arrived while the app was in the background should still
     // be in the composer when it comes forward.
@@ -43,12 +43,11 @@ export function ShareArrival() {
         })),
         "share",
       );
-      raise();
     }
     // Text and links from the share sheet are out until they are specced:
     // the extension is configured for images, and anything else is dropped.
     resetShareIntent();
-  }, [hasShareIntent, shareIntent, addPhotos, raise, resetShareIntent]);
+  }, [hasShareIntent, shareIntent, addPhotos, resetShareIntent]);
 
   return null;
 }

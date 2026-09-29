@@ -10,12 +10,10 @@
 // the drawn sheet unbounded.
 
 import { Platform, Pressable, Text, View } from "react-native";
-import Animated from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glyph } from "../Glyph";
-import { atOpacity, useColors } from "../../lib/colors";
-import { useScreenSheet } from "../shell/conversation-context";
+import { useColors } from "../../lib/colors";
+import { DragSheet } from "../shell/DragSheet";
 
 const isAndroid = Platform.OS === "android";
 
@@ -59,7 +57,6 @@ export function ConfirmSheet({
 }) {
   const COLOR = useColors();
   const insets = useSafeAreaInsets();
-  useScreenSheet(open);
   if (!open) return null;
 
   const shown = rows.slice(0, 2);
@@ -67,22 +64,11 @@ export function ConfirmSheet({
 
   return (
     <>
-      <Animated.View
-        entering={scrimIn()}
-        exiting={scrimOut()}
-        className="absolute inset-0"
-        style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
-      >
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
-      </Animated.View>
-      <Animated.View
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 px-gutter-screen pt-space-6 ${
-          isAndroid ? "rounded-t-a-xl bg-a-c" : "rounded-t-lg bg-surface-raised"
-        }`}
+      <DragSheet
+        onClose={onClose}
+        surface={isAndroid ? "rounded-t-a-xl bg-a-c" : "rounded-t-lg bg-surface-raised"}
+        className="px-gutter-screen pt-space-2"
         style={{ paddingBottom: insets.bottom + 12 }}
-        accessibilityViewIsModal
       >
         <Text
           className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
@@ -174,7 +160,7 @@ export function ConfirmSheet({
             </Text>
           </Pressable>
         </View>
-      </Animated.View>
+      </DragSheet>
     </>
   );
 }

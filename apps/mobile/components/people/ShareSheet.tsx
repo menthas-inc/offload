@@ -15,16 +15,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Platform, Pressable, Text, TextInput, View } from "react-native";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { Glyph } from "../Glyph";
 import { Avatar } from "../Avatar";
 import { ConfirmSheet } from "./ConfirmSheet";
-import { atOpacity, useColors } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import {
   dayMonth,
   fetchShareSheet,
@@ -36,7 +33,7 @@ import {
   type ShareRefusal,
   type ShareSheet as Sheet,
 } from "../../lib/people";
-import { useScreenSheet } from "../shell/conversation-context";
+import { DragSheet } from "../shell/DragSheet";
 
 const isAndroid = Platform.OS === "android";
 
@@ -88,7 +85,6 @@ export function ShareSheet({
   const [x, setX] = useState<{ person: Person; member: boolean; added?: { count: number; titles: string[] } } | null>(null);
   const [xBusy, setXBusy] = useState(false);
   const [xFailed, setXFailed] = useState(false);
-  useScreenSheet(open);
 
   const load = useCallback(async () => {
     const next = await fetchShareSheet(threadId);
@@ -114,9 +110,6 @@ export function ShareSheet({
   }, [sheet, query]);
   const searchable = (sheet?.connections.length ?? 0) > SEARCH_PAST;
   const chosen = (sheet?.connections ?? []).filter((c) => picked.has(c.accountId));
-
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
 
   async function share() {
     if (chosen.length === 0) return;
@@ -176,21 +169,17 @@ export function ShareSheet({
 
   return (
     <>
-      <Animated.View entering={scrimIn()} exiting={scrimOut()} className="absolute inset-0" style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}>
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
-      </Animated.View>
       {/* Mounted once the list is in hand, so the slide's first layout is
           its last: a Reanimated entering animation measures the view on
           mount, and a sheet that grew from three lines to a list once its
           fetch landed stayed drawn at the height it was born with, half off
           the bottom of a simulator's screen. */}
       {sheet || failed ? (
-      <Animated.View
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 ${isAndroid ? "rounded-t-a-xl bg-a-c" : "rounded-t-lg bg-surface-raised"}`}
-        style={[{ maxHeight: "82%", paddingBottom: insets.bottom }, lift]}
-        accessibilityViewIsModal
+      <DragSheet
+        onClose={onClose}
+        keyboard="lift"
+        surface={isAndroid ? "rounded-t-a-xl bg-a-c" : "rounded-t-lg bg-surface-raised"}
+        sheetStyle={{ maxHeight: "82%", paddingBottom: insets.bottom }}
       >
         <View className="px-gutter-screen pt-space-5">
           <Text className={`font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`} style={{ fontSize: 21, letterSpacing: -0.25 }} accessibilityRole="header" numberOfLines={1}>
@@ -374,7 +363,7 @@ export function ShareSheet({
             </Text>
           </Pressable>
         </View>
-      </Animated.View>
+      </DragSheet>
       ) : null}
 
       <ConfirmSheet

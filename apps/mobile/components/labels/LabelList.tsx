@@ -10,17 +10,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Platform, Pressable, Text, TextInput, View } from "react-native";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { countWord, readEveryPage, widgetsFor, type WidgetKind } from "@offload/widgets";
 import { Glyph } from "../Glyph";
-import { atOpacity, useColors } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { fetchContent, type ContentRow, type Note } from "../../lib/threads";
 import type { Label, Rows } from "../../lib/labels";
-import { useScreenSheet } from "../shell/conversation-context";
 import { LabelDot, LabelMark, labelBg } from "./LabelMark";
+import { DragSheet } from "../shell/DragSheet";
 
 const isAndroid = Platform.OS === "android";
 const NAME_CHARS = 24;
@@ -62,7 +59,6 @@ export function LabelList({
 }) {
   const COLOR = useColors();
   const insets = useSafeAreaInsets();
-  useScreenSheet(true);
   const [rows, setRows] = useState<(ContentRow & { ticked?: boolean })[] | null>(null);
   const [changed, setChanged] = useState<Map<string, boolean>>(new Map());
   const [name, setName] = useState(label?.name ?? "");
@@ -79,8 +75,6 @@ export function LabelList({
   // keyboard's height pushed its top, the name and the colour, off the
   // screen; padded, the list of rows is what gives up the room and scrolls.
   // `keyboardHeight` is negative while the keyboard is up.
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const room = useAnimatedStyle(() => ({ paddingBottom: Math.max(insets.bottom, -keyboardHeight.value) + 8 }));
 
   useEffect(() => {
     live.current = true;
@@ -151,24 +145,13 @@ export function LabelList({
 
   return (
     <>
-      <Animated.View
-        entering={scrimIn()}
-        exiting={scrimOut()}
-        className="absolute inset-0"
-        style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
+      <DragSheet
+        onClose={onClose}
+        keyboard="room"
+        surface={`rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
+        sheetStyle={{ top: insets.top + 12 }}
+        style={{ flex: 1 }}
       >
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
-      </Animated.View>
-      <Animated.View
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
-        style={[{ top: insets.top + 12 }, room]}
-        accessibilityViewIsModal
-      >
-        <View className="items-center pt-space-3">
-          <View className="rounded-pill bg-border-strong" style={{ width: 36, height: 4 }} />
-        </View>
         <View className="px-gutter-screen pt-space-5">
           <Text className="font-core font-semibold text-text-primary text-title-2">
             {label ? label.name : "New label"}
@@ -346,7 +329,7 @@ export function LabelList({
             </Pressable>
           </View>
         )}
-      </Animated.View>
+      </DragSheet>
     </>
   );
 }

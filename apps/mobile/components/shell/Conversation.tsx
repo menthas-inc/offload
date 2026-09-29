@@ -1,46 +1,53 @@
-// The conversation, as a sheet that folds.
+// The conversation, as a sheet.
 //
-// From `LiveConversation.jsx`, and it is the one piece of this feature with no
-// web equivalent to check against. Three states on one shared value: **raised**
-// over the screen with its own composer, **folded** to a header above the main
-// composer, **closed**.
+// From `LiveConversation.jsx`, and since 30 September 2026 from
+// `handoff/APPLY-2026-09-29-conversation-sheet.md`: two states, **raised**
+// over the screen with its own composer, and **put away**. There is no fold.
+// Put away, it keeps every turn and the draft, and the composer brings it
+// back; a conversation put away for thirty minutes ends on the next dump.
 //
-// Built on Reanimated rather than a sheet library on purpose. A sheet library
-// gives open, closed, snap points and a backdrop; the fold is none of those. It
-// is a sheet that collapses into a header inside a different container while
-// keeping every turn and the draft, and wrapping a library to get that is
-// reliably worse than owning the animation.
+// Built on Reanimated rather than a sheet library on purpose: the sheet, its
+// scrim, the page receding behind it and the tab bar all read one position,
+// and a library owns its own.
 //
-// The turns and the draft live in the provider above this, so folding cannot
-// lose them, and the Undo toast is rendered above the sheet for the same
-// reason: an eight second window that vanishes because somebody tidied the
-// screen was not eight seconds.
+// The turns and the draft live in the provider above this, so putting it
+// away cannot lose them, and the Undo toast is rendered above the sheet for
+// the same reason: an eight second window that vanishes because somebody
+// tidied the screen was not eight seconds.
 
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { forwardRef, Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Keyboard,
   Platform,
   Pressable,
-  ScrollView,
   Text,
   useWindowDimensions,
   View,
+  type ScrollViewProps,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { KeyboardChatScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
-  ReduceMotion,
+  cancelAnimation,
   runOnJS,
+  useAnimatedReaction,
+  useAnimatedRef,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from "react-native-reanimated";
 import { Glyph } from "../Glyph";
 import { LabelMark } from "../labels/LabelMark";
 import { AnswerResults } from "./AnswerResult";
 import { Reply } from "./Reply";
 import { isRich } from "@offload/markup";
-import { useColors } from "../../lib/colors";
+import { atOpacity, useColors } from "../../lib/colors";
+import { backPull, progress } from "../../lib/sheet";
+import { openSpring } from "../../lib/motion";
+import { useSheetBack } from "../../lib/sheet-back";
+import { Grabber, useSheetDrag, type SheetScroll } from "./DragSheet";
 import { Composer } from "./Composer";
 import { PrismField } from "../PrismField";
 import { answerPending } from "../../lib/calendars";
@@ -98,232 +105,141 @@ export function ConversationPhotoViewer() {
 
 const isAndroid = Platform.OS === "android";
 
-/** The dim behind a raised conversation. Full screen, and its own component so
- *  the shell can put it under the whole bottom column rather than inside it. */
+/** The dim behind a raised conversation, over the page and the plate and
+ *  under the sheet. **Not timed on its own**: it reads the sheet's position,
+ *  so while a finger drags the sheet it fades with it. Deeper on Android,
+ *  where the page does not recede, to make up for the missing depth. A tap
+ *  on the strip it leaves above the sheet puts the conversation away. */
 export function ConversationScrim() {
   const COLOR = useColors();
-  const conversation = useConversation();
-  const raised = conversation.raised;
-  const progress = useSharedValue(0);
-  // Mounted for as long as it is on screen, which is longer than `raised` is
-  // true: unmounting on the flag is what made both this and the sheet vanish
-  // rather than leave.
-  const [shown, setShown] = useState(raised);
-
-  useEffect(() => {
-    if (raised) setShown(true);
-  }, [raised]);
-
-  useEffect(() => {
-    if (!shown) return;
-    progress.value = withTiming(
-      raised ? 1 : 0,
-      { duration: 280, reduceMotion: ReduceMotion.System },
-      (done) => {
-        if (done && !raised) runOnJS(setShown)(false);
-      },
-    );
-  }, [raised, shown, progress]);
-
-  const scrim = useAnimatedStyle(() => ({ opacity: progress.value * 0.35 }));
-  if (!shown) return null;
-
+  const { sheetY, sheetTravel, raised, lower } = useConversation();
+  const dim = useAnimatedStyle(() => ({ opacity: progress(sheetY.value, sheetTravel.value) }));
   return (
     <Animated.View
       style={[
-        { position: "absolute", inset: 0, backgroundColor: COLOR.scrim },
-        scrim,
+        { position: "absolute", inset: 0, backgroundColor: atOpacity(COLOR.scrim, isAndroid ? 0.55 : 0.45) },
+        dim,
       ]}
+      pointerEvents={raised ? "auto" : "none"}
     >
-      <Pressable
-        className="flex-1"
-        onPress={conversation.pin ? conversation.dismissPin : conversation.fold}
-        accessibilityLabel={conversation.pin ? "Close" : "Fold"}
-      />
+      <Pressable className="flex-1" onPress={lower} accessibilityLabel="Close" />
     </Animated.View>
   );
 }
 
+/** The conversation, as a sheet 54 points from the top (30 September 2026).
+ *
+ *  From `handoff/APPLY-2026-09-29-conversation-sheet.md`. No header: the
+ *  grabber is the only thing at the top, and the sheet closes by dragging or
+ *  flicking it, by a tap on the scrim above it, or with back on Android.
+ *  Closing keeps the conversation; the composer brings it back.
+ *
+ *  **Always mounted and always the same height**, so the distance it travels
+ *  never changes between the start of a close and its end, and nothing in the
+ *  shell's layout moves when it opens. One position on the UI thread drives it
+ *  and, through the provider, the scrim, the page behind and the tab bar.
+ *
+ *  **The keyboard moves the composer, not the sheet.** The composer rides it
+ *  as a transform and the transcript lifts its content by the same amount, so
+ *  a keyboard opening mid-rise costs no layout. */
 export function Conversation() {
-  const COLOR = useColors();
   const conversation = useConversation();
-  const { pin, raised } = conversation;
-  const progress = useSharedValue(0);
-  const [shown, setShown] = useState(raised);
-
-  // How far a finger has dragged it down. Separate from `progress` so the sheet
-  // follows the hand rather than animating to a state: a drag that does not go
-  // far enough springs back from wherever it got to, and one that folds it
-  // hands over to the exit from exactly where the finger let go.
-  const drag = useSharedValue(0);
-
-  // Its own height, so putting it away is a roll off the bottom rather than a
-  // 60px nudge. Measured rather than assumed: it is as tall as the
-  // conversation in it, up to the cap below.
-  const height = useSharedValue(0);
-
-  useEffect(() => {
-    if (raised) setShown(true);
-  }, [raised]);
-
-  useEffect(() => {
-    if (!shown) return;
-    // Reduced motion removes the movement rather than shortening it, handled
-    // by Reanimated's own flag rather than a second code path.
-    progress.value = withTiming(
-      raised ? 1 : 0,
-      { duration: 280, reduceMotion: ReduceMotion.System },
-      (done) => {
-        if (!done || raised) return;
-        drag.value = 0;
-        runOnJS(setShown)(false);
-      },
-    );
-  }, [raised, shown, progress, drag]);
-
-  // In pixels, not `78%`. The sheet's parent is the shell's column, which is
-  // anchored to the bottom with no height of its own, so a percentage resolved
-  // against the *unclamped* sheet: the column sized itself to the whole
-  // conversation, the sheet then shrank to 78% of that, and the surplus column
-  // height showed as a band of nothing under the tabs.
+  const { pin, raised, sheetY, sheetTravel, sheetGoal, settle } = conversation;
+  const insets = useSafeAreaInsets();
   const { height: screen } = useWindowDimensions();
+  const top = insets.top + 10;
+  const travel = screen - top;
 
-  // A pin folds to nothing: there is no header row for it to collapse into,
-  // since `FoldedHeader` in `Plate.tsx` reads `live`, not `pin`. Putting one
-  // away is a close in every sense, never a fold.
-  const foldNow = (): void => {
-    if (pin) conversation.dismissPin();
-    else conversation.fold();
-  };
+  useLayoutEffect(() => {
+    sheetTravel.value = travel;
+  }, [sheetTravel, travel]);
 
-  /** Pull it down to put it away.
-   *
-   *  Past a third of the way, or thrown hard enough, it folds; short of that it
-   *  springs back. Distance alone would make a fast flick feel ignored and
-   *  velocity alone would fold on a careless brush. */
-  const pull = Gesture.Pan()
-    .activeOffsetY([-12, 12])
-    .onUpdate((event) => {
-      drag.value = Math.max(0, event.translationY);
-    })
-    .onEnd((event) => {
-      if (event.translationY > 110 || event.velocityY > 900) {
-        runOnJS(foldNow)();
-        return;
-      }
-      drag.value = withSpring(0, { damping: 22, stiffness: 240 });
-    });
+  // A pin keeps drawing as it leaves: without this the sheet showed the
+  // conversation's turns for the length of its own exit.
+  const [heldPin, setHeldPin] = useState<Pin | null>(pin);
+  useEffect(() => {
+    if (pin) setHeldPin(pin);
+  }, [pin]);
+  const pinNow = useRef(pin);
+  pinNow.current = pin;
+  const letGo = useCallback(() => {
+    if (!pinNow.current) setHeldPin(null);
+  }, []);
+  useAnimatedReaction(
+    () => sheetY.value >= sheetTravel.value && sheetTravel.value > 0,
+    (closed, was) => {
+      if (closed && !was) runOnJS(letGo)();
+    },
+  );
+  const shownPin = pin ?? heldPin;
 
-  // No fade. It goes down behind the plate, which paints after it, so the
-  // slide is the whole animation and a fade on top of it only makes the sheet
-  // look like it is dissolving on the way.
-  const sheet = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY:
-          (1 - progress.value) * (height.value || screen * 0.78) + drag.value,
-      },
-    ],
-  }));
+  const held = useSharedValue(0);
+  const leave = useCallback(() => {
+    Keyboard.dismiss();
+    sheetGoal.value = sheetTravel.value + 16;
+  }, [sheetGoal, sheetTravel]);
 
-  if (!shown) return null;
+  // The transcript's own gesture, so the sheet can take a drag from it at
+  // its top and let it scroll everywhere else.
+  const native = useMemo(() => Gesture.Native(), []);
+  const listRef = useAnimatedRef<Animated.ScrollView>();
+  const offset = useSharedValue(0);
+  const scroll: SheetScroll = { offset, ref: listRef, native };
+
+  const grab = useSheetDrag({ y: sheetY, travel: sheetTravel, held, onCloseStart: leave, onClosed: settle });
+  const pull = useSheetDrag({ y: sheetY, travel: sheetTravel, held, onCloseStart: leave, onClosed: settle, scroll });
+
+  useSheetBack(raised, {
+    start: () => cancelAnimation(sheetY),
+    progress: (swipe) => {
+      sheetY.value = backPull(swipe, sheetTravel.value);
+    },
+    cancel: () => {
+      sheetY.value = withSpring(0, openSpring);
+    },
+    invoke: conversation.lower,
+  });
+
+  const sheet = useAnimatedStyle(() => ({ transform: [{ translateY: sheetY.value }] }));
 
   return (
-    // An ordinary block in the shell's bottom column, above the plate. It was
-    // absolutely positioned at `bottom: 0` and the plate is too, so the tabs
-    // painted straight over the sheet's own composer. One column, sheet on top,
-    // which is also how the kit lays it out.
     <Animated.View
-      onLayout={(event) => {
-        height.value = event.nativeEvent.layout.height;
-      }}
-      style={[sheet, { maxHeight: screen * 0.78 }]}
-      // `surface-plate`, the same token the plate below is painted with. A
-      // raised conversation rests on the plate rather than replacing it, so
-      // two different values here read as a seam across the join.
+      style={[{ position: "absolute", top, left: 0, right: 0, bottom: 0 }, sheet]}
+      // `surface-plate`, the plate's own token: the composer band inside is
+      // the same field on the same ground as the plate's.
       className={`bg-surface-plate ${isAndroid ? "rounded-t-a-xl" : "rounded-t-lg"}`}
+      pointerEvents={raised ? "auto" : "none"}
+      importantForAccessibility={raised ? "auto" : "no-hide-descendants"}
+      accessibilityElementsHidden={!raised}
+      accessibilityViewIsModal={raised}
     >
-      {/* The header is the handle: tap it or pull it down to put the
-          conversation away. The chevron stays because a gesture with no visible
-          affordance is one nobody finds, and the two nested controls take their
-          own taps before this one sees them. */}
-      <GestureDetector gesture={pull}>
-        <Pressable
-          onPress={foldNow}
-          accessibilityLabel={pin ? "Close" : "Fold the conversation away"}
-        >
-          {/* A grab handle, because "you can pull this" has to be visible
-              somewhere and the chevron alone reads as a button rather than an
-              edge you can take hold of. Its own centred row rather than an
-              absolute box: absolute plus `top: 6` inside the header's flex row
-              laid it over the title. */}
-          <View className="items-center pt-space-3">
-            <View
-              className={`rounded-pill ${isAndroid ? "bg-a-outline" : "bg-border-strong"}`}
-              style={{ width: 36, height: 4 }}
-            />
-          </View>
+      <Grabber held={held} pan={grab} />
 
-          <View className="flex-row items-center gap-space-4 px-gutter-screen pb-space-3 pt-space-3">
-            <Text
-              className={`flex-1 font-core font-medium ${
-                isAndroid ? "text-a-on" : "text-text-primary"
-              }`}
-              style={{ fontSize: 14 }}
-              numberOfLines={1}
-            >
-              {pin ? pin.title : conversation.live?.title}
-            </Text>
-            {pin ? null : (
-              <Pressable
-                onPress={foldNow}
-                hitSlop={10}
-                accessibilityLabel="Fold away"
-              >
-                <Glyph name="chevron-down" size={18} color={COLOR.iconOnWell} />
-              </Pressable>
-            )}
-            <Pressable
-              onPress={pin ? conversation.dismissPin : conversation.close}
-              hitSlop={10}
-              accessibilityLabel="Close"
-            >
-              <Glyph name="x" size={18} color={COLOR.iconOnWell} />
-            </Pressable>
-          </View>
-        </Pressable>
+      <GestureDetector gesture={pull}>
+        <View style={{ flex: 1 }}>
+          {shownPin ? <PinnedTarget pin={shownPin} /> : <Turns scroll={scroll} raised={raised} bottom={insets.bottom} />}
+        </View>
       </GestureDetector>
 
-      {pin ? <PinnedTarget pin={pin} /> : <Turns />}
-
-      {/* No safe-area padding here: the plate below owns the bottom inset, and
-          adding it twice left a gap the height of the gesture bar. */}
-      {/* **The field follows the composer, because the composer is what it is
-          for.** The design keeps one field over one continuous plate whose
-          height never changes, and in that layout a raised sheet rests on the
-          plate and the plate keeps its composer. Here the sheet and the plate
-          are siblings in one column, so the sheet brings its own composer and
-          the plate hides its own: the band the eye actually sees is this
-          composer sitting directly on top of the tabs.
-        
-          So the field moves with it. One field at a time, never two, which is
-          the failure the design warns about: two boxes each mapping the whole
-          texture, squashed and broken at the seam. The tabs below keep no field
-          of their own, which is also where the veil would have been opaque
-          anyway. */}
-      <View className="overflow-hidden">
-        <PrismField
-          variant="band"
-          veil="graded"
-          pulse={conversation.filed?.at ?? 0}
-        />
-        <Composer
-          placeholder={pin ? pin.placeholder : "Add to this"}
-          maxLength={pin?.charLimit}
-          showCounter={pin?.showCounter}
-          submitLabel={pin ? "Add" : "Send"}
-        />
-      </View>
+      {/* The composer rides the keyboard; below it, the home indicator's
+          inset, which the keyboard covers and the offset gives back. **One
+          field at a time**: the plate's is covered by this sheet while it is
+          up, and the plate's pulse stops, so there is never a second band
+          mapping the texture at once. */}
+      <KeyboardStickyView offset={{ opened: insets.bottom }} enabled={raised}>
+        <View style={{ paddingBottom: insets.bottom }}>
+          <View className="overflow-hidden">
+            <PrismField variant="band" veil="graded" pulse={raised ? (conversation.filed?.at ?? 0) : 0} />
+            <Composer
+              inSheet
+              placeholder={shownPin ? shownPin.placeholder : "Add to this"}
+              maxLength={shownPin?.charLimit}
+              showCounter={shownPin?.showCounter}
+              submitLabel={shownPin ? "Add" : "Send"}
+            />
+          </View>
+        </View>
+      </KeyboardStickyView>
     </Animated.View>
   );
 }
@@ -335,7 +251,9 @@ export function Conversation() {
 function PinnedTarget({ pin }: { pin: Pin }) {
   const COLOR = useColors();
   return (
-    <View className="flex-row items-center px-gutter-screen pb-space-4">
+    // On the composer, as the turns are: the sheet's height is fixed and
+    // what it holds sits at its foot.
+    <View className="flex-1 flex-row items-end px-gutter-screen pb-space-4">
       <View
         className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-4"
         style={{ height: 26 }}
@@ -349,22 +267,34 @@ function PinnedTarget({ pin }: { pin: Pin }) {
   );
 }
 
-function Turns() {
+function Turns({ scroll, raised, bottom }: { scroll: SheetScroll; raised: boolean; bottom: number }) {
   const { turns, writing, finish, openPhoto, retry, recording } = useConversation();
-  const scroll = useRef<ScrollView>(null);
+  const { ref, offset, native } = scroll;
 
+  // Opened at its end, and kept there as turns arrive.
+  const atEnd = useRef(false);
   useEffect(() => {
-    scroll.current?.scrollToEnd({ animated: true });
-  }, [turns.length, writing]);
+    ref.current?.scrollToEnd({ animated: atEnd.current });
+    atEnd.current = true;
+  }, [turns.length, writing, ref]);
 
-  // The keyboard changes the height under the log, so the end moves. Without
-  // this the view stays where it was and shows the middle of the conversation.
-  useEffect(() => {
-    const show = Keyboard.addListener("keyboardDidShow", () =>
-      scroll.current?.scrollToEnd({ animated: true }),
-    );
-    return () => show.remove();
-  }, []);
+  const onScroll = useAnimatedScrollHandler((event) => {
+    offset.value = event.contentOffset.y;
+  });
+
+  // The transcript's scroll view, carrying the gesture the sheet's drag
+  // runs beside. Made once, so the list is not remounted on a render.
+  const ScrollWithGesture = useMemo(
+    () =>
+      forwardRef<Animated.ScrollView, ScrollViewProps>(function ScrollWithGesture(props, forwarded) {
+        return (
+          <GestureDetector gesture={native}>
+            <Animated.ScrollView ref={forwarded} {...props} />
+          </GestureDetector>
+        );
+      }),
+    [native],
+  );
 
   /** Which reply belongs to which sent message.
    *
@@ -386,13 +316,26 @@ function Turns() {
   }
 
   return (
-    <ScrollView
-      ref={scroll}
+    // **Lifted by the keyboard, never resized by it.** The chat scroll view
+    // moves its content up with the keyboard on the UI thread, so the last
+    // turn stays above the composer as it rises, and freezes while the sheet
+    // is away so the plate's keyboard does not move a transcript nobody sees.
+    <KeyboardChatScrollView
+      ref={ref}
+      ScrollViewComponent={ScrollWithGesture as never}
+      offset={bottom}
+      freeze={!raised}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+      // The sheet takes a drag down from the top; a bounce there would move
+      // the two at once.
+      bounces={false}
+      overScrollMode="never"
+      keyboardShouldPersistTaps="handled"
+      style={{ flex: 1 }}
+      // A short conversation sits on the composer, as a chat does.
+      contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
       contentContainerClassName="gap-space-4 px-gutter-screen pb-space-4"
-      // Shrink, never grow. The composer keeps its height and the log takes
-      // what is left, so a long conversation scrolls instead of pushing the
-      // field out of the sheet.
-      style={{ flexShrink: 1, flexGrow: 0 }}
     >
       {turns.map((turn) =>
         turn.from === "you" ? (
@@ -438,7 +381,7 @@ function Turns() {
         ),
       )}
       {writing ? <Working /> : null}
-    </ScrollView>
+    </KeyboardChatScrollView>
   );
 }
 
@@ -627,7 +570,7 @@ const CHIP_H = 30;
 function TurnFooter({ turn }: { turn: Turn }) {
   const COLOR = useColors();
   const router = useRouter();
-  const { fold } = useConversation();
+  const { lower } = useConversation();
 
   const sources = turn.sources ?? [];
   // Three, then a count. Six reads are possible in one turn and six chips under
@@ -675,14 +618,14 @@ function TurnFooter({ turn }: { turn: Turn }) {
       ) : null}
 
       {refs.map((thread) => (
-        // Tappable, and it folds on the way out. A reply naming where it filed
-        // something and not taking you there is a sentence about a place rather
-        // than a way to it, and the conversation should get out of the way
-        // rather than close: you may want to keep dumping.
+        // Tappable, and it puts the conversation away on the way out. A reply
+        // naming where it filed something and not taking you there is a
+        // sentence about a place rather than a way to it. The conversation is
+        // kept: the composer brings it back.
         <Pressable
           key={thread.id}
           onPress={() => {
-            fold();
+            lower();
             router.push({ pathname: "/threads/[id]", params: { id: thread.id } });
           }}
           className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-5"
@@ -746,7 +689,7 @@ function TurnFooter({ turn }: { turn: Turn }) {
 function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
   const COLOR = useColors();
   const router = useRouter();
-  const { fold, tickFound } = useConversation();
+  const { lower, tickFound } = useConversation();
   return (
     <View className="self-stretch">
     <View
@@ -805,7 +748,7 @@ function Theirs({ turn, sent }: { turn: Turn; sent: Turn | null }) {
           found={turn.found}
           onToggle={(row) => void tickFound(turn.id, row)}
           onOpenThread={(threadId) => {
-            fold();
+            lower();
             router.push({ pathname: "/threads/[id]", params: { id: threadId } });
           }}
         />

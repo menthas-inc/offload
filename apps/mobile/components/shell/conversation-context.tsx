@@ -19,7 +19,9 @@ import {
   useRef,
   useState,
 } from "react";
-import { useSharedValue, type SharedValue } from "react-native-reanimated";
+import { runOnJS, runOnUI, useSharedValue, withSpring, type SharedValue } from "react-native-reanimated";
+import { closeSpring, openSpring } from "../../lib/motion";
+import { startsFresh } from "../../lib/sheet";
 import { AppState, Keyboard, Linking, type AppStateStatus } from "react-native";
 import { useAudioRecorder } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
@@ -197,13 +199,23 @@ interface Undoable {
 
 export interface Conversation {
   live: Live | null;
-  folded: boolean;
-  /** Whether the sheet should be up: a live conversation that is not folded,
-   *  or a pin, which never folds. Computed once here rather than at each of
-   *  the sheet, its scrim and the plate, because the three disagreeing is
-   *  exactly how a pin ended up with two composers on screen at once during
-   *  this feature's own build. */
+  /** Whether the sheet is up: a live conversation that is open, or a pin.
+   *  Computed once here rather than at each of the sheet, its scrim and the
+   *  plate, because the three disagreeing is exactly how a pin ended up with
+   *  two composers on screen at once during this feature's own build.
+   *
+   *  **It follows the animation, never leads it** (30 September 2026). A
+   *  close from the grabber, the scrim or back runs the sheet to the edge
+   *  first and only then sets this false. */
   raised: boolean;
+  /** The sheet's one position, in pixels on the UI thread: 0 is open, its
+   *  travel closed. The sheet, its scrim, the page behind and the tab bar
+   *  all read it, so a finger moves all of them in the same frame. */
+  sheetY: SharedValue<number>;
+  sheetTravel: SharedValue<number>;
+  /** Where the sheet was last sent, so a change of `raised` from anywhere
+   *  animates it once and never restarts a spring already heading there. */
+  sheetGoal: SharedValue<number>;
   turns: Turn[];
   writing: boolean;
   /** 017. The turn in flight, if one is: what offload is doing and how long it
@@ -277,8 +289,15 @@ export interface Conversation {
    *  which only the mounted composer can do. Bumped per arrival; the composer
    *  consumes it. */
   focusRequest: number;
-  fold: () => void;
-  raise: () => void;
+  /** Bring the conversation back, from a tap on the plate's composer.
+   *  False when there is none to bring back: never one, or one put away for
+   *  thirty minutes, which this ends so the next dump starts a new one. */
+  raise: (options?: { focus?: boolean }) => boolean;
+  /** Put the sheet away, keeping the conversation: the thread pill, an
+   *  answer's thread. A pin goes, since a pin put away is a pin dismissed. */
+  lower: () => void;
+  /** The sheet reached its closed edge under a finger or back. */
+  settle: () => void;
   /** A `+` raising the composer pinned to its own thread and write. */
   raiseFor: (pin: Pin) => void;
   /** A thread screen saying it is open, or null as it leaves. */
@@ -357,7 +376,18 @@ export function ConversationProvider({
   children: React.ReactNode;
 }) {
   const [live, setLive] = useState<Live | null>(null);
-  const [folded, setFolded] = useState(false);
+  // Whether the conversation's sheet is up. There is no fold any more (30
+  // September 2026): a conversation is raised or put away, and put away it
+  // keeps its turns and its draft here.
+  const [open, setOpen] = useState(false);
+  // When it was put away, for the thirty minute rule. Null while it is up.
+  const closedAt = useRef<number | null>(null);
+  // A stale conversation's end, awaited by the next dump so the server has
+  // closed it before the dump asks which conversation it joins.
+  const stopping = useRef<Promise<void> | null>(null);
+  const sheetY = useSharedValue(10_000);
+  const sheetTravel = useSharedValue(0);
+  const sheetGoal = useSharedValue(10_000);
   const [turns, setTurns] = useState<Turn[]>([]);
   // 020. The photos in the draft, the draft's own key, whether they came
   // through the share sheet, and the one line under the composer.
@@ -538,6 +568,100 @@ export function ConversationProvider({
     setPin(null);
   }, []);
 
+  const raised = pin !== null || (live !== null && open);
+  // For callbacks that run after a render has moved on: a spring's end, a
+  // share arriving in the same tick as the call that raises for it.
+  const raisedRef = useRef(raised);
+  raisedRef.current = raised;
+  const liveRef = useRef(live);
+  liveRef.current = live;
+
+  /** Send the sheet open or closed, on the UI thread. Idempotent: a spring
+   *  already heading there is left alone, so a state change arriving after
+   *  the finger has done the work does not restart anything. `after` runs
+   *  once it is closed. */
+  const springTo = useCallback(
+    (up: boolean, after?: () => void) => {
+      runOnUI((toOpen: boolean) => {
+        "worklet";
+        const travel = sheetTravel.value;
+        const goal = toOpen ? 0 : travel + 16;
+        if (sheetGoal.value === goal) return;
+        sheetGoal.value = goal;
+        if (!toOpen && (travel <= 0 || sheetY.value >= travel)) {
+          if (after) runOnJS(after)();
+          return;
+        }
+        // Never from further away than its own height: the first raise
+        // starts from well off the screen.
+        if (toOpen && sheetY.value > travel) sheetY.value = travel;
+        sheetY.value = withSpring(goal, toOpen ? openSpring : closeSpring, (done) => {
+          if (done && !toOpen && after) runOnJS(after)();
+        });
+      })(up);
+    },
+    [sheetGoal, sheetTravel, sheetY],
+  );
+
+  // Whatever changed `raised`, the sheet follows it. Before paint, so the
+  // spring starts in the frame that shows the change.
+  useLayoutEffect(() => {
+    springTo(raised);
+  }, [raised, springTo]);
+
+  /** End the conversation: this subject is over, so the next dump starts a
+   *  new one however soon it arrives. Since 30 September nothing on screen
+   *  does this; a conversation put away for thirty minutes ends itself on
+   *  the next tap into the composer or the next dump. */
+  const end = useCallback(() => {
+    setLive(null);
+    setTurns([]);
+    setOpen(false);
+    closedAt.current = null;
+    const request = endConversation().finally(() => {
+      if (stopping.current === request) stopping.current = null;
+    });
+    stopping.current = request;
+  }, []);
+
+  /** Open the conversation if there is one to open. */
+  const bringBack = useCallback((): boolean => {
+    if (startsFresh(closedAt.current, Date.now())) {
+      end();
+      return false;
+    }
+    if (liveRef.current === null) return false;
+    closedAt.current = null;
+    setOpen(true);
+    // Mid-close, `raised` is still true and would not change: turn it round.
+    if (raisedRef.current) springTo(true);
+    return true;
+  }, [end, springTo]);
+
+  const raise = useCallback(
+    (options?: { focus?: boolean }): boolean => {
+      const back = bringBack();
+      if (back && options?.focus) setFocusRequest((n) => n + 1);
+      return back;
+    },
+    [bringBack],
+  );
+
+  /** The sheet is at its closed edge: now say so. */
+  const settle = useCallback(() => {
+    if (pinRef.current) {
+      dismissPin();
+      return;
+    }
+    setOpen(false);
+    closedAt.current = Date.now();
+  }, [dismissPin]);
+
+  const lower = useCallback(() => {
+    Keyboard.dismiss();
+    springTo(false, settle);
+  }, [settle, springTo]);
+
   // The conversation as the database has it, so reopening the app does not look
   // like a fresh account.
   useEffect(() => {
@@ -574,6 +698,11 @@ export function ConversationProvider({
             did: (message.threads?.length ?? 0) > 0,
           })),
         );
+        // A conversation to come back to, put away as of its last message:
+        // the thirty minute rule reads this after a cold start.
+        setLive((current) => current ?? { title: "" });
+        const last = tail[tail.length - 1]?.createdAt;
+        if (closedAt.current === null) closedAt.current = last ? Date.parse(last) : Date.now();
       } catch (error) {
         failed("conversation.tail", error);
       }
@@ -814,7 +943,9 @@ export function ConversationProvider({
         }
         viaShare.current = true;
         setPin(null);
-        setFolded(false);
+        // Into the conversation if there is one to go back to, into the
+        // plate's composer if not; the focus goes to whichever is on top.
+        bringBack();
         setFocusRequest((n) => n + 1);
       }
       setPhotos((current) => {
@@ -1010,7 +1141,12 @@ export function ConversationProvider({
 
     setLine(null);
     setWriting(true);
-    if (!live) {
+    // A conversation put away for thirty minutes is over: end it, and wait
+    // for the end to land so this dump cannot join it on the server.
+    const fresh = !raisedRef.current && startsFresh(closedAt.current, Date.now());
+    if (fresh) end();
+    if (stopping.current) await stopping.current;
+    if (!live || fresh) {
       // One line in the header, whatever the dump's own breaks.
       const line = (
         text ||
@@ -1024,7 +1160,8 @@ export function ConversationProvider({
         .trim();
       setLive({ title: line.length > 40 ? `${line.slice(0, 40)}...` : line });
     }
-    setFolded(false);
+    closedAt.current = null;
+    setOpen(true);
 
     // **The bubble appears at the press.** The send takes a second or more on
     // a phone, and for that second the conversation used to show nothing,
@@ -1279,21 +1416,16 @@ export function ConversationProvider({
     [watch],
   );
 
-  const close = useCallback(() => {
-    // Closing is a statement, not a tidy-up: this subject is over, so the next
-    // dump starts a conversation rather than joining this one however soon it
-    // arrives. Folding is the opposite and says nothing to the server.
-    setLive(null);
-    setFolded(false);
-    void endConversation();
-  }, []);
+  const close = end;
 
   return (
     <ConversationContext.Provider
       value={{
         live,
-        folded,
-        raised: pin !== null || (live !== null && !folded),
+        raised,
+        sheetY,
+        sheetTravel,
+        sheetGoal,
         turns,
         writing,
         working,
@@ -1330,8 +1462,9 @@ export function ConversationProvider({
         openPhoto: (turnId, index) => setPhotoOpen({ turnId, index }),
         closePhoto: () => setPhotoOpen(null),
         focusRequest,
-        fold: () => setFolded(true),
-        raise: () => setFolded(false),
+        raise,
+        lower,
+        settle,
         raiseFor,
         dismissPin,
         close,

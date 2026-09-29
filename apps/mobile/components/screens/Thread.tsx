@@ -31,11 +31,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, {
-  useAnimatedStyle,
-} from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, type LabelPick } from "@offload/widgets";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -46,7 +41,7 @@ import {
   type ReorderWrite,
 } from "@offload/widgets";
 import { Glyph } from "../Glyph";
-import { atOpacity, useColors } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { ContentRowView } from "../shell/ContentRow";
 import { NotesSection } from "../shell/Notes";
 import { RowActionSheet, type RowAction } from "../shell/RowActionSheet";
@@ -86,7 +81,7 @@ import { useClock } from "../../lib/clock";
 import { drawnWhen, patchFor, sameWhen, whenLabel, whenValueOf } from "../../lib/when";
 import { RowEditSheet } from "../shell/RowEditSheet";
 import { WhenSheet } from "../shell/WhenSheet";
-import { useConversation, useScreenSheet } from "../shell/conversation-context";
+import { useConversation } from "../shell/conversation-context";
 import { PlateSpace } from "../shell/plate-inset";
 import { failed } from "../../lib/log";
 import { ShareSheet } from "../people/ShareSheet";
@@ -106,6 +101,7 @@ import {
   writePick,
   type Label,
 } from "../../lib/labels";
+import { DragSheet } from "../shell/DragSheet";
 
 const isAndroid = Platform.OS === "android";
 
@@ -1381,12 +1377,7 @@ function EditSheet({
   const COLOR = useColors();
   // Same reason as the action sheet: this is anchored to the bottom of a screen
   // and the plate is mounted above the router.
-  useScreenSheet(true);
   const [draft, setDraft] = useState(initial);
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const lift = useAnimatedStyle(() => ({
-    transform: [{ translateY: keyboardHeight.value }],
-  }));
 
   function save(): void {
     const text = draft.trim();
@@ -1396,28 +1387,10 @@ function EditSheet({
 
   return (
     <>
-      <Animated.View
-        entering={scrimIn()}
-        exiting={scrimOut()}
-        className="absolute inset-0"
-        style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
-      >
-        <Pressable
-          className="flex-1"
-          onPress={onClose}
-          accessibilityLabel="Close"
-        />
-      </Animated.View>
-
-      <Animated.View
-        style={lift}
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${
-          isAndroid
-            ? "rounded-t-a-xl bg-a-c-low"
-            : "rounded-t-lg bg-surface-raised"
-        }`}
+      <DragSheet
+        onClose={onClose}
+        keyboard="lift"
+        className="px-gutter-screen pb-space-8 pt-space-2"
       >
         <TextInput
           value={draft}
@@ -1470,7 +1443,7 @@ function EditSheet({
             </Text>
           </Pressable>
         </View>
-      </Animated.View>
+      </DragSheet>
     </>
   );
 }

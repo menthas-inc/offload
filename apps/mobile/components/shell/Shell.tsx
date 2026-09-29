@@ -9,11 +9,15 @@
 //
 //   the gate      nothing at all
 //   a tab         the composer and the tabs
-//   a thread      the composer, no tabs, "Add to this"
+//   a thread      the composer, "Add to this", and the tabs
 //
-// That last row is the divergence 009 recorded. The kit hides both inside a
-// thread; dumping from where you are is the product's core move and a thread is
-// the likeliest place to want it.
+// The kit hides both inside a thread; dumping from where you are is the
+// product's core move and a thread is the likeliest place to want it (009).
+// The tabs joined it on 30 September: every screen draws Today, My threads and
+// Notes, and they leave only under the conversation or the keyboard.
+//
+// Stacked, bottom to top: the plate, the conversation's scrim, the sheet, then
+// the composer's photo sheet and the toast.
 
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "expo-router";
@@ -67,8 +71,8 @@ export function Shell() {
     transform: [{ translateY: away.value * plateHeight.value + composerFocused.value * keyboardHeight.value }],
   }));
 
-  // The turn's Undo lives here rather than in the sheet, so folding the
-  // conversation cannot take the window away with it. An eight second window
+  // The turn's Undo lives here rather than in the sheet, so putting the
+  // conversation away cannot take the window away with it. An eight second window
   // that vanishes because somebody tidied the screen was not eight seconds.
   const shownUndo = useRef<string | null>(null);
   useEffect(() => {
@@ -94,27 +98,34 @@ export function Shell() {
   const inThread = pathname.startsWith("/threads/");
   if (!onTab && !inThread) return null;
 
+  // From a tab, the tabs swap; from a thread, back down to the tabs first,
+  // so a tab never lands on top of the thread it left.
+  const go = (href: "/today" | "/threads" | "/notes"): void => {
+    if (inThread) router.dismissTo(href);
+    else router.replace(href);
+  };
+
   // **A screen's own sheet is modal, and the plate is not part of it.** The
   // plate is mounted above the router so a pushed screen cannot produce a
   // second one, which also means it paints over anything a screen anchors to
   // its own bottom: the row actions opened under it and only the first action
   // showed. The toast stays, because an undo window is not chrome.
 
-  const tabs: Tab[] = onTab
-    ? [
+  const tabs: Tab[] = [
         {
           key: "today",
           label: tod.label,
           icon: tod.icon === "moon" ? "moon" : "sun",
           active: pathname === "/today" || pathname === "/",
-          onPress: () => router.replace("/today"),
+          onPress: () => go("/today"),
         },
         {
           key: "threads",
           label: "My threads",
           icon: "lasso",
-          active: pathname === "/threads",
-          onPress: () => router.replace("/threads"),
+          // A thread is somewhere inside My threads.
+          active: pathname === "/threads" || inThread,
+          onPress: () => go("/threads"),
         },
         {
           // `cloudy` was chosen for the word Memories and is kept for Notes:
@@ -125,14 +136,12 @@ export function Shell() {
           label: "Notes",
           icon: "cloudy",
           active: pathname === "/notes",
-          onPress: () => router.replace("/notes"),
+          onPress: () => go("/notes"),
         },
-      ]
-    : [];
+      ];
 
   return (
     <>
-      <ConversationScrim />
       {/* Always mounted, and slid off the bottom while a screen sheet is
           open (see `away` above). Unmounted, it used to leave in one frame
           and come back holding a closing sheet's focus. */}
@@ -146,10 +155,11 @@ export function Shell() {
         importantForAccessibility={sheetOpen ? "no-hide-descendants" : "auto"}
         accessibilityElementsHidden={sheetOpen}
       >
-        <Conversation />
-        <ConversationPhotoViewer />
         <Plate tabs={tabs} placeholder={inThread ? "Add to this" : undefined} />
       </Animated.View>
+      <ConversationScrim />
+      <Conversation />
+      <ConversationPhotoViewer />
       {/* The composer's photo sheet is a screen sheet, so it takes the plate
           off the screen like any other; it lives outside the plate's block
           for exactly that reason, since a sheet that unmounts itself on open

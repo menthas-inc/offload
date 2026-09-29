@@ -14,17 +14,14 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Keyboard, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { Glyph } from "../Glyph";
 import { Switch } from "../settings/Switch";
-import { atOpacity, useColors } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { useClock } from "../../lib/clock";
 import type { ContentPatch, ContentRow } from "../../lib/threads";
 import { patchFor, repeatsLabel, sameWhen, whenLabel, whenValueOf, type WhenValue } from "../../lib/when";
-import { useScreenSheet } from "./conversation-context";
+import { DragSheet } from "./DragSheet";
 import { CustomFor, WhenPanel, type CustomAsk } from "./WhenSheet";
 import { LabelPanel, type LabelChoice } from "../labels/LabelSheet";
 import { SheetFoot } from "./SheetFoot";
@@ -54,7 +51,6 @@ export function RowEditSheet({
 }) {
   const COLOR = useColors();
   const { zone } = useClock();
-  useScreenSheet(row !== null);
   const [title, setTitle] = useState(row?.title ?? "");
   const [when, setWhen] = useState<WhenValue>(() => (row ? whenValueOf(row, zone) : { day: null, time: null, endTime: null, rrule: null }));
   const [remind, setRemind] = useState(row?.isReminder ?? false);
@@ -65,11 +61,6 @@ export function RowEditSheet({
   const { height: windowHeight } = useWindowDimensions();
   const scroll = useRef<ScrollView>(null);
   const scrollTo = useCallback((y: number) => scroll.current?.scrollTo({ y, animated: false }), []);
-  // The sheet grows by the keyboard from its foot rather than rising by it, so
-  // its top never leaves the screen however much is in it. `keyboardHeight`
-  // is negative while the keyboard is up.
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const room = useAnimatedStyle(() => ({ paddingBottom: Math.max(insets.bottom, -keyboardHeight.value) + 8 }));
 
   if (!row) return null;
   const held = whenValueOf(row, zone);
@@ -109,18 +100,15 @@ export function RowEditSheet({
 
   return (
     <>
-      <Animated.View entering={scrimIn()} exiting={scrimOut()} className="absolute inset-0" style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}>
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
-      </Animated.View>
-
-      <Animated.View
-        style={[{ maxHeight: windowHeight - insets.top - 12 }, room]}
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 px-gutter-screen pt-space-6 ${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
-        // The heading is gone, so the sheet carries the name a screen reader
-        // announces, and keeps it from reaching the screen behind.
-        accessibilityViewIsModal
+      {/* The sheet grows by the keyboard from its foot rather than rising by
+          it, so its top never leaves the screen however much is in it. The
+          heading is gone, so the sheet carries the name a screen reader
+          announces. A drag down is Cancel. */}
+      <DragSheet
+        onClose={onClose}
+        keyboard="room"
+        sheetStyle={{ maxHeight: windowHeight - insets.top - 12 }}
+        className="px-gutter-screen"
         accessibilityLabel="Edit"
       >
         {/* Bounded and scrolling, because at a large text size on a small
@@ -249,7 +237,7 @@ export function RowEditSheet({
         />
         </View>
         </ScrollView>
-      </Animated.View>
+      </DragSheet>
 
       <CustomFor ask={custom} onClose={() => setCustom(null)} />
     </>

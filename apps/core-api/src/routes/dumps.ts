@@ -323,6 +323,10 @@ const currentConversation = z.object({
       state: messageState,
       /** What an Undo would reverse. The whole turn, not this row. */
       turnId: z.string(),
+      /** When it was sent. The phones start a new conversation once one has
+       *  been put away for thirty minutes, and after a cold start this is the
+       *  only record of when it was last used. */
+      createdAt: z.string(),
       waiting: waitingOn,
       question: questionOnWire.optional(),
       found: foundResults,
@@ -1325,6 +1329,7 @@ export async function dumpRoutes(app: App): Promise<void> {
           voice: voices.get(row.id) ?? null,
           state: row.state,
           turnId: row.turn_id,
+          createdAt: new Date(row.created_at).toISOString(),
           waiting: waiting.get(row.id) ?? null,
           question: questions.get(row.id) ?? null,
           found: found.get(row.id) ?? [],

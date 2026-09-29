@@ -14,14 +14,11 @@
 
 import { useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { foldDraft, LABEL_NAME_CHARS } from "@offload/widgets";
 import { Glyph } from "../Glyph";
-import { atOpacity, useColors } from "../../lib/colors";
-import { useScreenSheet } from "../shell/conversation-context";
+import { useColors } from "../../lib/colors";
+import { DragSheet } from "../shell/DragSheet";
 import { SheetFoot } from "../shell/SheetFoot";
 import { LabelDot } from "./LabelMark";
 import type { Label } from "../../lib/labels";
@@ -47,46 +44,26 @@ export function LabelSheet({
   onDone: (choice: LabelChoice) => void;
   onClose: () => void;
 }) {
-  const COLOR = useColors();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  useScreenSheet(true);
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  // Whichever is taller, the keyboard or the home indicator's inset, is the
-  // foot's padding. `keyboardHeight` is negative while the keyboard is up.
-  const room = useAnimatedStyle(() => ({
-    paddingBottom: Math.max(insets.bottom, -keyboardHeight.value) + 8,
-  }));
 
   return (
-    <>
-      <Animated.View
-        entering={scrimIn()}
-        exiting={scrimOut()}
-        className="absolute inset-0"
-        style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
+    // Grows from its foot by the keyboard, or the home indicator's inset,
+    // whichever is taller.
+    <DragSheet
+      onClose={onClose}
+      keyboard="room"
+      surface={`rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
+      sheetStyle={{ maxHeight: windowHeight - insets.top - 12 }}
+    >
+      <ScrollView
+        style={{ flexGrow: 0, flexShrink: 1 }}
+        contentContainerClassName="px-gutter-screen pt-space-2"
+        keyboardShouldPersistTaps="handled"
       >
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
-      </Animated.View>
-      <Animated.View
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
-        style={[{ maxHeight: windowHeight - insets.top - 12 }, room]}
-        accessibilityViewIsModal
-      >
-        <View className="items-center pt-space-3">
-          <View className="rounded-pill bg-border-strong" style={{ width: 36, height: 4 }} />
-        </View>
-        <ScrollView
-          style={{ flexGrow: 0, flexShrink: 1 }}
-          contentContainerClassName="px-gutter-screen pt-space-5"
-          keyboardShouldPersistTaps="handled"
-        >
-          <LabelPanel title={title} labels={labels} carried={carried} confirm="Done" onCancel={onClose} onDone={onDone} />
-        </ScrollView>
-      </Animated.View>
-    </>
+        <LabelPanel title={title} labels={labels} carried={carried} confirm="Done" onCancel={onClose} onDone={onDone} />
+      </ScrollView>
+    </DragSheet>
   );
 }
 

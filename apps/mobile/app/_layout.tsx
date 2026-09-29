@@ -11,12 +11,12 @@ import { useColors } from "../lib/colors";
 import { AccessibilityInfo, Platform } from "react-native";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { onSessionRefused, pinExistingSession } from "../lib/auth";
 import { ConversationProvider } from "../components/shell/conversation-context";
+import { Recede, SheetStatusBar } from "../components/shell/Recede";
 import { RecordArrival } from "../components/shell/RecordArrival";
 import { Shell } from "../components/shell/Shell";
 import { PlateInsetProvider } from "../components/shell/plate-inset";
@@ -148,7 +148,7 @@ export default function RootLayout() {
             on whatever screen is up, once the gate has had its say. */}
         <RecordArrival />
         <SafeAreaProvider>
-          <StatusBar style="auto" />
+          <SheetStatusBar />
           {/* The ground every navigator fades through.
               
               **Every screen in a fade is briefly see-through, and what shows is
@@ -159,6 +159,8 @@ export default function RootLayout() {
               transition is exactly the colour the screens paint: there is
               nothing to see through to, in either theme. */}
           <PlateInsetProvider>
+          {/* On iOS the page steps back under a raised conversation. */}
+          <Recede>
           <ThemeProvider value={navigationTheme}>
           <Stack
             key={colorScheme}
@@ -189,6 +191,7 @@ export default function RootLayout() {
             />
           </Stack>
           </ThemeProvider>
+          </Recede>
           {/* One plate for the whole app, deciding from the route what it
               holds. Mounted here so a thread pushing over the tabs does not
               produce a second one. */}

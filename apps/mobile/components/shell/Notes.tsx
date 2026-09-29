@@ -27,16 +27,14 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { reorderPlan, type ReorderWrite } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { LabelDot } from "../labels/LabelMark";
 import { useRowLabels } from "../labels/labels-context";
 import { useClock } from "../../lib/clock";
-import { atOpacity, useColors } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { perform, type Toaster, type Writes } from "../../lib/optimistic";
-import { useConversation, useScreenSheet } from "./conversation-context";
+import { useConversation } from "./conversation-context";
 import {
   NOTE_BUDGET,
   NOTE_CHARS,
@@ -50,6 +48,7 @@ import {
   type Member,
   type Note,
 } from "../../lib/threads";
+import { DragSheet } from "./DragSheet";
 
 const isAndroid = Platform.OS === "android";
 
@@ -591,28 +590,13 @@ function Editor({
   const [draft, onDraft] = useState(note?.text ?? "");
   // Anchored to the bottom of a screen, and the plate is mounted above the
   // router. Without this it opens underneath the composer and the tabs.
-  useScreenSheet(true);
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
 
   return (
     <>
-      <Animated.View
-        entering={scrimIn()}
-        exiting={scrimOut()}
-        className="absolute inset-0"
-        style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
-      >
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
-      </Animated.View>
-
-      <Animated.View
-        style={lift}
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${
-          isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"
-        }`}
+      <DragSheet
+        onClose={onClose}
+        keyboard="lift"
+        className="px-gutter-screen pb-space-8 pt-space-2"
       >
           <TextInput
             value={draft}
@@ -662,7 +646,7 @@ function Editor({
               </Text>
             </Pressable>
           </View>
-      </Animated.View>
+      </DragSheet>
     </>
   );
 }
