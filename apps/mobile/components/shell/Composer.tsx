@@ -219,6 +219,14 @@ export function Composer({
   // while it is not.
   const onTop = inSheet === raised;
   const redirect = !inSheet && !raised && !pin && live !== null;
+
+  // A dump sent from the plate raises the sheet with the keyboard still up
+  // for this field: hand the focus to the sheet's field, so the keyboard
+  // stays and the words go where the cursor is.
+  useEffect(() => {
+    if (inSheet || !raised || !field.current?.isFocused()) return;
+    raise({ focus: true });
+  }, [inSheet, raised, raise]);
   const holdsNote = !pin && (recording || note !== null);
   // 022. The @ list, while the draft ends in an @ token and not while a +
   // is pinned: a + is one line into a section, never a person.
@@ -384,12 +392,10 @@ export function Composer({
               field.current?.blur();
               return;
             }
-            // The plate rides its own field's keyboard; the sheet's composer
-            // rides the keyboard inside the sheet.
+            // The plate rides its own field's keyboard, and keeps riding it
+            // down after a blur until the keyboard is gone (the shell lets go
+            // then). The sheet's composer rides the keyboard inside the sheet.
             if (!inSheet) composerFocused.value = 1;
-          }}
-          onBlur={() => {
-            if (!inSheet) composerFocused.value = 0;
           }}
           multiline
           maxLength={maxLength}

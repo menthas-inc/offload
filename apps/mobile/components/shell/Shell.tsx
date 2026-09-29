@@ -67,8 +67,27 @@ export function Shell() {
       away.value = withTiming(open ? 1 : 0, open ? plateAway : plateBack);
     },
   );
+  // **The keyboard never changes the plate's shape** (30 September 2026).
+  // It used to drop the tabs and the inset whenever any keyboard was up, so
+  // every keyboard, a sheet's included, re-laid the plate out twice. Now the
+  // keyboard rises over the tabs first, and only once it reaches the composer
+  // does the plate ride it: `plateFoot` is the tabs and the inset below them.
+  const plateFoot = conversation.plateFoot;
+  // The plate lets go of the keyboard once it has gone, not at the blur, so
+  // the composer rides it all the way down rather than dropping at once.
+  useAnimatedReaction(
+    () => keyboardHeight.value === 0,
+    (gone, was) => {
+      if (gone && was === false) composerFocused.value = 0;
+    },
+  );
   const lift = useAnimatedStyle(() => ({
-    transform: [{ translateY: away.value * plateHeight.value + composerFocused.value * keyboardHeight.value }],
+    transform: [
+      {
+        translateY:
+          away.value * plateHeight.value + composerFocused.value * Math.min(0, keyboardHeight.value + plateFoot.value),
+      },
+    ],
   }));
 
   // The turn's Undo lives here rather than in the sheet, so putting the

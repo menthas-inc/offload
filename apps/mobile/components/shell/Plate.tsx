@@ -13,7 +13,6 @@
 
 import { Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useKeyboardState } from "react-native-keyboard-controller";
 import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { progress } from "../../lib/sheet";
 import { Glyph } from "../Glyph";
@@ -44,20 +43,13 @@ export function Plate({
   const COLOR = useColors();
   const insets = useSafeAreaInsets();
   const conversation = useConversation();
-  const { raised, sheetY, sheetTravel } = conversation;
+  const { raised, sheetY, sheetTravel, plateFoot } = conversation;
 
-  // A keyboard for this plate's own field means somebody is writing, and
-  // nothing else on the plate is any use to them: the tabs are three places to
-  // go mid sentence, and the safe-area inset is padding above a nav bar the
-  // keyboard is already covering. Both go, so the field sits on the keyboard.
-  // The sheet's keyboard is not this plate's business: under a raised
-  // conversation the plate keeps its shape.
-  const keyboard = useKeyboardState((state) => state.isVisible);
-  const writing = keyboard && !raised;
-
-  // Its height, for the pages to end above. Not while writing: the tab row
-  // and the bottom inset go with the keyboard up, and a page that shrank its
-  // room to match would shift under a keyboard nobody can see past.
+  // Its height, for the pages to end above. The keyboard never changes it:
+  // the tabs and the inset stay, and a keyboard for this plate's field covers
+  // them before the shell lifts the composer onto it. Dropping them made every
+  // keyboard, a sheet's included, re-lay the plate out on the way up and again
+  // on the way down.
   const setInset = useSetPlateInset();
 
   // Down by their own height and the inset below them as the sheet rises,
@@ -73,7 +65,7 @@ export function Plate({
 
   return (
     <View
-      onLayout={writing ? undefined : (event) => setInset(event.nativeEvent.layout.height)}
+      onLayout={(event) => setInset(event.nativeEvent.layout.height)}
       // **`surface-plate` in both themes, and it is one token on purpose.**
       // It is the ground the prism field sits on and the colour the field's
       // veil is made of. If the two ever hold different values the difference
@@ -81,7 +73,7 @@ export function Plate({
       // that read as a grey composer against a black tab strip.
       className={`bg-surface-plate ${isAndroid ? "rounded-t-a-xl" : "rounded-t-lg"}`}
       style={{
-        paddingBottom: writing ? 0 : insets.bottom,
+        paddingBottom: insets.bottom,
         // The kit's own shadow on the plate, which is what separates it from
         // the screen behind rather than a border.
         shadowColor: COLOR.scrim,
@@ -127,12 +119,13 @@ export function Plate({
 
         <Composer placeholder={placeholder} />
 
-        {tabs.length > 0 && !writing ? (
+        {tabs.length > 0 ? (
           <Animated.View
             className="flex-row"
             style={away}
             onLayout={(event) => {
               tabsHeight.value = event.nativeEvent.layout.height;
+              plateFoot.value = event.nativeEvent.layout.height + insets.bottom;
             }}
           >
             {tabs.map((tab) => (

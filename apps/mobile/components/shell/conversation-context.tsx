@@ -19,8 +19,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { runOnJS, runOnUI, useSharedValue, withSpring, type SharedValue } from "react-native-reanimated";
-import { closeSpring, openSpring } from "../../lib/motion";
+import { runOnJS, runOnUI, useSharedValue, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
+import { closeSpring, openSpring, plateAway } from "../../lib/motion";
 import { startsFresh } from "../../lib/sheet";
 import { AppState, Keyboard, Linking, type AppStateStatus } from "react-native";
 import { useAudioRecorder } from "expo-audio";
@@ -315,9 +315,14 @@ export interface Conversation {
    *  arrived a few hundred milliseconds after the sheet, by which time the
    *  sheet's keyboard had carried the plate up over it. */
   sheetCount: SharedValue<number>;
-  /** 1 while the composer's own field has focus: the plate rides the keyboard
-   *  then and at no other time. */
+  /** 1 while the plate's own field has the keyboard: the plate rides the
+   *  keyboard then and at no other time. Set by the field's focus, cleared by
+   *  the shell once that keyboard has gone, and by anything that takes the
+   *  plate's place (the conversation, a screen sheet). */
   composerFocused: SharedValue<number>;
+  /** The plate's tabs and the inset under them: what the keyboard covers
+   *  before it reaches the composer. */
+  plateFoot: SharedValue<number>;
   /** When the last screen sheet closed. Android hands a closing sheet's focus
    *  to the composer, and the composer gives it straight back. */
   sheetClosedAt: { current: number };
@@ -431,6 +436,7 @@ export function ConversationProvider({
   const [sheets, setSheets] = useState(0);
   const sheetCount = useSharedValue(0);
   const composerFocused = useSharedValue(0);
+  const plateFoot = useSharedValue(0);
   const sheetClosedAt = useRef(0);
   const openSheet = useCallback(() => setSheets((open) => open + 1), []);
   const closeSheet = useCallback(() => setSheets((open) => Math.max(0, open - 1)), []);
@@ -607,7 +613,9 @@ export function ConversationProvider({
   // spring starts in the frame that shows the change.
   useLayoutEffect(() => {
     springTo(raised);
-  }, [raised, springTo]);
+    // The plate is under the sheet now, and its field hands the keyboard on.
+    if (raised) composerFocused.value = withTiming(0, plateAway);
+  }, [raised, springTo, composerFocused]);
 
   /** End the conversation: this subject is over, so the next dump starts a
    *  new one however soon it arrives. Since 30 September nothing on screen
@@ -1438,6 +1446,7 @@ export function ConversationProvider({
         sheetOpen: sheets > 0,
         sheetCount,
         composerFocused,
+        plateFoot,
         sheetClosedAt,
         openSheet,
         closeSheet,
@@ -1500,11 +1509,13 @@ export function ConversationProvider({
  *  caller: a sheet that closes itself would otherwise leave the plate hidden.
  */
 export function useScreenSheet(open: boolean): void {
-  const { openSheet, closeSheet, sheetCount, sheetClosedAt } = useConversation();
+  const { openSheet, closeSheet, sheetCount, sheetClosedAt, composerFocused } = useConversation();
   // Before the sheet's first frame, so the plate starts leaving with it.
   useLayoutEffect(() => {
     if (!open) return;
     sheetCount.value = sheetCount.value + 1;
+    // A sheet's keyboard is not the plate's, even if the plate had it.
+    composerFocused.value = withTiming(0, plateAway);
     openSheet();
     // A sheet takes its keyboard with it. Left up, Android handed the closing
     // field's focus to the composer and the keyboard stayed for it.
@@ -1514,5 +1525,5 @@ export function useScreenSheet(open: boolean): void {
       sheetCount.value = Math.max(0, sheetCount.value - 1);
       closeSheet();
     };
-  }, [open, openSheet, closeSheet, sheetCount, sheetClosedAt]);
+  }, [open, openSheet, closeSheet, sheetCount, sheetClosedAt, composerFocused]);
 }

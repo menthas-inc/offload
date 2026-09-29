@@ -18,7 +18,7 @@
 // The timed `sheetIn` and `sheetOut` in `lib/motion.ts` are what this
 // replaced; the durations there stay for anything that is not dragged.
 
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { Keyboard, Platform, Pressable, View, type StyleProp, type ViewStyle } from "react-native";
 import { Gesture, GestureDetector, type GestureType } from "react-native-gesture-handler";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
@@ -26,10 +26,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   cancelAnimation,
   ReduceMotion,
+  measure,
   runOnJS,
-  runOnUI,
   scrollTo,
+  useAnimatedRef,
   useAnimatedStyle,
+  useFrameCallback,
   useSharedValue,
   withSpring,
   withTiming,
@@ -80,6 +82,11 @@ export function useSheetDrag({
   onClosed: () => void;
   scroll?: SheetScroll | undefined;
 }) {
+  // Taken apart here: a worklet copies what it closes over, and a gesture
+  // object cannot be copied onto the UI thread.
+  const listed = scroll !== undefined;
+  const listOffset = scroll?.offset;
+  const listRef = scroll?.ref;
   const start = useSharedValue(0);
   const anchor = useSharedValue(0);
   const engaged = useSharedValue(false);
@@ -91,7 +98,7 @@ export function useSheetDrag({
       last.value = event.translationY;
       anchor.value = event.translationY;
       // From a list, only once it is at its top and the finger is going down.
-      engaged.value = !scroll || (scroll.offset.value <= 0 && event.translationY > 0);
+      engaged.value = !listed || ((listOffset?.value ?? 0) <= 0 && event.translationY > 0);
       if (!engaged.value) return;
       cancelAnimation(y);
       start.value = y.value;
@@ -101,7 +108,7 @@ export function useSheetDrag({
       if (!engaged.value) {
         const down = event.translationY > last.value;
         last.value = event.translationY;
-        if (!scroll || scroll.offset.value > 0 || !down) return;
+        if (!listed || (listOffset?.value ?? 0) > 0 || !down) return;
         engaged.value = true;
         cancelAnimation(y);
         start.value = y.value;
@@ -109,7 +116,7 @@ export function useSheetDrag({
         held.value = 1;
       }
       y.value = dragTo(start.value, event.translationY, anchor.value);
-      if (scroll) scrollTo(scroll.ref, 0, 0, false);
+      if (listRef) scrollTo(listRef, 0, 0, false);
     })
     .onEnd((event) => {
       if (!engaged.value) return;
@@ -191,12 +198,31 @@ export function DragSheet({
   const y = useSharedValue(OFFSCREEN);
   const travel = useSharedValue(0);
   const held = useSharedValue(0);
-  const opened = useRef(false);
   const [closing, setClosing] = useState(false);
   // The plate comes back as the sheet starts to leave, not after it has gone.
   useScreenSheet(!closing);
 
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+
+  // **Opened from the UI thread, on the first frame the sheet has a size.**
+  // Waiting for `onLayout` to reach JS cost a quarter of a second in a
+  // development build, and a sheet that focuses a field on mount had its
+  // keyboard up before it moved at all. It starts from the keyboard's edge
+  // when there is one, so it comes out of the keyboard rather than from
+  // behind it.
+  const sheetRef = useAnimatedRef<Animated.View>();
+  const opening = useSharedValue(true);
+  const bottomInset = insets.bottom;
+  useFrameCallback(() => {
+    if (!opening.value) return;
+    const size = measure(sheetRef);
+    if (!size || size.height <= 0) return;
+    opening.value = false;
+    const room = keyboard === "room" ? Math.max(0, -keyboardHeight.value - bottomInset) : 0;
+    travel.value = size.height;
+    y.value = size.height - room + PAST;
+    y.value = withSpring(0, openSpring);
+  });
 
   const leave = useCallback(() => {
     Keyboard.dismiss();
@@ -258,18 +284,12 @@ export function DragSheet({
       </Animated.View>
 
       <Animated.View
+        ref={sheetRef}
         exiting={sheetExit}
         onLayout={(event) => {
-          if (closing) return;
-          const height = event.nativeEvent.layout.height;
-          travel.value = height;
-          if (opened.current) return;
-          opened.current = true;
-          runOnUI((from: number) => {
-            "worklet";
-            y.value = from + PAST;
-            y.value = withSpring(0, openSpring);
-          })(height);
+          // Its size as it changes after opening: a panel, the keyboard.
+          if (closing || opening.value) return;
+          travel.value = event.nativeEvent.layout.height;
         }}
         className={`absolute inset-x-0 bottom-0 ${
           surface ?? (isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised")
