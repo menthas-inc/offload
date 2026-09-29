@@ -140,3 +140,7 @@ Logged here and in the design system's `decisions.md`, per OFF-7.
 - **Provenance after a move could leak a thread name** to people who were never in the source thread. AC-17 exists because of that.
 - **Archive was not on the reversible allowlist.** OFF-6 says an action is reversible only once listed, and listing it is now part of this change.
 - **The standing summary had no writer**, which nothing in the first draft said out loud.
+
+## Amended 2026-09-29
+
+**The line under a thread's name is what is open in it, by kind, and who with**, where it was a total and the other members: "15 to do, 3 links", or in a shared thread one kind and the people by first name, "6 to do, with Ana and 2 more". A to-do counts while unticked, an event until it ends, nothing archived counts, and there is never "you". An empty thread of your own has no line. Composed on the server for My threads and carried on the thread bundle as `line` for the web's head. Logged in both decision logs under 2026-09-29.

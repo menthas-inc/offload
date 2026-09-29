@@ -187,7 +187,6 @@ export function useTodayAgenda(agenda: Agenda | null, onChanged: () => void, toa
                     onEdit={() => setRenaming(row)}
                     onActions={() => setActing(row)}
                     onDelete={() => remove(row)}
-                    onArchive={() => archive(row)}
                   />
                 ))}
               </View>

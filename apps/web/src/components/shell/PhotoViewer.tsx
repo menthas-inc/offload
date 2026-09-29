@@ -21,6 +21,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { photoCaption } from "@offload/widgets";
 import { Icon } from "../Icon";
 import { MoveSheet } from "./MoveSheet";
 import { PhotoThumb } from "./PhotoThumb";
@@ -243,7 +244,7 @@ export function PhotoViewer({
           blobId={photo.blobId}
           ready={photo.ready}
           rendition="large"
-          alt={photo.body ?? photo.title}
+          alt={photoCaption(photo.body) ?? photo.title}
           className={styles.picture}
           localSrc={photo.localUrl}
           attempt={attempt}
@@ -289,7 +290,9 @@ export function PhotoViewer({
               </button>
             </p>
           ) : null}
-          {photo.body ? <p className={styles.body}>{photo.body}</p> : null}
+          {/* The caption, never the words read out of the picture: those
+              stay stored for search and are not details (2026-09-29). */}
+          {photoCaption(photo.body) ? <p className={styles.body}>{photoCaption(photo.body)}</p> : null}
           {photos.length > 1 ? (
             <p className={styles.count}>
               {index + 1} of {photos.length}

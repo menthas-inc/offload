@@ -726,11 +726,10 @@ describe("the routes, with a real session", () => {
     expect(byKey["always"]!.map((t) => t.name)).toEqual(["Read later"]);
     expect(byKey["older"]!.map((t) => t.name)).toEqual(["Berlin"]);
 
-    // Composed server-side so three clients cannot drift, and the count
-    // carries no noun: the word for what is in a thread was retired and
-    // nothing replaced it in anything a person reads.
-    expect(byKey["now"]![0]!.meta).toBe("1 · Sam Ibekwe");
-    expect(byKey["always"]![0]!.meta).toBe("0 · just you");
+    // Composed server-side so three clients cannot drift. What is open in the
+    // thread by kind, and who with; never "you" (2026-09-29).
+    expect(byKey["now"]![0]!.meta).toBe("1 to do, with Sam");
+    expect(byKey["always"]![0]!.meta).toBe("");
   });
 
   it("serves a thread bundle, and says it is unsummarised (AC-4, AC-8)", async () => {
@@ -761,6 +760,9 @@ describe("the routes, with a real session", () => {
     // The field exists and is null, so the client renders an empty state from a
     // value rather than from an absence.
     expect(body.standing).toBeNull();
+    // The same line My threads draws, for the web's head (2026-09-29): the
+    // archived row does not count.
+    expect((body as unknown as { line: string }).line).toBe("1 to do");
   });
 
   it("refuses another account's thread the same way as one that does not exist", async () => {
@@ -1080,7 +1082,7 @@ describe("the answer says where it filed things (005 links)", () => {
 });
 
 describe("the meta line names people the way the kit does", () => {
-  it("lists two by comma and folds the rest into a count", async () => {
+  it("names one and folds the rest into a count", async () => {
     const me = await account("Ana Duarte");
     const t = await thread(me, "Big thread");
     for (const name of ["Sam Ibekwe", "Tom Reilly", "Mia Fell"]) {
@@ -1095,9 +1097,20 @@ describe("the meta line names people the way the kit does", () => {
     const body = response.json() as { groups: { threads: { meta: string }[] }[] };
     const meta = body.groups.flatMap((g) => g.threads)[0]!.meta;
 
-    expect(meta).toMatch(/^0 · .+, .+ and 1 more$/);
-    // No unit after the count, ever.
-    expect(meta).not.toContain("things");
+    expect(meta).toMatch(/^with \S+ and 2 more$/);
+    expect(meta).not.toContain("thing");
+  });
+});
+
+describe("the line's counts are the viewer's (2026-09-29)", () => {
+  it("counts nothing in a thread the viewer is not in", async () => {
+    const me = await account("Ana Duarte");
+    const them = await account("Other");
+    const theirs = await thread(them, "Theirs");
+    await content(them, theirs, "Private task");
+    const { openKinds } = await import("../src/routes/threads.js");
+    expect((await openKinds(me, [theirs])).get(theirs)).toBeUndefined();
+    expect((await openKinds(them, [theirs])).get(theirs)).toEqual({ task: 1 });
   });
 });
 

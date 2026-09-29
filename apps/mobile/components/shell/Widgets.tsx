@@ -48,7 +48,6 @@ export function Widgets({
   onDelete,
   onActions,
   onEdit,
-  onArchive,
   onOpenPhoto,
   onToggle,
   onReorder,
@@ -64,7 +63,6 @@ export function Widgets({
   onDelete: (row: ContentRow) => void;
   onActions: (row: ContentRow) => void;
   onEdit: (row: ContentRow) => void;
-  onArchive: (row: ContentRow) => void;
   /** 020. A tile in Files, or a photo row's tile, opens the viewer. */
   onOpenPhoto: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
@@ -87,7 +85,6 @@ export function Widgets({
           threadName={threadName}
           arrived={arrived}
           onEdit={onEdit}
-          onArchive={onArchive}
           onDelete={onDelete}
           onActions={onActions}
           onOpenPhoto={onOpenPhoto}
@@ -109,7 +106,6 @@ function WidgetBlock({
   onDelete,
   onActions,
   onEdit,
-  onArchive,
   onOpenPhoto,
   onToggle,
   onReorder,
@@ -123,7 +119,6 @@ function WidgetBlock({
   onDelete: (row: ContentRow) => void;
   onActions: (row: ContentRow) => void;
   onEdit: (row: ContentRow) => void;
-  onArchive: (row: ContentRow) => void;
   onOpenPhoto: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
   onReorder: (writes: ReorderWrite[]) => void;
@@ -149,6 +144,8 @@ function WidgetBlock({
   // rows on screen: a row dropped between two visible ones lands between
   // those two, whatever a filter hides in between.
   const movable = widget.kind === "todo";
+  // The rule between what is left and what is finished, when both show.
+  const ruled = movable && left.length > 0 && shown.length > left.length;
   const layouts = useRef(new Map<string, { y: number; height: number }>());
 
   function drop(id: string, dy: number): void {
@@ -286,17 +283,23 @@ function WidgetBlock({
               layouts.current.set(row.id, { y, height });
             }}
           >
+            {/* 2026-09-29. A rule between what is left and what is finished:
+                the finished rows cannot be dragged, so they draw no handle,
+                and without the rule they read as the same list drawn
+                wrong. */}
+            {/* It stands in for the last row's own border, in a darker ink. */}
+            {ruled && index === left.length ? <View className="bg-text-secondary" style={{ height: 1 }} /> : null}
             <ContentRowView
               row={row}
-              border={index < shown.length - 1}
+              border={index < shown.length - 1 && !(ruled && index === left.length - 1)}
               arrived={arrived?.has(row.id) ?? false}
               onDelete={() => onDelete(row)}
               onActions={() => onActions(row)}
               onEdit={() => onEdit(row)}
-              onArchive={() => onArchive(row)}
               onOpenPhoto={() => onOpenPhoto(row)}
               onToggle={widget.kind === "todo" ? () => onToggle(row) : undefined}
               reorder={movable && row.doneAt === null ? { onDrop: (dy) => drop(row.id, dy) } : undefined}
+              handleSpace={movable && row.doneAt !== null}
             />
           </View>
         ))

@@ -11,6 +11,132 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-29 · To do's finished rows sit under a rule, in line with the rest
+**Surface:** iOS, Android, web
+
+**Was:** a finished task draws no handle, since it cannot be dragged, so its checkbox sat a handle's width left of the unticked ones and the two groups read as one list drawn wrong.
+
+**Is:** a finished row keeps the handle's space with nothing in it, so its checkbox sits under the others', and a 1px rule in `--text-secondary` separates the two groups, standing in for the last unticked row's own hairline rather than adding to it. Only while both groups show.
+
+**Design system impact:** `ContentRow` gains `handleSpace`, an empty handle column. The kits' To do widget draws the rule between the groups, full row width, in `--text-secondary`.
+
+### 2026-09-29 · When, Repeats and Labels open inside the edit sheet, and every row sheet has one foot
+**Surface:** iOS, Android
+
+**Was:** the edit sheet's When, Repeats and Labels each opened a second sheet over it. The When sheet's foot was Clear beside Save with no Cancel, so going back without a change meant choosing between two actions that both changed something.
+
+**Is:** they open in place, in the same sheet, and hand their value back on Done; the sheet's own Save still writes once. The sheet's fields stay mounted under a panel, so the title field does not raise the keyboard again when one closes. Every row sheet shares one foot, `SheetFoot`: the way out or the undoing on the left where Delete sits (Delete, Archive, Put back, Clear), Cancel and the confirming action on the right. The confirming action says Save where it writes and Done where it hands back to a sheet that will. The When and Labels sheets the long press opens alone use the same foot, so both gain Cancel, and Labels loses its full-width pair. Custom repeat still opens as its own sheet. Each sheet grows by the keyboard from its foot rather than rising by it, so its top never leaves the screen.
+
+**Design system impact:** the kits' edit sheet shows When, Repeats and Labels as panels inside it, not as stacked sheets. `RowActionSheet`'s sibling sheets (When, Labels) take the three-pill foot: lead action left, Cancel and Save or Done right. A new pattern worth naming in the readme: a sheet's sub-section opens in place and confirms with Done.
+
+### 2026-09-29 · The label list keeps its name in view with the keyboard up
+**Surface:** iOS, Android
+
+**Was:** the label's list runs from under the status bar to the bottom and rose by the keyboard's height when the name field took focus, so in a thread with many rows its top, the name and the colour, went off the screen.
+
+**Is:** the keyboard pads the sheet's foot instead. The name and the colour stay where they are and the list of rows is what gives up the room, and scrolls.
+
+**Design system impact:** none; a keyboard is something no kit can draw.
+
+### 2026-09-29 · A thread's line says what is in it, and who with
+**Surface:** iOS, Android, web
+
+**Was:** "33 · just you" under a thread's name in My threads and on the web's thread head: a total that counted ticked-off rows and said nothing about what they were, then "just you", which is most threads.
+
+**Is:** the two biggest open kinds, largest first: "15 to do, 3 links". A shared thread gives one kind and the people, by first name: "6 to do, with Ana", "with Ana and Tom", "with Ana and 2 more". A to-do counts while unticked, an event until it ends, nothing archived counts, and photos and screenshots count together. No "you", ever. An empty thread of your own draws no line at all. Composed on the server, as before.
+
+**Design system impact:** the kits' `ThreadRow` meta line and the web's `WPaneHead` sub take this shape. Kind names: to do, event(s), link(s), photo(s), place(s), voice note(s), file(s).
+
+### 2026-09-29 · No details, on a row or a note
+**Surface:** iOS, Android, web
+
+**Was:** a row's edit had a details field under the title, and its details were drawn under the title in lists, on Activity, in an answer, on the web's row page and under a photo in the viewer. A note had a second field and a "more" marker.
+
+**Is:** none of these. offload is for short things; the second field took space, looked odd and confused people. What is stored is left as it is and an edit never touches it. **The photo viewer keeps a caption**: a photo's details before their `Text:` line, which the filing prompt writes as why it was kept and what is in it. The words read out of the picture after `Text:` stay stored for search and answers and are shown nowhere; a document's worth of text is not a caption. The caption is also the photo's accessible description. The privacy page says both, and its date and the consent version moved to 29 September.
+
+**Design system impact:** the edit sheet and the web's edit dialog lose the details field; `ContentRow` loses its body line on every surface; the note editor loses its second field and the note row its "more". The 2026-09-27 edit-sheet entry's details styling no longer applies.
+
+### 2026-09-29 · Pictures on rows are larger
+**Surface:** iOS, Android, web
+
+**Was:** a link's page picture and a photo row's thumb took the type tile's slot, 36px, centred on the title line.
+
+**Is:** 72px on the web and 50px on the phones, topped with the title line rather than centred on it, since they are taller than it. The type tile and the Files grid are unchanged, so a row with a picture starts its title further in than one without.
+
+**Design system impact:** `ContentRow`'s picture lead is 72px on web and 50px on the phones, top aligned.
+
+### 2026-09-29 · The web's live rows drop "you · date"
+**Surface:** web
+
+**Was:** every row in Everything else carried its author and created date, "you · 20 Sep".
+
+**Is:** nothing on a live row, as on the phones. An archived row keeps "archived 20 Sep", the one date there that is useful.
+
+**Design system impact:** the web kit's list row drops the author and date meta except on the archived view.
+
+### 2026-09-29 · The day list's event anchors are twice the size
+**Surface:** iOS, Android, web
+
+**Was:** an 8px anchor on a 1px spine, from DayAgenda's EventLine (21 September).
+
+**Is:** a 16px anchor on a 2px spine, the spine through the anchors' centres; the title column moves 8px in. They read as a smudge and a hairline.
+
+**Design system impact:** `EventLine` in the kits' DayAgenda: anchor 16px, spine 2px.
+
+### 2026-09-29 · A day's spoken name never says thing
+**Surface:** iOS, Android, web
+
+**Was:** a calendar day with a link or a photo on it was named "2 things".
+
+**Is:** kinds with a name keep it; anything else is counted without a noun, "2 more" after named kinds and "2 on" alone, the other half of "nothing on".
+
+**Design system impact:** none.
+
+### 2026-09-29 · A row's tools move into its sheet, and a tap opens it
+**Surface:** iOS, Android
+**Raised by:** the product owner, tightening the thread after 025.
+
+**Was:** every row drew its tools on the title line: `pencil` and one way out, with `tag` first on an unlabelled row, so a to-do had a handle, a checkbox and three glyphs. A link's row opened its page on a tap and drew `arrow-up-right` where the tools would be. Labels were reached from the row's `tag` or the long press's sheet.
+
+**Is:** a tap on a row opens its edit sheet, and the row draws no tools. The sheet carries what they did: a **Labels** row under When and Repeats, showing the row's dots and names and opening the label sheet on top, which hands its choice back like When does, so Save still writes once; the way out stays at its foot. A link with an address keeps the tap for its page and draws one `ellipsis` that opens the same sheet; the arrow is gone, since the domain under the title already says the row goes somewhere. Somebody else's row cannot be edited, so its tap opens the long press's action sheet, which gains **Labels**. The swipe and the long press are unchanged.
+
+Beside a handle, the checkbox drops the tile's 36px slot and sits at its own 21px: To do is all tasks, so there is nothing for the title to line up with, and grip, slot and gap together pushed it half an inch in.
+
+**Design system impact:** the kits' `ContentRow` on the phones draws no trailing tools, and an `ellipsis` on a link row in place of `arrow-up-right`. The 2026-09-11 "row draws what the web row draws" and 025's "the tag tool sits first among a row's tools" no longer hold on the phones; the web is unchanged. The edit sheet gains a Labels row with `tag`, dots and names and a chevron. `RowActionSheet` in a thread gains Labels after Edit. The checkbox-in-the-tile-slot rule of 2026-09-26 applies only to a row with no handle.
+
+### 2026-09-29 · A note on the phones: no sparkle, its labels as dots, the handle on its first line
+**Surface:** iOS, Android
+
+**Was:** a note offload wrote led with `sparkles` in moss before moss text. A note's labels were not drawn anywhere. The handle was centred on the whole row and touched the text: its −6 margin cancelled the 6px gap.
+
+**Is:** no sparkle, on the thread's Notes and on a day's list under the calendar: the moss ink says who wrote it. A note's labels are `LabelDot`s at the trailing edge, centred on the first line, one per label; the filter bar names them. The handle sits on the first line, as the content row's does, and clears the text by the gap.
+
+**Design system impact:** the kits' note row drops the leading sparkle on the phones and gains trailing label dots. The accessible name keeps "offload wrote this." The web's note row is unchanged.
+
+### 2026-09-29 · The thread's calendar is always a month
+**Surface:** iOS, Android, web
+
+**Was:** a rail of whole weeks until the span passed six weeks, then a month (2026-09-11). A trip over three weeks drew as weeks that crossed a month boundary with no way to step.
+
+**Is:** always the month, with the month bar, the swipe on the phones and the directional slide. The rail is drawn nowhere; `railFor` stays in the package because its tests pin the dot rules the month shares, and `WEEKS_BEFORE_MONTHS` is gone.
+
+**A month is drawn once.** With a calendar picked, the thread's own dots drew first and the calendar's a second later, and every step to another month did it again. A month's dots now wait for its events, and the months either side are read ahead, so an arrow or a swipe lands on a complete month.
+
+**A picked calendar's events are quieter than the thread's own.** A calendar with something every day lit every cell, so the dots stopped telling the thread's days apart. Its events are a hollow ring in `--text-tertiary`, drawn after the thread's own dots so the cap never crowds those out, and they never lift a cell: the lift is the thread's own things only. The day's list is unchanged. A day's accessible name says "calendar event".
+
+**Design system impact:** the kits' `TimelineWidget` is a month grid with the month bar (step, name and Today, step), not a Mon to Sun rail. The readme's "past six weeks it is a month" becomes "a month at a time". The dot legend gains a fifth mark, a picked calendar's event: hollow, tertiary, last in the cell. The has-something cell treatment of 2026-09-11 is about the thread's own things only.
+
+### 2026-09-29 · Group with labels is a tag in the head
+**Surface:** iOS, Android, web
+
+**Was:** a thread with no labels and six or more things drew an outline chip, *+ Group with labels*, on a row of its own under the app bar.
+
+**Is:** a thread with no labels draws `tag` in the head: first among the phones' bar glyphs, before Share, and among the web pane's tools, before the calendar. It opens a new label's list, as the chip did, and is named *Group with labels* for a screen reader. No six-row threshold: it is one quiet glyph, not a row. Once the thread has a label it goes, and the filter bar's pinned `plus` takes over. Not on the archived view.
+
+The web head's tools were capped at one by the 17 September criterion; this is the second, and it meets the criterion, since grouping changes what the pane shows.
+
+**Design system impact:** the filter bar has no empty state; the `Chip` prompt's *Group with labels* line goes. The phones' thread app bar and the web's `WPaneHead` tools gain `tag` while a thread has no labels. `PaneHead`'s "up to one" tool becomes "up to two".
+
 ### 2026-09-27 · Labels, as built
 **Surface:** iOS, Android, web
 

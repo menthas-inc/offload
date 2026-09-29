@@ -27,6 +27,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { photoCaption } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { atOpacity, useColors } from "../../lib/colors";
 import type { ContentRow } from "../../lib/threads";
@@ -199,7 +200,7 @@ export function PhotoViewer({
             style={{ width, height: pictureHeight }}
             localUri={photo.localUri}
             attempt={attempt}
-            accessibilityLabel={photo.body ?? photo.title}
+            accessibilityLabel={photoCaption(photo.body) ?? photo.title}
             fallback={
               <View className="items-center gap-space-3">
                 <Glyph name="image" size={28} color={COLOR.onBrand} />
@@ -234,12 +235,11 @@ export function PhotoViewer({
           <Text className="font-core font-medium text-text-primary" style={{ fontSize: 15 }}>
             {photo.title}
           </Text>
-          {photo.body ? (
-            <Text
-              className="mt-space-2 font-core text-text-secondary"
-              style={{ fontSize: 13, lineHeight: 19 }}
-            >
-              {photo.body}
+          {/* The caption, never the words read out of the picture: those
+              stay stored for search and are not details (2026-09-29). */}
+          {photoCaption(photo.body) ? (
+            <Text className="mt-space-2 font-core text-text-secondary" style={{ fontSize: 13, lineHeight: 19 }}>
+              {photoCaption(photo.body)}
             </Text>
           ) : null}
         </ScrollView>

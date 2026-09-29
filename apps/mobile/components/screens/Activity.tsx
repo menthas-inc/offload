@@ -126,11 +126,6 @@ export default function Activity() {
                       {whenOf(row.occurredAt, here, zone)}
                     </Text>
                   </View>
-                  {row.body ? (
-                    <Text className={`font-core ${quiet}`} style={{ fontSize: 14, lineHeight: 19 }}>
-                      {row.body}
-                    </Text>
-                  ) : null}
                   {tag ? (
                     <View
                       className={`mt-space-2 justify-center self-start rounded-sm px-space-2 ${

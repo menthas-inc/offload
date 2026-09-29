@@ -18,7 +18,7 @@ export type WeekStart = "monday" | "sunday";
 
 /** What a dot is. Colour says which, and colour is never the only thing that
  *  says it: see the day's accessible name. */
-export type DatedKind = "task" | "event" | "note" | "other";
+export type DatedKind = "task" | "event" | "note" | "other" | "calendar";
 
 /** One thing with a date, whichever store it came from.
  *
@@ -68,6 +68,10 @@ export interface Day {
   /** Everything on the day, whether or not it got a dot. `dots` is capped for
    *  drawing and this is not, so the accessible name can tell the truth. */
   count: number;
+  /** The thread's own things on the day: everything but a picked calendar's
+   *  events. What lifts a cell, since a calendar with something every day
+   *  otherwise lifts all of them (2026-09-29). */
+  own: number;
 }
 
 export interface RailRow {
@@ -81,16 +85,6 @@ export interface RailRow {
  *  is hidden by the cap: the day's name says the number and opening it shows
  *  every one. */
 export const MAX_DOTS = 4;
-
-/** Past this many weeks the rail stops being a rail.
- *
- *  A span of a few weeks reads as time passing, which is the whole point of
- *  drawing the empty days. A span of a year does not: it is a scroll, and the
- *  answer to it is the shape everybody already knows, a month at a time with a
- *  way to step through them. **This replaced a collapsed run of empty weeks**,
- *  which was a device for making a year of nothing short rather than for making
- *  it navigable. */
-export const WEEKS_BEFORE_MONTHS = 6;
 
 import { dayIn, utcDay } from "./days.js";
 import { occurrencesIn, parseRule, type Rule } from "./rrule.js";
@@ -317,7 +311,10 @@ function dayAtIso(
   today: string,
   short: Intl.DateTimeFormat,
 ): Day {
-  const dots = days.get(iso) ?? [];
+  // The thread's own first and a calendar's last, so past the cap the
+  // calendar is what goes uncounted by a dot.
+  const held = days.get(iso) ?? [];
+  const dots = [...held.filter((dot) => dot.kind !== "calendar"), ...held.filter((dot) => dot.kind === "calendar")];
   const at = dayAt(iso);
   return {
     iso,
@@ -327,6 +324,7 @@ function dayAtIso(
     past: iso < today,
     dots: dots.slice(0, MAX_DOTS),
     count: dots.length,
+    own: dots.filter((dot) => dot.kind !== "calendar").length,
   };
 }
 
@@ -369,8 +367,9 @@ export function weeksSpanned(
  *  today, so a thread with nothing dated draws this week and a thread with one
  *  thing draws the weeks between here and it.
  *
- *  Used while the span is short. Past `WEEKS_BEFORE_MONTHS` the caller draws
- *  `monthFor` instead, because a year of weeks is a scroll rather than a shape.
+ *  No screen draws it since the thread's calendar became a month at a time,
+ *  2026-09-29. Kept because its tests are what pin the dot rules `monthFor`
+ *  shares with it.
  */
 export function railFor(
   dated: readonly Dated[],
@@ -484,15 +483,20 @@ export function dayLabel(day: Day, locale?: string): string {
 
   const counts = new Map<DatedKind, number>();
   for (const dot of day.dots) counts.set(dot.kind, (counts.get(dot.kind) ?? 0) + 1);
-  const words: Record<DatedKind, [string, string]> = {
+  const words: Record<Exclude<DatedKind, "other">, [string, string]> = {
     task: ["to do", "to do"],
     event: ["event", "events"],
     note: ["note", "notes"],
-    other: ["thing", "things"],
+    calendar: ["calendar event", "calendar events"],
   };
-  const parts = [...counts.entries()].map(
-    ([kind, n]) => `${n} ${n === 1 ? words[kind][0] : words[kind][1]}`,
+  const parts = [...counts.entries()].flatMap(([kind, n]) =>
+    kind === "other" ? [] : [`${n} ${n === 1 ? words[kind][0] : words[kind][1]}`],
   );
+  // Whatever has no name of its own is counted without a noun: "thing" was
+  // retired from anything a person reads. "2 more" after named kinds, and
+  // "2 on" alone, which is the other half of "nothing on".
+  const others = counts.get("other") ?? 0;
+  if (others > 0) parts.push(parts.length > 0 ? `${others} more` : `${others} on`);
   // Past the dot cap the parts describe what is drawn, so the total goes with
   // them rather than being implied by a number that stopped at four.
   const extra = day.count > day.dots.length ? `, ${day.count} in all` : "";

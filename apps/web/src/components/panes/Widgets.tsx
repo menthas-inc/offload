@@ -261,6 +261,10 @@ function WidgetBlock({
           see all of them once they are already showing. */}
       {!hideDone && widget.kind !== "files" ? (
         <>
+          {/* 2026-09-29. A rule between what is left and what is finished:
+              the finished rows cannot be dragged, so they draw no handle, and
+              without the rule they read as the same list drawn wrong. */}
+          {widget.kind === "todo" && left.length > 0 && done.length > 0 ? <hr className={styles.doneRule} /> : null}
           {(allDone ? done : done.slice(0, DONE_SHOWN)).map((row) => (
             <Row key={row.id} row={row} widget={widget.kind} handlers={handlers} onToggle={onToggle} />
           ))}
@@ -421,6 +425,7 @@ function Row({
       row={row}
       handlers={handlers}
       reorder={reorder}
+      handleSpace={widget === "todo" && done}
       lead={
         widget === "todo" ? (
           // A checkbox rather than a type tile: the one row in the product you
@@ -455,13 +460,7 @@ function Meta({ row }: { row: ContentRow }) {
   // title line; saying them here again would be two marks for one fact.
   if (row.place?.address) parts.push(row.place.address);
 
-  if (parts.length === 0 && !row.body) return null;
-  return (
-    <>
-      {/* What the row says under its title, as the phones have drawn it since
-          009. Two lines at most; the rest is on the row's own page. */}
-      {row.body ? <span className={styles.rowBody}>{row.body}</span> : null}
-      {parts.length > 0 ? <span className={styles.rowMeta}>{parts.join(" · ")}</span> : null}
-    </>
-  );
+  // 2026-09-29. No details line: offload is for short things.
+  if (parts.length === 0) return null;
+  return <span className={styles.rowMeta}>{parts.join(" · ")}</span>;
 }

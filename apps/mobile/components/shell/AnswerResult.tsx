@@ -191,15 +191,6 @@ function Result({
             >
               {row.title}
             </Text>
-            {row.body ? (
-              <Text
-                className="font-core text-text-secondary"
-                style={{ fontSize: 12.5, lineHeight: 17.5, marginTop: 2 }}
-                numberOfLines={2}
-              >
-                {row.body}
-              </Text>
-            ) : null}
           </View>
         </View>
       ))}

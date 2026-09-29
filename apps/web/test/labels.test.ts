@@ -204,7 +204,17 @@ describe("the privacy page says labels (AC-34)", () => {
     expect(said).toMatch(/is gone for good, inside the 30 days above/);
     const updated = /const UPDATED = "(\d+) September 2026"/.exec(page)?.[1];
     const version = /CONSENT_VERSION = "2026-09-(\d+)"/.exec(session)?.[1];
-    expect(updated).toBe("28");
-    expect(version).toBe("28");
+    // The two move together; 025 moved them to the 28th and 2026-09-29's
+    // details change to the 29th.
+    expect(updated).toBeDefined();
+    expect(updated).toBe(version);
+  });
+
+  it("says what is kept of a photo's words and a note's longer text without being shown (2026-09-29)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const page = readFileSync(new URL("../src/app/(marketing)/privacy/page.tsx", import.meta.url), "utf8").replace(/\s+/g, " ");
+    expect(page).toMatch(/The description is shown under the photo; the words read out of it are kept so search and answers can find them, and are not shown anywhere\./);
+    expect(page).toMatch(/that is kept with it without being shown, and goes when the note does\./);
+    expect(page).not.toMatch(/All of it is on the thread/);
   });
 });

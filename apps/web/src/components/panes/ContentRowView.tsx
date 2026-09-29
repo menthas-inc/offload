@@ -67,6 +67,7 @@ export function ContentRowView({
   meta,
   handlers,
   reorder,
+  handleSpace,
 }: {
   row: ContentRow;
   /** The tile, the checkbox, whatever leads this row where it is shown. */
@@ -77,6 +78,10 @@ export function ContentRowView({
    *  it is the one list a person arranges, and the handle it draws is the one
    *  control here that does nothing when clicked. */
   reorder?: RowReorder | undefined;
+  /** Keeps the handle's space with no handle in it: a finished task in a list
+   *  that can be arranged, so its checkbox sits under the others'
+   *  (2026-09-29). */
+  handleSpace?: boolean | undefined;
 }) {
   // Shown on a link row and nowhere else. What says the row goes somewhere.
   const domain = domainOf(row.url);
@@ -152,7 +157,13 @@ export function ContentRowView({
     >
       {/* The move area, leading the row, left of the checkbox. Always drawn,
           no container: where a list is held, not one of its actions. */}
-      {reorder ? <ReorderHandle title={row.title} reorder={reorder} /> : null}
+      {reorder ? (
+        <ReorderHandle title={row.title} reorder={reorder} />
+      ) : handleSpace ? (
+        <span className={styles.grip} style={{ visibility: "hidden" }} aria-hidden="true">
+          <Icon name="grip-vertical" size={15} />
+        </span>
+      ) : null}
 
       {/* **The page's own picture, in place of the type tile.** A listing is
           recognised by its photo long before its title, and the tile is already

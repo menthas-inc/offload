@@ -14,20 +14,17 @@
 // kind and lets a day have several, and drops the toggle: picking a day is the
 // toggle. Logged in the design system's `decisions.md`.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../Icon";
 import styles from "../../app/(shell)/shell.module.css";
 import cal from "../../app/(shell)/calendar.module.css";
 import { ContentRowView, type RowHandlers } from "./ContentRowView";
 import {
-  WEEKS_BEFORE_MONTHS,
   dayLabel,
   datedFor,
   monthFor,
-  railFor,
   stepMonth,
   thingsOn,
-  weeksSpanned,
   type Dated,
   type Day,
   type RailRow,
@@ -52,7 +49,7 @@ interface Props {
   calendars: { anyPicked: boolean; version: number };
 }
 
-/** 019. A calendar's event as an entry on the rail: kind `event`, never done,
+/** 019. A calendar's event as an entry on the rail: kind `calendar`, never done,
  *  never repeating here since the copy already holds every occurrence. The id
  *  is prefixed so it can never collide with a row's. */
 function eventDated(event: ThreadEvent, zone: string | null): Dated | null {
@@ -62,7 +59,7 @@ function eventDated(event: ThreadEvent, zone: string | null): Dated | null {
   const day = (at: string) => (event.allDay ? utcDay(new Date(at)) : dayIn(new Date(at), zone));
   const from = day(event.occursAt);
   const end = event.occursEndAt ? day(event.occursEndAt) : from;
-  return { id: `event:${event.id}`, rowId: `event:${event.id}`, due: false, kind: "event", from, to: end < from ? from : end, done: false };
+  return { id: `event:${event.id}`, rowId: `event:${event.id}`, due: false, kind: "calendar", from, to: end < from ? from : end, done: false };
 }
 
 
@@ -84,6 +81,10 @@ const DOT: Record<string, string> = {
   event: "var(--text-primary)",
   note: "var(--text-noticed)",
   other: "var(--text-tertiary)",
+  // 2026-09-29. A picked calendar's event, drawn hollow in the quietest ink:
+  // a calendar with something every day otherwise lit every cell and the
+  // thread's own days stopped standing out.
+  calendar: "var(--text-tertiary)",
 };
 
 export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, calendars }: Props) {
@@ -110,63 +111,58 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
   // The thread's own dated things: what the span is made of.
   const own = useMemo(() => datedFor(rows, notes, zone), [rows, notes, zone]);
 
-  // **A rail past a few weeks stops being a rail.** Weeks read as time passing,
-  // which is what the empty days are for; a year of weeks is a scroll. Past the
-  // threshold it draws the shape everybody already knows instead, a month at a
-  // time with a way to step through them.
-  //
-  // **The span is the thread's own.** A picked calendar's twelve months of
-  // events do not stretch a rail into a month view; they are drawn inside
-  // whatever span the thread's rows and notes make.
-  const weeks = useMemo(() => weeksSpanned(own, today, weekStart), [own, today, weekStart]);
-  const asMonth = weeks > WEEKS_BEFORE_MONTHS;
+  // **Always a month.** A rail of weeks was drawn until the span passed six
+  // weeks, and a trip over three weeks crossed a month boundary with no way
+  // to step. A calendar is read a month at a time, so that is the one shape.
+  const here = monthFor(month ?? today, [], today, weekStart).key;
 
-  const ownRail = useMemo(
-    () => (asMonth ? null : railFor(own, today, weekStart)),
-    [asMonth, own, today, weekStart]
-  );
-  const ownGrid = useMemo(
-    () => (asMonth ? monthFor(month ?? today, own, today, weekStart) : null),
-    [asMonth, month, own, today, weekStart]
-  );
-
-  // The days on screen, which is the window the calendars are read for.
-  const shown = ownRail ?? ownGrid?.weeks ?? [];
-  const from = shown[0]?.days[0]?.iso ?? today;
-  const to = shown[shown.length - 1]?.days[6]?.iso ?? today;
-
-  // 019. The events on the thread's calendars inside that window, from the
-  // copy. Read again when the window moves or the picks change.
-  const [events, setEvents] = useState<ThreadEvent[]>([]);
+  // 019. The events on the thread's calendars, by the days a month draws,
+  // from the copy. **A month is drawn once** (2026-09-29): its dots wait for
+  // its events, and the months either side are read ahead, so neither opening
+  // the thread nor an arrow shows the grid changing under whoever reads it.
+  // Keyed by the thread, so another thread's events can never be drawn
+  // here, and by the picks' version, so a change of calendars reads again.
+  const windowOf = (at: string): string => {
+    const weeks = monthFor(at, [], today, weekStart).weeks;
+    return `${threadId}|${calendars.version}|${weeks[0]?.days[0]?.iso ?? at}|${weeks[weeks.length - 1]?.days[6]?.iso ?? at}`;
+  };
+  const [read, setRead] = useState<Map<string, ThreadEvent[]>>(() => new Map());
+  const asking = useRef(new Set<string>());
   useEffect(() => {
-    if (!calendars.anyPicked) {
-      setEvents([]);
-      return;
+    if (!calendars.anyPicked) return;
+    for (const at of [here, stepMonth(here, 1), stepMonth(here, -1)]) {
+      const window = windowOf(at);
+      if (asking.current.has(window)) continue;
+      asking.current.add(window);
+      const [, , from, to] = window.split("|") as [string, string, string, string];
+      void fetchThreadEvents(threadId, from, to)
+        .catch(() => null)
+        .then((found) => {
+          // A month whose calendars did not answer is drawn with the
+          // thread's own dots, and asked for again the next time it is near.
+          if (found === null) asking.current.delete(window);
+          setRead((held) => new Map(held).set(window, found ?? []));
+        });
     }
-    let live = true;
-    void fetchThreadEvents(threadId, from, to).then((found) => {
-      if (live) setEvents(found);
-    });
-    return () => {
-      live = false;
-    };
-  }, [threadId, from, to, calendars.anyPicked, calendars.version]);
+    // `windowOf` reads only what is listed here.
+  }, [threadId, here, today, weekStart, calendars.anyPicked, calendars.version]);
 
+  const shownEvents = calendars.anyPicked ? read.get(windowOf(here)) : [];
+  const events = useMemo(() => shownEvents ?? [], [shownEvents]);
+  const ready = shownEvents !== undefined;
+
+  // Everything on the thread's days, for the day list: the thread's own
+  // things at once, a calendar's as they arrive. Only the grid waits.
   const dated = useMemo(
     () => [...own, ...events.map((event) => eventDated(event, zone)).filter((one): one is Dated => one !== null)],
-    [own, events]
+    [own, events, zone]
   );
   const eventsById = useMemo(() => new Map(events.map((event) => [`event:${event.id}`, event])), [events]);
 
-  // The same span, now with the calendars' dots in it: the events were
-  // fetched for exactly these days, so they cannot widen it.
-  const rail = useMemo(
-    () => (asMonth ? null : railFor(dated, today, weekStart)),
-    [asMonth, dated, today, weekStart]
-  );
+  // The grid's dots wait for the month's calendars, so it is drawn once.
   const grid = useMemo(
-    () => (asMonth ? monthFor(month ?? today, dated, today, weekStart) : null),
-    [asMonth, month, dated, today, weekStart]
+    () => monthFor(here, ready ? dated : [], today, weekStart),
+    [here, ready, dated, today, weekStart]
   );
 
   // What is on the open day, drawn as whatever each one is.
@@ -207,8 +203,9 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
       // **A day with anything on it is tinted, not only dotted.** Five pixels
       // of colour is easy to miss across seven cells; the cell itself carrying
       // a quiet inward edge is what makes a week readable at a glance, and the
-      // dots then say what kind and how many.
-      data-has={day.count > 0 ? true : undefined}
+      // dots then say what kind and how many. The thread's own things only: a
+      // picked calendar's events are dots and never lift a cell (2026-09-29).
+      data-has={day.own > 0 ? true : undefined}
       data-outside={outside ? true : undefined}
       aria-pressed={day.iso === selected}
       // The dots are the fast read and never the only one.
@@ -222,7 +219,7 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
           <span
             key={index}
             className={styles.railDot}
-            data-done={dot.done ? true : undefined}
+            data-done={dot.done || dot.kind === "calendar" ? true : undefined}
             style={{ color: DOT[dot.kind] ?? DOT["other"] }}
           />
         ))}
@@ -242,24 +239,22 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
   const goToday = (): void => {
     // Back to this month from wherever you are, and in the direction that is
     // actually true: forward if you had wandered into the past.
-    if (grid) setWent(grid.key > today ? -1 : 1);
+    setWent(grid.key > today ? -1 : 1);
     setMonth(null);
     pick(today);
   };
 
   const step = (by: 1 | -1): void => {
-    if (!grid) return;
     setWent(by);
     setMonth(stepMonth(grid.key, by));
   };
 
   return (
     <section className={styles.rail}>
-      {/* A month at a time, once the span is past a few weeks. The controls are
-          the ones a calendar always has, and Today is the way back from
-          wherever stepping through months left somebody. */}
-      {grid ? (
-        <div className={styles.railMonth}>
+      {/* A month at a time. The controls are the ones a calendar always has,
+          and Today is the way back from wherever stepping through months left
+          somebody. */}
+      <div className={styles.railMonth}>
           <button
             type="button"
             className={styles.railStep}
@@ -292,18 +287,13 @@ export function Timeline({ threadId, rows, notes, handlers, onToggle, onAdd, cal
             <Icon name="chevron-right" size={16} />
           </button>
         </div>
-      ) : null}
 
       {/* Keyed by the month so it remounts and the animation runs. Without the
           key the same element is rewritten in place and nothing moves, which
           is a redraw rather than a change of month. */}
-      {grid ? (
-        <div key={grid.key} className={styles.railSlide} data-went={went}>
-          {grid.weeks.map((row) => week(row, grid.inMonth))}
-        </div>
-      ) : (
-        (rail ?? []).map((row) => week(row))
-      )}
+      <div key={grid.key} className={styles.railSlide} data-went={went}>
+        {grid.weeks.map((row) => week(row, grid.inMonth))}
+      </div>
 
       <div className={styles.railDayHead}>
         <h2 className={styles.section} style={{ paddingTop: "var(--space-0)" }}>

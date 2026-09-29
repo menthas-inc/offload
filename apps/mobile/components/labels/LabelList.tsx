@@ -74,8 +74,13 @@ export function LabelList({
   const [unread, setUnread] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const live = useRef(true);
+  // 2026-09-29. The keyboard pads the foot rather than lifting the sheet. The
+  // sheet runs from under the status bar to the bottom, so lifting it by the
+  // keyboard's height pushed its top, the name and the colour, off the
+  // screen; padded, the list of rows is what gives up the room and scrolls.
+  // `keyboardHeight` is negative while the keyboard is up.
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
+  const room = useAnimatedStyle(() => ({ paddingBottom: Math.max(insets.bottom, -keyboardHeight.value) + 8 }));
 
   useEffect(() => {
     live.current = true;
@@ -158,7 +163,7 @@ export function LabelList({
         entering={sheetIn()}
         exiting={sheetOut()}
         className={`absolute inset-x-0 bottom-0 rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
-        style={[{ top: insets.top + 12, paddingBottom: insets.bottom + 8 }, lift]}
+        style={[{ top: insets.top + 12 }, room]}
         accessibilityViewIsModal
       >
         <View className="items-center pt-space-3">

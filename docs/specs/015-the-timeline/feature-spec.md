@@ -96,3 +96,7 @@ Monday by default. Sunday for anyone who wants it, in Settings under Appearance,
 - **Anything the timeline could write.** No adding from a day, no dragging a thing to another day. Reading, and the row controls that already exist.
 - **An hour view.** The kits draw one for a single day on the phones and it belongs to a calendar screen, not to a thread.
 - **The map.** A dated note can carry a place and the map is 007's, unchanged.
+
+## Amended 2026-09-29
+
+**AC-5 is superseded: the thread's calendar is always a month**, at any span, with the month bar and, on the phones, the swipe. A trip over three weeks drew as weeks crossing a month boundary with no way to step. **A month is drawn once**: with a calendar picked, its dots wait for that month's events and the months either side are read ahead. **A picked calendar's events are quieter than the thread's own**: hollow tertiary dots after the thread's, and they never lift a cell. The day list's event anchor is 16px on a 2px spine. Logged in both decision logs under 2026-09-29.

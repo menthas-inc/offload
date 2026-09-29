@@ -103,8 +103,6 @@ function writePick(threadId: string, pick: LabelPick): void {
     // A pick that is not kept is still the pick on screen.
   }
 }
-/** The six rows a thread needs before it offers labels unasked. */
-const GROUP_PROMPT_ROWS = 6;
 
 interface Props {
   id: string;
@@ -883,12 +881,8 @@ export function Thread({ id, onChanged }: Props) {
             thread.name
           )
         }
-        sub={
-          <>
-            {thread.counts.active}
-            {others.length ? ` · ${others.map((m) => m.displayName).join(", ")}` : " · just you"}
-          </>
-        }
+        // The line My threads draws, from the server (2026-09-29).
+        sub={thread.line || undefined}
         fullHref={`/threads/${id}`}
         aside={
           <>
@@ -915,24 +909,43 @@ export function Thread({ id, onChanged }: Props) {
           </>
         }
         tools={
-          /* 019. The third tool, drawn whenever the account has a calendar
-             connection at all; with none there is nothing to open. */
-          thread.calendars ? (
-            <CalendarsTool
-              threadId={id}
-              threadName={thread.name}
-              members={thread.members.length}
-              counts={thread.calendars}
-              open={calendarsOpen}
-              onOpenChange={setCalendarsOpen}
-              onChanged={() => {
-                setCalendarsVersion((v) => v + 1);
-                void fetchThread(id).then((bundle) => {
-                  if (bundle) setThread(bundle);
-                });
-              }}
-            />
-          ) : undefined
+          <>
+            {/* 2026-09-29. Labels' way in while the thread has none: it changes
+                what the pane shows, which is the head's criterion. The filter
+                bar's plus takes over once there is one. */}
+            {showArchived || thread.labels.length > 0 ? null : (
+              <button
+                type="button"
+                className={styles.tool}
+                aria-label="Group with labels"
+                title="Group with labels"
+                onClick={() => {
+                  setListLine(null);
+                  setListing({ label: null });
+                }}
+              >
+                <Icon name="tag" size={16} />
+              </button>
+            )}
+            {/* 019. Drawn whenever the account has a calendar connection at
+                all; with none there is nothing to open. */}
+            {thread.calendars ? (
+              <CalendarsTool
+                threadId={id}
+                threadName={thread.name}
+                members={thread.members.length}
+                counts={thread.calendars}
+                open={calendarsOpen}
+                onOpenChange={setCalendarsOpen}
+                onChanged={() => {
+                  setCalendarsVersion((v) => v + 1);
+                  void fetchThread(id).then((bundle) => {
+                    if (bundle) setThread(bundle);
+                  });
+                }}
+              />
+            ) : null}
+          </>
         }
         more={[
           {
@@ -1001,7 +1014,6 @@ export function Thread({ id, onChanged }: Props) {
             labels={thread.labels}
             unlabelled={thread.counts.unlabelled}
             pick={pick}
-            prompt={thread.counts.active + thread.notes.length >= GROUP_PROMPT_ROWS}
             onPick={setPick}
             onNew={() => {
               setListLine(null);
@@ -1208,18 +1220,20 @@ export function Thread({ id, onChanged }: Props) {
                   <Icon name={rowIcon(row.type)} size={18} />
                 </span>
               }
+              // 2026-09-29. No author and date on a live row: "you" is most
+              // rows and says nothing, and the phones never drew it. An
+              // archived row keeps when it was archived, which is the one
+              // date there that is useful.
               meta={
-                <span className={styles.rowMeta}>
-                  {row.author.isYou ? "you" : row.author.displayName} ·{" "}
-                  {/* The date says what happened to it rather than only when.
-                      An archived row's created date is the least useful thing
-                      about it. */}
-                  {row.archivedAt ? "archived " : ""}
-                  {new Date(row.archivedAt ?? row.createdAt).toLocaleDateString(undefined, {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </span>
+                row.archivedAt ? (
+                  <span className={styles.rowMeta}>
+                    archived{" "}
+                    {new Date(row.archivedAt).toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                ) : null
               }
             />
             )),

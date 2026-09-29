@@ -85,13 +85,7 @@ export function ContentDetail({ detail, onToggle }: Props) {
           />
         ) : null}
 
-        {detail.body ? (
-          <>
-            <h2 className={styles.section}>{detail.photo ? "About this" : "Note"}</h2>
-            <p className={styles.standing}>{detail.body}</p>
-          </>
-        ) : null}
-
+        {/* 2026-09-29. No details section: offload is for short things. */}
         <h2 className={styles.section}>Where this came from</h2>
         {detail.from ? (
           <>

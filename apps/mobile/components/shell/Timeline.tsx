@@ -10,19 +10,16 @@
 // shape, gives the dot a colour per kind and lets a day carry several, and
 // drops the toggle: picking a day is the toggle.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { ReduceMotion, SlideInLeft, SlideInRight, runOnJS } from "react-native-reanimated";
 import {
-  WEEKS_BEFORE_MONTHS,
   dayLabel,
   datedFor,
   monthFor,
-  railFor,
   stepMonth,
   thingsOn,
-  weeksSpanned,
   type Dated,
   type Day,
   type RailRow,
@@ -38,7 +35,7 @@ import { useConversation } from "./conversation-context";
 import { QUICK_ADD_CHARS, fetchThreadEvents, rangeOf } from "../../lib/threads";
 import type { ContentRow, Note, ThreadEvent } from "../../lib/threads";
 
-/** 019. A calendar's event as an entry on the rail: kind `event`, never done,
+/** 019. A calendar's event as an entry on the rail: kind `calendar`, never done,
  *  never repeating here since the copy already holds every occurrence. The id
  *  is prefixed so it can never collide with a row's. */
 function eventDated(event: ThreadEvent, zone: string | null): Dated | null {
@@ -48,7 +45,7 @@ function eventDated(event: ThreadEvent, zone: string | null): Dated | null {
   const day = (at: string) => (event.allDay ? utcDay(new Date(at)) : dayIn(new Date(at), zone));
   const from = day(event.occursAt);
   const end = event.occursEndAt ? day(event.occursEndAt) : from;
-  return { id: `event:${event.id}`, rowId: `event:${event.id}`, due: false, kind: "event", from, to: end < from ? from : end, done: false };
+  return { id: `event:${event.id}`, rowId: `event:${event.id}`, due: false, kind: "calendar", from, to: end < from ? from : end, done: false };
 }
 
 const isAndroid = Platform.OS === "android";
@@ -61,7 +58,6 @@ interface Props {
   onDelete: (row: ContentRow) => void;
   onActions: (row: ContentRow) => void;
   onEdit: (row: ContentRow) => void;
-  onArchive: (row: ContentRow) => void;
   onToggle: (row: ContentRow) => void;
   /** 019. Whether any member has picked a calendar here, which is what puts
    *  the calendars' events on the rail. Bumped when the picks change. */
@@ -77,7 +73,6 @@ export function Timeline({
   onDelete,
   onActions,
   onEdit,
-  onArchive,
   onToggle,
 }: Props) {
   const { raiseFor } = useConversation();
@@ -107,67 +102,66 @@ export function Timeline({
     event: COLOR.ink,
     note: COLOR.textNoticed,
     other: COLOR.quiet,
+    // 2026-09-29. A picked calendar's event, hollow in the quietest ink: a
+    // calendar with something every day otherwise lit every cell.
+    calendar: COLOR.quiet,
   };
 
   // The thread's own dated things: what the span is made of.
   const own = useMemo(() => datedFor(rows, notes, zone), [rows, notes, zone]);
 
-  // **A rail past a few weeks stops being a rail.** Weeks read as time passing,
-  // which is what the empty days are for; a year of weeks is a scroll. Past the
-  // threshold it draws the shape everybody already knows instead.
-  //
-  // **The span is the thread's own.** A picked calendar's twelve months of
-  // events do not stretch a rail into a month view; they are drawn inside
-  // whatever span the thread's rows and notes make.
-  const weeks = useMemo(() => weeksSpanned(own, today, weekStart), [own, today, weekStart]);
-  const asMonth = weeks > WEEKS_BEFORE_MONTHS;
+  // **Always a month.** A rail of weeks was drawn until the span passed six
+  // weeks, and a trip over three weeks crossed a month boundary with no way
+  // to step. A calendar is read a month at a time, so that is the one shape.
+  const here = monthFor(month ?? today, [], today, weekStart).key;
 
-  const ownRail = useMemo(
-    () => (asMonth ? null : railFor(own, today, weekStart)),
-    [asMonth, own, today, weekStart],
-  );
-  const ownGrid = useMemo(
-    () => (asMonth ? monthFor(month ?? today, own, today, weekStart) : null),
-    [asMonth, month, own, today, weekStart],
-  );
-
-  // The days on screen, which is the window the calendars are read for.
-  const shown = ownRail ?? ownGrid?.weeks ?? [];
-  const from = shown[0]?.days[0]?.iso ?? today;
-  const to = shown[shown.length - 1]?.days[6]?.iso ?? today;
-
-  // 019. The events on the thread's calendars inside that window, from the
-  // copy. Read again when the window moves or the picks change.
-  const [events, setEvents] = useState<ThreadEvent[]>([]);
+  // 019. The events on the thread's calendars, by the days a month draws,
+  // from the copy. **A month is drawn once** (2026-09-29): its dots wait for
+  // its events, and the months either side are read ahead, so neither opening
+  // the thread nor a step shows the grid changing under whoever reads it.
+  // Keyed by the thread, so another thread's events can never be drawn
+  // here, and by the picks' version, so a change of calendars reads again.
+  const windowOf = (at: string): string => {
+    const weeks = monthFor(at, [], today, weekStart).weeks;
+    return `${threadId}|${calendars.version}|${weeks[0]?.days[0]?.iso ?? at}|${weeks[weeks.length - 1]?.days[6]?.iso ?? at}`;
+  };
+  const [read, setRead] = useState<Map<string, ThreadEvent[]>>(() => new Map());
+  const asking = useRef(new Set<string>());
   useEffect(() => {
-    if (!calendars.anyPicked) {
-      setEvents([]);
-      return;
+    if (!calendars.anyPicked) return;
+    for (const at of [here, stepMonth(here, 1), stepMonth(here, -1)]) {
+      const window = windowOf(at);
+      if (asking.current.has(window)) continue;
+      asking.current.add(window);
+      const [, , from, to] = window.split("|") as [string, string, string, string];
+      void fetchThreadEvents(threadId, from, to)
+        .catch(() => null)
+        .then((found) => {
+          // A month whose calendars did not answer is drawn with the
+          // thread's own dots, and asked for again the next time it is near.
+          if (found === null) asking.current.delete(window);
+          setRead((held) => new Map(held).set(window, found ?? []));
+        });
     }
-    let live = true;
-    void fetchThreadEvents(threadId, from, to).then((found) => {
-      if (live) setEvents(found);
-    });
-    return () => {
-      live = false;
-    };
-  }, [threadId, from, to, calendars.anyPicked, calendars.version]);
+    // `windowOf` reads only what is listed here.
+  }, [threadId, here, today, weekStart, calendars.anyPicked, calendars.version]);
 
+  const shownEvents = calendars.anyPicked ? read.get(windowOf(here)) : [];
+  const events = useMemo(() => shownEvents ?? [], [shownEvents]);
+  const ready = shownEvents !== undefined;
+
+  // Everything on the thread's days, for the day list: the thread's own
+  // things at once, a calendar's as they arrive. Only the grid waits.
   const dated = useMemo(
     () => [...own, ...events.map((event) => eventDated(event, zone)).filter((one): one is Dated => one !== null)],
-    [own, events],
+    [own, events, zone],
   );
   const eventsById = useMemo(() => new Map(events.map((event) => [`event:${event.id}`, event])), [events]);
 
-  // The same span, now with the calendars' dots in it: the events were
-  // fetched for exactly these days, so they cannot widen it.
-  const rail = useMemo(
-    () => (asMonth ? null : railFor(dated, today, weekStart)),
-    [asMonth, dated, today, weekStart],
-  );
+  // The grid's dots wait for the month's calendars, so it is drawn once.
   const grid = useMemo(
-    () => (asMonth ? monthFor(month ?? today, dated, today, weekStart) : null),
-    [asMonth, month, dated, today, weekStart],
+    () => monthFor(here, ready ? dated : [], today, weekStart),
+    [here, ready, dated, today, weekStart],
   );
 
   // **Over the entries, not the rows.** A task with an occurrence on one day
@@ -215,19 +209,19 @@ export function Timeline({
             ? COLOR.attention
             : day.today
               ? COLOR.borderFocus
-              : day.count > 0
+              : day.own > 0
                 ? COLOR.lift
                 : "transparent",
         backgroundColor:
           day.iso === selected
             ? COLOR.attention
-            : day.count > 0
+            : day.own > 0
               ? COLOR.raised
               : "transparent",
         // The drop that makes it a lift rather than a tint. Not inset: an
         // inset shadow is the glow this replaced.
         boxShadow:
-          day.iso !== selected && day.count > 0
+          day.iso !== selected && day.own > 0
             ? [{ offsetX: 0, offsetY: 1, blurRadius: 2, color: COLOR.shadow, inset: false }]
             : undefined,
       }}
@@ -256,7 +250,7 @@ export function Timeline({
             ? "font-semibold"
             : day.past || outside
               ? "font-semibold text-text-tertiary"
-              : day.count === 0 && !day.today
+              : day.own === 0 && !day.today
                 ? "text-text-tertiary"
                 : isAndroid
                   ? "font-semibold text-a-on"
@@ -282,12 +276,13 @@ export function Timeline({
               // about what a thing is.
               // White on the day being read: a blue task dot on a blue cell is
               // not a dot, and that day's contents are listed directly below.
-              backgroundColor: dot.done
+              // A calendar's event is hollow too, so the thread's own stand out.
+              backgroundColor: dot.done || dot.kind === "calendar"
                 ? "transparent"
                 : day.iso === selected
                   ? COLOR.onAttention
                   : DOT[dot.kind] ?? DOT["other"],
-              borderWidth: dot.done ? 1 : 0,
+              borderWidth: dot.done || dot.kind === "calendar" ? 1 : 0,
               borderColor:
                 day.iso === selected ? COLOR.onAttention : DOT[dot.kind] ?? DOT["other"],
             }}
@@ -311,13 +306,12 @@ export function Timeline({
   const goToday = (): void => {
     // Back to this month from wherever you are, and in the direction that is
     // actually true: forward if you had wandered into the past.
-    if (grid) setWent(grid.key > today ? -1 : 1);
+    setWent(grid.key > today ? -1 : 1);
     setMonth(null);
     setSelected(today);
   };
 
   const step = (by: 1 | -1): void => {
-    if (!grid) return;
     setWent(by);
     setMonth(stepMonth(grid.key, by));
   };
@@ -336,77 +330,73 @@ export function Timeline({
 
   return (
     <View className="pt-space-5">
-      {/* A month at a time, once the span is past a few weeks. The controls are
-          the ones a calendar always has, and Today is the way back from
-          wherever stepping through months left somebody. */}
-      {grid ? (
-        <View className="flex-row items-center gap-space-2 px-gutter-screen pb-space-3">
-          <Pressable
-            onPress={() => step(-1)}
-            hitSlop={10}
-            accessibilityLabel="Previous month"
-            className="min-h-tap-min justify-center"
-          >
-            <Glyph name="chevron-left" size={18} color={COLOR.iconOnWell} />
-          </Pressable>
+      {/* A month at a time. The controls are the ones a calendar always has,
+        and Today is the way back from wherever stepping through months left
+        somebody. */}
+      <View className="flex-row items-center gap-space-2 px-gutter-screen pb-space-3">
+        <Pressable
+          onPress={() => step(-1)}
+          hitSlop={10}
+          accessibilityLabel="Previous month"
+          accessibilityRole="button"
+          className="min-h-tap-min justify-center"
+        >
+          <Glyph name="chevron-left" size={18} color={COLOR.iconOnWell} />
+        </Pressable>
 
-          {/* **The arrows are the ends and everything else is between them.**
-              Today sat beyond the next arrow, which put the two ways of moving
-              through months on either side of a control that is not one. It is
-              always drawn: appearing and disappearing would shift the month
-              name beside it, and on this month it still takes the day back to
-              today. */}
-          <View className="flex-1 flex-row items-center justify-center gap-space-3">
-            <Text
-              className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
-              style={{ fontSize: 14 }}
-            >
-              {grid.label}
+        {/* **The arrows are the ends and everything else is between them.**
+            Today sat beyond the next arrow, which put the two ways of moving
+            through months on either side of a control that is not one. It is
+            always drawn: appearing and disappearing would shift the month
+            name beside it, and on this month it still takes the day back to
+            today. */}
+        <View className="flex-1 flex-row items-center justify-center gap-space-3">
+          <Text
+            className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
+            style={{ fontSize: 14 }}
+          >
+            {grid.label}
+          </Text>
+          <Pressable onPress={goToday} hitSlop={10} accessibilityRole="button" className="min-h-tap-min justify-center">
+            <Text className="font-core font-medium text-text-accent" style={{ fontSize: 12.5 }}>
+              Today
             </Text>
-            <Pressable onPress={goToday} hitSlop={10} className="min-h-tap-min justify-center">
-              <Text className="font-core font-medium text-text-accent" style={{ fontSize: 12.5 }}>
-                Today
-              </Text>
-            </Pressable>
-          </View>
-
-          <Pressable
-            onPress={() => step(1)}
-            hitSlop={10}
-            accessibilityLabel="Next month"
-            className="min-h-tap-min justify-center"
-          >
-            <Glyph name="chevron-right" size={18} color={COLOR.iconOnWell} />
           </Pressable>
         </View>
-      ) : null}
+
+        <Pressable
+          onPress={() => step(1)}
+          hitSlop={10}
+          accessibilityLabel="Next month"
+          accessibilityRole="button"
+          className="min-h-tap-min justify-center"
+        >
+          <Glyph name="chevron-right" size={18} color={COLOR.iconOnWell} />
+        </Pressable>
+      </View>
 
       {/* **A month is also a swipe.** The arrows are the discoverable way and
-          this is the one a thumb reaches for on a grid that looks like every
-          other calendar.
+        this is the one a thumb reaches for on a grid that looks like every
+        other calendar.
 
-          `activeOffsetX` is what stops it fighting the thread's own scrolling:
-          the gesture only takes over once the movement is clearly sideways, so
-          a vertical drag still scrolls the page under it. */}
-      {grid ? (
-        <GestureDetector gesture={swipe}>
-          {/* Keyed by the month so it remounts and the animation runs. Without
-              the key the same element is rewritten in place and nothing moves,
-              which is a redraw rather than a change of month. */}
-          <Animated.View
-            key={grid.key}
-            entering={(went === 1 ? SlideInRight : SlideInLeft)
-              .duration(140)
-              // Anybody who has asked for less movement gets the change and
-              // none of the travel.
-              .reduceMotion(ReduceMotion.System)}
-          >
-            {grid.weeks.map((row) => week(row, grid.inMonth))}
-          </Animated.View>
-        </GestureDetector>
-      ) : (
-        (rail ?? []).map((row) => week(row))
-      )}
+        `activeOffsetX` is what stops it fighting the thread's own scrolling:
+        the gesture only takes over once the movement is clearly sideways, so
+        a vertical drag still scrolls the page under it. */}
+      <GestureDetector gesture={swipe}>
+        {/* Keyed by the month so it remounts and the animation runs. Without
+            the key the same element is rewritten in place and nothing moves,
+            which is a redraw rather than a change of month. */}
+        <Animated.View
+          key={grid.key}
+          entering={(went === 1 ? SlideInRight : SlideInLeft)
+            .duration(140)
+            // Anybody who has asked for less movement gets the change and
+            // none of the travel.
+            .reduceMotion(ReduceMotion.System)}
+        >
+          {grid.weeks.map((row) => week(row, grid.inMonth))}
+        </Animated.View>
+      </GestureDetector>
 
       <View className="flex-row items-start gap-space-3 px-gutter-screen pb-space-3 pt-space-6">
         <Text
@@ -483,9 +473,11 @@ export function Timeline({
           the product that cannot be acted on. */}
       {dayEvents.length ? (
         <View className="px-gutter-screen">
-          <View style={{ position: "relative", paddingLeft: 19 }}>
+          {/* 2026-09-29. A 16px anchor on a 2px spine, twice what they were,
+              with the spine through the anchors' centres. */}
+          <View style={{ position: "relative", paddingLeft: 27 }}>
             <View
-              style={{ position: "absolute", left: 3, top: 10, bottom: 10, width: 1, backgroundColor: COLOR.hairline }}
+              style={{ position: "absolute", left: 7, top: 10, bottom: 10, width: 2, backgroundColor: COLOR.hairline }}
             />
             {dayEvents.map(({ one, event }) => {
               const when = event.allDay || !event.occursAt ? "All day" : rangeOf(event.occursAt, event.occursEndAt);
@@ -501,11 +493,11 @@ export function Timeline({
                   <View
                     style={{
                       position: "absolute",
-                      left: -19,
-                      top: 8 + 11 - 4,
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
+                      left: -27,
+                      top: 8 + 11 - 8,
+                      width: 16,
+                      height: 16,
+                      borderRadius: 8,
                       borderWidth: 1,
                       borderColor: COLOR.hairline,
                       backgroundColor: event.colour ?? COLOR.iconOnWell,
@@ -542,11 +534,6 @@ export function Timeline({
           key={one.id}
           className="flex-row items-start gap-space-3 border-b border-border-hairline px-gutter-screen py-space-4"
         >
-          {note.origin === "learned" ? (
-            <View style={{ marginTop: 3 }}>
-              <Glyph name="sparkles" size={14} color={COLOR.accent} />
-            </View>
-          ) : null}
           <Text
             className={`flex-1 font-core ${
               note.origin === "learned"
@@ -574,7 +561,6 @@ export function Timeline({
           onDelete={() => onDelete(row)}
           onActions={() => onActions(row)}
           onEdit={() => onEdit(row)}
-          onArchive={() => onArchive(row)}
           onToggle={row.type === "task" ? () => onToggle(row) : undefined}
           // 023. The row's own chip says the day and the hour now, on the
           // title line; the one thing the day list still has to say is that

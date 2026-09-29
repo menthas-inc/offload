@@ -12,6 +12,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@offload/web", "dev"],
       "port": 4700
+    },
+    {
+      "name": "metro",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd apps/mobile && CI=1 npx expo start --dev-client --port 8081 --private-key-path \"$PWD/keys/private-key.pem\""],
+      "port": 8081
     }
   ]
 }

@@ -3,7 +3,9 @@
 // 025. The filter bar under the pane head: All, each label with its count,
 // No label, and a plus pinned to the trailing edge. Either logic: two picked
 // shows anything carrying one or both. The pick is the device's and lives
-// with the page; this draws it and reports presses.
+// with the page; this draws it and reports presses. Only once the thread has a
+// label: before that, the way in is the tag among the pane head's tools
+// (2026-09-29), where the Group with labels chip took a row of its own.
 //
 // **Holding a chip opens its list** on the phones. The web has three ways to
 // the same place: the chip's context menu (a right click, the context menu
@@ -23,7 +25,6 @@ export function FilterBar({
   labels,
   unlabelled,
   pick,
-  prompt,
   onPick,
   onNew,
   onOpen,
@@ -31,22 +32,11 @@ export function FilterBar({
   labels: Label[];
   unlabelled: number;
   pick: LabelPick;
-  /** No labels yet and six or more rows: the one outline chip. */
-  prompt: boolean;
   onPick: (pick: LabelPick) => void;
   onNew: () => void;
   onOpen: (labelId: string) => void;
 }) {
-  if (labels.length === 0) {
-    if (!prompt) return null;
-    return (
-      <div className={styles.bar}>
-        <Chip tone="outline" icon="plus" onClick={onNew}>
-          Group with labels
-        </Chip>
-      </div>
-    );
-  }
+  if (labels.length === 0) return null;
 
   return (
     <div className={styles.bar} role="group" aria-label="Filter by label">
