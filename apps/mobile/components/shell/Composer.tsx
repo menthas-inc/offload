@@ -21,6 +21,7 @@ import {
   AccessibilityInfo,
   ActivityIndicator,
   AppState,
+  findNodeHandle,
   Keyboard,
   Platform,
   Pressable,
@@ -189,7 +190,7 @@ export function Composer({
     draft,
     setDraft,
     submit,
-    pin,
+    pin: pinned,
     onScreen,
     openQuestion,
     photos,
@@ -209,8 +210,8 @@ export function Composer({
     pickMention,
     hashLabels,
     pickHash,
-    composerFocused,
     sheetClosedAt,
+    plateInput,
     raised,
     live,
     raise,
@@ -218,6 +219,9 @@ export function Composer({
   // The field that is on screen: the sheet's while it is up, the plate's
   // while it is not.
   const onTop = inSheet === raised;
+  // A pin is the sheet's: the plate's composer under it stays as it was, so
+  // nothing on the plate changes when the pin goes.
+  const pin = inSheet ? pinned : null;
   const redirect = !inSheet && !raised && !pin && live !== null;
 
   // A dump sent from the plate raises the sheet with the keyboard still up
@@ -253,9 +257,17 @@ export function Composer({
   // for. Not on an ordinary dump: the composer is on screen at all times and a
   // keyboard that opens itself takes the page away from somebody who was
   // reading it.
+  // A focus this composer asked for itself, which the handoff guard in
+  // `onFocus` must let through: a pin raised from a sheet's action lands
+  // inside the guard's window.
+  const requested = useRef(false);
+  const focusField = (): void => {
+    requested.current = true;
+    field.current?.focus();
+  };
   useEffect(() => {
     if (!inSheet) return;
-    if (pin) field.current?.focus();
+    if (pin) focusField();
     // And put the keyboard away when the pin goes, whether it was written or
     // dismissed. A + is one line and then you are done; leaving the keyboard up
     // over the ordinary composer invites a dump nobody meant to send.
@@ -274,7 +286,7 @@ export function Composer({
     let timer: ReturnType<typeof setTimeout> | null = null;
     let sub: { remove: () => void } | null = null;
     const focus = () => {
-      timer = setTimeout(() => field.current?.focus(), 50);
+      timer = setTimeout(focusField, 50);
     };
     if (AppState.currentState === "active") focus();
     else {
@@ -382,20 +394,23 @@ export function Composer({
           </>
         ) : (
         <TextInput
-          ref={field}
+          ref={(input) => {
+            field.current = input;
+            // The shell matches this against the keyboard event's target:
+            // the plate rides a keyboard for this field and no other.
+            if (!inSheet) plateInput.value = input ? (findNodeHandle(input) ?? -1) : -1;
+          }}
           value={draft}
           onChangeText={setDraft}
           onFocus={() => {
             // Handed over by a sheet closing, not asked for: let it go, and
             // the keyboard with it.
-            if (Date.now() - sheetClosedAt.current < 500) {
+            const wanted = requested.current;
+            requested.current = false;
+            if (!wanted && Date.now() - sheetClosedAt.current < 500) {
               field.current?.blur();
               return;
             }
-            // The plate rides its own field's keyboard, and keeps riding it
-            // down after a blur until the keyboard is gone (the shell lets go
-            // then). The sheet's composer rides the keyboard inside the sheet.
-            if (!inSheet) composerFocused.value = 1;
           }}
           multiline
           maxLength={maxLength}
@@ -515,7 +530,7 @@ export function Composer({
           <Pressable
             style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
             onPress={() => {
-              if (!raise({ focus: true })) field.current?.focus();
+              if (!raise({ focus: true })) focusField();
             }}
             accessibilityRole="button"
             accessibilityLabel="Back to the conversation"

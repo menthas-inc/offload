@@ -188,6 +188,8 @@ export function Conversation() {
 
   const grab = useSheetDrag({ y: sheetY, travel: sheetTravel, held, onCloseStart: leave, onClosed: settle });
   const pull = useSheetDrag({ y: sheetY, travel: sheetTravel, held, onCloseStart: leave, onClosed: settle, scroll });
+  // A pin has no transcript, so its whole body takes the drag.
+  const body = useSheetDrag({ y: sheetY, travel: sheetTravel, held, onCloseStart: leave, onClosed: settle });
 
   useSheetBack(raised, {
     start: () => cancelAnimation(sheetY),
@@ -215,9 +217,9 @@ export function Conversation() {
     >
       <Grabber held={held} pan={grab} />
 
-      <GestureDetector gesture={pull}>
-        <View style={{ flex: 1 }}>
-          {shownPin ? <PinnedTarget pin={shownPin} /> : <Turns scroll={scroll} raised={raised} bottom={insets.bottom} />}
+      <GestureDetector gesture={shownPin ? body : pull}>
+        <View style={{ flex: 1 }} collapsable={false}>
+          {shownPin ? null : <Turns scroll={scroll} bottom={insets.bottom} />}
         </View>
       </GestureDetector>
 
@@ -226,7 +228,10 @@ export function Conversation() {
           field at a time**: the plate's is covered by this sheet while it is
           up, and the plate's pulse stops, so there is never a second band
           mapping the texture at once. */}
-      <KeyboardStickyView offset={{ opened: insets.bottom }} enabled={raised}>
+      <KeyboardStickyView offset={{ opened: insets.bottom }}>
+        {/* What a pin writes to, on the composer and riding the keyboard
+            with it, so the keyboard never puts the field over it. */}
+        {shownPin ? <PinnedTarget pin={shownPin} /> : null}
         <View style={{ paddingBottom: insets.bottom }}>
           <View className="overflow-hidden">
             <PrismField variant="band" veil="graded" pulse={raised ? (conversation.filed?.at ?? 0) : 0} />
@@ -251,9 +256,7 @@ export function Conversation() {
 function PinnedTarget({ pin }: { pin: Pin }) {
   const COLOR = useColors();
   return (
-    // On the composer, as the turns are: the sheet's height is fixed and
-    // what it holds sits at its foot.
-    <View className="flex-1 flex-row items-end px-gutter-screen pb-space-4">
+    <View className="flex-row items-center px-gutter-screen pb-space-4">
       <View
         className="flex-row items-center gap-space-2 rounded-pill bg-surface-accent-soft px-space-4"
         style={{ height: 26 }}
@@ -267,7 +270,7 @@ function PinnedTarget({ pin }: { pin: Pin }) {
   );
 }
 
-function Turns({ scroll, raised, bottom }: { scroll: SheetScroll; raised: boolean; bottom: number }) {
+function Turns({ scroll, bottom }: { scroll: SheetScroll; bottom: number }) {
   const { turns, writing, finish, openPhoto, retry, recording } = useConversation();
   const { ref, offset, native } = scroll;
 
@@ -318,13 +321,14 @@ function Turns({ scroll, raised, bottom }: { scroll: SheetScroll; raised: boolea
   return (
     // **Lifted by the keyboard, never resized by it.** The chat scroll view
     // moves its content up with the keyboard on the UI thread, so the last
-    // turn stays above the composer as it rises, and freezes while the sheet
-    // is away so the plate's keyboard does not move a transcript nobody sees.
+    // turn stays above the composer as it rises. **Never frozen**, even with
+    // the sheet away: a dump sent from the plate raises the sheet onto a
+    // keyboard that is already up, and a transcript that had not followed it
+    // drew the new turn behind the composer.
     <KeyboardChatScrollView
       ref={ref}
       ScrollViewComponent={ScrollWithGesture as never}
       offset={bottom}
-      freeze={!raised}
       onScroll={onScroll}
       scrollEventThrottle={16}
       // The sheet takes a drag down from the top; a bounce there would move

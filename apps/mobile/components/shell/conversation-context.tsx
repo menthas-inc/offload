@@ -323,6 +323,10 @@ export interface Conversation {
   /** The plate's tabs and the inset under them: what the keyboard covers
    *  before it reaches the composer. */
   plateFoot: SharedValue<number>;
+  /** The native tag of the plate's field, so the shell can tell on the UI
+   *  thread, from the keyboard's own event, whether a keyboard is the
+   *  plate's. */
+  plateInput: SharedValue<number>;
   /** When the last screen sheet closed. Android hands a closing sheet's focus
    *  to the composer, and the composer gives it straight back. */
   sheetClosedAt: { current: number };
@@ -437,6 +441,7 @@ export function ConversationProvider({
   const sheetCount = useSharedValue(0);
   const composerFocused = useSharedValue(0);
   const plateFoot = useSharedValue(0);
+  const plateInput = useSharedValue(-1);
   const sheetClosedAt = useRef(0);
   const openSheet = useCallback(() => setSheets((open) => open + 1), []);
   const closeSheet = useCallback(() => setSheets((open) => Math.max(0, open - 1)), []);
@@ -1447,6 +1452,7 @@ export function ConversationProvider({
         sheetCount,
         composerFocused,
         plateFoot,
+        plateInput,
         sheetClosedAt,
         openSheet,
         closeSheet,

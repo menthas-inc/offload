@@ -23,7 +23,7 @@ import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "expo-router";
 import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { plateAway, plateBack } from "../../lib/motion";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import { useKeyboardHandler, useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Plate, type Tab } from "./Plate";
 import { Conversation, ConversationPhotoSheet, ConversationPhotoViewer, ConversationScrim } from "./Conversation";
 import { useConversation } from "./conversation-context";
@@ -73,13 +73,24 @@ export function Shell() {
   // keyboard rises over the tabs first, and only once it reaches the composer
   // does the plate ride it: `plateFoot` is the tabs and the inset below them.
   const plateFoot = conversation.plateFoot;
-  // The plate lets go of the keyboard once it has gone, not at the blur, so
-  // the composer rides it all the way down rather than dropping at once.
-  useAnimatedReaction(
-    () => keyboardHeight.value === 0,
-    (gone, was) => {
-      if (gone && was === false) composerFocused.value = 0;
+  // **Whose keyboard it is, decided on the UI thread from the keyboard's own
+  // event**, in the frame the keyboard starts to move. Taken from the field's
+  // focus it arrived after the keyboard had begun, and the plate jumped to the
+  // top of it rather than riding it. It lets go once a keyboard has gone, not
+  // at the blur, so the composer rides it all the way down.
+  const plateInput = conversation.plateInput;
+  useKeyboardHandler(
+    {
+      onStart: (event) => {
+        "worklet";
+        if (event.height > 0) composerFocused.value = event.target === plateInput.value ? 1 : 0;
+      },
+      onEnd: (event) => {
+        "worklet";
+        if (event.height === 0) composerFocused.value = 0;
+      },
     },
+    [],
   );
   const lift = useAnimatedStyle(() => ({
     transform: [
