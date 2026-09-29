@@ -8,8 +8,10 @@
 import { useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import Animated, { FadeIn, FadeOut, ReduceMotion, SlideInDown, SlideOutDown, useAnimatedStyle } from "react-native-reanimated";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { foldDraft, LABEL_NAME_CHARS } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { atOpacity, useColors } from "../../lib/colors";
 import { useScreenSheet } from "../shell/conversation-context";
@@ -18,7 +20,6 @@ import type { Label } from "../../lib/labels";
 
 const isAndroid = Platform.OS === "android";
 const LIMIT = 10;
-const NAME_CHARS = 24;
 
 export interface LabelChoice {
   ids: string[];
@@ -52,23 +53,20 @@ export function LabelSheet({
   const full = labels.length + made.length >= LIMIT;
 
   function addName(): void {
-    const name = draft.trim().replace(/^#+/, "").replace(/\s+/g, " ").trim();
-    if (!name) {
-      setNaming(false);
-      return;
-    }
-    if ([...name].length > NAME_CHARS) {
-      setLine(`A label is ${NAME_CHARS} characters at most.`);
-      return;
-    }
-    if ([...labels.map((l) => l.name), ...made].some((n) => n.toLowerCase() === name.toLowerCase())) {
-      setLine(`${name} is already a label here.`);
-      return;
-    }
-    setMade((current) => [...current, name]);
+    const folded = foldDraft(draft, made, labels.map((l) => l.name));
+    if ("line" in folded) return setLine(folded.line);
+    setMade(folded.made);
     setDraft("");
     setNaming(false);
     setLine(null);
+  }
+
+  /** Done takes in a name still in the field: the press can arrive before the
+   *  field's blur has added it. */
+  function done(): void {
+    const folded = naming ? foldDraft(draft, made, labels.map((l) => l.name)) : { made };
+    if ("line" in folded) return setLine(folded.line);
+    onDone({ ids: ticked, made: folded.made });
   }
 
   const tick = (on: boolean) => (
@@ -83,16 +81,16 @@ export function LabelSheet({
   return (
     <>
       <Animated.View
-        entering={FadeIn.duration(220).reduceMotion(ReduceMotion.System)}
-        exiting={FadeOut.duration(140).reduceMotion(ReduceMotion.System)}
+        entering={scrimIn()}
+        exiting={scrimOut()}
         className="absolute inset-0"
         style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
       >
         <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
       </Animated.View>
       <Animated.View
-        entering={SlideInDown.duration(260).reduceMotion(ReduceMotion.System)}
-        exiting={SlideOutDown.duration(200).reduceMotion(ReduceMotion.System)}
+        entering={sheetIn()}
+        exiting={sheetOut()}
         className={`absolute inset-x-0 bottom-0 rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
         style={[{ maxHeight: "80%", paddingBottom: insets.bottom + 8 }, lift]}
         accessibilityViewIsModal
@@ -162,7 +160,7 @@ export function LabelSheet({
                 returnKeyType="done"
                 placeholder="Name it"
                 placeholderTextColor={COLOR.quiet}
-                maxLength={NAME_CHARS + 4}
+                maxLength={LABEL_NAME_CHARS + 4}
                 accessibilityLabel="New label's name"
                 className="flex-1 font-core text-text-primary text-body"
               />
@@ -204,7 +202,7 @@ export function LabelSheet({
             </Text>
           </Pressable>
           <Pressable
-            onPress={() => onDone({ ids: ticked, made })}
+            onPress={done}
             accessibilityRole="button"
             className="flex-1 items-center justify-center rounded-pill bg-surface-inverse"
             style={{ minHeight: 48 }}

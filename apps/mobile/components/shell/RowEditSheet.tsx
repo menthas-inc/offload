@@ -9,7 +9,8 @@
 import { useState } from "react";
 import { Keyboard, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import Animated, { FadeIn, FadeInDown, FadeOut, useAnimatedStyle } from "react-native-reanimated";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { Glyph } from "../Glyph";
 import { Switch } from "../settings/Switch";
 import { atOpacity, useColors } from "../../lib/colors";
@@ -75,14 +76,14 @@ export function RowEditSheet({
 
   return (
     <>
-      <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(140)} className="absolute inset-0" style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}>
+      <Animated.View entering={scrimIn()} exiting={scrimOut()} className="absolute inset-0" style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}>
         <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
       </Animated.View>
 
       <Animated.View
         style={lift}
-        entering={FadeInDown.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={sheetIn()}
+        exiting={sheetOut()}
         className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
         // The heading is gone, so the sheet carries the name a screen reader
         // announces, and keeps it from reaching the screen behind.

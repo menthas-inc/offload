@@ -20,7 +20,7 @@
 //     saying offload has not done something is an apology taking up the most
 //     prominent space on the screen.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -32,11 +32,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeOut,
   useAnimatedStyle,
 } from "react-native-reanimated";
+import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, type LabelPick } from "@offload/widgets";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -149,6 +147,8 @@ export default function Thread() {
   // open on a row; the label's list open for a label, or for a new one.
   const [pick, setPickState] = useState<LabelPick>(() => (id ? readPick(id) : ALL_LABELS));
   const [labelling, setLabelling] = useState<ContentRow | null>(null);
+  // The note editor, drawn here at the root: see NotesSection's onSheet.
+  const [noteSheet, setNoteSheet] = useState<ReactNode>(null);
   const [listing, setListing] = useState<{ label: Label | null } | null>(null);
   const [listLine, setListLine] = useState<string | null>(null);
   const filterOf = (current: LabelPick): { labels?: string[]; unlabelled?: boolean } => ({
@@ -976,6 +976,7 @@ export default function Thread() {
             onNotes={patchNotes}
             toast={toast}
             writes={writes}
+            onSheet={setNoteSheet}
           />
         )}
 
@@ -1224,6 +1225,7 @@ export default function Thread() {
           });
         }}
       />
+      {noteSheet}
       {labelling ? (
         <LabelSheet
           key={labelling.id}
@@ -1360,8 +1362,8 @@ function EditSheet({
   return (
     <>
       <Animated.View
-        entering={FadeIn.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={scrimIn()}
+        exiting={scrimOut()}
         className="absolute inset-0"
         style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
       >
@@ -1374,8 +1376,8 @@ function EditSheet({
 
       <Animated.View
         style={lift}
-        entering={FadeInDown.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={sheetIn()}
+        exiting={sheetOut()}
         className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${
           isAndroid
             ? "rounded-t-a-xl bg-a-c-low"

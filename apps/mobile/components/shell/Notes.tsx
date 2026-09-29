@@ -19,17 +19,15 @@
 // prompt budget, so what replaced the cap line says which notes are not
 // reaching offload rather than that you may not add another.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeOut,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
+import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { reorderPlan, type ReorderWrite } from "@offload/widgets";
 import { Glyph } from "../Glyph";
@@ -68,6 +66,12 @@ interface Props {
   /** The thread's count of writes in flight, shared so a note's write holds
    *  the thread's reload back the same as a row's does. */
   writes: Writes;
+  /** Where the editor is drawn: the screen's root, beside the other sheets.
+   *  This section sits inside the thread's scroll view, and a sheet drawn here
+   *  measured `inset-0` and `bottom-0` against the scrolled content, so on
+   *  Android it opened in the middle of the page with the keyboard over it. A
+   *  Modal was tried first; with the keyboard up it received no touches. */
+  onSheet: (sheet: ReactNode) => void;
 }
 
 /** The date on a row, derived rather than stored, so a weekday can never
@@ -94,13 +98,12 @@ export function NotesSection({
   onNotes,
   toast,
   writes,
+  onSheet,
 }: Props) {
   const { zone } = useClock();
   const COLOR = useColors();
   const { raiseFor } = useConversation();
   const [editing, setEditing] = useState<Note | null>(null);
-  const [draft, setDraft] = useState("");
-  const [bodyDraft, setBodyDraft] = useState<string | null>(null);
   const [folded, setFolded] = useState<Note[] | null>(null);
 
   const viewerId = members.find((m) => m.isYou)?.accountId ?? null;
@@ -131,8 +134,6 @@ export function NotesSection({
 
   function close(): void {
     setEditing(null);
-    setDraft("");
-    setBodyDraft(null);
   }
 
   // ---------------------------------------------------------------- writes
@@ -143,7 +144,7 @@ export function NotesSection({
   const patch = (noteId: string, fields: Partial<Note>): void =>
     onNotes((current) => current.map((note) => (note.id === noteId ? { ...note, ...fields } : note)));
 
-  function save(): void {
+  function save(draft: string, bodyDraft: string | null): void {
     const text = draft.trim();
     if (text.length === 0 || !editing) return close();
     const note = editing;
@@ -278,14 +279,32 @@ export function NotesSection({
       date={when(note, zone)}
       instructing={instructing.has(note.id)}
       onLayout={(layout) => layouts.current.set(note.id, layout)}
-      onOpen={() => {
-        setEditing(note);
-        setDraft(note.text);
-        setBodyDraft(note.body);
-      }}
+      onOpen={() => setEditing(note)}
       onDrop={(dy) => drop(note.id, dy)}
     />
   );
+
+  // The editor goes to the screen's root. The handlers are read through a ref
+  // so the sheet is handed over when a note opens or closes, not on every
+  // render of this section, and still acts on the notes as they are now.
+  const latest = useRef({ save, close, mute, remove, canDelete });
+  latest.current = { save, close, mute, remove, canDelete };
+  useEffect(() => {
+    onSheet(
+      editing ? (
+        <Editor
+          key={editing.id}
+          note={editing}
+          canDelete={latest.current.canDelete(editing)}
+          onSave={(text, body) => latest.current.save(text, body)}
+          onClose={() => latest.current.close()}
+          onMute={() => latest.current.mute(editing)}
+          onDelete={() => latest.current.remove(editing)}
+        />
+      ) : null,
+    );
+  }, [editing, onSheet]);
+  useEffect(() => () => onSheet(null), [onSheet]);
 
   // Nothing to show: draw nothing at all. A heading over an empty row is a
   // section announcing its own absence, and the pinned composer this + raises
@@ -381,20 +400,6 @@ export function NotesSection({
         </View>
       ) : null}
 
-      {editing ? (
-        <Editor
-          note={editing}
-          draft={draft}
-          onDraft={setDraft}
-          bodyDraft={bodyDraft}
-          onBodyDraft={setBodyDraft}
-          canDelete={editing ? canDelete(editing) : false}
-          onSave={save}
-          onClose={close}
-          onMute={() => editing && mute(editing)}
-          onDelete={() => editing && remove(editing)}
-        />
-      ) : null}
     </>
   );
 }
@@ -541,10 +546,6 @@ function NoteRow({
  *  fought. */
 function Editor({
   note,
-  draft,
-  onDraft,
-  bodyDraft,
-  onBodyDraft,
   canDelete,
   onSave,
   onClose,
@@ -552,17 +553,18 @@ function Editor({
   onDelete,
 }: {
   note: Note | null;
-  draft: string;
-  onDraft: (value: string) => void;
-  bodyDraft: string | null;
-  onBodyDraft: (value: string) => void;
   canDelete: boolean;
-  onSave: () => void;
+  onSave: (text: string, body: string | null) => void;
   onClose: () => void;
   onMute: () => void;
   onDelete: () => void;
 }) {
   const COLOR = useColors();
+  // The fields are the sheet's own, so typing re-renders the sheet and not
+  // the thread it was handed to. Keyed by the note, so they start out holding
+  // its words.
+  const [draft, onDraft] = useState(note?.text ?? "");
+  const [bodyDraft, onBodyDraft] = useState<string | null>(note?.body ?? null);
   // Anchored to the bottom of a screen, and the plate is mounted above the
   // router. Without this it opens underneath the composer and the tabs.
   useScreenSheet(true);
@@ -572,8 +574,8 @@ function Editor({
   return (
     <>
       <Animated.View
-        entering={FadeIn.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={scrimIn()}
+        exiting={scrimOut()}
         className="absolute inset-0"
         style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
       >
@@ -582,8 +584,8 @@ function Editor({
 
       <Animated.View
         style={lift}
-        entering={FadeInDown.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={sheetIn()}
+        exiting={sheetOut()}
         className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${
           isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"
         }`}
@@ -636,7 +638,7 @@ function Editor({
 
             <Action label="Cancel" onPress={onClose} />
             <Pressable
-              onPress={onSave}
+              onPress={() => onSave(draft, bodyDraft)}
               disabled={draft.trim().length === 0}
               className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`}
               style={{ height: 30, justifyContent: "center", opacity: draft.trim() ? 1 : 0.55 }}

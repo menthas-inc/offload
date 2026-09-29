@@ -16,7 +16,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, useAnimatedStyle } from "react-native-reanimated";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
@@ -175,7 +176,7 @@ export function ShareSheet({
 
   return (
     <>
-      <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(140)} className="absolute inset-0" style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}>
+      <Animated.View entering={scrimIn()} exiting={scrimOut()} className="absolute inset-0" style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}>
         <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
       </Animated.View>
       {/* Mounted once the list is in hand, so the slide's first layout is
@@ -185,8 +186,8 @@ export function ShareSheet({
           the bottom of a simulator's screen. */}
       {sheet || failed ? (
       <Animated.View
-        entering={SlideInDown.duration(260)}
-        exiting={SlideOutDown.duration(200)}
+        entering={sheetIn()}
+        exiting={sheetOut()}
         className={`absolute inset-x-0 bottom-0 ${isAndroid ? "rounded-t-a-xl bg-a-c" : "rounded-t-lg bg-surface-raised"}`}
         style={[{ maxHeight: "82%", paddingBottom: insets.bottom }, lift]}
         accessibilityViewIsModal
