@@ -408,6 +408,8 @@ export {
   labelQuery,
   listLabelledCopy,
   nameList,
+  foldDraft,
+  LABEL_NAME_CHARS,
   pickAll,
   readEveryPage,
   rowLabelledCopy,

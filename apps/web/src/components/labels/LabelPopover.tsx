@@ -8,6 +8,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { foldDraft, LABEL_NAME_CHARS } from "@offload/widgets";
 import styles from "./labels.module.css";
 import people from "../people/people.module.css";
 import { Icon } from "../Icon";
@@ -15,7 +16,6 @@ import { LabelDot } from "./LabelMark";
 import type { Label } from "../../lib/labels";
 
 const LIMIT = 10;
-const NAME_CHARS = 24;
 
 export interface LabelChoice {
   /** Existing labels the row should carry. */
@@ -80,24 +80,20 @@ export function LabelPopover({
   const full = labels.length + made.length >= LIMIT;
 
   function addName(): void {
-    const name = draft.trim().replace(/^#+/, "").replace(/\s+/g, " ").trim();
-    if (!name) {
-      setNaming(false);
-      return;
-    }
-    if ([...name].length > NAME_CHARS) {
-      setLine(`A label is ${NAME_CHARS} characters at most.`);
-      return;
-    }
-    const taken = [...labels.map((l) => l.name), ...made].some((n) => n.toLowerCase() === name.toLowerCase());
-    if (taken) {
-      setLine(`${name} is already a label here.`);
-      return;
-    }
-    setMade((current) => [...current, name]);
+    const folded = foldDraft(draft, made, labels.map((l) => l.name));
+    if ("line" in folded) return setLine(folded.line);
+    setMade(folded.made);
     setDraft("");
     setNaming(false);
     setLine(null);
+  }
+
+  /** Done takes in a name still in the field: the press can arrive before the
+   *  field's blur has added it. */
+  function done(): void {
+    const folded = naming ? foldDraft(draft, made, labels.map((l) => l.name)) : { made };
+    if ("line" in folded) return setLine(folded.line);
+    onDone({ ids: ticked, made: folded.made });
   }
 
   if (typeof document === "undefined") return null;
@@ -156,7 +152,7 @@ export function LabelPopover({
         <div className={styles.nameField} style={{ marginTop: "var(--space-4)" }}>
           <input
             value={draft}
-            maxLength={NAME_CHARS + 4}
+            maxLength={LABEL_NAME_CHARS + 4}
             placeholder="Name it"
             aria-label="New label's name"
             autoFocus
@@ -190,7 +186,7 @@ export function LabelPopover({
         <button type="button" className={people.ghost} onClick={onClose}>
           Cancel
         </button>
-        <button type="button" className={people.primary} onClick={() => onDone({ ids: ticked, made })}>
+        <button type="button" className={people.primary} onClick={done}>
           Done
         </button>
       </div>

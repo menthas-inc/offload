@@ -114,3 +114,24 @@ export async function readEveryPage<T>(
   } while (cursor);
   return true;
 }
+
+/** The most a label's name may be, after a leading # and extra spaces go. */
+export const LABEL_NAME_CHARS = 24;
+
+/** A New label's name, folded in with the names already added in the sheet.
+ *  Done calls this with whatever is still in the field: on the phones the
+ *  press arrives before the field's blur has added the name, so Done read an
+ *  empty list and made nothing. An empty field adds nothing. */
+export function foldDraft(
+  draft: string,
+  made: readonly string[],
+  existing: readonly string[],
+): { made: string[] } | { line: string } {
+  const name = draft.trim().replace(/^#+/, "").replace(/\s+/g, " ").trim();
+  if (!name) return { made: [...made] };
+  if ([...name].length > LABEL_NAME_CHARS) return { line: `A label is ${LABEL_NAME_CHARS} characters at most.` };
+  if ([...existing, ...made].some((n) => n.toLowerCase() === name.toLowerCase())) {
+    return { line: `${name} is already a label here.` };
+  }
+  return { made: [...made, name] };
+}

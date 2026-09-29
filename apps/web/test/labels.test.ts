@@ -143,6 +143,22 @@ describe("the label's list reads every page, and says when one fails", () => {
   });
 });
 
+describe("a new label's name still in its field when Done is pressed", () => {
+  it("is folded in with what was already added, so Done makes it", async () => {
+    const { foldDraft } = await import("@offload/widgets");
+    expect(foldDraft(" #Pixel  test ", [], ["Paris"])).toEqual({ made: ["Pixel test"] });
+    expect(foldDraft("Boats", ["Ferries"], [])).toEqual({ made: ["Ferries", "Boats"] });
+    expect(foldDraft("   ", ["Ferries"], [])).toEqual({ made: ["Ferries"] });
+  });
+
+  it("refuses one that is too long or already here, and says which", async () => {
+    const { foldDraft } = await import("@offload/widgets");
+    expect(foldDraft("x".repeat(25), [], [])).toEqual({ line: "A label is 24 characters at most." });
+    expect(foldDraft("paris", [], ["Paris"])).toEqual({ line: "paris is already a label here." });
+    expect(foldDraft("boats", ["Boats"], [])).toEqual({ line: "boats is already a label here." });
+  });
+});
+
 describe("an Undo that cannot happen", () => {
   it("reads a 409 as already undone and anything else as a failure", async () => {
     const real = globalThis.fetch;
