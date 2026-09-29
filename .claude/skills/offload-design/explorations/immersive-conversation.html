@@ -1,0 +1,307 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>A more immersive conversation, on the app as built</title>
+<link rel="stylesheet" href="../styles.css?v=20260929-imm3">
+<link rel="stylesheet" href="frames.css?v=20260929-imm3">
+<style>
+:root{--icon-on-well:var(--text-secondary);--tab-on:var(--text-primary);--tab-off:var(--text-tertiary)}
+.ph{width:390px;height:844px;flex:0 0 auto;border-radius:20px;overflow:hidden;border:1px solid var(--border-hairline);background:#0B0B0B;position:relative;color:var(--text-primary);touch-action:none;user-select:none}
+.ph:after{content:"";position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:var(--ink-950);opacity:.85;z-index:40;pointer-events:none}
+.g{display:inline-block;width:18px;height:18px;flex:0 0 auto;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+.page{position:absolute;inset:0;background:var(--surface-page);display:flex;flex-direction:column;transform-origin:50% 0;will-change:transform;overflow:hidden}
+.st{flex:0 0 auto;display:flex;justify-content:space-between;padding:16px 30px 8px;font:var(--weight-semibold) 15px/1 var(--font-core);font-variant-numeric:tabular-nums}
+.st i{font-style:normal;letter-spacing:1px;font-size:11px}
+.hd{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-between;padding:14px var(--gutter-screen) 8px}
+.hd h4{margin:0;font:var(--text-title-1);letter-spacing:var(--tracking-title)}
+.bar{flex:0 0 auto;display:flex;align-items:center;height:52px;padding:0 10px 0 8px}
+.bar b{flex:1;min-width:0;text-align:center;font:var(--weight-semibold) 17px/1.2 var(--font-core);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc{width:40px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--icon-on-well)}
+.bc .g{width:21px;height:21px}.bc.back .g{width:22px;height:22px}
+.fb{flex:0 0 auto;display:flex;align-items:center;padding:0 0 8px}
+.fb .sc{flex:1;min-width:0;display:flex;gap:6px;padding-left:var(--gutter-screen);overflow:hidden}
+.chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:30px;box-sizing:border-box;padding:0 12px;border-radius:99px;background:var(--surface-fill);font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-primary);white-space:nowrap}
+.chip.on{background:var(--surface-inverse);color:var(--text-inverse)}
+.chip.out{background:transparent;border:1px solid var(--border-strong)}
+.chip .d{width:8px;height:8px;border-radius:9px;background:var(--l)}
+.chip.lab.on{background:var(--l);color:#fff}.chip.lab.on .d{background:#fff}
+.fb .plus{flex:0 0 auto;padding:0 var(--gutter-screen) 0 4px;background:var(--surface-page)}
+.fb .plus span{width:30px;height:30px;border-radius:99px;background:var(--surface-fill);display:flex;align-items:center;justify-content:center;color:var(--icon-on-well)}
+.fb .plus .g{width:15px;height:15px}
+.scroll{flex:1;min-height:0;overflow:hidden}
+.mon{margin:4px var(--gutter-screen) 0;}
+.mon .mh{display:flex;align-items:center;gap:6px;padding:4px 0 8px;font:var(--weight-semibold) 15px/1 var(--font-core)}
+.mon .mh span{flex:1}.mon .mh .g{width:16px;height:16px;color:var(--icon-on-well)}
+.mon .mh em{font:var(--weight-medium) 13px/1 var(--font-core);font-style:normal;color:var(--text-secondary);margin-right:8px}
+.mg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.mg u{text-decoration:none;text-align:center;font:var(--weight-medium) 11px/1 var(--font-core);color:var(--text-tertiary);padding-bottom:3px}
+.mg i{font-style:normal;height:34px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.mg i.has{background:var(--surface-raised);box-shadow:inset 0 0 0 1px var(--border-lift),var(--shadow-1);color:var(--text-primary);font-weight:500}
+.mg i.today{box-shadow:inset 0 0 0 1.5px var(--blue-600)}
+.mg i s{display:flex;gap:2px}.mg i s b{width:5px;height:5px;border-radius:9px;background:var(--text-attention)}
+.mg i s b.ev{background:var(--text-noticed)}
+.wh{display:flex;align-items:center;gap:6px;padding:20px var(--gutter-screen) 6px;font:var(--weight-semibold) 21px/1.2 var(--font-core)}
+.wh em{font-style:normal;padding:2px 6px;border-radius:99px;background:var(--surface-fill);font:var(--weight-regular) 12px/1.2 var(--font-core);color:var(--text-secondary)}
+.th{padding:18px var(--gutter-screen) 4px}
+.th div{display:flex;align-items:center;gap:10px;padding-bottom:8px;font:var(--weight-semibold) 17px/1.15 var(--font-core)}
+.th em{margin-left:auto;font-style:normal;font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-tertiary)}
+.r{display:flex;align-items:flex-start;gap:12px;padding:8px var(--gutter-screen);box-shadow:inset 0 -1px 0 var(--border-hairline);cursor:pointer}
+.r:hover{background:var(--surface-sunken)}
+.r .hdl{width:17px;margin:2px -6px 0;color:var(--icon-on-well);display:flex}.r .hdl .g{width:17px;height:17px}
+.r .cbw{width:36px;display:flex;justify-content:center;flex:0 0 auto}.r .cbw.nar{width:21px}
+.r .cb{width:21px;height:21px;border-radius:var(--radius-xs);border:1px solid var(--icon-on-well);box-sizing:border-box}
+.r .cb.done{background:var(--moss-600);border-color:var(--moss-600);display:flex;align-items:center;justify-content:center;color:#fff}.r .cb.done .g{width:13px;height:13px}
+.r .tile{width:36px;height:36px;border-radius:var(--radius-sm);background:var(--surface-fill);display:flex;align-items:center;justify-content:center;color:var(--icon-on-well);margin-top:-7.5px;flex:0 0 auto}
+.r .pic{width:50px;height:50px;border-radius:6px;flex:0 0 auto;background:linear-gradient(135deg,var(--ink-150),var(--ink-200))}
+.r .bd{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.r .bd>b{align-self:stretch;font:var(--weight-medium) 15.5px/21px var(--font-core)}
+.r .bd>b.done{color:var(--text-tertiary);text-decoration:line-through}
+.r .meta{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px;font:var(--weight-regular) 13px/1.3 var(--font-core);color:var(--text-secondary)}
+.r .dom{display:flex;align-items:center;gap:4px;margin-top:2px;font:var(--weight-regular) 13px/1.3 var(--font-core);color:var(--text-accent)}.r .dom .g{width:12px;height:12px}
+.r .tool{width:17px;height:17px;margin-top:2px;color:var(--icon-on-well)}.r .tool .g{width:17px;height:17px}
+.r .ndots{display:flex;gap:4px;margin-top:6px}.r .ndots i{width:8px;height:8px;border-radius:9px;background:var(--l)}
+.r.note .bd>b{font:var(--weight-regular) 15px/21px var(--font-quiet);color:var(--text-primary)}
+.r.note .bd>b.of{color:var(--moss-700)}
+.rule{height:1px;background:var(--text-secondary);margin:0 var(--gutter-screen)}
+.marks{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.dc{display:inline-flex;align-items:center;gap:4px;height:24px;box-sizing:border-box;padding:0 8px;border-radius:var(--radius-xs);background:var(--surface-fill);color:var(--text-secondary);font:var(--weight-medium) 12px/1 var(--font-core)}
+.dc .g{width:12px;height:12px}.dc.soon{background:var(--amber-100);color:var(--amber-700)}
+.lb{display:inline-flex;align-items:center;height:24px;box-sizing:border-box;padding:0 8px;border-radius:var(--radius-xs);background:var(--l);color:#fff;font:var(--weight-medium) 12px/1 var(--font-core)}
+.lb.f{height:30px;padding:0 12px;border-radius:99px;font-size:13px}
+.fill{flex:1}
+/* plate */
+.plate{position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--surface-plate);border-radius:20px 20px 0 0;box-shadow:0 -6px 12px rgb(11 11 11 / .08);padding-bottom:34px}
+.band{position:relative;overflow:hidden}
+.prism{position:absolute;inset:0;pointer-events:none}
+.prism i{position:absolute;left:-16%;right:-16%;top:0;bottom:0;background:url(../assets/prism/p2-band-1.png) center/100% 100% no-repeat;opacity:calc(var(--prism-alpha) * var(--prism-density));transition:transform 2s cubic-bezier(.16,1,.3,1),filter 2s}
+.prism.pulse i{transform:translateX(-4%) scaleY(1.08);filter:hue-rotate(25deg)}
+.prism:after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgb(var(--prism-veil-rgb) / var(--prism-veil-full)) 0%,rgb(var(--prism-veil-rgb) / var(--prism-veil-top)) var(--prism-veil-edge),rgb(var(--prism-veil-rgb) / var(--prism-veil-top)) var(--prism-veil-hold),rgb(var(--prism-veil-rgb) / var(--prism-veil-full)) var(--prism-veil-reach),rgb(var(--prism-veil-rgb) / var(--prism-veil-full)) 100%)}
+.cwrap{position:relative;padding:14px var(--gutter-screen) 10px}
+.pill{display:flex;align-items:center;gap:6px;min-height:48px;box-sizing:border-box;padding:0 6px 0 18px;border-radius:99px;background:var(--surface-input);border:1px solid var(--border-hairline);font:var(--text-body-role);color:var(--text-tertiary);cursor:text;position:relative}
+.pill s{flex:1;text-decoration:none}
+.ib{width:36px;height:36px;border-radius:99px;display:flex;align-items:center;justify-content:center;color:var(--icon-on-well)}
+.ib .g{width:20px;height:20px}
+.tabs{position:relative;display:flex;will-change:transform,opacity}
+.tabs span{flex:1;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 0;font:var(--weight-medium) 12px/1 var(--font-core);color:var(--tab-off,var(--text-tertiary))}
+.tabs span.on{color:var(--tab-on,var(--text-primary))}
+.tabs .g{width:22px;height:22px}
+.scrim{position:absolute;inset:0;background:rgb(11 11 11 / .45);opacity:0;pointer-events:none}
+/* conversation */
+.conv{position:absolute;left:0;right:0;bottom:0;top:54px;z-index:9;background:var(--surface-plate);border-radius:20px 20px 0 0;display:flex;flex-direction:column;will-change:transform;transform:translateY(110%)}
+.grabzone{flex:0 0 auto;height:26px;display:flex;justify-content:center;cursor:grab}
+.grab{width:36px;height:4px;border-radius:99px;background:var(--border-strong);margin-top:8px;transition:width .15s}
+.dragging .grab{width:44px}
+.turns{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding:0 var(--gutter-screen) 8px}
+.you{align-self:flex-end;max-width:84%;padding:6px 12px;border-radius:16px 16px 4px 16px;background:var(--blue-50);border:1px solid var(--blue-100);font:var(--weight-regular) 15px/22px var(--font-core);color:var(--ink-950);box-sizing:border-box}
+.you i{font-style:normal;color:var(--l);font-weight:600}
+.ol{align-self:flex-start;max-width:92%;padding:8px 12px;border-radius:16px 16px 16px 4px;background:var(--ink-50);font:var(--weight-regular) 16px/24px var(--font-quiet);text-wrap:pretty}
+.tfoot{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:0 0 8px}
+.mk{display:inline-flex;align-items:center;gap:4px;height:30px;box-sizing:border-box;padding:0 8px;border-radius:99px;font:var(--weight-regular) 12.5px/1 var(--font-core)}
+.mk .g{width:12px;height:12px}
+.mk.done{background:var(--moss-600);color:var(--text-on-solid);font-weight:500;font-size:11px}.mk.done .g{width:11px;height:11px}
+.mk.th{background:var(--surface-accent-soft);color:var(--text-accent);padding:0 12px}
+/* edit sheet */
+.edit{position:absolute;left:0;right:0;bottom:0;z-index:11;background:var(--surface-raised);border-radius:20px 20px 0 0;box-shadow:var(--shadow-sheet);padding:0 var(--gutter-screen) 42px;will-change:transform;transform:translateY(110%)}
+.tf{border-radius:var(--radius-sm);border:1px solid var(--border-hairline);padding:6px 8px;font:var(--weight-semibold) var(--size-title-3)/1.3 var(--font-core);color:var(--text-primary)}
+.tf:after{content:"";display:inline-block;width:2px;height:1.1em;background:var(--blue-600);vertical-align:-3px;margin-left:1px}
+.er{min-height:44px;display:flex;align-items:center;gap:6px;font:var(--weight-regular) 15px/1.2 var(--font-core);cursor:pointer}
+.er:first-of-type{margin-top:4px}
+.er>.g{color:var(--icon-on-well)}
+.er .n{flex:0 0 auto}.er .v{flex:1;min-width:0;display:flex;justify-content:flex-end;align-items:center;gap:4px;color:var(--text-secondary);white-space:nowrap;overflow:hidden}
+.er .v i{width:10px;height:10px;border-radius:9px;background:var(--l);flex:0 0 auto}
+.sfoot{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px}
+.pb{min-height:30px;display:inline-flex;align-items:center;gap:4px;padding:0 12px;border-radius:99px;border:1px solid var(--border-hairline);box-sizing:border-box;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary);cursor:pointer}
+.pb .g{width:14px;height:14px}
+.pb.lead{margin-right:auto}.pb.dan{color:var(--text-danger)}
+.pb.pri{background:var(--surface-inverse);color:var(--text-inverse);border-color:transparent}
+.ptitle{font:var(--text-title-2);margin:0}
+.psub{font:var(--text-body-sm-role);color:var(--text-secondary);margin:2px 0 6px}
+.lr{min-height:44px;display:flex;align-items:center;gap:12px;box-shadow:inset 0 -1px 0 var(--border-hairline);font:var(--text-body-role);cursor:pointer}
+.lr .d{width:10px;height:10px;border-radius:9px;background:var(--l)}
+.lr .n{flex:1}.lr em{font-style:normal;font:var(--weight-regular) 13px/1 var(--font-core);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.lr .tk{width:22px;height:22px;border-radius:var(--radius-xs);border:1.5px solid var(--border-strong);box-sizing:border-box;display:flex;align-items:center;justify-content:center}
+.lr .tk.on{background:var(--surface-inverse);border:0;color:var(--text-on-solid)}.lr .tk .g{width:14px;height:14px}
+.lr.new{box-shadow:none;color:var(--text-secondary)}.lr.new .g{width:16px;height:16px;color:var(--icon-on-well)}
+.state{font:var(--weight-medium) 11px/1 var(--font-core);color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.note{font:var(--weight-regular) 12.5px/1.5 var(--font-core);color:var(--text-tertiary);max-width:390px;margin-top:8px}
+.note b{color:var(--text-secondary);font-weight:500}
+.ctl{display:flex;gap:6px;margin-top:10px}
+.ctl button{height:32px;padding:0 12px;border-radius:99px;border:1px solid var(--border-strong);background:var(--surface-raised);font:var(--weight-medium) 12.5px/1 var(--font-core);color:var(--text-primary);cursor:pointer}
+.spec{max-width:640px}.spec ul{list-style:none;margin:0 0 18px;padding:0;font:var(--weight-regular) 14px/1.55 var(--font-core);color:var(--text-secondary)}
+.spec li{margin-bottom:6px}
+.src{font:var(--weight-regular) 12.5px/1.5 var(--font-core);color:var(--text-tertiary)}
+
+/* Android: the M3 roles the app maps to (a-*), 28px sheet tops, 8px chips at 32, the gesture bar. */
+.ph[data-platform="android"]{width:412px;height:915px;--a-surface:var(--surface-page);--a-c-low:#F6F5F2;--a-c:#ECEBE7;--a-c-high:#E4E3DE;--a-outline:#DEDDD8;--a-on:#1B1B1A;--a-on-var:#5A5A57;--a-on-quiet:#8A8A86;--icon-on-well:var(--a-on-var);--tab-on:var(--a-on);--tab-off:var(--a-on-quiet)}
+.ph[data-platform="android"]:after{bottom:7px;width:108px;height:4px;border-radius:2px;background:var(--a-on-var);opacity:.5}
+.ph[data-platform="android"] .page{background:var(--a-surface);color:var(--a-on)}
+.ph[data-platform="android"] .st{padding:12px 20px 6px;font:var(--weight-medium) 13px/1 var(--font-core)}
+.ph[data-platform="android"] .bar{height:64px}
+.ph[data-platform="android"] .bar b{text-align:left;padding-left:4px;font-size:20px;font-weight:500}
+.ph[data-platform="android"] .chip{height:32px;border-radius:8px;background:var(--a-c)}
+.ph[data-platform="android"] .chip.on{background:var(--surface-inverse)}
+.ph[data-platform="android"] .chip.lab.on{background:var(--l)}
+.ph[data-platform="android"] .chip.out{background:transparent;border-color:var(--a-outline)}
+.ph[data-platform="android"] .fb .plus{background:var(--a-surface)}
+.ph[data-platform="android"] .fb .plus span{width:32px;height:32px;border-radius:8px;background:var(--a-c)}
+.ph[data-platform="android"] .tile{background:var(--a-c-low);border-radius:8px}
+.ph[data-platform="android"] .r .bd>b{color:var(--a-on)}
+.ph[data-platform="android"] .r .meta,.ph[data-platform="android"] .th em{color:var(--a-on-var)}
+.ph[data-platform="android"] .r{box-shadow:inset 0 -1px 0 var(--a-outline)}
+.ph[data-platform="android"] .mg i.has{border-radius:12px}
+.ph[data-platform="android"] .plate,.ph[data-platform="android"] .conv,.ph[data-platform="android"] .edit{border-radius:28px 28px 0 0}
+.ph[data-platform="android"] .plate{padding-bottom:24px}
+.ph[data-platform="android"] .conv .band{padding-bottom:24px!important}
+.ph[data-platform="android"] .pill{background:var(--surface-raised)}
+.ph[data-platform="android"] .grab{background:var(--a-outline);width:32px}
+.ph[data-platform="android"] .ol{background:var(--a-c);color:var(--a-on)}
+.ph[data-platform="android"] .edit{background:var(--a-c-low);padding-bottom:36px}
+.ph[data-platform="android"] .tf{border-radius:8px;border-color:var(--a-outline);color:var(--a-on)}
+.ph[data-platform="android"] .er .v,.ph[data-platform="android"] .pb{color:var(--a-on-var)}
+.ph[data-platform="android"] .pb.dan{color:var(--text-danger)}
+.ph[data-platform="android"] .pb.pri{background:var(--a-on);color:var(--a-surface)}
+.ph[data-platform="android"] .lr{box-shadow:inset 0 -1px 0 var(--a-outline)}
+.plat{display:inline-flex;gap:2px;padding:3px;border-radius:99px;background:var(--surface-fill);margin:0 0 20px}
+.plat button{height:32px;padding:0 16px;border-radius:99px;border:0;background:transparent;font:var(--weight-medium) 13px/1 var(--font-core);color:var(--text-secondary);cursor:pointer}
+.plat button.on{background:var(--surface-raised);color:var(--text-primary);box-shadow:var(--shadow-1)}
+a{color:var(--blue-600)}a:hover{color:var(--blue-700)}
+</style></head><body><div class="wrap">
+<h1>A more immersive conversation, on the app as built</h1>
+<p class="lede">Idea 1 drawn over the phones as they are on <code>main</code> today: rows with no tools that open their sheet on a tap, the one edit sheet with When, Repeats and Labels inside it, the filter bar, the month, and the prism band behind the composer. What changes is the conversation sheet and the tab bar. Decided with the product owner on 30 September; the calls and what was picked are in <a href="immersive-conversation-decisions.html">immersive-conversation-decisions.html</a>.</p>
+<p class="src">Read from <code>apps/mobile</code> at <code>70a5fa4</code>: <code>Conversation.tsx</code>, <code>Plate.tsx</code>, <code>ContentRow.tsx</code>, <code>RowEditSheet.tsx</code>, <code>LabelSheet.tsx</code>, <code>SheetFoot.tsx</code>, <code>FilterBar.tsx</code>, <code>Thread.tsx</code>, <code>lib/motion.ts</code>. The prism here is the band texture under its graded veil, frozen as at rest; send something to see a stand-in for its arrival.</p>
+
+<div class="plat" id="plat"><button data-p="ios">iOS</button><button data-p="android">Android</button></div>
+<div class="sechead"><h2>What changes</h2></div>
+<div class="spec"><ul>
+<li><b>The sheet rises to 54px from the top</b>, not to 78% of the screen, and <b>the header row goes</b>: no title, chevron or x, just the grabber.</li>
+<li><b>No fold.</b> Letting go past a quarter, or a flick down, closes the conversation; the plate is as it always is. The turns and the draft are kept, so tapping the composer brings the same conversation back.</li>
+<li><b>The page behind recedes</b> as it rises (scale 0.93 from the top, down 10px, a 14px corner), the scrim reaches 45% ink, and <b>the tab bar slides down</b> under the sheet. All of it follows the finger.</li>
+<li><b>The tabs stay on a thread.</b> Today the plate drops them there; here the thread keeps Today, My threads and Notes like every other screen, and they fold away only under the conversation or the keyboard.</li>
+<li><b>One prism band at a time</b>, as now: the plate's behind its composer and tabs at rest, the sheet's behind its own composer when it is up.</li>
+<li><b>Every sheet drags the same way.</b> The edit sheet gains the grabber and the conversation's physics; a drag closes it without saving, as Cancel does. The label sheet opened alone takes the same.</li>
+<li><b>Only the conversation makes the page recede.</b> Row sheets dim the page and leave it where it is.</li>
+<li><b>The turn footer is as built</b>: Done, the thread pill, the labels. The thread pill closes the conversation and opens the thread; a row is edited where it lives.</li>
+<li><b>Android dims, and nothing recedes.</b> The page stays where it is under a 55% scrim, a little deeper than iOS's 45% to make up for the missing depth; the sheet, the drag, the tabs and the close are the same. The status bar sits over the dimmed page as it does for any full-height M3 sheet, and predictive back drives the sheet down. In its own roles: 28px sheet tops, the M3 container colours, 8px chips at 32, the ink primary pill, the gesture bar.</li>
+<li>Every sheet, not only the edit sheet: the label, When, action and custom repeat sheets take the same grabber and drag.</li>
+<li>Phones only. Everything else on these phones is as built: tap a row for its sheet, Labels opens in place, the foot is Delete, Cancel, Save.</li>
+</ul></div>
+
+<div class="sechead"><h2>Today</h2></div>
+<div class="row" style="gap:40px;align-items:flex-start">
+<div class="cell"><div class="state">Resting</div><div class="ph" data-screen="today" data-start="rest"></div><div class="ctl"></div></div>
+<div class="cell"><div class="state">Conversation up</div><div class="ph" data-screen="today" data-start="conv"></div><div class="ctl"></div><p class="note">Drag the grabber: the sheet, the scrim, the page and the tabs move together, and a release past a quarter or a flick closes it. There is no folded row; tap the composer to bring the conversation back.</p></div>
+</div>
+
+<div class="sechead"><h2>Inside a thread</h2><u>Europe, October</u></div>
+<div class="row" style="gap:40px;align-items:flex-start">
+<div class="cell"><div class="state">Resting, Lisbon picked</div><div class="ph" data-screen="thread" data-start="rest"></div><div class="ctl"></div><p class="note"><b>Tabs stay.</b> Tap any row to open its sheet. The link row keeps its tap for the page and opens the sheet from its <code>ellipsis</code>.</p></div>
+<div class="cell"><div class="state">Conversation up</div><div class="ph" data-screen="thread" data-start="conv"></div><div class="ctl"></div><p class="note">The thread recedes with its filter set. The composer is <i>Add to this</i>, as in the app.</p></div>
+</div>
+<div class="row" style="gap:40px;align-items:flex-start;margin-top:32px">
+<div class="cell"><div class="state">Edit sheet</div><div class="ph" data-screen="thread" data-start="edit"></div><div class="ctl"></div><p class="note">As built, plus the grabber: drag it down and it follows, and a release past a quarter closes without saving. It dims the thread and leaves it where it is.</p></div>
+<div class="cell"><div class="state">Labels, in place</div><div class="ph" data-screen="thread" data-start="labels"></div><div class="ctl"></div><p class="note">The Labels row swaps the sheet's body for the panel; Done hands back, and Save still writes once.</p></div>
+</div>
+</div>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#2F5A3D"/><rect x="26" y="30" width="48" height="34" rx="12" fill="none" stroke="#fff" stroke-width="5"/><path d="M38 64 L34 74 L48 64" fill="#fff"/></svg></template>
+<script>
+const g=n=>`<i class="g" style="--ic:url(../assets/icons/${n}.svg)"></i>`;
+const L={lis:['Lisbon','var(--label-1)',4],par:['Paris','var(--label-2)',3],ist:['Istanbul','var(--label-3)',2]};
+const lb=(k,f)=>`<span class="lb ${f?'f':''}" style="--l:${L[k][1]}">${L[k][0]}</span>`;
+const st=`<div class="st"><span>9:41</span><i>●●● ▮</i></div>`;/* same bar both platforms; Android restyles it */
+const row=o=>{
+const lead=o.todo?`${o.hdl?`<span class="hdl">${g('grip-vertical')}</span>`:o.hs?`<span class="hdl" style="opacity:0">${g('grip-vertical')}</span>`:''}<span class="cbw ${o.hdl||o.hs?'nar':''}"><span class="cb ${o.done?'done':''}">${o.done?g('check'):''}</span></span>`:o.pic?'<span class="pic"></span>':`<span class="tile">${g(o.ic||'text-quote')}</span>`;
+const marks=(o.d||o.lb)?`<div class="marks">${o.d?`<span class="dc ${o.tone||''}">${g('calendar')}${o.d}</span>`:''}${(o.lb||[]).map(k=>lb(k)).join('')}</div>`:'';
+return `<div class="r" data-act="${o.link?'':'edit'}">${lead}<div class="bd"><b class="${o.done?'done':''}">${o.t}</b>${marks}${o.meta?`<div class="meta">${o.meta}${(o.ml||[]).map(k=>lb(k)).join('')}</div>`:''}${o.link?`<span class="dom">${g('link')}${o.link}</span>`:''}</div>${o.link?`<span class="tool" data-act="edit">${g('ellipsis')}</span>`:''}</div>`};
+const noteRow=o=>`<div class="r note" data-act="edit"><span class="hdl">${g('grip-vertical')}</span><div class="bd"><b class="${o.of?'of':''}">${o.t}</b></div><div class="ndots">${o.lb.map(k=>`<i style="--l:${L[k][1]}"></i>`).join('')}</div></div>`;
+const month=()=>{const days=[];for(let i=0;i<35;i++){const n=i-2;const d=n>=1&&n<=31?n:'';const has={9:['t'],10:['t','e'],4:['t'],14:['e'],12:['t']}[n];days.push(`<i class="${has?'has':''} ${n===1?'today':''}">${d}${has?`<s>${has.map(x=>`<b class="${x==='e'?'ev':''}"></b>`).join('')}</s>`:''}</i>`)}
+return `<div class="mon"><div class="mh">${g('chevron-left')}<span style="text-align:center">October</span><em>Today</em>${g('chevron-right')}</div><div class="mg">${['M','T','W','T','F','S','S'].map(x=>`<u>${x}</u>`).join('')}${days.join('')}</div></div>`};
+const PAGES={
+today:{tab:0,ph:'Dump anything',page:`${st}<div class="hd"><h4>Today</h4><span class="bc" style="margin-right:-10px">${g('bell')}</span></div>
+<div class="scroll"><div class="th"><div>Due today<em>2</em></div></div>
+${row({todo:1,t:'Buy Viva Viagem cards',d:'Due today',tone:'soon',meta:'Europe, October',ml:['lis']})}
+${row({todo:1,t:'Call the clinic at 9',d:'Today, 9:00',tone:'soon',meta:'Health'})}
+<div class="th"><div>Tomorrow<em>2</em></div></div>
+${row({todo:1,t:'Return the drill to Tom',d:'Due tomorrow',meta:'Flat'})}
+${row({t:"Musée d'Orsay, 10:30",ic:'calendar',d:'Tomorrow, 10:30',meta:'Europe, October',ml:['par']})}
+<div class="th"><div>Coming up<em>1</em></div></div>
+${row({t:'Flight to Paris, TP 432',ic:'calendar',d:'Thu 9, 07:40',meta:'Europe, October'})}</div>`,
+turns:`<div class="you">flights lisbon to paris on the 9th, TP 432, and the orsay tickets for friday</div>
+<div class="ol">Both are in Europe, October. The flight is on the 9th and the tickets are a to do for Friday.</div>
+<div class="tfoot"><span class="mk done">${g('check')}Done</span><span class="mk th">${g('lasso')}Europe, October</span></div>
+<div class="you">what did ana say about the hotel?</div>
+<div class="ol">She liked the one near Canal Saint-Martin, and said the one in the 11th was too far from the station.</div>`},
+thread:{tab:1,ph:'Dump anything',page:`${st}<div class="bar"><span class="bc back">${g('chevron-left')}</span><b>Europe, October</b><span class="bc">${g('share-2')}</span><span class="bc">${g('calendar')}</span><span class="bc">${g('ellipsis')}</span></div>
+<div class="fb"><div class="sc"><span class="chip">All</span><span class="chip lab on" style="--l:var(--label-1)"><span class="d"></span>Lisbon 4</span><span class="chip lab" style="--l:var(--label-2)"><span class="d"></span>Paris 3</span><span class="chip lab" style="--l:var(--label-3)"><span class="d"></span>Istanbul 2</span><span class="chip out">No label 2</span></div><div class="plus"><span>${g('plus')}</span></div></div>
+<div class="scroll">${month()}
+<div class="wh">To do <em>4</em></div>
+${row({todo:1,hdl:1,t:'Buy Viva Viagem cards',d:'Due today',tone:'soon',lb:['lis']})}
+${row({todo:1,hdl:1,t:'Packing list',lb:['lis','ist']})}
+${row({todo:1,hdl:1,t:'Book the Sintra train',d:'Due Sat 12',lb:['lis']})}
+<div class="rule"></div>
+${row({todo:1,hs:1,done:1,t:'Renew the passport',lb:['lis']})}
+<div class="wh">Notes <em>1</em></div>
+${noteRow({t:'Tram 28 runs from Martim Moniz, go before 9',lb:['lis']})}
+<div class="wh">Everything else <em>1</em></div>
+${row({pic:1,t:'Time Out Market',link:'timeout.com',lb:['lis']})}</div>`,
+turns:`<div class="you">add sunscreen and the adapter to the packing list <i style="--l:var(--label-1)">#lisbon</i></div>
+<div class="ol">Added both to the packing list.</div>
+<div class="tfoot"><span class="mk done">${g('check')}Done</span><span class="mk th">${g('lasso')}Europe, October</span>${lb('lis',1)}</div>
+<div class="you">anything left for lisbon?</div>
+<div class="ol">Two to dos: the Viva Viagem cards today, and the Sintra train by Saturday.</div>`}};
+const EDIT=`<div class="ebody"><div class="tf">Packing list</div>
+<div class="er">${g('calendar')}<span class="n" style="flex:1">When</span><span class="v">No date</span>${g('chevron-right')}</div>
+<div class="er">${g('clock')}<span class="n" style="flex:1">Repeats</span><span class="v"></span>${g('chevron-right')}</div>
+<div class="er" data-act="labels">${g('tag')}<span class="n">Labels</span><span class="v"><i style="--l:var(--label-1)"></i><i style="--l:var(--label-3)"></i>Lisbon, Istanbul</span>${g('chevron-right')}</div>
+<div class="sfoot"><span class="pb lead dan" data-act="close">${g('trash-2')}Delete</span><span class="pb" data-act="close">Cancel</span><span class="pb pri" data-act="close">Save</span></div></div>
+<div class="lpanel" style="display:none"><h3 class="ptitle">Labels</h3><div class="psub">Packing list</div>
+<div class="lr" style="--l:var(--label-1)"><span class="d"></span><span class="n">Lisbon</span><em>4</em><span class="tk on">${g('check')}</span></div>
+<div class="lr" style="--l:var(--label-2)"><span class="d"></span><span class="n">Paris</span><em>3</em><span class="tk"></span></div>
+<div class="lr" style="--l:var(--label-3)"><span class="d"></span><span class="n">Istanbul</span><em>2</em><span class="tk on">${g('check')}</span></div>
+<div class="lr new">${g('plus')}New label</div>
+<div class="sfoot"><span class="pb lead dan" data-act="back">Clear</span><span class="pb" data-act="back">Cancel</span><span class="pb pri" data-act="back">Done</span></div></div>`;
+const K=380,C=36;
+function spring(o,target,vel,paint,done){cancelAnimationFrame(o.raf);o.v=vel||0;let last=performance.now();
+const step=t=>{const dt=Math.min(.032,(t-last)/1000);last=t;o.v+=(-K*(o.y-target)-C*o.v)*dt;o.y+=o.v*dt;
+if(Math.abs(o.y-target)<.5&&Math.abs(o.v)<5){o.y=target;o.v=0;paint();done&&done();return}paint();o.raf=requestAnimationFrame(step)};o.raf=requestAnimationFrame(step)}
+const build=ph0=>{const ph=ph0.cloneNode(false);ph0.replaceWith(ph);ph.dataset.platform=PLAT;const P=PAGES[ph.dataset.screen];
+ph.innerHTML=`<div class="page">${P.page}</div>
+<div class="plate"><div class="band"><div class="prism"><i></i></div><div class="cwrap"><div class="pill" data-act="conv"><s>${P.ph}</s><span class="ib">${g('mic')}</span></div></div>
+<div class="tabs">${[['sun','Today'],['lasso','My threads'],['cloudy','Notes']].map(([i,t],k)=>`<span class="${k===P.tab?'on':''}">${g(i)}${t}</span>`).join('')}</div></div></div>
+<div class="scrim s1" style="z-index:8"></div>
+<div class="conv"><div class="grabzone"><div class="grab"></div></div><div class="turns">${P.turns}</div>
+<div class="band" style="padding-bottom:34px"><div class="prism cp"><i></i></div><div class="cwrap" style="padding-bottom:6px"><div class="pill" data-act="send"><s>Add to this</s><span class="ib">${g('mic')}</span></div></div></div></div>
+<div class="scrim s2" style="z-index:10"></div>
+<div class="edit"><div class="grabzone"><div class="grab"></div></div>${EDIT}</div>`;
+const page=ph.querySelector('.page'),tabs=ph.querySelector('.tabs'),s1=ph.querySelector('.s1'),s2=ph.querySelector('.s2'),cv=ph.querySelector('.conv'),ed=ph.querySelector('.edit'),gz=cv.querySelector('.grabzone');
+const conv={y:0,raf:0},edit={y:0,raf:0};
+const TR=()=>cv.offsetHeight,ER=()=>ed.offsetHeight+20;
+conv.y=TR();edit.y=ER();
+const paint=()=>{const pc=Math.max(0,Math.min(1,1-conv.y/TR())),pe=Math.max(0,Math.min(1,1-edit.y/ER()));
+cv.style.transform=`translateY(${conv.y}px)`;ed.style.transform=`translateY(${edit.y}px)`;
+const AN=ph.dataset.platform==='android';if(!AN){page.style.transform=`translateY(${10*pc}px) scale(${1-.07*pc})`;page.style.borderRadius=14*pc+'px'}
+tabs.style.transform=`translateY(${(tabs.offsetHeight+34)*pc}px)`;tabs.style.opacity=1-pc;
+s1.style.opacity=pc*(AN?.55/.45:1);s1.style.pointerEvents=pc>.02?'auto':'none';
+s2.style.opacity=pe*.78;s2.style.pointerEvents=pe>.02?'auto':'none'};
+const openConv=(v)=>spring(conv,0,v,paint),closeConv=(v)=>spring(conv,TR(),v,paint);
+const panel=on=>{ed.querySelector('.ebody').style.display=on?'none':'';ed.querySelector('.lpanel').style.display=on?'':'none'};
+const openEdit=()=>{panel(false);edit.y=ER();spring(edit,0,0,paint)},closeEdit=()=>spring(edit,ER()+40,0,paint,()=>panel(false));
+s1.onclick=()=>closeConv();s2.onclick=closeEdit;
+ph.addEventListener('click',e=>{const a=e.target.closest('[data-act]');if(!a||!a.dataset.act)return;const k=a.dataset.act;e.stopPropagation();
+if(k==='conv')openConv();if(k==='edit')openEdit();if(k==='close')closeEdit();if(k==='labels')panel(true);if(k==='back')panel(false);
+if(k==='send'){const p=ph.querySelector('.cp');p.classList.add('pulse');setTimeout(()=>p.classList.remove('pulse'),2000)}});
+/* One physics for every sheet: follows the finger, resists above open, closes past a quarter or on a flick. */
+const drag=(zone,el,o,travel,open,close)=>{let d=false,sy=0,y0=0,sm=[];
+zone.addEventListener('pointerdown',e=>{d=true;cancelAnimationFrame(o.raf);sy=e.clientY;y0=o.y;sm=[[performance.now(),e.clientY]];el.classList.add('dragging');zone.setPointerCapture(e.pointerId)});
+zone.addEventListener('pointermove',e=>{if(!d)return;let y=y0+e.clientY-sy;if(y<0)y/=3;o.y=y;sm.push([performance.now(),e.clientY]);if(sm.length>6)sm.shift();paint()});
+const up=()=>{if(!d)return;d=false;el.classList.remove('dragging');const a=sm[0],b=sm[sm.length-1];const vel=(b[1]-a[1])/(((b[0]-a[0])/1000)||1);
+if(vel>500||(vel>-500&&o.y>travel()*.25))close(vel);else open(vel)};
+zone.addEventListener('pointerup',up);zone.addEventListener('pointercancel',up)};
+drag(gz,cv,conv,TR,openConv,closeConv);
+drag(ed.querySelector('.grabzone'),ed,edit,ER,v=>spring(edit,0,v,paint),v=>spring(edit,ER()+40,v,paint,()=>panel(false)));
+const start=ph.dataset.start;
+const reset=()=>{cancelAnimationFrame(conv.raf);cancelAnimationFrame(edit.raf);conv.y=start==='conv'?0:TR();edit.y=(start==='edit'||start==='labels')?0:ER()+40;panel(start==='labels');paint()};
+requestAnimationFrame(reset);
+const ctl=ph.parentElement.querySelector('.ctl');ctl.innerHTML='<button>Reset</button>';ctl.firstChild.onclick=reset;
+};
+let PLAT=localStorage.getItem('imm-platform')||'ios';
+const all=()=>{document.querySelectorAll('.ph').forEach(build);document.querySelectorAll('#plat button').forEach(b=>b.classList.toggle('on',b.dataset.p===PLAT))};
+document.querySelectorAll('#plat button').forEach(b=>b.onclick=()=>{PLAT=b.dataset.p;localStorage.setItem('imm-platform',PLAT);all()});
+all();
+</script></body></html>

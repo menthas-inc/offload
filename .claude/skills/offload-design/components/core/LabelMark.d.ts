@@ -7,8 +7,8 @@ export interface LabelMarkProps {
   children?: React.ReactNode;
   /** Which of the ten label colours, 1 to 10, reading --label-N. Stored on the label, never derived from its name. */
   color?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
-  /** 20 on a row's marks line and in Today, 24 on its own (the turn footer, a sheet). */
-  size?: 20 | 24;
+  /** 20 on a row's marks line and in Today, 24 on its own in a sheet, 30 in the turn footer beside its 30px chips. */
+  size?: 20 | 24 | 30;
   /** Opens the label's list: its things, Rename, Colour, Delete. */
   onClick?: (e: unknown) => void;
   /** A trailing x, in the label sheet only. */

@@ -11,6 +11,24 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-29 · The code's entries of 26 to 29 September, folded in
+**Surface:** iOS, Android, web
+**Raised by:** the code entries of 26 to 29 September and 025's as-built entry.
+
+**Is:** `readme.md` gains **The row and its sheet** (a tap opens the sheet and phone rows draw no tools, an `ellipsis` on a link, top alignment on the title line, no details anywhere, pictures at 50 and 72, the handle space and the finished rule, the one edit sheet with panels in place, the three-pill foot, the note row, the thread's line, "thing" retired). **Labels** is rewritten to what shipped: labels from the edit sheet, `tag` in the app bar with no labels and no filter-bar empty state, no fade, the colour swap, the empty line, the no-noun copy, the 30px footer mark, the web's three ways to hold, the calendar's marks, the map waiting, the nightly sort off. **The timeline** is a month at a time with a picked calendar's hollow rings and the 16px anchors. `LabelMark` takes `size={30}`; the `Chip`, `AppBar` (up to four), `Sheet` and `RowActionSheet` contracts match the code.
+
+**Design system impact:** the kit screens are not redrawn in this pass; that is decision 5 in `explorations/immersive-conversation-decisions.html`.
+
+### 2026-09-30 · A more immersive conversation (idea 1)
+**Surface:** iOS, Android
+**Raised by:** the product owner, after Meta's Muse.
+
+**Is:** the sheet rises to 54px, loses its header row for a grabber, follows the finger with the scrim, the receding page and the tab bar tied to it, and a thread keeps its tabs. Decided 30 September: **no fold** (a release closes; the composer brings the same conversation back); **every row sheet drags** with the same physics and a drag is Cancel; the turn footer is unchanged; only the conversation recedes the page, and **on Android nothing recedes**: the page dims under a 55% scrim, for frame cost, the status bar and the platform's own sheet; phones only. `handoff/APPLY-2026-09-29-conversation-sheet.md` carries the why-it-janks reading of `Conversation.tsx` and the one-shared-value build.
+
+**Considered and not taken:** keeping the fold, a conversation glyph in the composer, a row chip in the footer opening its sheet stacked on the conversation, every sheet receding the page, a web pass.
+
+**Design system impact:** `Sheet`'s grabber is on every row sheet and draggable; the readme's conversation states lose *folded*. The mobile kit is redrawn next (5A).
+
 ### 2026-09-29 · To do's finished rows sit under a rule, in line with the rest
 **Surface:** iOS, Android, web
 
