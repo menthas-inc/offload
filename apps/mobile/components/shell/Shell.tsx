@@ -126,7 +126,18 @@ export function Shell() {
 
   const onTab = TABS.includes(pathname);
   const inThread = pathname.startsWith("/threads/");
-  if (!onTab && !inThread) return null;
+  const elsewhere = !onTab && !inThread;
+
+  // A screen without the shell opened over a raised conversation, from a
+  // notification or a link: put the conversation away, or the page behind
+  // stays receded with no sheet in front of it.
+  const lower = conversation.lower;
+  const raised = conversation.raised;
+  useEffect(() => {
+    if (elsewhere && raised) lower();
+  }, [elsewhere, raised, lower]);
+
+  if (elsewhere) return null;
 
   // From a tab, the tabs swap; from a thread, back down to the tabs first,
   // so a tab never lands on top of the thread it left.

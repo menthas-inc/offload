@@ -1519,7 +1519,15 @@ export function useScreenSheet(open: boolean): void {
   // Before the sheet's first frame, so the plate starts leaving with it.
   useLayoutEffect(() => {
     if (!open) return;
-    sheetCount.value = sheetCount.value + 1;
+    // **Counted on the UI thread, never read and written from JS.** One sheet
+    // leaving as the next arrives, an action opening the edit sheet, is two
+    // changes in one tick; read on JS the second saw the value before the
+    // first had landed, the count ended one high, and the plate stayed off
+    // the screen for good.
+    runOnUI(() => {
+      "worklet";
+      sheetCount.value += 1;
+    })();
     // A sheet's keyboard is not the plate's, even if the plate had it.
     composerFocused.value = withTiming(0, plateAway);
     openSheet();
@@ -1528,7 +1536,10 @@ export function useScreenSheet(open: boolean): void {
     return () => {
       Keyboard.dismiss();
       sheetClosedAt.current = Date.now();
-      sheetCount.value = Math.max(0, sheetCount.value - 1);
+      runOnUI(() => {
+        "worklet";
+        sheetCount.value = Math.max(0, sheetCount.value - 1);
+      })();
       closeSheet();
     };
   }, [open, openSheet, closeSheet, sheetCount, sheetClosedAt, composerFocused]);
