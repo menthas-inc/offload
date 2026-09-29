@@ -30,10 +30,11 @@ interface Props {
   big?: boolean;
   /** Faces, share: whatever belongs to the thing rather than to the pane. */
   aside?: React.ReactNode;
-  /** Extra quiet tools, before Open full. Up to one, and it has a criterion
-   *  (design log, 17 September 2026): a tool earns a head slot only if it
-   *  changes what offload reads or shows. The thread's calendars are the one
-   *  so far; anything that acts on the thread goes in More. */
+  /** Extra quiet tools, before Open full. Up to two, and they have a
+   *  criterion (design log, 17 September 2026): a tool earns a head slot only
+   *  if it changes what offload reads or shows. The thread's calendars, and
+   *  its labels' way in while it has none (29 September); anything that acts
+   *  on the thread goes in More. */
   tools?: React.ReactNode;
   /** What the More menu holds. Open full, then `ellipsis`, and everything a
    *  pane gains after that goes in here rather than growing the head every

@@ -29,7 +29,6 @@ import { reorderPlan, type ReorderWrite } from "../../lib/widgets";
 import {
   NOTE_BUDGET,
   NOTE_CHARS,
-  NOTE_BODY_CHARS,
   addNote,
   deleteNote,
   editNote,
@@ -99,7 +98,6 @@ export function Notes({
   const viewerId = members.find((member) => member.isYou)?.accountId ?? null;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
-  const [bodyDraft, setBodyDraft] = useState<string | null>(null);
   const [folded, setFolded] = useState<Note[] | null>(null);
   // Which row is being dragged, and which one the pointer is over. The active
   // list only: folded history is read, not arranged.
@@ -137,14 +135,12 @@ export function Notes({
     onAdding(false);
     setEditingId(note.id);
     setDraft(note.text);
-    setBodyDraft(note.body);
   }
 
   function close(): void {
     onAdding(false);
     setEditingId(null);
     setDraft("");
-    setBodyDraft(null);
   }
 
   /** Deleting is the author's, per OFF-3, with one exception: **a note nobody
@@ -196,17 +192,17 @@ export function Notes({
 
     if (!editing) return close();
     const previous = editing.text;
-    const previousBody = editing.body;
-    const body = bodyDraft === previousBody ? undefined : bodyDraft;
     close();
     // Reversible by writing the previous value back, which is what puts an
     // edit on the OFF-6 allowlist rather than under a confirmation.
     void perform(
       {
-        apply: () => patch(editing.id, { text, body: body === undefined ? previousBody : body }),
-        revert: () => patch(editing.id, { text: previous, body: previousBody }),
-        write: () => editNote(editing.id, text, body).then((result) => result !== null),
-        unwrite: () => editNote(editing.id, previous, previousBody).then((result) => result !== null),
+        // The text alone: a note's details are no longer drawn or edited
+        // (2026-09-29), and what is stored there is left as it is.
+        apply: () => patch(editing.id, { text }),
+        revert: () => patch(editing.id, { text: previous }),
+        write: () => editNote(editing.id, text).then((result) => result !== null),
+        unwrite: () => editNote(editing.id, previous).then((result) => result !== null),
         did: "Note changed",
         failed: "Couldn't change the note",
         unfailed: "Couldn't put the note back",
@@ -363,18 +359,6 @@ export function Notes({
         }}
       />
 
-      {/* The rest of what was dumped, when there is any. Only drawn for a note
-          that has a body: offering an empty second field on every note would
-          make a sentence look like a form. */}
-      {bodyDraft !== null ? (
-        <textarea
-          className={styles.noteField}
-          value={bodyDraft}
-          maxLength={NOTE_BODY_CHARS}
-          rows={5}
-          onChange={(event) => setBodyDraft(event.target.value)}
-        />
-      ) : null}
 
       <span className={styles.noteActions}>
         <span className={styles.noteCount}>
@@ -487,7 +471,6 @@ export function Notes({
           <span className={styles.noteText}>
             {note.text}
             {date ? <span className={styles.noteBy}> {date}</span> : null}
-            {note.body ? <span className={styles.noteBy}> more</span> : null}
             {name ? <span className={styles.noteBy}> {name}</span> : null}
             {note.muted ? <span className={styles.noteBy}> Muted</span> : null}
             {quietRow && !readOnly ? (
@@ -519,7 +502,6 @@ export function Notes({
             onClick={() => {
               setEditingId(null);
               setDraft("");
-              setBodyDraft(null);
               onAdding(true);
             }}
           >

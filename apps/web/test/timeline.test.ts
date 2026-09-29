@@ -435,3 +435,53 @@ describe("an old rule still draws today", () => {
     expect(thingsOn([old("month", "2024-01-31")], "2026-09-30")).toHaveLength(1);
   });
 });
+
+describe("a picked calendar's events are quieter than the thread's own (2026-09-29)", () => {
+  // A calendar with something every day lit every cell, so the dots stopped
+  // telling the thread's days apart.
+  const today = (month: ReturnType<typeof monthFor>) =>
+    month.weeks.flatMap((week) => week.days).find((day) => day.iso === TODAY)!;
+
+  it("counts only the thread's own things as what lifts a day", () => {
+    const month = monthFor(TODAY, [point("g", TODAY, "calendar"), point("h", TODAY, "calendar")], TODAY, "monday");
+    expect(today(month).count).toBe(2);
+    expect(today(month).own).toBe(0);
+  });
+
+  it("draws the thread's dots first, so the calendar never crowds them out", () => {
+    const many = Array.from({ length: MAX_DOTS }, (_, i) => point(`g${i}`, TODAY, "calendar"));
+    const month = monthFor(TODAY, [...many, point("t", TODAY, "task")], TODAY, "monday");
+    expect(today(month).dots[0]?.kind).toBe("task");
+    expect(today(month).own).toBe(1);
+  });
+
+  it("says calendar event in the day's name", () => {
+    const month = monthFor(TODAY, [point("g", TODAY, "calendar")], TODAY, "monday");
+    expect(dayLabel(today(month))).toContain("1 calendar event");
+  });
+});
+
+describe("a day's name never says thing (2026-09-29)", () => {
+  // The word was retired from anything a person reads; a count stands alone.
+  it("says the kinds it can name and counts the rest without a noun", () => {
+    const month = monthFor(TODAY, [point("a", TODAY, "other"), point("b", TODAY, "other"), point("c", TODAY, "task")], TODAY, "monday");
+    const day = month.weeks.flatMap((week) => week.days).find((one) => one.iso === TODAY)!;
+    const label = dayLabel(day);
+    expect(label).not.toMatch(/thing/);
+    expect(label).toContain("1 to do");
+    expect(label).toContain("2 more");
+  });
+});
+
+describe("a photo's caption is its description, never the words read out of it (2026-09-29)", () => {
+  it("keeps what comes before the Text: line", async () => {
+    const { photoCaption } = await import("@offload/widgets");
+    expect(photoCaption("To pay\nAn electricity bill from Iberdrola\nText: Account 1234 5678, due 3 Oct, 84.20 EUR")).toBe(
+      "To pay\nAn electricity bill from Iberdrola",
+    );
+    expect(photoCaption("To remember\nThe view from the terrace")).toBe("To remember\nThe view from the terrace");
+    expect(photoCaption("Text: only words")).toBeNull();
+    expect(photoCaption(null)).toBeNull();
+    expect(photoCaption("  ")).toBeNull();
+  });
+});

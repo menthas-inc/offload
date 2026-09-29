@@ -21,6 +21,11 @@
 // so holding the handle never opens the action sheet, and a vertical drag is
 // exactly what the row's swipe fails on. Reanimated and gesture-handler, which
 // the row already uses, rather than a list library the app does not have.
+//
+// **And since 2026-09-29 a tap opens the edit sheet, and the row draws no
+// tools.** Three glyphs on every row took a third of a phone's width off the
+// title. The sheet carries what they did: delete, and labels. A link keeps
+// the tap for its page and draws an ellipsis that opens the same sheet.
 
 import {
   ActivityIndicator,
@@ -45,17 +50,14 @@ import { Glyph } from "../Glyph";
 import { DateChip } from "./DateChip";
 import { PhotoThumb } from "./PhotoThumb";
 import { useColors } from "../../lib/colors";
-import { domainOf, isFiling, isProvisional, type ContentRow } from "../../lib/threads";
+import { domainOf, isFiling, isProvisional, rowTap, type ContentRow } from "../../lib/threads";
 import { openLink } from "../../lib/links";
 import { LabelMark } from "../labels/LabelMark";
 import { useRowLabels } from "../labels/labels-context";
 
 const REVEAL = 88;
-/** 45 tall by 33 wide around a 17px tool. The tools sit 16 apart, so 8 either
- *  side is where two targets meet without overlapping; above and below there
- *  is nothing to meet, and 14 makes the height the rule's 44. They were 33 by
- *  33 until the tag tool made a third. */
-const TOOL_SLOP = { top: 14, bottom: 14, left: 8, right: 8 };
+/** 45 tall by 45 wide around the 17px ellipsis: the row's one tool. */
+const TOOL_SLOP = { top: 14, bottom: 14, left: 14, right: 14 };
 const isAndroid = Platform.OS === "android";
 
 const ICON: Record<string, string> = {
@@ -74,18 +76,19 @@ const ICON: Record<string, string> = {
 const TITLE_LINE = 21;
 /** A 36px tile centred on that line: the top padding is 8, so it fits. */
 const ON_TITLE_LINE = (TITLE_LINE - 36) / 2;
+/** 2026-09-29. A picture is 40% larger than the tile, so it reads as one: a
+ *  link's page and a photo row's photo. Too tall to centre on the title line,
+ *  so it tops with it. The Files grid is its own tile and unchanged. */
+const PICTURE = 50;
 
 interface Props {
   row: ContentRow;
   border: boolean;
   onDelete: () => void;
   onActions: () => void;
-  /** Rename it. The same control the web row has drawn since 007, and the same
-   *  sheet the long press already opened. */
+  /** The row's edit sheet, which a tap opens: its fields, labels, and the
+   *  way out. */
   onEdit: () => void;
-  /** Out of the list, or back into it. Which one it means is decided by the
-   *  row, not by the caller. */
-  onArchive: () => void;
   /** Arrived while somebody was looking at the screen, so it is marked for a
    *  moment rather than simply being there. */
   arrived?: boolean | undefined;
@@ -93,7 +96,8 @@ interface Props {
    *  than list rows, and a tick is one tap rather than a long press into a
    *  sheet, because it is the thing people do most. */
   onToggle?: (() => void) | undefined;
-  /** Stands in for the body on a row that represents more than itself.
+  /** A line under the title, for a row that represents more than itself.
+   *  The row's own details are not drawn (2026-09-29).
    *
    *  A collapsed repeating entry uses it to say how often and how many are
    *  held, because the one date it happens to carry is not what it is about. */
@@ -109,6 +113,10 @@ interface Props {
    *  its unfinished rows and by nothing else. `onDrop` gets how far the row
    *  travelled; the list, which measured its rows, works out where that is. */
   reorder?: { onDrop: (dy: number) => void } | undefined;
+  /** Keeps the handle's space with no handle in it: a finished task in a list
+   *  that can be arranged, so its checkbox sits under the others'
+   *  (2026-09-29). */
+  handleSpace?: boolean | undefined;
   /** 020. A photo row's tile opens the viewer; the row itself opens as a row. */
   onOpenPhoto?: (() => void) | undefined;
 }
@@ -121,12 +129,12 @@ export function ContentRowView({
   onDelete,
   onActions,
   onEdit,
-  onArchive,
   onToggle,
   note,
   meta,
   metaMarks,
   reorder,
+  handleSpace,
 }: Props) {
   const COLOR = useColors();
   // 025. The thread's labels, from the screen that holds the thread, and the
@@ -138,13 +146,15 @@ export function ContentRowView({
         return label ? [label] : [];
       })
     : [];
-  const tagTool = threadLabels !== null && row.labels.length === 0 && !isProvisional(row.id);
   // Shown instead of an absent body on a link row, and it is what says the row
   // goes somewhere. Ours rather than the page's: a title is written by whoever
   // owns the page and a domain is not.
   const domain = domainOf(row.url);
-  // A link with an address is a door: the row opens the page.
-  const door = row.type === "link" && Boolean(row.url) && !row.archivedAt;
+  // A link with an address is a door: the row opens the page. Anything else
+  // opens its sheet, or the actions for a row that is somebody else's.
+  const tap = rowTap(row);
+  const door = tap === "open";
+  const sheet = row.canDelete ? onEdit : onActions;
   // A row drawn at the press, before the server has it. It looks like the row
   // it is about to be and offers nothing: no swipe, no long press, no tools,
   // because there is nothing to act on until the write lands and the id is
@@ -303,12 +313,23 @@ export function ContentRowView({
                 <Glyph name="grip-vertical" size={17} color={COLOR.iconOnWell} />
               </View>
             </GestureDetector>
+          ) : handleSpace ? (
+            <View
+              style={{ marginLeft: -6, marginRight: -6, opacity: 0 }}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
+              <Glyph name="grip-vertical" size={17} color={COLOR.iconOnWell} />
+            </View>
           ) : null}
 
           {onToggle ? (
             // In the tile's 36px slot, so a task's title starts where an
             // event's does: the owner saw the two indented apart on Today.
-            <View className="items-center" style={{ width: 36 }}>
+            // Not beside a handle: To do is all tasks, so there is nothing to
+            // line up with, and grip, slot and gap together pushed the title
+            // half an inch in (2026-09-29).
+            <View className="items-center" style={{ width: reorder || handleSpace ? 21 : 36 }}>
               <Pressable
                 onPress={onToggle}
                 disabled={provisional}
@@ -350,12 +371,12 @@ export function ContentRowView({
                 <PhotoThumb
                   blobId={row.photo.blobId}
                   ready={row.photo.ready}
-                  style={{ width: 36, height: 36, marginTop: ON_TITLE_LINE }}
+                  style={{ width: PICTURE, height: PICTURE }}
                   className="rounded-sm"
                   fallback={
                     <View
                       className={`items-center justify-center rounded-sm ${isAndroid ? "bg-a-c-low" : "bg-surface-fill"}`}
-                      style={{ width: 36, height: 36 }}
+                      style={{ width: PICTURE, height: PICTURE }}
                     >
                       <Glyph name="image" size={18} color={COLOR.iconOnWell} />
                     </View>
@@ -365,7 +386,7 @@ export function ContentRowView({
             ) : row.imageUrl && !row.archivedAt ? (
               <Image
                 source={{ uri: row.imageUrl }}
-                style={{ width: 36, height: 36, borderRadius: 6 }}
+                style={{ width: PICTURE, height: PICTURE, borderRadius: 6 }}
                 // The page chose a picture to represent itself; it did not write
                 // a description of it. Decorative, so a screen reader is not
                 // handed a filename, and the title beside it already says what
@@ -394,15 +415,15 @@ export function ContentRowView({
           {/* 21 September design: a link's row is a door. Tapping it opens
               the page, the one row in the product whose content lives
               somewhere else; it was a detail screen with the page a second
-              step. The trailing glyph is arrow-up-right rather than the
-              tools, since a chevron promises a screen inside the app, and
-              the row's own tools stay in the long press's sheet. */}
+              step. Every other row opens its edit sheet on the same tap
+              (2026-09-29), and a link reaches its sheet from the ellipsis. */}
           <Pressable
             className="flex-1"
-            disabled={!door}
-            onPress={door ? () => void openLink(row.url) : undefined}
-            accessibilityRole={door ? "link" : undefined}
+            disabled={provisional}
+            onPress={door ? () => void openLink(row.url) : sheet}
+            accessibilityRole={door ? "link" : "button"}
             accessibilityLabel={door ? `Open ${domain ?? row.title}` : undefined}
+            accessibilityHint={door ? undefined : row.canDelete ? "Edit, label or delete" : "Actions"}
           >
             {/* 023, moved on 2026-09-26. The date chip sits on its own line
                 under the title, above the meta. It trailed the title on one
@@ -468,7 +489,9 @@ export function ContentRowView({
                 one spinner, not a second progress word: the readme reserves
                 "filing" for a row that does not know where it is going, and
                 this row knows. It is saved and usable already. */}
-            {note ?? row.body ? (
+            {/* 2026-09-29. Only what the list says about the row: its
+                details are no longer drawn, offload being for short things. */}
+            {note ? (
               <Text
                 className={`mt-space-1 font-core ${
                   isAndroid ? "text-a-on-var" : "text-text-secondary"
@@ -476,7 +499,7 @@ export function ContentRowView({
                 style={{ fontSize: 13 }}
                 numberOfLines={2}
               >
-                {note ?? row.body}
+                {note}
               </Text>
             ) : null}
 
@@ -513,95 +536,23 @@ export function ContentRowView({
             />
           ) : null}
 
-          {/* **Two controls, never three: edit, and one way out.** The web
-           *  row's own rule, written on `RowTools` and now the phone's as well,
-           *  and the same reason: on a solo thread Archive and Delete are two
-           *  answers to one question and only one of them is honest about what
-           *  it does. Which way out is drawn is decided by the row.
-           *
-           *  The swipe and the long press both already carried all of this. A
-           *  list you are tidying is a row after a row after a row, and a
-           *  gesture is something you have to remember where an icon is
-           *  something you can see.
-           *
-           *  **Conditional, never refused.** `edit_content` and the delete both
-           *  need the row to be this account's, which is exactly what
-           *  `canDelete` reports, so somebody else's row draws neither and
-           *  offers Archive instead. An archived row offers the way back,
-           *  whoever is looking: putting something back is not destructive and
-           *  is not the author's alone. */}
+          {/* A link's tap is its page, so its sheet is behind the one tool a
+              row still draws. No arrow: the domain under the title already
+              says the row goes somewhere. */}
           {door ? (
-            <View className="flex-row items-center gap-space-6" style={[hidden, { marginTop: (TITLE_LINE - 17) / 2 }]}>
-              {tagTool ? <TagTool title={row.title} color={COLOR.iconOnWell} onPress={() => threadLabels?.onLabel(row)} /> : null}
-              <View accessibilityElementsHidden>
-                <Glyph name="arrow-up-right" size={17} color={COLOR.iconOnWell} />
-              </View>
-            </View>
-          ) : (
-          <View
-            className="flex-row items-center gap-space-6"
-            style={[hidden, { marginTop: (TITLE_LINE - 17) / 2 }]}
-            pointerEvents={provisional ? "none" : "auto"}
-            accessibilityElementsHidden={provisional}
-          >
-            {/* 025. **The stated exception to "two controls, never three"**,
-                and the only one: a row carrying no label draws `tag` first,
-                whoever wrote it, because it is the one control that says
-                labels exist. A labelled row draws its marks and the usual
-                two. */}
-            {tagTool ? <TagTool title={row.title} color={COLOR.iconOnWell} onPress={() => threadLabels?.onLabel(row)} /> : null}
-            {row.canDelete ? (
-              <Pressable
-                onPress={onEdit}
-                hitSlop={TOOL_SLOP}
-                accessibilityRole="button"
-                accessibilityLabel={`Edit ${row.title}`}
-              >
-                <Glyph name="pencil" size={17} color={COLOR.iconOnWell} />
-              </Pressable>
-            ) : null}
-
-            {row.archivedAt ? (
-              <Pressable
-                onPress={onArchive}
-                hitSlop={TOOL_SLOP}
-                accessibilityRole="button"
-                accessibilityLabel={`Put ${row.title} back in the thread`}
-              >
-                <Glyph name="rewind" size={17} color={COLOR.iconOnWell} />
-              </Pressable>
-            ) : row.canDelete ? (
-              <Pressable
-                onPress={onDelete}
-                hitSlop={TOOL_SLOP}
-                accessibilityRole="button"
-                accessibilityLabel={`Delete ${row.title}`}
-              >
-                <Glyph name="trash-2" size={17} color={COLOR.iconOnWell} />
-              </Pressable>
-            ) : (
-              <Pressable
-                onPress={onArchive}
-                hitSlop={TOOL_SLOP}
-                accessibilityRole="button"
-                accessibilityLabel={`Archive ${row.title}`}
-              >
-                <Glyph name="archive" size={17} color={COLOR.iconOnWell} />
-              </Pressable>
-            )}
-          </View>
-          )}
+            <Pressable
+              onPress={sheet}
+              hitSlop={TOOL_SLOP}
+              style={[hidden, { marginTop: (TITLE_LINE - 17) / 2 }]}
+              disabled={provisional}
+              accessibilityRole="button"
+              accessibilityLabel={`More for ${row.title}`}
+            >
+              <Glyph name="ellipsis" size={17} color={COLOR.iconOnWell} />
+            </Pressable>
+          ) : null}
         </Animated.View>
       </GestureDetector>
     </Animated.View>
-  );
-}
-
-/** 025. The tag tool: the label sheet for a row that carries no label. */
-function TagTool({ title, color, onPress }: { title: string; color: string; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} hitSlop={TOOL_SLOP} accessibilityRole="button" accessibilityLabel={`Label ${title}`}>
-      <Glyph name="tag" size={17} color={color} />
-    </Pressable>
   );
 }

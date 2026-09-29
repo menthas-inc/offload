@@ -419,6 +419,11 @@ What is left is not decisions but work, and it lives elsewhere: the deferred har
 
 - ✅ **A deleted label comes back only for the member who deleted it, inside their Undo (2026-09-28, 025, from the security review).** Restore had required only membership, so any member could bring back, with every join, a label another member deleted weeks earlier, or one a sort's Undo took back. `labels.deleted_by` (0062) and a thirty-second window, the eight-second toast plus the round trip, hold the feature spec's rule; anyone else re-creates the name instead. A replayed nightly result is a no-op: the job is closed in the same transaction the plan is written in, and a done job writes nothing.
 
+
+## Tightening, 2026-09-29
+
+- ✅ **Details are hidden, not dropped.** No surface draws or edits a row's `body` or a note's body any more, since offload is for short things and the second field confused people. The columns, what is in them, and the filing prompt that writes them are unchanged: an edit simply never sends `body`. Dropping the column, or stopping the model writing it, is a later decision; the second is a prompt change and needs eval cases. The photo viewer is the one exception: it shows `photoCaption(body)`, everything before the `Text:` line the filing prompt writes, and never the transcribed words after it, which stay stored for search and answers. The privacy page says so, and its note line now says a note's longer text is kept without being shown; `UPDATED` and `CONSENT_VERSION` moved to 2026-09-29 together, as they must.
+- ✅ **A thread's line is composed on the server from what is open, by kind.** `threads/line.ts` takes live rows by type (a task while unticked, an event until it ends, a repeating or undated one always) from one grouped query for the whole list, and names the two biggest kinds, or one and the people in a shared thread, by first name. It replaces `count · names` in My threads and rides on the thread bundle as `line` for the web's head. `content_count` is unchanged and still what the sharing preview and the people pages read.
 ## Eleven visual defects, 2026-09-04
 
 Found by the product owner reading the running app beside the kit. Most were one wrong token or one wrong direction; three were worth writing down.

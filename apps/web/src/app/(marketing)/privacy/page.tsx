@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "What offload holds, why, who else touches it, and how to get rid of it. Plus a plain summary at the top.",
 };
 
-const UPDATED = "28 September 2026";
+const UPDATED = "29 September 2026";
 
 function Todo({ children }: { children: ReactNode }) {
   return <span className={styles.todo}>{children}</span>;
@@ -155,7 +155,8 @@ export default function Privacy() {
             <li>
               <strong>Transcripts</strong> of your voice notes, and <strong>what a photo or a
               screenshot shows</strong>: a few sentences describing it, and the words in it.
-              offload is told to leave card numbers and ID numbers out of what it writes down,
+              The description is shown under the photo; the words read out of it are kept so
+              search and answers can find them, and are not shown anywhere. offload is told to leave card numbers and ID numbers out of what it writes down,
               and that is an instruction to a model rather than a guarantee.
             </li>
             <li>
@@ -634,9 +635,11 @@ export default function Privacy() {
               say the same thing, it combines ones that belong together, it drops what has stopped
               being true, and it adds what it learned from your conversations that day. Notes it
               wrote itself it can also remove. A note you typed it can set aside, so it stops acting
-              on it, and it cannot delete your words. All of it is on the thread, in front of you,
+              on it, and it cannot delete your words. Every note is on the thread, in front of you,
               yours to correct, and yours to delete where you wrote it: in a thread you share, the
-              rule below holds here too, and nobody deletes what somebody else wrote.
+              rule below holds here too, and nobody deletes what somebody else wrote. A note can
+              carry a longer text from what you dumped; that is kept with it without being shown,
+              and goes when the note does.
             </li>
             <li>
               <strong>Labels: a deleted one for 30 days, and a record of what you took off.</strong>{" "}

@@ -7,6 +7,9 @@
 // same fields as the phones' sheet, with the grid inline rather than in a
 // second layer, Time and Repeats as inline blocks, and Custom's fields
 // disclosed under Repeats. Escape is Cancel. Save writes once.
+//
+// 2026-09-29. No details field: offload is for short things, and a second
+// field took space and confused people. What is stored there is untouched.
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -57,7 +60,6 @@ export function EditModal({
   const { weekStart } = useAppearance();
   const held = whenValueOf(row, zone);
   const [title, setTitle] = useState(row.title);
-  const [body, setBody] = useState(row.body ?? "");
   const [when, setWhen] = useState<WhenValue>(held);
   const [remind, setRemind] = useState(row.isReminder);
   const [month, setMonth] = useState(held.day ?? today);
@@ -79,8 +81,6 @@ export function EditModal({
     const patch: ContentPatch = {};
     const text = title.trim();
     if (text.length > 0 && text !== row.title) patch.title = text;
-    const details = body.trim();
-    if (details !== (row.body ?? "")) patch.body = details || null;
     if (!sameWhen(when, held)) Object.assign(patch, patchFor(row, when));
     if (row.isReminder && !remind) patch.isReminder = false;
     if (Object.keys(patch).length === 0) return onClose();
@@ -96,14 +96,6 @@ export function EditModal({
         aria-label="Title"
         placeholder="What is it?"
         autoFocus
-      />
-      <textarea
-        className={`${styles.titleInput} ${styles.editBody}`}
-        value={body}
-        onChange={(event) => setBody(event.target.value)}
-        aria-label="Details"
-        placeholder="Add details"
-        rows={2}
       />
 
       {!row.onCalendar ? (

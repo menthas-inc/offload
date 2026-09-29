@@ -138,7 +138,6 @@ function Result({
           )}
           <span className={styles.body}>
             <b className={styles.title}>{row.title}</b>
-            {row.body ? <span className={styles.meta}>{row.body}</span> : null}
           </span>
         </div>
       ))}

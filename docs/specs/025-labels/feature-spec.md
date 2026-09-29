@@ -217,3 +217,7 @@ Retirement and the edges
 - **No fade under the pinned `plus`**; it sits on an opaque ground. **Design system impact:** the `Chip` prompt's filter bar line drops the fade.
 - **A taken colour swaps.** **Design system impact:** the readme's colour paragraph gains the swap.
 - **Holding a chip on the web** has a context menu and a picked chip's `pencil` as equivalents. **Design system impact:** `Chip` gains an optional trailing action on a picked label chip, web only.
+
+## Amended 2026-09-29
+
+**On the phones the row draws no tag tool**, nor any other trailing tool: a tap opens the edit sheet, which carries a Labels row, and somebody else's row opens the action sheet, which gains Labels. A link row keeps its tap for its page and draws an `ellipsis` that opens the sheet. The web's row tools are unchanged. **AC-20 is superseded and AC-12's entry point changes on every surface:** a thread with no labels draws no bar and no *+ Group with labels*; instead a `tag` sits in the head (first among the phones' bar glyphs, among the web pane's tools), named *Group with labels*, opening the label's list as New label, at any number of rows. **A note's labels are drawn as dots** at its row's trailing edge on the phones. The label sheet's foot is Clear, Cancel and Done. The label's list keeps its name field in view with the keyboard up. Logged in both decision logs under 2026-09-29.

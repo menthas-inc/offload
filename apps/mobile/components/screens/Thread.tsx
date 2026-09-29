@@ -102,12 +102,10 @@ import {
   readPick,
   refusalLine,
   restoreLabel,
+  withMadeLabels,
   writePick,
   type Label,
 } from "../../lib/labels";
-
-/** 025. The six rows a thread needs before it offers labels unasked. */
-const GROUP_PROMPT_ROWS = 6;
 
 const isAndroid = Platform.OS === "android";
 
@@ -409,8 +407,11 @@ export default function Thread() {
   /** 023. The sheet's Save: every changed field in one request, drawn first
    *  and sent second, with the previous values as the Undo. The words are
    *  the ones the design gives a save, and never why it did not go through. */
-  function edit(row: ContentRow, patch: ContentPatch): void {
+  /** `made` is labels typed in the edit sheet's label sheet: made first, then
+   *  added to `patch.labels`, and deleted again by the Undo. */
+  function edit(row: ContentRow, patch: ContentPatch, made: string[] = []): void {
     const drawn: Partial<ContentRow> = {};
+    if (patch.labels !== undefined) drawn.labels = patch.labels;
     if (patch.title !== undefined) drawn.title = patch.title;
     if (patch.body !== undefined) drawn.body = patch.body;
     if (patch.isReminder !== undefined) drawn.isReminder = patch.isReminder;
@@ -427,24 +428,33 @@ export default function Thread() {
       occursEndAt: row.occursEndAt,
       rrule: row.rrule,
       allDay: row.allDay,
+      labels: row.labels,
     };
-    let previous: ContentSnapshot | null = null;
+    const threadId = thread?.id;
+    const write = withMadeLabels<ContentPatch, ContentSnapshot>(
+      {
+        make: async (name) => {
+          if (!threadId) return null;
+          const created = await createLabel(threadId, { name });
+          return created.ok ? created.value.label.id : null;
+        },
+        edit: async (fields) => {
+          const result = await editContent(row.id, fields);
+          if (result) void catchUp();
+          return result ? result.previous : null;
+        },
+        undo: (previous) => previous,
+        drop: (id) => deleteLabel(id),
+      },
+      patch,
+      made,
+    );
     void perform(
       {
         apply: () => patchRow(row.id, drawn),
         revert: () => patchRow(row.id, before),
-        write: () =>
-          editContent(row.id, patch).then((result) => {
-            if (!result) return false;
-            previous = result.previous;
-            void catchUp();
-            return true;
-          }),
-        unwrite: () =>
-          (previous ? editContent(row.id, previous) : Promise.resolve(null)).then((result) => {
-            if (result) void catchUp();
-            return result !== null;
-          }),
+        write: write.write,
+        unwrite: write.unwrite,
         did: "Saved",
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
@@ -584,31 +594,34 @@ export default function Thread() {
     const same = choice.made.length === 0 && choice.ids.length === row.labels.length && choice.ids.every((one) => row.labels.includes(one));
     if (same) return;
     const before = row.labels;
-    const made: string[] = [];
     const names = [
       ...thread.labels.filter((label) => choice.ids.includes(label.id)).map((label) => label.name),
       ...choice.made,
     ];
+    const threadId = thread.id;
+    const write = withMadeLabels<ContentPatch, ContentSnapshot>(
+      {
+        make: async (name) => {
+          const created = await createLabel(threadId, { name });
+          return created.ok ? created.value.label.id : null;
+        },
+        edit: async (fields) => {
+          const result = await editContent(row.id, fields);
+          if (result) relabelled();
+          return result ? result.previous : null;
+        },
+        undo: () => ({ labels: before }),
+        drop: (id) => deleteLabel(id),
+      },
+      { labels: choice.ids },
+      choice.made,
+    );
     void perform(
       {
         apply: () => patchRow(row.id, { labels: choice.ids }),
         revert: () => patchRow(row.id, { labels: before }),
-        write: async () => {
-          for (const name of choice.made) {
-            const result = await createLabel(thread.id, { name });
-            if (!result.ok) return false;
-            made.push(result.value.label.id);
-          }
-          const edited = await editContent(row.id, { labels: [...choice.ids, ...made] });
-          if (edited) relabelled();
-          return edited !== null;
-        },
-        unwrite: async () => {
-          const edited = await editContent(row.id, { labels: before });
-          for (const labelId of made) await deleteLabel(labelId);
-          if (edited) relabelled();
-          return edited !== null;
-        },
+        write: write.write,
+        unwrite: write.unwrite,
         did: rowLabelledCopy(row.title, names),
         failed: "Couldn't save that",
         unfailed: "Couldn't put it back",
@@ -819,6 +832,10 @@ export default function Thread() {
           ? [{ label: "When", icon: "calendar", value: whenLabel(whenValueOf(acting, zone)), run: () => setTiming(acting) }]
           : []),
         { label: "Edit", icon: "pencil", run: () => setRenaming(acting) },
+        // 2026-09-29. The row no longer draws the tag tool, and somebody
+        // else's row opens this sheet rather than the edit one, so labels
+        // are here too.
+        { label: "Labels", icon: "tag", run: () => setLabelling(acting) },
         // 020. The first move control the product has drawn, on the row's own
         // sheet. The author's, like delete, because both change who can see
         // something.
@@ -881,6 +898,16 @@ export default function Thread() {
         onCalendars={() => setCalendarsOpen(true)}
         onMore={() => setMoreOpen(true)}
         onShare={thread.shareable ? () => setShareOpen(true) : undefined}
+        // Labels' way in while the thread has none; the filter bar's plus
+        // takes over once it has one.
+        onLabels={
+          showArchived || thread.labels.length > 0
+            ? undefined
+            : () => {
+                setListLine(null);
+                setListing({ label: null });
+              }
+        }
       />
 
       {/* 025. The filter bar, under the app bar and outside the scroll, so it
@@ -890,7 +917,6 @@ export default function Thread() {
           labels={thread.labels}
           unlabelled={thread.counts.unlabelled}
           pick={pick}
-          prompt={thread.counts.active + thread.notes.length >= GROUP_PROMPT_ROWS}
           onPick={setPick}
           onNew={() => {
             setListLine(null);
@@ -943,7 +969,6 @@ export default function Thread() {
             onDelete={remove}
             onActions={setActing}
             onEdit={setRenaming}
-            onArchive={archive}
             onToggle={tick}
           />
         )}
@@ -958,7 +983,6 @@ export default function Thread() {
             onDelete={remove}
             onActions={setActing}
             onEdit={setRenaming}
-            onArchive={archive}
             onOpenPhoto={(row: ContentRow) => setViewing(row.id)}
             onToggle={tick}
             onReorder={reorder}
@@ -1023,7 +1047,6 @@ export default function Thread() {
             onDelete={() => remove(series.row)}
             onActions={() => setActing(series.row)}
             onEdit={() => setRenaming(series.row)}
-            onArchive={() => archive(series.row)}
             note={
               cadenceLabel(series.everyDays)
                 ? `${cadenceLabel(series.everyDays)} · ${series.count} held`
@@ -1041,7 +1064,6 @@ export default function Thread() {
             onDelete={() => remove(row)}
             onActions={() => setActing(row)}
             onEdit={() => setRenaming(row)}
-            onArchive={() => archive(row)}
             onOpenPhoto={() => setViewing(row.id)}
           />
         ))}
@@ -1107,9 +1129,14 @@ export default function Thread() {
         key={renaming?.id ?? "none"}
         row={renaming}
         onClose={() => setRenaming(null)}
-        onSave={(row, patch) => {
+        labels={thread.labels}
+        onSave={(row, patch, made) => {
           setRenaming(null);
-          edit(row, patch);
+          // Labels alone read as a labelling, with its own toast; anything
+          // more is one edit carrying them.
+          const keys = Object.keys(patch);
+          if (keys.length === 1 && patch.labels) labelRow(row, { ids: patch.labels, made });
+          else edit(row, patch, made);
         }}
         onRemove={(row) => {
           setRenaming(null);
@@ -1265,6 +1292,7 @@ function Bar({
   onCalendars,
   onMore,
   onShare,
+  onLabels,
 }: {
   /** Neither while the thread loads: the bar is the back chevron alone. */
   title?: string;
@@ -1274,6 +1302,8 @@ function Bar({
   onMore?: () => void;
   /** 022. Absent on the default thread. */
   onShare?: (() => void) | undefined;
+  /** 2026-09-29. Only while the thread has no labels. */
+  onLabels?: (() => void) | undefined;
 }) {
   const COLOR = useColors();
   return (
@@ -1294,6 +1324,11 @@ function Bar({
           web's aside, tools and ellipsis, in that order. */}
       {onMore ? (
       <View className="flex-row items-center gap-space-5">
+        {onLabels ? (
+          <Pressable onPress={onLabels} hitSlop={10} accessibilityRole="button" accessibilityLabel="Group with labels">
+            <Glyph name="tag" size={21} color={COLOR.iconOnWell} />
+          </Pressable>
+        ) : null}
         {/* 022. Alive, except on the default thread, where it is not drawn:
             every dump with no obvious home lands there, so sharing it would
             share whatever arrives next. */}

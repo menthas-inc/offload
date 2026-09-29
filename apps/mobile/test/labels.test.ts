@@ -136,3 +136,77 @@ describe("a refused label says why, beside the control", () => {
     expect(labels.refusalLine(null)).toBe("Couldn't save that.");
   });
 });
+
+describe("a write that makes labels first (2026-09-29)", () => {
+  // Made first, then the row's edit carries them. A failure part way through
+  // took back nothing, so Retry met its own first label as taken and could
+  // never land, and Undo deleted the new labels even when putting the row
+  // back had failed.
+  function fakes(options: { failMakeOnce?: string; failEditAt?: number } = {}) {
+    const made: string[] = [];
+    const dropped: string[] = [];
+    const edits: unknown[] = [];
+    const taken = new Set<string>();
+    let failed = false;
+    return {
+      made,
+      dropped,
+      edits,
+      steps: {
+        make: async (name: string) => {
+          if (taken.has(name)) return null;
+          if (name === options.failMakeOnce && !failed) {
+            failed = true;
+            return null;
+          }
+          taken.add(name);
+          made.push(name);
+          return `id:${name}`;
+        },
+        edit: async (patch: { labels?: string[]; title?: string }) => {
+          edits.push(patch);
+          return edits.length === options.failEditAt ? null : { labels: ["old"] };
+        },
+        undo: (previous: { labels: string[] }) => ({ labels: previous.labels }),
+        drop: async (id: string) => {
+          dropped.push(id);
+          taken.delete(id.slice(3));
+        },
+      },
+    };
+  }
+
+  it("makes the labels, then writes them onto the row with the rest", async () => {
+    const f = fakes();
+    const write = labels.withMadeLabels(f.steps, { title: "T", labels: ["a"] }, ["B", "C"]);
+    expect(await write.write()).toBe(true);
+    expect(f.edits).toEqual([{ title: "T", labels: ["a", "id:B", "id:C"] }]);
+  });
+
+  it("takes back what it made when a later label fails, so Retry can land", async () => {
+    const f = fakes({ failMakeOnce: "C" });
+    const write = labels.withMadeLabels(f.steps, { labels: [] }, ["B", "C"]);
+    expect(await write.write()).toBe(false);
+    expect(f.dropped).toEqual(["id:B"]);
+    expect(await write.write()).toBe(true);
+    expect(f.edits).toEqual([{ labels: ["id:B", "id:C"] }]);
+  });
+
+  it("takes back what it made when the edit itself fails", async () => {
+    const f = fakes({ failEditAt: 1 });
+    const write = labels.withMadeLabels(f.steps, { labels: [] }, ["B"]);
+    expect(await write.write()).toBe(false);
+    expect(f.dropped).toEqual(["id:B"]);
+  });
+
+  it("deletes the made labels on Undo only once the row is put back", async () => {
+    const f = fakes({ failEditAt: 2 });
+    const write = labels.withMadeLabels(f.steps, { labels: [] }, ["B"]);
+    expect(await write.write()).toBe(true);
+    expect(await write.unwrite()).toBe(false);
+    expect(f.dropped).toEqual([]);
+    expect(await write.unwrite()).toBe(true);
+    expect(f.edits[2]).toEqual({ labels: ["old"] });
+    expect(f.dropped).toEqual(["id:B"]);
+  });
+});

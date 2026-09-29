@@ -19,6 +19,7 @@ import { timeZoneOf } from "../time-zone.js";
 import { formatRule, parseRule, utcDay } from "@offload/widgets";
 import { zoneOf } from "../accounts/zone.js";
 import { Refused } from "../threads/refusals.js";
+import { threadLine } from "../threads/line.js";
 import { db } from "../db.js";
 import type { Database } from "../schema.js";
 import { dropThreadWrapIfUnused, ensureThreadWrap } from "../blobs/keys.js";
@@ -225,6 +226,8 @@ const threadBundle = z.object({
   /** Active and folded. The second is what the section's folded-history control
    *  counts, and a thread with none of them says nothing. */
   noteCounts: z.object({ active: z.number(), folded: z.number() }),
+  /** 2026-09-29. The line My threads draws under the name, for the web's head. */
+  line: z.string(),
   /** How this thread wants to look. Absent fields mean derived from content. */
   preference: z.object({
     widgets: z.array(z.string()).optional(),
@@ -1341,20 +1344,11 @@ export async function threadRoutes(app: App): Promise<void> {
 
       const stale = Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000;
 
-      // Composed here rather than in the client. It is one string in three
-      // clients, and composing it three times is how they drift.
-      // "14 · Ana, Tom", which is the kit's line minus its unit. The count
-      // carries no noun, per the vocabulary rule: the word for what is in a
-      // thread was retired and nothing replaced it in anything a person reads.
-      const meta = (count: number, people: string[]): string => {
-        const who =
-          people.length === 0
-            ? "just you"
-            : people.length <= 2
-              ? people.join(", ")
-              : `${people.slice(0, 2).join(", ")} and ${people.length - 2} more`;
-        return `${count} · ${who}`;
-      };
+      // What is open in each thread by kind, for its line: one grouped query
+      // for the whole list. Live rows only, a task only while it is not
+      // ticked off, and an event only while it has not ended (a repeating or
+      // undated one always counts).
+      const kinds = ids.length ? await openKinds(accountId, ids) : new Map<string, Record<string, number>>();
 
       type Row = z.infer<typeof threadRow>;
       const groups = { now: [] as Row[], always: [] as Row[], older: [] as Row[] };
@@ -1364,7 +1358,7 @@ export async function threadRoutes(app: App): Promise<void> {
           name: row.name,
           icon: row.icon,
           count: row.count,
-          meta: meta(row.count, others.get(row.id) ?? []),
+          meta: threadLine(kinds.get(row.id) ?? {}, others.get(row.id) ?? []),
           isDefault: row.id === account?.default_thread_id,
         };
         // always_on wins over staleness: a thread that never closes has not
@@ -1437,13 +1431,17 @@ export async function threadRoutes(app: App): Promise<void> {
           .where("deleted_at", "is", null)
           .executeTakeFirstOrThrow();
 
+        const members = await membersOf(id, accountId);
+        const kinds = await openKinds(accountId, [id]);
+
         return reply.send({
           id: thread.id,
           name: thread.name,
           icon: thread.icon,
           alwaysOn: thread.always_on,
           counts: { active: Number(counts.active), archived: Number(counts.archived), unlabelled: await unlabelledCount(id) },
-          members: await membersOf(id, accountId),
+          members,
+          line: threadLine(kinds.get(id) ?? {}, members.filter((m) => !m.isYou).map((m) => m.displayName)),
           labels: await labelsOfThread(id),
           // Validated on the way out as well as on the way in. A preference
           // naming a widget that no longer exists renders as though it were
@@ -2512,3 +2510,38 @@ export async function withPhotos<T extends { id: string; photo: unknown }>(rows:
 }
 
 export const THREAD_LIMITS = { PAGE, STALE_DAYS } as const;
+
+/** Each thread's open content by type, for `threadLine`, through the one
+ *  read predicate: a thread the viewer is not in counts nothing. */
+export async function openKinds(viewerId: string, threadIds: string[]): Promise<Map<string, Record<string, number>>> {
+  const rows = await db
+    .selectFrom("readable_content")
+    .select(["thread_id as threadId", "type", (eb) => eb.fn.countAll<string>().as("n")])
+    .where("viewer_account_id", "=", viewerId)
+    .where("thread_id", "in", threadIds)
+    .where("archived_at", "is", null)
+    .where("deleted_at", "is", null)
+    .where((eb) =>
+      eb.or([
+        eb("type", "not in", ["task", "event"]),
+        eb.and([eb("type", "=", "task"), eb("done_at", "is", null)]),
+        eb.and([
+          eb("type", "=", "event"),
+          eb.or([
+            eb("rrule", "is not", null),
+            eb("occurs_at", "is", null),
+            eb(sql`coalesce(occurs_end_at, occurs_at)`, ">=", sql`now()`),
+          ]),
+        ]),
+      ]),
+    )
+    .groupBy(["thread_id", "type"])
+    .execute();
+  const out = new Map<string, Record<string, number>>();
+  for (const row of rows) {
+    const held = out.get(row.threadId) ?? {};
+    held[row.type] = Number(row.n);
+    out.set(row.threadId, held);
+  }
+  return out;
+}

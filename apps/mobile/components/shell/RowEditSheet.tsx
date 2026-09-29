@@ -5,10 +5,17 @@
 // their values and open the When sheet, then Remind me while the row is a
 // reminder, which is the one way out of one. Save writes once: every changed
 // field in one request, drawn first and sent second by the screen.
+//
+// 2026-09-29. Labels joined it when the row's tools left the row. When,
+// Repeats and Labels open in place, in this sheet, rather than as sheets over
+// it, so nobody goes back and forth between layers; each hands its value back
+// on Done and Save below still writes once. The details field went the same
+// day: offload is for short things, and what is stored there is left as it is.
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Keyboard, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { Glyph } from "../Glyph";
@@ -18,7 +25,11 @@ import { useClock } from "../../lib/clock";
 import type { ContentPatch, ContentRow } from "../../lib/threads";
 import { patchFor, repeatsLabel, sameWhen, whenLabel, whenValueOf, type WhenValue } from "../../lib/when";
 import { useScreenSheet } from "./conversation-context";
-import { WhenSheet } from "./WhenSheet";
+import { CustomFor, WhenPanel, type CustomAsk } from "./WhenSheet";
+import { LabelPanel, type LabelChoice } from "../labels/LabelSheet";
+import { SheetFoot } from "./SheetFoot";
+import { LabelDot } from "../labels/LabelMark";
+import type { Label } from "../../lib/labels";
 
 const isAndroid = Platform.OS === "android";
 
@@ -27,12 +38,17 @@ export function RowEditSheet({
   onClose,
   onSave,
   onRemove,
+  labels,
 }: {
   row: ContentRow | null;
   onClose: () => void;
   /** Every changed field, in one patch. The sheet closes at the press and
-   *  the screen writes it, so the keyboard is never held up for a round trip. */
-  onSave: (row: ContentRow, patch: ContentPatch) => void;
+   *  the screen writes it, so the keyboard is never held up for a round trip.
+   *  `made` is any label typed in the label sheet, to be made first and
+   *  added to `patch.labels`. */
+  onSave: (row: ContentRow, patch: ContentPatch, made: string[]) => void;
+  /** The thread's labels. Absent on Today, which has no one thread's set. */
+  labels?: Label[] | undefined;
   /** The way out, in the sheet that already has the row open. */
   onRemove: (row: ContentRow) => void;
 }) {
@@ -40,38 +56,55 @@ export function RowEditSheet({
   const { zone } = useClock();
   useScreenSheet(row !== null);
   const [title, setTitle] = useState(row?.title ?? "");
-  const [body, setBody] = useState(row?.body ?? "");
   const [when, setWhen] = useState<WhenValue>(() => (row ? whenValueOf(row, zone) : { day: null, time: null, endTime: null, rrule: null }));
   const [remind, setRemind] = useState(row?.isReminder ?? false);
-  const [picking, setPicking] = useState<"when" | "repeats" | null>(null);
+  const [picking, setPicking] = useState<"when" | "repeats" | "labels" | null>(null);
+  const [choice, setChoice] = useState<LabelChoice | null>(null);
+  const [custom, setCustom] = useState<CustomAsk | null>(null);
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const scroll = useRef<ScrollView>(null);
+  const scrollTo = useCallback((y: number) => scroll.current?.scrollTo({ y, animated: false }), []);
+  // The sheet grows by the keyboard from its foot rather than rising by it, so
+  // its top never leaves the screen however much is in it. `keyboardHeight`
+  // is negative while the keyboard is up.
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
+  const room = useAnimatedStyle(() => ({ paddingBottom: Math.max(insets.bottom, -keyboardHeight.value) + 8 }));
 
   if (!row) return null;
   const held = whenValueOf(row, zone);
+  const carried = (labels ?? []).filter((label) => (choice?.ids ?? row.labels).includes(label.id));
 
   function save(): void {
     if (!row) return;
     const patch: ContentPatch = {};
     const text = title.trim();
     if (text.length > 0 && text !== row.title) patch.title = text;
-    const details = body.trim();
-    if (details !== (row.body ?? "")) patch.body = details || null;
     if (!sameWhen(when, held)) Object.assign(patch, patchFor(row, when));
     if (row.isReminder && !remind) patch.isReminder = false;
+    const relabelled =
+      choice !== null &&
+      (choice.made.length > 0 || choice.ids.length !== row.labels.length || choice.ids.some((id) => !row.labels.includes(id)));
+    if (relabelled) patch.labels = choice.ids;
     if (Object.keys(patch).length === 0) return onClose();
-    onSave(row, patch);
+    onSave(row, patch, relabelled ? choice.made : []);
   }
 
   const rowInk = isAndroid ? "text-a-on" : "text-text-primary";
   const quiet = isAndroid ? "text-a-on-var" : "text-text-secondary";
-  const { height: windowHeight } = useWindowDimensions();
 
-  // The keyboard is up from the title field, and the When sheet does not
-  // follow it: its grid, Clear and Save sat underneath.
-  function pick(which: "when" | "repeats"): void {
+  // The keyboard is up from the title field, and a panel has no use for it.
+  function pick(which: "when" | "repeats" | "labels"): void {
     Keyboard.dismiss();
+    scroll.current?.scrollTo({ y: 0, animated: false });
     setPicking(which);
+  }
+  function back(): void {
+    // A panel's own field may have had the keyboard; the sheet's fields do
+    // not want it back uninvited.
+    Keyboard.dismiss();
+    scroll.current?.scrollTo({ y: 0, animated: false });
+    setPicking(null);
   }
 
   return (
@@ -81,10 +114,10 @@ export function RowEditSheet({
       </Animated.View>
 
       <Animated.View
-        style={lift}
+        style={[{ maxHeight: windowHeight - insets.top - 12 }, room]}
         entering={sheetIn()}
         exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
+        className={`absolute inset-x-0 bottom-0 px-gutter-screen pt-space-6 ${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
         // The heading is gone, so the sheet carries the name a screen reader
         // announces, and keeps it from reaching the screen behind.
         accessibilityViewIsModal
@@ -93,9 +126,43 @@ export function RowEditSheet({
         {/* Bounded and scrolling, because at a large text size on a small
             phone the fields and the pills together outgrow the sheet, and a
             sheet that clips is one whose Save cannot be reached. */}
-        <ScrollView style={{ maxHeight: windowHeight * 0.8 }} keyboardShouldPersistTaps="handled">
-        {/* No heading: the title field is larger and in the primary ink, the
-            details a step smaller and quieter, so the two say which is which. */}
+        <ScrollView ref={scroll} style={{ flexGrow: 0, flexShrink: 1 }} keyboardShouldPersistTaps="handled">
+        {/* A panel in place of the sheet's own fields. */}
+        {picking === "labels" && labels ? (
+          <LabelPanel
+            title={title.trim() || row.title}
+            labels={labels}
+            carried={choice?.ids ?? row.labels}
+            made={choice?.made ?? []}
+            confirm="Done"
+            onCancel={back}
+            onDone={(next) => {
+              setChoice(next);
+              back();
+            }}
+          />
+        ) : picking === "when" || picking === "repeats" ? (
+          <WhenPanel
+            title={title.trim() || row.title}
+            isEvent={row.type === "event"}
+            initial={when}
+            focus={picking}
+            confirm="Done"
+            onCancel={back}
+            onSave={(value) => {
+              setWhen(value);
+              back();
+            }}
+            onCustom={setCustom}
+            onScrollTo={scrollTo}
+          />
+        ) : null}
+
+        {/* The sheet's own fields stay mounted under a panel, hidden, so the
+            title field does not take focus and raise the keyboard again when
+            a panel closes. */}
+        <View style={picking ? { display: "none" } : undefined}>
+        {/* No heading: the title field is larger and in the primary ink. */}
         <TextInput
           value={title}
           onChangeText={setTitle}
@@ -105,16 +172,6 @@ export function RowEditSheet({
           accessibilityLabel="Title"
           className={`rounded-sm border border-border-hairline px-space-4 py-space-3 font-core font-semibold text-title-3 ${rowInk}`}
           returnKeyType="done"
-        />
-        <TextInput
-          value={body}
-          onChangeText={setBody}
-          placeholder="Add details"
-          placeholderTextColor={COLOR.iconOnWell}
-          multiline
-          accessibilityLabel="Details"
-          className={`mt-space-2 rounded-sm border border-border-hairline px-space-4 py-space-3 font-core text-body-sm ${quiet}`}
-          style={{ minHeight: 44, maxHeight: 96 }}
         />
 
         {/* When and Repeats carry their values and open the same sheet, which
@@ -145,6 +202,25 @@ export function RowEditSheet({
           </>
         ) : null}
 
+        {/* The row's labels, by dot and name, and the label sheet behind them. */}
+        {labels ? (
+          <Pressable onPress={() => pick("labels")} className="min-h-tap-min flex-row items-center gap-space-3" accessibilityRole="button" accessibilityLabel={`Labels, ${[...carried.map((label) => label.name), ...(choice?.made ?? [])].join(", ") || "none"}`}>
+            <Glyph name="tag" size={18} color={COLOR.iconOnWell} />
+            <Text className={`font-core ${rowInk}`} style={{ fontSize: 15 }}>
+              Labels
+            </Text>
+            <View className="flex-1 flex-row items-center justify-end gap-space-2">
+              {carried.map((label) => (
+                <LabelDot key={label.id} colour={label.colour} />
+              ))}
+              <Text className={`shrink font-core ${quiet}`} style={{ fontSize: 15 }} numberOfLines={1}>
+                {[...carried.map((label) => label.name), ...(choice?.made ?? [])].join(", ")}
+              </Text>
+            </View>
+            <Glyph name="chevron-right" size={18} color={COLOR.iconOnWell} />
+          </Pressable>
+        ) : null}
+
         {/* Remind me, drawn only while the row is a reminder: the way out of
             one, and nothing a person touches sets it. */}
         {row.isReminder ? (
@@ -157,51 +233,25 @@ export function RowEditSheet({
           </View>
         ) : null}
 
-        {/* Three pills, and at an accessibility text size they do not fit on
-            one line: without the wrap, Save sat past the right edge and could
-            not be reached. Whatever does not fit drops to a second line, kept
-            to the right. Seen on the simulator at accessibility extra large. */}
-        <View className="mt-space-4 flex-row flex-wrap items-center justify-end gap-space-4">
-          <Pressable
-            onPress={() => onRemove(row)}
-            accessibilityLabel={row.archivedAt ? "Put back in the thread" : row.canDelete ? "Delete" : "Archive"}
-            hitSlop={8}
-            className="mr-auto flex-row items-center gap-space-2 rounded-pill border border-border-hairline px-space-5"
-            style={{ minHeight: 30, justifyContent: "center" }}
-          >
-            <Glyph name={row.archivedAt ? "rewind" : row.canDelete ? "trash-2" : "archive"} size={14} color={row.canDelete && !row.archivedAt ? COLOR.danger : COLOR.iconOnWell} />
-            <Text className={`font-core font-medium ${row.canDelete && !row.archivedAt ? "text-text-danger" : quiet}`} style={{ fontSize: 13 }}>
-              {row.archivedAt ? "Put back" : row.canDelete ? "Delete" : "Archive"}
-            </Text>
-          </Pressable>
-          <Pressable onPress={onClose} hitSlop={8} className="rounded-pill border border-border-hairline px-space-5" style={{ minHeight: 30, justifyContent: "center" }} accessibilityRole="button">
-            <Text className={`font-core font-medium ${quiet}`} style={{ fontSize: 13 }}>
-              Cancel
-            </Text>
-          </Pressable>
-          <Pressable onPress={save} hitSlop={8} className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`} style={{ minHeight: 30, justifyContent: "center" }} accessibilityRole="button">
-            <Text className={`font-core font-medium ${isAndroid ? "text-a-surface" : "text-text-inverse"}`} style={{ fontSize: 13 }}>
-              Save
-            </Text>
-          </Pressable>
+        {/* The way out on the left, Cancel and Save on the right. Three pills
+            that wrap at an accessibility text size rather than pushing Save
+            past the edge. */}
+        <SheetFoot
+          lead={{
+            label: row.archivedAt ? "Put back" : row.canDelete ? "Delete" : "Archive",
+            icon: row.archivedAt ? "rewind" : row.canDelete ? "trash-2" : "archive",
+            danger: row.canDelete && !row.archivedAt,
+            onPress: () => onRemove(row),
+          }}
+          onCancel={onClose}
+          onConfirm={save}
+          confirm="Save"
+        />
         </View>
         </ScrollView>
       </Animated.View>
 
-      {picking ? (
-        <WhenSheet
-          open
-          title={title.trim() || row.title}
-          isEvent={row.type === "event"}
-          initial={when}
-          focus={picking}
-          onClose={() => setPicking(null)}
-          onSave={(value) => {
-            setWhen(value);
-            setPicking(null);
-          }}
-        />
-      ) : null}
+      <CustomFor ask={custom} onClose={() => setCustom(null)} />
     </>
   );
 }

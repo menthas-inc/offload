@@ -31,13 +31,14 @@ import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { reorderPlan, type ReorderWrite } from "@offload/widgets";
 import { Glyph } from "../Glyph";
+import { LabelDot } from "../labels/LabelMark";
+import { useRowLabels } from "../labels/labels-context";
 import { useClock } from "../../lib/clock";
 import { atOpacity, useColors } from "../../lib/colors";
 import { perform, type Toaster, type Writes } from "../../lib/optimistic";
 import { useConversation, useScreenSheet } from "./conversation-context";
 import {
   NOTE_BUDGET,
-  NOTE_BODY_CHARS,
   NOTE_CHARS,
   deleteNote,
   editNote,
@@ -144,20 +145,20 @@ export function NotesSection({
   const patch = (noteId: string, fields: Partial<Note>): void =>
     onNotes((current) => current.map((note) => (note.id === noteId ? { ...note, ...fields } : note)));
 
-  function save(draft: string, bodyDraft: string | null): void {
+  function save(draft: string): void {
     const text = draft.trim();
     if (text.length === 0 || !editing) return close();
     const note = editing;
     const previous = note.text;
-    const previousBody = note.body;
-    const body = bodyDraft === previousBody ? undefined : bodyDraft;
     close();
+    // The text alone: a note's details are no longer drawn or edited
+    // (2026-09-29), and what is stored there is left as it is.
     void perform(
       {
-        apply: () => patch(note.id, { text, body: body === undefined ? previousBody : body }),
-        revert: () => patch(note.id, { text: previous, body: previousBody }),
-        write: () => editNote(note.id, text, body).then((result) => result !== null),
-        unwrite: () => editNote(note.id, previous, previousBody).then((result) => result !== null),
+        apply: () => patch(note.id, { text }),
+        revert: () => patch(note.id, { text: previous }),
+        write: () => editNote(note.id, text).then((result) => result !== null),
+        unwrite: () => editNote(note.id, previous).then((result) => result !== null),
         did: "Note changed",
         failed: "Couldn't change the note",
         unfailed: "Couldn't put the note back",
@@ -296,7 +297,7 @@ export function NotesSection({
           key={editing.id}
           note={editing}
           canDelete={latest.current.canDelete(editing)}
-          onSave={(text, body) => latest.current.save(text, body)}
+          onSave={(text) => latest.current.save(text)}
           onClose={() => latest.current.close()}
           onMute={() => latest.current.mute(editing)}
           onDelete={() => latest.current.remove(editing)}
@@ -439,6 +440,13 @@ function NoteRow({
 }) {
   const COLOR = useColors();
   const dim = readOnly || !instructing || note.muted;
+  const threadLabels = useRowLabels();
+  const marks = threadLabels
+    ? note.labels.flatMap((id) => {
+        const label = threadLabels.labels.get(id);
+        return label ? [label] : [];
+      })
+    : [];
 
   const dy = useSharedValue(0);
   const lifted = useSharedValue(0);
@@ -476,12 +484,16 @@ function NoteRow({
         divider ? "border-b border-border-hairline" : ""
       }`}
     >
-      {/* The move area, leading the row. Always drawn, no container. */}
+      {/* The move area, leading the row. Always drawn, no container. On the
+          text's first line, as the content row's handle is: centred on the
+          whole row, it sat between a two-line note's lines, and even a single
+          line sat low against the row's 44px floor. Clear of the text by the
+          glyph's own margin, where it used to touch it. */}
       {readOnly || provisional ? null : (
         <GestureDetector gesture={drag}>
           <View
-            className="justify-center self-stretch"
-            style={{ marginLeft: -6, marginRight: -6 }}
+            className="justify-start self-stretch"
+            style={{ marginLeft: -6, paddingTop: 10 }}
             accessibilityRole="button"
             accessibilityLabel={`Move ${note.text}`}
             accessibilityHint="Hold, then drag"
@@ -502,15 +514,12 @@ function NoteRow({
         accessibilityLabel={
           (note.origin === "learned" ? "offload wrote this. " : "") +
           note.text +
-          (!readOnly && !instructing ? ". Not reaching offload" : "")
+          (!readOnly && !instructing ? ". Not reaching offload" : "") +
+          (marks.length > 0 ? `. Labels: ${marks.map((label) => label.name).join(", ")}` : "")
         }
       >
-        {note.origin === "learned" ? (
-          <View style={{ marginTop: 3 }}>
-            <Glyph name="sparkles" size={14} color={dim ? COLOR.iconOnWell : COLOR.accent} />
-          </View>
-        ) : null}
-
+        {/* 2026-09-29. No sparkle: the moss ink already says offload wrote
+            it, and the glyph took a column off every line it led. */}
         {/* Wrapped, not clipped. The whole point of the row. */}
         <Text
           className={`flex-1 font-core ${
@@ -526,13 +535,29 @@ function NoteRow({
         >
           {note.text}
           {date ? <Text className="text-text-tertiary"> {date}</Text> : null}
-          {note.body ? <Text className="text-text-tertiary"> more</Text> : null}
           {name ? <Text className="text-text-tertiary"> {name}</Text> : null}
           {note.muted ? <Text className="text-text-tertiary"> Muted</Text> : null}
           {!readOnly && !instructing ? (
             <Text className="text-text-tertiary"> Not reaching offload</Text>
           ) : null}
         </Text>
+
+        {/* 2026-09-29. A note's labels as their dots, at the trailing edge
+            and on the first line. The mark with its name took a line of its
+            own under every note; the dot says which group at a glance, and
+            the filter bar names them. */}
+        {marks.length > 0 ? (
+          <View
+            className="flex-row items-center gap-space-2"
+            style={{ marginTop: (21 - 8) / 2 }}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            {marks.map((label) => (
+              <LabelDot key={label.id} colour={label.colour} />
+            ))}
+          </View>
+        ) : null}
       </Pressable>
     </Animated.View>
   );
@@ -554,7 +579,7 @@ function Editor({
 }: {
   note: Note | null;
   canDelete: boolean;
-  onSave: (text: string, body: string | null) => void;
+  onSave: (text: string) => void;
   onClose: () => void;
   onMute: () => void;
   onDelete: () => void;
@@ -564,7 +589,6 @@ function Editor({
   // the thread it was handed to. Keyed by the note, so they start out holding
   // its words.
   const [draft, onDraft] = useState(note?.text ?? "");
-  const [bodyDraft, onBodyDraft] = useState<string | null>(note?.body ?? null);
   // Anchored to the bottom of a screen, and the plate is mounted above the
   // router. Without this it opens underneath the composer and the tabs.
   useScreenSheet(true);
@@ -604,21 +628,6 @@ function Editor({
             style={{ fontSize: 15, minHeight: 76 }}
           />
 
-          {/* The rest of what was dumped, when there is any. Only drawn for a
-              note that has a body: an empty second field on every note would
-              make a sentence look like a form. */}
-          {bodyDraft !== null ? (
-            <TextInput
-              value={bodyDraft}
-              onChangeText={onBodyDraft}
-              maxLength={NOTE_BODY_CHARS}
-              multiline
-              className={`mt-space-3 rounded-sm border border-border-hairline px-space-4 py-space-3 font-core ${
-                isAndroid ? "text-a-on" : "text-text-primary"
-              }`}
-              style={{ fontSize: 14.5, minHeight: 96 }}
-            />
-          ) : null}
 
           <View className="mt-space-4 flex-row items-center gap-space-4">
             <Text className="mr-auto font-core text-text-tertiary" style={{ fontSize: 12.5 }}>
@@ -638,7 +647,7 @@ function Editor({
 
             <Action label="Cancel" onPress={onClose} />
             <Pressable
-              onPress={() => onSave(draft, bodyDraft)}
+              onPress={() => onSave(draft)}
               disabled={draft.trim().length === 0}
               className={`rounded-pill px-space-5 ${isAndroid ? "bg-a-on" : "bg-surface-inverse"}`}
               style={{ height: 30, justifyContent: "center", opacity: draft.trim() ? 1 : 0.55 }}

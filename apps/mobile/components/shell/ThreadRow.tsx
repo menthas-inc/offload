@@ -135,16 +135,19 @@ export function ThreadRow({ thread, border, onOpen, onDelete, onRefuse }: Props)
             </Text>
             {/* Composed by the server, as on web. The Android kit recomposes it
                 on the client, and three clients composing one string is how
-                they drift. */}
-            <Text
-              className={`mt-space-1 font-core ${
-                isAndroid ? "text-a-on-var" : "text-text-secondary"
-              }`}
-              style={{ fontSize: 13 }}
-              numberOfLines={1}
-            >
-              {thread.meta}
-            </Text>
+                they drift. Empty for an empty thread of your own, and then
+                not drawn (2026-09-29). */}
+            {thread.meta ? (
+              <Text
+                className={`mt-space-1 font-core ${
+                  isAndroid ? "text-a-on-var" : "text-text-secondary"
+                }`}
+                style={{ fontSize: 13 }}
+                numberOfLines={1}
+              >
+                {thread.meta}
+              </Text>
+            ) : null}
           </View>
 
           {/* No trailing count. The kit draws one and it is the number the meta

@@ -84,3 +84,28 @@ describe("moving a row is a priority, through the endpoint a priority always use
     expect(result?.previous.priority).toBe(50);
   });
 });
+
+describe("what a tap on a row does (2026-09-29)", () => {
+  // The row's tools went from the row to its sheet: a tap opens the edit
+  // sheet, which carries delete and labels. A link keeps the tap for the page.
+  const row = (fields: Partial<import("../lib/threads").ContentRow>) =>
+    ({ type: "task", url: null, archivedAt: null, canDelete: true, ...fields }) as import("../lib/threads").ContentRow;
+
+  it("opens the edit sheet on your own row", () => {
+    expect(threads.rowTap(row({}))).toBe("edit");
+    expect(threads.rowTap(row({ archivedAt: "2026-09-01T00:00:00Z" }))).toBe("edit");
+  });
+
+  it("opens the page on a link with an address", () => {
+    expect(threads.rowTap(row({ type: "link", url: "https://example.com" }))).toBe("open");
+  });
+
+  it("edits a link with no address, or one that is archived", () => {
+    expect(threads.rowTap(row({ type: "link", url: null }))).toBe("edit");
+    expect(threads.rowTap(row({ type: "link", url: "https://example.com", archivedAt: "2026-09-01T00:00:00Z" }))).toBe("edit");
+  });
+
+  it("offers the row's actions on somebody else's row, which you cannot edit", () => {
+    expect(threads.rowTap(row({ canDelete: false }))).toBe("actions");
+  });
+});

@@ -37,7 +37,6 @@ export {
 // draw it and two of them are a phone.
 export {
   MAX_DOTS,
-  WEEKS_BEFORE_MONTHS,
   dayLabel,
   datedFor,
   localDay,

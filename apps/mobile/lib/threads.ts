@@ -161,6 +161,15 @@ export function domainOf(url: string | null): string | null {
   }
 }
 
+/** What a tap on a row does. 2026-09-29: the row's tools moved into its edit
+ *  sheet, so a tap opens it. A link with an address keeps the tap for its
+ *  page and reaches the sheet from its ellipsis. Somebody else's row cannot
+ *  be edited, so it opens the action sheet, which holds Archive. */
+export function rowTap(row: Pick<ContentRow, "type" | "url" | "archivedAt" | "canDelete">): "open" | "edit" | "actions" {
+  if (row.type === "link" && row.url && !row.archivedAt) return "open";
+  return row.canDelete ? "edit" : "actions";
+}
+
 export interface ContentRow extends Sortable {
   id: string;
   type: string;
@@ -260,9 +269,10 @@ export async function setThreadCalendar(
 }
 
 /** The events on the thread's calendars between two days, inclusive. */
-export async function fetchThreadEvents(threadId: string, from: string, to: string): Promise<ThreadEvent[]> {
+/** Null when the read failed, so a month can be asked for again. */
+export async function fetchThreadEvents(threadId: string, from: string, to: string): Promise<ThreadEvent[] | null> {
   const { data } = await send<{ events: ThreadEvent[] }>(`/v1/threads/${threadId}/events?from=${from}&to=${to}`);
-  return data?.events ?? [];
+  return data?.events ?? null;
 }
 
 export async function fetchContent(

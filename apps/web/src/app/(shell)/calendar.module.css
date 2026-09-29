@@ -133,18 +133,21 @@
    DayAgenda's EventLine: the runway's spine down the left, an 8px anchor on
    it in the calendar's own colour with a hairline ring, a 112px time column
    so every title starts at the same x, the title at title-3 and the
-   calendar's name as a caption under it. Nothing on it can be acted on. */
+   calendar's name as a caption under it. Nothing on it can be acted on.
+   2026-09-29: the anchor is 16px and the spine 2px, twice what they were,
+   which read as a smudge and a hairline. The spine runs through the
+   anchors' centres, 8px in. */
 .runway {
   position: relative;
-  padding: 0 var(--space-5) 0 calc(var(--space-5) + 19px);
+  padding: 0 var(--space-5) 0 calc(var(--space-5) + 27px);
 }
 
 .spine {
   position: absolute;
-  left: calc(var(--space-5) + 3px);
+  left: calc(var(--space-5) + 7px);
   top: 10px;
   bottom: 10px;
-  width: 1px;
+  width: 2px;
   background: var(--border-hairline);
 }
 
@@ -159,10 +162,10 @@
 /* Centred on the first line: the pad, half a 22px line, less half the dot. */
 .anchor {
   position: absolute;
-  left: -19px;
-  top: calc(var(--space-4) + 11px - 4px);
-  width: 8px;
-  height: 8px;
+  left: -27px;
+  top: calc(var(--space-4) + 11px - 8px);
+  width: 16px;
+  height: 16px;
   border-radius: var(--radius-pill);
   box-shadow: inset 0 0 0 1px var(--border-hairline);
 }

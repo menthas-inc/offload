@@ -269,3 +269,7 @@ Audited against `docs/constitution/principles.md` read fresh, after the three re
 `GATE: PASS`
 
 *Two MUSTs were open when this table was first written, OFF-1 and SEC-1. Neither was waved through: OFF-1 was amended in the constitution with a dated exception, and SEC-1's exception was re-accepted with a containment that did not exist before. Both are recorded where the next person will find them.*
+
+## Amended 2026-09-29
+
+**A note's body is no longer drawn or edited** on any surface: no second field in the editor and no "more" on the row. It is still stored and still never reaches a prompt. On the phones a note offload wrote no longer leads with `sparkles`; its ink says who wrote it.

@@ -1,6 +1,8 @@
 // 025. The filter bar under the app bar: All, each label with its count, No
 // label in outline, and a plus pinned to the trailing edge while the chips
-// scroll under it. Either logic: two picked shows anything carrying one or
+// scroll under it. Only once the thread has a label: before that, the way in
+// is the tag in the app bar (2026-09-29), where the Group with labels chip
+// took a row of its own. Either logic: two picked shows anything carrying one or
 // both. Holding a label chip opens its list. The pick is the screen's and this
 // phone's; this draws it and reports presses.
 
@@ -17,7 +19,6 @@ export function FilterBar({
   labels,
   unlabelled,
   pick,
-  prompt,
   onPick,
   onNew,
   onOpen,
@@ -25,24 +26,13 @@ export function FilterBar({
   labels: Label[];
   unlabelled: number;
   pick: LabelPick;
-  /** No labels yet and six or more rows: the one outline chip. */
-  prompt: boolean;
   onPick: (pick: LabelPick) => void;
   onNew: () => void;
   onOpen: (labelId: string) => void;
 }) {
   const COLOR = useColors();
   const ground = isAndroid ? "bg-a-surface" : "bg-surface-page";
-  if (labels.length === 0) {
-    if (!prompt) return null;
-    return (
-      <View className={`flex-row px-gutter-screen pb-space-4 ${ground}`}>
-        <Chip tone="outline" icon="plus" onClick={onNew}>
-          Group with labels
-        </Chip>
-      </View>
-    );
-  }
+  if (labels.length === 0) return null;
   return (
     <View className={`flex-row items-center pb-space-4 ${ground}`}>
       <ScrollView

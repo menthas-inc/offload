@@ -124,7 +124,7 @@ function Row({
             </span>
             <span className={styles.rowText}>
               <span className={styles.rowTitle}>{thread.name}</span>
-              <span className={styles.rowMeta}>{thread.meta}</span>
+              {thread.meta ? <span className={styles.rowMeta}>{thread.meta}</span> : null}
             </span>
             <span className={styles.rowTools}>
               {/* The default thread keeps the control and cannot use it. Hiding

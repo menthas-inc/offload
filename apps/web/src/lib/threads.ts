@@ -132,6 +132,9 @@ export interface ThreadBundle {
   /** Active and folded. The folded count is what the history control shows,
    *  and a thread with none of them draws no control. */
   noteCounts: { active: number; folded: number };
+  /** 2026-09-29. What is open, by kind, and who with: the line My threads
+   *  draws under the name. Empty for an empty thread of your own. */
+  line: string;
   /** Null until something writes summaries, which nothing does. Typed as a
    *  nullable string rather than `null` so the screen that renders it is
    *  written and tested now: a branch typed unreachable is a branch nobody
@@ -318,9 +321,10 @@ export async function setThreadCalendar(
 }
 
 /** The events on the thread's calendars between two days, inclusive. */
-export async function fetchThreadEvents(threadId: string, from: string, to: string): Promise<ThreadEvent[]> {
+/** Null when the read failed, so a month can be asked for again. */
+export async function fetchThreadEvents(threadId: string, from: string, to: string): Promise<ThreadEvent[] | null> {
   const body = await get<{ events: ThreadEvent[] }>(`/v1/threads/${threadId}/events?from=${from}&to=${to}`);
-  return body?.events ?? [];
+  return body?.events ?? null;
 }
 
 export async function fetchContent(
