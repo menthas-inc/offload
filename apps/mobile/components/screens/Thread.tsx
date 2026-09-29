@@ -20,7 +20,7 @@
 //     saying offload has not done something is an apology taking up the most
 //     prominent space on the screen.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -149,6 +149,8 @@ export default function Thread() {
   // open on a row; the label's list open for a label, or for a new one.
   const [pick, setPickState] = useState<LabelPick>(() => (id ? readPick(id) : ALL_LABELS));
   const [labelling, setLabelling] = useState<ContentRow | null>(null);
+  // The note editor, drawn here at the root: see NotesSection's onSheet.
+  const [noteSheet, setNoteSheet] = useState<ReactNode>(null);
   const [listing, setListing] = useState<{ label: Label | null } | null>(null);
   const [listLine, setListLine] = useState<string | null>(null);
   const filterOf = (current: LabelPick): { labels?: string[]; unlabelled?: boolean } => ({
@@ -976,6 +978,7 @@ export default function Thread() {
             onNotes={patchNotes}
             toast={toast}
             writes={writes}
+            onSheet={setNoteSheet}
           />
         )}
 
@@ -1224,6 +1227,7 @@ export default function Thread() {
           });
         }}
       />
+      {noteSheet}
       {labelling ? (
         <LabelSheet
           key={labelling.id}
