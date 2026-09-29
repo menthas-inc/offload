@@ -11,6 +11,13 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-30 · The immersive conversation as built, and what the build changed
+**Surface:** iOS, Android
+**Was:** `handoff/APPLY-2026-09-29-conversation-sheet.md` as drawn.
+**Is:** Built to the handoff, with these differences, each found on the simulator frame by frame. **Every sheet drags**, not only the row sheets: Move, Calendars, Share, Confirm, the label list, the note editor and the rename sheet take the same grabber and `DragSheet`, at the owner's call. **A conversation put away for thirty minutes ends** on the next tap into the composer or the next dump, which then starts a new one; with the x gone nothing else ended one (owner, 30 September). **Android back** is predictive app-wide, and a full back swipe pulls a sheet down by 30% of its travel before the commit closes it. **The keyboard never changes the plate's shape**: the old "clears to the composer alone" is gone; the keyboard covers the tabs first and the plate rides it only once it reaches the composer. **A sheet's field is focused as the sheet starts to rise**, not on mount, and a sheet opens from the keyboard's edge, so the two move as one. **A pin's "In thread" chip rides the keyboard** on top of the composer. The Android grabber is M3's 32 by 4, as the exploration draws it; iOS keeps 36.
+**Why:** each was a visible fault otherwise: a keyboard up a quarter second before its sheet, a plate that re-laid itself out twice under the conversation's keyboard, a pin's chip under its own field, and conversations that never ended.
+**Design system impact:** `readme.md` *A raised conversation follows the finger*: add the thirty minute end, the 30% back pull, and "every sheet", not "every row sheet". *The bottom plate is a fixed shape*: add that the keyboard covers the tabs and the plate rides it from the composer up. `Sheet.prompt.md`: the grabber is on every sheet, and a field in a sheet is focused as it opens. The mobile kit redraw (5A) should draw the plate under a keyboard with the tabs behind it.
+
 ### 2026-09-29 · The code's entries of 26 to 29 September, folded in
 **Surface:** iOS, Android, web
 **Raised by:** the code entries of 26 to 29 September and 025's as-built entry.
