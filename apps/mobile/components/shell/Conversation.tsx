@@ -176,8 +176,7 @@ export function Conversation() {
   const held = useSharedValue(0);
   const leave = useCallback(() => {
     Keyboard.dismiss();
-    sheetGoal.value = sheetTravel.value + 16;
-  }, [sheetGoal, sheetTravel]);
+  }, []);
 
   // The transcript's own gesture, so the sheet can take a drag from it at
   // its top and let it scroll everywhere else.
@@ -186,17 +185,22 @@ export function Conversation() {
   const offset = useSharedValue(0);
   const scroll: SheetScroll = { offset, ref: listRef, native };
 
-  const grab = useSheetDrag({ y: sheetY, travel: sheetTravel, held, onCloseStart: leave, onClosed: settle });
-  const pull = useSheetDrag({ y: sheetY, travel: sheetTravel, held, onCloseStart: leave, onClosed: settle, scroll });
+  const drag = { y: sheetY, travel: sheetTravel, held, goal: sheetGoal, onCloseStart: leave, onClosed: settle };
+  const grab = useSheetDrag(drag);
+  const pull = useSheetDrag({ ...drag, scroll });
   // A pin has no transcript, so its whole body takes the drag.
-  const body = useSheetDrag({ y: sheetY, travel: sheetTravel, held, onCloseStart: leave, onClosed: settle });
+  const body = useSheetDrag(drag);
 
   useSheetBack(raised, {
-    start: () => cancelAnimation(sheetY),
+    start: () => {
+      cancelAnimation(sheetY);
+      sheetGoal.value = NaN;
+    },
     progress: (swipe) => {
       sheetY.value = backPull(swipe, sheetTravel.value);
     },
     cancel: () => {
+      sheetGoal.value = 0;
       sheetY.value = withSpring(0, openSpring);
     },
     invoke: conversation.lower,
@@ -215,7 +219,7 @@ export function Conversation() {
       accessibilityElementsHidden={!raised}
       accessibilityViewIsModal={raised}
     >
-      <Grabber held={held} pan={grab} />
+      <Grabber held={held} pan={grab} onClose={conversation.lower} />
 
       <GestureDetector gesture={shownPin ? body : pull}>
         <View style={{ flex: 1 }} collapsable={false}>

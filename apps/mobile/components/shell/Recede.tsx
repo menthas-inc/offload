@@ -33,12 +33,13 @@ export function Recede({ children }: { children: ReactNode }) {
     return { transform: [{ translateY }, { scale }], borderRadius: radius };
   });
 
-  if (!moves) return <>{children}</>;
+  // One tree either way, so turning Reduce Motion on or off does not remount
+  // the navigator; the style is simply empty when the page does not move.
   return (
     // The dark ground that shows round the receded page: the scrim's own ink.
     <View style={{ flex: 1, backgroundColor: COLOR.scrim }}>
       <Animated.View
-        style={[{ flex: 1, overflow: "hidden", transformOrigin: "top", backgroundColor: COLOR.page }, page]}
+        style={[{ flex: 1, overflow: moves ? "hidden" : "visible", transformOrigin: "top", backgroundColor: COLOR.page }, page]}
       >
         {children}
       </Animated.View>

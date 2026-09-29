@@ -1,8 +1,7 @@
 // The three tabs.
 //
 // The bar itself is not here: `M3App.jsx` draws one raised plate holding the
-// folded conversation header, the composer and the tabs, and they move together
-// when the keyboard comes up. So this supplies the routing and `Shell` supplies
+// composer and the tabs, and they move together when the keyboard comes up. So this supplies the routing and `Shell` supplies
 // the chrome, once, above the router.
 
 import { Platform } from "react-native";

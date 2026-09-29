@@ -21,7 +21,8 @@ import {
 } from "react";
 import { runOnJS, runOnUI, useSharedValue, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
 import { closeSpring, openSpring, plateAway } from "../../lib/motion";
-import { startsFresh } from "../../lib/sheet";
+import { PAST, startsFresh } from "../../lib/sheet";
+import { raisedOf, settled } from "../../lib/conversation-sheet";
 import { AppState, Keyboard, Linking, type AppStateStatus } from "react-native";
 import { useAudioRecorder } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
@@ -579,7 +580,7 @@ export function ConversationProvider({
     setPin(null);
   }, []);
 
-  const raised = pin !== null || (live !== null && open);
+  const raised = raisedOf({ pinned: pin !== null, live: live !== null, open });
   // For callbacks that run after a render has moved on: a spring's end, a
   // share arriving in the same tick as the call that raises for it.
   const raisedRef = useRef(raised);
@@ -596,13 +597,16 @@ export function ConversationProvider({
       runOnUI((toOpen: boolean) => {
         "worklet";
         const travel = sheetTravel.value;
-        const goal = toOpen ? 0 : travel + 16;
-        if (sheetGoal.value === goal) return;
-        sheetGoal.value = goal;
+        const goal = toOpen ? 0 : travel + PAST;
+        // Already down: say so, even if the goal says it was sent there, so a
+        // close asked for again always settles.
         if (!toOpen && (travel <= 0 || sheetY.value >= travel)) {
+          sheetGoal.value = goal;
           if (after) runOnJS(after)();
           return;
         }
+        if (sheetGoal.value === goal) return;
+        sheetGoal.value = goal;
         // Never from further away than its own height: the first raise
         // starts from well off the screen.
         if (toOpen && sheetY.value > travel) sheetY.value = travel;
@@ -660,14 +664,15 @@ export function ConversationProvider({
     [bringBack],
   );
 
-  /** The sheet is at its closed edge: now say so. */
+  /** The sheet is at its closed edge: now say so. Both reasons it was up end
+   *  together (`settled`): clearing only the pin once left a conversation
+   *  that had opened underneath it "up" with the sheet off the screen. */
   const settle = useCallback(() => {
-    if (pinRef.current) {
-      dismissPin();
-      return;
-    }
-    setOpen(false);
-    closedAt.current = Date.now();
+    const was = { pinned: pinRef.current !== null, live: liveRef.current !== null, open: true };
+    const next = settled(was);
+    if (!next.pinned && was.pinned) dismissPin();
+    setOpen(next.open);
+    if (was.live) closedAt.current = Date.now();
   }, [dismissPin]);
 
   const lower = useCallback(() => {

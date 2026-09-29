@@ -14,6 +14,10 @@
  *  and a close with `overshootClamping` stops at the edge. */
 export const SHEET_SPRING = { stiffness: 380, damping: 36, mass: 1 } as const;
 
+/** Past the closed edge by a little, so a sheet's shadow leaves with it. One
+ *  number: the conversation compares its goal against it. */
+export const PAST = 16;
+
 /** How far a finger moves before the drag takes hold. The sheet then moves
  *  from where it was, not by the slop at once. */
 export const SLOP = 8;
@@ -59,7 +63,7 @@ export function progress(y: number, travel: number): number {
 }
 
 /** The page behind the conversation, on iOS: scaled from its top edge, moved
- *  down and rounded, all by the sheet's progress. */
+ *  down and rounded, all by the sheet's progress. The corner is `--radius-md`. */
 export function recede(p: number): { scale: number; translateY: number; radius: number } {
   "worklet";
   return {

@@ -39,7 +39,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { atOpacity, useColors } from "../../lib/colors";
-import { backPull, closes, dragTo, progress, SLOP } from "../../lib/sheet";
+import { backPull, closes, dragTo, PAST, progress, SLOP } from "../../lib/sheet";
 import { closeSpring, openSpring } from "../../lib/motion";
 import { useSheetBack } from "../../lib/sheet-back";
 import { useScreenSheet } from "./conversation-context";
@@ -48,9 +48,6 @@ const isAndroid = Platform.OS === "android";
 
 /** Where a sheet sits before it has a size: well off the bottom. */
 export const OFFSCREEN = 10_000;
-
-/** Past the edge by a little, so the shadow leaves with the sheet. */
-const PAST = 16;
 
 
 /** A list inside a sheet, for the drag to take over when it is at its top. */
@@ -73,6 +70,8 @@ export function useSheetDrag({
   held,
   onCloseStart,
   onClosed,
+  onGrab,
+  goal,
   scroll,
 }: {
   y: SharedValue<number>;
@@ -80,6 +79,12 @@ export function useSheetDrag({
   held: SharedValue<number>;
   onCloseStart: () => void;
   onClosed: () => void;
+  /** A finger took hold, maybe of a sheet that was on its way out. */
+  onGrab?: (() => void) | undefined;
+  /** Where the sheet was last sent, for a caller that animates it from
+   *  elsewhere too: written here, so it never names a place the finger
+   *  overruled. */
+  goal?: SharedValue<number> | undefined;
   scroll?: SheetScroll | undefined;
 }) {
   // Taken apart here: a worklet copies what it closes over, and a gesture
@@ -103,6 +108,8 @@ export function useSheetDrag({
       cancelAnimation(y);
       start.value = y.value;
       held.value = 1;
+      if (goal) goal.value = NaN;
+      if (onGrab) runOnJS(onGrab)();
     })
     .onUpdate((event) => {
       if (!engaged.value) {
@@ -114,6 +121,8 @@ export function useSheetDrag({
         start.value = y.value;
         anchor.value = event.translationY;
         held.value = 1;
+        if (goal) goal.value = NaN;
+        if (onGrab) runOnJS(onGrab)();
       }
       y.value = dragTo(start.value, event.translationY, anchor.value);
       if (listRef) scrollTo(listRef, 0, 0, false);
@@ -121,6 +130,7 @@ export function useSheetDrag({
     .onEnd((event) => {
       if (!engaged.value) return;
       const close = closes(y.value, event.velocityY, travel.value);
+      if (goal) goal.value = close ? travel.value + PAST : 0;
       if (close) runOnJS(onCloseStart)();
       y.value = withSpring(
         close ? travel.value + PAST : 0,
@@ -139,20 +149,33 @@ export function useSheetDrag({
 }
 
 /** The grabber: 36 by 4 on iOS, 32 on Android as M3 draws it, 8 from the
- *  top, widening by 8 while it is held. The whole strip takes the drag. */
-export function Grabber({ held, pan }: { held: SharedValue<number>; pan: GestureType }) {
+ *  top. It widens to 44 while held on iOS; M3's handle does not change. The
+ *  whole strip takes the drag, and a 44 point target with its slop.
+ *
+ *  **To assistive tech it is the Close button**, since with no header it is
+ *  the only way out a screen reader can reach: the scrim is outside the
+ *  sheet's modal region. Activation is not a pan, so this brings back no tap
+ *  competing with the drag. */
+export function Grabber({ held, pan, onClose }: { held: SharedValue<number>; pan: GestureType; onClose: () => void }) {
   const base = isAndroid ? 32 : 36;
+  const grows = isAndroid ? 0 : 8;
   const bar = useAnimatedStyle(() => ({
-    width: withTiming(base + 8 * held.value, { duration: 150, reduceMotion: ReduceMotion.System }),
+    width: withTiming(base + grows * held.value, { duration: 150, reduceMotion: ReduceMotion.System }),
   }));
   return (
     <GestureDetector gesture={pan}>
       <View
         className="items-center"
         style={{ paddingTop: 8, paddingBottom: 12 }}
-        hitSlop={{ top: 8, bottom: 8 }}
-        accessibilityRole="adjustable"
-        accessibilityLabel="Sheet grabber"
+        hitSlop={{ top: 10, bottom: 10 }}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        onAccessibilityTap={onClose}
+        accessibilityActions={[{ name: "activate" }]}
+        onAccessibilityAction={(event) => {
+          if (event.nativeEvent.actionName === "activate") onClose();
+        }}
       >
         <Animated.View
           className={`rounded-pill ${isAndroid ? "bg-a-outline" : "bg-border-strong"}`}
@@ -220,7 +243,9 @@ export function DragSheet({
   const opening = useSharedValue(true);
   const bottomInset = insets.bottom;
   const opened = onOpen;
-  useFrameCallback(() => {
+  // Once it has opened there is nothing left for it to do each frame.
+  const stopFrames = (): void => frames.setActive(false);
+  const frames = useFrameCallback(() => {
     if (!opening.value) return;
     const size = measure(sheetRef);
     if (!size || size.height <= 0) return;
@@ -230,6 +255,7 @@ export function DragSheet({
     y.value = size.height - room + PAST;
     y.value = withSpring(0, openSpring);
     if (opened) runOnJS(opened)();
+    runOnJS(stopFrames)();
   });
 
   const leave = useCallback(() => {
@@ -243,7 +269,10 @@ export function DragSheet({
     });
   }, [leave, onClose, travel, y]);
 
-  const pan = useSheetDrag({ y, travel, held, onCloseStart: leave, onClosed: onClose });
+  // Caught on its way out and let go short: it is open again, and the plate,
+  // the scrim and back belong to it again.
+  const regrab = useCallback(() => setClosing(false), []);
+  const pan = useSheetDrag({ y, travel, held, onCloseStart: leave, onClosed: onClose, onGrab: regrab });
 
   useSheetBack(!closing, {
     start: () => cancelAnimation(y),
@@ -306,7 +335,7 @@ export function DragSheet({
         accessibilityViewIsModal
         accessibilityLabel={accessibilityLabel}
       >
-        <Grabber held={held} pan={pan} />
+        <Grabber held={held} pan={pan} onClose={dismiss} />
         <View className={className} style={[{ flexShrink: 1 }, style]}>
           {children}
         </View>

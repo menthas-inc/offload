@@ -433,6 +433,24 @@ export function Composer({
         />
         )}
 
+        {/* A conversation put away is brought back by the composer (30
+            September 2026): a tap on the plate's field raises the
+            sheet with the keyboard, into the same turns and the same draft.
+            One put away for thirty minutes has ended by then, and the tap
+            lands in this field instead. Over the field and under the
+            controls, drawn before them, so the camera, the microphone and
+            Send still work from the plate. */}
+        {redirect ? (
+          <Pressable
+            style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
+            onPress={() => {
+              if (!raise({ focus: true })) focusField();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Back to the conversation"
+          />
+        ) : null}
+
         {/* 020. The chips, in the row with the controls, wrapping, as the kit
             draws them. Ten with the keyboard up is more than a phone should
             hold, so the row scrolls inside the composer's own cap. */}
@@ -521,21 +539,6 @@ export function Composer({
           </View>
         </View>
 
-        {/* A conversation put away is brought back by the composer (30
-            September 2026): a tap anywhere in the plate's pill raises the
-            sheet with the keyboard, into the same turns and the same draft.
-            One put away for thirty minutes has ended by then, and the tap
-            lands in this field instead. */}
-        {redirect ? (
-          <Pressable
-            style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
-            onPress={() => {
-              if (!raise({ focus: true })) focusField();
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Back to the conversation"
-          />
-        ) : null}
       </View>
 
       {line ? (
