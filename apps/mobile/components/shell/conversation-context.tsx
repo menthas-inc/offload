@@ -14,11 +14,13 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { AppState, Linking, type AppStateStatus } from "react-native";
+import { useSharedValue, type SharedValue } from "react-native-reanimated";
+import { AppState, Keyboard, Linking, type AppStateStatus } from "react-native";
 import { useAudioRecorder } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
 import { plainText } from "@offload/markup";
@@ -290,6 +292,16 @@ export interface Conversation {
    *  overlap for the length of one animation, and the last one to close would
    *  otherwise bring the plate back under the first. */
   sheetOpen: boolean;
+  /** The same count on the UI thread, for the plate's slide: through React it
+   *  arrived a few hundred milliseconds after the sheet, by which time the
+   *  sheet's keyboard had carried the plate up over it. */
+  sheetCount: SharedValue<number>;
+  /** 1 while the composer's own field has focus: the plate rides the keyboard
+   *  then and at no other time. */
+  composerFocused: SharedValue<number>;
+  /** When the last screen sheet closed. Android hands a closing sheet's focus
+   *  to the composer, and the composer gives it straight back. */
+  sheetClosedAt: { current: number };
   openSheet: () => void;
   closeSheet: () => void;
   /** Put the pinned composer away without writing anything. Never touches the
@@ -387,6 +399,9 @@ export function ConversationProvider({
   }, [pin]);
   const [onScreen, setOnScreen] = useState<{ id: string; name: string } | null>(null);
   const [sheets, setSheets] = useState(0);
+  const sheetCount = useSharedValue(0);
+  const composerFocused = useSharedValue(0);
+  const sheetClosedAt = useRef(0);
   const openSheet = useCallback(() => setSheets((open) => open + 1), []);
   const closeSheet = useCallback(() => setSheets((open) => Math.max(0, open - 1)), []);
 
@@ -1289,6 +1304,9 @@ export function ConversationProvider({
         onScreen,
         setOnScreen,
         sheetOpen: sheets > 0,
+        sheetCount,
+        composerFocused,
+        sheetClosedAt,
         openSheet,
         closeSheet,
         setDraft,
@@ -1349,10 +1367,19 @@ export function ConversationProvider({
  *  caller: a sheet that closes itself would otherwise leave the plate hidden.
  */
 export function useScreenSheet(open: boolean): void {
-  const { openSheet, closeSheet } = useConversation();
-  useEffect(() => {
+  const { openSheet, closeSheet, sheetCount, sheetClosedAt } = useConversation();
+  // Before the sheet's first frame, so the plate starts leaving with it.
+  useLayoutEffect(() => {
     if (!open) return;
+    sheetCount.value = sheetCount.value + 1;
     openSheet();
-    return closeSheet;
-  }, [open, openSheet, closeSheet]);
+    // A sheet takes its keyboard with it. Left up, Android handed the closing
+    // field's focus to the composer and the keyboard stayed for it.
+    return () => {
+      Keyboard.dismiss();
+      sheetClosedAt.current = Date.now();
+      sheetCount.value = Math.max(0, sheetCount.value - 1);
+      closeSheet();
+    };
+  }, [open, openSheet, closeSheet, sheetCount, sheetClosedAt]);
 }

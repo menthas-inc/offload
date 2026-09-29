@@ -13,7 +13,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from "@react-native-community/datetimepicker";
-import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
+import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { formatRule, monthFor, parseRule, presetsFor, stepMonth, type Preset } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { Switch } from "../settings/Switch";
@@ -144,8 +145,8 @@ export function WhenSheet({
   return (
     <>
       <Animated.View
-        entering={FadeIn.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={scrimIn()}
+        exiting={scrimOut()}
         className="absolute inset-0"
         style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
       >
@@ -153,8 +154,8 @@ export function WhenSheet({
       </Animated.View>
 
       <Animated.View
-        entering={FadeInDown.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={sheetIn()}
+        exiting={sheetOut()}
         className={`absolute inset-x-0 bottom-0 pb-space-8 pt-space-3 ${
           isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"
         }`}

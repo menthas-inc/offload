@@ -32,11 +32,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeOut,
   useAnimatedStyle,
 } from "react-native-reanimated";
+import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { ALL_LABELS, changeToken, isAll, keepLive, listLabelledCopy, nameList, rowLabelledCopy, type LabelPick } from "@offload/widgets";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -1364,8 +1362,8 @@ function EditSheet({
   return (
     <>
       <Animated.View
-        entering={FadeIn.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={scrimIn()}
+        exiting={scrimOut()}
         className="absolute inset-0"
         style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
       >
@@ -1378,8 +1376,8 @@ function EditSheet({
 
       <Animated.View
         style={lift}
-        entering={FadeInDown.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={sheetIn()}
+        exiting={sheetOut()}
         className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-6 ${
           isAndroid
             ? "rounded-t-a-xl bg-a-c-low"

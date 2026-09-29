@@ -17,7 +17,8 @@
 
 import { useEffect, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
-import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
+import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useRouter } from "expo-router";
 import { Glyph } from "../Glyph";
 import { CalendarRow } from "../settings/CalendarRow";
@@ -112,8 +113,8 @@ export function CalendarsSheet({
   return (
     <>
       <Animated.View
-        entering={FadeIn.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={scrimIn()}
+        exiting={scrimOut()}
         className="absolute inset-0"
         style={{ backgroundColor: atOpacity(COLOR.scrim, SCRIM_OPACITY) }}
       >
@@ -121,8 +122,8 @@ export function CalendarsSheet({
       </Animated.View>
 
       <Animated.View
-        entering={FadeInDown.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={sheetIn()}
+        exiting={sheetOut()}
         className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-5 ${
           isAndroid ? "rounded-t-a-sheet bg-a-c-low" : "rounded-t-sheet bg-surface-raised"
         }`}

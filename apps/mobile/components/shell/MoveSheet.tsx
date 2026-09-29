@@ -13,7 +13,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, useAnimatedStyle } from "react-native-reanimated";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glyph } from "../Glyph";
 import { atOpacity, useColors } from "../../lib/colors";
@@ -71,8 +72,8 @@ export function MoveSheet({
   return (
     <>
       <Animated.View
-        entering={FadeIn.duration(220)}
-        exiting={FadeOut.duration(140)}
+        entering={scrimIn()}
+        exiting={scrimOut()}
         className="absolute inset-0"
         style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
       >
@@ -83,8 +84,8 @@ export function MoveSheet({
           anchored to the bottom sat entirely under the keyboard on a Pixel,
           which is the waitlist form's own lesson. The same lift Notes uses. */}
       <Animated.View
-        entering={SlideInDown.duration(260)}
-        exiting={SlideOutDown.duration(200)}
+        entering={sheetIn()}
+        exiting={sheetOut()}
         className={`absolute inset-x-0 bottom-0 rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
         style={[{ maxHeight: "70%", paddingBottom: insets.bottom }, lift]}
         accessibilityViewIsModal

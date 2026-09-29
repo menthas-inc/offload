@@ -17,7 +17,8 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "expo-router";
-import Animated, { FadeIn, FadeOut, useAnimatedStyle } from "react-native-reanimated";
+import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { plateAway, plateBack } from "../../lib/motion";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { Plate, type Tab } from "./Plate";
 import { Conversation, ConversationPhotoSheet, ConversationPhotoViewer, ConversationScrim } from "./Conversation";
@@ -39,7 +40,32 @@ export function Shell() {
   // stacked in it, so moving them separately let the keyboard put them at
   // different heights, and moving the column keeps them a single surface.
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
+  //
+  // **While a screen sheet is open the plate slides off the bottom** on the
+  // sheet's beat, and back as it goes, rather than being unmounted: taken off
+  // in one frame the page changed before the sheet moved, and a plate
+  // remounted under a closing sheet was handed its field's focus.
+  //
+  // **It rides the keyboard only while its own field has focus.** Any other
+  // keyboard is a sheet's, and a plate lifted by it rose over the sheet. The
+  // focus comes from the field itself, which is on time; a count set by the
+  // sheet reached the UI thread only after the sheet had rendered, a few
+  // hundred milliseconds late in a development build.
+  const sheetOpen = conversation.sheetOpen;
+  const sheetCount = conversation.sheetCount;
+  const composerFocused = conversation.composerFocused;
+  const away = useSharedValue(0);
+  const plateHeight = useSharedValue(0);
+  useAnimatedReaction(
+    () => sheetCount.value > 0,
+    (open, was) => {
+      if (open === was) return;
+      away.value = withTiming(open ? 1 : 0, open ? plateAway : plateBack);
+    },
+  );
+  const lift = useAnimatedStyle(() => ({
+    transform: [{ translateY: away.value * plateHeight.value + composerFocused.value * keyboardHeight.value }],
+  }));
 
   // The turn's Undo lives here rather than in the sheet, so folding the
   // conversation cannot take the window away with it. An eight second window
@@ -107,25 +133,23 @@ export function Shell() {
   return (
     <>
       <ConversationScrim />
-      {/* The sheet sits on top of the plate rather than beside it. Both were
-          anchored to the bottom of the screen and the plate paints later, so
-          the tabs covered the sheet's own composer. */}
-      {conversation.sheetOpen ? null : (
-        <Animated.View
-          style={lift}
-          className="absolute inset-x-0 bottom-0"
-          // On the same beat as the scrim that replaces it. Taken off the
-          // screen in one frame, the bottom 120px of the page changed before
-          // the sheet had started moving, which is half of what read as a
-          // flash on a device.
-          entering={FadeIn.duration(140)}
-          exiting={FadeOut.duration(140)}
-        >
-          <Conversation />
-          <ConversationPhotoViewer />
-          <Plate tabs={tabs} placeholder={inThread ? "Add to this" : undefined} />
-        </Animated.View>
-      )}
+      {/* Always mounted, and slid off the bottom while a screen sheet is
+          open (see `away` above). Unmounted, it used to leave in one frame
+          and come back holding a closing sheet's focus. */}
+      <Animated.View
+        className="absolute inset-x-0 bottom-0"
+        style={lift}
+        onLayout={(event) => {
+          plateHeight.value = event.nativeEvent.layout.height;
+        }}
+        pointerEvents={sheetOpen ? "none" : "auto"}
+        importantForAccessibility={sheetOpen ? "no-hide-descendants" : "auto"}
+        accessibilityElementsHidden={sheetOpen}
+      >
+        <Conversation />
+        <ConversationPhotoViewer />
+        <Plate tabs={tabs} placeholder={inThread ? "Add to this" : undefined} />
+      </Animated.View>
       {/* The composer's photo sheet is a screen sheet, so it takes the plate
           off the screen like any other; it lives outside the plate's block
           for exactly that reason, since a sheet that unmounts itself on open

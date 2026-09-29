@@ -203,6 +203,8 @@ export function Composer({
     pickMention,
     hashLabels,
     pickHash,
+    composerFocused,
+    sheetClosedAt,
   } = useConversation();
   const holdsNote = !pin && (recording || note !== null);
   // 022. The @ list, while the draft ends in an @ token and not while a +
@@ -359,6 +361,18 @@ export function Composer({
           ref={field}
           value={draft}
           onChangeText={setDraft}
+          onFocus={() => {
+            // Handed over by a sheet closing, not asked for: let it go, and
+            // the keyboard with it.
+            if (Date.now() - sheetClosedAt.current < 500) {
+              field.current?.blur();
+              return;
+            }
+            composerFocused.value = 1;
+          }}
+          onBlur={() => {
+            composerFocused.value = 0;
+          }}
           multiline
           maxLength={maxLength}
           placeholder={asked ?? placeholder ?? PLACEHOLDERS[which]}

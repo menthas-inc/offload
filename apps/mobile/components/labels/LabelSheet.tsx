@@ -8,7 +8,8 @@
 import { useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import Animated, { FadeIn, FadeOut, ReduceMotion, SlideInDown, SlideOutDown, useAnimatedStyle } from "react-native-reanimated";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { foldDraft, LABEL_NAME_CHARS } from "@offload/widgets";
 import { Glyph } from "../Glyph";
@@ -80,16 +81,16 @@ export function LabelSheet({
   return (
     <>
       <Animated.View
-        entering={FadeIn.duration(220).reduceMotion(ReduceMotion.System)}
-        exiting={FadeOut.duration(140).reduceMotion(ReduceMotion.System)}
+        entering={scrimIn()}
+        exiting={scrimOut()}
         className="absolute inset-0"
         style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
       >
         <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
       </Animated.View>
       <Animated.View
-        entering={SlideInDown.duration(260).reduceMotion(ReduceMotion.System)}
-        exiting={SlideOutDown.duration(200).reduceMotion(ReduceMotion.System)}
+        entering={sheetIn()}
+        exiting={sheetOut()}
         className={`absolute inset-x-0 bottom-0 rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
         style={[{ maxHeight: "80%", paddingBottom: insets.bottom + 8 }, lift]}
         accessibilityViewIsModal
