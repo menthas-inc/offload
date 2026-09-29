@@ -588,6 +588,7 @@ function Editor({
   // the thread it was handed to. Keyed by the note, so they start out holding
   // its words.
   const [draft, onDraft] = useState(note?.text ?? "");
+  const field = useRef<TextInput>(null);
   // Anchored to the bottom of a screen, and the plate is mounted above the
   // router. Without this it opens underneath the composer and the tabs.
 
@@ -597,13 +598,14 @@ function Editor({
         onClose={onClose}
         keyboard="lift"
         className="px-gutter-screen pb-space-8 pt-space-2"
+        onOpen={() => field.current?.focus()}
       >
           <TextInput
+            ref={field}
             value={draft}
             onChangeText={onDraft}
             maxLength={NOTE_CHARS}
             multiline
-            autoFocus
             placeholder="What is true about this thread?"
             placeholderTextColor={COLOR.iconOnWell}
             className={`rounded-sm border border-border-hairline px-space-4 py-space-3 font-core ${

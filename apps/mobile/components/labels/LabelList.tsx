@@ -62,6 +62,7 @@ export function LabelList({
   const [rows, setRows] = useState<(ContentRow & { ticked?: boolean })[] | null>(null);
   const [changed, setChanged] = useState<Map<string, boolean>>(new Map());
   const [name, setName] = useState(label?.name ?? "");
+  const nameField = useRef<TextInput>(null);
   const [colour, setColour] = useState<number>(label?.colour ?? freeColour);
   const [renaming, setRenaming] = useState(label === null);
   const [colouring, setColouring] = useState(false);
@@ -151,6 +152,7 @@ export function LabelList({
         surface={`rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
         sheetStyle={{ top: insets.top + 12 }}
         style={{ flex: 1 }}
+        onOpen={label === null ? () => nameField.current?.focus() : undefined}
       >
         <View className="px-gutter-screen pt-space-5">
           <Text className="font-core font-semibold text-text-primary text-title-2">
@@ -160,8 +162,8 @@ export function LabelList({
             <LabelDot colour={colour} size={10} />
             <TextInput
               value={name}
+              ref={nameField}
               editable={renaming}
-              autoFocus={label === null}
               onChangeText={(text) => {
                 setName(text);
                 setTooLong(false);

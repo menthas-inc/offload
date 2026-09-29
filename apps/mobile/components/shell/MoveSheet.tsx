@@ -73,6 +73,7 @@ export function MoveSheet({
         keyboard="lift"
         surface={`rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
         sheetStyle={{ maxHeight: "70%", paddingBottom: insets.bottom }}
+        onOpen={() => input.current?.focus()}
       >
         {nowhere ? (
           <Text className="px-gutter-screen pb-space-3 pt-space-6 font-core text-text-secondary" style={{ fontSize: 15, lineHeight: 22 }}>
@@ -84,7 +85,6 @@ export function MoveSheet({
               <Glyph name="search" size={16} color={COLOR.iconOnWell} />
               <TextInput
                 ref={input}
-                autoFocus
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Which thread?"

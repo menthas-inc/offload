@@ -60,6 +60,7 @@ export function RowEditSheet({
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const scroll = useRef<ScrollView>(null);
+  const titleField = useRef<TextInput>(null);
   const scrollTo = useCallback((y: number) => scroll.current?.scrollTo({ y, animated: false }), []);
 
   if (!row) return null;
@@ -110,6 +111,7 @@ export function RowEditSheet({
         sheetStyle={{ maxHeight: windowHeight - insets.top - 12 }}
         className="px-gutter-screen"
         accessibilityLabel="Edit"
+        onOpen={() => titleField.current?.focus()}
       >
         {/* Bounded and scrolling, because at a large text size on a small
             phone the fields and the pills together outgrow the sheet, and a
@@ -152,9 +154,9 @@ export function RowEditSheet({
         <View style={picking ? { display: "none" } : undefined}>
         {/* No heading: the title field is larger and in the primary ink. */}
         <TextInput
+          ref={titleField}
           value={title}
           onChangeText={setTitle}
-          autoFocus
           placeholder="What is it?"
           placeholderTextColor={COLOR.iconOnWell}
           accessibilityLabel="Title"

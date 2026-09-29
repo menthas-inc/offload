@@ -178,6 +178,7 @@ export function DragSheet({
   keyboard,
   scrim = 0.35,
   accessibilityLabel,
+  onOpen,
 }: {
   /** The scrim, the grabber, and Android's back. Cancel, never Save. */
   onClose: () => void;
@@ -192,6 +193,11 @@ export function DragSheet({
   keyboard?: "lift" | "room";
   scrim?: number;
   accessibilityLabel?: string;
+  /** The sheet has started to rise: focus its field here rather than with
+   *  `autoFocus`. The keyboard is native and comes at once, while the sheet
+   *  waits on JS for its first frame, so an autofocused keyboard beat a
+   *  sheet opened from another sheet by a quarter of a second. */
+  onOpen?: (() => void) | undefined;
 }) {
   const COLOR = useColors();
   const insets = useSafeAreaInsets();
@@ -213,6 +219,7 @@ export function DragSheet({
   const sheetRef = useAnimatedRef<Animated.View>();
   const opening = useSharedValue(true);
   const bottomInset = insets.bottom;
+  const opened = onOpen;
   useFrameCallback(() => {
     if (!opening.value) return;
     const size = measure(sheetRef);
@@ -222,6 +229,7 @@ export function DragSheet({
     travel.value = size.height;
     y.value = size.height - room + PAST;
     y.value = withSpring(0, openSpring);
+    if (opened) runOnJS(opened)();
   });
 
   const leave = useCallback(() => {

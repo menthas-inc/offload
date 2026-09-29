@@ -1378,6 +1378,7 @@ function EditSheet({
   // Same reason as the action sheet: this is anchored to the bottom of a screen
   // and the plate is mounted above the router.
   const [draft, setDraft] = useState(initial);
+  const field = useRef<TextInput>(null);
 
   function save(): void {
     const text = draft.trim();
@@ -1391,11 +1392,12 @@ function EditSheet({
         onClose={onClose}
         keyboard="lift"
         className="px-gutter-screen pb-space-8 pt-space-2"
+        onOpen={() => field.current?.focus()}
       >
         <TextInput
+          ref={field}
           value={draft}
           onChangeText={setDraft}
-          autoFocus
           placeholder={placeholder}
           placeholderTextColor={COLOR.iconOnWell}
           className={`rounded-sm border border-border-hairline px-space-4 py-space-3 font-core ${
