@@ -68,7 +68,7 @@ const todayResponse = z.object({
 
 const activityEntry = z.object({
   id: z.string(),
-  kind: z.enum(["digest", "request", "share", "shared_activity", "expired", "moved", "acted", "labelled"]),
+  kind: z.enum(["digest", "request", "share", "shared_activity", "expired", "moved", "acted", "labelled", "mail"]),
   sent: z.boolean(),
   reason: z.enum(["setting", "permission", "design"]).nullable(),
   title: z.string(),

@@ -82,6 +82,11 @@ const schema = z.object({
   // and nothing else turns it on.
   RESEND_API_KEY: z.string().min(1).optional(),
   MAIL_LIVE: z.enum(["1"]).optional(),
+  // 026. The mail Worker signs every request to /v1/mail/inbound with this.
+  // `_NEXT` is accepted beside it while a new secret is rolled out, then
+  // promoted. Unset, the route refuses everything.
+  MAIL_INBOUND_SECRET: z.string().min(32).optional(),
+  MAIL_INBOUND_SECRET_NEXT: z.string().min(32).optional(),
 
   // 024. Expo's push service, with enhanced push security on, so a send needs
   // the project's access token. Required in production; locally a send is an

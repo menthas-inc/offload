@@ -292,7 +292,7 @@ export interface PushTokensTable {
 export interface ActivityTable {
   id: Generated<string>;
   account_id: string;
-  kind: "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled";
+  kind: "digest" | "request" | "share" | "shared_activity" | "expired" | "moved" | "acted" | "labelled" | "mail";
   sent: boolean;
   reason: "setting" | "permission" | "design" | null;
   title: string;
@@ -307,7 +307,18 @@ export interface ActivityTable {
   label_run_id: string | null;
   /** 025. Somebody pressed Undo; every member's copy carries it. */
   undone_at: Timestamp | null;
+  /** 026. Which of the five an email row is; null for every other kind. */
+  mail_outcome: "filed" | "asked" | "nothing" | "refused" | "over_limit" | null;
+  /** 026. The turn Undo reverses, and the email the row opens. */
+  turn_id: string | null;
+  message_id: string | null;
   occurred_at: Timestamp;
+}
+
+/** 026. A DKIM signature accepted once: a hash, never the message. */
+export interface MailSignaturesTable {
+  hash: Buffer;
+  seen_at: Generated<Timestamp>;
 }
 
 /** 024. Whose words an Activity row carries, and from which thread. */
@@ -392,7 +403,7 @@ export interface MessagesTable {
    *  named. The tail the prompts read substitutes a fixed line for its text, so
    *  the name never reaches a prompt as the person's words. */
   derived_from_untrusted: Generated<boolean>;
-  source: Generated<"person" | "share" | "gmail" | "calendar" | "browser">;
+  source: Generated<"person" | "share" | "mail" | "gmail" | "calendar" | "browser">;
   source_ref: string | null;
   attrs: Generated<unknown>;
   /** 021. What the voice note was heard as. Beside `text`, never folded into
@@ -1030,6 +1041,7 @@ export interface Database {
   content_labels: ContentLabelsTable;
   note_labels: NoteLabelsTable;
   label_runs: LabelRunsTable;
+  mail_signatures: MailSignaturesTable;
   waitlist_attempts: WaitlistAttemptsTable;
   schema_migrations: SchemaMigrationsTable;
 
