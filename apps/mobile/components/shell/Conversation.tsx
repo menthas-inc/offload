@@ -17,7 +17,6 @@
 
 import { forwardRef, Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  Keyboard,
   Platform,
   Pressable,
   Text,
@@ -61,6 +60,7 @@ import { SentPhoto } from "./SentPhoto";
 import { VoiceNotePlayer } from "./SentVoice";
 import { RowActionSheet } from "./RowActionSheet";
 import { PhotoViewer, type ViewerPhoto } from "./PhotoViewer";
+import { putKeyboardAway } from "../../lib/keyboard";
 
 /** 020. The viewer for a sent message's photos, mounted by the shell above
  *  the sheet. No row yet, so no tools: the Files grid is where a photo's row
@@ -175,7 +175,7 @@ export function Conversation() {
 
   const held = useSharedValue(0);
   const leave = useCallback(() => {
-    Keyboard.dismiss();
+    putKeyboardAway();
   }, []);
 
   // The transcript's own gesture, so the sheet can take a drag from it at

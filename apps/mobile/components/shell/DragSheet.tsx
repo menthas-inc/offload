@@ -19,7 +19,7 @@
 // replaced; the durations there stay for anything that is not dragged.
 
 import { useCallback, useState, type ReactNode } from "react";
-import { Keyboard, Platform, Pressable, View, type StyleProp, type ViewStyle } from "react-native";
+import { Platform, Pressable, View, type StyleProp, type ViewStyle } from "react-native";
 import { Gesture, GestureDetector, type GestureType } from "react-native-gesture-handler";
 import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -43,6 +43,7 @@ import { backPull, closes, dragTo, PAST, progress, SLOP } from "../../lib/sheet"
 import { closeSpring, openSpring } from "../../lib/motion";
 import { useSheetBack } from "../../lib/sheet-back";
 import { useScreenSheet } from "./conversation-context";
+import { putKeyboardAway } from "../../lib/keyboard";
 
 const isAndroid = Platform.OS === "android";
 
@@ -259,7 +260,7 @@ export function DragSheet({
   });
 
   const leave = useCallback(() => {
-    Keyboard.dismiss();
+    putKeyboardAway();
     setClosing(true);
   }, []);
   const dismiss = useCallback(() => {

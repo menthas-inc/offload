@@ -23,7 +23,7 @@ import { runOnJS, runOnUI, useSharedValue, withSpring, withTiming, type SharedVa
 import { closeSpring, openSpring, plateAway } from "../../lib/motion";
 import { PAST, startsFresh } from "../../lib/sheet";
 import { raisedOf, settled } from "../../lib/conversation-sheet";
-import { AppState, Keyboard, Linking, type AppStateStatus } from "react-native";
+import { AppState, Linking, type AppStateStatus } from "react-native";
 import { useAudioRecorder } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
 import { plainText } from "@offload/markup";
@@ -70,6 +70,7 @@ import {
   sweepRecordings,
   type Recording,
 } from "../../lib/recorder";
+import { putKeyboardAway } from "../../lib/keyboard";
 
 /** What a `+` pinned the composer to. Set only by a `+`, never chosen from
  *  inside the field: a section's `+` writes to that section in that thread and
@@ -687,7 +688,7 @@ export function ConversationProvider({
   }, [dismissPin]);
 
   const lower = useCallback(() => {
-    Keyboard.dismiss();
+    putKeyboardAway();
     springTo(false, settle);
   }, [settle, springTo]);
 
@@ -1550,7 +1551,7 @@ export function useScreenSheet(open: boolean): void {
     // A sheet takes its keyboard with it. Left up, Android handed the closing
     // field's focus to the composer and the keyboard stayed for it.
     return () => {
-      Keyboard.dismiss();
+      putKeyboardAway();
       sheetClosedAt.current = Date.now();
       runOnUI(() => {
         "worklet";
