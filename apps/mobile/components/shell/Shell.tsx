@@ -7,7 +7,7 @@
 //
 // What it shows is decided from the route rather than passed down:
 //
-//   the gate      nothing at all
+//   the gate      nothing at all, and launch the same
 //   a tab         the composer and the tabs
 //   a thread      the composer, "Add to this", and the tabs
 //
@@ -30,8 +30,10 @@ import { useConversation } from "./conversation-context";
 import { ToastHost, useToast } from "./Toast";
 import { timeOfDay } from "../../lib/sun";
 
-/** Where the composer belongs, and where it does not. */
-const TABS = ["/today", "/threads", "/notes", "/"];
+/** Where the composer belongs, and where it does not. Not "/", which is the
+ *  launch screen since Today moved to "/today": the plate drew over it
+ *  whenever launch held, a composer on a screen that has not heard back yet. */
+const TABS = ["/today", "/threads", "/notes"];
 
 export function Shell() {
   const router = useRouter();
@@ -157,7 +159,7 @@ export function Shell() {
           key: "today",
           label: tod.label,
           icon: tod.icon === "moon" ? "moon" : "sun",
-          active: pathname === "/today" || pathname === "/",
+          active: pathname === "/today",
           onPress: () => go("/today"),
         },
         {
