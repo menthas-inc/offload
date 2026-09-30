@@ -25,6 +25,11 @@ import { useSetPlateInset } from "./plate-inset";
 
 const isAndroid = Platform.OS === "android";
 
+// On the plate and on the band inside it. The band clips the prism field, so
+// a band without them paints square corners over the plate's round ones, which
+// is how both phones drew a straight top edge.
+const CORNERS = isAndroid ? "rounded-t-a-xl" : "rounded-t-lg";
+
 export interface Tab {
   key: string;
   label: string;
@@ -71,16 +76,14 @@ export function Plate({
       // veil is made of. If the two ever hold different values the difference
       // shows as a band exactly where the field should be vanishing: on dark
       // that read as a grey composer against a black tab strip.
-      className={`bg-surface-plate ${isAndroid ? "rounded-t-a-xl" : "rounded-t-lg"}`}
+      className={`bg-surface-plate ${CORNERS}`}
       style={{
         paddingBottom: insets.bottom,
         // The kit's own shadow on the plate, which is what separates it from
-        // the screen behind rather than a border.
-        shadowColor: COLOR.scrim,
-        shadowOpacity: 0.16,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: -6 },
-        elevation: 12,
+        // the screen behind rather than a border. A box-shadow, not the old
+        // shadow props: Android reads those as `elevation`, lit from above,
+        // and the plate cast nothing upward.
+        boxShadow: COLOR.plateShadow,
       }}
       importantForAccessibility={raised ? "no-hide-descendants" : "auto"}
       accessibilityElementsHidden={raised}
@@ -97,7 +100,7 @@ export function Plate({
             squash the pattern and break it at the seam. It stays mounted and
             the same height under a raised conversation, which covers it; the
             pulse goes to whichever field is on top. */}
-      <View className="overflow-hidden">
+      <View className={`overflow-hidden ${CORNERS}`}>
         <PrismField
           variant="band"
           veil="graded"

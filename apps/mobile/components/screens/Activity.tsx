@@ -126,6 +126,11 @@ export default function Activity() {
                       {whenOf(row.occurredAt, here, zone)}
                     </Text>
                   </View>
+                  {row.body ? (
+                    <Text className={`pt-space-1 font-core text-body-sm leading-tight ${quiet}`}>
+                      {row.body}
+                    </Text>
+                  ) : null}
                   {tag ? (
                     <View
                       className={`mt-space-2 justify-center self-start rounded-sm px-space-2 ${
@@ -154,7 +159,13 @@ export default function Activity() {
                 <View className="flex-row items-start">
                   <View className="flex-1">
                     {door ? (
-                      <Pressable onPress={() => router.push(door as never)} accessibilityRole="button" className="min-h-tap-min">
+                      <Pressable
+                        // A tab is gone back down to, never pushed on top,
+                        // as the plate's own tabs do.
+                        onPress={() => (door.pathname === "/today" ? router.dismissTo("/today") : router.push(door as never))}
+                        accessibilityRole="button"
+                        className="min-h-tap-min"
+                      >
                         {body}
                       </Pressable>
                     ) : (

@@ -40,33 +40,9 @@ import { useConversation } from "./conversation-context";
 import { MentionList, mentionQuery } from "../people/MentionList";
 import { HashList } from "../labels/HashList";
 import { labelQuery } from "@offload/widgets";
-import { staysOpen } from "../../lib/composer";
+import { PLACEHOLDERS, staysOpen } from "../../lib/composer";
 
 const isAndroid = Platform.OS === "android";
-
-/** The kit's own twenty, rotated on a ten second fade. */
-const PLACEHOLDERS = [
-  "Dump anything",
-  "What's on your mind?",
-  "Half a thought is fine",
-  "Say it before you forget",
-  "Anything, in any order",
-  "Throw it in here",
-  "No need to tidy it",
-  "Paste it, I'll sort it",
-  "A link, a photo, a mumble",
-  "Tell me the messy version",
-  "Something you'll want later",
-  "Out of your head, in here",
-  "Don't file it, just drop it",
-  "Even if it's three things at once",
-  "Whatever you're holding",
-  "I'll find it a home",
-  "Type it badly, that's fine",
-  "One line is enough",
-  "Where does this go? Not your problem",
-  "Give it to me",
-];
 
 /** Grows with the text, then scrolls. The kit's number. */
 const MAX_HEIGHT = 380;

@@ -10,3 +10,28 @@ export function staysOpen(state: { open: boolean; tallNow: boolean; draft: strin
   if (state.draft.trim().length === 0) return false;
   return state.open || state.tallNow;
 }
+
+/** The kit's own twenty, rotated on a ten second fade. Five are shorter than
+ *  the kit's so every one stays on one line (2026-09-30). */
+export const PLACEHOLDERS = [
+  "Dump anything",
+  "What's on your mind?",
+  "Half a thought is fine",
+  "Say it before you forget",
+  "Anything, in any order",
+  "Throw it in here",
+  "No need to tidy it",
+  "Paste it, I'll sort it",
+  "A link, a photo, a mumble",
+  "Tell me the messy version",
+  "Something for later",
+  "Out of your head, in here",
+  "Don't file it, drop it",
+  "Several at once is fine",
+  "Whatever you're holding",
+  "I'll find it a home",
+  "Type it badly, it's fine",
+  "One line is enough",
+  "Where it goes is on me",
+  "Give it to me",
+];
