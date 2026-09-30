@@ -7,7 +7,7 @@
 // needed two. The rule is a latch, and it is pure so it can be pinned here.
 
 import { describe, expect, it } from "vitest";
-import { staysOpen } from "../lib/composer";
+import { PLACEHOLDERS, staysOpen } from "../lib/composer";
 
 describe("the box opened for height", () => {
   it("opens when the words are taller than one line, and stays open while any words remain", () => {
@@ -21,5 +21,16 @@ describe("the box opened for height", () => {
   it("closes only once the draft is empty", () => {
     expect(staysOpen({ open: true, tallNow: false, draft: "" })).toBe(false);
     expect(staysOpen({ open: true, tallNow: false, draft: "   " })).toBe(false);
+  });
+});
+
+describe("the placeholders", () => {
+  // 2026-09-30, on the Pixel: "Even if it's three things at once" wrapped to
+  // a second line and the empty composer grew to fit it. The field is about
+  // 234dp beside its controls there, a phone of 375pt has a little less, and
+  // "Out of your head, in here" at 25 characters fits with room to spare.
+  it("are short enough to stay on one line", () => {
+    const long = PLACEHOLDERS.filter((line) => line.length > 25);
+    expect(long).toEqual([]);
   });
 });
