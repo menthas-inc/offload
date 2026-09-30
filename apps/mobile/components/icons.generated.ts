@@ -1,7 +1,7 @@
 // Generated from the design system. Do not edit: run `pnpm icons`.
 // Source: .claude/skills/offload-design/assets/icons
 
-export type IconName = "album" | "archive" | "arrow-up-right" | "arrow-up" | "bell" | "blend" | "bookmark" | "brain" | "calendar" | "camera" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "coffee" | "compass" | "ellipsis" | "eye" | "folder" | "funnel" | "gallery-vertical-end" | "git-branch" | "grip-vertical" | "group" | "house" | "image" | "inbox" | "lasso" | "layers" | "library-big" | "link" | "list" | "lock" | "map-pin" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "moon-star" | "moon" | "newspaper" | "orbit" | "paperclip" | "pause" | "pencil" | "play" | "plus" | "radio" | "rewind" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "snowflake" | "sparkles" | "spline" | "square-check-big" | "sun" | "sunrise" | "tag" | "text-quote" | "thermometer-sun" | "trash-2" | "umbrella" | "users" | "waypoints" | "wind" | "x";
+export type IconName = "album" | "archive" | "arrow-up-right" | "arrow-up" | "bell" | "blend" | "bookmark" | "brain" | "calendar" | "camera" | "check-check" | "check" | "chevron-down" | "chevron-left" | "chevron-right" | "circle-dashed" | "circle-dot" | "circle" | "clock-fading" | "clock" | "cloud-cog" | "cloud-download" | "cloud-drizzle" | "cloud-lightning" | "cloud-moon" | "cloud-off" | "cloud-rain" | "cloud-sun" | "cloud" | "cloudy" | "coffee" | "compass" | "ellipsis" | "eye" | "folder" | "funnel" | "gallery-vertical-end" | "git-branch" | "grip-vertical" | "group" | "house" | "image" | "inbox" | "lasso" | "layers" | "library-big" | "link" | "list" | "lock" | "mail" | "map-pin" | "maximize-2" | "message-circle-more" | "message-circle" | "mic" | "moon-star" | "moon" | "newspaper" | "orbit" | "paperclip" | "pause" | "pencil" | "play" | "plus" | "radio" | "rewind" | "rss" | "scan-text" | "search" | "settings" | "share-2" | "snowflake" | "sparkles" | "spline" | "square-check-big" | "sun" | "sunrise" | "tag" | "text-quote" | "thermometer-sun" | "trash-2" | "umbrella" | "users" | "waypoints" | "wind" | "x";
 
 export type Shape =
   | { kind: "path"; d: string }
@@ -781,6 +781,20 @@ export const ICONS: Record<IconName, Shape[]> = {
       "height": 11,
       "x": 3,
       "y": 11,
+      "rx": 2
+    }
+  ],
+  "mail": [
+    {
+      "kind": "path",
+      "d": "m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"
+    },
+    {
+      "kind": "rect",
+      "width": 20,
+      "height": 16,
+      "x": 2,
+      "y": 4,
       "rx": 2
     }
   ],

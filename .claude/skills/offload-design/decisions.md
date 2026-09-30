@@ -11,6 +11,13 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-30 · Mail becomes a door, and the set gains a mail glyph
+**Surface:** iOS, Android, web
+**Was:** the icon set had no mail glyph. The mobile kit draws *Mail* under *Not connected* with *Connect*, *So a confirmation files itself*; the web kit draws it as a card with a switch, *Watching for things you dump*, beside a *What came from where* block. First run's step count is a constant.
+**Is:** 026 builds forwarding to `over@to.offload.club`. `mail.svg` joins the set, Lucide's envelope at the set's stroke. *Mail* in Connected apps is its own group, a door with the address as its note and no value, or *Unavailable* for an Apple hidden email; it opens a Mail page with the address, Copy, Add to contacts and two lines on how it works. The web draws the same door, with no switch, because forwarding has nothing to turn on. *What came from where* is not built. First run gains a *Forward what matters* step after the calendar's, in the calendar step's layout, not shown to an Apple hidden email, so the dots count the steps each account is shown.
+**Why:** an email you forward is a dump rather than a connected inbox, so there is no connection to switch, and a missing icon name draws an empty circle that only `dead-icons.mjs` catches.
+**Design system impact:** add `mail` to the icon list in the readme. `SettingsDetail.jsx` and `M3SettingsDetail.jsx`: the `apps` page's Mail row moves to its own group as a door with the address as note, plus a Mail page. `WSettings.jsx`: the Mail card becomes a door without a switch, and *What came from where* is marked unbuilt. `FirstRun.jsx`, `M3FirstRun.jsx`, `WFirstRunGate.jsx`: a Mail step after `ConnectScreen`, and `StepBar`'s `total` passed per account rather than `STEPS`.
+
 ### 2026-09-30 · Launch holds when nothing answers, and only a 401 is signed out
 **Surface:** iOS, Android, web
 **Was:** launch on the phones sent any failure to `/api/me` to the gate: a 401, a 404, a timeout, no network. The web sent any response that was not ok to the gate, and a fetch that threw held the shell blank for good.
