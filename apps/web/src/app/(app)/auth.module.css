@@ -500,6 +500,19 @@
   border: 1px dashed var(--border-strong);
 }
 
+/* 026. The Mail step's mark: our own glyph on the stand-in's tile, since
+   there is no provider whose mark it could be. */
+.mailMark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 18px;
+  background: var(--surface-fill);
+  color: var(--text-secondary);
+}
+
 /* One of the two facts under the mark. */
 .runFact {
   display: flex;

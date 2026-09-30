@@ -50,6 +50,7 @@ import { QuickReplies } from "./QuickReplies";
 import { AttachChip, type ChipError } from "./AttachChip";
 import { SentPhoto } from "./SentPhoto";
 import { VoiceNotePlayer, mmss } from "./SentVoice";
+import { SentMail } from "./SentMail";
 import { BAR_PITCH_PX, Recorder, recorderSupported, type Recording } from "../../lib/recorder";
 import { Mentions, mentionQuery, withMention } from "../people/Mentions";
 import { HashList } from "../labels/HashList";
@@ -114,6 +115,8 @@ interface Turn {
   photos?: PhotoOnWire[];
   /** 021. The voice note it carried, with its transcript once written. */
   voice?: VoiceOnWire | null;
+  /** 026. A forwarded email: its subject heads the bubble. */
+  mail?: { subject: string } | null;
   /** The send itself did not land, so nothing on the server knows this turn.
    *  Drawn as the failed state, with different words: the dump is not saved,
    *  and Try again puts the words back in the field. Local only, never on the
@@ -321,6 +324,7 @@ export function Composer({
           text: message.text ?? "",
           photos: message.photos ?? [],
           voice: message.voice ?? null,
+          mail: message.mail ?? null,
           state: message.state,
           turnId: message.turnId,
           since: Date.now(),
@@ -1025,7 +1029,7 @@ export function Composer({
                   turn.state === "failed" || turn.state === "partial" ? true : undefined
                 }
               >
-                {turn.text}
+                {turn.mail ? <SentMail subject={turn.mail.subject} text={turn.text} /> : turn.text}
                 {turn.voice ? <VoiceNotePlayer voice={turn.voice} inert={recording} /> : null}
                 {turn.photos?.length ? (
                   <span className={styles.sentPhotos}>

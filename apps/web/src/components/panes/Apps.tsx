@@ -1,6 +1,6 @@
 "use client";
 
-// Connected apps: Calendar, and three rows that are not built.
+// Connected apps: Calendar, Mail (026), and two rows that are not built.
 //
 // **The kit draws four connectors and one of them works.** Mail, Browser and
 // Photos stay listed because knowing what is coming is worth more than a page
@@ -24,6 +24,9 @@ import { Switch } from "../Switch";
 import { CalendarRow } from "../CalendarRow";
 import { ConnectBlock, ProviderMark } from "../ConnectBlock";
 import { Group, Row } from "./SettingsRows";
+import { MailBlock } from "../MailBlock";
+import { useMe } from "../../lib/use-me";
+import { useToast } from "../shell/Toast";
 import {
   approveCalendar,
   connectUrl,
@@ -44,6 +47,8 @@ function connectedOn(iso: string): string {
 
 export function AppsPane() {
   const { status, available, askFirst, connections, reload, settle } = useCalendars();
+  const me = useMe("shell");
+  const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -117,8 +122,11 @@ export function AppsPane() {
           </>
         )}
 
+        {me.status === "ready" ? (
+          <MailBlock email={me.me.email} mailAvailable={me.me.mailAvailable} onCopied={() => toast.show("Copied")} />
+        ) : null}
+
         <Group label="Not built yet">
-          <Row title="Mail" note="So a confirmation files itself." />
           <Row title="Browser" note="Save a page straight into a thread." />
           <Row title="Photos" note="Screenshots become things you can search." last />
         </Group>

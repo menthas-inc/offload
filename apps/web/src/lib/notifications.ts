@@ -24,10 +24,14 @@ export interface ActivityEntry {
   contentId: string | null;
   memberId: string | null;
   requestId: string | null;
-  /** 025. A labelled row's Undo is offered while this is true. */
+  /** 025. A labelled row's Undo is offered while this is true. 026: and a
+   *  filed email's, for a day. */
   undoable: boolean;
   undone: boolean;
   occurredAt: string;
+  /** 026. Which of the five an email row is, and the email it came from. */
+  mailOutcome?: "filed" | "asked" | "nothing" | "refused" | "over_limit" | null;
+  messageId?: string | null;
 }
 
 export async function fetchActivity(cursor: string | null): Promise<{ rows: ActivityEntry[]; next: string | null } | null> {
@@ -81,6 +85,17 @@ export const tagOf = activityTag;
 
 /** Where a row goes, or null for a row that is the record and nothing more. */
 export function doorOf(row: ActivityEntry): string | null {
+  // 026. An email's row opens what landed: the row, the thread when several
+  // landed there, or the email itself, which the web draws under the composer
+  // on every page. A refused email opens the Mail block, which names the one
+  // address that works.
+  if (row.kind === "mail") {
+    if (row.mailOutcome === "refused") return "/settings/apps";
+    if (row.mailOutcome === "over_limit") return null;
+    if (row.contentId) return `/content/${row.contentId}`;
+    if (row.threadId) return `/threads/${row.threadId}`;
+    return "/today";
+  }
   if (!row.sent && row.reason !== "design") return "/settings/notifications";
   switch (row.kind) {
     case "request":

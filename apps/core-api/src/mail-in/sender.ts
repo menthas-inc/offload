@@ -83,7 +83,6 @@ function comparable(address: string): string | null {
   const at = address.lastIndexOf("@");
   if (at <= 0) return null;
   const local = address.slice(0, at);
-  // eslint-disable-next-line no-control-regex
   if (!/^[\x21-\x7e]+$/.test(local)) return null;
   const domain = domainToASCII(address.slice(at + 1));
   if (!domain) return null;

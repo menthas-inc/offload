@@ -324,6 +324,9 @@ const currentConversation = z.object({
       photos: z.array(photoOnWire),
       /** 021. Null on every reply and on any message without one. */
       voice: voiceOnWire.nullable(),
+      /** 026. A forwarded email's subject, which the conversation draws as its
+       *  first line; null on everything else. */
+      mail: z.object({ subject: z.string() }).nullable(),
       state: messageState,
       /** What an Undo would reverse. The whole turn, not this row. */
       turnId: z.string(),
@@ -1287,7 +1290,7 @@ export async function dumpRoutes(app: App): Promise<void> {
 
       const rows = await db
         .selectFrom("messages")
-        .select(["id", "role", "text", "state", "turn_id", "created_at"])
+        .select(["id", "role", "text", "state", "turn_id", "created_at", "source", "attrs"])
         .where("conversation_id", "=", conversation.id)
         .where("account_id", "=", accountId)
         .where("deleted_at", "is", null)
@@ -1347,6 +1350,10 @@ export async function dumpRoutes(app: App): Promise<void> {
           text: row.text,
           photos: photos.get(row.id) ?? [],
           voice: voices.get(row.id) ?? null,
+          mail:
+            row.source === "mail"
+              ? { subject: (row.attrs as { mail?: { subject?: string } } | null)?.mail?.subject ?? "" }
+              : null,
           state: row.state,
           turnId: row.turn_id,
           createdAt: new Date(row.created_at).toISOString(),

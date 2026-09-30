@@ -76,6 +76,7 @@ describe("the Activity row (AC-15, AC-17)", () => {
     expect(row).toMatchObject({
       mail_outcome: "filed",
       sent: false,
+      reason: "design",
       title: "Dentist, Tuesday 15:00, in Lisbon trip",
       body: "From an email, “Your appointment is confirmed”.",
       content_id: dentist,
@@ -202,5 +203,19 @@ describe("/api/me says whether mail can reach this account (AC-18)", () => {
     expect((await me(jo)).mailAvailable).toBe(true);
     const hidden = await person("x7q2k9@privaterelay.appleid.com");
     expect((await me(hidden)).mailAvailable).toBe(false);
+  });
+});
+
+describe("the conversation draws an email as one (AC-5)", () => {
+  it("carries the subject on a mail message and null on anything else", async () => {
+    await forwarded("Your appointment is confirmed");
+    const tail = (await as(app, await signIn(jo)).get("/v1/conversations/current")).json();
+    const [message] = tail.messages;
+    expect(message.mail).toEqual({ subject: "Your appointment is confirmed" });
+    const { dump } = await import("./labels-kit.js");
+    const other = await person();
+    await dump(other, "milk");
+    const theirs = (await as(app, await signIn(other)).get("/v1/conversations/current")).json();
+    expect(theirs.messages[0].mail).toBeNull();
   });
 });

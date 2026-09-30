@@ -25,6 +25,7 @@ export async function recordRefused(accountId: string): Promise<void> {
     .values({
       account_id: accountId,
       kind: "mail",
+      reason: "design",
       mail_outcome: "refused",
       sent: false,
       title: "An email couldn't be added",
@@ -42,6 +43,7 @@ export async function recordNothing(accountId: string, subject: string, leftOut:
     .values({
       account_id: accountId,
       kind: "mail",
+      reason: "design",
       mail_outcome: "nothing",
       sent: false,
       title: "Nothing filed from an email",
@@ -65,6 +67,7 @@ export async function recordOverLimit(accountId: string): Promise<void> {
     .values({
       account_id: accountId,
       kind: "mail",
+      reason: "design",
       mail_outcome: "over_limit",
       sent: false,
       title: "Too many emails today",
@@ -172,7 +175,7 @@ export async function recordMailTurn(trx: Executor, accountId: string, messageId
   } else {
     await trx
       .insertInto("activity")
-      .values({ account_id: accountId, kind: "mail", sent: false, turn_id: turnId, message_id: messageId, ...row })
+      .values({ account_id: accountId, kind: "mail", sent: false, reason: "design", turn_id: turnId, message_id: messageId, ...row })
       .execute();
   }
 }
