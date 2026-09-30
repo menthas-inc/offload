@@ -107,7 +107,7 @@ export interface Colors {
   inverse: string;
 }
 
-function paletteFor(dark: boolean): Colors {
+export function paletteFor(dark: boolean): Colors {
   const base = dark ? resolved.dark : resolved.light;
   const m3 = dark ? android.dark : android.light;
   // The base scope resolves every key in both themes, but `resolved.dark` is
@@ -135,7 +135,11 @@ function paletteFor(dark: boolean): Colors {
     tabOn: isAndroid ? m3["a-on"]! : base["text-primary"] ?? light["text-primary"]!,
     tabOff: isAndroid ? m3["a-on-quiet"]! : base["text-tertiary"] ?? light["text-tertiary"]!,
     accentSoft: base["surface-accent-soft"] ?? light["surface-accent-soft"]!,
-    scrim: base["ink-950"] ?? light["ink-950"]!,
+    // **Dark ink in both themes.** The ramp flips, and in dark `ink-950` is
+    // #EDEDED: every scrim dimmed the page to white and the conversation's
+    // receded page sat on a white ground under light status bar text. A dim is
+    // a dim on either ground, as `--surface-scrim` is in both scopes.
+    scrim: light["ink-950"]!,
     page: isAndroid ? m3["a-surface"]! : base["surface-page"] ?? light["surface-page"]!,
     danger: base["text-danger"] ?? light["text-danger"]!,
     ink: base["text-primary"] ?? light["text-primary"]!,

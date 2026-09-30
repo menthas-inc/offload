@@ -184,10 +184,13 @@ honour a consistency nobody asked for.
   is safe even if nothing ever answers.
 - **AC-23** The answer arrives without the stream. The stream is an optimisation over asking, and
   the phones ship on the fallback.
-- **AC-24** The conversation rises as a sheet with its own composer, folds to a header above the
-  main composer, and comes back. Folding loses no turn, no draft **and no live Undo toast**: an
-  eight second window that disappears because somebody tidied the screen is a window that was
-  not really eight seconds.
+- **AC-24** The conversation rises as a sheet with its own composer, is put away, and comes back.
+  Putting it away loses no turn, no draft **and no live Undo toast**: an eight second window that
+  disappears because somebody tidied the screen is a window that was not really eight seconds.
+  *Amended 2026-09-30 (the immersive conversation): there is no fold. The sheet rises to 54pt with
+  only a grabber and follows the finger; a release past a quarter or a flick closes it, keeping
+  the conversation, and a tap into the composer brings it back. One put away for thirty minutes
+  ends on the next tap or dump, since nothing on screen ends it any more.*
 - **AC-25** 👀 means offload has it. Done means offload **did** something, from the record rather
   than from the reply.
 - **AC-26** A turn that filed something offers Undo for eight seconds. A turn that filed nothing
@@ -207,14 +210,18 @@ honour a consistency nobody asked for.
 - **AC-29c** On the three tabs the composer and the tab bar are in one plate, so the keyboard
   raises both. **The tab bar hides while typing rather than riding up glued under the field.**
   A thread screen sidesteps this by having no tab bar; the tabs do not, and the kit cannot show
-  it.
+  it. *Amended 2026-09-30: a thread keeps its tabs, and the plate keeps its shape under the
+  keyboard. The keyboard covers the tabs first and the plate rides it only once it reaches the
+  composer, so no keyboard, the conversation's included, re-lays the plate out.*
 - **AC-29a** The same for **the memory editor**, once the memory chip's open state is designed.
 - **AC-29b** The same for **renaming a thread**. Renaming is a capability on web and the phone
   kit draws no affordance for it at all, so it enters scope here, in the `ellipsis` sheet.
   *Split into three because one compound criterion covering three surfaces cannot attribute a
   failure to any of them, and two of the three do not exist yet.*
 - **AC-30** The conversation sheet and the plate move with the keyboard rather than being covered
-  by it, and the fold still works with it up.
+  by it, and the fold still works with it up. *Amended 2026-09-30: the sheet's composer and its
+  transcript ride the keyboard inside a sheet of fixed height, and a drag closes it with the
+  keyboard up, the two leaving together. Every other sheet drags the same way; a drag is Cancel.*
 - **AC-31** Verified on Android specifically, where the app is edge to edge and `adjustResize` is
   ignored.
 

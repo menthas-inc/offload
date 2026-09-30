@@ -19,8 +19,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { useSharedValue, type SharedValue } from "react-native-reanimated";
-import { AppState, Keyboard, Linking, type AppStateStatus } from "react-native";
+import { runOnJS, runOnUI, useSharedValue, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
+import { closeSpring, openSpring, plateAway } from "../../lib/motion";
+import { PAST, startsFresh } from "../../lib/sheet";
+import { raisedOf, settled } from "../../lib/conversation-sheet";
+import { AppState, Linking, type AppStateStatus } from "react-native";
 import { useAudioRecorder } from "expo-audio";
 import * as ImagePicker from "expo-image-picker";
 import { plainText } from "@offload/markup";
@@ -67,6 +70,7 @@ import {
   sweepRecordings,
   type Recording,
 } from "../../lib/recorder";
+import { putKeyboardAway } from "../../lib/keyboard";
 
 /** What a `+` pinned the composer to. Set only by a `+`, never chosen from
  *  inside the field: a section's `+` writes to that section in that thread and
@@ -197,13 +201,23 @@ interface Undoable {
 
 export interface Conversation {
   live: Live | null;
-  folded: boolean;
-  /** Whether the sheet should be up: a live conversation that is not folded,
-   *  or a pin, which never folds. Computed once here rather than at each of
-   *  the sheet, its scrim and the plate, because the three disagreeing is
-   *  exactly how a pin ended up with two composers on screen at once during
-   *  this feature's own build. */
+  /** Whether the sheet is up: a live conversation that is open, or a pin.
+   *  Computed once here rather than at each of the sheet, its scrim and the
+   *  plate, because the three disagreeing is exactly how a pin ended up with
+   *  two composers on screen at once during this feature's own build.
+   *
+   *  **It follows the animation, never leads it** (30 September 2026). A
+   *  close from the grabber, the scrim or back runs the sheet to the edge
+   *  first and only then sets this false. */
   raised: boolean;
+  /** The sheet's one position, in pixels on the UI thread: 0 is open, its
+   *  travel closed. The sheet, its scrim, the page behind and the tab bar
+   *  all read it, so a finger moves all of them in the same frame. */
+  sheetY: SharedValue<number>;
+  sheetTravel: SharedValue<number>;
+  /** Where the sheet was last sent, so a change of `raised` from anywhere
+   *  animates it once and never restarts a spring already heading there. */
+  sheetGoal: SharedValue<number>;
   turns: Turn[];
   writing: boolean;
   /** 017. The turn in flight, if one is: what offload is doing and how long it
@@ -277,8 +291,15 @@ export interface Conversation {
    *  which only the mounted composer can do. Bumped per arrival; the composer
    *  consumes it. */
   focusRequest: number;
-  fold: () => void;
-  raise: () => void;
+  /** Bring the conversation back, from a tap on the plate's composer.
+   *  False when there is none to bring back: never one, or one put away for
+   *  thirty minutes, which this ends so the next dump starts a new one. */
+  raise: (options?: { focus?: boolean }) => boolean;
+  /** Put the sheet away, keeping the conversation: the thread pill, an
+   *  answer's thread. A pin goes, since a pin put away is a pin dismissed. */
+  lower: () => void;
+  /** The sheet reached its closed edge under a finger or back. */
+  settle: () => void;
   /** A `+` raising the composer pinned to its own thread and write. */
   raiseFor: (pin: Pin) => void;
   /** A thread screen saying it is open, or null as it leaves. */
@@ -296,9 +317,18 @@ export interface Conversation {
    *  arrived a few hundred milliseconds after the sheet, by which time the
    *  sheet's keyboard had carried the plate up over it. */
   sheetCount: SharedValue<number>;
-  /** 1 while the composer's own field has focus: the plate rides the keyboard
-   *  then and at no other time. */
+  /** 1 while the plate's own field has the keyboard: the plate rides the
+   *  keyboard then and at no other time. Set by the field's focus, cleared by
+   *  the shell once that keyboard has gone, and by anything that takes the
+   *  plate's place (the conversation, a screen sheet). */
   composerFocused: SharedValue<number>;
+  /** The plate's tabs and the inset under them: what the keyboard covers
+   *  before it reaches the composer. */
+  plateFoot: SharedValue<number>;
+  /** The native tag of the plate's field, so the shell can tell on the UI
+   *  thread, from the keyboard's own event, whether a keyboard is the
+   *  plate's. */
+  plateInput: SharedValue<number>;
   /** When the last screen sheet closed. Android hands a closing sheet's focus
    *  to the composer, and the composer gives it straight back. */
   sheetClosedAt: { current: number };
@@ -357,7 +387,18 @@ export function ConversationProvider({
   children: React.ReactNode;
 }) {
   const [live, setLive] = useState<Live | null>(null);
-  const [folded, setFolded] = useState(false);
+  // Whether the conversation's sheet is up. There is no fold any more (30
+  // September 2026): a conversation is raised or put away, and put away it
+  // keeps its turns and its draft here.
+  const [open, setOpen] = useState(false);
+  // When it was put away, for the thirty minute rule. Null while it is up.
+  const closedAt = useRef<number | null>(null);
+  // A stale conversation's end, awaited by the next dump so the server has
+  // closed it before the dump asks which conversation it joins.
+  const stopping = useRef<Promise<void> | null>(null);
+  const sheetY = useSharedValue(10_000);
+  const sheetTravel = useSharedValue(0);
+  const sheetGoal = useSharedValue(10_000);
   const [turns, setTurns] = useState<Turn[]>([]);
   // 020. The photos in the draft, the draft's own key, whether they came
   // through the share sheet, and the one line under the composer.
@@ -401,6 +442,8 @@ export function ConversationProvider({
   const [sheets, setSheets] = useState(0);
   const sheetCount = useSharedValue(0);
   const composerFocused = useSharedValue(0);
+  const plateFoot = useSharedValue(0);
+  const plateInput = useSharedValue(-1);
   const sheetClosedAt = useRef(0);
   const openSheet = useCallback(() => setSheets((open) => open + 1), []);
   const closeSheet = useCallback(() => setSheets((open) => Math.max(0, open - 1)), []);
@@ -526,10 +569,6 @@ export function ConversationProvider({
   const polls = useRef(new Map<string, ReturnType<typeof awaitAnswer>>());
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const raiseFor = useCallback((next: Pin) => {
-    setDraft("");
-    setPin(next);
-  }, []);
 
   const dismissPin = useCallback(() => {
     // Synchronously, so the shortcut's "release the pin, then record" in one
@@ -537,6 +576,121 @@ export function ConversationProvider({
     pinRef.current = null;
     setPin(null);
   }, []);
+
+  const raised = raisedOf({ pinned: pin !== null, live: live !== null, open });
+  // For callbacks that run after a render has moved on: a spring's end, a
+  // share arriving in the same tick as the call that raises for it.
+  const raisedRef = useRef(raised);
+  raisedRef.current = raised;
+  const liveRef = useRef(live);
+  liveRef.current = live;
+
+  /** Send the sheet open or closed, on the UI thread. Idempotent: a spring
+   *  already heading there is left alone, so a state change arriving after
+   *  the finger has done the work does not restart anything. `after` runs
+   *  once it is closed. */
+  const springTo = useCallback(
+    (up: boolean, after?: () => void) => {
+      runOnUI((toOpen: boolean) => {
+        "worklet";
+        const travel = sheetTravel.value;
+        const goal = toOpen ? 0 : travel + PAST;
+        // Already down: say so, even if the goal says it was sent there, so a
+        // close asked for again always settles.
+        if (!toOpen && (travel <= 0 || sheetY.value >= travel)) {
+          sheetGoal.value = goal;
+          if (after) runOnJS(after)();
+          return;
+        }
+        if (sheetGoal.value === goal) return;
+        sheetGoal.value = goal;
+        // Never from further away than its own height: the first raise
+        // starts from well off the screen.
+        if (toOpen && sheetY.value > travel) sheetY.value = travel;
+        sheetY.value = withSpring(goal, toOpen ? openSpring : closeSpring, (done) => {
+          if (done && !toOpen && after) runOnJS(after)();
+        });
+      })(up);
+    },
+    [sheetGoal, sheetTravel, sheetY],
+  );
+
+  // Whatever changed `raised`, the sheet follows it. Before paint, so the
+  // spring starts in the frame that shows the change.
+  useLayoutEffect(() => {
+    springTo(raised);
+    // The plate is under the sheet now, and its field hands the keyboard on.
+    if (raised) composerFocused.value = withTiming(0, plateAway);
+  }, [raised, springTo, composerFocused]);
+
+  /** End the conversation: this subject is over, so the next dump starts a
+   *  new one however soon it arrives. Since 30 September nothing on screen
+   *  does this; a conversation put away for thirty minutes ends itself on
+   *  the next tap into the composer or the next dump. */
+  const end = useCallback(() => {
+    setLive(null);
+    setTurns([]);
+    setOpen(false);
+    closedAt.current = null;
+    const request = endConversation().finally(() => {
+      if (stopping.current === request) stopping.current = null;
+    });
+    stopping.current = request;
+  }, []);
+
+  // **Both start the sheet from the press**, before React has rendered the
+  // change, as the handoff asks. Left to the effect, the rise waited on a
+  // render that took a quarter of a second in a development build, and a sheet
+  // leaving on the UI thread (the action that raised a pin) left a gap with no
+  // scrim between the two.
+  const raiseFor = useCallback(
+    (next: Pin) => {
+      setDraft("");
+      setPin(next);
+      springTo(true);
+    },
+    [springTo],
+  );
+
+  /** Open the conversation if there is one to open. */
+  const bringBack = useCallback((): boolean => {
+    if (startsFresh(closedAt.current, Date.now())) {
+      end();
+      return false;
+    }
+    if (liveRef.current === null) return false;
+    closedAt.current = null;
+    setOpen(true);
+    // From the press, and mid-close too, where `raised` is still true and
+    // would not change.
+    springTo(true);
+    return true;
+  }, [end, springTo]);
+
+  const raise = useCallback(
+    (options?: { focus?: boolean }): boolean => {
+      const back = bringBack();
+      if (back && options?.focus) setFocusRequest((n) => n + 1);
+      return back;
+    },
+    [bringBack],
+  );
+
+  /** The sheet is at its closed edge: now say so. Both reasons it was up end
+   *  together (`settled`): clearing only the pin once left a conversation
+   *  that had opened underneath it "up" with the sheet off the screen. */
+  const settle = useCallback(() => {
+    const was = { pinned: pinRef.current !== null, live: liveRef.current !== null, open: true };
+    const next = settled(was);
+    if (!next.pinned && was.pinned) dismissPin();
+    setOpen(next.open);
+    if (was.live) closedAt.current = Date.now();
+  }, [dismissPin]);
+
+  const lower = useCallback(() => {
+    putKeyboardAway();
+    springTo(false, settle);
+  }, [settle, springTo]);
 
   // The conversation as the database has it, so reopening the app does not look
   // like a fresh account.
@@ -574,6 +728,11 @@ export function ConversationProvider({
             did: (message.threads?.length ?? 0) > 0,
           })),
         );
+        // A conversation to come back to, put away as of its last message:
+        // the thirty minute rule reads this after a cold start.
+        setLive((current) => current ?? { title: "" });
+        const last = tail[tail.length - 1]?.createdAt;
+        if (closedAt.current === null) closedAt.current = last ? Date.parse(last) : Date.now();
       } catch (error) {
         failed("conversation.tail", error);
       }
@@ -814,7 +973,9 @@ export function ConversationProvider({
         }
         viaShare.current = true;
         setPin(null);
-        setFolded(false);
+        // Into the conversation if there is one to go back to, into the
+        // plate's composer if not; the focus goes to whichever is on top.
+        bringBack();
         setFocusRequest((n) => n + 1);
       }
       setPhotos((current) => {
@@ -1010,7 +1171,12 @@ export function ConversationProvider({
 
     setLine(null);
     setWriting(true);
-    if (!live) {
+    // A conversation put away for thirty minutes is over: end it, and wait
+    // for the end to land so this dump cannot join it on the server.
+    const fresh = !raisedRef.current && startsFresh(closedAt.current, Date.now());
+    if (fresh) end();
+    if (stopping.current) await stopping.current;
+    if (!live || fresh) {
       // One line in the header, whatever the dump's own breaks.
       const line = (
         text ||
@@ -1024,7 +1190,8 @@ export function ConversationProvider({
         .trim();
       setLive({ title: line.length > 40 ? `${line.slice(0, 40)}...` : line });
     }
-    setFolded(false);
+    closedAt.current = null;
+    setOpen(true);
 
     // **The bubble appears at the press.** The send takes a second or more on
     // a phone, and for that second the conversation used to show nothing,
@@ -1279,21 +1446,16 @@ export function ConversationProvider({
     [watch],
   );
 
-  const close = useCallback(() => {
-    // Closing is a statement, not a tidy-up: this subject is over, so the next
-    // dump starts a conversation rather than joining this one however soon it
-    // arrives. Folding is the opposite and says nothing to the server.
-    setLive(null);
-    setFolded(false);
-    void endConversation();
-  }, []);
+  const close = end;
 
   return (
     <ConversationContext.Provider
       value={{
         live,
-        folded,
-        raised: pin !== null || (live !== null && !folded),
+        raised,
+        sheetY,
+        sheetTravel,
+        sheetGoal,
         turns,
         writing,
         working,
@@ -1306,6 +1468,8 @@ export function ConversationProvider({
         sheetOpen: sheets > 0,
         sheetCount,
         composerFocused,
+        plateFoot,
+        plateInput,
         sheetClosedAt,
         openSheet,
         closeSheet,
@@ -1330,8 +1494,9 @@ export function ConversationProvider({
         openPhoto: (turnId, index) => setPhotoOpen({ turnId, index }),
         closePhoto: () => setPhotoOpen(null),
         focusRequest,
-        fold: () => setFolded(true),
-        raise: () => setFolded(false),
+        raise,
+        lower,
+        settle,
         raiseFor,
         dismissPin,
         close,
@@ -1367,19 +1532,32 @@ export function ConversationProvider({
  *  caller: a sheet that closes itself would otherwise leave the plate hidden.
  */
 export function useScreenSheet(open: boolean): void {
-  const { openSheet, closeSheet, sheetCount, sheetClosedAt } = useConversation();
+  const { openSheet, closeSheet, sheetCount, sheetClosedAt, composerFocused } = useConversation();
   // Before the sheet's first frame, so the plate starts leaving with it.
   useLayoutEffect(() => {
     if (!open) return;
-    sheetCount.value = sheetCount.value + 1;
+    // **Counted on the UI thread, never read and written from JS.** One sheet
+    // leaving as the next arrives, an action opening the edit sheet, is two
+    // changes in one tick; read on JS the second saw the value before the
+    // first had landed, the count ended one high, and the plate stayed off
+    // the screen for good.
+    runOnUI(() => {
+      "worklet";
+      sheetCount.value += 1;
+    })();
+    // A sheet's keyboard is not the plate's, even if the plate had it.
+    composerFocused.value = withTiming(0, plateAway);
     openSheet();
     // A sheet takes its keyboard with it. Left up, Android handed the closing
     // field's focus to the composer and the keyboard stayed for it.
     return () => {
-      Keyboard.dismiss();
+      putKeyboardAway();
       sheetClosedAt.current = Date.now();
-      sheetCount.value = Math.max(0, sheetCount.value - 1);
+      runOnUI(() => {
+        "worklet";
+        sheetCount.value = Math.max(0, sheetCount.value - 1);
+      })();
       closeSheet();
     };
-  }, [open, openSheet, closeSheet, sheetCount, sheetClosedAt]);
+  }, [open, openSheet, closeSheet, sheetCount, sheetClosedAt, composerFocused]);
 }

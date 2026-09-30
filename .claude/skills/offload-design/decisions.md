@@ -11,6 +11,31 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-30 · The immersive conversation as built, and what the build changed
+**Surface:** iOS, Android
+**Was:** `handoff/APPLY-2026-09-29-conversation-sheet.md` as drawn.
+**Is:** Built to the handoff, with these differences, each found on the simulator frame by frame. **Every sheet drags**, not only the row sheets: Move, Calendars, Share, Confirm, the label list, the note editor and the rename sheet take the same grabber and `DragSheet`, at the owner's call. **A conversation put away for thirty minutes ends** on the next tap into the composer or the next dump, which then starts a new one; with the x gone nothing else ended one (owner, 30 September). **Android back** is predictive app-wide, and a full back swipe pulls a sheet down by 30% of its travel before the commit closes it. **The keyboard never changes the plate's shape**: the old "clears to the composer alone" is gone; the keyboard covers the tabs first and the plate rides it only once it reaches the composer. **A sheet's field is focused as the sheet starts to rise**, not on mount, and a sheet opens from the keyboard's edge, so the two move as one. **A pin's "In thread" chip rides the keyboard** on top of the composer. The Android grabber is M3's 32 by 4 and does not widen when held, as the exploration draws it; iOS keeps 36 and widens to 44. **The thirty minute end is the phones' alone**: the web keeps its close and the server still joins anything inside six hours, so the same account can be in a new conversation on the phone and the old one on the web. **The scrim is dark ink in both themes**: it was the `ink-950` ramp, which is #EDEDED in dark, so every phone sheet dimmed to white. The grabber is the Close button to screen readers, since the scrim is outside a sheet's modal region.
+**Why:** each was a visible fault otherwise: a keyboard up a quarter second before its sheet, a plate that re-laid itself out twice under the conversation's keyboard, a pin's chip under its own field, and conversations that never ended.
+**Design system impact:** `readme.md` *A raised conversation follows the finger*: add the thirty minute end, the 30% back pull, and "every sheet", not "every row sheet". *The bottom plate is a fixed shape*: add that the keyboard covers the tabs and the plate rides it from the composer up. `Sheet.prompt.md`: the grabber is on every sheet, and a field in a sheet is focused as it opens. The mobile kit redraw (5A) should draw the plate under a keyboard with the tabs behind it. **Motion**: a dragged sheet moves on a spring, stiffness 380 and damping 36 from the release speed, which no token names; `--duration-sheet` and `--ease-entrance` now govern only the plate sliding off for a screen sheet. `Sheet.jsx` still animates `offload-rise` on them, and wants a `--spring-sheet` or a note.
+
+### 2026-09-29 · The code's entries of 26 to 29 September, folded in
+**Surface:** iOS, Android, web
+**Raised by:** the code entries of 26 to 29 September and 025's as-built entry.
+
+**Is:** `readme.md` gains **The row and its sheet** (a tap opens the sheet and phone rows draw no tools, an `ellipsis` on a link, top alignment on the title line, no details anywhere, pictures at 50 and 72, the handle space and the finished rule, the one edit sheet with panels in place, the three-pill foot, the note row, the thread's line, "thing" retired). **Labels** is rewritten to what shipped: labels from the edit sheet, `tag` in the app bar with no labels and no filter-bar empty state, no fade, the colour swap, the empty line, the no-noun copy, the 30px footer mark, the web's three ways to hold, the calendar's marks, the map waiting, the nightly sort off. **The timeline** is a month at a time with a picked calendar's hollow rings and the 16px anchors. `LabelMark` takes `size={30}`; the `Chip`, `AppBar` (up to four), `Sheet` and `RowActionSheet` contracts match the code.
+
+**Design system impact:** the kit screens are not redrawn in this pass; that is decision 5 in `explorations/immersive-conversation-decisions.html`.
+
+### 2026-09-30 · A more immersive conversation (idea 1)
+**Surface:** iOS, Android
+**Raised by:** the product owner, after Meta's Muse.
+
+**Is:** the sheet rises to 54px, loses its header row for a grabber, follows the finger with the scrim, the receding page and the tab bar tied to it, and a thread keeps its tabs. Decided 30 September: **no fold** (a release closes; the composer brings the same conversation back); **every row sheet drags** with the same physics and a drag is Cancel; the turn footer is unchanged; only the conversation recedes the page, and **on Android nothing recedes**: the page dims under a 55% scrim, for frame cost, the status bar and the platform's own sheet; phones only. `handoff/APPLY-2026-09-29-conversation-sheet.md` carries the why-it-janks reading of `Conversation.tsx` and the one-shared-value build.
+
+**Considered and not taken:** keeping the fold, a conversation glyph in the composer, a row chip in the footer opening its sheet stacked on the conversation, every sheet receding the page, a web pass.
+
+**Design system impact:** `Sheet`'s grabber is on every row sheet and draggable; the readme's conversation states lose *folded*. The mobile kit is redrawn next (5A).
+
 ### 2026-09-29 · To do's finished rows sit under a rule, in line with the rest
 **Surface:** iOS, Android, web
 

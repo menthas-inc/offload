@@ -18,16 +18,14 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from "@react-native-community/datetimepicker";
-import Animated from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { formatRule, monthFor, parseRule, presetsFor, stepMonth, type Preset } from "@offload/widgets";
 import { Glyph } from "../Glyph";
 import { Switch } from "../settings/Switch";
-import { atOpacity, useColors } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { useWeekStart } from "../../lib/appearance";
 import { useClock } from "../../lib/clock";
 import { anHourAfter, clockLabel, repeatsLabel, type WhenValue } from "../../lib/when";
-import { useScreenSheet } from "./conversation-context";
+import { DragSheet } from "./DragSheet";
 import { CustomRepeatSheet } from "./CustomRepeatSheet";
 import { SheetFoot } from "./SheetFoot";
 
@@ -82,30 +80,12 @@ export function WhenSheet({
   onSave: (value: WhenValue) => void;
 }) {
   const { height: windowHeight } = useWindowDimensions();
-  const COLOR = useColors();
-  useScreenSheet(open);
   const scroll = useRef<ScrollView>(null);
   const [custom, setCustom] = useState<CustomAsk | null>(null);
   if (!open) return null;
   return (
     <>
-      <Animated.View
-        entering={scrimIn()}
-        exiting={scrimOut()}
-        className="absolute inset-0"
-        style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
-      >
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
-      </Animated.View>
-
-      <Animated.View
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 pb-space-8 pt-space-3 ${
-          isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"
-        }`}
-        style={{ maxHeight: windowHeight * 0.88 }}
-      >
+      <DragSheet onClose={onClose} className="pb-space-8" sheetStyle={{ maxHeight: windowHeight * 0.88 }}>
         <ScrollView ref={scroll} contentContainerClassName="px-gutter-screen" keyboardShouldPersistTaps="handled">
           <WhenPanel
             title={title}
@@ -119,7 +99,7 @@ export function WhenSheet({
             onScrollTo={(y) => scroll.current?.scrollTo({ y, animated: false })}
           />
         </ScrollView>
-      </Animated.View>
+      </DragSheet>
 
       <CustomFor ask={custom} onClose={() => setCustom(null)} />
     </>

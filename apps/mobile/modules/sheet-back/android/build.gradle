@@ -1,0 +1,21 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'club.offload'
+version = '1.0.0'
+
+android {
+  namespace "club.offload.sheetback"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
+
+dependencies {
+  // BackEventCompat and handleOnBackProgressed arrived in 1.8. The app
+  // already carries a newer one through React Native; this is the floor.
+  implementation "androidx.activity:activity:1.8.0"
+}

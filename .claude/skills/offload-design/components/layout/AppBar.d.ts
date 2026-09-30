@@ -6,10 +6,11 @@ export interface AppBarProps {
   /** Leading slot, usually a back IconButton. */
   left?: React.ReactNode;
   /**
-   * Trailing slot, **up to three IconButtons**, by the same criterion the web pane head
+   * Trailing slot, **up to four IconButtons**, by the same criterion the web pane head
    * uses: a tool earns a bar slot only if it changes what offload reads or shows.
-   * Anything that acts on the thread goes in More. On a thread that is share, the
-   * calendar when the account has a connection, and More.
+   * Anything that acts on the thread goes in More. On a thread that is `tag` while the
+   * thread has no labels (Group with labels), Share, the calendar when the account has a
+   * connection, and More.
    */
   right?: React.ReactNode;
   /** Hairline at the bottom edge. */

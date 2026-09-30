@@ -13,18 +13,16 @@
 // named. A thread with nothing approved gets one row, to Connected apps.
 //
 // The plate is above the router and would paint over this, which is why it
-// says it is up through `useScreenSheet`, as every screen sheet does.
+// says it is up through `DragSheet`, as every screen sheet does.
 
 import { useEffect, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
-import Animated from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useRouter } from "expo-router";
 import { Glyph } from "../Glyph";
 import { CalendarRow } from "../settings/CalendarRow";
-import { atOpacity, SCRIM_OPACITY, useColors } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { fetchThreadCalendars, setThreadCalendar, type ThreadCalendars } from "../../lib/threads";
-import { useScreenSheet } from "./conversation-context";
+import { DragSheet } from "./DragSheet";
 
 const isAndroid = Platform.OS === "android";
 const FAILED = "That did not go through. Try again.";
@@ -82,7 +80,6 @@ export function CalendarsSheet({
   const router = useRouter();
   const [list, setList] = useState<ThreadCalendars | null>(null);
   const [failed, setFailed] = useState(false);
-  useScreenSheet(open);
 
   useEffect(() => {
     if (!open) return;
@@ -112,26 +109,11 @@ export function CalendarsSheet({
 
   return (
     <>
-      <Animated.View
-        entering={scrimIn()}
-        exiting={scrimOut()}
-        className="absolute inset-0"
-        style={{ backgroundColor: atOpacity(COLOR.scrim, SCRIM_OPACITY) }}
+      <DragSheet
+        onClose={onClose}
+        surface={isAndroid ? "rounded-t-a-sheet bg-a-c-low" : "rounded-t-sheet bg-surface-raised"}
+        className="px-gutter-screen pb-space-8 pt-space-2"
       >
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
-      </Animated.View>
-
-      <Animated.View
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 px-gutter-screen pb-space-8 pt-space-5 ${
-          isAndroid ? "rounded-t-a-sheet bg-a-c-low" : "rounded-t-sheet bg-surface-raised"
-        }`}
-        accessibilityViewIsModal
-      >
-        <View className="items-center pb-space-6">
-          <View className={`rounded-pill ${isAndroid ? "bg-a-outline" : "bg-border-strong"}`} style={{ width: 36, height: 4 }} />
-        </View>
         <Text
           className={`pb-space-5 font-core font-semibold ${isAndroid ? "text-a-on" : "text-text-primary"}`}
           style={{ fontSize: 21, lineHeight: 26 }}
@@ -200,7 +182,7 @@ export function CalendarsSheet({
             ) : null}
           </>
         )}
-      </Animated.View>
+      </DragSheet>
     </>
   );
 }

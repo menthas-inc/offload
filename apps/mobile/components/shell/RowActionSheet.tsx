@@ -20,12 +20,10 @@
 // somebody a rule that is not true. It pairs with `SwipeRow`, which stays
 // delete-only.
 
-import { Platform, Pressable, Text, View } from "react-native";
-import Animated from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
+import { Platform, Pressable, Text } from "react-native";
 import { Glyph } from "../Glyph";
-import { atOpacity, useColors } from "../../lib/colors";
-import { useScreenSheet } from "./conversation-context";
+import { useColors } from "../../lib/colors";
+import { DragSheet } from "./DragSheet";
 
 const isAndroid = Platform.OS === "android";
 
@@ -56,29 +54,10 @@ export function RowActionSheet({
   onClose: () => void;
 }) {
   const COLOR = useColors();
-  // The plate is above the router and would paint over this. Before the early
-  // return, because a hook is not optional.
-  useScreenSheet(open);
   if (!open) return null;
 
   return (
-    <>
-      <Animated.View
-        entering={scrimIn()}
-        exiting={scrimOut()}
-        className="absolute inset-0"
-        style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
-      >
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
-      </Animated.View>
-
-      <Animated.View
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 pb-space-8 pt-space-3 ${
-          isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"
-        }`}
-      >
+    <DragSheet onClose={onClose} className="pb-space-8">
         {subject ? (
           <Text
             className="px-gutter-screen pb-space-3 font-core text-text-tertiary"
@@ -128,7 +107,6 @@ export function RowActionSheet({
             ) : null}
           </Pressable>
         ))}
-      </Animated.View>
-    </>
+    </DragSheet>
   );
 }

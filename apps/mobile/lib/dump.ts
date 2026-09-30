@@ -157,6 +157,9 @@ export interface TailMessage {
   voice?: VoiceOnWire | null;
   state: MessageState;
   turnId: string;
+  /** When it was sent; the thirty minute rule reads the last one after a
+   *  cold start. Absent from an API older than 30 September 2026. */
+  createdAt?: string;
   waiting?: WaitingOn | null;
   question?: QuestionOnWire | null;
   found?: FoundResult[];

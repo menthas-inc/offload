@@ -1,4 +1,4 @@
-A long press on a content row opens this; a swipe still deletes. Sheet's geometry, an action list instead of a body.
+A long press on a content row opens this, and so does a tap on somebody else's row, which has no edit sheet; a swipe still deletes. In a thread it carries When, Edit, **Labels**, Move, Mark done and the one way out, in that order. Sheet's geometry, an action list instead of a body.
 
 Never draw an action this account cannot take. On web the same set belongs behind the row's More glyph rather than in a sheet.
 

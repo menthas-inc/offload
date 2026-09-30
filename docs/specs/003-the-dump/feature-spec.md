@@ -67,7 +67,7 @@ The model call is retried once. If it fails twice the composer says so, in a lin
 **The loop**
 
 - **AC-1** A dump is stored before any processing begins, and is still stored if every subsequent step fails. A person who sends a dump and immediately loses connectivity finds it in their history on next load.
-- **AC-2** A dump joins the account's most recent conversation when that conversation's last message is under six hours old, and starts a new conversation when it is older or when none exists.
+- **AC-2** A dump joins the account's most recent conversation when that conversation's last message is under six hours old, and starts a new conversation when it is older or when none exists. *Amended 2026-09-30: thirty minutes, on every surface. The phones end a conversation put away that long and have no close, and six hours carried the last subject into the next.*
 - **AC-3** A sent message shows as seen until it is answered, and as answered once the reply lands. The two states are distinguishable in the API response, not inferred by the client from the presence of a reply. `queued` is internal and never observed by a client.
 - **AC-4** The reply arrives without the client polling for it, and a client that disconnects and reconnects before the reply lands still receives it. A client that was disconnected when it landed can fetch it from a plain endpoint.
 - **AC-5** A failed model call is retried once. After a second failure the message is marked failed, the person is told in a persistent affordance rather than a toast, and the dump is still present and readable.

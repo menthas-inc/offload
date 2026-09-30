@@ -8,12 +8,10 @@
 import { useState } from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import Animated from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { WEEKDAYS, formatRule, noonUtc, parseRule, utcDay, type Freq, type Rule, type Weekday } from "@offload/widgets";
 import { Glyph } from "../Glyph";
-import { atOpacity, useColors } from "../../lib/colors";
-import { useScreenSheet } from "./conversation-context";
+import { useColors } from "../../lib/colors";
+import { DragSheet } from "./DragSheet";
 
 const isAndroid = Platform.OS === "android";
 const UNITS: { freq: Freq; one: string; many: string }[] = [
@@ -84,7 +82,6 @@ export function CustomRepeatSheet({
 }) {
   const COLOR = useColors();
   const { height: windowHeight } = useWindowDimensions();
-  useScreenSheet(open);
 
   const parsed = initial ? parseRule(initial) : null;
   const start: Rule = parsed?.ok ? parsed.rule : { freq: "WEEKLY", interval: 1, byDay: [weekdayOf(anchorDay)] };
@@ -119,15 +116,7 @@ export function CustomRepeatSheet({
 
   return (
     <>
-      <Animated.View entering={scrimIn()} exiting={scrimOut()} className="absolute inset-0" style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}>
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
-      </Animated.View>
-      <Animated.View
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 pb-space-8 pt-space-3 ${isAndroid ? "rounded-t-a-xl bg-a-c-low" : "rounded-t-lg bg-surface-raised"}`}
-        style={{ maxHeight: windowHeight * 0.88 }}
-      >
+      <DragSheet onClose={onClose} className="pb-space-8" sheetStyle={{ maxHeight: windowHeight * 0.88 }}>
         <ScrollView contentContainerClassName="px-gutter-screen">
           <Text className={`font-core font-semibold ${rowInk}`} style={{ fontSize: 17 }}>
             Custom
@@ -245,7 +234,7 @@ export function CustomRepeatSheet({
             </Pressable>
           </View>
         </ScrollView>
-      </Animated.View>
+      </DragSheet>
     </>
   );
 }

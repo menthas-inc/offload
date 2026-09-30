@@ -1,0 +1,116 @@
+<!doctype html><html data-theme="light"><head><meta charset="utf-8"><title>Immersive conversation: decisions for you</title>
+<link rel="stylesheet" href="../styles.css?v=20260929-dec">
+<link rel="stylesheet" href="frames.css?v=20260929-dec">
+<style>
+:root{--icon-on-well:var(--text-secondary);--tab-on:var(--text-primary);--tab-off:var(--text-tertiary)}
+.g{display:inline-block;width:18px;height:18px;flex:0 0 auto;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+.crop{width:320px;height:260px;flex:0 0 auto;border-radius:16px;overflow:hidden;border:1px solid var(--border-hairline);background:var(--surface-page);position:relative;color:var(--text-primary)}
+.crop.tall{height:420px}
+.rowl{padding:10px 16px;box-shadow:inset 0 -1px 0 var(--border-hairline);font:var(--weight-medium) 15px/21px var(--font-core);display:flex;gap:10px;align-items:center}
+.rowl .cb{width:19px;height:19px;border-radius:6px;border:1px solid var(--icon-on-well);box-sizing:border-box}
+.plate{position:absolute;left:0;right:0;bottom:0;background:var(--surface-plate);border-radius:18px 18px 0 0;box-shadow:0 -6px 12px rgb(11 11 11 / .08);padding-bottom:20px}
+.plate.flat{border-radius:0}
+.prism{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.prism i{position:absolute;left:-16%;right:-16%;top:0;bottom:0;background:url(../assets/prism/p2-band-1.png) center/100% 100% no-repeat;opacity:calc(var(--prism-alpha) * var(--prism-density))}
+.prism:after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgb(var(--prism-veil-rgb) / var(--prism-veil-full)) 0%,rgb(var(--prism-veil-rgb) / var(--prism-veil-top)) var(--prism-veil-edge),rgb(var(--prism-veil-rgb) / var(--prism-veil-top)) var(--prism-veil-hold),rgb(var(--prism-veil-rgb) / var(--prism-veil-full)) var(--prism-veil-reach),rgb(var(--prism-veil-rgb) / var(--prism-veil-full)) 100%)}
+.band{position:relative}
+.cw{position:relative;padding:12px 16px 8px}
+.pill{display:flex;align-items:center;gap:6px;min-height:44px;box-sizing:border-box;padding:0 6px 0 16px;border-radius:99px;background:var(--surface-input);border:1px solid var(--border-hairline);font:var(--weight-regular) 15px/1 var(--font-core);color:var(--text-tertiary)}
+.pill s{flex:1;text-decoration:none}
+.ib{width:32px;height:32px;border-radius:99px;display:flex;align-items:center;justify-content:center;color:var(--icon-on-well)}
+.ib.on{background:var(--surface-accent-soft);color:var(--text-accent)}
+.tabs{position:relative;display:flex}
+.tabs span{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font:var(--weight-medium) 11px/1 var(--font-core);color:var(--text-tertiary)}
+.tabs span.on{color:var(--text-primary)}.tabs .g{width:20px;height:20px}
+.fold{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border-hairline);font:var(--weight-medium) 14px/1.2 var(--font-core)}
+.fold b{flex:1;font-weight:500}.fold .g{width:17px;height:17px;color:var(--icon-on-well)}
+.scrim{position:absolute;inset:0;background:rgb(11 11 11 / .45)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface-raised);border-radius:18px 18px 0 0;box-shadow:var(--shadow-sheet);padding:12px 16px 22px}
+.grab{width:36px;height:4px;border-radius:99px;background:var(--border-strong);margin:0 auto 10px}
+.tf{border-radius:10px;border:1px solid var(--border-hairline);padding:6px 8px;font:var(--weight-semibold) 17px/1.3 var(--font-core)}
+.er{min-height:40px;display:flex;align-items:center;gap:6px;font:var(--weight-regular) 14px/1 var(--font-core)}
+.er>.g{color:var(--icon-on-well);width:16px;height:16px}.er span{flex:1}.er em{font-style:normal;color:var(--text-secondary)}
+.sfoot{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
+.pb{min-height:28px;display:inline-flex;align-items:center;gap:4px;padding:0 11px;border-radius:99px;border:1px solid var(--border-hairline);font:var(--weight-medium) 12.5px/1 var(--font-core);color:var(--text-secondary)}
+.pb.lead{margin-right:auto;color:var(--text-danger)}.pb.pri{background:var(--surface-inverse);color:var(--text-inverse);border-color:transparent}
+.conv{position:absolute;left:0;right:0;bottom:0;top:18px;background:var(--surface-plate);border-radius:18px 18px 0 0;padding:10px 16px}
+.conv.back{transform:translateY(-6px) scale(.95);transform-origin:50% 0;filter:brightness(.75)}
+.you{margin-left:auto;max-width:80%;padding:6px 11px;border-radius:14px 14px 4px 14px;background:var(--blue-50);border:1px solid var(--blue-100);font:var(--weight-regular) 14px/20px var(--font-core);color:var(--ink-950);margin-bottom:8px;width:fit-content}
+.ol{max-width:88%;padding:7px 11px;border-radius:14px 14px 14px 4px;background:var(--ink-50);font:var(--weight-regular) 15px/22px var(--font-quiet);width:fit-content}
+.tfoot{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.mk{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border-radius:99px;font:var(--weight-regular) 12px/1 var(--font-core)}
+.mk .g{width:12px;height:12px}
+.mk.th{background:var(--surface-accent-soft);color:var(--text-accent)}
+.mk.it{border:1px solid var(--border-strong);color:var(--text-primary)}
+.mk.done{background:var(--moss-600);color:#fff;font-weight:500;font-size:11px}
+.page{position:absolute;inset:0;background:var(--surface-page)}
+.page.recede{transform:translateY(8px) scale(.93);transform-origin:50% 0;border-radius:12px}
+.dark0{background:#0B0B0B}
+.opt{display:flex;flex-direction:column;gap:8px;max-width:320px}
+.opt h4{margin:0;font:var(--weight-semibold) 15px/1.3 var(--font-core);display:flex;gap:8px;align-items:center}
+.opt h4 .id{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;border-radius:6px;background:var(--surface-fill);font:var(--weight-semibold) 12px/1 var(--font-core)}
+.opt p{margin:0;font:var(--weight-regular) 13.5px/1.5 var(--font-core);color:var(--text-secondary)}
+.picked{display:inline-flex;align-items:center;gap:5px;font:var(--weight-semibold) 11px/1 var(--font-core);padding:4px 7px;border-radius:6px;background:var(--surface-inverse);color:var(--text-inverse)}.opt.no{opacity:.45}.lean{display:inline-flex;align-items:center;gap:5px;font:var(--weight-medium) 11px/1 var(--font-core);padding:4px 7px;border-radius:6px;background:var(--surface-accent-soft);color:var(--moss-700)}
+.ctx{max-width:680px;font:var(--weight-regular) 14px/1.55 var(--font-core);color:var(--text-secondary);margin:0 0 16px}
+.ctx b{color:var(--text-primary);font-weight:500}
+.opts{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
+.q{margin-bottom:56px}
+a{color:var(--blue-600)}a:hover{color:var(--blue-700)}
+</style></head><body><div class="wrap">
+<h1>Immersive conversation: decisions for you</h1>
+<p class="lede">Six calls that came out of drawing idea 1 over the app as it is on <code>main</code>. <b>Decided on 30 September: 1B, 2A, 3A, 4A, 5A, 6A.</b> The picks are folded into <a href="immersive-conversation.html">immersive-conversation.html</a> and the handoff.</p>
+
+<div class="q"><div class="sechead"><h2>1. What a release does: fold or close</h2></div>
+<p class="ctx"><b>Today</b> the sheet has three states: raised, <b>folded</b> to a row on the plate above the composer (the conversation's title and an x), and closed. Pulling it down folds it; the x closes it. Idea 1 took the header row out of the sheet, so it no longer says what folding is folding into.</p>
+<div class="opts">
+<div class="opt no"><div class="crop"><div class="rowl"><span class="cb"></span>Buy Viva Viagem cards</div><div class="rowl"><span class="cb"></span>Packing list</div><div class="plate"><div class="fold"><b>Lisbon to Paris, flights</b><i class="g" style="--ic:url(../assets/icons/x.svg)"></i></div><div class="band"><div class="prism"><i></i></div><div class="cw"><div class="pill"><s>Dump anything</s><span class="ib"><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i></span></div></div><div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>My threads</span><span><i class="g" style="--ic:url(../assets/icons/cloudy.svg)"></i>Notes</span></div></div></div></div>
+<h4><span class="id">1A</span>Keep the fold</h4><p>A release folds to the row it folds to now; a tap on the row raises it, the x closes. The sheet has no title, so the row is the one place the conversation is named.</p></div>
+<div class="opt"><div class="crop"><div class="rowl"><span class="cb"></span>Buy Viva Viagem cards</div><div class="rowl"><span class="cb"></span>Packing list</div><div class="plate"><div class="band"><div class="prism"><i></i></div><div class="cw"><div class="pill"><s>Dump anything</s><span class="ib"><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i></span></div></div><div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>My threads</span><span><i class="g" style="--ic:url(../assets/icons/cloudy.svg)"></i>Notes</span></div></div></div></div>
+<h4><span class="id">1B</span>Close, no fold <span class="picked">Picked</span><span class="lean">my lean</span></h4><p>A release closes it and the plate is as it always is. The turns and the draft are kept by the provider, so the next dump or a tap into the composer brings the same conversation back. One state fewer, and the plate's prism band never changes height.</p></div>
+<div class="opt no"><div class="crop"><div class="rowl"><span class="cb"></span>Buy Viva Viagem cards</div><div class="rowl"><span class="cb"></span>Packing list</div><div class="plate"><div class="band"><div class="prism"><i></i></div><div class="cw"><div class="pill"><s>Dump anything</s><span class="ib on"><i class="g" style="--ic:url(../assets/icons/message-circle.svg)"></i></span><span class="ib"><i class="g" style="--ic:url(../assets/icons/mic.svg)"></i></span></div></div><div class="tabs"><span class="on"><i class="g" style="--ic:url(../assets/icons/sun.svg)"></i>Today</span><span><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>My threads</span><span><i class="g" style="--ic:url(../assets/icons/cloudy.svg)"></i>Notes</span></div></div></div></div>
+<h4><span class="id">1C</span>Close, with a way back in the composer</h4><p>As 1B, and while a conversation is live the composer draws <code>message-circle</code> in moss, which raises it. Visible, no row, but a third glyph in the pill.</p></div>
+</div></div>
+
+<div class="q"><div class="sechead"><h2>2. Does the edit sheet drag like the conversation?</h2></div>
+<p class="ctx"><b>Today</b> the edit sheet has no grabber and slides in and out on a timing; it closes from the scrim, Cancel or Save. The label sheet opened alone has a grabber but does not follow a drag either.</p>
+<div class="opts">
+<div class="opt"><div class="crop tall"><div class="rowl"><span class="cb"></span>Packing list</div><div class="scrim"></div><div class="sheet"><div class="grab"></div><div class="tf">Packing list</div><div class="er"><i class="g" style="--ic:url(../assets/icons/calendar.svg)"></i><span>When</span><em>No date</em></div><div class="er"><i class="g" style="--ic:url(../assets/icons/clock.svg)"></i><span>Repeats</span></div><div class="er"><i class="g" style="--ic:url(../assets/icons/tag.svg)"></i><span>Labels</span><em>Lisbon, Istanbul</em></div><div class="sfoot"><span class="pb lead">Delete</span><span class="pb">Cancel</span><span class="pb pri">Save</span></div></div></div>
+<h4><span class="id">2A</span>Every sheet drags <span class="picked">Picked</span><span class="lean">my lean</span></h4><p>A grabber on every row sheet and the conversation's one physics: follows the finger, closes past a quarter or on a flick. A drag closes without saving, as Cancel does.</p></div>
+<div class="opt no"><div class="crop tall"><div class="rowl"><span class="cb"></span>Packing list</div><div class="scrim"></div><div class="sheet" style="padding-top:18px"><div class="tf">Packing list</div><div class="er"><i class="g" style="--ic:url(../assets/icons/calendar.svg)"></i><span>When</span><em>No date</em></div><div class="er"><i class="g" style="--ic:url(../assets/icons/clock.svg)"></i><span>Repeats</span></div><div class="er"><i class="g" style="--ic:url(../assets/icons/tag.svg)"></i><span>Labels</span><em>Lisbon, Istanbul</em></div><div class="sfoot"><span class="pb lead">Delete</span><span class="pb">Cancel</span><span class="pb pri">Save</span></div></div></div>
+<h4><span class="id">2B</span>As built</h4><p>Only the conversation drags. The edit sheet is a form with an explicit way out, and a drag that throws away an edit is a way to lose one.</p></div>
+</div></div>
+
+<div class="q"><div class="sechead"><h2>3. A thing named in a reply</h2></div>
+<p class="ctx"><b>Today</b> the turn footer carries Done, the thread pill and labels. The thread pill folds the conversation and opens the thread. The row offload just made or changed has no control of its own.</p>
+<div class="opts">
+<div class="opt"><div class="crop tall"><div class="conv"><div class="grab"></div><div class="you">add sunscreen to the packing list</div><div class="ol">Added it to the packing list.</div><div class="tfoot"><span class="mk done">Done</span><span class="mk th"><i class="g" style="--ic:url(../assets/icons/lasso.svg)"></i>Europe, October</span></div></div></div>
+<h4><span class="id">3A</span>As built <span class="picked">Picked</span><span class="lean">my lean</span></h4><p>The thread pill is the way to the thing. Keeps the footer to what the turn did and where; a person edits the row where it lives.</p></div>
+<div class="opt no"><div class="crop tall dark0"><div class="page recede"><div class="rowl"><span class="cb"></span>Packing list</div></div><div class="conv back"><div class="grab"></div><div class="you">add sunscreen to the packing list</div><div class="ol">Added it to the packing list.</div><div class="tfoot"><span class="mk done">Done</span><span class="mk th">Europe, October</span><span class="mk it"><i class="g" style="--ic:url(../assets/icons/square-check-big.svg)"></i>Packing list</span></div></div><div class="sheet"><div class="tf">Packing list</div><div class="er"><i class="g" style="--ic:url(../assets/icons/tag.svg)"></i><span>Labels</span><em>Lisbon</em></div><div class="sfoot"><span class="pb lead">Delete</span><span class="pb">Cancel</span><span class="pb pri">Save</span></div></div></div>
+<h4><span class="id">3B</span>The row in the footer, its sheet on top</h4><p>The footer names the row, and a tap opens its edit sheet stacked on the conversation, which steps back a level. Close it and you are back in the conversation. Two levels at most. Needs the turn to carry the row's id and a fourth kind of footer chip.</p></div>
+</div></div>
+
+<div class="q"><div class="sechead"><h2>4. Does any sheet make the page recede?</h2></div>
+<p class="ctx"><b>Proposed</b> in idea 1: only the conversation recedes the page. The edit and label sheets dim it and leave it in place, as they do today.</p>
+<div class="opts">
+<div class="opt"><div class="crop"><div class="rowl"><span class="cb"></span>Packing list</div><div class="rowl"><span class="cb"></span>Book the Sintra train</div><div class="scrim"></div><div class="sheet"><div class="tf">Packing list</div><div class="sfoot"><span class="pb lead">Delete</span><span class="pb">Cancel</span><span class="pb pri">Save</span></div></div></div>
+<h4><span class="id">4A</span>Only the conversation <span class="picked">Picked</span><span class="lean">my lean</span></h4><p>Receding is what says "you are somewhere else now". An edit is a quick tool over the list you are looking at.</p></div>
+<div class="opt no"><div class="crop dark0"><div class="page recede"><div class="rowl"><span class="cb"></span>Packing list</div><div class="rowl"><span class="cb"></span>Book the Sintra train</div></div><div class="scrim" style="background:rgb(11 11 11 / .25)"></div><div class="sheet"><div class="tf">Packing list</div><div class="sfoot"><span class="pb lead">Delete</span><span class="pb">Cancel</span><span class="pb pri">Save</span></div></div></div>
+<h4><span class="id">4B</span>Every sheet</h4><p>The iOS page sheet everywhere, one motion for every sheet. Costs the conversation its difference, and a short edit sheet over a receded page leaves a lot of dark above it.</p></div>
+</div></div>
+
+<div class="q"><div class="sechead"><h2>5. The kits</h2></div>
+<p class="ctx">The code's entries from 26 to 29 September are in the system now: the readme has <b>The row and its sheet</b>, the Labels section is rewritten to what shipped, and the contracts for <code>Chip</code>, <code>LabelMark</code>, <code>AppBar</code>, <code>Sheet</code> and <code>RowActionSheet</code> match. <b>The kit screens themselves</b> (the phones' thread, rows, edit sheet, timeline, notes and Today) still draw the older shapes.</p>
+<div class="opts">
+<div class="opt"><h4><span class="id">5A</span>Redraw the kits next <span class="picked">Picked</span><span class="lean">my lean</span></h4><p>One pass over the mobile kit so the next exploration starts from the app as it is, rather than me reading the code each time.</p></div>
+<div class="opt no"><h4><span class="id">5B</span>Leave them, code leads</h4><p>The readme and the contracts are the source; the kits are reference drawings and catch up when a feature touches them.</p></div>
+</div></div>
+
+<div class="q"><div class="sechead"><h2>6. The web</h2></div>
+<p class="ctx">Idea 1 is drawn for the phones. The web's conversation is a panel in the shell, not a sheet.</p>
+<div class="opts">
+<div class="opt"><h4><span class="id">6A</span>Phones only <span class="picked">Picked</span><span class="lean">my lean</span></h4><p>The immersion problem is a phone problem: a small screen with the tab bar and a page competing with the conversation.</p></div>
+<div class="opt no"><h4><span class="id">6B</span>A web pass too</h4><p>A separate exploration for the web's conversation panel after the phones settle.</p></div>
+</div></div>
+</div>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#2F5A3D"/><text x="50" y="62" font-size="36" text-anchor="middle" fill="#fff" font-family="sans-serif">?</text></svg></template>
+</body></html>

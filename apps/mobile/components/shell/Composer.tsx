@@ -21,6 +21,7 @@ import {
   AccessibilityInfo,
   ActivityIndicator,
   AppState,
+  findNodeHandle,
   Keyboard,
   Platform,
   Pressable,
@@ -167,6 +168,7 @@ export function Composer({
   maxLength,
   showCounter,
   submitLabel = "Send",
+  inSheet = false,
 }: {
   placeholder?: string | undefined;
   /** A `+`'s own cap, e.g. a note's 200. Absent for an ordinary dump, which
@@ -177,13 +179,18 @@ export function Composer({
   /** What the control that submits actually does. "Send" describes a dump;
    *  a `+`'s own write earns its own word. */
   submitLabel?: string;
+  /** The conversation sheet's composer rather than the plate's. Both are
+   *  mounted at once since 30 September, one covering the other, so the
+   *  things only one of them should do (focus for a pin or a share, ride the
+   *  plate's keyboard lift) key on this. */
+  inSheet?: boolean;
 }) {
   const COLOR = useColors();
   const {
     draft,
     setDraft,
     submit,
-    pin,
+    pin: pinned,
     onScreen,
     openQuestion,
     photos,
@@ -203,9 +210,27 @@ export function Composer({
     pickMention,
     hashLabels,
     pickHash,
-    composerFocused,
     sheetClosedAt,
+    plateInput,
+    raised,
+    live,
+    raise,
   } = useConversation();
+  // The field that is on screen: the sheet's while it is up, the plate's
+  // while it is not.
+  const onTop = inSheet === raised;
+  // A pin is the sheet's: the plate's composer under it stays as it was, so
+  // nothing on the plate changes when the pin goes.
+  const pin = inSheet ? pinned : null;
+  const redirect = !inSheet && !raised && !pin && live !== null;
+
+  // A dump sent from the plate raises the sheet with the keyboard still up
+  // for this field: hand the focus to the sheet's field, so the keyboard
+  // stays and the words go where the cursor is.
+  useEffect(() => {
+    if (inSheet || !raised || !field.current?.isFocused()) return;
+    raise({ focus: true });
+  }, [inSheet, raised, raise]);
   const holdsNote = !pin && (recording || note !== null);
   // 022. The @ list, while the draft ends in an @ token and not while a +
   // is pinned: a + is one line into a section, never a person.
@@ -232,25 +257,36 @@ export function Composer({
   // for. Not on an ordinary dump: the composer is on screen at all times and a
   // keyboard that opens itself takes the page away from somebody who was
   // reading it.
+  // A focus this composer asked for itself, which the handoff guard in
+  // `onFocus` must let through: a pin raised from a sheet's action lands
+  // inside the guard's window.
+  const requested = useRef(false);
+  const focusField = (): void => {
+    requested.current = true;
+    field.current?.focus();
+  };
   useEffect(() => {
-    if (pin) field.current?.focus();
+    if (!inSheet) return;
+    if (pin) focusField();
     // And put the keyboard away when the pin goes, whether it was written or
     // dismissed. A + is one line and then you are done; leaving the keyboard up
     // over the ordinary composer invites a dump nobody meant to send.
     else field.current?.blur();
-  }, [pin]);
+  }, [pin, inSheet]);
 
   // 020. A share from another app: the chips are in, the sheet is open, and
   // the words come next, so the field takes focus and the keyboard comes up.
   // A tick later, since the sheet may be mounting on the same frame; and not
   // before the app is in front, because a share arrives while the sharing
   // app still is, and a focus given then raises no keyboard.
+  const onTopNow = useRef(onTop);
+  onTopNow.current = onTop;
   useEffect(() => {
-    if (focusRequest === 0) return;
+    if (focusRequest === 0 || !onTopNow.current) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let sub: { remove: () => void } | null = null;
     const focus = () => {
-      timer = setTimeout(() => field.current?.focus(), 50);
+      timer = setTimeout(focusField, 50);
     };
     if (AppState.currentState === "active") focus();
     else {
@@ -358,20 +394,23 @@ export function Composer({
           </>
         ) : (
         <TextInput
-          ref={field}
+          ref={(input) => {
+            field.current = input;
+            // The shell matches this against the keyboard event's target:
+            // the plate rides a keyboard for this field and no other.
+            if (!inSheet) plateInput.value = input ? (findNodeHandle(input) ?? -1) : -1;
+          }}
           value={draft}
           onChangeText={setDraft}
           onFocus={() => {
             // Handed over by a sheet closing, not asked for: let it go, and
             // the keyboard with it.
-            if (Date.now() - sheetClosedAt.current < 500) {
+            const wanted = requested.current;
+            requested.current = false;
+            if (!wanted && Date.now() - sheetClosedAt.current < 500) {
               field.current?.blur();
               return;
             }
-            composerFocused.value = 1;
-          }}
-          onBlur={() => {
-            composerFocused.value = 0;
           }}
           multiline
           maxLength={maxLength}
@@ -393,6 +432,24 @@ export function Composer({
           style={{ fontSize: 16, lineHeight: 22, paddingVertical: 12, maxHeight: MAX_HEIGHT }}
         />
         )}
+
+        {/* A conversation put away is brought back by the composer (30
+            September 2026): a tap on the plate's field raises the
+            sheet with the keyboard, into the same turns and the same draft.
+            One put away for thirty minutes has ended by then, and the tap
+            lands in this field instead. Over the field and under the
+            controls, drawn before them, so the camera, the microphone and
+            Send still work from the plate. */}
+        {redirect ? (
+          <Pressable
+            style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
+            onPress={() => {
+              if (!raise({ focus: true })) focusField();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Back to the conversation"
+          />
+        ) : null}
 
         {/* 020. The chips, in the row with the controls, wrapping, as the kit
             draws them. Ten with the keyboard up is more than a phone should
@@ -481,6 +538,7 @@ export function Composer({
             </Pressable>
           </View>
         </View>
+
       </View>
 
       {line ? (

@@ -1,17 +1,20 @@
 // The bottom of every screen.
 //
-// From `M3App.jsx`'s plate: one raised surface with rounded top corners holding,
-// in order, the folded conversation header, the composer, and the tab bar. It
-// is one component rather than three siblings because the keyboard moves all of
-// it together and folding a conversation changes its height.
+// From `M3App.jsx`'s plate: one raised surface with rounded top corners holding
+// the composer and the tab bar. One component rather than two siblings because
+// the keyboard moves all of it together.
 //
-// **A thread screen keeps the composer and loses the tabs.** The kit hides both;
-// dumping from where you are is the product's core move and a thread is the
-// likeliest place to want it. Logged as a divergence.
+// **A fixed shape** (30 September 2026). A raised conversation covers the plate
+// rather than changing it: the composer and its prism band stay mounted and
+// keep their height underneath, and the tabs slide down under the sheet on the
+// sheet's own position, a transform and an opacity, never a height. **Every
+// screen keeps its tabs**, a thread included; they leave only under the
+// conversation or the plate's own keyboard.
 
 import { Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useKeyboardState } from "react-native-keyboard-controller";
+import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { progress } from "../../lib/sheet";
 import { Glyph } from "../Glyph";
 import { useColors } from "../../lib/colors";
 import { Composer } from "./Composer";
@@ -40,45 +43,37 @@ export function Plate({
   const COLOR = useColors();
   const insets = useSafeAreaInsets();
   const conversation = useConversation();
-  const folded = conversation.live !== null && conversation.folded;
-  // The raised sheet brings its own composer, so the plate's would be a second
-  // field behind it competing for the keyboard. `M3App.jsx` hides it for the
-  // same reason: `showComposer` is false while a conversation is up.
-  //
-  // From the context rather than recomputed here: a pin raises the sheet with
-  // no folded state of its own, and this and the sheet disagreeing about that
-  // is exactly how a pin ended up with two composers on screen at once during
-  // this feature's own build.
-  const raised = conversation.raised;
+  const { raised, sheetY, sheetTravel, plateFoot } = conversation;
 
-  // A keyboard means somebody is writing, and nothing else on the plate is
-  // any use to them: the tabs are three places to go while they are mid
-  // sentence, and the safe-area inset is padding above a nav bar the keyboard
-  // is already covering. Both go, so the field sits on the keyboard.
-  const writing = useKeyboardState((state) => state.isVisible);
-
-  // Its height, for the pages to end above. Not while writing: the tab row
-  // and the bottom inset go with the keyboard up, and a page that shrank its
-  // room to match would shift under a keyboard nobody can see past.
+  // Its height, for the pages to end above. The keyboard never changes it:
+  // the tabs and the inset stay, and a keyboard for this plate's field covers
+  // them before the shell lifts the composer onto it. Dropping them made every
+  // keyboard, a sheet's included, re-lay the plate out on the way up and again
+  // on the way down.
   const setInset = useSetPlateInset();
+
+  // Down by their own height and the inset below them as the sheet rises,
+  // fading as they go, so they leave under the sheet rather than being cut.
+  const tabsHeight = useSharedValue(0);
+  const away = useAnimatedStyle(() => {
+    const p = progress(sheetY.value, sheetTravel.value);
+    return {
+      transform: [{ translateY: p * (tabsHeight.value + insets.bottom) }],
+      opacity: 1 - p,
+    };
+  });
 
   return (
     <View
-      onLayout={writing ? undefined : (event) => setInset(event.nativeEvent.layout.height)}
-      // Rounded on top only when it is the top. A raised conversation sits
-      // directly on the plate, so the corners cut two notches out of the
-      // join and the scrim showed through them.
-      //
+      onLayout={(event) => setInset(event.nativeEvent.layout.height)}
       // **`surface-plate` in both themes, and it is one token on purpose.**
       // It is the ground the prism field sits on and the colour the field's
       // veil is made of. If the two ever hold different values the difference
       // shows as a band exactly where the field should be vanishing: on dark
       // that read as a grey composer against a black tab strip.
-      className={`bg-surface-plate ${
-        raised ? "" : isAndroid ? "rounded-t-a-xl" : "rounded-t-lg"
-      }`}
+      className={`bg-surface-plate ${isAndroid ? "rounded-t-a-xl" : "rounded-t-lg"}`}
       style={{
-        paddingBottom: writing ? 0 : insets.bottom,
+        paddingBottom: insets.bottom,
         // The kit's own shadow on the plate, which is what separates it from
         // the screen behind rather than a border.
         shadowColor: COLOR.scrim,
@@ -87,14 +82,10 @@ export function Plate({
         shadowOffset: { width: 0, height: -6 },
         elevation: 12,
       }}
+      importantForAccessibility={raised ? "no-hide-descendants" : "auto"}
+      accessibilityElementsHidden={raised}
     >
-      {folded ? <FoldedHeader /> : null}
-
-      {/* **The band, and it is the composer and the tabs only.** The folded
-            title row sits above it and outside it: the field is one texture
-            mapped into one box, so anything that changes the box's height
-            changes the pattern, and a title row that comes and goes would
-            squash it every time a conversation folded.
+      {/* **The band, and it is the composer and the tabs only.**
 
             `overflow: hidden` because the field may never leave this box. It
             must never sit under a scrolling list: `--text-tertiary` is exactly
@@ -103,52 +94,40 @@ export function Plate({
 
             One field across composer and tabs rather than one each: each field
             maps the whole texture into its own box, so two half-height boxes
-            squash the pattern and break it at the seam. */}
+            squash the pattern and break it at the seam. It stays mounted and
+            the same height under a raised conversation, which covers it; the
+            pulse goes to whichever field is on top. */}
       <View className="overflow-hidden">
-        {/* **No field when the composer is not here**, which is a divergence
-            from the design system and the only honest one available.
+        <PrismField
+          variant="band"
+          veil="graded"
+          pulse={raised ? 0 : (conversation.filed?.at ?? 0)}
+          // The design system's contract does not declare `shift`, and the
+          // rule enforcing that arrived with the 14 September sync, which is
+          // the first time `PrismField` was in the enforced set at all.
+          //
+          // The prop is real and logged: the web component attaches its own
+          // scroll listener, React Native has no equivalent, and the plate
+          // lives above the router while the lists live in the tab screens,
+          // so a shared value is the only thing that can span them. See the
+          // 2026-09-08 entry, "the parallax is handed in rather than listened
+          // for". Code wins and the contract catches up (OFF-7), so this is
+          // disabled here rather than the feature being removed.
+          // eslint-disable-next-line no-restricted-syntax
+          shift={prismShift}
+        />
 
-            The handoff is explicit that the plate is composer plus tabs in
-            every state including a raised conversation, so the field's box
-            never changes height. This app removes the composer while a
-            conversation is raised, because the raised sheet brings its own and
-            two would compete for the keyboard, which is a product decision
-            that predates the field.
+        <Composer placeholder={placeholder} />
 
-            The consequence is visible on a device: the band collapses to the
-            tab row, the whole texture and its veil squash into about seventy
-            points, and `--prism-veil-reach` lands mid-label rather than above
-            it, so colour sits behind the tab labels. That is the one thing the
-            veil's stops exist to prevent, because `--text-tertiary` is exactly
-            4.5:1 with nothing spare.
-
-            Drawing nothing beats drawing it at the wrong height: the field is
-            the composer band, and with no composer there is no band. */}
-        {raised ? null : (
-          <PrismField
-            variant="band"
-            veil="graded"
-            pulse={conversation.filed?.at ?? 0}
-            // The design system's contract does not declare `shift`, and the
-            // rule enforcing that arrived with the 14 September sync, which is
-            // the first time `PrismField` was in the enforced set at all.
-            //
-            // The prop is real and logged: the web component attaches its own
-            // scroll listener, React Native has no equivalent, and the plate
-            // lives above the router while the lists live in the tab screens,
-            // so a shared value is the only thing that can span them. See the
-            // 2026-09-08 entry, "the parallax is handed in rather than listened
-            // for". Code wins and the contract catches up (OFF-7), so this is
-            // disabled here rather than the feature being removed.
-            // eslint-disable-next-line no-restricted-syntax
-            shift={prismShift}
-          />
-        )}
-
-        {raised ? null : <Composer placeholder={placeholder} />}
-
-        {tabs.length > 0 && !writing ? (
-          <View className="flex-row">
+        {tabs.length > 0 ? (
+          <Animated.View
+            className="flex-row"
+            style={away}
+            onLayout={(event) => {
+              tabsHeight.value = event.nativeEvent.layout.height;
+              plateFoot.value = event.nativeEvent.layout.height + insets.bottom;
+            }}
+          >
             {tabs.map((tab) => (
               <Pressable
                 key={tab.key}
@@ -173,40 +152,9 @@ export function Plate({
                 </Text>
               </Pressable>
             ))}
-          </View>
+          </Animated.View>
         ) : null}
       </View>
-    </View>
-  );
-}
-
-/** A conversation pushed out of the way, still there.
- *
- *  The whole point of the fold: you can keep dumping without losing what
- *  offload just said, and raising it brings back every turn and the draft. */
-function FoldedHeader() {
-  const COLOR = useColors();
-  const conversation = useConversation();
-  if (!conversation.live) return null;
-
-  return (
-    <View className="flex-row items-center gap-space-4 border-b border-border-hairline px-gutter-screen py-space-4">
-      <Pressable className="flex-1" onPress={conversation.raise} hitSlop={8}>
-        <Text
-          className={`font-core font-medium ${isAndroid ? "text-a-on" : "text-text-primary"}`}
-          style={{ fontSize: 14 }}
-          numberOfLines={1}
-        >
-          {conversation.live.title}
-        </Text>
-      </Pressable>
-      <Pressable
-        onPress={conversation.close}
-        hitSlop={10}
-        accessibilityLabel="Close conversation"
-      >
-        <Glyph name="x" size={18} color={COLOR.iconOnWell} />
-      </Pressable>
     </View>
   );
 }

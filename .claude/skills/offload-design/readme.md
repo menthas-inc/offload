@@ -736,6 +736,14 @@ solid fill with both suppressed, because its contents are listed directly undern
 declared before it loses at equal specificity and today comes out wearing the hairline. Today's
 border is declared last.
 
+
+**Since 29 September the thread's calendar is always a month**, with the month bar (step, name and
+Today, step), the swipe on the phones and the directional slide; the week rail is drawn nowhere. A
+month's dots wait for its events and the months either side are read ahead, so a month is drawn
+once. **A picked calendar's events are quieter than the thread's own**: a hollow ring in
+`--text-tertiary`, drawn last in the cell, and they never lift it; the lift is the thread's own
+things only. The day list under it draws its event anchors at 16px on a 2px spine.
+
 ## Calendars
 
 Decided 17 September 2026 off `explorations/calendars-options.html`. Connected apps had a Calendar
@@ -825,7 +833,7 @@ The old six-value enum could not hold an interval, a weekday set, a monthly anch
 count.
 
 **The control lives in the edit sheet and nowhere else.** The row draws its date and does not act
-on it: a row carries two controls, never three. **An undated row shows nothing and asks nothing**,
+on it; since 29 September a phone row draws no tools at all (see *The row and its sheet*). **An undated row shows nothing and asks nothing**,
 because principle 04 made offload not ask for dates nobody gave.
 
 **The chip has a line of its own under the title**, above the meta, on every surface (26 September): beside a long title it had a third of a phone row. The line is the row's **marks line**, and a row's labels follow the chip on it. **A late chip says how late, not which day**, and drops the hour: "Due yesterday", "Due 4 days ago", "Due a week ago", "Due a month ago"; an event without the prefix, "3 days ago". Today, tomorrow, the coming fortnight and the far future name the day as before. The hour row is labelled **Time** on a task and **Starts** on an event.
@@ -872,6 +880,49 @@ accessibility text size rather than clipping.
 **The model may overwrite a date a person set**, where the dump states a new one. Nothing is
 sticky, so the change takes the existing change mark and writes an Activity row.
 
+## The row and its sheet
+
+Decided in code on 26 to 29 September 2026 and adopted here. It supersedes the kits' rows and edit
+sheet wherever they differ.
+
+**A tap on a row opens its edit sheet, and a phone row draws no tools.** Three glyphs on every row
+took a third of a phone's width off the title. The swipe still deletes and the long press still
+opens `RowActionSheet`. **A link with an address keeps the tap for its page** and draws one
+`ellipsis` that opens the same sheet; there is no `arrow-up-right`, because the domain under the
+title already says the row goes somewhere. Somebody else's row cannot be edited, so its tap opens
+the action sheet, which in a thread carries **Labels** after Edit. The web keeps its row tools.
+
+**The row is top aligned.** The lead (checkbox, 36px type tile, or picture) and the one tool sit on
+the title's line, 21px on the phones and 15.5px at 1.35 on the web. Under the title, in order: the
+**marks line** (date chip, then labels), a meta line where the surface needs one (Today's thread
+name and its labels), and a link's domain. **No details are drawn**, on any row or note: offload is
+for short things. A picture lead is 50px on the phones and 72px on the web, topped with the title.
+A checkbox beside a reorder handle sits at its own 21px, not in the tile's slot. **A finished to do
+keeps the handle's space** so its checkbox lines up, and a 1px rule in `--text-secondary` separates
+finished from open while both show. Live rows on the web draw no "you · date"; the archived view
+keeps "archived 20 Sep".
+
+**The edit sheet has no heading and no details field.** The title field is `title-3` semibold in
+`--text-primary`, then rows at 44px, each a glyph, a name, its value and a chevron: **When**
+(`calendar`), **Repeats** (`clock`), **Labels** (`tag`, the row's dots and names), and **Remind me**
+with a switch while the row is a reminder. **When, Repeats and Labels open in place**, as panels
+inside the same sheet, and hand their value back on Done; Save below writes once. Custom repeat is
+the one that still opens its own sheet. The sheet grows by the keyboard from its foot, so its top
+never leaves the screen.
+
+**Every row sheet has one foot**: the way out on the left (Delete in clay, Archive, Put back, or
+Clear in a panel), Cancel and the confirming action on the right, three 30px pills that wrap at a
+large text size. **Save where it writes, Done where it hands back** to a sheet that will. The When
+and Labels sheets the long press opens alone use the same foot.
+
+**A note row** on the phones has no sparkle: moss ink already says offload wrote it. Its labels are
+dots at the trailing edge, on the first line. Its handle sits on the first line and clears the text.
+
+**A thread's line** in My threads and the web's pane head says what is in it: the two biggest open
+kinds, largest first, "15 to do, 3 links", or for a shared thread one kind and the people, "6 to
+do, with Ana". No "you", ever; an empty thread of your own has no line. **"Thing" is retired** from
+anything a person reads: a day with a link on it is "2 more" after named kinds, or "2 on".
+
 ## Labels
 
 Decided 26 September 2026 off `explorations/labels.html`. A thread can hold more than one
@@ -890,33 +941,37 @@ both themes. A new label takes the lowest number its thread is not using, so the
 cerulean, rose and leaf. The hues keep clear of moss, blue, amber and clay, and **a label is never
 moss**, whoever applied it.
 
-**Applying.** Every row draws its labels on the marks line under the title. **A row with none
-draws a `tag` tool beside edit**, a stated exception to "two controls, never three", because it is
-the one control that says labels exist. Either opens the label sheet: the thread's labels with
-counts, ticks for this row, New label. **Many at once starts from the label**: the filter bar ends
-in a `plus` chip pinned to its edge, and naming a label opens every thing in the thread with a tick
-each; holding a label chip, or tapping a mark, opens the same list for that label with Rename,
-Colour and Delete. Done is one write and one Undo. **#** in the composer lists the thread's labels
-as **@** lists people, and saying it to offload works too; the turn footer shows the label mark
-after the thread pill.
+**Applying.** Every row draws its labels on the marks line under the title. **A row's labels are
+reached from its edit sheet**, the Labels row, since the row draws no tools on the phones (29
+September; the `tag` tool on unlabelled rows of 26 September is withdrawn there, and the web keeps
+it first among a row's tools). Another member's row reaches Labels from the long press. The label
+panel: *Labels*, the row's title, the thread's labels with dot, name, count and tick, New label, and
+the foot with Clear. **Many at once starts from the label**: the filter bar's pinned `plus`, or
+holding a label chip, or tapping a mark, opens that label's list with a tick per row, Rename,
+Colour and Delete. **A taken colour swaps**: the picker marks it with its label's initial and picking
+it swaps the two. A new label shows no colour picker and takes the lowest free one. **#** in the
+composer lists the thread's labels as **@** lists people. The turn footer's mark is 30px, the
+footer's own height, three and then a count. On the web, holding is the chip's context menu, a long
+press on touch, or a small `pencil` beside a picked chip.
 
-**Filtering.** A chip bar under the app bar: All, each label with its count, No label, and the
-`plus`. **Either logic**: two picked shows anything carrying one or both. A picked chip fills with
-its label's colour. Sections keep their headings with narrowed counts and fold when empty. Kept per
-thread on the device. **A thread with no labels and six or more things** draws the bar as one
-chip, *+ Group with labels*; under six there is no bar.
+**Filtering.** A chip bar under the app bar, once the thread has a label: All, each label with its
+count, No label in outline, and the `plus` pinned to the trailing edge on the page's own ground, no
+fade. **Either logic**. A picked chip fills with its label's colour. Kept per thread on the device.
+An empty result says *Nothing under Lisbon yet.*, or *Nothing without a label yet.* **A thread with no
+labels draws `tag` in the app bar**, first among its glyphs, named *Group with labels*, and it goes
+once the thread has one; there is no filter bar and no six-row threshold. The web pane head takes
+it too, which makes its tools "up to two".
 
 **Outside the thread a label always travels with its thread's name.** Today: the meta line, then
-the mark. The map: the solid as the pin, split between two colours when a place has two, ink with
-none. The calendar: **every event is the same neutral block, and a labelled one leads with its
-dot**, because a week in one city would otherwise turn the whole view one colour; a Google event
-has no dot. The rail: up to three dots under a day.
+the marks, and no way to label from there. The calendar: offload's own dated rows carry their marks
+and a Google event carries none; the month's dots are the type dots and narrow with the filter. **The
+map is not built**; the split pin waits for a map provider.
 
-**What offload does.** It creates and applies labels in the nightly compaction job, when it judges
-a thread holds more than one subject, and while filing a dump live. **Nothing in the thread
-announces it**; Activity records it, with Undo. **A person's change is final**: a label the person
-set, removed, renamed or recoloured is never touched by offload again. Deleting a label takes it
-off every row and deletes nothing else.
+**What offload does.** It labels live while filing (apply by id, make one only when its name is in
+the message, remove when asked), inside the turn's Undo. The nightly sort is built and **switched off
+for now**. Activity records what offload labelled, with Undo for thirty days. **A person's change is
+final.** Deleting a label takes it off every row and deletes nothing else. The copy has no noun:
+*Seven labelled.*, *Packing list is under Istanbul*.
 
 ## The admin panel
 
@@ -955,8 +1010,8 @@ cheaper model, or stop and tell the person offload is resting. Dumps are always 
 - **Theme and text size are named rows at the foot of the nav, and a Settings page as well.** Both read the same stored value. An accessibility control behind an unlabelled glyph is not a control anybody can find.
 - **Notes are rows, not chips.** A note is a sentence up to 200 characters, so `MemoryRow` sets it as one and the row grows to hold its own editor. A section holding none draws nothing at all, which means the first note on a thread comes from dumping something. **The row carries more since 014**: a date when the note has one, a mark that it has a longer body behind it, and a tertiary treatment for a note past the prompt budget, which is on the thread and not reaching offload.
 - **Hiding by stacking order is not hiding.** Anything concealed only by an opaque sibling in front of it becomes visible during any group fade: a screen transition, a modal, a list animating in. Anything that must not appear carries its own opacity or is not mounted. `SwipeRow`'s reveal is the worked example, its opacity driven from the same value as its offset.
-- **The bottom plate is not a fixed shape.** It rounds its top only while nothing is stacked on it, and drops the corners the moment a raised conversation sits on it, because both carry the same fill and the radius otherwise cuts a notch out of the join. Folded, the plate is the top again and rounds again. When the keyboard is up it clears to the composer alone: no tabs, no safe-area inset, since three places to go are no use to somebody mid-sentence.
-- **A raised conversation leaves the way it arrived.** It rolls down by its own measured height over 280ms on the same curve both ways, while the scrim fades under it, and it goes *behind* the bottom bar rather than fading: a slide and a dissolve at once looks like the sheet coming apart. A drag past the fold threshold hands straight to the exit from wherever the finger let go.
+- **The bottom plate is a fixed shape** (30 September). A raised conversation covers it rather than changing it: the plate keeps its composer, its tabs slide down under the sheet with their opacity, and its prism band keeps its height. There is no folded row on it; a conversation is raised or closed.
+- **A raised conversation follows the finger** (30 September). It rises to 54px from the top with no header, only a grabber, and one shared position drives the sheet, the scrim, the tab bar and, on iOS, the page behind (scale 0.93 from its top edge, down 10px, a 14px corner, under a 45% scrim). **On Android the page does not recede**: it dims under a 55% scrim and stays put, and predictive back drives the sheet. A release past a quarter of its travel or a flick down closes it, springing from the finger's speed; anything less springs back. **Every row sheet drags the same way**, and a drag is Cancel. Only the conversation dims or recedes the page for immersion. A thread keeps its tabs.
 - **`SwipeRow` is delete-only**, despite the generic name. The trash glyph and the clay ground are inside the component and only the label is exposed, so a swipe labelled Archive would show a trash can. Anything other than deleting belongs in a long-press action sheet, which is also the answer where the available actions depend on who authored the row: on web, edit and archive for any member, delete and move for the author alone. A fixed gesture map cannot express that.
 
 ## Brand decisions, closed 25 August 2026

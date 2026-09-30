@@ -12,14 +12,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Platform, Pressable, Text, TextInput, View } from "react-native";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
-import { scrimIn, scrimOut, sheetIn, sheetOut } from "../../lib/motion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Glyph } from "../Glyph";
-import { atOpacity, useColors } from "../../lib/colors";
+import { useColors } from "../../lib/colors";
 import { fetchThreads, type ThreadRow } from "../../lib/threads";
-import { useScreenSheet } from "./conversation-context";
+import { DragSheet } from "./DragSheet";
 
 const isAndroid = Platform.OS === "android";
 
@@ -39,7 +36,6 @@ export function MoveSheet({
   const [threads, setThreads] = useState<ThreadRow[] | null>(null);
   const [query, setQuery] = useState("");
   const input = useRef<TextInput>(null);
-  useScreenSheet(open);
 
   useEffect(() => {
     if (!open) return;
@@ -64,31 +60,20 @@ export function MoveSheet({
   // Move can run out of destinations, which sharing never can.
   const nowhere = threads !== null && others.length === 0;
 
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const lift = useAnimatedStyle(() => ({ transform: [{ translateY: keyboardHeight.value }] }));
-
   if (!open) return null;
 
   return (
     <>
-      <Animated.View
-        entering={scrimIn()}
-        exiting={scrimOut()}
-        className="absolute inset-0"
-        style={{ backgroundColor: atOpacity(COLOR.scrim, 0.35) }}
-      >
-        <Pressable className="flex-1" onPress={onClose} accessibilityLabel="Close" />
-      </Animated.View>
       {/* Lifted by the keyboard, which the search field raises on open: this
           app is edge to edge, Android ignores adjustResize, and a sheet
           anchored to the bottom sat entirely under the keyboard on a Pixel,
           which is the waitlist form's own lesson. The same lift Notes uses. */}
-      <Animated.View
-        entering={sheetIn()}
-        exiting={sheetOut()}
-        className={`absolute inset-x-0 bottom-0 rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
-        style={[{ maxHeight: "70%", paddingBottom: insets.bottom }, lift]}
-        accessibilityViewIsModal
+      <DragSheet
+        onClose={onClose}
+        keyboard="lift"
+        surface={`rounded-t-lg ${isAndroid ? "bg-a-c" : "bg-surface-raised"}`}
+        sheetStyle={{ maxHeight: "70%", paddingBottom: insets.bottom }}
+        onOpen={() => input.current?.focus()}
       >
         {nowhere ? (
           <Text className="px-gutter-screen pb-space-3 pt-space-6 font-core text-text-secondary" style={{ fontSize: 15, lineHeight: 22 }}>
@@ -100,7 +85,6 @@ export function MoveSheet({
               <Glyph name="search" size={16} color={COLOR.iconOnWell} />
               <TextInput
                 ref={input}
-                autoFocus
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Which thread?"
@@ -154,7 +138,7 @@ export function MoveSheet({
             </Text>
           </Pressable>
         </View>
-      </Animated.View>
+      </DragSheet>
     </>
   );
 }
