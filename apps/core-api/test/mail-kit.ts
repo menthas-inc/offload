@@ -7,6 +7,9 @@
 
 import { generateKeyPairSync } from "node:crypto";
 import { dkimSign } from "mailauth/lib/dkim/sign.js";
+import { promote } from "../src/admin/promote.js";
+import { db } from "../src/db.js";
+import { uuidv7 } from "../src/uuid.js";
 
 export const DOMAIN = "mail.test";
 export const SELECTOR = "t1";
@@ -75,4 +78,13 @@ export async function signed(
   if (!result.signatures) throw new Error("the kit signed nothing");
   if (result.errors.length) throw new Error(JSON.stringify(result.errors));
   return Buffer.from(result.signatures + message);
+}
+
+/** An account the way promotion makes one, with its key and default thread,
+ *  signed in with `email`. */
+export async function person(email = `${uuidv7()}@${DOMAIN}`): Promise<string> {
+  const outcome = await promote(email);
+  if (outcome.status !== "invited") throw new Error(outcome.status);
+  await db.updateTable("accounts").set({ state: "active" }).where("id", "=", outcome.accountId).execute();
+  return outcome.accountId;
 }
