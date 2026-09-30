@@ -15,6 +15,7 @@
 // wrong.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { sql } from "kysely";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
 import { buildApp, type App } from "../src/app.js";
@@ -77,7 +78,8 @@ async function dump(accountId: string, text: string, ageHours = 0) {
       eb(
         "last_message_at",
         ">",
-        new Date(Date.now() - 6 * 60 * 60 * 1000)
+        // The route's window, thirty minutes since 30 September 2026.
+        new Date(Date.now() - 30 * 60 * 1000)
       )
     )
     .orderBy("last_message_at", "desc")
@@ -170,26 +172,53 @@ describe("AC-14 an over-long dump", () => {
 });
 
 describe("AC-2 which conversation a dump joins", () => {
-  it("joins the newest when it is under six hours old", async () => {
+  it("joins the newest when it is inside the window", async () => {
     const id = await account();
     const first = await dump(id, "dentist after the 20th");
     const second = await dump(id, "and oak brackets");
     expect(second.conversationId).toBe(first.conversationId);
   });
 
-  it("starts a new one when the newest is older than six hours", async () => {
+  it("starts a new one when the newest is outside the window", async () => {
     const id = await account();
     const first = await dump(id, "yesterday", 7);
     const second = await dump(id, "today");
     expect(second.conversationId).not.toBe(first.conversationId);
   });
 
-  // Closing the composer is a statement, not a tidy-up. Six hours of silence
+  // Thirty minutes since 30 September 2026, on every surface: the phones end a
+  // conversation put away that long, and the web had nothing but this window.
+  // Through `takeDump`, which runs the route's own lookup.
+  it("starts a new one after thirty minutes of silence, through the route's own lookup", async () => {
+    const id = await account();
+    const first = await takeDump(id, "the brackets", uuidv7());
+    await db
+      .updateTable("conversations")
+      .set({ last_message_at: sql`now() - interval '31 minutes'` })
+      .where("id", "=", first.conversationId)
+      .execute();
+    const second = await takeDump(id, "the paint", uuidv7());
+    expect(second.conversationId).not.toBe(first.conversationId);
+  });
+
+  it("keeps one inside thirty minutes", async () => {
+    const id = await account();
+    const first = await takeDump(id, "the brackets", uuidv7());
+    await db
+      .updateTable("conversations")
+      .set({ last_message_at: sql`now() - interval '29 minutes'` })
+      .where("id", "=", first.conversationId)
+      .execute();
+    const second = await takeDump(id, "the paint", uuidv7());
+    expect(second.conversationId).toBe(first.conversationId);
+  });
+
+  // Closing the composer is a statement, not a tidy-up. Silence
   // used to be the only thing that ended a conversation, so the close cleared
   // the screen and the next dump landed in the same conversation anyway, with
   // offload still holding the last subject.
   // Through `takeDump` rather than the fixture above, on purpose. That helper
-  // reimplements the six-hour lookup instead of calling it, so the two tests
+  // reimplements the window lookup instead of calling it, so the two tests
   // above assert the fixture's own logic and would pass whatever the route
   // did. Worth knowing before adding a third that way.
   it("keeps the lines a dump was typed with", async () => {

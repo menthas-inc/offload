@@ -85,9 +85,12 @@ export class BadBlobMix extends Error {
 const MAX_DUMP_CHARS = 10_000;
 
 /** A dump joins the newest conversation if it is under this old, and starts a
- *  new one otherwise. Six hours is a working session: a morning of dumps is one
- *  conversation and tomorrow morning is a new one. */
-const CONVERSATION_GAP = "6 hours";
+ *  new one otherwise. Thirty minutes since 30 September 2026, the phones' rule
+ *  for a conversation put away, so both surfaces agree: a burst of dumps
+ *  around one task is one conversation, and the next subject starts fresh.
+ *  It was six hours, a working session, which carried the last subject into
+ *  the next one. */
+const CONVERSATION_GAP = "30 minutes";
 
 /** How often the stream re-checks the session and sends a keep-alive.
  *

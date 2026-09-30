@@ -70,7 +70,7 @@ The list is longer than the one above on purpose, and every line is a case label
 - **A proposal draws one primary and one plain way out, and the way out is its last option; a choice among values draws no primary.** Dark ink means offload is recommending, and on a choice it does not know.
 - **Typing answers it too.** While a question is open the composer holds it as its placeholder, and a message typed in the same conversation is read as a possible answer before it is read as a new dump. A message is never consumed by that reading: it is always stored, and whatever it carries beyond the answer files as a dump would. If it does not answer, the question closes and the message files as usual.
 - **A tap is a turn.** Picking an option writes the person's answer into the log as words, exactly as typing them would. The chips go, the sentence stays, and the log still reads as a conversation four turns later.
-- **A question closes with its conversation.** The next turn closes it whatever it says, and so does the conversation ending, which today is the composer closing or six hours of silence. Nothing waits on a question, so nothing times out inside a conversation.
+- **A question closes with its conversation.** The next turn closes it whatever it says, and so does the conversation ending, which today is the composer closing or thirty minutes of silence (six hours until 2026-09-30). Nothing waits on a question, so nothing times out inside a conversation.
 
 ### What the answer does
 

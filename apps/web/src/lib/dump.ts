@@ -443,6 +443,8 @@ export interface TailMessage {
   state: MessageState;
   /** What an Undo would reverse. The whole turn, not this row. */
   turnId: string;
+  /** When it was sent, for the thirty minute window. */
+  createdAt?: string;
   /** **The server has always sent both of these.** They were missing from this
    *  type, so the composer's hydration was written without them and a reload
    *  dropped an answer's rows on the floor and left a waiting reply with

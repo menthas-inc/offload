@@ -67,6 +67,7 @@ import { completeContent } from "../../lib/threads";
 import { Logo } from "../Logo";
 import { FILL_COMPOSER } from "../panes/Today";
 import { ToastHost, useToast } from "./Toast";
+import { lastSaidOf, startsFresh } from "../../lib/conversation";
 import styles from "../../app/(shell)/composer.module.css";
 
 interface Turn {
@@ -192,6 +193,8 @@ export function Composer({
     input.current?.focus();
   }
   const [turns, setTurns] = useState<Turn[]>([]);
+  // When the conversation was last spoken to, for the thirty minute window.
+  const lastSaid = useRef<number | null>(null);
   // Only while a send is out, and only to hold the photos still: the words
   // leave the field at the press, but a chip removed mid-send would still go.
   const [sending, setSending] = useState(false);
@@ -310,6 +313,7 @@ export function Composer({
     let live = true;
     void fetchCurrent().then((messages) => {
       if (!live || messages.length === 0) return;
+      lastSaid.current = lastSaidOf(messages);
       setTurns(
         messages.map((message) => ({
           id: message.id,
@@ -618,11 +622,15 @@ export function Composer({
         }
       : null;
     if (spoken) sentNotes.current.set(provisional, spoken);
+    // Thirty minutes of silence and the server starts a new conversation for
+    // this dump, so the tab stops drawing the old one above it.
+    const fresh = startsFresh(lastSaid.current, pressed);
+    lastSaid.current = pressed;
     setTurns((current) => [
       // 018. Chips leave with the next turn. The server decides whether the
       // words answered the question; the screen only knows it is no longer
       // open for a tap.
-      ...current.map((turn) => (turn.question ? { ...turn, question: null } : turn)),
+      ...(fresh ? [] : current.map((turn) => (turn.question ? { ...turn, question: null } : turn))),
       { id: provisional, from: "you", text, photos: shown, voice: shownVoice, state: "queued", since: pressed },
     ]);
     input.current?.focus();
@@ -990,6 +998,7 @@ export function Composer({
               // so the next dump starts a conversation rather than joining
               // this one however soon it arrives.
               setTurns([]);
+              lastSaid.current = null;
               void endConversation();
             }}
           >
