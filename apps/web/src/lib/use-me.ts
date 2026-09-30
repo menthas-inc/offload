@@ -78,7 +78,11 @@ export function stillAsking(me: Me): boolean {
   return me.needsFirstRun || me.needsName;
 }
 
-export type MeState = { status: "loading" } | { status: "ready"; me: Me };
+export type MeState =
+  | { status: "loading" }
+  | { status: "ready"; me: Me }
+  /** No answer came: not signed out, and the screen offers to ask again. */
+  | { status: "unreachable"; retry: () => void };
 
 /** Every mounted `useMe` hears a change to the identity.
  *
@@ -113,19 +117,33 @@ export function onMe(listener: (me: Me) => void): () => void {
 
 /** Reads the current account, sending anyone without a session to the gate.
  *  `expect` says which side of first run this screen is for; landing on the
- *  wrong side is a redirect, not an error. */
+ *  wrong side is a redirect, not an error.
+ *
+ *  Only a 401 is signed out. On 2026-09-30 Railway's edge answered a 404 for
+ *  nine minutes with every service healthy, and when any response that was
+ *  not ok meant the gate, a good session was sent there. Anything else, or a
+ *  fetch that throws, is `unreachable`: held, with the way to ask again. */
 export function useMe(expect: "first-run" | "shell"): MeState {
   const router = useRouter();
   const [state, setState] = useState<MeState>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let live = true;
+    const retry = () => {
+      setState({ status: "loading" });
+      setAttempt((n) => n + 1);
+    };
 
     fetch(`${API}/api/me`, { credentials: "include" })
       .then(async (response) => {
         if (!live) return;
-        if (!response.ok) {
+        if (response.status === 401) {
           router.replace("/sign-in");
+          return;
+        }
+        if (!response.ok) {
+          setState({ status: "unreachable", retry });
           return;
         }
         const me = (await response.json()) as Me;
@@ -136,9 +154,9 @@ export function useMe(expect: "first-run" | "shell"): MeState {
         else setState({ status: "ready", me });
       })
       .catch(() => {
-        // A network failure is not a signed-out state, so it does not bounce
-        // anyone to the gate. The screen stays on its loading frame and a
-        // reload retries.
+        // No network, a cross-origin answer without CORS headers, or a body
+        // that is not the account. None of them is signed out.
+        if (live) setState({ status: "unreachable", retry });
       });
 
     // A saved name lands here without a refetch: the PATCH already returned
@@ -159,7 +177,7 @@ export function useMe(expect: "first-run" | "shell"): MeState {
       live = false;
       window.removeEventListener(CHANGED, onChanged);
     };
-  }, [expect, router]);
+  }, [expect, router, attempt]);
 
   return state;
 }
