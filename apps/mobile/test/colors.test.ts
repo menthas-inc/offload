@@ -15,3 +15,15 @@ describe("the scrim", () => {
     expect(paletteFor(false).scrim).toBe(resolved.light["ink-950"]);
   });
 });
+
+describe("the plate's shadow", () => {
+  // Found on the Pixel, 2026-09-30: the plate drew no shadow on Android.
+  // `elevation` is Android's only reading of the old shadow props, and its
+  // light sits above the screen, so a plate lit from above casts nothing
+  // upward. The kits draw `--shadow-sheet`, which is a box-shadow, and React
+  // Native draws a box-shadow on both platforms.
+  it("is the sheet shadow token in each theme", () => {
+    expect(paletteFor(false).plateShadow).toBe(resolved.light["shadow-sheet"]);
+    expect(paletteFor(true).plateShadow).toBe(resolved.dark["shadow-sheet"]);
+  });
+});
