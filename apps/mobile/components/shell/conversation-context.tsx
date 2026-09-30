@@ -568,10 +568,6 @@ export function ConversationProvider({
   const polls = useRef(new Map<string, ReturnType<typeof awaitAnswer>>());
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const raiseFor = useCallback((next: Pin) => {
-    setDraft("");
-    setPin(next);
-  }, []);
 
   const dismissPin = useCallback(() => {
     // Synchronously, so the shortcut's "release the pin, then record" in one
@@ -641,6 +637,20 @@ export function ConversationProvider({
     stopping.current = request;
   }, []);
 
+  // **Both start the sheet from the press**, before React has rendered the
+  // change, as the handoff asks. Left to the effect, the rise waited on a
+  // render that took a quarter of a second in a development build, and a sheet
+  // leaving on the UI thread (the action that raised a pin) left a gap with no
+  // scrim between the two.
+  const raiseFor = useCallback(
+    (next: Pin) => {
+      setDraft("");
+      setPin(next);
+      springTo(true);
+    },
+    [springTo],
+  );
+
   /** Open the conversation if there is one to open. */
   const bringBack = useCallback((): boolean => {
     if (startsFresh(closedAt.current, Date.now())) {
@@ -650,8 +660,9 @@ export function ConversationProvider({
     if (liveRef.current === null) return false;
     closedAt.current = null;
     setOpen(true);
-    // Mid-close, `raised` is still true and would not change: turn it round.
-    if (raisedRef.current) springTo(true);
+    // From the press, and mid-close too, where `raised` is still true and
+    // would not change.
+    springTo(true);
     return true;
   }, [end, springTo]);
 
