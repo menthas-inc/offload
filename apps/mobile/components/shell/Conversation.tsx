@@ -432,10 +432,29 @@ function Yours({
           borderBottomRightRadius: 4,
         }}
       >
+        {/* 026. A forwarded email: the glyph, the subject on one line and
+            Forwarded after it, then the email's text kept to four lines. The
+            rows it filed hold the rest. */}
+        {turn.mail ? (
+          <View className="flex-row items-center gap-space-2">
+            <Glyph name="mail" size={14} color={COLOR.iconOnWell} />
+            <Text
+              className="flex-1 font-core font-medium text-ink-950"
+              style={{ fontSize: 15, lineHeight: 22 }}
+              numberOfLines={1}
+            >
+              {turn.mail.subject || "An email"}
+            </Text>
+            <Text className="font-core text-text-tertiary" style={{ fontSize: 12 }}>
+              Forwarded
+            </Text>
+          </View>
+        ) : null}
         {turn.text ? (
           <Text
-            className="font-core text-ink-950"
+            className={`font-core text-ink-950 ${turn.mail ? "mt-space-2" : ""}`}
             style={{ fontSize: 15, lineHeight: 22 }}
+            numberOfLines={turn.mail ? 4 : undefined}
           >
             {turn.text}
           </Text>

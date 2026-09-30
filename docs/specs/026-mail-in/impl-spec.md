@@ -281,3 +281,8 @@ Where the build differs from the plan above, recorded as it happened (DEV-2).
 - **The question row opens the email, whatever the question's state.** 018's question chips live on the email's message in the conversation, so opening the email shows the question while it is open and the email once a later turn has closed it, with nothing to resolve on the server. The feature spec's two doors are the same door.
 - **The Activity read gains `mailOutcome` and `messageId`**, which the clients map to a door.
 - **Notes count as landed** in the row's count and title, beside content rows.
+- **First run offers Mail before the calendar, on all three surfaces.** Connecting a calendar ends first run on the calendar page (phones) or at Google's consent screen (web), so a step after it would never be seen by anybody who connects. `offersFor` and `dotsFor` in `apps/mobile/lib/gate.ts` give the per-account list and the dots.
+- **The web draws Mail inline in Connected apps**, as 019 draws the calendar there, rather than a third pane.
+- **The phones' Activity doors**: a filed email opens its thread, anything else opens Today, where the conversation holding the email is; the phones have no route to a single row. The web opens the row, the thread, or Today.
+- **The conversation tail carries `mail: { subject }`**, which both clients draw as the bubble's heading, with the text kept to four lines.
+- **`expo-clipboard` is added** for Copy, so the phones need a native rebuild.

@@ -91,6 +91,55 @@ export const CONNECT_STEP = {
   notNow: "Not now",
 } as const;
 
+/** 026. Forwarding email to offload: the address, the card that adds it to
+ *  contacts, and the words of the Mail page and first run's Mail step. The
+ *  web repeats them in `components/MailBlock.tsx`; the three have to match. */
+export const MAIL_ADDRESS = "over@to.offload.club";
+/** A static card on the marketing site, opened in the system browser, which
+ *  offers to add it to contacts: no native module and no permission. */
+export const MAIL_CARD_PATH = "/offload.vcf";
+export const MAIL_CARD_URL = `${process.env["EXPO_PUBLIC_WEB_URL"] ?? "https://offload.club"}${MAIL_CARD_PATH}`;
+export const MAIL_RELAY_NOTE =
+  "You signed in with an address Apple keeps private, so mail you forward can't be matched to you.";
+
+export function mailLines(email: string): [string, string][] {
+  return [
+    [
+      `From ${email}`,
+      `Forward an email from ${email} and it's filed like anything else you dump. Mail from any other address isn't accepted.`,
+    ],
+    ["Forward by hand", "Automatic forwarding rules don't work yet."],
+  ];
+}
+
+/** First run's Mail step, in the calendar step's shape. */
+export function mailStep(email: string) {
+  return {
+    title: "Forward what matters",
+    facts: [
+      ["mail", "Send it an email.", `Forward anything to ${MAIL_ADDRESS} and it's filed.`],
+      ["lock", "Only from your address.", `Mail from ${email} is the only mail it accepts.`],
+    ] as [string, string, string][],
+    button: "Add to contacts",
+  };
+}
+
+export type Offer = "mail" | "calendar";
+
+/** The optional steps after first run, in order. Mail comes first: connecting
+ *  a calendar ends first run on the calendar page, so nothing after it would
+ *  ever be seen by somebody who connects. An Apple hidden email is not offered
+ *  Mail, which could not work for it. */
+export function offersFor(account: { mailAvailable: boolean; calendarOffer: boolean }): Offer[] {
+  return [...(account.mailAvailable ? (["mail"] as const) : []), ...(account.calendarOffer ? (["calendar"] as const) : [])];
+}
+
+/** The dots over an offer: the tutorial plus the offers this account is
+ *  shown, never a constant, with the current offer's dot the bar. */
+export function dotsFor(offers: Offer[], current: Offer): { steps: number; active: number } {
+  return { steps: TUTORIAL.length + offers.length, active: TUTORIAL.length + offers.indexOf(current) };
+}
+
 /** The fifth screen of first run, which asks the one thing it needs.
  *
  *  Here with the rest of the gate copy for the reason at the top of this file:

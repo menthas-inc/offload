@@ -41,20 +41,20 @@ Every task starts with its failing test, run and seen red for the reason the tas
 
 ## 4. Mobile
 
-- [ ] **T4.1** Icons regenerated from the design set; `dead-icons.mjs` passes with `mail` used in the three places below. *(AC-21)*
-- [ ] **T4.2** Connected apps: the Mail row in its own group as a door with the address as its note, or *Unavailable*; the Mail page with Copy, Add to contacts, the sign-in address, the two lines, the relay note, one spinner until `me`. *(AC-18)*
+- [x] **T4.1** Icons regenerated from the design set; `dead-icons.mjs` passes with `mail` used in the three places below. *(AC-21)*
+- [~] **T4.2** Connected apps: the Mail row in its own group as a door with the address as its note, or *Unavailable*; the Mail page with Copy, Add to contacts, the sign-in address, the two lines, the relay note, one spinner until `me`. *(AC-18)*
 - [ ] **T4.3** Add to contacts opens `https://offload.club/offload.vcf` in the system browser. Tried on the iOS simulator and on the Pixel, and what each does is written here; if either does not offer to add the contact, stop and bring it to the owner before an alternative. *(AC-19)*
-- [ ] **T4.4** First run: `MAIL_STEP` after the calendar's, skipped for `mailAvailable = false`, the bar's total from the account's own step list; both buttons move on. *(AC-20)*
-- [ ] **T4.5** The conversation draws a mail message with the glyph, the subject and *Forwarded*. *(AC-5)*
-- [ ] **T4.6** Activity: the `mail` rows, their doors and Undo, in both themes. *(AC-15, AC-16, AC-17)*
+- [~] **T4.4** First run: `MAIL_STEP` after the calendar's, skipped for `mailAvailable = false`, the bar's total from the account's own step list; both buttons move on. *(AC-20)*
+- [~] **T4.5** The conversation draws a mail message with the glyph, the subject and *Forwarded*. *(AC-5)*
+- [~] **T4.6** Activity: the `mail` rows, their doors and Undo, in both themes. *(AC-15, AC-16, AC-17)*
 
 ## 5. Web
 
-- [ ] **T5.1** `apps/web/public/offload.vcf` served as `text/vcard`, holding `FN:offload` and the address; a test fetches it. *(AC-19)*
-- [ ] **T5.2** Connected apps pane and the Mail pane as T4.2, with a download link for the card. *(AC-18, AC-19)*
-- [ ] **T5.3** First run's Mail step as T4.4 in `ConnectBlock.tsx`. *(AC-20)*
-- [ ] **T5.4** The conversation's mail message and the Activity pane's `mail` rows with Undo, as T4.5 and T4.6. *(AC-15, AC-16, AC-17)*
-- [ ] **T5.5** `dead-classes.mjs`, `dead-css.mjs`, `dead-icons.mjs` pass. *(AC-21)*
+- [x] **T5.1** `apps/web/public/offload.vcf` served as `text/vcard`, holding `FN:offload` and the address; a test fetches it. *(AC-19)*
+- [~] **T5.2** Connected apps pane and the Mail pane as T4.2, with a download link for the card. *(AC-18, AC-19)*
+- [~] **T5.3** First run's Mail step as T4.4 in `ConnectBlock.tsx`. *(AC-20)*
+- [~] **T5.4** The conversation's mail message and the Activity pane's `mail` rows with Undo, as T4.5 and T4.6. *(AC-15, AC-16, AC-17)*
+- [x] **T5.5** `dead-classes.mjs`, `dead-css.mjs`, `dead-icons.mjs` pass. *(AC-21)*
 
 ## 6. Going live
 

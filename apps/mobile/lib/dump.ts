@@ -155,6 +155,8 @@ export interface TailMessage {
   photos?: PhotoOnWire[];
   /** 021. Null on every reply and on any message without one. */
   voice?: VoiceOnWire | null;
+  /** 026. A forwarded email's subject; null on everything else. */
+  mail?: { subject: string } | null;
   state: MessageState;
   turnId: string;
   /** When it was sent; the thirty minute rule reads the last one after a
