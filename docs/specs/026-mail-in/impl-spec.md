@@ -259,3 +259,17 @@ The seven edits in the feature spec, in `apps/web/src/app/(marketing)/privacy/pa
 - **OFF-6.** Compliant. Filing is on offload's surfaces; the Undo that covers it is Activity's, twenty-four hours, with nothing destroyed while it is offered; a calendar write reaching nobody else is the allowlist's conditional entry, and one reaching anybody still asks. The allowlist names a mail turn at merge.
 - **OFF-7.** Compliant: the glyph and four divergences logged.
 - **OFF-8.** Compliant: the bound above.
+
+## As built
+
+Where the build differs from the plan above, recorded as it happened (DEV-2).
+
+- **`src/mail-in/`, not `src/mail/`.** `src/mail/` is the outbound mailer.
+- **The signature is spent after the email is handled, not by the check.** `checkSender` reads `mail_signatures` and returns the hash; `receiveMail` spends it once the email is filed, dropped at a cap or found empty. Spending it inside the check meant a failure between the check and the dump made the redelivery a "replay" of an email nothing kept. The dump's client key is `mail:` plus the signature's hash, so two concurrent deliveries collapse into one message through the dump's own lock.
+- **`unsigned_from` is reachable only as `unsigned`.** RFC 6376 makes a signature that leaves From out a permanent failure, and mailauth refuses both to sign and to verify one. The check keeps its own rule as a second line; the test tampers with `h=` and expects `unsigned`.
+- **The model budget is a cap like the others.** An account over its daily budget drops the email with the `over_limit` row, checked before the parse so no candidate is sealed for a turn that cannot run.
+- **An email the parser refuses writes the `nothing` row**, as one that held nothing does.
+- **The parser is a standalone `.ts` file** (`parse-worker.ts`) run in a worker thread under Node's native type stripping in development and in the tests, and compiled in production. It uses `html-to-text` directly: mailparser produced no text for an HTML-only email.
+- **`attrs.mail` gains `historyAt`**, where reply history below the forwarded message starts, found once at intake so the turn's copy can stop there.
+- **`wrangler` is not a dependency.** `pnpm --filter @offload/mail-worker deploy` runs it through `npx`, so the workspace does not carry its runtime binary for a deploy the owner runs by hand.
+- **Analytics.** `mail_received` has its schema in `schemas/events/`, and `dump_sent` gains `via_mail`.

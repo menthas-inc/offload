@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://offload.club/schemas/events/mail_received.v1.json",
+  "title": "mail_received",
+  "description": "026. An email reached over@to.offload.club and the mail Worker handed it in. The outcome of the sender check or of what came after it, and a count. Never an address, a subject, a name or a body (OFF-1).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["outcome"],
+  "properties": {
+    "outcome": {
+      "type": "string",
+      "enum": ["accepted", "unsigned", "unaligned", "length_tag", "unsigned_from", "unsigned_recipient", "from_shape", "no_account", "stale", "replayed", "key_unavailable", "over_limit", "nothing"]
+    },
+    "images_candidates": { "type": "integer", "minimum": 0, "maximum": 20 }
+  }
+}

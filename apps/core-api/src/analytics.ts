@@ -44,7 +44,9 @@ export type EventName =
   | "digest_sent"
   | "digest_skipped"
   | "notification_sent"
-  | "notification_failed";
+  | "notification_failed"
+  // 026. The outcome of an email handed in, as an enum, and a count.
+  | "mail_received";
 
 type Source = "core-api" | "agent" | "worker" | "web" | "ios" | "android";
 

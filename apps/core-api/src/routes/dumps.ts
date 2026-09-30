@@ -61,6 +61,7 @@ import { foundFor } from "../search/found.js";
 import { memberOf } from "../threads/access.js";
 import { MAX_PHOTOS } from "../blobs/photos.js";
 import { OverBudget, requireBudget } from "../budget.js";
+import type { MailAttrs } from "../mail-in/attrs.js";
 
 /** 020. A blob id that is not this account's, is already claimed, or is
  *  gone. One reason for all three, and the whole dump is refused. */
@@ -767,6 +768,10 @@ export async function takeDump(
   mentions: { accountId: string; name: string }[] = [],
   /** 025. A thread dump's # picks, kept for the turn to resolve. */
   labels: LabelPickOnWire[] = [],
+  /** 026. A forwarded email: what the turn needs to know it is one, and the
+   *  image candidates the look decides between. They stay unclaimed here;
+   *  the look claims what it keeps. */
+  mail?: { attrs: MailAttrs; candidates: string[] },
 ): Promise<{
   messageId: string;
   conversationId: string;
@@ -917,7 +922,11 @@ export async function takeDump(
         // carries. Otherwise a photo with no words is an image message and
         // words with or without photos are text; the blobs ride on the row
         // either way.
-        type: voice ? "voice" : blobIds.length > 0 && text.trim().length === 0 ? "image" : "text",
+        type: voice
+          ? "voice"
+          : (blobIds.length > 0 || (mail?.candidates.length ?? 0) > 0) && text.trim().length === 0
+            ? "image"
+            : "text",
         turn_id: turnId,
         text: text.trim().length === 0 ? null : text,
         // seen, not queued: offload has it. queued is internal and never
@@ -925,11 +934,12 @@ export async function takeDump(
         state: "seen",
         client_key: clientKey ?? null,
         looking_at_thread_id: lookingAt,
-        source: photos?.viaShare ? "share" : "person",
+        source: mail ? "mail" : photos?.viaShare ? "share" : "person",
         time_zone: timeZone,
-        ...(vouched.length > 0 || (lookingAt && labels.length > 0)
+        ...(vouched.length > 0 || (lookingAt && labels.length > 0) || mail
           ? {
               attrs: JSON.stringify({
+                ...(mail ? { mail: mail.attrs } : {}),
                 ...(vouched.length > 0 ? { mentions: vouched } : {}),
                 // Only for a dump made on a thread: from Today nothing was
                 // known to pick from, and the #words in the text stand in.
@@ -1014,6 +1024,7 @@ export async function takeDump(
         conversationId,
         turnId,
         ...(openQuestionId ? { openQuestionId } : {}),
+        ...(mail && mail.candidates.length > 0 ? { mailLook: mail.candidates } : {}),
       },
       priority: PRIORITY.interactive,
       // One retry, then the person is told (AC-5). The column's default is
@@ -1043,6 +1054,7 @@ export async function takeDump(
         photos: photoCount,
         photo_bytes: photoBytes,
         via_share: Boolean(photos?.viaShare),
+        ...(mail ? { via_mail: true } : {}),
         ...(voice
           ? { voice: true, voice_seconds: Math.round((voice.duration_ms ?? 0) / 1000), voice_bytes: voice.byte_size }
           : {}),

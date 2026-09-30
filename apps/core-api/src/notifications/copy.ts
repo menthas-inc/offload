@@ -51,7 +51,7 @@ const TITLES: Record<Send, string> = { morning: "Due today", evening: "Tomorrow"
 const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
 
 /** A count in words up to nine, and a number past that: a count stands on its own. */
-function count(n: number): string {
+export function count(n: number): string {
   return WORDS[n] ?? String(n);
 }
 
@@ -61,15 +61,20 @@ const CONTROL = new RegExp("[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]+", "g
 
 /** One line, control characters stripped, 120 characters. */
 export function clamp(text: string): string {
+  return clampTo(text, CLAMP);
+}
+
+/** The same, to another length. 026 keeps an email's subject to 300. */
+export function clampTo(text: string, max: number): string {
   return text
     .replace(CONTROL, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, CLAMP)
+    .slice(0, max)
     .trim();
 }
 
-function capital(sentence: string): string {
+export function capital(sentence: string): string {
   return sentence.length > 0 ? sentence.charAt(0).toUpperCase() + sentence.slice(1) : sentence;
 }
 

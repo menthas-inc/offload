@@ -7,7 +7,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "kysely";
 import { db, closeDb } from "../src/db.js";
 import { migrate } from "../src/migrate.js";
-import { checkSender } from "../src/mail-in/sender.js";
+import { checkSender, spendSignature } from "../src/mail-in/sender.js";
 import { wipe } from "./labels-kit.js";
 import { uuidv7 } from "../src/uuid.js";
 import { DOMAIN, raw, resolver, signed } from "./mail-kit.js";
@@ -33,7 +33,7 @@ const check = (message: Buffer, opts: { down?: boolean; now?: Date } = {}) =>
 
 describe("the sender check (AC-3)", () => {
   it("accepts a message signed by the sender's domain, from the account, to offload", async () => {
-    expect(await check(await signed(raw()))).toEqual({ outcome: "accepted", accountId: jo });
+    expect(await check(await signed(raw()))).toMatchObject({ outcome: "accepted", accountId: jo });
   });
 
   it("accepts offload in a signed Cc", async () => {
@@ -116,9 +116,11 @@ describe("the sender check (AC-3)", () => {
     expect((await check(await signed(message))).outcome).toBe("from_shape");
   });
 
-  it("refuses a signature it has seen before", async () => {
+  it("refuses a signature once it has been spent", async () => {
     const message = await signed(raw());
-    expect((await check(message)).outcome).toBe("accepted");
+    const first = await check(message);
+    expect(first.outcome).toBe("accepted");
+    await spendSignature(first.signature!);
     expect(await check(message)).toEqual({ outcome: "replayed", accountId: jo });
   });
 

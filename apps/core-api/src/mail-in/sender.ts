@@ -39,7 +39,15 @@ export type SenderOutcome =
 /** `accountId` is the account the From names, whatever the outcome, so the
  *  caller can write its one refused row; null where no account is named or
  *  where the check could not be run at all, which writes nothing. */
-export type SenderResult = { outcome: SenderOutcome; accountId: string | null };
+export type SenderResult = { outcome: SenderOutcome; accountId: string | null; signature?: Buffer };
+
+/** Spend an accepted email's signature, once it has been handled: filed,
+ *  dropped at a cap, or found empty. Spent after rather than during the
+ *  check, so a failure between the two leaves the redelivery acceptable
+ *  rather than refused as a replay of an email nothing kept. */
+export async function spendSignature(hash: Buffer): Promise<void> {
+  await sql`insert into mail_signatures (hash) values (${hash}) on conflict do nothing`.execute(db);
+}
 
 export type Resolver = (name: string, rrtype: string) => Promise<string[][] | string[]>;
 
@@ -153,14 +161,14 @@ export async function checkSender(raw: Buffer, opts: { resolver?: Resolver; now?
   const fresh = toOffload.filter((r) => !r.signTime || now - new Date(r.signTime).getTime() <= STALE_MS);
   if (fresh.length === 0) return refuse("stale");
 
-  // Spent only by an email that passed everything else: a refusal must not
-  // burn the signature for the real delivery behind it.
+  // Read here and spent by the caller once the email is handled: a refusal
+  // must not burn the signature for the real delivery behind it.
   const chosen = fresh[0]!;
   const hash = createHash("sha256")
     .update(`${String(chosen.signingDomain).toLowerCase()}\n${chosen.signature ?? randomUUID()}`)
     .digest();
-  const inserted = await sql`insert into mail_signatures (hash) values (${hash}) on conflict do nothing`.execute(db);
-  if (Number(inserted.numAffectedRows ?? 0) === 0) return refuse("replayed");
+  const seen = await db.selectFrom("mail_signatures").select("hash").where("hash", "=", hash).executeTakeFirst();
+  if (seen) return refuse("replayed");
 
-  return { outcome: "accepted", accountId };
+  return { outcome: "accepted", accountId, signature: hash };
 }
