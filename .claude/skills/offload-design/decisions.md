@@ -11,6 +11,13 @@ the new truth, and the design system is updated to match on the next sync.
 
 ## Open
 
+### 2026-09-30 · Launch holds when nothing answers, and only a 401 is signed out
+**Surface:** iOS, Android, web
+**Was:** launch on the phones sent any failure to `/api/me` to the gate: a 401, a 404, a timeout, no network. The web sent any response that was not ok to the gate, and a fetch that threw held the shell blank for good.
+**Is:** only a 401 goes to the gate. Anything else holds. On the phones the mark stays, and where the spinner sits it draws one clause, "That didn't go through.", with Try again beside it. The web's shell and first run draw the same line alone in the middle of the page. Try again asks once more, and on the phones the spinner shows while it waits. It is the line the people and invitation screens already draw when a read fails: `--text-danger`, with Try again in `--text-accent` on the phones and `--text-link` on the web. **The plate no longer draws on the launch screen.** Its route list still held `/` from when Today lived there, so the composer and tabs showed under launch whenever launch held, the ordinary slow-start spinner included.
+**Why:** on 30 September between 07:33 and 07:42 UTC Railway's edge answered 404 for api.offload.club with every service healthy, and the Pixel showed the gate to a session that was still good. The gate says signed out, which was not true. A blank screen was already ruled out on a device, because a frame that never changes looks like a broken app. No kit draws either state: `find-kit.sh` finds nothing for launch, splash, offline, retry or loading.
+**Design system impact:** the phone kits' launch has one state, the mark and a spinner under it. It wants a second: the mark, with the failure line and Try again in the spinner's place, and no plate. `WFirstRunGate.jsx` wants the same held line for the web, alone on the page with no card.
+
 ### 2026-09-30 · The immersive conversation as built, and what the build changed
 **Surface:** iOS, Android
 **Was:** `handoff/APPLY-2026-09-29-conversation-sheet.md` as drawn.
